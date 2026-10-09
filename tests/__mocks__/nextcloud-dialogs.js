@@ -17,6 +17,7 @@
 
 const showSuccess = jest.fn()
 const showError = jest.fn()
+const showUndo = jest.fn()
 
 const FilePickerType = { Choose: 1, Move: 2, Copy: 3, MoveCopy: 4, Custom: 5 }
 
@@ -36,6 +37,7 @@ module.exports = {
 	__esModule: true,
 	showSuccess,
 	showError,
+	showUndo,
 	getFilePickerBuilder,
 	FilePickerType,
 }

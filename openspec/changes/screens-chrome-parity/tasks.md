@@ -15,8 +15,8 @@
   - `cn-look-board` on the root, `cn-look-nextcloud` or `cn-look-board` on a page that overrides, nearest wins
   - `look-board.css` defines the nine `--cn-board-*` properties and nothing outside `.cn-look-board`
   - A snapshot of an index page without the key is unchanged
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: The board page frame
 - **spec_ref**: `openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-page-content-takes-the-board-frame`
@@ -24,8 +24,8 @@
 - **acceptance_criteria**:
   - Padding 24px 28px, max width 1240px, 20px block gap under the look
   - The 56px header inset only while the navigation is closed
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test — measured in a browser: padding 24px 28px and content width capped at 1240px, with a control without the look; the 56px inset with the navigation closed is not measured; `e2e/screens-index-card-chrome-parity.e2e.js` (library harness, not a live Nextcloud)
 
 ### Task 3: The board header button
 - **spec_ref**: `openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-header-buttons-share-one-board-button`
@@ -33,8 +33,8 @@
 - **acceptance_criteria**:
   - 40px, radius 8, 14px weight 600, outlined secondary and filled primary on index, detail, dashboard and settings headers
   - The header Actions or More menu shows its label under the look
-- [ ] Implement
-- [ ] Test
+- [x] Implement — The header "Actions"/"More" menu already shows its label (`forceName` + `menuName`), so `CnActionsMenu.vue` is unchanged.
+- [x] Test — measured in a browser: index header buttons 40px high with an 8px radius; detail, dashboard and settings headers and the Actions menu label are not measured; `e2e/screens-index-card-chrome-parity.e2e.js` (library harness, not a live Nextcloud)
 
 ### Task 4: The navigation anatomy and counts
 - **spec_ref**: `openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-navigation-takes-the-board-anatomy`
@@ -43,8 +43,8 @@
   - Width 264px, entry 42px, captions 12px uppercase, active entry on the tonal primary
   - `counterVariant` validates and maps to the attention pill under the look and to the highlighted bubble without it
   - Covers the counts requirement: `openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-a-navigation-count-can-ask-for-attention`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test — unit tests in `tests/components/CnAppNavBoardLook.spec.js` and `tests/css/lookBoardChrome.spec.js`; the measurement against werkplek/AppZijbalk is not run (no browser).
 
 ### Task 5: The footer order and the card
 - **spec_ref**: `openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-navigation-footer-reads-help-then-advanced`
@@ -52,8 +52,8 @@
 - **acceptance_criteria**:
   - Help renders before Advanced under the look whatever the declared order
   - No "More" group; the card is pushed to the bottom
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test — `tests/components/CnAppNavBoardLook.spec.js`; the `margin-top: auto` card is asserted in the stylesheet only, not in a browser.
 
 ### Task 6: The buildiq square
 - **spec_ref**: `openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-buildiq-square-is-one-square-everywhere`
@@ -61,8 +61,8 @@
 - **acceptance_criteria**:
   - `--cn-buildiq-color` with `#f36c21` as the default
   - 40px square in the header at the position the spec names; no second one in the actions bar
-- [ ] Implement
-- [ ] Test
+- [ ] Implement — not built: the dashboard page keeps the square before its Actions menu (no "primary button" rule applied there), and `CnDashboardPage` is untouched. Index, settings and the shell are built.
+- [x] Test — `tests/components/CnBuildiqSquare.spec.js` (index, actions bar, settings page, colour variable).
 
 ### Task 7: The settings shell and section cards
 - **spec_ref**: `openspec/changes/screens-chrome-parity/specs/settings-board-look/spec.md#requirement-the-admin-settings-shell-takes-the-board-header`
@@ -71,8 +71,8 @@
   - h1 28px, Documentation button before the buildiq square, no documentation icon
   - Cards in `minmax(420px, 1fr)`, radius 12, padding 22px 24px; `wide: true` spans the row
   - Covers `openspec/changes/screens-chrome-parity/specs/settings-board-look/spec.md#requirement-settings-sections-are-cards-in-a-grid` and `#requirement-the-version-card-takes-the-board-facts-and-footer`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test — `tests/components/CnSettingsBoardLook.spec.js`; grid columns and card anatomy not measured in a browser.
 
 ### Task 8: The save placement
 - **spec_ref**: `openspec/changes/screens-chrome-parity/specs/settings-board-look/spec.md#requirement-a-settings-page-saves-in-one-declared-place`
@@ -81,5 +81,5 @@
   - `saveMode` section, page and `autosave` each render the number of save buttons the spec names
   - A manifest that sets `saveMode` and a per-section save fails validation
   - Without the keys the save bar renders as before
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test — `tests/components/CnSettingsSaveMode.spec.js`; schema 2.68.0 adds `saveMode` and `autosave`. A "section save" is the section key `save`.

@@ -37,7 +37,7 @@ So on an index page fed by an OpenRegister list, `readRowAvailability` reports `
 
 - The same syntax for `bulkActions` and `headerActions` (its own change).
 - Placeholders on `type: "detail"` pages.
-- Translating OpenRegister permission verbs into built-in ids.
+- Translating OpenRegister permission verbs into built-in ids (delivered later by `row-action-openregister-verbs`, see D-6).
 - Editing consumer apps' `check:manifest` scripts (D-5 documents the step; each app adopts it).
 
 ## Decisions
@@ -84,11 +84,11 @@ Ajv has no warning level and `validateManifest()` returns only `errors`, so `val
 
 Apps' `check:manifest` scripts run Ajv against the raw schema, which cannot produce warnings. For the warning to show in CI an app calls `validateManifest()` from its `check:manifest` and prints `warnings` without failing on them. The library documents that step (`docs/utilities/validate-manifest.md`, `docs/migrating-to-manifest.md`); the scripts themselves change in each app's own change.
 
-### D-6: `@self.actions` matches built-ins by id only
+### D-6: `@self.actions` matches built-ins by id, never by label
 
 `actionIdOf` already prefers `id`, so built-ins match by id once D-4 lands. There is no fallback to the translated label. Per the finding above, OpenRegister sends permission verbs, never labels, and never sends this block on list responses, so a label fallback could never fire for the fleet; it would only add a second, locale-dependent way to match.
 
-A side effect worth stating: matching is exact, so a row that does carry OpenRegister's block (an object fetched through `show()`) today hides all four built-ins, and after this change keeps Delete and hides View, Edit and Copy. Mapping verbs to built-ins is a non-goal here, tracked in [#1328](https://github.com/ConductionNL/nextcloud-vue/issues/1328): if OpenRegister adds the block to list responses before that lands, every manifest index page keeps only Delete on every row.
+Id matching alone is exact, so on a row that carries OpenRegister's block (an object fetched through `show()`) it would keep Delete and hide View, Edit and Copy. Mapping verbs to built-ins is a non-goal here; the change `row-action-openregister-verbs` ([#1328](https://github.com/ConductionNL/nextcloud-vue/issues/1328)) adds it, so a built-in also matches the verb that governs it.
 
 ### D-7: Schema and validator
 
@@ -135,7 +135,7 @@ The two components also filter by the same rule: a shared helper decides whether
 - [Placeholders copied into a detail page's `config.actions`] → Schema error on non-index pages (D-7).
 - [A named source's JavaScript `rowActions` repeat a placeholder or set `builtin` on an object, which no schema sees] → The resolver keeps the first placement, ignores the `builtin` key and warns in development.
 - [An app ships placeholders without raising its library range] → Its manifest fails validation on older installs and loses backend merge and sentinel resolution (D-9). The consumer docs make the range bump a required step.
-- [A row fetched via `show()` loses View, Edit and Copy] → Pre-existing behaviour (today all four vanish); documented in D-6, fixed only by a verb mapping ([#1328](https://github.com/ConductionNL/nextcloud-vue/issues/1328)).
+- [A row fetched via `show()` loses View, Edit and Copy] → Pre-existing behaviour (today all four vanish); documented in D-6, fixed by the verb mapping in `row-action-openregister-verbs` ([#1328](https://github.com/ConductionNL/nextcloud-vue/issues/1328)).
 
 ## Migration Plan
 
@@ -143,8 +143,8 @@ None required. Adoption is per page: raise the library range, replace nothing, a
 
 ## Resolved Questions
 
-1. The label fallback is dropped: built-ins match `@self.actions` by id only (D-6).
+1. The label fallback is dropped: built-ins match `@self.actions` by id, never by label (D-6).
 2. The context menu reads `rowActionsFor(contextMenuRow)` and shares the row menu's visibility rule, so the two menus always stay in sync (D-10).
 3. `validateManifest()` returns `warnings`, and the docs tell apps to print them from `check:manifest` so they show in CI (D-5). The apps' scripts are not changed here.
-4. Mapping OpenRegister verbs onto built-ins stays a non-goal.
+4. Mapping OpenRegister verbs onto built-ins stays a non-goal of this change; `row-action-openregister-verbs` delivers it.
 5. The out-of-date scenario "View action appears only with row-click listener" is corrected in this change: `showViewAction` defaults to true with or without a row-click listener.

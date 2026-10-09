@@ -12,8 +12,8 @@
   - First matching rule sets the field when an answer it reads changes; hand edits stop the rules until reset
   - A rule that reads its own field does not loop
   - Verify: jest; mutation check: removing the hand-edit guard reddens the Typing wins test
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Token defaults
 - **spec_ref**: `openspec/changes/form-live-values/specs/dialog-system/spec.md#requirement-a-default-is-resolved-from-the-user-or-the-record`
@@ -22,8 +22,8 @@
   - `@me.displayName` and `@me.email` resolve from the current user; `@object.<field>` from the record
   - `initialValue` wins over a default
   - Verify: jest
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: The `calculate` hook
 - **spec_ref**: `openspec/changes/form-live-values/specs/dialog-system/spec.md#requirement-a-field-is-calculated-by-the-host`
@@ -31,8 +31,8 @@
 - **acceptance_criteria**:
   - Called after 400 ms of quiet for a field whose inputs changed; the field is read-only; a rejection keeps the value and shows the sentence
   - Verify: jest with fake timers
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: Unmet conditions
 - **spec_ref**: `openspec/changes/form-live-values/specs/dialog-system/spec.md#requirement-unmet-conditions-are-shown-beside-submit`
@@ -40,8 +40,8 @@
 - **acceptance_criteria**:
   - The list renders above submit; `blockSubmit` disables submit with the first message as reason
   - Verify: jest; `npm run check:a11y`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test — jest; `npm run check:a11y` is not run: needs a browser
 
 ### Task 5: Manifest schema and docs
 - **spec_ref**: `openspec/changes/form-live-values/specs/dialog-system/spec.md#requirement-a-field-is-filled-in-from-another-answer`
@@ -50,5 +50,5 @@
   - The v2 schema accepts `assign`, token `default` and `calculate.inputs` on a form field
   - Docs show one example each and state that calculation belongs to the host
   - Verify: `npm run build:validators`, `npm run check:docs`, `npm run check:docs-fresh`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test — `npm run check:docs` run; `npm run check:docs-fresh` is not run: the orchestrator regenerates docs/components/_generated

@@ -375,7 +375,7 @@ export default {
 | `showFormDialog` | Boolean | `true` | Whether to show the built-in form dialog for Add/Edit |
 | `useAdvancedFormDialog` | Boolean | `false` | Use `CnAdvancedFormDialog` instead of `CnFormDialog` for Add/Edit |
 | `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject` — the override owns persistence (e.g. a contact-aware endpoint that fills a required FK) and returns the created object. Create-only (edits fall through). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Unchanged behaviour when absent. |
-| `showViewAction` | Boolean | `true` | Whether to add a View row action |
+| `showViewAction` | Boolean | `true` | Whether to add a View row action. Left out of a row's menu whenever a click on that row already opens its detail page (the menu offers Edit instead); a row with no detail page keeps it |
 | `viewTo` | Function | `null` | `(row) => location \| null`: where the View row action links to. A location makes View a real link (no `view` event); null keeps it a button. CnPageRenderer sets it to where a row click opens |
 | `showEditAction` | Boolean | `true` | Whether to add an Edit row action |
 | `editOpensDetail` | Boolean | `false` | Send the Edit row action to the record's detail page (emits `@edit-open`) instead of opening the edit modal. Opt-in per page; `CnPageRenderer` does not set it, since routing Edit makes it a repeat of the row click. |
@@ -388,6 +388,7 @@ export default {
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (in addition to / instead of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`. The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set. |
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls (only relevant with `inlineSearch`, which otherwise takes the counter's place). Fed from the manifest as `pages[].config.showCountWithSearch`. |
+| `searchInFiles` | Boolean | `false` | "Also search inside files" switch beside the search box (manifest `config.searchInFiles`). On, a search with a term sends `_content_search=true`; rows found through a file show "Found in {file}" (`@self.matchedFile`). State kept in the route as `contentSearch=1`. Emits `content-search`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest `config.searchPlaceholder`). |
 | `cardsLabel` | String | `''` | Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles"). |
 | `tableLabel` | String | `''` | Label for the table view-toggle option (manifest `config.tableLabel`, e.g. "List"). |
@@ -432,6 +433,21 @@ fetch as a *fixed* filter the user's facet selections can't override, with
 list nested under a parent route (`/forms/:id/submissions`) is a fully
 declarative page. When `objects` **is** supplied (every existing consumer),
 nothing changes — no store is touched and `filter` has no effect.
+
+### Mixed-schema lists (`collectionUrl`)
+
+Set `collectionUrl` to list from an endpoint that searches several
+register/schema pairs at once. `register` and `schema` stay the page's own
+pair (columns, Add, export, import); a row of another pair edits, saves and
+deletes through its own `@self.register` / `@self.schema`.
+
+```js static
+<CnIndexPage
+  title="Publications"
+  register="19"
+  schema="24"
+  :collection-url="generateUrl('/apps/opencatalogi/api/{slug}', { slug })" />
+```
 
 ## Named entity sources (`config.entitySource`) — lists that are not OpenRegister objects
 
@@ -866,7 +882,12 @@ actions, and the page's declaration stands as before. Wire the field on one
 list first, then check `rowActionsNotDeclared` to see what the server is
 offering that you have not declared yet.
 
-The built-in View, Edit, Copy and Delete carry the ids `view`, `edit`, `copy` and `delete`, and match this block by id only, never by their label.
+The built-in View, Edit, Copy and Delete carry the ids `view`, `edit`, `copy` and `delete`, and match this block by id, never by their label.
+They also match OpenRegister's permission verbs, which is what OpenRegister writes in `@self.actions`: `read` permits View and Copy, `update` permits Edit, and `delete` permits Delete.
+A built-in shows when the block allows its id or its verb, and a verb a declared built-in uses is not reported by `rowActionsNotDeclared`.
+When the block refuses the verb with a reason, `rowActionRefusal` returns it for the built-in; a reason on the built-in's own id wins over the verb's.
+`rowActionRefusal` maps the verb only when handed the built-in action itself, such as the action from the `action` event payload or `{ id: 'edit', builtin: true }`; a plain `{ id: 'edit' }` matches by its id only.
+An app action that shares a built-in id, such as `{ "id": "edit", "label": "Open editor" }`, matches by its id only.
 The right-click menu reads the same per-row list as the actions menu, so it drops the same refused actions.
 
 ## Placing built-in row actions
@@ -1047,3 +1068,7 @@ manifest restating it. A value on the folder entry wins over the row's, key by
 key. Try it on one folder first, then move the layouts onto the rows once the
 columns are right.
 
+
+## Board look
+
+With `look: "board"` (the page's `look` prop, `config.look`, or the app's) the index page takes the DqZaken setup: a header with the count line from `countText` (`{shown}`, `{total}`), the buttons Download, Actions, the buildiq square and the primary one in that order, a two-row toolbar (saved-view chips, Filter with a count and the view switch; then search and active filter chips), a bulk band between toolbar and table (`bulkHint`), the table as a white card with one menu button per row, and a footer inside the card (`footerNote`). `cardFields` names the facts of each card in the cards view. Without the look nothing changes.

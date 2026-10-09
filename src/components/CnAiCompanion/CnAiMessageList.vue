@@ -27,6 +27,20 @@
 			<!-- User message — plain text, no markdown -->
 			<div v-else-if="message.role === 'user'" class="cn-ai-message-list__bubble cn-ai-message-list__bubble--user">
 				<span class="cn-ai-message-list__user-text">{{ message.content }}</span>
+				<ul
+					v-if="hasAttachments(message)"
+					class="cn-ai-message-list__attachments"
+					data-testid="cn-ai-message-attachments">
+					<li v-for="(file, fIdx) in message.attachments" :key="fIdx" class="cn-ai-message-list__attachment-item">
+						<a
+							v-if="fileHref(file)"
+							class="cn-ai-message-list__chip"
+							:href="fileHref(file)"
+							target="_blank"
+							rel="noopener noreferrer">{{ file.name }}</a>
+						<span v-else class="cn-ai-message-list__chip">{{ file.name }}</span>
+					</li>
+				</ul>
 			</div>
 
 			<!-- Assistant message — markdown via NcRichText + tool calls -->
@@ -42,11 +56,46 @@
 				  lists, code blocks), and an agent answering with data reaches for
 				  a table constantly.
 				-->
+				<p
+					v-for="(notice, nIdx) in (message.attachmentNotices || [])"
+					:key="'notice-' + nIdx"
+					class="cn-ai-message-list__notice"
+					data-testid="cn-ai-message-notice">
+					{{ notice }}
+				</p>
+
 				<NcRichText
 					v-if="message.content"
 					:text="message.content"
 					:useMarkdown="true"
 					:useExtendedMarkdown="true" />
+
+				<!-- Files the answer brought back: images as previews, the rest as chips. -->
+				<ul
+					v-if="hasAttachments(message)"
+					class="cn-ai-message-list__attachments"
+					data-testid="cn-ai-message-attachments">
+					<li v-for="(file, fIdx) in message.attachments" :key="fIdx" class="cn-ai-message-list__attachment-item">
+						<a
+							v-if="isImage(file)"
+							class="cn-ai-message-list__thumb"
+							:href="fileHref(file)"
+							target="_blank"
+							rel="noopener noreferrer">
+							<img
+								:src="previewSrc(file)"
+								:alt="file.name"
+								loading="lazy">
+						</a>
+						<a
+							v-else-if="fileHref(file)"
+							class="cn-ai-message-list__chip"
+							:href="fileHref(file)"
+							target="_blank"
+							rel="noopener noreferrer">{{ fileLabel(file) }}</a>
+						<span v-else class="cn-ai-message-list__chip">{{ file.name }}</span>
+					</li>
+				</ul>
 
 				<!-- Tool calls / results -->
 				<div
@@ -106,6 +155,7 @@
 </template>
 
 <script>
+import { generateUrl } from '@nextcloud/router'
 import { NcRichText } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 
@@ -123,7 +173,7 @@ export default {
 
 	props: {
 		/**
-		 * Array of message objects: { role, content, toolCalls? }
+		 * Array of message objects: { role, content, toolCalls?, attachments?, attachmentNotices? }. `attachments` are `{ name, fileId?, mimeType?, size? }`; `attachmentNotices` are strings shown above an answer.
 		 */
 		messages: {
 			type: Array,
@@ -185,6 +235,63 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a message carries a non-empty attachment list.
+		 *
+		 * @param {object} message The message.
+		 * @return {boolean} True when it has attachments to show.
+		 */
+		hasAttachments(message) {
+			return Array.isArray(message.attachments) && message.attachments.length > 0
+		},
+
+		/**
+		 * Whether an attachment is an image Nextcloud can preview (needs a file id).
+		 *
+		 * @param {object} file The attachment.
+		 * @return {boolean} True for an `image/*` attachment with a file id.
+		 */
+		isImage(file) {
+			return !!file && (file.fileId !== null && file.fileId !== undefined) && typeof file.mimeType === 'string' && file.mimeType.startsWith('image/')
+		},
+
+		/**
+		 * The link that opens an attachment in Files, or '' without a file id.
+		 *
+		 * @param {object} file The attachment.
+		 * @return {string} The URL.
+		 */
+		fileHref(file) {
+			return file && (file.fileId !== null && file.fileId !== undefined) ? generateUrl('/f/{id}', { id: file.fileId }) : ''
+		},
+
+		/**
+		 * The Nextcloud preview thumbnail URL for an image attachment.
+		 *
+		 * @param {object} file The attachment.
+		 * @return {string} The URL.
+		 */
+		previewSrc(file) {
+			return generateUrl('/core/preview') + `?fileId=${encodeURIComponent(file.fileId)}&x=256&y=256&a=1`
+		},
+
+		/**
+		 * Chip text for a non-image attachment: name, then type and size when known.
+		 *
+		 * @param {object} file The attachment.
+		 * @return {string} The label.
+		 */
+		fileLabel(file) {
+			const extra = []
+			if (file.mimeType) {
+				extra.push(file.mimeType)
+			}
+			if (typeof file.size === 'number' && file.size >= 0) {
+				extra.push(file.size < 1024 ? `${file.size} B` : file.size < 1048576 ? `${Math.round(file.size / 1024)} KB` : `${(file.size / 1048576).toFixed(1)} MB`)
+			}
+			return extra.length ? `${file.name} (${extra.join(', ')})` : file.name
+		},
+
 		/**
 		 * Whether one tool call's detail is open.
 		 *
@@ -284,6 +391,43 @@ export default {
 
 .cn-ai-message-list__user-text {
 	white-space: pre-wrap;
+}
+
+/* Attachments: chips under a question, previews and chips in an answer. */
+.cn-ai-message-list__attachments {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 6px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-ai-message-list__chip {
+	display: inline-block;
+	max-width: 100%;
+	padding: 2px 8px;
+	border-radius: var(--border-radius-pill, 16px);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	text-decoration: none;
+}
+
+.cn-ai-message-list__thumb img {
+	display: block;
+	max-width: 100%;
+	max-height: 160px;
+	border-radius: var(--border-radius);
+}
+
+.cn-ai-message-list__notice {
+	margin: 0 0 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
 }
 
 .cn-ai-message-list__system-text {

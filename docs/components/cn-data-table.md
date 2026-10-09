@@ -89,6 +89,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`). Useful for compact dashboard list widgets that want a plain bordered-row list without column labels. |
+| `pinnedCount` | Number | `0` | How many data columns are pinned to the start of the table. They, and the selection and icon columns, stay in view when the table scrolls sideways. |
 | `fixedLayout` | Boolean | `false` | Switch to `table-layout: fixed`, making each column's `width` authoritative instead of a hint the browser may override from cell content. Opt in when content would otherwise dictate the layout: a long unbreakable value (a PHP FQCN, a UUID) widens its own column under the default auto layout and can paint past the cell box into its neighbour, while a column left unsized soaks up all remaining width. Cells break long words rather than overflowing. Columns with no `width` share what is left, so size every column when you want exact control — percentages summing to 100 are the easiest to reason about. |
 | `rowIndicators` | Array | `[]` | State indicators the page declares for its rows. Each entry is `{ id, field, equals?, in?, icon, text, tooltip? }`: `field` is a dotted path on the row, the condition is `equals`, `in`, or plain truthiness when neither is given, `icon` is a CnIcon name, and `text` is the text alternative. An entry without `text` does not render, because an icon with no text is colour and shape alone (WCAG 2.2 SC 1.4.1). The page decides which indicators exist: a record cannot add one the page has not declared, and a page declaring none renders its rows exactly as before. |
 | `rowIndicatorCap` | Number | `3` | How many declared indicators render on the row itself. The rest stay available from `indicatorsFor(row).overflow`, for the row menu. |
@@ -193,3 +194,7 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 ```
 
 Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.
+
+## Board look
+
+Under the board look the table container is a white card (radius 12, no shadow), header cells are weight 600 on the hover ground, the first data cell is the title column (a 15px link with the `secondary` line under it) and the last column is headed by a visually hidden "Actions".

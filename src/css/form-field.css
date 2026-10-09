@@ -1,0 +1,171 @@
+/*
+ * The board form field (screens-form-parity, canon sections 5 and 6).
+ *
+ * Opt-in: the label, error and half-width rules apply under `.cn-look-board`
+ * only. Field sizes are tokens a theme can set; the defaults are the staff
+ * values (the citizen scale belongs to portaliq's site theme).
+ *
+ *   --cn-field-label-size      14px
+ *   --cn-field-height          40px
+ *   --cn-field-text-size       15px
+ *   --cn-field-hint-size       13px
+ *   --cn-field-error-border    2px
+ */
+
+.cn-look-board {
+	--cn-field-label-size: 14px;
+	--cn-field-height: 40px;
+	--cn-field-text-size: 15px;
+	--cn-field-hint-size: 13px;
+	--cn-field-error-border: 2px;
+}
+
+/* Label above the control, 6px gap. */
+.cn-look-board .cn-form-field__head {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.cn-look-board .cn-form-field__label {
+	font-size: var(--cn-field-label-size);
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-form-field__optional {
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
+}
+
+/* Error between the label and the control: 600 weight, error text colour, icon. */
+.cn-look-board .cn-form-field__error {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	margin: 0;
+	font-size: var(--cn-field-text-size);
+	font-weight: 600;
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-look-board .cn-form-field__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* The hint under the control. */
+.cn-look-board .cn-form-dialog__helper,
+.cn-look-board .cn-form-page__field-help {
+	font-size: var(--cn-field-hint-size);
+	color: var(--color-text-maxcontrast);
+}
+
+/* The control: 40px, radius 8, 1px dark border, 15px text. */
+.cn-look-board .cn-form-dialog__field input:not([type='checkbox']):not([type='radio']),
+.cn-look-board .cn-form-dialog__field textarea,
+.cn-look-board .cn-form-page__field input:not([type='checkbox']):not([type='radio']),
+.cn-look-board .cn-form-page__field textarea {
+	font-size: var(--cn-field-text-size);
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: var(--cn-board-control-radius, 8px);
+}
+
+.cn-look-board .cn-form-dialog__field input:not([type='checkbox']):not([type='radio']),
+.cn-look-board .cn-form-page__field input:not([type='checkbox']):not([type='radio']) {
+	min-height: var(--cn-field-height);
+}
+
+.cn-look-board .cn-form-dialog__field textarea,
+.cn-look-board .cn-form-page__field textarea {
+	padding: 10px 12px;
+}
+
+/* An invalid field: 2px error border on the control, 4px edge on the group. */
+.cn-look-board .cn-form-field--invalid input:not([type='checkbox']):not([type='radio']),
+.cn-look-board .cn-form-field--invalid textarea,
+.cn-look-board .cn-form-field--invalid .select {
+	border: var(--cn-field-error-border) solid var(--color-error);
+}
+
+.cn-look-board .cn-form-field--invalid {
+	padding-inline-start: 16px;
+	border-inline-start: 4px solid var(--color-error);
+}
+
+/* Short fields pair up: the form is a grid, every block spans the row, and a
+   field with `width: "half"` takes one cell, so consecutive half fields share
+   a row from 456px and stack below that. */
+.cn-look-board .cn-form-dialog__form:not(.cn-form-dialog__form--two-column),
+.cn-look-board .cn-form-page__form {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 18px 16px;
+}
+
+.cn-look-board .cn-form-dialog__form:not(.cn-form-dialog__form--two-column) > *,
+.cn-look-board .cn-form-page__form > * {
+	grid-column: 1 / -1;
+}
+
+.cn-look-board .cn-form-dialog__form > .cn-form-field--half,
+.cn-look-board .cn-form-page__form > .cn-form-field--half {
+	grid-column: auto;
+}
+
+/* The checkbox and switch wrappers sit inside the field; the hint and the
+   control keep their order. */
+/* The citizen sentence above the first field of a public form. */
+.cn-look-board .cn-form-page__optional-notice {
+	margin: 0 0 16px;
+	font-size: var(--cn-field-text-size);
+	color: var(--color-text-maxcontrast);
+}
+
+/* The error summary at the top of a failed form. */
+.cn-look-board .cn-form-error-summary {
+	margin: 0 0 20px;
+	padding: 16px 20px;
+	border: var(--cn-field-error-border) solid var(--color-error);
+	border-radius: var(--cn-board-card-radius, 12px);
+}
+
+.cn-look-board .cn-form-error-summary__title {
+	margin: 0 0 6px;
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-look-board .cn-form-error-summary__list {
+	margin: 8px 0 0;
+	padding-inline-start: 20px;
+}
+
+/* A form page in the board look: a white card (1px border, radius 12, padding
+   24px) with the stepper above the fields and a hairline footer inside it. */
+.cn-look-board .cn-form-page__form {
+	padding: 24px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+}
+
+.cn-look-board .cn-form-page__footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	padding: 16px 0 0;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-look-board .cn-form-page__footer .cn-form-page__primary {
+	margin-inline-start: auto;
+}

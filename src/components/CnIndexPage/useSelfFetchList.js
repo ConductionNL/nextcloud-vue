@@ -5,6 +5,7 @@ import { useObjectStore } from '../../store/index.js'
 // Both filter resolvers live in `utils/routeFilters.js` so CnLogsPage applies
 // the same two grammars (route-param interpolation + `?key=value` deep links)
 // without pulling in this composable's index-only sidebar/subscription wiring.
+import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 
 function resolveInitialQuickFilterIndex(quickFilters) {
@@ -59,9 +60,10 @@ function unionFilterMaps(filterMaps) {
  * @param {object} props CnIndexPage props.
  * @param {import('vue').ComponentInternalInstance|null} instance Pass `getCurrentInstance()`.
  * @param {typeof import('vue').inject} inject Pass Vue's `inject`.
+ * @param {{activeFolderSchema?: import('vue').Ref<?{schema: string, register?: string}>}} [extras] `activeFolderSchema`: a ref the page sets to the selected folder's `{ schema, register? }`, switching the loaded object type while it is non-null.
  * @return {object} { isSelfFetch, list, selfObjectStore, selfObjectType, activeQuickFilterIndex }
  */
-export function useSelfFetchList(props, instance, inject) {
+export function useSelfFetchList(props, instance, inject, extras = {}) {
 	const objectsProvided = !!(
 		instance && instance.proxy && instance.proxy.$options && instance.proxy.$options.propsData
 		&& Object.hasOwn(instance.proxy.$options.propsData, 'objects')
@@ -72,7 +74,12 @@ export function useSelfFetchList(props, instance, inject) {
 	// mistake, because the request succeeds and nothing says the two disagree.
 	const isSelfFetch = !!(props.register && props.schema) && !objectsProvided && !props.entitySource
 
-	const activeQuickFilterIndex = ref(resolveInitialQuickFilterIndex(props.quickFilters))
+	// "Also search inside files" switch, seeded from `?contentSearch=1` so a
+	// shared link reproduces the list. Only meaningful when `searchInFiles` is on.
+	const routeAtSetup = instance && instance.proxy && instance.proxy.$route
+	const contentSearch = ref(props.searchInFiles === true && String(routeAtSetup?.query?.contentSearch) === '1')
+
+	const activeQuickFilterIndex = ref(resolveInitialQuickFilterIndex(withPersonalLenses(props.quickFilters, props.personalLenses)))
 	const selectedQuickFilterIndices = ref([])
 	const isMultiQuickFilter = props.quickFilterMultiple === true
 
@@ -84,12 +91,28 @@ export function useSelfFetchList(props, instance, inject) {
 			selfObjectType: '',
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			contentSearch,
 			selfFetchTokenCtx: null,
 			initialQueryFilterKeys: [],
 		}
 	}
 
-	const objectType = `${props.register}-${props.schema}`
+	// The object type follows the selected folder's own schema when it declares
+	// one; otherwise the page's register and schema.
+	const activeFolderSchema = extras.activeFolderSchema || null
+	const resolvedTarget = computed(() => {
+		const folder = activeFolderSchema && activeFolderSchema.value
+		if (folder && folder.schema) {
+			const register = folder.register || props.register
+			return { register, schema: folder.schema, type: `${register}-${folder.schema}` }
+		}
+		// A collection endpoint gets its own type key, so a plain registration of
+		// the same pair elsewhere never resets it.
+		const collectionUrl = props.collectionUrl || ''
+		const type = `${props.register}-${props.schema}` + (collectionUrl ? `@${collectionUrl}` : '')
+		return { register: props.register, schema: props.schema, type, collectionUrl }
+	})
+	const objectType = computed(() => resolvedTarget.value.type)
 	const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
 	const objectStore = useObjectStore()
 
@@ -134,14 +157,23 @@ export function useSelfFetchList(props, instance, inject) {
 
 	// Pass register/schema in their positional id slots (not as a {register, schema} object as
 	// second arg) — that previously made fetch URLs go to `/api/objects/undefined/[object Object]`.
-	if (typeof objectStore.registerObjectType === 'function') {
-		objectStore.registerObjectType(
-			objectType,
-			props.schema,
-			props.register,
-			{ registerSlug: props.register, schemaSlug: props.schema },
-		)
+	// Runs (sync, ahead of the list's own watcher) again whenever the type switches.
+	function registerTarget() {
+		const { register, schema, type, collectionUrl } = resolvedTarget.value
+		if (typeof objectStore.registerObjectType === 'function') {
+			objectStore.registerObjectType(type, schema, register, {
+				registerSlug: register,
+				schemaSlug: schema,
+				...(collectionUrl ? { collectionUrl } : {}),
+			})
+		}
+		// A mixed list tells its own rows apart by `@self.register`, an id, so a slug register needs resolving.
+		if (collectionUrl && !/^\d+$/.test(String(register)) && typeof objectStore.fetchRegister === 'function') {
+			objectStore.fetchRegister(type)
+		}
 	}
+	registerTarget()
+	watch(objectType, registerTarget, { flush: 'sync' })
 
 	// Seed the visible-column set from the configured columns so the sidebar's
 	// Columns tab reflects the curated default; null when none are configured
@@ -162,7 +194,9 @@ export function useSelfFetchList(props, instance, inject) {
 	const initialActiveFilters = resolveQueryFilters(initialRoute && initialRoute.query, tokenCtx())
 	const initialSearchTerm = (initialRoute && typeof initialRoute.query?._search === 'string') ? initialRoute.query._search : ''
 
-	const list = useListView(objectType, {
+	// Set right after useListView returns; the fixed-filters getter reads it lazily.
+	let listHandle = null
+	const list = useListView(() => objectType.value, {
 		objectStore,
 		sidebarState,
 		defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
@@ -187,8 +221,14 @@ export function useSelfFetchList(props, instance, inject) {
 			// component's own state rather than a prop — and read through the
 			// one fixed-filter getter rather than a second search path.
 			const scopeSearchFields = (instance && instance.proxy && instance.proxy.activeScopeSearchFields) || []
-			const scope = scopeSearchFields.length > 0 ? { _searchFields: scopeSearchFields } : {}
-			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
+			const scopeBase = scopeSearchFields.length > 0 ? { _searchFields: scopeSearchFields } : {}
+			// File-content search widens a text search, so it rides only with a term.
+			const widen = props.searchInFiles === true && contentSearch.value && !!(listHandle && listHandle.searchTerm.value)
+			// The visible calendar month, only while the page is in calendar mode.
+			const month = (instance && instance.proxy && instance.proxy.calendarRangeFilter) || {}
+			const scope = { ...(widen ? { ...scopeBase, _content_search: 'true' } : scopeBase), ...month }
+			const lensed = withPersonalLenses(props.quickFilters, props.personalLenses)
+			const tabs = Array.isArray(lensed) ? lensed : null
 			if (!tabs) {
 				return { ...queryFilters, ...scope, ...base }
 			}
@@ -208,6 +248,8 @@ export function useSelfFetchList(props, instance, inject) {
 		},
 	})
 
+	listHandle = list
+
 	// Re-fetch when the quick-filter selection changes (pre-existing), OR
 	// when the workspace/app-config bag content changes (e.g. the
 	// administration switcher writes a new `activeAdministrationId`) — a
@@ -215,7 +257,7 @@ export function useSelfFetchList(props, instance, inject) {
 	// the list without a manual reload. A change to `props.filter` itself (a
 	// host toggling a filter checkbox) re-fetches the same way.
 	const filterSignature = computed(() => JSON.stringify(props.filter ?? null))
-	watch([activeQuickFilterIndex, selectedQuickFilterIndices, workspaceSignature, appConfigSignature, filterSignature], () => {
+	watch([activeQuickFilterIndex, selectedQuickFilterIndices, contentSearch, workspaceSignature, appConfigSignature, filterSignature], () => {
 		if (list && typeof list.refresh === 'function') {
 			list.refresh(1)
 		}
@@ -232,7 +274,7 @@ export function useSelfFetchList(props, instance, inject) {
 	// a reactive getter so a runtime flip attaches/detaches accordingly.
 	// Stores without live-updates support (no `subscribe` action) are a
 	// silent no-op inside the composable, keeping this fully inert.
-	useObjectSubscription(objectStore, objectType, null, {
+	useObjectSubscription(objectStore, () => objectType.value, null, {
 		enabled: () => props.subscribe !== false,
 	})
 
@@ -243,6 +285,7 @@ export function useSelfFetchList(props, instance, inject) {
 		selfObjectType: objectType,
 		activeQuickFilterIndex,
 		selectedQuickFilterIndices,
+		contentSearch,
 		// The page persists the view state back into the query, and needs both
 		// to do it without trampling the rest of it: the keys it adopted from
 		// the query on load (the only non-`_` ones it may clear), and the ctx

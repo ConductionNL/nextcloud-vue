@@ -136,6 +136,23 @@ export function resolveFilterValue(v, ctx) {
 		}
 		return v
 	}
+	if (v === '@me.displayName' || v === '@me.email') {
+		// The form's own context wins (`ctx.me`, e.g. an email fetched from the
+		// profile); @nextcloud/auth only knows the uid and display name.
+		const key = v.slice('@me.'.length)
+		if (ctx && ctx.me && ctx.me[key] !== undefined && ctx.me[key] !== null && ctx.me[key] !== '') {
+			return ctx.me[key]
+		}
+		try {
+			const user = getCurrentUser()
+			if (user && user[key]) {
+				return user[key]
+			}
+		} catch {
+			// not signed in: leave the token unresolved
+		}
+		return v
+	}
 	if (v === '@me') {
 		// Canonical source is @nextcloud/auth; window.OC is the fallback for
 		// environments where the auth package can't read the page state (jsdom).

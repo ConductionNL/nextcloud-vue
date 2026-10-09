@@ -26,6 +26,11 @@
 @import 'gridstack/dist/gridstack.min.css';
 
 @import './main.css';
+@import './look-board.css';
+@import './dialog.css';
+@import './form-field.css';
+@import './board.css';
+@import './look-board-index.css';
 @import './table.css';
 @import './card.css';
 @import './pagination.css';
@@ -42,6 +47,7 @@
 @import './index-sidebar.css';
 @import './dashboard.css';
 @import './detail-page.css';
+@import './look-board-detail.css';
 @import './reference-preview.css';
 @import './CnSchemaFormDialog.css';
 @import './timeline-stages.css';

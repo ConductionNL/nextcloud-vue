@@ -130,3 +130,7 @@ The visibility rule (`visible` and a local `visibleWhen`), the testid, the rende
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnRowActions.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnRowActions/CnRowActions.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Board look
+
+Under the board look the menu is always one 34px menu button (three dots), named "Actions for &lt;title&gt;" from `rowLabel`, or by `triggerLabel` when the page names the whole label.

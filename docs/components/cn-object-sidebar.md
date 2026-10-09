@@ -100,9 +100,11 @@ A tab's `component` name is resolved against the v2 component registry (`cnRegis
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `update:open` | `boolean` | Emitted when the sidebar is closed; use with `.sync` |
-| `mention` | `{ objectId, register, schema, noteId, mentionedUserIds }` | Forwarded unchanged from the built-in Notes tab after a note containing at least one `@mention` was created or edited. `mentionedUserIds` is the unique list of mentioned Nextcloud user ids. nc-vue is a frontend library and never dispatches notifications itself — the consuming app listens to this event and creates Nextcloud notifications from its own backend (e.g. `INotificationManager` in the controller that persists the note). Not emitted when the saved note contains no mentions, nor when the Notes tab is overridden via the `tab-notes` slot. |
+| `mention` | `{ objectId, register, schema, noteId, mentionedUserIds, mentionedGroupIds? }` | Forwarded unchanged from the built-in Notes tab after a note containing at least one `@mention` was created or edited. `mentionedUserIds` is the unique list of mentioned Nextcloud user ids. nc-vue is a frontend library and never dispatches notifications itself — the consuming app listens to this event and creates Nextcloud notifications from its own backend (e.g. `INotificationManager` in the controller that persists the note). Not emitted when the saved note contains no mentions, nor when the Notes tab is overridden via the `tab-notes` slot. |
 
-The Notes tab's composer supports `@mention` autocomplete (backed by the core `core/autocomplete/get` OCS endpoint) and stores mentions inline in the note text as `@userId` / `@"user id"` — the same convention as Nextcloud Comments/Talk. Stored mentions render as highlighted chips with the user's display name, degrading to the raw id for unknown/deleted users.
+The Notes tab's composer supports `@mention` autocomplete (backed by the core `core/autocomplete/get` OCS endpoint) and stores mentions inline in the note text as `@userId` / `@"user id"` — the same convention as Nextcloud Comments/Talk. Stored mentions render as highlighted chips with the user's display name, degrading to the raw id for unknown/deleted users. The composer also suggests Nextcloud groups, stored as `@"group/<gid>"` and shown as group chips; `mentionedGroupIds` (present only when a group is mentioned) carries the group ids, and expanding a group to its members stays with whoever dispatches the notifications.
+
+The Notes tab also takes replies and pasted images, from the shared [CnNoteComposer](./cn-note-composer.md) and [CnNoteBody](./cn-note-body.md). When the notes response carries a `parentId` key on its notes, each note offers **Reply** (named after the author it answers); a reply is created with `parentId` and shows under its top-level note as a nested list, one level deep, oldest first, and a reply to a reply attaches to the same top-level note. Without the `parentId` key no Reply is shown. An image (`image/*`) pasted or dropped into the composer is uploaded to the record's files and inserted as `![name](url)`; a note renders only images that are files of the same record as images, and any other image URL as a link.
 
 ### Slots
 
@@ -206,3 +208,26 @@ The locked-banner UX lives on [`CnDetailPage`](./cn-detail-page.md) for v1 — s
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnObjectSidebar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnObjectSidebar/CnObjectSidebar.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Tasks from OpenRegister flow tasks (`tasksSource`)
+
+`tasksSource` (String, default `'vtodo'`) is passed to the Tasks tab as its `source`. With `'flow-tasks'` the tab lists the OpenRegister flow tasks anchored on the record (`GET /apps/openregister/api/flow-tasks?objectUuid=<id>`): open ones first by due date with overdue marked in words, finished ones folded under "Done". A form creates a task on the record (title, assignee as a user or a group pool, optional due date and description), and each row offers exactly the verbs in its `can` list that the tab has a control for (Claim, Unclaim, Reassign, Complete, Cancel). A verb the server refuses shows its message on the row and leaves the row as it was. A row without a `can` key offers no verb and links to the task page. The tab emits `count` with the number of open tasks. With the default `'vtodo'` nothing changes.
+
+## Restoring a version
+
+`CnAuditTrailTab` (the built-in Audit Trail tab and the sidebar `audit` widget) takes two props for restoring a record from its history:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `allowRestore` | Boolean | `false` | Show "Restore this version" on an expanded `create` or `update` entry. |
+| `objectData` | Object | `null` | The record as the page holds it. The button is hidden when `@self.actions` is an array without `update`, and disabled (naming the holder) when someone else holds the lock. |
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `restored` | the restored record | Emitted after a confirmed restore; the tab also reloads its list from page one and emits `cn:page:refresh` so the detail page re-reads the record. |
+
+Choosing the button opens a `CnConfirmDialog` with the entry's date and user, saying the restore is a new version that removes nothing. Refusals show a fixed sentence (see [`useRestoreVersion`](../utilities/composables/use-restore-version.md)); the server's own message is never shown.
+
+```json
+{ "type": "audit", "props": { "allowRestore": true } }
+```

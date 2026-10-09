@@ -117,7 +117,10 @@
 
 		<NcLoadingIcon v-if="loading" :size="32" class="cn-files-browser__loading" />
 
-		<NcEmptyContent v-else-if="error !== ''" :name="error" class="cn-files-browser__state">
+		<CnEmptyContent v-else-if="error !== ''"
+			error
+			:name="error"
+			class="cn-files-browser__state">
 			<template #icon>
 				<AlertCircleOutline :size="44" />
 			</template>
@@ -126,9 +129,9 @@
 					{{ retryLabel }}
 				</NcButton>
 			</template>
-		</NcEmptyContent>
+		</CnEmptyContent>
 
-		<NcEmptyContent
+		<CnEmptyContent
 			v-else-if="sorted.length === 0 && linkedItems.length === 0"
 			:name="emptyLabel"
 			:description="emptyHint"
@@ -136,7 +139,7 @@
 			<template #icon>
 				<FolderOutline :size="44" />
 			</template>
-		</NcEmptyContent>
+		</CnEmptyContent>
 
 		<!-- The table. Its rows are @nextcloud/files nodes read over DAV, and
 		     each row's menu is the list of actions the Files app registered on
@@ -442,23 +445,7 @@ import { getClient, getDefaultPropfind, getRemoteURL, getRootPath, resultToNode 
  */
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import {
-	NcActionButton,
-	NcActionCheckbox,
-	NcActionLink,
-	NcActions,
-	NcActionSeparator,
-	NcBreadcrumb,
-	NcBreadcrumbs,
-	NcButton,
-	NcDateTime,
-	NcDialog,
-	NcEmptyContent,
-	NcIconSvgWrapper,
-	NcLoadingIcon,
-	NcProgressBar,
-	NcTextField,
-} from '@nextcloud/vue'
+import { NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcBreadcrumb, NcBreadcrumbs, NcButton, NcDateTime, NcDialog, NcIconSvgWrapper, NcLoadingIcon, NcProgressBar, NcTextField } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
@@ -470,6 +457,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import CnCellRenderer from '../CnCellRenderer/CnCellRenderer.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
@@ -508,7 +496,7 @@ export default {
 		NcButton,
 		NcDateTime,
 		NcDialog,
-		NcEmptyContent,
+		CnEmptyContent,
 		NcIconSvgWrapper,
 		NcLoadingIcon,
 		NcProgressBar,

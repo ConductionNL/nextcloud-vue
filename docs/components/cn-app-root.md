@@ -135,11 +135,16 @@ export default {
 | `kbSearchProviders` | `Object` | `{}` | Pluggable knowledge-base search providers (#91 Wave 3) — map of provider-key → `{ search(query, opts), externalOpen? }`, merged OVER the library built-in `default` (endpoint) provider and provided to descendant `CnKbSearchWidget` as `cnKbSearchProviders`. A `kb-search` widget picks its provider via `content.provider`; an app talking to a bespoke KB backend (the xwiki proxy) registers its client here — the library ships only the seam. See [CnActionButtons / kb-search](./cn-kb-search-widget.md). |
 | `pageTypes` | `Object \| null` | `null` | Map of `pages[].type` → Vue component. Provided to descendant renderers as `cnPageTypes`. When omitted, the renderer falls back to `defaultPageTypes`. |
 | `translate` | `Function` | identity | App-supplied translator — typically `(key) => t(appId, key)`. Named `translate` (not `t`) to avoid shadowing the global `t()` mixin. Provided as `cnTranslate`. |
+| `environment` | String | `''` | Environment this instance is: `development`, `test`, `acceptance` or `production`. Wins over the active organisation's `environment` field. A non-production value shows a [CnEnvironmentBanner](cn-environment-banner.md) and prefixes the tab title. |
+| `language` | `String` | user's language | The language labels are shown in. Defaults to the user's Nextcloud language; a preview can pass another. The label lookup tries `manifest.i18n.labels[language]` (then its base, `en_GB` to `en`), then the host `translate`, then the text as written. See [Manifest labels](../i18n/manifest-labels.md). |
+| `diagnostics` | `Function` | `null` | Listener for diagnostics: called with one report per request, render error, unknown component and binding problem (`{ kind, at, pageId, ... }`), and provided as `cnDiagnostics`. Without it no report is built. See [Diagnostics channel](../utilities/diagnostics.md). |
 | `notificationLabels` (`notification-labels`) | `Object` | `{}` | Labels for the app's notification rules in the user-settings notification pane, keyed `<schema>.<key>` or `<key>`. Values are translated strings or per-locale maps. A rule without a label reads as its key split into words, never as the raw key. Provided as `cnNotificationLabels`. |
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
 | `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')` so the title follows the user's locale. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
 | `adminSettingsTitle` | `String` | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
 | `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
+| `brand` | `Object \| null` | `null` | The brand block (`{ logo?, emblem?, name?, caption?, alt?, placement? }`) the board look draws at the start of Nextcloud's header. Empty falls back to the manifest's `nav.brand`. |
+| `look` | `''\|'board'\|'nextcloud'` | `''` | The look the app is drawn in. Empty falls back to the manifest's top-level `look`, then `nextcloud`. Provided to descendants as `cnLook`; in the `board` look the library's empty states draw as the card-size `CnWidgetEmptyState`. |
 | `initialOrganisationUuid` | `String \| null` | `null` | Seed value for the multi-tenancy provider's `activeOrganisationUuid`. CnAppRoot calls [`provideTenantContext`](../utilities/provide-tenant-context.md)`(initialOrganisationUuid, initialOrganisation)` on mount, so consumers wired to [`useTenantContext`](../utilities/composables/use-tenant-context.md) see the seeded tenant from the first render. Single-tenant deployments leave both props `null`. |
 | `initialOrganisation` | `Object \| null` | `null` | Optional resolved organisation entity matching `initialOrganisationUuid`. Stored on `activeOrganisation` so downstream components ([`CnTenantBadge`](./cn-tenant-badge.md), [`CnFormDialog`](./cn-form-dialog.md) auto-fill) have the name/icon available immediately without a follow-up fetch. |
 | `chatAppId` | `String` | `'openregister'` | Backend app id the hosted [`CnAiCompanion`](./cn-ai-companion.md) targets for its chat/agent HTTP calls (see [`chatApiBase`](../utilities/chat-api-base.md) / [`DEFAULT_CHAT_APP_ID`](../utilities/default-chat-app-id.md)). Override (e.g. `'hermiq'`) to point the companion at another backend. |
@@ -263,6 +268,38 @@ Before this overload existed, virtual-app hosts had to fake an HTTP fetch by pas
 - [validateManifest](../utilities/validate-manifest.md) — The validator used inside `useAppManifest`.
 - [migrating-to-manifest](../migrating-to-manifest.md) — Tier-by-tier adoption guide.
 - [useScopedTheme](../utilities/composables/use-scoped-theme.md) — Backs the `runtime.theme` scoped-theming wiring above.
+
+## Board look
+
+An app opts in to the look of the screens on identity.conduction.nl with one key. An app without it renders exactly as before.
+
+```json
+{ "look": "board", "pages": [ { "id": "settings", "type": "settings", "config": { "look": "nextcloud" } } ] }
+```
+
+- `look` at the manifest root is `"nextcloud"` (the default) or `"board"`. The `look` prop of `CnAppRoot` wins over it.
+- In the board look `CnAppRoot` puts the class `cn-look-board` on its root element. A page with its own `config.look` that differs puts `cn-look-board` or `cn-look-nextcloud` on its own root, and the nearest class wins.
+- `src/css/look-board.css` defines the board dimensions as `--cn-board-*` custom properties on `.cn-look-board`: `--cn-board-content-padding`, `--cn-board-content-max-width`, `--cn-board-section-gap`, `--cn-board-control-height`, `--cn-board-control-radius`, `--cn-board-card-radius`, `--cn-board-card-padding`, `--cn-board-hairline` and `--cn-board-text-soft`. Colours stay Nextcloud variables.
+- `CnAppRoot` provides the resolved look as `cnLook`, and a page with `config.look` re-provides its own to its descendants. Components read it with `useLook(props)`, which returns `look`, `isBoard` and `lookClass`. A `look` prop on the component overrides the injected value.
+- A dialog is teleported to `document.body`, outside `CnAppRoot`, so a `.cn-look-board` rule cannot reach it. Bind `lookClass` on the dialog's own container.
+
+```js
+import { useLook } from '@conduction/nextcloud-vue'
+
+export default {
+  props: { look: { type: String, default: '' } },
+  setup(props) {
+    const { isBoard, lookClass } = useLook(props)
+    return { isBoard, lookClass } // <div :class="lookClass"> on the teleported container
+  },
+}
+```
+
+### The brand block in Nextcloud's header
+
+Under the board look, an app that declares a brand (`nav.brand`, or the `brand` prop) gets a 237px block at the start of Nextcloud's own header (`#header`), before the app menu: the emblem, the organisation (`caption`) above the app name (`name`), and a 1px divider at its end. The block exists without `CnAppNav`, so an app with its own menu has it too. `CnAppNav` stops drawing the block while the header does (`cnBrandInHeader`). Set `nav.brand.placement: "nav"` to keep the block in the navigation.
+
+Nextcloud offers no extension point for apps in `#header`, so this is unsupported by Nextcloud and may break on an update. The library limits the damage: it adds one node of its own and never moves, edits or removes a node Nextcloud drew, puts that node back if Nextcloud re-renders the header, and falls back to the navigation when `#header` is absent. Sizes: `--cn-board-brand-width` (237px), `--cn-nav-emblem-size` (34px).
 
 ## Support dialog
 

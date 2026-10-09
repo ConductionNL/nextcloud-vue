@@ -40,6 +40,10 @@ Manifest-driven map page. Resolved automatically by `CnPageRenderer` for `pages[
 }
 ```
 
+## Image maps
+
+`config.layers` accepts a layer `{ "type": "image", "url", "width", "height" }`, which turns the page into a picture in flat pixel coordinates (markers read `config.markers.xField` / `yField`, and `@click` carries `{ x, y }`). See [`CnMapWidget`](./cn-map-widget.md#image-maps). The manifest schema requires `width` and `height` on an image layer.
+
 ## Slots
 
 | Slot       | Scope                          | Purpose                                                        |

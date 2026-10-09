@@ -32,10 +32,13 @@ export const OFF_BOARD_KEY = '__off_board__'
  * empty board it would have to diagnose.
  *
  * @param {object} field - The status field's schema.
- * @return {{stages: Array<object>, usable: boolean}} The stages, and whether
- *   the field can back a board at all.
+ * @param {string} [colorField] - The key on a state that holds its colour
+ *   (`config.board.colorField`). Empty, or absent on a state, the state's
+ *   declared `color` is used.
+ * @return {{stages: Array<object>, usable: boolean}} The stages (each with a
+ *   `color`, '' when it has none), and whether the field can back a board at all.
  */
-export function stagesOf(field) {
+export function stagesOf(field, colorField = '') {
 	const declared = Array.isArray(field?.states)
 		? field.states
 		: (Array.isArray(field?.enum) ? field.enum : null)
@@ -46,15 +49,59 @@ export function stagesOf(field) {
 
 	const stages = declared
 		.map((entry) => (typeof entry === 'string'
-			? { key: entry, label: labelFor(field, entry), hidden: false }
+			? { key: entry, label: labelFor(field, entry), hidden: false, color: colorOf(field, entry, colorField) }
 			: {
 					key: String(entry?.key ?? entry?.value ?? ''),
 					label: String(entry?.label ?? entry?.title ?? entry?.key ?? entry?.value ?? ''),
 					hidden: entry?.hidden === true,
+					color: colorOf(field, entry, colorField),
 				}))
 		.filter((stage) => stage.key !== '')
 
 	return { stages, usable: stages.length > 0 }
+}
+
+/**
+ * The colour a state declares: the `colorField` key on the state, else its
+ * `color`, else (for a plain enum value) the field's `enumColors` entry.
+ *
+ * @param {object} field - The field schema.
+ * @param {string|object} entry - The enum value or the state.
+ * @param {string} colorField - The key on a state that holds its colour.
+ * @return {string} The colour, '' when none is declared.
+ */
+function colorOf(field, entry, colorField) {
+	if (entry !== null && typeof entry === 'object') {
+		const named = colorField ? entry[colorField] : undefined
+		const declared = named ?? entry.color
+		return typeof declared === 'string' ? declared : ''
+	}
+	const colors = field?.enumColors
+	return colors && typeof colors === 'object' && typeof colors[entry] === 'string' ? colors[entry] : ''
+}
+
+/**
+ * A stage colour as a CSS value for the column dot: a variant name maps to the
+ * Nextcloud variable, a CSS colour is used as written, and none falls back to
+ * the secondary text colour.
+ *
+ * @param {string} [color] - The colour a stage declared.
+ * @return {string} A CSS colour or `var()`.
+ */
+export function resolveStageColor(color) {
+	const named = {
+		primary: 'var(--color-primary-element)',
+		success: 'var(--color-success)',
+		warning: 'var(--color-warning)',
+		error: 'var(--color-error)',
+		danger: 'var(--color-error)',
+		info: 'var(--color-info, var(--color-primary-element))',
+		default: 'var(--color-text-maxcontrast)',
+	}
+	if (typeof color !== 'string' || color === '') {
+		return 'var(--color-text-maxcontrast)'
+	}
+	return named[color] ?? color
 }
 
 /**
@@ -80,6 +127,7 @@ function labelFor(field, value) {
  * @param {Array<object>} [options.rows] - The rows the list holds.
  * @param {string} options.statusField - The property name on a row.
  * @param {string} [options.offBoardLabel] - What to call the off-board column.
+ * @param {string} [options.colorField] - The key on a state that holds its dot colour.
  *
  * @return {{columns: Array<object>, usable: boolean}} The columns, each
  *   `{ key, label, cards, count }`, and whether the field could back a board.
@@ -89,8 +137,9 @@ export function buildBoardColumns({
 	rows = [],
 	statusField = '',
 	offBoardLabel = 'Elsewhere',
+	colorField = '',
 } = {}) {
-	const { stages, usable } = stagesOf(field)
+	const { stages, usable } = stagesOf(field, colorField)
 	if (usable === false) {
 		return { columns: [], usable: false }
 	}
@@ -99,6 +148,7 @@ export function buildBoardColumns({
 	const columns = live.map((stage) => ({
 		key: stage.key,
 		label: stage.label,
+		color: stage.color,
 		cards: [],
 		count: 0,
 	}))

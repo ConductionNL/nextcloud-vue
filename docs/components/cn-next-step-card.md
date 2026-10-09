@@ -89,6 +89,9 @@ The `next-step` widget type renders the same checklist inside a detail grid or s
 - Every item says "Done" or "To do" in text. The marker is a shape and a colour, and neither reaches a screen reader.
 - The button is a native button, reachable with Tab and operable with Enter and Space.
 
+## The board look
+
+In the board look the card is 12px round with 20px 24px 20px 28px padding. The kicker is 13px bold uppercase in the tonal primary text colour, a done marker is a 20px circle on a success tint with a check, the current marker a 2px primary ring, an open marker a 2px grey ring, and the button is 44px high.
 ## Related
 
 - [CnDetailPage](./cn-detail-page.md) renders this card from `nextStep`.

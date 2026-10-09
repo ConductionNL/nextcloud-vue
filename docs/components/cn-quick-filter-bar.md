@@ -70,6 +70,10 @@ Override via your app's CSS if needed — the component exposes `.cn-quick-filte
 
 Set `mode="dropdown"` to render a single `NcSelect` instead of the chip strip (the empty-filter "All" tab is dropped — an empty selection means all). Set `multiple` to allow several filters active at once; the selection is exposed via the `selectedIndices` array prop + `update:selected-indices` event (the host ORs the selected tabs' filters into one fetch). `selectLabel` / `placeholder` label the dropdown. On a manifest `type:"index"` page, drive both from `config.quickFilterMode` and `config.quickFilterMultiple`.
 
+## Labels are translated
+
+A tab's `label` goes through the host's label lookup (`cnTranslate`, provided by `CnAppRoot`) before it is drawn, so a manifest key such as `Mine` reads `Mijn zaken` in Dutch. Without a lookup the label renders as written. The same holds for the attention card copy of `CnBannerWidget`, the `title` and `countLabel` of `CnStatsBlock`, and the `footerNote` and `bulkHint` of `CnIndexPage`.
+
 ## Overflow chip
 
 A page with more than a handful of lenses wraps the strip onto a second line and squeezes whatever shares the bar with it — on `CnIndexPage` that is the "Showing X of Y" count. Set `maxVisible` (manifest: `config.quickFilterMaxVisible`) to keep the everyday few as pills and put the rest behind one more chip:
@@ -103,3 +107,7 @@ Used on its own, the bar shows whatever you pass in `counts` (or as `count` on a
 
 - [CnIndexPage](./cn-index-page.md) — the host that reads `config.quickFilters` and mounts this bar
 - [`migrating-to-manifest.md` § Quick-filter tabs](../migrating-to-manifest.md) — manifest authoring guide
+
+## Board look
+
+Under the board look the tabs are chips, pressed buttons (`aria-pressed`) in a group, 38px high with a count badge, the selected one filled with the main text colour.

@@ -65,10 +65,14 @@
 									:title="getEditabilityWarning(key, resolvedValue(key, value)) || ''" />
 								<span :title="getPropertyTooltip(key)">{{ getPropertyDisplayName(key) }}</span>
 								<span
-									v-if="isRequired(key)"
+									v-if="isRequired(key) && !isBoardLook"
 									class="cn-advanced-form-dialog__required-indicator"
 									:title="t('nextcloud-vue', 'Required')"
 									aria-label="required">*</span>
+								<span
+									v-if="isBoardLook && !isRequired(key)"
+									class="cn-advanced-form-dialog__optional"
+									data-testid="cn-property-optional">({{ optionalLabel }})</span>
 								<span
 									v-if="isImmutableHint(key)"
 									class="cn-advanced-form-dialog__immutable-badge"
@@ -133,6 +137,7 @@ import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import PencilOutline from 'vue-material-design-icons/PencilOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPropertyValueCell from './CnPropertyValueCell.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 
 export default {
 	name: 'CnPropertiesTab',
@@ -157,9 +162,15 @@ export default {
 		 * identity when used standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+
+		/** The look the dialog is drawn in (provided by CnAdvancedFormDialog, else CnAppRoot). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
+		/** The word shown as "(optional)" after an optional property in the board look. */
+		optionalLabel: { type: String, default: () => t('nextcloud-vue', 'optional') },
+
 		/** JSON Schema definition for the object */
 		schema: { type: Object, default: null },
 		/** The object instance being created or edited */
@@ -214,6 +225,12 @@ export default {
 	emits: ['update:property-value', 'update:selected-property'],
 
 	computed: {
+		/** @return {boolean} Whether the board look is active (no asterisk, "(optional)" instead). */
+		isBoardLook() {
+			const injected = this.cnLook && typeof this.cnLook === 'object' && 'value' in this.cnLook ? this.cnLook.value : this.cnLook
+			return normalizeLook(injected) === 'board'
+		},
+
 		hasUnsavedChanges() {
 			if (this.isNew) {
 				return false
@@ -813,6 +830,11 @@ export default {
 
 .cn-advanced-form-dialog__validation-icon--new {
 	color: var(--color-new);
+}
+
+.cn-advanced-form-dialog__optional {
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-advanced-form-dialog__required-indicator {

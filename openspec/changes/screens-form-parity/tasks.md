@@ -5,39 +5,39 @@
 ### Task 1: The label sits above the input
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-the-label-sits-above-the-input`
 - **files**: `src/components/CnFormField/CnFormField.vue` (new, internal wrapper: label, hint, error, control slot), `src/css/form-field.css` (new), `src/components/CnFormDialog/CnFormDialog.vue`, `src/components/CnFormPage/CnFormPage.vue`
-- [ ] Implement: shared wrapper, `labelOutside` on the Nextcloud controls in the board look, field tokens
-- [ ] Test: label `for` matches the control id; sizes in a browser
+- [x] Implement: `CnFormField` (the label and error head), `labelOutside` and an id on the Nextcloud controls in the board look, field tokens in `src/css/form-field.css`. Applied to CnFormDialog and CnFormPage; it wraps the label and error only, the control and hint stay where the form drew them. Widgets that draw their own label (switch, checkbox, file, duration, child records, sub objects, property source, reference widget) keep it
+- [x] Test: label `for` matches the control id; sizes in a browser — measured in a browser: 14px label, 6px gap, control at least 40px, label above the control; `e2e/screens-form-dialog-wizard-parity.e2e.js` (the library harness, not a live Nextcloud)
 
 ### Task 2: Optional fields are marked, required fields are not
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-optional-fields-are-marked-required-fields-are-not`
 - **files**: `src/components/CnFormDialog/CnFormDialog.vue`, `src/components/CnTabbedFormDialog/CnTabbedFormDialog.vue`, `src/components/CnRichSubmitDialog/CnRichSubmitDialog.vue`, `src/components/CnAdvancedFormDialog/CnPropertiesTab.vue`, `src/components/CnFormPage/CnFormPage.vue`
-- [ ] Implement: `optionalLabel`, `aria-required`, the asterisk only in the Nextcloud look (all 15 sites)
-- [ ] Test: no "*" in the board look, still there in the Nextcloud look
+- [x] Implement: `optionalLabel`, `aria-required`, the asterisk only in the Nextcloud look (22 label sites in CnFormDialog, the 3 in CnRichSubmitDialog, the properties tab indicator, CnFormPage shows "(optional)"; CnTabbedFormDialog renders fields through slots and has no asterisk)
+- [x] Test: no "*" in the board look, still there in the Nextcloud look
 
 ### Task 3: Hint under the input, error above it
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-hint-under-the-input-error-above-it`
 - **files**: `src/components/CnFormField/CnFormField.vue`, `src/css/form-field.css`
-- [ ] Implement: hint and error placement, `aria-invalid`, `aria-describedby` order in both looks
-- [ ] Test: attribute order; the error edge and border in the board look
+- [x] Implement: hint and error placement, `aria-invalid`, `aria-describedby` order in both looks. Text, number, textarea and password controls bind the attributes directly; NcSelect forwards none to its input, so `v-cn-select-aria` (`src/directives/cnSelectAria.js`) sets them on the combobox input for the enum field of CnFormPage and the select, multiselect and tags fields of CnFormDialog. NcDateTimePickerNative and the other composite widgets are not wired
+- [x] Test: attribute order; the error edge and border in the board look — measured in a browser: 4px edge, 16px inset and 2px control border on an invalid field (the e2e found the 2px border was outweighed by the 1px control rule; fixed in form-field.css); `e2e/screens-form-dialog-wizard-parity.e2e.js` (the library harness, not a live Nextcloud)
 
 ### Task 4: A failed submit shows an error summary
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-a-failed-submit-shows-an-error-summary`
 - **files**: `src/components/CnFormErrorSummary/CnFormErrorSummary.vue` (new), `src/components/CnFormPage/CnFormPage.vue`, `e2e/screens-form-parity.e2e.js`
-- [ ] Implement: summary, focus on render, links that focus their control
-- [ ] Test: focus moves, singular and plural heading, axe clean
+- [x] Implement: summary, focus on render, links that focus their control
+- [x] Test: focus moves, singular and plural heading, axe clean (`tests/components/CnFormParity.spec.js`, `tests/a11y/CnWizardParity.a11y.spec.js`; `e2e/screens-form-parity.e2e.js` not written, no running instance)
 
 ### Task 5: Short fields can pair up
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-short-fields-can-pair-up`
 - **files**: `src/components/CnFormDialog/CnFormDialog.vue`, `src/components/CnFormPage/CnFormPage.vue`, `src/schemas/app-manifest-v2.schema.json`
-- [ ] Implement: `width: "half"` on formField, grouping of consecutive half fields
-- [ ] Test: one row at 640px, stacked at 390px
+- [x] Implement: `width: "half"` on a form field, consecutive half fields share the grid (CnFormDialog, CnFormPage). The manifest schema is left alone on purpose: `config.fields[]` items already accept extra keys (`additionalProperties: true`), and a typed property would bump the schema version in parallel with other lanes
+- [x] Test: one row at 640px, stacked at 390px — measured in a browser: half fields share a row at 640px and stack at 390px; `e2e/screens-form-dialog-wizard-parity.e2e.js` (the library harness, not a live Nextcloud)
 
 ### Task 6: A public form says what optional means
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-a-public-form-says-what-optional-means`
 - **files**: `src/components/CnFormPage/CnFormPage.vue`
-- [ ] Implement: the sentence, its label prop and the switch
-- [ ] Test: shown once with a required field, absent without one
+- [x] Implement: the sentence, its label prop and the switch
+- [x] Test: shown once with a required field, absent without one
 
 ### Task 7: Documentation
 - **files**: `docs/components/cn-form-dialog.md`, `docs/components/cn-form-page.md`, `docs/design-tokens/index.md`
-- [ ] JSDoc on the new props; the field tokens and the citizen values portaliq sets
+- [x] JSDoc on the new props; the field tokens and the citizen values portaliq sets (`docs/components/cn-form-dialog.md`, `cn-form-page.md`, `docs/design-tokens/index.md`)

@@ -55,7 +55,14 @@
 				:data-file-path="file.path">
 				<span class="cn-related-files__item-icon">{{ iconFor(file) }}</span>
 				<div class="cn-related-files__item-meta">
-					<span class="cn-related-files__item-name">{{ displayName(file) }}</span>
+					<button
+						type="button"
+						class="cn-related-files__item-name cn-related-files__item-open"
+						:aria-label="displayName(file)"
+						data-testid="cn-related-files-open"
+						@click="openFile(file)">
+						{{ displayName(file) }}
+					</button>
 					<small v-if="file.path" class="cn-related-files__item-path">{{ file.path }}</small>
 					<small v-if="file.description" class="cn-related-files__item-description">{{ file.description }}</small>
 				</div>
@@ -74,11 +81,14 @@
 				</div>
 			</li>
 		</ul>
+		<CnFilePreview v-if="previewFile" :file="previewFile" @close="previewFile = null" />
 	</div>
 </template>
 
 <script>
 import { FilePickerType, getFilePickerBuilder } from '@nextcloud/dialogs'
+import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
+import { useFileOpener } from '../../composables/useFileOpener.js'
 
 /**
  * CnRelatedFiles — a widget for RELATING existing Nextcloud files to an
@@ -114,6 +124,8 @@ import { FilePickerType, getFilePickerBuilder } from '@nextcloud/dialogs'
  */
 export default {
 	name: 'CnRelatedFiles',
+
+	components: { CnFilePreview },
 	props: {
 		/**
 		 * Related file references to render. Each entry:
@@ -148,13 +160,33 @@ export default {
 	},
 
 	emits: ['add', 'remove', 'update:files'],
+
 	data() {
 		return {
 			pathDraft: '',
+			previewFile: null,
 		}
 	},
 
 	methods: {
+		/**
+		 * Show a file in the in-page preview.
+		 *
+		 * @param {object} file The file to preview.
+		 */
+		showPreview(file) {
+			this.previewFile = file
+		},
+
+		/**
+		 * Open a related file through the shared opener.
+		 *
+		 * @param {object} file The file ref `{ path, name }`.
+		 */
+		openFile(file) {
+			useFileOpener({ onPreview: this.showPreview }).open({ ...file, name: this.displayName(file) })
+		},
+
 		/**
 		 * Pick the emoji-icon for a related file based on its extension.
 		 * Pure presentation; mirrors CnFileManager's `iconFor` so the two
@@ -442,6 +474,11 @@ export default {
 }
 
 .cn-related-files__item-name {
+	background: none;
+	border: 0;
+	padding: 0;
+	text-align: start;
+	font: inherit;
 	font-weight: 500;
 	white-space: nowrap;
 	overflow: hidden;

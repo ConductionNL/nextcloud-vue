@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { toRaw } from 'vue'
+import { reportDiagnosticOnce, trackedFetch } from '../utils/diagnostics.js'
 import { discardResponseBody } from '../utils/discardResponseBody.js'
 import { genericError, networkError, parseResponseError } from '../utils/errors.js'
 import { normalizeFacets } from '../utils/facets.js'
@@ -239,9 +240,10 @@ const baseActions = {
 	 * @param {object} [slugs] Optional slug hints for live-updates transport
 	 * @param {string|null} [slugs.registerSlug] Canonical register slug (e.g. 'zaken')
 	 * @param {string|null} [slugs.schemaSlug]   Canonical schema slug (e.g. 'meldingen')
+	 * @param {string} [slugs.collectionUrl] Endpoint `fetchCollection` lists from instead of `/register/schema`; every other call keeps the pair URL
 	 */
 	registerObjectType(slug, schemaId, registerId, slugs = {}) {
-		const { registerSlug = null, schemaSlug = null } = slugs
+		const { registerSlug = null, schemaSlug = null, collectionUrl = null } = slugs
 		// Replace entire objects so Vue 2 reactivity detects the change
 		// (Vue 2 cannot track new properties added to existing reactive objects)
 		this.objectTypeRegistry = {
@@ -251,6 +253,7 @@ const baseActions = {
 				register: registerId,
 				registerSlug,
 				schemaSlug,
+				...(collectionUrl ? { collectionUrl } : {}),
 			},
 		}
 		this.collections = { ...this.collections, [slug]: [] }
@@ -496,6 +499,31 @@ const baseActions = {
 	},
 
 	/**
+	 * Build the list URL for a type registered with a `collectionUrl`. `_order`
+	 * goes in the bracket form (`_order[key]=dir`) every PHP endpoint parses.
+	 *
+	 * @param {object} config The type config
+	 * @param {object} [params] Query parameters
+	 * @return {string} Full URL including query string
+	 */
+	_buildCollectionUrl(config, params = {}) {
+		const { _order: order, ...rest } = params
+		const merged = { ...rest }
+		if (order && typeof order === 'object') {
+			for (const [key, dir] of Object.entries(order)) {
+				merged[`_order[${key}]`] = dir
+			}
+		}
+		const lang = this._resolveLanguage()
+		if (lang) {
+			merged._lang = lang
+		}
+		const url = prefixUrl(config.collectionUrl)
+		const query = buildQueryString(merged)
+		return query && url.includes('?') ? url + '&' + query.slice(1) : url + query
+	},
+
+	/**
 	 * Fetch for a type, retrying ONCE with its `schemaFallback` when the
 	 * schema path segment answers 404. A type without a fallback (every type
 	 * not registered by `resolveObjectOpType` for a kebab-cased title) makes
@@ -514,7 +542,7 @@ const baseActions = {
 		// `makeUrl` wraps `_buildUrl` / `_buildUrlWithParams`, so `url` is built
 		// from the prefixed `_options.baseUrl` like every other request here.
 		let url = makeUrl(null)
-		const response = await fetch(url, init)
+		const response = await trackedFetch(url, init)
 		if (!response || response.status !== 404) {
 			return response
 		}
@@ -526,7 +554,7 @@ const baseActions = {
 		let retry
 		try {
 			url = makeUrl(fallback)
-			retry = await fetch(url, init)
+			retry = await trackedFetch(url, init)
 		} catch {
 			return response
 		}
@@ -595,7 +623,7 @@ const baseActions = {
 			const registerScope = config.register
 				? `?register=${encodeURIComponent(config.register)}`
 				: ''
-			const response = await fetch(
+			const response = await trackedFetch(
 				prefixUrl(`/apps/openregister/api/schemas/${config.schema}${registerScope}`),
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
@@ -606,6 +634,9 @@ const baseActions = {
 				// body leaves the request in flight for the life of the page and
 				// `networkidle` never arrives.
 				discardResponseBody(response)
+				if (response.status === 404) {
+					reportDiagnosticOnce(`binding|missing-schema|${type}`, { kind: 'binding', problem: 'missing-schema', register: String(config.register || ''), schema: String(config.schema || ''), property: null, where: null })
+				}
 				return null
 			}
 
@@ -632,7 +663,7 @@ const baseActions = {
 		}
 
 		try {
-			const response = await fetch(
+			const response = await trackedFetch(
 				prefixUrl(`/apps/openregister/api/registers/${config.register}`),
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
@@ -640,6 +671,9 @@ const baseActions = {
 			if (!response.ok) {
 				// Same leak as fetchSchema above (#573) — same shape, same fix.
 				discardResponseBody(response)
+				if (response.status === 404) {
+					reportDiagnosticOnce(`binding|missing-register|${type}`, { kind: 'binding', problem: 'missing-register', register: String(config.register || ''), schema: String(config.schema || ''), property: null, where: null })
+				}
 				return null
 			}
 
@@ -678,14 +712,15 @@ const baseActions = {
 				}
 			}
 
-			const response = await this._fetchWithSchemaFallback(
-				type,
-				(schema) => this._buildUrlWithParams(type, fetchParams, null, schema),
-				{
-					method: 'GET',
-					headers: this._buildHeaders(),
-				},
-			)
+			const config = this._getTypeConfig(type)
+			const init = { method: 'GET', headers: this._buildHeaders() }
+			const response = config.collectionUrl
+				? await trackedFetch(this._buildCollectionUrl(config, fetchParams), init)
+				: await this._fetchWithSchemaFallback(
+						type,
+						(schema) => this._buildUrlWithParams(type, fetchParams, null, schema),
+						init,
+					)
 
 			if (!response.ok) {
 				const failure = await parseResponseError(response, type)
@@ -785,20 +820,25 @@ const baseActions = {
 	 *
 	 * @param {string} type The registered type slug
 	 * @param {string} id The object ID or UUID
+	 * @param {object} [options] Read options
+	 * @param {string[]} [options.extend] Values for `_extend[]` (e.g. `['@self.can']`), for markers OpenRegister returns only on request
 	 * @return {Promise<object|null>} The fetched object (also cached in state)
 	 */
-	async fetchObject(type, id) {
-		const url = this._buildUrl(type, id)
+	async fetchObject(type, id, options = {}) {
+		const extend = Array.isArray(options && options.extend) ? options.extend.filter((e) => typeof e === 'string' && e !== '') : []
+		const url = extend.length > 0
+			? this._buildUrlWithParams(type, { _extend: extend }, id)
+			: this._buildUrl(type, id)
 		// Share a single in-flight request across concurrent callers asking
 		// for the same object on this store, instead of firing a duplicate
 		// network call. Scoped to (store, type, id) so it never starves a
 		// different store's cache — see `_inflightObjectFetches` above.
-		const key = `${this.$id}::${type}::${id}`
+		const key = `${this.$id}::${type}::${id}${extend.length > 0 ? '::' + extend.join(',') : ''}`
 		const existing = _inflightObjectFetches.get(key)
 		if (existing) {
 			return existing
 		}
-		const request = this._requestObject(type, id, url)
+		const request = this._requestObject(type, id, url, extend)
 		_inflightObjectFetches.set(key, request)
 		try {
 			return await request
@@ -814,16 +854,19 @@ const baseActions = {
 	 * @param {string} type The registered type slug
 	 * @param {string} id The object id
 	 * @param {string} url The pre-built request URL
+	 * @param {string[]} [extend] The `_extend[]` values the URL carries (kept on a schema-fallback retry)
 	 * @return {Promise<object|null>} The object or null on error
 	 */
-	async _requestObject(type, id, url) {
+	async _requestObject(type, id, url, extend = []) {
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
 
 		try {
 			const response = await this._fetchWithSchemaFallback(
 				type,
-				(schema) => (schema === null ? url : this._buildUrl(type, id, schema)),
+				(schema) => (schema === null
+					? url
+					: (extend.length > 0 ? this._buildUrlWithParams(type, { _extend: extend }, id, schema) : this._buildUrl(type, id, schema))),
 				{
 					method: 'GET',
 					headers: this._buildHeaders(),
@@ -1028,7 +1071,7 @@ const baseActions = {
 			const runOne = async (id) => {
 				try {
 					const url = this._buildUrl(type, id)
-					const response = await fetch(url, {
+					const response = await trackedFetch(url, {
 						method: 'DELETE',
 						headers: this._buildHeaders(),
 					})
@@ -1115,7 +1158,7 @@ const baseActions = {
 			const fetches = toFetch.map(async (id) => {
 				try {
 					const url = this._buildUrl(type, id)
-					const response = await fetch(url, {
+					const response = await trackedFetch(url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})

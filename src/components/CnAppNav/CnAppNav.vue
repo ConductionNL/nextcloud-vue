@@ -75,7 +75,7 @@
 -->
 <template>
 	<NcAppNavigation :aria-label="ariaLabel" data-testid="cn-nav">
-		<template v-if="$slots.search || $slots.brand || resolvedBrand" #search>
+		<template v-if="$slots.search || $slots.brand || navBrand" #search>
 			<!--
 				@slot brand
 				@description Replace the brand block at the very top of the
@@ -86,7 +86,7 @@
 			-->
 			<slot name="brand" :brand="resolvedBrand">
 				<div
-					v-if="resolvedBrand"
+					v-if="navBrand"
 					class="cn-app-nav__brand"
 					data-testid="cn-nav-brand">
 					<!-- Decorative beside a name: the name already says whose
@@ -205,9 +205,18 @@
 						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
+						<span
+							v-if="isBoard"
+							class="cn-app-nav__count"
+							:class="{ 'cn-app-nav__count--attention': isAttention(item) }"
+							:data-testid="`cn-nav-count-${item.id}`">
+							{{ resolveCount(item) }}
+						</span>
 						<NcCounterBubble
+							v-else
 							:count="resolveCount(item)"
-							:active="isActive(item)" />
+							:active="isActive(item)"
+							:type="isAttention(item) ? 'highlighted' : undefined" />
 					</template>
 					<template v-if="hasItemActionsSlot(item)" #actions>
 						<!--
@@ -238,9 +247,18 @@
 							<CnMenuItemIcon v-else :icon="child.icon" :size="20" />
 						</template>
 						<template v-if="resolveCount(child)" #counter>
+							<span
+								v-if="isBoard"
+								class="cn-app-nav__count"
+								:class="{ 'cn-app-nav__count--attention': isAttention(child) }"
+								:data-testid="`cn-nav-count-${child.id}`">
+								{{ resolveCount(child) }}
+							</span>
 							<NcCounterBubble
+								v-else
 								:count="resolveCount(child)"
-								:active="isActive(child)" />
+								:active="isActive(child)"
+								:type="isAttention(child) ? 'highlighted' : undefined" />
 						</template>
 					</NcAppNavigationItem>
 				</NcAppNavigationItem>
@@ -317,9 +335,18 @@
 						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
+						<span
+							v-if="isBoard"
+							class="cn-app-nav__count"
+							:class="{ 'cn-app-nav__count--attention': isAttention(item) }"
+							:data-testid="`cn-nav-count-${item.id}`">
+							{{ resolveCount(item) }}
+						</span>
 						<NcCounterBubble
+							v-else
 							:count="resolveCount(item)"
-							:active="isActive(item)" />
+							:active="isActive(item)"
+							:type="isAttention(item) ? 'highlighted' : undefined" />
 					</template>
 				</NcAppNavigationItem>
 				<NcAppNavigationItem
@@ -415,9 +442,18 @@
 								<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 							</template>
 							<template v-if="resolveCount(item)" #counter>
+								<span
+									v-if="isBoard"
+									class="cn-app-nav__count"
+									:class="{ 'cn-app-nav__count--attention': isAttention(item) }"
+									:data-testid="`cn-nav-count-${item.id}`">
+									{{ resolveCount(item) }}
+								</span>
 								<NcCounterBubble
+									v-else
 									:count="resolveCount(item)"
-									:active="isActive(item)" />
+									:active="isActive(item)"
+									:type="isAttention(item) ? 'highlighted' : undefined" />
 							</template>
 						</NcAppNavigationItem>
 					</template>
@@ -442,8 +478,10 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
+import { useLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { resolveBrand } from '../../utils/resolveBrand.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 // The legacy `icon-*` → MDI bridge lives beside CnIcon now, so the menu EDITOR
@@ -542,6 +580,12 @@ export default {
 
 	inject: {
 		cnManifest: { default: null },
+		/**
+		 * Provided by CnAppRoot as true while the board look draws the brand
+		 * block in Nextcloud's header (screens-brand-block-top-bar): the
+		 * navigation then skips its own.
+		 */
+		cnBrandInHeader: { default: false },
 		cnTranslate: { default: () => (key) => key },
 		/**
 		 * Provided by CnAppRoot — opens the host app's
@@ -590,6 +634,19 @@ export default {
 	},
 
 	props: {
+		/**
+		 * The look the navigation is drawn in: `board` or `nextcloud`. Empty
+		 * follows the `cnLook` that CnAppRoot provides. Under `board` the
+		 * navigation takes the anatomy of the screens (264px, 42px entries,
+		 * attention counts, Help before Advanced).
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-navigation-takes-the-board-anatomy
+		 */
+		look: {
+			type: String,
+			default: '',
+		},
+
 		/**
 		 * Manifest object. Falls back to injected `cnManifest`. Provide
 		 * explicitly when mounting CnAppNav outside of CnAppRoot.
@@ -712,6 +769,11 @@ export default {
 
 	emits: ['primary-action', 'primary-action-click', 'primary-action-created', 'card-action'],
 
+	setup(props) {
+		const { isBoard } = useLook(props)
+		return { isBoard }
+	},
+
 	/**
 	 * The navigation's own state: which groups are open, and which entry
 	 * of a route the reader last used.
@@ -754,6 +816,17 @@ export default {
 		},
 
 		/**
+		 * The brand the navigation draws itself: the resolved brand, or null
+		 * while the app's top bar draws it.
+		 *
+		 * @spec openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-navigation-does-not-draw-a-brand-block-the-bar-already-draws
+		 * @return {object|null}
+		 */
+		navBrand() {
+			return this.cnBrandInHeader ? null : this.resolvedBrand
+		},
+
+		/**
 		 * The brand to draw: the `brand` prop, else the manifest's
 		 * `nav.brand`. Name and caption go through the translate function,
 		 * like every other manifest label. Null when there is nothing to
@@ -764,20 +837,7 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-navigation-brand
 		 */
 		resolvedBrand() {
-			const declared = this.brand ?? this.effectiveManifest?.nav?.brand
-			if (!declared || typeof declared !== 'object') {
-				return null
-			}
-			const text = (value) => (typeof value === 'string' && value !== '' ? this.effectiveTranslate(value) : '')
-			const brand = {
-				logo: typeof declared.logo === 'string' ? declared.logo : '',
-				// A URL, or `true` for the theme's emblem (--nldesign-emblem-url).
-				emblem: declared.emblem === true ? true : (typeof declared.emblem === 'string' ? declared.emblem : ''),
-				name: text(declared.name),
-				caption: text(declared.caption),
-				alt: text(declared.alt),
-			}
-			return (brand.logo || brand.emblem || brand.name || brand.caption) ? brand : null
+			return resolveBrand(this.brand ?? this.effectiveManifest?.nav?.brand, (value) => this.effectiveTranslate(value))
 		},
 
 		/**
@@ -1062,6 +1122,11 @@ export default {
 		 * @return {boolean}
 		 */
 		settingsFirst() {
+			// Under the board look Help always comes first and Advanced last,
+			// whatever order the manifest declares.
+			if (this.isBoard) {
+				return false
+			}
 			const declared = this.declaredFooter
 			return declared !== null && declared.indexOf('settings') === 0
 		},
@@ -1398,6 +1463,19 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether an entry's count asks for attention (`counterVariant:
+		 * "attention"`): the red pill under the board look, the counter
+		 * bubble's highlighted state without it.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-a-navigation-count-can-ask-for-attention
+		 * @param {object} item Menu entry descriptor.
+		 * @return {boolean}
+		 */
+		isAttention(item) {
+			return item?.counterVariant === 'attention'
+		},
+
 		/**
 		 * Resolve a menu item's `icon` string to an MDI Vue component. MDI names
 		 * resolve via the per-app `registerIcons()` registry; legacy Nextcloud

@@ -128,3 +128,33 @@ Tab titles are separately configurable for a reason: "Files and attachments" rea
 - [`CnTabsWidgetForm`](./cn-tabs-widget-form.md) for the config form
 
 <GeneratedRef />
+
+## What is new on a tab
+
+A tab that declares neither `count` nor `countField` shows what is new on it, from the object's `@self.unreadCounts[<unreadKey>]` (OpenRegister `object-read-state`, returned on the detail read). `unreadKey` defaults to the tab's `id`, else its `widgetId`. A key absent from the map, or 0, shows no badge. A tab with its own `count` or `countField` keeps it. Opening a tab marks nothing: the backend tracks one moment per record.
+
+```json
+{ "tabs": [{ "widgetId": "files" }, { "id": "documents", "widgetId": "docs", "unreadKey": "files" }] }
+```
+
+## Hiding a tab: `visibleWhen`
+
+A tab entry can carry `visibleWhen`, the shared predicate every other surface uses (`{ field, op, value }`, or `{ source, field: "@total", op, value }`). A tab whose condition is false is absent from the strip, not empty. A tab without the key always renders.
+
+```json
+{ "tabs": [
+  { "id": "overview", "widgetId": "case-overview" },
+  { "id": "participants", "widgetId": "case-roles",
+    "visibleWhen": { "source": { "register": "dossiq", "schema": "role", "filter": { "case": "@objectId" } }, "field": "@total", "op": "gt", "value": 0 } },
+  { "id": "decision", "widgetId": "case-decision",
+    "visibleWhen": { "field": "decision", "op": "neq", "value": null } }
+] }
+```
+
+- **Local form** (a `field` of the page object): decided on every change of the object. While the object is still loading the tab shows disabled.
+- **Source form** (`source` with `@total`): counted once on mount, when the record changes, and again when a write is reported on the page (a `cn:page:refresh` or `cn:widget:refresh` broadcast, which the object-list widgets send after they save). While the count is pending the tab shows disabled with a spinner, so the strip does not jump; a refresh keeps the last answer until the new one arrives.
+- **The active tab is always visible.** When the active tab goes, the first visible tab takes over and, if the page was opened with a route hash, the hash follows. A hash naming a hidden tab opens the first visible tab, without an error; a hash naming a visible tab (`#decision`, the tab's `id`) opens it.
+
+## The board look
+
+In the board look the widget draws no tab icons and no "More" menu, draws its Actions button as a secondary button, and names the tab list from the page's `tabsLabel` (`content.ariaLabel` still wins). A tab holding the record's activity (an `audit-trail` or `timeline` widget, or the `activity` integration) is labelled "History" unless the tab sets a label, and is moved to the end of the strip whatever its place in `content.tabs`.

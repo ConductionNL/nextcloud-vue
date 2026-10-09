@@ -1,12 +1,44 @@
 <template>
 	<div class="cn-admin-settings-shell">
+		<!-- Names a development, test or acceptance environment; cannot be dismissed. Production shows nothing. -->
+		<CnEnvironmentBanner v-if="environmentName" :environment="environmentName" />
+
 		<!-- Page title header — the uniform "<App> Settings / Configure your <App> installation" block.
 		     Uses NcSettingsSection directly (not CnSettingsSection) so the description subtitle and
 		     doc-url icon render — CnSettingsSection repurposes those props and does not forward them. -->
 		<NcSettingsSection
+			v-if="!isBoard"
 			:name="resolvedTitle"
 			:description="resolvedDescription"
 			:docUrl="docUrl" />
+
+		<!-- The board header: an h1 and its description, then the labelled
+		     Documentation button and the buildiq square. No documentation icon
+		     beside the title. -->
+		<div v-else class="cn-admin-settings-shell__header" data-testid="cn-admin-settings-header">
+			<div class="cn-admin-settings-shell__heading">
+				<h1 class="cn-admin-settings-shell__title">
+					{{ resolvedTitle }}
+				</h1>
+				<p class="cn-admin-settings-shell__description">
+					{{ resolvedDescription }}
+				</p>
+			</div>
+			<div class="cn-admin-settings-shell__header-buttons">
+				<NcButton
+					v-if="docUrl"
+					:href="docUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					data-testid="cn-admin-settings-documentation">
+					<template #icon>
+						<BookOpenVariant :size="20" />
+					</template>
+					{{ documentationLabel }}
+				</NcButton>
+				<CnBuildiqEditButton />
+			</div>
+		</div>
 
 		<!-- Version information card (version, up-to-date check, re-import, support footer) -->
 		<CnVersionInfoCard
@@ -124,10 +156,15 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
+import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
+import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
+import { useEnvironment } from '../../composables/useEnvironment.js'
+import { useLook } from '../../composables/useLook.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
@@ -169,6 +206,9 @@ export default {
 	name: 'CnAdminSettingsShell',
 
 	components: {
+		CnEnvironmentBanner,
+		CnBuildiqEditButton,
+		BookOpenVariant,
 		NcSettingsSection,
 		CnCredentials,
 		CnVersionInfoCard,
@@ -181,6 +221,19 @@ export default {
 	},
 
 	props: {
+		/**
+		 * The environment this instance is: `development`, `test`, `acceptance` or
+		 * `production`. Wins over the active organisation's `environment` field.
+		 * A non-production environment is named in a banner at the top and the tab
+		 * title gets a prefix. Production, an unknown value or no value shows nothing.
+		 *
+		 * @type {string}
+		 */
+		environment: {
+			type: String,
+			default: '',
+		},
+
 		/**
 		 * Render the organisation credential broker on this admin page
 		 * (ADR-079 Step 2). Opt-in: only an app that actually brokers org-wide
@@ -205,6 +258,17 @@ export default {
 		appCredentials: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The look the shell is drawn in: `board` or `nextcloud`. Empty follows
+		 * the `cnLook` that CnAppRoot provides.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/settings-board-look/spec.md#requirement-the-admin-settings-shell-takes-the-board-header
+		 */
+		look: {
+			type: String,
+			default: '',
 		},
 
 		/** The Nextcloud app id (used for the default re-import endpoint + version loadState). */
@@ -359,6 +423,13 @@ export default {
 
 	emits: ['update', 'reimported', 'reimport-error'],
 
+	setup(props) {
+		// The app's own `environment` setting, else the active organisation's.
+		const { environment: environmentName } = useEnvironment({ environment: () => props.environment })
+		const { isBoard } = useLook(props)
+		return { environmentName, isBoard }
+	},
+
 	data() {
 		return {
 			reimporting: false,
@@ -453,6 +524,11 @@ export default {
 			return t('nextcloud-vue', 'Run setup wizard')
 		},
 
+		/** @return {string} Documentation button label (board header). */
+		documentationLabel() {
+			return t('nextcloud-vue', 'Documentation')
+		},
+
 		/** @return {string} Help / suggest-feature button label. */
 		helpLabel() {
 			return t('nextcloud-vue', 'Help us')
@@ -512,6 +588,8 @@ export default {
 .cn-admin-settings-shell {
 	max-width: 900px;
 }
+
+/* The board look lifts the width and lays the header and cards on a grid (look-board.css). */
 
 .cn-support-info {
 	margin-top: 16px;

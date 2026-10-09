@@ -29,6 +29,7 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `rowKey` | String | `'id'` | Unique identifier field |
 | `emptyText` | String | `'No items found'` | |
+| `accentOf` | Function | `null` | `(object) => { variant, icon?, label? } \| null`, each default card's `accent` (see [CnObjectCard](./cn-object-card.md)) |
 
 ## Events
 
@@ -64,3 +65,7 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnCardGrid.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnCardGrid/CnCardGrid.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Board look
+
+Under the board look the grid is `repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))` with a `var(--cn-card-grid-gap, 16px)` gap, theme hooks for both; without it the 320px track stands. `cardFields`, `statusOf`, `leadingOf` and `footerActionOf` reach each default `CnObjectCard`.

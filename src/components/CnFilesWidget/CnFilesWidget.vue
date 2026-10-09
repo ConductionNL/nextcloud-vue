@@ -146,7 +146,7 @@
 					:target="item.isFolder ? undefined : '_blank'"
 					:rel="item.isFolder ? undefined : 'noopener noreferrer'"
 					class="cn-files-widget__row-name"
-					@click="item.isFolder && onItemClick(item)">
+					@click="onRowClick(item, $event)">
 					<span aria-hidden="true" class="cn-files-widget__row-icon">
 						<img
 							v-if="showThumbnails && !item.isFolder && item.thumbnailUrl && !failedThumbs[item.fileId]"
@@ -181,6 +181,8 @@
 			</button>
 		</div>
 
+		<CnFilePreview v-if="previewFile" :file="previewFile" @close="previewFile = null" />
+
 		<CnFilesWidgetDeleteDialog
 			:open="confirmTarget !== null"
 			:fileName="confirmTarget ? confirmTarget.name : ''"
@@ -193,6 +195,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import CnFilesWidgetDeleteDialog from '../../dialogs/CnFilesWidgetDeleteDialog.vue'
+import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
+import { useFileOpener } from '../../composables/useFileOpener.js'
 
 /**
  * CnFilesWidget — an inline Nextcloud Files browser rendered as a dashboard
@@ -220,6 +224,7 @@ export default {
 	name: 'CnFilesWidget',
 
 	components: {
+		CnFilePreview,
 		CnFilesWidgetDeleteDialog,
 	},
 
@@ -320,6 +325,8 @@ export default {
 
 	data() {
 		return {
+			/** The file shown in the in-page preview, or null. */
+			previewFile: null,
 			/**
 			 * The hidden file input, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template).
 			 *
@@ -686,6 +693,9 @@ export default {
 					return {
 						name: file.name || file.title || '',
 						fileId: file.id,
+						mimeType: mime,
+						path: file.path || '',
+						downloadUrl: file.id ? generateUrl(`${this.objectApiBase}/files/{fileId}/download`, { fileId: file.id }) : '',
 						isFolder: false,
 						size: file.size,
 						modifiedAt: file.modified || file.updated || '',
@@ -725,8 +735,46 @@ export default {
 		},
 
 		/**
-		 * Handle a folder row click by descending into it. A file row is a
-		 * real link to the Files app and never reaches this.
+		 * Show a file in the in-page preview.
+		 *
+		 * @param {object} file The file to preview.
+		 */
+		showPreview(file) {
+			this.previewFile = file
+		},
+
+		/**
+		 * Handle a row click: a folder is browsed in place, a file opens through
+		 * the shared opener (Viewer, preview, browser, Files app).
+		 *
+		 * @param {object} item the clicked row.
+		 * @param {MouseEvent} [event] the click event.
+		 * @return {void}
+		 */
+		onRowClick(item, event) {
+			if (item.isFolder) {
+				this.onItemClick(item)
+				return
+			}
+			// Keep the link's own behaviour for a modified click (new tab, etc.).
+			if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.button === 1)) {
+				return
+			}
+			if (event) {
+				event.preventDefault()
+			}
+			useFileOpener({ onPreview: this.showPreview }).open({
+				id: item.fileId,
+				name: item.name,
+				type: item.mimeType || item.mimetype || item.type || '',
+				path: item.path || '',
+				accessUrl: item.accessUrl || '',
+				downloadUrl: item.downloadUrl || '',
+			})
+		},
+
+		/**
+		 * Descend into a folder row.
 		 *
 		 * @param {object} item the clicked folder item.
 		 * @return {void}

@@ -88,6 +88,7 @@
 								<span class="cn-activity-card__row-meta">
 									{{ actorFor(entry) }} · {{ relativeTime(entry) }}
 								</span>
+								<CnVisibilityChip v-if="showVisibility" :visibility="entry.visibility" />
 							</div>
 						</li>
 					</ul>
@@ -109,6 +110,7 @@ import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.v
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import Timeline from 'vue-material-design-icons/Timeline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import CnVisibilityChip from '../../../components/CnVisibilityChip/CnVisibilityChip.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -125,6 +127,7 @@ export default {
 
 	components: {
 		CnDetailCard,
+		CnVisibilityChip,
 		NcLoadingIcon,
 		CalendarOutline,
 		Timeline,
@@ -137,6 +140,8 @@ export default {
 	},
 
 	props: {
+		/** Show a visibility chip (internal or public) on each row of the detail-page feed. Off by default. */
+		showVisibility: { type: Boolean, default: false },
 		/** Stable integration id (forwarded from the registry — always `'activity'`). */
 		integrationId: { type: String, default: 'activity' },
 		/** OpenRegister register id (slug or uuid). */

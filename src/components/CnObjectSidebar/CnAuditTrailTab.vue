@@ -74,6 +74,17 @@
 							<span class="cn-audit-details__label">Session</span>
 							<span class="cn-audit-details__mono">{{ entry.session }}</span>
 						</div>
+						<!-- Restore (allowRestore only; create and update entries) -->
+						<div v-if="canRestore(entry)" class="cn-audit-details__restore">
+							<NcButton
+								variant="secondary"
+								:disabled="restoreBlocked"
+								:title="restoreBlocked ? restoreLockedLabel : undefined"
+								data-testid="cn-audit-restore"
+								@click.stop="askRestore(entry)">
+								{{ restoreLabel }}
+							</NcButton>
+						</div>
 						<!-- Changed fields -->
 						<div v-if="entry.changed && Object.keys(entry.changed).length > 0" class="cn-audit-details__changes">
 							<span class="cn-audit-details__label">Changes</span>
@@ -113,20 +124,33 @@
 		<div v-else class="cn-sidebar-tab__empty">
 			{{ noAuditTrailLabel }}
 		</div>
+		<CnConfirmDialog
+			v-if="restoreEntry"
+			ref="restoreDialog"
+			:dialogTitle="restoreLabel + '?'"
+			:message="restoreMessage"
+			:confirmLabel="restoreLabel"
+			:successText="restoredLabel"
+			@confirm="confirmRestore"
+			@close="restoreEntry = null" />
 	</div>
 </template>
 
 <script>
+import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcDateTimePickerNative, NcListItem, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
+import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
+import { useRestoreVersion } from '../../composables/useRestoreVersion.js'
 import { buildHeaders } from '../../utils/index.js'
+import { isLockedByCurrentUser, isObjectLocked, lockHolder } from '../../utils/objectLock.js'
 
 export default {
 	name: 'CnAuditTrailTab',
 
-	components: { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative, History },
+	components: { CnConfirmDialog, NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative, History },
 
 	props: {
 		/** ID of the object this tab belongs to */
@@ -151,7 +175,21 @@ export default {
 		toLabel: { type: String, default: () => t('nextcloud-vue', 'To') },
 		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
+		/**
+		 * Offer "Restore this version" on an expanded create or update entry.
+		 * Off by default: a tab rendered without it shows no button.
+		 */
+		allowRestore: { type: Boolean, default: false },
+		/**
+		 * The record as the page holds it. Read for `@self.actions` (the button
+		 * is hidden when the reader may not update) and for the lock.
+		 *
+		 * @type {object|null}
+		 */
+		objectData: { type: Object, default: null },
 	},
+
+	emits: ['restored'],
 
 	data() {
 		return {
@@ -168,12 +206,44 @@ export default {
 			limit: 20,
 			actionOptions: ['create', 'read', 'update', 'delete'],
 			userOptions: [],
+			restoreEntry: null,
 		}
 	},
 
 	computed: {
 		hasMore() {
 			return this.entries.length < this.total
+		},
+
+		/** Whether the record's lock belongs to somebody else. */
+		restoreBlocked() {
+			return isObjectLocked(this.objectData) && !isLockedByCurrentUser(this.objectData)
+		},
+
+		restoreLabel() {
+			return t('nextcloud-vue', 'Restore this version')
+		},
+
+		restoredLabel() {
+			return t('nextcloud-vue', 'The record was restored.')
+		},
+
+		restoreLockedLabel() {
+			const holder = lockHolder(this.objectData)
+			return holder
+				? t('nextcloud-vue', 'This record is locked by {name}.', { name: holder })
+				: t('nextcloud-vue', 'This record is locked by someone else.')
+		},
+
+		/** The confirm text: which entry, and that nothing is removed. */
+		restoreMessage() {
+			if (!this.restoreEntry) {
+				return ''
+			}
+			return t('nextcloud-vue', 'Restore the record to how it was after the change by {user} on {date}? This is saved as a new version and nothing is removed.', {
+				user: this.restoreEntry.userName || this.restoreEntry.user || 'System',
+				date: this.formatDate(this.restoreEntry.created),
+			})
 		},
 	},
 
@@ -268,6 +338,59 @@ export default {
 			}
 		},
 
+		/**
+		 * Whether an entry shows the restore button.
+		 *
+		 * @param {object} entry The audit-trail entry.
+		 * @return {boolean} True for a create or update entry when restore is allowed and the reader may update.
+		 */
+		canRestore(entry) {
+			if (!this.allowRestore || !['create', 'update'].includes(entry.action)) {
+				return false
+			}
+			const actions = this.objectData?.['@self']?.actions
+			return !Array.isArray(actions) || actions.includes('update')
+		},
+
+		/**
+		 * Open the confirm dialog for an entry.
+		 *
+		 * @param {object} entry The audit-trail entry to restore to.
+		 */
+		askRestore(entry) {
+			if (!this.restoreBlocked) {
+				this.restoreEntry = entry
+			}
+		},
+
+		/** Call the revert route for the chosen entry and report back to the dialog. */
+		async confirmRestore() {
+			const entry = this.restoreEntry
+			const { restore } = useRestoreVersion({ apiBase: this.apiBase })
+			const result = await restore({
+				register: this.register,
+				schema: this.schema,
+				objectId: this.objectId,
+				auditTrailId: entry.id,
+				object: this.objectData,
+			})
+			if (result.ok) {
+				this.page = 1
+				this.entries = []
+				await this.fetchAuditTrails()
+				/**
+				 * @event restored Emitted with the restored record after a successful restore.
+				 * @type {object|null}
+				 */
+				this.$emit('restored', result.record)
+				emit('cn:page:refresh')
+			} else if (result.status === 423) {
+				// Re-read the record so the page shows the lock.
+				emit('cn:page:refresh')
+			}
+			this.$refs.restoreDialog?.setResult(result.ok ? { success: true } : { error: result.message })
+		},
+
 		loadMore() {
 			this.page++
 			this.fetchAuditTrails()
@@ -356,6 +479,8 @@ export default {
 	from { opacity: 0; max-height: 0; }
 	to { opacity: 1; max-height: 600px; }
 }
+
+.cn-audit-details__restore { margin: 8px 0; }
 
 .cn-audit-details__row {
 	display: flex;

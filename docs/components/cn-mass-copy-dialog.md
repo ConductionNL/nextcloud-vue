@@ -24,6 +24,9 @@ Two-phase mass copy dialog with naming pattern. Allows users to define a naming 
 | `items` | Array | `[]` | Items to copy (`[\{ id, name \}]`) |
 | `nameField` | String | `'title'` | Field to display as item name |
 | `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names. Overrides `nameField` when provided. |
+| `include` | Array | `[]` | Link kinds a copy may take along (`relationRows`, `incoming`, `files`), from the page's `config.copy.include`. Each is offered ticked; the dialog shows the kinds, not every row's links. Empty keeps the dialog as it was. |
+| `register` | String | `''` | Register slug of the items, for checking the server can copy links. Empty: the first item's `@self.register`. |
+| `schema` | String | `''` | Schema slug of the items. Empty: the first item's `@self.schema`. |
 | `dialogTitle` | String | `'Copy items'` | |
 | `patternLabel` | String | `'Naming pattern'` | |
 | `patternPlaceholder` | String | `'\{name\} (copy)'` | |
@@ -38,8 +41,12 @@ Two-phase mass copy dialog with naming pattern. Allows users to define a naming 
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `confirm` | `\{ ids, pattern \}` | Copy confirmed |
+| `confirm` | `\{ ids, getName, include? \}` | Copy confirmed; `include` holds the ticked link kinds, only when the page lists links and the server can copy them |
 | `close` | — | Dialog closed |
+
+## Copying with links
+
+With `include` the dialog adds a **Links to take along** section: the included kinds, ticked, one checkbox each. Each row is copied with one request to OpenRegister's copy endpoint carrying the same kinds, and the result lists the links the server refused, with their reason. Without the endpoint the section is read-only with a note and the copy carries the fields only. See [CnCopyDialog](./cn-copy-dialog.md#copying-with-links).
 
 ## Public Methods
 

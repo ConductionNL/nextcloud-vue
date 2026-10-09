@@ -177,6 +177,29 @@ export default {
 		},
 
 		/**
+		 * Field values the candidates must match (`{ lifecycle: 'active' }`),
+		 * merged into the list query like `filters`. Use it for a fixed
+		 * narrowing; `filters` is for a scope that follows another field.
+		 *
+		 * @type {object}
+		 */
+		filter: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Ids to leave out of the options, for example the record a transition
+		 * runs on when it must not be picked as its own target.
+		 *
+		 * @type {Array<string>}
+		 */
+		exclude: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Load a first page of options on mount (and whenever `filters`
 		 * change) instead of waiting for `minChars` of typing. Lets the field
 		 * be BROWSED like a plain select while still searching server-side once
@@ -285,7 +308,8 @@ export default {
 		 * @return {Array<object>}
 		 */
 		displayOptions() {
-			const opts = [...this.options]
+			const skip = new Set((this.exclude || []).map(String))
+			const opts = this.options.filter((o) => !skip.has(String(o.value)))
 			const term = this.search.trim()
 			if (this.allowCreate && term.length >= this.minChars) {
 				const exact = opts.some((o) => (o.label || '').toLowerCase() === term.toLowerCase())
@@ -305,7 +329,7 @@ export default {
 		 * @return {string}
 		 */
 		filtersKey() {
-			return JSON.stringify(this.filters || {})
+			return JSON.stringify({ ...(this.filters || {}), ...(this.filter || {}) })
 		},
 
 		/**
@@ -318,7 +342,7 @@ export default {
 		 */
 		activeFilters() {
 			const out = {}
-			for (const [key, value] of Object.entries(this.filters || {})) {
+			for (const [key, value] of Object.entries({ ...(this.filters || {}), ...(this.filter || {}) })) {
 				if (value !== null && value !== undefined && value !== '') {
 					out[key] = value
 				}

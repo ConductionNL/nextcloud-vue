@@ -39,7 +39,7 @@ async onSaveViewConfirm({ name, isPublic }) {
 
 | Event | Payload | Description |
 |---|---|---|
-| `confirm` | `{ name: string, isPublic: boolean }` | Save clicked with a non-empty (trimmed) name. |
+| `confirm` | `{ name: string, isPublic: boolean, sharedWith: Array<{ group, mode }>, presentation?: object }` | Save clicked with a non-empty (trimmed) name. `sharedWith` is `[]` when no group is picked, so a consumer that reads only `name` and `isPublic` keeps working. |
 | `close` | — | Dialog dismissed. |
 
 ## Methods (via ref)
@@ -52,3 +52,11 @@ async onSaveViewConfirm({ name, isPublic }) {
 
 - The Save button is disabled while the name is empty/whitespace or a save is in flight.
 - Single-phase by design: success closes the dialog from the parent (no result phase); failure re-enables the form via `setError`.
+
+## Sharing with groups
+
+Under the public switch the dialog shows [`CnSavedViewShareFields`](./cn-saved-view-share-fields.md): a group picker over Nextcloud's sharee API and a "May edit" switch per group. The section is absent when the sharee API answers no groups for the user. Pass `sharedWith` on to `buildViewCreatePayload({ ..., sharedWith })`, which writes `sharedWith: [{ group, mode }]` into the body and omits it when empty. A refused save (403 and the like) goes back through `setError(message)`: the form stays open and shows the server's message.
+
+## Presentation (`schema`)
+
+`schema` (Object, default `null`): the view's JSON Schema. With it the dialog shows [`CnViewPresentationPicker`](./cn-view-presentation-picker.md) under the public switch and `confirm` carries `presentation` (OpenRegister's shape); Save is disabled while a board has no group field or a calendar no date field. Without it the dialog renders and emits as before, with no `presentation` key. `CnIndexPage` passes its schema once it has properties and sends `presentation` in the view body only for a board or a calendar (a table is the default). A refusal naming `kanban.groupByField`, `calendar.dateField` or `calendar.endDateField` goes under that picker via `setError(message)`.

@@ -7,13 +7,27 @@
 	<div class="cn-sidebar-tab">
 		<!-- Add / Edit note -->
 		<div class="cn-sidebar-tab__action">
-			<NcRichContenteditable
+			<!-- Replying: the composer says to whom, and a reply to a reply goes to the top of its thread. -->
+			<p
+				v-if="replyTo"
+				class="cn-sidebar-tab__replying"
+				role="status"
+				data-testid="cn-notes-replying">
+				{{ replyingLabel }}
+				<NcButton variant="tertiary" @click="cancelReply">
+					{{ cancelLabel }}
+				</NcButton>
+			</p>
+			<CnNoteComposer
 				class="cn-sidebar-tab__composer"
 				:modelValue="newNoteText"
-				:autoComplete="fetchMentionSuggestions"
 				:placeholder="addNotePlaceholder"
-				multiline
-				@update:modelValue="newNoteText = $event" />
+				:register="register"
+				:schema="schema"
+				:objectId="objectId"
+				:apiBase="apiBase"
+				@update:modelValue="newNoteText = $event"
+				@submit="submitComposer" />
 			<div class="cn-sidebar-tab__action--row">
 				<NcButton
 					v-if="editingNoteId"
@@ -44,75 +58,85 @@
 		<!-- <ul>, not <div>: NcListItem renders an <li>, which WCAG 1.3.1
 		     requires to be contained in a <ul>/<ol> (axe "listitem"). -->
 		<ul v-else class="cn-sidebar-tab__list">
-			<NcListItem
-				v-for="note in notes"
-				:key="note.id"
-				:name="note.actorDisplayName || note.author || 'Unknown'"
-				:bold="false"
-				:forceDisplayActions="true">
-				<template #icon>
-					<CommentTextOutline :size="32" />
-				</template>
-				<template #subname>
-					<span class="cn-sidebar-tab__message">
-						<template v-for="(segment, index) in noteSegments(note)">
+			<!-- One <li> per thread; inside it the note first, then its replies (oldest first), as a nested list named after the note. -->
+			<li v-for="thread in threads" :key="thread.note.id" class="cn-notes-tab__thread">
+				<ul class="cn-notes-tab__thread-list" :aria-label="threadLabel(thread.note)">
+					<NcListItem
+						v-for="row in threadRows(thread)"
+						:key="row.note.id"
+						:class="{ 'cn-notes-tab__reply': row.isReply }"
+						:name="row.note.actorDisplayName || row.note.author || 'Unknown'"
+						:bold="false"
+						:forceDisplayActions="true">
+						<template #icon>
+							<CommentTextOutline :size="32" />
+						</template>
+						<template #subname>
+							<span class="cn-sidebar-tab__message">
+								<span v-if="row.quote" class="cn-notes-tab__quote" data-testid="cn-note-quote">{{ row.quote }}</span>
+								<CnNoteBody :message="row.note.message || row.note.content || ''" :record="record" :names="mentionNames" />
+							</span>
+						</template>
+						<template #details>
+							{{ formatDate(row.note.creationDateTime || row.note.created) }}
+							<!-- An edited note says so where its time is, because that
+							     is where a reader already looks to date what they are
+							     reading. The line names the editor, so nobody has to
+							     open the history to learn who changed it. -->
 							<span
-								v-if="segment.type === 'mention'"
-								:key="`m-${note.id}-${index}`"
-								class="cn-notes-tab__mention"
-								:class="{ 'cn-notes-tab__mention--unknown': isUnknownMention(segment.id) }">{{ mentionDisplayName(segment.id) }}</span>
-							<template v-else>{{ segment.value }}</template>
+								v-if="wasEdited(row.note)"
+								class="cn-notes-tab__edited"
+								data-testid="cn-note-edited">{{ editedLine(row.note) }}</span>
 						</template>
-					</span>
-				</template>
-				<template #details>
-					{{ formatDate(note.creationDateTime || note.created) }}
-					<!-- An edited note says so where its time is, because that
-					     is where a reader already looks to date what they are
-					     reading. The line names the editor, so nobody has to
-					     open the history to learn who changed it. -->
-					<span
-						v-if="wasEdited(note)"
-						class="cn-notes-tab__edited"
-						data-testid="cn-note-edited">{{ editedLine(note) }}</span>
-				</template>
-				<template v-if="canDelete(note) || wasEdited(note) || noteActions.length > 0" #actions>
-					<NcActionButton v-if="canDelete(note)" @click="startEdit(note)">
-						<template #icon>
-							<Pencil :size="20" />
+						<template v-if="canReply || canDelete(row.note) || wasEdited(row.note) || noteActions.length > 0" #actions>
+							<NcActionButton
+								v-if="canReply"
+								:aria-label="replyAria(row.note)"
+								data-testid="cn-note-reply-action"
+								@click="startReply(row.note)">
+								<template #icon>
+									<Reply :size="20" />
+								</template>
+								{{ replyLabel }}
+							</NcActionButton>
+							<NcActionButton v-if="canDelete(row.note)" @click="startEdit(row.note)">
+								<template #icon>
+									<Pencil :size="20" />
+								</template>
+								{{ editLabel }}
+							</NcActionButton>
+							<NcActionButton
+								v-if="wasEdited(row.note)"
+								data-testid="cn-note-history-action"
+								@click="openHistory(row.note)">
+								<template #icon>
+									<HistoryIcon :size="20" />
+								</template>
+								{{ historyLabel }}
+							</NcActionButton>
+							<NcActionButton v-if="canDelete(row.note)" @click="deleteNote(row.note)">
+								<template #icon>
+									<Delete :size="20" />
+								</template>
+								{{ deleteLabel }}
+							</NcActionButton>
+							<!-- The consuming app's own per-note actions, after the
+							     library's. They render inside this NcActions and emit
+							     `note-action`; nothing about what they DO lives here. -->
+							<NcActionButton
+								v-for="action in noteActions"
+								:key="`${row.note.id}-${action.id}`"
+								:data-testid="`cn-note-action-${action.id}`"
+								@click="$emit('note-action', { action: action.id, note: row.note })">
+								<template v-if="action.icon" #icon>
+									<component :is="action.icon" :size="20" />
+								</template>
+								{{ action.label }}
+							</NcActionButton>
 						</template>
-						{{ editLabel }}
-					</NcActionButton>
-					<NcActionButton
-						v-if="wasEdited(note)"
-						data-testid="cn-note-history-action"
-						@click="openHistory(note)">
-						<template #icon>
-							<HistoryIcon :size="20" />
-						</template>
-						{{ historyLabel }}
-					</NcActionButton>
-					<NcActionButton v-if="canDelete(note)" @click="deleteNote(note)">
-						<template #icon>
-							<Delete :size="20" />
-						</template>
-						{{ deleteLabel }}
-					</NcActionButton>
-					<!-- The consuming app's own per-note actions, after the
-					     library's. They render inside this NcActions and emit
-					     `note-action`; nothing about what they DO lives here. -->
-					<NcActionButton
-						v-for="action in noteActions"
-						:key="`${note.id}-${action.id}`"
-						:data-testid="`cn-note-action-${action.id}`"
-						@click="$emit('note-action', { action: action.id, note })">
-						<template v-if="action.icon" #icon>
-							<component :is="action.icon" :size="20" />
-						</template>
-						{{ action.label }}
-					</NcActionButton>
-				</template>
-			</NcListItem>
+					</NcListItem>
+				</ul>
+			</li>
 		</ul>
 
 		<CnNoteHistoryDialog
@@ -129,21 +153,25 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcListItem, NcLoadingIcon, NcRichContenteditable } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Reply from 'vue-material-design-icons/Reply.vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import CnNoteHistoryDialog from '../../dialogs/CnNoteHistoryDialog.vue'
+import CnNoteBody from '../CnNoteBody/CnNoteBody.vue'
+import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
-import { extractMentionedIds, parseMentions } from '../../utils/mentions.js'
+import { extractMentionedGroupIds, extractMentionedIds } from '../../utils/mentions.js'
+import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 
 export default {
 	name: 'CnNotesTab',
 
-	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, NcRichContenteditable, CnNoteHistoryDialog, CommentTextOutline, Send, Pencil, Delete, HistoryIcon },
+	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, CnNoteBody, CnNoteComposer, CnNoteHistoryDialog, CommentTextOutline, Send, Pencil, Delete, HistoryIcon, Reply },
 
 	props: {
 		/** ID of the object this tab belongs to */
@@ -170,6 +198,8 @@ export default {
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
 		/** Text shown while the notes are being fetched */
 		loadingLabel: { type: String, default: () => t('nextcloud-vue', 'Loading notes…') },
+		/** Label for the Reply action (shown only when the backend supports replies) */
+		replyLabel: { type: String, default: () => t('nextcloud-vue', 'Reply') },
 		/** Label for the action that opens a note's earlier versions */
 		historyLabel: { type: String, default: () => t('nextcloud-vue', 'Show earlier versions') },
 		// WHY THIS PROP EXISTS, since a seam nobody asked for is the kind that
@@ -202,7 +232,10 @@ export default {
 		/**
 		 * Emitted after a note containing at least one `@mention` was
 		 * successfully created or edited, with payload
-		 * `{ objectId, register, schema, noteId, mentionedUserIds }`.
+		 * `{ objectId, register, schema, noteId, mentionedUserIds }`, plus
+		 * `mentionedGroupIds` when the note mentions a group (`@"group/<gid>"`).
+		 * The event also fires for a note that mentions only groups. Expanding a
+		 * group to its members is the listener's job.
 		 * nc-vue never dispatches server-side notifications itself —
 		 * consuming apps listen to this event and notify from their own
 		 * backend.
@@ -232,7 +265,31 @@ export default {
 			 * or deleted user) so it is only looked up once.
 			 */
 			mentionNames: {},
+			/** The note a reply is being written to, or null. */
+			replyTo: null,
 		}
+	},
+
+	computed: {
+		/** @return {{apiBase: string, register: string, schema: string, objectId: string}} Where this record's files live, for pasted images. */
+		record() {
+			return { apiBase: this.apiBase, register: this.register, schema: this.schema, objectId: this.objectId }
+		},
+
+		/** @return {boolean} Whether the backend supports replies: its notes carry a `parentId` key. */
+		canReply() {
+			return supportsReplies(this.notes)
+		},
+
+		/** @return {Array<{note: object, replies: object[]}>} The notes as threads, in the order they came. */
+		threads() {
+			return threadNotes(this.notes)
+		},
+
+		/** @return {string} The line above the composer while replying. */
+		replyingLabel() {
+			return this.replyTo ? t('nextcloud-vue', 'Replying to {author}', { author: this.authorOf(this.replyTo) }) : ''
+		},
 	},
 
 	watch: {
@@ -271,36 +328,6 @@ export default {
 		},
 
 		/**
-		 * Supply `@mention` suggestions to NcRichContenteditable's Tribute
-		 * integration. Results come from the core autocomplete OCS endpoint
-		 * via `searchNextcloudUsers` (fail-soft: errors resolve to []).
-		 *
-		 * @param {string} search The partial id/name typed after `@`.
-		 * @param {(suggestions: Array<object>) => void} callback Receives the suggestion array.
-		 */
-		async fetchMentionSuggestions(search, callback) {
-			const users = await searchNextcloudUsers(search, { includeCurrentUser: false })
-			callback(users.map((user) => ({
-				id: user.id,
-				label: user.label,
-				subline: user.subline,
-				icon: 'icon-user',
-				source: 'users',
-			})))
-		},
-
-		/**
-		 * Parse a note's message into text/mention segments for rendering.
-		 *
-		 * @param {object} note The note object from the backend.
-		 * @return {Array<object>} Segments from `parseMentions`.
-		 */
-		noteSegments(note) {
-			const message = note.message || note.content || ''
-			return parseMentions(message)
-		},
-
-		/**
 		 * Resolve display names for every mentioned id across the current
 		 * notes list. Each id is looked up at most once per component
 		 * instance; unresolvable ids are cached as `null`.
@@ -326,27 +353,6 @@ export default {
 		},
 
 		/**
-		 * Display name for a mentioned id — the resolved label, or the raw
-		 * id when the user is unknown/deleted.
-		 *
-		 * @param {string} id The mentioned user id.
-		 * @return {string} Chip text.
-		 */
-		mentionDisplayName(id) {
-			return this.mentionNames[id] || id
-		},
-
-		/**
-		 * Whether a mentioned id failed to resolve to a real user.
-		 *
-		 * @param {string} id The mentioned user id.
-		 * @return {boolean} True when unresolved (renders the muted chip).
-		 */
-		isUnknownMention(id) {
-			return !this.mentionNames[id]
-		},
-
-		/**
 		 * Emit the `mention` notification hook for a successfully saved note.
 		 *
 		 * @param {string} savedText The note text that was persisted.
@@ -354,7 +360,8 @@ export default {
 		 */
 		emitMentionEvent(savedText, noteId) {
 			const mentionedUserIds = extractMentionedIds(savedText)
-			if (mentionedUserIds.length === 0) {
+			const mentionedGroupIds = extractMentionedGroupIds(savedText)
+			if (mentionedUserIds.length === 0 && mentionedGroupIds.length === 0) {
 				return
 			}
 			this.$emit('mention', {
@@ -363,7 +370,79 @@ export default {
 				schema: this.schema,
 				noteId,
 				mentionedUserIds,
+				// Only when a group is mentioned: a note that names none keeps the payload it always had.
+				...(mentionedGroupIds.length > 0 ? { mentionedGroupIds } : {}),
 			})
+		},
+
+		/**
+		 * Save from the composer (Ctrl/Cmd+Enter): the same as the button.
+		 *
+		 * @return {void}
+		 */
+		submitComposer() {
+			if (!this.newNoteText.trim() || this.saving) {
+				return
+			}
+			if (this.editingNoteId) {
+				this.saveEdit()
+			} else {
+				this.addNote()
+			}
+		},
+
+		/**
+		 * @param {object} note A note.
+		 * @return {string} Its author's name.
+		 */
+		authorOf(note) {
+			return note.actorDisplayName || note.author || 'Unknown'
+		},
+
+		/**
+		 * Write a reply to a note. A reply to a reply goes to the top of its thread.
+		 *
+		 * @param {object} note The note answered.
+		 * @return {void}
+		 */
+		startReply(note) {
+			this.editingNoteId = null
+			this.replyTo = note
+		},
+
+		cancelReply() {
+			this.replyTo = null
+		},
+
+		/**
+		 * The rows of one thread: the note, then its replies. A reply whose parent
+		 * is far up the list carries a one-line quote of it.
+		 *
+		 * @param {{note: object, replies: object[]}} thread The thread.
+		 * @return {Array<{note: object, isReply: boolean, quote: string}>} The rows.
+		 */
+		threadRows(thread) {
+			const flat = this.threads.flatMap((t2) => [t2.note, ...t2.replies])
+			return [
+				{ note: thread.note, isReply: false, quote: '' },
+				...thread.replies.map((reply) => ({ note: reply, isReply: true, quote: quoteFor(reply, flat) })),
+			]
+		},
+
+		/**
+		 * @param {object} note A top-level note.
+		 * @return {string} The name of its thread for assistive technology.
+		 */
+		threadLabel(note) {
+			return t('nextcloud-vue', 'Note by {author} and its replies', { author: this.authorOf(note) })
+		},
+
+		/**
+		 * @param {object} note The note a Reply button answers.
+		 * @return {string} The button's accessible name, naming the author.
+		 */
+		replyAria(note) {
+			return t('nextcloud-vue', 'Reply to {author}', { author: this.authorOf(note) })
 		},
 
 		async addNote() {
@@ -378,7 +457,9 @@ export default {
 					{
 						method: 'POST',
 						headers: buildHeaders(),
-						body: JSON.stringify({ message: savedText }),
+						body: JSON.stringify(this.replyTo
+							? { message: savedText, parentId: threadRootId(this.replyTo, this.notes) }
+							: { message: savedText }),
 					},
 				)
 				let noteId = null
@@ -390,6 +471,7 @@ export default {
 				}
 				this.emitMentionEvent(savedText, noteId)
 				this.newNoteText = ''
+				this.replyTo = null
 				await this.fetchNotes()
 			} catch (err) {
 				// eslint-disable-next-line no-console
@@ -400,6 +482,7 @@ export default {
 		},
 
 		startEdit(note) {
+			this.replyTo = null
 			this.editingNoteId = note.id
 			this.newNoteText = note.message || note.content || ''
 		},
@@ -531,13 +614,27 @@ export default {
 
 .cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
 
-.cn-notes-tab__mention {
-	display: inline-block;
-	padding: 0 6px;
-	border-radius: var(--border-radius-pill, 100px);
-	background-color: var(--color-primary-element-light);
-	color: var(--color-main-text);
-	font-weight: bold;
+.cn-notes-tab__thread { list-style: none; }
+
+.cn-notes-tab__thread-list { margin: 0; padding: 0; list-style: none; }
+
+.cn-notes-tab__reply { margin-inline-start: 24px; }
+
+.cn-notes-tab__quote {
+	display: block;
+	margin-bottom: 2px;
+	padding-inline-start: 8px;
+	border-inline-start: 2px solid var(--color-border-dark);
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+.cn-sidebar-tab__replying {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin: 0 0 4px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-notes-tab__edited {
@@ -546,8 +643,4 @@ export default {
 	font-style: italic;
 }
 
-.cn-notes-tab__mention--unknown {
-	opacity: 0.6;
-	font-weight: normal;
-}
 </style>

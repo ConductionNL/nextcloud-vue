@@ -13,8 +13,8 @@
   - Groups by first tag with "Other"; resolves `#/` references; marks other references external; stops cycles
   - Detects 3.0, 3.1, Swagger 2.0 and non-OpenAPI input
   - Verify: jest with an OpenRegister-shaped 3.1 fixture and a cyclic fixture
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: `CnApiReference` and its parts
 - **spec_ref**: `openspec/changes/openapi-reference-component/specs/api-reference/spec.md#requirement-the-reference-shows-every-call-of-the-document`
@@ -24,8 +24,8 @@
   - The filter narrows the list and updates the status line
   - No `fetch` or axios call happens during mount, open or filter
   - Verify: jest with `fetch` and axios spied to assert zero calls; `npm run check:smoke`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Download, versions and keyboard
 - **spec_ref**: `openspec/changes/openapi-reference-component/specs/api-reference/spec.md#requirement-the-reference-works-from-the-keyboard`
@@ -34,8 +34,8 @@
   - The download names and content match the spec; `downloadable: false` hides it; Swagger 2.0 shows the sentence
   - Calls are buttons with `aria-expanded`; tables have captions; the status line is a polite live region
   - Verify: jest; `npm run check:a11y`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test (jest; `npm run check:a11y` not run)
 
 ### Task 4: Docs and an end-to-end check
 - **spec_ref**: `openspec/changes/openapi-reference-component/specs/api-reference/spec.md#requirement-the-reference-loads-nothing-from-outside-the-instance`
@@ -44,5 +44,5 @@
   - Docs show the props, the `#intro` slot and what the component never loads
   - A harness page renders the fixture; Playwright records every request and finds none to another host while the reader opens calls and filters
   - Verify: `npm run check:docs`, `npm run check:docs-fresh`, `npm run test:e2e -- api-reference`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [ ] Test — not run: needs the harness and `npm run test:e2e` (zero requests is asserted in jest)

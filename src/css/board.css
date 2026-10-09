@@ -1,0 +1,269 @@
+/*
+ * The board (screens-kanban-parity, canon section 8).
+ *
+ * Opt-in: CnBoardView adds `cn-board-view--board` when the app takes the
+ * board look (`cnLook` is `board`). Every rule here is scoped under that
+ * class, so a board without the look keeps the fixed 260px columns and the
+ * field lines. The selectors carry `.cn-board-view` as well, to outrank the
+ * component's own scoped rules (same specificity, and those load later). Colours are Nextcloud variables; the dimensions come from the
+ * screens (DqWerkbord): columns of minmax(240px, 1fr) with a 16px gap, a
+ * 12px panel with 12px padding, a 10px card with 14px padding.
+ */
+
+.cn-board-view.cn-board-view--board .cn-board-view__columns {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: minmax(240px, 1fr);
+	gap: 16px;
+	align-items: start;
+	overflow-x: auto;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__column {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 0;
+	padding: 12px;
+	border-radius: 12px;
+	background-color: var(--color-background-dark);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__column-head {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__column-header--board {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__dot {
+	flex: none;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__badge {
+	margin-inline-start: auto;
+	padding: 1px 8px;
+	border-radius: 10px;
+	background-color: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 400;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__sum {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__cards {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background-color: var(--color-main-background);
+	box-shadow: 0 1px 2px var(--color-box-shadow);
+}
+
+/* A late card: a 3px inset edge in the error colour. */
+.cn-board-view.cn-board-view--board .cn-board-view__card--overdue {
+	border-color: var(--color-error);
+	box-shadow: inset 3px 0 0 var(--color-error);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--color-main-text);
+	text-decoration: none;
+	overflow-wrap: anywhere;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-title:hover {
+	text-decoration: underline;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-title:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-sub {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-pills {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding-top: 8px;
+	border-top: 1px solid var(--cn-board-hairline, var(--color-border));
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__due-text {
+	font-size: 13px;
+	color: var(--color-main-text);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__due-text--soon {
+	font-weight: 600;
+	color: var(--color-warning-text, var(--color-main-text));
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__due-text--overdue {
+	font-weight: 700;
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__avatar {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	margin-inline-start: auto;
+	border-radius: 50%;
+	background-color: var(--color-primary-element-light, var(--color-background-hover));
+	color: var(--color-primary-element-light-text, var(--color-main-text));
+	font-size: 11px;
+	font-weight: 700;
+}
+
+/* The card's menu button: 34px, top right. */
+.cn-board-view.cn-board-view--board .cn-board-view__menu-wrap {
+	position: relative;
+	flex: none;
+	margin: -6px -6px 0 0;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	margin: 0;
+	padding: 0;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--color-main-text);
+	font-size: 20px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-button:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-button:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 1px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu {
+	position: absolute;
+	inset-block-start: 100%;
+	inset-inline-end: 0;
+	z-index: 10;
+	display: flex;
+	flex-direction: column;
+	min-width: 200px;
+	padding: 6px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background-color: var(--color-main-background);
+	box-shadow: 0 4px 16px var(--color-box-shadow);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-heading {
+	display: block;
+	padding: 4px 10px;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-item {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	min-height: 36px;
+	margin: 0;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--color-main-text);
+	font: inherit;
+	font-size: 14px;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-item:hover,
+.cn-board-view.cn-board-view--board .cn-board-view__menu-item:focus-visible {
+	background-color: var(--color-background-hover);
+}
+
+/* A column cut by `columnLimit`: a dashed, full-width, 34px button. */
+.cn-board-view__show-more {
+	width: 100%;
+	height: 34px;
+	margin: 0;
+	padding: 0 12px;
+	border: 1px dashed var(--color-border-dark);
+	border-radius: 8px;
+	background: transparent;
+	color: var(--color-main-text);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-board-view__show-more:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-board-view__show-more:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}

@@ -49,6 +49,11 @@ Static, configuration-only widgets — no data source required.
 Single-line styled text label (font size, colour, weight, alignment) for dashboard grids.
 → [`CnLabelWidget`](./cn-label-widget.md) · [`CnLabelWidgetForm`](./cn-label-widget-form.md)
 
+### Notepad · `notepad`
+
+A personal note typed into in place, saved to the reader's own preferences rather than the layout. User-addable: a reader can add it to their own dashboard with no configuration.
+→ [`CnNotepadWidget`](./cn-notepad-widget.md) · [`CnNotepadWidgetForm`](./cn-notepad-widget-form.md)
+
 ### Text · `text`
 
 ![text widget rendering a markdown heading and body](/img/screenshots/widget-text.png)
@@ -243,6 +248,16 @@ Gauge / utilization card. Resolves a value and a target from OpenRegister and re
 a radial gauge of value-against-target, coloured by warn/danger thresholds.
 → [`CnGaugeWidget`](./cn-gauge-widget.md) · [`CnGaugeWidgetForm`](./cn-gauge-widget-form.md)
 
+### Saved view · `saved-view`
+
+A list driven by one of the reader's saved views. The configuration is a view id and a
+row limit and nothing else: the register, schema, filter and order are read from the
+view on every load, so the card follows the view when it is edited on the index page.
+A view that was deleted or is no longer shared renders a named refusal, not an empty
+list. It is the one data widget a user may add (`userAddable`), because the view
+carries the register and schema.
+→ [`CnSavedViewWidget`](./cn-saved-view-widget.md) · [`CnSavedViewWidgetForm`](./cn-saved-view-widget-form.md)
+
 ### Statistic card · `stats-block`
 
 ![stats-block widget rendering a labelled count card](/img/screenshots/widget-stats-block.png)
@@ -317,3 +332,16 @@ Recursive sub-grid container widget hosting nested widget placements.
 Financial spend-analytics widget with period tabs (this month / quarter / year);
 data via `dataSource` / `cnSpendSource`.
 → [`CnSpendAnalyticsWidget`](./cn-spend-analytics-widget.md) · [`CnSpendAnalyticsWidgetForm`](./cn-spend-analytics-widget-form.md)
+
+### Markdown · `markdown`
+
+Prose inside a grid page, rendered through the shared `cnRenderMarkdown` path and sanitised. Registered `public: true`.
+→ [`CnMarkdownWidget`](./cn-markdown-widget.md) · [`CnMarkdownWidgetForm`](./cn-markdown-widget-form.md)
+
+## The public flag
+
+Every `registerDashboardWidget()` entry carries `public: boolean`, `false` unless the widget author passes `true`; a non-boolean value throws rather than being coerced. A widget wrongly marked public is an authenticated capability exposed to anonymous visitors, so opting in is a reviewed decision.
+
+`CnWidgetGrid` takes a `host` prop (`nextcloud` or `public`; or the injected `cnHost`). Under `public` a component can only come from a catalog entry registered `public: true`: the consumer registry and the built-ins are not consulted, so the decision and the lookup are one thing. Any other key, known or not, renders the inert placeholder (with a console warning) and its component code never runs; the other widgets on the page render normally. Under the default `nextcloud` host nothing changes. `isPublicWidgetType(type)` answers the same question for tooling.
+
+The gate `scripts/gates/public-widget.mjs <manifest.json>...` (skill `hydra-gate-public-widget`) fails a portal manifest that places a non-public key, naming the page and the key.

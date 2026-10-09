@@ -200,6 +200,7 @@
 				{{ loadMoreLabel }}
 			</NcButton>
 		</template>
+		<CnFilePreview v-if="previewFile" :file="previewFile" @close="previewFile = null" />
 	</div>
 </template>
 
@@ -230,9 +231,10 @@ import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
 import CnFilesBrowser from '../CnFilesBrowser/CnFilesBrowser.vue'
+import { useFileOpener } from '../../composables/useFileOpener.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
-import { safeHref } from '../../utils/safeHref.js'
 import { resolveObjectFolder } from '../CnFilesBrowser/filesBrowser.js'
 
 /**
@@ -256,6 +258,7 @@ export default {
 	name: 'CnFilesTab',
 
 	components: {
+		CnFilePreview,
 		CnFilesBrowser,
 		NcActionButton,
 		NcActionLink,
@@ -361,6 +364,7 @@ export default {
 
 	data() {
 		return {
+			previewFile: null,
 			files: [],
 			loading: false,
 			loadingMore: false,
@@ -811,49 +815,30 @@ export default {
 		},
 
 		/**
-		 * Whether Nextcloud's Viewer is on this page and handles the file.
+		 * Show a file in the in-page preview.
 		 *
-		 * The Viewer is there when the host page dispatched `LoadViewer`
-		 * server-side; it lists the mime types it can show, and a type it
-		 * cannot falls through to the next way of opening the file.
-		 *
-		 * @param {object} file The file row.
-		 * @return {boolean} true when the Viewer can open it in place.
+		 * @param {object} file The file to preview.
 		 */
-		viewerHandles(file) {
-			const viewer = typeof window !== 'undefined' ? window.OCA?.Viewer : null
-			if (!viewer || typeof viewer.open !== 'function' || !file.path) {
-				return false
-			}
-			const mime = file.type || file.mimetype || file.mimeType || ''
-			const mimetypes = Array.isArray(viewer.mimetypes) ? viewer.mimetypes : null
-			return mimetypes === null ? true : mimetypes.includes(mime)
+		showPreview(file) {
+			this.previewFile = file
 		},
 
+		/**
+		 * Open a file through the shared opener (Viewer, preview, browser, Files).
+		 *
+		 * @param {object} file The file row.
+		 */
 		openFile(file) {
-			// The Viewer first: it opens the file over this page, so the reader
-			// stays on the object. A public share link and the Files app come
-			// after, in that order, when the Viewer is absent or cannot show
-			// the type.
-			if (this.viewerHandles(file)) {
-				window.OCA.Viewer.open({ path: this.userRelativePath(file.path) })
-				return
-			}
-			if (file.accessUrl) {
-				// Security: accessUrl originates from the OR files API and may be
-				// attacker-controlled. Validate the scheme via safeHref before
-				// opening (C4) — this blocks javascript: / data: payloads. Add
-				// noopener,noreferrer to prevent the opened tab from accessing
-				// window.opener (reverse-tabnabbing) and to strip the Referer header.
-				const safe = safeHref(file.accessUrl)
-				if (safe !== '#') {
-					window.open(safe, '_blank', 'noopener,noreferrer')
-				}
-			} else if (file.id) {
-				const dirPath = file.path ? file.path.substring(0, file.path.lastIndexOf('/')) : ''
-				const cleanPath = dirPath.replace(/^\/admin\/files\//, '/')
-				window.open(`/index.php/apps/files/files/${file.id}?dir=${encodeURIComponent(cleanPath)}&openfile=true`, '_blank')
-			}
+			useFileOpener({
+				onPreview: this.showPreview,
+				userRelativePath: this.userRelativePath,
+				anyAccessUrl: true,
+				filesAppUrl: (f) => {
+					const dirPath = f.path ? f.path.substring(0, f.path.lastIndexOf('/')) : ''
+					const cleanPath = dirPath.replace(/^\/admin\/files\//, '/')
+					return `/index.php/apps/files/files/${f.id}?dir=${encodeURIComponent(cleanPath)}&openfile=true`
+				},
+			}).open(file)
 		},
 
 		async deleteFile(file) {

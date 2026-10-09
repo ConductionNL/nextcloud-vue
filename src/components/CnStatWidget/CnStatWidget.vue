@@ -21,11 +21,12 @@
 		:class="[
 			{ 'cn-kpi-card--clickable': isLinked, 'cn-stat-widget--linked': isLinked },
 			'cn-kpi-card--' + cardLayout,
+			{ 'cn-kpi-card--board': isBoardLook },
 			flat ? 'cn-kpi-card--flat' : 'cn-kpi-card--filled',
 		]"
 		v-bind="linkAttrs">
 		<div
-			v-if="resolvedIcon && !isStacked"
+			v-if="resolvedIcon && !isStacked && !isBoardLook"
 			class="cn-kpi-card__icon cn-stat-widget__icon"
 			:style="iconCircleStyle">
 			<CnWidgetIcon :name="resolvedIcon" :size="24" />
@@ -33,6 +34,15 @@
 
 		<div class="cn-kpi-card__body cn-stat-widget__body">
 			<div v-if="content.label || rangePresets.length" class="cn-kpi-card__title cn-stat-widget__label">
+				<!-- Board look: the icon is an 18px glyph before the label, and
+				     only when the tile links to a filtered list. -->
+				<span
+					v-if="isBoardLook && isLinked && resolvedIcon"
+					class="cn-kpi-card__glyph cn-stat-widget__glyph"
+					data-testid="cn-stat-widget-glyph"
+					aria-hidden="true">
+					<CnWidgetIcon :name="resolvedIcon" :size="18" />
+				</span>
 				<span v-if="content.label" :title="resolvedLabel">{{ resolvedLabel }}</span>
 
 				<!-- Per-tile range override. Rendered ONLY when the tile declares its
@@ -134,6 +144,7 @@ import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { fetchSharedResponse, getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
@@ -369,6 +380,13 @@ export default {
 		 */
 		cnObjectContext: { default: null },
 		/**
+		 * The look the app is drawn in (`board` or `nextcloud`), provided by
+		 * CnAppRoot. The board look draws the screens' KPI tile.
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-board-kpi-tile
+		 */
+		cnLook: { default: 'nextcloud' },
+		/**
 		 * v2 slot-grid detail context holder (`{ value: { objectData, schema,
 		 * objectType, objectId, register, store } | null }`) provided by
 		 * CnPageRenderer — backfills the object token context so
@@ -580,6 +598,16 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the app takes the board look (`cnLook` is `board`).
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-board-kpi-tile
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
 		 * Effective translate function: the explicit `translate` prop when
 		 * given, else the injected `cnTranslate` (identity by default).
 		 *
@@ -714,6 +742,10 @@ export default {
 				|| (this.activeCaptionRule && this.activeCaptionRule.variant)
 				|| this.content.captionVariant
 			if (!variant || variant === 'default' || !Object.hasOwn(VARIANT_COLORS, variant)) {
+				return ''
+			}
+			// Board look: colour in a tile means a warning and nothing else.
+			if (this.isBoardLook && !['warning', 'error', 'danger'].includes(variant)) {
 				return ''
 			}
 			return `cn-kpi-card__label--${variant === 'danger' ? 'error' : variant}`

@@ -35,6 +35,8 @@ export default {
 | `ariaLabelledby` | `string` | `''` | Id of an element that names the group, as an alternative to `ariaLabel`. |
 | `controls` | `string` | `''` | Id of the element the options switch, such as a page view region. Set as `aria-controls` on every option. |
 | `stretch` | `boolean` | `false` | Stretch to the full width, with options of equal width. |
+| `size` | `'normal' \| 'compact'` | `'normal'` | `compact` is the board's period group (34px segments in a 40px track). |
+| `mode` | `'radio' \| 'toggle'` | `'radio'` | `toggle` renders buttons with `aria-pressed` in a `group`. |
 
 ## Events
 
@@ -59,6 +61,15 @@ export default {
 
 Use `CnSegmentedControl` when the choice changes what the same page shows, such as a filter or a scope. Use [`CnTabs`](./cn-tabs.md) with `variant="segmented"` when each option has its own panel of content. Both look the same; the tabs keep the tab and panel semantics.
 
+## Compact size and toggle mode
+
+- `size="compact"` draws the board's period group: a track with 3px padding, a
+  2px gap, radius 8px, and segments 34px high (the track is 40px), 14px/600
+  text with radius 6px. An option with `iconOnly: true` is 40px wide. `normal`
+  (the default) is unchanged.
+- `mode="toggle"` renders plain buttons with `aria-pressed` in a `group`
+  instead of a radio group, for a set of presets; Tab visits every button.
+  The default `radio` mode is unchanged.
 ## Reference
 
 <GeneratedRef />

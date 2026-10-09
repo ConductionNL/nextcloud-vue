@@ -57,6 +57,10 @@ The emitted `rangeStart`/`rangeEnd` cover the full displayed grid (the month
 padded to whole Sunday–Saturday weeks), matching the query parameters the
 OpenRegister calendar endpoint expects.
 
+## Keyboard and events
+
+The month is an ARIA grid with a roving tab stop: arrow keys move between days (past the edge the month moves too), Home and End jump to the start and end of the week. Each entry is a button, and the "+N" overflow count is a button that emits `day-select` with the day as `YYYY-MM-DD` (`CnIndexPage` answers by showing the table filtered to that day).
+
 ## Slots
 
 - `#day-event="{ object, day }"` — override a single day's event entry

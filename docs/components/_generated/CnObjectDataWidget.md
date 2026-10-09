@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 9 direct references, 101 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 9 direct references, 113 files reached through imports.
 
-Through: `CnActionsMenu`, `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNotesCard`, `CnObjectMetadataWidget`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnTranslatedBadge`, `CnVersionHistory`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
+Through: `CnActionsMenu`, `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectMetadataWidget`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnTranslatedBadge`, `CnVersionHistory`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 

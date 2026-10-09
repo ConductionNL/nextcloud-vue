@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="wizard"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="large"
 		:noClose="loading"
@@ -167,15 +172,17 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ImportIcon from 'vue-material-design-icons/Import.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnMassImportDialog — File import dialog with options and results summary.
@@ -227,7 +234,7 @@ export default {
 	name: 'CnMassImportDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
@@ -236,6 +243,8 @@ export default {
 		ImportIcon,
 		ChevronDown,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** Dialog title */

@@ -52,6 +52,7 @@ With a real up-to-date check (when the backend reports a configured version):
 | `appId` | String | *(required)* | Nextcloud app id; used for the default re-import endpoint and the version `loadState` key |
 | `appName` | String | *(required)* | Human-readable name shown in the header and version card |
 | `appVersion` | String | `''` | Running version. When empty, read from `loadState(appId, 'version', 'Unknown')` |
+| `environment` | String | `''` | Environment this instance is: `development`, `test`, `acceptance` or `production`. Wins over the active organisation's `environment` field. A non-production value shows a [CnEnvironmentBanner](cn-environment-banner.md) and prefixes the tab title. |
 | `title` | String | `''` | Page title. Defaults to `"<appName> Settings"` |
 | `description` | String | `''` | Page description. Defaults to `"Configure your <appName> installation"` |
 | `docUrl` | String | `''` | Documentation URL (renders the info icon next to the title) |
@@ -98,3 +99,7 @@ Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
 | `actions` | Extra action buttons next to the update / re-import buttons |
 | `footer` | Replaces the default support / SLA footer |
 | `version-items` | Extra key/value rows inside the version card details |
+
+## Board look
+
+Under the board look the title is an h1 of 28px with the description under it, a labelled "Documentation" button (when `docUrl` is set) sits before the buildiq square, no documentation icon is drawn, and the sections lay out as cards in a two-column grid up to 1240px wide. The `look` prop overrides the `cnLook` that `CnAppRoot` provides.

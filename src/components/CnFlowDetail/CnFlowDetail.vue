@@ -228,6 +228,13 @@
 					<span class="cn-flow-detail__node-type">{{ typeLabel(node.data.stepType) }}</span>
 					<span class="cn-flow-detail__node-label">{{ node.data.label }}</span>
 					<span
+						v-if="node.data.formDrift && node.data.formDrift.length"
+						class="cn-flow-detail__node-warning"
+						data-testid="flow-node-form-drift"
+						:title="t('nextcloud-vue', 'A field this step asks for is no longer available in the schema.')">
+						{{ t('nextcloud-vue', 'Form out of date') }}
+					</span>
+					<span
 						v-if="isUnknown(node.data.stepType)"
 						class="cn-flow-detail__node-warning"
 						:title="t('nextcloud-vue', 'The engine does not know this node type, so this step will fail when the flow runs.')">
@@ -317,7 +324,9 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import CheckDecagram from 'vue-material-design-icons/CheckDecagram.vue'
 import ContentPaste from 'vue-material-design-icons/ContentPaste.vue'
@@ -342,6 +351,7 @@ import { useContextMenu } from '../../composables/useContextMenu.js'
 import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+import { taskFormDrift } from '../../utils/taskFormDrift.js'
 
 /**
  * Which glyph stands for which router, in menu order.
@@ -471,6 +481,8 @@ export default {
 
 	data() {
 		return {
+			// The trigger's schema, loaded to check user-task forms against.
+			subjectSchema: null,
 			// The step picker replaced the sidebar palette; it is a modal, so
 			// its open state is the editor's rather than the sidebar's.
 			stepPickerOpen: false,
@@ -860,6 +872,9 @@ export default {
 					// on the other side of the screen.
 					hasIncoming: targeted.has(node.id),
 					hasOutgoing: sourced.has(node.id),
+
+					// Declared form fields the subject schema dropped or hid.
+					formDrift: this.formDriftOf(node),
 				},
 			}))
 		},
@@ -1288,11 +1303,58 @@ export default {
 				})
 			}
 
+			// A user-task step whose form names a field the subject schema
+			// dropped, locked or hid: standing until the step or schema is fixed.
+			// Not for a read-only run snapshot, which is history.
+			for (const step of this.driftedSteps) {
+				messages.push({
+					id: `task-form-drift-${step.id}`,
+					severity: 'warning',
+					text: this.t('nextcloud-vue', 'The form of step "{step}" asks for fields the schema no longer offers: {fields}', {
+						step: step.label,
+						fields: step.drift.map((d) => this.driftText(d)).join('; '),
+					}),
+					dismissible: false,
+				})
+			}
+
 			return messages
+		},
+
+		/**
+		 * The schema the flow's trigger names: the trigger-object step's
+		 * `schema`, else the legacy `triggerSchema` column. Empty when none, or
+		 * when no step declares a form (nothing to check, so nothing to fetch).
+		 *
+		 * @return {string} The schema reference.
+		 */
+		subjectSchemaRef() {
+			const trigger = this.store.nodes.find((node) => node?.type === 'openregister.trigger-object')
+			const ref = trigger?.config?.schema ?? this.store.flow?.triggerSchema ?? ''
+			const hasFormStep = this.store.nodes.some((node) => this.declaredFormFields(node).length > 0)
+			return hasFormStep && ref !== null && ref !== undefined ? String(ref) : ''
+		},
+
+		/**
+		 * The user-task steps whose declared form drifted from the subject schema.
+		 *
+		 * @return {Array<{id: string, label: string, drift: Array<{field: string, reason: string}>}>} The flagged steps.
+		 */
+		driftedSteps() {
+			return this.store.nodes
+				.map((node) => ({ id: node.id, label: this.nodeLabel(node), drift: this.formDriftOf(node) }))
+				.filter((step) => step.drift.length > 0)
 		},
 	},
 
 	watch: {
+		subjectSchemaRef: {
+			immediate: true,
+			handler(ref) {
+				this.loadSubjectSchema(ref)
+			},
+		},
+
 		/**
 		 * Reload when the route names a different flow.
 		 *
@@ -1471,6 +1533,62 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The fields a user-task step declares in its native form.
+		 *
+		 * @param {object} node The flow node.
+		 * @return {Array} The declared fields, empty for any other step.
+		 */
+		declaredFormFields(node) {
+			const fields = node?.type === 'openregister.user-task' ? node.config?.form?.fields : null
+			return Array.isArray(fields) ? fields : []
+		},
+
+		/**
+		 * Declared fields of a step that drifted from the subject schema.
+		 * Nothing without a loaded schema: the server's save-time check stays the authority.
+		 *
+		 * @param {object} node The flow node.
+		 * @return {Array<{field: string, reason: string}>} The drifted fields.
+		 */
+		formDriftOf(node) {
+			return taskFormDrift(this.subjectSchema, this.declaredFormFields(node))
+		},
+
+		/**
+		 * A drifted field with its reason, in words.
+		 *
+		 * @param {{field: string, reason: string}} d The drifted field.
+		 * @return {string} The sentence fragment.
+		 */
+		driftText(d) {
+			const reasons = {
+				absent: this.t('nextcloud-vue', 'is no longer in the schema'),
+				readOnly: this.t('nextcloud-vue', 'is read-only in the schema'),
+				hidden: this.t('nextcloud-vue', 'is hidden in the schema'),
+			}
+			return `${d.field} ${reasons[d.reason] || reasons.absent}`
+		},
+
+		/**
+		 * Load the trigger's schema for the drift check. A failed read clears it, so nothing is flagged on a guess.
+		 *
+		 * @param {string} ref The schema reference, or empty.
+		 * @return {Promise<void>}
+		 */
+		async loadSubjectSchema(ref) {
+			if (!ref) {
+				this.subjectSchema = null
+				return
+			}
+			try {
+				const response = await axios.get(generateUrl(`/apps/openregister/api/schemas/${encodeURIComponent(ref)}`))
+				this.subjectSchema = this.subjectSchemaRef === ref ? (response?.data || null) : this.subjectSchema
+			} catch {
+				this.subjectSchema = null
+			}
+		},
+
 		/**
 		 * Open the run the URL named, if it named one.
 		 *

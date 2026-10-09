@@ -4,6 +4,7 @@
 		:description="description"
 		:docUrl="docUrl"
 		data-testid="cn-settings-section"
+		:class="{ 'cn-settings-section--wide': wide }"
 		v-bind="$attrs">
 		<!-- Action buttons positioned top-right -->
 		<div v-if="$slots.actions" class="cn-settings-section__actions">
@@ -130,6 +131,18 @@ export default {
 		description: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Span the whole row of the settings grid instead of one column. Only
+		 * the board look draws a grid; elsewhere the section is full width
+		 * anyway.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/settings-board-look/spec.md#requirement-settings-sections-are-cards-in-a-grid
+		 */
+		wide: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Detailed description shown in a separate block below the title */

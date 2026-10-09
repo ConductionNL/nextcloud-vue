@@ -108,3 +108,17 @@ field named after the raw field key.
   state — safe to leave declared on every detail page.
 - A `confirm` string on a config-declared transition prompts via `window.confirm`
   before POSTing.
+
+## Input hints
+
+`config.inputs` (on the page's `lifecycleActions`) is a map of action name to a list of `{ field, picker?, fields? }`. Each entry is merged onto the transition's declared input with the same `field`, so a server-declared transition (from `/available-actions`) gets a record picker (`picker`) or a narrowed object input (`fields`) without the server knowing about the screen. A hint for a field the transition does not declare is ignored with one console warning and never adds an input. A config-declared transition can carry `picker` and `fields` on its own input entry. The `register` prop is handed to the dialog for its reference pickers (`CnDetailPage` passes its own).
+
+```json
+{ "lifecycleActions": { "field": "status", "inputs": { "recordMunicipalityFeedback": [{ "field": "municipalityFeedback", "fields": ["masRoute", "note"] }] } } }
+```
+
+## Confirm, toast and undo
+
+- **Confirm.** A transition with `variant: "danger"`, a move into a final state (`final: true` on the transition, or the target listed in `config.finalStates`), or `confirm` set (the string is the question) opens a confirm dialog first; Cancel sends no request. `confirm: false` skips it. The old browser `window.confirm` is gone.
+- **Toast.** After a successful move a toast reads "Moved \{title\} to \{state\}" (the schema title when the object has no name). A refusal also toasts its message beside the inline error. `feedback: false` on the config suppresses the toasts only.
+- **Undo.** When the graph declares a transition from the new state back to the old one, the toast carries an Undo for ten seconds that posts it (from the config `transitions[]`, or from the server's available actions). Without a declared reverse edge the toast has no button; the library never guesses a way back.

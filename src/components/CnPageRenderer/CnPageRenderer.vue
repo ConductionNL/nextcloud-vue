@@ -31,7 +31,7 @@
 		data-testid="cn-page"
 		:data-testid-page-id="currentPage.id"
 		class="cn-page-renderer"
-		:class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
+		:class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }, pageLookClass]">
 		<!--
 		  A page whose `requiresApp` is not installed renders the missing-
 		  dependency screen INSTEAD of its body.
@@ -290,7 +290,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
@@ -302,6 +302,7 @@ import { useObjectStore } from '../../store/index.js'
 import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
+import { reportDiagnostic, reportDiagnosticOnce } from '../../utils/diagnostics.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
@@ -438,6 +439,8 @@ export default {
 		cnOpenModal: { default: null },
 		/** ADR-041: true while the in-app editor is editing — makes the body grid draggable. */
 		cnEditingBody: { default: false },
+		/** The app's look, provided by CnAppRoot (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	/**
@@ -468,6 +471,11 @@ export default {
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this
 		return {
+			// The look for this page's descendants: the page's own
+			// `config.look` when it is a known look, else the app's. A computed
+			// ref so it follows the route, because provide() runs once.
+			cnLook: computed(() => self.resolvedLook),
+
 			// Per-page slot→columns override (page.config.slotColumns), read by
 			// CnWidgetGrid. A getter so it tracks the active page reactively
 			// despite provide() running once.
@@ -668,6 +676,36 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The look this page is drawn in: its `config.look` when `nextcloud` or
+		 * `board`, else the look it inherits from CnAppRoot.
+		 *
+		 * @return {string} `board` or `nextcloud`.
+		 */
+		resolvedLook() {
+			const own = this.currentPage?.config?.look
+			if (own === 'board' || own === 'nextcloud') {
+				return own
+			}
+			return this.cnLook === 'board' ? 'board' : 'nextcloud'
+		},
+
+		/**
+		 * The class on the page root when the page overrides the app's look
+		 * (nearest wins); empty when it inherits, so an app without the key
+		 * renders exactly as before.
+		 *
+		 * @return {string} `cn-look-board`, `cn-look-nextcloud` or `''`.
+		 */
+		pageLookClass() {
+			const own = this.currentPage?.config?.look
+			if (own !== 'board' && own !== 'nextcloud') {
+				return ''
+			}
+			const inherited = this.cnLook === 'board' ? 'board' : 'nextcloud'
+			return own === inherited ? '' : 'cn-look-' + own
+		},
+
 		/**
 		 * Whether the body slot should be editable (ADR-041). Unwraps the
 		 * injected `cnEditingBody`, which CnAppRoot provides as a raw ref.
@@ -1144,6 +1182,7 @@ export default {
 				if (!resolved) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnPageRenderer] Custom component "${name}" not found in registry for page id "${page.id}".`)
+					reportDiagnosticOnce(`unknown-component|page|${name}`, { kind: 'unknown-component', name: String(name), where: 'page' })
 					return null
 				}
 				return resolved
@@ -1152,6 +1191,7 @@ export default {
 			if (!component) {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}". Add it to the pageTypes registry (e.g. via the pageTypes prop on CnAppRoot or CnPageRenderer).`)
+				reportDiagnosticOnce(`unknown-component|pageType|${page.type}`, { kind: 'unknown-component', name: String(page.type), where: 'pageType' })
 				return null
 			}
 			return component
@@ -1560,6 +1600,7 @@ export default {
 			if (!resolved) {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in registry or customComponents.`)
+				reportDiagnosticOnce(`unknown-component|sidebar|${name}`, { kind: 'unknown-component', name: String(name), where: 'sidebar' })
 				return null
 			}
 			return resolved
@@ -1582,35 +1623,34 @@ export default {
 		},
 	},
 
-	watch: {
-		/**
-		 * Auto-register object types for `type:"custom"` pages whose
-		 * manifest config declares `register` + `schema` (single type)
-		 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
-		 *
-		 * For `type:"index"` and `type:"detail"` pages, the underlying
-		 * CnIndexPage / CnDetailPage components self-register when
-		 * mounted with `register` + `schema` props — so the renderer
-		 * does nothing extra for those. Custom components have no such
-		 * guarantee: they are bespoke per-app Vue components and would
-		 * each have to remember to call `registerObjectType` in their
-		 * own `mounted()` hook. Mirroring index/detail's zero-config
-		 * behaviour for the manifest-driven custom case (declared
-		 * `register` + `schema`) keeps the manifest the single source
-		 * of truth and removes a per-component landmine.
-		 *
-		 * Runs `immediate: true` so first mount registers before the
-		 * custom component's mounted() hook fires; re-runs on route
-		 * change in case the same CnPageRenderer instance is reused
-		 * for a different `type:"custom"` page.
-		 *
-		 * Defensive: every step is wrapped — a Pinia-not-installed
-		 * test harness, a missing store method, or a thrown error
-		 * inside `registerObjectType` all degrade to a single
-		 * `console.warn` so the page still mounts.
-		 *
-		 * See issue ConductionNL/nextcloud-vue#341.
-		 */
+	watch: { /**
+										 * Auto-register object types for `type:"custom"` pages whose
+										 * manifest config declares `register` + `schema` (single type)
+										 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
+										 *
+										 * For `type:"index"` and `type:"detail"` pages, the underlying
+										 * CnIndexPage / CnDetailPage components self-register when
+										 * mounted with `register` + `schema` props — so the renderer
+										 * does nothing extra for those. Custom components have no such
+										 * guarantee: they are bespoke per-app Vue components and would
+										 * each have to remember to call `registerObjectType` in their
+										 * own `mounted()` hook. Mirroring index/detail's zero-config
+										 * behaviour for the manifest-driven custom case (declared
+										 * `register` + `schema`) keeps the manifest the single source
+										 * of truth and removes a per-component landmine.
+										 *
+										 * Runs `immediate: true` so first mount registers before the
+										 * custom component's mounted() hook fires; re-runs on route
+										 * change in case the same CnPageRenderer instance is reused
+										 * for a different `type:"custom"` page.
+										 *
+										 * Defensive: every step is wrapped — a Pinia-not-installed
+										 * test harness, a missing store method, or a thrown error
+										 * inside `registerObjectType` all degrade to a single
+										 * `console.warn` so the page still mounts.
+										 *
+										 * See issue ConductionNL/nextcloud-vue#341.
+										 */
 		currentPage: {
 			immediate: true,
 			handler() {
@@ -1662,6 +1702,15 @@ export default {
 				this.loadDetailObject()
 			},
 		},
+	},
+
+	errorCaptured(error, instance) {
+		// Report, then let the error travel on to the app's own errorHandler.
+		reportDiagnostic(() => ({
+			kind: 'render-error',
+			component: (instance && instance.$options && (instance.$options.name || instance.$options.__name)) || 'unknown',
+			message: error && error.message ? String(error.message) : String(error),
+		}))
 	},
 
 	created() {
@@ -2191,7 +2240,14 @@ export default {
 				tasks.push(Promise.resolve(null))
 			}
 			if (typeof store.fetchObject === 'function') {
-				tasks.push(store.fetchObject(ctx.slug, ctx.objectId).catch(() => null))
+				// The same read CnDetailPage makes: it asks for `@self.can` while the
+				// Follow toggle can render, and a plain read landing later would
+				// overwrite the object without it.
+				const extend = [...(Array.isArray(this.currentPage?.config?.extend) ? this.currentPage.config.extend : [])]
+				if (this.currentPage?.config?.follow !== false && !extend.includes('@self.can')) {
+					extend.push('@self.can')
+				}
+				tasks.push(store.fetchObject(ctx.slug, ctx.objectId, { extend }).catch(() => null))
 			} else {
 				tasks.push(Promise.resolve(null))
 			}
@@ -2321,6 +2377,7 @@ export default {
 			if (!resolved) {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] Slot-override component "${registryName}" referenced by page id "${this.currentPage.id}" (slot "${slotName}") not found in registry.`)
+				reportDiagnosticOnce(`unknown-component|page|${registryName}`, { kind: 'unknown-component', name: String(registryName), where: 'page' })
 				return null
 			}
 			return resolved

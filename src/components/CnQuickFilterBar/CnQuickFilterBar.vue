@@ -28,13 +28,16 @@
 		:class="{ 'cn-quick-filter-bar--inline': inline }">
 		<!-- The tablist holds ONLY tabs: the overflow chip is a sibling, not a
 		     child, because a role="tablist" may not contain a menu button. -->
-		<div class="cn-quick-filter-bar__tabs" role="tablist">
+		<!-- Board look: the tabs are chips, pressed buttons in a group, not a
+		     tablist (the chips filter the list, they do not switch a panel). -->
+		<div class="cn-quick-filter-bar__tabs" :role="isBoardLook ? 'group' : 'tablist'" :aria-label="isBoardLook ? t('nextcloud-vue', 'Quick filters') : null">
 			<button
 				v-for="entry in visibleEntries"
 				:key="entry.tab.label + ':' + entry.index"
 				type="button"
-				role="tab"
-				:aria-selected="isChipActive(entry.index) ? 'true' : 'false'"
+				:role="isBoardLook ? null : 'tab'"
+				:aria-selected="isBoardLook ? null : (isChipActive(entry.index) ? 'true' : 'false')"
+				:aria-pressed="isBoardLook ? (isChipActive(entry.index) ? 'true' : 'false') : null"
 				class="cn-quick-filter-bar__tab"
 				:class="[{ 'cn-quick-filter-bar__tab--active': isChipActive(entry.index) }]"
 				@click="onClick(entry.index)">
@@ -43,7 +46,7 @@
 					:name="entry.tab.icon"
 					:size="16"
 					class="cn-quick-filter-bar__icon" />
-				<span class="cn-quick-filter-bar__label">{{ entry.tab.label }}</span>
+				<span class="cn-quick-filter-bar__label">{{ tl(entry.tab.label) }}</span>
 				<span
 					v-if="countOf(entry) !== null"
 					class="cn-quick-filter-bar__count"
@@ -99,7 +102,7 @@
 							:name="entry.tab.icon"
 							:size="16"
 							class="cn-quick-filter-bar__icon" />
-						<span class="cn-quick-filter-bar__label">{{ entry.tab.label }}</span>
+						<span class="cn-quick-filter-bar__label">{{ tl(entry.tab.label) }}</span>
 						<span
 							v-if="countOf(entry) !== null"
 							class="cn-quick-filter-bar__count"
@@ -116,6 +119,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcPopover, NcSelect } from '@nextcloud/vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 
 /**
  * CnQuickFilterBar — quick-filter control rendered above a `type:"index"`
@@ -144,6 +148,16 @@ export default {
 	name: 'CnQuickFilterBar',
 
 	components: { CnIcon, DotsHorizontal, NcPopover, NcSelect },
+
+	inject: {
+		/** The look CnAppRoot provides; `board` draws the tabs as pressed chips. */
+		cnLook: { default: 'nextcloud' },
+		/**
+		 * The host's label lookup (CnAppRoot provides it); identity without one, so a
+		 * label that is not a key renders as written.
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
 
 	// NO `model: { prop, event }` OPTION.
 	//
@@ -265,6 +279,15 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the tabs draw as board chips (`aria-pressed`, no tablist).
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
 		 * Every tab paired with its own index, so the overflow split can slice
 		 * the list without losing the index the parent's filters are keyed on.
 		 *
@@ -318,7 +341,7 @@ export default {
 		overflowLabel() {
 			const active = this.activeOverflowEntries
 			if (active.length === 1) {
-				return active[0].tab.label
+				return this.tl(active[0].tab.label)
 			}
 			if (active.length > 1) {
 				return t('nextcloud-vue', '{count} filters', { count: active.length })
@@ -352,7 +375,7 @@ export default {
 				.map((tab, index) => {
 					const count = this.countOf({ tab, index })
 					return {
-						label: count === null ? tab.label : `${tab.label} (${count})`,
+						label: count === null ? this.tl(tab.label) : `${this.tl(tab.label)} (${count})`,
 						icon: tab.icon,
 						index,
 						_empty: this.isEmptyFilter(tab),
@@ -376,6 +399,19 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A manifest string through the host's label lookup (`cnTranslate`), so a key
+		 * such as "Mine" reads in the user's language.
+		 *
+		 * @param {string} text The text as written in the manifest.
+		 * @return {string} The translated text.
+		 */
+		tl(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		t,
+
 		/**
 		 * The count to show on a tab, or null for none: `counts[index]`
 		 * first, else the tab's own `count`.

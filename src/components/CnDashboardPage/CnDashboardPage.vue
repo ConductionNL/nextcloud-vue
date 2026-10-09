@@ -10,7 +10,10 @@
   - Header with title, actions, and edit toggle
 -->
 <template>
-	<div class="cn-dashboard-page" data-testid="cn-dashboard-page">
+	<div
+		class="cn-dashboard-page"
+		:class="{ 'cn-dashboard-page--board': isBoardLook }"
+		data-testid="cn-dashboard-page">
 		<!-- Header. `showHeader: false` drops the whole row (title, description,
 		     header actions, edit toggle) for a page that opens with its own
 		     heading, such as a greeting; the title then stays as a visually
@@ -21,9 +24,12 @@
 		<div v-if="showHeader" class="cn-dashboard-page__header" data-testid="cn-dashboard-page-header">
 			<div class="cn-dashboard-page__header-left">
 				<div v-if="title || $slots['title-meta']" class="cn-dashboard-page__title-row">
-					<h2 v-if="title" class="cn-dashboard-page__title">
+					<component
+						:is="isBoardLook ? 'h1' : 'h2'"
+						v-if="title"
+						class="cn-dashboard-page__title">
 						{{ resolvedTitle }}
-					</h2>
+					</component>
 					<!-- @slot title-meta Content on the title's row, right of the title (e.g. a page-wide picker). Fill it from a manifest with `page.slots: { "title-meta": "<RegistryName>" }`. -->
 					<slot name="title-meta" />
 				</div>
@@ -49,14 +55,16 @@
 				     toggle / navigate / refresh) with visibleWhen gating,
 				     before the slot content so app-provided buttons stay
 				     right-most next to the edit toggle. -->
-				<CnActionButtons
-					v-if="headerActions && headerActions.length"
-					:actions="headerActions"
-					data-testid="cn-dashboard-page-header-actions" />
-				<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, launchpad, opencatalogi, pipelinq, procest). -->
-				<slot name="header-actions" />
-				<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
-				<slot name="actions" />
+				<template v-if="!isBoardLook">
+					<CnActionButtons
+						v-if="headerActions && headerActions.length"
+						:actions="headerActions"
+						data-testid="cn-dashboard-page-header-actions" />
+					<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, launchpad, opencatalogi, pipelinq, procest). -->
+					<slot name="header-actions" />
+					<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
+					<slot name="actions" />
+				</template>
 				<NcButton
 					v-if="allowEdit"
 					:variant="isEditing ? 'primary' : 'secondary'"
@@ -83,7 +91,7 @@
 				<!-- In-app edit button (ADR-041). Renders only when Buildiq is
 				     reachable; self-wires from the cnManifestEditor / cnOpenBuildAvailable
 				     provided by CnAppRoot. Sits inline with the page's action buttons. -->
-				<CnBuildiqEditButton />
+				<CnBuildiqEditButton v-if="!isBoardLook" />
 				<!-- Page-level overflow Actions menu (Refresh + the mandatory
 				     trio Request a feature / Report a bug / Documentation).
 				     Separate from the per-widget menus. `docs-anchor` deep-links
@@ -115,6 +123,18 @@
 						<slot name="action-items" />
 					</template>
 				</CnActionsMenu>
+				<!-- Board look: the row reads Edit layout, Actions, the buildiq
+				     square, then the manifest's header actions with the primary
+				     rightmost (screens-dashboard-parity). -->
+				<template v-if="isBoardLook">
+					<CnBuildiqEditButton />
+					<CnActionButtons
+						v-if="headerActions && headerActions.length"
+						:actions="headerActions"
+						data-testid="cn-dashboard-page-header-actions" />
+					<slot name="header-actions" />
+					<slot name="actions" />
+				</template>
 			</div>
 		</div>
 
@@ -132,8 +152,49 @@
 		<div
 			v-if="showHeaderDateRange"
 			class="cn-dashboard-page__date-range"
-			:class="{ 'cn-dashboard-page__date-range--pills': dateRangeControl === 'pills' }"
+			:class="{
+				'cn-dashboard-page__date-range--pills': dateRangeControl === 'pills',
+				'cn-dashboard-page__date-range--segmented': dateRangeControl === 'segmented',
+			}"
 			data-testid="cn-dashboard-page-date-range">
+			<!-- Segmented mode (`dateRange.control: 'segmented'`): the presets as
+			     one compact segmented group in a row of its own, driving the
+			     same range change as a pill. A custom range, when offered, is
+			     the last segment and opens the from/to popover. -->
+			<div
+				v-if="dateRangeControl === 'segmented'"
+				class="cn-dashboard-page__date-segmented"
+				data-testid="cn-dashboard-page-date-segmented">
+				<CnSegmentedControl
+					size="compact"
+					mode="toggle"
+					:options="segmentedOptions"
+					:modelValue="segmentedValue"
+					:ariaLabel="datePeriodLabel"
+					@update:modelValue="onSegmentPick" />
+				<NcActions
+					v-if="hasCustomPreset && currentRange && currentRange.preset === 'custom'"
+					:forceMenu="true"
+					container="body"
+					class="cn-dashboard-page__date-pill-custom"
+					data-testid="cn-dashboard-page-date-segment-custom">
+					<template #icon>
+						<CalendarRange :size="18" />
+					</template>
+					<NcActionInput
+						type="datetime-local"
+						isNativePicker
+						:modelValue="toPickerDate(currentRange && currentRange.from)"
+						:label="t('nextcloud-vue', 'From')"
+						@update:modelValue="onChipDateInput('from', $event)" />
+					<NcActionInput
+						type="datetime-local"
+						isNativePicker
+						:modelValue="toPickerDate(currentRange && currentRange.to)"
+						:label="t('nextcloud-vue', 'To')"
+						@update:modelValue="onChipDateInput('to', $event)" />
+				</NcActions>
+			</div>
 			<!-- Pills mode (`dateRange.control: 'pills'`): a compact segmented
 			     toggle-button row replaces the bulky select + two date inputs.
 			     Each preset is a pill; the active one drives the dashboard window
@@ -142,7 +203,7 @@
 			     so the arbitrary-window affordance is kept without two bare
 			     date inputs being always visible. -->
 			<div
-				v-if="dateRangeControl === 'pills'"
+				v-else-if="dateRangeControl === 'pills'"
 				class="cn-dashboard-page__date-pills"
 				role="group"
 				:aria-label="datePillsGroupLabel"
@@ -246,11 +307,11 @@
 		<div v-else-if="!hasWidgets && !hasBodyWidgets && !hasViews" class="cn-dashboard-page__empty">
 			<!-- @slot empty Replaces the default empty state shown when the dashboard has no widgets. Defaults to an `NcEmptyContent` block. -->
 			<slot name="empty">
-				<NcEmptyContent :description="emptyLabel">
+				<CnEmptyContent :description="emptyLabel">
 					<template #icon>
 						<ViewDashboardOutline :size="48" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</slot>
 		</div>
 
@@ -278,6 +339,60 @@
 		     to the layout/widgets arrays — in-place pushes (Add widget) keep
 		     the same array identity and can't re-render it. One remount per
 		     edit flip re-subscribes against the now-reactive graph. -->
+		<!-- KPI row (`config.kpiRow`): the named widgets sit above the grid in
+		     an auto-fit CnKpiGrid (each tile at least 200px wide) and are not
+		     GridStack items, so they neither reflow with the grid nor appear
+		     in the emitted layout. -->
+		<CnKpiGrid
+			v-if="gridSectionsShown && kpiRowItems.length > 0"
+			columns="auto"
+			class="cn-dashboard-page__kpi-row"
+			data-testid="cn-dashboard-page-kpi-row">
+			<div
+				v-for="item in kpiRowItems"
+				:key="`kpi-${item.widgetId}`"
+				class="cn-dashboard-page__kpi-cell"
+				:data-testid="`cn-dashboard-page-kpi-${item.widgetId}`">
+				<CnWidgetWrapper
+					v-if="isStatsBlock(item)"
+					v-bind="kpiWrapperProps(item)"
+					@refresh="onWidgetRefresh(item)"
+					@requestFeature="onWidgetRequestFeature(item)">
+					<CnStatsBlockWidget
+						v-bind="getStatsBlockProps(item)"
+						:title="getWidgetTitle(item)"
+						:data-source="getWidgetDataSource(item)" />
+				</CnWidgetWrapper>
+				<CnWidgetWrapper
+					v-else-if="registryRenderer(item)"
+					v-bind="kpiWrapperProps(item)"
+					@refresh="onWidgetRefresh(item)"
+					@requestFeature="onWidgetRequestFeature(item)">
+					<component
+						:is="registryRenderer(item)"
+						:widgetId="item.widgetId"
+						:content="registryWidgetBindings(item)"
+						v-bind="registryWidgetBindings(item)" />
+				</CnWidgetWrapper>
+				<CnWidgetWrapper
+					v-else-if="hasWidgetSlot(item.widgetId)"
+					v-bind="kpiWrapperProps(item)"
+					@refresh="onWidgetRefresh(item)"
+					@requestFeature="onWidgetRequestFeature(item)">
+					<slot :name="'widget-' + item.widgetId" :item="item" :widget="getWidgetDef(item.widgetId)" />
+				</CnWidgetWrapper>
+				<CnWidgetWrapper
+					v-else
+					:title="getWidgetTitle(item)"
+					:showTitle="false"
+					:showRefresh="false">
+					<div class="cn-dashboard-page__unknown">
+						{{ unavailableLabel }}
+					</div>
+				</CnWidgetWrapper>
+			</div>
+		</CnKpiGrid>
+
 		<!-- The view switch for a page without a header row, when no greeting
 		     header widget draws it. -->
 		<div
@@ -711,11 +826,11 @@
 			:aria-label="activeView ? activeView.label : null"
 			class="cn-page-view-region cn-page-view-region--empty"
 			data-testid="cn-dashboard-page-view-empty">
-			<NcEmptyContent :description="viewEmptyText">
+			<CnEmptyContent :description="viewEmptyText">
 				<template #icon>
 					<ViewDashboardOutline :size="48" />
 				</template>
-			</NcEmptyContent>
+			</CnEmptyContent>
 		</div>
 
 		<!-- Declarative in-body sections, `placement: "after-grid"` — host-app
@@ -754,16 +869,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import {
-	NcActionButton,
-	NcActionInput,
-	NcActions,
-	NcActionSeparator,
-	NcButton,
-	NcEmptyContent,
-	NcLoadingIcon,
-	NcSelect,
-} from '@nextcloud/vue'
+import { NcActionButton, NcActionInput, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { provide, ref, watch } from 'vue'
 import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -778,6 +884,8 @@ import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
+import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
@@ -785,6 +893,7 @@ import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
@@ -795,6 +904,10 @@ import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+
+// Registers the dashboard widget catalog (stat, delta, gauge, ...) whenever this
+// page's chunk loads, so a fresh dashboard does not depend on the app's main.js.
+import '../CnWidgetGrid/registerDashboardWidgets.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -917,7 +1030,7 @@ export default {
 		NcActionInput,
 		NcActionSeparator,
 		NcButton,
-		NcEmptyContent,
+		CnEmptyContent,
 		NcLoadingIcon,
 		NcSelect,
 		Pencil,
@@ -942,6 +1055,7 @@ export default {
 		CnWidgetStyleEditorModal,
 		CnLeafMountHost,
 		CnSegmentedControl,
+		CnKpiGrid,
 	},
 
 	mixins: [pageViews],
@@ -973,6 +1087,14 @@ export default {
 		 * as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The look the app is drawn in (`board` or `nextcloud`), provided by
+		 * CnAppRoot. The board look draws the screens' dashboard header, period
+		 * group and KPI row.
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-board-dashboard-header
+		 */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	/**
@@ -989,6 +1111,8 @@ export default {
 	provide() {
 		return {
 			cnWidgetTitleSource: (widgetId) => this.getWidgetTitleSource(widgetId),
+			// The page id, for widgets that key per-person state by dashboard (notepad).
+			cnDashboardPageId: () => this.resolvedPageId,
 		}
 	},
 
@@ -1016,6 +1140,20 @@ export default {
 		showHeader: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * The ids of the widgets that form the KPI row above the grid
+		 * (manifest `config.kpiRow`). They render in an auto-fit CnKpiGrid and
+		 * are left out of the GridStack grid and of the emitted layout. An id
+		 * that names no widget is skipped with a development warning.
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-a-kpi-row-above-the-grid
+		 * @type {Array<string>}
+		 */
+		kpiRow: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -1784,11 +1922,15 @@ export default {
 		 * @return {Array<object>} The layout.
 		 */
 		renderedLayout() {
-			if (this.userLayout && Array.isArray(this.userLayoutItems)) {
-				return this.userLayoutItems
+			const base = (this.userLayout && Array.isArray(this.userLayoutItems))
+				? this.userLayoutItems
+				: this.layout
+			// The KPI row is not part of the grid.
+			if (Array.isArray(this.kpiRow) && this.kpiRow.length > 0 && Array.isArray(base)) {
+				return base.filter((item) => !this.kpiRow.includes(item.widgetId))
 			}
 
-			return this.layout
+			return base
 		},
 
 		/**
@@ -1880,7 +2022,72 @@ export default {
 		 * @return {string}
 		 */
 		dateRangeControl() {
-			return this.dateRange?.control === 'pills' ? 'pills' : 'picker'
+			const control = this.dateRange?.control
+			return control === 'pills' || control === 'segmented' ? control : 'picker'
+		},
+
+		/**
+		 * Whether the app takes the board look (`cnLook` is `board`).
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-board-dashboard-header
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The options of the segmented period group: the presets, and the
+		 * custom range, when offered, as the last segment.
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-period-as-a-segmented-group
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		segmentedOptions() {
+			const options = this.pillPresets.map((p) => ({ value: p.id, label: p.label }))
+			if (this.hasCustomPreset) {
+				options.push({ value: 'custom', label: this.customRangeLabel })
+			}
+			return options
+		},
+
+		/**
+		 * The segment that is pressed: the current range's preset.
+		 *
+		 * @return {string|null}
+		 */
+		segmentedValue() {
+			return (this.currentRange && this.currentRange.preset) || null
+		},
+
+		/**
+		 * Accessible name of the period group.
+		 *
+		 * @return {string}
+		 */
+		datePeriodLabel() {
+			return t('nextcloud-vue', 'Period')
+		},
+
+		/**
+		 * The KPI row's widgets as layout-like items (`{ widgetId }`), in the
+		 * order `kpiRow` lists them.
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-a-kpi-row-above-the-grid
+		 * @return {Array<{widgetId: string}>}
+		 */
+		kpiRowItems() {
+			const ids = Array.isArray(this.kpiRow) ? this.kpiRow : []
+			const items = []
+			for (const id of ids) {
+				if (this.getWidgetDef(id) || this.hasWidgetSlot(id)) {
+					items.push({ widgetId: id })
+				} else if (process.env.NODE_ENV !== 'production') {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnDashboardPage] kpiRow names the widget "${id}", which is not defined; skipped.`)
+				}
+			}
+			return items
 		},
 
 		/**
@@ -2462,6 +2669,55 @@ export default {
 				return
 			}
 			this.onDateRangeChange({ ...win, preset: preset.id })
+		},
+
+		/**
+		 * Handle a press on a segment of the period group
+		 * (`dateRange.control: "segmented"`): the same range change as a pill.
+		 * The custom segment keeps the current window and opens the from/to
+		 * popover.
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-period-as-a-segmented-group
+		 * @param {string} value The preset id of the pressed segment.
+		 * @return {void}
+		 */
+		onSegmentPick(value) {
+			if (value === 'custom') {
+				this.onDateRangeChange({
+					from: this.currentRange?.from || '',
+					to: this.currentRange?.to || '',
+					preset: 'custom',
+				})
+				return
+			}
+			const preset = this.pillPresets.find((p) => p.id === value)
+			if (preset) {
+				this.onPillPick(preset)
+			}
+		},
+
+		/**
+		 * Props shared by the wrapper of a KPI row tile.
+		 *
+		 * @param {{widgetId: string}} item The row item.
+		 * @return {object}
+		 */
+		kpiWrapperProps(item) {
+			return {
+				widgetId: item.widgetId,
+				title: this.getWidgetTitle(item),
+				showTitle: this.widgetShowTitle(item),
+				showActions: this.widgetShowActions(item),
+				showRefresh: this.getWidgetShowRefresh(item),
+				borderless: this.widgetBorderless(item),
+				flush: true,
+				class: { 'cn-dashboard-page__card-fit': this.isCardWidget(item) },
+				buttons: this.getWidgetButtons(item),
+				headerLink: this.getWidgetHeaderLink(item),
+				styleConfig: item.styleConfig || {},
+				documentationUrl: this.getWidgetDocumentationUrl(item),
+				docsAnchor: this.getWidgetDocsAnchor(item),
+			}
 		},
 
 		/**
@@ -4087,6 +4343,54 @@ export default {
 	margin: 4px 0 0;
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Board look (screens-dashboard-parity): h1 28/700, a 15px grey subtitle 6px
+   under it, and 40px buttons with a 10px gap. */
+.cn-dashboard-page--board .cn-dashboard-page__title {
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-dashboard-page--board .cn-dashboard-page__description {
+	margin: 6px 0 0;
+	font-size: 15px;
+}
+
+.cn-dashboard-page--board .cn-dashboard-page__header-actions {
+	gap: 10px;
+}
+
+.cn-dashboard-page--board .cn-dashboard-page__header-actions :deep(.button-vue) {
+	min-height: var(--cn-board-control-height, 40px);
+	height: var(--cn-board-control-height, 40px);
+}
+
+/* The period group, in a row of its own between the header and the KPI row. */
+.cn-dashboard-page__date-range--segmented {
+	margin-bottom: 16px;
+}
+
+.cn-dashboard-page__date-segmented {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* The KPI row above the grid: tiles are cells of the auto-fit grid. */
+.cn-dashboard-page__kpi-row {
+	margin-bottom: var(--cn-board-section-gap, 16px);
+}
+
+.cn-dashboard-page__kpi-cell {
+	display: flex;
+	min-width: 0;
+}
+
+.cn-dashboard-page__kpi-cell > * {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 /* NOTE: the date-range chip's trigger/chip/preset-spacer rules live in the

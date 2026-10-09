@@ -26,6 +26,10 @@
 	</CnConfirmDialog>
 	<CnFormDialog
 		v-else
+		:look="look"
+		:width="width"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:schema="schema"
 		:item="object"
 		:register="register"
@@ -42,6 +46,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import CnConfirmDialog from './CnConfirmDialog.vue'
 import { CnFormDialog } from '../components/CnFormDialog/index.js'
+import { dialogBoardMixin } from '../mixins/dialogBoard.js'
 import { conflictingFields, quickEditPatch, writableQuickEditFields } from '../utils/quickEdit.js'
 
 /**
@@ -70,6 +75,8 @@ export default {
 		CnConfirmDialog,
 		CnFormDialog,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** The row being edited. */

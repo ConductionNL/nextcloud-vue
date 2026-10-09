@@ -85,3 +85,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 ```vue
 <CnPagination compact :current-page="page" :total-pages="totalPages" :total-items="total" :current-page-size="pageSize" @page-changed="onPageChange" />
 ```
+
+## Board variant
+
+`variant="board"` draws the footer of the board look's table card: the count text (`"{shown} of {total}"`, then `footerNote` when set) at the start, numbered 34px page links at the end, "Previous" only after the first page and "Next" only before the last. It renders no First, no Last and no page-size select, and shows the count on a single page too. The default variant renders as before. `CnIndexPage` sets it under the board look.

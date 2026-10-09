@@ -226,3 +226,14 @@ The caption then carries `cn-kpi-card__label--<variant>`; the colours come from 
 ## A second caption line (`content.note`)
 
 `content.note` (an i18n key) adds a line under the caption, as "3 deadlines this week" under a count; `content.noteVariant` colours it with the `captionVariant` names. It is static text: a second count source is not supported yet.
+
+## The board look tile
+
+With the app in the board look (`cnLook`), the stacked tile (and a stacked
+`CnStatsBlock`) draws a 14px grey label, the value at 28px/700 (line height
+1.1), a 13px note, a 6px gap and 18px 20px padding. It draws no icon circle; the
+icon shows as an 18px glyph before the label only when the tile links to a
+filtered list (`content.link` or `route`). A caption variant colours the note
+only for `warning`, `error` or `danger`; `success` and `info` read as the plain
+grey note (the rule still evaluates, so the screen reader text is unchanged).
+Without the look the stacked value stays 34px.

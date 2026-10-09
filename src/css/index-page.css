@@ -229,3 +229,14 @@
 	width: 100%;
 	padding-inline-start: 0;
 }
+
+/* "Also search inside files": the switch beside the search box and the cap note. */
+.cn-index-page__content-search {
+	flex: 0 0 auto;
+}
+
+.cn-index-page__content-search-note {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}

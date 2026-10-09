@@ -108,13 +108,13 @@
 				<div v-if="loading && !visibleGroups.length" class="cn-related-objects-widget__empty">
 					{{ loadingLabel }}
 				</div>
-				<NcEmptyContent v-else-if="hasLoaded && !visibleGroups.length"
+				<CnEmptyContent v-else-if="hasLoaded && !visibleGroups.length"
 					class="cn-related-objects-widget__empty-state"
 					:name="resolvedEmptyLabel">
 					<template #icon>
 						<CnIcon :name="emptyIconName" :size="48" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</template>
 
 			<!-- Legacy list mode (deprecated) -->
@@ -207,13 +207,13 @@
 				<div v-if="loading && isEmpty" class="cn-related-objects-widget__empty">
 					{{ loadingLabel }}
 				</div>
-				<NcEmptyContent v-else-if="hasLoaded && isEmpty"
+				<CnEmptyContent v-else-if="hasLoaded && isEmpty"
 					class="cn-related-objects-widget__empty-state"
 					:name="resolvedEmptyLabel">
 					<template #icon>
 						<CnIcon :name="emptyIconName" :size="48" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</template>
 		</div>
 
@@ -294,11 +294,12 @@
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcActionButton, NcActionInput, NcActions, NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcActionButton, NcActionInput, NcActions, NcButton } from '@nextcloud/vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import FileTreeOutline from 'vue-material-design-icons/FileTreeOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { registerIntegrationIcons } from '../../integrations/icons.js'
 import { useObjectStore } from '../../store/index.js'
@@ -435,7 +436,7 @@ export default {
 		NcActionButton,
 		NcActionInput,
 		NcButton,
-		NcEmptyContent,
+		CnEmptyContent,
 	},
 
 	inject: {

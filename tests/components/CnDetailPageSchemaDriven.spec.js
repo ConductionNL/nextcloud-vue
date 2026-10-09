@@ -98,7 +98,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 				'openbuilt',
 				{ registerSlug: 'openbuilt', schemaSlug: 'application' },
 			)
-			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1')
+			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1', { extend: ['@self.can'] })
 			expect(store.fetchSchema).toHaveBeenCalledWith('openbuilt-application')
 		})
 
@@ -122,7 +122,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 			// Type already registered → NOT re-registered (cache preserved),
 			// but the object IS re-fetched in place.
 			expect(store.registerObjectType).toHaveBeenCalledTimes(1)
-			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1')
+			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1', { extend: ['@self.can'] })
 		})
 
 		it('enters create mode (schema only, no object fetch) when register+schema are set without objectId', () => {
@@ -153,10 +153,10 @@ describe('CnDetailPage — schema-driven mode', () => {
 				},
 			})
 			await Promise.resolve()
-			expect(store.fetchObject).toHaveBeenLastCalledWith('r-s', 'first')
+			expect(store.fetchObject).toHaveBeenLastCalledWith('r-s', 'first', { extend: ['@self.can'] })
 
 			await wrapper.setProps({ objectId: 'second' })
-			expect(store.fetchObject).toHaveBeenLastCalledWith('r-s', 'second')
+			expect(store.fetchObject).toHaveBeenLastCalledWith('r-s', 'second', { extend: ['@self.can'] })
 		})
 	})
 
