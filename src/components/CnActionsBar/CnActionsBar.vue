@@ -11,7 +11,12 @@
 			cluster below; row 2 (search and the active filters) comes last.
 		-->
 		<div v-if="isBoardLayout" class="cn-actions-bar__row cn-actions-bar__row--views" data-testid="cn-actions-bar-row-views">
+			<!-- @slot filters Inline filter controls (chips) at the start of the board look's row 1. -->
 			<slot name="filters" />
+			<!--
+				@slot actions-end
+				@description Under the board look: saved views as chips and the Save view button, in row 1 after the quick-filter chips.
+			-->
 			<slot name="actions-end" />
 			<NcButton v-if="showSidebarToggle"
 				variant="secondary"
@@ -1367,6 +1372,14 @@ export default {
 			 * @event clear-selection User clicked the selection strip's Clear control. No payload — the host should empty its selection (CnIndexPage does this and re-emits `select` with an empty array).
 			 */
 			this.$emit('clear-selection')
+			/**
+			 * @event remove-filter User removed an active filter chip (board look). Payload: the chip `{ key, label }`.
+			 */
+			this.$emit('remove-filter')
+			/**
+			 * @event clear-filters User clicked "Clear all" beside the active filter chips (board look). No payload.
+			 */
+			this.$emit('clear-filters')
 		},
 	},
 }
