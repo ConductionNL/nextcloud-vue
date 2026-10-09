@@ -171,7 +171,7 @@
     "This integration is not set up yet. Configure a connection to start using it.": "Deze integratie is nog niet ingesteld. Configureer een verbinding om hem te gebruiken.",
     "This integration is not set up yet. Install and enable the {app} app to start using it.": "Deze integratie is nog niet ingesteld. Installeer en activeer de app {app} om hem te gebruiken.",
     "Set up {app}": "{app} instellen",
-    "Add {type}": "Nieuwe {type}",
+    "Add {type}": "{type} toevoegen",
     "Add new contact": "Nieuw contact toevoegen",
     "Link contact": "Contact koppelen",
     "Search contacts": "Contacten zoeken",
@@ -1335,7 +1335,8 @@
     "Development environment": "Ontwikkelomgeving",
     "Test environment": "Testomgeving",
     "Acceptance environment": "Acceptatieomgeving",
-    "About {label}": "Over {label}"
+    "About {label}": "Over {label}",
+    "Could not load the form for this item.": "Kon het formulier voor dit item niet laden."
   },
   "plurals": {
     "%n year": [

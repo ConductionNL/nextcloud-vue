@@ -33,7 +33,7 @@
 - **acceptance_criteria**:
   - Toolbar and footer boxes unchanged when switching between table and cards
 - [x] Implement
-- [ ] Test — not run: the box comparison before and after switching view needs a browser (`e2e/screens-card-parity.e2e.js` not written or run); a unit test asserts both views get the same toolbar layout and footer variant
+- [x] Test — measured in a browser: toolbar box identical and footer box equal to within the card border (1px) when switching table to cards; the e2e found the table card was only as wide as its columns (flex 0 1 auto in a row body), fixed in look-board-index.css; `e2e/screens-index-card-chrome-parity.e2e.js` (library harness, not a live Nextcloud)
 
 ### Task 4: The catalogue card
 - **spec_ref**: `openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-a-catalogue-card-has-an-icon-a-state-and-one-action`
