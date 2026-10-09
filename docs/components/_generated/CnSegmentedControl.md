@@ -8,14 +8,16 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name             | Type      | Required | Default | Description                                                                                                                                                 |
-| ---------------- | --------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `options`        | `union`   | ✓        | —       | The options. Each is `{ value, label, disabled?, count? }`, or a plain string that is both the value and the label. `count` shows a number after the label. |
-| `modelValue`     | `union`   |          | `null`  | The value of the chosen option (v-model).                                                                                                                   |
-| `ariaLabel`      | `string`  |          | `''`    | Accessible name of the group, read out when focus enters it.                                                                                                |
-| `ariaLabelledby` | `string`  |          | `''`    | Id of an element that names the group, as an alternative to `ariaLabel`.                                                                                    |
-| `controls`       | `string`  |          | `''`    | Id of the element the options switch, such as the region holding a page view's widgets. Set as `aria-controls` on every option.                             |
-| `stretch`        | `boolean` |          | `false` | Stretch the control to the full width, with options of equal width.                                                                                         |
+| Name             | Type      | Required | Default    | Description                                                                                                                                                                                                                             |
+| ---------------- | --------- | -------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `options`        | `union`   | ✓        | —          | The options. Each is `{ value, label, disabled?, count? }`, or a plain string that is both the value and the label. `count` shows a number after the label.                                                                             |
+| `modelValue`     | `union`   |          | `null`     | The value of the chosen option (v-model).                                                                                                                                                                                               |
+| `ariaLabel`      | `string`  |          | `''`       | Accessible name of the group, read out when focus enters it.                                                                                                                                                                            |
+| `ariaLabelledby` | `string`  |          | `''`       | Id of an element that names the group, as an alternative to `ariaLabel`.                                                                                                                                                                |
+| `controls`       | `string`  |          | `''`       | Id of the element the options switch, such as the region holding a page view's widgets. Set as `aria-controls` on every option.                                                                                                         |
+| `size`           | `string`  |          | `'normal'` | Size of the control: `normal` (default) or `compact` (the board group: 3px track padding, 2px gap, 34px segments).                                                                                                                      |
+| `mode`           | `string`  |          | `'radio'`  | `radio` (default) is a radio group: one option is always chosen and the arrow keys move the choice. `toggle` is a group of buttons, each with `aria-pressed`, for a set of presets (the board's period group); Tab visits every button. |
+| `stretch`        | `boolean` |          | `false`    | Stretch the control to the full width, with options of equal width.                                                                                                                                                                     |
 
 ### Events
 
