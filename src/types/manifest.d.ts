@@ -90,6 +90,8 @@ export interface TManifestMenuItemLeaf {
 	 * A resolved count of `0`, `null`, or `undefined` renders no badge.
 	 */
 	count?: number | 'auto'
+	/** How the count reads: `attention` draws the red pill under the board look. */
+	counterVariant?: 'default' | 'attention'
 	/**
 	 * Forwarded to the rendered `NcAppNavigationItem`'s `pinned` prop. NC
 	 * bottom-pins pinned items inside the parent list region. Defaults to

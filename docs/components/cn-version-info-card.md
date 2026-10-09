@@ -66,3 +66,7 @@ Displays application version information in admin settings pages. Shows the app 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnVersionInfoCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnVersionInfoCard/CnVersionInfoCard.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Board look
+
+Under the board look (`look` prop or `cnLook`) the facts are a two-column list and the state button and the actions (re-import) move into a footer row after a hairline. The support footer follows the row.
