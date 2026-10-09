@@ -15,8 +15,8 @@ import CnPageHeader from '../../src/components/CnPageHeader/CnPageHeader.vue'
 
 const BarStub = {
 	name: 'CnActionsBar',
-	props: ['layout', 'showSearch', 'showCount', 'activeFilterChips', 'bulkNoun', 'bulkHint', 'showEditButton'],
-	template: '<div class="bar" :data-layout="layout" :data-search="String(showSearch)" :data-count="String(showCount)" :data-noun="bulkNoun" :data-edit="String(showEditButton)"><slot name="actions-end" /></div>',
+	props: ['layout', 'showSearch', 'showCount', 'activeFilterChips', 'bulkNoun', 'bulkHint', 'showBuildiqButton'],
+	template: '<div class="bar" :data-layout="layout" :data-search="String(showSearch)" :data-count="String(showCount)" :data-noun="bulkNoun" :data-edit="String(showBuildiqButton)"><slot name="actions-end" /></div>',
 }
 
 function mountPage(extra = {}, look = 'board') {

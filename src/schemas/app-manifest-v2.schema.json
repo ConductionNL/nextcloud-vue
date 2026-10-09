@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.69.0",
+	"version": "2.72.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1323,6 +1323,12 @@
 					],
 					"description": "Counter badge in the entry's #counter slot. Positive integer renders as-is; 'auto' resolves from cnMenuCounts (populated by CnAppRoot from useObjectStore totals) for the entry's resolved index-type page (register + schema); an object `{ register, schema, filter? }` is the total of that filtered list."
 				},
+				"counterVariant": {
+					"type": "string",
+					"enum": ["default", "attention"],
+					"default": "default",
+					"description": "screens-chrome-parity: how the entry's `count` reads. `attention` asks for the red attention pill under the board look (unread or overdue work) and maps to the counter bubble's highlighted state without it. `default` is the neutral pill."
+				},
 				"pinned": {
 					"type": "boolean",
 					"default": false,
@@ -1404,6 +1410,7 @@
 						{ "type": "string", "enum": ["auto"] }
 					]
 				},
+				"counterVariant": { "type": "string", "enum": ["default", "attention"], "default": "default" },
 				"pinned": { "type": "boolean", "default": false },
 				"href": { "type": "string" },
 				"action": {
@@ -3229,7 +3236,20 @@
 					"type": "object",
 					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, map, custom). Config values under pages[].config may use the closed sentinel vocabulary (see $defs/sentinelTokenAny) — an out-of-vocabulary @-token FAILS validation via the sentinelGuardedValue allOf guard. Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
 					"additionalProperties": true,
-					"allOf": [{ "$ref": "#/$defs/sentinelGuardedValue" }],
+					"allOf": [
+						{ "$ref": "#/$defs/sentinelGuardedValue" },
+						{
+							"$comment": "screens-chrome-parity: a page declares ONE place to save. `saveMode` excludes a section's own `save` (flat or inside a tab) and `autosave`.",
+							"if": { "required": ["saveMode"] },
+							"then": {
+								"not": { "required": ["autosave"], "properties": { "autosave": { "const": true } } },
+								"properties": {
+									"sections": { "type": "array", "items": { "type": "object", "not": { "required": ["save"] } } },
+									"tabs": { "type": "array", "items": { "type": "object", "properties": { "sections": { "type": "array", "items": { "type": "object", "not": { "required": ["save"] } } } } } }
+								}
+							}
+						}
+					],
 					"properties": {
 						"favourite": {
 							"type": "boolean",
@@ -3859,6 +3879,16 @@
 							"type": "string",
 							"enum": ["nextcloud", "board"],
 							"description": "screens-chrome-parity: draw this page in the `nextcloud` or the `board` look, over the manifest's root `look`. The nearest value wins: the page root carries `cn-look-board` or `cn-look-nextcloud`, and `cnLook` is re-provided to the page's descendants."
+						},
+						"saveMode": {
+							"type": "string",
+							"enum": ["section", "page"],
+							"description": "type='settings' (screens-chrome-parity): where the page saves. `section` ends each section that has fields in its own Save button and draws no page save bar. `page` draws one Save as the last header button and a Changes card listing the changed fields; no section draws a save button. Absent, the page keeps the save bar under the last section. Cannot be combined with `autosave` or with a section that declares its own `save`. Maps to CnSettingsPage `saveMode`."
+						},
+						"autosave": {
+							"type": "boolean",
+							"default": false,
+							"description": "type='settings' (screens-chrome-parity): the page saves on change. It draws no save button and its description ends with \"Changes are saved automatically.\" Cannot be combined with `saveMode`. Maps to CnSettingsPage `autosave`."
 						},
 						"showHeader": {
 							"type": "boolean",

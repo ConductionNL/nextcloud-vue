@@ -26,9 +26,9 @@
 				     title. Declaring them takes the Views and Actions menus
 				     (and the Add / Export controls a button takes over) out of
 				     the actions bar. -->
-				<template v-if="headerButtonsShown" #extra>
+				<template v-if="headerButtonsShown || buildiqInHeader" #extra>
 					<div class="cn-index-page__header-buttons" data-testid="cn-index-header-buttons">
-						<template v-for="button in orderedHeaderButtons" :key="button.key">
+						<template v-for="button in (headerButtonsShown ? orderedHeaderButtons : [])" :key="button.key">
 							<!-- The buildiq square (the in-app edit button), between the secondary buttons and the primary one. -->
 							<CnBuildiqEditButton v-if="button.action === '__buildiq'" />
 							<!-- `actions-menu`: the page's header actions as one labelled menu. -->
@@ -65,6 +65,7 @@
 								{{ button.label }}
 							</NcButton>
 						</template>
+						<CnBuildiqEditButton v-if="buildiqInHeader && !headerButtonsShown" />
 					</div>
 				</template>
 			</CnPageHeader>
@@ -79,7 +80,7 @@
 		<CnActionsBar
 			:layout="isBoardLook ? 'board' : 'nextcloud'"
 			:activeFilterChips="activeFilterChips"
-			:showEditButton="!(isBoardLook && headerButtonsShown)"
+			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
 			:bulkHint="bulkHint"
 			:pagination="effectivePagination"
@@ -945,6 +946,7 @@ import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
 import { useContextMenu } from '../../composables/index.js'
@@ -978,7 +980,6 @@ import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnBoardView } from '../CnBoardView/index.js'
-import { CnBuildiqEditButton } from '../CnBuildiqEditButton/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
@@ -1230,6 +1231,7 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnBuildiqEditButton,
 		CnFavouriteToggle,
 		NcLoadingIcon,
 		CnEmptyContent,
@@ -1249,7 +1251,6 @@ export default {
 		CnPageHeader,
 		CnQuickFilterBar,
 		CnActionsBar,
-		CnBuildiqEditButton,
 		DotsHorizontal,
 		CnIcon,
 		CnDataTable,
@@ -1433,8 +1434,9 @@ export default {
 		 *
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md
 		 * @type {('' | 'board' | 'nextcloud')}
+		 *
+		 * Read through `useLook(props)` in setup, which the unused-properties rule cannot see.
 		 */
-		// Read through `useLook(props)` in setup, which the unused-properties rule cannot see.
 		// eslint-disable-next-line vue/no-unused-properties
 		look: {
 			type: String,
@@ -3094,6 +3096,7 @@ export default {
 		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters })
 
 		return {
+			isBoard: isBoardLook,
 			isBoardLook,
 			lookClass,
 			isNamedSource,
@@ -5112,6 +5115,32 @@ export default {
 				return this.cnTranslate(plural).toLowerCase()
 			}
 			return ''
+		},
+
+		/**
+		 * Whether the buildiq square sits in the page header instead of the
+		 * actions bar: under the board look, when the header shows (a hidden
+		 * header or a `#header` slot keeps the square in the bar).
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-buildiq-square-is-one-square-everywhere
+		 * @return {boolean}
+		 */
+		buildiqInHeader() {
+			return this.isBoard && this.showTitle && !this.$slots.header
+		},
+
+		/**
+		 * Index of the header button the buildiq square sits directly before:
+		 * the first primary one. -1 puts it after the last button.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-buildiq-square-is-one-square-everywhere
+		 * @return {number}
+		 */
+		buildiqBeforeIndex() {
+			if (!this.headerButtonsShown) {
+				return -1
+			}
+			return this.resolvedHeaderButtons.findIndex((button) => button.variant === 'primary')
 		},
 
 		/**

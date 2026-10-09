@@ -187,8 +187,9 @@
 			-->
 			<slot name="actions-end" />
 
-			<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
-			<CnBuildiqEditButton v-if="showEditButton" />
+			<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot.
+			     The board look draws it in the page header instead. -->
+			<CnBuildiqEditButton v-if="showBuildiqButton" />
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
@@ -577,8 +578,12 @@ export default {
 			default: null,
 		},
 
-		/** Whether the in-app edit button (the buildiq square) renders here; the index page takes it into its header under the board look. */
-		showEditButton: {
+		/**
+		 * Whether the bar draws the in-app buildiq edit button. A page that
+		 * draws it in its own header (the board look) passes false so there
+		 * is one square, not two.
+		 */
+		showBuildiqButton: {
 			type: Boolean,
 			default: true,
 		},

@@ -68,7 +68,7 @@ describe('CnActionsBar board layout', () => {
 
 	it('drops the buildiq square when the page took it into its header', () => {
 		const wrapper = mount(CnActionsBar, {
-			props: { showEditButton: false },
+			props: { showBuildiqButton: false },
 			global: { provide: { cnLook: 'board' }, stubs: { ...stubs, CnBuildiqEditButton: { template: '<i class="buildiq" />' } } },
 		})
 		expect(wrapper.find('.buildiq').exists()).toBe(false)
