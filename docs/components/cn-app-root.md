@@ -143,6 +143,7 @@ export default {
 | `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')` so the title follows the user's locale. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
 | `adminSettingsTitle` | `String` | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
 | `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
+| `brand` | `Object \| null` | `null` | The brand block (`{ logo?, emblem?, name?, caption?, alt?, placement? }`) the board look draws at the start of the top bar. Empty falls back to the manifest's `nav.brand`. |
 | `look` | `''\|'board'\|'nextcloud'` | `''` | The look the app is drawn in. Empty falls back to the manifest's top-level `look`, then `nextcloud`. Provided to descendants as `cnLook`; in the `board` look the library's empty states draw as the card-size `CnWidgetEmptyState`. |
 | `initialOrganisationUuid` | `String \| null` | `null` | Seed value for the multi-tenancy provider's `activeOrganisationUuid`. CnAppRoot calls [`provideTenantContext`](../utilities/provide-tenant-context.md)`(initialOrganisationUuid, initialOrganisation)` on mount, so consumers wired to [`useTenantContext`](../utilities/composables/use-tenant-context.md) see the seeded tenant from the first render. Single-tenant deployments leave both props `null`. |
 | `initialOrganisation` | `Object \| null` | `null` | Optional resolved organisation entity matching `initialOrganisationUuid`. Stored on `activeOrganisation` so downstream components ([`CnTenantBadge`](./cn-tenant-badge.md), [`CnFormDialog`](./cn-form-dialog.md) auto-fill) have the name/icon available immediately without a follow-up fetch. |
@@ -177,6 +178,7 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `or-missing` | `{ missingApps }` | Default `<NcEmptyContent>` linking to the OpenRegister app-store integration page | Shown when any app in `requiresApps` is missing per the OCS capabilities check. Override to fully replace the empty state. |
 | `setup` | `{ steps, status }` | `<CnSetupWizard :cancellable="false" />` | Replaces the **gating** first-time-setup surface (a required `manifest.setup` step is unmet). `steps` is `manifest.setup.steps`; `status` is the [`useSetupStatus`](../utilities/composables/use-setup-status.md) state. Does not affect the non-gating overlay — see [First-time setup](#first-time-setup-adr-042). |
 | `menu` | — | `<CnAppNav :permissions />` | Replaces the default app navigation |
+| `brand-bar` | — | — | Content of the board look's top bar after the brand block and its divider (search, notifications, user menu). Rendered only with a declared brand. |
 | `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
 | `sidebar` | — | The resolved `cnPageSidebarComponent` when set, otherwise empty | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. The slot's **default content** is driven by the `cnPageSidebarComponent` inject — when the current page declares a `sidebarComponent` registry name, the resolved component renders here unless the consumer supplies a `#sidebar` slot override (override wins). See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility) and [Per-page sidebar component](./cn-page-renderer.md#per-page-sidebar-component). |
 | `footer` | — | — | Mounted inside `NcAppContent`, after the default slot |
@@ -293,6 +295,10 @@ export default {
   },
 }
 ```
+
+### The brand block in the top bar
+
+Under the board look, an app that declares a brand (`nav.brand`, or the `brand` prop) gets a bar across the top of its own region, with the 237px brand block at its start: the emblem, the organisation (`caption`) and the app name (`name`). The bar exists without `CnAppNav`, so an app with its own menu has it too. `CnAppNav` stops drawing the block while the bar does (`cnBrandInTopBar`). Set `nav.brand.placement: "nav"` to keep the block in the navigation. Fill the bar after the block through the `#brand-bar` slot. Nextcloud's own header stays Nextcloud's: the bar is the app's, under it. Sizes: `--cn-board-topbar-height` (68px), `--cn-board-brand-width` (237px), `--cn-nav-emblem-size` (34px).
 
 ## Support dialog
 

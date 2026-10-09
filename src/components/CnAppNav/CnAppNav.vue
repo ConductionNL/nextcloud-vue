@@ -75,7 +75,7 @@
 -->
 <template>
 	<NcAppNavigation :aria-label="ariaLabel" data-testid="cn-nav">
-		<template v-if="$slots.search || $slots.brand || resolvedBrand" #search>
+		<template v-if="$slots.search || $slots.brand || navBrand" #search>
 			<!--
 				@slot brand
 				@description Replace the brand block at the very top of the
@@ -86,7 +86,7 @@
 			-->
 			<slot name="brand" :brand="resolvedBrand">
 				<div
-					v-if="resolvedBrand"
+					v-if="navBrand"
 					class="cn-app-nav__brand"
 					data-testid="cn-nav-brand">
 					<!-- Decorative beside a name: the name already says whose
@@ -481,6 +481,7 @@ import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
 import { useLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { resolveBrand } from '../../utils/resolveBrand.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 // The legacy `icon-*` → MDI bridge lives beside CnIcon now, so the menu EDITOR
@@ -579,6 +580,12 @@ export default {
 
 	inject: {
 		cnManifest: { default: null },
+		/**
+		 * Provided by CnAppRoot as true while the board look draws the brand
+		 * block in the app's top bar (screens-brand-block-top-bar): the
+		 * navigation then skips its own.
+		 */
+		cnBrandInTopBar: { default: false },
 		cnTranslate: { default: () => (key) => key },
 		/**
 		 * Provided by CnAppRoot — opens the host app's
@@ -809,6 +816,17 @@ export default {
 		},
 
 		/**
+		 * The brand the navigation draws itself: the resolved brand, or null
+		 * while the app's top bar draws it.
+		 *
+		 * @spec openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-navigation-does-not-draw-a-brand-block-the-bar-already-draws
+		 * @return {object|null}
+		 */
+		navBrand() {
+			return this.cnBrandInTopBar ? null : this.resolvedBrand
+		},
+
+		/**
 		 * The brand to draw: the `brand` prop, else the manifest's
 		 * `nav.brand`. Name and caption go through the translate function,
 		 * like every other manifest label. Null when there is nothing to
@@ -819,20 +837,7 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-navigation-brand
 		 */
 		resolvedBrand() {
-			const declared = this.brand ?? this.effectiveManifest?.nav?.brand
-			if (!declared || typeof declared !== 'object') {
-				return null
-			}
-			const text = (value) => (typeof value === 'string' && value !== '' ? this.effectiveTranslate(value) : '')
-			const brand = {
-				logo: typeof declared.logo === 'string' ? declared.logo : '',
-				// A URL, or `true` for the theme's emblem (--nldesign-emblem-url).
-				emblem: declared.emblem === true ? true : (typeof declared.emblem === 'string' ? declared.emblem : ''),
-				name: text(declared.name),
-				caption: text(declared.caption),
-				alt: text(declared.alt),
-			}
-			return (brand.logo || brand.emblem || brand.name || brand.caption) ? brand : null
+			return resolveBrand(this.brand ?? this.effectiveManifest?.nav?.brand, (value) => this.effectiveTranslate(value))
 		},
 
 		/**

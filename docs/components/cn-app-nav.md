@@ -45,7 +45,7 @@ Top-level manifest config for the navigation:
 | `nav.includePersonalSettings` | Boolean | `true` | Auto-prepend the "Personal settings" entry in the foldout. Set `false` for apps with no per-user settings dialog. |
 | `nav.settingsLabel` | String | `'Advanced'` | Override the foldout gear-button label. |
 | `nav.primaryAction` | Object | — | App-wide default primary-action button above the main list: `{ id?, label, icon?, route?, href?, payload? }`. Overridden by `pages[].primaryAction` for the active route, and overridden by the `#primary-action` slot. |
-| `nav.brand` | Object | none | Brand block at the top of the navigation: `{ logo?, name?, caption?, alt? }`. Overridden by the `brand` prop and by the `#brand` slot. |
+| `nav.brand` | Object | none | Brand block at the top of the navigation: `{ logo?, emblem?, name?, caption?, alt?, placement? }`. Under the board look the block is drawn in the app's top bar by `CnAppRoot` unless `placement` is `"nav"`. Overridden by the `brand` prop and by the `#brand` slot. |
 
 ### Page-scoped `primaryAction`
 

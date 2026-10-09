@@ -60,7 +60,7 @@
 	<NcContent
 		:appName="appDisplayName || (manifest && manifest.name) || appId"
 		:data-nldesign-theme-scope="appId"
-		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board' }"
+		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board', 'cn-app-root--brand-bar': brandInTopBar }"
 		data-testid="cn-app-root">
 		<!-- Names a development, test or acceptance environment on every screen; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner
@@ -189,6 +189,15 @@
 
 		<!-- Phase 3: shell -->
 		<template v-else>
+			<!--
+			  @slot brand-bar
+			  @description Content of the top bar after the brand block and its
+			  divider (search, notifications, user menu). The bar renders only
+			  under the board look with a declared brand.
+			-->
+			<CnBrandBar v-if="brandInTopBar" :brand="resolvedBrandBlock">
+				<slot name="brand-bar" />
+			</CnBrandBar>
 			<!--
 			  @slot menu
 			  @description Left-rail navigation surface. Default:
@@ -681,6 +690,7 @@ import Restart from 'vue-material-design-icons/Restart.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
+import CnBrandBar from '../CnBrandBar/CnBrandBar.vue'
 import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
@@ -721,6 +731,7 @@ import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { createManifestTranslate } from '../../utils/manifestTranslate.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
+import { resolveBrand } from '../../utils/resolveBrand.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
@@ -781,6 +792,7 @@ export default {
 	name: 'CnAppRoot',
 
 	components: {
+		CnBrandBar,
 		NcAppContent,
 		NcAppSettingsDialog,
 		NcAppSettingsSection,
@@ -830,6 +842,9 @@ export default {
 			// A computed ref, not a getter: options-API inject resolves a plain
 			// value once, so a getter would freeze the look at creation.
 			cnLook: computed(() => self.resolvedLook),
+
+			// True while the top bar draws the brand block, so CnAppNav skips its own.
+			cnBrandInTopBar: computed(() => self.brandInTopBar),
 
 			get cnManifest() {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
@@ -1592,6 +1607,19 @@ export default {
 		},
 
 		/**
+		 * The brand block (`{ logo, emblem, name, caption, alt, placement }`)
+		 * the board look draws at the start of the top bar. Empty falls back
+		 * to the manifest's `nav.brand`. `placement: "nav"` keeps the block
+		 * in the navigation.
+		 *
+		 * @type {object|null}
+		 */
+		brand: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Title rendered at the top of the user-settings modal
 		 * (NcAppSettingsDialog `name` prop). Defaults to the
 		 * translated string "User settings"; pass a custom label
@@ -2060,6 +2088,29 @@ export default {
 		 */
 		resolvedLook() {
 			return (this.look || this.manifest?.look) === 'board' ? 'board' : 'nextcloud'
+		},
+
+		/**
+		 * The brand the top bar draws: the `brand` prop, else the manifest's
+		 * `nav.brand`, read into one shape.
+		 *
+		 * @return {object|null} The resolved brand, or null.
+		 */
+		resolvedBrandBlock() {
+			return resolveBrand(this.brand || this.manifest?.nav?.brand, (text) => this.manifestTranslate(text))
+		},
+
+		/**
+		 * Whether the top bar draws the brand block: the board look, a brand
+		 * that can be drawn, and a placement other than `nav`.
+		 *
+		 * @spec openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-board-look-draws-the-brand-block-in-an-app-top-bar
+		 * @return {boolean}
+		 */
+		brandInTopBar() {
+			return this.resolvedLook === 'board'
+				&& !!this.resolvedBrandBlock
+				&& this.resolvedBrandBlock.placement !== 'nav'
 		},
 
 		/**
