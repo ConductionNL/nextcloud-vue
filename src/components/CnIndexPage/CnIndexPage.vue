@@ -25,19 +25,24 @@
 				     title. Declaring them takes the Views and Actions menus
 				     (and the Add / Export controls a button takes over) out of
 				     the actions bar. -->
-				<template v-if="headerButtonsShown" #extra>
+				<template v-if="headerButtonsShown || buildiqInHeader" #extra>
 					<div class="cn-index-page__header-buttons" data-testid="cn-index-header-buttons">
-						<NcButton
-							v-for="button in resolvedHeaderButtons"
-							:key="button.key"
-							:variant="button.variant"
-							:data-testid="`cn-index-header-button-${button.key}`"
-							@click="onHeaderButton(button)">
-							<template v-if="button.icon" #icon>
-								<CnIcon :name="button.icon" :size="20" />
-							</template>
-							{{ button.label }}
-						</NcButton>
+						<template v-for="(button, buttonIndex) in headerButtonsShown ? resolvedHeaderButtons : []" :key="button.key">
+							<!-- The buildiq square sits directly before the
+							     primary button under the board look. -->
+							<CnBuildiqEditButton
+								v-if="buildiqInHeader && buildiqBeforeIndex === buttonIndex" />
+							<NcButton
+								:variant="button.variant"
+								:data-testid="`cn-index-header-button-${button.key}`"
+								@click="onHeaderButton(button)">
+								<template v-if="button.icon" #icon>
+									<CnIcon :name="button.icon" :size="20" />
+								</template>
+								{{ button.label }}
+							</NcButton>
+						</template>
+						<CnBuildiqEditButton v-if="buildiqInHeader && buildiqBeforeIndex === -1" />
 					</div>
 				</template>
 			</CnPageHeader>
@@ -50,6 +55,7 @@
 
 		<!-- Actions bar -->
 		<CnActionsBar
+			:showBuildiqButton="!buildiqInHeader"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -908,9 +914,11 @@ import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { useLook } from '../../composables/useLook.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
@@ -1191,6 +1199,7 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnBuildiqEditButton,
 		CnFavouriteToggle,
 		NcLoadingIcon,
 		CnEmptyContent,
@@ -2985,7 +2994,10 @@ export default {
 			namedQuickFilters,
 		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters })
 
+		const { isBoard } = useLook(props)
+
 		return {
+			isBoard,
 			isNamedSource,
 			namedSource,
 			namedRows,
@@ -4904,6 +4916,32 @@ export default {
 					}
 				})
 				.filter((button) => button.label !== '')
+		},
+
+		/**
+		 * Whether the buildiq square sits in the page header instead of the
+		 * actions bar: under the board look, when the header shows (a hidden
+		 * header or a `#header` slot keeps the square in the bar).
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-buildiq-square-is-one-square-everywhere
+		 * @return {boolean}
+		 */
+		buildiqInHeader() {
+			return this.isBoard && this.showTitle && !this.$slots.header
+		},
+
+		/**
+		 * Index of the header button the buildiq square sits directly before:
+		 * the first primary one. -1 puts it after the last button.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-buildiq-square-is-one-square-everywhere
+		 * @return {number}
+		 */
+		buildiqBeforeIndex() {
+			if (!this.headerButtonsShown) {
+				return -1
+			}
+			return this.resolvedHeaderButtons.findIndex((button) => button.variant === 'primary')
 		},
 
 		/**

@@ -205,9 +205,18 @@
 						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
+						<span
+							v-if="isBoard"
+							class="cn-app-nav__count"
+							:class="{ 'cn-app-nav__count--attention': isAttention(item) }"
+							:data-testid="`cn-nav-count-${item.id}`">
+							{{ resolveCount(item) }}
+						</span>
 						<NcCounterBubble
+							v-else
 							:count="resolveCount(item)"
-							:active="isActive(item)" />
+							:active="isActive(item)"
+							:type="isAttention(item) ? 'highlighted' : undefined" />
 					</template>
 					<template v-if="hasItemActionsSlot(item)" #actions>
 						<!--
@@ -238,9 +247,18 @@
 							<CnMenuItemIcon v-else :icon="child.icon" :size="20" />
 						</template>
 						<template v-if="resolveCount(child)" #counter>
+							<span
+								v-if="isBoard"
+								class="cn-app-nav__count"
+								:class="{ 'cn-app-nav__count--attention': isAttention(child) }"
+								:data-testid="`cn-nav-count-${child.id}`">
+								{{ resolveCount(child) }}
+							</span>
 							<NcCounterBubble
+								v-else
 								:count="resolveCount(child)"
-								:active="isActive(child)" />
+								:active="isActive(child)"
+								:type="isAttention(child) ? 'highlighted' : undefined" />
 						</template>
 					</NcAppNavigationItem>
 				</NcAppNavigationItem>
@@ -317,9 +335,18 @@
 						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
+						<span
+							v-if="isBoard"
+							class="cn-app-nav__count"
+							:class="{ 'cn-app-nav__count--attention': isAttention(item) }"
+							:data-testid="`cn-nav-count-${item.id}`">
+							{{ resolveCount(item) }}
+						</span>
 						<NcCounterBubble
+							v-else
 							:count="resolveCount(item)"
-							:active="isActive(item)" />
+							:active="isActive(item)"
+							:type="isAttention(item) ? 'highlighted' : undefined" />
 					</template>
 				</NcAppNavigationItem>
 				<NcAppNavigationItem
@@ -415,9 +442,18 @@
 								<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 							</template>
 							<template v-if="resolveCount(item)" #counter>
+								<span
+									v-if="isBoard"
+									class="cn-app-nav__count"
+									:class="{ 'cn-app-nav__count--attention': isAttention(item) }"
+									:data-testid="`cn-nav-count-${item.id}`">
+									{{ resolveCount(item) }}
+								</span>
 								<NcCounterBubble
+									v-else
 									:count="resolveCount(item)"
-									:active="isActive(item)" />
+									:active="isActive(item)"
+									:type="isAttention(item) ? 'highlighted' : undefined" />
 							</template>
 						</NcAppNavigationItem>
 					</template>
@@ -442,6 +478,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
+import { useLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
@@ -591,6 +628,19 @@ export default {
 
 	props: {
 		/**
+		 * The look the navigation is drawn in: `board` or `nextcloud`. Empty
+		 * follows the `cnLook` that CnAppRoot provides. Under `board` the
+		 * navigation takes the anatomy of the screens (264px, 42px entries,
+		 * attention counts, Help before Advanced).
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-navigation-takes-the-board-anatomy
+		 */
+		look: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Manifest object. Falls back to injected `cnManifest`. Provide
 		 * explicitly when mounting CnAppNav outside of CnAppRoot.
 		 *
@@ -711,6 +761,11 @@ export default {
 	},
 
 	emits: ['primary-action', 'primary-action-click', 'primary-action-created', 'card-action'],
+
+	setup(props) {
+		const { isBoard } = useLook(props)
+		return { isBoard }
+	},
 
 	/**
 	 * The navigation's own state: which groups are open, and which entry
@@ -1062,6 +1117,11 @@ export default {
 		 * @return {boolean}
 		 */
 		settingsFirst() {
+			// Under the board look Help always comes first and Advanced last,
+			// whatever order the manifest declares.
+			if (this.isBoard) {
+				return false
+			}
 			const declared = this.declaredFooter
 			return declared !== null && declared.indexOf('settings') === 0
 		},
@@ -1398,6 +1458,19 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether an entry's count asks for attention (`counterVariant:
+		 * "attention"`): the red pill under the board look, the counter
+		 * bubble's highlighted state without it.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-a-navigation-count-can-ask-for-attention
+		 * @param {object} item Menu entry descriptor.
+		 * @return {boolean}
+		 */
+		isAttention(item) {
+			return item?.counterVariant === 'attention'
+		},
+
 		/**
 		 * Resolve a menu item's `icon` string to an MDI Vue component. MDI names
 		 * resolve via the per-app `registerIcons()` registry; legacy Nextcloud

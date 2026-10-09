@@ -76,10 +76,16 @@
 		},
 		"CnAdminSettingsShell": {
 			"direct": 0,
-			"transitive": 4,
-			"tier": "medium",
+			"transitive": 21,
+			"tier": "heavy",
 			"via": [
-				"CnCredentials"
+				"CnBuildiqEditButton",
+				"CnCredentials",
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnFlowDetail",
+				"CnGraphCanvas",
+				"CnIndexPage"
 			],
 			"page": "cn-admin-settings-shell"
 		},
@@ -2859,9 +2865,15 @@
 		},
 		"CnSettingsPage": {
 			"direct": 0,
-			"transitive": 2,
-			"tier": "light",
+			"transitive": 20,
+			"tier": "heavy",
 			"via": [
+				"CnBuildiqEditButton",
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnFlowDetail",
+				"CnGraphCanvas",
+				"CnIndexPage",
 				"CnRegisterMapping"
 			],
 			"page": "cn-settings-page"

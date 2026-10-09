@@ -1349,6 +1349,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.65.0 types the index key copy and its include kinds.
 		// 2.66.0 adds the top-level i18n block.
 		// 2.67.0 adds the root look and the page config.look (board look).
+		// 2.68.0 adds menu counterVariant and the settings page saveMode and autosave.
 		// 2.71.0 adds the dashboard config.kpiRow and the board keys card, colorField, sumField, sumFormat and columnLimit.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
 		expect(schema.version).toBe('2.71.0')

@@ -5,8 +5,9 @@
 		:docUrl="docUrl"
 		:loading="loading"
 		loadingMessage="Loading version information...">
-		<!-- Actions slot -->
-		<template #actions>
+		<!-- Actions slot (top right). Under the board look the same buttons sit
+		     in the footer row of the card instead. -->
+		<template v-if="!isBoard" #actions>
 			<!-- Update Button -->
 			<NcButton
 				v-if="showUpdateButton"
@@ -26,7 +27,7 @@
 		</template>
 
 		<!-- Main content (only shown when not loading) -->
-		<div v-if="!loading" class="cn-version-info">
+		<div v-if="!loading" class="cn-version-info" :class="{ 'cn-version-info--board': isBoard }">
 			<!-- Version card with gray background -->
 			<div class="cn-version-info__card">
 				<h4>{{ cardTitle }}</h4>
@@ -59,6 +60,23 @@
 					<slot name="additional-items" />
 				</div>
 
+				<!-- The state, then the actions (re-import), after a hairline. -->
+				<div v-if="isBoard" class="cn-version-info__footer-row" data-testid="cn-version-info-footer-row">
+					<NcButton
+						v-if="showUpdateButton"
+						:type="updateButtonType"
+						:disabled="updateButtonDisabled"
+						@click="handleUpdateClick">
+						<template #icon>
+							<NcLoadingIcon v-if="updating" :size="20" />
+							<Check v-else-if="isUpToDate" :size="20" />
+							<Update v-else :size="20" />
+						</template>
+						{{ updateButtonText }}
+					</NcButton>
+					<slot name="actions" />
+				</div>
+
 				<!-- Optional footer slot -->
 				<slot name="footer" />
 			</div>
@@ -74,6 +92,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Update from 'vue-material-design-icons/Update.vue'
+import { useLook } from '../../composables/useLook.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 
 /**
@@ -126,6 +145,18 @@ export default {
 	},
 
 	props: {
+		/**
+		 * The look the card is drawn in: `board` or `nextcloud`. Empty follows
+		 * the `cnLook` that CnAppRoot provides. Under `board` the facts are a
+		 * two-column list and the actions sit in a footer row.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/settings-board-look/spec.md#requirement-the-version-card-takes-the-board-facts-and-footer
+		 */
+		look: {
+			type: String,
+			default: '',
+		},
+
 		/** Section title */
 		title: {
 			type: String,
@@ -213,6 +244,11 @@ export default {
 	},
 
 	emits: ['update'],
+
+	setup(props) {
+		const { isBoard } = useLook(props)
+		return { isBoard }
+	},
 
 	computed: {
 		/** @return {string} Button type based on update status */
