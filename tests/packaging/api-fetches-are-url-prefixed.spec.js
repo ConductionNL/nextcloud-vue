@@ -70,6 +70,8 @@ const URL_HELPERS = [
 	'objectUrl',
 	// useObjectPresence's beat/depart/list URL, built by `generateUrl()`.
 	'presenceUrl',
+	// useObjectStore's collection URL, built by `prefixUrl()`.
+	'_buildCollectionUrl',
 ]
 
 /**

@@ -82,7 +82,7 @@
 			:activeFilterChips="activeFilterChips"
 			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
-			:bulkHint="bulkHint"
+			:bulkHint="bulkHint ? cnTranslate(bulkHint) : bulkHint"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -430,19 +430,19 @@
 			name="form-dialog"
 			:show="showFormDialogVisible"
 			:item="editItem"
-			:schema="effectiveSchema"
+			:schema="formSchema"
 			:confirm="onFormConfirm"
 			:close="closeFormDialog"
 			:refresh="onRefreshEvent">
 			<CnFormDialog
 				v-if="showFormDialogVisible && !useAdvancedFormDialog"
 				ref="formDialog"
-				:schema="effectiveSchema"
+				:schema="formSchema"
 				:item="editItem"
-				:register="register"
-				:excludeFields="excludeFields"
-				:includeFields="includeFields"
-				:fieldOverrides="fieldOverrides"
+				:register="formRegister"
+				:excludeFields="rowFormTarget ? [] : excludeFields"
+				:includeFields="rowFormTarget ? null : includeFields"
+				:fieldOverrides="rowFormTarget ? {} : fieldOverrides"
 				:nameField="massActionNameField"
 				:size="formSize"
 				:columns="formColumns"
@@ -456,11 +456,11 @@
 			<CnAdvancedFormDialog
 				v-if="showFormDialogVisible && useAdvancedFormDialog"
 				ref="formDialog"
-				:schema="effectiveSchema"
+				:schema="formSchema"
 				:item="editItem"
-				:excludeFields="excludeFields"
-				:includeFields="includeFields"
-				:fieldOverrides="fieldOverrides"
+				:excludeFields="rowFormTarget ? [] : excludeFields"
+				:includeFields="rowFormTarget ? null : includeFields"
+				:fieldOverrides="rowFormTarget ? {} : fieldOverrides"
 				:nameField="massActionNameField"
 				:initialValues="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
@@ -849,7 +849,7 @@
 				<CnPagination
 					v-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
 					:variant="isBoardLook ? 'board' : ''"
-					:footerNote="footerNote"
+					:footerNote="footerNote ? cnTranslate(footerNote) : footerNote"
 					:currentPage="effectivePagination.page || 1"
 					:totalPages="effectivePagination.pages || 1"
 					:totalItems="effectivePagination.total || 0"
@@ -972,6 +972,7 @@ import { openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
@@ -1017,7 +1018,7 @@ import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
 import { applyManualOrder, dropInOrder, manualOrderKey, moveInOrder, visibleIdsOf } from './manualOrder.js'
 import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './personalColumns.js'
-import { createSelfModeActions } from './selfModeActions.js'
+import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
 import { useSelfFetchList } from './useSelfFetchList.js'
@@ -1657,6 +1658,21 @@ export default {
 		extend: { // eslint-disable-line vue/no-unused-properties -- read by useSelfFetchList.js off the props object, which this rule does not follow.
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Self-fetch only: list from this endpoint instead of
+		 * `/api/objects/{register}/{schema}`, e.g. an app endpoint that searches
+		 * several register/schema pairs at once. `register` and `schema` stay the
+		 * page's own pair (columns, create, export, import). Rows of another pair,
+		 * read from their `@self.register` / `@self.schema`, are edited, copied and
+		 * deleted against that pair, with its own form. The endpoint takes
+		 * `_page`, `_limit`, `_search` and `_order[key]=dir` and answers
+		 * `{ results, total, page, pages }`.
+		 */
+		collectionUrl: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -3166,6 +3182,8 @@ export default {
 			 */
 			persistedFilterKeys: [...(this.initialQueryFilterKeys || [])],
 			internalSelectedIds: [...this.selectedIds],
+			// Rows seen in a collectionUrl list, so a selection kept across pages still resolves its own pair.
+			collectionRowsById: markRaw(new Map()),
 			// Folder-sidebar state: selected folder id + the register-fetched list.
 			selectedFolderId: null,
 			/**
@@ -3203,6 +3221,9 @@ export default {
 			// Dialog targets
 			actionTargetItem: null,
 			editItem: null,
+			// The pair and schema of a row edited outside the page's own pair (collectionUrl).
+			rowFormTarget: null,
+			rowFormSchema: null,
 			// Drives the Actions-menu Refresh spinner during a self-fetch
 			// refresh, where the host has no promise to bind `:refreshing` to.
 			internalRefreshing: false,
@@ -4494,6 +4515,16 @@ export default {
 			return (this.schema && typeof this.schema === 'object') ? this.schema : null
 		},
 
+		/** The form dialog's schema: the edited row's own when it is of another pair. */
+		formSchema() {
+			return this.rowFormTarget ? this.rowFormSchema : this.effectiveSchema
+		},
+
+		/** The form dialog's register, following `formSchema`. */
+		formRegister() {
+			return this.rowFormTarget ? this.rowFormTarget.register : this.register
+		},
+
 		/**
 		 * Schema slug for the export-leaf URL — the `schema` prop directly
 		 * when it's a string (self-fetch mode's precondition), else the
@@ -4880,8 +4911,7 @@ export default {
 							this.$emit('edit-open', row)
 							return
 						}
-						this.editItem = row
-						this.showFormDialogVisible = true
+						this.openFormFor(row)
 					},
 					onCopy: (row) => {
 						this.actionTargetItem = row
@@ -5390,6 +5420,21 @@ export default {
 	},
 
 	watch: {
+		effectiveObjects: {
+			immediate: true,
+			handler(rows) {
+				if (!this.collectionUrl || !this.isSelfFetchMode || !Array.isArray(rows)) {
+					return
+				}
+				for (const row of rows) {
+					const id = row?.id ?? row?.['@self']?.id
+					if (id !== undefined && id !== null) {
+						this.collectionRowsById.set(id, row)
+					}
+				}
+			},
+		},
+
 		// A column or form field bound to a property the schema lacks is told to the host once.
 		effectiveSchema: {
 			immediate: true,
@@ -5582,6 +5627,9 @@ export default {
 		if (this.splitViewEnabled && typeof window !== 'undefined') {
 			window.addEventListener('resize', this.measureSplitViewport)
 		}
+		if (typeof window !== 'undefined') {
+			window.addEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
+		}
 		this.loadManualOrder()
 		this.loadPersonalColumns()
 		this.publishHoistedSidebar()
@@ -5606,6 +5654,8 @@ export default {
 		this.selfActions = createSelfModeActions({
 			isSelfFetchMode: () => this.isSelfFetchMode,
 			selfObjectStore: () => this.selfObjectStore,
+			rowTarget: (row) => this.rowTypeTarget(row),
+			knownRow: (id) => this.collectionRowsById.get(id),
 			selfObjectType: () => this.selfObjectType,
 			list: () => this.list,
 			selectedIds: () => this.internalSelectedIds,
@@ -5631,13 +5681,14 @@ export default {
 	},
 
 	/**
-	 * Drop the resize listener and the hoisted sidebar.
+	 * Drop the window listeners and the hoisted sidebar.
 	 *
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	beforeUnmount() {
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('resize', this.measureSplitViewport)
+			window.removeEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
 		}
 		// Clear the holder so the hoisted sidebar disappears when
 		// the user navigates away from the index page.
@@ -7099,6 +7150,33 @@ export default {
 			}
 		},
 
+		/**
+		 * Refresh the list when `dispatchObjectsChanged` names this page's
+		 * register and schema, by slug or id. A part missing on either side matches.
+		 *
+		 * @param {CustomEvent} event The objects-changed event.
+		 * @return {void}
+		 */
+		onObjectsChanged(event) {
+			// A collection list can hold rows of any pair, so any change may show in it.
+			if (this.isSelfFetchMode && this.collectionUrl) {
+				this.onRefreshEvent()
+				return
+			}
+			const detail = (event && event.detail) || {}
+			const schema = this.effectiveSchema
+			const schemaIds = [this.schema, schema && schema.id, schema && schema.slug]
+				.filter((v) => v !== undefined && v !== null && v !== '' && typeof v !== 'object')
+				.map(String)
+			if (detail.register && this.register && detail.register !== String(this.register)) {
+				return
+			}
+			if (detail.schema && schemaIds.length > 0 && !schemaIds.includes(detail.schema)) {
+				return
+			}
+			this.onRefreshEvent()
+		},
+
 		/** @return {Promise<void>} */
 		async onRefreshEvent() {
 			this.$emit('refresh')
@@ -8241,6 +8319,8 @@ export default {
 		closeFormDialog() {
 			this.showFormDialogVisible = false
 			this.editItem = null
+			this.rowFormTarget = null
+			this.rowFormSchema = null
 		},
 
 		/**
@@ -8301,8 +8381,55 @@ export default {
 		 * @public
 		 */
 		openFormDialog(item = null) {
-			this.editItem = item
-			this.showFormDialogVisible = true
+			return this.openFormFor(item)
+		},
+
+		/**
+		 * Open the form dialog for an item. A row of another pair (collectionUrl)
+		 * opens with its own schema; everything else opens at once, as before.
+		 *
+		 * @param {object|null} item The row to edit, or null to create.
+		 * @return {Promise<void>|void}
+		 */
+		openFormFor(item) {
+			const target = item ? this.rowTypeTarget(item) : null
+			if (!target) {
+				this.rowFormTarget = null
+				this.rowFormSchema = null
+				this.editItem = item
+				this.showFormDialogVisible = true
+				return
+			}
+			const store = this.selfObjectStore
+			return Promise.resolve(store.getSchema?.(target.type) || store.fetchSchema?.(target.type))
+				.catch(() => null)
+				.then((schema) => {
+					if (!schema) {
+						this.toastSavedView('error', t('nextcloud-vue', 'Could not load the form for this item.'))
+						return
+					}
+					this.rowFormTarget = target
+					this.rowFormSchema = schema
+					this.editItem = item
+					this.showFormDialogVisible = true
+				})
+		},
+
+		/**
+		 * The row's own pair when it differs from the page's in a collectionUrl list.
+		 *
+		 * @param {object} row The row.
+		 * @return {{register: string, schema: string, type: string}|null} The pair, or null.
+		 */
+		rowTypeTarget(row) {
+			return resolveRowTarget({
+				collectionUrl: this.isSelfFetchMode ? this.collectionUrl : '',
+				register: this.register,
+				schema: this.schema,
+				primarySchema: this.effectiveSchema,
+				primaryRegister: this.selfObjectStore?.getRegister?.(this.selfObjectType) || null,
+				store: this.selfObjectStore,
+			}, row)
 		},
 
 		/**

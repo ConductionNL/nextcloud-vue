@@ -93,7 +93,7 @@ redirect refusal and the registry token stay on the server.
 
 ## Board look
 
-Under the board look the catalogue cards lay out on the same 260px track and take the screens' shape: a 40px icon chip (`card.icon`, else a package), the title, "<kind> · <publisher>", a state pill ("Installed" when `card.installed`, "Update" when `card.updateAvailable`), the description, and a footer with the version and one named action: Open (`card.openUrl`), Install or Update. Install and Update stay hidden when the viewer may not install.
+Under the board look the catalogue cards lay out on the same 260px track and take the screens' shape: a 40px icon chip (`card.icon`, else a package), the title, "&lt;kind&gt; · &lt;publisher&gt;", a state pill ("Installed" when `card.installed`, "Update" when `card.updateAvailable`), the description, and a footer with the version and one named action: Open (`card.openUrl`), Install or Update. Install and Update stay hidden when the viewer may not install.
 
 ### Store item fields the board look reads (contract)
 

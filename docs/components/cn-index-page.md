@@ -56,6 +56,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `rowKey` | String | `'id'` | Unique row identifier field |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI icon name or `(row) => iconName`. Forwarded to `CnDataTable`. Fed from the manifest as `pages[].config.rowIcon`. |
 | `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding from a tenant-switcher higher in the tree. When the bound organisation changes, CnIndexPage calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps the new `X-OpenRegister-Organisation` header and the in-memory list caches are cleared. Leave `null` for single-tenant pages. See [Multi-tenancy guide](../multi-tenancy.md). |
+| `collectionUrl` | String | `''` | Self-fetch only. List from this endpoint instead of `/api/objects/{register}/{schema}`, for a list that mixes several register/schema pairs. See [Mixed-schema collections](#mixed-schema-collections-collectionurl). |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema) |
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
 | `includeColumns` | Array | `null` | Schema columns to show (whitelist) |
@@ -106,7 +107,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls; forwarded to `CnActionsBar` (manifest: `config.showCountWithSearch`). Only relevant with `inlineSearch` |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`) |
 | `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a visibility checkbox — the in-table equivalent of the sidebar's Columns tab (manifest: `config.columnMenu`). See [Filter and columns: table header vs sidebar](#filter-and-columns-table-header-vs-sidebar). |
-| `searchInFiles` | Boolean | `false` | Show an "Also search inside files" switch beside the search box (manifest: `config.searchInFiles`). On, a search that has a term also sends `_content_search=true` (OpenRegister file-content search, capped at 50 candidates, noted under the list), and a row found through a file shows "Found in {file}" from `@self.matchedFile`. The switch is kept in the route as `contentSearch=1`. |
+| `searchInFiles` | Boolean | `false` | Show an "Also search inside files" switch beside the search box (manifest: `config.searchInFiles`). On, a search that has a term also sends `_content_search=true` (OpenRegister file-content search, capped at 50 candidates, noted under the list), and a row found through a file shows "Found in \{file\}" from `@self.matchedFile`. The switch is kept in the route as `contentSearch=1`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest: `config.searchPlaceholder`) |
 | `cardsLabel` / `tableLabel` | String | `''` | View-toggle option labels, e.g. "Tiles" / "List" (manifest: `config.cardsLabel` / `config.tableLabel`) |
 | `cardsIcon` / `tableIcon` | String | `''` | MDI icon names for the view-toggle options (manifest: `config.cardsIcon` / `config.tableIcon`) |
@@ -423,6 +424,10 @@ appear until the user reloads, because the built-in refresh never runs. (Live
 delivered, so do not rely on them.) Saving through `confirm` also keeps writes in the same
 store the list reads from, rather than a second cache of the same objects.
 
+A write that cannot go through `confirm`, such as an app modal that uploads files, can call
+[`dispatchObjectsChanged({ register, schema })`](../utilities/dispatch-objects-changed.md)
+instead. Every mounted index page for that register and schema then refreshes its list.
+
 `confirm` is async — await it, then `close()`:
 
 ```vue
@@ -670,6 +675,30 @@ Opt out per page with the `subscribe` prop (default `true`):
 ### Consumer-managed mode is unchanged
 
 When the `objects` prop **is** supplied (every current consumer), nothing changes — no `useObjectStore` / `useListView` call, no `registerObjectType` / `fetchCollection`, no live-updates subscription; `objects` and the other props are used as today and `filter` has no effect. The switch is purely "did the caller pass `objects`?".
+
+### Mixed-schema collections (`collectionUrl`)
+
+Set `collectionUrl` to list from an endpoint that searches several register/schema pairs at once, such as an app's catalog API. The endpoint takes `_page`, `_limit`, `_search` and `_order[key]=dir`, and answers `{ results, total, page, pages }`.
+
+```vue
+<CnIndexPage
+  title="Publications"
+  register="19"
+  schema="24"
+  :collection-url="generateUrl('/apps/opencatalogi/api/{slug}', { slug })" />
+```
+
+`register` and `schema` remain the page's own pair. They drive the columns, the Add button, export and import.
+
+A row whose `@self.register` / `@self.schema` names another pair behaves as a row of that pair:
+
+- Edit opens the form with that pair's schema. The page's `includeFields`, `excludeFields` and `fieldOverrides` are not applied to it.
+- Save, delete, mass delete and copy go to that pair's own URL. A selection kept across pages stays on each row's own pair.
+- If that pair's schema can't be loaded, the form does not open and an error toast is shown.
+
+`register` may be a slug. The page then loads the register once to match it against the rows' `@self.register` ids; passing ids skips that request.
+
+Keep the columns to ones every pair has, such as `@self.name`, `@self.updated` and shared properties. Live updates follow the page's own pair only. In this mode, any `dispatchObjectsChanged` signal refreshes the list.
 
 ## Map view mode
 
@@ -1083,8 +1112,8 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 
 - **Header**: no icon; the title (28px), the count line and the buttons. `countText` is a template with `{shown}` (rows on this page), `{total}` and free text, default `"{shown} of {total}"`. The buttons render in a fixed order whatever the manifest declares: `export` (labelled "Download" by default), `actions-menu`, any other secondary button, the buildiq square, the primary button.
 - **Toolbar**: no band. Row 1 holds the saved-view chips (with their counts; the selected one filled), a "Save view" button, the labelled Filter button with the number of active filters, and the view switch (icon-only segments in the order table, cards, board, map). Row 2 holds the search field and, when filters are active, "Active:", one removable chip per filter and "Clear all".
-- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected <plural>", the bulk actions and the optional `bulkHint`.
-- **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for <title>".
+- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected &lt;plural&gt;", the bulk actions and the optional `bulkHint`.
+- **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for &lt;title&gt;".
 - **Footer**: inside the card (and under the card grid): the count text, `footerNote` after it, and numbered page links with Previous and Next. No First, Last or page-size select.
 - **Cards view**: the same header, toolbar and footer; `cardFields` (default: the first four list columns) names the facts shown on each card.
 

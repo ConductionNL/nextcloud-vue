@@ -47,7 +47,7 @@ Returns a `useObjectStore()` composable (Pinia `defineStore` result) with the fo
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `registerObjectType` | `(slug, schemaId, registerId)` | Register an entity type with its OpenRegister schema and register IDs |
+| `registerObjectType` | `(slug, schemaId, registerId, { registerSlug?, schemaSlug?, collectionUrl? })` | Register an entity type with its OpenRegister schema and register IDs. With `collectionUrl`, `fetchCollection` lists from that endpoint (`_order` sent as `_order[key]=dir`) while every other call keeps the register/schema URL |
 | `unregisterObjectType` | `(slug)` | Unregister a type and clear all its state |
 
 #### CRUD Operations

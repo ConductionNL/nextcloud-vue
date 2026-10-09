@@ -1285,6 +1285,7 @@
     "Test environment": "Test environment",
     "Acceptance environment": "Acceptance environment",
     "About {label}": "About {label}",
+    "Could not load the form for this item.": "Could not load the form for this item.",
     "Turn notifications off": "Turn notifications off",
     "Turn notifications on": "Turn notifications on",
     "Could not change notifications.": "Could not change notifications."

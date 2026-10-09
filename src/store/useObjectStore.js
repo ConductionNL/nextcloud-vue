@@ -240,9 +240,10 @@ const baseActions = {
 	 * @param {object} [slugs] Optional slug hints for live-updates transport
 	 * @param {string|null} [slugs.registerSlug] Canonical register slug (e.g. 'zaken')
 	 * @param {string|null} [slugs.schemaSlug]   Canonical schema slug (e.g. 'meldingen')
+	 * @param {string} [slugs.collectionUrl] Endpoint `fetchCollection` lists from instead of `/register/schema`; every other call keeps the pair URL
 	 */
 	registerObjectType(slug, schemaId, registerId, slugs = {}) {
-		const { registerSlug = null, schemaSlug = null } = slugs
+		const { registerSlug = null, schemaSlug = null, collectionUrl = null } = slugs
 		// Replace entire objects so Vue 2 reactivity detects the change
 		// (Vue 2 cannot track new properties added to existing reactive objects)
 		this.objectTypeRegistry = {
@@ -252,6 +253,7 @@ const baseActions = {
 				register: registerId,
 				registerSlug,
 				schemaSlug,
+				...(collectionUrl ? { collectionUrl } : {}),
 			},
 		}
 		this.collections = { ...this.collections, [slug]: [] }
@@ -497,6 +499,31 @@ const baseActions = {
 	},
 
 	/**
+	 * Build the list URL for a type registered with a `collectionUrl`. `_order`
+	 * goes in the bracket form (`_order[key]=dir`) every PHP endpoint parses.
+	 *
+	 * @param {object} config The type config
+	 * @param {object} [params] Query parameters
+	 * @return {string} Full URL including query string
+	 */
+	_buildCollectionUrl(config, params = {}) {
+		const { _order: order, ...rest } = params
+		const merged = { ...rest }
+		if (order && typeof order === 'object') {
+			for (const [key, dir] of Object.entries(order)) {
+				merged[`_order[${key}]`] = dir
+			}
+		}
+		const lang = this._resolveLanguage()
+		if (lang) {
+			merged._lang = lang
+		}
+		const url = prefixUrl(config.collectionUrl)
+		const query = buildQueryString(merged)
+		return query && url.includes('?') ? url + '&' + query.slice(1) : url + query
+	},
+
+	/**
 	 * Fetch for a type, retrying ONCE with its `schemaFallback` when the
 	 * schema path segment answers 404. A type without a fallback (every type
 	 * not registered by `resolveObjectOpType` for a kebab-cased title) makes
@@ -685,14 +712,15 @@ const baseActions = {
 				}
 			}
 
-			const response = await this._fetchWithSchemaFallback(
-				type,
-				(schema) => this._buildUrlWithParams(type, fetchParams, null, schema),
-				{
-					method: 'GET',
-					headers: this._buildHeaders(),
-				},
-			)
+			const config = this._getTypeConfig(type)
+			const init = { method: 'GET', headers: this._buildHeaders() }
+			const response = config.collectionUrl
+				? await trackedFetch(this._buildCollectionUrl(config, fetchParams), init)
+				: await this._fetchWithSchemaFallback(
+						type,
+						(schema) => this._buildUrlWithParams(type, fetchParams, null, schema),
+						init,
+					)
 
 			if (!response.ok) {
 				const failure = await parseResponseError(response, type)
