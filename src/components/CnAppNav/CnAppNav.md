@@ -185,3 +185,6 @@ export default {
 }
 </script>
 ```
+
+
+`look` is documented in the prop table of the component reference (board look, screens-chrome-parity).
