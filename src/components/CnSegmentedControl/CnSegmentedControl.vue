@@ -5,8 +5,8 @@
 <template>
 	<div
 		class="cn-segmented-control"
-		:class="{ 'cn-segmented-control--stretch': stretch }"
-		role="radiogroup"
+		:class="{ 'cn-segmented-control--stretch': stretch, 'cn-segmented-control--compact': size === 'compact' }"
+		:role="isToggle ? 'group' : 'radiogroup'"
 		:aria-label="ariaLabel || null"
 		:aria-labelledby="ariaLabelledby || null"
 		@keydown="onKeydown">
@@ -14,11 +14,12 @@
 			v-for="(option, index) in normalizedOptions"
 			:key="option.key"
 			type="button"
-			role="radio"
+			:role="isToggle ? null : 'radio'"
 			class="cn-segmented-control__option"
-			:class="{ 'cn-segmented-control__option--checked': isChecked(option) }"
-			:aria-checked="isChecked(option) ? 'true' : 'false'"
-			:tabindex="index === focusableIndex ? 0 : -1"
+			:class="{ 'cn-segmented-control__option--checked': isChecked(option), 'cn-segmented-control__option--icon-only': option.iconOnly }"
+			:aria-checked="isToggle ? null : (isChecked(option) ? 'true' : 'false')"
+			:aria-pressed="isToggle ? (isChecked(option) ? 'true' : 'false') : null"
+			:tabindex="isToggle || index === focusableIndex ? 0 : -1"
 			:disabled="option.disabled || null"
 			:aria-controls="controls || null"
 			:data-value="option.key"
@@ -107,6 +108,32 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Size of the control: `normal` (default) or `compact` (the board
+		 * group: 3px track padding, 2px gap, 34px segments).
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-a-compact-segmented-control
+		 */
+		size: {
+			type: String,
+			default: 'normal',
+			validator: (v) => ['normal', 'compact'].includes(v),
+		},
+
+		/**
+		 * `radio` (default) is a radio group: one option is always chosen and
+		 * the arrow keys move the choice. `toggle` is a group of buttons, each
+		 * with `aria-pressed`, for a set of presets (the board's period group);
+		 * Tab visits every button.
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-period-as-a-segmented-group
+		 */
+		mode: {
+			type: String,
+			default: 'radio',
+			validator: (v) => ['radio', 'toggle'].includes(v),
+		},
+
 		/** Stretch the control to the full width, with options of equal width. */
 		stretch: {
 			type: Boolean,
@@ -126,6 +153,15 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the options are pressable buttons rather than radios.
+		 *
+		 * @return {boolean}
+		 */
+		isToggle() {
+			return this.mode === 'toggle'
+		},
+
+		/**
 		 * The options in one shape.
 		 *
 		 * @return {Array<{key: string, value: (string|number|boolean), label: string, disabled: boolean, count: (number|null)}>}
@@ -136,7 +172,7 @@ export default {
 				.filter((option) => option !== null && option !== undefined)
 				.map((option) => {
 					if (typeof option !== 'object') {
-						return { key: String(option), value: option, label: String(option), disabled: false, count: null }
+						return { key: String(option), value: option, label: String(option), disabled: false, count: null, iconOnly: false }
 					}
 					return {
 						key: String(option.value),
@@ -144,6 +180,7 @@ export default {
 						label: String(option.label ?? option.value),
 						disabled: option.disabled === true,
 						count: Number.isFinite(option.count) ? option.count : null,
+						iconOnly: option.iconOnly === true,
 					}
 				})
 		},
@@ -198,6 +235,9 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-segmented-control
 		 */
 		onKeydown(event) {
+			if (this.isToggle) {
+				return
+			}
 			const enabled = this.normalizedOptions
 				.map((option, index) => ({ option, index }))
 				.filter((entry) => !entry.option.disabled)
@@ -299,5 +339,32 @@ export default {
 
 .cn-segmented-control__count {
 	font-weight: 400;
+}
+
+/* Compact (screens-dashboard-parity): the board's period group. */
+.cn-segmented-control.cn-segmented-control--compact {
+	gap: 2px;
+	padding: 3px;
+	border-radius: 8px;
+}
+
+.cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option {
+	min-height: 34px;
+	height: 34px;
+	padding: 0 12px;
+	border-radius: 6px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--icon-only {
+	min-width: 40px;
+	padding: 0;
+}
+
+.cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--checked,
+.cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--checked:hover {
+	border-color: transparent;
+	box-shadow: 0 1px 2px var(--color-box-shadow);
 }
 </style>

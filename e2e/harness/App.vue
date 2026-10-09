@@ -179,6 +179,14 @@
 			<PixelGaps3Harness />
 		</template>
 
+		<!--
+			screens-dashboard-parity and screens-kanban-parity
+			(?screens=segmented|kpi|tile|header|board). See ScreensParityHarness.vue.
+		-->
+		<template v-else-if="showScreensParity">
+			<ScreensParityHarness />
+		</template>
+
 		<template v-else-if="showTabsWidget">
 			<h2>Tabs widget</h2>
 			<div class="tw-box" data-testid="tw-widget">
@@ -571,6 +579,7 @@ import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
+import ScreensParityHarness from './ScreensParityHarness.vue'
 import StagesHarness from './StagesHarness.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
@@ -595,7 +604,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, PixelGaps3Harness, PixelGapsHarness, StagesHarness, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, PixelGaps3Harness, PixelGapsHarness, ScreensParityHarness, StagesHarness, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -638,6 +647,8 @@ export default {
 			showPixelGaps2: (typeof window !== 'undefined' && /[?&]pixgaps2=/.test(window.location.search)),
 			// Zuiddrecht pixel gaps, round 3 (?pixgaps3=…).
 			showPixelGaps3: (typeof window !== 'undefined' && /[?&]pixgaps3=/.test(window.location.search)),
+			// screens-dashboard-parity / screens-kanban-parity (?screens=…).
+			showScreensParity: (typeof window !== 'undefined' && /[?&]screens=/.test(window.location.search)),
 			// Tabs widget chrome harness (?tabswidget=1).
 			showTabsWidget: (typeof window !== 'undefined' && window.location.search.includes('tabswidget')),
 			showBareData: (typeof window !== 'undefined' && window.location.search.includes('baredata')),

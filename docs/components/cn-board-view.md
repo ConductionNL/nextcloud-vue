@@ -141,6 +141,43 @@ A collapsed lane is remembered for as long as the reader is on the view and
 deliberately not persisted: a lane somebody forgot they collapsed is work that
 has gone missing for them.
 
+## The board look (`look: "board"`)
+
+With the app in the board look (`cnLook`) the board draws the screens' anatomy
+(canon section 8); without it nothing here changes. The move contract and the
+two gestures stay as defined above.
+
+- **Columns.** A grid of `minmax(240px, 1fr)` with a 16px gap that scrolls
+  sideways when the tracks do not fit; a column is a 12px panel with 12px
+  padding. Four columns in a 1184px area are 284px each; six are 240px.
+- **Column header.** An `h2` with a 10px dot, the label and a white count
+  badge showing the column's total. The dot comes from `config.board.colorField`
+  on the state, else the state's declared `color`, else the muted text colour.
+  `config.board.sumField` adds a 13px grey sum line, formatted by
+  `config.board.sumFormat` (or the field's `format`).
+- **Card.** `config.board.card` names the roles; the card falls back to
+  `cardFields` (first field the title, the rest the sub line).
+- **No form controls at rest.** The title is the link that opens the card
+  (middle click kept), a 34px "..." menu button holds "Move to" (every other
+  column) and "Open in new tab", and the M key opens the same menu. Choosing a
+  column runs the same transition as a drop. The card stays a `listitem`.
+- **Cut columns.** `config.board.columnLimit` draws the first N cards and a
+  dashed "Show N more" button; the badge keeps the total. With `paged` the
+  button also emits `load-more` (`CnIndexPage` asks for the next page).
+
+```json
+"board": {
+  "statusField": "status",
+  "card": { "title": "title", "sub": ["identifier", "requester"], "pill": "type", "due": "deadline", "owner": "assignee" },
+  "colorField": "statusColor",
+  "sumField": "amount",
+  "columnLimit": 8,
+  "dueRule": { "field": "deadline", "soonDays": 3 }
+}
+```
+
+`card.pillColors` (value to badge variant) colours the pill. `CnObjectKanban`
+is not changed by this look.
 ## See also
 
 - `utils/boardColumns.js` — the columns, and which card is in which.
