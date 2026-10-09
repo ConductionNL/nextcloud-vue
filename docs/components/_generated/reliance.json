@@ -298,6 +298,13 @@
 			"via": [],
 			"page": null
 		},
+		"CnBrandBar": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnBrandStripe": {
 			"direct": 0,
 			"transitive": 0,

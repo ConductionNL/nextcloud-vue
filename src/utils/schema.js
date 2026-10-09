@@ -385,7 +385,7 @@ function isUserProp(prop) {
  * @param {object} prop A schema property definition (or `items` for an array).
  * @return {boolean} True when the property marks a Nextcloud group.
  */
-function isGroupProp(prop) {
+export function isGroupProp(prop) {
 	if (!prop || typeof prop !== 'object') {
 		return false
 	}

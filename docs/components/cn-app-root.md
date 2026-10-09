@@ -143,6 +143,7 @@ export default {
 | `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')` so the title follows the user's locale. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
 | `adminSettingsTitle` | `String` | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
 | `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
+| `brand` | `Object \| null` | `null` | The brand block (`{ logo?, emblem?, name?, caption?, alt?, placement? }`) the board look draws at the start of Nextcloud's header. Empty falls back to the manifest's `nav.brand`. |
 | `look` | `''\|'board'\|'nextcloud'` | `''` | The look the app is drawn in. Empty falls back to the manifest's top-level `look`, then `nextcloud`. Provided to descendants as `cnLook`; in the `board` look the library's empty states draw as the card-size `CnWidgetEmptyState`. |
 | `initialOrganisationUuid` | `String \| null` | `null` | Seed value for the multi-tenancy provider's `activeOrganisationUuid`. CnAppRoot calls [`provideTenantContext`](../utilities/provide-tenant-context.md)`(initialOrganisationUuid, initialOrganisation)` on mount, so consumers wired to [`useTenantContext`](../utilities/composables/use-tenant-context.md) see the seeded tenant from the first render. Single-tenant deployments leave both props `null`. |
 | `initialOrganisation` | `Object \| null` | `null` | Optional resolved organisation entity matching `initialOrganisationUuid`. Stored on `activeOrganisation` so downstream components ([`CnTenantBadge`](./cn-tenant-badge.md), [`CnFormDialog`](./cn-form-dialog.md) auto-fill) have the name/icon available immediately without a follow-up fetch. |
@@ -293,6 +294,12 @@ export default {
   },
 }
 ```
+
+### The brand block in Nextcloud's header
+
+Under the board look, an app that declares a brand (`nav.brand`, or the `brand` prop) gets a 237px block at the start of Nextcloud's own header (`#header`), before the app menu: the emblem, the organisation (`caption`) above the app name (`name`), and a 1px divider at its end. The block exists without `CnAppNav`, so an app with its own menu has it too. `CnAppNav` stops drawing the block while the header does (`cnBrandInHeader`). Set `nav.brand.placement: "nav"` to keep the block in the navigation.
+
+Nextcloud offers no extension point for apps in `#header`, so this is unsupported by Nextcloud and may break on an update. The library limits the damage: it adds one node of its own and never moves, edits or removes a node Nextcloud drew, puts that node back if Nextcloud re-renders the header, and falls back to the navigation when `#header` is absent. Sizes: `--cn-board-brand-width` (237px), `--cn-nav-emblem-size` (34px).
 
 ## Support dialog
 

@@ -1,5 +1,10 @@
 {
   "translations": {
+    "Linked items": "Linked items",
+    "Still loading: {sections}": "Still loading: {sections}",
+    "Could not load {section}.": "Could not load {section}.",
+    "Organisation credentials let apps act for your organisation. Keepiq, the credential vault of Nextcloud, keeps the secret. The app never holds it. You choose which apps may use each credential.": "Organisation credentials let apps act for your organisation. Keepiq, the credential vault of Nextcloud, keeps the secret. The app never holds it. You choose which apps may use each credential.",
+    "Apps sometimes act for you on an external service. You give the secret to Nextcloud once, and Keepiq keeps it in an encrypted vault. Apps make the call through Keepiq and never see the secret. You choose which apps may use each credential. Share one across apps, or keep one per app.": "Apps sometimes act for you on an external service. You give the secret to Nextcloud once, and Keepiq keeps it in an encrypted vault. Apps make the call through Keepiq and never see the secret. You choose which apps may use each credential. Share one across apps, or keep one per app.",
     "Show as": "Show as",
     "Board": "Board",
     "Calendar": "Calendar",
@@ -1285,6 +1290,10 @@
     "Test environment": "Test environment",
     "Acceptance environment": "Acceptance environment",
     "About {label}": "About {label}",
+    "Could not load the form for this item.": "Could not load the form for this item.",
+    "This server does not keep track of what you open.": "This server does not keep track of what you open.",
+    "Log in to see what you opened recently.": "Log in to see what you opened recently.",
+    "Your recent items are not available right now.": "Your recent items are not available right now.",
     "yesterday": "yesterday",
     "tomorrow": "tomorrow"
   },

@@ -357,7 +357,8 @@ export default {
 		 * Host translate function provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). The
 		 * manifest-authored `content.emptyText` is run through it for this
-		 * component's OWN empty state, and so is `content.prompt`. Defaults to an identity function so
+		 * component's OWN empty state, and so are `content.prompt` and
+		 * `content.addLabel`. Defaults to an identity function so
 		 * an untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
@@ -1092,9 +1093,24 @@ export default {
 			return (c.formFieldOverrides && typeof c.formFieldOverrides === 'object') ? c.formFieldOverrides : {}
 		},
 
-		/** Pre-translated Add label (overridable via `content.addLabel`). */
+		/**
+		 * The Add label: `content.addLabel` through the app's translate
+		 * function, else the library's "Add".
+		 *
+		 * @spec openspec/changes/r4-object-lock-url-and-credentials-copy/specs/object-list-add-label/spec.md
+		 * @return {string}
+		 */
 		addLabel() {
-			return this.content.addLabel || t('nextcloud-vue', 'Add')
+			// `content.addLabel` is manifest copy in the APP's catalogue, so it
+			// goes through the host translate function like `emptyText` and
+			// `prompt`. It used to print raw, so a Dutch user read the English
+			// manifest string. A label an app already translated has no key
+			// of its own in the catalogue and comes back unchanged.
+			if (this.content.addLabel) {
+				const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+				return fn(this.content.addLabel)
+			}
+			return t('nextcloud-vue', 'Add')
 		},
 
 		/** Stable signature of the query so the watcher only refetches on real change. */

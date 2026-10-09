@@ -2,25 +2,25 @@
   - SPDX-License-Identifier: EUPL-1.2
   - SPDX-FileCopyrightText: 2026 Conduction B.V.
   -
-  - CnCredentials — the settings surface for the OpenRegister credential
+  - CnCredentials: the settings surface for the OpenRegister credential
   - broker. Apps occasionally need to act on your behalf against an external
   - service (GitHub, GitLab, …). Rather than hand the secret to the app, you
-  - give it once to OpenRegister, which stores it in Keepiq — Nextcloud's
+  - give it once to OpenRegister, which stores it in Keepiq, Nextcloud's
   - native, encrypted credential vault. Apps then make the outbound call
   - THROUGH OpenRegister and never see the secret itself. You decide which
   - apps may use each credential, so one credential can be shared across apps
   - or kept dedicated to one.
   -
   - Two scopes render from this one component:
-  -   • scope="personal"      (default) — the signed-in user's own
+  -   • scope="personal"      (default), the signed-in user's own
   -     credentials, shown in an app's *personal* settings. From here you may
   -     only add/remove *the app you are currently in* to/from a credential,
   -     or add a new credential (the current app is auto-added). You never
   -     manage the full app list of another app from here.
-  -   • scope="organisation"  — organisation-wide credentials, shown in an
+  -   • scope="organisation" , organisation-wide credentials, shown in an
   -     app's *admin* settings. An admin manages the full allowed-app list.
   -
-  - Talks to OpenRegister's credential endpoints (metadata only — a secret is
+  - Talks to OpenRegister's credential endpoints (metadata only, a secret is
   - write-only and is NEVER returned or displayed):
   -   GET    /apps/openregister/api/credentials?scope={scope}
   -   GET    /apps/openregister/api/credentials/providers
@@ -148,7 +148,7 @@
 				</ul>
 			</section>
 
-			<!-- Add credential — inline wizard: pick a provider, then fill it in. -->
+			<!-- Add credential: inline wizard: pick a provider, then fill it in. -->
 			<section class="cn-credentials__section">
 				<NcButton v-if="!adding"
 					variant="secondary"
@@ -269,7 +269,7 @@ const PROVIDERS_PATH = '/apps/openregister/api/credentials/providers'
  * Hardcoded per-provider presentation. Keyed by the OpenRegister catalogue
  * identifier. `colour` drives the tile; `setupHelp`/`setupUrl` explain how to
  * obtain the secret; `secretLabel` names the field. Providers not listed here
- * still work — they render a neutral tile from their identifier.
+ * still work, they render a neutral tile from their identifier.
  */
 const PROVIDER_META = {
 	github: {
@@ -339,7 +339,7 @@ export default {
 		},
 
 		/**
-		 * The current app's manifest `credentials[]` declarations — the
+		 * The current app's manifest `credentials[]` declarations: the
 		 * providers this app can reach through the broker. Shape:
 		 * `[{ provider, reason, scopes }]`. Rendered read-only under the intro.
 		 *
@@ -404,15 +404,16 @@ export default {
 		},
 
 		/**
-		 * Reframed intro copy per scope.
+		 * Reframed intro copy per scope. No em-dashes, sentences under 16 words.
 		 *
+		 * @spec openspec/changes/r4-object-lock-url-and-credentials-copy/specs/credentials-settings/spec.md
 		 * @return {string} Intro text.
 		 */
 		introText() {
 			if (this.scope === 'organisation') {
-				return t('nextcloud-vue', 'Organisation credentials let apps act on behalf of your organisation. The secret is stored in Keepiq — Nextcloud\'s native credential vault — never in the app. You choose which apps may use each credential.')
+				return t('nextcloud-vue', 'Organisation credentials let apps act for your organisation. Keepiq, the credential vault of Nextcloud, keeps the secret. The app never holds it. You choose which apps may use each credential.')
 			}
-			return t('nextcloud-vue', 'Apps sometimes need to act on your behalf against an external service. So they never hold your secrets, you give a secret to Nextcloud once and it is kept in Keepiq — a native, encrypted credential vault. Apps then make the call through Keepiq and never see the secret. You decide which apps may use each credential — share one across apps, or keep one per app.')
+			return t('nextcloud-vue', 'Apps sometimes act for you on an external service. You give the secret to Nextcloud once, and Keepiq keeps it in an encrypted vault. Apps make the call through Keepiq and never see the secret. You choose which apps may use each credential. Share one across apps, or keep one per app.')
 		},
 
 		/**
@@ -438,7 +439,7 @@ export default {
 			const serverIds = this.providers.map((p) => p.identifier)
 			let ids = serverIds.length ? serverIds : Object.keys(PROVIDER_META)
 			// When the app declares which providers it uses (appCredentials),
-			// only offer those — an app should not let you add a credential for
+			// only offer those, an app should not let you add a credential for
 			// a provider it has no code path to use.
 			if (this.supportedProviders.size > 0) {
 				ids = ids.filter((id) => this.supportedProviders.has(id))
@@ -448,7 +449,7 @@ export default {
 
 		/**
 		 * Provider identifiers the app declares it uses, derived from
-		 * `appCredentials`. Empty when the app declares nothing — filtering is
+		 * `appCredentials`. Empty when the app declares nothing, filtering is
 		 * then a no-op, so consumers that don't declare providers are unchanged.
 		 *
 		 * @return {Set<string>} Supported provider identifiers.
@@ -460,7 +461,7 @@ export default {
 		},
 
 		/**
-		 * Stored credentials to display — filtered to the app's supported
+		 * Stored credentials to display: filtered to the app's supported
 		 * providers when it declares any, so you can only see and authorise
 		 * credentials the app can actually use; otherwise all of them.
 		 *
@@ -503,7 +504,7 @@ export default {
 		},
 
 		/**
-		 * Whether the add form can be submitted — name, provider and a secret
+		 * Whether the add form can be submitted: name, provider and a secret
 		 * are required (the whole point is to store a secret).
 		 *
 		 * @return {boolean} True when submittable.
@@ -727,7 +728,7 @@ export default {
 		},
 
 		/**
-		 * Human-readable provider title — hardcoded catalogue first, then the
+		 * Human-readable provider title: hardcoded catalogue first, then the
 		 * server title, then the raw identifier.
 		 *
 		 * @param {string} identifier The provider identifier.

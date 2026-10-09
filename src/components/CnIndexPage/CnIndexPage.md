@@ -358,6 +358,8 @@ export default {
 | `includeColumns` | Array | `null` | Column keys to show (whitelist); `null` means all |
 | `columnOverrides` | Object | `{}` | Per-column config overrides in schema mode |
 | `emptyText` | String | `'No items found'` | Text shown in the empty state |
+| `lenses` | Object \| null | `null` | The personal-lens report of the list on screen (`@self.lenses` of the response) for a host that fetches itself. In self-fetch mode the page reads it from the store. See [When a lens cannot answer](#when-a-lens-cannot-answer). |
+| `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable lens, keyed `<lens>.<reason>` or `<reason>`. |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI name or `(row) => iconName`. Forwarded to CnDataTable; fed from the manifest as `pages[].config.rowIcon`. Unset = no icon column. |
 | `rowClass` | Function | `null` | Callback returning CSS class(es) for a row |
@@ -433,6 +435,21 @@ fetch as a *fixed* filter the user's facet selections can't override, with
 list nested under a parent route (`/forms/:id/submissions`) is a fully
 declarative page. When `objects` **is** supplied (every existing consumer),
 nothing changes — no store is touched and `filter` has no effect.
+
+### Mixed-schema lists (`collectionUrl`)
+
+Set `collectionUrl` to list from an endpoint that searches several
+register/schema pairs at once. `register` and `schema` stay the page's own
+pair (columns, Add, export, import); a row of another pair edits, saves and
+deletes through its own `@self.register` / `@self.schema`.
+
+```js static
+<CnIndexPage
+  title="Publications"
+  register="19"
+  schema="24"
+  :collection-url="generateUrl('/apps/opencatalogi/api/{slug}', { slug })" />
+```
 
 ## Named entity sources (`config.entitySource`) — lists that are not OpenRegister objects
 
@@ -978,6 +995,40 @@ not a second place a membership can be granted.
 A person who has claimed no teams gets an empty list, and the tab says so
 through `narrowsToNothing`. A lens labelled "my teams" that quietly showed
 every team would be a label stating one rule while the fetch ran another.
+
+### When a lens cannot answer
+
+OpenRegister reports, for every personal lens a list asked for, whether it
+could answer (openregister#4514, needed for any effect):
+
+```json
+{ "results": [], "@self": { "lenses": { "recent": { "available": false, "reason": "audit-trail-disabled" } } } }
+```
+
+When a lens reports `available: false`, the empty state says why instead of
+showing `emptyText`:
+
+| Reason | Text |
+|---|---|
+| `audit-trail-disabled` | This server does not keep track of what you open. |
+| `anonymous` | Log in to see what you opened recently. |
+| `read-history-unavailable` | Your recent items are not available right now. |
+
+The texts are object-neutral and translated (Dutch: "Deze server houdt niet
+bij welke items je opent.", "Log in om te zien wat je onlangs opende.", "Je
+recente items zijn nu niet beschikbaar."). Say it in the app's own words with
+`lensReasonTexts`:
+
+```html
+<CnIndexPage :lens-reason-texts="{ 'recent.audit-trail-disabled': t('dossiq', 'This server does not keep track of which cases you open.') }" />
+```
+
+A response without `@self.lenses`, a lens that is available, or a reason with
+no text keeps `emptyText`, and an `#empty` slot still wins. The lens name is a
+key, so another lens (`watching`) that starts reporting needs only text. The
+store keeps the report as `lenses[type]` and `useListView` exposes it as
+`lenses`; `readLensReports` and `lensUnavailableText` are in
+`src/utils/lensAvailability.js`.
 
 ### Row actions and indicators
 

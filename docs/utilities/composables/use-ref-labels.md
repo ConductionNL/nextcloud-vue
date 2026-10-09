@@ -14,7 +14,7 @@ const labels = await resolve('dossiq', 'case', ['id-1', 'id-2'], 'title')
 
 | Function | Description |
 |----------|-------------|
-| `resolve(register, schema, ids, labelField)` | Returns a `{ id: label|null }` map. One request for the distinct ids not yet cached (`_ids`, `_fields`); never throws. An id that cannot be resolved maps to `null`. |
+| `resolve(register, schema, ids, labelField)` | Returns a `{ id: label\|null }` map. One request for the distinct ids not yet cached (`_ids`, `_fields`); never throws. An id that cannot be resolved maps to `null`. |
 | `invalidate(register?, schema?)` | Forgets cached labels, all of them or those of one register and schema. Call after a write to a referenced object. |
 
 The label is `labelField` (dotted paths allowed), then `title`, `name`, `@self.name`. Labels are cached per register, schema and label field for the life of the resolver.
