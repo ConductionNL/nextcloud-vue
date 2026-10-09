@@ -1335,7 +1335,9 @@
     "Development environment": "Ontwikkelomgeving",
     "Test environment": "Testomgeving",
     "Acceptance environment": "Acceptatieomgeving",
-    "About {label}": "Over {label}"
+    "About {label}": "Over {label}",
+    "Filter by {column}": "Filteren op {column}",
+    "Filter by {column}, active": "Filteren op {column}, actief"
   },
   "plurals": {
     "%n year": [

@@ -123,13 +123,13 @@ describe('CnDataTable — numbered priority badges', () => {
 	it('shows no badge for a single rendered key plus a key whose column is not rendered', () => {
 		const wrapper = mountTable({ sortKeys: [{ key: 'createdAt', order: 'desc' }, { key: '_uuid', order: 'asc' }] })
 		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
-		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-indicator').text()).toBe('▼')
+		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-indicator').attributes('data-sort-direction')).toBe('desc')
 	})
 
 	it('shows no badge for a single rendered key in a one-entry sortKeys list', () => {
 		const wrapper = mountTable({ sortKeys: [{ key: 'name', order: 'asc' }] })
 		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
-		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').text()).toBe('▲')
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').attributes('data-sort-direction')).toBe('asc')
 	})
 
 	it('numbers rendered keys without a gap when a hidden key sits between them', () => {
@@ -143,8 +143,8 @@ describe('CnDataTable — numbered priority badges', () => {
 		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-badge').text()).toBe('1')
 		expect(headerFor(wrapper, 'Status').find('.cn-table-sort-badge').text()).toBe('2')
 		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-badge').exists()).toBe(false)
-		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').text()).toBe('▲')
-		expect(headerFor(wrapper, 'Status').find('.cn-table-sort-indicator').text()).toBe('▼')
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').attributes('data-sort-direction')).toBe('asc')
+		expect(headerFor(wrapper, 'Status').find('.cn-table-sort-indicator').attributes('data-sort-direction')).toBe('desc')
 	})
 
 	it('drops and restores badges as a sorted column leaves and returns', async () => {
@@ -152,7 +152,7 @@ describe('CnDataTable — numbered priority badges', () => {
 		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-badge').text()).toBe('1')
 		await wrapper.setProps({ columns: columns.filter((c) => c.key !== 'createdAt') })
 		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
-		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').text()).toBe('▲')
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').attributes('data-sort-direction')).toBe('asc')
 		await wrapper.setProps({ columns })
 		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-badge').text()).toBe('1')
 		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-badge').text()).toBe('2')
@@ -164,7 +164,7 @@ describe('CnDataTable — numbered priority badges', () => {
 			sortKeys: [{ key: 'name', order: 'asc' }, { key: 'createdAt', order: 'desc' }],
 		})
 		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
-		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').text()).toBe('▲')
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').attributes('data-sort-direction')).toBe('asc')
 	})
 
 	it('counts a duplicated key once', () => {
@@ -194,7 +194,7 @@ describe('CnDataTable — aria-sort', () => {
 	it('sets aria-sort on the first rendered key when the primary key is not rendered', () => {
 		const wrapper = mountTable({ sortKeys: [{ key: '_uuid' }, { key: 'createdAt', order: 'desc' }] })
 		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
-		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-indicator').text()).toBe('▼')
+		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-indicator').attributes('data-sort-direction')).toBe('desc')
 		expect(headerFor(wrapper, 'Created').attributes('aria-sort')).toBe('descending')
 		expect(wrapper.findAll('th[aria-sort]').length).toBe(1)
 	})
@@ -243,15 +243,66 @@ describe('CnDataTable — keyboard operability', () => {
 		])
 	})
 
-	it('sortable headers are focusable (tabindex 0)', () => {
+	it('a sortable header holds a real sort button named by its label, and the header itself is not a tab stop', () => {
 		const wrapper = mountTable({})
-		expect(headerFor(wrapper, 'Name').attributes('tabindex')).toBe('0')
+		const button = headerFor(wrapper, 'Name').find('[data-testid="cn-table-header-sort"]')
+		expect(button.element.tagName).toBe('BUTTON')
+		expect(button.attributes('type')).toBe('button')
+		expect(button.text()).toBe('Name')
+		expect(headerFor(wrapper, 'Name').attributes('tabindex')).toBeUndefined()
 	})
 
-	it('a non-sortable header is not focusable and does not emit sort', async () => {
+	it('a click on the sort button sorts once', async () => {
+		const wrapper = mountTable({})
+		await headerFor(wrapper, 'Name').find('[data-testid="cn-table-header-sort"]').trigger('click')
+		expect(wrapper.emitted('sort')).toHaveLength(1)
+		expect(wrapper.emitted('sort')[0][0]).toMatchObject({ key: 'name', order: 'asc' })
+	})
+
+	it('Enter on the sort button sorts once and suppresses the native click', async () => {
+		const wrapper = mountTable({})
+		const button = headerFor(wrapper, 'Name').find('[data-testid="cn-table-header-sort"]')
+		const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+		button.element.dispatchEvent(event)
+		await wrapper.vm.$nextTick()
+		expect(event.defaultPrevented).toBe(true)
+		expect(wrapper.emitted('sort')).toHaveLength(1)
+	})
+
+	it('a non-sortable header has no sort button, no chevron, and does not emit sort', async () => {
 		const wrapper = mountTable({ columns: [{ key: 'name', label: 'Name', sortable: false }] })
-		expect(headerFor(wrapper, 'Name').attributes('tabindex')).toBeUndefined()
+		expect(headerFor(wrapper, 'Name').find('[data-testid="cn-table-header-sort"]').exists()).toBe(false)
+		expect(headerFor(wrapper, 'Name').find('.cn-table-header__chevron').exists()).toBe(false)
 		await headerFor(wrapper, 'Name').trigger('click')
 		expect(wrapper.emitted('sort')).toBeFalsy()
+	})
+})
+
+describe('CnDataTable — sort chevrons', () => {
+	it('an unsorted sortable column shows a pale chevron and no aria-sort', () => {
+		const wrapper = mountTable({})
+		const header = headerFor(wrapper, 'Name')
+		expect(header.find('.cn-table-header__chevron--idle').exists()).toBe(true)
+		expect(header.find('.cn-table-sort-indicator').exists()).toBe(false)
+		expect(header.attributes('aria-sort')).toBeUndefined()
+	})
+
+	it('the sorted column shows the direction instead of the pale chevron, with aria-sort', () => {
+		const asc = mountTable({ sortKey: 'name', sortOrder: 'asc' })
+		expect(headerFor(asc, 'Name').find('.cn-table-header__chevron--idle').exists()).toBe(false)
+		expect(headerFor(asc, 'Name').find('.cn-table-sort-indicator').attributes('data-sort-direction')).toBe('asc')
+		expect(headerFor(asc, 'Name').attributes('aria-sort')).toBe('ascending')
+		expect(headerFor(asc, 'Created').find('.cn-table-header__chevron--idle').exists()).toBe(true)
+
+		const desc = mountTable({ sortKey: 'name', sortOrder: 'desc' })
+		expect(headerFor(desc, 'Name').find('.cn-table-sort-indicator').attributes('data-sort-direction')).toBe('desc')
+		expect(headerFor(desc, 'Name').attributes('aria-sort')).toBe('descending')
+	})
+
+	it('keeps the chevron icons out of the accessible name', () => {
+		const wrapper = mountTable({ sortKey: 'name', sortOrder: 'asc' })
+		const icons = headerFor(wrapper, 'Name').findAll('.cn-table-header__chevron .material-design-icon')
+		expect(icons.length).toBe(1)
+		expect(icons[0].attributes('aria-hidden')).toBe('true')
 	})
 })
