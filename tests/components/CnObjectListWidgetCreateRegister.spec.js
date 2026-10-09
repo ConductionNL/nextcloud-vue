@@ -72,3 +72,41 @@ describe('CnObjectListWidget: create dialog references', () => {
 		expect(dialog.props('lockedFields')).toEqual(['lead'])
 	})
 })
+
+describe('CnObjectListWidget: create form in context', () => {
+	const mountWith = (content) => shallowMount(CnObjectListWidget, {
+		propsData: { content: { register: 'pipelinq', schema: 'lead-product', columns: [{ key: 'product', label: 'Product' }], ...content } },
+		stubs: { CnDataTable: true },
+	})
+	const dialogOf = async (w) => {
+		await w.vm.openCreate()
+		return w.findComponent({ name: 'CnFormDialog' })
+	}
+
+	it('drops operator keys and keys the schema does not declare', async () => {
+		const dialog = await dialogOf(mountWith({ filter: { lead: 'lead-1', 'quantity[lt]': 5, nope: 'x' } }))
+		expect(dialog.props('initialData')).toEqual({ lead: 'lead-1' })
+	})
+
+	it('resolves @workspace tokens into the initial data', async () => {
+		const w = shallowMount(CnObjectListWidget, {
+			propsData: { content: { register: 'pipelinq', schema: 'lead-product', filter: { lead: '@workspace.leadId' }, columns: [] } },
+			provide: { cnWorkspaceContext: { leadId: 'lead-9' } },
+			stubs: { CnDataTable: true },
+		})
+		const dialog = await dialogOf(w)
+		expect(dialog.props('initialData')).toEqual({ lead: 'lead-9' })
+	})
+
+	it('merges createDefaults over the filter-derived data and never locks them', async () => {
+		const dialog = await dialogOf(mountWith({ filter: { lead: 'lead-1' }, createDefaults: { quantity: 3, ghost: 1 } }))
+		expect(dialog.props('initialData')).toEqual({ lead: 'lead-1', quantity: 3 })
+		expect(dialog.props('lockedFields')).toEqual(['lead'])
+	})
+
+	it('leaves the parent editable with lockFilterFields: false', async () => {
+		const dialog = await dialogOf(mountWith({ filter: { lead: 'lead-1' }, lockFilterFields: false }))
+		expect(dialog.props('initialData')).toEqual({ lead: 'lead-1' })
+		expect(dialog.props('lockedFields')).toEqual([])
+	})
+})

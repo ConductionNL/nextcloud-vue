@@ -60,6 +60,7 @@
 				:title="entry.label"
 				:count="entry.count"
 				:overflow="entry.overflow"
+				:disabled="entry.pending"
 				lazy
 				@click="activeIndex = index">
 				<template #title>
@@ -70,6 +71,11 @@
 							:size="18"
 							class="cn-tabs-widget__title-icon" />
 						{{ entry.label }}
+						<NcLoadingIcon
+							v-if="entry.pending"
+							:size="14"
+							:name="loadingLabel"
+							data-testid="cn-tabs-widget-pending" />
 					</span>
 				</template>
 
@@ -90,21 +96,24 @@
 					@geoSaved="onGeoSaved"
 					@openIntegration="onOpenIntegration"
 					@selectObject="onSelectObject" />
-				<NcEmptyContent v-else :name="missingLabel(entry)" />
+				<CnEmptyContent v-else :name="missingLabel(entry)" />
 			</CnTab>
 		</CnTabs>
 	</div>
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import CnTabs from '../CnTabs/CnTabs.vue'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
@@ -168,7 +177,8 @@ export default {
 		CnTab,
 		CnTabs,
 		NcActionButton,
-		NcEmptyContent,
+		CnEmptyContent,
+		NcLoadingIcon,
 	},
 
 	/**
@@ -363,6 +373,16 @@ export default {
 	data() {
 		return {
 			activeIndex: 0,
+			// Key of the tab showing, so it stays the active one when a tab
+			// before it appears or disappears.
+			activeKey: '',
+			// Result of each tab's SOURCE-mode `visibleWhen`, by the tab's index
+			// in `content.tabs`. A missing entry means the count is pending.
+			sourceVisibility: {},
+			// Bumped per evaluation round, so a slow answer from an earlier round is dropped.
+			visibilitySeq: 0,
+			// Tab id named by the route hash that has not appeared yet (still pending).
+			hashTargetId: '',
 			// Items published by the panels, keyed by widget id. Keyed rather
 			// than a flat list because `lazy` keeps a visited tab mounted, so
 			// more than one panel publishes at a time.
@@ -404,7 +424,13 @@ export default {
 			// How many tabs have taken a place in the strip so far. A tab that
 			// is already going under "More" does not use one up.
 			let placed = 0
-			return tabs.map((tab, index) => {
+			const resolved = []
+			tabs.forEach((tab, index) => {
+				// A tab whose condition is false is absent, not empty.
+				const visibility = this.tabVisibility(tab, index)
+				if (visibility === 'hidden') {
+					return
+				}
 				const widgetId = typeof tab === 'string' ? tab : tab?.widgetId
 				const widget = this.availableWidgets.find((w) => w && w.id === widgetId) || null
 				const count = resolveTabCount(typeof tab === 'object' ? tab : null, this.objectData)
@@ -416,16 +442,35 @@ export default {
 						placed += 1
 					}
 				}
-				return {
+				resolved.push({
 					key: `${widgetId || 'tab'}-${index}`,
+					id: (tab && typeof tab === 'object' && tab.id) || widgetId || '',
 					widgetId,
 					label: (tab && tab.label) || widgetTitleOf(widget) || widgetId || '',
 					icon: (tab && tab.icon) || widget?.icon || '',
 					widget,
 					count,
 					overflow,
-				}
+					pending: visibility === 'pending',
+				})
 			})
+			return resolved
+		},
+
+		/** @return {string} The keys of the tabs in the strip, to notice one appearing or going. */
+		visibleKeys() {
+			return this.resolvedTabs.map((tab) => tab.key).join('|')
+		},
+
+		/** @return {string} Accessible name of a pending tab's spinner. */
+		loadingLabel() {
+			return t('nextcloud-vue', 'Loading …')
+		},
+
+		/** @return {string} The source-mode conditions, serialised, to re-evaluate when they change. */
+		sourceConditionsKey() {
+			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
+			return JSON.stringify(tabs.map((tab) => (tab && typeof tab === 'object' && tab.visibleWhen && !isLocallyDecidableVisibleWhen(tab.visibleWhen)) ? tab.visibleWhen : null))
 		},
 
 		/**
@@ -488,6 +533,48 @@ export default {
 		},
 	},
 
+	watch: {
+		activeIndex(index) {
+			this.activeKey = this.resolvedTabs[index]?.key || ''
+		},
+
+		// A tab appeared or went. Keep the same tab active; when it is the active
+		// tab that went, the first visible one takes over and the hash follows.
+		visibleKeys() {
+			if (this.hashTargetId !== '') {
+				const arrived = this.resolvedTabs.findIndex((tab) => tab.id === this.hashTargetId && !tab.pending)
+				if (arrived >= 0) {
+					this.activeIndex = arrived
+					this.hashTargetId = ''
+					return
+				}
+				if (!this.resolvedTabs.some((tab) => tab.id === this.hashTargetId)) {
+					this.hashTargetId = ''
+				}
+			}
+			const stay = this.resolvedTabs.findIndex((tab) => tab.key === this.activeKey)
+			if (stay >= 0) {
+				if (stay !== this.activeIndex) {
+					this.activeIndex = stay
+				}
+				return
+			}
+			const first = this.resolvedTabs.findIndex((tab) => !tab.overflow && !tab.pending)
+			this.activeIndex = first >= 0 ? first : 0
+			this.activeKey = this.resolvedTabs[this.activeIndex]?.key || ''
+			this.syncHash()
+		},
+
+		objectId() {
+			this.sourceVisibility = {}
+			this.refreshSourceVisibility()
+		},
+
+		sourceConditionsKey() {
+			this.refreshSourceVisibility()
+		},
+	},
+
 	/**
 	 * Open on the first tab that is in the strip. Tab 0 is the default, and
 	 * when tab 0 sits under "More" the strip would open on a tab the author
@@ -496,13 +583,112 @@ export default {
 	 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
 	 */
 	created() {
-		const first = this.resolvedTabs.findIndex((tab) => !tab.overflow)
-		if (first > 0) {
-			this.activeIndex = first
+		// A route hash naming a tab opens that tab. One naming a hidden tab is
+		// ignored, without an error; one naming a tab still pending is honoured
+		// once its condition answers.
+		const wanted = this.currentHash()
+		const named = wanted === '' ? -1 : this.resolvedTabs.findIndex((tab) => tab.id === wanted)
+		if (named >= 0 && !this.resolvedTabs[named].pending) {
+			this.activeIndex = named
+		} else {
+			if (named >= 0) {
+				this.hashTargetId = wanted
+			}
+			const first = this.resolvedTabs.findIndex((tab) => !tab.overflow && !tab.pending)
+			const fallback = first >= 0 ? first : this.resolvedTabs.findIndex((tab) => !tab.overflow)
+			if (fallback > 0) {
+				this.activeIndex = fallback
+			}
 		}
+		this.activeKey = this.resolvedTabs[this.activeIndex]?.key || ''
+		this.refreshSourceVisibility()
+	},
+
+	mounted() {
+		this._onRefresh = () => this.refreshSourceVisibility()
+		subscribe('cn:page:refresh', this._onRefresh)
+		subscribe('cn:widget:refresh', this._onRefresh)
+	},
+
+	beforeUnmount() {
+		unsubscribe('cn:page:refresh', this._onRefresh)
+		unsubscribe('cn:widget:refresh', this._onRefresh)
 	},
 
 	methods: {
+		/**
+		 * Whether a tab shows: `visible`, `hidden`, or `pending` while its
+		 * condition cannot be decided yet (object not loaded, count not back).
+		 *
+		 * @param {string|object} tab   The tab entry.
+		 * @param {number}        index Its index in `content.tabs`.
+		 * @return {('visible'|'hidden'|'pending')} The state.
+		 * @spec openspec/changes/tabs-widget-visible-if/tasks.md#task-2
+		 */
+		tabVisibility(tab, index) {
+			const cond = tab && typeof tab === 'object' ? tab.visibleWhen : null
+			if (!cond) {
+				return 'visible'
+			}
+			if (isLocallyDecidableVisibleWhen(cond)) {
+				if (!this.objectData) {
+					return 'pending'
+				}
+				return evaluateVisibleWhenLocal(cond, this.objectData) ? 'visible' : 'hidden'
+			}
+			const answer = this.sourceVisibility[index]
+			if (answer === undefined) {
+				return 'pending'
+			}
+			return answer ? 'visible' : 'hidden'
+		},
+
+		/**
+		 * Count the rows behind each source-mode condition: once on mount, when
+		 * the record changes, and after a refresh a write triggers. A tab keeps
+		 * its last answer while the new one is on its way, so the strip does
+		 * not jump.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/tabs-widget-visible-if/tasks.md#task-2
+		 */
+		async refreshSourceVisibility() {
+			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
+			const seq = ++this.visibilitySeq
+			const ctx = { objectId: this.objectId, object: this.objectData || undefined }
+			await Promise.all(tabs.map(async (tab, index) => {
+				const cond = tab && typeof tab === 'object' ? tab.visibleWhen : null
+				if (!cond || isLocallyDecidableVisibleWhen(cond)) {
+					return
+				}
+				const answer = await evaluateVisibleWhen(cond, ctx)
+				if (seq === this.visibilitySeq) {
+					this.sourceVisibility = { ...this.sourceVisibility, [index]: answer }
+				}
+			}))
+		},
+
+		/** @return {string} The route hash without its `#`, or ''. */
+		currentHash() {
+			const fromRoute = this.$route && typeof this.$route.hash === 'string' ? this.$route.hash : ''
+			const raw = fromRoute !== '' ? fromRoute : (typeof window !== 'undefined' && window.location ? window.location.hash : '')
+			return typeof raw === 'string' ? raw.replace(/^#/, '') : ''
+		},
+
+		/**
+		 * After the active tab went, point a deep link's hash at the tab now showing.
+		 *
+		 * @return {void}
+		 */
+		syncHash() {
+			const id = this.activeTab?.id
+			const route = this.$route
+			if (!id || !route || !route.hash || !this.$router || typeof this.$router.replace !== 'function') {
+				return
+			}
+			this.$router.replace({ hash: `#${id}`, query: route.query })
+		},
+
 		/**
 		 * Re-emit a geo child's save so the surface can reload the record.
 		 *

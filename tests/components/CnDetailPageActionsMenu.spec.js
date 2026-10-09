@@ -115,7 +115,7 @@ describe('CnDetailPage — header Actions menu', () => {
 		})
 		store.fetchObject.mockClear()
 		await wrapper.find('[data-testid="cn-detail-page-action-refresh"]').trigger('click')
-		expect(store.fetchObject).toHaveBeenCalledWith('pipelinq-lead', 'abc-123')
+		expect(store.fetchObject).toHaveBeenCalledWith('pipelinq-lead', 'abc-123', { extend: ['@self.can'] })
 	})
 
 	// The in-product modal is gone (team decision 2026-09-04): the surface

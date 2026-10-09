@@ -50,8 +50,8 @@
 	<div class="cn-store-page" data-testid="store-page">
 		<div class="cn-store-page__header">
 			<div class="cn-store-page__heading">
-				<h2 class="cn-store-page__title">
-					{{ resolvedTitle }}
+				<h2 class="cn-store-page__title" :lang="langOf(resolvedTitle)">
+					{{ shown(resolvedTitle) }}
 				</h2>
 				<NcButton
 					v-if="showPublish"
@@ -191,6 +191,7 @@ import {
 	NcNoteCard,
 	NcTextField,
 } from '@nextcloud/vue'
+import { labelLang } from '../../utils/manifestTranslate.js'
 
 /**
  * The kind vocabulary from ADR-080 Decision 5. A `kind` names what installing
@@ -214,6 +215,11 @@ export default {
 		NcLoadingIcon,
 		NcNoteCard,
 		NcTextField,
+	},
+
+	inject: {
+		/** The label lookup from CnAppRoot, so manifest labels show in the user's language. */
+		cnTranslate: { default: null },
 	},
 
 	props: {
@@ -623,6 +629,26 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A manifest label through the injected lookup, or as written.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string} The label in the user's language.
+		 */
+		shown(text) {
+			return typeof this.cnTranslate === 'function' && typeof text === 'string' && text !== '' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The `lang` of a label that fell back to its written text in another language.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string|undefined} The source language, or undefined.
+		 */
+		langOf(text) {
+			return labelLang(this.cnTranslate, text) || undefined
+		},
+
 		t,
 
 		/**

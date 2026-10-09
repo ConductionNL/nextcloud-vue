@@ -24,17 +24,13 @@
 				:key="file.id"
 				class="cn-files-card__row">
 				<FileOutline :size="18" class="cn-files-card__icon" />
-				<a
-					v-if="file.url && safeHref(file.url) !== '#'"
-					:href="safeHref(file.url)"
-					target="_blank"
-					rel="noopener"
-					class="cn-files-card__name">
+				<button
+					type="button"
+					class="cn-files-card__name cn-files-card__open"
+					:aria-label="file.name || file.title || String(file.id)"
+					@click="openFile(file)">
 					{{ file.name || file.title || file.id }}
-				</a>
-				<span v-else class="cn-files-card__name">
-					{{ file.name || file.title || file.id }}
-				</span>
+				</button>
 				<span class="cn-files-card__size">
 					{{ formatFileSize(file.size) }}
 				</span>
@@ -45,6 +41,7 @@
 				{{ showAllLabel }} ({{ files.length }})
 			</button>
 		</template>
+		<CnFilePreview v-if="previewFile" :file="previewFile" @close="previewFile = null" />
 	</CnDetailCard>
 </template>
 
@@ -55,8 +52,9 @@ import { markRaw } from 'vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
+import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
+import { useFileOpener } from '../../composables/useFileOpener.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
-import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * CnFilesCard — compact files widget rendered by the integration
@@ -74,7 +72,7 @@ import { safeHref } from '../../utils/safeHref.js'
 export default {
 	name: 'CnFilesCard',
 
-	components: { CnDetailCard, NcLoadingIcon, FileOutline },
+	components: { CnDetailCard, CnFilePreview, NcLoadingIcon, FileOutline },
 
 	props: {
 		/** OpenRegister register id (slug or uuid). */
@@ -111,6 +109,7 @@ export default {
 			// markRaw: `data()` is deeply reactive and would proxy the component.
 			Paperclip: markRaw(Paperclip),
 			files: [],
+			previewFile: null,
 			loading: false,
 		}
 	},
@@ -138,13 +137,22 @@ export default {
 
 	methods: {
 		/**
-		 * Validate a file URL before binding to :href.
-		 * Delegates to the shared safeHref utility.
+		 * Show a file in the in-page preview.
 		 *
-		 * @param {string} url
-		 * @return {string}
+		 * @param {object} file The file to preview.
 		 */
-		safeHref,
+		showPreview(file) {
+			this.previewFile = file
+		},
+
+		/**
+		 * Open a file through the shared opener (Viewer, preview, browser, Files).
+		 *
+		 * @param {object} file The file row.
+		 */
+		openFile(file) {
+			useFileOpener({ onPreview: this.showPreview }).open(file)
+		},
 
 		/**
 		 * Bubble the footer button's click up so parents can open the
@@ -239,7 +247,16 @@ export default {
 	text-decoration: none;
 }
 
-a.cn-files-card__name:hover {
+button.cn-files-card__open {
+	background: none;
+	border: 0;
+	padding: 0;
+	font: inherit;
+	text-align: start;
+	cursor: pointer;
+}
+
+button.cn-files-card__open:hover {
 	text-decoration: underline;
 }
 

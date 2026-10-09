@@ -79,6 +79,7 @@ A record page can carry forty actions in one menu, and then nobody finds the one
 | `nextStep` | Object \| null | `null` | The "what now" card above the body: `{ field?, stages: { <stage>: { title?, checklist, after? } } }`. See [CnNextStepCard](./cn-next-step-card.md). |
 | `typePill` | Object \| null | `null` | A pill above the title: `{ field, colorMap?, labels?, variant? }`, rendered through [CnStatusBadge](./cn-status-badge.md). |
 | `statusPill` | Object \| null | `null` | A second pill, same shape, for where the record stands. |
+| `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
 | `sideColumn` | Array | `[]` | A column of cards beside the body. An entry is a widget definition or the id of a widget in `widgets`. |
 | `isAdmin` | Boolean \| null | `null` | Whether the viewer administers this instance, for `adminOnly` actions. `null` reads it from Nextcloud. |
 
@@ -645,3 +646,31 @@ Blocks such as favourites, follow and attention are placed with the layout you a
 - `config.breadcrumb.currentField` (a dotted field path, e.g. `identifier`) makes the current crumb that field's value instead of the display name; an empty value falls back to the display name. `config.breadcrumb.separator` draws that text (e.g. `/`) between the crumbs instead of the chevron.
 - `showWidgetActions` (manifest `config.showWidgetActions`, default `true`): `false` drops the overflow Actions menu from the cards of the body grid and the side column, unless a widget definition sets `showActions: true`. A definition with `showActions: false` drops its menu either way. A catalog card that offers an Add action keeps the menu that holds it.
 - With `headerWidget` a long title now wraps beside the header actions instead of pushing them onto the next row.
+
+## Favourite and follow beside the title
+
+When the loaded object carries `@self.favourite` or `@self.watching` (OpenRegister's interaction markers), the header shows a star ([`CnFavouriteToggle`](./cn-favourite-toggle.md)) and a Follow toggle ([`CnFollowToggle`](./cn-follow-toggle.md)) beside the title. Nothing renders without the markers.
+
+| Prop (manifest `config.*`) | Type | Default | Description |
+|------|------|---------|-------------|
+| `favourite` | Boolean | `null` | Automatic when unset. `false` removes the star. |
+| `follow` | Boolean | `null` | Automatic when unset. `false` removes the Follow toggle, and the object read then no longer asks for `@self.can`. |
+| `followNotifies` | Boolean | `true` | `false` when the register sends no change notifications to followers; the Follow tooltip then says so. |
+| `extend` | Array | `[]` | Extra `_extend[]` values for the object read. `@self.can` is added while the Follow toggle can render, because OpenRegister returns the rights (and so `manage`) only on request. |
+
+## Read state: opening a record marks it read
+
+When the loaded object carries `@self.unread: true` (OpenRegister `object-read-state`), the page sends `PUT /apps/openregister/api/objects/{register}/{schema}/{id}/read-state` once per page load, after the object has rendered. Nothing is sent when the object failed to load, does not carry the marker, or `markRead` is `false`.
+
+When the object carries `@self.unread` (true or false), the Actions menu offers **Mark as unread**, which sends `DELETE .../read-state` and emits `marked-unread`. The page stays open, unless `markUnreadNavigatesBack` is set.
+
+| Prop (manifest `config.*`) | Type | Default | Description |
+|------|------|---------|-------------|
+| `markRead` | Boolean | `true` | `false` keeps the page from marking anything read. |
+| `markUnreadNavigatesBack` | Boolean | `false` | After Mark as unread, go back one step in the router history. |
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `marked-unread` | — | After the record was marked unread. |
+
+Tabs of a `tabs` widget show what is new on them: see [`CnTabsWidget`](./cn-tabs-widget.md#what-is-new-on-a-tab).

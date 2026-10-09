@@ -209,6 +209,22 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 		expect(counts).toContain('1')
 	})
 
+	it('renders an objects group for a pet that is only referenced by others (reverse relations via /used)', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [], total: 0 },
+			used: { results: [{ id: 'v1', title: 'Visit 1' }, { id: 'v2', title: 'Visit 2' }, { id: 'o1', title: 'Order 1' }], total: 3 },
+			files: { results: [], total: 0 },
+		})
+		const wrapper = mountTabbed()
+		await flush()
+		// One non-empty group: the tab strip folds away and the objects list shows directly.
+		const rows = wrapper.findAll('.cn-related-objects-widget__row')
+		expect(rows).toHaveLength(3)
+		expect(wrapper.text()).toContain('Visit 1')
+		expect(wrapper.text()).toContain('Order 1')
+	})
+
 	it('uses register/schema props over @self when building endpoint URLs', async () => {
 		const fetchMock = mockFetchBySuffix({ relations: {}, uses: { results: [], total: 0 }, used: { results: [], total: 0 }, files: { results: [], total: 0 } })
 		global.fetch = fetchMock

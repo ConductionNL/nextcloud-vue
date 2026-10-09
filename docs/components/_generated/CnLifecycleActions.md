@@ -2,7 +2,9 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 0 direct references, 2 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 11 files reached through imports.
+
+Through: `CnResourceSelect`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -14,6 +16,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `object`   | `union`              |          | `null`      | The currently-loaded object (for client-side `from`-state filtering of a config-declared `transitions` list, and to read the lifecycle field).                                                                                                                        |
 | `config`   | `union`              |          | `\{\}`      | The lifecycle config block. A declared transition may carry `inputs: [{ field, required }]` to collect data before it is applied.                                                                                                                                     |
 | `schema`   | `union`              |          | `null`      | The object's JSON Schema (with `properties`), forwarded to `CnTransitionInputDialog` so a transition's declared inputs render with the property's title/type instead of a bare text box. Optional — without it every input falls back to a plain labelled text field. |
+| `register` | `string`             |          | `''`        | Register slug the dialog's reference pickers look in when the schema property names none of its own.                                                                                                                                                                  |
 | `display`  | `string`             |          | `'buttons'` | Where the transitions are drawn. `buttons` (the default) renders one NcButton each. `menu` renders none and emits `entries`, so the host can put them in its Actions menu while this component keeps the input dialog and the error.                                  |
 
 ### Events

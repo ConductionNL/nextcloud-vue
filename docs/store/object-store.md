@@ -56,7 +56,7 @@ Returns a `useObjectStore()` composable (Pinia `defineStore` result) with the fo
 |--------|-----------|-------------|
 | `fetchCollection` | `(type, params?, options?)` | Fetch paginated list for a type; results stored in state. A failure is recorded on `errors[type]`, which every call for the type shares: a call clears it when it starts and a success leaves it alone, so it does not say which request failed. Pass `options.outcome` (a plain object) to learn THIS call's result: the store sets `outcome.error` to the error it recorded, or `null` on success. Callers that join a deduplicated in-flight request (live updates) get that request's result. Without the option nothing changes |
 | `fetchCollectionForOptions` | `(type, params?)` | Fetch a collection WITHOUT writing `collections[type]`/`pagination[type]`/`loading[type]`/`errors[type]`. Use for reference-picker/search-option lookups on a type that may also be driving a mounted `CnIndexPage` (e.g. a self-referencing schema) — `fetchCollection` would otherwise overwrite that list's rows and count. |
-| `fetchObject` | `(type, id)` | Fetch single object by type and ID; cached in state |
+| `fetchObject` | `(type, id, options?)` | Fetch single object by type and ID; cached in state. `options.extend` is an array of `_extend[]` values (for example `["@self.can"]`) for markers OpenRegister returns only on request |
 | `saveObject` | `(type, objectData)` | Create (no `id`) or update (with `id`) an object |
 | `deleteObject` | `(type, id)` | Delete object by type and ID |
 | `deleteObjects` | `(type, ids)` | Delete multiple objects in parallel; returns `{ successfulIds, failedIds }` for partial success/failure |

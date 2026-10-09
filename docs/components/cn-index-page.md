@@ -47,7 +47,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mapConfig` | Object | `\{\}` | Marker geometry mapping for the opt-in [map view mode](#map-view-mode), mirroring manifest `config.map` 1:1: `\{ latField, lngField, geoField?, popupField?, center? \}`. When non-empty (and not excluded by `viewModes`), a third "Map" toggle segment appears. `latField`/`lngField` are object (or `@self`) property paths (dotted paths supported); `geoField` is an alternative GeoJSON Point property that wins over lat/lng; `center` is a `[lat, lng]` fallback for an empty set. |
 | `mapLabel` | String | `''` | Label for the map view-toggle segment (defaults to "Map"). Fed from `pages[].config.mapLabel`. |
 | `mapIcon` | String | `''` | MDI icon name for the map view-toggle segment (defaults to the built-in map-marker icon). |
-| `viewModes` | Array | `null` | Explicit whitelist of toggle segments to offer, e.g. `['table', 'cards', 'map']`. Fed from `pages[].config.viewModes`. When set it takes precedence over inferred availability (map otherwise appears iff `mapConfig` is non-empty). |
+| `calendar` | Object | `\{\}` | The opt-in [calendar view mode](#calendar-view-mode), mirroring manifest `config.calendar`: `\{ dateField, endDateField?, titleField? \}`. The segment appears only when `viewModes` lists `calendar` and `dateField` is named. |
+| `viewModes` | Array | `null` | Explicit whitelist of toggle segments to offer, e.g. `['table', 'cards', 'map', 'calendar']`. Fed from `pages[].config.viewModes`. When set it takes precedence over inferred availability (map otherwise appears iff `mapConfig` is non-empty). |
 | `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
 | `sortKeys` | Array | `[]` | External/host-controlled multi-column sort key list, `[{ key, order }, …]`; mirrors `sortKey`/`sortOrder` for shift+click multi-sort. In self-fetch mode the active multi-sort is instead persisted to and restored from `$route.query._order`. |
@@ -69,7 +70,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showMassExport` | Boolean | `true` | Show mass export action |
 | `showMassCopy` | Boolean | `true` | Show mass copy action |
 | `showMassDelete` | Boolean | `true` | Show mass delete action |
-| `allowExport` | Boolean | `false` | Opt-in flag for the native Export menu (CSV/Excel) rendered next to the Add button. Renders only when `true` AND the resolved schema is flagged `exportable: true`; navigates to `GET /apps/openregister/api/objects/{register}/{schema}/export`, passing `$route.query` through as filters. Distinct from `showMassExport`, which exports the fetched/selected rows via a blob download instead. |
+| `allowExport` | Boolean | `false` | Opt-in flag for the native Export menu (CSV/Excel) rendered next to the Add button. Renders only when `true` AND the resolved schema is flagged `exportable: true` (top-level or `configuration.exportable`); navigates to `GET /apps/openregister/api/objects/{register}/{schema}/export`, passing the list's own query (without paging) as filters. Distinct from `showMassExport`, which exports the fetched/selected rows via a blob download instead. |
 | `allowSavedViews` | Boolean | `false` | Opt-in flag for the saved-views control (saved-views-ui): a Views dropdown listing the user's OpenRegister saved-search views (`GET /apps/openregister/api/views`). Applying a view writes its stored filters/search/sort into the route query (non-underscore keys are filters; `_search` and `_order` are reserved); "Save current view…" persists the current route-query state via `POST /apps/openregister/api/views` and toasts either way, naming the view (a failure also keeps the dialog open with the reason); own views can be deleted after confirmation. Emits `apply-view` when a view is applied. |
 | `viewCounts` | Boolean \| Array | `false` | Which saved views show how many records they match: `true` for all of them (the tabs named in `viewTabs` and the entries in the views control), or a list of view ids. Off by default, so no count request is made. A quick filter opts in on its own entry with `showCount: true`. Entries that filter the same single field share one grouped request. |
 | `savedViewsScope` | String | `''` | Which pages share this page's saved views. By default a view is shared by every page over the same `register` and `schema` and shown on no other page, since a view is filters over one schema's fields. Set a name to share views across pages over different sources, or to keep two pages over one source apart. Written into the saved view's `query.scope` on save; views saved before scoping existed carry no scope and stay visible everywhere. |
@@ -105,6 +106,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls; forwarded to `CnActionsBar` (manifest: `config.showCountWithSearch`). Only relevant with `inlineSearch` |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`) |
 | `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a visibility checkbox — the in-table equivalent of the sidebar's Columns tab (manifest: `config.columnMenu`). See [Filter and columns: table header vs sidebar](#filter-and-columns-table-header-vs-sidebar). |
+| `searchInFiles` | Boolean | `false` | Show an "Also search inside files" switch beside the search box (manifest: `config.searchInFiles`). On, a search that has a term also sends `_content_search=true` (OpenRegister file-content search, capped at 50 candidates, noted under the list), and a row found through a file shows "Found in {file}" from `@self.matchedFile`. The switch is kept in the route as `contentSearch=1`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest: `config.searchPlaceholder`) |
 | `cardsLabel` / `tableLabel` | String | `''` | View-toggle option labels, e.g. "Tiles" / "List" (manifest: `config.cardsLabel` / `config.tableLabel`) |
 | `cardsIcon` / `tableIcon` | String | `''` | MDI icon names for the view-toggle options (manifest: `config.cardsIcon` / `config.tableIcon`) |
@@ -117,6 +119,27 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `register` | String | `''` | Effective register slug for the page. Forwarded as a prop to the resolved `cardComponent` so bespoke card UIs can match the schema → register pair. Manifest-driven path: `pages[].config.register` flows in via `CnPageRenderer`. |
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
+
+## Export follows the list
+
+The Export menu (`allowExport`) and the mass-action Export export the rows the list is showing, not the whole schema.
+
+- **The menu** sends the query the list itself sends: search, sort, facet filters, the page's fixed `filter` and the active quick filter, without paging (`_limit` and `_page` are dropped). A host-managed list (`objects` passed in) has no such query and keeps forwarding the route's.
+- **The flag** that enables the menu is read from the schema's top-level `exportable`, then from `configuration.exportable`. The top-level field wins when both are set; a schema flagged in neither place keeps the menu hidden. (OpenRegister has to keep one of the two; until it does, the menu does not appear on a real instance.)
+- **The mass export** exports the selected rows (as `ids[]`) when rows are selected, and the rows matching the list's query otherwise. The dialog says which, with the count, before the user confirms ([`CnMassExportDialog`](./cn-mass-export-dialog.md) `scopeText`).
+
+## Calendar view mode
+
+`viewMode` also accepts `calendar`: the current filtered rows on a month calendar by a date field ([`CnObjectCalendar`](./cn-object-calendar.md)). Opt in through `config.viewModes` and name the fields:
+
+```json
+{
+  "viewModes": ["table", "calendar"],
+  "calendar": { "dateField": "inspectionDate", "endDateField": "inspectionEnd", "titleField": "address" }
+}
+```
+
+With `endDateField` an entry spans every day from the start to the end. In calendar mode the page adds the visible month to the list query (`dateField[gte]` and `[lte]`, or with an end field the overlap `dateField[lte]` and `endDateField[gte]`), asks again when the month changes, and fetches one page sized to the month; leaving calendar mode removes the range and restores the page size, so the table is never narrowed. A click on an entry opens the record as a row click does. A busy day's "+N" button switches to the table filtered to that day. Nothing here reschedules a record: dragging an entry to another day is not offered. Applying a saved view only changes the list filters, so the same month query is used; the `/api/views/{id}/calendar` endpoint is not called.
 
 ## Board and date axis: two more ways to look at the same list
 
@@ -236,6 +259,8 @@ A page declaring `splitView` opens a row beside the list rather than instead of 
 | `splitCloseLabel` | String | `''` | Accessible name and tooltip for that button. Defaults to `Close`. |
 | `manualOrder` | Boolean | `false` | Lets this person drag the rows into an order of their own, held per user and per list. |
 | `manualOrderId` | String | `''` | Stable id the order is held under. Defaults to the object type or the schema. |
+| `personalColumns` | Boolean | `true` | Lets this person order and pin the table columns from the sidebar's Columns tab, and keeps the visible columns, their order and the pinned count per user and per list in their Nextcloud preferences (`columns.<list id>`; the list id is `manualOrderId`, else the page id). `false` keeps show and hide only, stored nowhere. |
+| `copy` | Object | `null` | Copy settings from `config.copy`. `include` lists the link kinds a copy may take along (`relationRows`, `incoming`, `files`); the copy dialogs then list them, ticked, and the copy is one request to OpenRegister's copy endpoint. Without it a copy carries the fields only. |
 
 Declare it on the manifest page and build the routes with [`buildManifestRoutes`](../utilities/build-manifest-routes.md), which emits the second route the pane needs:
 
@@ -297,6 +322,7 @@ A manual order is stored against the person and the list, never onto the records
 | `select` | `ids[]` | Selection changed |
 | `action` | `\{ action, row, id?, builtin? \}` | A row action was chosen from a row's menu, its right-click menu or the keyboard primary action. `action` is the label, `id` the action's id when it has one, and `builtin: true` marks a built-in View / Edit / Copy / Delete. |
 | `search` | `term` | Search input changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
+| `content-search` | `boolean` | The "Also search inside files" switch changed (needs `searchInFiles`). Consumer-managed pages use it to add `_content_search` to their own query; self-fetch pages handle it themselves. |
 | `columns-change` | `keys[]` | Visible columns changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
 | `filter-change` | `\{ key, values \}` | Facet filter changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
 | `quick-filter-change` | `index` | Zero-based active tab index changed (only emitted when `quickFilters` is set). The fetch is automatically triggered — listen for observability / analytics. |
@@ -978,6 +1004,21 @@ The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override 
 
 Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used). While a folder is selected the pane keeps showing the whole set of folders it saw before the selection, so switching from one folder to another is one click; the live facet of the narrowed query would otherwise list the selected folder alone.
 
+#### A folder that carries its own schema
+
+A folder entry may declare `schema` (and optionally `register`, which defaults to the page's own). While that folder is selected, the page lists that register and schema instead of its own: columns, fetch, pagination, facets and the live-update subscription all follow it. "All", or a folder without `schema`, restores the page's own register and schema. Switching clears the row selection and closes any open form, delete or copy dialog, since a row of the old schema means nothing under the new one. A folder without `schema` filters the page's schema by `filterField` exactly as before.
+
+```json
+"folderSidebar": {
+  "source": "custom",
+  "folders": [
+    { "id": "people", "name": "People" },
+    { "id": "orgs", "name": "Organisations", "schema": "kvkCompany" }
+  ]
+}
+```
+
+
 Sources: `register` (fetch the folder list from an OpenRegister `register`/`schema`, mapping `idField`/`nameField`), `field` (distinct values of the current rows' `field`), `custom` (explicit `folders`), or `files` (Nextcloud folders). Example — case types as folders that filter cases:
 
 ```json
@@ -1005,3 +1046,32 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 { "showTitle": true, "showTitleIcon": false, "showCount": false, "countSubtitle": "{total} open cases",
   "headerButtons": [{ "label": "Export", "action": "export" }, { "label": "New case", "action": "add", "variant": "primary" }] }
 ```
+
+## Reference columns that show a label (`labelField`)
+
+A column object over a `$ref` property can name the field of the referenced object to show instead of its uuid:
+
+```json
+{ "key": "case", "labelField": "title", "link": true }
+```
+
+- The page collects the distinct ids of the rows on screen and asks for them in one request per referenced schema (`useRefLabels`). Rows render first; labels fill in place.
+- The label is `labelField` (dotted paths such as `person.displayName` work), then `title`, `name` or `@self.name`. An id that cannot be resolved (a deleted object) shows the id in mono.
+- `link: true` links the label to the detail page the manifest declares for the referenced schema (`type: "detail"`, `config.schema`); `route` names the page id explicitly.
+- Sorting by the key would sort by id, so such a column is not sortable unless it sets `sortByLabel: true` (use it when the store can sort the extended field).
+- A facet over the same column lists the labels in the sidebar; the filter value stays the id.
+- The column needs the `$ref` on the page schema and a register: the schema's `x-external-register`, or the page's `register`. A column that already sets `widget` is left alone.
+- The labels are refetched after `setFormResult({ success: true })`.
+
+## Personal lenses and the star column
+
+| Prop (manifest `config.*`) | Type | Default | Description |
+|------|------|---------|-------------|
+| `personalLenses` | Array | `[]` | Any of `favourite`, `recent`, `watching`: quick filters Favourites (`_favourite`), Recent (`_recent`) and Following (`_watching`), appended after the page's own quick filters. They combine with every other filter. While Recent is active column sorting is off, because the lens owns the order. A page with no quick filters of its own gets an "All" tab first. |
+| `showFavouriteColumn` | Boolean | `false` | Adds a first column with a [`CnFavouriteToggle`](./cn-favourite-toggle.md) per row, bound to the row's `@self.favourite`. Clicking it does not open the row. |
+
+The `personalLenses` value `unread` adds the quick filter Unread (`_unread=true`). Rows whose `@self.unread` is true show a [`CnUnreadMarker`](./cn-unread-marker.md) in the first cell and read in bold, with no prop needed.
+
+## Shared saved views
+
+With `allowSavedViews`, views shared with the user list under "Shared with me" in the saved-views control. Saving a view can share it with groups (read or write); an own view has a Share entry; a view shared with write access can be saved to with the current state (the body never carries `sharedWith` or `owner`); a view shared read-only can be copied with "Save as my view". See [`CnSavedViewsControl`](./cn-saved-views-control.md#views-shared-with-the-user).

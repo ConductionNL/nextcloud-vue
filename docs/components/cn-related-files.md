@@ -78,3 +78,7 @@ const picked = await picker.pick() // string, or string[] when multi-select
 ## See also
 
 - [`CnFileManager`](./cn-file-manager.md) — for **uploading** new files (dropzone + `@upload`), rather than relating existing ones.
+
+## Opening a file
+
+A file name is a button; it opens a file through [`useFileOpener`](../utilities/composables/use-file-opener.md): the Nextcloud Viewer when it handles the type, otherwise an in-page [`CnFilePreview`](./cn-file-preview.md) for CSV, TSV, JSON, XML and text, otherwise the browser for PDF and images, otherwise the Files app. The preview carries Download and Open in Files.

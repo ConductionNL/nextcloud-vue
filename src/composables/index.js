@@ -33,6 +33,13 @@ export {
 } from './useContextMenu.js'
 export { useAppManifest } from './useAppManifest.js'
 export { useAppStatus } from './useAppStatus.js'
+export { useChildRecords } from './useChildRecords.js'
+export { COPY_LINK_KINDS, copyKindsOf, useObjectCopy } from './useObjectCopy.js'
+export { useFileComments } from './useFileComments.js'
+export { useFileOpener } from './useFileOpener.js'
+export { useRefLabels } from './useRefLabels.js'
+export { useRestoreVersion } from './useRestoreVersion.js'
+export { useWriteFeedback } from './useWriteFeedback.js'
 export { useAppInstaller } from './useAppInstaller.js'
 export { useSetupStatus } from './useSetupStatus.js'
 export { compareSemver, interpolateTokens, loadWalkthroughSeenVersion, normaliseSeenVersion, persistWalkthroughSeenVersion, readLocalWalkthroughSeenVersion, useWalkthrough, WALKTHROUGH_SEEN_STORAGE_PREFIX, walkthroughPreferenceUrl } from './useWalkthrough.js'
@@ -74,4 +81,14 @@ export {
 export { useManifestEditHistory } from './useManifestEditHistory.js'
 export { useScopedTheme } from './useScopedTheme.js'
 export { useFlowStore } from './useFlowStore.js'
+export {
+	FLOW_LAYOUT_COLUMN_WIDTH,
+	FLOW_LAYOUT_MARGIN,
+	FLOW_LAYOUT_ROW_HEIGHT,
+	FLOW_LAYOUT_TOP,
+	layoutFlowNodes,
+	needsFullLayout,
+	placeLooseNodes,
+	readNodePoint,
+} from './flowGraphLayout.js'
 export { NOTIFICATION_PREFERENCES_URL, NOTIFICATION_TEST_SEND_URL, useNotificationPreferencesStore } from './useNotificationPreferencesStore.js'

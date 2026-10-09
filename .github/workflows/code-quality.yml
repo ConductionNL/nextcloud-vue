@@ -145,7 +145,7 @@ jobs:
         ["test", "check:build", "check:docs", "check:jsdoc",
          "check:integration-parity", "check:peers", "check:docs-fresh",
          "check:a11y", "check:smoke", "check:vue3-compile",
-         "check:public-safe"]
+         "check:public-safe", "check:journey-vocabulary"]
       enable-sbom: false
       # The repo ships a REUSE.toml and LICENSES/ and lints clean (REUSE spec
       # 3.3), so findings are regressions and may fail the build.

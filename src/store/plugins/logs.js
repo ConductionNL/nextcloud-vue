@@ -1,3 +1,4 @@
+import { trackedFetch } from '../../utils/diagnostics.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so logs fetches
 // inherit the active tenant UUID (multi-tenancy-context).
 import { genericError, networkError, parseResponseError } from '../../utils/errors.js'
@@ -92,7 +93,7 @@ export function logsPlugin(options = {}) {
 				Object.assign(params, filters)
 
 				const url = this._options.baseApiUrl + '/' + path + buildQueryString(params)
-				const response = await fetch(url, {
+				const response = await trackedFetch(url, {
 					method: 'GET',
 					headers: this._buildHeaders(),
 				})

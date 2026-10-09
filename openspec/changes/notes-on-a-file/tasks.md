@@ -11,8 +11,8 @@
 - **acceptance_criteria**:
   - REPORT, POST and DELETE go to `/remote.php/dav/comments/files/{fileId}` with the bodies of design D2; the REPORT response parses to the shared note shape
   - Verify: jest with recorded DAV responses
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: The file source in `CnNotesCard`
 - **spec_ref**: `openspec/changes/notes-on-a-file/specs/notes-mentions-autocomplete/spec.md#requirement-the-notes-card-takes-a-file-as-its-source`
@@ -21,8 +21,8 @@
   - `fileId` without object props uses the file source; object props keep the object source
   - A 403 or 404 shows no notes and no add field
   - Verify: jest; mutation check: calling the object endpoint with `fileId` set reddens the test
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Docs
 - **spec_ref**: `openspec/changes/notes-on-a-file/specs/notes-mentions-autocomplete/spec.md#requirement-the-notes-card-takes-a-file-as-its-source`
@@ -30,5 +30,7 @@
 - **acceptance_criteria**:
   - Docs show both sources and say that mention notifications on files come from Nextcloud's comments app
   - Verify: `npm run check:docs`, `npm run check:docs-fresh`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
+
+> `npm run check:docs-fresh` is not run here: needs the docusaurus install (the generated partial is regenerated at the end).

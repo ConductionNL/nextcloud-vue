@@ -137,18 +137,19 @@ const warned = new Set()
  *
  * @param {object} field A formField descriptor carrying its choices on either
  *   `field.enum` (preferred) or the legacy `field.options`.
+ * @param {(text: string) => string} [translate] Translator for each option label (identity by default).
  * @return {Array<{label: string, value: unknown}>} The NcSelect options; bare literals
  *   become `{label: String(entry), value: entry}`.
  */
-function resolveEnumOptions(field) {
+function resolveEnumOptions(field, translate = (k) => k) {
 	const raw = Array.isArray(field.enum)
 		? field.enum
 		: (Array.isArray(field.options) ? field.options : [])
 	return raw.map((entry) => {
 		if (entry && typeof entry === 'object' && 'value' in entry) {
-			return { label: String(entry.label ?? entry.value), value: entry.value }
+			return { label: translate(String(entry.label ?? entry.value)), value: entry.value }
 		}
-		return { label: String(entry), value: entry }
+		return { label: translate(String(entry)), value: entry }
 	})
 }
 
@@ -214,7 +215,7 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 			},
 		}
 	} else if (field.type === 'enum') {
-		const options = resolveEnumOptions(field)
+		const options = resolveEnumOptions(field, translate)
 		const selected = options.find((o) => o.value === value) ?? null
 		result = {
 			kind: 'enum',
@@ -264,6 +265,8 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 				modelValue: value ?? null,
 				accept: typeof field.accept === 'string' ? field.accept : '',
 				...(Number.isFinite(maxSize) && maxSize > 0 ? { maxSize } : {}),
+				...(field.multiple === true ? { multiple: true } : {}),
+				...(field.capture === 'environment' || field.capture === 'user' ? { capture: field.capture } : {}),
 			},
 			listeners: {
 				'update:modelValue': (next) => onInput(next),

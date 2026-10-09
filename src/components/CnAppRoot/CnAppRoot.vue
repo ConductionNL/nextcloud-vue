@@ -57,7 +57,16 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :appName="appDisplayName || (manifest && manifest.name) || appId" :data-nldesign-theme-scope="appId" data-testid="cn-app-root">
+	<NcContent
+		:appName="appDisplayName || (manifest && manifest.name) || appId"
+		:data-nldesign-theme-scope="appId"
+		:class="{ 'cn-app-root--with-environment': environmentName }"
+		data-testid="cn-app-root">
+		<!-- Names a development, test or acceptance environment on every screen; cannot be dismissed. Production shows nothing. -->
+		<CnEnvironmentBanner
+			v-if="environmentName"
+			class="cn-app-root__environment"
+			:environment="environmentName" />
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -514,7 +523,7 @@
 					:seenVersion="walkthroughSeenVersion"
 					:resume="walkthroughResume"
 					:autoStart="!walkthroughPaused"
-					:translate="translate"
+					:translate="manifestTranslate"
 					@complete="onWalkthroughComplete"
 					@pause="onWalkthroughPause"
 					@progress="onWalkthroughProgress" />
@@ -661,7 +670,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { loadState } from '@nextcloud/initial-state'
-import { translate as t } from '@nextcloud/l10n'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
@@ -675,6 +684,7 @@ import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
@@ -685,6 +695,7 @@ import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useBuildiqEditAvailability } from '../../composables/useBuildiqEditAvailability.js'
+import { useEnvironment } from '../../composables/useEnvironment.js'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useScopedTheme } from '../../composables/useScopedTheme.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
@@ -705,8 +716,10 @@ import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
+import { createManifestTranslate } from '../../utils/manifestTranslate.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
@@ -783,6 +796,7 @@ export default {
 		CnAppNav,
 		CnAppLoading,
 		CnDependencyMissing,
+		CnEnvironmentBanner,
 		CnSetupWizard,
 		CnWalkthrough,
 		CnAiCompanion,
@@ -813,6 +827,10 @@ export default {
 			// — the working copy while editing, the live manifest otherwise. A
 			// getter so it stays reactive despite provide() running once; when
 			// not editing it returns the live manifest, identical to before.
+			get cnLook() {
+				return (self.look || self.manifest?.look) === 'board' ? 'board' : 'nextcloud'
+			},
+
 			get cnManifest() {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
 			},
@@ -874,7 +892,8 @@ export default {
 			},
 
 			cnCustomComponents: this.customComponents,
-			cnTranslate: this.translate,
+			cnTranslate: this.manifestTranslate,
+			cnDiagnostics: (report) => reportDiagnostic(report),
 			cnPageTypes: this.pageTypes,
 			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
 			cnCellWidgets: this.cellWidgets,
@@ -1424,6 +1443,49 @@ export default {
 		},
 
 		/**
+		 * The environment this instance is: `development`, `test`, `acceptance` or
+		 * `production`. An app fills it from its own instance setting when it has
+		 * one; it wins over the active organisation's `environment` field. A
+		 * non-production environment is named in a banner on every screen that
+		 * cannot be dismissed, and the tab title gets a prefix (`[DEV]`, `[TEST]`,
+		 * `[ACC]`). Production, an unknown value or no value shows nothing.
+		 *
+		 * @type {string}
+		 */
+		environment: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The language labels are shown in. Defaults to the user's Nextcloud
+		 * language; buildiq's preview passes the maker's pick so the preview can
+		 * read another language than the designer around it. The label lookup tries
+		 * `manifest.i18n.labels[language]` (then its base, `en_GB` to `en`), then the
+		 * host `translate`, then the text as written.
+		 *
+		 * @type {string}
+		 */
+		language: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Listener for diagnostics: called with one report per request, render
+		 * error, unknown component and binding problem (`{ kind, at, pageId, ... }`).
+		 * Also provided as `cnDiagnostics`. Reports never hold a body, header, query
+		 * value or user id; the library sends nothing itself. Without it no report
+		 * is built and no timing is taken.
+		 *
+		 * @type {(report: object) => void}
+		 */
+		diagnostics: {
+			type: Function,
+			default: null,
+		},
+
+		/**
 		 * Labels for the app's notification rules, shown in the
 		 * user-settings notification pane instead of the rule keys. Keyed
 		 * `<schema>.<key>` (or just `<key>`); values are already translated
@@ -1515,6 +1577,18 @@ export default {
 		requiresApps: {
 			type: Array,
 			default: () => ['openregister'],
+		},
+
+		/**
+		 * The look the app is drawn in: `board` or `nextcloud`. Empty falls back
+		 * to the manifest's top-level `look`, then `nextcloud`. Provided to
+		 * descendants as `cnLook`.
+		 *
+		 * @type {''|'board'|'nextcloud'}
+		 */
+		look: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -1681,8 +1755,12 @@ export default {
 			{ deep: true, immediate: true },
 		)
 
+		// The environment this instance is: the app's own setting, else the active organisation's.
+		const { environment: environmentName } = useEnvironment({ environment: () => props.environment, tenant: tenantContext })
+
 		return {
 			...supportPair,
+			environmentName,
 			cnTenantContext: tenantContext,
 			manifestEditor,
 			buildiqAvailable: buildiqEditable,
@@ -1973,6 +2051,22 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The label lookup provided as `cnTranslate`: the manifest's own
+		 * translations for the language first, then the host `translate`, then the
+		 * text as written. It reads the live manifest (the editor's working copy
+		 * while editing) and the language on every call.
+		 *
+		 * @return {Function} `(text, vars) => string`
+		 */
+		manifestTranslate() {
+			return createManifestTranslate({
+				getManifest: () => (this.manifestEditor ? this.manifestEditor.source.value : this.manifest),
+				getLanguage: () => this.language || getLanguage(),
+				translate: (text, vars) => this.translate(text, vars),
+			})
+		},
+
 		/**
 		 * The per-user preference reader and writer for this app, built from
 		 * the manifest's `personalisation` block.
@@ -2980,6 +3074,14 @@ export default {
 			},
 		},
 
+		diagnostics() {
+			this.syncDiagnostics()
+		},
+
+		'$route.name': function() {
+			clearReportedDiagnostics()
+		},
+
 		setupStatusLoading: {
 			immediate: true,
 			handler(loading) {
@@ -2988,6 +3090,10 @@ export default {
 				}
 			},
 		},
+	},
+
+	created() {
+		this.syncDiagnostics()
 	},
 
 	mounted() {
@@ -3047,6 +3153,10 @@ export default {
 	},
 
 	beforeUnmount() {
+		if (this.removeDiagnostics) {
+			this.removeDiagnostics()
+			this.removeDiagnostics = null
+		}
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
 		this.cnScopedTheme.teardown(this.appId)
 		// Scope the side effect to the shell's lifetime. Layers already written
@@ -3056,6 +3166,20 @@ export default {
 	},
 
 	methods: {
+		/** Listen for the host's `diagnostics` function while it is set; adds this root's page id. */
+		syncDiagnostics() {
+			if (this.removeDiagnostics) {
+				this.removeDiagnostics()
+				this.removeDiagnostics = null
+			}
+			if (typeof this.diagnostics === 'function') {
+				this.removeDiagnostics = addDiagnosticsListener((report) => {
+					const name = this.$route ? this.$route.name : null
+					this.diagnostics({ ...report, pageId: name === undefined || name === null ? null : String(name) })
+				})
+			}
+		},
+
 		/**
 		 * Permission gate for an Integrations entry — deliberately identical
 		 * to `CnAppNav.passesPermission`, including the "no permissions prop
@@ -3977,6 +4101,20 @@ export default {
 </script>
 
 <style>
+/* The environment banner runs along the top of the shell and cannot scroll away; the shell makes room for it. */
+.cn-app-root--with-environment {
+	position: relative;
+	padding-top: 28px;
+	box-sizing: border-box;
+}
+
+.cn-app-root__environment {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline: 0;
+	z-index: 9999;
+}
+
 .cn-app-root__capabilities-loading {
 	display: flex;
 	align-items: center;

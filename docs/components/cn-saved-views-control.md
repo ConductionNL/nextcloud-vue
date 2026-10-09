@@ -58,6 +58,21 @@ The label entries filter the list to one label, and clicking the active one
 clears it. They are read from the UNFILTERED view list: read from the filtered
 rows, choosing one label would take every other label off the menu.
 
+## Views shared with the user
+
+A view carries `@self.access`: `owner`, `write` or `read` (OpenRegister `view-group-share`, `GET /api/views` returns the user's own views, public views and views shared with one of the user's groups). A view without it counts as `owner` when its `owner` is the current user and as `read` otherwise.
+
+When any view is shared with the user, the list is split under two captions, **My views** and **Shared with me** (seeded views stay on top, with no caption). A shared row names the sharing group after the view name. With nothing shared the list renders as before. Applying a shared view works as for an own view.
+
+| Access | Row actions | Event |
+|--------|-------------|-------|
+| `owner` | Share, Delete | `share-request(view)`, `delete-request(view)` |
+| `owner`, `write` | Presentation: how the view shows (table, board, calendar) | `presentation-request(view)` |
+| `write` | Save the current view to it (no delete, no share) | `update-request(view)` |
+| `read` | Save as my view (no edit, no delete) | `copy-request(view)` |
+
+`CnIndexPage` handles all three: `update-request` PUTs the query and presentation only (never `sharedWith` or `owner`, so the audience cannot change), `copy-request` stores a personal copy and leaves the original, `share-request` opens [`CnSavedViewShareDialog`](./cn-saved-view-share-dialog.md).
+
 ## States
 
 - **Loading** — `loading: true` shows a caption instead of the list.

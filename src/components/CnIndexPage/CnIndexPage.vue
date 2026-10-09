@@ -112,7 +112,16 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['after-search']" #after-search>
+			<template v-if="$slots['after-search'] || searchInFiles" #after-search>
+				<NcCheckboxRadioSwitch
+					v-if="searchInFiles"
+					:modelValue="contentSearch"
+					type="switch"
+					class="cn-index-page__content-search"
+					data-testid="cn-index-content-search"
+					@update:modelValue="onContentSearchToggle">
+					{{ t('nextcloud-vue', 'Also search inside files') }}
+				</NcCheckboxRadioSwitch>
 				<slot name="after-search" />
 			</template>
 			<template
@@ -145,6 +154,10 @@
 					:counts="savedViewCounts"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true"
+					@shareRequest="onShareViewRequest"
+					@presentationRequest="onPresentationViewRequest"
+					@updateRequest="onUpdateViewRequest"
+					@copyRequest="onCopyViewRequest"
 					@deleteRequest="onDeleteViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
@@ -250,6 +263,9 @@
 			:items="selectedObjects"
 			:nameField="massActionNameField"
 			:nameFormatter="nameFormatter"
+			:include="copyIncludeKinds"
+			:register="copyRegisterSlug"
+			:schema="copySchemaSlug"
 			@confirm="onMassCopyConfirm"
 			@close="showMassCopyDialog = false" />
 
@@ -258,6 +274,7 @@
 			v-if="showExportDialog"
 			ref="exportDialog"
 			:formats="exportFormats"
+			:scopeText="massExportScopeText"
 			@confirm="onMassExportConfirm"
 			@close="showExportDialog = false" />
 
@@ -277,8 +294,26 @@
 		<CnSaveViewDialog
 			v-if="showSaveViewDialog"
 			ref="saveViewDialog"
+			:schema="viewPresentationSchema"
 			@confirm="onSaveViewConfirm"
 			@close="showSaveViewDialog = false" />
+
+		<!-- How-a-saved-view-shows dialog (view-presentation-picker) -->
+		<CnSavedViewPresentationDialog
+			v-if="viewPendingPresentation"
+			ref="presentationViewDialog"
+			:view="viewPendingPresentation"
+			:schema="viewPresentationSchema"
+			@confirm="onPresentationViewConfirm"
+			@close="viewPendingPresentation = null" />
+
+		<!-- Share-a-saved-view dialog (saved-views-shared-by-role) -->
+		<CnSavedViewShareDialog
+			v-if="viewPendingShare"
+			ref="shareViewDialog"
+			:view="viewPendingShare"
+			@confirm="onShareViewConfirm"
+			@close="viewPendingShare = null" />
 
 		<!-- Delete-saved-view confirm (saved-views-ui) -->
 		<CnConfirmDialog
@@ -333,6 +368,9 @@
 				:item="actionTargetItem"
 				:nameField="massActionNameField"
 				:nameFormatter="nameFormatter"
+				:include="copyIncludeKinds"
+				:register="copyRegisterSlug"
+				:schema="copySchemaSlug"
 				@confirm="onSingleCopyConfirm"
 				@close="closeSingleCopy" />
 		</slot>
@@ -445,25 +483,26 @@
 					class="cn-index-page__empty"
 					role="status"
 					data-testid="cn-index-page-fetch-error">
-					<NcEmptyContent :name="t('nextcloud-vue', 'An error occurred')"
+					<CnEmptyContent error
+						:name="t('nextcloud-vue', 'An error occurred')"
 						:description="effectiveSearchValue
 							? t('nextcloud-vue', 'Change the search or try again.')
 							: t('nextcloud-vue', 'Try again later.')">
 						<template #icon>
 							<AlertCircleOutline :size="64" />
 						</template>
-					</NcEmptyContent>
+					</CnEmptyContent>
 				</div>
 
 				<!-- Empty state -->
 				<div v-else-if="effectiveObjects.length === 0" class="cn-index-page__empty">
 					<slot name="empty">
-						<NcEmptyContent :name="resolvedEmptyText">
+						<CnEmptyContent :name="resolvedEmptyText">
 							<template #icon>
 								<CnIcon v-if="resolvedIcon" :name="resolvedIcon" :size="64" />
 								<DatabaseSearch v-else :size="64" />
 							</template>
-						</NcEmptyContent>
+						</CnEmptyContent>
 					</slot>
 				</div>
 
@@ -471,7 +510,8 @@
 				<CnDataTable
 					v-else-if="currentViewMode === 'table'"
 					:schema="effectiveSchema"
-					:columns="tableColumns"
+					:columns="renderedColumns"
+					:pinnedCount="pinnedColumnCount"
 					:rowIcon="rowIcon"
 					:rowIndicators="rowIndicators"
 					:rowIndicatorCap="rowIndicatorCap"
@@ -497,6 +537,16 @@
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
 					@rowContextMenu="onRowContextMenu">
+					<!-- Star column (showFavouriteColumn) -->
+					<template v-if="showFavouriteColumn" #column-__favourite="{ row }">
+						<CnFavouriteToggle
+							v-if="row && row['@self'] && typeof row['@self'].favourite === 'boolean'"
+							:register="typeof register === 'string' ? register : ''"
+							:schema="favouriteSchemaSlug"
+							:objectId="String(row['@self'].id || row.id || '')"
+							:favourite="row['@self'].favourite === true" />
+					</template>
+
 					<!-- Pass through column slots -->
 					<template
 						v-for="col in slotColumns"
@@ -613,6 +663,24 @@
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick" />
 
+				<!--
+					Calendar. The current filtered rows on a month by their date
+					field. The month is added to the list query (see
+					calendarRangeFilter), so only that month is fetched. Reads
+					only: nothing here reschedules a record.
+				-->
+				<CnObjectCalendar
+					v-else-if="currentViewMode === 'calendar'"
+					:objects="displayObjects"
+					:dateField="calendar.dateField || ''"
+					:endDateField="calendar.endDateField || null"
+					:titleField="calendar.titleField || null"
+					:rowKey="rowKey"
+					:loading="effectiveLoading"
+					@rangeChange="onCalendarRange"
+					@objectClick="onRowClick"
+					@daySelect="onCalendarDaySelect" />
+
 				<!-- List view -->
 				<CnObjectList
 					v-else-if="currentViewMode === 'list'"
@@ -722,6 +790,13 @@
 					@action="onRowAction"
 					@close="closeContextMenu" />
 
+				<p
+					v-if="searchInFiles && contentSearch"
+					class="cn-index-page__content-search-note"
+					data-testid="cn-index-content-search-note">
+					{{ t('nextcloud-vue', 'File matches are limited to the best 50.') }}
+				</p>
+
 				<!-- Pagination -->
 				<CnPagination
 					v-if="effectivePagination && effectivePagination.pages > 1"
@@ -798,10 +873,15 @@
 			:filterFields="resolvedSidebar.fields || null"
 			:facetData="effectiveFacetData"
 			:showMetadata="resolvedSidebar.showMetadata !== false"
+			:personalColumns="personalColumns"
+			:pinnedCount="pinnedColumnCount"
 			v-bind="sidebarSearchProps"
 			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
 			@columnsChange="onColumnsEvent"
+			@columnsReorder="onColumnsReorder"
+			@pinChange="onPinChange"
+			@columnsReset="onColumnsReset"
 			@filterChange="onFilterEvent"
 			@clearFilters="onClearFilters" />
 	</div>
@@ -810,7 +890,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -822,17 +902,24 @@ import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
+import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { copyKindsOf } from '../../composables/useObjectCopy.js'
+import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { useObjectStore } from '../../store/useObjectStore.js'
 import { routeHref } from '../../utils/actionLink.js'
 import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
@@ -840,8 +927,8 @@ import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undecl
 import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
-import { columnsFromSchema } from '../../utils/schema.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -862,21 +949,28 @@ import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
+import { CnObjectCalendar } from '../CnObjectCalendar/index.js'
 import { CnObjectList } from '../CnObjectList/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
+import { CnSavedViewPresentationDialog } from '../CnSavedViewPresentationDialog/index.js'
 import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
+import { CnSavedViewShareDialog } from '../CnSavedViewShareDialog/index.js'
 import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
 import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
 import { applyManualOrder, dropInOrder, manualOrderKey, moveInOrder, visibleIdsOf } from './manualOrder.js'
+import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './personalColumns.js'
 import { createSelfModeActions } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
 import { useSelfFetchList } from './useSelfFetchList.js'
+
+/** Rows fetched for one month in calendar mode. */
+const CALENDAR_PAGE_SIZE = 200
 
 /**
  * The separator a date-range filter uses in the URL: `2026-09-21..2026-09-25`.
@@ -888,6 +982,9 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @type {string}
  */
 const RANGE_SEPARATOR = '..'
+
+/** Key of the synthetic star column (`showFavouriteColumn`). */
+const FAVOURITE_COLUMN_KEY = '__favourite'
 
 /**
  * Whether a schema property wants a from/to pair rather than a value list.
@@ -1088,8 +1185,9 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnFavouriteToggle,
 		NcLoadingIcon,
-		NcEmptyContent,
+		CnEmptyContent,
 		NcActions,
 		NcActionButton,
 		NcActionCaption,
@@ -1102,6 +1200,7 @@ export default {
 		Export,
 		FilterOutline,
 		ViewColumnOutline,
+		NcCheckboxRadioSwitch,
 		CnPageHeader,
 		CnQuickFilterBar,
 		CnActionsBar,
@@ -1110,6 +1209,7 @@ export default {
 		CnCardGrid,
 		CnBoardView,
 		CnDateAxisView,
+		CnObjectCalendar,
 		CnMapWidget,
 		CnObjectList,
 		CnFolderSidebar,
@@ -1126,6 +1226,8 @@ export default {
 		CnContextMenu,
 		CnIndexSidebar,
 		CnSavedViewsControl,
+		CnSavedViewPresentationDialog,
+		CnSavedViewShareDialog,
 		CnSaveViewDialog,
 		CnConfirmDialog,
 		CnQuickEditDialog,
@@ -1146,6 +1248,11 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * The app manifest, provided by CnAppRoot. A column with `labelField`
+		 * and `link: true` finds the referenced schema's detail page here.
+		 */
+		cnManifest: { default: null },
 		/**
 		 * The v2 component registry, provided by CnAppRoot. Named handlers
 		 * (`actions[].handler`, `bulkActions[].handler`,
@@ -1338,6 +1445,31 @@ export default {
 		},
 
 		/**
+		 * Personal lenses appended to the quick filters: any of `favourite`
+		 * (`_favourite`), `recent` (`_recent`), `watching` (`_watching`) and
+		 * `unread` (`_unread`).
+		 * They combine with every other filter. While Recent is active column
+		 * sorting is off, because the lens owns the order. Manifest
+		 * `config.personalLenses`.
+		 *
+		 * @type {Array<'favourite'|'recent'|'watching'|'unread'>}
+		 */
+		personalLenses: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Add a first column with a star per row (`CnFavouriteToggle`), bound to
+		 * each row's `@self.favourite`. Clicking it does not open the row.
+		 * Manifest `config.showFavouriteColumn`.
+		 */
+		showFavouriteColumn: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * How the quick filters render: `'chips'` (pill strip, default) or
 		 * `'dropdown'` (a single `NcSelect`). Sourced from the manifest as
 		 * `pages[].config.quickFilterMode`.
@@ -1394,6 +1526,17 @@ export default {
 		extend: { // eslint-disable-line vue/no-unused-properties -- read by useSelfFetchList.js off the props object, which this rule does not follow.
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Offer an "Also search inside files" switch beside the search box. On,
+		 * a search also matches words inside attached files (OpenRegister
+		 * `_content_search`), and a row found that way says which file matched.
+		 * Manifest: `config.searchInFiles`.
+		 */
+		searchInFiles: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Object/row data array */
@@ -1533,6 +1676,20 @@ export default {
 		},
 
 		/**
+		 * Lets this person order and pin the table columns from the sidebar's
+		 * Columns tab, and keeps the visible columns, their order and the pinned
+		 * count per user and per list in their Nextcloud preferences. `false`
+		 * keeps show and hide only, stored nowhere (for a page whose column set is
+		 * a contract, such as an export preview).
+		 *
+		 * @type {boolean}
+		 */
+		personalColumns: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * Lets this person drag the rows into an order of their own, held
 		 * against them and this list and never written onto the records. The
 		 * order stands down while a sort is active, because a sort the person
@@ -1564,7 +1721,7 @@ export default {
 		},
 
 		/**
-		 * View mode: 'table', 'cards', 'list', 'map', 'board' or 'dateAxis'.
+		 * View mode: 'table', 'cards', 'list', 'map', 'board', 'dateAxis' or 'calendar'.
 		 * Default 'table'. List is opted in via `availableViewModes`; map via
 		 * `mapConfig` / `config.viewModes`; board and dateAxis via
 		 * `config.viewModes` and their own config blocks.
@@ -1572,7 +1729,7 @@ export default {
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map', 'board', 'dateAxis'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map', 'board', 'dateAxis', 'calendar'].includes(v),
 		},
 
 		/**
@@ -1617,7 +1774,7 @@ export default {
 		 * inferred availability (map otherwise appears iff `mapConfig` is
 		 * non-empty). Cards/table always render regardless of this list.
 		 *
-		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis'>}
+		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis' | 'calendar'>}
 		 */
 		viewModes: {
 			type: Array,
@@ -1651,6 +1808,19 @@ export default {
 		},
 
 		/**
+		 * The calendar's configuration, mirroring the manifest
+		 * `config.calendar` block: `{ dateField, endDateField?, titleField? }`.
+		 * Offered only when `dateField` is named and `viewModes` lists
+		 * `calendar`. Only the visible month is fetched.
+		 *
+		 * @type {{dateField?: string, endDateField?: string, titleField?: string}}
+		 */
+		calendar: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * The host's transition, handed to the board. Absent, the board is
 		 * read-only: it never writes the status field itself, so with no
 		 * transition there is nothing it can do.
@@ -1668,12 +1838,12 @@ export default {
 		 * list view. Fed from the manifest as `pages[].config.availableViewModes`.
 		 * Map is added separately via `mapConfig` / `viewModes`.
 		 *
-		 * @type {Array<'cards' | 'table' | 'list' | 'map' | 'board' | 'dateAxis'>}
+		 * @type {Array<'cards' | 'table' | 'list' | 'map' | 'board' | 'dateAxis' | 'calendar'>}
 		 */
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map', 'board', 'dateAxis'].includes(m)),
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map', 'board', 'dateAxis', 'calendar'].includes(m)),
 		},
 
 		/** Current sort key */
@@ -1806,6 +1976,20 @@ export default {
 		showMassExport: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Copy settings from the manifest's `config.copy`. `include` lists the link
+		 * kinds a copy may take along (`relationRows`, `incoming`, `files`); the copy
+		 * dialogs then list them, ticked, and the copy is one request to
+		 * OpenRegister's copy endpoint. Without it a copy carries the fields only,
+		 * as before. A server without the endpoint shows the list read-only.
+		 *
+		 * @type {{include?: Array<'relationRows'|'incoming'|'files'>}|null}
+		 */
+		copy: {
+			type: Object,
+			default: null,
 		},
 
 		/** Whether to show the built-in mass Copy button */
@@ -2240,6 +2424,13 @@ export default {
 		 * rendered. A `source: 'register'` folder list reads the same three
 		 * keys off each row's `x-index` block, which the folder entry's own
 		 * value wins over, key by key.
+		 *
+		 * A folder entry may also carry `schema` (and optionally `register`,
+		 * defaulting to the page's own). While it is selected the page loads that
+		 * register and schema instead of its own, with that schema's columns,
+		 * fetch and live updates; "All", or a folder without `schema`, restores
+		 * the page's own. Switching clears the row selection and closes open
+		 * dialogs. A folder without `schema` filters the page's schema as before.
 		 *
 		 * @type {object}
 		 */
@@ -2712,6 +2903,7 @@ export default {
 		'columns-change',
 		'quick-edit-save',
 		'configure',
+		'content-search',
 		'copy',
 		'create',
 		'delete',
@@ -2750,6 +2942,10 @@ export default {
 			close: closeContextMenu,
 		} = useContextMenu()
 
+		// The selected folder's own `{ schema, register? }`, or null. Written by
+		// onFolderSelect(); useSelfFetchList turns it into the loaded object type.
+		const activeFolderSchema = ref(null)
+
 		const {
 			isSelfFetch,
 			list,
@@ -2757,9 +2953,10 @@ export default {
 			selfObjectType,
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			contentSearch,
 			selfFetchTokenCtx,
 			initialQueryFilterKeys,
-		} = useSelfFetchList(props, getCurrentInstance(), inject)
+		} = useSelfFetchList(props, getCurrentInstance(), inject, { activeFolderSchema })
 
 		// The sidebar's chosen values on a NAMED-SOURCE page. Self-fetch keeps
 		// its own in `useSelfFetchList`; a named source had nowhere to put
@@ -2795,6 +2992,8 @@ export default {
 			selfObjectType,
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			contentSearch,
+			activeFolderSchema,
 			selfFetchTokenCtx,
 			initialQueryFilterKeys,
 		}
@@ -2803,6 +3002,12 @@ export default {
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/** The visible calendar window `{ rangeStart, rangeEnd }` (ISO dates), or null outside calendar mode. */
+			calendarRange: null,
+			/** The page size to restore when leaving calendar mode. */
+			calendarPrevPageSize: null,
+			/** Resolved labels of reference columns: `{ [columnKey]: { [id]: label|null } }`. */
+			refLabels: {},
 			/** Count per tab-strip index, for the entries that asked for one; null = none. */
 			tabCounts: null,
 			/** Count per saved-view id, for the views control; null = none. */
@@ -2868,6 +3073,10 @@ export default {
 			savedViewsLoading: false,
 			showSaveViewDialog: false,
 			viewPendingDelete: null,
+			/** The own view whose audience is being changed (CnSavedViewShareDialog), or null. */
+			viewPendingShare: null,
+			/** The view whose presentation is being changed (CnSavedViewPresentationDialog), or null. */
+			viewPendingPresentation: null,
 			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
 			// records saved in the pane, keyed by row id, so a save lands on the
 			// row without refetching the page and losing the scroll position.
@@ -2883,6 +3092,10 @@ export default {
 			// Manual order: the row ids this person dragged into an order, read
 			// from and written to their own preferences. Never on the records.
 			manualOrderIds: [],
+			// Personal column layout: `{ columns, pinned }` read from preferences
+			// or set by the sidebar, and the columns of an applied saved view.
+			personalLayout: null,
+			appliedViewColumns: null,
 		}
 	},
 
@@ -3059,6 +3272,27 @@ export default {
 		},
 
 		/**
+		 * The month window as list-query conditions, only in calendar mode.
+		 * With an end field an entry counts when it overlaps the window;
+		 * without one, when its date falls inside it. Read by
+		 * `useSelfFetchList`'s fixed-filter getter, and empty outside calendar
+		 * mode so the table is never narrowed after leaving.
+		 *
+		 * @return {object} The filter conditions, or an empty object.
+		 */
+		calendarRangeFilter() {
+			const cal = this.calendar || {}
+			if (this.currentViewMode !== 'calendar' || !cal.dateField || !this.calendarRange) {
+				return {}
+			}
+			const { rangeStart, rangeEnd } = this.calendarRange
+			if (cal.endDateField) {
+				return { [`${cal.dateField}[lte]`]: rangeEnd, [`${cal.endDateField}[gte]`]: rangeStart }
+			}
+			return { [`${cal.dateField}[gte]`]: rangeStart, [`${cal.dateField}[lte]`]: rangeEnd }
+		},
+
+		/**
 		 * Rows handed to the table / card grid — `effectiveObjects` re-sorted by
 		 * the declarative `defaultSort` spec whenever no explicit user column
 		 * sort is active. A live `sortKey` (user clicked a header, or one was
@@ -3231,6 +3465,9 @@ export default {
 				}
 				if (mode === 'dateAxis') {
 					return Boolean(this.dateAxis?.startField) && Boolean(this.dateAxis?.endField)
+				}
+				if (mode === 'calendar') {
+					return Boolean(this.calendar?.dateField)
 				}
 				return true
 			})
@@ -3654,6 +3891,143 @@ export default {
 		},
 
 		/**
+		 * The schema the presentation picker reads: the page's schema object
+		 * once it has properties, else null (no picker).
+		 *
+		 * @return {object|null}
+		 */
+		viewPresentationSchema() {
+			const schema = this.effectiveSchema
+			return schema && typeof schema === 'object' && schema.properties && Object.keys(schema.properties).length > 0 ? schema : null
+		},
+
+		/**
+		 * Reference columns that ask for a label (`labelField`), with the
+		 * referenced register and schema read off the page schema's `$ref`.
+		 *
+		 * @return {Array<{key: string, labelField: string, register: string, schema: string, route: (string|null), sortByLabel: boolean}>}
+		 * @spec openspec/changes/index-ref-column-labels/tasks.md#task-2
+		 */
+		refLabelSpecs() {
+			const cols = this.tableColumns.filter((c) => c && typeof c === 'object' && typeof c.labelField === 'string' && c.labelField !== '' && !c.widget)
+			if (cols.length === 0 || !this.effectiveSchema) {
+				return []
+			}
+			const fields = fieldsFromSchema(this.effectiveSchema, { includeReadOnly: true })
+			const specs = []
+			for (const col of cols) {
+				const field = fields.find((f) => f.key === col.key)
+				const ref = field && field.reference
+				if (!ref || ref.schema === undefined || ref.schema === null) {
+					continue
+				}
+				const register = ref.register || (typeof this.register === 'string' ? this.register : '')
+				const schema = String(ref.schema)
+				specs.push({
+					key: col.key,
+					labelField: col.labelField,
+					register,
+					schema,
+					route: typeof col.route === 'string' && col.route !== '' ? col.route : (col.link === true ? this.detailRouteFor(schema) : null),
+					sortByLabel: col.sortByLabel === true,
+				})
+			}
+			return specs
+		},
+
+		/**
+		 * Columns handed to CnDataTable: `tableColumns`, with each reference
+		 * column that has a `labelField` rendered through the `refLabel` cell
+		 * widget. Such a column is sortable only with `sortByLabel: true`
+		 * (sorting by the key would sort by id, not by what the cell shows).
+		 *
+		 * @return {Array} The columns to render.
+		 * @spec openspec/changes/index-ref-column-labels/tasks.md#task-2
+		 */
+		renderedColumns() {
+			let cols = this.tableColumns
+			if (this.refLabelSpecs.length > 0) {
+				const byKey = new Map(this.refLabelSpecs.map((s) => [s.key, s]))
+				cols = cols.map((col) => {
+					const spec = col && typeof col === 'object' ? byKey.get(col.key) : null
+					if (!spec) {
+						return col
+					}
+					return {
+						...col,
+						widget: 'refLabel',
+						widgetProps: { ...(col.widgetProps || {}), labels: this.refLabels[spec.key] || {}, route: spec.route },
+						sortable: spec.sortByLabel,
+					}
+				})
+			}
+			// The Recent lens owns the order: no column sorts while it is on.
+			if (this.recentLensActive) {
+				cols = cols.map((col) => (col && typeof col === 'object' ? { ...col, sortable: false } : col))
+			}
+			if (this.showFavouriteColumn && this.favouriteSchemaSlug !== '') {
+				cols = [{ key: FAVOURITE_COLUMN_KEY, label: '', sortable: false, width: '48px' }, ...cols]
+			}
+			return cols
+		},
+
+		/**
+		 * Whether the active quick filter is the Recent lens.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-favourite-and-follow/tasks.md#task-3
+		 */
+		recentLensActive() {
+			const tabs = this.effectiveQuickFilters || []
+			const index = this.activeQuickFilterIndex
+			const active = (index !== null && index !== undefined) ? tabs[index] : null
+			return !!(active && active.filter && active.filter._recent)
+		},
+
+		/**
+		 * Schema slug the star column calls with: the page's own slug in self-fetch
+		 * mode, else the schema object's `slug`. Empty when neither is known.
+		 *
+		 * @return {string}
+		 */
+		favouriteSchemaSlug() {
+			if (typeof this.schema === 'string') {
+				return this.schema
+			}
+			return (this.effectiveSchema && typeof this.effectiveSchema.slug === 'string') ? this.effectiveSchema.slug : ''
+		},
+
+		/**
+		 * The ids each reference label column needs, from the rows and the facet buckets.
+		 *
+		 * @return {Object<string, string[]>} Distinct ids per column key.
+		 */
+		refLabelIds() {
+			const out = {}
+			const facets = this.storeFacets || this.resolvedSidebar.facets || {}
+			for (const spec of this.refLabelSpecs) {
+				const ids = new Set()
+				for (const row of this.displayObjects) {
+					const v = row ? row[spec.key] : undefined
+					;(Array.isArray(v) ? v : [v]).forEach((id) => {
+						if (id !== null && id !== undefined && id !== '' && typeof id !== 'object') {
+							ids.add(String(id))
+						}
+					})
+				}
+				const values = facets[spec.key] && Array.isArray(facets[spec.key].values) ? facets[spec.key].values : []
+				values.forEach((fv) => {
+					const id = fv && typeof fv === 'object' ? fv.value : fv
+					if (id !== null && id !== undefined && id !== '') {
+						ids.add(String(id))
+					}
+				})
+				out[spec.key] = [...ids].sort()
+			}
+			return out
+		},
+
+		/**
 		 * Facet data for the index sidebar.
 		 *
 		 * The `sidebar.facets` key is a DATA channel, not a declaration of
@@ -3678,7 +4052,28 @@ export default {
 		 * @return {object} `{ fieldName: { values: [...] } }`, possibly empty.
 		 */
 		effectiveFacetData() {
-			return this.storeFacets || this.resolvedSidebar.facets || {}
+			const data = this.storeFacets || this.resolvedSidebar.facets || {}
+			if (this.refLabelSpecs.length === 0) {
+				return data
+			}
+			// A facet over a reference column lists labels; the value stays the id.
+			const out = { ...data }
+			for (const spec of this.refLabelSpecs) {
+				const facet = data[spec.key]
+				const labels = this.refLabels[spec.key] || {}
+				if (facet && Array.isArray(facet.values)) {
+					out[spec.key] = {
+						...facet,
+						values: facet.values.map((fv) => {
+							const id = fv && typeof fv === 'object' ? fv.value : fv
+							const label = labels[String(id)]
+							const base = fv && typeof fv === 'object' ? fv : { value: fv }
+							return label ? { ...base, label } : base
+						}),
+					}
+				}
+			}
+			return out
 		},
 
 		/**
@@ -3920,7 +4315,42 @@ export default {
 		 * Default-safe — false unless both hold.
 		 */
 		showExportMenu() {
-			return Boolean(this.allowExport) && Boolean(this.effectiveSchema?.exportable) && Boolean(this.register) && Boolean(this.exportSchemaSlug)
+			return Boolean(this.allowExport) && this.schemaExportable && Boolean(this.register) && Boolean(this.exportSchemaSlug)
+		},
+
+		/**
+		 * Whether the schema is flagged exportable, in either place
+		 * OpenRegister could keep the flag: the top-level `exportable`, or
+		 * `configuration.exportable`. The top-level field wins when both are
+		 * set.
+		 *
+		 * @return {boolean}
+		 */
+		schemaExportable() {
+			const schema = this.effectiveSchema
+			if (schema && schema.exportable !== undefined && schema.exportable !== null) {
+				return Boolean(schema.exportable)
+			}
+			return Boolean(schema && schema.configuration && schema.configuration.exportable)
+		},
+
+		/**
+		 * The sentence the mass-export dialog opens with: which rows it will
+		 * export, and how many.
+		 *
+		 * @return {string}
+		 */
+		massExportScopeText() {
+			const selected = this.internalSelectedIds.length
+			if (selected > 0) {
+				return selected === 1
+					? t('nextcloud-vue', 'Export 1 selected row')
+					: t('nextcloud-vue', 'Export {count} selected rows', { count: selected })
+			}
+			const total = this.effectivePagination && this.effectivePagination.total
+			return typeof total === 'number'
+				? t('nextcloud-vue', 'Export {count} rows matching the current filter', { count: total })
+				: t('nextcloud-vue', 'Export the rows matching the current filter')
 		},
 
 		/**
@@ -3990,7 +4420,45 @@ export default {
 		},
 
 		effectiveVisibleColumns() {
+			// A saved view that carries columns wins while applied, then the person's
+			// own layout, then the page's columns.
+			if (Array.isArray(this.appliedViewColumns)) {
+				return this.appliedViewColumns
+			}
+			if (this.personalColumns && this.personalLayout && Array.isArray(this.personalLayout.columns)) {
+				const known = [...this.governedColumns.map((c) => c.key), ...this.declaredColumns.map((c) => (typeof c === 'string' ? c : c.key))]
+				const layout = reconcilePersonalColumns(this.personalLayout, known)
+				if (layout) {
+					return layout.columns
+				}
+			}
 			return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns
+		},
+
+		/** @return {string[]} The link kinds a copy may take along (`copy.include`, known kinds only). */
+		copyIncludeKinds() {
+			return copyKindsOf(this.copy && this.copy.include)
+		},
+
+		/** @return {string} The register as a slug, for the copy endpoint. */
+		copyRegisterSlug() {
+			return typeof this.register === 'string' ? this.register : ''
+		},
+
+		/** @return {string} The schema as a slug, for the copy endpoint. */
+		copySchemaSlug() {
+			if (typeof this.schema === 'string') {
+				return this.schema
+			}
+			return (this.effectiveSchema && this.effectiveSchema.slug) || ''
+		},
+
+		/** @return {number} How many leading columns the person pinned (0 while a saved view's columns are applied). */
+		pinnedColumnCount() {
+			if (!this.personalColumns || Array.isArray(this.appliedViewColumns) || !this.personalLayout) {
+				return 0
+			}
+			return Math.max(0, Math.min(Number(this.personalLayout.pinned) || 0, this.tableColumns.length))
 		},
 
 		effectiveActiveFilters() {
@@ -4144,6 +4612,10 @@ export default {
 					present.add(key)
 				}
 			})
+			// The person's order (or an applied view's) reads the table left to right.
+			if (this.personalColumns && (this.personalLayout || Array.isArray(this.appliedViewColumns))) {
+				cols = orderColumns(cols, visible)
+			}
 			return cols
 		},
 
@@ -4267,6 +4739,8 @@ export default {
 				rowKey: this.rowKey,
 				registry: this.effectiveRegistry,
 				customComponents: this.effectiveCustomComponents,
+				// So a row action's toasts translate like the labels around it.
+				translate: this.cnTranslate,
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
@@ -4317,8 +4791,9 @@ export default {
 		 * @return {Array<object>|null} The tabs, or null when there are none.
 		 */
 		effectiveQuickFilters() {
-			if (this.quickFilters && this.quickFilters.length > 0) {
-				return this.quickFilters
+			const own = withPersonalLenses(this.quickFilters, this.personalLenses)
+			if (own && own.length > 0) {
+				return own
 			}
 			return (this.isNamedSource && this.namedQuickFilters) || null
 		},
@@ -4538,6 +5013,8 @@ export default {
 				filterFields: this.resolvedSidebar.fields || null,
 				facetData: this.effectiveFacetData,
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
+				personalColumns: this.personalColumns,
+				pinnedCount: this.pinnedColumnCount,
 				...this.sidebarSearchProps,
 			}
 		},
@@ -4587,6 +5064,23 @@ export default {
 	},
 
 	watch: {
+		// A column or form field bound to a property the schema lacks is told to the host once.
+		effectiveSchema: {
+			immediate: true,
+			handler(schema) {
+				reportBindingProblems(schema, { register: this.register, columns: this.declaredColumns, includeFields: this.includeFields })
+			},
+		},
+
+		// Resolve the labels of reference columns in one batch per schema.
+		refLabelIds: {
+			immediate: true,
+			deep: true,
+			handler() {
+				this.loadRefLabels()
+			},
+		},
+
 		countRequestKey: {
 			immediate: true,
 			/** @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views */
@@ -4607,6 +5101,28 @@ export default {
 
 		viewMode(val) {
 			this.currentViewMode = val
+		},
+
+		// Entering calendar mode fetches one page sized to the month; leaving
+		// removes the month range and restores the page size, so the table is
+		// never left narrowed.
+		currentViewMode(mode, previous) {
+			if (!this.isSelfFetchMode) {
+				return
+			}
+			if (mode === 'calendar') {
+				this.calendarPrevPageSize = this.list.pageSize.value
+				if (typeof this.list.onPageSizeChange === 'function') {
+					this.list.onPageSizeChange(CALENDAR_PAGE_SIZE)
+				}
+			} else if (previous === 'calendar') {
+				this.calendarRange = null
+				const restore = this.calendarPrevPageSize || 20
+				this.calendarPrevPageSize = null
+				if (typeof this.list.onPageSizeChange === 'function') {
+					this.list.onPageSizeChange(restore)
+				}
+			}
 		},
 
 		selectedIds(val) {
@@ -4741,6 +5257,7 @@ export default {
 			window.addEventListener('resize', this.measureSplitViewport)
 		}
 		this.loadManualOrder()
+		this.loadPersonalColumns()
 		this.publishHoistedSidebar()
 		this.pushAiContext()
 		this.maybeOpenCreateFromQuery()
@@ -4765,6 +5282,7 @@ export default {
 			selfObjectStore: () => this.selfObjectStore,
 			selfObjectType: () => this.selfObjectType,
 			list: () => this.list,
+			selectedIds: () => this.internalSelectedIds,
 			register: () => this.register,
 			schema: () => this.schema,
 			effectiveObjects: () => this.effectiveObjects,
@@ -4804,6 +5322,51 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The manifest page that shows one object of a schema, for a linked
+		 * label. Null without a manifest or a matching detail page.
+		 *
+		 * @param {string} schema Schema slug of the referenced objects.
+		 * @return {string|null} The page id.
+		 */
+		detailRouteFor(schema) {
+			const pages = this.cnManifest && Array.isArray(this.cnManifest.pages) ? this.cnManifest.pages : []
+			const page = pages.find((p) => p && p.type === 'detail' && p.config && String(p.config.schema) === String(schema))
+			return page ? page.id : null
+		},
+
+		/**
+		 * Fetch the labels the reference columns need: one request per
+		 * referenced schema, for the rows on screen. A failure leaves ids as is.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-ref-column-labels/tasks.md#task-2
+		 */
+		async loadRefLabels() {
+			const specs = this.refLabelSpecs
+			if (specs.length === 0) {
+				return
+			}
+			if (!this._refLabelResolver) {
+				this._refLabelResolver = createRefLabelResolver(() => {
+					try {
+						return (this.list && this.list.objectStore) || useObjectStore()
+					} catch {
+						return null
+					}
+				})
+			}
+			await Promise.all(specs.map(async (spec) => {
+				const known = this.refLabels[spec.key] || {}
+				const ids = (this.refLabelIds[spec.key] || []).filter((id) => !Object.hasOwn(known, id))
+				if (ids.length === 0) {
+					return
+				}
+				const found = await this._refLabelResolver.resolve(spec.register, spec.schema, ids, spec.labelField)
+				this.refLabels = { ...this.refLabels, [spec.key]: { ...(this.refLabels[spec.key] || {}), ...found } }
+			}))
+		},
+
 		/**
 		 * Whether a saved view shows its record count (`viewCounts`).
 		 *
@@ -5396,6 +5959,26 @@ export default {
 		},
 
 		/**
+		 * The "Also search inside files" switch was toggled: refetch (via the
+		 * watcher in self-fetch mode), keep the state in the route, and tell a
+		 * consumer-managed host.
+		 *
+		 * @param {boolean} value The switch's new state.
+		 * @return {void}
+		 */
+		onContentSearchToggle(value) {
+			this.contentSearch = !!value
+			/**
+			 * @event content-search Emitted when the "Also search inside files" switch changes, so a consumer-managed page can add `_content_search` to its own query.
+			 * @type {boolean}
+			 */
+			this.$emit('content-search', this.contentSearch)
+			if (this.isSelfFetchMode) {
+				this.persistViewStateToRoute(this.currentViewState())
+			}
+		},
+
+		/**
 		 * Persist filters + search + sort into `$route.query` in one replace,
 		 * so a reload or a shared/bookmarked link reproduces the exact same
 		 * view. Self-fetch mode only. The page's own filter keys are cleared and
@@ -5429,6 +6012,11 @@ export default {
 			} else {
 				delete query._search
 			}
+			if (this.searchInFiles && this.contentSearch) {
+				query.contentSearch = '1'
+			} else {
+				delete query.contentSearch
+			}
 			const sortKeys = Array.isArray(state.sortKeys) && state.sortKeys.length
 				? state.sortKeys
 				: (state.sortKey ? [{ key: state.sortKey, order: state.sortOrder || 'asc' }] : [])
@@ -5454,6 +6042,8 @@ export default {
 		 * @return {void}
 		 */
 		onClearFilters() {
+			// Clearing the view brings the person's own columns back.
+			this.appliedViewColumns = null
 			if (!this.isSelfFetchMode) {
 				this.$emit('clear-filters')
 				return
@@ -5813,7 +6403,25 @@ export default {
 		onFolderSelect(folderId) {
 			this.selectedFolderId = folderId
 			const key = (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
-			if (key) {
+			const folder = this.activeScope
+			const target = (folder && typeof folder.schema === 'string' && folder.schema !== '')
+				? { schema: folder.schema, register: (typeof folder.register === 'string' && folder.register !== '') ? folder.register : '' }
+				: null
+			const previous = this.activeFolderSchema
+			const switched = (target ? `${target.register}|${target.schema}` : '') !== (previous ? `${previous.register}|${previous.schema}` : '')
+			if (switched) {
+				// A row or dialog from the old schema means nothing under the new one.
+				this.resetSelectionAndDialogs()
+			}
+			this.activeFolderSchema = target
+			if (target) {
+				// The folder picks a schema, not a value of the page's own field; the
+				// object-type change refetches, so only drop a leftover folder filter.
+				if (key && this.list && this.list.activeFilters.value[key] !== undefined) {
+					const { [key]: _dropped, ...rest } = this.list.activeFilters.value
+					this.list.activeFilters.value = rest
+				}
+			} else if (key) {
 				this.onFilterEvent({ key, values: (folderId === null || folderId === undefined) ? [] : [folderId] })
 			}
 			this.applyScopeSort()
@@ -5822,6 +6430,21 @@ export default {
 			 * @type {(string|number|null)} The selected folder id (null = All).
 			 */
 			this.$emit('folder-change', folderId)
+		},
+
+		/**
+		 * Clear the row selection and close any form, delete or copy dialog.
+		 * Used when the loaded schema changes under them.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/cnindexpage-folder-schema/tasks.md#task-3
+		 */
+		resetSelectionAndDialogs() {
+			this.onSelect([])
+			this.showSingleDeleteDialog = false
+			this.showSingleCopyDialog = false
+			this.showFormDialogVisible = false
+			this.actionTargetItem = null
 		},
 
 		/**
@@ -5958,7 +6581,124 @@ export default {
 			if (this.isSelfFetchMode && this.list.visibleColumns) {
 				this.list.visibleColumns.value = columns
 			}
+			this.keepPersonalColumns(columns, this.pinnedColumnCount)
 			this.$emit('columns-change', columns)
+		},
+
+		/**
+		 * The preference key this list's column layout is held under. The list id
+		 * is the manual-order id, else the page's route name (the manifest page id),
+		 * else the object type or schema.
+		 *
+		 * @return {string} The key, `columns.<list id>`.
+		 */
+		personalColumnsPreferenceKey() {
+			const route = this.$route && typeof this.$route.name === 'string' ? this.$route.name : ''
+			return personalColumnsKey(this.manualOrderId || route || this.objectType || this.schema || 'default')
+		},
+
+		/**
+		 * Keep the person's column layout: held while a view's columns are applied
+		 * (the view is a lens, not a preference), otherwise stored in their preferences.
+		 *
+		 * @param {string[]} columns The visible columns in their order.
+		 * @param {number} pinned How many leading columns are pinned.
+		 * @return {void}
+		 * @spec openspec/changes/index-column-order-and-pinning/tasks.md#task-4
+		 */
+		keepPersonalColumns(columns, pinned) {
+			if (!this.personalColumns || !Array.isArray(columns)) {
+				return
+			}
+			if (Array.isArray(this.appliedViewColumns)) {
+				this.appliedViewColumns = columns
+				return
+			}
+			this.personalLayout = { columns, pinned }
+			this.persistPersonalColumns()
+		},
+
+		/**
+		 * The person moved a column in the sidebar's Order and pin list.
+		 *
+		 * @param {string[]} columns The visible columns in their new order.
+		 * @return {void}
+		 */
+		onColumnsReorder(columns) {
+			this.onColumnsEvent(columns)
+		},
+
+		/**
+		 * The person pinned or unpinned a column.
+		 *
+		 * @param {number} count How many leading columns are pinned now.
+		 * @return {void}
+		 */
+		onPinChange(count) {
+			if (!this.personalColumns || Array.isArray(this.appliedViewColumns)) {
+				return
+			}
+			const columns = this.personalLayout ? this.personalLayout.columns : (Array.isArray(this.effectiveVisibleColumns) ? this.effectiveVisibleColumns : this.tableColumns.map((c) => (typeof c === 'string' ? c : c.key)))
+			this.keepPersonalColumns(columns, count)
+		},
+
+		/**
+		 * Reset columns: forget the person's layout and show the page's own columns.
+		 *
+		 * @return {void}
+		 */
+		onColumnsReset() {
+			this.personalLayout = null
+			this.appliedViewColumns = null
+			if (this.isSelfFetchMode && this.list.visibleColumns) {
+				this.list.visibleColumns.value = null
+			}
+			const write = this.cnUserPreferences?.write
+			if (this.personalColumns && typeof write === 'function') {
+				Promise.resolve(write(this.personalColumnsPreferenceKey(), null)).catch(() => {})
+			}
+			this.$emit('columns-change', null)
+		},
+
+		/**
+		 * Write the layout to the person's preferences. A failed write leaves the
+		 * layout in place for this session and says nothing.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async persistPersonalColumns() {
+			const write = this.cnUserPreferences?.write
+			if (typeof write !== 'function' || !this.personalLayout) {
+				return
+			}
+			try {
+				await write(this.personalColumnsPreferenceKey(), {
+					columns: this.personalLayout.columns,
+					pinned: this.personalLayout.pinned,
+				})
+			} catch {
+				// Not stored; the layout still stands until the page reloads.
+			}
+		},
+
+		/**
+		 * Read the person's column layout for this list on mount.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadPersonalColumns() {
+			const read = this.cnUserPreferences?.read
+			if (!this.personalColumns || typeof read !== 'function') {
+				return
+			}
+			try {
+				const stored = await read(this.personalColumnsPreferenceKey(), null)
+				if (stored && Array.isArray(stored.columns) && !this.personalLayout) {
+					this.personalLayout = { columns: stored.columns.map(String), pinned: Number(stored.pinned) || 0 }
+				}
+			} catch {
+				// An unreadable preference leaves the page's own columns.
+			}
 		},
 
 		/** @return {Promise<void>} */
@@ -6001,6 +6741,9 @@ export default {
 
 					search: (event) => this.onSearchEvent(event),
 					'columns-change': (event) => this.onColumnsEvent(event),
+					'columns-reorder': (event) => this.onColumnsReorder(event),
+					'pin-change': (event) => this.onPinChange(event),
+					'columns-reset': () => this.onColumnsReset(),
 					'filter-change': (event) => this.onFilterEvent(event),
 					'clear-filters': () => this.onClearFilters(),
 				},
@@ -6464,6 +7207,39 @@ export default {
 		},
 
 		/**
+		 * The calendar moved to another month: ask for that window.
+		 *
+		 * @param {{rangeStart: string, rangeEnd: string}} range The visible grid window as ISO dates.
+		 */
+		onCalendarRange(range) {
+			this.calendarRange = range
+			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
+				this.list.refresh(1)
+			}
+		},
+
+		/**
+		 * "+N" on a busy day: show that day's records in the table.
+		 *
+		 * @param {string} iso The day, `YYYY-MM-DD`.
+		 */
+		onCalendarDaySelect(iso) {
+			const cal = this.calendar || {}
+			if (this.isSelfFetchMode && cal.dateField) {
+				const next = { ...this.list.activeFilters.value }
+				if (cal.endDateField) {
+					next[`${cal.dateField}[lte]`] = [iso]
+					next[`${cal.endDateField}[gte]`] = [iso]
+				} else {
+					next[`${cal.dateField}[gte]`] = [iso]
+					next[`${cal.dateField}[lte]`] = [iso]
+				}
+				this.list.activeFilters.value = next
+			}
+			this.onViewModeChange('table')
+		},
+
+		/**
 		 * Handle view mode toggle.
 		 *
 		 * @param {string} mode 'table' or 'cards'
@@ -6510,14 +7286,19 @@ export default {
 		/**
 		 * Native Export menu entry click (`allowExport` + `schema.exportable`).
 		 * Navigates the browser to OpenRegister's export leaf, passing the
-		 * current route's query params through so a filtered index exports
-		 * only the visible rows.
+		 * list's own query (without paging) so the file holds the rows the
+		 * table is filtered to.
 		 *
 		 * @param {'csv'|'excel'} format The requested export format.
 		 */
 		onExportClick(format) {
-			const routeQuery = (this.$route && this.$route.query) || {}
-			const url = buildExportUrl(this.register, this.exportSchemaSlug, routeQuery, format)
+			// The query the list itself sends, so the file follows the table:
+			// search, sort, facet filters, the page filter and the quick filter.
+			// A host-managed list has no such query, so it keeps the route's.
+			const query = this.isSelfFetchMode && typeof this.list.buildParams === 'function'
+				? this.list.buildParams(1)
+				: ((this.$route && this.$route.query) || {})
+			const url = buildExportUrl(this.register, this.exportSchemaSlug, query, format)
 			window.location.assign(url)
 		},
 
@@ -6552,6 +7333,9 @@ export default {
 		 */
 		onApplySavedView(view) {
 			const state = extractViewState(view)
+			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
+			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []
+			this.appliedViewColumns = viewColumns.length > 0 ? viewColumns : null
 			if (this.isSelfFetchMode) {
 				// Set state directly (not via onFilterEvent/onSearchEvent per key)
 				// so applying a view is one fetch + one route replace, not one
@@ -6617,7 +7401,7 @@ export default {
 			}
 		},
 
-		async onSaveViewConfirm({ name, isPublic }) {
+		async onSaveViewConfirm({ name, isPublic, sharedWith, presentation }) {
 			const state = this.isSelfFetchMode
 				? this.currentViewState()
 				: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
@@ -6630,6 +7414,8 @@ export default {
 				scope: savedViewScope(this.savedViewsPage),
 				register: this.register,
 				schema: this.schema,
+				sharedWith,
+				presentation,
 			})
 			try {
 				const view = await useSavedViewsApi().createView(payload)
@@ -6653,6 +7439,136 @@ export default {
 				// as one that has not been submitted yet.
 				this.$refs.saveViewDialog?.setError(error?.response?.data?.error || error?.message)
 				this.toastSavedView('error', t('nextcloud-vue', 'Could not save the view "{name}"', { name }))
+			}
+		},
+
+		/**
+		 * Open the presentation dialog for a view the user may edit
+		 * (CnSavedViewsControl `@presentation-request`).
+		 *
+		 * @param {object} view The View API object.
+		 * @spec openspec/changes/view-presentation-picker/tasks.md#task-3
+		 */
+		onPresentationViewRequest(view) {
+			this.viewPendingPresentation = view
+		},
+
+		/**
+		 * Save a changed presentation (CnSavedViewPresentationDialog `@confirm`).
+		 * The body carries `presentation` only, so a writer never sends
+		 * `sharedWith` or `owner`. A refusal keeps the dialog open.
+		 *
+		 * @param {object} presentation The presentation in OpenRegister's shape.
+		 * @spec openspec/changes/view-presentation-picker/tasks.md#task-3
+		 */
+		async onPresentationViewConfirm(presentation) {
+			const view = this.viewPendingPresentation
+			if (!view) {
+				return
+			}
+			try {
+				const saved = await useSavedViewsApi().patchView(view.id, { presentation })
+				this.savedViews = this.savedViews.map((v) => (v.id === view.id ? { ...v, ...(saved || { presentation }) } : v))
+				this.viewPendingPresentation = null
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" updated', { name: view.name }))
+			} catch (error) {
+				const data = error?.response?.data
+				this.$refs.presentationViewDialog?.setError((data && (data.error || data.message)) || error?.message)
+			}
+		},
+
+		/**
+		 * Open the share dialog for an own view (CnSavedViewsControl `@share-request`).
+		 *
+		 * @param {object} view The View API object to share.
+		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-2
+		 */
+		onShareViewRequest(view) {
+			this.viewPendingShare = view
+		},
+
+		/**
+		 * Save a changed audience (CnSavedViewShareDialog `@confirm`). A failure
+		 * keeps the dialog open with the server's message.
+		 *
+		 * @param {Array<{group: string, mode: string}>} sharedWith The audience, `[]` to stop sharing.
+		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-2
+		 */
+		async onShareViewConfirm(sharedWith) {
+			const view = this.viewPendingShare
+			if (!view) {
+				return
+			}
+			try {
+				const saved = await useSavedViewsApi().patchView(view.id, { sharedWith: normalizeSharedWith(sharedWith) })
+				const next = saved || { ...view, sharedWith: normalizeSharedWith(sharedWith) }
+				this.savedViews = this.savedViews.map((v) => (v.id === view.id ? { ...v, ...next } : v))
+				this.viewPendingShare = null
+				this.toastSavedView('success', t('nextcloud-vue', 'Sharing of "{name}" saved', { name: view.name }))
+			} catch (error) {
+				this.$refs.shareViewDialog?.setError(error?.response?.data?.error || error?.response?.data?.message || error?.message)
+			}
+		},
+
+		/**
+		 * Save the current state to a view shared with write access
+		 * (CnSavedViewsControl `@update-request`). The body carries the query
+		 * and presentation only: never `sharedWith` or `owner`, so the
+		 * audience cannot be changed from here.
+		 *
+		 * @param {object} view The shared View API object.
+		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-3
+		 */
+		async onUpdateViewRequest(view) {
+			const state = this.isSelfFetchMode
+				? this.currentViewState()
+				: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
+			const payload = buildViewCreatePayload({
+				name: view.name,
+				description: view.description || '',
+				isPublic: view.isPublic === true,
+				isDefault: false,
+				state,
+				scope: savedViewScope(this.savedViewsPage),
+				register: this.register,
+				schema: this.schema,
+			})
+			try {
+				const saved = await useSavedViewsApi().updateView(view.id, payload)
+				if (saved) {
+					this.savedViews = this.savedViews.map((v) => (v.id === view.id ? saved : v))
+				}
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" updated', { name: view.name }))
+			} catch (error) {
+				this.toastSavedView('error', error?.response?.data?.error || error?.response?.data?.message || t('nextcloud-vue', 'Could not update the view "{name}"', { name: view.name }))
+			}
+		},
+
+		/**
+		 * "Save as my view" on a read-only shared view
+		 * (CnSavedViewsControl `@copy-request`): a personal copy with the same
+		 * name and query. The original stays untouched.
+		 *
+		 * @param {object} view The shared View API object.
+		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-3
+		 */
+		async onCopyViewRequest(view) {
+			const payload = {
+				name: view.name,
+				description: view.description || '',
+				isPublic: false,
+				isDefault: false,
+				query: view.query && typeof view.query === 'object' ? view.query : {},
+			}
+			try {
+				const copy = await useSavedViewsApi().createView(payload)
+				if (!copy) {
+					throw new Error(t('nextcloud-vue', 'The server did not return the saved view'))
+				}
+				this.savedViews = [...this.savedViews, copy]
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name: view.name }))
+			} catch (error) {
+				this.toastSavedView('error', error?.response?.data?.error || error?.message || t('nextcloud-vue', 'Could not save the view "{name}"', { name: view.name }))
 			}
 		},
 
@@ -6950,6 +7866,12 @@ export default {
 		 */
 		setFormResult(resultData) {
 			this._setResult('formDialog', resultData)
+			// A saved write may change a label a reference column shows.
+			if (resultData && resultData.success && this._refLabelResolver) {
+				this._refLabelResolver.invalidate()
+				this.refLabels = {}
+				this.loadRefLabels()
+			}
 		},
 
 		/**

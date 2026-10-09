@@ -44,6 +44,23 @@
 			<p v-if="localItems.length === 0" class="cn-mass-copy__empty">
 				{{ emptyText }}
 			</p>
+
+			<!-- The link kinds this page lets a copy take along; the kinds and the total, not every row's links. -->
+			<div v-if="kinds.length > 0" class="cn-mass-copy__links" data-testid="cn-mass-copy-links">
+				<h3>{{ t('nextcloud-vue', 'Links to take along') }}</h3>
+				<NcNoteCard v-if="serverCopy === false" type="info" data-testid="cn-mass-copy-links-unavailable">
+					{{ t('nextcloud-vue', 'Links are not copied yet. Only the fields are copied.') }}
+				</NcNoteCard>
+				<NcCheckboxRadioSwitch
+					v-for="kind in kinds"
+					:key="kind"
+					:modelValue="ticked[kind] === true && serverCopy === true"
+					:disabled="serverCopy !== true"
+					:data-testid="`cn-mass-copy-kind-${kind}`"
+					@update:modelValue="ticked[kind] = $event">
+					{{ kindLabel(kind) }}
+				</NcCheckboxRadioSwitch>
+			</div>
 		</div>
 
 		<!-- Result phase -->
@@ -58,6 +75,11 @@
 			<NcNoteCard v-if="result.error" type="error">
 				{{ result.error }}
 			</NcNoteCard>
+			<ul v-if="refusedLinks.length > 0" class="cn-mass-copy__refused" data-testid="cn-mass-copy-refused">
+				<li v-for="(link, index) in refusedLinks" :key="index">
+					{{ t('nextcloud-vue', '{title} was not linked: {reason}', { title: link.title || link.id || link.kind, reason: link.reason || t('nextcloud-vue', 'no reason given') }) }}
+				</li>
+			</ul>
 		</div>
 
 		<template #actions>
@@ -81,9 +103,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import { copyKindsOf, useObjectCopy } from '../../composables/useObjectCopy.js'
 
 /**
  * CnMassCopyDialog — Two-phase mass copy confirmation dialog.
@@ -126,6 +149,7 @@ export default {
 	components: {
 		NcDialog,
 		NcButton,
+		NcCheckboxRadioSwitch,
 		NcNoteCard,
 		NcLoadingIcon,
 		NcSelect,
@@ -134,6 +158,30 @@ export default {
 	},
 
 	props: {
+		/**
+		 * Link kinds a copy may take along, from the page's `config.copy.include`
+		 * (`relationRows`, `incoming`, `files`). Each is offered ticked. Empty keeps
+		 * the dialog as it was.
+		 *
+		 * @type {Array<'relationRows'|'incoming'|'files'>}
+		 */
+		include: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** Register slug of the items, for checking the server can copy links. Empty: the first item's `@self.register`. */
+		register: {
+			type: String,
+			default: '',
+		},
+
+		/** Schema slug of the items. Empty: the first item's `@self.schema`. */
+		schema: {
+			type: String,
+			default: '',
+		},
+
 		/** Items to copy. Each must have an `id` property. */
 		items: {
 			type: Array,
@@ -195,10 +243,24 @@ export default {
 			result: null,
 			closeTimeout: null,
 			selectedPattern: { id: 'copy-of', label: 'Copy of {name}' },
+			/** Whether the server offers the copy endpoint (null while checking). */
+			serverCopy: null,
+			/** Which link kinds are ticked. */
+			ticked: Object.fromEntries(copyKindsOf(this.include).map((k) => [k, true])),
 		}
 	},
 
 	computed: {
+		/** @return {string[]} The link kinds the page lets a copy take along. */
+		kinds() {
+			return copyKindsOf(this.include)
+		},
+
+		/** @return {object[]} Links the server did not make, with the reason. */
+		refusedLinks() {
+			return this.result && Array.isArray(this.result.links) ? this.result.links.filter((l) => l && l.ok === false) : []
+		},
+
 		patternOptions() {
 			return [
 				{ id: 'copy-of', label: 'Copy of {name}' },
@@ -214,6 +276,12 @@ export default {
 		},
 	},
 
+	created() {
+		if (this.kinds.length > 0) {
+			this.checkServerCopy()
+		}
+	},
+
 	beforeUnmount() {
 		if (this.closeTimeout) {
 			clearTimeout(this.closeTimeout)
@@ -221,6 +289,37 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Ask whether the server can copy links. Without a register and schema, or
+		 * without the endpoint, the list is read-only and the copy carries fields only.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async checkServerCopy() {
+			const first = this.items[0] || {}
+			const self = first['@self'] || {}
+			const register = this.register || self.register
+			const schema = this.schema || self.schema
+			this.serverCopy = register && schema ? await useObjectCopy().available({ register, schema, id: first.id }) : false
+		},
+
+		/**
+		 * The label of a link kind.
+		 *
+		 * @param {string} kind The kind.
+		 * @return {string} For example "Used by".
+		 */
+		kindLabel(kind) {
+			const names = {
+				incoming: t('nextcloud-vue', 'Objects that use each entry'),
+				relationRows: t('nextcloud-vue', 'Connections of each entry'),
+				files: t('nextcloud-vue', 'Files of each entry'),
+			}
+			return names[kind]
+		},
+
 		getItemName(item) {
 			if (this.nameFormatter) {
 				return this.nameFormatter(item)
@@ -260,22 +359,32 @@ export default {
 			const patternId = this.selectedPattern.id
 			/**
 			 * @event confirm Emitted when the user confirms copying.
-			 * Payload: { ids, getName } where getName(item) returns the new name.
+			 * Payload: { ids, getName } where getName(item) returns the new name, plus `include` (the ticked link kinds) when the page lists links and the server can copy them.
 			 */
-			this.$emit('confirm', {
+			const payload = {
 				ids,
 				getName: (item) => {
 					const name = this.getItemName(item)
 					return this.applyPattern(name, patternId)
 				},
-			})
+			}
+			// Links ride along only when the page opted in, the server can copy them and they stay ticked.
+			const include = this.serverCopy === true ? this.kinds.filter((k) => this.ticked[k] === true) : []
+			if (include.length > 0) {
+				payload.include = include
+			}
+			/**
+			 * @event confirm Emitted when the user confirms copying. Payload: { ids, getName, include? } where getName(item) returns the new name and include lists the ticked link kinds.
+			 * @type {{ ids: Array<string>, getName: Function, include?: Array<string> }}
+			 */
+			this.$emit('confirm', payload)
 		},
 
 		/**
 		 * Set the result of the copy operation. Call this from the parent
 		 * after the API call completes.
 		 *
-		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string, links?: Array<{kind: string, title?: string, ok: boolean, reason?: string}> }} resultData - Result data to pass to the dialog. `links` is the per-link outcome the server returned for all rows; the ones with `ok: false` are listed with their reason
 		 * @public
 		 */
 		setResult(resultData) {
@@ -283,6 +392,9 @@ export default {
 			this.result = resultData
 			if (resultData.success) {
 				this.closeTimeout = setTimeout(() => {
+					/**
+					 * @event close Emitted when the dialog should close (cancel, close button, or auto-close after success).
+					 */
 					this.$emit('close')
 				}, 2000)
 			}

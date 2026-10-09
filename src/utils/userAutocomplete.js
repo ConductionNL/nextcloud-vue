@@ -138,6 +138,38 @@ export async function searchNextcloudUsers(query = '', options = {}) {
 }
 
 /**
+ * Search Nextcloud groups by name via the same core autocomplete endpoint
+ * (`shareTypes[]=1`), so the instance's sharing restrictions apply. Fails soft:
+ * any error resolves to [].
+ *
+ * @param {string} [query] The search term (empty loads an initial page).
+ * @param {object} [options] Tuning options.
+ * @param {number} [options.limit] Max results (default 25).
+ * @return {Promise<Array<{id: string, label: string, displayName: string, subline: string}>>} Group options, `id` being the group id.
+ */
+export async function searchNextcloudGroups(query = '', options = {}) {
+	const { limit = 25 } = options
+	try {
+		const response = await axios.get(generateOcsUrl('core/autocomplete/get'), {
+			headers: { 'OCS-APIRequest': 'true', Accept: 'application/json' },
+			params: { search: query || '', itemType: ' ', itemId: ' ', 'shareTypes[]': 1, limit },
+		})
+		const data = response && response.data && response.data.ocs && response.data.ocs.data
+		const list = Array.isArray(data) ? data : (Array.isArray(response && response.data) ? response.data : [])
+		return list
+			.filter((s) => s && typeof s === 'object' && (s.source === 'groups' || s.shareType === 1 || (s.value && s.value.shareType === 1)))
+			.map((s) => {
+				const gid = s.id || (s.value && s.value.shareWith)
+				const name = s.label || String(gid)
+				return gid ? { id: String(gid), label: name, displayName: name, subline: s.subline || '' } : null
+			})
+			.filter((opt) => opt !== null)
+	} catch {
+		return []
+	}
+}
+
+/**
  * Put the signed-in user first in a result list when they match the search
  * and the server left them out.
  *

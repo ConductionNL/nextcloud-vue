@@ -13,8 +13,8 @@
 - **acceptance_criteria**:
   - The block validates; an undeclared label language and a source language inside `languages` fail with a message naming them
   - Verify: jest; `npm run build:validators` leaves no diff
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: The lookup and the root
 - **spec_ref**: `openspec/changes/manifest-i18n-labels/specs/manifest-i18n/spec.md#requirement-the-root-looks-labels-up-in-the-manifest-first`
@@ -23,8 +23,8 @@
   - Order: manifest language, base language, host `translate`, written text; placeholders filled; source language skips the manifest
   - `language` overrides `getLanguage()`; an edit to `i18n.labels` in the working copy re-renders the label; `CnWalkthrough` receives the lookup
   - Verify: jest; mutation check: swapping steps 1 and 2 reddens the per-label fallback test
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Form page and field options
 - **spec_ref**: `openspec/changes/manifest-i18n-labels/specs/manifest-i18n/spec.md#requirement-every-manifest-label-passes-the-lookup`
@@ -33,8 +33,8 @@
   - With no `translate` prop, `CnFormPage` uses the injected `cnTranslate` for labels, help, steps, submit and success text
   - Enum and option labels pass the translator
   - Verify: jest
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: Actions, sidebars, sections and page titles
 - **spec_ref**: `openspec/changes/manifest-i18n-labels/specs/manifest-i18n/spec.md#requirement-every-manifest-label-passes-the-lookup`
@@ -44,8 +44,8 @@
   - The index page dispatch context carries `translate`, so row action toasts translate
   - A fallback label carries `lang` set to `sourceLanguage`
   - Verify: jest, one case per component
-- [ ] Implement
-- [ ] Test
+- [x] Implement — `CnDetailPage` needed no change: it forwards the title and tab labels to `CnObjectSidebar`, which now translates them
+- [x] Test — jest, one case per component
 
 ### Task 5: Docs and an end-to-end check
 - **spec_ref**: `openspec/changes/manifest-i18n-labels/specs/manifest-i18n/spec.md#requirement-the-root-looks-labels-up-in-the-manifest-first`
@@ -54,5 +54,5 @@
   - Docs show the block, the lookup order and the `language` prop
   - A harness manifest in Dutch with English labels renders an index, a detail and a form page in English with `language: "en"`
   - Verify: `npm run check:docs`, `npm run check:docs-fresh`, `npm run test:e2e -- manifest-i18n`
-- [ ] Implement
-- [ ] Test
+- [x] Implement — docs written; `e2e/manifest-i18n.e2e.js` is not written: needs a browser harness
+- [ ] Test — `npm run check:docs` run; `check:docs-fresh` is not run (the orchestrator regenerates docs/components/_generated); the Playwright run is not run: needs a browser

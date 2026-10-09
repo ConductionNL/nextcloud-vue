@@ -12,8 +12,8 @@
   - `useListView` exposes the last params; `buildExportUrl` takes them and strips `_limit` and `_page`
   - The URL carries the page filter, the quick filter and `_search`
   - Verify: jest; mutation check: passing `$route.query` again reddens the quick-filter test
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Read the flag where OpenRegister keeps it
 - **spec_ref**: `openspec/changes/index-export-follows-the-page/specs/cnindexpage-export-action/spec.md#requirement-export-action-on-index-pages`
@@ -21,8 +21,8 @@
 - **acceptance_criteria**:
   - `configuration.exportable` enables the menu; top-level wins when both are set; neither keeps it hidden
   - Verify: jest over the four combinations
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: The mass export follows the selection or the filter
 - **spec_ref**: `openspec/changes/index-export-follows-the-page/specs/cnindexpage-export-action/spec.md#requirement-the-mass-export-exports-the-selection-or-the-filter`
@@ -30,8 +30,8 @@
 - **acceptance_criteria**:
   - A selection sends ids; no selection sends the list query; the dialog states which with the count
   - Verify: jest asserting the request for both cases
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: Docs and the consumer check
 - **spec_ref**: `openspec/changes/index-export-follows-the-page/specs/cnindexpage-export-action/spec.md#requirement-export-delegates-to-or-export-leaf`
@@ -40,5 +40,5 @@
   - Docs state that the export follows the list and where the flag may live
   - Consumer check after release: stackiq's `insight-exports-and-custom-reports` e2e on `/contracten` passes against a real OpenRegister (recorded in this change's PR, not a gate here)
   - Verify: `npm run check:docs`, `npm run check:docs-fresh`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [ ] Test — not run: the consumer check needs stackiq's e2e against a real OpenRegister, after release

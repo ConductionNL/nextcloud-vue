@@ -27,6 +27,9 @@
 			<p v-if="description" class="cn-mass-export__description">
 				{{ description }}
 			</p>
+			<p v-if="scopeText" class="cn-mass-export__scope" data-testid="cn-mass-export-scope">
+				{{ scopeText }}
+			</p>
 
 			<div v-if="entities.length > 0" class="cn-mass-export__field">
 				<label for="cn-mass-export-entity">{{ entityLabel }}</label>
@@ -124,6 +127,12 @@ export default {
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Export objects'),
+		},
+
+		/** Which rows will be exported, with the count (e.g. "Export 12 selected rows"). Empty hides the line. */
+		scopeText: {
+			type: String,
+			default: '',
 		},
 
 		/** Description text shown above the format selector */

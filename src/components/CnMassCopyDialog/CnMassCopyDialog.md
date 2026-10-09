@@ -49,3 +49,13 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `'Copy'` | Label for the confirm/copy button. |
 | `removeLabel` | `'Remove from list'` | Aria-label for the per-item remove button (the × icon beside each item). |
+
+## Copying with links
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `include` | Array | `[]` | Link kinds a copy may take along (`relationRows`, `incoming`, `files`), from the page's `config.copy.include`. Each is offered ticked. Empty keeps the dialog as it was |
+| `register` | String | `''` | Register slug of the items, for checking the server can copy links. Empty: the first item's `@self.register` |
+| `schema` | String | `''` | Schema slug of the items. Empty: the first item's `@self.schema` |
+
+`confirm` then also carries `include` (the ticked kinds) when the server can copy links. See `docs/components/cn-mass-copy-dialog.md`.

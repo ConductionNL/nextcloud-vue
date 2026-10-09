@@ -206,7 +206,11 @@ export async function evaluateVisibleWhen(cond, ctx) {
 		}
 		const actual = await readVisibleWhenValue(cond, ctx)
 		return compareVisibleWhen(actual, cond.op || 'eq', cond.value, ctx)
-	} catch {
+	} catch (error) {
+		// Still false; `ctx.onError` lets a caller (a journey run) record why.
+		if (ctx && typeof ctx.onError === 'function') {
+			ctx.onError(error, cond)
+		}
 		return false
 	}
 }

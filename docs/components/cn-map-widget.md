@@ -43,8 +43,24 @@ The `layers[]` array dispatches by `type`:
 | `wms`        | `L.tileLayer.wms(url, options)`              |
 | `wfs`        | `fetch(url) → L.geoJSON(features, options)`  |
 | `geojson`    | inline `data` → `L.geoJSON`; OR fetched URL  |
+| `image`      | `{ url, width, height }` → `L.imageOverlay` on flat pixel coordinates (see below) |
 
 Unknown types log a warning and are skipped — manifests stay forward-compatible.
+
+## Image maps
+
+Not every map is the earth: a game world, a floor plan or a terrain drawing is a picture with places on it. A layer `{ "type": "image", "url": "/img/valley.png", "width": 2400, "height": 1600 }` turns the map into a picture in flat pixel coordinates: `(0, 0)` is the picture's top left, `x` runs right and `y` runs down. The whole picture is fitted on open, a drag cannot move it far out of view (the bounds are padded by 10 percent), and zoom runs from fitting the picture to four times its native size. The `url` goes through `safeHref`; the browser loads it as an image and the widget fetches nothing. A map is either a picture or the earth: any other layer beside an image layer is skipped with a warning, and one image layer per map.
+
+- **Markers** read `markers.xField` and `markers.yField` (default `x` and `y`) from their rows and stay on the same spot of the picture at every zoom. A row without both numbers is not plotted and is counted in a note under the map.
+- **`click`** carries `{ x, y }`, rounded to whole pixels and clamped to the picture, instead of `{ lat, lng }`: the click position for an "add pin here" form. A geographic map keeps emitting `{ lat, lng }`.
+- **Fit all markers** fits the whole picture, and `autoFit` does not run.
+
+```json
+{
+  "layers": [{ "type": "image", "url": "/img/valley.png", "width": 2400, "height": 1600 }],
+  "markers": { "xField": "x", "yField": "y", "popupField": "name", "dataSource": { "register": "larp", "schema": "place" } }
+}
+```
 
 ## Base maps and the layer switcher
 

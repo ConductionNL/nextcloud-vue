@@ -23,6 +23,7 @@ import { searchNextcloudUsers } from '../../src/utils/userAutocomplete.js'
 
 jest.mock('../../src/utils/userAutocomplete.js', () => ({
 	searchNextcloudUsers: jest.fn(),
+	searchNextcloudGroups: jest.fn().mockResolvedValue([]),
 }))
 
 const DEFAULT_PROPS = {

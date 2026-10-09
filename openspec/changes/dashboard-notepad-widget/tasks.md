@@ -13,8 +13,8 @@
   - Markdown renders when not focused
   - `notepad` is in `listUserAddableWidgetTypes()`
   - Verify: jest with fake timers; `npm run build:validators`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Per-person storage
 - **spec_ref**: `openspec/changes/dashboard-notepad-widget/specs/grid-widget-system/spec.md#requirement-a-note-belongs-to-the-person-who-wrote-it`
@@ -23,8 +23,8 @@
   - Writes `notepad.<dashboard id>.<widget id>` through `useUserPreferences`; never emits a layout change
   - On focus, a newer stored value replaces the card's text before editing
   - Verify: jest with a fake preferences store; mutation check: writing into `content.text` reddens the layout test
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Accessibility and docs
 - **spec_ref**: `openspec/changes/dashboard-notepad-widget/specs/grid-widget-system/spec.md#requirement-a-user-may-add-a-notepad-to-their-own-dashboard`
@@ -33,5 +33,5 @@
   - The textarea is labelled by the card title; Saved is announced politely
   - The catalogue lists `notepad` as user-addable
   - Verify: `npm run check:a11y`, `npm run check:docs`, `npm run check:docs-fresh`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

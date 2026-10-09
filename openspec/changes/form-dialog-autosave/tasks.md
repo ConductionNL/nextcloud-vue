@@ -12,8 +12,8 @@
   - Values persist under the keyed storage entry, debounced
   - Reopen shows the recovery bar with Restore and Discard
   - Save and Discard clear the entry; entries older than 7 days are ignored
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Save draft and publish
 - **spec_ref**: `openspec/changes/form-dialog-autosave/specs/dialog-system/spec.md#requirement-req-dg-017-server-side-draft`
@@ -23,8 +23,8 @@
   - Save draft bypasses required-field validation and sets the draft field
   - Publish runs full validation and clears the draft field
   - JSDoc and the component reference doc describe both props
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Saved indicator
 - **spec_ref**: `openspec/changes/form-dialog-autosave/specs/dialog-system/spec.md#requirement-req-dg-018-saved-indicator`
@@ -33,5 +33,5 @@
   - Footer text moves through Saving and Saved with an `aria-live="polite"` region
   - Colours come from Nextcloud CSS variables only
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

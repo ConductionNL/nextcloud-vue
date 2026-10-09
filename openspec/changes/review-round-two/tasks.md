@@ -13,4 +13,4 @@
 - [x] Tests: `tests/components/CnFormDialogPickers.spec.js` (override, override error, modal, modal closed, fallback; 4 fail on the old code).
 
 ## 4. Contains on text header filters (R4)
-- [ ] Switch to the OpenRegister contains operator once it is merged there. Not done: on 2026-10-06 no OpenRegister PR adding `[like]` exists (the OR-E1 lane's PR #4417 is the activity fix), so text header filters stay on equals.
+- [ ] Switch to the OpenRegister contains operator once it is merged there. Not done: on 2026-10-06 no OpenRegister PR adding `[like]` exists (the OR-E1 lane's PR #4417 is the activity fix), so text header filters stay on equals. — not run: needs openregister

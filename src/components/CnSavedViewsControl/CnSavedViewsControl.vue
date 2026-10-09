@@ -62,34 +62,85 @@
 		     as menu items and silently drops anything else, so a row with more
 		     than one control has to be an NcActionButtonGroup. -->
 		<template v-if="!loading">
-			<NcActionButtonGroup
-				v-for="row in rows"
-				:key="`view-${row.view.id || row.view.slug}`"
-				class="cn-saved-view-row">
-				<NcActionButton
-					data-testid="cn-saved-views-item"
-					:data-view-id="row.view.id || row.view.slug"
-					:data-depth="row.depth"
-					:data-group="row.group"
-					:aria-label="rowLabel(row)"
-					@click="onApply(row.view)">
-					<template #icon>
-						<EyeOutline :size="20" />
-					</template>
-					{{ rowName(row) }}
-				</NcActionButton>
-				<NcActionButton
-					v-if="isOwn(row.view) && row.group !== SEEDED_GROUP"
-					:key="`delete-${row.view.id || row.view.slug}`"
-					data-testid="cn-saved-views-delete"
-					:data-view-id="row.view.id || row.view.slug"
-					:aria-label="deleteLabel(row.view)"
-					@click="onDeleteRequest(row.view)">
-					<template #icon>
-						<TrashCanOutline :size="20" />
-					</template>
-				</NcActionButton>
-			</NcActionButtonGroup>
+			<template v-for="section in sections" :key="section.key">
+				<NcActionCaption
+					v-if="section.label"
+					:data-testid="`cn-saved-views-section-${section.key}`"
+					:name="section.label" />
+				<NcActionButtonGroup
+					v-for="row in section.rows"
+					:key="`view-${row.view.id || row.view.slug}`"
+					class="cn-saved-view-row">
+					<NcActionButton
+						data-testid="cn-saved-views-item"
+						:data-view-id="row.view.id || row.view.slug"
+						:data-depth="row.depth"
+						:data-group="row.group"
+						:data-access="accessOf(row)"
+						:aria-label="rowLabel(row)"
+						@click="onApply(row.view)">
+						<template #icon>
+							<EyeOutline :size="20" />
+						</template>
+						{{ rowName(row, section.key === 'shared') }}
+					</NcActionButton>
+					<NcActionButton
+						v-if="accessOf(row) === 'owner' && row.group !== SEEDED_GROUP"
+						:key="`share-${row.view.id || row.view.slug}`"
+						data-testid="cn-saved-views-share"
+						:data-view-id="row.view.id || row.view.slug"
+						:aria-label="shareLabel(row.view)"
+						@click="onShareRequest(row.view)">
+						<template #icon>
+							<ShareVariantOutline :size="20" />
+						</template>
+					</NcActionButton>
+					<NcActionButton
+						v-if="(accessOf(row) === 'owner' || accessOf(row) === 'write') && row.group !== SEEDED_GROUP"
+						:key="`presentation-${row.view.id || row.view.slug}`"
+						data-testid="cn-saved-views-presentation"
+						:data-view-id="row.view.id || row.view.slug"
+						:aria-label="presentationLabel(row.view)"
+						@click="onPresentationRequest(row.view)">
+						<template #icon>
+							<ViewDashboardOutline :size="20" />
+						</template>
+					</NcActionButton>
+					<NcActionButton
+						v-if="accessOf(row) === 'write'"
+						:key="`update-${row.view.id || row.view.slug}`"
+						data-testid="cn-saved-views-update"
+						:data-view-id="row.view.id || row.view.slug"
+						:aria-label="updateLabel(row.view)"
+						@click="onUpdateRequest(row.view)">
+						<template #icon>
+							<ContentSaveOutline :size="20" />
+						</template>
+					</NcActionButton>
+					<NcActionButton
+						v-if="accessOf(row) === 'read' && row.group !== SEEDED_GROUP"
+						:key="`copy-${row.view.id || row.view.slug}`"
+						data-testid="cn-saved-views-copy"
+						:data-view-id="row.view.id || row.view.slug"
+						:aria-label="copyLabel(row.view)"
+						@click="onCopyRequest(row.view)">
+						<template #icon>
+							<ContentCopy :size="20" />
+						</template>
+					</NcActionButton>
+					<NcActionButton
+						v-if="accessOf(row) === 'owner' && row.group !== SEEDED_GROUP"
+						:key="`delete-${row.view.id || row.view.slug}`"
+						data-testid="cn-saved-views-delete"
+						:data-view-id="row.view.id || row.view.slug"
+						:aria-label="deleteLabel(row.view)"
+						@click="onDeleteRequest(row.view)">
+						<template #icon>
+							<TrashCanOutline :size="20" />
+						</template>
+					</NcActionButton>
+				</NcActionButtonGroup>
+			</template>
 		</template>
 
 		<NcActionSeparator />
@@ -110,12 +161,15 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionButtonGroup, NcActionCaption, NcActions, NcActionSeparator } from '@nextcloud/vue'
 import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
+import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import { buildViewTree, labelsInUse, VIEW_GROUPS } from '../../utils/buildViewTree.js'
-import { isOwnView } from '../../utils/savedViewHelpers.js'
+import { isOwnView, viewAccess } from '../../utils/savedViewHelpers.js'
 
 /**
  * CnSavedViewsControl — toolbar dropdown listing OpenRegister saved-search
@@ -131,12 +185,26 @@ import { isOwnView } from '../../utils/savedViewHelpers.js'
  *   CnSaveViewDialog.
  * - `@delete-request(view)` — a view's trailing delete icon clicked; parent
  *   opens a confirm dialog. Only rendered for views the current user owns
- *   (`view.owner === currentUserId`) — OpenRegister refuses foreign
- *   deletes server-side anyway (owner-scoped 404).
+ *   (`@self.access: owner`, else `view.owner === currentUserId`) — OpenRegister
+ *   refuses foreign deletes server-side anyway (owner-scoped 404).
+ * - `@share-request(view)` — Share on an own view; parent opens the share dialog.
+ * - `@update-request(view)` — Save on a view shared with write access; parent
+ *   saves the current state to it (never sending `sharedWith` or `owner`).
+ * - `@presentation-request(view)` — Presentation on a view the user may edit
+ *   (`owner` or `write`); parent opens the presentation dialog (table, board, calendar).
+ * - `@copy-request(view)` — "Save as my view" on a view shared read-only.
+ *
+ * Views shared with the user (`@self.access` `write` or `read`) list under
+ * "Shared with me", next to "My views", once any exist; with none the list
+ * renders as before.
  *
  * @event {object} apply — Apply the clicked view. Payload: the View API object.
  * @event {void} save-request — Open the save-current-view dialog.
  * @event {object} delete-request — Confirm-delete the clicked view. Payload: the View API object.
+ * @event {object} share-request — Share the clicked own view. Payload: the View API object.
+ * @event {object} update-request — Save the current state to the clicked writable shared view. Payload: the View API object.
+ * @event {object} presentation-request — Change how the clicked view shows. Payload: the View API object.
+ * @event {object} copy-request — Copy the clicked read-only shared view into a personal one. Payload: the View API object.
  */
 export default {
 	name: 'CnSavedViewsControl',
@@ -148,10 +216,13 @@ export default {
 		NcActionCaption,
 		NcActionSeparator,
 		BookmarkOutline,
+		ContentCopy,
 		ContentSaveOutline,
 		EyeOutline,
+		ShareVariantOutline,
 		TagOutline,
 		TrashCanOutline,
+		ViewDashboardOutline,
 	},
 
 	props: {
@@ -196,7 +267,7 @@ export default {
 		},
 	},
 
-	emits: ['apply', 'delete-request', 'save-request'],
+	emits: ['apply', 'copy-request', 'delete-request', 'presentation-request', 'save-request', 'share-request', 'update-request'],
 
 	data() {
 		return {
@@ -230,6 +301,28 @@ export default {
 		},
 
 		/**
+		 * The rows in their sections. With no view shared with this user there
+		 * is one section without a caption, as the list always was. With
+		 * shared views: seeded views (no caption), "My views", "Shared with me".
+		 *
+		 * @return {Array<{key: string, label: string, rows: Array<object>}>} The sections.
+		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-1
+		 */
+		sections() {
+			const shared = this.rows.filter((r) => r.group !== VIEW_GROUPS.SEEDED && this.accessOf(r) !== 'owner')
+			if (shared.length === 0) {
+				return [{ key: 'all', label: '', rows: this.rows }]
+			}
+			const seeded = this.rows.filter((r) => r.group === VIEW_GROUPS.SEEDED)
+			const mine = this.rows.filter((r) => r.group !== VIEW_GROUPS.SEEDED && this.accessOf(r) === 'owner')
+			return [
+				{ key: 'seeded', label: '', rows: seeded },
+				{ key: 'mine', label: t('nextcloud-vue', 'My views'), rows: mine },
+				{ key: 'shared', label: t('nextcloud-vue', 'Shared with me'), rows: shared },
+			].filter((section) => section.rows.length > 0)
+		},
+
+		/**
 		 * The labels already in use.
 		 *
 		 * Read from the UNFILTERED list on purpose: reading it from `rows`
@@ -256,11 +349,85 @@ export default {
 		 * has to know about the tree.
 		 *
 		 * @param {object} row The row from buildViewTree().
+		 * @param {boolean} [withGroups] Append the groups the view is shared with.
 		 * @return {string} The name.
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
 		 */
-		rowName(row) {
-			return `${'\u2007'.repeat(row.depth * 2)}${this.nameWithCount(row.view)}`
+		rowName(row, withGroups = false) {
+			const groups = withGroups ? this.groupsOf(row.view) : ''
+			return `${'\u2007'.repeat(row.depth * 2)}${this.nameWithCount(row.view)}${groups !== '' ? ` · ${groups}` : ''}`
+		},
+
+		/**
+		 * What the current user may do with a row's view.
+		 *
+		 * @param {object} row The row from buildViewTree().
+		 * @return {'owner'|'write'|'read'} The access.
+		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-1
+		 */
+		accessOf(row) {
+			return viewAccess(row.view, this.currentUserId)
+		},
+
+		/**
+		 * The groups a view is shared with, as text for the row.
+		 *
+		 * @param {object} view The View API object.
+		 * @return {string} The group ids, comma-separated; empty when none.
+		 */
+		groupsOf(view) {
+			return (Array.isArray(view.sharedWith) ? view.sharedWith : [])
+				.map((e) => e && e.group)
+				.filter((g) => typeof g === 'string' && g !== '')
+				.join(', ')
+		},
+
+		shareLabel(view) {
+			return t('nextcloud-vue', 'Share "{name}"', { name: view.name })
+		},
+
+		updateLabel(view) {
+			return t('nextcloud-vue', 'Save the current view to "{name}"', { name: view.name })
+		},
+
+		copyLabel(view) {
+			return t('nextcloud-vue', 'Save "{name}" as my view', { name: view.name })
+		},
+
+		presentationLabel(view) {
+			return t('nextcloud-vue', 'Change how "{name}" shows', { name: view.name })
+		},
+
+		onPresentationRequest(view) {
+			/**
+			 * @event presentation-request Presentation on an editable view; open the presentation dialog.
+			 * @type {object}
+			 */
+			this.$emit('presentation-request', view)
+		},
+
+		onShareRequest(view) {
+			/**
+			 * @event share-request Share on an own view; open the share dialog.
+			 * @type {object}
+			 */
+			this.$emit('share-request', view)
+		},
+
+		onUpdateRequest(view) {
+			/**
+			 * @event update-request Save on a writable shared view; save the current state to it.
+			 * @type {object}
+			 */
+			this.$emit('update-request', view)
+		},
+
+		onCopyRequest(view) {
+			/**
+			 * @event copy-request "Save as my view" on a read-only shared view; store a personal copy.
+			 * @type {object}
+			 */
+			this.$emit('copy-request', view)
 		},
 
 		/**

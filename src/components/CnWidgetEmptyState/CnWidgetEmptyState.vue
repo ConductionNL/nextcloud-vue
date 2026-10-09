@@ -5,7 +5,10 @@
 <template>
 	<div
 		class="cn-widget-empty-state"
-		:class="{ 'cn-widget-empty-state--compact': compact }"
+		:class="{
+			'cn-widget-empty-state--compact': compact,
+			'cn-widget-empty-state--card': effectiveSize === 'card',
+		}"
 		data-testid="cn-widget-empty-state"
 		role="note">
 		<div class="cn-widget-empty-state__icon" :style="iconStyle" aria-hidden="true">
@@ -13,7 +16,7 @@
 			     line-art glyph — the circle around it is drawn by this
 			     component, not by the icon. -->
 			<slot name="icon">
-				<component :is="iconComponent" :size="compact ? 20 : 28" />
+				<component :is="iconComponent" :size="compact ? 20 : (effectiveSize === 'card' ? 24 : 28)" />
 			</slot>
 		</div>
 		<p class="cn-widget-empty-state__name">
@@ -75,6 +78,14 @@ export default {
 
 	components: { TrayRemove },
 
+	inject: {
+		/**
+		 * The app's look, provided by CnAppRoot (`nextcloud` or `board`). In the
+		 * board look an empty state without an explicit `size` draws as `card`.
+		 */
+		cnLook: { default: 'nextcloud' },
+	},
+
 	props: {
 		/** Headline — what is empty, in the user's words. */
 		name: {
@@ -120,9 +131,36 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * Size: `widget` (the default look, 48px circle, 14px name) or `card`
+		 * (the board empty state: 16px/700 name, 14px description, 24px icon).
+		 * Left empty, it is `card` in the board look unless `compact` is set,
+		 * and `widget` otherwise.
+		 *
+		 * @type {''|'widget'|'card'}
+		 */
+		size: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'widget', 'card'].includes(v),
+		},
 	},
 
 	computed: {
+		/**
+		 * The size actually drawn: the `size` prop, else `card` in the board
+		 * look (unless compact), else `widget`.
+		 *
+		 * @return {'widget'|'card'}
+		 */
+		effectiveSize() {
+			if (this.size) {
+				return this.size
+			}
+			return this.cnLook === 'board' && !this.compact ? 'card' : 'widget'
+		},
+
 		/**
 		 * The icon component to render (the `icon` prop, else the default).
 		 *
@@ -141,6 +179,13 @@ export default {
 		 */
 		iconStyle() {
 			const c = VARIANT_COLORS[this.variant] || VARIANT_COLORS.neutral
+			if (this.effectiveSize === 'card') {
+				const isNeutral = this.variant === 'neutral'
+				return {
+					color: isNeutral ? 'var(--color-text-lighter)' : c,
+					background: isNeutral ? 'var(--color-background-dark)' : `color-mix(in srgb, ${c} 12%, transparent)`,
+				}
+			}
 			return {
 				color: c,
 				background: `color-mix(in srgb, ${c} 12%, transparent)`,
@@ -213,5 +258,31 @@ export default {
 .cn-widget-empty-state--compact .cn-widget-empty-state__name {
 	font-weight: 400;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Card size: the board empty state, drawn inside the card it belongs to. */
+.cn-widget-empty-state--card {
+	gap: 8px;
+	padding: 28px 20px;
+}
+
+.cn-widget-empty-state--card .cn-widget-empty-state__name {
+	font-size: 16px;
+	font-weight: 700;
+}
+
+.cn-widget-empty-state--card .cn-widget-empty-state__description {
+	font-size: 14px;
+	line-height: 1.45;
+	max-width: 480px;
+}
+
+.cn-widget-empty-state--card .cn-widget-empty-state__icon :deep(svg) {
+	width: 24px;
+	height: 24px;
+}
+
+.cn-widget-empty-state--card .cn-widget-empty-state__action {
+	margin-top: 6px;
 }
 </style>

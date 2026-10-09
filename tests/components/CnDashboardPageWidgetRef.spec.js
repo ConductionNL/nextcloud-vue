@@ -32,6 +32,7 @@ const stubs = {
 	},
 	NcButton: { template: '<button />' },
 	NcEmptyContent: { template: '<div class="nc-empty-content-stub" />' },
+	CnEmptyContent: { template: '<div class="nc-empty-content-stub" />' },
 	NcLoadingIcon: { template: '<div class="nc-loading-icon-stub" />' },
 	ViewDashboardOutline: { template: '<span />' },
 	AlertCircleOutline: { template: '<span />' },

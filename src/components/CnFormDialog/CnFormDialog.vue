@@ -16,7 +16,22 @@
 			<NcNoteCard v-if="result.error" type="error">
 				{{ result.error }}
 			</NcNoteCard>
+			<NcButton
+				v-if="uploadFailedNames.length > 0 && Object.keys(heldFiles).length > 0"
+				:disabled="loading"
+				data-testid="cn-form-dialog-retry-uploads"
+				@click="retryUploads">
+				{{ t('nextcloud-vue', 'Retry') }}
+			</NcButton>
 		</div>
+		<!-- Progress of a file uploading after the save. -->
+		<p v-if="uploadProgress"
+			class="cn-form-dialog__upload-progress"
+			role="status"
+			data-testid="cn-form-dialog-upload-progress">
+			{{ t('nextcloud-vue', 'Uploading {file}', { file: uploadProgress.file }) }}
+			<progress v-if="uploadProgress.total > 0" :max="uploadProgress.total" :value="uploadProgress.loaded" />
+		</p>
 
 		<!-- Form phase -->
 		<div v-else
@@ -118,6 +133,19 @@
 							:placeholder="field.description" />
 					</div>
 
+					<!-- Concept-scheme choice whose options could not be loaded: the
+					     plain text input it had before, with a line saying so. -->
+					<div
+						v-else-if="field.codeList && codedFailed[field.key]"
+						class="cn-form-dialog__coded-fallback">
+						<NcTextField
+							:label="field.label + (field.required ? ' *' : '')"
+							:modelValue="codedFallbackText(field)"
+							:disabled="field.readOnly"
+							:helperText="t('nextcloud-vue', 'The list of choices could not be loaded. Enter the value by hand.')"
+							@update:modelValue="onCodedFallbackInput(field, $event)" />
+					</div>
+
 					<!-- Auto-generated field -->
 					<template v-else>
 						<!-- Text / Email / URL. The helper line lives outside the
@@ -135,6 +163,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</template>
 
@@ -151,6 +181,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</template>
 
@@ -170,6 +202,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -198,6 +232,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -214,6 +250,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -272,6 +310,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -310,6 +350,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -350,6 +392,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -365,6 +409,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -387,6 +433,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -404,6 +452,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -420,6 +470,100 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
+								:error="errors[field.key]" />
+						</div>
+
+						<!-- File (widget: 'file'): one file or several, small ones inline, big ones uploaded after save, optional camera. -->
+						<div v-else-if="field.widget === 'file'" class="cn-form-dialog__file-wrapper">
+							<CnFileField
+								:modelValue="formData[field.key]"
+								:label="field.label + (field.required ? ' *' : '')"
+								:accept="field.file ? field.file.accept : ''"
+								:multiple="!!(field.file && field.file.multiple)"
+								:capture="field.file ? field.file.capture : ''"
+								v-bind="fileLimits(field)"
+								:disabled="field.readOnly"
+								:helperText="errors[field.key] || ''"
+								@update:modelValue="value => updateField(field.key, value)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label" />
+						</div>
+
+						<!-- Duration (widget: 'duration'): number + unit over an ISO 8601 string. -->
+						<div v-else-if="field.widget === 'duration'" class="cn-form-dialog__duration-wrapper">
+							<CnDurationField
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : null"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:disabled="field.readOnly"
+								:error="!!errors[field.key]"
+								@update:modelValue="value => updateField(field.key, value)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
+								:error="errors[field.key]" />
+						</div>
+
+						<!-- Child records (widget: 'child-records'): another schema's records as an editable table, saved after the parent. -->
+						<div v-else-if="field.widget === 'child-records' && field.childRecords" class="cn-form-dialog__child-records-wrapper">
+							<CnChildRecordsField
+								:modelValue="Array.isArray(formData[field.key]) ? formData[field.key] : []"
+								:config="field.childRecords"
+								:register="register"
+								:parentId="item ? (item.id || item.uuid || '') : ''"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:disabled="field.readOnly"
+								:error="errors[field.key] || ''"
+								@update:modelValue="value => updateField(field.key, value)"
+								@loaded="rows => { childOriginals[field.key] = rows }"
+								@validity="problems => { childProblems[field.key] = problems }" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label" />
+						</div>
+
+						<!-- Sub-objects (widget: 'sub-objects'): an array of objects as an editable table. -->
+						<div v-else-if="field.widget === 'sub-objects' && field.items" class="cn-form-dialog__sub-objects-wrapper">
+							<CnSubObjectsField
+								:modelValue="Array.isArray(formData[field.key]) ? formData[field.key] : []"
+								:items="field.items"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:disabled="field.readOnly"
+								:error="errors[field.key] || ''"
+								@update:modelValue="value => updateField(field.key, value)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label" />
+						</div>
+
+						<!-- Registry type-ahead (widget: 'property-source'): CnPropertySourceField;
+						     a pick can fill empty sibling fields from config.fill. -->
+						<div v-else-if="field.widget === 'property-source' && field.propertySource" class="cn-form-dialog__property-source-wrapper">
+							<CnPropertySourceField
+								:provider="field.propertySource.provider"
+								:mode="field.propertySource.mode"
+								:inputId="'cn-form-' + field.key"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:disabled="field.readOnly"
+								:error="!!errors[field.key]"
+								@update:modelValue="value => updateField(field.key, value)"
+								@resolved="payload => onPropertySourceResolved(field, payload)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -439,6 +583,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -454,8 +600,17 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</template>
+						<small
+							v-if="assignedFrom[field.key]"
+							class="cn-form-dialog__assigned"
+							aria-live="polite"
+							data-testid="cn-form-dialog-assigned">
+							{{ t('nextcloud-vue', 'Filled in from {field}', { field: assignedFrom[field.key] }) }}
+						</small>
 					</template>
 				</div>
 
@@ -495,6 +650,12 @@
 			@confirm="onNestedCreateConfirm"
 			@close="onNestedCreateClose" />
 
+		<CnReplaceValuesDialog
+			v-if="pendingReplace !== null"
+			:changes="pendingReplace.changes"
+			@accept="resolveReplace(true)"
+			@decline="resolveReplace(false)" />
+
 		<template #actions>
 			<!-- One announcement per state change, so a screen reader hears
 			     "Draft saved" once rather than on every keystroke. -->
@@ -515,7 +676,7 @@
 			<NcButton
 				v-if="result === null"
 				variant="primary"
-				:disabled="loading || !requiredFieldsFilled || !jsonFieldsValid"
+				:disabled="loading || confirmDisabled || !requiredFieldsFilled || !jsonFieldsValid"
 				@click="executeConfirm">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
@@ -529,19 +690,31 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import axios from '@nextcloud/axios'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnReplaceValuesDialog from '../../dialogs/CnReplaceValuesDialog.vue'
+import CnChildRecordsField from '../CnChildRecordsField/CnChildRecordsField.vue'
+import CnDurationField from '../CnDurationField/CnDurationField.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
+import CnFileField from '../CnFileField/CnFileField.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
-import { draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
+import CnSubObjectsField from '../CnSubObjectsField/CnSubObjectsField.vue'
+import { describeRowProblem, useChildRecords } from '../../composables/useChildRecords.js'
+import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
+import { heldFromFailures, splitHeldFiles, uploadHeldFiles } from '../../composables/useHeldFileUpload.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
+import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
 import {
 	definitionQueryParams,
 	DYNAMIC_KEY_PREFIX,
@@ -552,9 +725,13 @@ import {
 	splitDynamicFormData,
 } from '../../utils/dynamicProperties.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
+import { computeAssignments } from '../../utils/formAssign.js'
 import { resolveNextcloudGroup, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
+import { durationSeconds } from '../../utils/isoDuration.js'
 import { objectDisplayName } from '../../utils/objectName.js'
 import { languageOptions, resolveDefaultToken, timezoneOptions } from '../../utils/pickerOptions.js'
+import { getDotted, planPropertySourceFill } from '../../utils/propertySourceFill.js'
+import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, isTenantProperty } from '../../utils/schema.js'
 import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
@@ -570,6 +747,9 @@ import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAuto
  * @type {string[]}
  */
 const WIDE_WIDGETS = ['textarea', 'json', 'code']
+
+/** Largest file carried inline in the saved payload; bigger ones upload after save. */
+const INLINE_FILE_CAP = 1024 * 1024
 
 /**
  * OpenRegister semantic-type discovery endpoint (ADR-048). Resolves a
@@ -752,6 +932,12 @@ export default {
 	name: 'CnFormDialog',
 
 	components: {
+		CnFileField,
+		CnDurationField,
+		CnPropertySourceField,
+		CnReplaceValuesDialog,
+		CnSubObjectsField,
+		CnChildRecordsField,
 		NcDialog,
 		NcButton,
 		NcNoteCard,
@@ -1007,10 +1193,26 @@ export default {
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/**
+		 * Report the write with a toast: "Saved {title}" after a successful
+		 * save, the server's message after a failed one. `false` suppresses
+		 * the toasts and changes nothing else.
+		 */
+		feedback: {
+			type: Boolean,
+			default: true,
+		},
+
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: {
 			type: String,
 			default: '',
+		},
+
+		/** Keep the Confirm button disabled regardless of the form state, for a host that knows the form cannot be completed. */
+		confirmDisabled: {
+			type: Boolean,
+			default: false,
 		},
 	},
 
@@ -1032,6 +1234,22 @@ export default {
 		return {
 			formData: {},
 			errors: {},
+			/** Field key -> label of the answer a rule filled it in from (`assign`). */
+			assignedFrom: {},
+			/** The signed-in user's profile for `@me.*` defaults. */
+			meProfile: {},
+			/** Files over the inline cap, by property key, uploaded once the object is saved. */
+			heldFiles: {},
+			/** Entries a list file property keeps while its held files upload. */
+			heldKept: {},
+			/** Names of files that did not upload (the dialog offers Retry). */
+			uploadFailedNames: [],
+			/** The save result the uploads belong to. */
+			pendingResult: null,
+			/** The file uploading now: `{ file, loaded, total }`, or null. */
+			uploadProgress: null,
+			/** Fill-over-typed-values question awaiting an answer: `{ changes, resolve }`, or null. */
+			pendingReplace: null,
 			loading: false,
 			result: null,
 			/** Form-level error message (e.g. a server validation failure) shown above the fields without leaving the form phase. */
@@ -1043,6 +1261,10 @@ export default {
 			jsonDrafts: {},
 			/** Per-field parse-error messages for `json` widgets (blocks confirm) */
 			jsonErrors: {},
+			/** Child rows as loaded, per child-records field, to diff against on save. */
+			childOriginals: {},
+			/** Row problems reported by each child-records field. */
+			childProblems: {},
 			/**
 			 * Resolved labels for `$ref` object-reference values, keyed by UUID:
 			 * `{ [uuid]: '<human label>' }`. Populated as reference options load
@@ -1051,6 +1273,10 @@ export default {
 			 * itself always remains the UUID — this is display-only.
 			 */
 			referenceLabels: {},
+			/** Concept-scheme fields whose options request failed or came back empty. */
+			codedFailed: {},
+			/** Scheme of each coded field, as OpenRegister reported it (for the notation route). */
+			codedSchemes: {},
 			/**
 			 * Cross-app semantic-reference resolutions (ADR-048), keyed by the
 			 * semantic-type URI: `{ [uri]: { status, resolved, registerSlug,
@@ -1150,15 +1376,7 @@ export default {
 		 * @return {string} The text.
 		 */
 		draftIndicatorLabel() {
-			if (this.draftState === 'saving') {
-				return t('nextcloud-vue', 'Saving draft')
-			}
-
-			if (this.draftState === 'saved') {
-				return t('nextcloud-vue', 'Draft saved')
-			}
-
-			return ''
+			return draftIndicatorText(this.draftState, this.draftSavedAt)
 		},
 
 		isCreateMode() {
@@ -1175,9 +1393,23 @@ export default {
 			return t('nextcloud-vue', 'Item')
 		},
 
+		/**
+		 * Whether the record being edited is a stored draft: drafts are on, the
+		 * schema declares the marker, and the record has it set. Such a record
+		 * shows "(draft)" in the title and is published, not merely saved.
+		 *
+		 * @return {boolean} True for a draft record.
+		 */
+		isDraftRecord() {
+			return this.canSaveDraft && !!this.item && this.item[this.draftField] === true
+		},
+
 		resolvedTitle() {
 			if (this.dialogTitle) {
 				return this.cnTranslate(this.dialogTitle)
+			}
+			if (this.isDraftRecord) {
+				return t('nextcloud-vue', 'Edit {title} (draft)', { title: this.schemaTitle })
 			}
 			return this.isCreateMode
 				? t('nextcloud-vue', 'Create {title}', { title: this.schemaTitle })
@@ -1187,6 +1419,9 @@ export default {
 		resolvedConfirmLabel() {
 			if (this.confirmLabel) {
 				return this.confirmLabel
+			}
+			if (this.isDraftRecord) {
+				return t('nextcloud-vue', 'Publish')
 			}
 			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
@@ -1305,6 +1540,18 @@ export default {
 		},
 
 		/**
+		 * A signature of the values concept-scheme fields take as their context.
+		 *
+		 * @return {string} A change means some coded field's options are stale.
+		 */
+		codedContextToken() {
+			return this.resolvedFields
+				.filter((f) => f.codeList && f.codeList.contextProperty)
+				.map((f) => `${f.key}:${String(this.formData[f.codeList.contextProperty] ?? '')}`)
+				.join('&')
+		},
+
+		/**
 		 * A stable signature of every value a relation filter depends on.
 		 *
 		 * @return {string} The signature; a change means some picker's options are stale.
@@ -1344,6 +1591,7 @@ export default {
 						overrides: this.fieldOverrides,
 						hideTenant: true,
 						translate: this.cnTranslate,
+						language: getLanguage(),
 					}).concat(this.dynamicFields)
 
 			// Render locked fields (parent references seeded via initialData) as
@@ -1527,6 +1775,16 @@ export default {
 		 * `relationFilterDecls`, and the values themselves are resolved from
 		 * `formData` by `fetchReferenceOptions`.
 		 */
+		codedContextToken() {
+			// Ask again for the options that follow another field. The chosen
+			// value is kept and marked, never cleared behind the user's back.
+			for (const field of this.resolvedFields) {
+				if (field.codeList && field.codeList.contextProperty && this.asyncState[field.key]) {
+					this.loadAsyncOptions(field, '')
+				}
+			}
+		},
+
 		relationFilterToken() {
 			const stale = new Set(this.relationFilterDecls.map(({ key }) => key))
 			if (stale.size === 0) {
@@ -1891,7 +2149,9 @@ export default {
 				for (const field of this.resolvedFields) {
 					const tokenDefault = field.defaultToken ? resolveDefaultToken(field.defaultToken, field) : null
 					if (field.default !== null && field.default !== undefined) {
-						data[field.key] = field.default
+						const resolved = resolveFilterValue(field.default, { object: this.initialData || {}, me: this.meProfile })
+						// A token that cannot resolve yet (the e-mail, until the profile loads) is not a value.
+						data[field.key] = typeof resolved === 'string' && resolved === field.default && resolved.startsWith('@') ? null : resolved
 					} else if (tokenDefault !== null) {
 						// `x-default: current-language` / `current-timezone`:
 						// a NEW object starts with the user's own value.
@@ -1902,6 +2162,8 @@ export default {
 						data[field.key] = []
 					} else if (field.widget === 'code') {
 						data[field.key] = ''
+					} else if (field.widget === 'file' && field.file && field.file.multiple) {
+						data[field.key] = []
 					} else {
 						data[field.key] = null
 					}
@@ -1927,9 +2189,36 @@ export default {
 			this.jsonDrafts = {}
 			this.jsonErrors = {}
 			this.touchedFields = {}
+			this.assignedFrom = {}
 			this.referenceLabels = {}
 			this.initAsyncFields()
 			this.resolveInitialReferenceLabels()
+			// A new record opens with what the rules and defaults already know.
+			if (!this.item) {
+				this.runAssignments(null)
+				this.loadProfileDefaults()
+			}
+		},
+
+		/**
+		 * Fill in `@me.displayName` / `@me.email` defaults the sync resolver could
+		 * not (the e-mail is on the profile). Asked for once, and only when a default needs it.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadProfileDefaults() {
+			const needs = this.resolvedFields.filter((f) => typeof f.default === 'string' && /^@me\.(email|displayName)$/.test(f.default))
+			if (needs.length === 0) {
+				return
+			}
+			this.meProfile = await loadCurrentUserProfile()
+			for (const field of needs) {
+				const current = this.formData[field.key]
+				const value = resolveFilterValue(field.default, { me: this.meProfile })
+				if ((current === null || current === undefined || current === '') && !this.touchedFields[field.key] && value !== field.default) {
+					this.formData[field.key] = value
+				}
+			}
 		},
 
 		/**
@@ -1973,6 +2262,110 @@ export default {
 						}
 					}
 				}
+			}
+		},
+
+		/**
+		 * Request the options of a concept-scheme field from OpenRegister and
+		 * cache their labels. A failed or empty answer flips the field to the
+		 * text fallback; a held value the options no longer offer is resolved
+		 * through the concept route and marked.
+		 *
+		 * @param {object} field The coded field.
+		 * @return {Promise<Array<{id: string, label: string}>>} The options in OpenRegister's order.
+		 */
+		async fetchCodedOptions(field) {
+			const code = field.codeList
+			const params = { schema: String((this.schema && (this.schema.id ?? this.schema.slug)) ?? ''), property: code.property, language: getLanguage() }
+			if (code.contextProperty) {
+				const ctx = this.formData[code.contextProperty]
+				if (ctx !== undefined && ctx !== null && ctx !== '') {
+					params.context = String(ctx)
+				}
+			}
+			let options = []
+			try {
+				const response = await axios.get(generateUrl('/apps/openregister/api/vocabulary/options'), { params })
+				const data = response && response.data ? response.data : {}
+				if (data.scheme) {
+					this.codedSchemes = { ...this.codedSchemes, [field.key]: data.scheme }
+				}
+				options = (Array.isArray(data.results) ? data.results : [])
+					.filter((o) => o && o.value !== undefined && o.value !== null)
+					.map((o) => ({ id: String(o.value), label: o.label || o.notation || String(o.value) }))
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error(`CnFormDialog: vocabulary options failed for field "${field.key}":`, err)
+			}
+			this.codedFailed = { ...this.codedFailed, [field.key]: options.length === 0 }
+			const labels = {}
+			for (const o of options) {
+				labels[o.id] = o.label
+			}
+			this.referenceLabels = { ...this.referenceLabels, ...labels }
+			const offered = new Set(options.map((o) => o.id))
+			const held = this.formData[field.key]
+			for (const value of (Array.isArray(held) ? held : [held])) {
+				if (value !== undefined && value !== null && value !== '' && !offered.has(String(value))) {
+					this.resolveRetiredCode(field, String(value))
+				}
+			}
+			return options
+		},
+
+		/**
+		 * Show a held value the scheme no longer offers by its label, marked
+		 * "no longer offered", resolved through OpenRegister's concept route.
+		 *
+		 * @param {object} field The coded field.
+		 * @param {string} value The stored value (uri, or notation per `store`).
+		 * @return {Promise<void>}
+		 */
+		async resolveRetiredCode(field, value) {
+			const marker = t('nextcloud-vue', 'no longer offered')
+			let label = value
+			try {
+				const url = field.codeList.store === 'notation'
+					? generateUrl('/apps/openregister/api/vocabulary/concept/notation')
+					: generateUrl('/apps/openregister/api/vocabulary/concept')
+				const params = field.codeList.store === 'notation'
+					? { scheme: this.codedSchemes[field.key] || '', notation: value }
+					: { uri: value }
+				const response = await axios.get(url, { params, headers: { 'Accept-Language': getLanguage() } })
+				const d = response && response.data ? response.data : {}
+				const concept = d.concept || d
+				label = concept.label || concept.prefLabel || concept.notation || value
+			} catch {
+				// Unresolvable: the raw value is the best label left.
+			}
+			this.referenceLabels = { ...this.referenceLabels, [value]: `${label} (${marker})` }
+		},
+
+		/**
+		 * The text shown in the fallback input of a coded field.
+		 *
+		 * @param {object} field The coded field.
+		 * @return {string} The held value as text; several values are comma-separated.
+		 */
+		codedFallbackText(field) {
+			const v = this.formData[field.key]
+			if (Array.isArray(v)) {
+				return v.join(', ')
+			}
+			return v === undefined || v === null ? '' : String(v)
+		},
+
+		/**
+		 * Write the fallback input back: a string, or an array for several choices.
+		 *
+		 * @param {object} field The coded field.
+		 * @param {string} text The typed text.
+		 */
+		onCodedFallbackInput(field, text) {
+			if (field.codeList.multiple) {
+				this.updateField(field.key, text.split(',').map((x) => x.trim()).filter(Boolean))
+			} else {
+				this.updateField(field.key, text)
 			}
 		},
 
@@ -2129,6 +2522,33 @@ export default {
 			// Drop the form-data of any field that just became hidden so a
 			// stale value isn't submitted (#327).
 			this.pruneHiddenFields()
+			// A hand edit ends this field's own rules; other fields may follow it.
+			delete this.assignedFrom[key]
+			this.runAssignments([key])
+		},
+
+		/**
+		 * Fill in fields from other answers (`assign` rules on the field, for
+		 * example through `fieldOverrides`). `changed` names the answers that just
+		 * changed; `null` is the pass when the form opens, over empty fields. A
+		 * field the person edited by hand is left alone.
+		 *
+		 * @param {string[]|null} changed Keys that changed.
+		 */
+		runAssignments(changed) {
+			const { values, from } = computeAssignments({
+				fields: this.resolvedFields,
+				answers: this.formData,
+				changed,
+				edited: Object.keys(this.touchedFields).filter((k) => this.touchedFields[k]),
+				ctx: { me: this.meProfile, object: this.formData },
+			})
+			for (const key of Object.keys(values)) {
+				this.formData[key] = values[key]
+				delete this.errors[key]
+				const source = this.resolvedFields.find((f) => f.key === from[key])
+				this.assignedFrom[key] = source ? source.label : from[key]
+			}
 		},
 
 		/**
@@ -2541,7 +2961,27 @@ export default {
 		 * @return {boolean}
 		 */
 		isIdPickerField(field) {
-			return this.isReferenceField(field) || this.isUserField(field) || this.isGroupField(field)
+			return this.isReferenceField(field) || this.isUserField(field) || this.isGroupField(field) || this.isCodedField(field)
+		},
+
+		/**
+		 * A single choice bound to an OpenRegister concept scheme.
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isCodedField(field) {
+			return !!(field.codeList && !field.codeList.multiple)
+		},
+
+		/**
+		 * Several choices bound to an OpenRegister concept scheme.
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isCodedArrayField(field) {
+			return !!(field.codeList && field.codeList.multiple)
 		},
 
 		/**
@@ -2551,7 +2991,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isIdPickerArrayField(field) {
-			return this.isReferenceArrayField(field) || this.isUserArrayField(field) || this.isGroupArrayField(field)
+			return this.isReferenceArrayField(field) || this.isUserArrayField(field) || this.isGroupArrayField(field) || this.isCodedArrayField(field)
 		},
 
 		/**
@@ -2965,6 +3405,84 @@ export default {
 			this.nestedCreate = null
 			if (pending) {
 				pending.resolve(null)
+			}
+		},
+
+		/**
+		 * Write a value at a plain or dotted key; a dotted key reaches a field
+		 * of an object property.
+		 *
+		 * @param {string} key   Field key, or `parent.child`.
+		 * @param {*}      value The value to write.
+		 */
+		writeDotted(key, value) {
+			if (Object.hasOwn(this.formData, key) || !key.includes('.')) {
+				this.updateField(key, value)
+				return
+			}
+			const [head, ...rest] = key.split('.')
+			const clone = JSON.parse(JSON.stringify(this.formData[head] ?? {}))
+			let cur = clone
+			rest.slice(0, -1).forEach((k) => {
+				if (cur[k] === null || typeof cur[k] !== 'object') {
+					cur[k] = {}
+				}
+				cur = cur[k]
+			})
+			cur[rest[rest.length - 1]] = value
+			this.updateField(head, clone)
+		},
+
+		/**
+		 * After a registry pick resolved, fill empty sibling fields from the
+		 * declaration's `config.fill` map and ask once before replacing typed
+		 * values. Mode `live` fills nothing.
+		 *
+		 * @param {object} field   The property-source field.
+		 * @param {{value: *}} payload The resolved answer.
+		 * @return {Promise<void>}
+		 */
+		async onPropertySourceResolved(field, payload) {
+			const source = field.propertySource
+			if (!source || source.mode !== 'default' || !source.config || !source.config.fill) {
+				return
+			}
+			const known = new Set(this.resolvedFields.map((f) => f.key))
+			const { apply, conflicts } = planPropertySourceFill(
+				source.config.fill,
+				payload.value,
+				this.formData,
+				(key) => known.has(key) || known.has(String(key).split('.')[0]),
+			)
+			apply.forEach(({ key, value }) => this.writeDotted(key, value))
+			if (conflicts.length === 0) {
+				return
+			}
+			const labelOf = (key) => {
+				const f = this.resolvedFields.find((x) => x.key === key)
+				return f ? f.label : key
+			}
+			const replace = await new Promise((resolve) => {
+				this.pendingReplace = {
+					changes: conflicts.map((c) => ({ ...c, label: labelOf(c.key), oldValue: getDotted(this.formData, c.key) })),
+					resolve,
+				}
+			})
+			if (replace) {
+				conflicts.forEach(({ key, newValue }) => this.writeDotted(key, newValue))
+			}
+		},
+
+		/**
+		 * Answer the pending replace question.
+		 *
+		 * @param {boolean} replace True to overwrite the typed values.
+		 */
+		resolveReplace(replace) {
+			const pending = this.pendingReplace
+			this.pendingReplace = null
+			if (pending) {
+				pending.resolve(replace)
 			}
 		},
 
@@ -3445,7 +3963,11 @@ export default {
 
 			try {
 				let results
-				if (this.isReferenceField(field) || this.isReferenceArrayField(field)) {
+				if (this.isCodedField(field) || this.isCodedArrayField(field)) {
+					// Options OpenRegister serves for the bound scheme: its order,
+					// its validity window, its labels in the user's language.
+					results = await this.fetchCodedOptions(field)
+				} else if (this.isReferenceField(field) || this.isReferenceArrayField(field)) {
 					// OpenRegister object reference — fetch the referenced objects.
 					results = await this.fetchReferenceOptions(field, query)
 				} else if (this.isUserField(field) || this.isUserArrayField(field)) {
@@ -3685,6 +4207,15 @@ export default {
 			for (const field of this.visibleFields) {
 				const value = this.formData[field.key]
 
+				// Child rows: a failing row blocks the submit and names row and field.
+				if (field.widget === 'child-records') {
+					const problems = this.childProblems[field.key]
+					if (Array.isArray(problems) && problems.length > 0) {
+						newErrors[field.key] = describeRowProblem(problems)
+					}
+					continue
+				}
+
 				// Required check
 				if (field.required) {
 					if (value === null || value === undefined || value === '') {
@@ -3700,6 +4231,35 @@ export default {
 				// Skip further validation if empty and not required
 				if (value === null || value === undefined || value === '') {
 					continue
+				}
+
+				// Sub-objects: every row must carry the row schema's required values.
+				if (field.widget === 'sub-objects' && Array.isArray(value) && field.items && Array.isArray(field.items.required)) {
+					for (let i = 0; i < value.length; i++) {
+						const missing = field.items.required.find((k) => {
+							const cell = value[i] ? value[i][k] : undefined
+							return cell === undefined || cell === null || cell === ''
+						})
+						if (missing !== undefined) {
+							newErrors[field.key] = t('nextcloud-vue', 'Row {n}: {field} is required.', { n: i + 1, field: missing })
+							break
+						}
+					}
+					continue
+				}
+
+				// Duration: schema minimum / maximum given as ISO strings compare in seconds.
+				if (field.widget === 'duration' && typeof value === 'string') {
+					const v0 = field.validation || {}
+					const secs = durationSeconds(value)
+					if (secs !== null && typeof v0.minimum === 'string' && durationSeconds(v0.minimum) !== null && secs < durationSeconds(v0.minimum)) {
+						newErrors[field.key] = t('nextcloud-vue', 'Minimum duration is {min}.', { min: v0.minimum })
+						continue
+					}
+					if (secs !== null && typeof v0.maximum === 'string' && durationSeconds(v0.maximum) !== null && secs > durationSeconds(v0.maximum)) {
+						newErrors[field.key] = t('nextcloud-vue', 'Maximum duration is {max}.', { max: v0.maximum })
+						continue
+					}
 				}
 
 				const v = field.validation || {}
@@ -3761,7 +4321,12 @@ export default {
 			// silently — a 200, an object back, and the answer gone. A host
 			// that ignores the second argument therefore still posts a clean
 			// payload rather than losing declared fields to undeclared ones.
-			const { base, answers: raw } = splitDynamicFormData(this.buildSubmitPayload())
+			// Publishing a draft runs the full validation above and clears the marker.
+			const submit = this.buildSubmitPayload()
+			if (this.isDraftRecord) {
+				submit[this.draftField] = false
+			}
+			const { base, answers: raw } = splitDynamicFormData(submit)
 			const answers = raw.map((answer) => ({
 				...answer,
 				declarationKey: this.dynamicOwners[DYNAMIC_KEY_PREFIX + answer.definitionId] || '',
@@ -3853,6 +4418,13 @@ export default {
 					delete payload[key]
 				}
 			}
+			// Child records are saved as their own objects after the parent,
+			// never nested in the parent's payload.
+			for (const field of this.resolvedFields) {
+				if (field.widget === 'child-records') {
+					delete payload[field.key]
+				}
+			}
 			for (const field of this.resolvedFields) {
 				if (payload[field.key] !== '') {
 					continue
@@ -3864,7 +4436,67 @@ export default {
 					payload[field.key] = null
 				}
 			}
-			return payload
+			// Files over the inline cap upload after the object is saved.
+			const split = splitHeldFiles(payload, this.resolvedFields.filter((f) => f.widget === 'file').map((f) => f.key))
+			this.heldFiles = split.held
+			this.heldKept = split.kept
+			return split.payload
+		},
+
+		/**
+		 * Size options for a file field: the property's limit, and the inline cap when the limit is above it.
+		 *
+		 * @param {object} field The resolved field.
+		 * @return {object} Props for CnFileField.
+		 */
+		fileLimits(field) {
+			const max = field.file && field.file.maxSize
+			if (!max) {
+				return {}
+			}
+			return max > INLINE_FILE_CAP ? { maxSize: max, inlineMax: INLINE_FILE_CAP } : { maxSize: max }
+		},
+
+		/**
+		 * Upload the held files of the saved object and report any that failed.
+		 *
+		 * @param {{id?: string, object?: object}} resultData The parent's result; its id is the saved object's id.
+		 * @return {Promise<object>} The result, with an `error` naming files that were not uploaded.
+		 */
+		async uploadHeld(resultData) {
+			const objectId = resultData.id || resultData.object?.id || resultData.object?.uuid || this.item?.id || this.item?.uuid
+			const schemaId = (this.schema && (this.schema.slug || this.schema.id)) || ''
+			if (!objectId || !schemaId || Object.keys(this.heldFiles).length === 0) {
+				return resultData
+			}
+			this.uploadProgress = { loaded: 0, total: 0, file: '' }
+			const outcome = await uploadHeldFiles({
+				register: this.register,
+				schema: String(schemaId),
+				objectId,
+				held: this.heldFiles,
+				kept: this.heldKept,
+				onProgress: (p) => {
+					this.uploadProgress = p
+				},
+			})
+			this.uploadProgress = null
+			this.heldKept = { ...this.heldKept, ...Object.fromEntries(Object.entries(outcome.attached).filter(([, v]) => Array.isArray(v))) }
+			this.heldFiles = heldFromFailures(outcome.failed)
+			this.uploadFailedNames = outcome.failed.map((f) => f.file.name)
+			this.pendingResult = resultData
+			if (outcome.failed.length === 0) {
+				return resultData
+			}
+			return { ...resultData, error: [resultData.error, t('nextcloud-vue', 'Saved, but some files were not uploaded: {files}', { files: this.uploadFailedNames.join(', ') })].filter(Boolean).join(' ') }
+		},
+
+		/** Try the files that did not upload again. */
+		async retryUploads() {
+			this.loading = true
+			const merged = await this.uploadHeld(this.pendingResult || { success: true })
+			this.loading = false
+			this.applyResult(merged)
 		},
 
 		/**
@@ -3876,8 +4508,47 @@ export default {
 		 */
 		setResult(resultData) {
 			this.loading = false
-			this.result = resultData
+			if (resultData && resultData.success && Object.keys(this.heldFiles).length > 0) {
+				const rows = this.resolvedFields.some((f) => f.widget === 'child-records') ? this.saveChildRecords(resultData) : Promise.resolve(resultData)
+				return rows.then((merged) => this.uploadHeld(merged)).then((merged) => this.applyResult(merged))
+			}
+			if (resultData && resultData.success && this.resolvedFields.some((f) => f.widget === 'child-records')) {
+				return this.saveChildRecords(resultData).then((merged) => this.applyResult(merged))
+			}
+			return this.applyResult(resultData)
+		},
+
+		/**
+		 * Toast the outcome of the write, unless `feedback` is off: success
+		 * names the object's title (or the schema's), a failure carries the
+		 * server's message.
+		 *
+		 * @param {{ success?: boolean, error?: string }} resultData The result being shown.
+		 */
+		reportWrite(resultData) {
+			if (!this.feedback || !resultData) {
+				return
+			}
+			const feedback = useWriteFeedback()
 			if (resultData.success) {
+				const title = objectDisplayName(this.formData || {}) || String((this.schema && this.schema.title) || '').toLowerCase()
+				feedback.success(title !== '' ? t('nextcloud-vue', 'Saved {title}', { title }) : t('nextcloud-vue', 'Saved'))
+			}
+			if (resultData.error) {
+				feedback.error(resultData.error)
+			}
+		},
+
+		/**
+		 * Show a result and, on success, auto-close.
+		 *
+		 * @param {{ success?: boolean, error?: string }} resultData The result to show.
+		 */
+		applyResult(resultData) {
+			this.result = resultData
+			this.reportWrite(resultData)
+			// A file that did not upload keeps the dialog open for Retry.
+			if (resultData.success && Object.keys(this.heldFiles).length === 0) {
 				// The values are on the server now, so the local copy has
 				// nothing left to protect. Cleared only on SUCCESS: a failed
 				// save is exactly when somebody needs their typing back.
@@ -3889,6 +4560,44 @@ export default {
 					this.$emit('close')
 				}, 2000)
 			}
+		},
+
+		/**
+		 * Save the child-records tables after the parent: one bulk save and one
+		 * bulk delete per field. A refused row is named in the result and the
+		 * parent stays saved.
+		 *
+		 * @param {{success?: boolean, error?: string, id?: string, object?: object}} resultData The parent's result; its id (or `object.id`) is the parent id.
+		 * @return {Promise<object>} The result, with an `error` listing rows that were not saved.
+		 */
+		async saveChildRecords(resultData) {
+			const fields = this.resolvedFields.filter((f) => f.widget === 'child-records' && f.childRecords)
+			if (fields.length === 0) {
+				return resultData
+			}
+			const parentId = resultData.id || resultData.object?.id || resultData.object?.uuid || this.item?.id || this.item?.uuid
+			if (!parentId) {
+				return resultData
+			}
+			const { save } = useChildRecords()
+			const lines = []
+			for (const field of fields) {
+				const outcome = await save({
+					register: this.register,
+					schema: field.childRecords.schema,
+					parentField: field.childRecords.parentField,
+					parentId,
+					original: this.childOriginals[field.key] || [],
+					rows: Array.isArray(this.formData[field.key]) ? this.formData[field.key] : [],
+				})
+				for (const failure of outcome.failed) {
+					lines.push(`${field.label}: ${failure.reason}`)
+				}
+			}
+			if (lines.length === 0) {
+				return resultData
+			}
+			return { ...resultData, error: [resultData.error, t('nextcloud-vue', 'Saved, but some rows were not saved: {rows}', { rows: lines.join('; ') })].filter(Boolean).join(' ') }
 		},
 
 		/**
@@ -3905,6 +4614,9 @@ export default {
 			this.result = null
 			this.errors = { ...this.errors, ...fieldErrors }
 			this.formError = message
+			if (this.feedback && message) {
+				useWriteFeedback().error(message)
+			}
 		},
 	},
 }

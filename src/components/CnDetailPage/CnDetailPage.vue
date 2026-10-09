@@ -116,12 +116,36 @@
 							data-testid="cn-detail-page-type-eyebrow">
 							{{ typeEyebrow }}
 						</p>
-						<h2
-							v-if="displayTitle"
-							class="cn-detail-page__title"
-							:title="displayTitle">
-							{{ displayTitle }}
-						</h2>
+						<div v-if="displayTitle || showFavouriteToggle || showFollowToggle" class="cn-detail-page__title-row">
+							<h2
+								v-if="displayTitle"
+								class="cn-detail-page__title"
+								:title="displayTitle">
+								{{ displayTitle }}
+							</h2>
+							<!-- Star and Follow beside the title (manifest `config.favourite` /
+							     `config.follow`): shown when the object carries the markers. -->
+							<span
+								v-if="showFavouriteToggle || showFollowToggle"
+								class="cn-detail-page__interactions"
+								data-testid="cn-detail-page-interactions">
+								<CnFavouriteToggle
+									v-if="showFavouriteToggle"
+									:register="register"
+									:schema="schema"
+									:objectId="String(objectId)"
+									:favourite="resolvedSelf.favourite === true" />
+								<CnFollowToggle
+									v-if="showFollowToggle"
+									:register="register"
+									:schema="schema"
+									:objectId="String(objectId)"
+									:watching="resolvedSelf.watching === true"
+									:watcherCount="typeof resolvedSelf.watcherCount === 'number' ? resolvedSelf.watcherCount : null"
+									:canManage="!!(resolvedSelf.can && resolvedSelf.can.manage === true)"
+									:notifies="followNotifies" />
+							</span>
+						</div>
 						<!--
 							@slot translation-badge
 							@description Replace the default `CnTranslatedBadge` rendered when the
@@ -136,6 +160,14 @@
 						<p v-if="description" class="cn-detail-page__description">
 							{{ resolvedDescription }}
 						</p>
+						<!-- Identifying field chips (manifest `config.headerFields`):
+						     number, status, assignee, deadline. Absent without the key. -->
+						<CnDetailHeaderChips
+							v-if="headerFields.length > 0"
+							:fields="headerFields"
+							:object="resolvedObject"
+							:schema="currentSchema"
+							:register="register" />
 						<!-- Declarative cross-schema summary chips (manifest
 						     `config.summaryAggregates`). Count/sum/avg over a
 						     related schema scoped to this object via @objectId. -->
@@ -267,6 +299,7 @@
 					:objectId="objectId"
 					:object="currentObject"
 					:config="lifecycleActions"
+					:register="register"
 					:schema="currentSchema"
 					display="menu"
 					@entries="lifecycleMenuEntries = $event"
@@ -349,7 +382,7 @@
 					:showReportBug="showReportBug && menuShowsHelpLinks"
 					:showDocumentation="showDocumentation && menuShowsHelpLinks"
 					:actionsMenuLabel="actionsMenuName"
-					:hasPrimaryItems="headerMenuGroups.length > 0"
+					:hasPrimaryItems="headerMenuGroups.length > 0 || showMarkUnread"
 					:documentationUrl="documentationUrl"
 					:docsAnchor="resolvedPageId"
 					:documentationLabel="documentationLabel || undefined"
@@ -360,7 +393,7 @@
 					testidBase="cn-detail-page"
 					@refresh="onHeaderRefresh"
 					@requestFeature="onHeaderRequestFeature">
-					<template v-if="headerMenuGroups.length" #primary-items>
+					<template v-if="headerMenuGroups.length || showMarkUnread" #primary-items>
 						<!-- One block per group. A page that groups nothing has
 						     a single captionless group, and renders exactly the
 						     flat list it always did. -->
@@ -406,6 +439,19 @@
 								</NcActionButton>
 							</template>
 						</template>
+						<!-- Mark as unread (record-unread-markers): offered when the
+						     object carries @self.unread. -->
+						<NcActionButton
+							v-if="showMarkUnread"
+							key="mark-unread"
+							data-testid="cn-detail-page-mark-unread"
+							:closeAfterClick="true"
+							@click="onMarkUnread">
+							<template #icon>
+								<EyeOffOutline :size="20" />
+							</template>
+							{{ markUnreadLabel }}
+						</NcActionButton>
 						<!-- Divides the page's own actions from the help links
 						     below. With the help links switched off there is
 						     nothing below to divide from. -->
@@ -1095,6 +1141,7 @@ import Check from 'vue-material-design-icons/Check.vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
+import EyeOffOutline from 'vue-material-design-icons/EyeOffOutline.vue'
 import FileQuestionOutline from 'vue-material-design-icons/FileQuestionOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
@@ -1109,6 +1156,8 @@ import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
+import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
+import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
@@ -1117,6 +1166,7 @@ import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.v
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
@@ -1136,7 +1186,10 @@ import {
 	stageEntry,
 	stageOf,
 } from '../../utils/detailActionModel.js'
+import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
+import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
+import { setReadState } from '../../utils/recordInteractions.js'
 import { slotRenders } from '../../utils/slotContent.js'
 import {
 	isCardWidgetDef,
@@ -1302,6 +1355,10 @@ export default {
 		CnBreadcrumbs,
 		CnStatusBadge,
 		CnSummaryAggregates,
+		CnDetailHeaderChips,
+		CnFavouriteToggle,
+		CnFollowToggle,
+		EyeOffOutline,
 		CnRelatedCollections,
 		CnBodySections,
 		CnTranslatedBadge,
@@ -1742,6 +1799,63 @@ export default {
 		schema: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Star beside the title (manifest `config.favourite`). Automatic (null):
+		 * shown when the object carries `@self.favourite`. `false` removes it.
+		 *
+		 * @type {boolean|null}
+		 */
+		favourite: {
+			type: Boolean,
+			default: null,
+		},
+
+		/**
+		 * Follow toggle beside the title (manifest `config.follow`). Automatic
+		 * (null): shown when the object carries `@self.watching`. `false`
+		 * removes it, and the read then no longer asks for `@self.can`.
+		 *
+		 * @type {boolean|null}
+		 */
+		follow: {
+			type: Boolean,
+			default: null,
+		},
+
+		/** False when the register sends no change notifications to followers; the Follow tooltip then says so. */
+		followNotifies: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Send `PUT .../read-state` once per page load after the object has
+		 * rendered, when it carries `@self.unread`. `false` (manifest
+		 * `config.markRead: false`) keeps the page from marking anything read.
+		 */
+		markRead: {
+			type: Boolean,
+			default: true,
+		},
+
+		/** After Mark as unread, go back one step in the router history. Default: stay, and emit `marked-unread`. */
+		markUnreadNavigatesBack: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Extra `_extend[]` values for the object read (for markers OpenRegister
+		 * returns only on request). `@self.can` is added whenever the Follow
+		 * toggle can render.
+		 *
+		 * @type {string[]}
+		 */
+		extend: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -2223,6 +2337,19 @@ export default {
 		},
 
 		/**
+		 * Fields shown as chips under the title (manifest `config.headerFields`):
+		 * each entry a property key, or `{ key, format, labelField, colorField,
+		 * warnWhenPast }`. `format` is `text` (default), `mono`, `badge`, `user`
+		 * or `date`. An empty value shows no chip; no row without chips.
+		 *
+		 * @type {Array<string|{key: string, format?: string, labelField?: string, colorField?: string, warnWhenPast?: boolean}>}
+		 */
+		headerFields: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Whether the type eyebrow (the type label above the record name)
 		 * renders once the record resolves. `false` (manifest
 		 * `config.showTypeEyebrow: false`) drops it for a header that says
@@ -2335,6 +2462,7 @@ export default {
 		'edited',
 		'geo-saved',
 		'layout-change',
+		'marked-unread',
 		'open-integration',
 		'refresh',
 		'related-object-click',
@@ -2489,6 +2617,8 @@ export default {
 
 	data() {
 		return {
+			/** `register/schema/id` the read-state call was last made for, so it is sent once per load. */
+			readStateSentFor: '',
 			/** Whether the user is arranging the chosen view (`userLayout`). */
 			arrangingView: false,
 			/** Whether the record edit form is open. */
@@ -3404,6 +3534,87 @@ export default {
 		},
 
 		/**
+		 * The `@self` block of the resolved object (interaction markers live here).
+		 *
+		 * @return {object}
+		 */
+		resolvedSelf() {
+			const obj = this.resolvedObject
+			return (obj && typeof obj === 'object' && obj['@self'] && typeof obj['@self'] === 'object') ? obj['@self'] : {}
+		},
+
+		/**
+		 * Whether Mark as unread is offered: the object carries `@self.unread`.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-unread-markers/tasks.md#task-2
+		 */
+		showMarkUnread() {
+			return typeof this.resolvedSelf.unread === 'boolean'
+				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
+		},
+
+		/** @return {string} Label of the Mark as unread entry. */
+		markUnreadLabel() {
+			return t('nextcloud-vue', 'Mark as unread')
+		},
+
+		/**
+		 * True once the object has rendered unread: loaded, not missing, and
+		 * carrying `@self.unread: true`. Sending `PUT .../read-state` hangs on this.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-unread-markers/tasks.md#task-2
+		 */
+		readStateDue() {
+			return this.markRead !== false
+				&& !this.objectFetchPending
+				&& !this.objectNotFound
+				&& this.resolvedSelf.unread === true
+				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
+		},
+
+		/**
+		 * Whether the star renders: the object carries `@self.favourite` and the page did not turn it off.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-favourite-and-follow/tasks.md#task-3
+		 */
+		showFavouriteToggle() {
+			return this.favourite !== false
+				&& typeof this.resolvedSelf.favourite === 'boolean'
+				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
+		},
+
+		/**
+		 * Whether the Follow toggle renders: the object carries `@self.watching` and the page did not turn it off.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-favourite-and-follow/tasks.md#task-3
+		 */
+		showFollowToggle() {
+			return this.follow !== false
+				&& typeof this.resolvedSelf.watching === 'boolean'
+				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
+		},
+
+		/**
+		 * The `_extend[]` values of the object read: the page's own, plus
+		 * `@self.can` while the Follow toggle can render (OpenRegister returns
+		 * the rights only on request, and the picker needs `manage`).
+		 *
+		 * @return {string[]}
+		 * @spec openspec/changes/record-favourite-and-follow/tasks.md#task-3
+		 */
+		readExtend() {
+			const out = [...this.extend]
+			if (this.follow !== false && !out.includes('@self.can')) {
+				out.push('@self.can')
+			}
+			return out
+		},
+
+		/**
 		 * The resolved record's human display name, drawn from the loaded
 		 * object via the same fallback chain the relation resolver uses:
 		 * `@self.name` → `name` / `title` / `displayName` → `firstName
@@ -3850,6 +4061,16 @@ export default {
 	},
 
 	watch: {
+		// Opening a record marks it read, once, after its data has rendered.
+		readStateDue: {
+			immediate: true,
+			handler(due) {
+				if (due) {
+					this.sendReadState()
+				}
+			},
+		},
+
 		// A load just settled (true → false) — remember it so later loads
 		// refresh in place (full-page spinner only on the first load). Not
 		// `immediate`: `loading` starts false before the first fetch begins,
@@ -3902,6 +4123,7 @@ export default {
 		// hoisted sidebar's `data` tab widget gets its `schema` prop.
 		currentSchema(schema) {
 			this.syncSidebarState()
+			reportBindingProblems(schema, { register: this.register, includeFields: this.includeFields })
 
 			// Put the Data widget back if the body materialized before the
 			// schema arrived. See materializeAutoBody(): fetchObject and
@@ -4454,6 +4676,46 @@ export default {
 		 * `objectId` watchers — every prop change re-runs in one
 		 * place so the request lifecycle stays predictable.
 		 */
+		/**
+		 * `PUT .../read-state`, once per register, schema and object per page load.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-unread-markers/tasks.md#task-2
+		 */
+		async sendReadState() {
+			const key = `${this.register}/${this.schema}/${this.objectId}`
+			if (this.readStateSentFor === key) {
+				return
+			}
+			this.readStateSentFor = key
+			const result = await setReadState(this.register, this.schema, String(this.objectId), true)
+			if (result.ok) {
+				patchStoredSelf(this.register, this.schema, String(this.objectId), { unread: false })
+			}
+		},
+
+		/**
+		 * Mark as unread: `DELETE .../read-state`, then `marked-unread`.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-unread-markers/tasks.md#task-2
+		 */
+		async onMarkUnread() {
+			// Fix the key first, so the unread marker coming back does not mark it read again.
+			this.readStateSentFor = `${this.register}/${this.schema}/${this.objectId}`
+			const result = await setReadState(this.register, this.schema, String(this.objectId), false)
+			if (!result.ok) {
+				import('@nextcloud/dialogs').then(({ showError }) => showError(result.message || t('nextcloud-vue', 'Could not mark this record as unread.'))).catch(() => {})
+				return
+			}
+			patchStoredSelf(this.register, this.schema, String(this.objectId), { unread: true })
+			/** @event marked-unread Emitted after the record was marked unread; the page stays open unless `markUnreadNavigatesBack`. */
+			this.$emit('marked-unread')
+			if (this.markUnreadNavigatesBack && this.$router && typeof this.$router.back === 'function') {
+				this.$router.back()
+			}
+		},
+
 		async fetchObjectIfNeeded() {
 			// Create archetype: no object to fetch, but the create form needs
 			// the schema — register the type and fetch its schema, then stop.
@@ -4499,7 +4761,7 @@ export default {
 			try {
 				const tasks = []
 				if (fetchesObject) {
-					tasks.push(store.fetchObject(type, objectId))
+					tasks.push(store.fetchObject(type, objectId, { extend: this.readExtend }))
 				}
 				if (typeof store.fetchSchema === 'function') {
 					tasks.push(store.fetchSchema(type))

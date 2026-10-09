@@ -326,8 +326,9 @@
 				variant="secondary"
 				:disabled="entry.disabled === true"
 				:data-testid="`cn-bulk-action-${entry.id}`"
+				:lang="bulkLang(entry)"
 				@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
-				{{ entry.label }}
+				{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 			</NcButton>
 			<!--
 				@slot selection-actions The host app's bulk-action buttons (NcButton family), rendered inside the contextual selection strip that appears while a selection is active. This strip is the primary bulk-actions surface; #mass-actions remains available for hosts that ALSO want the actions listed in the overflow menu (optional — strip-only is fine).
@@ -361,6 +362,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
+import CalendarMonthOutline from 'vue-material-design-icons/CalendarMonthOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -378,6 +380,7 @@ import ViewListOutline from 'vue-material-design-icons/ViewListOutline.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { isModifiedClick } from '../../utils/linkNavigation.js'
+import { labelLang } from '../../utils/manifestTranslate.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -419,6 +422,7 @@ export default {
 		Tune,
 		ViewGridOutline,
 		FormatListBulletedSquare,
+		CalendarMonthOutline,
 		MapMarkerOutline,
 	},
 
@@ -529,19 +533,19 @@ export default {
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map', 'calendar'].includes(v),
 		},
 
 		/**
 		 * Which view-mode segments to render, in order. Defaults to the
 		 * historical two-segment control; add `'list'` to expose the list view.
 		 *
-		 * @type {Array<'cards' | 'table' | 'list'>}
+		 * @type {Array<'cards' | 'table' | 'list' | 'calendar'>}
 		 */
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list'].includes(m)),
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'calendar'].includes(m)),
 		},
 
 		/** Whether to show the view-mode toggle */
@@ -880,6 +884,7 @@ export default {
 				table: { label: this.tableLabel || t('nextcloud-vue', 'Table'), icon: this.tableIcon, fallback: FormatListBulletedSquare },
 				list: { label: this.listLabel || t('nextcloud-vue', 'List'), icon: this.listIcon, fallback: ViewListOutline },
 				map: { label: this.mapLabel || t('nextcloud-vue', 'Map'), icon: this.mapIcon, fallback: MapMarkerOutline },
+				calendar: { label: t('nextcloud-vue', 'Calendar'), icon: '', fallback: CalendarMonthOutline },
 			}
 			const modes = [...this.availableViewModes]
 			if (this.showMap && !modes.includes('map')) {
@@ -942,6 +947,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The `lang` of a bulk action label that fell back to its written text in another language.
+		 *
+		 * @param {object} entry The bulk action.
+		 * @return {string|undefined} The source language, or undefined.
+		 */
+		bulkLang(entry) {
+			return labelLang(this.cnTranslate, entry.label) || undefined
+		},
+
 		t,
 		/**
 		 * Forward the inline search field's input to the host.

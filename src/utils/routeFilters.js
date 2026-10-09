@@ -123,7 +123,9 @@ export function resolveQueryFilters(query, ctx) {
 	}
 	const out = {}
 	for (const [k, v] of Object.entries(query)) {
-		if (k.startsWith('_')) {
+		// `contentSearch` is the index page's own "search inside files" switch,
+		// not a filter on the records.
+		if (k.startsWith('_') || k === 'contentSearch') {
 			continue
 		}
 		if (v === undefined || v === null || v === '') {

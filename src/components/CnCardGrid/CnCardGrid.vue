@@ -8,11 +8,11 @@
 		<!-- Empty state -->
 		<div v-else-if="objects.length === 0" class="cn-card-grid__empty">
 			<slot name="empty">
-				<NcEmptyContent :name="resolvedEmptyText">
+				<CnEmptyContent :name="resolvedEmptyText">
 					<template #icon>
 						<ViewGrid :size="64" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</slot>
 		</div>
 
@@ -49,8 +49,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcLoadingIcon } from '@nextcloud/vue'
 import ViewGrid from 'vue-material-design-icons/ViewGrid.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import { CnObjectCard } from '../CnObjectCard/index.js'
 
 /**
@@ -78,7 +79,7 @@ export default {
 
 	components: {
 		NcLoadingIcon,
-		NcEmptyContent,
+		CnEmptyContent,
 		ViewGrid,
 		CnObjectCard,
 	},

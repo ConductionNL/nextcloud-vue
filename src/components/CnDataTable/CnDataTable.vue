@@ -100,7 +100,11 @@
 				<thead v-if="!hideHeader">
 					<tr>
 						<!-- Checkbox column -->
-						<th v-if="selectable" class="cn-table-col--checkbox">
+						<th
+							v-if="selectable"
+							class="cn-table-col--checkbox"
+							:class="pinClass(0)"
+							:style="pinStyle(0)">
 							<NcCheckboxRadioSwitch
 								:modelValue="allSelected"
 								:indeterminate="someSelected && !allSelected"
@@ -109,17 +113,22 @@
 						</th>
 
 						<!-- Leading icon column (header is intentionally blank) -->
-						<th v-if="rowIcon" class="cn-table-col--icon" />
+						<th
+							v-if="rowIcon"
+							class="cn-table-col--icon"
+							:class="pinClass(selectable ? 1 : 0)"
+							:style="pinStyle(selectable ? 1 : 0)" />
 
 						<!-- Data columns -->
 						<th
-							v-for="col in effectiveColumns"
+							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
 							:class="[
 								col.sortable ? 'cn-table-header--sortable' : '',
 								col.class || '',
+								pinClass(leadingCount + colIndex),
 							]"
-							:style="col.width ? { width: col.width } : {}"
+							:style="{ ...(col.width ? { width: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							:tabindex="col.sortable ? 0 : null"
 							:aria-sort="ariaSortFor(col)"
 							:data-filtered="isColumnFiltered(col) ? 'true' : null"
@@ -188,6 +197,7 @@
 						:class="[
 							isSelected(row) ? 'cn-table-row--selected' : '',
 							rowLinks[String(row[rowKey])] ? 'cn-table-row--linked' : '',
+							isUnreadRow(row) ? 'cn-table-row--unread' : '',
 							rowClass ? rowClass(row) : '',
 						]"
 						@mousedown="onRowMouseDown"
@@ -197,6 +207,8 @@
 						<!-- Checkbox -->
 						<td v-if="selectable"
 							class="cn-table-col--checkbox"
+							:class="pinClass(0)"
+							:style="pinStyle(0)"
 							@click.stop
 							@auxclick.stop>
 							<NcCheckboxRadioSwitch
@@ -206,7 +218,11 @@
 						</td>
 
 						<!-- Leading icon -->
-						<td v-if="rowIcon" class="cn-table-col--icon">
+						<td
+							v-if="rowIcon"
+							class="cn-table-col--icon"
+							:class="pinClass(selectable ? 1 : 0)"
+							:style="pinStyle(selectable ? 1 : 0)">
 							<CnIcon :name="getRowIcon(row)" :size="20" />
 						</td>
 
@@ -214,8 +230,8 @@
 						<td
 							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
-							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
-							:style="col.width ? { maxWidth: col.width } : {}"
+							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex)]"
+							:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							@mouseenter="titleWhenClipped">
 							<!-- A row with a `rowClickRoute` is a real link: this anchor
 							     is stretched over the whole row by CSS, so hovering shows
@@ -235,6 +251,8 @@
 							     customising their own data, not opting out of being told
 							     the record is locked. It renders nothing when unlocked,
 							     so an unlocked table is byte-for-byte what it was. -->
+							<CnUnreadMarker
+								v-if="colIndex === 0 && isUnreadRow(row)" />
 							<CnLockIndicator
 								v-if="colIndex === 0"
 								:object="row"
@@ -286,6 +304,13 @@
 								v-if="secondaryValue(row, col)"
 								class="cn-table-cell__secondary"
 								data-testid="cn-cell-secondary">{{ secondaryValue(row, col) }}</span>
+							<!-- A row that entered a file-content search through an attached
+							     file names it (OpenRegister `@self.matchedFile`): plain text,
+							     file name only, under the first cell. -->
+							<span
+								v-if="colIndex === 0 && matchedFileOf(row)"
+								class="cn-table-cell__secondary cn-table-cell__matched-file"
+								data-testid="cn-row-matched-file">{{ matchedFileLabel(row) }}</span>
 						</td>
 
 						<!-- Row actions -->
@@ -355,6 +380,7 @@ import { columnsFromSchema } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
+import { CnUnreadMarker } from '../CnUnreadMarker/index.js'
 
 // CnDataTable has no scoped styles of its own — its entire look lives in the
 // shared table stylesheet. Import it here so the table is styled even when the
@@ -454,6 +480,7 @@ export default {
 		CnColumnFilterPopover,
 		CnIcon,
 		CnLockIndicator,
+		CnUnreadMarker,
 		FilterIcon,
 		FilterOutline,
 	},
@@ -712,6 +739,16 @@ export default {
 		},
 
 		/**
+		 * How many data columns are pinned to the start of the table. They (and the
+		 * selection and icon columns, which are pinned whenever any column is) stay
+		 * in view when the table scrolls sideways.
+		 */
+		pinnedCount: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
 		 * Hide the column-header row (`<thead>`). Useful for compact dashboard
 		 * list widgets that want a plain bordered-row list without column labels.
 		 */
@@ -871,6 +908,8 @@ export default {
 
 	data() {
 		return {
+			/** Left offsets (px) of the leading pinned cells, measured from the header. */
+			pinOffsets: [],
 			/** Key of the column whose filter panel is open, or ''. */
 			openFilterKey: '',
 			/** The open filter button's bounding rect, to place the panel. */
@@ -903,6 +942,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {number} Leading cells before the data columns (selection, icon). */
+		leadingCount() {
+			return (this.selectable ? 1 : 0) + (this.rowIcon ? 1 : 0)
+		},
+
 		/**
 		 * Accessible name for the horizontal scrollport when it becomes a tab
 		 * stop. Prefers the table's own `title` so the announcement identifies
@@ -1196,6 +1240,38 @@ export default {
 
 	methods: {
 		/**
+		 * Whether a row's record changed since the user last looked
+		 * (`@self.unread`). A row without the marker renders as it always did.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean} True when the row is unread.
+		 */
+		isUnreadRow(row) {
+			return !!(row && row['@self'] && row['@self'].unread === true)
+		},
+
+		/**
+		 * The attached file a row was found through in a file-content search.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The file name, or '' when the row matched on a field.
+		 */
+		matchedFileOf(row) {
+			const name = row && row['@self'] && row['@self'].matchedFile
+			return typeof name === 'string' ? name : ''
+		},
+
+		/**
+		 * The "Found in {file}" line for a row found through an attached file.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The translated line.
+		 */
+		matchedFileLabel(row) {
+			return t('nextcloud-vue', 'Found in {file}', { file: this.matchedFileOf(row) })
+		},
+
+		/**
 		 * The declared indicators that apply to one row, split into the ones
 		 * that fit on the row and the ones that go to the row menu.
 		 *
@@ -1241,6 +1317,73 @@ export default {
 		},
 
 		/**
+		 * Whether the cell at this position (selection, icon, then data columns)
+		 * is pinned. Position 0 is the first cell of the row.
+		 *
+		 * @param {number} index The cell's position in the row.
+		 * @return {boolean} True for a pinned cell.
+		 */
+		isPinnedAt(index) {
+			return this.pinnedCount > 0 && index < this.leadingCount + this.pinnedCount
+		},
+
+		/**
+		 * CSS classes of a pinned cell; the last pinned one gets the edge.
+		 *
+		 * @param {number} index The cell's position in the row.
+		 * @return {object} The class map.
+		 */
+		pinClass(index) {
+			const pinned = this.isPinnedAt(index)
+			return {
+				'cn-table-col--pinned': pinned,
+				'cn-table-col--pinned-last': pinned && index === this.leadingCount + this.pinnedCount - 1,
+			}
+		},
+
+		/**
+		 * Sticky offset of a pinned cell: the summed width of the cells before it.
+		 *
+		 * @param {number} index The cell's position in the row.
+		 * @return {object} The inline style, empty for a cell that scrolls.
+		 */
+		pinStyle(index) {
+			if (!this.isPinnedAt(index)) {
+				return {}
+			}
+			return { left: `${this.pinOffsets[index] || 0}px` }
+		},
+
+		/**
+		 * Measure the pinned cells so each sticky offset is the width of those
+		 * before it. Cheap when nothing is pinned.
+		 *
+		 * @return {void}
+		 */
+		measurePins() {
+			if (this.pinnedCount <= 0) {
+				if (this.pinOffsets.length > 0) {
+					this.pinOffsets = []
+				}
+				return
+			}
+			const row = this.$el && this.$el.querySelector ? this.$el.querySelector('thead tr, tbody tr') : null
+			if (!row) {
+				return
+			}
+			const count = this.leadingCount + this.pinnedCount
+			const offsets = []
+			let left = 0
+			for (let i = 0; i < count && i < row.children.length; i++) {
+				offsets.push(left)
+				left += row.children[i].offsetWidth || 0
+			}
+			if (offsets.join() !== this.pinOffsets.join()) {
+				this.pinOffsets = offsets
+			}
+		},
+
+		/**
 		 * Start watching the scrollport for horizontal overflow.
 		 *
 		 * @return {void}
@@ -1269,6 +1412,7 @@ export default {
 		 * @return {void}
 		 */
 		measureScrollOverflow() {
+			this.measurePins()
 			const el = this.$refs.scrollEl
 			// 1px of tolerance: sub-pixel layout rounding otherwise reports a
 			// table that visually fits as scrollable, which would put a tab

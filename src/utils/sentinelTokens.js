@@ -67,7 +67,7 @@
  * @type {Readonly<Record<string, string>>}
  */
 export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
-	filter: '^@(?:me|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$',
+	filter: '^@(?:me(?:\\.(?:displayName|email))?|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$',
 	config: '^@resolve:[a-z][a-z0-9_-]*$|^@config\\.[A-Za-z][A-Za-z0-9_.]*\\??$',
 	object: '^@objectId$|^@object\\.[A-Za-z][A-Za-z0-9_]*$',
 	workspace: '^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$',
@@ -81,6 +81,8 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 	// sentinelGuardedValue-guarded pages[].config subtree for the first time
 	// via config.fields[].visibleWhen.
 	visibleWhen: '^@total$',
+	// form-live-values: another answer in the same form, read by a field's `assign` rule.
+	answer: '^@answer\\.[A-Za-z][A-Za-z0-9_]*$',
 	// Deprecated-but-not-yet-removed tokens. Kept in the schema union so
 	// deployed manifests still validate during the migration window; the gate
 	// downgrades them to a WARN (see SENTINEL_DEPRECATIONS).
@@ -101,6 +103,7 @@ export const SENTINEL_CONTEXTS = Object.freeze([
 	'route',
 	'declarative',
 	'visibleWhen',
+	'answer',
 ])
 
 /**
@@ -114,7 +117,7 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 	filter: {
 		resolver: 'resolveFilterTokens',
 		description: 'Relative fetch-time tokens (current user / relative dates).',
-		members: ['@me', '@now', '@today', '@today±Nd', '@monthStart', '@quarterStart', '@yearStart'],
+		members: ['@me', '@me.displayName', '@me.email', '@now', '@today', '@today±Nd', '@monthStart', '@quarterStart', '@yearStart'],
 	},
 	config: {
 		resolver: 'resolveManifestSentinels / resolveFilterTokens',
@@ -145,6 +148,11 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		resolver: 'evaluateVisibleWhen (utils/visibleWhen.js)',
 		description: 'The shared visibleWhen predicate\'s source-mode collection-total marker. `field: "@total"` (or an omitted `field`) compares the collection total instead of the first result.',
 		members: ['@total'],
+	},
+	answer: {
+		resolver: 'resolveAssignValue (utils/formAssign.js)',
+		description: 'Another answer in the same form, read by a field\'s `assign` rule.',
+		members: ['@answer.<field>'],
 	},
 })
 

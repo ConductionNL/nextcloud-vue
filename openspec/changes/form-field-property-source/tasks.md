@@ -11,8 +11,8 @@
   - `propertySource: {provider, mode, config}` on the descriptor, defaults `live` and `{}`
   - Widget `property-source` unless an override names another widget
   - JSDoc return type updated
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: CnPropertySourceField
 - **spec_ref**: `openspec/changes/form-field-property-source/specs/form-property-source-field/spec.md#requirement-without-a-working-lookup-the-field-is-a-plain-text-field-that-saves`
@@ -21,8 +21,8 @@
   - Debounced suggest from 3 characters; `NcSelect` with `inputLabel`
   - Resolve before the value is set; emits `resolved` with `{value, provenance}`
   - Provenance line; plain text fallback with a reason for every case in design D5 and D6
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Fill map and replace prompt in CnFormDialog
 - **spec_ref**: `openspec/changes/form-field-property-source/specs/form-property-source-field/spec.md#requirement-a-pick-fills-empty-sibling-fields-and-asks-before-replacing`
@@ -32,5 +32,5 @@
   - Empty targets filled; differing filled targets listed in one dialog; decline keeps them
   - Mode `live` fills nothing; no resolve on a later edit in mode `default`
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

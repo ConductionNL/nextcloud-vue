@@ -46,7 +46,7 @@
 - [ ] 4.4 Hydra-gates canonical schema
       (`ConductionNL/.github` `hydra-gates/scripts/schemas/app-manifest-v2.schema.json`,
       JSON path `$.$defs.page.properties.config.properties.entitySource.enum`)
-      gains `"tasks"` in its own PR. Tracked here; not in this repo.
+      gains `"tasks"` in its own PR. Tracked here; not in this repo. — not run: needs ConductionNL/.github
 
 ## 5. Tests
 
@@ -65,7 +65,7 @@
 - [x] 6.1 `npm test`, `npm run lint`, `npm run stylelint`,
       `npm run check:docs`, `npm run check:jsdoc` all green.
 - [ ] 6.2 Live verification against a running openregister. Not possible
-      from this standalone clone; left unticked on purpose.
+      from this standalone clone; left unticked on purpose. — not run: needs a live instance
 
 ## Acceptance criteria
 
