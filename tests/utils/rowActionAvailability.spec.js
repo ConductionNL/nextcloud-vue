@@ -49,6 +49,109 @@ describe('built-in row actions', () => {
 	})
 })
 
+describe('built-in row actions and OpenRegister permission verbs', () => {
+	const BUILTINS = [
+		{ id: 'view', builtin: true, label: 'View' },
+		{ id: 'edit', builtin: true, label: 'Edit' },
+		{ id: 'copy', builtin: true, label: 'Copy' },
+		{ id: 'delete', builtin: true, label: 'Delete' },
+	]
+	const ids = (actions) => actions.map((a) => a.id)
+
+	it('keeps all four built-ins for the block OpenRegister writes on show()', () => {
+		const row = rowWith(['read', 'update', 'delete', 'destroy', 'export', 'assign'])
+		expect(ids(availableRowActions(BUILTINS, row))).toEqual(['view', 'edit', 'copy', 'delete'])
+	})
+
+	it('lets read permit View and Copy, update Edit and delete Delete', () => {
+		expect(ids(availableRowActions(BUILTINS, rowWith(['read'])))).toEqual(['view', 'copy'])
+		expect(ids(availableRowActions(BUILTINS, rowWith(['update'])))).toEqual(['edit'])
+		expect(ids(availableRowActions(BUILTINS, rowWith(['delete'])))).toEqual(['delete'])
+	})
+
+	it('reads the verbs from a map of booleans', () => {
+		const row = rowWith({ read: true, update: false, delete: true })
+		expect(ids(availableRowActions(BUILTINS, row))).toEqual(['view', 'copy', 'delete'])
+	})
+
+	it('reads the verbs from a map of allowed and reason', () => {
+		const row = rowWith({ read: { allowed: true }, update: { allowed: false, reason: 'The case is closed' } })
+		expect(ids(availableRowActions(BUILTINS, row))).toEqual(['view', 'copy'])
+	})
+
+	it('reads the verbs from a list of allowed and reason entries', () => {
+		const row = rowWith([{ id: 'read' }, { id: 'update', allowed: false, reason: 'The case is closed' }])
+		expect(ids(availableRowActions(BUILTINS, row))).toEqual(['view', 'copy'])
+		expect(refusalReasonFor(BUILTINS[1], row)).toBe('The case is closed')
+	})
+
+	it('adds the verbs to the ids rather than replacing them', () => {
+		expect(ids(availableRowActions(BUILTINS, rowWith(['view', 'update'])))).toEqual(['view', 'edit'])
+		expect(ids(availableRowActions(BUILTINS, rowWith({ edit: false, update: true })))).toEqual(['edit'])
+	})
+
+	it('still hides a built-in the block names by neither its id nor its verb', () => {
+		expect(ids(availableRowActions(BUILTINS, rowWith(['export', 'assign'])))).toEqual([])
+	})
+
+	it('leaves an app action that shares a built-in id to exact matching', () => {
+		const app = [{ id: 'edit', label: 'Open editor' }, { id: 'view', label: 'Preview' }]
+		expect(availableRowActions(app, rowWith(['read', 'update']))).toEqual([])
+		expect(ids(availableRowActions(app, rowWith(['edit'])))).toEqual(['edit'])
+	})
+
+	it('hands a built-in the reason its verb was refused with', () => {
+		const row = rowWith({ read: true, update: { allowed: false, reason: 'The case is closed' } })
+		expect(refusalReasonFor(BUILTINS[1], row)).toBe('The case is closed')
+		expect(refusalReasonFor(BUILTINS[0], row)).toBe('')
+	})
+
+	it('gives no reason for a built-in its own id allows, whatever its verb says', () => {
+		const row = rowWith({ edit: true, update: { allowed: false, reason: 'The case is closed' } })
+		expect(ids(availableRowActions(BUILTINS, row))).toEqual(['edit'])
+		expect(refusalReasonFor(BUILTINS[1], row)).toBe('')
+	})
+
+	it('gives no reason for a built-in its verb allows, whatever its own id says', () => {
+		const row = rowWith({ update: true, edit: { allowed: false, reason: 'Edit is off here' } })
+		expect(ids(availableRowActions(BUILTINS, row))).toEqual(['edit'])
+		expect(refusalReasonFor(BUILTINS[1], row)).toBe('')
+	})
+
+	it('prefers the reason on the built-in id over the one on its verb', () => {
+		const row = rowWith({
+			edit: { allowed: false, reason: 'Edit is off here' },
+			update: { allowed: false, reason: 'The case is closed' },
+		})
+		expect(refusalReasonFor(BUILTINS[1], row)).toBe('Edit is off here')
+	})
+
+	it('does not lend a verb reason to an app action sharing a built-in id', () => {
+		const row = rowWith({ update: { allowed: false, reason: 'The case is closed' } })
+		expect(refusalReasonFor({ id: 'edit', label: 'Open editor' }, row)).toBe('')
+	})
+
+	it('does not report a verb a declared built-in consumes as undeclared', () => {
+		const row = rowWith(['read', 'update', 'delete', 'destroy', 'export', 'assign'])
+		expect(undeclaredRowActions(BUILTINS, row)).toEqual(['assign', 'destroy', 'export'])
+		expect(undeclaredRowActions([BUILTINS[0]], row)).toEqual(['assign', 'delete', 'destroy', 'export', 'update'])
+	})
+
+	it('counts read as declared when Copy is the only built-in declared', () => {
+		expect(undeclaredRowActions([BUILTINS[2]], rowWith(['read', 'update']))).toEqual(['update'])
+	})
+
+	it('keeps View when its id is allowed and read is refused', () => {
+		const row = rowWith({ view: true, read: { allowed: false, reason: 'Hidden from you' } })
+		expect(ids(availableRowActions(BUILTINS, row))).toEqual(['view'])
+		expect(refusalReasonFor(BUILTINS[0], row)).toBe('')
+	})
+
+	it('reports a verb as undeclared when only an app action shares the built-in id', () => {
+		expect(undeclaredRowActions([{ id: 'edit', label: 'Open editor' }], rowWith(['update']))).toEqual(['update'])
+	})
+})
+
 describe('readRowAvailability', () => {
 	it('reads a list of ids', () => {
 		const { known, allowed } = readRowAvailability(rowWith(['assign', 'close']))
