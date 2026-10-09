@@ -573,14 +573,15 @@
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
 					@rowContextMenu="onRowContextMenu">
-					<!-- Star column (showFavouriteColumn) -->
-					<template v-if="showFavouriteColumn" #column-__favourite="{ row }">
-						<CnFavouriteToggle
-							v-if="row && row['@self'] && typeof row['@self'].favourite === 'boolean'"
+					<!-- Follow column (showFollowColumn, or the deprecated showFavouriteColumn) -->
+					<template v-if="followColumnOn" #column-__follow="{ row }">
+						<CnFollowToggle
+							v-if="row && row['@self'] && typeof row['@self'].watching === 'boolean'"
+							compact
 							:register="typeof register === 'string' ? register : ''"
 							:schema="favouriteSchemaSlug"
 							:objectId="String(row['@self'].id || row.id || '')"
-							:favourite="row['@self'].favourite === true" />
+							:watching="row['@self'].watching === true" />
 					</template>
 
 					<!-- Pass through column slots -->
@@ -954,7 +955,7 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
-import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
+import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
@@ -1035,8 +1036,8 @@ const CALENDAR_PAGE_SIZE = 200
  */
 const RANGE_SEPARATOR = '..'
 
-/** Key of the synthetic star column (`showFavouriteColumn`). */
-const FAVOURITE_COLUMN_KEY = '__favourite'
+/** Key of the synthetic follow column (`showFollowColumn`). */
+const FOLLOW_COLUMN_KEY = '__follow'
 
 /**
  * Whether a schema property wants a from/to pair rather than a value list.
@@ -1238,7 +1239,7 @@ export default {
 
 	components: {
 		CnBuildiqEditButton,
-		CnFavouriteToggle,
+		CnFollowToggle,
 		NcLoadingIcon,
 		CnEmptyContent,
 		NcActions,
@@ -1563,9 +1564,10 @@ export default {
 		},
 
 		/**
-		 * Personal lenses appended to the quick filters: any of `favourite`
-		 * (`_favourite`), `recent` (`_recent`), `watching` (`_watching`) and
-		 * `unread` (`_unread`).
+		 * Personal lenses appended to the quick filters: any of `watching`
+		 * (`_watching`, labelled Following), `recent` (`_recent`) and `unread`
+		 * (`_unread`). `favourite` is a deprecated alias of `watching`: a
+		 * favourite is a follow now, and asking for both gives one tab.
 		 * They combine with every other filter. While Recent is active column
 		 * sorting is off, because the lens owns the order. Manifest
 		 * `config.personalLenses`.
@@ -1578,9 +1580,20 @@ export default {
 		},
 
 		/**
-		 * Add a first column with a star per row (`CnFavouriteToggle`), bound to
-		 * each row's `@self.favourite`. Clicking it does not open the row.
-		 * Manifest `config.showFavouriteColumn`.
+		 * Add a first column with a follow toggle per row (`CnFollowToggle`,
+		 * compact), bound to each row's `@self.watching`. Clicking it does not
+		 * open the row. Manifest `config.showFollowColumn`.
+		 */
+		showFollowColumn: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Deprecated alias of `showFollowColumn`: the star column became the
+		 * follow column (OpenRegister `merge-follow-and-favourites`).
+		 *
+		 * @deprecated Use `showFollowColumn`.
 		 */
 		showFavouriteColumn: {
 			type: Boolean,
@@ -4139,10 +4152,20 @@ export default {
 			if (this.recentLensActive) {
 				cols = cols.map((col) => (col && typeof col === 'object' ? { ...col, sortable: false } : col))
 			}
-			if (this.showFavouriteColumn && this.favouriteSchemaSlug !== '') {
-				cols = [{ key: FAVOURITE_COLUMN_KEY, label: '', sortable: false, width: '48px' }, ...cols]
+			if (this.followColumnOn && this.favouriteSchemaSlug !== '') {
+				cols = [{ key: FOLLOW_COLUMN_KEY, label: '', sortable: false, width: '48px' }, ...cols]
 			}
 			return cols
+		},
+
+		/**
+		 * Whether the follow column renders (`showFollowColumn`, or the deprecated `showFavouriteColumn`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/one-follow-control/specs/record-follow/spec.md#requirement-index-pages-offer-one-following-lens-and-a-follow-column
+		 */
+		followColumnOn() {
+			return this.showFollowColumn || this.showFavouriteColumn
 		},
 
 		/**
@@ -4159,7 +4182,7 @@ export default {
 		},
 
 		/**
-		 * Schema slug the star column calls with: the page's own slug in self-fetch
+		 * Schema slug the follow column calls with: the page's own slug in self-fetch
 		 * mode, else the schema object's `slug`. Empty when neither is known.
 		 *
 		 * @return {string}

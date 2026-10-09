@@ -116,7 +116,7 @@
 							data-testid="cn-detail-page-type-eyebrow">
 							{{ typeEyebrow }}
 						</p>
-						<div v-if="displayTitle || showFavouriteToggle || showFollowToggle" class="cn-detail-page__title-row">
+						<div v-if="displayTitle || showFollowToggle" class="cn-detail-page__title-row">
 							<component
 								:is="isBoard ? 'h1' : 'h2'"
 								v-if="displayTitle"
@@ -124,24 +124,19 @@
 								:title="displayTitle">
 								{{ displayTitle }}
 							</component>
-							<!-- Star and Follow beside the title (manifest `config.favourite` /
-							     `config.follow`): shown when the object carries the markers. -->
+							<!-- The one Follow control beside the title (manifest `config.follow`):
+							     shown when the object carries `@self.watching`. There is no star:
+							     a favourite is a follow with notifications off. -->
 							<span
-								v-if="showFavouriteToggle || showFollowToggle"
+								v-if="showFollowToggle"
 								class="cn-detail-page__interactions"
 								data-testid="cn-detail-page-interactions">
-								<CnFavouriteToggle
-									v-if="showFavouriteToggle"
-									:register="register"
-									:schema="schema"
-									:objectId="String(objectId)"
-									:favourite="resolvedSelf.favourite === true" />
 								<CnFollowToggle
-									v-if="showFollowToggle"
 									:register="register"
 									:schema="schema"
 									:objectId="String(objectId)"
 									:watching="resolvedSelf.watching === true"
+									:notify="typeof resolvedSelf.watchNotify === 'boolean' ? resolvedSelf.watchNotify : null"
 									:watcherCount="typeof resolvedSelf.watcherCount === 'number' ? resolvedSelf.watcherCount : null"
 									:canManage="!!(resolvedSelf.can && resolvedSelf.can.manage === true)"
 									:notifies="followNotifies" />
@@ -1211,7 +1206,6 @@ import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
-import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
@@ -1413,7 +1407,6 @@ export default {
 		CnStatusBadge,
 		CnSummaryAggregates,
 		CnDetailHeaderChips,
-		CnFavouriteToggle,
 		CnFollowToggle,
 		EyeOffOutline,
 		CnRelatedCollections,
@@ -1884,9 +1877,11 @@ export default {
 		},
 
 		/**
-		 * Star beside the title (manifest `config.favourite`). Automatic (null):
-		 * shown when the object carries `@self.favourite`. `false` removes it.
+		 * Deprecated and ignored: the star is gone, a favourite is a follow with
+		 * notifications off (OpenRegister `merge-follow-and-favourites`). Kept so a
+		 * manifest that still sets `config.favourite` stays valid; use `follow`.
 		 *
+		 * @deprecated Use `follow`.
 		 * @type {boolean|null}
 		 */
 		favourite: {
@@ -3861,18 +3856,6 @@ export default {
 				&& !this.objectFetchPending
 				&& !this.objectNotFound
 				&& this.resolvedSelf.unread === true
-				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
-		},
-
-		/**
-		 * Whether the star renders: the object carries `@self.favourite` and the page did not turn it off.
-		 *
-		 * @return {boolean}
-		 * @spec openspec/changes/record-favourite-and-follow/tasks.md#task-3
-		 */
-		showFavouriteToggle() {
-			return this.favourite !== false
-				&& typeof this.resolvedSelf.favourite === 'boolean'
 				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
 		},
 

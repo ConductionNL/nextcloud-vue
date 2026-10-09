@@ -1284,7 +1284,10 @@
     "Development environment": "Development environment",
     "Test environment": "Test environment",
     "Acceptance environment": "Acceptance environment",
-    "About {label}": "About {label}"
+    "About {label}": "About {label}",
+    "Turn notifications off": "Turn notifications off",
+    "Turn notifications on": "Turn notifications on",
+    "Could not change notifications.": "Could not change notifications."
   },
   "plurals": {
     "%n year": [

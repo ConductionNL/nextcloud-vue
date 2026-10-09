@@ -1335,7 +1335,10 @@
     "Development environment": "Ontwikkelomgeving",
     "Test environment": "Testomgeving",
     "Acceptance environment": "Acceptatieomgeving",
-    "About {label}": "Over {label}"
+    "About {label}": "Over {label}",
+    "Turn notifications off": "Meldingen uitzetten",
+    "Turn notifications on": "Meldingen aanzetten",
+    "Could not change notifications.": "Meldingen konden niet worden gewijzigd."
   },
   "plurals": {
     "%n year": [
