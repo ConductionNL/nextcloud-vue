@@ -434,6 +434,21 @@ list nested under a parent route (`/forms/:id/submissions`) is a fully
 declarative page. When `objects` **is** supplied (every existing consumer),
 nothing changes — no store is touched and `filter` has no effect.
 
+### Mixed-schema lists (`collectionUrl`)
+
+Set `collectionUrl` to list from an endpoint that searches several
+register/schema pairs at once. `register` and `schema` stay the page's own
+pair (columns, Add, export, import); a row of another pair edits, saves and
+deletes through its own `@self.register` / `@self.schema`.
+
+```js static
+<CnIndexPage
+  title="Publications"
+  register="19"
+  schema="24"
+  :collection-url="generateUrl('/apps/opencatalogi/api/{slug}', { slug })" />
+```
+
 ## Named entity sources (`config.entitySource`) — lists that are not OpenRegister objects
 
 Self-fetch needs a `register` + `schema` pair. Some lists have neither: a flow

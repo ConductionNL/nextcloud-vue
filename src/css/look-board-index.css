@@ -377,7 +377,10 @@
 }
 
 .cn-look-board .cn-index-page__main.cn-index-page__main--table {
-	flex: 0 1 auto;
+	/* The body is a row: the card takes the width left beside a sidebar (the
+	   board's table card spans the content), and keeps the height of its rows. */
+	flex: 1 1 auto;
+	align-self: flex-start;
 	border: 1px solid var(--color-border);
 	border-radius: var(--cn-board-card-radius, 12px);
 	background: var(--color-main-background);
@@ -565,6 +568,37 @@
 .cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--selected {
 	border-color: var(--color-primary-element);
 	background: var(--color-primary-element-light);
+}
+
+/* The status accent outranks the board's border, also on hover and selection. */
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent {
+	border-inline-start-width: 4px;
+	padding-inline-start: 13px;
+}
+
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-success,
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-success:hover {
+	border-inline-start-color: var(--color-element-success);
+}
+
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-warning,
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-warning:hover {
+	border-inline-start-color: var(--color-element-warning);
+}
+
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-error,
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-error:hover {
+	border-inline-start-color: var(--color-element-error);
+}
+
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-info,
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-info:hover {
+	border-inline-start-color: var(--color-element-info);
+}
+
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-primary,
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-primary:hover {
+	border-inline-start-color: var(--color-primary-element);
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__content {
