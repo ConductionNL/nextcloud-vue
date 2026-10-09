@@ -5,7 +5,7 @@ import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { tryOnScopeDispose } from '@vueuse/core'
-import { computed, onBeforeUnmount, onMounted, unref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, toValue } from 'vue'
 
 /**
  * Thrown when an `acquire()` POST returns 409 (Conflict) or 423
@@ -46,14 +46,14 @@ export class PermissionError extends Error {
  * other path that keeps `objectStore.objects[type][id]` fresh).
  *
  * @param {object} objectStore  Pinia store instance (`useObjectStore()` result).
- * @param {string|import('vue').Ref<string>}      register OR register slug.
- * @param {string|import('vue').Ref<string>}      schema   OR schema slug (also the GraphQL field name).
- * @param {string|import('vue').Ref<string>}      id       Object UUID.
+ * @param {string|import('vue').Ref<string>|function(): string}      register OR register slug.
+ * @param {string|import('vue').Ref<string>|function(): string}      schema   OR schema slug (also the GraphQL field name).
+ * @param {string|import('vue').Ref<string>|function(): string}      id       Object UUID.
  * @param {object}  [options]  Optional config.
  * @param {boolean} [options.autoRenew]      Renew the lock on a fixed interval while editing + visible.
  * @param {number}  [options.renewIntervalMs]  Renew every N ms (default 10 min).
  * @param {number}  [options.lockDurationSec]   Server-side TTL requested on acquire (default 30 min).
- * @param {string|import('vue').Ref<string>} [options.schemaSlug] The schema slug for the LOCK URL, when `schema` is the object-cache key rather than the slug (CnDetailPage passes `<register>-<schema>` as the key). Defaults to `schema`.
+ * @param {string|import('vue').Ref<string>|function(): string} [options.schemaSlug] The schema slug for the LOCK URL, when `schema` is the object-cache key rather than the slug (CnDetailPage passes `<register>-<schema>` as the key). Defaults to `schema`.
  * @return {{
  *   locked: import('vue').ComputedRef<boolean>,
  *   lockedByMe: import('vue').ComputedRef<boolean>,
@@ -62,6 +62,7 @@ export class PermissionError extends Error {
  *   acquire: () => Promise<void>,
  *   release: () => Promise<void>
  * }} Reactive lock state + actions.
+ * @spec openspec/changes/r4-object-lock-url-and-credentials-copy/specs/object-lock/spec.md
  */
 export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	const autoRenew = options.autoRenew !== false
@@ -74,14 +75,23 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	const isVisible = () => typeof document === 'undefined' || document.visibilityState !== 'hidden'
 	let renewTimer = null
 
+	/*
+	 * 🔴 `toValue`, NOT `unref`. CnDetailPage passes GETTER FUNCTIONS
+	 * (`() => props.objectId`) so the lock follows the route. `unref` returns a
+	 * function untouched, so the getter's SOURCE was interpolated into the URL:
+	 * every detail page sent `/api/objects/()=>pn/()=>Ct.schema||Bn/()=>Ct.objectId/lock`
+	 * and got a 404, and the cache lookup used the function as its key, so the
+	 * banner never saw a lock either. `toValue` reads a plain value, a ref and a
+	 * getter alike.
+	 */
 	function readType() {
-		return unref(schema)
+		return toValue(schema)
 	}
 	function readId() {
-		return unref(id)
+		return toValue(id)
 	}
 	function readRegister() {
-		return unref(register)
+		return toValue(register)
 	}
 
 	function readSelfLock() {
@@ -127,7 +137,22 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	})
 
 	function readSchemaSlug() {
-		return unref(options.schemaSlug ?? schema)
+		return toValue(options.schemaSlug ?? schema)
+	}
+
+	/**
+	 * Whether register, schema slug and object id are all known.
+	 *
+	 * A detail page mounts before its route params or object have resolved.
+	 * Without this a lock call would go out with `undefined` in the path, a
+	 * request OpenRegister can only answer with a 404.
+	 *
+	 * @spec openspec/changes/r4-object-lock-url-and-credentials-copy/specs/object-lock/spec.md
+	 * @return {boolean} True when a lock URL can be built.
+	 */
+	function hasTarget() {
+		return [readRegister(), readSchemaSlug(), readId()]
+			.every((part) => typeof part === 'string' ? part !== '' : typeof part === 'number')
 	}
 
 	/**
@@ -176,6 +201,9 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	}
 
 	async function acquire() {
+		if (!hasTarget()) {
+			return
+		}
 		try {
 			await axios.post(endpoint(), { duration: lockDurationSec })
 		} catch (e) {
@@ -208,6 +236,9 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 
 	async function release() {
 		stopRenewTimer()
+		if (!hasTarget()) {
+			return
+		}
 		try {
 			await axios.post(unlockEndpoint())
 		} catch (e) {
@@ -251,7 +282,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	}
 
 	function beaconRelease() {
-		if (!lockedByMe.value) {
+		if (!lockedByMe.value || !hasTarget()) {
 			return
 		}
 		try {
