@@ -158,6 +158,17 @@ describe('CnIndexPage — collectionUrl', () => {
 		expect(wrapper.vm.rowFormTarget).toBeNull()
 	})
 
+	it('mounts with objects and a collectionUrl without touching the row cache', async () => {
+		const errors = jest.spyOn(console, 'error').mockImplementation(() => {})
+		const warns = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const wrapper = await mountPage({ objects: [rowA, rowB] })
+		expect(wrapper.vm.collectionRowsById.size).toBe(0)
+		const watcherErrors = [...errors.mock.calls, ...warns.mock.calls].filter((args) => String(args[0]).includes('watcher'))
+		expect(watcherErrors).toEqual([])
+		errors.mockRestore()
+		warns.mockRestore()
+	})
+
 	it('without collectionUrl, every row stays on the page\'s pair', async () => {
 		const wrapper = await mountPage({ collectionUrl: '' })
 		expect(mockStore.registerObjectType.mock.calls[0][0]).toBe('19-24')

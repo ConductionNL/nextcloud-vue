@@ -3169,6 +3169,8 @@ export default {
 			 */
 			persistedFilterKeys: [...(this.initialQueryFilterKeys || [])],
 			internalSelectedIds: [...this.selectedIds],
+			// Rows seen in a collectionUrl list, so a selection kept across pages still resolves its own pair.
+			collectionRowsById: markRaw(new Map()),
 			// Folder-sidebar state: selected folder id + the register-fetched list.
 			selectedFolderId: null,
 			/**
@@ -5398,7 +5400,7 @@ export default {
 		effectiveObjects: {
 			immediate: true,
 			handler(rows) {
-				if (!this.collectionUrl || !Array.isArray(rows)) {
+				if (!this.collectionUrl || !this.isSelfFetchMode || !Array.isArray(rows)) {
 					return
 				}
 				for (const row of rows) {
@@ -5622,8 +5624,6 @@ export default {
 	},
 
 	created() {
-		// Rows seen in a collectionUrl list, so a selection kept across pages still resolves its own pair.
-		this.collectionRowsById = new Map()
 		this.pushAiContext()
 		if (this.allowSavedViews) {
 			this.fetchSavedViews()
