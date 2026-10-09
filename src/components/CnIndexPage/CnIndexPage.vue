@@ -5057,6 +5057,7 @@ export default {
 		 * stable key and a variant.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @spec openspec/changes/screens-index-header-buttons-parity/specs/index-list-board-look/spec.md#requirement-the-add-header-button-carries-a-plus
 		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string}>}
 		 */
 		resolvedHeaderButtons() {
@@ -5068,6 +5069,11 @@ export default {
 					let icon = typeof button.icon === 'string' ? button.icon : ''
 					if (label === '' && button.action === 'add') {
 						label = this.resolvedAddLabel
+					}
+					// The board's primary button reads "+ New request": the Add
+					// button takes the plus unless the manifest names an icon.
+					if (this.isBoardLook && button.action === 'add' && icon === '') {
+						icon = 'Plus'
 					}
 					// The board's header: Export reads "Download" with its icon and
 					// the Actions menu reads "Actions", without the manifest saying so.
