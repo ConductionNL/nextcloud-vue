@@ -189,6 +189,8 @@
 
 		<!-- Phase 3: shell -->
 		<template v-else>
+			<!-- The brand block in Nextcloud's own header (board look); teleported, renders nothing here. -->
+			<CnBrandBar v-if="brandInHeader" :brand="resolvedBrandBlock" @unavailable="headerMissing = true" />
 			<!--
 			  @slot menu
 			  @description Left-rail navigation surface. Default:
@@ -681,6 +683,7 @@ import Restart from 'vue-material-design-icons/Restart.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
+import CnBrandBar from '../CnBrandBar/CnBrandBar.vue'
 import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
@@ -721,6 +724,7 @@ import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { createManifestTranslate } from '../../utils/manifestTranslate.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
+import { resolveBrand } from '../../utils/resolveBrand.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
@@ -781,6 +785,7 @@ export default {
 	name: 'CnAppRoot',
 
 	components: {
+		CnBrandBar,
 		NcAppContent,
 		NcAppSettingsDialog,
 		NcAppSettingsSection,
@@ -830,6 +835,9 @@ export default {
 			// A computed ref, not a getter: options-API inject resolves a plain
 			// value once, so a getter would freeze the look at creation.
 			cnLook: computed(() => self.resolvedLook),
+
+			// True while CnBrandBar draws the block in Nextcloud's header, so CnAppNav skips its own.
+			cnBrandInHeader: computed(() => self.brandInHeader),
 
 			get cnManifest() {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
@@ -1592,6 +1600,19 @@ export default {
 		},
 
 		/**
+		 * The brand block (`{ logo, emblem, name, caption, alt, placement }`)
+		 * the board look draws at the start of Nextcloud's header. Empty falls back
+		 * to the manifest's `nav.brand`. `placement: "nav"` keeps the block
+		 * in the navigation.
+		 *
+		 * @type {object|null}
+		 */
+		brand: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Title rendered at the top of the user-settings modal
 		 * (NcAppSettingsDialog `name` prop). Defaults to the
 		 * translated string "User settings"; pass a custom label
@@ -1790,6 +1811,12 @@ export default {
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
+			// Nextcloud's own header, present on a server-rendered page; the
+			// brand block goes into it (CnBrandBar). Read once at creation so
+			// the navigation never draws a block that then moves.
+			headerPresent: typeof document !== 'undefined' && !!document.getElementById('header'),
+			// Set when CnBrandBar finds the header gone: the navigation draws the block.
+			headerMissing: false,
 			capabilitiesLoading: willCheck,
 			missingApps: [],
 			guardError: null,
@@ -2060,6 +2087,32 @@ export default {
 		 */
 		resolvedLook() {
 			return (this.look || this.manifest?.look) === 'board' ? 'board' : 'nextcloud'
+		},
+
+		/**
+		 * The brand CnBrandBar draws in the header: the `brand` prop, else the manifest's
+		 * `nav.brand`, read into one shape.
+		 *
+		 * @return {object|null} The resolved brand, or null.
+		 */
+		resolvedBrandBlock() {
+			return resolveBrand(this.brand || this.manifest?.nav?.brand, (text) => this.manifestTranslate(text))
+		},
+
+		/**
+		 * Whether CnBrandBar draws the brand block in Nextcloud's header: the
+		 * board look, a brand that can be drawn, a placement other than `nav`,
+		 * and a `#header` to put it in. Without `#header` the navigation draws it.
+		 *
+		 * @spec openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-board-look-draws-the-brand-block-in-the-nextcloud-header
+		 * @return {boolean}
+		 */
+		brandInHeader() {
+			return this.resolvedLook === 'board'
+				&& !this.headerMissing
+				&& this.headerPresent
+				&& !!this.resolvedBrandBlock
+				&& this.resolvedBrandBlock.placement !== 'nav'
 		},
 
 		/**

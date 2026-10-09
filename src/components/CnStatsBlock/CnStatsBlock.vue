@@ -39,7 +39,7 @@
 					</slot>
 				</span>
 				<h4 class="cn-kpi-card__title" :title="title || undefined">
-					{{ title || t('nextcloud-vue', 'Objects') }}
+					{{ title ? tl(title) : t('nextcloud-vue', 'Objects') }}
 				</h4>
 			</div>
 
@@ -54,7 +54,7 @@
 					<!-- @binding {string} formatted The default localized count string. -->
 					<slot name="value" :count="count" :formatted="formattedCount">{{ formattedCount }}</slot>
 				</span>
-				<span class="cn-kpi-card__label cn-stats-block__count-label">{{ countLabel }}</span>
+				<span class="cn-kpi-card__label cn-stats-block__count-label">{{ countLabel ? tl(countLabel) : countLabel }}</span>
 			</div>
 			<div v-else-if="loading" class="cn-stats-block__loading">
 				<NcLoadingIcon :size="16" />
@@ -164,6 +164,11 @@ export default {
 		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-board-kpi-tile
 		 */
 		cnLook: { default: 'nextcloud' },
+		/**
+		 * The host's label lookup (CnAppRoot provides it); identity without one, so a
+		 * label that is not a key renders as written.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -453,6 +458,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A manifest string through the host's label lookup (`cnTranslate`), so a key
+		 * such as "Mine" reads in the user's language.
+		 *
+		 * @param {string} text The text as written in the manifest.
+		 * @return {string} The translated text.
+		 */
+		tl(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
 		formatBreakdownLabel(key) {
 			return key.charAt(0).toUpperCase() + key.slice(1) + ':'
 		},

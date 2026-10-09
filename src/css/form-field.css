@@ -88,7 +88,7 @@
 }
 
 /* An invalid field: 2px error border on the control, 4px edge on the group. */
-.cn-look-board .cn-form-field--invalid input,
+.cn-look-board .cn-form-field--invalid input:not([type='checkbox']):not([type='radio']),
 .cn-look-board .cn-form-field--invalid textarea,
 .cn-look-board .cn-form-field--invalid .select {
 	border: var(--cn-field-error-border) solid var(--color-error);

@@ -6,6 +6,7 @@ import { genericError, networkError, parseResponseError } from '../utils/errors.
 import { normalizeFacets } from '../utils/facets.js'
 import { buildHeaders, buildQueryString, capitalize, prefixUrl } from '../utils/headers.js'
 import { extractId } from '../utils/id.js'
+import { readLensReports } from '../utils/lensAvailability.js'
 import { dispatchObjectCreated } from '../utils/walkthroughSignals.js'
 import { mergePluginActions, mergePluginGetters, mergePluginState } from './pluginMerge.js'
 import { liveUpdatesPlugin } from './plugins/liveUpdates.js'
@@ -86,6 +87,16 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 		 * @type {{string: object}}
 		 */
 		facets: {},
+		/**
+		 * Personal-lens reports of the latest collection response per type:
+		 * the body's `@self.lenses` (`{ recent: { available, reason } }`),
+		 * `{}` when it carried none. Written with the rows, so it always
+		 * describes the page on screen.
+		 *
+		 * @type {{string: object}}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-a-list-response-carries-the-report-of-the-lenses-it-was-asked-for
+		 */
+		lenses: {},
 		/** @type {{baseUrl: string, organisationUuidGetter: (() => string|null)|null, languageGetter: (() => string|null)|null, targetLanguageGetter: (() => string|null)|null}} */
 		_options: {
 			baseUrl: prefixedBaseUrl,
@@ -195,6 +206,7 @@ const baseGetters = {
 	 * @return {(type: string) => object}
 	 */
 	getFacets: (state) => (type) => state.facets[type] || {},
+	getLenses: (state) => (type) => state.lenses[type] || {},
 }
 
 // ── Base actions ────────────────────────────────────────────────────────
@@ -240,9 +252,10 @@ const baseActions = {
 	 * @param {object} [slugs] Optional slug hints for live-updates transport
 	 * @param {string|null} [slugs.registerSlug] Canonical register slug (e.g. 'zaken')
 	 * @param {string|null} [slugs.schemaSlug]   Canonical schema slug (e.g. 'meldingen')
+	 * @param {string} [slugs.collectionUrl] Endpoint `fetchCollection` lists from instead of `/register/schema`; every other call keeps the pair URL
 	 */
 	registerObjectType(slug, schemaId, registerId, slugs = {}) {
-		const { registerSlug = null, schemaSlug = null } = slugs
+		const { registerSlug = null, schemaSlug = null, collectionUrl = null } = slugs
 		// Replace entire objects so Vue 2 reactivity detects the change
 		// (Vue 2 cannot track new properties added to existing reactive objects)
 		this.objectTypeRegistry = {
@@ -252,6 +265,7 @@ const baseActions = {
 				register: registerId,
 				registerSlug,
 				schemaSlug,
+				...(collectionUrl ? { collectionUrl } : {}),
 			},
 		}
 		this.collections = { ...this.collections, [slug]: [] }
@@ -263,6 +277,7 @@ const baseActions = {
 		this.schemas = { ...this.schemas, [slug]: null }
 		this.registers = { ...this.registers, [slug]: null }
 		this.facets = { ...this.facets, [slug]: {} }
+		this.lenses = { ...this.lenses, [slug]: {} }
 	},
 
 	/**
@@ -306,6 +321,7 @@ const baseActions = {
 		this.schemas = omit(this.schemas, slug)
 		this.registers = omit(this.registers, slug)
 		this.facets = omit(this.facets, slug)
+		this.lenses = omit(this.lenses, slug)
 	},
 
 	/**
@@ -439,6 +455,7 @@ const baseActions = {
 		this.collections = {}
 		this.objects = {}
 		this.facets = {}
+		this.lenses = {}
 		this.pagination = {}
 		// Errors + loading flags are per-fetch and don't need a reset.
 	},
@@ -494,6 +511,31 @@ const baseActions = {
 		const merged = lang ? { ...params, _lang: lang } : params
 		url += buildQueryString(merged)
 		return url
+	},
+
+	/**
+	 * Build the list URL for a type registered with a `collectionUrl`. `_order`
+	 * goes in the bracket form (`_order[key]=dir`) every PHP endpoint parses.
+	 *
+	 * @param {object} config The type config
+	 * @param {object} [params] Query parameters
+	 * @return {string} Full URL including query string
+	 */
+	_buildCollectionUrl(config, params = {}) {
+		const { _order: order, ...rest } = params
+		const merged = { ...rest }
+		if (order && typeof order === 'object') {
+			for (const [key, dir] of Object.entries(order)) {
+				merged[`_order[${key}]`] = dir
+			}
+		}
+		const lang = this._resolveLanguage()
+		if (lang) {
+			merged._lang = lang
+		}
+		const url = prefixUrl(config.collectionUrl)
+		const query = buildQueryString(merged)
+		return query && url.includes('?') ? url + '&' + query.slice(1) : url + query
 	},
 
 	/**
@@ -685,14 +727,15 @@ const baseActions = {
 				}
 			}
 
-			const response = await this._fetchWithSchemaFallback(
-				type,
-				(schema) => this._buildUrlWithParams(type, fetchParams, null, schema),
-				{
-					method: 'GET',
-					headers: this._buildHeaders(),
-				},
-			)
+			const config = this._getTypeConfig(type)
+			const init = { method: 'GET', headers: this._buildHeaders() }
+			const response = config.collectionUrl
+				? await trackedFetch(this._buildCollectionUrl(config, fetchParams), init)
+				: await this._fetchWithSchemaFallback(
+						type,
+						(schema) => this._buildUrlWithParams(type, fetchParams, null, schema),
+						init,
+					)
 
 			if (!response.ok) {
 				const failure = await parseResponseError(response, type)
@@ -709,6 +752,8 @@ const baseActions = {
 			const results = data.results || data
 
 			this.collections = { ...this.collections, [type]: results }
+			// Why a personal lens came back empty, if it says (openregister#4514).
+			this.lenses = { ...this.lenses, [type]: readLensReports(data) }
 			this.pagination = {
 				...this.pagination,
 				[type]: {

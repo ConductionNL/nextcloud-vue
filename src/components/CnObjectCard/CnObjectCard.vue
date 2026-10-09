@@ -1,7 +1,7 @@
 <template>
 	<div
 		class="cn-object-card"
-		:class="{ 'cn-object-card--selected': selected, 'cn-object-card--board': isBoardLook }"
+		:class="[{ 'cn-object-card--selected': selected, 'cn-object-card--board': isBoardLook }, accentVariant && ['cn-object-card--accent', `cn-object-card--accent-${accentVariant}`]]"
 		@mousedown="onCardMouseDown"
 		@click="onCardClick($event)"
 		@auxclick="onCardAuxClick($event)">
@@ -42,6 +42,16 @@
 						     to report. A card whose consumer passes no badges
 						     would otherwise show no padlock at all. -->
 						<CnLockIndicator :object="object" :size="16" />
+						<span
+							v-if="accentVariant && accent.icon"
+							class="cn-object-card__accent-icon"
+							data-testid="cn-object-card-accent-icon"
+							:role="accent.label ? 'img' : null"
+							:aria-label="accent.label || null"
+							:aria-hidden="accent.label ? null : 'true'"
+							:title="accent.label || null">
+							<CnIcon :name="accent.icon" :size="16" />
+						</span>
 						{{ title }}
 					</h3>
 					<p v-if="description" class="cn-object-card__description">
@@ -127,6 +137,8 @@ import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
+
+const ACCENT_VARIANTS = ['success', 'warning', 'error', 'info', 'primary']
 
 /**
  * CnObjectCard — Schema-configuration-driven card for object display.
@@ -245,6 +257,20 @@ export default {
 		},
 
 		/**
+		 * A status accent: a colored border at the start of the card and,
+		 * with `icon`, a colored icon before the title. `variant` is one of
+		 * `success`, `warning`, `error`, `info` or `primary`; `icon` is a
+		 * name registered with CnIcon; `label` names the status for screen
+		 * readers and as the icon's tooltip.
+		 *
+		 * @type {{variant: string, icon?: string, label?: string}}
+		 */
+		accent: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The property keys the facts list shows, in order (manifest key
 		 * `config.cardFields`). Without it the card shows the first
 		 * `maxMetadata` visible properties, as before.
@@ -305,6 +331,16 @@ export default {
 				return { label: this.status.label, variant: this.status.variant || 'default' }
 			}
 			return null
+		},
+
+		/**
+		 * The accent variant when it is a known one, else ''.
+		 *
+		 * @return {string}
+		 */
+		accentVariant() {
+			const variant = this.accent?.variant
+			return ACCENT_VARIANTS.includes(variant) ? variant : ''
 		},
 
 		config() {
@@ -500,6 +536,58 @@ export default {
 .cn-object-card--selected {
 	border-color: var(--color-primary-element);
 	background: var(--color-primary-element-light);
+}
+
+/* The 4px start border takes 3px of padding, so the content stays put. */
+.cn-object-card.cn-object-card--accent {
+	border-inline-start-width: 4px;
+	padding-inline-start: 13px;
+}
+
+.cn-object-card.cn-object-card--accent-success {
+	border-inline-start-color: var(--color-element-success);
+}
+
+.cn-object-card.cn-object-card--accent-warning {
+	border-inline-start-color: var(--color-element-warning);
+}
+
+.cn-object-card.cn-object-card--accent-error {
+	border-inline-start-color: var(--color-element-error);
+}
+
+.cn-object-card.cn-object-card--accent-info {
+	border-inline-start-color: var(--color-element-info);
+}
+
+.cn-object-card.cn-object-card--accent-primary {
+	border-inline-start-color: var(--color-primary-element);
+}
+
+.cn-object-card__accent-icon {
+	display: inline-flex;
+	vertical-align: -2px;
+	margin-inline-end: 4px;
+}
+
+.cn-object-card--accent-success .cn-object-card__accent-icon {
+	color: var(--color-text-success);
+}
+
+.cn-object-card--accent-warning .cn-object-card__accent-icon {
+	color: var(--color-text-warning);
+}
+
+.cn-object-card--accent-error .cn-object-card__accent-icon {
+	color: var(--color-text-error);
+}
+
+.cn-object-card--accent-info .cn-object-card__accent-icon {
+	color: var(--color-element-info);
+}
+
+.cn-object-card--accent-primary .cn-object-card__accent-icon {
+	color: var(--color-primary-element);
 }
 
 .cn-object-card__checkbox {

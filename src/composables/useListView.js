@@ -98,6 +98,9 @@ export function useListView(objectTypeOrOptions, options) {
 	// field (a folder pane grouping by it, say) reads them here rather than
 	// deriving them from `objects`, which is only the current page.
 	const facets = computed(() => objectStore.facets[getType()] || {})
+	// Personal-lens reports of the latest response (`{ recent: { available, reason } }`).
+	// @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-a-list-response-carries-the-report-of-the-lenses-it-was-asked-for
+	const lenses = computed(() => (objectStore.lenses && objectStore.lenses[getType()]) || {})
 	// Outcome of the latest `refresh()`: the store's error for it, or null once
 	// it succeeded or a later fetch stored new rows. The store keeps the previous
 	// rows on a failed fetch, so this is how a consumer tells stale rows from
@@ -381,6 +384,7 @@ export function useListView(objectTypeOrOptions, options) {
 		loading,
 		pagination,
 		facets,
+		lenses,
 		error,
 		// Local state
 		searchTerm,
