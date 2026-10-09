@@ -174,3 +174,86 @@ describe('useObjectLock reaches the routes OpenRegister actually declares', () =
 		})
 	})
 })
+
+/**
+ * Run the composable with getter inputs, the way CnDetailPage calls it.
+ *
+ * @param {object}   store   The object store double.
+ * @param {object}   targets Getters for register, schema (cache key), id and slug.
+ * @param {Function} body    What to do with the lock state.
+ * @return {Promise<*>} Whatever `body` returned.
+ */
+async function withGetterLock(store, targets, body) {
+	const scope = effectScope()
+	let lock
+	scope.run(() => {
+		lock = useObjectLock(store, targets.register, targets.schema, targets.id, {
+			autoRenew: false,
+			schemaSlug: targets.slug,
+		})
+	})
+	try {
+		return await body(lock)
+	} finally {
+		scope.stop()
+	}
+}
+
+describe('useObjectLock reads getter inputs as values', () => {
+	beforeEach(() => {
+		mockAxios.post.mockReset().mockResolvedValue({ data: {} })
+	})
+
+	it('🔴 puts the getter VALUES in the lock URL, not their source', async () => {
+		await withGetterLock(storeWithLock(null), {
+			register: () => 'dossiq',
+			schema: () => 'dossiq-case',
+			id: () => 'case-1',
+			slug: () => 'case',
+		}, async (lock) => {
+			await lock.acquire()
+		})
+
+		const [url] = mockAxios.post.mock.calls[0]
+		expect(url).toBe('/apps/openregister/api/objects/dossiq/case/case-1/lock')
+		expect(url).not.toMatch(/=>/)
+	})
+
+	it('🔴 reads the cached lock under the getter value of the cache key', async () => {
+		await withGetterLock(storeWithLock('bram'), {
+			register: () => 'dossiq',
+			schema: () => 'dossiq-case',
+			id: () => 'case-1',
+			slug: () => 'case',
+		}, async (lock) => {
+			expect(lock.locked.value).toBe(true)
+			expect(lock.lockedBy.value).toBe('bram')
+		})
+	})
+
+	it('🔴 releases on the getter values too', async () => {
+		await withGetterLock(storeWithLock('anna'), {
+			register: () => 'dossiq',
+			schema: () => 'dossiq-case',
+			id: () => 'case-1',
+			slug: () => 'case',
+		}, async (lock) => {
+			await lock.release()
+		})
+
+		expect(mockAxios.post).toHaveBeenCalledWith('/apps/openregister/api/objects/dossiq/case/case-1/unlock')
+	})
+
+	it.each([
+		['register', { register: () => '', schema: () => 'dossiq-case', id: () => 'case-1', slug: () => 'case' }],
+		['schema slug', { register: () => 'dossiq', schema: () => 'dossiq-case', id: () => 'case-1', slug: () => undefined }],
+		['object id', { register: () => 'dossiq', schema: () => 'dossiq-case', id: () => null, slug: () => 'case' }],
+	])('sends nothing while the %s is unknown', async (_label, targets) => {
+		await withGetterLock(storeWithLock('anna'), targets, async (lock) => {
+			await lock.acquire()
+			await lock.release()
+		})
+
+		expect(mockAxios.post).not.toHaveBeenCalled()
+	})
+})
