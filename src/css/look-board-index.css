@@ -407,6 +407,29 @@
 	text-decoration: none;
 }
 
+/* Only the title is underlined (DqZaken). An underline set on the cell
+   reaches every in-flow child whatever its own text-decoration, so the
+   secondary lines become inline blocks on a line of their own: an atomic
+   inline box is the one thing the underline does not reach. */
+.cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title .cn-table-cell__secondary {
+	display: inline-block;
+	width: 100%;
+	vertical-align: top;
+}
+
+/* `rowTitle: "plain"` (PqTickets, OcPublicaties): the title is bold text in
+   the main text colour without an underline, the secondary line 13px muted,
+   2px under it. The row stays clickable through its stretched row link. */
+.cn-look-board .cn-table-container--board.cn-table-container--title-plain .cn-data-table td.cn-table-col--title {
+	font-weight: 700;
+	text-decoration: none;
+}
+
+.cn-look-board .cn-table-container--board.cn-table-container--title-plain .cn-data-table td.cn-table-col--title .cn-table-cell__secondary {
+	margin-top: 2px;
+	font-size: 13px;
+}
+
 /* A status pill: 3px 10px, radius 12, 13px weight 600. The colours stay the
    status colour map's. */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-status-badge {
@@ -429,15 +452,36 @@
 	--default-clickable-area: 34px;
 }
 
+/* The row menu: a 34px square, three dots, a grey border on the main
+   background (DqZaken, PqTickets). A theme that styles every secondary button
+   with `!important` (the nldesign theme: a primary border, 8px 16px padding,
+   `min-width: max-content`) would otherwise turn it into a 64px wide button
+   with a blue border, so the board values are `!important` too. */
+.cn-look-board .cn-row-actions--board .button-vue,
+.cn-look-board .cn-row-actions--board .button-vue:hover,
+.cn-look-board .cn-row-actions--board .button-vue:focus {
+	box-sizing: border-box !important;
+	width: 34px !important;
+	min-width: 34px !important;
+	height: 34px !important;
+	min-height: 34px !important;
+	padding: 0 !important;
+	border: 1px solid var(--color-border-dark) !important;
+	border-radius: 8px !important;
+	color: var(--cn-board-text-soft) !important;
+}
+
 .cn-look-board .cn-row-actions--board .button-vue {
-	width: 34px;
-	min-width: 34px;
-	height: 34px;
-	min-height: 34px;
-	padding: 0;
-	border: 1px solid var(--color-border-dark);
-	border-radius: 8px;
-	background: var(--color-main-background);
+	background: var(--color-main-background) !important;
+}
+
+.cn-look-board .cn-row-actions--board .button-vue:hover {
+	background: var(--color-background-hover) !important;
+}
+
+.cn-look-board .cn-row-actions--board .button-vue:focus-visible {
+	outline: 2px solid var(--color-main-text);
+	outline-offset: 2px;
 }
 
 /* ------------------------------------------------------------------ footer */
