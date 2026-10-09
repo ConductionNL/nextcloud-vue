@@ -60,17 +60,38 @@ test.describe('CnTabsWidget in the board look', () => {
 		expect(bordered).toEqual([])
 	})
 
-	test('the open tab joins the content block with no gap', async ({ page }) => {
+	// design-system#147: the card carries its full border, the strip draws no
+	// line, and the open tab overlaps the card's top border by 1px, painted
+	// above it, so it flows into the card as a folder tab.
+	test('the strip draws no line and the card carries its own top border', async ({ page }) => {
 		await openHarness(page)
-		const join = await page.evaluate(() => {
-			const tab = document.querySelector('.tabs-board .cn-tabs__nav-item--active').getBoundingClientRect()
-			const panel = document.querySelector('.tabs-board .cn-tabs__content')
+		const edges = await page.evaluate(() => {
+			const bar = document.querySelector('.tabs-board .cn-tabs__bar')
+			const after = getComputedStyle(bar, '::after')
+			const panel = getComputedStyle(document.querySelector('.tabs-board .cn-tabs__content'))
 			return {
-				gap: Math.round(panel.getBoundingClientRect().top - tab.bottom),
-				panelTop: parseFloat(getComputedStyle(panel).borderTopWidth),
+				barBottom: parseFloat(getComputedStyle(bar).borderBottomWidth),
+				afterDrawn: after.content !== 'none' && after.content !== 'normal' && parseFloat(after.borderBottomWidth) > 0,
+				panelTop: parseFloat(panel.borderTopWidth),
+				panelRadiusTopRight: parseFloat(panel.borderTopRightRadius),
 			}
 		})
-		expect(join.gap).toBeLessThanOrEqual(1)
-		expect(join.panelTop).toBe(0)
+		expect(edges.barBottom).toBe(0)
+		expect(edges.afterDrawn).toBe(false)
+		expect(edges.panelTop).toBe(1)
+		expect(edges.panelRadiusTopRight).toBeGreaterThan(0)
+	})
+
+	test('the open tab overlaps the card top border by 1px and paints over it', async ({ page }) => {
+		await openHarness(page)
+		const join = await page.evaluate(() => {
+			const tabEl = document.querySelector('.tabs-board .cn-tabs__nav-item--active')
+			const tab = tabEl.getBoundingClientRect()
+			const panel = document.querySelector('.tabs-board .cn-tabs__content').getBoundingClientRect()
+			const hit = document.elementFromPoint(tab.left + tab.width / 2, panel.top + 0.5)
+			return { overlap: Math.round(tab.bottom - panel.top), topIsTab: tabEl.contains(hit) }
+		})
+		expect(join.overlap).toBe(1)
+		expect(join.topIsTab).toBe(true)
 	})
 })

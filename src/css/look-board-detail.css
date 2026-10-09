@@ -114,9 +114,19 @@
 
 /* ---- Folder tabs ------------------------------------------------------- */
 
+/* The strip draws no line of its own (design-system#147). The card under it
+   carries its full border, top included, so the top-right corner is the
+   card's own rounded corner instead of a strip rule running straight past it.
+   The open tab overlaps that top border by 1px (the nav's -1px margin) and
+   paints over it, so it flows into the card as a folder tab. */
 .cn-look-board .cn-tabs--board .cn-tabs__bar {
-	border-bottom: 1px solid var(--color-border-dark);
+	border-bottom: none;
 	gap: 4px;
+	position: relative;
+}
+
+.cn-look-board .cn-tabs.cn-tabs--board .cn-tabs__bar::after {
+	content: none;
 }
 
 .cn-look-board .cn-tabs--board .cn-tabs__nav {
@@ -141,6 +151,8 @@
 	border-top: 1px solid var(--color-border-dark);
 	font-weight: 700;
 	padding-top: 8px;
+	position: relative;
+	z-index: 1;
 }
 
 /* The count: a grey, borderless 20px badge 8px after the label. */
@@ -177,7 +189,14 @@
 .cn-look-board .cn-tabs--board .cn-tabs__content > .cn-tab > :first-child .cn-widget-wrapper,
 .cn-look-board .cn-tabs--board .cn-tabs__content > .cn-tab > .cn-widget-wrapper,
 .cn-look-board .cn-tabs--board .cn-tabs__content > .cn-tab > .cn-detail-card {
-	border-top: none;
+	border-top: 1px solid var(--color-border);
+	border-radius: 0 12px 12px 12px;
+}
+
+/* A CnTabsWidget panel is the card itself: the same full border, so it joins
+   the open tab the same way. The top-left stays square under the first tab. */
+.cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content {
+	border: 1px solid var(--color-border);
 	border-radius: 0 12px 12px 12px;
 }
 
