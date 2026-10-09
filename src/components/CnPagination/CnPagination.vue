@@ -1,11 +1,53 @@
 <template>
 	<div
-		v-if="totalPages > 1 || totalItems > minItemsToShow"
+		v-if="totalPages > 1 || totalItems > minItemsToShow || (isBoardVariant && totalItems > 0)"
 		class="cn-pagination"
-		:class="{ 'cn-pagination--compact': compact }"
+		:class="{ 'cn-pagination--compact': compact, 'cn-pagination--board': isBoardVariant }"
 		data-testid="cn-pagination">
+		<!--
+		  Board variant (`variant: "board"`): the footer of the table card as the
+		  screens draw it. The count text at the start, numbered 34px links at
+		  the end, "Previous" only after the first page and "Next" only before
+		  the last. No First, no Last, no page-size select.
+		-->
+		<template v-if="isBoardVariant">
+			<span class="cn-pagination__page-info cn-pagination__board-count" data-testid="cn-pagination-board-count">
+				{{ boardCountText }}
+			</span>
+			<nav v-if="totalPages > 1" class="cn-pagination__board-pages" :aria-label="t('nextcloud-vue', 'Pagination')">
+				<button
+					v-if="currentPage > 1"
+					type="button"
+					class="cn-pagination__board-link cn-pagination__board-link--wide"
+					data-testid="cn-pagination-prev"
+					@click="changePage(currentPage - 1)">
+					{{ previousLabel }}
+				</button>
+				<template v-for="page in visiblePages" :key="'board-' + page">
+					<span v-if="page === '...'" class="cn-pagination__ellipsis">...</span>
+					<button
+						v-else
+						type="button"
+						class="cn-pagination__board-link"
+						:class="{ 'cn-pagination__board-link--current': page === currentPage }"
+						:aria-current="page === currentPage ? 'page' : null"
+						@click="changePage(page)">
+						{{ page }}
+					</button>
+				</template>
+				<button
+					v-if="currentPage < totalPages"
+					type="button"
+					class="cn-pagination__board-link cn-pagination__board-link--wide"
+					data-testid="cn-pagination-next"
+					@click="changePage(currentPage + 1)">
+					{{ nextLabel }}
+				</button>
+			</nav>
+		</template>
+
 		<!-- Page info -->
-		<div class="cn-pagination__info">
+		<div v-if="!isBoardVariant" class="cn-pagination__info">
 			<span class="cn-pagination__page-info">
 				{{ pageInfoText }}
 			</span>
@@ -17,7 +59,7 @@
 		  page-size select) is an index-page affordance; dropped into a widget
 		  card it is wider than the card and taller than the rows it pages.
 		-->
-		<div v-if="compact && totalPages > 1" class="cn-pagination__nav cn-pagination__nav--compact">
+		<div v-if="!isBoardVariant && compact && totalPages > 1" class="cn-pagination__nav cn-pagination__nav--compact">
 			<NcButton
 				:aria-label="previousLabel"
 				:disabled="currentPage === 1"
@@ -39,7 +81,7 @@
 		</div>
 
 		<!-- Page navigation -->
-		<div v-else-if="totalPages > 1" class="cn-pagination__nav">
+		<div v-else-if="!isBoardVariant && totalPages > 1" class="cn-pagination__nav">
 			<NcButton
 				:disabled="currentPage === 1"
 				@click="changePage(1)">
@@ -80,7 +122,7 @@
 		</div>
 
 		<!-- Page size selector -->
-		<div v-if="!compact" class="cn-pagination__page-size">
+		<div v-if="!compact && !isBoardVariant" class="cn-pagination__page-size">
 			<label :for="pageSizeId">{{ itemsPerPageLabel }}</label>
 			<NcSelect
 				:inputId="pageSizeId"
@@ -183,6 +225,29 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * `board` draws the footer of the board look's table card: count text
+		 * at the start, numbered pages with Previous and Next at the end, no
+		 * First, Last or page-size select. The default (`''`) renders as before.
+		 *
+		 * @type {('' | 'board')}
+		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-footer-sits-inside-the-card
+		 */
+		variant: {
+			type: String,
+			default: '',
+			validator: (value) => value === '' || value === 'board',
+		},
+
+		/**
+		 * Free text appended to the board variant's count text ("20 of 48 ·
+		 * click a column header to sort"). Manifest key `config.footerNote`.
+		 */
+		footerNote: {
+			type: String,
+			default: '',
+		},
+
 		/** Minimum items before pagination is shown */
 		minItemsToShow: {
 			type: Number,
@@ -250,6 +315,28 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the board variant is drawn.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardVariant() {
+			return this.variant === 'board'
+		},
+
+		/**
+		 * The board variant's count text: the rows on this page of the total,
+		 * `"{shown} of {total}"`, plus the page's footer note when it has one.
+		 *
+		 * @return {string}
+		 */
+		boardCountText() {
+			const before = (this.currentPage - 1) * this.currentPageSize
+			const shown = Math.max(0, Math.min(this.currentPageSize, this.totalItems - before))
+			const base = t('nextcloud-vue', '{shown} of {total}', { shown, total: this.totalItems })
+			return this.footerNote ? `${base} · ${this.footerNote}` : base
+		},
+
 		pageSizeId() {
 			return 'cn-page-size-' + this.uid
 		},

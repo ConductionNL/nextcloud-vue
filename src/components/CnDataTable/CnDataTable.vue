@@ -3,6 +3,7 @@
 		class="cn-table-container"
 		data-testid="cn-object-list"
 		:class="{
+			'cn-table-container--board': isBoardLook,
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
 			'cn-table-container--fill': fillHeight,
@@ -169,6 +170,8 @@
 
 						<!-- Actions column -->
 						<th v-if="$slots['row-actions']" class="cn-table-col--actions">
+							<!-- The board look names the column for assistive tech; the menu buttons below it are the only thing drawn. -->
+							<span v-if="isBoardLook" class="hidden-visually">{{ actionsColumnLabel }}</span>
 							<!-- @slot Header cell content above the row-actions column (blank by default). -->
 							<slot name="actions-header" />
 						</th>
@@ -230,7 +233,7 @@
 						<td
 							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
-							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex)]"
+							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === 0 ? 'cn-table-col--title' : '']"
 							:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							@mouseenter="titleWhenClipped">
 							<!-- A row with a `rowClickRoute` is a real link: this anchor
@@ -371,6 +374,7 @@ import FilterIcon from 'vue-material-design-icons/Filter.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
@@ -497,6 +501,8 @@ export default {
 		 * when the table is used standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The look CnAppRoot provides. Under `board` the table is the white card of the screens. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -942,6 +948,24 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the table is drawn as the board look's white card.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The accessible name of the row-actions column.
+		 *
+		 * @return {string}
+		 */
+		actionsColumnLabel() {
+			return t('nextcloud-vue', 'Actions')
+		},
+
 		/** @return {number} Leading cells before the data columns (selection, icon). */
 		leadingCount() {
 			return (this.selectable ? 1 : 0) + (this.rowIcon ? 1 : 0)

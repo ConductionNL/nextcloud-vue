@@ -1,5 +1,6 @@
 <template>
 	<div class="cn-index-page"
+		:class="lookClass"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -19,7 +20,7 @@
 			<CnPageHeader
 				:title="title"
 				:description="headerDescription"
-				:icon="showTitleIcon ? resolvedIcon : ''"
+				:icon="showTitleIcon && !isBoardLook ? resolvedIcon : ''"
 				:visuallyHidden="!showTitle">
 				<!-- The board's header buttons (`headerButtons`), beside the
 				     title. Declaring them takes the Views and Actions menus
@@ -27,12 +28,34 @@
 				     the actions bar. -->
 				<template v-if="headerButtonsShown || buildiqInHeader" #extra>
 					<div class="cn-index-page__header-buttons" data-testid="cn-index-header-buttons">
-						<template v-for="(button, buttonIndex) in headerButtonsShown ? resolvedHeaderButtons : []" :key="button.key">
-							<!-- The buildiq square sits directly before the
-							     primary button under the board look. -->
-							<CnBuildiqEditButton
-								v-if="buildiqInHeader && buildiqBeforeIndex === buttonIndex" />
+						<template v-for="button in (headerButtonsShown ? orderedHeaderButtons : [])" :key="button.key">
+							<!-- The buildiq square (the in-app edit button), between the secondary buttons and the primary one. -->
+							<CnBuildiqEditButton v-if="button.action === '__buildiq'" />
+							<!-- `actions-menu`: the page's header actions as one labelled menu. -->
+							<NcActions
+								v-else-if="button.action === 'actions-menu'"
+								:forceMenu="true"
+								:forceName="true"
+								:menuName="button.label"
+								:aria-label="button.label"
+								variant="secondary"
+								:data-testid="`cn-index-header-button-${button.key}`">
+								<template #icon>
+									<DotsHorizontal :size="20" />
+								</template>
+								<NcActionButton
+									v-for="entry in mergedHeaderActions"
+									:key="entry.id"
+									:disabled="Boolean(entry.disabled)"
+									@click="onHeaderAction({ action: entry.id, id: entry.id })">
+									<template v-if="entry.icon && typeof entry.icon === 'string' && !entry.icon.startsWith('icon-')" #icon>
+										<CnIcon :name="entry.icon" :size="20" />
+									</template>
+									{{ entry.label ? cnTranslate(entry.label) : entry.label }}
+								</NcActionButton>
+							</NcActions>
 							<NcButton
+								v-else
 								:variant="button.variant"
 								:data-testid="`cn-index-header-button-${button.key}`"
 								@click="onHeaderButton(button)">
@@ -42,7 +65,7 @@
 								{{ button.label }}
 							</NcButton>
 						</template>
-						<CnBuildiqEditButton v-if="buildiqInHeader && buildiqBeforeIndex === -1" />
+						<CnBuildiqEditButton v-if="buildiqInHeader && !headerButtonsShown" />
 					</div>
 				</template>
 			</CnPageHeader>
@@ -55,7 +78,11 @@
 
 		<!-- Actions bar -->
 		<CnActionsBar
+			:layout="isBoardLook ? 'board' : 'nextcloud'"
+			:activeFilterChips="activeFilterChips"
 			:showBuildiqButton="!buildiqInHeader"
+			:bulkNoun="boardBulkNoun"
+			:bulkHint="bulkHint"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -82,7 +109,7 @@
 			:showSortSelect="showSortSelect"
 			:sortOptions="sortSelectOptions"
 			:sortValue="sortSelectValue"
-			:showSearch="inlineSearch"
+			:showSearch="inlineSearch || isBoardLook"
 			:searchValue="effectiveSearchValue"
 			:searchPlaceholder="searchPlaceholder"
 			:showCountWithSearch="showCountWithSearch"
@@ -91,7 +118,7 @@
 			:addDisabled="addDisabled"
 			:addTo="addLinkTo"
 			:showAdd="effectiveShowAdd && !headerButtonTakes('add')"
-			:showCount="showCount"
+			:showCount="showCount && !isBoardLook"
 			:showActionsMenu="!headerButtonsShown"
 			:showSidebarToggle="hasSidebar"
 			:sidebarOpen="sidebarOpen"
@@ -102,6 +129,8 @@
 			@sortChange="$emit('sort-change', $event)"
 			@add="onAddClick"
 			@clearSelection="onSelect([])"
+			@removeFilter="onRemoveActiveFilter"
+			@clearFilters="onClearFilters"
 			@toggleSidebar="sidebarOpen = !sidebarOpen"
 			@refresh="onRefreshEvent"
 			@headerAction="onHeaderAction"
@@ -158,6 +187,7 @@
 					:loading="savedViewsLoading"
 					:currentUserId="currentSavedViewsUserId"
 					:counts="savedViewCounts"
+					:selectedViewId="appliedSavedViewId"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true"
 					@shareRequest="onShareViewRequest"
@@ -566,6 +596,7 @@
 							<CnRowActions
 								:actions="rowActionsFor(row)"
 								:row="row"
+								:rowLabel="rowTitleFor(row)"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -743,6 +774,7 @@
 							<CnRowActions
 								:actions="rowActionsFor(object)"
 								:row="object"
+								:rowLabel="rowTitleFor(object)"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -755,6 +787,7 @@
 					:schema="effectiveSchema"
 					:selectable="selectable"
 					:clickToView="rowClickOpens"
+					:cardFields="resolvedCardFields"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -789,6 +822,8 @@
 							<CnRowActions
 								:actions="rowActionsFor(object)"
 								:row="object"
+								:rowLabel="rowTitleFor(object)"
+								:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -811,7 +846,9 @@
 
 				<!-- Pagination -->
 				<CnPagination
-					v-if="effectivePagination && effectivePagination.pages > 1"
+					v-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
+					:variant="isBoardLook ? 'board' : ''"
+					:footerNote="footerNote"
 					:currentPage="effectivePagination.page || 1"
 					:totalPages="effectivePagination.pages || 1"
 					:totalItems="effectivePagination.total || 0"
@@ -908,6 +945,7 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
+import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Export from 'vue-material-design-icons/Export.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
@@ -937,7 +975,7 @@ import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
-import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
+import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
 import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
@@ -1219,6 +1257,7 @@ export default {
 		CnPageHeader,
 		CnQuickFilterBar,
 		CnActionsBar,
+		DotsHorizontal,
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
@@ -1392,6 +1431,70 @@ export default {
 		showCount: {
 			type: Boolean,
 			default: true,
+		},
+
+		// eslint-disable-next-line vue/no-unused-properties
+		/**
+		 * Draw this page in the `board` look (or `nextcloud`) whatever the app
+		 * does. Empty follows the `cnLook` CnAppRoot provides. Manifest key
+		 * `config.look`.
+		 *
+		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md
+		 * @type {('' | 'board' | 'nextcloud')}
+		 *
+		 * Read through `useLook(props)` in setup, which the unused-properties rule cannot see.
+		 */
+		look: {
+			type: String,
+			default: undefined,
+		},
+
+		/**
+		 * Board look: the count line under the title, a template with `{shown}`
+		 * (rows on this page) and `{total}` (all rows) and free text. Manifest
+		 * key `config.countText`. Without it the page's `countSubtitle`, else
+		 * "{shown} of {total}".
+		 *
+		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-index-header-reads-title-count-and-the-board-buttons
+		 */
+		countText: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The property keys the card's facts list shows, in order (manifest key
+		 * `config.cardFields`). Without it the board look shows the first four
+		 * list columns.
+		 *
+		 * @spec openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-a-record-card-has-a-head-facts-and-one-action
+		 * @type {Array<string>}
+		 */
+		cardFields: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Board look: free text after the footer's count ("8 of 48 · click a
+		 * column header to sort"). Manifest key `config.footerNote`.
+		 *
+		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-footer-sits-inside-the-card
+		 */
+		footerNote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the 13px hint after the bulk band's buttons ("See what
+		 * changes first, then run it"). Manifest key `config.bulkHint`.
+		 *
+		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-bulk-band-is-its-own-row
+		 */
+		bulkHint: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -2954,6 +3057,10 @@ export default {
 	],
 
 	setup(props) {
+		// The look this page is drawn in: its own `look` prop, else the
+		// `cnLook` CnAppRoot (or the page renderer) provides.
+		const { isBoard: isBoardLook, lookClass } = useLook(props)
+
 		const {
 			isOpen: contextMenuOpen,
 			targetItem: contextMenuRow,
@@ -2994,10 +3101,10 @@ export default {
 			namedQuickFilters,
 		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters })
 
-		const { isBoard } = useLook(props)
-
 		return {
-			isBoard,
+			isBoard: isBoardLook,
+			isBoardLook,
+			lookClass,
 			isNamedSource,
 			namedSource,
 			namedRows,
@@ -3034,6 +3141,8 @@ export default {
 			tabCounts: null,
 			/** Count per saved-view id, for the views control; null = none. */
 			savedViewCounts: null,
+			// The id (or slug) of the saved view that is applied; its chip shows selected under the board look.
+			appliedSavedViewId: '',
 			/**
 			 * The non-`_` query keys this page owns, i.e. may clear on the next
 			 * persist. Seeded with what it adopted from the query on load, and
@@ -3978,6 +4087,29 @@ export default {
 		},
 
 		/**
+		 * The property keys the board look's card facts show: the page's
+		 * `cardFields`, else the first four list columns. Null without the
+		 * look and without `cardFields`, so the card keeps its own default.
+		 *
+		 * @spec openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-a-record-card-has-a-head-facts-and-one-action
+		 * @return {?Array<string>}
+		 */
+		resolvedCardFields() {
+			if (Array.isArray(this.cardFields) && this.cardFields.length > 0) {
+				return this.cardFields
+			}
+			if (!this.isBoardLook) {
+				return null
+			}
+			// A page that declares no columns lets the table derive them from the schema; the card does the same.
+			const columns = this.tableColumns.length > 0 ? this.tableColumns : columnsFromSchema(this.effectiveSchema || {})
+			return columns
+				.map((col) => (typeof col === 'string' ? col : col && col.key))
+				.filter((key) => typeof key === 'string' && key !== '' && !key.startsWith('__'))
+				.slice(0, 4)
+		},
+
+		/**
 		 * Columns handed to CnDataTable: `tableColumns`, with each reference
 		 * column that has a `labelField` rendered through the `refLabel` cell
 		 * widget. Such a column is sortable only with `sortByLabel: true`
@@ -4903,19 +5035,112 @@ export default {
 				.filter((button) => button && typeof button === 'object' && typeof button.action === 'string' && button.action !== '')
 				.map((button, index) => {
 					let label = typeof button.label === 'string' && button.label !== '' ? this.cnTranslate(button.label) : ''
+					let icon = typeof button.icon === 'string' ? button.icon : ''
 					if (label === '' && button.action === 'add') {
 						label = this.resolvedAddLabel
+					}
+					// The board's header: Export reads "Download" with its icon and
+					// the Actions menu reads "Actions", without the manifest saying so.
+					if (this.isBoardLook && label === '' && button.action === 'export') {
+						label = t('nextcloud-vue', 'Download')
+						icon = icon || 'Download'
+					}
+					if (label === '' && button.action === 'actions-menu') {
+						label = t('nextcloud-vue', 'Actions')
 					}
 					return {
 						key: String(button.id || button.action || index),
 						label,
 						action: button.action,
 						variant: button.variant === 'primary' ? 'primary' : 'secondary',
-						icon: typeof button.icon === 'string' ? button.icon : '',
+						icon,
 						format: button.format === 'excel' ? 'excel' : 'csv',
 					}
 				})
 				.filter((button) => button.label !== '')
+				// The Actions menu lists the page's header actions, so a page
+				// with none has nothing to put in it.
+				.filter((button) => button.action !== 'actions-menu' || this.mergedHeaderActions.length > 0)
+		},
+
+		/**
+		 * The header buttons in the order they render. Under the board look
+		 * the order is fixed whatever the manifest declares: export (Download),
+		 * the Actions menu, any other secondary button, the buildiq square,
+		 * then the primary button. Without the look it is the declared order.
+		 *
+		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-index-header-reads-title-count-and-the-board-buttons
+		 * @return {Array<object>} The buttons; the buildiq square is `{ key: '__buildiq', action: '__buildiq' }`.
+		 */
+		orderedHeaderButtons() {
+			const buttons = this.resolvedHeaderButtons
+			if (!this.isBoardLook) {
+				return buttons
+			}
+			const rank = (button) => {
+				if (button.variant === 'primary') {
+					return 4
+				}
+				if (button.action === 'export') {
+					return 0
+				}
+				if (button.action === 'actions-menu') {
+					return 1
+				}
+				return 2
+			}
+			const sorted = buttons
+				.map((button, index) => ({ button, index }))
+				.sort((a, b) => (rank(a.button) - rank(b.button)) || (a.index - b.index))
+				.map((entry) => entry.button)
+			const firstPrimary = sorted.findIndex((button) => button.variant === 'primary')
+			const square = { key: '__buildiq', action: '__buildiq', variant: 'secondary', label: '', icon: '' }
+			if (firstPrimary === -1) {
+				return [...sorted, square]
+			}
+			return [...sorted.slice(0, firstPrimary), square, ...sorted.slice(firstPrimary)]
+		},
+
+		/**
+		 * The active filters as chips for the board toolbar's second row, one
+		 * per filter: "Team: Woo". A filter with no value is not active.
+		 *
+		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
+		 * @return {Array<{key: string, label: string}>}
+		 */
+		activeFilterChips() {
+			if (!this.isBoardLook) {
+				return []
+			}
+			const props = this.effectiveSchema?.properties || {}
+			const chips = []
+			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
+				const values = (Array.isArray(raw) ? raw : [raw])
+					.filter((value) => value !== null && value !== undefined && value !== '')
+					.map((value) => String(value))
+				if (values.length === 0) {
+					continue
+				}
+				const field = this.cnTranslate((props[key] && props[key].title) || key)
+				chips.push({ key, label: `${field}: ${values.join(', ')}` })
+			}
+			return chips
+		},
+
+		/**
+		 * The plural the board bulk band names: "With the selected cases".
+		 * The schema's `titlePlural` (or `plural`), else the lower-cased
+		 * schema title with an `s`, else nothing (the band says "items").
+		 *
+		 * @return {string}
+		 */
+		boardBulkNoun() {
+			const schema = this.effectiveSchema || {}
+			const plural = schema.titlePlural || schema.pluralTitle || schema.plural
+			if (typeof plural === 'string' && plural !== '') {
+				return this.cnTranslate(plural).toLowerCase()
+			}
+			return ''
 		},
 
 		/**
@@ -4963,7 +5188,9 @@ export default {
 		 * @return {boolean}
 		 */
 		barShowsSavedViews() {
-			return Boolean(this.allowSavedViews) && !this.headerButtonsShown
+			// Under the board look the saved views stay in the toolbar as chips
+			// even when the header carries the buttons.
+			return Boolean(this.allowSavedViews) && (!this.headerButtonsShown || this.isBoardLook)
 		},
 
 		/**
@@ -4986,6 +5213,14 @@ export default {
 		 */
 		headerDescription() {
 			const total = this.effectivePagination?.total
+			// Board look: the count line is a template over the rows on this page
+			// and all rows, "{shown} of {total}" unless the page says otherwise.
+			if (this.isBoardLook && typeof total === 'number' && total >= 0) {
+				const template = this.countText || this.countSubtitle || '{shown} of {total}'
+				return this.cnTranslate(template)
+					.replace('{shown}', String(this.effectiveObjects.length))
+					.replace('{total}', String(total))
+			}
 			if (this.countSubtitle && typeof total === 'number' && total >= 0) {
 				return this.cnTranslate(this.countSubtitle).replace('{total}', String(total))
 			}
@@ -6112,6 +6347,11 @@ export default {
 		onClearFilters() {
 			// Clearing the view brings the person's own columns back.
 			this.appliedViewColumns = null
+			this.appliedSavedViewId = ''
+			if (this.isNamedSource && Object.keys(this.namedActiveFilters || {}).length > 0) {
+				this.namedActiveFilters = {}
+				this.persistNamedFiltersToRoute({})
+			}
 			if (!this.isSelfFetchMode) {
 				this.$emit('clear-filters')
 				return
@@ -6185,6 +6425,19 @@ export default {
 				this.setNamedFilter(payload.key, payload.values)
 			}
 			this.$emit('filter-change', payload)
+		},
+
+		/**
+		 * The board toolbar's filter chip was removed: clear that one filter.
+		 *
+		 * @param {{key: string}} chip The chip from `activeFilterChips`.
+		 * @return {void}
+		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
+		 */
+		onRemoveActiveFilter(chip) {
+			if (chip && typeof chip.key === 'string') {
+				this.onFilterEvent({ key: chip.key, values: [] })
+			}
 		},
 
 		/**
@@ -6451,7 +6704,48 @@ export default {
 		},
 
 		rowActionsFor(row) {
-			return availableRowActions(this.mergedActions, row, this.rowActionField)
+			return withoutViewWhenRowOpensDetail(
+				availableRowActions(this.mergedActions, row, this.rowActionField),
+				this.rowOpensDetailFor(row),
+			)
+		},
+
+		/**
+		 * The row's own name, for the row menu button's accessible name
+		 * ("Actions for <title>"): the `nameFormatter`, else the
+		 * `massActionNameField`, else the row's title or name.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The name, or ''.
+		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-table-is-a-white-card-with-one-row-menu
+		 */
+		rowTitleFor(row) {
+			if (!row) {
+				return ''
+			}
+			const named = typeof this.nameFormatter === 'function' ? this.nameFormatter(row) : row[this.massActionNameField]
+			const value = named ?? row.title ?? row.name ?? ''
+			return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
+		},
+
+		/**
+		 * Whether a click on this row navigates to the record's detail page.
+		 * When it does, the row menu offers Edit and not View (viewing is what
+		 * the click already does). A `viewTo` that answers null for the row
+		 * means this record has no detail page, so it keeps View.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean} True when the row opens a detail page.
+		 * @spec openspec/changes/row-menu-edits-when-the-row-opens-the-detail/specs/index-page/spec.md
+		 */
+		rowOpensDetailFor(row) {
+			if (!this.rowClickOpens) {
+				return false
+			}
+			if (typeof this.viewTo === 'function') {
+				return Boolean(row) && this.viewTo(row) !== null && this.viewTo(row) !== undefined
+			}
+			return true
 		},
 
 		/**
@@ -7413,6 +7707,7 @@ export default {
 		 * @param {object} view The View API object to apply.
 		 */
 		onApplySavedView(view) {
+			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
 			const state = extractViewState(view)
 			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
 			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []

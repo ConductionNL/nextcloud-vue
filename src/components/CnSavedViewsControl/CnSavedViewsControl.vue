@@ -3,14 +3,46 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
+	<!--
+		Board look: the saved views are a row of chips on the ground, each with
+		its count, the selected one filled. The menu stays for managing views
+		(apply, rename, share, delete) and is reached from the "Save view"
+		button. Without the look the control is the menu alone, as before.
+	-->
+	<div
+		v-if="isBoardLook && chipRows.length > 0"
+		class="cn-saved-views__chips"
+		role="group"
+		:aria-label="t('nextcloud-vue', 'Saved views')"
+		data-testid="cn-saved-views-chips">
+		<button
+			v-for="row in chipRows"
+			:key="`chip-${row.view.id || row.view.slug}`"
+			type="button"
+			class="cn-saved-views__chip"
+			:class="{ 'cn-saved-views__chip--selected': isChipSelected(row.view) }"
+			:aria-pressed="isChipSelected(row.view)"
+			data-testid="cn-saved-views-chip"
+			:data-view-id="row.view.id || row.view.slug"
+			@click="onApply(row.view)">
+			<span class="cn-saved-views__chip-name">{{ row.view.name }}</span>
+			<span
+				v-if="countOf(row.view) !== null"
+				class="cn-saved-views__chip-count"
+				data-testid="cn-saved-views-chip-count">{{ countOf(row.view) }}</span>
+		</button>
+	</div>
 	<NcActions
+		v-bind="$attrs"
+		:class="{ 'cn-saved-views__save': isBoardLook }"
 		:forceMenu="true"
 		:forceName="true"
-		:menuName="menuLabel"
+		:menuName="isBoardLook ? t('nextcloud-vue', 'Save view') : menuLabel"
 		data-testid="cn-saved-views-control"
-		:aria-label="menuLabel">
+		:aria-label="isBoardLook ? t('nextcloud-vue', 'Save view') : menuLabel">
 		<template #icon>
-			<BookmarkOutline :size="20" />
+			<ContentSaveOutline v-if="isBoardLook" :size="18" />
+			<BookmarkOutline v-else :size="20" />
 		</template>
 
 		<NcActionCaption :name="t('nextcloud-vue', 'Saved views')" />
@@ -168,6 +200,7 @@ import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.v
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { buildViewTree, labelsInUse, VIEW_GROUPS } from '../../utils/buildViewTree.js'
 import { isOwnView, viewAccess } from '../../utils/savedViewHelpers.js'
 
@@ -225,6 +258,14 @@ export default {
 		ViewDashboardOutline,
 	},
 
+	inject: {
+		/** The look CnAppRoot provides; `board` draws the views as chips. */
+		cnLook: { default: 'nextcloud' },
+	},
+
+	// The chips and the menu are two roots under the board look.
+	inheritAttrs: false,
+
 	props: {
 		/** Views to list (View API objects from `GET /apps/openregister/api/views`). */
 		views: {
@@ -265,6 +306,15 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The id (or slug) of the applied view; its chip renders selected under
+		 * the board look.
+		 */
+		selectedViewId: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: ['apply', 'copy-request', 'delete-request', 'presentation-request', 'save-request', 'share-request', 'update-request'],
@@ -277,6 +327,24 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the saved views draw as chips (the board look).
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The views that get a chip: the top level of the tree, in tree order.
+		 *
+		 * @return {Array<object>}
+		 */
+		chipRows() {
+			return this.rows.filter((row) => row.depth === 0)
+		},
+
 		/** @return {string} The dropdown trigger label. */
 		menuLabel() {
 			return t('nextcloud-vue', 'Views')
@@ -339,6 +407,16 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Whether a view's chip is the selected one.
+		 *
+		 * @param {object} view The view.
+		 * @return {boolean}
+		 */
+		isChipSelected(view) {
+			return this.selectedViewId !== '' && (this.selectedViewId === String(view.id) || this.selectedViewId === String(view.slug))
+		},
 
 		/**
 		 * The name a row shows, indented to its depth.

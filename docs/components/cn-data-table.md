@@ -194,3 +194,7 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 ```
 
 Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.
+
+## Board look
+
+Under the board look the table container is a white card (radius 12, no shadow), header cells are weight 600 on the hover ground, the first data cell is the title column (a 15px link with the `secondary` line under it) and the last column is headed by a visually hidden "Actions".

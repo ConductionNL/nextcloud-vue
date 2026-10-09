@@ -83,7 +83,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showRequestFeature` | Boolean | `true` | Show the built-in "Request a feature" entry in the CnActionsBar overflow. Opens the CnSuggestFeatureModal with `surface: "index:<schema>"`. Requires a CnAppRoot ancestor (repo inject) to open — warns + no-ops otherwise |
 | `useAdvancedFormDialog` | Boolean | `false` | Use [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) for create/edit (properties table, JSON tab, optional metadata) instead of CnFormDialog |
 | `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject`. The override owns persistence (e.g. an app posting through a contact-aware endpoint that fills a required FK before saving to OpenRegister) and must return the created object on success (falsy = failure; throwing surfaces the error in the dialog). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Edits are never routed here; when absent, create behaviour is unchanged. See [Per-schema create-override hook](#per-schema-create-override-hook). |
-| `showViewAction` | Boolean | `true` | Show the built-in View row action. Emits a dedicated `@view` event — independent of `@row-click`. Set to `false` when the row has no separate "open detail" target. On a named `entitySource` page the effective default is `false` — the source's own open action navigates to the detail page, which is the view; an explicit prop still wins. |
+| `showViewAction` | Boolean | `true` | Show the built-in View row action. It is left out of a row's menu whenever a click on that row already opens its detail page (the menu offers Edit instead); a row with no detail page keeps it. Emits a dedicated `@view` event — independent of `@row-click`. Set to `false` when the row has no separate "open detail" target. On a named `entitySource` page the effective default is `false` — the source's own open action navigates to the detail page, which is the view; an explicit prop still wins. |
 | `viewTo` | Function | `null` | `(row) => location \| null`: where the View row action links to. When it returns a location, View renders as a real link (middle-click, copy link) and does not emit `@view`; when it returns null, View stays a button that emits `@view`. Manifest pages get it from CnPageRenderer, pointing where a row click opens. |
 | `showEditAction` | Boolean | `true` | Show the built-in Edit row action. On a named `entitySource` page the effective default is `false` — a source has no schema, so the form modal could only render empty; the source declares its own Edit, which navigates. An explicit prop still wins. |
 | `editOpensDetail` | Boolean | `false` | Send the Edit row action to the record's detail page (emits `@edit-open`) instead of opening the edit modal. Opt-in only — `CnPageRenderer` does **not** derive it, because `@edit-open` is bound to the same navigation as a row click, so an Edit that routes only repeats the row click (the split pane, or the detail page) and the form stops being reachable from the list. Declare it per page when the modal cannot express the record. |
@@ -1040,7 +1040,7 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 
 - `showTitleIcon` (default `true`): `false` drops the icon before the title.
 - `showCount` (default `true`): `false` drops the actions bar's "Showing 20 of 258" line, for a page whose `countSubtitle` already gives the total.
-- `headerButtons` (default `[]`): buttons beside the title, each `{ label?, action, variant?, icon?, format?, id? }`. `action` is `add` (the Add flow; the label defaults to the Add label), `export` (the export leaf in `format`, `csv` by default, else the export dialog), `import`, `refresh`, or the id of a `headerActions` entry. `variant` is `primary` or `secondary` (default). They show only with `showTitle` and without a `#header` slot; when they show, the actions bar drops its Views and Actions menus, and its Add button and Export menu when a button takes that action.
+- `headerButtons` (default `[]`): buttons beside the title, each `{ label?, action, variant?, icon?, format?, id? }`. `action` is `add` (the Add flow; the label defaults to the Add label), `export` (the export leaf in `format`, `csv` by default, else the export dialog), `actions-menu` (the page's header actions as one labelled menu button, absent when there are none), `import`, `refresh`, or the id of a `headerActions` entry. `variant` is `primary` or `secondary` (default). They show only with `showTitle` and without a `#header` slot; when they show, the actions bar drops its Views and Actions menus, and its Add button and Export menu when a button takes that action.
 
 ```json
 { "showTitle": true, "showTitleIcon": false, "showCount": false, "countSubtitle": "{total} open cases",
@@ -1075,3 +1075,24 @@ The `personalLenses` value `unread` adds the quick filter Unread (`_unread=true`
 ## Shared saved views
 
 With `allowSavedViews`, views shared with the user list under "Shared with me" in the saved-views control. Saving a view can share it with groups (read or write); an own view has a Share entry; a view shared with write access can be saved to with the current state (the body never carries `sharedWith` or `owner`); a view shared read-only can be copied with "Save as my view". See [`CnSavedViewsControl`](./cn-saved-views-control.md#views-shared-with-the-user).
+
+## The board look: `look`, `countText`, `footerNote`, `bulkHint`, `cardFields`
+
+With `look: "board"` (the page's `look` prop or `config.look`, else the app's `look`) the index page is drawn as the DqZaken list of the screens. Without it nothing changes.
+
+- **Header**: no icon; the title (28px), the count line and the buttons. `countText` is a template with `{shown}` (rows on this page), `{total}` and free text, default `"{shown} of {total}"`. The buttons render in a fixed order whatever the manifest declares: `export` (labelled "Download" by default), `actions-menu`, any other secondary button, the buildiq square, the primary button.
+- **Toolbar**: no band. Row 1 holds the saved-view chips (with their counts; the selected one filled), a "Save view" button, the labelled Filter button with the number of active filters, and the view switch (icon-only segments in the order table, cards, board, map). Row 2 holds the search field and, when filters are active, "Active:", one removable chip per filter and "Clear all".
+- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected <plural>", the bulk actions and the optional `bulkHint`.
+- **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for <title>".
+- **Footer**: inside the card (and under the card grid): the count text, `footerNote` after it, and numbered page links with Previous and Next. No First, Last or page-size select.
+- **Cards view**: the same header, toolbar and footer; `cardFields` (default: the first four list columns) names the facts shown on each card.
+
+```json
+{ "look": "board", "showTitle": true, "countText": "{shown} of {total} open cases in your teams",
+  "footerNote": "click a column header to sort", "bulkHint": "See what changes first, then run it",
+  "headerButtons": [{ "action": "add", "variant": "primary", "label": "New case" }, { "action": "export" }, { "action": "actions-menu" }] }
+```
+
+## The row menu edits when the row opens the detail
+
+When a click on a row navigates to the record's detail page, the built-in View is left out of that row's menu (and of the right-click menu): viewing is what the click does. The menu offers Edit (Dutch "Bewerken", pencil icon). A row whose `viewTo` answers `null`, or a page with no row-click target, keeps View. Actions the page declares itself are not touched. The rule applies in every look.
