@@ -167,6 +167,10 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 				...(collectionUrl ? { collectionUrl } : {}),
 			})
 		}
+		// A mixed list tells its own rows apart by `@self.register`, an id, so a slug register needs resolving.
+		if (collectionUrl && !/^\d+$/.test(String(register)) && typeof objectStore.fetchRegister === 'function') {
+			objectStore.fetchRegister(type)
+		}
 	}
 	registerTarget()
 	watch(objectType, registerTarget, { flush: 'sync' })

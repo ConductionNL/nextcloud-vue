@@ -30,6 +30,8 @@ const mockStore = reactive({
 		? { id: 202, title: 'Rule', properties: { name: { type: 'string' } } }
 		: { id: 24, slug: 'publication', title: 'Publication', properties: {} })),
 	getSchema: jest.fn(() => null),
+	getRegister: jest.fn(() => null),
+	fetchRegister: jest.fn(async () => null),
 	getError: jest.fn(() => null),
 	saveObject: jest.fn(async (type, data) => ({ ...data })),
 	deleteObject: jest.fn(async () => true),
@@ -121,6 +123,39 @@ describe('CnIndexPage — collectionUrl', () => {
 		const types = mockStore.deleteObjects.mock.calls.map(([type, ids]) => [type, ids])
 		expect(types).toContainEqual(['19-202', ['b']])
 		expect(types.find(([, ids]) => ids.includes('a'))[0]).not.toBe('19-202')
+	})
+
+	it('matches a slug register to the rows\' register id', async () => {
+		mockStore.getRegister.mockImplementation((type) => (type.startsWith('pubs-') ? { id: 19, slug: 'pubs' } : null))
+		const wrapper = await mountPage({ register: 'pubs' })
+		const pageType = mockStore.registerObjectType.mock.calls[0][0]
+		expect(mockStore.fetchRegister).toHaveBeenCalledWith(pageType)
+
+		wrapper.vm.openFormDialog(rowA)
+		expect(wrapper.vm.rowFormTarget).toBeNull()
+		mockStore.getRegister.mockReset()
+	})
+
+	it('keeps a selected row of another pair on its pair after it leaves the page', async () => {
+		const wrapper = await mountPage()
+		const pageType = mockStore.registerObjectType.mock.calls[0][0]
+		mockStore.collections = { [pageType]: [rowA] }
+		await flush()
+		expect(wrapper.vm.effectiveObjects.map((o) => o.id)).toEqual(['a'])
+
+		await wrapper.vm.selfActions.handleMassDelete(['a', 'b'])
+		const types = mockStore.deleteObjects.mock.calls.map(([type, ids]) => [type, ids])
+		expect(types).toContainEqual(['19-202', ['b']])
+	})
+
+	it('does not open the form when the row\'s schema cannot be loaded', async () => {
+		const wrapper = await mountPage()
+		mockStore.fetchSchema.mockImplementationOnce(async () => {
+			throw new Error('404')
+		})
+		await wrapper.vm.openFormDialog(rowB)
+		expect(wrapper.vm.showFormDialogVisible).toBe(false)
+		expect(wrapper.vm.rowFormTarget).toBeNull()
 	})
 
 	it('without collectionUrl, every row stays on the page\'s pair', async () => {

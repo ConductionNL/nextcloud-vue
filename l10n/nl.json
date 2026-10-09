@@ -1335,7 +1335,8 @@
     "Development environment": "Ontwikkelomgeving",
     "Test environment": "Testomgeving",
     "Acceptance environment": "Acceptatieomgeving",
-    "About {label}": "Over {label}"
+    "About {label}": "Over {label}",
+    "Could not load the form for this item.": "Kon het formulier voor dit item niet laden."
   },
   "plurals": {
     "%n year": [

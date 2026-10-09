@@ -693,7 +693,10 @@ Set `collectionUrl` to list from an endpoint that searches several register/sche
 A row whose `@self.register` / `@self.schema` names another pair behaves as a row of that pair:
 
 - Edit opens the form with that pair's schema. The page's `includeFields`, `excludeFields` and `fieldOverrides` are not applied to it.
-- Save, delete, mass delete and copy go to that pair's own URL.
+- Save, delete, mass delete and copy go to that pair's own URL. A selection kept across pages stays on each row's own pair.
+- If that pair's schema can't be loaded, the form does not open and an error toast is shown.
+
+`register` may be a slug. The page then loads the register once to match it against the rows' `@self.register` ids; passing ids skips that request.
 
 Keep the columns to ones every pair has, such as `@self.name`, `@self.updated` and shared properties. Live updates follow the page's own pair only. In this mode, any `dispatchObjectsChanged` signal refreshes the list.
 

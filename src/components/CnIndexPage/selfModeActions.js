@@ -13,6 +13,7 @@ function resolveNameField(ctx) {
 
 function findSource(ctx, id) {
 	return ctx.effectiveObjects().find((o) => o.id === id || o['@self']?.id === id)
+		|| (typeof ctx.knownRow === 'function' ? ctx.knownRow(id) : undefined)
 }
 
 /**
@@ -26,11 +27,12 @@ function findSource(ctx, id) {
  * @param {string} opts.register The page's register.
  * @param {string} opts.schema The page's schema.
  * @param {object|null} opts.primarySchema The page's resolved schema.
+ * @param {object|null} [opts.primaryRegister] The page's resolved register, which matches a slug `register` to `@self.register`.
  * @param {object|null} opts.store The object store.
  * @param {object} row The row.
  * @return {{register: string, schema: string, type: string}|null} The row's own pair.
  */
-export function resolveRowTarget({ collectionUrl, register, schema, primarySchema, store }, row) {
+export function resolveRowTarget({ collectionUrl, register, schema, primarySchema, primaryRegister, store }, row) {
 	if (!collectionUrl || !row || !store) {
 		return null
 	}
@@ -40,10 +42,10 @@ export function resolveRowTarget({ collectionUrl, register, schema, primarySchem
 	if (!reg || !sch) {
 		return null
 	}
-	const schemaIds = [schema, primarySchema && primarySchema.id, primarySchema && primarySchema.slug]
-		.filter((v) => v !== undefined && v !== null && v !== '')
-		.map(String)
-	if (schemaIds.includes(sch) && String(register) === reg) {
+	const idsOf = (...values) => values.filter((v) => v !== undefined && v !== null && v !== '').map(String)
+	const schemaIds = idsOf(schema, primarySchema && primarySchema.id, primarySchema && primarySchema.slug)
+	const registerIds = idsOf(register, primaryRegister && primaryRegister.id, primaryRegister && primaryRegister.slug)
+	if (schemaIds.includes(sch) && registerIds.includes(reg)) {
 		return null
 	}
 	const type = `${reg}-${sch}`

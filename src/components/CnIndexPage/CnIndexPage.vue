@@ -5395,6 +5395,21 @@ export default {
 	},
 
 	watch: {
+		effectiveObjects: {
+			immediate: true,
+			handler(rows) {
+				if (!this.collectionUrl || !Array.isArray(rows)) {
+					return
+				}
+				for (const row of rows) {
+					const id = row?.id ?? row?.['@self']?.id
+					if (id !== undefined && id !== null) {
+						this.collectionRowsById.set(id, row)
+					}
+				}
+			},
+		},
+
 		// A column or form field bound to a property the schema lacks is told to the host once.
 		effectiveSchema: {
 			immediate: true,
@@ -5607,6 +5622,8 @@ export default {
 	},
 
 	created() {
+		// Rows seen in a collectionUrl list, so a selection kept across pages still resolves its own pair.
+		this.collectionRowsById = new Map()
 		this.pushAiContext()
 		if (this.allowSavedViews) {
 			this.fetchSavedViews()
@@ -5615,6 +5632,7 @@ export default {
 			isSelfFetchMode: () => this.isSelfFetchMode,
 			selfObjectStore: () => this.selfObjectStore,
 			rowTarget: (row) => this.rowTypeTarget(row),
+			knownRow: (id) => this.collectionRowsById.get(id),
 			selfObjectType: () => this.selfObjectType,
 			list: () => this.list,
 			selectedIds: () => this.internalSelectedIds,
@@ -8363,8 +8381,12 @@ export default {
 			return Promise.resolve(store.getSchema?.(target.type) || store.fetchSchema?.(target.type))
 				.catch(() => null)
 				.then((schema) => {
+					if (!schema) {
+						this.toastSavedView('error', t('nextcloud-vue', 'Could not load the form for this item.'))
+						return
+					}
 					this.rowFormTarget = target
-					this.rowFormSchema = schema || null
+					this.rowFormSchema = schema
 					this.editItem = item
 					this.showFormDialogVisible = true
 				})
@@ -8382,6 +8404,7 @@ export default {
 				register: this.register,
 				schema: this.schema,
 				primarySchema: this.effectiveSchema,
+				primaryRegister: this.selfObjectStore?.getRegister?.(this.selfObjectType) || null,
 				store: this.selfObjectStore,
 			}, row)
 		},
