@@ -23,11 +23,15 @@ import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetFor
 import CnDocumentReviewWidget from '../CnDocumentReviewList/CnDocumentReviewWidget.vue'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
 import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
+import CnMarkdownWidget2 from '../CnMarkdownWidget/CnMarkdownWidget.vue'
+import CnMarkdownWidgetForm2 from '../CnMarkdownWidgetForm/CnMarkdownWidgetForm.vue'
 import CnNextStepWidget from '../CnNextStepCard/CnNextStepWidget.vue'
 import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
+import CnSavedViewWidget2 from '../CnSavedViewWidget/CnSavedViewWidget.vue'
+import CnSavedViewWidgetForm2 from '../CnSavedViewWidgetForm/CnSavedViewWidgetForm.vue'
 import CnStackedBarWidget from '../CnStackedBarWidget/CnStackedBarWidget.vue'
 import CnStackedBarWidgetForm from '../CnStackedBarWidgetForm/CnStackedBarWidgetForm.vue'
 import CnStagesWidget from '../CnStagesWidget/CnStagesWidget.vue'
@@ -68,6 +72,7 @@ import '../CnDeltaWidget/index.js'
 import '../CnGaugeWidget/index.js'
 import '../CnFlowRunsWidget/index.js'
 import '../CnTasksWidget/index.js'
+import '../CnNotepadWidget/index.js'
 import '../CnObjectDataWidget/dashboardRegistration.js'
 import '../CnObjectGeoWidget/dashboardRegistration.js'
 import '../CnWidgetObjectTable/dashboardRegistration.js'
@@ -154,6 +159,33 @@ registerDashboardWidget('object-list', {
 	displayName: 'Object list',
 	icon: 'ClipboardList',
 	surfaces: ['legacy'],
+})
+
+// `saved-view`: a list driven by one of the reader's saved views. The only data
+// widget a user may add themselves, because the view carries the register and
+// schema a user would otherwise have to name. Registered inline for the same
+// tree-shaking reason as `object-list` above.
+// @spec openspec/changes/a-saved-view-drives-a-widget/tasks.md#task-1.1
+registerDashboardWidget('saved-view', {
+	renderer: CnSavedViewWidget2,
+	form: CnSavedViewWidgetForm2,
+	defaultContent: { viewId: '', limit: 10 },
+	displayName: 'Saved view',
+	icon: 'ClipboardList',
+	userAddable: true,
+})
+
+// `markdown`: prose inside a grid page, through the one shared renderer. The
+// only catalog widget a PUBLIC host may mount so far: every other entry is
+// `public: false` until its author opts in deliberately.
+// @spec openspec/changes/widget-registry-public-flag/tasks.md#task-4
+registerDashboardWidget('markdown', {
+	renderer: CnMarkdownWidget2,
+	form: CnMarkdownWidgetForm2,
+	defaultContent: { markdown: '' },
+	displayName: 'Markdown',
+	icon: 'FormatTitle',
+	public: true,
 })
 
 registerDashboardWidget('related', {
@@ -335,8 +367,9 @@ registerDashboardWidget('stacked-bar', {
 
 /**
  * Explicit no-op that guarantees this module (and therefore every widget's
- * self-registration side effect) is evaluated. Call it once at app bootstrap if
- * a bundler tree-shakes bare side-effect imports.
+ * self-registration side effect) is evaluated. Now optional: `CnDashboardPage`
+ * and `CnDetailPage` import this module themselves, and a second call changes
+ * nothing because the module body runs once.
  *
  * @return {void}
  */

@@ -12,8 +12,8 @@
   - Dot `aria-hidden`, visually hidden "Unread" before the title, bold row title
   - `personalLenses` accepts `unread` and adds `{_unread: true}`
   - `cn-` classes, Nextcloud variables
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Read-state on CnDetailPage
 - **spec_ref**: `openspec/changes/record-unread-markers/specs/record-unread/spec.md#requirement-opening-a-record-marks-it-read`
@@ -22,8 +22,8 @@
   - One `PUT` after render; none on a failed load; none with `markRead: false`
   - Mark as unread entry sends `DELETE` and emits `marked-unread`
   - Manifest schema accepts `markRead` (boolean)
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Tab badges from unreadCounts
 - **spec_ref**: `openspec/changes/record-unread-markers/specs/record-unread/spec.md#requirement-tabs-show-what-is-new-on-them`
@@ -32,5 +32,7 @@
   - `unreadKey` on tabs, default the tab id
   - Own `count` wins; absent or 0 shows nothing
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
+
+> The tab badges are in the `tabs` widget (`resolveTabCount`), which is where a detail page's counted tabs live; the sidebar tab strip has no count. The manifest schema is at 2.57.0 (`markRead`, the `unread` lens value); `unreadKey` sits on the open tab entry. `npm run build` is not run here.

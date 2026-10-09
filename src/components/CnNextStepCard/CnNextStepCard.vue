@@ -7,6 +7,7 @@
 	<section
 		v-if="normalisedItems.length > 0"
 		class="cn-next-step-card"
+		:class="{ 'cn-next-step-card--board': isBoard }"
 		data-testid="cn-next-step-card"
 		:aria-labelledby="title ? titleId : null"
 		:aria-label="title ? null : fallbackLabel">
@@ -62,6 +63,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 
 let nextStepCardUid = 0
 
@@ -95,6 +97,11 @@ export default {
 	components: {
 		Check,
 		NcButton,
+	},
+
+	inject: {
+		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -169,6 +176,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the card is drawn in the board look: the kicker in the tonal
+		 * primary text, a success-tinted done marker and a 44px button.
+		 *
+		 * @return {boolean} True in the board look.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-next-step-card-takes-the-board-anatomy
+		 */
+		isBoard() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		/**
 		 * The items that can render: an object with a label.
 		 *

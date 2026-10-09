@@ -12,8 +12,8 @@
   - `searchInFiles` prop with default `false`; manifest key accepted as boolean
   - `_content_search=true` only with the switch on and a term; `contentSearch=1` in the route
   - Footer note about the cap of 50
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Found in line
 - **spec_ref**: `openspec/changes/index-search-in-files/specs/index-page/spec.md#requirement-a-row-found-through-a-file-names-the-file`
@@ -21,5 +21,5 @@
 - **acceptance_criteria**:
   - "Found in {file}" from `@self.matchedFile`, plain text, secondary colour
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

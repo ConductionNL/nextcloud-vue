@@ -11,8 +11,8 @@
 - **acceptance_criteria**:
   - An array of `$ref` items with `inversedBy` maps to `child-records` with `schema` and `parentField`; an explicit widget wins
   - Verify: jest
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: `CnChildRecordsField`
 - **spec_ref**: `openspec/changes/form-child-records-table/specs/dialog-system/spec.md#requirement-a-child-records-field-edits-another-schemas-records-inside-the-form`
@@ -21,8 +21,8 @@
   - Loads children of an existing parent; Add, inline edit, row dialog, Remove; pages at 50 with a link to the list
   - Shares the row table with the `sub-objects` widget when that exists, otherwise ships it and `sub-objects` reuses it
   - Verify: jest; `npm run check:a11y`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test (jest; `npm run check:a11y` not run)
 
 ### Task 3: Save after the parent
 - **spec_ref**: `openspec/changes/form-child-records-table/specs/dialog-system/spec.md#requirement-children-are-saved-after-the-parent-in-two-requests`
@@ -31,8 +31,8 @@
   - Parent first, then one bulk save and one bulk delete; the parent payload carries no nested children
   - A refused child is named in the result and the parent stays saved
   - Verify: jest with mocked axios asserting the request order and count; mutation check: nesting children in the parent payload reddens the test
-- [ ] Implement
-- [ ] Test
+- [x] Implement (CnFormDialog only — not run: CnFormPage renders a flat field set and does not yet host the child-records table)
+- [x] Test
 
 ### Task 4: Row validation and docs
 - **spec_ref**: `openspec/changes/form-child-records-table/specs/dialog-system/spec.md#requirement-rows-are-validated-before-anything-is-sent`
@@ -41,8 +41,8 @@
   - A failing row blocks submit, naming row and field; nothing is sent
   - Docs explain the relation it reads and why children are saved after the parent
   - Verify: jest; `npm run check:docs`, `npm run check:docs-fresh`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ## Cross-project
 

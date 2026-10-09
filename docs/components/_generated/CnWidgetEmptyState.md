@@ -8,13 +8,14 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name          | Type      | Required | Default                                           | Description                                                                                                                                   |
-| ------------- | --------- | -------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Nothing here yet')` | Headline — what is empty, in the user's words.                                                                                                |
-| `description` | `string`  |          | `''`                                              | Optional second line explaining what would fill the widget.                                                                                   |
-| `icon`        | `union`   |          | `null`                                            | Icon component rendered inside the circle. Defaults to an empty-tray outline.                                                                 |
-| `variant`     | `string`  |          | `'neutral'`                                       | Semantic colour for the icon and its tint, matching the widget header's `titleIconVariant` so an empty widget still reads as the same widget. |
-| `compact`     | `boolean` |          | `false`                                           | Shrink to a single quiet line-height block — for short tiles where a full empty state would be taller than the widget.                        |
+| Name          | Type      | Required | Default                                           | Description                                                                                                                                                                                                                          |
+| ------------- | --------- | -------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Nothing here yet')` | Headline — what is empty, in the user's words.                                                                                                                                                                                       |
+| `description` | `string`  |          | `''`                                              | Optional second line explaining what would fill the widget.                                                                                                                                                                          |
+| `icon`        | `union`   |          | `null`                                            | Icon component rendered inside the circle. Defaults to an empty-tray outline.                                                                                                                                                        |
+| `variant`     | `string`  |          | `'neutral'`                                       | Semantic colour for the icon and its tint, matching the widget header's `titleIconVariant` so an empty widget still reads as the same widget.                                                                                        |
+| `compact`     | `boolean` |          | `false`                                           | Shrink to a single quiet line-height block — for short tiles where a full empty state would be taller than the widget.                                                                                                               |
+| `size`        | `string`  |          | `''`                                              | Size: `widget` (the default look, 48px circle, 14px name) or `card` (the board empty state: 16px/700 name, 14px description, 24px icon). Left empty, it is `card` in the board look unless `compact` is set, and `widget` otherwise. |
 
 ### Slots
 

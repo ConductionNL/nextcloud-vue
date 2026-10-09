@@ -2,32 +2,35 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**light**: this component touches OpenRegister lightly. 0 direct references, 1 file reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name            | Type     | Required | Default                                                         | Description                                                                                                        |
-| --------------- | -------- | -------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `items`         | `array`  | ✓        | —                                                               | Items to copy. Each must have an `id` property.                                                                    |
-| `nameField`     | `string` |          | `'title'`                                                       | Property name used for display (e.g., 'title', 'name')                                                             |
-| `nameFormatter` | `func`   |          | `null`                                                          | Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. |
-| `dialogTitle`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Copy items')`                     | Dialog title                                                                                                       |
-| `patternLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Naming pattern')`                 | Label for the naming pattern selector                                                                              |
-| `emptyText`     | `string` |          | `() =&gt; t('nextcloud-vue', 'No items selected for copying.')` | Text when all items removed from list                                                                              |
-| `successText`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Items successfully copied.')`     | Success message                                                                                                    |
-| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                         | Label for the cancel button (visible before the copy runs).                                                        |
-| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                          | Label for the close button (visible after copy completes).                                                         |
-| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Copy')`                           | Label for the primary confirm button that triggers the copy.                                                       |
-| `removeLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Remove from list')`               | Aria label for the per-row "remove from list" icon button.                                                         |
+| Name            | Type                                                 | Required | Default                                                         | Description                                                                                                                                                              |
+| --------------- | ---------------------------------------------------- | -------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `include`       | `Array<'relationRows'&#124;'incoming'&#124;'files'>` |          | `[]`                                                            | Link kinds a copy may take along, from the page's `config.copy.include` (`relationRows`, `incoming`, `files`). Each is offered ticked. Empty keeps the dialog as it was. |
+| `register`      | `string`                                             |          | `''`                                                            | Register slug of the items, for checking the server can copy links. Empty: the first item's `@self.register`.                                                            |
+| `schema`        | `string`                                             |          | `''`                                                            | Schema slug of the items. Empty: the first item's `@self.schema`.                                                                                                        |
+| `items`         | `array`                                              | ✓        | —                                                               | Items to copy. Each must have an `id` property.                                                                                                                          |
+| `nameField`     | `string`                                             |          | `'title'`                                                       | Property name used for display (e.g., 'title', 'name')                                                                                                                   |
+| `nameFormatter` | `func`                                               |          | `null`                                                          | Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided.                                                       |
+| `dialogTitle`   | `string`                                             |          | `() =&gt; t('nextcloud-vue', 'Copy items')`                     | Dialog title                                                                                                                                                             |
+| `patternLabel`  | `string`                                             |          | `() =&gt; t('nextcloud-vue', 'Naming pattern')`                 | Label for the naming pattern selector                                                                                                                                    |
+| `emptyText`     | `string`                                             |          | `() =&gt; t('nextcloud-vue', 'No items selected for copying.')` | Text when all items removed from list                                                                                                                                    |
+| `successText`   | `string`                                             |          | `() =&gt; t('nextcloud-vue', 'Items successfully copied.')`     | Success message                                                                                                                                                          |
+| `cancelLabel`   | `string`                                             |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                         | Label for the cancel button (visible before the copy runs).                                                                                                              |
+| `closeLabel`    | `string`                                             |          | `() =&gt; t('nextcloud-vue', 'Close')`                          | Label for the close button (visible after copy completes).                                                                                                               |
+| `confirmLabel`  | `string`                                             |          | `() =&gt; t('nextcloud-vue', 'Copy')`                           | Label for the primary confirm button that triggers the copy.                                                                                                             |
+| `removeLabel`   | `string`                                             |          | `() =&gt; t('nextcloud-vue', 'Remove from list')`               | Aria label for the per-row "remove from list" icon button.                                                                                                               |
 
 ### Events
 
-| Name      | Payload | Description                                                                                                   |
-| --------- | ------- | ------------------------------------------------------------------------------------------------------------- |
-| `close`   | —       |                                                                                                               |
-| `confirm` | —       | Emitted when the user confirms copying. Payload: \{ ids, getName \} where getName(item) returns the new name. |
+| Name      | Payload | Description                                                                                                                                                     |
+| --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `close`   | —       | Emitted when the dialog should close (cancel, close button, or auto-close after success).                                                                       |
+| `confirm` | —       | Emitted when the user confirms copying. Payload: \{ ids, getName, include? \} where getName(item) returns the new name and include lists the ticked link kinds. |
 
 ### Methods
 

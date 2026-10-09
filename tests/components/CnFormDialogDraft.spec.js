@@ -255,3 +255,53 @@ describe('a successful save', () => {
 		expect(window.localStorage.getItem(keyForAnne)).toBeNull()
 	})
 })
+
+describe('Publish a stored draft', () => {
+	beforeEach(() => window.localStorage.clear())
+
+	const draftItem = { id: 'o1', title: 'Concept', isDraft: true }
+
+	it('shows Draft in the title and Publish on the primary button for a draft record', async () => {
+		const wrapper = open({ schema: draftableSchema, allowDraft: true, item: draftItem })
+		await flushPromises()
+		expect(wrapper.vm.resolvedTitle).toContain('(draft)')
+		expect(wrapper.vm.resolvedConfirmLabel).toBe('Publish')
+	})
+
+	it('publishes with the marker cleared after full validation', async () => {
+		const wrapper = open({ schema: draftableSchema, allowDraft: true, item: draftItem })
+		await flushPromises()
+		wrapper.vm.executeConfirm()
+		const emitted = wrapper.emitted('confirm')
+		expect(emitted).toHaveLength(1)
+		expect(emitted[0][0].isDraft).toBe(false)
+	})
+
+	it('refuses to publish while a required field is empty', async () => {
+		const wrapper = open({ schema: draftableSchema, allowDraft: true, item: { id: 'o1', title: '', isDraft: true } })
+		await flushPromises()
+		wrapper.vm.executeConfirm()
+		expect(wrapper.emitted('confirm')).toBeUndefined()
+	})
+
+	it('treats a normal record, or drafts switched off, as before', async () => {
+		const normal = open({ schema: draftableSchema, allowDraft: true, item: { id: 'o2', title: 'Klaar', isDraft: false } })
+		const off = open({ schema: draftableSchema, item: draftItem })
+		await flushPromises()
+		expect(normal.vm.resolvedConfirmLabel).toBe('Save')
+		expect(off.vm.resolvedConfirmLabel).toBe('Save')
+		expect(off.vm.resolvedTitle).not.toContain('(draft)')
+	})
+
+	it('words the indicator Saving and Saved', async () => {
+		const wrapper = open()
+		await flushPromises()
+		wrapper.vm.draftState = 'saving'
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('[data-testid="cn-form-dialog-draft-state"]').text()).toBe('Saving')
+		wrapper.vm.draftState = 'saved'
+		wrapper.vm.draftSavedAt = Date.now()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('[data-testid="cn-form-dialog-draft-state"]').text()).toBe('Saved just now')
+	})
+})

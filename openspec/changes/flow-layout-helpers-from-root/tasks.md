@@ -11,5 +11,5 @@
 - **acceptance_criteria**:
   - The eight names import from the root entry and from the composables barrel
   - Verify: jest; mutation check: removing one re-export reddens the packaging spec; `npm run check:build`, `npm run check:public-safe`, `npm run check:docs`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

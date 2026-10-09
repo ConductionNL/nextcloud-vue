@@ -125,6 +125,9 @@ Implements the WAI-ARIA tabs pattern:
 
 <GeneratedRef />
 
+## The board look
+
+In the board look a `line` strip draws the screens' folder tabs: 34px tabs on the darker surface, the open tab bold on the panel's colour with no coloured top edge, and a grey borderless 20px count badge 8px after the label. It never moves a tab under "More"; the strip scrolls. The `look` prop (`nextcloud` or `board`) overrides the look the app provides. The segmented variant is unchanged.
 ## See also
 
 - [`CnTab`](./cn-tab.md) — one panel in the strip

@@ -93,3 +93,7 @@ The target is resolved in this order:
 3. the app's conventional docs site derived from `cnAppId` — a last resort so the item is never simply missing.
 
 An app that hosts its docs anywhere else should provide `cnDocumentationBaseUrl` rather than pass a URL per widget.
+
+## Trigger variant
+
+`variant` (String, default `''`): how the trigger button is drawn. Empty keeps the NcActions default (`tertiary`); `secondary` draws a bordered button, as the board look's "More" in the detail header.

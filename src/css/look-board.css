@@ -1,0 +1,437 @@
+/*
+ * The board look (screens-chrome-parity).
+ *
+ * Opt-in: an app sets `look: "board"` in its manifest (or a page sets
+ * `config.look`) and CnAppRoot / CnPageRenderer put `cn-look-board` on their
+ * root. Every board rule in the library is scoped under that class, so an app
+ * without the key renders exactly as before. A dialog is teleported out of
+ * CnAppRoot and carries the class on its own container (see `useLook`).
+ *
+ * This file only defines the board dimensions as custom properties. Colours
+ * stay Nextcloud variables; the two properties below with no Nextcloud
+ * counterpart default to one.
+ */
+.cn-look-board {
+	/* Page content area: padding, max width, gap between blocks. */
+	--cn-board-content-padding: 24px 28px;
+	--cn-board-content-max-width: 1240px;
+	--cn-board-section-gap: 20px;
+	/* Buttons and inputs. */
+	--cn-board-control-height: 40px;
+	--cn-board-control-radius: 8px;
+	/* Cards. */
+	--cn-board-card-radius: 12px;
+	--cn-board-card-padding: 20px 22px;
+	/* Hairline inside a card, and the soft secondary text. */
+	--cn-board-hairline: var(--color-border);
+	--cn-board-text-soft: var(--color-main-text);
+}
+
+/*
+ * Rules below: screens-chrome-parity (page frame, header button, navigation).
+ *
+ * A page that sets `config.look: "nextcloud"` puts `cn-look-nextcloud` on its
+ * own root, inside the app's `cn-look-board`. Every rule that reaches into a
+ * page therefore ends in the guard `:not(.cn-look-nextcloud *)`, so the
+ * nearest look wins. Navigation rules need no guard: the navigation sits
+ * outside the page.
+ */
+
+/* ---- The page frame ---------------------------------------------------- */
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page:not(.cn-look-nextcloud *),
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-page:not(.cn-look-nextcloud *),
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	padding: var(--cn-board-content-padding);
+	max-width: var(--cn-board-content-max-width);
+	margin-inline: 0;
+}
+
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-page:not(.cn-look-nextcloud *) {
+	gap: var(--cn-board-section-gap);
+}
+
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *) .cn-page-header,
+.cn-look-board .cn-settings-page:not(.cn-look-nextcloud *) .cn-page-header,
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *) .cn-index-page__below-header,
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *) .cn-actions-bar {
+	margin-bottom: 0;
+}
+
+.cn-look-board .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
+	margin-bottom: var(--cn-board-section-gap);
+}
+
+/* The 56px inset clears the navigation toggle, which overlays the content
+   only while the navigation is closed. */
+.cn-look-board .cn-page-header:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
+	padding-inline-start: 0;
+}
+
+.cn-look-board:has(.app-navigation--closed) .cn-page-header:not(.cn-look-nextcloud *),
+.cn-look-board:has(.app-navigation--closed) .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
+.cn-look-board:has(.app-navigation--closed) .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
+	padding-inline-start: 56px;
+}
+
+/* ---- The header button ------------------------------------------------- */
+.cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
+.cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+.cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) .button-vue {
+	box-sizing: border-box;
+	height: var(--cn-board-control-height);
+	min-height: var(--cn-board-control-height);
+	padding: 0 14px;
+	gap: 8px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *) .button-vue--primary,
+.cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *) .button-vue--primary,
+.cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *) .button-vue--primary,
+.cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *) .button-vue--primary,
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) .button-vue--primary {
+	padding: 0 16px;
+	border: 0;
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+}
+
+/* ---- The buildiq square ------------------------------------------------ */
+.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue {
+	box-sizing: border-box;
+	width: var(--cn-board-control-height);
+	min-width: var(--cn-board-control-height);
+	height: var(--cn-board-control-height);
+	min-height: var(--cn-board-control-height);
+	padding: 0;
+	border: 0;
+	border-radius: var(--cn-board-control-radius);
+}
+
+/* ---- The navigation ---------------------------------------------------- */
+.cn-look-board .app-navigation[data-testid="cn-nav"] {
+	--app-navigation-padding: 0px;
+	width: 264px;
+	background: var(--color-main-background);
+	border-inline-end: 1px solid var(--color-border);
+}
+
+.cn-look-board .app-navigation--closed[data-testid="cn-nav"] {
+	margin-inline-start: -264px;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__content {
+	box-sizing: border-box;
+	gap: 20px;
+	padding: 20px 14px;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__list {
+	height: auto;
+	flex: 1 1 auto;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry,
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry-link {
+	min-height: 42px;
+	border-radius: 8px;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry-link {
+	padding: 0 10px;
+	gap: 12px;
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--color-main-text);
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active,
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active .app-navigation-entry-link {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-weight: 600;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-caption {
+	padding: 0 10px 6px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-app-nav__primary-action--solid .button-vue,
+.cn-look-board .cn-app-nav__primary-action .button-vue {
+	box-sizing: border-box;
+	height: 42px;
+	min-height: 42px;
+	border-radius: 8px;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-app-nav__primary-action {
+	padding: 0;
+}
+
+/* Counts: a 22px pill, red when it asks for attention. */
+.cn-look-board .cn-app-nav__count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 6px;
+	border-radius: 11px;
+	background: var(--color-border);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-app-nav__count--attention {
+	background: var(--color-error);
+	color: var(--color-error-text, var(--color-primary-element-text));
+}
+
+/* The footer: Help, then Advanced, whatever the declared order. */
+.cn-look-board .cn-app-nav__footer-list,
+.cn-look-board .cn-app-nav__footer-list--after-settings {
+	order: 1;
+}
+
+.cn-look-board .cn-app-nav__settings--first,
+.cn-look-board .app-navigation[data-testid="cn-nav"] [data-testid="cn-nav-settings"] {
+	order: 2;
+}
+
+.cn-look-board .cn-app-nav__footer-list .app-navigation-entry-link,
+.cn-look-board .cn-app-nav__settings-list .app-navigation-entry-link {
+	min-height: 40px;
+	font-size: 15px;
+}
+
+/* The card above the footer, pushed down. */
+.cn-look-board .cn-app-nav__card {
+	order: 0;
+	margin: auto 0 0;
+	padding: 16px;
+	gap: 8px;
+	border-radius: 12px;
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-app-nav__card-title {
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-app-nav__card-text {
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.cn-look-board .cn-app-nav__card-link {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+/* ---- Settings: header, cards in a grid, version card ------------------- */
+.cn-look-board .cn-admin-settings-shell__header:not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-page__header:not(.cn-look-nextcloud *) {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: var(--cn-board-section-gap);
+}
+
+.cn-look-board .cn-admin-settings-shell__title:not(.cn-look-nextcloud *) {
+	margin: 0;
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-admin-settings-shell__description:not(.cn-look-nextcloud *) {
+	margin: 6px 0 0;
+	font-size: 15px;
+	color: var(--color-text-maxcontrast);
+}
+
+/* The header, the environment banner and the setup wizard span the grid. */
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials) {
+	grid-column: 1 / -1;
+}
+
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+	gap: var(--cn-board-section-gap);
+	align-items: start;
+}
+
+/* The card: a section of the shell, or a CnSettingsCard of the page. */
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) > .cn-settings-card {
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	width: auto;
+	margin: 0;
+	padding: 22px 24px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius);
+	background: var(--color-main-background);
+	position: relative;
+}
+
+/* A section inside a page card draws no second card. */
+.cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) .cn-settings-card .settings-section {
+	width: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) .cn-settings-card:has(.settings-section) > h4 {
+	display: none;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__name {
+	margin: 0;
+	font-size: 19px;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__desc {
+	margin: 4px 0 0;
+	font-size: 14px;
+	line-height: 1.45;
+	color: var(--color-text-maxcontrast);
+}
+
+/* Section actions sit at the end of the title row. */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) > .cn-settings-section__actions {
+	position: absolute;
+	inset-block-start: 22px;
+	inset-inline-end: 24px;
+	float: none;
+}
+
+.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-card:has(.cn-settings-section--wide):not(.cn-look-nextcloud *) {
+	grid-column: 1 / -1;
+}
+
+/* The section footer is the save row: the hairline replaces its own rule. */
+.cn-look-board .settings-section .cn-settings-section__footer {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+/* One save per section: a footer row, bottom end of the card. */
+.cn-look-board .cn-settings-section__save {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 4px;
+	padding-top: 14px;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+/* The Changes card of a page that saves in the header. */
+.cn-look-board .cn-settings-page__changes:not(.cn-look-nextcloud *) {
+	padding: 16px 20px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius);
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-settings-page__changes-title:not(.cn-look-nextcloud *) {
+	margin: 0 0 6px;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+/* The version card: facts as a two-column list, then a footer row. */
+.cn-look-board .cn-version-info--board .cn-version-info__card {
+	padding: 0;
+	margin: 0;
+	border: 0;
+	background: none;
+}
+
+.cn-look-board .cn-version-info--board .cn-version-info__card > h4 {
+	display: none;
+}
+
+.cn-look-board .cn-version-info--board .cn-version-info__details {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 8px 16px;
+	font-size: 14px;
+}
+
+.cn-look-board .cn-version-info--board .cn-version-info__item {
+	display: contents;
+}
+
+.cn-look-board .cn-version-info--board .cn-version-info__label {
+	font-size: 14px;
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-version-info--board .cn-version-info__value {
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-version-info--board .cn-version-info__footer-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-version-info--board .cn-version-info__footer-row .button-vue:disabled {
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+	opacity: 1;
+}

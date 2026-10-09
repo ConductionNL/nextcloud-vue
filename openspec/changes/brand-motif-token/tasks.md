@@ -4,4 +4,4 @@
 - [x] 2. Export from `src/public/index.js`.
 - [x] 3. Docs in `CnBrandStripe.md`.
 - [x] 4. Tests in `tests/components/CnBrandStripe.spec.js` (image, inverse, validator, public export).
-- [ ] 5. Release (development to beta to main), then portaliq may import it.
+- [ ] 5. Release (development to beta to main), then portaliq may import it. — not run: release is a human step

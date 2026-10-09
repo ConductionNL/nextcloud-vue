@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="normal"
 		class="cn-support-dialog"
@@ -90,7 +95,7 @@
 				</NcButton>
 			</div>
 		</div>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
@@ -124,12 +129,14 @@
  * sidebar container).
  */
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog } from '@nextcloud/vue'
+import { NcButton } from '@nextcloud/vue'
 import BriefcaseOutline from 'vue-material-design-icons/BriefcaseOutline.vue'
 import HandHeart from 'vue-material-design-icons/HandHeart.vue'
 import HeartOutline from 'vue-material-design-icons/HeartOutline.vue'
 import Star from 'vue-material-design-icons/Star.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { ensureCaveatFontFace } from './assets/caveatFontFace.js'
 import { DEFAULT_FOUNDER_AVATAR } from './assets/founderAvatar.js'
 
@@ -145,7 +152,7 @@ export default {
 	name: 'CnSupportDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		CnIcon,
 		HandHeart,
@@ -153,6 +160,8 @@ export default {
 		Star,
 		BriefcaseOutline,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/**

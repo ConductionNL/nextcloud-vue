@@ -366,3 +366,7 @@ Theme hooks: `--cn-nav-card-background`, `--cn-nav-card-radius`.
 ```
 
 The primary action is never clipped: the navigation body that holds it keeps its height when a card and footer entries make the column overflow.
+
+## Board look
+
+With `look: "board"` (the manifest root, or the `look` prop) the navigation takes the anatomy of the screens: 264px wide, padding 20px 14px, 20px between groups, entries 42px high with a tonal active entry, 12px uppercase captions and a 42px primary action. A menu entry's `counterVariant` (`"default"` or `"attention"`) draws its count as a 22px pill, red for `attention`. Without the look `attention` maps to the counter bubble's highlighted state. The footer reads Help, then Advanced, whatever order `nav.footer` declares, and the card above it is pushed to the bottom. Without the look nothing changes.

@@ -125,3 +125,7 @@ export default {
 ## See also
 
 - [`CnFormDialog`](./cn-form-dialog.md), [`CnWizardDialog`](./cn-wizard-dialog.md), [`CnExportWizard`](./cn-export-wizard.md).
+
+## Board look
+
+The `optionalLabel` prop sets the word in "(optional)" after an optional field label. Required fields carry no asterisk in the board look.

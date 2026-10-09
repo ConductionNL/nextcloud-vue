@@ -22,6 +22,7 @@ Export format selection dialog. Lets users pick a format and triggers export for
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `dialogTitle` | String | `'Export objects'` | |
+| `scopeText` | String | `''` | Which rows will be exported, with the count (e.g. "Export 12 selected rows"). `CnIndexPage` fills it: the selection when there is one, else the rows matching the current filter. Empty hides the line. |
 | `description` | String | `''` | Optional description text shown above the format selector |
 | `formats` | Array | `[{ id: 'excel', label: 'Excel (.xlsx)' }, { id: 'csv', label: 'CSV (.csv)' }]` | Available export formats as `[{ id, label }]` objects |
 | `defaultFormat` | String | `'excel'` | ID of the format selected by default |

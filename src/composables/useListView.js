@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, isRef, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useObjectStore } from '../store/index.js'
 
 /**
@@ -12,7 +12,7 @@ import { useObjectStore } from '../store/index.js'
  * Backward-compatible: existing `useListView(options)` and `useListView()` calls
  * continue to work without modification.
  *
- * @param {string|object} [objectTypeOrOptions] Object type slug (new API) or legacy options object
+ * @param {string|Function|object} [objectTypeOrOptions] Object type slug (new API), a getter or ref returning one (the list follows it when it changes), or a legacy options object
  * @param {object} [options] Options (new API only)
  * @param {object|null} [options.objectStore] Custom object store instance (from createObjectStore). When provided, uses this store instead of the default useObjectStore(). Required when the app uses createObjectStore with a custom store ID.
  * @param {object|null} [options.sidebarState] Sidebar state object from `inject('sidebarState')`. When provided, the composable wires and unwires the sidebar automatically on mount/unmount.
@@ -47,12 +47,16 @@ import { useObjectStore } from '../store/index.js'
  */
 export function useListView(objectTypeOrOptions, options) {
 	// Backward compat: if first arg is an object or absent, delegate to legacy implementation
-	if (!objectTypeOrOptions || typeof objectTypeOrOptions === 'object') {
+	if (!objectTypeOrOptions || (typeof objectTypeOrOptions === 'object' && !isRef(objectTypeOrOptions))) {
 		return useLegacyListView(objectTypeOrOptions || {})
 	}
 
 	// ── New API ──────────────────────────────────────────────────────────
-	const objectType = objectTypeOrOptions
+	// A string, a ref or a getter: a getter lets the page switch object type
+	// (a folder carrying its own schema) without re-creating the list.
+	const typeSource = objectTypeOrOptions
+	const isDynamicType = typeof typeSource !== 'string'
+	const getType = () => (isRef(typeSource) ? typeSource.value : (typeof typeSource === 'function' ? typeSource() : typeSource))
 	const opts = options || {}
 	const sidebarState = opts.sidebarState || null
 
@@ -78,7 +82,7 @@ export function useListView(objectTypeOrOptions, options) {
 	const pageSize = ref(opts.defaultPageSize || 20)
 
 	// ── Computed refs from the store ─────────────────────────────────────
-	const objects = computed(() => objectStore.collections[objectType] || [])
+	const objects = computed(() => objectStore.collections[getType()] || [])
 	// True from creation until the mount sequence below has issued its first
 	// fetch. The store's own flag only goes up once `fetchCollection` runs, and
 	// `onMounted` awaits `fetchSchema()` first — so for the length of that round
@@ -87,13 +91,13 @@ export function useListView(objectTypeOrOptions, options) {
 	// been asked for. Folded into `loading` rather than exposed separately so
 	// existing consumers get the fix without touching their templates.
 	const bootstrapping = ref(true)
-	const loading = computed(() => bootstrapping.value || objectStore.loading[objectType] || false)
-	const pagination = computed(() => objectStore.pagination[objectType] || { total: 0, page: 1, pages: 1, limit: 20 })
+	const loading = computed(() => bootstrapping.value || objectStore.loading[getType()] || false)
+	const pagination = computed(() => objectStore.pagination[getType()] || { total: 0, page: 1, pages: 1, limit: 20 })
 	// Facets are computed by the platform over the whole query rather than the
 	// loaded page, so anything that needs the complete set of values for a
 	// field (a folder pane grouping by it, say) reads them here rather than
 	// deriving them from `objects`, which is only the current page.
-	const facets = computed(() => objectStore.facets[objectType] || {})
+	const facets = computed(() => objectStore.facets[getType()] || {})
 	// Outcome of the latest `refresh()`: the store's error for it, or null once
 	// it succeeded or a later fetch stored new rows. The store keeps the previous
 	// rows on a failed fetch, so this is how a consumer tells stale rows from
@@ -193,14 +197,14 @@ export function useListView(objectTypeOrOptions, options) {
 	 */
 	async function refresh(page = 1) {
 		const seq = ++refreshSeq
-		// This call's own result. `errors[objectType]` is shared by every call
+		// This call's own result. `errors[getType()]` is shared by every call
 		// for the type and is not cleared on success, so it cannot say which
 		// request failed; it is only the fallback for a store that ignores
 		// `options.outcome`.
 		const outcome = {}
 		pendingRefreshes++
 		try {
-			await objectStore.fetchCollection(objectType, buildParams(page), { outcome })
+			await objectStore.fetchCollection(getType(), buildParams(page), { outcome })
 		} catch (e) {
 			if (seq === refreshSeq) {
 				error.value = e
@@ -210,7 +214,7 @@ export function useListView(objectTypeOrOptions, options) {
 			pendingRefreshes--
 		}
 		if (seq === refreshSeq) {
-			error.value = ('error' in outcome) ? outcome.error : (objectStore.errors?.[objectType] || null)
+			error.value = ('error' in outcome) ? outcome.error : (objectStore.errors?.[getType()] || null)
 		}
 	}
 
@@ -218,7 +222,7 @@ export function useListView(objectTypeOrOptions, options) {
 	// new rows recovers the list from an earlier failure. Rows written while
 	// a refresh is pending are left to that refresh, which decides `error`.
 	watch(
-		() => objectStore.collections[objectType],
+		() => objectStore.collections[getType()],
 		() => {
 			if (pendingRefreshes === 0) {
 				error.value = null
@@ -327,18 +331,31 @@ export function useListView(objectTypeOrOptions, options) {
 	// Push facet data to sidebar after each store update
 	if (sidebarState) {
 		watch(
-			() => objectStore.facets[objectType],
+			() => objectStore.facets[getType()],
 			(facets) => {
 				sidebarState.facetData = facets || {}
 			},
 		)
 	}
 
+	// A dynamic object type that changes starts that type's list from page 1
+	// with its own schema.
+	if (isDynamicType) {
+		watch(getType, async (next, prev) => {
+			if (!next || next === prev) {
+				return
+			}
+			schema.value = null
+			schema.value = await objectStore.fetchSchema(next)
+			await refresh(1)
+		})
+	}
+
 	// ── Lifecycle ────────────────────────────────────────────────────────
 
 	onMounted(async () => {
 		try {
-			schema.value = await objectStore.fetchSchema(objectType)
+			schema.value = await objectStore.fetchSchema(getType())
 			if (sidebarState) {
 				setupSidebar()
 			}
@@ -381,6 +398,9 @@ export function useListView(objectTypeOrOptions, options) {
 		onPageSizeChange,
 		// Explicit fetch
 		refresh,
+		// The query the list sends (search, sort, facet filters, fixed filters),
+		// built from the current state, for an export that must follow the list.
+		buildParams,
 	}
 }
 

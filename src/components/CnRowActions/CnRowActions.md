@@ -120,3 +120,10 @@ export default {
 }
 </script>
 ```
+
+## Board look props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `rowLabel` | String | `''` | The row's name; the board menu button is named "Actions for <rowLabel>" |
+| `triggerLabel` | String | `''` | The whole, translated name of the board menu button; wins over `rowLabel` |

@@ -70,3 +70,7 @@ const editor = useManifestEditor(manifestRef, { persist: persistDelta })
 - [`useManifestEditor`](../utilities/composables/use-manifest-editor.md)
 - [`useBuildiqEditAvailability`](../utilities/composables/use-buildiq-edit-availability.md)
 - [CnEditMenuModal](./cn-edit-menu-modal.md) · [CnEditSidebarModal](./cn-edit-sidebar-modal.md)
+
+## Colour and the board square
+
+The trigger fills with `--cn-buildiq-color` (default `#f36c21`, the ADR-041 brand exception); a theme sets it. Under the board look the trigger is a 40px square with radius 8 and sits in the page header: before the primary header button on an index page, between Edit and More on a detail page, and on a settings page before the primary button or last. `CnActionsBar` takes `showBuildiqButton` and `CnIndexPage` passes `false` under the look, so there is one square, not two.

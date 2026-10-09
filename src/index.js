@@ -38,6 +38,7 @@ export {
 	CnAdminActionCard,
 	CnAdminSettingsShell,
 	CnAdvancedFormDialog,
+	CnApiReference,
 	CnAppLoading,
 	CnAppNav,
 	CnAppRoot,
@@ -48,6 +49,7 @@ export {
 	CnBuildiqEditButton,
 	CnCalendarWidget,
 	CnCalendarWidgetForm,
+	CnCameraCapture,
 	CnCapabilityTable,
 	CnCard,
 	CnCardGrid,
@@ -55,6 +57,7 @@ export {
 	CnChartWidget,
 	CnChartWidgetForm,
 	CnChatPage,
+	CnChildRecordsField,
 	CnChoiceCards,
 	CnColorPicker,
 	CnCommandPalette,
@@ -94,6 +97,7 @@ export {
 	CnDividerWidget,
 	CnDividerWidgetForm,
 	CnDocumentReviewList,
+	CnDurationField,
 	CnEditActionsModal,
 	CnEditDataModal,
 	CnEditMenuModal,
@@ -105,8 +109,10 @@ export {
 	CnEditWalkthroughModal,
 	CnEmailCard,
 	CnEmailTab,
+	CnEnvironmentBanner,
 	CnExportWizard,
 	CnFacetSidebar,
+	CnFavouriteToggle,
 	CnFeaturesAndRoadmapLink,
 	CnFeaturesAndRoadmapPage,
 	CnFeaturesAndRoadmapSidebar,
@@ -116,6 +122,7 @@ export {
 	CnFieldHelper,
 	CnFileField,
 	CnFileManager,
+	CnFilePreview,
 	CnFilesBrowser,
 	CnFilesCard,
 	CnFilesPage,
@@ -132,6 +139,7 @@ export {
 	CnFlowStepOutcomes,
 	CnFolderSidebar,
 	CnFolderTree,
+	CnFollowToggle,
 	CnFormBuilder,
 	CnFormDialog,
 	CnFormWidgetBase,
@@ -155,6 +163,9 @@ export {
 	CnIntegrationWidget,
 	CnIntegrationWidgetGrid,
 	CnItemCard,
+	CnJourney,
+	CnJourneyDialog,
+	CnJourneyReviewList,
 	CnJsonViewer,
 	CnKpiGrid,
 	CnLabelWidget,
@@ -171,6 +182,8 @@ export {
 	CnLogsPage,
 	CnMapWidget,
 	CnMarkdownEditor,
+	CnMarkdownWidget,
+	CnMarkdownWidgetForm,
 	CnMassActionBar,
 	CnMassCopyDialog,
 	CnMassDeleteDialog,
@@ -185,7 +198,11 @@ export {
 	CnNcWidgetGridPicker,
 	CnNcWidgetWidget,
 	CnNextStepCard,
+	CnNoteBody,
 	CnNoteCard,
+	CnNoteComposer,
+	CnNotepadWidget,
+	CnNotepadWidgetForm,
 	CnNotesCard,
 	CnNotificationMatrix,
 	CnNotificationPreferences,
@@ -193,6 +210,7 @@ export {
 	CnObjectCalendar,
 	CnObjectCard,
 	CnObjectDataWidget,
+	CnObjectFilesWidget,
 	CnObjectGeoWidget,
 	CnObjectKanban,
 	CnObjectList,
@@ -210,8 +228,10 @@ export {
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
 	CnPresenceAvatars,
+	CnProcessSteps,
 	CnProgressBar,
 	CnPropertiesTab,
+	CnPropertySourceField,
 	CnPropertyValueCell,
 	CnQuickFilterBar,
 	CnQuicklinksWidget,
@@ -229,7 +249,12 @@ export {
 	CnRoadmapItem,
 	CnRoadmapTab,
 	CnRowActions,
+	CnSavedViewPresentationDialog,
 	CnSavedViewsControl,
+	CnSavedViewShareDialog,
+	CnSavedViewShareFields,
+	CnSavedViewWidget,
+	CnSavedViewWidgetForm,
 	CnSaveViewDialog,
 	CnSchemaFormDialog,
 	CnSearchPage,
@@ -250,6 +275,7 @@ export {
 	CnStatWidget,
 	CnStatWidgetForm,
 	CnStructuredDocReview,
+	CnSubObjectsField,
 	CnSummaryAggregates,
 	CnSupportDialog,
 	CnTab,
@@ -259,6 +285,7 @@ export {
 	CnTabsWidget,
 	CnTabsWidgetForm,
 	CnTagsCard,
+	CnTaskFormDialog,
 	CnTasksCard,
 	CnTasksWidget,
 	CnTasksWidgetForm,
@@ -273,11 +300,13 @@ export {
 	CnTimelineWidget,
 	CnTranslatedBadge,
 	CnTreeView,
+	CnUnreadMarker,
 	CnUserActionMenu,
 	CnVersionHistory,
 	CnVersionInfoCard,
 	CnVideoWidget,
 	CnVideoWidgetForm,
+	CnViewPresentationPicker,
 	CnWalkthrough,
 	CnWidgetCardGrid,
 	CnWidgetEditCog,
@@ -346,6 +375,7 @@ export { default as CnFlowEdgeEditModal } from './dialogs/CnFlowEdgeEditModal.vu
 // Store
 export { createObjectStore, useObjectStore } from './store/index.js'
 export { createCrudStore } from './store/index.js'
+export { createJourneyRunStore } from './store/index.js'
 export { createSubResourcePlugin, emptyPaginated } from './store/index.js'
 
 // Store plugins
@@ -356,6 +386,7 @@ export {
 	filesPlugin,
 	getRegisterApiUrl,
 	getSchemaApiUrl,
+	interactionsPlugin,
 	lifecyclePlugin,
 	liveUpdatesPlugin,
 	logsPlugin,
@@ -371,7 +402,7 @@ export {
 export { useAiChatStream, useAiContext } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { chatApiBase, chatHealthUrl, chatSendUrl, chatStreamUrl, conversationMessagesUrl, conversationsUrl, DEFAULT_CHAT_APP_ID } from './composables/index.js'
-export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useManifestEditHistory, useManifestEditor, useNotificationPreferencesStore, useObjectLock, useObjectPresence, useObjectSubscription, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough } from './composables/index.js'
+export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useChildRecords, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useFileComments, useFileOpener, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useLook, useManifestEditHistory, useManifestEditor, useNotificationPreferencesStore, useObjectCopy, useObjectLock, useObjectPresence, useObjectSubscription, useRefLabels, useRestoreVersion, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough, useWriteFeedback } from './composables/index.js'
 // Deprecated alias kept for consumers: OpenBuild was renamed to Buildiq in the
 // fleet-wide rename of 2026-08-21. `useBuildiqEditAvailability` above is the
 // canonical name; this alias keeps the ~18 consuming apps that still call
@@ -455,6 +486,16 @@ export { registerOfflineWorker, unregisterOfflineWorker } from './offline/regist
 // Composables — Features & roadmap menu (add-features-roadmap-menu)
 export { useSpecRef } from './composables/useSpecRef.js'
 export { useFlowStore } from './composables/useFlowStore.js'
+export {
+	FLOW_LAYOUT_COLUMN_WIDTH,
+	FLOW_LAYOUT_MARGIN,
+	FLOW_LAYOUT_ROW_HEIGHT,
+	FLOW_LAYOUT_TOP,
+	layoutFlowNodes,
+	needsFullLayout,
+	placeLooseNodes,
+	readNodePoint,
+} from './composables/flowGraphLayout.js'
 export { registerFlowNodeEditor, resolveFlowNodeEditor, unregisterFlowNodeEditor } from './composables/useFlowNodeEditors.js'
 export { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from './composables/useFlowEdgeStyles.js'
 export { useSuggestFeatureAction } from './composables/useSuggestFeatureAction.js'
@@ -496,12 +537,12 @@ export { registerTranslations } from './l10n/index.js'
 
 // Utilities
 export { buildHeaders, buildQueryString, genericError, networkError, parseAxiosError, parseResponseError } from './utils/index.js'
-export { cnFetch, cnFetchJson, CnHttpError } from './utils/cnFetch.js'
+export { cnFetch, cnFetchJson, CnHttpError, configureCnFetch } from './utils/cnFetch.js'
 // The one reading of "is this record locked, and by whom" — shared by
 // CnLockIndicator, CnObjectCard and CnDataTable, and available to apps that
 // need the same answer without rendering a padlock.
 export { isLockedByCurrentUser, isObjectLocked, lockHolder, readLockPayload, resolveObjectLock } from './utils/objectLock.js'
-export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, validateValue } from './utils/index.js'
+export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, findRepeatingWrite, formatValue, journeyItemTargets, validateValue } from './utils/index.js'
 export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData, usesArrayValues, valueArrayFor, valueRecordsFor } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot
 // drift on what a 409 means (breaking change / schema still has objects).

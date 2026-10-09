@@ -44,6 +44,61 @@ export const FLOW_TASKS_URL = '/apps/openregister/api/flow-tasks'
 const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'kind', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'limit', 'offset']
 
 /**
+ * The flat body `POST /api/flow-tasks` takes for a task on a record.
+ *
+ * Only the task entity's own keys are ever sent, and never `requester` or
+ * `state`: OpenRegister pins the requester to the caller and refuses a
+ * terminal state. A user task carries `assignee`; a group task carries
+ * `performerType: "group"` with `candidateGroups` (a pool until someone claims
+ * it), because the server defaults `performerType` to `user`.
+ *
+ * @param {object} data The task to create.
+ * @param {string} data.title Required title.
+ * @param {string} [data.description] Optional description.
+ * @param {string} [data.dueAt] Optional due date, ISO 8601.
+ * @param {{objectUuid: string, registerId: string, schemaId: string}} data.anchor The record the task hangs on.
+ * @param {{kind: ('user'|'group'), id: string}|null} [data.assignee] A user, or a group as a pool.
+ * @return {object} The request body.
+ * @spec openspec/changes/tasks-tab-flow-task-source/tasks.md#task-1
+ */
+export function buildFlowTaskBody(data) {
+	const body = { title: String(data.title || '').trim() }
+	if (data.description) {
+		body.description = data.description
+	}
+	if (data.dueAt) {
+		body.dueAt = data.dueAt
+	}
+	const anchor = data.anchor || {}
+	body.objectUuid = anchor.objectUuid
+	body.registerId = anchor.registerId
+	body.schemaId = anchor.schemaId
+	if (data.assignee && data.assignee.id) {
+		if (data.assignee.kind === 'group') {
+			body.performerType = 'group'
+			body.candidateGroups = [data.assignee.id]
+		} else {
+			body.assignee = data.assignee.id
+		}
+	}
+	return body
+}
+
+/**
+ * Read the server's message off a failed axios call.
+ *
+ * @param {object} error The axios error.
+ * @return {string} The message, or ''.
+ */
+function serverMessage(error) {
+	const data = error && error.response && error.response.data
+	if (typeof data === 'string') {
+		return data
+	}
+	return (data && (data.error || data.message)) || (error && error.message) || ''
+}
+
+/**
  * Internal Pinia store for the `tasks` index source (cn-tasks-entity-source).
  *
  * Deliberately NOT a public export: the public surface is the manifest line
@@ -66,6 +121,67 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 	}),
 
 	actions: {
+		/**
+		 * Read one inbox page WITHOUT touching the store's state, so a surface
+		 * that lists a different slice (the Tasks tab of one record) cannot
+		 * overwrite what an inbox page on the same screen shows.
+		 *
+		 * @param {object} [config] Loader config, as for `load`.
+		 * @return {Promise<{results: Array<object>, total: number}>} The rows and the total.
+		 * @spec openspec/changes/tasks-tab-flow-task-source/tasks.md#task-1
+		 */
+		async fetchFor(config = {}) {
+			const params = { scope: 'assigned', sort: '-dueAt' }
+			for (const key of ALLOWED_PARAMS) {
+				const value = config ? config[key] : undefined
+				if (value === undefined || value === null || value === '') {
+					continue
+				}
+				params[key] = (key === 'overdue' || key === 'isTerminal') ? String(value) : value
+			}
+			const response = await axios.get(generateUrl(FLOW_TASKS_URL), { params })
+			const results = response.data?.results || []
+			return { results, total: Number(response.data?.total ?? results.length) || 0 }
+		},
+
+		/**
+		 * Create a flow task. A refusal is returned, not thrown, with the
+		 * server's message and the HTTP status (404: the creator may not read
+		 * the record).
+		 *
+		 * @param {object} data See `buildFlowTaskBody`.
+		 * @return {Promise<{ok: boolean, status: (number|null), task: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/tasks-tab-flow-task-source/tasks.md#task-1
+		 */
+		async createTask(data) {
+			try {
+				const response = await axios.post(generateUrl(FLOW_TASKS_URL), buildFlowTaskBody(data))
+				return { ok: true, status: response.status || 201, task: response.data?.task || response.data || null, message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, task: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Run one lifecycle verb on a task (`claim`, `unclaim`, `reassign`,
+		 * `complete`, `cancel`). A refusal is returned, not thrown, with the
+		 * server's message, so the row can show it and stay as it was.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {string} verb The verb.
+		 * @param {object} [body] Optional body (for `reassign`: `{ assignee }`).
+		 * @return {Promise<{ok: boolean, status: (number|null), task: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/tasks-tab-flow-task-source/tasks.md#task-1
+		 */
+		async runVerb(uuid, verb, body = {}) {
+			try {
+				const response = await axios.post(generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(uuid)}/${encodeURIComponent(verb)}`), body || {})
+				return { ok: true, status: response.status || 200, task: response.data?.task || response.data || null, message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, task: null, message: serverMessage(error) }
+			}
+		},
+
 		/**
 		 * Load one inbox page.
 		 *

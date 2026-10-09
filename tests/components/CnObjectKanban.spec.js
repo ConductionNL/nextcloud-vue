@@ -224,3 +224,14 @@ describe('CnObjectKanban — move + rollback', () => {
 		expect(wrapper.text()).toContain('Two')
 	})
 })
+
+describe('CnObjectKanban — board look tokens (screens-kanban-parity)', () => {
+	const props = { objects: [{ id: '1', status: 'todo', title: 'A' }], groupByField: 'status' }
+
+	it('adds the board modifier only when the app takes the board look', () => {
+		const board = mount(CnObjectKanban, { propsData: props, stubs: { draggable: DraggableStub }, global: { provide: { cnLook: 'board' } } })
+		expect(board.find('.cn-object-kanban__board').classes()).toContain('cn-object-kanban__board--board')
+		const plain = mountKanban(props)
+		expect(plain.find('.cn-object-kanban__board').classes()).not.toContain('cn-object-kanban__board--board')
+	})
+})

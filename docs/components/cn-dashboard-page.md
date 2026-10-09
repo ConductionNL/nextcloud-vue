@@ -565,3 +565,38 @@ A `header` widget whose content sets `ground: true` is drawn without a card; see
 - `gridFloat` (manifest `config.gridFloat`, default `true`): `false` packs widgets upward, so a size-to-content widget that shrinks closes the gap under it.
 - A placement or widget definition with `showButtons: false` renders without its footer links.
 - A `stats-block` definition with `content.layout: "stacked"` (or `props.layout`) renders its blocks in the stacked board look.
+
+## The board look (`look: "board"`)
+
+With the app in the board look (`cnLook`, from `screens-chrome-parity`) the page
+draws the dashboard of the screens (canon sections 2 and 7). Without it nothing
+below changes.
+
+- **Header.** The title is an `h1` of 28px/700 and the description a 15px grey
+  line under it. The buttons are 40px high with a 10px gap, in this order:
+  view switch, Edit layout, Actions, the buildiq square, then the manifest's
+  `headerActions` (and the `#header-actions` slot) with the primary rightmost.
+- **Period as a segmented group.** `dateRange.control: "segmented"` renders the
+  presets as one compact `CnSegmentedControl` named "Period", each segment
+  with `aria-pressed`, in a row of its own under the header. A `custom` preset
+  becomes the last segment and opens the from/to popover. It runs the same
+  range change as a pill (persistence, `date-range-change`,
+  `cnDashboardDateRange`).
+- **KPI row.** `config.kpiRow` lists widget ids that render above the grid, in
+  that order, in a `CnKpiGrid` with `columns="auto"`
+  (`repeat(auto-fit, minmax(200px, 1fr))`, gap 16). They are not GridStack
+  items and are not part of the emitted layout; in edit mode the row stays
+  fixed. An id that names no widget is skipped with a development warning.
+
+```json
+{
+  "config": {
+    "kpiRow": ["kpi-new", "kpi-waiting", "kpi-deadline", "kpi-published"],
+    "dateRange": { "enabled": true, "control": "segmented", "presets": [
+      { "id": "last-7", "label": "7 days" }, { "id": "quarter", "label": "Quarter" }
+    ] }
+  }
+}
+```
+
+The KPI tile in this look is described in the CnStatWidget docs.

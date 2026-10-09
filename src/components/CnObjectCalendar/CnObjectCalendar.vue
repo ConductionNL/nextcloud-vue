@@ -23,39 +23,68 @@
 			<NcLoadingIcon :size="32" />
 		</div>
 
-		<div v-else class="cn-object-calendar__month">
-			<div
-				v-for="(weekday, idx) in weekdayHeaders"
-				:key="'wh-' + idx"
-				class="cn-object-calendar__month-header">
-				{{ weekday }}
+		<div
+			v-else
+			class="cn-object-calendar__month"
+			role="grid"
+			:aria-label="monthLabel">
+			<div class="cn-object-calendar__week" role="row">
+				<div
+					v-for="(weekday, idx) in weekdayHeaders"
+					:key="'wh-' + idx"
+					class="cn-object-calendar__month-header"
+					role="columnheader">
+					{{ weekday }}
+				</div>
 			</div>
 			<div
-				v-for="day in monthGrid"
-				:key="day.iso"
-				class="cn-object-calendar__month-cell"
-				:class="{ 'is-today': day.isToday, 'is-other-month': day.isOtherMonth }">
-				<span class="cn-object-calendar__month-day">{{ day.dayNum }}</span>
-				<ul v-if="day.objects.length" class="cn-object-calendar__month-events">
-					<li
-						v-for="object in day.objects.slice(0, maxEventsPerDay)"
-						:key="objectKey(object) + '-' + day.iso"
-						class="cn-object-calendar__event"
-						:title="objectTitle(object)"
-						@click="onObjectClick(object)">
-						<!-- @slot day-event Override a single day's event entry. -->
-						<!-- @binding {object} object The plotted object. -->
-						<!-- @binding {object} day The day cell ({ iso, dayNum, isToday, isOtherMonth }). -->
-						<slot name="day-event" :object="object" :day="day">
-							{{ objectTitle(object) }}
-						</slot>
-					</li>
-					<li
-						v-if="day.objects.length > maxEventsPerDay"
-						class="cn-object-calendar__overflow">
-						+{{ day.objects.length - maxEventsPerDay }}
-					</li>
-				</ul>
+				v-for="(week, w) in weeks"
+				:key="'w-' + w"
+				class="cn-object-calendar__week"
+				role="row">
+				<div
+					v-for="day in week"
+					:key="day.iso"
+					class="cn-object-calendar__month-cell"
+					:class="{ 'is-today': day.isToday, 'is-other-month': day.isOtherMonth }"
+					role="gridcell"
+					:data-iso="day.iso"
+					:tabindex="day.iso === activeIso ? 0 : -1"
+					:aria-label="dayLabel(day)"
+					@focus="focusedIso = day.iso"
+					@keydown="onCellKeydown($event, day)">
+					<span class="cn-object-calendar__month-day">{{ day.dayNum }}</span>
+					<ul v-if="day.objects.length" class="cn-object-calendar__month-events">
+						<li
+							v-for="object in day.objects.slice(0, maxEventsPerDay)"
+							:key="objectKey(object) + '-' + day.iso"
+							class="cn-object-calendar__event-item">
+							<button
+								type="button"
+								class="cn-object-calendar__event"
+								:title="objectTitle(object)"
+								@click="onObjectClick(object)">
+								<!-- @slot day-event Override a single day's event entry. -->
+								<!-- @binding {object} object The plotted object. -->
+								<!-- @binding {object} day The day cell ({ iso, dayNum, isToday, isOtherMonth }). -->
+								<slot name="day-event" :object="object" :day="day">
+									{{ objectTitle(object) }}
+								</slot>
+							</button>
+						</li>
+						<li
+							v-if="day.objects.length > maxEventsPerDay"
+							class="cn-object-calendar__overflow-item">
+							<button
+								type="button"
+								class="cn-object-calendar__overflow"
+								:aria-label="overflowLabel(day)"
+								@click="$emit('day-select', day.iso)">
+								+{{ day.objects.length - maxEventsPerDay }}
+							</button>
+						</li>
+					</ul>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -158,11 +187,24 @@ export default {
 		},
 	},
 
-	emits: ['object-click', 'range-change', 'update:visibleDate'],
+	emits: [
+		'object-click',
+		'range-change',
+		'update:visibleDate',
+		/**
+		 * The "+N" button of a busy day was activated. Payload: the day as `YYYY-MM-DD`.
+		 *
+		 * @event day-select
+		 * @type {string}
+		 */
+		'day-select',
+	],
 
 	data() {
 		return {
 			internalDate: this.parseDate(this.visibleDate) || new Date(),
+			// The day cell that holds focus (roving tabindex); empty = today or the 1st.
+			focusedIso: '',
 		}
 	},
 
@@ -260,6 +302,37 @@ export default {
 			}
 
 			return buckets
+		},
+
+		/**
+		 * The month grid cut into weeks, for the grid/row roles.
+		 *
+		 * @return {Array<Array<object>>}
+		 */
+		weeks() {
+			const rows = []
+			for (let i = 0; i < this.monthGrid.length; i += 7) {
+				rows.push(this.monthGrid.slice(i, i + 7))
+			}
+			return rows
+		},
+
+		/**
+		 * The day cell that takes the tab stop: the focused one when it is in
+		 * the grid, else today, else the 1st of the month.
+		 *
+		 * @return {string} `YYYY-MM-DD`.
+		 */
+		activeIso() {
+			const isos = this.monthGrid.map((d) => d.iso)
+			if (this.focusedIso && isos.includes(this.focusedIso)) {
+				return this.focusedIso
+			}
+			const today = this.toIsoDate(new Date())
+			if (isos.includes(today)) {
+				return today
+			}
+			return this.toIsoDate(this.monthRange.from)
 		},
 
 		/**
@@ -378,6 +451,67 @@ export default {
 				return String(object[this.titleField])
 			}
 			return String(object.title || object.name || object[this.rowKey] || '—')
+		},
+
+		/**
+		 * Accessible name of a day cell: the date and how many records it holds.
+		 *
+		 * @param {{iso: string, objects: object[]}} day The day.
+		 * @return {string}
+		 */
+		dayLabel(day) {
+			const date = this.parseDate(day.iso).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+			return day.objects.length === 0 ? date : `${date}, ${t('nextcloud-vue', '{count} records', { count: day.objects.length })}`
+		},
+
+		/**
+		 * Accessible name of the "+N" button.
+		 *
+		 * @param {{iso: string, objects: object[]}} day The day.
+		 * @return {string}
+		 */
+		overflowLabel(day) {
+			return t('nextcloud-vue', 'Show all {count} records on {date}', { count: day.objects.length, date: day.iso })
+		},
+
+		/**
+		 * Move between day cells with the arrow keys, Home and End. Past the
+		 * edge of the grid the month moves with it.
+		 *
+		 * @param {KeyboardEvent} event The key event.
+		 * @param {{iso: string}} day The focused day.
+		 */
+		onCellKeydown(event, day) {
+			if (event.target !== event.currentTarget) {
+				return
+			}
+			const steps = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }
+			const here = this.parseDate(day.iso)
+			let target = null
+			if (event.key in steps) {
+				target = new Date(here.getFullYear(), here.getMonth(), here.getDate() + steps[event.key])
+			} else if (event.key === 'Home') {
+				target = new Date(here.getFullYear(), here.getMonth(), here.getDate() - here.getDay())
+			} else if (event.key === 'End') {
+				target = new Date(here.getFullYear(), here.getMonth(), here.getDate() + (6 - here.getDay()))
+			}
+			if (!target) {
+				return
+			}
+			event.preventDefault()
+			const iso = this.toIsoDate(target)
+			if (!this.monthGrid.some((d) => d.iso === iso)) {
+				// Off the edge: move to the month that holds the day.
+				this.internalDate = new Date(target.getFullYear(), target.getMonth(), 1)
+				this.afterNavigate()
+			}
+			this.focusedIso = iso
+			this.$nextTick(() => {
+				const cell = this.$el.querySelector(`[data-iso="${iso}"]`)
+				if (cell) {
+					cell.focus()
+				}
+			})
 		},
 
 		/**
@@ -557,5 +691,38 @@ export default {
 	font-size: 11px;
 	color: var(--color-text-maxcontrast);
 	padding: 0 4px;
+}
+
+.cn-object-calendar__week {
+	display: contents;
+}
+
+.cn-object-calendar__month-cell:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
+}
+
+button.cn-object-calendar__event,
+button.cn-object-calendar__overflow {
+	display: block;
+	width: 100%;
+	min-height: 0;
+	border: 0;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	border-radius: var(--border-radius, 4px);
+	padding: 1px 6px;
+	font: inherit;
+	font-size: 12px;
+	text-align: start;
+	cursor: pointer;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+button.cn-object-calendar__overflow {
+	background: transparent;
+	color: var(--color-text-maxcontrast);
 }
 </style>

@@ -197,7 +197,7 @@ The v2 manifest schema SHALL reject any string in `config.actions` other than th
 
 ### Requirement: Built-in row actions carry stable ids
 
-Built-in row actions SHALL carry the ids `view`, `edit`, `copy` and `delete`. Their `data-testid` MUST be `cn-action-item-<id>` in every locale, and their render key and click matching MUST use the id rather than the label. The `action` event payload MUST keep `action` as the label, MUST add the action's `id`, and MUST add `builtin: true` for a built-in only, so a built-in and an app action sharing an id stay distinguishable. When matching built-ins against the row availability block (`rowActionField`, default `@self.actions`), only the id MUST be used; a block entry that equals a built-in's translated label MUST NOT match it.
+Built-in row actions SHALL carry the ids `view`, `edit`, `copy` and `delete`. Their `data-testid` MUST be `cn-action-item-<id>` in every locale, and their render key and click matching MUST use the id rather than the label. The `action` event payload MUST keep `action` as the label, MUST add the action's `id`, and MUST add `builtin: true` for a built-in only, so a built-in and an app action sharing an id stay distinguishable. When matching built-ins against the row availability block (`rowActionField`, default `@self.actions`), the id MUST be used, never the label; a block entry that equals a built-in's translated label MUST NOT match it.
 
 #### Scenario: Testid in a non-English locale
 

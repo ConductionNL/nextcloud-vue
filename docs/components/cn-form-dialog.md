@@ -41,12 +41,16 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `cancelLabel` | String | | |
 | `closeLabel` | String | | |
 | `confirmLabel` | String | | |
+| `feedback` | Boolean | `true` | Report the write with a toast: "Saved {title}" (the object's name, else the schema's title) after a successful save, the server's message after a failed one. `false` suppresses the toasts and changes nothing else. |
+| `confirmDisabled` | Boolean | `false` | Keep the Confirm button disabled regardless of the form state, for a host that knows the form cannot be completed (used by `CnTaskFormDialog` when a required declared field is broken). |
 | `referenceContext` (`reference-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for fields that declare a `referenceType` (AD-18). Optional. |
 | `recoverDraft` (`recover-draft`) | Boolean | `true` | Keep what the user typed and offer it back when this form reopens. Local only: nothing reaches the server until they save. On by default, because it changes nothing they did not type and the case it solves is a closed tab. |
 | `allowDraft` (`allow-draft`) | Boolean | `false` | Offer a "Save draft" button that stores the record with a draft marker instead of validating it. Inert unless the schema declares `draftField`: a button writing a property the schema does not declare would have OpenRegister drop it in silence, and the record would come back looking published. |
 | `draftField` (`draft-field`) | String | `'isDraft'` | The boolean property that marks a record as a draft. |
 | `draftAppId` (`draft-app-id`) | String | `''` | The app the draft belongs to. Part of the key the recovered draft is stored under. |
 | `draftUserId` (`draft-user-id`) | String | `''` | Who is typing. Also part of the draft key, and that matters: a shared browser profile at a service desk is ordinary in a municipality, and a draft keyed without the user hands the next person at the counter what the last one typed. A host that passes nothing gets `anonymous`, which is right for a single-user context and wrong for a counter. |
+
+When `allowDraft` is on and the schema declares `draftField`, a stored draft record (its marker set) opens with "(draft)" in the title and a **Publish** button in place of Save. Publish runs the full validation and sends the record with the marker cleared; **Save draft** stays available and skips validation. The footer indicator reads **Saving** while a local write is pending and **Saved just now** (or a relative time) once it lands, in an `aria-live="polite"` region.
 
 ## Widget Types
 
@@ -521,8 +525,59 @@ const fields = [
 ]
 ```
 
+## Board look
+
+Set `look: "board"` in the manifest (or pass `look="board"` to the dialog) and the dialog draws the board dialog of the screens. An app that sets nothing renders exactly as before.
+
+| Prop | Default | What it does |
+| --- | --- | --- |
+| `look` | follows the app | `board` or `nextcloud`. The prop wins over the app. |
+| `width` | per component | `confirm` (560), `form` (640) or `wizard` (720). No other width is reachable. |
+| `eyebrow` | empty | A context line above the title, uppercase 13px. Not part of the accessible name. |
+| `subtitle` | empty | A sentence under the title. |
+
+Widths are capped at the viewport minus 32px. Theme hooks: `--cn-dialog-danger` (fill of a destructive primary, default `--color-error`), `--cn-dialog-eyebrow-color` and `--cn-dialog-eyebrow-transform`.
+
+### Fields
+
+In the board look each field draws its label above the control (14px/600, 6px gap) with "(optional)" in grey after it on optional fields. Required fields carry no asterisk and set `aria-required="true"`; the Nextcloud look keeps " *". The word comes from the `optionalLabel` prop. A field error sits between the label and the control with an icon and a 2px error border; the hint stays under the control. In both looks an invalid control is `aria-invalid="true"` and `aria-describedby` lists the error before the hint.
+
+A field with `width: "half"` (through the schema or `fieldOverrides`) takes one cell of a `repeat(auto-fit, minmax(220px, 1fr))` grid, so two short fields share a row from 456px and stack below that.
+
+With drafts on, "Save draft" moves to the far left of the footer as a tertiary button, with the draft-state live region beside it.
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnFormDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnFormDialog/CnFormDialog.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Registry-backed fields (`x-openregister-property-source`)
+
+A property that declares `x-openregister-property-source` (`provider`, `mode`, `config`) gets the `property-source` widget: [`CnPropertySourceField`](./cn-property-source-field.md), a type-ahead over integriq's registries. The descriptor carries `propertySource: { provider, mode, config }`. With `mode: "default"` and `config.fill`, a pick fills empty sibling fields and asks once before replacing values the user typed. A `fieldOverrides.<key>.widget` wins over the declaration.
+
+## Duration and sub-objects widgets
+
+`format: duration` selects the `duration` widget ([`CnDurationField`](./cn-duration-field.md)). An array of objects keeps its current widget unless the property declares `x-widget: sub-objects` or a field override names it; then [`CnSubObjectsField`](./cn-sub-objects-field.md) renders the rows as a table and `validate()` checks each row against `items.required`. `CnFormPage` does not render these two widgets yet.
+
+## Child records
+
+A property that is an array of references with `inversedBy` (or one naming `widget: "child-records"`) renders a [`CnChildRecordsField`](./cn-child-records-field.md): an editable table of the child schema's records. The children are kept out of the `confirm` payload; call `setResult({ success: true, id })` with the saved parent's id and the dialog saves them in one bulk save and one bulk delete, naming any row that was refused. A failing row blocks the submit and names the row and field.
+
+## Choices bound to a concept scheme
+
+A property that names an OpenRegister concept scheme, as `conceptScheme: "woo-categorieen"` or `x-openregister-concepts: { scheme, store, contextProperty }` (alone, or on the `items` of an array), renders as a select (a multiselect for an array). The options are not on the schema: the dialog asks `GET /apps/openregister/api/vocabulary/options` with the schema, the property key and the user's language, offers the options in OpenRegister's order with their labels, and stores the option's `value` (the concept uri, or its notation when `store` is `notation`) as a string, or an array of strings.
+
+- If the request fails or returns nothing, the field falls back to a text input with a line saying the list could not be loaded. OpenRegister still refuses a value outside the scheme on save.
+- A held value the scheme no longer offers is resolved through the concept route and shown by its label with "no longer offered". It stays until the user changes it.
+- With `contextProperty`, the current value of that field is sent as `context` and the options are requested again when it changes; a chosen value that is no longer offered is kept and marked, not cleared.
+
+## File properties
+
+A schema property of `type: "file"` renders as a [CnFileField](./cn-file-field.md), and an array whose items are files renders one that takes several. The accepted types come from the property's `allowedTypes` and the size limit from its `maxSize`, so the form refuses early what the server would refuse late. `capture: "environment"` or `"user"` on the property opens the device camera.
+
+A file under 1 MB travels inline in the saved payload. When `maxSize` is above 1 MB, bigger files are held and uploaded to the saved object's files after the save (`POST .../{id}/filesMultipart`), with progress, and their references are written onto the property. If an upload fails the object stays saved, the dialog names the file and offers Retry.
+
+## Live values
+
+A field can carry `assign` rules (for example through `fieldOverrides`): `[{ when, value }]`, where `when` is a local `visibleWhen` condition and `value` a literal, `@answer.<field>` or a sentinel token. The first matching rule sets the field when an answer it reads changes; once the person edits the field by hand its rules stop. A new record also opens with the rules and defaults applied to empty fields. A schema property's `default` may be a token: `@me`, `@me.displayName`, `@me.email`, `@today`, `@now` or `@object.<field>` (from `initialData`), resolved when a new record opens; editing never replaces stored data with a default. See [CnFormPage](./cn-form-page.md#live-values) for an example of each.

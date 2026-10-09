@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="confirm"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="normal"
 		:noClose="loading"
@@ -10,7 +15,21 @@
 			data-testid="cn-modal"
 			data-testid-modal="cn-mass-delete-dialog"
 			data-testid-phase="review">
-			<NcNoteCard type="warning">
+			<template v-if="isBoardLook">
+				<p class="cn-dialog__sentence" data-testid="cn-mass-delete-sentence">
+					{{ sentenceParts[0] }}<strong class="cn-dialog__name">{{ countLabel }}</strong>{{ sentenceParts[1] }}
+					<template v-if="irreversible">
+						{{ irreversibleText }}
+					</template>
+				</p>
+				<p class="cn-dialog__note"
+					role="note"
+					data-testid="cn-mass-delete-note">
+					<AlertOutline :size="20" aria-hidden="true" />
+					<span>{{ warningText }}</span>
+				</p>
+			</template>
+			<NcNoteCard v-else type="warning">
 				{{ warningText }}
 			</NcNoteCard>
 
@@ -36,6 +55,10 @@
 			<p v-if="localItems.length === 0" class="cn-mass-delete__empty">
 				{{ emptyText }}
 			</p>
+			<CnConfirmValueField v-if="confirmValue !== ''"
+				v-model="typedConfirmValue"
+				:value="confirmValue"
+				:label="confirmFieldLabel" />
 		</div>
 
 		<!-- Result phase -->
@@ -59,7 +82,10 @@
 			<NcButton
 				v-if="result === null"
 				variant="error"
-				:disabled="loading || localItems.length === 0"
+				:class="{ 'cn-dialog__confirm-pending': confirmValuePending }"
+				:disabled="loading || localItems.length === 0 || confirmValuePending"
+				:aria-disabled="confirmValuePending ? 'true' : undefined"
+				data-testid="cn-mass-delete-dialog-confirm"
 				@click="executeDelete">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
@@ -68,14 +94,20 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import AlertOutline from 'vue-material-design-icons/AlertOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import CnConfirmValueField from '../CnConfirmValueField/CnConfirmValueField.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { confirmValueMixin } from '../../mixins/confirmValue.js'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
+import { splitAroundPlaceholder } from '../../utils/dialogSentence.js'
 
 /**
  * CnMassDeleteDialog — Two-phase mass delete confirmation dialog.
@@ -112,13 +144,17 @@ export default {
 	name: 'CnMassDeleteDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
 		TrashCanOutline,
 		Close,
+		AlertOutline,
+		CnConfirmValueField,
 	},
+
+	mixins: [dialogBoardMixin, confirmValueMixin],
 
 	props: {
 		/** Items to delete. Each must have an `id` property. */
@@ -171,6 +207,9 @@ export default {
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** Aria label for the per-row "remove from list" icon button. */
 		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
+
+		/** Board look: end the sentence with "This action cannot be undone." */
+		irreversible: { type: Boolean, default: true },
 	},
 
 	emits: ['close', 'confirm'],
@@ -182,6 +221,21 @@ export default {
 			result: null,
 			closeTimeout: null,
 		}
+	},
+
+	computed: {
+		/** The board sentence around the bold item count. */
+		sentenceParts() {
+			return splitAroundPlaceholder(t('nextcloud-vue', 'Are you sure you want to permanently delete {count}?'), 'count')
+		},
+
+		countLabel() {
+			return n('nextcloud-vue', '%n item', '%n items', this.localItems.length)
+		},
+
+		irreversibleText() {
+			return t('nextcloud-vue', 'This action cannot be undone.')
+		},
 	},
 
 	watch: {
@@ -209,6 +263,9 @@ export default {
 		},
 
 		executeDelete() {
+			if (!this.confirmValueMatches) {
+				return
+			}
 			this.loading = true
 			const ids = this.localItems.map((i) => i.id)
 			/**
