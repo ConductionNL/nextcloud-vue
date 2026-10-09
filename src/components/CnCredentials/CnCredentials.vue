@@ -404,15 +404,16 @@ export default {
 		},
 
 		/**
-		 * Reframed intro copy per scope.
+		 * Reframed intro copy per scope. No em-dashes, sentences under 16 words.
 		 *
+		 * @spec openspec/changes/r4-object-lock-url-and-credentials-copy/specs/credentials-settings/spec.md
 		 * @return {string} Intro text.
 		 */
 		introText() {
 			if (this.scope === 'organisation') {
-				return t('nextcloud-vue', 'Organisation credentials let apps act on behalf of your organisation. The secret is stored in Keepiq — Nextcloud\'s native credential vault — never in the app. You choose which apps may use each credential.')
+				return t('nextcloud-vue', 'Organisation credentials let apps act for your organisation. Keepiq, the credential vault of Nextcloud, keeps the secret. The app never holds it. You choose which apps may use each credential.')
 			}
-			return t('nextcloud-vue', 'Apps sometimes need to act on your behalf against an external service. So they never hold your secrets, you give a secret to Nextcloud once and it is kept in Keepiq — a native, encrypted credential vault. Apps then make the call through Keepiq and never see the secret. You decide which apps may use each credential — share one across apps, or keep one per app.')
+			return t('nextcloud-vue', 'Apps sometimes act for you on an external service. You give the secret to Nextcloud once, and Keepiq keeps it in an encrypted vault. Apps make the call through Keepiq and never see the secret. You choose which apps may use each credential. Share one across apps, or keep one per app.')
 		},
 
 		/**

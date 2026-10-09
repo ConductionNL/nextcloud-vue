@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Organisation credentials let apps act for your organisation. Keepiq, the credential vault of Nextcloud, keeps the secret. The app never holds it. You choose which apps may use each credential.": "Met inloggegevens van de organisatie handelen apps namens je organisatie. Keepiq, de kluis voor inloggegevens van Nextcloud, bewaart het geheim. De app krijgt het nooit in handen. Je kiest welke apps elk inloggegeven mogen gebruiken.",
+    "Apps sometimes act for you on an external service. You give the secret to Nextcloud once, and Keepiq keeps it in an encrypted vault. Apps make the call through Keepiq and never see the secret. You choose which apps may use each credential. Share one across apps, or keep one per app.": "Apps handelen soms namens jou bij een externe dienst. Je geeft het geheim één keer aan Nextcloud, en Keepiq bewaart het in een versleutelde kluis. Apps doen de aanvraag via Keepiq en zien het geheim nooit. Je kiest welke apps elk inloggegeven mogen gebruiken. Deel er één tussen apps, of houd er één per app.",
     "Advanced": "Geavanceerd",
     "The item could not be created.": "Het item kon niet worden aangemaakt.",
     "Start over": "Opnieuw beginnen",
