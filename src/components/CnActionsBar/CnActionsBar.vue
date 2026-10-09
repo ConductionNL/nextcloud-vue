@@ -4,7 +4,57 @@
 		:class="{ 'cn-actions-bar--board': isBoardLayout }"
 		data-testid="cn-actions-bar"
 		v-bind="$attrs">
-		<div class="cn-actions-bar__info">
+		<!--
+			Board look, row 1, in the order it is read and drawn: the quick-filter
+			chips, the saved-view chips and Save view, the Filter button and the
+			view switch. The act controls (sort, add, menus) follow in the
+			cluster below; row 2 (search and the active filters) comes last.
+		-->
+		<div v-if="isBoardLayout" class="cn-actions-bar__row cn-actions-bar__row--views" data-testid="cn-actions-bar-row-views">
+			<slot name="filters" />
+			<slot name="actions-end" />
+			<NcButton v-if="showSidebarToggle"
+				variant="secondary"
+				class="cn-actions-bar__filter-button"
+				data-testid="cn-actions-bar-filter-button"
+				:pressed="sidebarOpen"
+				@click="$emit('toggle-sidebar')">
+				<template #icon>
+					<Tune :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Filter') }}
+				<span
+					v-if="filterCount > 0"
+					class="cn-actions-bar__filter-badge"
+					data-testid="cn-actions-bar-filter-badge"
+					:aria-label="filterCountLabel">{{ filterCount }}</span>
+			</NcButton>
+			<div v-if="showViewToggle && viewSegments.length > 1"
+				class="cn-actions-bar__view-toggle"
+				role="group"
+				:aria-label="t('nextcloud-vue', 'View')">
+				<button
+					v-for="seg in viewSegments"
+					:key="seg.mode"
+					type="button"
+					class="cn-actions-bar__view-toggle-btn"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode }"
+					:aria-pressed="viewMode === seg.mode"
+					:aria-label="seg.label"
+					:title="seg.label"
+					@click="$emit('view-mode-change', seg.mode)">
+					<CnIcon v-if="seg.icon"
+						:name="seg.icon"
+						:size="24"
+						class="cn-actions-bar__view-toggle-icon" />
+					<component :is="seg.fallback"
+						v-else
+						:size="24"
+						class="cn-actions-bar__view-toggle-icon" />
+				</button>
+			</div>
+		</div>
+		<div v-if="!isBoardLayout" class="cn-actions-bar__info">
 			<!-- Inline search field (opt-in) -->
 			<div v-if="showSearch" class="cn-actions-bar__search">
 				<Magnify :size="18" class="cn-actions-bar__search-icon" />
@@ -21,32 +71,6 @@
 			</span>
 			<!-- @slot after-search Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. a filter menu button). Convention: the left side groups the VISUAL controls — search, filters, view toggle — while the right cluster holds the ACT controls (add, overflow); the standalone sort select is a display control too but keeps its legacy right-side placement. -->
 			<slot name="after-search" />
-			<!-- Board look, row 2: the active filters as removable chips and a
-			     "Clear all" link, after the search field. -->
-			<template v-if="isBoardLayout && activeFilterChips.length > 0">
-				<span class="cn-actions-bar__active-label" data-testid="cn-actions-bar-active-label">{{ t('nextcloud-vue', 'Active:') }}</span>
-				<span
-					v-for="chip in activeFilterChips"
-					:key="chip.key"
-					class="cn-actions-bar__filter-chip"
-					data-testid="cn-actions-bar-filter-chip">
-					<span class="cn-actions-bar__filter-chip-label">{{ chip.label }}</span>
-					<button
-						type="button"
-						class="cn-actions-bar__filter-chip-remove"
-						:aria-label="removeFilterLabel(chip)"
-						@click="$emit('remove-filter', chip)">
-						<Close :size="14" aria-hidden="true" />
-					</button>
-				</span>
-				<button
-					type="button"
-					class="cn-actions-bar__clear-all"
-					data-testid="cn-actions-bar-clear-all"
-					@click="$emit('clear-filters')">
-					{{ t('nextcloud-vue', 'Clear all') }}
-				</button>
-			</template>
 			<!-- Counter beside the search (`showCountWithSearch`): after the search and its #after-search controls. The live region stays mounted while there is no total, so results coming back after none are announced too. -->
 			<span v-if="showCount && showSearch && showCountWithSearch"
 				class="cn-actions-bar__count cn-actions-bar__count--beside-search"
@@ -97,9 +121,6 @@
 				</button>
 			</div>
 		</div>
-		<!-- Board look: flexible space on row 1 and the break before row 2. -->
-		<span v-if="isBoardLayout" class="cn-actions-bar__spacer" aria-hidden="true" />
-		<span v-if="isBoardLayout" class="cn-actions-bar__row-break" aria-hidden="true" />
 		<div class="cn-actions-bar__actions">
 			<!-- Sort select (opt-in). A standalone sort control for card/list
 			     views, which — unlike the table — have no sortable column
@@ -120,7 +141,7 @@
 			</div>
 
 			<!-- @slot filters Inline filter controls rendered inside the action bar, between the view toggle and the add/actions (e.g. a CnQuickFilterBar segmented toggle). -->
-			<slot name="filters" />
+			<slot v-if="!isBoardLayout" name="filters" />
 
 			<!-- Search / Columns sidebar toggle (opt-in). Icon-only; reflects the
 			     open state via aria-pressed so the index sidebar can default
@@ -129,23 +150,7 @@
 				@event toggle-sidebar
 				@description User clicked the Search/Columns sidebar toggle. No payload — the host flips the sidebar open state.
 			-->
-			<NcButton v-if="showSidebarToggle && isBoardLayout"
-				variant="secondary"
-				class="cn-actions-bar__filter-button"
-				data-testid="cn-actions-bar-filter-button"
-				:pressed="sidebarOpen"
-				@click="$emit('toggle-sidebar')">
-				<template #icon>
-					<Tune :size="18" />
-				</template>
-				{{ t('nextcloud-vue', 'Filter') }}
-				<span
-					v-if="filterCount > 0"
-					class="cn-actions-bar__filter-badge"
-					data-testid="cn-actions-bar-filter-badge"
-					:aria-label="filterCountLabel">{{ filterCount }}</span>
-			</NcButton>
-			<NcButton v-else-if="showSidebarToggle"
+			<NcButton v-if="showSidebarToggle && !isBoardLayout"
 				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Search and columns')"
 				:title="t('nextcloud-vue', 'Search and columns')"
@@ -185,7 +190,7 @@
 				@slot actions-end
 				@description Custom buttons (e.g. CnIndexPage's saved-views control) rendered AFTER the primary Add button, immediately before the overflow menu — for content that belongs grouped with "browse/manage" controls rather than with the app-specific buttons in `#actions`.
 			-->
-			<slot name="actions-end" />
+			<slot v-if="!isBoardLayout" name="actions-end" />
 
 			<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot.
 			     The board look draws it in the page header instead. -->
@@ -322,6 +327,54 @@
 				-->
 				<slot name="mass-actions" :count="selectedIds.length" :selectedIds="selectedIds" />
 			</NcActions>
+		</div>
+
+		<!-- Board look, row 2: the search field, then the active filters. -->
+		<div v-if="isBoardLayout" class="cn-actions-bar__row cn-actions-bar__row--search" data-testid="cn-actions-bar-row-search">
+			<div v-if="showSearch" class="cn-actions-bar__search">
+				<Magnify :size="18" class="cn-actions-bar__search-icon" />
+				<input
+					type="search"
+					class="cn-actions-bar__search-input"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:value="searchValue"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					@input="onSearchInput">
+			</div>
+			<span v-else-if="showCount && hasTotal" class="cn-actions-bar__count">
+				{{ countText }}
+			</span>
+			<slot name="after-search" />
+			<!-- Board look, row 2: the active filters as removable chips and a
+			     "Clear all" link, after the search field. -->
+			<template v-if="activeFilterChips.length > 0">
+				<span class="cn-actions-bar__active-label" data-testid="cn-actions-bar-active-label">{{ t('nextcloud-vue', 'Active:') }}</span>
+				<span
+					v-for="chip in activeFilterChips"
+					:key="chip.key"
+					class="cn-actions-bar__filter-chip"
+					data-testid="cn-actions-bar-filter-chip">
+					<span class="cn-actions-bar__filter-chip-label">{{ chip.label }}</span>
+					<button
+						type="button"
+						class="cn-actions-bar__filter-chip-remove"
+						:aria-label="removeFilterLabel(chip)"
+						@click="$emit('remove-filter', chip)">
+						<Close :size="14" aria-hidden="true" />
+					</button>
+				</span>
+				<button
+					type="button"
+					class="cn-actions-bar__clear-all"
+					data-testid="cn-actions-bar-clear-all"
+					@click="$emit('clear-filters')">
+					{{ t('nextcloud-vue', 'Clear all') }}
+				</button>
+			</template>
+			<span v-if="showCount && showSearch && showCountWithSearch"
+				class="cn-actions-bar__count cn-actions-bar__count--beside-search"
+				:class="{ 'cn-actions-bar__count--empty': !hasTotal }"
+				aria-live="polite">{{ hasTotal ? countText : '' }}</span>
 		</div>
 
 		<!-- Always-present live region for the selection count (WCAG 2.1

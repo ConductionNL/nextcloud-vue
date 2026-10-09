@@ -47,8 +47,9 @@
 
 /* ----------------------------------------------------------------- toolbar */
 
-/* No band, no padding, no radius. Two rows: the wrappers dissolve into the
-   bar's own flex row and `order` places every control. */
+/* No band, no padding, no radius. The DOM is already in reading order (row 1,
+   the act cluster, row 2), so the rows only need laying out: the two row
+   wrappers dissolve into the bar's flex row, and row 2 takes a full line. */
 .cn-look-board .cn-actions-bar.cn-actions-bar--board {
 	display: flex;
 	flex-wrap: wrap;
@@ -61,51 +62,32 @@
 	border-radius: 0;
 }
 
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__info,
+.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views,
 .cn-look-board .cn-actions-bar--board > .cn-actions-bar__actions {
 	display: contents;
 }
 
-/* Row 1, left to right: chips (0), spacer (5), Save view (6), Filter (7),
-   view switch (8), whatever else the page puts in the toolbar (9). */
 .cn-look-board .cn-actions-bar--board > .cn-actions-bar__actions > * {
-	order: 9;
 	margin-inline-start: 0;
 }
 
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__actions > .cn-quick-filter-bar,
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__actions > .cn-saved-views__chips {
-	order: 0;
+/* The first of Save view, Filter and the view switch takes the free space, so
+   the three sit at the end of row 1. */
+.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views > :is(.cn-saved-views__save, .cn-actions-bar__filter-button, .cn-actions-bar__view-toggle) {
+	margin-inline-start: auto;
 }
 
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__spacer {
-	order: 5;
-	flex: 1 1 0;
-	min-width: 0;
+.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views > :is(.cn-saved-views__save, .cn-actions-bar__filter-button, .cn-actions-bar__view-toggle) ~ :is(.cn-saved-views__save, .cn-actions-bar__filter-button, .cn-actions-bar__view-toggle) {
+	margin-inline-start: 0;
 }
 
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__actions > .cn-saved-views__save {
-	order: 6;
-}
-
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__actions > .cn-actions-bar__filter-button {
-	order: 7;
-}
-
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__info > .cn-actions-bar__view-toggle {
-	order: 8;
-}
-
-/* Row 2: the break, then the search field and the active filters. */
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row-break {
-	order: 10;
+/* Row 2: the search field and the active filters on a line of their own. */
+.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--search {
+	display: flex;
 	flex: 0 0 100%;
-	height: 0;
-	margin: -8px 0 0;
-}
-
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__info > * {
-	order: 11;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
 }
 
 /* Saved-view chips: one 38px pill each, the selected one filled with the main
