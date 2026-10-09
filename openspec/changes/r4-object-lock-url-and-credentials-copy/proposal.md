@@ -21,6 +21,12 @@ Two things the round-3 cloud check found in apps built on this library.
    intro, in every app that shows it (pipelinq and dossiq among them). The
    Conduction voice bans them. Neither intro had a Dutch translation.
 
+3. `CnRelatedObjectsWidget.loadTabs()` waited for relations, uses, used,
+   contracts and files together, so the 0.45 s relations call on pipelinq's
+   lead page waited for the 9 s uses/used calls.
+4. `CnObjectListWidget` printed `content.addLabel` untranslated, so manifest
+   Add labels showed in English for a Dutch user.
+
 ## What changes
 
 - `useObjectLock` reads register, schema, slug and id with `toValue`, which
@@ -30,7 +36,13 @@ Two things the round-3 cloud check found in apps built on this library.
 - `CnDetailPage` passes getters that read the props when the lock is used, not
   when the page mounts.
 - The two CnCredentials intros are rewritten without em-dashes, in short
-  sentences, with English and Dutch catalogue entries.
+  sentences, with English and Dutch catalogue entries. The em-dashes in the
+  component's comments go too.
+- `CnRelatedObjectsWidget` lays out its groups up front and fills each section
+  as its own request returns, with a "Still loading" line and a "Could not
+  load {section}." line per failed section. Props and manifest contract stay.
+- `CnObjectListWidget` runs `content.addLabel` through the host translate
+  function.
 
 ## Tests
 
@@ -41,3 +53,7 @@ Two things the round-3 cloud check found in apps built on this library.
   inputs and the unknown-target cases.
 - `tests/components/CnCredentialsCopy.spec.js` pins the intro copy to the
   voice and to the Dutch catalogue.
+- `tests/components/CnRelatedObjectsWidgetProgressive.spec.js` holds uses/used
+  open and asserts the relations section is on screen first.
+- `tests/components/CnObjectListWidgetAddLabel.spec.js` asserts the Add label
+  goes through the app's translate function.

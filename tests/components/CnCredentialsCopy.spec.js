@@ -43,6 +43,10 @@ describe('CnCredentials copy follows the Conduction voice', () => {
 		expect(strings.filter((s) => s.includes('—'))).toEqual([])
 	})
 
+	it('🔴 the component source carries no em-dash at all', () => {
+		expect((source.match(/—/g) || []).length).toBe(0)
+	})
+
 	it.each(['personal', 'organisation'])('the %s intro has an English and a Dutch entry', (scope) => {
 		const key = intro(scope)
 		expect(en[key]).toBe(key)
