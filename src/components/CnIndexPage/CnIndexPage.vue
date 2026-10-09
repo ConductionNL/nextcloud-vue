@@ -923,7 +923,7 @@ import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
-import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
+import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
 import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
@@ -6374,7 +6374,30 @@ export default {
 		},
 
 		rowActionsFor(row) {
-			return availableRowActions(this.mergedActions, row, this.rowActionField)
+			return withoutViewWhenRowOpensDetail(
+				availableRowActions(this.mergedActions, row, this.rowActionField),
+				this.rowOpensDetailFor(row),
+			)
+		},
+
+		/**
+		 * Whether a click on this row navigates to the record's detail page.
+		 * When it does, the row menu offers Edit and not View (viewing is what
+		 * the click already does). A `viewTo` that answers null for the row
+		 * means this record has no detail page, so it keeps View.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean} True when the row opens a detail page.
+		 * @spec openspec/changes/row-menu-edits-when-the-row-opens-the-detail/specs/index-page/spec.md
+		 */
+		rowOpensDetailFor(row) {
+			if (!this.rowClickOpens) {
+				return false
+			}
+			if (typeof this.viewTo === 'function') {
+				return Boolean(row) && this.viewTo(row) !== null && this.viewTo(row) !== undefined
+			}
+			return true
 		},
 
 		/**
