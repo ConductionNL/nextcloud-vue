@@ -343,6 +343,6 @@ export default {
 	border-radius: var(--border-radius-large, 8px);
 	font-size: 12px;
 	white-space: pre-wrap;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 </style>
