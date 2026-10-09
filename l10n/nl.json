@@ -1344,7 +1344,9 @@
     "Could not load the form for this item.": "Kon het formulier voor dit item niet laden.",
     "This server does not keep track of what you open.": "Deze server houdt niet bij welke items je opent.",
     "Log in to see what you opened recently.": "Log in om te zien wat je onlangs opende.",
-    "Your recent items are not available right now.": "Je recente items zijn nu niet beschikbaar."
+    "Your recent items are not available right now.": "Je recente items zijn nu niet beschikbaar.",
+    "yesterday": "gisteren",
+    "tomorrow": "morgen"
   },
   "plurals": {
     "%n year": [
@@ -1398,6 +1400,14 @@
     "You see {count} capability of {total}.": [
       "Je ziet {count} functionaliteit van {total}.",
       "Je ziet {count} functionaliteiten van {total}."
+    ],
+    "{count} day ago": [
+      "{count} dag geleden",
+      "{count} dagen geleden"
+    ],
+    "in {count} day": [
+      "over {count} dag",
+      "over {count} dagen"
     ]
   }
 }
