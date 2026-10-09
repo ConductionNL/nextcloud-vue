@@ -217,6 +217,7 @@
 					<component
 						:is="resolveFieldRender(field).tag"
 						v-if="resolveFieldRender(field)"
+						v-cn-select-aria="selectAria(field)"
 						v-bind="fieldProps(field)"
 						v-on="resolveFieldRender(field).listeners">
 						<!-- NcCheckboxRadioSwitch puts its label in the slot -->
@@ -398,6 +399,7 @@ import CnStepper from '../CnStepper/CnStepper.vue'
 import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
 import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
 import { normalizeLook } from '../../composables/useLook.js'
+import { cnSelectAria } from '../../directives/cnSelectAria.js'
 import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
 import { computeAssignments, resolveFieldDefaults } from '../../utils/formAssign.js'
 import { validateFieldValue } from '../../utils/formValidation.js'
@@ -440,6 +442,8 @@ function resolveParams(url, params) {
  */
 export default {
 	name: 'CnFormPage',
+
+	directives: { cnSelectAria },
 
 	components: {
 		CnFormErrorSummary,
@@ -1306,6 +1310,35 @@ export default {
 				}
 			}
 			return props
+		},
+
+		/**
+		 * The accessibility attributes of an enum field's NcSelect. NcSelect
+		 * forwards no attributes to its input, so these go through
+		 * `v-cn-select-aria` onto the combobox input instead of `fieldProps`.
+		 * The error element exists for an enum in both looks (NcSelect has no
+		 * native error text), so an invalid value lists it before the hint.
+		 *
+		 * @param {object} field The formField shape.
+		 * @return {object|null} The attributes, or null for any other control.
+		 */
+		selectAria(field) {
+			const render = this.resolveFieldRender(field)
+			if (!render || render.kind !== 'enum') {
+				return null
+			}
+			const ids = []
+			if (this.fieldErrors[field.key]) {
+				ids.push(this.errorIdFor(field))
+			}
+			if (field.help) {
+				ids.push(this.helpIdFor(field))
+			}
+			return {
+				'aria-invalid': this.fieldErrors[field.key] ? 'true' : null,
+				'aria-describedby': ids.length > 0 ? ids.join(' ') : null,
+				'aria-required': this.showsBoardHead(field) && this.isFieldRequired(field) ? 'true' : null,
+			}
 		},
 
 		/**
