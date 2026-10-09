@@ -2722,18 +2722,21 @@ export default {
 			() => props.objectId,
 			{ enabled: () => Boolean(resolveType() && props.objectId) },
 		)
-		const sidebarReg = props.sidebarProps?.register || props.resolvedSidebar?.register || props.register || ''
-		const sidebarSchema = props.sidebarProps?.schema || props.resolvedSidebar?.schema || props.schema || ''
+		// Getters, read at call time: a register or schema that arrives after
+		// mount (route params, a resolved sidebar) must reach the lock URL. They
+		// used to be consts captured once at setup.
+		const sidebarReg = () => props.sidebarProps?.register || props.resolvedSidebar?.register || props.register || ''
+		const sidebarSchema = () => props.sidebarProps?.schema || props.resolvedSidebar?.schema || props.schema || ''
 		const lock = useObjectLock(
 			subscriptionStore,
-			() => sidebarReg,
-			() => resolveType() || sidebarSchema,
+			sidebarReg,
+			() => resolveType() || sidebarSchema(),
 			() => props.objectId,
 			// The third argument is the OBJECT CACHE KEY (`<register>-<schema>`)
 			// and the lock URL needs the schema SLUG. They were one string, and
 			// the acquire went to `/api/objects/<register>/<register>-<schema>/`,
 			// which no register answers.
-			{ schemaSlug: () => props.schema || sidebarSchema },
+			{ schemaSlug: () => props.schema || sidebarSchema() },
 		)
 		return {
 			...registryExposed,

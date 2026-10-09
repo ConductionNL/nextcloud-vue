@@ -91,6 +91,20 @@
 					</ul>
 				</section>
 
+				<p v-if="visibleGroups.length && pendingSections.length"
+					class="cn-related-objects-widget__section-status"
+					data-testid="cn-related-pending"
+					role="status">
+					{{ pendingLabel }}
+				</p>
+				<p v-for="failed in failedSections"
+					:key="`failed-${failed.key}`"
+					class="cn-related-objects-widget__section-error"
+					data-testid="cn-related-section-error"
+					:data-section="failed.key">
+					{{ t('nextcloud-vue', 'Could not load {section}.', { section: failed.label }) }}
+				</p>
+
 				<div v-if="loading && !visibleGroups.length" class="cn-related-objects-widget__empty">
 					{{ loadingLabel }}
 				</div>
@@ -710,6 +724,12 @@ export default {
 			groups: [],
 			/** Active tab key. */
 			activeKey: '',
+			/** Keys of the tabbed sections whose request is still in flight (`objects`, `files`, `relations`). */
+			pendingSections: [],
+			/** Tabbed sections whose request failed: `{ key, label }`. */
+			failedSections: [],
+			/** Bumped per `loadTabs()`; an answer from an older load is dropped. */
+			loadToken: 0,
 			/** Key of the inline-expanded row (`{group}-{id}`) for leaves with no owning-app page (e.g. notes). */
 			expandedKey: '',
 			/** Whether a footer file upload is in flight. */
@@ -832,6 +852,22 @@ export default {
 				(sum, group) => sum + (group.total || group.items.length || 0),
 				0,
 			)
+		},
+
+		/**
+		 * The line under the panel naming the sections still loading, once
+		 * another section is already on screen.
+		 *
+		 * @return {string}
+		 */
+		pendingLabel() {
+			const labels = {
+				objects: this.objectsLabel,
+				files: this.filesLabel,
+				relations: t('nextcloud-vue', 'Linked items'),
+			}
+			const names = this.pendingSections.map((key) => labels[key] || key).join(', ')
+			return t('nextcloud-vue', 'Still loading: {sections}', { sections: names })
 		},
 
 		/** Placeholder shown in the body while the first fetch is in flight. */
@@ -1330,16 +1366,27 @@ export default {
 		 * @return {Promise<object|null>}
 		 */
 		async fetchSubResource(suffix) {
+			return (await this.fetchSection(suffix)).data
+		},
+
+		/**
+		 * GET an OpenRegister sub-resource and say whether it answered, so a
+		 * section can tell "nothing linked" from "could not load".
+		 *
+		 * @param {string} suffix - The sub-resource suffix.
+		 * @return {Promise<{ ok: boolean, data: object|null }>}
+		 */
+		async fetchSection(suffix) {
 			try {
 				// `no-store`: relations change as the user links content; a stale
 				// cached empty response would wrongly show the empty state on load.
 				const response = await fetch(this.relatedUrl(suffix), { method: 'GET', headers: buildHeaders(), cache: 'no-store' })
 				if (!response.ok) {
-					return null
+					return { ok: false, data: null }
 				}
-				return await response.json()
+				return { ok: true, data: await response.json() }
 			} catch {
-				return null
+				return { ok: false, data: null }
 			}
 		},
 
@@ -1543,56 +1590,138 @@ export default {
 		},
 
 		/**
-		 * Fetch every group directly from OpenRegister and build the tabs.
+		 * Fetch every group directly from OpenRegister and build the tabs,
+		 * one section at a time.
 		 *
+		 * 🔴 EACH SECTION SHOWS WHEN ITS OWN REQUEST RETURNS. This used to wait
+		 * for relations, uses, used, contracts and files together behind one
+		 * `Promise.all`, so the relations call (0.45 s on pipelinq's lead page)
+		 * sat behind uses/used (about 9 s) and the card said "Loading …" the
+		 * whole time. Now the groups are laid out up front in their fixed order
+		 * and filled in place as each answer arrives, so a slow section never
+		 * reorders or hides a fast one. A section still in flight is named in
+		 * `pendingSections`; one whose request failed in `failedSections`.
+		 *
+		 * @spec openspec/changes/r4-object-lock-url-and-credentials-copy/specs/related-objects-progressive/spec.md
 		 * @return {Promise<void>}
 		 */
 		async loadTabs() {
+			const token = ++this.loadToken
+			const current = () => token === this.loadToken
 			this.loading = true
-			try {
-				const [relations, uses, used, contracts, files] = await Promise.all([
-					this.fetchSubResource('relations'),
-					this.showObjects ? this.fetchSubResource('uses') : null,
-					this.showObjects ? this.fetchSubResource('used') : null,
-					(this.showObjects && this.showContracts) ? this.fetchSubResource('contracts') : null,
-					this.showFiles ? this.fetchSubResource('files') : null,
-				])
+			this.failedSections = []
 
-				const groups = []
+			const objectSuffixes = this.showObjects
+				? ['uses', 'used', ...(this.showContracts ? ['contracts'] : [])]
+				: []
+			const sections = [
+				...(this.showObjects ? [{ key: 'objects', label: this.objectsLabel }] : []),
+				...(this.showFiles ? [{ key: 'files', label: this.filesLabel }] : []),
+				{ key: 'relations', label: t('nextcloud-vue', 'Linked items') },
+			]
+			this.pendingSections = sections.map((section) => section.key)
 
-				if (this.showObjects) {
-					await this.resolveSchemaTitles([uses, used, contracts])
-					const objectItems = this.mergeObjectResults([uses, used, contracts])
-					groups.push({ key: 'objects', label: this.objectsLabel, icon: 'FileTreeOutline', integrationId: '', items: objectItems, total: objectItems.length })
+			// Lay out every group now, in its fixed order, empty. visibleGroups
+			// hides an empty group, so nothing shows until a section fills it.
+			const groups = []
+			if (this.showObjects) {
+				groups.push({ key: 'objects', label: this.objectsLabel, icon: 'FileTreeOutline', integrationId: '', items: [], total: 0 })
+			}
+			if (this.showFiles) {
+				groups.push({ key: 'files', label: this.filesLabel, icon: 'Paperclip', integrationId: 'files', items: [], total: 0 })
+			}
+			for (const def of LEAF_GROUPS) {
+				groups.push({
+					key: def.key,
+					label: this.leafLabel(def.key),
+					// Prefer the registered integration's icon so it matches the
+					// sidebar/linked-apps; fall back to the known-good default.
+					icon: this.integrationIcon(def.integrationId) || def.icon,
+					integrationId: def.integrationId,
+					requiredApp: def.requiredApp,
+					items: [],
+					total: 0,
+				})
+			}
+			this.groups = groups
+
+			const setGroup = (key, items, total) => {
+				const index = this.groups.findIndex((group) => group.key === key)
+				if (index === -1) {
+					return
 				}
-
-				if (this.showFiles) {
-					const fileResults = (files && files.results) || []
-					groups.push({ key: 'files', label: this.filesLabel, icon: 'Paperclip', integrationId: 'files', items: fileResults.map((f) => this.toFileRow(f)), total: files ? (files.total ?? fileResults.length) : 0 })
+				const next = this.groups.slice()
+				next[index] = { ...next[index], items, total }
+				this.groups = next
+			}
+			const settle = (key, ok) => {
+				this.pendingSections = this.pendingSections.filter((k) => k !== key)
+				if (!ok) {
+					const section = sections.find((s) => s.key === key)
+					this.failedSections = [...this.failedSections, { key, label: section ? section.label : key }]
 				}
-
-				for (const def of LEAF_GROUPS) {
-					const block = relations && relations[def.responseKey]
-					const results = (block && block.results) || []
-					groups.push({
-						key: def.key,
-						label: this.leafLabel(def.key),
-						// Prefer the registered integration's icon so it matches the
-						// sidebar/linked-apps; fall back to the known-good default.
-						icon: this.integrationIcon(def.integrationId) || def.icon,
-						integrationId: def.integrationId,
-						requiredApp: def.requiredApp,
-						items: results.map((r, i) => this.toLeafRow(r, i)),
-						total: block ? (block.total ?? results.length) : 0,
-					})
-				}
-
-				this.groups = groups
-				if (!this.activeGroup && this.visibleGroups.length) {
+				// Keep the tab the reader saw first: pin it, so a slower section
+				// that sorts before it does not take the panel away.
+				if (!this.activeKey && this.visibleGroups.length) {
 					this.activeKey = this.visibleGroups[0].key
 				}
+			}
+
+			const loadRelations = this.fetchSection('relations').then(({ ok, data }) => {
+				if (!current()) {
+					return
+				}
+				for (const def of LEAF_GROUPS) {
+					const block = data && data[def.responseKey]
+					const results = (block && block.results) || []
+					setGroup(def.key, results.map((r, i) => this.toLeafRow(r, i)), block ? (block.total ?? results.length) : 0)
+				}
+				settle('relations', ok)
+			})
+
+			const loadFiles = this.showFiles
+				? this.fetchSection('files').then(({ ok, data }) => {
+						if (!current()) {
+							return
+						}
+						const fileResults = (data && data.results) || []
+						setGroup('files', fileResults.map((f) => this.toFileRow(f)), data ? (data.total ?? fileResults.length) : 0)
+						settle('files', ok)
+					})
+				: null
+
+			// uses, used and contracts merge into one Objects group: each answer
+			// re-merges what has arrived so far, and the group stays pending
+			// until the last of them is in.
+			const envelopes = objectSuffixes.map(() => null)
+			let objectsOk = true
+			const loadObjects = objectSuffixes.length
+				? Promise.all(objectSuffixes.map((suffix, i) => this.fetchSection(suffix).then(async ({ ok, data }) => {
+						if (!current()) {
+							return
+						}
+						objectsOk = objectsOk && ok
+						envelopes[i] = data
+						await this.resolveSchemaTitles([data])
+						if (!current()) {
+							return
+						}
+						const objectItems = this.mergeObjectResults(envelopes)
+						setGroup('objects', objectItems, objectItems.length)
+					}))).then(() => {
+						if (current()) {
+							settle('objects', objectsOk)
+						}
+					})
+				: null
+
+			try {
+				await Promise.all([loadRelations, loadFiles, loadObjects])
 			} finally {
-				this.loading = false
+				if (current()) {
+					this.loading = false
+					this.pendingSections = []
+				}
 			}
 		},
 
@@ -1894,6 +2023,20 @@ export default {
 	padding: calc(3 * var(--default-grid-baseline, 4px)) calc(2 * var(--default-grid-baseline, 4px));
 	color: var(--color-text-maxcontrast);
 	font-style: italic;
+}
+
+.cn-related-objects-widget__section-status {
+	margin: 0;
+	padding: var(--default-grid-baseline, 4px) calc(2 * var(--default-grid-baseline, 4px));
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+}
+
+.cn-related-objects-widget__section-error {
+	margin: 0;
+	padding: var(--default-grid-baseline, 4px) calc(2 * var(--default-grid-baseline, 4px));
+	color: var(--color-error-text, var(--color-error));
+	font-size: 0.85em;
 }
 
 .cn-related-objects-widget__empty-state {
