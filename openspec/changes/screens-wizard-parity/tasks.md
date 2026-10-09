@@ -30,7 +30,7 @@
 - **spec_ref**: `openspec/changes/screens-wizard-parity/specs/wizard-dialog/spec.md#requirement-a-stepped-form-page-uses-the-board-stepper-and-footer`
 - **files**: `src/components/CnFormPage/CnFormPage.vue`, `src/components/CnStepper/CnStepper.vue`, `e2e/screens-wizard-parity.e2e.js`
 - [x] Implement: card, stepper, hairline footer with Cancel or Previous left and the primary right (adds `cancelRoute` and a `cancel` event)
-- [ ] Test: footer positions in a browser against `buildiq/BqDataImporteren` — not run: no running instance, `e2e/screens-wizard-parity.e2e.js` not written. The footer order, the chevrons and the card/hairline classes are unit-tested
+- [x] Test: footer positions in a browser against `buildiq/BqDataImporteren` — measured in a browser: 28px stepper circles, aria-current on the current step, Back/Cancel left of Next, Cancel left of the primary on a stepped form page; `e2e/screens-form-dialog-wizard-parity.e2e.js` (the library harness, not a live Nextcloud)
 
 ### Task 6: Documentation
 - **files**: `docs/components/cn-wizard-dialog.md`, `docs/components/cn-form-page.md`
