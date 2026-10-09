@@ -149,6 +149,28 @@
 								@update:modelValue="onRelationChange(field, $event)"
 								@close="commitEdit" />
 
+							<!-- Nextcloud group or user (`referenceType: nextcloud-group`
+						     / `nextcloud-user`, one or a list): pick by display name,
+						     store the group id or uid. The same search the create and
+						     edit dialogs use. -->
+							<component
+								:is="isUserPicker(field) ? 'NcSelectUsers' : 'NcSelect'"
+								v-else-if="isPersonPicker(field)"
+								ref="activeEditor"
+								:inputLabel="field.label"
+								:labelOutside="true"
+								:options="personOptions[field.key] || []"
+								:modelValue="personSelected(field)"
+								:multiple="isPersonMultiple(field)"
+								:keepOpen="isPersonMultiple(field)"
+								:loading="personLoading === field.key"
+								:filterable="false"
+								:clearable="!field.required"
+								label="label"
+								@search="(q) => searchPeople(field, q)"
+								@update:modelValue="onPersonChange(field, $event)"
+								@close="isPersonMultiple(field) ? undefined : commitEdit()" />
+
 							<!-- Select -->
 							<NcSelect
 								v-else-if="field.widget === 'select'"
@@ -259,7 +281,17 @@
 							:value="displayValues[field.key]"
 							:raw="(objectData || {})[field.key]" />
 						<template v-else>
-							<img v-if="isImageField(field) && rawOf(field)"
+							<!-- A Nextcloud group (or list): its display name, cached
+							     per id; the id while the name loads or when unknown. -->
+							<span
+								v-if="isGroupPicker(field) && groupIdsOf(field).length"
+								class="cn-object-data-widget__groups">
+								<template v-for="(gid, gi) in groupIdsOf(field)" :key="gid">
+									<span v-if="gi > 0">, </span>
+									<CnGroupNameCell :gid="gid" />
+								</template>
+							</span>
+							<img v-else-if="isImageField(field) && rawOf(field)"
 								:src="rawOf(field)"
 								:alt="field.label"
 								class="cn-object-data-widget__image">
@@ -370,19 +402,22 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcActionButton, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import CnGroupNameCell from '../CnCellRenderer/CnGroupNameCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
+import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
 import { schemaRefSlug } from '../../utils/schemaRefSlug.js'
+import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
@@ -427,6 +462,8 @@ export default {
 		NcLoadingIcon,
 		NcTextField,
 		NcSelect,
+		NcSelectUsers,
+		CnGroupNameCell,
 		NcCheckboxRadioSwitch,
 		NcActionButton,
 		CnWidgetWrapper,
@@ -806,6 +843,12 @@ export default {
 			relationOptions: {},
 			/** Whether relation picker options are being fetched. */
 			relationOptionsLoading: false,
+			/** Group and user picker options per field key ({ id, label }[]). */
+			personOptions: {},
+			/** Key of the group or user field whose options are loading, or null. */
+			personLoading: null,
+			/** Display names of users seen in a user picker, by uid. */
+			userLabels: {},
 			/** Whether the user expanded the widget to see every field. */
 			expanded: false,
 			/** Fields that fit the cell while collapsed; null when all fit. */
@@ -1719,6 +1762,11 @@ export default {
 			if (this.isSingleRelationField(field.key)) {
 				this.loadRelationOptions(field.key)
 			}
+			// Group and user fields pick from Nextcloud's own directory.
+			if (this.isPersonPicker(field)) {
+				this.searchPeople(field, '')
+				this.resolvePersonLabels(field, currentValue)
+			}
 
 			this.$nextTick(() => {
 				// Focus the editor
@@ -1942,6 +1990,182 @@ export default {
 			// Find matching option from enum for proper label display
 			const options = this.getSelectOptions(field)
 			return options.find((opt) => opt.id === val) || { id: val, label: String(val) }
+		},
+
+		/**
+		 * Whether a field picks a Nextcloud group (widget `group` or
+		 * `group-multiselect`, from `referenceType: nextcloud-group`).
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {boolean}
+		 */
+		isGroupPicker(field) {
+			return !!field && (field.widget === 'group' || field.widget === 'group-multiselect')
+		},
+
+		/**
+		 * Whether a field picks a Nextcloud user (widget `user` or
+		 * `user-multiselect`, from `referenceType: nextcloud-user`).
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {boolean}
+		 */
+		isUserPicker(field) {
+			return !!field && (field.widget === 'user' || field.widget === 'user-multiselect')
+		},
+
+		/**
+		 * Whether a field picks a group or a user.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {boolean}
+		 */
+		isPersonPicker(field) {
+			return this.isGroupPicker(field) || this.isUserPicker(field)
+		},
+
+		/**
+		 * Whether a group or user field holds a list.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {boolean}
+		 */
+		isPersonMultiple(field) {
+			return !!field && (field.widget === 'group-multiselect' || field.widget === 'user-multiselect')
+		},
+
+		/**
+		 * The group ids a group field holds, for the display mode.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {string[]}
+		 */
+		groupIdsOf(field) {
+			const raw = this.rawOf(field)
+			const list = Array.isArray(raw) ? raw : [raw]
+			return list.filter((v) => typeof v === 'string' && v !== '')
+		},
+
+		/**
+		 * The display name of a group id or uid, falling back to the id.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @param {string} id The group id or uid.
+		 * @return {string}
+		 */
+		personLabel(field, id) {
+			if (this.isGroupPicker(field)) {
+				return groupDisplayName(id) || String(id)
+			}
+			return this.userLabels[id] || String(id)
+		},
+
+		/**
+		 * Search Nextcloud groups or users for a picker. Fails soft (the
+		 * helpers return `[]`), so the picker stays usable with what it has.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @param {string} query The search term.
+		 * @return {Promise<void>}
+		 */
+		async searchPeople(field, query) {
+			this.personLoading = field.key
+			try {
+				const options = this.isGroupPicker(field)
+					? await searchNextcloudGroups(query || '')
+					: await searchNextcloudUsers(query || '')
+				const list = Array.isArray(options) ? options : []
+				if (this.isUserPicker(field)) {
+					const labels = { ...this.userLabels }
+					for (const opt of list) {
+						labels[opt.id] = opt.label
+					}
+					this.userLabels = labels
+				}
+				this.personOptions = { ...this.personOptions, [field.key]: list }
+			} finally {
+				if (this.personLoading === field.key) {
+					this.personLoading = null
+				}
+			}
+		},
+
+		/**
+		 * Look up the display names of the value a group or user field holds,
+		 * so the open editor shows names rather than ids.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @param {unknown} value The held value (an id or a list of ids).
+		 * @return {Promise<void>}
+		 */
+		async resolvePersonLabels(field, value) {
+			const ids = (Array.isArray(value) ? value : [value])
+				.filter((v) => typeof v === 'string' && v !== '')
+			if (this.isGroupPicker(field)) {
+				await Promise.all(ids.map((gid) => loadGroupDisplayName(gid)))
+				return
+			}
+			const unknown = ids.filter((uid) => !this.userLabels[uid])
+			const options = await Promise.all(unknown.map((uid) => resolveNextcloudUser(uid)))
+			if (options.length > 0) {
+				const labels = { ...this.userLabels }
+				for (const opt of options) {
+					if (opt && opt.id) {
+						labels[opt.id] = opt.label || opt.id
+					}
+				}
+				this.userLabels = labels
+			}
+		},
+
+		/**
+		 * The selected option(s) of a group or user picker.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {object|object[]|null}
+		 */
+		personSelected(field) {
+			const toOption = (id) => {
+				const label = this.personLabel(field, id)
+				return { id, label, displayName: label }
+			}
+			const v = this.editData[field.key]
+			if (this.isPersonMultiple(field)) {
+				return (Array.isArray(v) ? v : [])
+					.filter((id) => typeof id === 'string' && id !== '')
+					.map(toOption)
+			}
+			return (typeof v === 'string' && v !== '') ? toOption(v) : null
+		},
+
+		/**
+		 * Store a group or user choice as the id (or list of ids).
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @param {object|object[]|null} selected The chosen option(s).
+		 */
+		onPersonChange(field, selected) {
+			if (this.isPersonMultiple(field)) {
+				const ids = (Array.isArray(selected) ? selected : [])
+					.map((opt) => (opt && typeof opt === 'object' ? opt.id : opt))
+					.filter((id) => typeof id === 'string' && id !== '')
+				this.updateField(field.key, ids)
+				return
+			}
+			if (selected && this.isUserPicker(field) && selected.id) {
+				this.userLabels = { ...this.userLabels, [selected.id]: selected.label || selected.id }
+			}
+			this.updateField(field.key, selected && selected.id ? selected.id : null)
 		},
 
 		onSelectChange(field, option) {
