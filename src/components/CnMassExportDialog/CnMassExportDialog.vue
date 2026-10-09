@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="small"
 		:noClose="loading"
@@ -70,13 +75,15 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import ExportIcon from 'vue-material-design-icons/Export.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnMassExportDialog — Export dialog with format selection.
@@ -114,13 +121,15 @@ export default {
 	name: 'CnMassExportDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
 		NcSelect,
 		ExportIcon,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** Dialog title */

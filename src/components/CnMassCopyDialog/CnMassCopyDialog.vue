@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="normal"
 		:noClose="loading"
@@ -98,15 +103,17 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import { copyKindsOf, useObjectCopy } from '../../composables/useObjectCopy.js'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnMassCopyDialog — Two-phase mass copy confirmation dialog.
@@ -147,7 +154,7 @@ export default {
 	name: 'CnMassCopyDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcCheckboxRadioSwitch,
 		NcNoteCard,
@@ -156,6 +163,8 @@ export default {
 		ContentCopy,
 		Close,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/**

@@ -3,7 +3,12 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="normal"
 		@closing="$emit('close')">
@@ -131,13 +136,15 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcTextArea, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcTextArea, NcTextField } from '@nextcloud/vue'
+import CnDialog from '../components/CnDialog/CnDialog.vue'
 import CnResourceSelect from '../components/CnResourceSelect/CnResourceSelect.vue'
+import { dialogBoardMixin } from '../mixins/dialogBoard.js'
 import { fieldsFromSchema } from '../utils/schema.js'
 
 /**
@@ -177,12 +184,14 @@ export default {
 
 	components: {
 		CnResourceSelect,
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcTextField,
 		NcTextArea,
 		NcCheckboxRadioSwitch,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/**

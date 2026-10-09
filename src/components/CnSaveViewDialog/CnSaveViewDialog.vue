@@ -3,7 +3,12 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="confirm"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="small"
 		:noClose="loading"
@@ -60,15 +65,17 @@
 				{{ t('nextcloud-vue', 'Save view') }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import CnSavedViewShareFields from '../CnSavedViewShareFields/CnSavedViewShareFields.vue'
 import CnViewPresentationPicker from '../CnViewPresentationPicker/CnViewPresentationPicker.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { isPresentationComplete, presentationErrorPath } from '../../utils/presentationCandidates.js'
 
 /**
@@ -94,7 +101,7 @@ export default {
 	name: 'CnSaveViewDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
@@ -104,6 +111,8 @@ export default {
 		CnViewPresentationPicker,
 		ContentSaveOutline,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** Dialog title shown in the NcDialog header. */

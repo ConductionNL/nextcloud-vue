@@ -3,7 +3,12 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="confirm"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="small"
 		:noClose="loading"
@@ -28,9 +33,18 @@
 			data-testid="cn-modal"
 			data-testid-modal="cn-confirm-dialog"
 			data-testid-phase="confirm">
-			<NcNoteCard :type="variant === 'error' ? 'warning' : 'info'">
+			<p v-if="isBoardLook"
+				class="cn-dialog__sentence"
+				data-testid="cn-confirm-sentence">
+				{{ message }}
+			</p>
+			<NcNoteCard v-else :type="variant === 'error' ? 'warning' : 'info'">
 				{{ message }}
 			</NcNoteCard>
+			<CnConfirmValueField v-if="confirmValue !== ''"
+				v-model="typedConfirmValue"
+				:value="confirmValue"
+				:label="confirmFieldLabel" />
 		</div>
 
 		<template #actions>
@@ -40,7 +54,9 @@
 			<NcButton
 				v-if="result === null"
 				:variant="variant"
-				:disabled="loading"
+				:class="{ 'cn-dialog__confirm-pending': confirmValuePending }"
+				:disabled="loading || confirmValuePending"
+				:aria-disabled="confirmValuePending ? 'true' : undefined"
 				data-testid="cn-confirm-dialog-confirm"
 				@click="executeConfirm">
 				<template #icon>
@@ -63,12 +79,16 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CnConfirmValueField from '../components/CnConfirmValueField/CnConfirmValueField.vue'
+import CnDialog from '../components/CnDialog/CnDialog.vue'
+import { confirmValueMixin } from '../mixins/confirmValue.js'
+import { dialogBoardMixin } from '../mixins/dialogBoard.js'
 
 /**
  * CnConfirmDialog — generic, verb-agnostic confirmation dialog.
@@ -104,11 +124,14 @@ export default {
 	name: 'CnConfirmDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
+		CnConfirmValueField,
 	},
+
+	mixins: [dialogBoardMixin, confirmValueMixin],
 
 	props: {
 		/** Dialog title shown in the NcDialog header. */
@@ -189,6 +212,9 @@ export default {
 		 * the parent, which performs the confirmed operation.
 		 */
 		executeConfirm() {
+			if (!this.confirmValueMatches) {
+				return
+			}
 			this.loading = true
 			/**
 			 * @event confirm Emitted when the user confirms. The parent performs

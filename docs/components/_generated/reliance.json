@@ -505,6 +505,13 @@
 			"via": [],
 			"page": "cn-configuration-card"
 		},
+		"CnConfirmValueField": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnContactCreate": {
 			"direct": 0,
 			"transitive": 0,
@@ -974,6 +981,20 @@
 			],
 			"page": "cn-detail-widget-host"
 		},
+		"CnDialog": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
+		"CnDialogHeader": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnDividerWidget": {
 			"direct": 0,
 			"transitive": 0,
@@ -1350,6 +1371,20 @@
 				"CnXwikiPagePicker"
 			],
 			"page": "cn-form-dialog"
+		},
+		"CnFormErrorSummary": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
+		"CnFormField": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
 		},
 		"CnFormPage": {
 			"direct": 0,
@@ -3011,6 +3046,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-status-badge"
+		},
+		"CnStepper": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
 		},
 		"CnStorePage": {
 			"direct": 2,

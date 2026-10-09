@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="confirm"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="small"
 		:noClose="loading"
@@ -96,14 +101,16 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import { copyKindsOf, useObjectCopy } from '../../composables/useObjectCopy.js'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnCopyDialog — Single-item copy confirmation dialog with naming pattern.
@@ -139,7 +146,7 @@ export default {
 	name: 'CnCopyDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcCheckboxRadioSwitch,
 		NcNoteCard,
@@ -147,6 +154,8 @@ export default {
 		NcSelect,
 		ContentCopy,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** The item to copy. Must have an `id` property. */

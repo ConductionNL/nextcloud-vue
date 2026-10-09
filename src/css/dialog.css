@@ -1,0 +1,203 @@
+/*
+ * The board dialog (screens-dialog-parity, canon section 5).
+ *
+ * Opt-in: CnDialog puts `cn-look-board cn-dialog-board` on the teleported
+ * container only when the app (or the dialog) takes the board look, so an app
+ * without the key renders the Nextcloud dialog unchanged. Every rule is scoped
+ * under `.cn-dialog-board`.
+ *
+ * Theme hooks (all optional, defaults below):
+ *   --cn-dialog-danger               fill of a destructive primary
+ *   --cn-dialog-eyebrow-color        eyebrow colour
+ *   --cn-dialog-eyebrow-transform    uppercase (default) or none
+ */
+
+.cn-dialog-board {
+	--cn-dialog-width: 640px;
+	--cn-dialog-danger: var(--color-error);
+	--cn-dialog-eyebrow-color: var(--color-primary-element-text, var(--color-main-text));
+	--cn-dialog-eyebrow-transform: uppercase;
+}
+
+/* Dimmed page behind the dialog: text colour at 45%. */
+.modal-mask.cn-dialog-board {
+	background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent);
+}
+
+/* Width by role, capped at the viewport minus a 16px gutter each side. */
+.modal-mask.cn-dialog-board .modal-wrapper--normal > .modal-container,
+.modal-mask.cn-dialog-board .modal-wrapper .modal-container {
+	width: var(--cn-dialog-width);
+	max-width: min(var(--cn-dialog-width), calc(100% - 32px));
+	border-radius: var(--cn-board-card-radius, 12px);
+	box-shadow: 0 12px 40px color-mix(in srgb, var(--color-main-text) 28%, transparent);
+	overflow: hidden;
+}
+
+/* The header is ours: NcModal's own close button and NcDialog's heading give
+   way (the heading stays as the accessible name, visually hidden). */
+.cn-dialog-board .modal-container__close {
+	display: none;
+}
+
+.cn-dialog-board .dialog__name {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Header: padding 22px 24px 0. */
+.cn-dialog-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	margin: -4px 0 0;
+}
+
+.cn-dialog-header__text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.cn-dialog-header__eyebrow {
+	margin-bottom: 4px;
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: var(--cn-dialog-eyebrow-transform, uppercase);
+	color: var(--cn-dialog-eyebrow-color, var(--color-main-text));
+}
+
+.cn-dialog-header__title {
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--color-main-text);
+}
+
+.cn-dialog-header__subtitle {
+	margin: 4px 0 0;
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-dialog-header__close {
+	flex: 0 0 auto;
+	width: 36px;
+	min-width: 36px;
+	height: 36px;
+	min-height: 36px;
+	border-radius: 50%;
+	background: transparent;
+}
+
+/* Body: padding 20px 24px, 18px between blocks. */
+.cn-dialog-board .dialog__content {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	padding: 22px 24px 20px;
+}
+
+.cn-dialog-board .dialog__content > .cn-dialog-header {
+	margin-bottom: -2px;
+}
+
+/* Footer: 16px 24px, hairline on top, right aligned, 40px buttons, 10px gap. */
+.cn-dialog-board .dialog__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
+	margin: 0;
+	padding: 16px 24px;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-dialog-board .dialog__actions .button-vue,
+.cn-dialog-board .dialog__actions button {
+	min-height: var(--cn-board-control-height, 40px);
+	border-radius: var(--cn-board-control-radius, 8px);
+}
+
+/* Cancel is an outlined secondary, never a text link. */
+.cn-dialog-board .dialog__actions .button-vue--vue-secondary,
+.cn-dialog-board .dialog__actions .button-vue--secondary {
+	border: 1px solid var(--color-border-maxcontrast);
+	background: transparent;
+}
+
+/* The optional tertiary region sits at the far left. */
+.cn-dialog-board .cn-dialog__tertiary {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	margin-inline-end: auto;
+}
+
+/* A destructive primary is filled with the danger colour and white text. */
+.cn-dialog-board .dialog__actions .button-vue--vue-error,
+.cn-dialog-board .dialog__actions .button-vue--error {
+	background-color: var(--cn-dialog-danger);
+	border-color: var(--cn-dialog-danger);
+	color: #fff;
+}
+
+/* The consequence sentence and the warning note under it. */
+.cn-dialog-board .cn-dialog__sentence {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.6;
+}
+
+.cn-dialog-board .cn-dialog__note {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin: 0;
+	padding: 10px 14px;
+	border-radius: 8px;
+	font-size: 14px;
+	background: var(--color-warning-hover, color-mix(in srgb, var(--color-warning) 14%, transparent));
+	color: var(--color-main-text);
+}
+
+/* Type-to-confirm: a labelled 40px field with a monospace value and a hint. */
+.cn-dialog__confirm-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cn-dialog__confirm-label {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-dialog__confirm-input {
+	height: 40px;
+	padding: 0 12px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 8px;
+	font-family: var(--font-family-monospace, ui-monospace, monospace);
+	font-size: 15px;
+}
+
+.cn-dialog__confirm-hint {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+/* A destructive button held back by type-to-confirm. */
+.cn-dialog__confirm-pending {
+	opacity: 0.45;
+}

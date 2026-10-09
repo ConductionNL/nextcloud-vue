@@ -137,9 +137,24 @@
 				{{ smartPasteNotice }}
 			</p>
 
+			<!-- Board look: every error of a failed submit, linked to its control. -->
+			<CnFormErrorSummary
+				v-if="isBoardLook && summaryItems.length > 0"
+				ref="errorSummary"
+				:errors="summaryItems"
+				@focusField="focusField" />
+
+			<!-- Board look: the same stepper as CnWizardDialog. -->
+			<CnStepper
+				v-if="hasSteps && isBoardLook"
+				:steps="boardSteps"
+				:currentIndex="currentStepIndex"
+				look="board"
+				:ariaLabel="t('nextcloud-vue', 'Form steps')" />
+
 			<!-- Step indicator — only rendered when `steps` is non-empty. -->
 			<nav
-				v-if="hasSteps"
+				v-if="hasSteps && !isBoardLook"
 				:aria-label="t('nextcloud-vue', 'Form steps')"
 				class="cn-form-page__steps-nav">
 				<ol class="cn-form-page__steps">
@@ -162,13 +177,32 @@
 				{{ resolveLabel(currentStepDescription) }}
 			</p>
 
+			<!-- A public board look form says what "optional" means. -->
+			<p v-if="showsOptionalNotice"
+				class="cn-form-page__optional-notice"
+				data-testid="cn-form-page-optional-notice">
+				{{ optionalNoticeLabel }}
+			</p>
+
 			<div
 				v-for="field in visibleCurrentStepFields"
 				:key="field.key"
 				:ref="`field-${field.key}`"
 				class="cn-form-page__field"
+				:class="{
+					'cn-form-field--half': isBoardLook && field.width === 'half',
+					'cn-form-field--invalid': isBoardLook && !!fieldErrors[field.key],
+				}"
 				:data-field-key="field.key"
 				:aria-describedby="fieldErrors[field.key] && !fieldHasNativeErrorSupport(field) ? `cn-form-page__field-error-${field.key}` : null">
+				<CnFormField
+					v-if="showsBoardHead(field)"
+					:controlId="controlIdFor(field)"
+					:text="resolveLabel(field.label) || field.key"
+					:optional="!isFieldRequired(field)"
+					:optionalLabel="optionalLabel"
+					:error="fieldErrors[field.key] || ''"
+					:errorId="errorIdFor(field)" />
 				<!--
 					@slot field-${field.key}
 					@description Per-field override slot. Replaces the auto-rendered input for one specific field.
@@ -183,7 +217,7 @@
 					<component
 						:is="resolveFieldRender(field).tag"
 						v-if="resolveFieldRender(field)"
-						v-bind="resolveFieldRender(field).props"
+						v-bind="fieldProps(field)"
 						v-on="resolveFieldRender(field).listeners">
 						<!-- NcCheckboxRadioSwitch puts its label in the slot -->
 						<template
@@ -193,7 +227,7 @@
 					</component>
 				</slot>
 				<p
-					v-if="fieldErrors[field.key] && !fieldHasNativeErrorSupport(field)"
+					v-if="fieldErrors[field.key] && !fieldHasNativeErrorSupport(field) && !showsBoardHead(field)"
 					:id="`cn-form-page__field-error-${field.key}`"
 					class="cn-form-page__field-error"
 					role="alert">
@@ -211,6 +245,7 @@
 				</span>
 				<small
 					v-if="field.help"
+					:id="helpIdFor(field)"
 					class="cn-form-page__field-help">
 					{{ resolveLabel(field.help) }}
 				</small>
@@ -255,19 +290,38 @@
 				</ul>
 			</NcNoteCard>
 
-			<div class="cn-form-page__submit">
+			<div class="cn-form-page__submit" :class="{ 'cn-form-page__footer': isBoardLook }">
+				<!-- Board look: Cancel on the first step, at the left edge of the card. -->
+				<NcButton
+					v-if="isBoardLook && canCancel && (!hasSteps || isFirstStep)"
+					variant="secondary"
+					type="button"
+					data-testid="cn-form-page-cancel"
+					@click="cancel">
+					{{ t('nextcloud-vue', 'Cancel') }}
+				</NcButton>
 				<NcButton
 					v-if="hasSteps && !isFirstStep"
 					variant="secondary"
 					type="button"
+					data-testid="cn-form-page-back"
 					@click="back">
-					{{ t('nextcloud-vue', 'Back') }}
+					<template v-if="isBoardLook" #icon>
+						<ChevronLeft :size="20" />
+					</template>
+					{{ isBoardLook ? t('nextcloud-vue', 'Previous') : t('nextcloud-vue', 'Back') }}
 				</NcButton>
 				<NcButton
 					v-if="hasSteps && !isLastStep"
+					class="cn-form-page__primary"
 					variant="primary"
 					type="button"
+					:alignment="isBoardLook ? 'center-reverse' : 'center'"
+					data-testid="cn-form-page-next"
 					@click="next">
+					<template v-if="isBoardLook" #icon>
+						<ChevronRight :size="20" />
+					</template>
 					{{ t('nextcloud-vue', 'Next') }}
 				</NcButton>
 				<!-- @slot submit Replaces the default submit button. -->
@@ -297,6 +351,7 @@
 						passed while the real component was broken.
 					-->
 					<NcButton
+						class="cn-form-page__primary"
 						variant="primary"
 						type="submit"
 						:disabled="submitting || submitBlocked"
@@ -333,10 +388,16 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import CnSmartPasteDialog from '../../dialogs/CnSmartPasteDialog.vue'
+import CnFormErrorSummary from '../CnFormErrorSummary/CnFormErrorSummary.vue'
+import CnFormField from '../CnFormField/CnFormField.vue'
+import CnStepper from '../CnStepper/CnStepper.vue'
 import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
 import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
 import { computeAssignments, resolveFieldDefaults } from '../../utils/formAssign.js'
 import { validateFieldValue } from '../../utils/formValidation.js'
@@ -381,8 +442,13 @@ export default {
 	name: 'CnFormPage',
 
 	components: {
+		CnFormErrorSummary,
+		CnFormField,
+		ChevronLeft,
+		ChevronRight,
 		CnPageHeader,
 		CnSmartPasteDialog,
+		CnStepper,
 		NcButton,
 		NcLoadingIcon,
 		NcNoteCard,
@@ -409,9 +475,40 @@ export default {
 		 * @type {Function|null}
 		 */
 		cnTranslate: { default: null },
+
+		/** The app's look (a page with `config.look` re-provides its own). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
+		/**
+		 * Where Cancel goes (board look). With a route, Cancel navigates there and
+		 * emits `cancel`; with only a `cancel` listener it just emits. With neither
+		 * the board footer has no Cancel.
+		 */
+		cancelRoute: {
+			type: String,
+			default: '',
+		},
+
+		/** The word shown as "(optional)" after an optional field's label in the board look. */
+		optionalLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'optional'),
+		},
+
+		/** The sentence a public board look form shows above its first field. */
+		optionalNoticeLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'A field without (optional) must be filled in.'),
+		},
+
+		/** Show the optional-fields sentence on a public board look form. Set false to hide it. */
+		showOptionalNotice: {
+			type: Boolean,
+			default: true,
+		},
+
 		/**
 		 * Keep what the user typed in the browser and offer it back when the
 		 * form reopens (local only; nothing reaches the server). Off by default:
@@ -613,7 +710,7 @@ export default {
 	 * @event step
 	 * @description Fired on Next/Back step navigation; payload is `{ from, to }` (step indices).
 	 */
-	emits: ['submit', 'error', 'input', 'step'],
+	emits: ['submit', 'error', 'input', 'step', 'cancel'],
 
 	data() {
 		return {
@@ -643,6 +740,8 @@ export default {
 			lastError: null,
 			/** Current wizard step index (unused when `steps` is empty). */
 			currentStepIndex: 0,
+			/** Keys of the fields the last failed validation flagged, in form order (the error summary). */
+			summaryKeys: [],
 			/** Per-field validation error messages, keyed by field.key. */
 			fieldErrors: {},
 			/**
@@ -656,6 +755,37 @@ export default {
 	},
 
 	computed: {
+		/** @return {Array<{id: string, label: string}>} The steps in the stepper's shape. */
+		boardSteps() {
+			return this.steps.map((step) => ({ id: step.id, label: this.resolveLabel(step.title) }))
+		},
+
+		/** @return {boolean} Whether the page has somewhere to cancel to. */
+		canCancel() {
+			const listener = this.$.vnode && this.$.vnode.props && this.$.vnode.props.onCancel
+			return this.cancelRoute !== '' || !!listener
+		},
+
+		/** @return {boolean} Whether the board look is active. */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/** @return {Array<{key: string, message: string, controlId: string}>} The errors the summary lists. */
+		summaryItems() {
+			return this.summaryKeys
+				.filter((key) => this.fieldErrors[key])
+				.map((key) => ({ key, message: this.fieldErrors[key], controlId: this.controlIdFor({ key }) }))
+		},
+
+		/** @return {boolean} Whether the public form says what "optional" means. */
+		showsOptionalNotice() {
+			return this.isBoardLook
+				&& this.mode === 'public'
+				&& this.showOptionalNotice
+				&& this.fields.some((f) => this.isFieldRequired(f))
+		},
+
 		/** Whether the host's unmet conditions hold the submit. */
 		submitBlocked() {
 			return this.blockSubmit === true && this.unmetConditions.length > 0
@@ -1092,6 +1222,106 @@ export default {
 			}
 		},
 
+		/**
+		 * Whether a field must be filled in (`validation.required`, or `required`).
+		 *
+		 * @param {object} field The formField shape.
+		 * @return {boolean} True for a required field.
+		 */
+		isFieldRequired(field) {
+			return !!(field && ((field.validation && field.validation.required) || field.required === true))
+		},
+
+		/**
+		 * Whether the board look draws this field's head (label above the control,
+		 * error between). A boolean keeps its inline label, and a `#field-<key>`
+		 * override keeps its own markup.
+		 *
+		 * @param {object} field The formField shape.
+		 * @return {boolean} True when the head is drawn.
+		 */
+		showsBoardHead(field) {
+			if (!this.isBoardLook || this.$slots[`field-${field.key}`]) {
+				return false
+			}
+			const render = this.resolveFieldRender(field)
+			return !!render && render.kind !== 'boolean'
+		},
+
+		controlIdFor(field) {
+			return `cn-form-page__field-${field.key}`
+		},
+
+		errorIdFor(field) {
+			return `cn-form-page__field-error-${field.key}`
+		},
+
+		helpIdFor(field) {
+			return `cn-form-page__field-help-${field.key}`
+		},
+
+		/**
+		 * The bindings of a field's control: the renderer's props, plus in the
+		 * board look the outside label, an id for the label's `for`, and the error
+		 * moved above the control. For a text control, in both looks, an invalid
+		 * value is `aria-invalid` and `aria-describedby` lists the error before
+		 * the hint; `aria-required` is set in the board look.
+		 *
+		 * @param {object} field The formField shape.
+		 * @return {object} The props to bind.
+		 */
+		fieldProps(field) {
+			const render = this.resolveFieldRender(field)
+			const props = { ...render.props }
+			const head = this.showsBoardHead(field)
+			const textControl = ['string', 'number', 'password', 'fallback', 'string-textarea'].includes(render.kind)
+			const error = this.fieldErrors[field.key]
+			if (head) {
+				props.id = this.controlIdFor(field)
+				if (render.kind === 'enum') {
+					props.labelOutside = true
+					delete props.inputLabel
+				} else if (textControl) {
+					props.labelOutside = true
+				}
+				delete props.error
+				delete props.helperText
+			}
+			if (textControl) {
+				const ids = []
+				if (error && (head || !this.fieldHasNativeErrorSupport(field))) {
+					ids.push(this.errorIdFor(field))
+				}
+				if (field.help) {
+					ids.push(this.helpIdFor(field))
+				}
+				if (ids.length > 0) {
+					props['aria-describedby'] = ids.join(' ')
+				}
+				if (error) {
+					props['aria-invalid'] = 'true'
+				}
+				if (head && this.isFieldRequired(field)) {
+					props['aria-required'] = 'true'
+				}
+			}
+			return props
+		},
+
+		/**
+		 * Cancel (board look footer): go to `cancelRoute` when set, and tell the
+		 * host.
+		 */
+		cancel() {
+			if (this.cancelRoute !== '' && this.$router && typeof this.$router.push === 'function') {
+				this.$router.push(this.cancelRoute)
+			}
+			/**
+			 * @event cancel Emitted when the user presses Cancel in the board look.
+			 */
+			this.$emit('cancel')
+		},
+
 		resolveLabel(key) {
 			if (!key) {
 				return ''
@@ -1214,6 +1444,7 @@ export default {
 		 */
 		validateVisibleFields(fieldsList) {
 			let firstInvalidKey = null
+			const invalidKeys = []
 			fieldsList.forEach((field) => {
 				if (!field || typeof field.key !== 'string') {
 					return
@@ -1225,6 +1456,7 @@ export default {
 				const message = validateFieldValue(field, this.formData[field.key], this.resolveLabel)
 				if (message) {
 					this.fieldErrors[field.key] = message
+					invalidKeys.push(field.key)
 					if (!firstInvalidKey) {
 						firstInvalidKey = field.key
 					}
@@ -1232,7 +1464,29 @@ export default {
 					delete this.fieldErrors[field.key]
 				}
 			})
+			this.summaryKeys = invalidKeys
 			return firstInvalidKey
+		},
+
+		/**
+		 * After a failed Next or submit: the board look moves focus to the error
+		 * summary, which links to every control; the Nextcloud look focuses the
+		 * first invalid field, as before.
+		 *
+		 * @param {string} firstInvalidKey The first invalid field's key.
+		 */
+		focusFirstError(firstInvalidKey) {
+			if (!this.isBoardLook) {
+				this.focusField(firstInvalidKey)
+				return
+			}
+			this.$nextTick(() => {
+				if (this.$refs.errorSummary && typeof this.$refs.errorSummary.focus === 'function') {
+					this.$refs.errorSummary.focus()
+				} else {
+					this.focusField(firstInvalidKey)
+				}
+			})
 		},
 
 		/**
@@ -1283,7 +1537,7 @@ export default {
 			const fieldsList = this.stepFields(this.steps[this.currentStepIndex])
 			const firstInvalidKey = this.validateVisibleFields(fieldsList)
 			if (firstInvalidKey) {
-				this.focusField(firstInvalidKey)
+				this.focusFirstError(firstInvalidKey)
 				return
 			}
 			const targetIndex = this.nextVisibleStepIndex(this.currentStepIndex, 1)
@@ -1473,7 +1727,7 @@ export default {
 						this.currentStepIndex = stepIndex
 					}
 				}
-				this.focusField(firstInvalidKey)
+				this.focusFirstError(firstInvalidKey)
 				return
 			}
 
