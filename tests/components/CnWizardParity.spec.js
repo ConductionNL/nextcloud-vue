@@ -240,3 +240,18 @@ describe('a stepped form page (task 5)', () => {
 		expect(w.find('[data-testid="cn-form-page-cancel"]').exists()).toBe(false)
 	})
 })
+
+describe('CnSetupWizard passes the board look through (task 3)', () => {
+	it('draws the step eyebrow, the 720 width and the board stepper', async () => {
+		jest.resetModules()
+		const CnSetupWizard = require('../../src/components/CnSetupWizard/CnSetupWizard.vue').default
+		const setupSteps = [
+			{ id: 'welcome', type: 'info', title: 'Hi' },
+			{ id: 'seed', type: 'run-action', action: 'seed' },
+		]
+		const w = mount(CnSetupWizard, { props: { appId: 'pipelinq', steps: setupSteps, dialogTitle: 'Set up Pipelinq' }, global: board })
+		expect(w.find('[data-testid="cn-dialog-eyebrow"]').text()).toBe('Set up Pipelinq, step 1 of 2')
+		expect(w.find('.stub.NcDialog').element.style.getPropertyValue('--cn-dialog-width')).toBe('720px')
+		expect(w.find('[data-testid="cn-stepper"]').classes()).toContain('cn-stepper--board')
+	})
+})

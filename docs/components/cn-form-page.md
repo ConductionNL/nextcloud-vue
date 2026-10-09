@@ -282,6 +282,21 @@ A signed-in user can fill a form from pasted text, for example an email signatur
 
 The "Paste to fill" button shows only when `enabled` is true, `mode` is not `public`, the handler resolves and `available()` (when given) resolves true; a missing, throwing or unavailable handler hides it and warns once. In the dialog the user pastes the text and clicks Fill. Returned values land only in allowed, visible fields that are empty (or in all allowed visible fields when the user ticks "Replace what I typed"), and only when the value fits the field's type (`string`, `number`, `boolean`, `enum`; other types are never filled) and passes the field's `validation`. A skipped proposal is counted in the notice ("3 fields filled, 1 skipped"). Each filled field carries a "Suggested" tag with an Accept button; editing the field, Accept or Accept all clears it. Nothing is submitted automatically. The validator rejects an undeclared field key, `enabled` without a `handler`, and `enabled` on a public form.
 
+## Board look
+
+With the board look the page draws the board field anatomy and, on a failed submit or Next, an error summary at the top: a heading ("There are 2 errors"), one sentence and a link per error that moves focus to its control. The summary takes focus. Without the board look the page keeps its single error line.
+
+| Prop | Default | What it does |
+| --- | --- | --- |
+| `optionalLabel` | `optional` | The word in "(optional)". Required fields carry no mark. |
+| `optionalNoticeLabel` | A field without (optional) must be filled in. | Shown once above the first field of a `mode: "public"` form that has a required field. |
+| `showOptionalNotice` | `true` | Set `false` to hide the sentence. |
+| `cancelRoute` | empty | Where the footer's Cancel goes. A `cancel` listener also shows Cancel. |
+
+A form with `steps` draws the board stepper, and the form sits in a white card (1px border, radius 12, padding 24) that ends in a hairline footer: Cancel or Previous on the left, Next (with a chevron) or the submit button on the right.
+
+Field sizes are tokens: `--cn-field-label-size` (14px), `--cn-field-height` (40px), `--cn-field-text-size` (15px), `--cn-field-hint-size` (13px) and `--cn-field-error-border` (2px). Portaliq's citizen theme sets the larger values (17px text, 48px inputs, 19px labels, 3px error borders).
+
 ## Why `type: "form"` is its own page type
 
 The settings page (`type: "settings"`) is admin-facing config persistence — it assumes `IAppConfig` is the destination and groups fields into sections. Forms have a different audience (end users), a different destination (consumer-defined endpoint or handler), and a flat shape (no sections). Sharing the field renderer keeps the duplication low without wedging end-user form rendering into a settings-shaped component.

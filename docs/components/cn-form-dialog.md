@@ -525,6 +525,27 @@ const fields = [
 ]
 ```
 
+## Board look
+
+Set `look: "board"` in the manifest (or pass `look="board"` to the dialog) and the dialog draws the board dialog of the screens. An app that sets nothing renders exactly as before.
+
+| Prop | Default | What it does |
+| --- | --- | --- |
+| `look` | follows the app | `board` or `nextcloud`. The prop wins over the app. |
+| `width` | per component | `confirm` (560), `form` (640) or `wizard` (720). No other width is reachable. |
+| `eyebrow` | empty | A context line above the title, uppercase 13px. Not part of the accessible name. |
+| `subtitle` | empty | A sentence under the title. |
+
+Widths are capped at the viewport minus 32px. Theme hooks: `--cn-dialog-danger` (fill of a destructive primary, default `--color-error`), `--cn-dialog-eyebrow-color` and `--cn-dialog-eyebrow-transform`.
+
+### Fields
+
+In the board look each field draws its label above the control (14px/600, 6px gap) with "(optional)" in grey after it on optional fields. Required fields carry no asterisk and set `aria-required="true"`; the Nextcloud look keeps " *". The word comes from the `optionalLabel` prop. A field error sits between the label and the control with an icon and a 2px error border; the hint stays under the control. In both looks an invalid control is `aria-invalid="true"` and `aria-describedby` lists the error before the hint.
+
+A field with `width: "half"` (through the schema or `fieldOverrides`) takes one cell of a `repeat(auto-fit, minmax(220px, 1fr))` grid, so two short fields share a row from 456px and stack below that.
+
+With drafts on, "Save draft" moves to the far left of the footer as a tertiary button, with the draft-state live region beside it.
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnFormDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnFormDialog/CnFormDialog.vue) and update automatically whenever the component changes.

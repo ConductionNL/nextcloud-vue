@@ -157,6 +157,23 @@ Every `cn-*` CSS class targets these variables — no hardcoded colors, no `--cn
 
 When the host app overrides a Nextcloud variable (for example NL Design System apps remap `--color-primary-element` to a government-blue token), every `Cn*` component picks the new value up automatically.
 
+## Board look tokens
+
+These apply under `look: "board"` and have the staff values as defaults; a theme sets them on `:root` or on the app root.
+
+| Token | Default | Used by |
+| --- | --- | --- |
+| `--cn-dialog-danger` | `var(--color-error)` | Fill of a destructive dialog primary. |
+| `--cn-dialog-eyebrow-color` | primary element text | Dialog eyebrow colour. |
+| `--cn-dialog-eyebrow-transform` | `uppercase` | Set `none` for the sentence-case eyebrow. |
+| `--cn-field-label-size` | `14px` | Form field label. |
+| `--cn-field-height` | `40px` | Form field control height. |
+| `--cn-field-text-size` | `15px` | Form field text and error. |
+| `--cn-field-hint-size` | `13px` | Form field hint. |
+| `--cn-field-error-border` | `2px` | Border of an invalid control and of the error summary. |
+
+Dialog widths are three fixed roles (`confirm` 560, `form` 640, `wizard` 720), not tokens.
+
 ## See also
 
 - [Nextcloud server theming docs](https://docs.nextcloud.com/server/stable/admin_manual/configuration_server/theming.html) — how admins set the variable values

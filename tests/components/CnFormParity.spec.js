@@ -247,3 +247,24 @@ describe('CnRichSubmitDialog (task 2)', () => {
 		expect(n.find('.cn-rich-submit__required').exists()).toBe(true)
 	})
 })
+
+describe('CnAdvancedFormDialog properties tab (task 2)', () => {
+	const CnPropertiesTab = require('../../src/components/CnAdvancedFormDialog/CnPropertiesTab.vue').default
+	const schema = { title: 'Item', properties: { title: { type: 'string', title: 'Title' }, note: { type: 'string', title: 'Note' } }, required: ['title'] }
+	const tab = (look) => mount(CnPropertiesTab, {
+		props: { schema, item: null, formData: {} },
+		global: { stubs: { NcTextField: true, NcTextArea: true, NcCheckboxRadioSwitch: true, NcDateTimePickerNative: true, NcSelect: true }, provide: look ? board.provide : {} },
+	})
+
+	it('board look: no asterisk, "(optional)" on the optional property', () => {
+		const w = tab(true)
+		expect(w.find('.cn-advanced-form-dialog__required-indicator').exists()).toBe(false)
+		expect(w.findAll('[data-testid="cn-property-optional"]').map((e) => e.text())).toEqual(['(optional)'])
+	})
+
+	it('Nextcloud look: the required property keeps its asterisk', () => {
+		const w = tab(false)
+		expect(w.find('.cn-advanced-form-dialog__required-indicator').text()).toBe('*')
+		expect(w.find('[data-testid="cn-property-optional"]').exists()).toBe(false)
+	})
+})
