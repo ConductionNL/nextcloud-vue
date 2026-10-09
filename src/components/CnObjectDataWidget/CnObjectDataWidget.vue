@@ -377,6 +377,7 @@ import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -439,6 +440,8 @@ export default {
 	},
 
 	inject: {
+		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
 		/**
 		 * Detail-page object context (`{ objectId, register, schema }`) provided
 		 * by CnDetailPage. Supplies the register that bare-slug `$ref` relation
@@ -999,6 +1002,12 @@ export default {
 		 * CSS grid template for the container.
 		 */
 		gridStyle() {
+			// The board look: as many 200px columns as the card has room for.
+			if (normalizeLook(this.cnLook) === 'board') {
+				return {
+					'grid-template-columns': 'repeat(auto-fit, minmax(200px, 1fr))',
+				}
+			}
 			return {
 				'grid-template-columns': `repeat(${this.columns}, 1fr)`,
 			}

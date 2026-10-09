@@ -455,3 +455,7 @@ When the schema-driven fetch answers 404 the page shows a not-found state whose 
 ### Read state
 
 `markRead` (Boolean, default `true`): send `PUT .../read-state` once after an unread object has rendered; `false` (manifest `config.markRead: false`) sends nothing. `markUnreadNavigatesBack` (Boolean, default `false`): go back after Mark as unread. Event `marked-unread` after the Actions-menu entry Mark as unread.
+
+### The board look
+
+`look` (String, default `''`): `nextcloud` or `board`; empty takes the app's look. `headerMeta` (String): the meta line on row 2 of the board header, a field template such as `via {channel}` (manifest `config.headerMeta`). `tabsLabel` (String): the accessible name of the tab list (manifest `config.tabsLabel`). `identifierField` (String): the field named in the last line of the History side card (manifest `config.identifierField`). See `docs/components/cn-detail-page.md`.
