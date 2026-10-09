@@ -64,7 +64,7 @@
   - Radius 12, no shadow, header and cell padding as specified
   - One 34px menu button per row named after the row; no hover icons under the look
 - [x] Implement
-- [ ] Test — not run: the pixel measurements (card radius, cell padding, the 34px menu button) need a browser against the local environment, and `e2e/screens-index-list-parity.e2e.js` was not written or run in this lane; unit tests cover the row menu, the title column marker and the card class
+- [x] Test — measured in a browser: card radius 12px, no shadow, one 34px row menu button per row, control without the look differs; `e2e/screens-index-card-chrome-parity.e2e.js` (library harness, not a live Nextcloud)
 
 ### Task 7: The footer inside the card
 - **spec_ref**: `openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-footer-sits-inside-the-card`

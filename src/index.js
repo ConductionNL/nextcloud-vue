@@ -542,6 +542,7 @@ export { cnFetch, cnFetchJson, CnHttpError, configureCnFetch } from './utils/cnF
 // CnLockIndicator, CnObjectCard and CnDataTable, and available to apps that
 // need the same answer without rendering a padlock.
 export { isLockedByCurrentUser, isObjectLocked, lockHolder, readLockPayload, resolveObjectLock } from './utils/objectLock.js'
+export { dispatchObjectsChanged } from './utils/objectSignals.js'
 export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, findRepeatingWrite, formatValue, journeyItemTargets, validateValue } from './utils/index.js'
 export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData, usesArrayValues, valueArrayFor, valueRecordsFor } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot

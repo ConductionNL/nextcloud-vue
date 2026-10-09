@@ -16,13 +16,15 @@ const { locked, lockedByMe, lockedBy, expiresAt, acquire, release } =
 | Name | Type | Description |
 |------|------|-------------|
 | `objectStore` | `object` | Pinia store instance. |
-| `register` | `string \| Ref<string>` | OR register slug. |
-| `schema` | `string \| Ref<string>` | OR schema slug. |
-| `id` | `string \| Ref<string>` | Object UUID. |
+| `register` | `string \| Ref<string> \| () => string` | OR register slug. |
+| `schema` | `string \| Ref<string> \| () => string` | OR schema slug. |
+| `id` | `string \| Ref<string> \| () => string` | Object UUID. |
 | `options.autoRenew` | `boolean` | Renew the lock periodically while the doc is visible. Default `true`. |
 | `options.renewIntervalMs` | `number` | Renewal interval. Default 600000 (10 min). |
 | `options.lockDurationSec` | `number` | Server-side TTL requested on acquire. Default 1800 (30 min). |
-| `options.schemaSlug` | `string \| Ref<string>` | The schema slug for the lock URL, when `schema` is the object-cache key rather than the slug. `CnDetailPage` passes `<register>-<schema>` as the key, and a lock addressed by that key goes to a route OpenRegister does not declare. Defaults to `schema`. |
+| `options.schemaSlug` | `string \| Ref<string> \| () => string` | The schema slug for the lock URL, when `schema` is the object-cache key rather than the slug. `CnDetailPage` passes `<register>-<schema>` as the key, and a lock addressed by that key goes to a route OpenRegister does not declare. Defaults to `schema`. |
+
+Each input may be a plain value, a ref or a getter. The composable reads it with `toValue` at the moment it locks, so a getter follows the route. `acquire()` and `release()` send nothing while the register, schema slug or id is empty.
 
 ## Returns
 
