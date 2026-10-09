@@ -120,5 +120,5 @@ field named after the raw field key.
 ## Confirm, toast and undo
 
 - **Confirm.** A transition with `variant: "danger"`, a move into a final state (`final: true` on the transition, or the target listed in `config.finalStates`), or `confirm` set (the string is the question) opens a confirm dialog first; Cancel sends no request. `confirm: false` skips it. The old browser `window.confirm` is gone.
-- **Toast.** After a successful move a toast reads "Moved {title} to {state}" (the schema title when the object has no name). A refusal also toasts its message beside the inline error. `feedback: false` on the config suppresses the toasts only.
+- **Toast.** After a successful move a toast reads "Moved \{title\} to \{state\}" (the schema title when the object has no name). A refusal also toasts its message beside the inline error. `feedback: false` on the config suppresses the toasts only.
 - **Undo.** When the graph declares a transition from the new state back to the old one, the toast carries an Undo for ten seconds that posts it (from the config `transitions[]`, or from the server's available actions). Without a declared reverse edge the toast has no button; the library never guesses a way back.
