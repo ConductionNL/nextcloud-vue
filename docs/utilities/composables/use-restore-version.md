@@ -16,7 +16,7 @@ const result = await restore({ register: 'permits', schema: 'permit', objectId, 
 |---------|---------|
 | 200 | (empty, `record` holds the restored record) |
 | 403 | You cannot restore this record. |
-| 423 | This record is locked by {name}. (or "…by someone else." without a holder) |
+| 423 | This record is locked by \{name\}. (or "…by someone else." without a holder) |
 | 404 | This record no longer exists. |
 | anything else, or a network failure | The record could not be restored. |
 

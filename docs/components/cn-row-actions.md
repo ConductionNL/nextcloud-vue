@@ -133,4 +133,4 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 
 ## Board look
 
-Under the board look the menu is always one 34px menu button (three dots), named "Actions for <title>" from `rowLabel`, or by `triggerLabel` when the page names the whole label.
+Under the board look the menu is always one 34px menu button (three dots), named "Actions for &lt;title&gt;" from `rowLabel`, or by `triggerLabel` when the page names the whole label.

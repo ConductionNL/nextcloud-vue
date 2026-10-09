@@ -309,6 +309,7 @@
 							     and select machinery is unchanged either way. -->
 							<component
 								:is="isUserField(field) ? 'NcSelectUsers' : 'NcSelect'"
+								v-cn-select-aria="fieldAria(field)"
 								:inputId="'cn-form-' + field.key"
 								:inputLabel="fieldLabelText(field)"
 								:labelOutside="isBoardLook"
@@ -358,6 +359,7 @@
 						<!-- Multiselect (array enum items / $ref array / Nextcloud users, supports async function) -->
 						<div v-else-if="field.widget === 'multiselect' || field.widget === 'user-multiselect' || field.widget === 'group-multiselect'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
+								v-cn-select-aria="fieldAria(field)"
 								:inputId="'cn-form-' + field.key"
 								:inputLabel="fieldLabelText(field)"
 								:labelOutside="isBoardLook"
@@ -401,6 +403,7 @@
 						<div v-else-if="field.widget === 'tags'" class="cn-form-dialog__select-wrapper">
 							<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
 							<NcSelect
+								v-cn-select-aria="fieldAria(field)"
 								:inputId="'cn-form-' + field.key"
 								:inputLabel="fieldLabelText(field)"
 								:labelOutside="isBoardLook"
@@ -789,6 +792,7 @@ import { heldFromFailures, splitHeldFiles, uploadHeldFiles } from '../../composa
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
+import { cnSelectAria } from '../../directives/cnSelectAria.js'
 import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
@@ -1008,6 +1012,8 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  */
 export default {
 	name: 'CnFormDialog',
+
+	directives: { cnSelectAria },
 
 	components: {
 		CnFileField,
@@ -3618,6 +3624,10 @@ export default {
 				return
 			}
 			const [head, ...rest] = key.split('.')
+			const unsafe = ['__proto__', 'constructor', 'prototype']
+			if (unsafe.includes(head) || rest.some((k) => unsafe.includes(k))) {
+				return
+			}
 			const clone = JSON.parse(JSON.stringify(this.formData[head] ?? {}))
 			let cur = clone
 			rest.slice(0, -1).forEach((k) => {
