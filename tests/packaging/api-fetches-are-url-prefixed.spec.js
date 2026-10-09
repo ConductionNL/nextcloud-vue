@@ -96,6 +96,7 @@ const ALLOWED = new Map([
 	['src/utils/diagnostics.js:url', 'trackedFetch wraps the caller\'s URL, which the caller already prefixed'],
 	['src/utils/cnFetch.js:`${target}${qs}`', 'public host mode: the URL is built from the configured base, there is no Nextcloud webroot to prefix'],
 	['src/composables/useRuntimeManifest.js:u', 'the fetcher receives a caller-resolved endpoint'],
+	['src/store/useObjectStore.js:this._buildCollectionUrl(config, fetchParams)', 'the collectionUrl type option is a caller-resolved endpoint'],
 
 	// ── Built from a store base that is prefixed once, at store creation:
 	//    `baseState()` in useObjectStore.js and `prefixUrl(...)` in
