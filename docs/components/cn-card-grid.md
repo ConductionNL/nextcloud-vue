@@ -29,6 +29,7 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `rowKey` | String | `'id'` | Unique identifier field |
 | `emptyText` | String | `'No items found'` | |
+| `accentOf` | Function | `null` | `(object) => { variant, icon?, label? } \| null`, each default card's `accent` (see [CnObjectCard](./cn-object-card.md)) |
 
 ## Events
 
