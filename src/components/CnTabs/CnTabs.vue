@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-tabs" :class="{ 'cn-tabs--card': card, 'cn-tabs--segmented': variant === 'segmented' }">
+	<div class="cn-tabs" :class="[{ 'cn-tabs--card': card, 'cn-tabs--segmented': variant === 'segmented', 'cn-tabs--board': boardStrip }, boardClass]">
 		<div class="cn-tabs__bar">
 			<div
 				class="cn-tabs__strip"
@@ -191,6 +191,7 @@ import { computed, defineComponent, nextTick, onBeforeUnmount, onMounted, onUpda
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import { useLook } from '../../composables/useLook.js'
 import { CN_TABS_INJECTION_KEY } from './tabsKey.js'
 
 export default defineComponent({
@@ -246,6 +247,19 @@ export default defineComponent({
 			default: '',
 		},
 
+		/**
+		 * The look the strip is drawn in (`nextcloud` or `board`). Empty takes
+		 * the look the app provides. In the board look a `line` strip draws the
+		 * screens' folder tabs and never moves a tab under "More": the strip
+		 * scrolls instead.
+		 *
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-folder-tabs-take-the-board-strip
+		 */
+		look: { // eslint-disable-line vue/no-unused-properties -- read through useLook(props) in setup
+			type: String,
+			default: '',
+		},
+
 		/** Name of the menu that lists the `overflow` tabs. */
 		moreLabel: {
 			type: String,
@@ -259,6 +273,9 @@ export default defineComponent({
 	],
 
 	setup(props, { emit }) {
+		const { isBoard, lookClass: boardClass } = useLook(props)
+		// The board strip: a `line` strip in the board look.
+		const boardStrip = computed(() => isBoard.value && props.variant === 'line')
 		// Registered children, in mount order.
 		const tabs = reactive([])
 		const activeUid = ref(null)
@@ -357,14 +374,14 @@ export default defineComponent({
 		 *
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
 		 */
-		const visibleTabs = computed(() => tabs.filter((tab) => !tab.overflow || tab.uid === activeUid.value))
+		const visibleTabs = computed(() => tabs.filter((tab) => boardStrip.value || !tab.overflow || tab.uid === activeUid.value))
 
 		/**
 		 * The tabs listed under "More": overflow tabs that are not selected.
 		 *
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
 		 */
-		const overflowTabs = computed(() => tabs.filter((tab) => tab.overflow && tab.uid !== activeUid.value))
+		const overflowTabs = computed(() => (boardStrip.value ? [] : tabs.filter((tab) => tab.overflow && tab.uid !== activeUid.value)))
 
 		/**
 		 * Whether a tab declares a count. `0` is a count; null and '' are not.
@@ -561,6 +578,8 @@ export default defineComponent({
 		provide(CN_TABS_INJECTION_KEY, { register, unregister, select, isActive })
 
 		return {
+			boardStrip,
+			boardClass,
 			tabs,
 			visibleTabs,
 			overflowTabs,

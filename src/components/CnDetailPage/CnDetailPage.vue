@@ -23,7 +23,7 @@
 <template>
 	<div
 		class="cn-detail-page"
-		:class="{ 'cn-detail-page--with-side': showsSideColumn }"
+		:class="[{ 'cn-detail-page--with-side': showsSideColumn }, boardClass]"
 		data-testid="cn-detail-page"
 		:style="{ maxWidth: maxWidth }">
 		<!-- Skip link to the page's primary action. Off screen until it takes
@@ -44,7 +44,7 @@
 		<!-- Breadcrumb line (manifest `config.breadcrumb`): the list the record
 		     belongs to, then the record itself as the current crumb. -->
 		<CnBreadcrumbs
-			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound"
+			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound && !isBoard"
 			class="cn-detail-page__breadcrumbs"
 			:crumbs="breadcrumbCrumbs"
 			:rootText="breadcrumbCrumbs[0].icon === undefined"
@@ -54,7 +54,7 @@
 		<div
 			v-if="!objectNotFound"
 			class="cn-detail-page__header"
-			:class="{ 'cn-detail-page__header--card': headerCard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null }"
+			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null, 'cn-detail-page__header--board': isBoard }"
 			data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
 			     renders the icon + title + description. The right-hand
@@ -83,7 +83,7 @@
 					-->
 					<slot name="icon">
 						<CnIcon
-							v-if="icon"
+							v-if="icon && !isBoard"
 							:name="icon"
 							:size="iconSize"
 							class="cn-detail-page__icon" />
@@ -94,7 +94,7 @@
 						     where it stands, readable before the title. Nothing
 						     renders for a page that declares neither. -->
 						<div
-							v-if="headerPills.length > 0"
+							v-if="headerPills.length > 0 && !isBoard"
 							class="cn-detail-page__pills"
 							data-testid="cn-detail-page-pills">
 							<CnStatusBadge
@@ -111,18 +111,19 @@
 						     (ADR-062). Only shown once the object resolves to a
 						     display name that differs from the type label. -->
 						<p
-							v-if="typeEyebrow && showTypeEyebrow"
+							v-if="typeEyebrow && showTypeEyebrow && !isBoard"
 							class="cn-detail-page__type-eyebrow"
 							data-testid="cn-detail-page-type-eyebrow">
 							{{ typeEyebrow }}
 						</p>
 						<div v-if="displayTitle || showFavouriteToggle || showFollowToggle" class="cn-detail-page__title-row">
-							<h2
+							<component
+								:is="isBoard ? 'h1' : 'h2'"
 								v-if="displayTitle"
 								class="cn-detail-page__title"
 								:title="displayTitle">
 								{{ displayTitle }}
-							</h2>
+							</component>
 							<!-- Star and Follow beside the title (manifest `config.favourite` /
 							     `config.follow`): shown when the object carries the markers. -->
 							<span
@@ -163,7 +164,7 @@
 						<!-- Identifying field chips (manifest `config.headerFields`):
 						     number, status, assignee, deadline. Absent without the key. -->
 						<CnDetailHeaderChips
-							v-if="headerFields.length > 0"
+							v-if="headerFields.length > 0 && !isBoard"
 							:fields="headerFields"
 							:object="resolvedObject"
 							:schema="currentSchema"
@@ -381,7 +382,8 @@
 					:showRequestFeature="showRequestFeature && menuShowsHelpLinks"
 					:showReportBug="showReportBug && menuShowsHelpLinks"
 					:showDocumentation="showDocumentation && menuShowsHelpLinks"
-					:actionsMenuLabel="actionsMenuName"
+					:actionsMenuLabel="boardMenuLabel"
+					:variant="isBoard ? 'secondary' : undefined"
 					:hasPrimaryItems="headerMenuGroups.length > 0 || showMarkUnread"
 					:documentationUrl="documentationUrl"
 					:docsAnchor="resolvedPageId"
@@ -458,6 +460,50 @@
 						<NcActionSeparator v-if="menuShowsHelpLinks" />
 					</template>
 				</CnActionsMenu>
+			</div>
+			<!-- Row 2 of the board look's header (screens-detail-page-parity): the
+			     pills, the breadcrumb, a middle dot and the meta line, on the
+			     ground under the title. The breadcrumb does not render above the
+			     header in this look, so this is its only place. -->
+			<div
+				v-if="isBoard && showsHeaderRow2"
+				class="cn-detail-page__header-row2"
+				data-testid="cn-detail-page-header-row2">
+				<div
+					v-if="headerPills.length > 0"
+					class="cn-detail-page__pills"
+					data-testid="cn-detail-page-pills">
+					<CnStatusBadge
+						v-for="pill in headerPills"
+						:key="pill.key"
+						:label="pill.label"
+						:colorKey="pill.colorKey"
+						:colorMap="pill.colorMap"
+						:variant="pill.variant"
+						:data-testid="`cn-detail-page-pill-${pill.key}`" />
+				</div>
+				<CnBreadcrumbs
+					v-if="breadcrumbCrumbs.length > 0"
+					class="cn-detail-page__breadcrumbs cn-detail-page__breadcrumbs--row2"
+					:crumbs="breadcrumbCrumbs"
+					:rootText="breadcrumbCrumbs[0].icon === undefined"
+					:separator="breadcrumbSeparator || '/'"
+					data-testid="cn-detail-page-breadcrumbs" />
+				<span
+					v-if="breadcrumbCrumbs.length > 0 && hasHeaderMeta"
+					class="cn-detail-page__header-dot"
+					aria-hidden="true"
+					data-testid="cn-detail-page-header-dot">&middot;</span>
+				<span
+					v-if="headerMetaText"
+					class="cn-detail-page__header-meta"
+					data-testid="cn-detail-page-header-meta">{{ headerMetaText }}</span>
+				<CnDetailHeaderChips
+					v-if="headerFields.length > 0"
+					:fields="headerFields"
+					:object="resolvedObject"
+					:schema="currentSchema"
+					:register="register" />
 			</div>
 			<!-- A widget inside the header (manifest `config.headerWidget`), on
 			     a row of its own under the title and the actions: the stages
@@ -797,7 +843,7 @@
 								:widget="findWidget(item)"
 								chrome="card"
 								:showCardTitle="showCardTitle(item)"
-								:showActions="showWidgetActions"
+								:showActions="effectiveShowWidgetActions"
 								:objectId="objectId"
 								:object="currentObject"
 								:objectType="resolvedObjectType"
@@ -978,6 +1024,7 @@
 				v-for="widget in sideColumnWidgets"
 				:key="`side-${widget.id}`"
 				class="cn-detail-page__side-item"
+				:class="{ 'cn-detail-page__side-item--notice': isBoard && widget.type === 'banner', 'cn-detail-page__side-item--history': isBoard && widget.id === sideHistoryId, 'cn-detail-page__side-item--with-identifier': isBoard && widget.id === sideHistoryId && identifierLine !== '' }"
 				:data-testid="`cn-detail-page-side-${widget.id}`">
 				<!--
 					@slot `widget-${widget.id}`
@@ -1009,7 +1056,7 @@
 						:widget="widget"
 						chrome="card"
 						:showCardTitle="true"
-						:showActions="showWidgetActions"
+						:showActions="effectiveShowWidgetActions"
 						:objectId="objectId"
 						:object="currentObject"
 						:objectType="resolvedObjectType"
@@ -1026,6 +1073,14 @@
 						@openIntegration="onAutoBodyOpenIntegration"
 						@selectObject="onRelatedObjectSelect" />
 				</slot>
+				<!-- The identifier line that ends the History card in the board
+				     look (`config.identifierField`). -->
+				<p
+					v-if="isBoard && widget.id === sideHistoryId && identifierLine !== ''"
+					class="cn-detail-page__side-identifier"
+					data-testid="cn-detail-page-side-identifier">
+					{{ identifierLine }}
+				</p>
 			</div>
 		</aside>
 
@@ -1134,7 +1189,7 @@ import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import { provide, ref, watch } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -1168,6 +1223,7 @@ import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
@@ -1188,6 +1244,7 @@ import {
 } from '../../utils/detailActionModel.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
+import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { slotRenders } from '../../utils/slotContent.js'
@@ -1408,6 +1465,31 @@ export default {
 		 * NEVER translated — only manifest chrome is.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
+	},
+
+	/**
+	 * Offer the board look's tab list name to the tabs widget below this page
+	 * (`config.tabsLabel`, default "<type> parts"). A getter object, so the
+	 * widget reads it live.
+	 *
+	 * @return {object} The provided values.
+	 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-folder-tabs-take-the-board-strip
+	 */
+	provide() {
+		const isBoard = computed(() => this.isBoard)
+		const tabsLabel = computed(() => this.resolvedTabsLabel)
+		return {
+			// The page's own look reaches the tabs, the cards and the activity
+			// below it, also when it came from the `look` prop and not the app.
+			cnLook: computed(() => (isBoard.value ? 'board' : 'nextcloud')),
+			cnDetailTabsLabel: {
+				get value() {
+					return tabsLabel.value
+				},
+			},
+		}
 	},
 
 	props: {
@@ -2391,13 +2473,14 @@ export default {
 		 * not say (`showActions`). `false` (manifest
 		 * `config.showWidgetActions: false`) drops it, as on a dashboard; a
 		 * widget with `showActions: true` keeps its menu. A card that offers
-		 * an Add action keeps the menu that holds it. True by default.
+		 * an Add action keeps the menu that holds it. When the key is not set
+		 * it is true, and false under the board look.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-detail-page-can-drop-the-widget-actions-menu
 		 */
 		showWidgetActions: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 
 		/**
@@ -2453,6 +2536,55 @@ export default {
 		isAdmin: {
 			type: Boolean,
 			default: null,
+		},
+
+		/**
+		 * The look this page is drawn in (`nextcloud` or `board`). Empty (the
+		 * default) takes the app's look, which CnAppRoot or CnPageRenderer
+		 * provides, so a manifest's `look` reaches the page without a prop.
+		 *
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md
+		 */
+		look: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The meta line on row 2 of the board look's header (manifest
+		 * `config.headerMeta`): a field template such as `"via {channel}"`.
+		 * Every `{path}` is read from the record; a line with an empty value
+		 * is dropped. Only the board look draws it.
+		 *
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
+		 */
+		headerMeta: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The accessible name of the tab list under the board look (manifest
+		 * `config.tabsLabel`). Empty gives "<type> parts", for example "Case
+		 * parts", from the page title.
+		 *
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-folder-tabs-take-the-board-strip
+		 */
+		tabsLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The field holding the record's identifier (manifest
+		 * `config.identifierField`, for example `identifier`). Under the board
+		 * look the side column's History card ends with a line naming it.
+		 *
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-body-and-side-cards-take-the-board-anatomy
+		 */
+		identifierField: {
+			type: String,
+			default: '',
 		},
 	},
 
@@ -2702,6 +2834,140 @@ export default {
 	},
 
 	computed: {
+		// ── The board look (screens-detail-page-parity) ─────────────────
+
+		/**
+		 * Whether the page is drawn in the board look: its own `look` prop,
+		 * else the look the app provides.
+		 *
+		 * @return {boolean} True in the board look.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md
+		 */
+		isBoard() {
+			return normalizeLook(this.look || this.cnLook) === 'board'
+		},
+
+		/**
+		 * The class that scopes the board rules to this page, so they apply
+		 * whether the look came from the app or from this page's own prop.
+		 *
+		 * @return {string} `cn-look-board` or ''.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md
+		 */
+		boardClass() {
+			return this.isBoard ? 'cn-look-board' : ''
+		},
+
+		/**
+		 * Whether widget cards keep their overflow Actions menu: the manifest's
+		 * `showWidgetActions` when it says, else true, and false under the
+		 * board look (side cards have no Actions menu).
+		 *
+		 * @return {boolean} True when the menu shows.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-body-and-side-cards-take-the-board-anatomy
+		 */
+		effectiveShowWidgetActions() {
+			if (typeof this.showWidgetActions === 'boolean') {
+				return this.showWidgetActions
+			}
+			return !this.isBoard
+		},
+
+		/**
+		 * The meta line of row 2, translated and filled from the record.
+		 *
+		 * @return {string} The line, or ''.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
+		 */
+		headerMetaText() {
+			return resolveHeaderMeta(this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '', this.resolvedObject)
+		},
+
+		/**
+		 * Whether row 2 has a meta line or header chips to draw after the
+		 * breadcrumb.
+		 *
+		 * @return {boolean} True with meta or chips.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
+		 */
+		hasHeaderMeta() {
+			return this.headerMetaText !== '' || this.headerFields.length > 0
+		},
+
+		/**
+		 * Whether row 2 of the header has anything to draw.
+		 *
+		 * @return {boolean} True when a pill, the breadcrumb, meta or chips exist.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
+		 */
+		showsHeaderRow2() {
+			return this.headerPills.length > 0 || this.breadcrumbCrumbs.length > 0 || this.hasHeaderMeta
+		},
+
+		/**
+		 * The name of the tab list: `tabsLabel`, else "<type> parts" from the
+		 * page title, else "Details".
+		 *
+		 * @return {string} The accessible name.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-folder-tabs-take-the-board-strip
+		 */
+		resolvedTabsLabel() {
+			if (this.tabsLabel) {
+				return this.effectiveTranslate(this.tabsLabel)
+			}
+			const type = this.resolvedTitle
+			return type ? t('nextcloud-vue', '{type} parts', { type }) : t('nextcloud-vue', 'Details')
+		},
+
+		/**
+		 * The record's identifier, read from `identifierField`.
+		 *
+		 * @return {string} The identifier, or ''.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-body-and-side-cards-take-the-board-anatomy
+		 */
+		identifierLine() {
+			if (!this.identifierField) {
+				return ''
+			}
+			const value = stageOf(this.resolvedObject, this.identifierField)
+			return value === '' ? '' : t('nextcloud-vue', 'Identifier: {identifier}', { identifier: value })
+		},
+
+		/**
+		 * The ids of the widgets a `tabs` widget on this page holds as tabs.
+		 *
+		 * @return {Set<string>} The widget ids.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-history-is-the-last-tab
+		 */
+		tabbedWidgetIds() {
+			const ids = new Set()
+			const declared = Array.isArray(this.widgets) ? this.widgets : []
+			declared
+				.filter((widget) => widget && widget.type === 'tabs')
+				.forEach((widget) => {
+					const tabs = Array.isArray(widget.content?.tabs) ? widget.content.tabs : []
+					tabs.forEach((tab) => {
+						const id = typeof tab === 'string' ? tab : tab?.widgetId
+						if (id) {
+							ids.add(id)
+						}
+					})
+				})
+			return ids
+		},
+
+		/**
+		 * The id of the side column's History card (the activity widget), the
+		 * one that ends with the identifier line.
+		 *
+		 * @return {string} The widget id, or ''.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-body-and-side-cards-take-the-board-anatomy
+		 */
+		sideHistoryId() {
+			const history = this.sideColumnWidgets.find((widget) => isActivityWidget(widget))
+			return history ? history.id : ''
+		},
+
 		// ── The record as a place (case-page-and-list-as-a-place) ───────
 
 		/**
@@ -2931,6 +3197,20 @@ export default {
 		},
 
 		/**
+		 * The menu's name as the header draws it: under the board look always
+		 * a label ("More" unless the manifest names it), never icon-only.
+		 *
+		 * @return {string|undefined} The label, or undefined for the default "Actions".
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-buttons-follow-one-order
+		 */
+		boardMenuLabel() {
+			if (this.actionsMenuName) {
+				return this.actionsMenuName
+			}
+			return this.isBoard ? t('nextcloud-vue', 'More') : undefined
+		},
+
+		/**
 		 * Whether the page is showing its body: not the not-found, loading,
 		 * error or empty state. The "what now" card and the side column are
 		 * siblings of the body and follow it.
@@ -3011,7 +3291,7 @@ export default {
 		 */
 		sideColumnWidgets() {
 			const declared = Array.isArray(this.widgets) ? this.widgets : []
-			return (Array.isArray(this.sideColumn) ? this.sideColumn : [])
+			const resolved = (Array.isArray(this.sideColumn) ? this.sideColumn : [])
 				.map((entry, index) => {
 					if (typeof entry === 'string') {
 						return declared.find((widget) => widget && widget.id === entry) || null
@@ -3022,6 +3302,15 @@ export default {
 					return entry.id ? entry : { ...entry, id: `cn-side-${index}` }
 				})
 				.filter(Boolean)
+			if (!this.isBoard) {
+				return resolved
+			}
+			// The board look: the notice first, the History card last.
+			const rank = (widget) => (widget.type === 'banner' ? 0 : isActivityWidget(widget) ? 2 : 1)
+			return resolved
+				.map((widget, index) => ({ widget, index }))
+				.sort((a, b) => (rank(a.widget) - rank(b.widget)) || (a.index - b.index))
+				.map(({ widget }) => widget)
 		},
 
 		/**
@@ -3264,7 +3553,8 @@ export default {
 		 * @return {boolean}
 		 */
 		foldsEditIntoActions() {
-			return typeof this.inlineActions === 'number'
+			// Edit keeps its own labelled button in the board look.
+			return typeof this.inlineActions === 'number' && !this.isBoard
 		},
 
 		/**
@@ -5320,6 +5610,11 @@ export default {
 			const widget = this.findWidget(item)
 			if (!widget) {
 				return true
+			}
+			// The board look shows the activity as the History tab. When a tabs
+			// widget already holds it, it is not also a body section.
+			if (this.isBoard && isActivityWidget(widget) && this.tabbedWidgetIds.has(widget.id)) {
+				return false
 			}
 			// Presence is empty almost always, and no attribute can reclaim its
 			// row: GridStack floors `sizeToContent` at the item's `gs-min-h`.

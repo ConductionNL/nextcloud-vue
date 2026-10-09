@@ -37,10 +37,40 @@
   delta and ADR-019 (registry mechanism).
 -->
 <template>
-	<div class="cn-sidebar-tab cn-activity-tab">
+	<div class="cn-sidebar-tab cn-activity-tab" :class="{ 'cn-activity-tab--board': isBoard }">
 		<div v-if="degraded" class="cn-activity-tab__banner" role="alert">
 			<AlertCircleOutline :size="18" />
 			<span>{{ degraded }}</span>
+		</div>
+
+		<!-- The History panel's header in the board look: the title, what the
+		     list is, and the two buttons at its end. -->
+		<div v-if="isBoard && !degraded" class="cn-activity-tab__board-head" data-testid="cn-activity-board-head">
+			<div class="cn-activity-tab__board-titles">
+				<h2 class="cn-activity-tab__board-title">
+					{{ historyTitle }}
+				</h2>
+				<p class="cn-activity-tab__board-subtitle">
+					{{ historySubtitle }}
+				</p>
+			</div>
+			<div class="cn-activity-tab__board-actions">
+				<NcButton
+					v-if="showAddNote"
+					variant="secondary"
+					data-testid="cn-activity-add-note"
+					@click="$emit('add-note')">
+					{{ addNoteLabel }}
+				</NcButton>
+				<NcButton
+					v-if="!legacy"
+					variant="secondary"
+					:disabled="visibleEntries.length === 0 || exporting"
+					data-testid="cn-activity-export"
+					@click="exportFeed">
+					{{ exportLabel }}
+				</NcButton>
+			</div>
 		</div>
 
 		<div v-if="!degraded" class="cn-activity-tab__filters">
@@ -148,7 +178,7 @@
 			</div>
 			<!-- The export is what is on screen: these rows and these filters, nothing re-queried. -->
 			<NcButton
-				v-if="!legacy"
+				v-if="!legacy && !isBoard"
 				variant="tertiary"
 				:disabled="visibleEntries.length === 0 || exporting"
 				data-testid="cn-activity-export"
@@ -164,6 +194,44 @@
 		<div v-else-if="visibleEntries.length === 0" class="cn-sidebar-tab__empty cn-activity-tab__empty">
 			<Timeline :size="32" class="cn-activity-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
+		</div>
+		<!-- The board look draws the events as one rail: a 34px icon on a tint
+		     of its kind, a connector to the next event, the verb in bold, and a
+		     meta line of kind, who and when. -->
+		<div v-else-if="isBoard" class="cn-activity-tab__timeline cn-activity-tab__timeline--rail">
+			<ol class="cn-activity-tab__rail" data-testid="cn-activity-rail">
+				<li
+					v-for="entry in visibleEntries"
+					:key="entryKey(entry)"
+					class="cn-activity-tab__event"
+					:class="`cn-activity-tab__event--${entry.kind || 'activity'}`"
+					data-testid="cn-activity-event">
+					<span class="cn-activity-tab__event-icon" aria-hidden="true">
+						<component :is="iconFor(entry)" :size="18" />
+					</span>
+					<div class="cn-activity-tab__event-body">
+						<p class="cn-activity-tab__event-line">
+							<strong>{{ splitSubject(entry).verb }}</strong>{{ splitSubject(entry).rest }}
+						</p>
+						<p class="cn-activity-tab__event-meta">
+							{{ eventMeta(entry) }}
+						</p>
+					</div>
+					<CnVisibilityChip v-if="showVisibility" :visibility="entry.visibility" />
+				</li>
+			</ol>
+			<div v-if="hasMore" class="cn-activity-tab__footer">
+				<NcButton
+					variant="tertiary"
+					:wide="true"
+					:disabled="loadingMore"
+					@click="loadMore">
+					<template v-if="loadingMore" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ loadMoreLabel }}
+				</NcButton>
+			</div>
 		</div>
 		<div v-else class="cn-activity-tab__timeline">
 			<section
@@ -249,6 +317,7 @@ import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.v
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import Timeline from 'vue-material-design-icons/Timeline.vue'
 import CnVisibilityChip from '../../../components/CnVisibilityChip/CnVisibilityChip.vue'
+import { normalizeLook } from '../../../composables/useLook.js'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { ACTIVITY_FEED_KINDS, exportBody, feedPath, feedQuery, isReadRow, parseFeed } from './activityFeedWire.js'
 
@@ -295,6 +364,8 @@ export default {
 	inject: {
 		/** The per-user preference group from CnAppRoot, so "show reads" is remembered. */
 		cnUserPreferences: { default: null },
+		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -330,6 +401,12 @@ export default {
 		 * offering options that change nothing. The host passes it.
 		 */
 		publicViewOnly: { type: Boolean, default: false },
+		/**
+		 * Offer an "Add note" button in the board look's History header. It
+		 * emits `add-note`; the host opens whatever composes the note. Off by
+		 * default, so no button points at nothing.
+		 */
+		showAddNote: { type: Boolean, default: false },
 		/** Pre-translated empty-state label. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No activity yet for this object') },
 		/** Pre-translated unavailable banner. */
@@ -338,7 +415,7 @@ export default {
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
 	},
 
-	emits: ['exported'],
+	emits: ['exported', 'add-note'],
 
 	data() {
 		return {
@@ -382,6 +459,9 @@ export default {
 			fromLabel: t('nextcloud-vue', 'From'),
 			untilLabel: t('nextcloud-vue', 'Until'),
 			exportLabel: t('nextcloud-vue', 'Export'),
+			addNoteLabel: t('nextcloud-vue', 'Add note'),
+			historyTitle: t('nextcloud-vue', 'History'),
+			historySubtitle: t('nextcloud-vue', 'What happened, who did it and when, newest first'),
 			ranges: [
 				{ key: '24h', label: t('nextcloud-vue', '24h') },
 				{ key: '7d', label: t('nextcloud-vue', '7d') },
@@ -392,6 +472,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the tab is drawn in the board look: the History header, the
+		 * filled kind chips and the event rail.
+		 *
+		 * @return {boolean} True in the board look.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-history-is-the-last-tab
+		 */
+		isBoard() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		hasMore() {
 			return this.cursor !== null
 		},
@@ -580,6 +671,44 @@ export default {
 		timestampMillis(entry) {
 			const ts = this.timestampFor(entry)
 			return ts === null ? 0 : ts.getTime()
+		},
+
+		/**
+		 * Split an event's subject at its first colon: the verb ("Document
+		 * reviewed") is drawn bold, the rest as written. A subject without a
+		 * colon is all verb.
+		 *
+		 * @param {object} entry Activity row.
+		 * @return {{verb: string, rest: string}} The two parts.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-history-is-the-last-tab
+		 */
+		splitSubject(entry) {
+			const subject = String(this.subjectFor(entry))
+			const at = subject.indexOf(':')
+			if (at <= 0) {
+				return { verb: subject, rest: '' }
+			}
+			return { verb: subject.slice(0, at + 1), rest: subject.slice(at + 1) }
+		},
+
+		/**
+		 * The meta line under an event: kind, who, when.
+		 *
+		 * @param {object} entry Activity row.
+		 * @return {string} For example "Document · Pieter Jansen · 6 Oct, 15:40".
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-history-is-the-last-tab
+		 */
+		eventMeta(entry) {
+			const ts = this.timestampFor(entry)
+			let when = ''
+			if (ts !== null) {
+				try {
+					when = ts.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+				} catch {
+					when = ts.toISOString().replace('T', ' ').slice(0, 16)
+				}
+			}
+			return [this.kindLabel(entry.kind || 'activity'), this.actorFor(entry), when].filter((part) => part !== '').join(' \u00b7 ')
 		},
 
 		subjectFor(entry) {
