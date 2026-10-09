@@ -129,7 +129,11 @@
 	content: none;
 }
 
+/* Tabs sit on the card's top edge; only the open tab reaches 1px further
+   down (min-height 35px below), over the card's top border. Top-aligned so
+   the inactive tabs do not stretch to the open tab's height. */
 .cn-look-board .cn-tabs--board .cn-tabs__nav {
+	align-items: flex-start;
 	gap: 4px;
 }
 
@@ -150,6 +154,8 @@
 	border-bottom: 1px solid var(--color-main-background);
 	border-top: 1px solid var(--color-border-dark);
 	font-weight: 700;
+	min-height: 35px;
+	padding-bottom: 9px;
 	padding-top: 8px;
 	position: relative;
 	z-index: 1;
