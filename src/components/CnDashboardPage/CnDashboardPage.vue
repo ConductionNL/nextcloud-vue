@@ -3354,13 +3354,35 @@ export default {
 		 * @return {object}
 		 */
 		registryWidgetBindings(item) {
-			const content = this.getWidgetContent(item)
+			const content = this.collectionContent(this.getWidgetContent(item))
 			const def = this.getWidgetDef(item.widgetId)
 			if (!this.isBannerDef(def)) {
 				return content
 			}
 			const outcome = this.widgetConditionOutcome[item.widgetId]
 			return outcome ? { ...content, conditionOutcome: outcome } : content
+		},
+
+		/**
+		 * A widget's content with the board's quiet collection footer: in the
+		 * board look a dashboard that drops the widget Actions menu
+		 * (`showWidgetActions: false`) also drops the Add footer of its list
+		 * widgets, whose Add is the menu's create entry at the bottom of the
+		 * card. A widget that says `content.allowCreate` keeps its own value.
+		 * Otherwise the content is returned as is.
+		 *
+		 * @spec openspec/changes/screens-dashboard-legacy-widgets/specs/dashboard-page/spec.md#requirement-a-board-dashboard-without-widget-actions-drops-the-add-footer
+		 * @param {object} content The widget's stored content.
+		 * @return {object}
+		 */
+		collectionContent(content) {
+			if (!this.isBoardLook || this.showWidgetActions !== false) {
+				return content
+			}
+			if (content && Object.hasOwn(content, 'allowCreate')) {
+				return content
+			}
+			return { ...content, allowCreate: false }
 		},
 
 		/**
