@@ -28,7 +28,7 @@ const FIELD = {
 }
 
 const today = new Date()
-const iso = (offset) => {
+function iso(offset) {
 	const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset)
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }

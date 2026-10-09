@@ -29,7 +29,10 @@
 		</template>
 
 		<CnKpiGrid v-else-if="scenario === 'kpi'" columns="auto" data-testid="screens-kpi">
-			<div v-for="n in 4" :key="n" class="screens-parity__tile" data-testid="screens-kpi-tile">
+			<div v-for="n in 4"
+				:key="n"
+				class="screens-parity__tile"
+				data-testid="screens-kpi-tile">
 				Tile {{ n }}
 			</div>
 		</CnKpiGrid>
