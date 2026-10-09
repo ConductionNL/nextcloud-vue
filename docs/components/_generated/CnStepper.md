@@ -19,6 +19,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name   | Payload | Description |
-| ------ | ------- | ----------- |
-| `jump` | —       |             |
+| Name   | Payload | Description                                                      |
+| ------ | ------- | ---------------------------------------------------------------- |
+| `jump` | —       | Emitted with the step id when a finished step button is pressed. |

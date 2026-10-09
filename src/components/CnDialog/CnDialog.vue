@@ -9,15 +9,17 @@
 		:noClose="noClose"
 		:class="frameClass"
 		:style="frameStyle"
-		@closing="$emit('closing', $event)">
+		@closing="onClosing">
 		<CnDialogHeader v-if="isBoard"
 			:title="name"
 			:eyebrow="eyebrow"
 			:subtitle="subtitle"
 			:noClose="noClose"
-			@close="$emit('closing')" />
+			@close="onClosing()" />
+		<!-- @slot default The dialog body, below the board header. -->
 		<slot />
 		<template v-if="$slots.actions" #actions>
+			<!-- @slot actions The dialog footer buttons. -->
 			<slot name="actions" />
 		</template>
 	</NcDialog>
@@ -45,6 +47,10 @@ import { resolveDialogWidth } from '../../utils/dialogWidths.js'
  * fall through to NcDialog.
  *
  * @spec openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md
+ *
+ * @event closing Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` is set.
+ * @slot default The dialog body, below the board header.
+ * @slot actions The dialog footer buttons.
  */
 export default {
 	name: 'CnDialog',
@@ -90,6 +96,20 @@ export default {
 
 		frameStyle() {
 			return this.isBoard ? { '--cn-dialog-width': `${this.resolvedWidth.px}px` } : null
+		},
+	},
+
+	methods: {
+		/**
+		 * Forward a close request.
+		 *
+		 * @param {unknown} [result] The NcDialog closing payload.
+		 */
+		onClosing(result) {
+			/**
+			 * @event closing Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` is set.
+			 */
+			this.$emit('closing', result)
 		},
 	},
 }

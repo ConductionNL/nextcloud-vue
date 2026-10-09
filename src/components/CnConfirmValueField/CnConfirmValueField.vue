@@ -13,7 +13,7 @@
 			:value="modelValue"
 			:aria-describedby="hintId"
 			data-testid="cn-confirm-value-input"
-			@input="$emit('update:modelValue', $event.target.value)">
+			@input="onInput">
 		<span :id="hintId" class="cn-dialog__confirm-hint" data-testid="cn-confirm-value-hint">
 			{{ hintBefore }}<code>{{ value }}</code>{{ hintAfter }}
 		</span>
@@ -31,6 +31,8 @@ let uid = 0
  * with a hint that names the value to type.
  *
  * @spec openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md#requirement-type-to-confirm-keeps-the-button-off-until-it-matches
+ *
+ * @event update:modelValue Emitted with the typed text on every input.
  */
 export default {
 	name: 'CnConfirmValueField',
@@ -66,6 +68,20 @@ export default {
 
 		hintAfter() {
 			return this.hintParts[1]
+		},
+	},
+
+	methods: {
+		/**
+		 * Forward the typed text.
+		 *
+		 * @param {Event} event The input event.
+		 */
+		onInput(event) {
+			/**
+			 * @event update:modelValue Emitted with the typed text on every input.
+			 */
+			this.$emit('update:modelValue', event.target.value)
 		},
 	},
 }

@@ -19,7 +19,7 @@
 				<a :href="'#' + item.controlId"
 					class="cn-form-error-summary__link"
 					:data-error-key="item.key"
-					@click.prevent="$emit('focus-field', item.key)">{{ item.message }}</a>
+					@click.prevent="onFollow(item.key)">{{ item.message }}</a>
 			</li>
 		</ul>
 	</div>
@@ -35,6 +35,8 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
  *
  * @spec openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-a-failed-submit-shows-an-error-summary
  * @event focus-field Emitted with the field key when a link is followed.
+ *
+ * @event focus-field Emitted with the field key when an error link is followed.
  */
 export default {
 	name: 'CnFormErrorSummary',
@@ -61,6 +63,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Forward a followed error link.
+		 *
+		 * @param {string} key The field key.
+		 */
+		onFollow(key) {
+			/**
+			 * @event focus-field Emitted with the field key when an error link is followed.
+			 */
+			this.$emit('focus-field', key)
+		},
+
 		/** Move focus to the summary (called after a failed submit or Next). */
 		focus() {
 			if (this.$refs.root && typeof this.$refs.root.focus === 'function') {

@@ -18,6 +18,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name    | Payload | Description |
-| ------- | ------- | ----------- |
-| `close` | —       |             |
+| Name    | Payload | Description                               |
+| ------- | ------- | ----------------------------------------- |
+| `close` | —       | Emitted when the close button is pressed. |

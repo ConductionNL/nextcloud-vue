@@ -15,6 +15,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name          | Payload | Description |
-| ------------- | ------- | ----------- |
-| `focus-field` | —       |             |
+| Name          | Payload | Description                                                |
+| ------------- | ------- | ---------------------------------------------------------- |
+| `focus-field` | —       | Emitted with the field key when an error link is followed. |

@@ -23,7 +23,7 @@
 			<component :is="isJumpable(idx) ? 'button' : 'span'"
 				class="cn-stepper__step"
 				:type="isJumpable(idx) ? 'button' : undefined"
-				@click="isJumpable(idx) ? $emit('jump', step.id) : null">
+				@click="isJumpable(idx) ? onJump(step.id) : null">
 				<span class="cn-stepper__dot cn-wizard-dialog__progress-dot" aria-hidden="true">
 					<template v-if="idx < currentIndex">
 						<Check v-if="isBoard"
@@ -65,6 +65,8 @@ import { useLook } from '../../composables/useLook.js'
  *
  * @spec openspec/changes/screens-wizard-parity/specs/wizard-dialog/spec.md#requirement-the-board-stepper
  * @event jump Emitted with a finished step's id when its button is pressed.
+ *
+ * @event jump Emitted with the step id when a finished step button is pressed.
  */
 export default {
 	name: 'CnStepper',
@@ -94,6 +96,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Forward a press on a finished step.
+		 *
+		 * @param {string} id The step id.
+		 */
+		onJump(id) {
+			/**
+			 * @event jump Emitted with the step id when a finished step button is pressed.
+			 */
+			this.$emit('jump', id)
+		},
+
 		isJumpable(idx) {
 			return this.allowJumpBack && idx < this.currentIndex
 		},
@@ -211,7 +225,7 @@ button.cn-stepper__step {
 	height: 1px;
 	margin: -1px;
 	overflow: hidden;
-	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
 	white-space: nowrap;
 }
 

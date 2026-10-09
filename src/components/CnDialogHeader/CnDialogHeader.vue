@@ -31,7 +31,7 @@
 			:aria-label="closeLabel"
 			:disabled="noClose"
 			data-testid="cn-dialog-close"
-			@click="$emit('close')">
+			@click="onClose">
 			<template #icon>
 				<Close :size="20" />
 			</template>
@@ -52,6 +52,8 @@ import Close from 'vue-material-design-icons/Close.vue'
  * dialog that is loading cannot be dismissed (REQ-DG-015).
  *
  * @spec openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md#requirement-a-dialog-can-carry-an-eyebrow-and-a-subtitle
+ *
+ * @event close Emitted when the close button is pressed.
  */
 export default {
 	name: 'CnDialogHeader',
@@ -72,5 +74,15 @@ export default {
 	},
 
 	emits: ['close'],
+
+	methods: {
+		/** Forward the close button press. */
+		onClose() {
+			/**
+			 * @event close Emitted when the close button is pressed.
+			 */
+			this.$emit('close')
+		},
+	},
 }
 </script>

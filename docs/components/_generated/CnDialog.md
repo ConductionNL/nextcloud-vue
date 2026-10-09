@@ -21,13 +21,13 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name      | Payload | Description |
-| --------- | ------- | ----------- |
-| `closing` | —       |             |
+| Name      | Payload | Description                                                                                             |
+| --------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `closing` | —       | Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` is set. |
 
 ### Slots
 
-| Name      | Bindings | Description |
-| --------- | -------- | ----------- |
-| `default` | —        |             |
-| `actions` | —        |             |
+| Name      | Bindings | Description                                      |
+| --------- | -------- | ------------------------------------------------ |
+| `default` | —        | default The dialog body, below the board header. |
+| `actions` | —        | actions The dialog footer buttons.               |
