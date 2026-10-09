@@ -1290,7 +1290,10 @@
     "Test environment": "Test environment",
     "Acceptance environment": "Acceptance environment",
     "About {label}": "About {label}",
-    "Could not load the form for this item.": "Could not load the form for this item."
+    "Could not load the form for this item.": "Could not load the form for this item.",
+    "This server does not keep track of what you open.": "This server does not keep track of what you open.",
+    "Log in to see what you opened recently.": "Log in to see what you opened recently.",
+    "Your recent items are not available right now.": "Your recent items are not available right now."
   },
   "plurals": {
     "%n year": [

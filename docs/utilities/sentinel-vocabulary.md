@@ -19,6 +19,18 @@ Each key is a context (`filter`, `config`, `object`, `workspace`, `route`,
 is for, and the member token grammar. The object is `Object.freeze`d — treat it
 as read-only.
 
+## The filter context
+
+`@me`, `@me.displayName`, `@me.email`, `@myGroups`, `@now`, `@today`,
+`@today±Nd`, `@monthStart`, `@quarterStart` and `@yearStart`.
+
+`@myGroups` resolves to an array: the ids of the Nextcloud groups the current
+user is in, so `{ "assignedGroup": "@myGroups" }` becomes an IN filter. Inside
+an IN list (`["@myGroups", "archive"]`) the ids are spread in place. The groups
+come from [`peekCurrentUserGroups`](./peek-current-user-groups.md): while they
+load, and when the user is in no group, the token stays unresolved and the
+caller waits instead of sending an empty list.
+
 ## See also
 
 - [`SENTINEL_RESOLVERS`](./sentinel-resolvers.md) — the compact context → resolver map.
