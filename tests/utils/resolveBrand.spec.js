@@ -23,7 +23,7 @@ describe('resolveBrand', () => {
 
 	it('keeps a known placement and drops an unknown one', () => {
 		expect(resolveBrand({ name: 'A', placement: 'nav' }, tr).placement).toBe('nav')
-		expect(resolveBrand({ name: 'A', placement: 'top-bar' }, tr).placement).toBe('top-bar')
+		expect(resolveBrand({ name: 'A', placement: 'header' }, tr).placement).toBe('header')
 		expect(resolveBrand({ name: 'A', placement: 'left' }, tr).placement).toBe('')
 	})
 })
@@ -36,8 +36,8 @@ describe('nav.brand.placement in the manifest schema', () => {
 		pages: [],
 		nav: { brand: { name: 'A', placement } },
 	})
-	it('accepts top-bar and nav, rejects anything else', () => {
-		expect(validateManifestV2(base('top-bar')).errors.filter((e) => /placement/.test(JSON.stringify(e)))).toEqual([])
+	it('accepts header and nav, rejects anything else', () => {
+		expect(validateManifestV2(base('header')).errors.filter((e) => /placement/.test(JSON.stringify(e)))).toEqual([])
 		expect(validateManifestV2(base('nav')).errors.filter((e) => /placement/.test(JSON.stringify(e)))).toEqual([])
 		expect(validateManifestV2(base('left')).errors.some((e) => /placement/.test(JSON.stringify(e)))).toBe(true)
 	})

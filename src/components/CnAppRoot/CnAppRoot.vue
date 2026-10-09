@@ -60,7 +60,7 @@
 	<NcContent
 		:appName="appDisplayName || (manifest && manifest.name) || appId"
 		:data-nldesign-theme-scope="appId"
-		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board', 'cn-app-root--brand-bar': brandInTopBar }"
+		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board' }"
 		data-testid="cn-app-root">
 		<!-- Names a development, test or acceptance environment on every screen; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner
@@ -189,15 +189,8 @@
 
 		<!-- Phase 3: shell -->
 		<template v-else>
-			<!--
-			  @slot brand-bar
-			  @description Content of the top bar after the brand block and its
-			  divider (search, notifications, user menu). The bar renders only
-			  under the board look with a declared brand.
-			-->
-			<CnBrandBar v-if="brandInTopBar" :brand="resolvedBrandBlock">
-				<slot name="brand-bar" />
-			</CnBrandBar>
+			<!-- The brand block in Nextcloud's own header (board look); teleported, renders nothing here. -->
+			<CnBrandBar v-if="brandInHeader" :brand="resolvedBrandBlock" @unavailable="headerMissing = true" />
 			<!--
 			  @slot menu
 			  @description Left-rail navigation surface. Default:
@@ -843,8 +836,8 @@ export default {
 			// value once, so a getter would freeze the look at creation.
 			cnLook: computed(() => self.resolvedLook),
 
-			// True while the top bar draws the brand block, so CnAppNav skips its own.
-			cnBrandInTopBar: computed(() => self.brandInTopBar),
+			// True while CnBrandBar draws the block in Nextcloud's header, so CnAppNav skips its own.
+			cnBrandInHeader: computed(() => self.brandInHeader),
 
 			get cnManifest() {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
@@ -1608,7 +1601,7 @@ export default {
 
 		/**
 		 * The brand block (`{ logo, emblem, name, caption, alt, placement }`)
-		 * the board look draws at the start of the top bar. Empty falls back
+		 * the board look draws at the start of Nextcloud's header. Empty falls back
 		 * to the manifest's `nav.brand`. `placement: "nav"` keeps the block
 		 * in the navigation.
 		 *
@@ -1818,6 +1811,12 @@ export default {
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
+			// Nextcloud's own header, present on a server-rendered page; the
+			// brand block goes into it (CnBrandBar). Read once at creation so
+			// the navigation never draws a block that then moves.
+			headerPresent: typeof document !== 'undefined' && !!document.getElementById('header'),
+			// Set when CnBrandBar finds the header gone: the navigation draws the block.
+			headerMissing: false,
 			capabilitiesLoading: willCheck,
 			missingApps: [],
 			guardError: null,
@@ -2091,7 +2090,7 @@ export default {
 		},
 
 		/**
-		 * The brand the top bar draws: the `brand` prop, else the manifest's
+		 * The brand CnBrandBar draws in the header: the `brand` prop, else the manifest's
 		 * `nav.brand`, read into one shape.
 		 *
 		 * @return {object|null} The resolved brand, or null.
@@ -2101,14 +2100,17 @@ export default {
 		},
 
 		/**
-		 * Whether the top bar draws the brand block: the board look, a brand
-		 * that can be drawn, and a placement other than `nav`.
+		 * Whether CnBrandBar draws the brand block in Nextcloud's header: the
+		 * board look, a brand that can be drawn, a placement other than `nav`,
+		 * and a `#header` to put it in. Without `#header` the navigation draws it.
 		 *
-		 * @spec openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-board-look-draws-the-brand-block-in-an-app-top-bar
+		 * @spec openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-board-look-draws-the-brand-block-in-the-nextcloud-header
 		 * @return {boolean}
 		 */
-		brandInTopBar() {
+		brandInHeader() {
 			return this.resolvedLook === 'board'
+				&& !this.headerMissing
+				&& this.headerPresent
 				&& !!this.resolvedBrandBlock
 				&& this.resolvedBrandBlock.placement !== 'nav'
 		},

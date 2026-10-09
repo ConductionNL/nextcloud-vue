@@ -29,7 +29,7 @@ export function resolveBrand(declared, translate) {
 		caption: text(declared.caption),
 		alt: text(declared.alt),
 		// '' means "not declared": the caller decides the default from the look.
-		placement: declared.placement === 'nav' || declared.placement === 'top-bar' ? declared.placement : '',
+		placement: declared.placement === 'nav' || declared.placement === 'header' ? declared.placement : '',
 	}
 	return (brand.logo || brand.emblem || brand.name || brand.caption) ? brand : null
 }

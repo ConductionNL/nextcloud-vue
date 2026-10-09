@@ -329,8 +329,8 @@
 						},
 						"placement": {
 							"type": "string",
-							"enum": ["top-bar", "nav"],
-							"description": "Where the brand block is drawn (screens-brand-block-top-bar). Under `look: \"board\"` the default is `top-bar`: a 237px block at the start of an app top bar that CnAppRoot renders, so an app without CnAppNav has it too. `nav` keeps the block at the top of the app navigation. Ignored without the board look, where the navigation draws the block."
+							"enum": ["header", "nav"],
+							"description": "Where the brand block is drawn (screens-brand-block-top-bar). Under `look: \"board\"` the default is `header`: a 237px block at the start of Nextcloud's own header (#header), before the app menu, drawn by CnAppRoot; an app without CnAppNav has it too. Nextcloud offers no extension point there, so when `#header` is absent the block falls back to the navigation. `nav` keeps the block at the top of the app navigation. Ignored without the board look, where the navigation draws the block."
 						}
 					}
 				},

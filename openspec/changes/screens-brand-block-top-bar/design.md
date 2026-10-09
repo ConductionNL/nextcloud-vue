@@ -1,62 +1,61 @@
 # Design: screens-brand-block-top-bar
 
-## What an app can legally put in the Nextcloud top bar
+## Decision (Ruben, 9 Oct): inside Nextcloud's header
 
 Nextcloud draws `#header` itself: the app icons, the search, the user menu.
 Three ways to get the brand block "at the start of the top bar" were weighed.
 
-1. **A header slot.** Nextcloud exposes none for apps. There is no supported
-   extension point on `#header` for the app's own content.
-2. **Teleport into `#header`.** `<Teleport to="#header">` works today, but the
-   header is a Nextcloud-owned flex row with its own width rules, a fixed
-   50px height and per-version markup (the app menu moved between 28 and 33).
-   An app that puts nodes there depends on internals that change without
-   notice, and the block would collide with Nextcloud's app icons rather than
-   replace them. Not supported, so not chosen.
-3. **A bar that belongs to the app.** `CnAppRoot` renders a bar at the top of
-   the app's own region, inside `NcContent`, under Nextcloud's header. It is
-   ours to size, so it can be the screens' 68px bar.
+1. **A header slot.** Nextcloud exposes none for apps.
+2. **Put the block into `#header`.** Not a supported extension point, but it
+   is the only way to have the block IN the top bar the screens draw.
+3. **A bar of the app's own** under Nextcloud's header (inside `NcContent`).
+   Supported, but a second bar: the screens have one.
 
-**Chosen: 3.** It uses nothing Nextcloud does not support, it works the same
-on every Nextcloud version, and it exists without `CnAppNav`, which is what
-portaliq needs. The cost is a visible Nextcloud header above the bar (the
-programme rule already allows Nextcloud's full-width top bar as the one
-difference from the screens).
+**Chosen: 2**, by Ruben's decision. Option 3 was built first and replaced.
+
+### The risk, stated plainly
+
+`#header` is Nextcloud's markup and Nextcloud may change it in any release.
+Nothing guarantees the element exists, stays a flex row, or is not re-rendered.
+This can break on a Nextcloud update. The fallback limits the damage: the
+worst case is that the block is drawn in the navigation, as it was before this
+change, never that it is lost or that Nextcloud's header is damaged.
+
+### How it stays safe
+
+- It mounts only when `#header` exists (`CnAppRoot` checks once, at creation,
+  so the navigation never draws a block that then moves). With no `#header`
+  the navigation draws the block.
+- It adds exactly one node of its own, a host `div.cn-brand-bar-host`, as the
+  first child of the header (so left, before the app menu), and teleports the
+  block into it. It never moves, edits or removes a node Nextcloud drew.
+- It re-checks after Nextcloud re-renders: a `MutationObserver` on the header
+  and on its parent puts the SAME host back when it is dropped (never a second
+  one), and hands the block back to the navigation (`unavailable`) when the
+  header is gone for good.
+- On unmount it removes only its own host.
 
 ## Layout
 
-`NcContent` is a flex row (navigation, content). The bar cannot join that row
-as a sibling without wrapping it. Instead the bar is `position: absolute`
-across the top of the `NcContent` root, and the root takes
-`padding-top: var(--cn-board-topbar-height)` (default 68px) with
-`box-sizing: border-box`, so the navigation and the content start below it and
-keep their own heights. Both the bar and the padding exist only while the
-class `cn-app-root--brand-bar` is on the root, which requires the board look.
+The block is 237px wide including the divider: the brand link flexes, the
+divider (1px by 28px) ends the block. The header is 50px high; the block's
+content (emblem 34px, two text lines of 13px and 18px at line-height 1.15) fits
+inside it. Text colour is `--color-background-plain-text`, the colour Nextcloud
+uses on the header, so the block reads on any header background.
 
 ## Where the brand comes from
 
-The same declaration as before: `CnAppRoot`'s new `brand` prop, else
-`manifest.nav.brand` (`logo`, `emblem`, `name`, `caption`, `alt`). `name` is
-the app name (18px, bold); `caption` is the organisation (13px, muted), as the
-navigation block already reads them. The resolving code moves to
-`src/utils/resolveBrand.js` so the bar and `CnAppNav` read one shape.
+`CnAppRoot`'s `brand` prop, else `manifest.nav.brand` (`logo`, `emblem`,
+`name`, `caption`, `alt`). `name` is the app name (18px, bold); `caption` is
+the organisation (13px), as the navigation block already reads them. The
+resolving code is `src/utils/resolveBrand.js`, shared with `CnAppNav`.
 
 ## Default
 
-Under the board look the block belongs in the bar, because that is where the
-screens draw it, so the default placement is `top-bar`. An app that wants the
-old position sets `nav.brand.placement: "nav"`. Without the board look the
-placement is ignored and the navigation draws the block as before.
+Under the board look the default placement is `header`. `nav.brand.placement:
+"nav"` keeps the old position. Without the board look the placement is ignored.
 
-`CnAppRoot` provides `cnBrandInTopBar` (a boolean). `CnAppNav` injects it
+`CnAppRoot` provides `cnBrandInHeader` (a boolean). `CnAppNav` injects it
 (default `false`) and skips its brand block when it is true, so the block is
 never drawn twice and an app that wraps `CnAppNav` in its own `#menu` still
 gets the right result.
-
-## Risks
-
-- A host that already positions something at the top of `NcContent` collides
-  with the padding. The padding is one custom property, `--cn-board-topbar-height`,
-  which a theme or app can set to 0.
-- `z-index`: the bar is `1`, below Nextcloud's dialogs and the app sidebar's
-  overlay.

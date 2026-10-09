@@ -582,10 +582,10 @@ export default {
 		cnManifest: { default: null },
 		/**
 		 * Provided by CnAppRoot as true while the board look draws the brand
-		 * block in the app's top bar (screens-brand-block-top-bar): the
+		 * block in Nextcloud's header (screens-brand-block-top-bar): the
 		 * navigation then skips its own.
 		 */
-		cnBrandInTopBar: { default: false },
+		cnBrandInHeader: { default: false },
 		cnTranslate: { default: () => (key) => key },
 		/**
 		 * Provided by CnAppRoot — opens the host app's
@@ -823,7 +823,7 @@ export default {
 		 * @return {object|null}
 		 */
 		navBrand() {
-			return this.cnBrandInTopBar ? null : this.resolvedBrand
+			return this.cnBrandInHeader ? null : this.resolvedBrand
 		},
 
 		/**

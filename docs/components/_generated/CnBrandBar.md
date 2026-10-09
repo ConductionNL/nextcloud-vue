@@ -12,8 +12,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | ------- | ------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `brand` | `union` | ✓        | —       | The resolved brand: `{ logo, emblem, name, caption, alt }`. `emblem` is a URL, or `true` for the theme's `--nldesign-emblem-url`. |
 
-### Slots
+### Events
 
-| Name      | Bindings | Description                                                                             |
-| --------- | -------- | --------------------------------------------------------------------------------------- |
-| `default` | —        | default The app's own bar content after the divider (search, notifications, user menu). |
+| Name          | Payload | Description                                             |
+| ------------- | ------- | ------------------------------------------------------- |
+| `unavailable` | —       | Emitted when there is no `#header` to put the block in. |

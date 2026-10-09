@@ -9,23 +9,24 @@
 - **spec_ref**: `openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-an-app-can-keep-the-brand-block-in-the-navigation`
 - **files**: `src/utils/resolveBrand.js`, `src/schemas/app-manifest-v2.schema.json`, `tests/utils/resolveBrand.spec.js`
 - **acceptance_criteria**:
-  - `nav.brand.placement` validates as `top-bar` or `nav`; another value fails
+  - `nav.brand.placement` validates as `header` or `nav`; another value fails
   - The resolver returns the same shape `CnAppNav` read before
 - [x] Implement
 - [x] Test
 
-### Task 2: CnBrandBar and its place in CnAppRoot
-- **spec_ref**: `openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-board-look-draws-the-brand-block-in-an-app-top-bar`
-- **files**: `src/components/CnBrandBar/CnBrandBar.vue`, `src/components/CnAppRoot/CnAppRoot.vue`, `src/css/look-board.css`, `tests/components/CnBrandBar.spec.js`
+### Task 2: CnBrandBar in the Nextcloud header
+- **spec_ref**: `openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-board-look-draws-the-brand-block-in-the-nextcloud-header`
+- **files**: `src/components/CnBrandBar/CnBrandBar.vue`, `src/components/CnAppRoot/CnAppRoot.vue`, `tests/components/CnBrandBar.spec.js`
 - **acceptance_criteria**:
-  - The bar renders under the board look with a brand, not otherwise
-  - An app that replaces the navigation through `menu` still gets the bar
-  - `placement: "nav"` renders no bar
+  - The block mounts in `#header` under the board look with a brand, not otherwise
+  - An app that replaces the navigation through `menu` still gets the block
+  - `placement: "nav"` mounts nothing; no `#header` falls back to the navigation
+  - Nextcloud's own nodes are never touched; a re-render yields one block, not two
 - [x] Implement
 - [x] Test
 
 ### Task 3: The navigation steps aside
-- **spec_ref**: `openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-navigation-does-not-draw-a-brand-block-the-bar-already-draws`
+- **spec_ref**: `openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-navigation-does-not-draw-a-brand-block-the-header-already-draws`
 - **files**: `src/components/CnAppNav/CnAppNav.vue`, `tests/components/CnBrandBar.spec.js`
 - **acceptance_criteria**:
   - One brand block exists under the default placement
@@ -34,9 +35,9 @@
 - [x] Test
 
 ### Task 4: Sizes in a browser
-- **spec_ref**: `openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-board-look-draws-the-brand-block-in-an-app-top-bar`
+- **spec_ref**: `openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-board-look-draws-the-brand-block-in-the-nextcloud-header`
 - **files**: `e2e/screens-brand-block-top-bar.e2e.js`
 - **acceptance_criteria**:
-  - 237px block, 34px emblem, 68px bar measured
+  - 237px block and 34px emblem measured in a header
 - [ ] Implement
-- [ ] Test — not run: needs a running Nextcloud instance; the stylesheet contract is pinned by a unit test
+- [ ] Test — not run: needs a running Nextcloud instance (the real #header); the stylesheet contract is pinned by a unit test
