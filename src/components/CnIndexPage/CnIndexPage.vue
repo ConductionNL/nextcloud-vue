@@ -788,6 +788,7 @@
 					:selectable="selectable"
 					:clickToView="rowClickOpens"
 					:cardFields="resolvedCardFields"
+					:accentOf="cardAccent"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -1473,6 +1474,17 @@ export default {
 		 */
 		cardFields: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Gives each card in the card view a status accent: a colored start
+		 * border and icon. See CnObjectCard `accent`.
+		 *
+		 * @type {((object: object) => ({variant: string, icon: string, label: string}|null))|null}
+		 */
+		cardAccent: {
+			type: Function,
 			default: null,
 		},
 

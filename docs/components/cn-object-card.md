@@ -27,6 +27,7 @@ Schema-driven card for displaying an object's key information. Uses schema confi
 | `selectable` | Boolean | `false` | Show selection checkbox |
 | `clickToView` | Boolean | `false` | Body click on a selectable card emits `click` (navigation) instead of toggling selection — the checkbox stays the only selection surface (the card counterpart of a table's `rowClickToView`) |
 | `maxMetadata` | Number | `4` | Max metadata fields shown |
+| `accent` | Object | `null` | Status accent `{ variant, icon?, label? }`: a 4px start border in the `variant` color (`success`, `warning`, `error`, `info`, `primary`) and, with `icon` (a CnIcon name), a colored icon before the title. `label` is the icon's tooltip and accessible name. An unknown variant draws nothing. |
 
 ## Schema Configuration Keys
 
