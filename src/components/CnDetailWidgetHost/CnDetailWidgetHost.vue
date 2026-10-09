@@ -74,11 +74,11 @@
 			<template v-if="widget && widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
-			<NcEmptyContent class="cn-requires-app" :name="missingAppName" :description="missingAppDescription">
+			<CnEmptyContent class="cn-requires-app" :name="missingAppName" :description="missingAppDescription">
 				<template #icon>
 					<CnIcon :name="(widget && widget.icon) || 'PuzzleOutline'" :size="32" />
 				</template>
-			</NcEmptyContent>
+			</CnEmptyContent>
 		</CnWidgetWrapper>
 
 		<CnObjectDataWidget
@@ -234,11 +234,13 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcActionButton } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
+import CnObjectFilesWidget from '../CnObjectFilesWidget/CnObjectFilesWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -315,7 +317,7 @@ export default {
 		CnRelatedObjectsWidget,
 		CnWidgetWrapper,
 		NcActionButton,
-		NcEmptyContent,
+		CnEmptyContent,
 		Plus,
 	},
 
@@ -663,6 +665,12 @@ export default {
 		 * @return {object|null} The component, or null.
 		 */
 		renderer() {
+			// A `files` widget on a detail page belongs to THIS object's folder; the
+			// placement-folder CnFilesWidget stays the dashboard widget. A consumer
+			// registry entry for `files` still wins.
+			if (this.widget && this.widget.type === 'files' && !(this.cnRegistry && this.cnRegistry.files) && this.register && this.schema) {
+				return CnObjectFilesWidget
+			}
 			return resolveRegistryRenderer(this.widget, this.cnRegistry)
 		},
 

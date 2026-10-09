@@ -227,9 +227,12 @@ export function resolvePill(config, object) {
  * Resolve a tab's count.
  *
  * `count` (a number) wins. Otherwise `countField` is read off the record: a
- * list counts its items, a number is taken as is.
+ * list counts its items, a number is taken as is. A tab that declares neither
+ * takes what is new on it from `@self.unreadCounts[<unreadKey>]` (the key
+ * defaults to the tab's `id`, else its `widgetId`) when that is above 0;
+ * absent or 0 is no count.
  *
- * @param {{count?: number, countField?: string}|null} tab The tab declaration.
+ * @param {{count?: number, countField?: string, unreadKey?: string, id?: string, widgetId?: string}|null} tab The tab declaration.
  * @param {object|null} object The record.
  * @return {number|null} The count, or null when the tab declares none.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
@@ -242,7 +245,10 @@ export function resolveTabCount(tab, object) {
 		return tab.count
 	}
 	if (typeof tab.countField !== 'string' || tab.countField === '') {
-		return null
+		const counts = object && typeof object === 'object' && object['@self'] && object['@self'].unreadCounts
+		const key = tab.unreadKey || tab.id || tab.widgetId
+		const unread = counts && typeof counts === 'object' && typeof key === 'string' ? Number(counts[key]) : 0
+		return Number.isFinite(unread) && unread > 0 ? unread : null
 	}
 	const value = readPath(object && typeof object === 'object' ? object : {}, tab.countField)
 	if (Array.isArray(value)) {

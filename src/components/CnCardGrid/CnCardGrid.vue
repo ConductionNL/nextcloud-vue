@@ -8,16 +8,19 @@
 		<!-- Empty state -->
 		<div v-else-if="objects.length === 0" class="cn-card-grid__empty">
 			<slot name="empty">
-				<NcEmptyContent :name="resolvedEmptyText">
+				<CnEmptyContent :name="resolvedEmptyText">
 					<template #icon>
 						<ViewGrid :size="64" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</slot>
 		</div>
 
 		<!-- Card grid -->
-		<div v-else class="cn-card-grid__grid">
+		<div v-else
+			class="cn-card-grid__grid"
+			:class="{ 'cn-card-grid__grid--board': isBoardLook }"
+			:style="gridStyle">
 			<div
 				v-for="object in objects"
 				:key="object[rowKey]"
@@ -33,6 +36,10 @@
 						:selectable="selectable"
 						:clickToView="clickToView"
 						:selected="isSelected(object)"
+						:cardFields="cardFields"
+						:status="statusOf ? statusOf(object) : null"
+						:leading="leadingOf ? leadingOf(object) : null"
+						:footerAction="footerActionOf ? footerActionOf(object) : null"
 						v-on="cardListeners(object)">
 						<template v-if="$slots['card-actions']" #actions="{ object: obj }">
 							<slot name="card-actions" :object="obj" />
@@ -49,8 +56,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcLoadingIcon } from '@nextcloud/vue'
 import ViewGrid from 'vue-material-design-icons/ViewGrid.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { CnObjectCard } from '../CnObjectCard/index.js'
 
 /**
@@ -78,7 +87,7 @@ export default {
 
 	components: {
 		NcLoadingIcon,
-		NcEmptyContent,
+		CnEmptyContent,
 		ViewGrid,
 		CnObjectCard,
 	},
@@ -91,6 +100,8 @@ export default {
 		 * an identity function so an untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The look CnAppRoot provides; `board` lays the cards out on the board track. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -142,6 +153,35 @@ export default {
 			default: 'id',
 		},
 
+		/**
+		 * The property keys each card's facts list shows (manifest key
+		 * `config.cardFields`), passed through to CnObjectCard.
+		 *
+		 * @type {Array<string>}
+		 */
+		cardFields: {
+			type: Array,
+			default: null,
+		},
+
+		/** Board look: `(object) => status` for each card's status pill. See CnObjectCard `status`. */
+		statusOf: {
+			type: Function,
+			default: null,
+		},
+
+		/** Board look: `(object) => { initials | icon }` for each card's leading element. See CnObjectCard `leading`. */
+		leadingOf: {
+			type: Function,
+			default: null,
+		},
+
+		/** Board look: `(object) => { label, meta? }` for each card's footer action. See CnObjectCard `footerAction`. */
+		footerActionOf: {
+			type: Function,
+			default: null,
+		},
+
 		/** Text shown when there are no objects */
 		emptyText: {
 			type: String,
@@ -152,6 +192,34 @@ export default {
 	emits: ['click', 'select', 'aux-click'],
 
 	computed: {
+		/**
+		 * Whether the cards lie on the board look's track.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * Under the board look the grid is `minmax(var(--cn-card-grid-min,
+		 * 260px), 1fr)` with a `var(--cn-card-grid-gap, 16px)` gap, theme
+		 * hooks for both; without it the style is empty and the stylesheet's
+		 * 320px track stands.
+		 *
+		 * @spec openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-the-card-grid-takes-the-board-track
+		 * @return {object}
+		 */
+		gridStyle() {
+			if (!this.isBoardLook) {
+				return {}
+			}
+			return {
+				gridTemplateColumns: 'repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))',
+				gap: 'var(--cn-card-grid-gap, 16px)',
+			}
+		},
+
 		/**
 		 * The empty-state copy run through the host translate function.
 		 *

@@ -23,6 +23,8 @@
  * value, and the audit trail is read by people answering "who changed this".
  */
 
+import { translate as t } from '@nextcloud/l10n'
+
 /** How long a draft stays interesting, in milliseconds (7 days). */
 export const DRAFT_MAX_AGE_MS = (7 * 24 * 60 * 60 * 1000)
 
@@ -122,6 +124,34 @@ export function readDraft(key, { objectUpdated = '', now = Date.now() } = {}) {
 }
 
 /**
+ * What the draft indicator says: "Saving" while a local write is pending,
+ * "Saved just now" / "Saved 3 minutes ago" once it landed, nothing before that.
+ *
+ * @param {string} state `idle`, `saving` or `saved`.
+ * @param {number} [savedAt] When the last write landed, in epoch ms.
+ * @param {number} [now] The current epoch ms, for testing.
+ * @return {string} The text, or '' when it says nothing.
+ */
+export function draftIndicatorText(state, savedAt = 0, now = Date.now()) {
+	if (state === 'saving') {
+		return t('nextcloud-vue', 'Saving')
+	}
+	if (state !== 'saved') {
+		return ''
+	}
+	const minutes = Math.floor(Math.max(0, now - savedAt) / 60000)
+	if (!savedAt || minutes < 1) {
+		return t('nextcloud-vue', 'Saved just now')
+	}
+	try {
+		const relative = new Intl.RelativeTimeFormat(document.documentElement.lang || 'en', { numeric: 'auto' }).format(-minutes, 'minute')
+		return t('nextcloud-vue', 'Saved {time}', { time: relative })
+	} catch {
+		return t('nextcloud-vue', 'Saved')
+	}
+}
+
+/**
  * Write one draft.
  *
  * @param {string} key The storage key.
@@ -174,6 +204,8 @@ export function formDraftMixin() {
 				draftOffer: null,
 				/** 'idle' | 'saving' | 'saved' — what the indicator announces. */
 				draftState: 'idle',
+				/** When the last local write landed, in epoch ms. */
+				draftSavedAt: 0,
 				/** Non-reactive handle for the debounce. */
 				draftTimeout: null,
 				/**
@@ -217,7 +249,9 @@ export function formDraftMixin() {
 					// indicator that says Saved about a draft that is not
 					// stored is the whole class of defect this library has
 					// been paying down, in the one place a user is trusting it.
-					this.draftState = writeDraft(key, values) ? 'saved' : 'idle'
+					const stored = writeDraft(key, values)
+					this.draftState = stored ? 'saved' : 'idle'
+					this.draftSavedAt = stored ? Date.now() : 0
 				}, DRAFT_DEBOUNCE_MS)
 			},
 

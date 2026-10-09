@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="small"
 		:noClose="loading"
@@ -26,6 +31,9 @@
 			data-testid-phase="form">
 			<p v-if="description" class="cn-mass-export__description">
 				{{ description }}
+			</p>
+			<p v-if="scopeText" class="cn-mass-export__scope" data-testid="cn-mass-export-scope">
+				{{ scopeText }}
 			</p>
 
 			<div v-if="entities.length > 0" class="cn-mass-export__field">
@@ -67,13 +75,15 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import ExportIcon from 'vue-material-design-icons/Export.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnMassExportDialog — Export dialog with format selection.
@@ -111,7 +121,7 @@ export default {
 	name: 'CnMassExportDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
@@ -119,11 +129,19 @@ export default {
 		ExportIcon,
 	},
 
+	mixins: [dialogBoardMixin],
+
 	props: {
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Export objects'),
+		},
+
+		/** Which rows will be exported, with the count (e.g. "Export 12 selected rows"). Empty hides the line. */
+		scopeText: {
+			type: String,
+			default: '',
 		},
 
 		/** Description text shown above the format selector */

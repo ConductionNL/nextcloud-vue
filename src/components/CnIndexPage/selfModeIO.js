@@ -48,16 +48,20 @@ export function parseDispositionFilename(disposition, fallback) {
 }
 
 /**
- * @param {{ register: string, schema: string, format: string }} params The export
+ * @param {{ register: string, schema: string, format: string, ids?: Array<string|number>, query?: object }} params The export
  *   target: the OpenRegister `register` and `schema` slugs, plus the export
  *   `format` (`'csv'`, `'excel'`, …) sent as the `type` query parameter. `'excel'`
- *   is the only format whose downloaded extension differs (`xlsx`).
+ *   is the only format whose downloaded extension differs (`xlsx`). With `ids`
+ *   only those rows are exported; otherwise `query` (the list's own query,
+ *   paging dropped) narrows the export to the rows the list matches.
  * @return {Promise<void>} Resolves once the browser download has been triggered;
  *   rejects when the server responds non-2xx.
  */
-export async function runSelfExportRequest({ register, schema, format }) {
+export async function runSelfExportRequest({ register, schema, format, ids, query }) {
 	const base = `/apps/openregister/api/objects/${register}/${schema}/export`
-	const url = prefixUrl(base) + buildQueryString({ type: format })
+	const { _limit, _page, ...rest } = query || {}
+	const params = Array.isArray(ids) && ids.length > 0 ? { type: format, ids } : { ...rest, type: format }
+	const url = prefixUrl(base) + buildQueryString(params)
 	const response = await fetch(url, { method: 'GET', headers: buildHeaders() })
 	if (!response.ok) {
 		throw new Error(`Export failed (${response.status})`)

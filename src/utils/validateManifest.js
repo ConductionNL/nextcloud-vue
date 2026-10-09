@@ -146,6 +146,20 @@ export function validateManifestV2(manifest) {
 
 	// --- Post-schema checks ---
 
+	// 0. i18n (manifest-i18n-labels): labels only for declared languages, and the
+	//    source language is not one of the languages translated into.
+	if (clone.i18n && typeof clone.i18n === 'object' && Array.isArray(clone.i18n.languages)) {
+		const declared = new Set(clone.i18n.languages)
+		if (declared.has(clone.i18n.sourceLanguage)) {
+			errors.push(`i18n/sourceLanguage: "${clone.i18n.sourceLanguage}" is the source language and must not also be in languages`)
+		}
+		for (const lang of Object.keys(clone.i18n.labels || {})) {
+			if (!declared.has(lang)) {
+				errors.push(`i18n/labels/${lang}: language "${lang}" is not declared in i18n.languages`)
+			}
+		}
+	}
+
 	// 1. pages[].id uniqueness
 	if (Array.isArray(clone.pages)) {
 		const seenIds = new Set()
@@ -633,6 +647,8 @@ export function validateManifestV2(manifest) {
 				return
 			}
 			const pathBase = `/pages/${pIndex}/config`
+
+			validateSmartPaste(config, pathBase, errors)
 
 			const fieldList = Array.isArray(config.fields) ? config.fields : []
 			const declaredKeys = new Set(fieldList
@@ -1335,6 +1351,7 @@ function validateTypeConfig(page, index, errors) {
 			}
 
 			validateConfigMode(cfg, pathSlash, pathBracket, errors)
+			validateSmartPaste(cfg, pathSlash, errors)
 			break
 		}
 		case 'map': {
@@ -1343,7 +1360,7 @@ function validateTypeConfig(page, index, errors) {
 		// entries MUST have a closed-enum `type` and (except inline
 		// geojson) a non-empty `url`; `markers.dataSource` MUST
 		// declare exactly one of `url` OR `register + schema`.
-			const allowedLayerTypes = ['tile', 'wms', 'wfs', 'geojson']
+			const allowedLayerTypes = ['tile', 'wms', 'wfs', 'geojson', 'image']
 			const center = cfg && cfg.center
 			const validCenter = Array.isArray(center)
 				&& center.length === 2
@@ -1365,7 +1382,15 @@ function validateTypeConfig(page, index, errors) {
 							return
 						}
 						if (!allowedLayerTypes.includes(layer.type)) {
-							errors.push(`${lPath}/type: must be one of tile | wms | wfs | geojson`)
+							errors.push(`${lPath}/type: must be one of tile | wms | wfs | geojson | image`)
+						}
+						if (layer.type === 'image') {
+							// map-image-layer: a picture needs its pixel size.
+							for (const dim of ['width', 'height']) {
+								if (typeof layer[dim] !== 'number' || !(layer[dim] > 0)) {
+									errors.push(`${lPath}/${dim}: an image layer needs a ${dim} in pixels (a positive number)`)
+								}
+							}
 						}
 						const hasUrl = typeof layer.url === 'string' && layer.url.length > 0
 						const hasInlineGeojson = layer.type === 'geojson'
@@ -1776,6 +1801,46 @@ function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
  * the schema's `pattern` on the `handler` property.
  */
 const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
+
+/**
+ * Validate `config.smartPaste` on a form page (form-smart-paste).
+ *
+ * Every `fields` entry must name a declared `config.fields[].key`; `enabled`
+ * needs a non-empty `handler` and a page that is not `public` (an unset
+ * `mode` is `public`, as `CnFormPage` defaults it).
+ *
+ * @param {object} cfg The page's `config` block.
+ * @param {string} pathSlash JSON-pointer-style path prefix of the config.
+ * @param {string[]} errors Accumulator.
+ */
+function validateSmartPaste(cfg, pathSlash, errors) {
+	const sp = cfg && cfg.smartPaste
+	if (sp === undefined) {
+		return
+	}
+	if (!isPlainObject(sp)) {
+		errors.push(`${pathSlash}/smartPaste: must be an object`)
+		return
+	}
+	const declared = new Set((Array.isArray(cfg.fields) ? cfg.fields : []).filter((f) => f && typeof f.key === 'string').map((f) => f.key))
+	if (!Array.isArray(sp.fields) || sp.fields.length === 0) {
+		errors.push(`${pathSlash}/smartPaste/fields: must list at least one field key`)
+	} else {
+		sp.fields.forEach((key, index) => {
+			if (typeof key !== 'string' || !declared.has(key)) {
+				errors.push(`${pathSlash}/smartPaste/fields[${index}]: "${key}" does not match any declared config.fields[].key`)
+			}
+		})
+	}
+	if (sp.enabled === true) {
+		if (typeof sp.handler !== 'string' || sp.handler.length === 0) {
+			errors.push(`${pathSlash}/smartPaste/handler: required, must be a non-empty string when enabled is true`)
+		}
+		if (cfg.mode === undefined || cfg.mode === 'public') {
+			errors.push(`${pathSlash}/smartPaste/enabled: smart paste cannot be enabled on a public form; set mode to "edit" or "create"`)
+		}
+	}
+}
 
 /**
  * Validate `config.actions[]` for index page type
@@ -2318,6 +2383,14 @@ function validateFieldsArray(fields, fieldsPath, errors, allowedTypes = FORM_FIE
 			errors.push(`${fieldPath}/type: must be a non-empty string`)
 		} else if (!allowedTypes.includes(field.type)) {
 			errors.push(`${fieldPath}/type: must be one of ${allowedTypes.join(', ')}`)
+		}
+		if (field.type === 'file') {
+			if (field.multiple !== undefined && typeof field.multiple !== 'boolean') {
+				errors.push(`${fieldPath}/multiple: must be a boolean`)
+			}
+			if (field.capture !== undefined && field.capture !== 'environment' && field.capture !== 'user') {
+				errors.push(`${fieldPath}/capture: must be one of environment, user`)
+			}
 		}
 	})
 }

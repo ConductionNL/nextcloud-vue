@@ -91,3 +91,6 @@ export default {
 | `retryButtonText` | String | `'Retry'` | Label for the retry button |
 | `empty` | Boolean | `false` | Show the empty state instead of the default slot content |
 | `emptyMessage` | String | `'No data available'` | Message shown in the empty state |
+
+
+`wide` is documented in the prop table of the component reference (board look, screens-chrome-parity).

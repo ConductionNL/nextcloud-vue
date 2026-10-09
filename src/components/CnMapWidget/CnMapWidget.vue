@@ -56,6 +56,9 @@
 				</p>
 			</slot>
 		</div>
+		<p v-if="unplottedCount > 0" class="cn-map-widget__note" data-testid="cn-map-unplotted">
+			{{ unplottedLabel }}
+		</p>
 		<div v-if="$slots.legend || $slots.legend" class="cn-map-widget__legend">
 			<!--
 				@slot legend
@@ -74,7 +77,9 @@ import DOMPurify from 'dompurify'
 import { objectToGeoFeature } from '../../utils/geo.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { objectDisplayName } from '../../utils/objectName.js'
+import { safeHref } from '../../utils/safeHref.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
+import { fromImagePoint, hasImagePosition, imageBounds, paddedImageBounds, toImagePoint } from './imageCoordinates.js'
 
 // Leaflet's own stylesheet positions the map panes, tiles the tile
 // images, and places the zoom/attribution controls. The JS is lazy-loaded
@@ -91,7 +96,7 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
-const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
+const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson', 'image']
 
 // Raw input on the map container, which is what tells a user's pan or zoom from
 // ours. Leaflet's own `movestart` / `zoomstart` fire for `fitBounds` too, so
@@ -236,8 +241,10 @@ export default {
 		},
 
 		/**
-		 * Layer definitions. Each entry: `{ type: 'tile'|'wms'|'wfs'|'geojson', url, options }`.
+		 * Layer definitions. Each entry: `{ type: 'tile'|'wms'|'wfs'|'geojson'|'image', url, options }`.
 		 * `geojson` MAY supply inline `data` (FeatureCollection) instead of `url`.
+		 * `image` is `{ type: 'image', url, width, height }`: the map becomes a picture in flat
+		 * pixel coordinates ((0, 0) top left); other layers beside it are skipped.
 		 * Unknown types log a console.warn and are skipped.
 		 *
 		 * @type {Array<object>}
@@ -248,8 +255,10 @@ export default {
 		},
 
 		/**
-		 * Marker config. `{ features?, dataSource?, latField?, lngField?, popupField?,
-		 * clustering?, iconColor?, iconUrl?, centerMarker? }`. `features[]` is inline;
+		 * Marker config. `{ features?, dataSource?, latField?, lngField?, xField?, yField?,
+		 * popupField?, clustering?, iconColor?, iconUrl?, centerMarker? }`. On an image map
+		 * (a layer of type `image`) markers read `xField` / `yField` (default `x` / `y`,
+		 * pixels from the picture's top left) instead of `latField` / `lngField`. `features[]` is inline;
 		 * `dataSource.url` is HTTP-fetched on mount; `dataSource.{register, schema}`
 		 * plots the objects of an OpenRegister register/schema via their `@self.geo`.
 		 * `centerMarker: true` adds an extra pin at the map's `center`, alongside any
@@ -414,6 +423,8 @@ export default {
 			clusterGroup: null,
 			leafletAvailable: true,
 			boundsTimer: null,
+			// Rows of an image map with no usable x and y, counted in a note.
+			unplottedCount: 0,
 			// Set once the user has framed the view themselves; stops autoFit.
 			userFramedView: false,
 			// A raw gesture has been seen; the next real view change is theirs.
@@ -454,6 +465,24 @@ export default {
 				autoFit: typeof c.autoFit === 'boolean' ? c.autoFit : p.autoFit,
 				basemaps: Array.isArray(c.basemaps) ? c.basemaps : p.basemaps,
 			}
+		},
+
+		/**
+		 * The image layer, when the map is a picture: the first `image` layer with
+		 * a safe URL and a positive width and height. Null for a geographic map.
+		 *
+		 * @return {{url: string, width: number, height: number}|null}
+		 */
+		imageLayer() {
+			const def = (this.cfg.layers || []).find((l) => l && l.type === 'image')
+			if (!def || safeHref(def.url) === '#' || !(def.width > 0) || !(def.height > 0)) {
+				return null
+			}
+			return { url: safeHref(def.url), width: Number(def.width), height: Number(def.height) }
+		},
+
+		unplottedLabel() {
+			return t('nextcloud-vue', '{count} places have no position', { count: this.unplottedCount })
 		},
 
 		resolvedHeight() {
@@ -554,12 +583,29 @@ export default {
 		 */
 		initMap() {
 			const L = this.L
-			this.map = L.map(this.$refs.mapEl, {
-				center: this.cfg.center,
-				zoom: this.cfg.zoom,
-				zoomControl: true,
-				attributionControl: true,
-			})
+			const image = this.imageLayer
+			// A picture is not the earth: flat pixel coordinates, (0, 0) at the
+			// top left, and a view that cannot be dragged far off the picture.
+			const mapOptions = image
+				? {
+						crs: L.CRS && L.CRS.Simple,
+						center: [-image.height / 2, image.width / 2],
+						zoom: 0,
+						minZoom: -5,
+						maxZoom: 2,
+						zoomSnap: 0.25,
+						maxBounds: paddedImageBounds(image.width, image.height),
+						maxBoundsViscosity: 1,
+						zoomControl: true,
+						attributionControl: true,
+					}
+				: {
+						center: this.cfg.center,
+						zoom: this.cfg.zoom,
+						zoomControl: true,
+						attributionControl: true,
+					}
+			this.map = L.map(this.$refs.mapEl, mapOptions)
 
 			// Capture, because Leaflet stops propagation on its own handles.
 			if (this.$refs.mapEl) {
@@ -576,9 +622,9 @@ export default {
 				 * Map background click event. Fired when the user clicks the map outside any marker.
 				 *
 				 * @event click
-				 * @type {{lat: number, lng: number}}
+				 * @type {{lat: number, lng: number}|{x: number, y: number}} `{ lat, lng }` on a geographic map, `{ x, y }` in the picture's whole pixels on an image map.
 				 */
-				this.$emit('click', { lat: e.latlng.lat, lng: e.latlng.lng })
+				this.$emit('click', this.imageLayer ? fromImagePoint(e.latlng, this.imageLayer) : { lat: e.latlng.lat, lng: e.latlng.lng })
 			})
 
 			this.map.on('moveend', () => {
@@ -664,10 +710,22 @@ export default {
 				this.layersControl = null
 			}
 
+			const image = this.imageLayer
+			if (image) {
+				this.renderImageLayer(image)
+				return
+			}
+
 			this.renderBasemaps()
 
 			for (const def of this.cfg.layers) {
 				if (!def || typeof def !== 'object') {
+					continue
+				}
+				if (def.type === 'image') {
+					// Unusable image layer (no safe url, or no width/height).
+					// eslint-disable-next-line no-console
+					console.warn('[CnMapWidget] Image layer needs a url, width and height; skipping.')
 					continue
 				}
 				if (!ALLOWED_LAYER_TYPES.includes(def.type)) {
@@ -710,6 +768,39 @@ export default {
 				if (instance) {
 					instance.addTo(this.map)
 					this.layerInstances.push(instance)
+				}
+			}
+		},
+
+		/**
+		 * Show the picture: an image overlay on the flat bounds, fitted on open.
+		 * Any other layer beside it is skipped with a warning (one picture per map).
+		 *
+		 * @param {{url: string, width: number, height: number}} image The image layer.
+		 */
+		renderImageLayer(image) {
+			const L = this.L
+			for (const def of this.cfg.layers) {
+				if (def && typeof def === 'object' && def.type !== 'image') {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnMapWidget] Layer type "${def.type}" is skipped on an image map.`)
+				}
+			}
+			const bounds = imageBounds(image.width, image.height)
+			const overlay = L.imageOverlay(image.url, bounds)
+			overlay.addTo(this.map)
+			this.layerInstances.push(overlay)
+			this.map.fitBounds(bounds)
+			// The whole picture is the furthest out; four times native size the furthest in.
+			if (typeof this.map.getBoundsZoom === 'function') {
+				const fit = this.map.getBoundsZoom(bounds)
+				if (Number.isFinite(fit)) {
+					if (typeof this.map.setMinZoom === 'function') {
+						this.map.setMinZoom(fit)
+					}
+					if (typeof this.map.setMaxZoom === 'function') {
+						this.map.setMaxZoom(Math.max(2, fit))
+					}
 				}
 			}
 		},
@@ -761,6 +852,9 @@ export default {
 				this.clusterGroup = null
 			}
 
+			if (!this.imageLayer) {
+				this.unplottedCount = 0
+			}
 			const features = await this.collectFeatures()
 			if (!features || features.length === 0) {
 				return
@@ -890,7 +984,7 @@ export default {
 			// whatever the user had panned or zoomed to. Their framing wins from
 			// the moment they touch the map; the Fit all markers control brings
 			// this one back on request.
-			if (this.cfg.autoFit && !this.userFramedView) {
+			if (this.cfg.autoFit && !this.userFramedView && !this.imageLayer) {
 				// Wait a tick so the container has its final box — fill-height layouts
 				// and the hidden→visible view toggle both settle after render.
 				// fitToMarkers() then measures before it fits.
@@ -1042,6 +1136,12 @@ export default {
 			if (!this.map) {
 				return
 			}
+			if (this.imageLayer) {
+				// On a picture, "fit" is the whole picture.
+				this.refreshMapSize()
+				this.map.fitBounds(imageBounds(this.imageLayer.width, this.imageLayer.height))
+				return
+			}
 			const target = this.clusterGroup || this.markerLayer
 			if (!target) {
 				return
@@ -1101,6 +1201,9 @@ export default {
 			if (!this.cfg.markers) {
 				return []
 			}
+			if (this.imageLayer) {
+				return this.imageFeatures(await this.collectSourceRows())
+			}
 			let features = await this.collectSourceFeatures()
 			// Optional pin at the configured centre, plotted alongside the object
 			// markers (`markers.centerMarker`). Spread into a new array so an inline
@@ -1111,6 +1214,69 @@ export default {
 					features = [...features, centre]
 				}
 			}
+			return features
+		},
+
+		/**
+		 * The rows behind an image map's markers: inline features' properties, a
+		 * fetched `dataSource.url` (rows, or a FeatureCollection's properties) or an
+		 * OpenRegister `dataSource.{register, schema}`.
+		 *
+		 * @return {Promise<Array<object>>} The rows.
+		 */
+		async collectSourceRows() {
+			const m = this.cfg.markers
+			const fromFeatures = (list) => (Array.isArray(list) ? list.map((f) => (f && f.properties ? f.properties : f)) : [])
+			if (Array.isArray(m.features)) {
+				return fromFeatures(m.features)
+			}
+			const ds = m.dataSource
+			if (!ds) {
+				return []
+			}
+			try {
+				if (typeof ds.url === 'string' && ds.url.length > 0) {
+					const json = await (await fetch(prefixUrl(ds.url))).json()
+					return Array.isArray(json) ? json : fromFeatures(json && json.features)
+				}
+				if (ds.register && ds.schema) {
+					const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+					const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: ds.register, schema: ds.schema })
+					const res = await axios.get(url, { params: { _limit: ds.limit || 500 } })
+					return (res && res.data && res.data.results) || []
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnMapWidget] Failed to load markers', ds, err)
+			}
+			return []
+		},
+
+		/**
+		 * Place rows on the picture by `xField` / `yField` (default `x` / `y`).
+		 * A row without both numbers is not plotted and is counted in the note.
+		 *
+		 * @param {Array<object>} rows The rows.
+		 * @return {Array<object>} GeoJSON Point features in the flat coordinates.
+		 */
+		imageFeatures(rows) {
+			const xField = (this.cfg.markers && this.cfg.markers.xField) || 'x'
+			const yField = (this.cfg.markers && this.cfg.markers.yField) || 'y'
+			const features = []
+			let skipped = 0
+			for (const row of rows) {
+				if (!hasImagePosition(row, xField, yField)) {
+					skipped += 1
+					continue
+				}
+				const point = toImagePoint(row[xField], row[yField])
+				features.push({
+					type: 'Feature',
+					geometry: { type: 'Point', coordinates: [point.lng, point.lat] },
+					properties: { ...row },
+				})
+			}
+			this.unplottedCount = skipped
 			return features
 		},
 
@@ -1250,6 +1416,12 @@ export default {
 	/* Leaflet paints its container #ddd, which reads as a white flash before the
 	   tiles arrive — and a bright one in a dark theme. */
 	background: var(--color-background-dark);
+}
+
+.cn-map-widget__note {
+	margin: 4px 0 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-map-widget__fallback {

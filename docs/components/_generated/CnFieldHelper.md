@@ -8,8 +8,10 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name    | Type     | Required | Default | Description                                                       |
-| ------- | -------- | -------- | ------- | ----------------------------------------------------------------- |
-| `text`  | `string` |          | `''`    | Inline helper text (a field's short description).                 |
-| `more`  | `string` |          | `''`    | Full description, shown in the popover. Empty → no info button.   |
-| `error` | `string` |          | `''`    | Validation error; replaces the helper text and hides the popover. |
+| Name    | Type     | Required | Default | Description                                                                                                                      |
+| ------- | -------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `text`  | `string` |          | `''`    | Inline helper text (a field's short description).                                                                                |
+| `more`  | `string` |          | `''`    | Full description, shown in the popover. Empty and no `help` → no info button.                                                    |
+| `help`  | `string` |          | `''`    | A schema property's `x-help` explanation, opened in place by the info button; shown before `more` unless they are the same text. |
+| `label` | `string` |          | `''`    | The field's label; names the button "About \{label\}" for screen readers.                                                        |
+| `error` | `string` |          | `''`    | Validation error; replaces the helper text. The info button stays available beside it.                                           |

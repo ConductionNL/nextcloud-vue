@@ -38,6 +38,7 @@
  * @property {string} displayName Human-readable type name shown in the type picker.
  * @property {string} icon Material Design icon name used in the type picker.
  * @property {string[]} [surfaces] Surfaces this type may be added on (e.g. `['app-dashboard']`, `['detail-page']`). Omitted means the default dashboard surfaces. A detail-only widget (like `data`) sets `['detail-page']` so it never appears in the dashboard Add-widget picker.
+ * @property {boolean} [public] Whether a PUBLIC host (an anonymous visitor at a public origin, such as the portal) may mount this widget. Default `false`, and `registerDashboardWidget()` records it: a widget author opts in deliberately. A non-boolean value is refused.
  * @property {{graphql?: string[]}} [requires] Soft runtime-source hint for cross-app widgets — names the sibling-app schemas the widget reads. NEVER a `manifest.dependencies` entry.
  */
 
@@ -65,6 +66,19 @@ export const dashboardWidgetRegistry = {}
 export function registerDashboardWidget(type, entry) {
 	if (typeof type !== 'string' || type === '') {
 		return
+	}
+	// Default closed: an anonymous visitor may only ever see a widget whose
+	// author said so. Refuse, rather than coerce, a value that is not a boolean:
+	// "yes" must not quietly become true, or false.
+	if (entry && entry.public !== undefined && typeof entry.public !== 'boolean') {
+		throw new TypeError(`[dashboardWidgetRegistry] widget type "${type}": \`public\` must be a boolean, got ${typeof entry.public}.`)
+	}
+	if (entry && entry.public === undefined) {
+		if (Object.isExtensible(entry)) {
+			entry.public = false
+		} else {
+			entry = { ...entry, public: false }
+		}
 	}
 	const isOverride = Object.hasOwn(dashboardWidgetRegistry, type)
 	// Read through `globalThis` rather than a bare `process`: this module is
@@ -156,6 +170,18 @@ export function userWidgetPresets(config) {
 	}
 
 	return presets
+}
+
+/**
+ * Whether a widget type may be mounted by a public host. False for an unknown
+ * type: the decision and the lookup are one thing.
+ *
+ * @param {string} type the widget type key.
+ * @return {boolean} true only for a registered entry with `public: true`.
+ */
+export function isPublicWidgetType(type) {
+	const entry = dashboardWidgetRegistry[type]
+	return Boolean(entry) && entry.public === true
 }
 
 /**

@@ -753,7 +753,7 @@ export default {
    `!important` beats the `button-vue--tertiary` transparent default. */
 .cn-buildiq-edit__actions :deep(.button-vue),
 .cn-buildiq-edit__actions :deep(.action-item__menutoggle) {
-	background-color: var(--c-orange-knvb, #f36c21) !important;
+	background-color: var(--cn-buildiq-color, var(--c-orange-knvb, #f36c21)) !important;
 	color: #fff !important;
 	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
 }

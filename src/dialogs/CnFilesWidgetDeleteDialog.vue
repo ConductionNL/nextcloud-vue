@@ -7,7 +7,12 @@
   the user confirms the deletion. The parent owns the actual delete request.
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="confirm"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:open="open"
 		:name="t('nextcloud-vue', 'Delete file')"
 		size="small"
@@ -25,20 +30,24 @@
 				{{ t('nextcloud-vue', 'Delete') }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog } from '@nextcloud/vue'
+import { NcButton } from '@nextcloud/vue'
+import CnDialog from '../components/CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../mixins/dialogBoard.js'
 
 export default {
 	name: 'CnFilesWidgetDeleteDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** Whether the dialog is open. */

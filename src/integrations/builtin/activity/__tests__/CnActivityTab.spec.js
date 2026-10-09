@@ -20,6 +20,7 @@ const { flushPromises, mount } = require('@vue/test-utils')
 const CnActivityTab = require('../CnActivityTab.vue').default
 
 const DEFAULT_PROPS = {
+	legacyFeed: true,
 	objectId: 'obj-1',
 	register: 'reg',
 	schema: 'schema',

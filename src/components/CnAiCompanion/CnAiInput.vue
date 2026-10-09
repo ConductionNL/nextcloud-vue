@@ -6,7 +6,10 @@
   - Disabled prop disables both controls; send button shows NcLoadingIcon.
   - Send button disabled when the textarea is empty/whitespace-only AND no
     attachment has been added (an attachment-only send is allowed).
-  - Attach button (paperclip) opens a hidden file input. The picked file is
+  - Attach button (paperclip) is a menu: Upload from device opens a hidden
+    file input; Choose from Files opens the Nextcloud file picker and adds the
+    chosen files as chips carrying `{ fileId, path, name }`, sent by id with no
+    upload. On the device path the picked file is
     uploaded immediately as multipart/form-data (field `file`) to the chat
     backend's attachments endpoint (see composables/aiChatConfig.js
     `attachmentsUrl()`), which text-decodes and stores it, returning
@@ -41,7 +44,7 @@
 			data-testid="cn-ai-input-chips">
 			<li
 				v-for="(attachment, index) in attachments"
-				:key="attachment.path"
+				:key="attachment.fileId !== undefined ? 'f' + attachment.fileId : attachment.path"
 				class="cn-ai-input__chip">
 				<Paperclip :size="14" class="cn-ai-input__chip-icon" />
 				<span class="cn-ai-input__chip-name">{{ attachment.name }}</span>
@@ -148,20 +151,37 @@
 					v-else
 					:size="20" />
 			</button>
-			<button
-				class="cn-ai-input__attach-button"
-				type="button"
+			<!-- The paperclip is a small menu: upload from the device (the
+			     hidden file input below) or choose files already in Files. -->
+			<NcActions
+				class="cn-ai-input__attach-menu"
 				:aria-label="cnTranslate('Attach file')"
 				:disabled="disabled || uploading"
-				data-testid="cn-ai-input-attach"
-				@click="openFilePicker">
-				<NcLoadingIcon
-					v-if="uploading"
-					:size="20" />
-				<Paperclip
-					v-else
-					:size="20" />
-			</button>
+				:forceMenu="true"
+				data-testid="cn-ai-input-attach">
+				<template #icon>
+					<NcLoadingIcon v-if="uploading" :size="20" />
+					<Paperclip v-else :size="20" />
+				</template>
+				<NcActionButton
+					:closeAfterClick="true"
+					data-testid="cn-ai-input-attach-upload"
+					@click="openFilePicker">
+					<template #icon>
+						<Upload :size="20" />
+					</template>
+					{{ cnTranslate('Upload from device') }}
+				</NcActionButton>
+				<NcActionButton
+					:closeAfterClick="true"
+					data-testid="cn-ai-input-attach-files"
+					@click="chooseFromFiles">
+					<template #icon>
+						<FolderOutline :size="20" />
+					</template>
+					{{ cnTranslate('Choose from Files') }}
+				</NcActionButton>
+			</NcActions>
 			<!-- `:ref`, not `ref` — a fully static input with a cached handler
 			     is hoisted to module scope, and a hoisted vnode's ref has no
 			     owner, which throws in production builds where Vue's guard is
@@ -204,14 +224,17 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { FilePickerType, getFilePickerBuilder } from '@nextcloud/dialogs'
+import { NcActionButton, NcActions, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import Headset from 'vue-material-design-icons/Headset.vue'
 import HeadsetOff from 'vue-material-design-icons/HeadsetOff.vue'
 import MicrophoneIcon from 'vue-material-design-icons/Microphone.vue'
 import MicrophoneOutline from 'vue-material-design-icons/MicrophoneOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Send from 'vue-material-design-icons/Send.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 import { attachmentsUrl, DEFAULT_CHAT_APP_ID, speechTranscriptionsUrl } from '../../composables/aiChatConfig.js'
 import { createLocalDictation } from '../../composables/aiLocalDictation.js'
 import {
@@ -230,6 +253,10 @@ export default {
 	name: 'CnAiInput',
 
 	components: {
+		NcActionButton,
+		NcActions,
+		FolderOutline,
+		Upload,
 		NcLoadingIcon,
 		NcNoteCard,
 		Send,
@@ -1016,6 +1043,40 @@ export default {
 		},
 
 		/**
+		 * Pick files already in Nextcloud Files and add each as a chip carrying
+		 * its file id; they are sent by id and never uploaded. A dismissed
+		 * picker (which rejects in some dialog versions) is a no-op.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async chooseFromFiles() {
+			if (this.disabled || this.uploading) {
+				return
+			}
+			this.uploadError = ''
+			try {
+				const picker = getFilePickerBuilder(this.cnTranslate('Choose from Files'))
+					.setMultiSelect(true)
+					.setType(FilePickerType.Choose)
+					.allowDirectories(false)
+					.setModal(true)
+					.build()
+				const nodes = await picker.pickNodes()
+				for (const node of (Array.isArray(nodes) ? nodes : [])) {
+					const fileId = node.fileid ?? node.attributes?.fileid
+					const path = node.path || ''
+					if (fileId === null || fileId === undefined || this.attachments.some((a) => a.fileId === fileId)) {
+						continue
+					}
+					this.attachments.push({ fileId, path, name: node.basename || path.split('/').pop() })
+				}
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.debug('[CnAiInput] file picker closed', e)
+			}
+		},
+
+		/**
 		 * Remove a pending attachment chip before it's sent.
 		 *
 		 * @param {number} index Index into `attachments`.
@@ -1200,6 +1261,10 @@ export default {
 	border-color: var(--color-primary-element);
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text, #fff);
+}
+
+.cn-ai-input__attach-menu {
+	flex: 0 0 auto;
 }
 
 .cn-ai-input__attach-button {

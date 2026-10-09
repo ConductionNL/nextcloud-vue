@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.53.0', () => {
+	it('the manifest schema version reads 2.72.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1336,9 +1336,25 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// breadcrumb.separator, showWidgetActions on a detail page, the index
 		// keys showTitleIcon, showCount and headerButtons, the dashboard key
 		// gridFloat, a widget placement's showButtons, and `inset` on the
-		// week-strip and stacked-bar content. 2.53.0 adds `setup.dismissAction`.
+		// week-strip and stacked-bar content. 2.53.0 adds `setup.dismissAction`; 2.54.0 adds the index key `searchInFiles`; 2.55.0 adds the detail key `headerFields`.
+		// 2.56.0 adds the detail keys favourite and follow and the index keys showFavouriteColumn and personalLenses.
+		// 2.57.0 adds the detail key markRead and the personalLenses value unread.
+		// 2.58.0 types visibleWhen on a tab entry of the tabs widget.
+		// 2.59.0 types the detail key lifecycleActions and its inputs hints.
+		// 2.60.0 types the form key smartPaste.
+		// 2.61.0 types the index key calendar.
+		// 2.62.0 types the map image layer and the xField and yField marker keys.
+		// 2.63.0 types the form field keys assign, default and calculate, and the @answer token.
+		// 2.64.0 types the index key personalColumns.
+		// 2.65.0 types the index key copy and its include kinds.
+		// 2.66.0 adds the top-level i18n block.
+		// 2.67.0 adds the root look and the page config.look (board look).
+		// 2.68.0 adds menu counterVariant and the settings page saveMode and autosave.
+		// 2.69.0 adds the detail page keys headerMeta, tabsLabel and identifierField.
+		// 2.71.0 adds the dashboard config.kpiRow and the board keys card, colorField, sumField, sumFormat and columnLimit.
+		// 2.72.0 adds the index keys countText, footerNote, bulkHint and cardFields, and the header button action actions-menu (screens-index-list-parity, screens-card-parity).
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.53.0')
+		expect(schema.version).toBe('2.72.0')
 	})
 
 	it('accepts page views on a dashboard and a detail page, and refuses a view without an id or label', () => {

@@ -163,6 +163,8 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `''` | Confirm button label. Defaults to `'Create'` or `'Save'` depending on mode. |
+| `feedback` | `true` | Toast the write: "Saved {title}" on success, the server's message on failure. `false` suppresses the toasts only. |
+| `confirmDisabled` | `false` | Keep the Confirm button disabled regardless of the form state. |
 
 ## Fields the data decides
 
@@ -315,3 +317,7 @@ silently hiding a user-facing input.
 | Prop | Default | Description |
 |---|---|---|
 | `referenceContext` (`reference-context`) | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for fields that declare a `referenceType`. Optional. |
+
+## Board look
+
+The `optionalLabel` prop sets the word in "(optional)" after an optional field label. Required fields carry no asterisk in the board look.

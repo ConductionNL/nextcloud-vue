@@ -32,6 +32,28 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
+		<!-- Built-in "refLabel" widget — shows the label of the referenced object(s)
+		     from the batch CnIndexPage resolved for the column
+		     (widgetProps { labels: { id: label|null }, route? }). An id that is not
+		     in `labels` yet shows a placeholder; one that resolved to null shows the
+		     id in mono. With widgetProps.route (a manifest page id) each label links
+		     to that page for the referenced id. -->
+		<template v-else-if="widget === 'refLabel'">
+			<span v-if="!refLabelItems.length" class="cn-cell-renderer__dash">—</span>
+			<span v-else class="cn-cell-renderer__ref-labels" data-testid="cn-cell-ref-labels">
+				<template v-for="(item, i) in refLabelItems" :key="item.id">
+					<span v-if="i > 0">, </span>
+					<component
+						:is="item.to ? 'router-link' : 'span'"
+						:to="item.to || undefined"
+						:class="[item.to ? 'cn-cell-renderer__link' : '', item.state === 'missing' ? 'cn-cell-renderer__mono' : '']"
+						:title="item.state === 'label' ? item.id : undefined">
+						{{ item.text }}
+					</component>
+				</template>
+			</span>
+		</template>
+
 		<!-- Built-in "link" widget — renders the (possibly formatter-shaped) value
 		     as a router-link (when widgetProps.route is a manifest page id, or
 		     widgetProps.routeMap picks one per row by widgetProps.routeField) or
@@ -275,7 +297,10 @@ export default {
 		 * component with `{ value, row, property, formatted, ...widgetProps }`;
 		 * the built-in id `"badge"` renders `CnStatusBadge` and the built-in
 		 * id `"fkResolve"` renders `CnFkResolveCell` (uuid → related object
-		 * label, config via `widgetProps { register, schema, labelField }`).
+		 * label, config via `widgetProps { register, schema, labelField }`),
+		 * and the built-in id `"refLabel"` shows labels already resolved in a
+		 * batch (`widgetProps { labels, route? }`, set by CnIndexPage for a
+		 * column with `labelField`).
 		 * The built-in id `"avatar"` renders a person as an avatar with the
 		 * name beside it (`widgetProps { userField?, user?, nameField?, size? }`;
 		 * a free name gets its initials), and the built-in id `"date"` renders
@@ -612,6 +637,36 @@ export default {
 		},
 
 		/**
+		 * Items of the built-in `widget:"refLabel"`: one per referenced id with
+		 * its text, state (`label`, `loading` or `missing`) and optional link.
+		 *
+		 * @return {Array<{id: string, text: string, state: string, to: (object|null)}>}
+		 */
+		refLabelItems() {
+			if (this.widget !== 'refLabel') {
+				return []
+			}
+			const wp = this.widgetProps || {}
+			const labels = wp.labels || {}
+			const raw = this.value
+			const list = Array.isArray(raw) ? raw : [raw]
+			return list
+				.filter((id) => id !== null && id !== undefined && id !== '')
+				.map((id) => {
+					const key = String(id)
+					const known = Object.hasOwn(labels, key)
+					const label = known ? labels[key] : undefined
+					const state = !known ? 'loading' : (label ? 'label' : 'missing')
+					return {
+						id: key,
+						state,
+						text: state === 'label' ? label : (state === 'loading' ? '…' : key),
+						to: (state === 'label' && typeof wp.route === 'string' && wp.route !== '') ? { name: wp.route, params: { id: key } } : null,
+					}
+				})
+		},
+
+		/**
 		 * Resolved router-link target for the built-in `widget:"link"`. When
 		 * a page id resolves (`widgetProps.route`, or the row's entry in
 		 * `widgetProps.routeMap`, see `linkRouteName`), returns
@@ -916,6 +971,12 @@ export default {
 </script>
 
 <style scoped>
+.cn-cell-renderer__mono {
+	font-family: monospace;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-cell-renderer--uuid {
 	font-family: monospace;
 	font-size: 13px;

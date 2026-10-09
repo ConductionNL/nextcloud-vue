@@ -25,6 +25,7 @@ const fields = fieldsFromSchema(schema, {
 | `options.includeReadOnly` | `boolean` | `false` | When `false`, properties with `readOnly: true` are dropped (except a key whose override sets `readOnly: false`). |
 | `options.hideTenant` | `boolean` | `false` | When `true`, properties that hold the record's tenant are dropped: ones named `tenant`, `tenant_id` / `tenantId` or `tenant_uuid`, or marked `x-openregister-tenant: true`, `x-platform-managed: true`, `x-managed-by: 'platform'`, `format: 'tenant'` or `referenceType: 'tenant'`. `x-openregister-tenant: false` opts a property out, and an `overrides[key].hidden === false` keeps one. `CnFormDialog` turns this on, because nobody should be asked for the tenant. It is off by default, so a detail page still shows it. |
 | `options.translate` | `(text: string) => string` | — | Display-layer translation applied to each field's `label` and `description`. Schema titles/descriptions are authored in English as the canonical source; pass your bound `t()` (via the injected `cnTranslate`) so the rendered label follows the user's language. Omitted leaves the English source strings unchanged. |
+| `options.language` | `string` | `''` | The user's language (`nl`, `en_GB`), used to pick from a language map in a property's `x-help`: exact code, base language, `en`, then the first entry. |
 
 ## Returns
 
@@ -34,6 +35,7 @@ const fields = fieldsFromSchema(schema, {
   label: string,          // prop.title ?? key
   description: string,      // inline helper text — see "Long descriptions"
   descriptionLong: string,  // full text when it was split off, else ''
+  help: string,             // the property's `x-help` in the user's language, else ''
   type: string,           // prop.type ?? 'string'
   format: string | null,
   widget: string,         // resolved — see table below
@@ -112,3 +114,7 @@ Same as the other schema helpers: `prop.order` ascending, alphabetical tie-break
 
 - [CnFormDialog](../components/cn-form-dialog.md) — Primary consumer.
 - [columnsFromSchema](./columns-from-schema.md), [filtersFromSchema](./filters-from-schema.md)
+
+## Concept-scheme bindings
+
+A property with `conceptScheme` or `x-openregister-concepts` (or an array whose `items` carry one) gets widget `select` (`multiselect` for an array) and a `codeList` tag: `{ property, multiple, store, contextProperty }`. The function fetches nothing; `CnFormDialog` asks OpenRegister for the options. A property without a binding is derived as before.

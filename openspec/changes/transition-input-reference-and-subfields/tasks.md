@@ -11,8 +11,8 @@
 - **acceptance_criteria**:
   - `filter` (default `{}`) passed to the list query; `exclude` (default `[]`) removes ids from the options
   - JSDoc on both props
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Reference and object inputs in the dialog
 - **spec_ref**: `openspec/changes/transition-input-reference-and-subfields/specs/manifest-detail-lifecycle-actions/spec.md#requirement-an-object-input-can-be-filled-one-field-at-a-time`
@@ -21,8 +21,8 @@
   - `$ref` inputs render `CnResourceSelect` with `picker` applied; value is the uuid
   - Object inputs render sub-properties, narrowed by `fields`; sent merged over the current value; no dotted keys
   - New prop `currentObject` (default `null`) for `excludeSelf` and the merge base
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Hints from the manifest
 - **spec_ref**: `openspec/changes/transition-input-reference-and-subfields/specs/manifest-detail-lifecycle-actions/spec.md#requirement-input-hints-apply-to-server-declared-transitions`
@@ -31,5 +31,7 @@
   - `config.lifecycleActions.inputs` merged by `field`; unknown fields warned and ignored
   - Manifest schema accepts the key
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
+
+> The manifest schema is at 2.59.0: `config.lifecycleActions` is typed only through `if type object then inputs`, because deployed manifests carry other shapes there. `CnLifecycleActions` gained a `register` prop (default `''`) that `CnDetailPage` fills. `npm run build` is not run here.

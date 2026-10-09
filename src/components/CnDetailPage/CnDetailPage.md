@@ -424,6 +424,7 @@ Four levels of action and the case surfaces around them. All opt in. See [the re
 | `nextStep` | Object \| null | `null` | The "what now" card per stage, rendered by `CnNextStepCard`. |
 | `typePill` | Object \| null | `null` | `{ field, colorMap?, labels?, variant? }`, a pill above the title. |
 | `statusPill` | Object \| null | `null` | A second pill, same shape. |
+| `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
 | `sideColumn` | Array | `[]` | Widget definitions or widget ids, rendered as a column of cards beside the body. |
 | `isAdmin` | Boolean \| null | `null` | Shows `adminOnly` header actions. `null` reads it from Nextcloud. |
 
@@ -446,3 +447,15 @@ When the schema-driven fetch answers 404 the page shows a not-found state whose 
 `headerCard` (default `false`) draws the header as a bordered card. `headerWidget` (default `''`) names a widget in `widgets` to render inside the header under the title, without a card of its own and out of the body grid: the stages bars of the board's case card.
 
 `showWidgetActions` (Boolean, default `true`): `false` (manifest `config.showWidgetActions: false`) drops the overflow Actions menu from the cards of the body grid and the side column, unless a widget definition sets `showActions: true`.
+
+### Favourite and follow
+
+`favourite` and `follow` (Boolean, default `null` = automatic): the star and the Follow toggle beside the title render when the object carries `@self.favourite` / `@self.watching`; `false` (manifest `config.favourite: false` / `config.follow: false`) removes them. `followNotifies` (Boolean, default `true`): `false` when the register sends no change notifications, so the Follow tooltip says so. `extend` (Array, default `[]`): extra `_extend[]` values for the object read; `@self.can` is added while the Follow toggle can render.
+
+### Read state
+
+`markRead` (Boolean, default `true`): send `PUT .../read-state` once after an unread object has rendered; `false` (manifest `config.markRead: false`) sends nothing. `markUnreadNavigatesBack` (Boolean, default `false`): go back after Mark as unread. Event `marked-unread` after the Actions-menu entry Mark as unread.
+
+### The board look
+
+`look` (String, default `''`): `nextcloud` or `board`; empty takes the app's look. `headerMeta` (String): the meta line on row 2 of the board header, a field template such as `via {channel}` (manifest `config.headerMeta`). `tabsLabel` (String): the accessible name of the tab list (manifest `config.tabsLabel`). `identifierField` (String): the field named in the last line of the History side card (manifest `config.identifierField`). See `docs/components/cn-detail-page.md`.

@@ -116,3 +116,13 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `'Copy'` | Label for the confirm/copy button. |
+
+## Copying with links
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `include` | Array | `[]` | Link kinds a copy may take along, from the page's `config.copy.include`: `relationRows`, `incoming`, `files`. Each is listed with its linked items and a count, ticked by default. Empty keeps the dialog as it was |
+| `register` | String | `''` | Register slug of the item, for reading its links. Empty: the item's `@self.register` |
+| `schema` | String | `''` | Schema slug of the item. Empty: the item's `@self.schema` |
+
+`confirm` then also carries `include` (the ticked kinds) when the server can copy links. `setResult({ success, url, links })` takes the per-link outcome; links with `ok: false` are listed with their reason. Without the server's copy endpoint the list is read-only and the copy carries the fields only. See `docs/components/cn-copy-dialog.md`.

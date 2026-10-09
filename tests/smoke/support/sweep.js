@@ -101,6 +101,17 @@ function isIgnorable(msg) {
  * @return {{ok: boolean, messages: Array<string>, threw: string|null, empty: boolean}} Outcome.
  */
 async function mountOnce(name, Component) {
+	// A `defineAsyncComponent` export (CnJourney, CnJourneyDialog) is a loader
+	// shell with no props or instance of its own: VTU hands back a null `vm`
+	// and unmount throws. Resolve it to the real component first.
+	if (Component && typeof Component.__asyncLoader === 'function') {
+		try {
+			const resolved = await Component.__asyncLoader()
+			Component = (resolved && resolved.default) || resolved
+		} catch (e) {
+			return { ok: false, messages: [], threw: 'async load: ' + String(e && e.message ? e.message : e).split('\n')[0].trim(), empty: false }
+		}
+	}
 	const messages = []
 	const capture = (m) => {
 		const s = typeof m === 'string' ? m : String(m && m.message ? m.message : m)

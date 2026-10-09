@@ -496,3 +496,16 @@
 .cn-detail-page .cn-page-view-region--empty {
 	padding: 40px 20px;
 }
+
+.cn-detail-page__title-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.cn-detail-page__interactions {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}

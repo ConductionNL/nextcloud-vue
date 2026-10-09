@@ -13,8 +13,8 @@
   - An unknown field key, `enabled` without `handler`, and `enabled` in `public` mode each fail with the path
   - Existing form fixtures still validate
   - Verify: jest; `npm run build:validators` leaves no diff
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: When the control shows
 - **spec_ref**: `openspec/changes/form-smart-paste/specs/manifest-form-logic/spec.md#requirement-the-paste-control-shows-only-where-it-may-be-used`
@@ -22,8 +22,8 @@
 - **acceptance_criteria**:
   - Hidden in `public` mode, with a missing handler, with a throwing or false `available()`; shown otherwise
   - Verify: jest; mutation check: dropping the `public` check reddens the public test
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: The dialog and the landing rules
 - **spec_ref**: `openspec/changes/form-smart-paste/specs/manifest-form-logic/spec.md#requirement-pasted-text-fills-only-allowed-empty-visible-fields-as-suggestions`
@@ -32,8 +32,8 @@
   - The handler receives the text and the allowed fields only, never other values
   - Empty, visible, allowed fields fill; typed values stay unless Replace is ticked; type mismatches and validation failures are skipped and counted; marks clear on edit, Accept and Accept all; no submit happens
   - Verify: jest with a stub handler asserting its arguments; `npm run check:a11y`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test (jest; `npm run check:a11y` not run)
 
 ### Task 4: Docs and an end-to-end run
 - **spec_ref**: `openspec/changes/form-smart-paste/specs/manifest-form-logic/spec.md#requirement-pasted-text-fills-only-allowed-empty-visible-fields-as-suggestions`
@@ -42,5 +42,5 @@
   - Docs show the manifest block and the handler contract
   - A harness form with a registered stub handler fills three fields as suggestions and submits only on Submit
   - Verify: `npm run check:docs`, `npm run check:docs-fresh`; `npm run test:e2e -- form-smart-paste`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [ ] Test — not run: needs the harness and `npm run test:e2e`

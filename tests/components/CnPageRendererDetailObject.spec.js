@@ -105,7 +105,7 @@ describe('CnPageRenderer — detail-page object loading', () => {
 		await flushPromises()
 		expect(mockStore.registerObjectType).toHaveBeenCalledWith('publication-publication', 'publication', 'publication')
 		expect(mockStore.fetchSchema).toHaveBeenCalledWith('publication-publication')
-		expect(mockStore.fetchObject).toHaveBeenCalledWith('publication-publication', 'pub-1')
+		expect(mockStore.fetchObject).toHaveBeenCalledWith('publication-publication', 'pub-1', { extend: ['@self.can'] })
 	})
 
 	it('publishes the loaded object + schema on the context holder', async () => {

@@ -90,6 +90,8 @@ export interface TManifestMenuItemLeaf {
 	 * A resolved count of `0`, `null`, or `undefined` renders no badge.
 	 */
 	count?: number | 'auto'
+	/** How the count reads: `attention` draws the red pill under the board look. */
+	counterVariant?: 'default' | 'attention'
 	/**
 	 * Forwarded to the rendered `NcAppNavigationItem`'s `pinned` prop. NC
 	 * bottom-pins pinned items inside the parent list region. Defaults to
@@ -414,6 +416,12 @@ export interface TManifest {
 	 * 2026-08-21 OpenBuild → Buildiq rename deliberately left it untouched.
 	 */
 	openbuildEditable?: boolean
+	/**
+	 * The look the whole app is drawn in: `nextcloud` (the default) or `board`,
+	 * the look of the screens on identity.conduction.nl. A page overrides it
+	 * with `config.look`.
+	 */
+	look?: 'nextcloud' | 'board'
 	/**
 	 * First-time setup wizard descriptor (ADR-042). See the `setup` $def in
 	 * the v2 schema for the full shape.

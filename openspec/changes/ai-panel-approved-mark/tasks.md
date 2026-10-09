@@ -14,8 +14,8 @@
   - One request per page load, shared by every caller
   - Any failure or malformed answer resolves to `null`
   - JSDoc on the export
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Footer row in CnAiChatPanel
 - **spec_ref**: `openspec/changes/ai-panel-approved-mark/specs/ai-chat-companion-widget/spec.md#requirement-the-mark-is-readable-and-announced-once`
@@ -26,5 +26,5 @@
   - No row in the DOM for off, absent, failed or malformed answers
   - Label colours `--color-main-text` on `--color-main-background`
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

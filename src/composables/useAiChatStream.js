@@ -185,7 +185,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 				if (Array.isArray(parsed.pendingApprovals)) {
 					state.pendingApprovals = parsed.pendingApprovals
 				}
-				finalise(parsed.messageId, parsed.conversationUuid)
+				finalise(parsed.messageId, parsed.conversationUuid, parsed)
 				break
 
 			case 'error':
@@ -207,8 +207,10 @@ export function useAiChatStream(contextInstance, options = {}) {
 	 *   written to (SSE `final.conversationUuid` / fallback `.conversation`). Stored
 	 *   on state so the *next* send() continues the same server-side Conversation
 	 *   instead of implicitly starting a new one every turn.
+	 * @param {object} [extras] - The `final` frame (or JSON reply); its
+	 *   `attachments` and `attachmentNotices` arrays are kept on the message.
 	 */
-	function finalise(messageId, conversationUuid) {
+	function finalise(messageId, conversationUuid, extras) {
 		const assistantMessage = {
 			id: (typeof messageId === 'string' && messageId !== '')
 				? messageId
@@ -216,6 +218,12 @@ export function useAiChatStream(contextInstance, options = {}) {
 			role: 'assistant',
 			content: state.currentText,
 			toolCalls: state.toolCalls.slice(),
+		}
+		if (Array.isArray(extras?.attachments)) {
+			assistantMessage.attachments = extras.attachments
+		}
+		if (Array.isArray(extras?.attachmentNotices)) {
+			assistantMessage.attachmentNotices = extras.attachmentNotices
 		}
 		state.messages.push(assistantMessage)
 		if (typeof conversationUuid === 'string' && conversationUuid !== '') {
@@ -276,7 +284,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 			// ChatController::sendMessage() echoes the conversation uuid back as
 			// `conversation` (ChatStreamController's SSE `final` event uses
 			// `conversationUuid` instead — see finalise() caller in handleSseMessage).
-			finalise(undefined, data?.conversation || data?.conversationUuid)
+			finalise(undefined, data?.conversation || data?.conversationUuid, data)
 		} catch (err) {
 			const code = err.response?.status?.toString() || 'network_error'
 			const message = err.message || 'Fallback request failed'
@@ -294,7 +302,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 	 * @param {string} [options.agentUuid] - Agent to start a *new* conversation with
 	 *   (agent-picker selection). Ignored server-side once a conversation uuid is
 	 *   resolved — safe to pass on every call.
-	 * @param {Array<{path: string, name: string}>} [options.attachments] - Files
+	 * @param {Array<{path: string, name: string, fileId?: number}>} [options.attachments] - Files
 	 *   already uploaded via the attachments endpoint (see aiChatConfig.js
 	 *   `attachmentsUrl()`), to be read by the backend from `body.attachments`.
 	 *   Omitted from the request body entirely when empty so existing backends
@@ -307,7 +315,11 @@ export function useAiChatStream(contextInstance, options = {}) {
 		}
 
 		// Push the user message into the local history immediately
-		state.messages.push({ role: 'user', content })
+		const userMessage = { role: 'user', content }
+		if (Array.isArray(options.attachments) && options.attachments.length > 0) {
+			userMessage.attachments = options.attachments
+		}
+		state.messages.push(userMessage)
 		state.isStreaming = true
 		state.error = null
 		state.currentText = ''

@@ -74,6 +74,7 @@
     "check:docs": "node scripts/check-docs.js",
     "check:docs-fresh": "cd docusaurus && npm run prebuild:docs && cd .. && node scripts/check-docs-fresh.js",
     "check:integration-parity": "node scripts/check-integration-parity.js",
+    "check:journey-vocabulary": "node scripts/gates/journey-vocabulary.mjs .",
     "check:jsdoc": "node scripts/check-jsdoc.js",
     "check:peers": "node scripts/check-peer-consistency.js",
     "check:public-safe": "node scripts/check-public-safe.js",

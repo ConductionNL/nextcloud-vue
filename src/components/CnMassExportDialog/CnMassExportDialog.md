@@ -43,6 +43,7 @@ export default {
 | Prop | Default | Description |
 |---|---|---|
 | `dialogTitle` | `'Export objects'` | Dialog title shown in the header. |
+| `scopeText` | `''` | Which rows will be exported, with the count (e.g. "Export 12 selected rows"). Empty hides the line. |
 | `description` | `''` | Optional description text shown above the format selector (e.g., `'Export 42 objects from Cases'`). |
 | `formats` | `[{ id: 'excel', label: 'Excel (.xlsx)' }, { id: 'csv', label: 'CSV (.csv)' }]` | Available export format options. Each entry must have `id` and `label`. |
 | `defaultFormat` | `'excel'` | The `id` of the format that is pre-selected when the dialog opens. |

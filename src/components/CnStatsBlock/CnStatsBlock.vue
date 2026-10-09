@@ -19,7 +19,7 @@
 		v-bind="componentAttrs"
 		@click="onClick">
 		<!-- Icon -->
-		<div v-if="hasIcon && !isStacked" class="cn-kpi-card__icon cn-stats-block__icon" :class="iconClasses">
+		<div v-if="hasIcon && !isStacked && !isBoardLook" class="cn-kpi-card__icon cn-stats-block__icon" :class="iconClasses">
 			<slot name="icon">
 				<component :is="icon" v-if="icon" :size="iconSize" />
 			</slot>
@@ -28,6 +28,16 @@
 		<!-- Content -->
 		<div class="cn-kpi-card__body cn-stats-block__content">
 			<div class="cn-stats-block__header">
+				<!-- Board look: an 18px glyph before the label, only on a link tile. -->
+				<span
+					v-if="isBoardLook && isInteractive && hasIcon"
+					class="cn-kpi-card__glyph cn-stats-block__glyph"
+					data-testid="cn-stats-block-glyph"
+					aria-hidden="true">
+					<slot name="icon">
+						<component :is="icon" v-if="icon" :size="18" />
+					</slot>
+				</span>
 				<h4 class="cn-kpi-card__title" :title="title || undefined">
 					{{ title || t('nextcloud-vue', 'Objects') }}
 				</h4>
@@ -77,6 +87,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import { normalizeLook } from '../../composables/useLook.js'
 
 // The canonical KPI look, shared with CnStatWidget. Imported here so the
 // card is styled even when the consuming app has not pulled in the
@@ -144,6 +155,15 @@ export default {
 
 	components: {
 		NcLoadingIcon,
+	},
+
+	inject: {
+		/**
+		 * The look the app is drawn in, provided by CnAppRoot.
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-board-kpi-tile
+		 */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -311,6 +331,15 @@ export default {
 	emits: ['click'],
 
 	computed: {
+		/**
+		 * Whether the app takes the board look.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		hasIcon() {
 			return this.icon !== null || this.$slots.icon || this.$slots.icon
 		},
@@ -396,6 +425,7 @@ export default {
 				// is emitted for app CSS but carries no look of its own.
 				'cn-kpi-card--horizontal': !this.isStacked && (this.horizontal || !this.vertical),
 				'cn-kpi-card--stacked': this.isStacked,
+				'cn-kpi-card--board': this.isBoardLook,
 				'cn-stats-block--horizontal': this.horizontal || !this.vertical,
 				'cn-kpi-card--vertical': this.vertical,
 				'cn-stats-block--vertical': this.vertical,

@@ -429,6 +429,54 @@ a.cn-kpi-card--stacked:focus-visible {
 	color: var(--color-text-maxcontrast);
 }
 
+/* Board look (screens-dashboard-parity): the screens' KPI tile. Opt-in via
+   `cn-kpi-card--board`, which the components add when `cnLook` is `board`;
+   a tile without it keeps the 34px value above. Label 14 grey, value 28/700,
+   note 13/400, a 6px gap, padding 18px 20px. */
+.cn-kpi-card--board {
+	--cn-kpi-stacked-value-size: 28px;
+	--cn-kpi-stacked-gap: 6px;
+	--cn-kpi-stacked-padding: 18px 20px;
+}
+
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__value {
+	line-height: 1.1;
+	color: var(--color-main-text);
+}
+
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__caption-line,
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-stats-block__count-label {
+	font-size: 13px;
+	font-weight: 400;
+}
+
+/* The 18px glyph before the label, drawn only on a link tile. */
+.cn-kpi-card--board .cn-kpi-card__title {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-kpi-card--board .cn-stats-block__header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-kpi-card__glyph {
+	display: inline-flex;
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-kpi-card__glyph svg {
+	width: 18px;
+	height: 18px;
+	fill: currentcolor;
+}
+
 /* Filled: the card draws its own grey box, for a KPI that is NOT already
    inside a wrapper that draws one. Opt-in via `content.flat: false`. */
 .cn-kpi-card--filled {

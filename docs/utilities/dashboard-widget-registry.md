@@ -50,7 +50,7 @@ registerDashboardWidget('text', {
 })
 ```
 
-`registerBuiltinDashboardWidgets.js` aggregates every built-in widget's `index.js` import, and the library barrel imports that aggregator — so the catalog is populated whenever a consuming app imports `@conduction/nextcloud-vue`. Call [`registerBuiltinDashboardWidgets()`](./register-builtin-dashboard-widgets.md) once at bootstrap if a bundler tree-shakes the bare side-effect imports.
+`registerBuiltinDashboardWidgets.js` aggregates every built-in widget's `index.js` import, and the library barrel imports that aggregator — so the catalog is populated whenever a consuming app imports `@conduction/nextcloud-vue`. Calling [`registerBuiltinDashboardWidgets()`](./register-builtin-dashboard-widgets.md) at bootstrap is optional: `CnDashboardPage` and `CnDetailPage` import the catalog themselves.
 
 The individual widget components are intentionally **not** public barrel exports — they are resolved by their registry `type` key (the whole point of the registry), so consumers reference them via the manifest `widgetKey`, not by import.
 

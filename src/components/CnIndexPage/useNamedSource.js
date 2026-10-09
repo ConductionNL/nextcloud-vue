@@ -5,6 +5,7 @@
 
 import { computed, inject, onMounted, watch } from 'vue'
 import { resolveIndexSource } from '../../composables/indexSources.js'
+import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { searchFieldParams } from '../../utils/searchFieldParams.js'
 
@@ -91,8 +92,9 @@ export function useNamedSource(props, options = {}) {
 	// Effective tabs: the manifest's own strip wins, the source's is the
 	// default. Both flow into the SAME load-merge below, so a manifest tab
 	// can steer a source loader too.
-	const manifestTabs = (Array.isArray(props.quickFilters) && props.quickFilters.length > 0)
-		? props.quickFilters
+	const ownTabs = withPersonalLenses(props.quickFilters, props.personalLenses)
+	const manifestTabs = (Array.isArray(ownTabs) && ownTabs.length > 0)
+		? ownTabs
 		: null
 	const sourceTabs = (Array.isArray(source.quickFilters) && source.quickFilters.length > 0)
 		? source.quickFilters
