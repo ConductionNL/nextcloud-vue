@@ -73,6 +73,57 @@ describe('CnIndexPage — the actions a row offers', () => {
 		expect(wrapper.vm.rowActionsFor(row(['Edit', 'View']))).toEqual([])
 	})
 
+	it('keeps View, Edit, Copy and Delete for the verbs OpenRegister sends', () => {
+		const wrapper = shallowMount(CnIndexPage, { propsData: { title: 'Cases', objects: [], schema: { title: 'Case', properties: {} } } })
+		const r = row(['read', 'update', 'delete', 'destroy', 'export', 'assign'])
+		expect(wrapper.vm.rowActionsFor(r).map((a) => a.id)).toEqual(['view', 'edit', 'copy', 'delete'])
+		expect(wrapper.vm.rowActionsNotDeclared(r)).toEqual(['assign', 'destroy', 'export'])
+	})
+
+	it('hides a built-in whose verb is refused, keeping the reason', () => {
+		const wrapper = shallowMount(CnIndexPage, { propsData: { title: 'Cases', objects: [], schema: { title: 'Case', properties: {} } } })
+		const r = row({ read: true, update: { allowed: false, reason: 'The case is closed' }, delete: false })
+		expect(wrapper.vm.rowActionsFor(r).map((a) => a.id)).toEqual(['view', 'copy'])
+		const edit = wrapper.vm.mergedActions.find((a) => a.builtin === true && a.id === 'edit')
+		expect(wrapper.vm.rowActionRefusal(r, edit)).toBe('The case is closed')
+	})
+
+	it('does not map verbs onto an app action that shares a built-in id', () => {
+		const wrapper = shallowMount(CnIndexPage, {
+			propsData: {
+				title: 'Cases',
+				objects: [],
+				schema: { title: 'Case', properties: {} },
+				actions: [{ id: 'edit', label: 'Open editor', handler: () => {} }],
+				showViewAction: false,
+				showCopyAction: false,
+				showDeleteAction: false,
+			},
+		})
+		const out = wrapper.vm.rowActionsFor(row(['update']))
+		expect(out).toHaveLength(1)
+		expect(out[0].builtin).toBe(true)
+		expect(out[0].label).not.toBe('Open editor')
+	})
+
+	it('does not map verbs onto a manifest action that sets builtin itself', () => {
+		const wrapper = shallowMount(CnIndexPage, {
+			propsData: {
+				title: 'Cases',
+				objects: [],
+				schema: { title: 'Case', properties: {} },
+				actions: [{ id: 'edit', builtin: true, label: 'Open editor', handler: () => {} }],
+				showViewAction: false,
+				showEditAction: false,
+				showCopyAction: false,
+				showDeleteAction: false,
+			},
+		})
+		expect(wrapper.vm.mergedActions.map((a) => a.label)).toEqual(['Open editor'])
+		expect(wrapper.vm.rowActionsFor(row(['update']))).toEqual([])
+		expect(wrapper.vm.rowActionsFor(row(['edit'])).map((a) => a.label)).toEqual(['Open editor'])
+	})
+
 	it('leaves the built-ins unfiltered on a row without the block', () => {
 		const wrapper = shallowMount(CnIndexPage, { propsData: { title: 'Cases', objects: [], schema: { title: 'Case', properties: {} } } })
 		expect(wrapper.vm.rowActionsFor({ id: 'case-1' }).map((a) => a.id)).toEqual(['view', 'edit', 'copy', 'delete'])
