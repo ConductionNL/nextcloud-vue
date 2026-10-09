@@ -22,6 +22,7 @@
 					:documentationUrl="documentationUrl"
 					:widgetId="activeWidgetId"
 					:title="activeTitle"
+					:variant="isBoard ? 'secondary' : undefined"
 					:surface="`widget:${activeWidgetId}`"
 					refreshChannel="cn:widget:refresh"
 					testidBase="cn-tabs-widget">
@@ -66,7 +67,7 @@
 				<template #title>
 					<span class="cn-tabs-widget__title">
 						<CnIcon
-							v-if="entry.icon"
+							v-if="entry.icon && !isBoard"
 							:name="entry.icon"
 							:size="18"
 							class="cn-tabs-widget__title-icon" />
@@ -111,7 +112,9 @@ import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import CnTabs from '../CnTabs/CnTabs.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
+import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
@@ -244,6 +247,13 @@ export default {
 				},
 			},
 		}
+	},
+
+	inject: {
+		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
+		/** The tab list's name under the board look, provided by CnDetailPage (`config.tabsLabel`). */
+		cnDetailTabsLabel: { default: null },
 	},
 
 	props: {
@@ -418,14 +428,28 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
 		 */
 		resolvedTabs() {
-			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
+			const authored = Array.isArray(this.content?.tabs) ? this.content.tabs : []
+			// The board look: the activity is the History tab and the last tab,
+			// whatever its place in the manifest. `index` stays the position in
+			// `content.tabs`, which the source-mode conditions are keyed on.
+			const isActivityTab = (tab) => {
+				const id = typeof tab === 'string' ? tab : tab?.widgetId
+				return isActivityWidget(this.availableWidgets.find((w) => w && w.id === id))
+			}
+			const ordered = authored.map((tab, index) => ({ tab, index }))
+			if (this.isBoard) {
+				ordered.sort((a, b) => (Number(isActivityTab(a.tab)) - Number(isActivityTab(b.tab))) || (a.index - b.index))
+			}
+			const tabs = ordered.map(({ tab }) => tab)
+			const originalIndex = ordered.map(({ index }) => index)
 			const max = Number(this.content?.maxVisibleTabs)
 			const hideEmpty = this.content?.hideEmpty === true
 			// How many tabs have taken a place in the strip so far. A tab that
 			// is already going under "More" does not use one up.
 			let placed = 0
 			const resolved = []
-			tabs.forEach((tab, index) => {
+			tabs.forEach((tab, position) => {
+				const index = originalIndex[position]
 				// A tab whose condition is false is absent, not empty.
 				const visibility = this.tabVisibility(tab, index)
 				if (visibility === 'hidden') {
@@ -434,8 +458,9 @@ export default {
 				const widgetId = typeof tab === 'string' ? tab : tab?.widgetId
 				const widget = this.availableWidgets.find((w) => w && w.id === widgetId) || null
 				const count = resolveTabCount(typeof tab === 'object' ? tab : null, this.objectData)
-				let overflow = (tab && tab.overflow === true) || (hideEmpty && count === 0)
-				if (!overflow) {
+				// The board strip has no "More": every tab is in the strip.
+				let overflow = !this.isBoard && ((tab && tab.overflow === true) || (hideEmpty && count === 0))
+				if (!overflow && !this.isBoard) {
 					if (Number.isFinite(max) && max > 0 && placed >= max) {
 						overflow = true
 					} else {
@@ -446,7 +471,7 @@ export default {
 					key: `${widgetId || 'tab'}-${index}`,
 					id: (tab && typeof tab === 'object' && tab.id) || widgetId || '',
 					widgetId,
-					label: (tab && tab.label) || widgetTitleOf(widget) || widgetId || '',
+					label: (tab && tab.label) || (this.isBoard && isActivityWidget(widget) ? t('nextcloud-vue', 'History') : '') || widgetTitleOf(widget) || widgetId || '',
 					icon: (tab && tab.icon) || widget?.icon || '',
 					widget,
 					count,
@@ -529,7 +554,18 @@ export default {
 		 * @return {string} The aria-label.
 		 */
 		stripLabel() {
-			return this.content?.ariaLabel || t('nextcloud-vue', 'Details')
+			const named = this.isBoard && this.cnDetailTabsLabel ? this.cnDetailTabsLabel.value : ''
+			return this.content?.ariaLabel || named || t('nextcloud-vue', 'Details')
+		},
+
+		/**
+		 * Whether the strip is drawn in the board look.
+		 *
+		 * @return {boolean} True in the board look.
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-folder-tabs-take-the-board-strip
+		 */
+		isBoard() {
+			return normalizeLook(this.cnLook) === 'board'
 		},
 	},
 

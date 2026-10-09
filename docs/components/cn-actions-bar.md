@@ -135,3 +135,5 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 ## `showCount` and `showActionsMenu`
 
 `showCount` (default `true`): `false` drops the "Showing 20 of 258" line. `showActionsMenu` (default `true`): `false` drops the overflow Actions menu (Refresh, Import, Export, mass actions, header actions), for a page that offers its actions as buttons elsewhere (CnIndexPage `headerButtons`).
+
+`showBuildiqButton` (Boolean, default true): set false when the page draws the buildiq square in its own header.

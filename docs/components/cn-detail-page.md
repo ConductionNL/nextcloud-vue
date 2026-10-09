@@ -674,3 +674,21 @@ When the object carries `@self.unread` (true or false), the Actions menu offers 
 | `marked-unread` | — | After the record was marked unread. |
 
 Tabs of a `tabs` widget show what is new on them: see [`CnTabsWidget`](./cn-tabs-widget.md#what-is-new-on-a-tab).
+
+## The board look (screens-detail-page-parity)
+
+With `look: "board"` (the manifest root key, `config.look`, or the `look` prop) the detail page takes the shape of the screens, `dossiq/DqZaak`. Without it nothing changes.
+
+- **Header.** Two rows on the page ground: row 1 is the title as an h1 (28px) with the header buttons at its end; row 2 holds the type and status pills, the breadcrumb, a middle dot and the meta line, then the `headerFields` chips. The breadcrumb does not render above the header. The last breadcrumb is the record's kenmerk (`breadcrumb.currentField`, for example the case number) and the title when the record has none; the h1 is always the title. The header is never a card, and draws no icon or type eyebrow.
+- **Buttons.** Quick actions, Edit (always its own labelled button, also with `inlineActions`), the buildiq square, then the menu labelled "More" (`actionsMenu.label` renames it), as a secondary button. No primary button when the next-step card shows.
+- **Tabs.** A `tabs` widget draws folder tabs: no coloured top edge, grey borderless count badges, no icons, no "More" overflow. The strip's tab list is named by `tabsLabel`, by default "<page title> parts". An activity tab (an `audit-trail` or `timeline` widget, or the `activity` integration) is named History and rendered last, and the activity is not also a body section.
+- **Cards.** Body cards take radius 12, padding 20px 22px and a 17px heading; data cards list fields in 200px columns. Side cards take a 15px muted heading and no Actions menu (`showWidgetActions` is `false` unless the manifest sets it). A `banner` widget in `sideColumn` moves to the top, the activity widget to the end, and the History card ends with the line "Identifier: <value>" read from `identifierField`.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `look` | String | `''` | `nextcloud` or `board`. Empty takes the look the app provides. |
+| `headerMeta` | String | `''` | The meta line on row 2 (manifest `config.headerMeta`): a field template such as `via {channel}`. A line with an empty value is dropped, and so is the dot before it. |
+| `tabsLabel` | String | `''` | The accessible name of the tab list (manifest `config.tabsLabel`). |
+| `identifierField` | String | `''` | The record field named in the last line of the History side card (manifest `config.identifierField`). |
+
+The rules live in `src/css/look-board-detail.css`, scoped under `.cn-look-board`.
