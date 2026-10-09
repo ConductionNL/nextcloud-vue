@@ -570,7 +570,7 @@ export {
 	SENTINEL_RESOLVERS,
 	warnIfDeprecated,
 } from './utils/resolveManifestTokens.js'
-export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, resetVisibilityCache } from './utils/index.js'
+export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, peekCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { followLinkClick, isModifiedClick, isNewTabHandled, isRowMiddleClick, openRowTarget, resolveHref } from './utils/index.js'
 export { resolveImageUrl } from './utils/index.js'

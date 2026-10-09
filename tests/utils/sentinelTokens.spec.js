@@ -19,6 +19,7 @@ import {
 describe('contextOf / isKnownToken', () => {
 	it.each([
 		['@me', 'filter'],
+		['@myGroups', 'filter'],
 		['@today', 'filter'],
 		['@today-30d', 'filter'],
 		['@today+7d', 'filter'],
