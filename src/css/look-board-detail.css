@@ -1,0 +1,487 @@
+/*
+ * The detail page in the board look (screens-detail-page-parity).
+ *
+ * Every rule is scoped under `.cn-look-board`, which CnAppRoot (or
+ * CnPageRenderer, or CnDetailPage itself when it gets `look: "board"`) puts on
+ * an ancestor of the page. An app without the key renders exactly as before.
+ * Colours are Nextcloud variables or `--cn-board-*` tokens; the only literals
+ * are the fallbacks inside the token definitions below.
+ *
+ * Some selectors repeat a class (`.a.a`) to outrank a scoped component rule or
+ * a rule in detail-page.css without `!important`. The page root carries
+ * `cn-look-board` itself too, so a descendant selector cannot lean on the
+ * `.cn-detail-page` ancestor.
+ */
+.cn-look-board {
+	/* The notice card at the top of the side column. */
+	--cn-board-notice-bg: var(--color-warning-light, #fdf1d6);
+	/* The done marker of the next-step card. */
+	--cn-board-success-tint: var(--color-success-light, #e7f3ea);
+	/* Card h2 and side heading. */
+	--cn-board-heading-size: 17px;
+	--cn-board-side-heading-size: 15px;
+}
+
+/* ---- The header: two rows on the ground ------------------------------- */
+
+.cn-look-board .cn-detail-page__header--board {
+	align-items: center;
+	column-gap: 16px;
+	flex-wrap: wrap;
+	margin-bottom: 22px;
+	padding-inline-start: 0;
+	row-gap: 6px;
+}
+
+/* Row 1: the title takes what the buttons leave, from a 320px basis. */
+.cn-look-board .cn-detail-page__header--board > :first-child {
+	flex: 1 1 320px;
+	min-width: 0;
+}
+
+.cn-look-board .cn-detail-page__header--board .cn-detail-page__title {
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-page__header--board .cn-detail-page__header-actions {
+	flex-shrink: 1;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
+/* The header buttons are 40px secondary controls on the board's radius. */
+.cn-look-board .cn-detail-page__header-actions.cn-detail-page__header-actions .button-vue {
+	block-size: var(--cn-board-control-height);
+	border-radius: var(--cn-board-control-radius);
+	min-height: var(--cn-board-control-height);
+}
+
+/* Row 2: pills, breadcrumb, dot, meta, chips. */
+.cn-look-board .cn-detail-page__header-row2 {
+	align-items: center;
+	display: flex;
+	flex: 1 0 100%;
+	flex-wrap: wrap;
+	font-size: 14px;
+	gap: 8px;
+	min-width: 0;
+}
+
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__pills {
+	flex-wrap: nowrap;
+	gap: 8px;
+	margin-bottom: 0;
+}
+
+.cn-look-board .cn-detail-page__header-row2 .cn-status-badge {
+	border-radius: 12px;
+	font-size: 13px;
+	font-weight: 600;
+	padding: 3px 10px;
+}
+
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__breadcrumbs {
+	color: var(--color-text-maxcontrast);
+	margin-bottom: 0;
+}
+
+.cn-look-board .cn-detail-page__header-dot,
+.cn-look-board .cn-detail-page__header-meta {
+	color: var(--color-text-maxcontrast);
+}
+
+/* The stages bars (header widget) sit one row further down. */
+.cn-look-board .cn-detail-page__header--board .cn-detail-page__header-widget {
+	margin-top: 16px;
+}
+
+/* ---- The body and the side column ------------------------------------- */
+
+.cn-look-board.cn-detail-page--with-side {
+	column-gap: 20px;
+}
+
+.cn-look-board.cn-detail-page--with-side > .cn-detail-page__body {
+	flex: 999 1 520px;
+}
+
+.cn-look-board.cn-detail-page--with-side > .cn-detail-page__side {
+	flex: 1 1 300px;
+	gap: 20px;
+}
+
+/* ---- Folder tabs ------------------------------------------------------- */
+
+.cn-look-board .cn-tabs--board .cn-tabs__bar {
+	border-bottom: 1px solid var(--color-border-dark);
+	gap: 4px;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__nav {
+	gap: 4px;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__nav-item {
+	background-color: var(--color-background-dark);
+	border: 1px solid var(--color-border-dark);
+	border-bottom: none;
+	border-radius: 8px 8px 0 0;
+	font-size: 14px;
+	font-weight: 400;
+	min-height: 34px;
+	padding: 8px 12px;
+}
+
+/* The open tab: the panel's colour, bold, and no coloured top edge. */
+.cn-look-board .cn-tabs--board .cn-tabs__nav-item.cn-tabs__nav-item--active {
+	background-color: var(--color-main-background);
+	border-bottom: 1px solid var(--color-main-background);
+	border-top: 1px solid var(--color-border-dark);
+	font-weight: 700;
+	padding-top: 8px;
+}
+
+/* The count: a grey, borderless 20px badge 8px after the label. */
+.cn-look-board .cn-tabs--board .cn-tabs__count {
+	background-color: var(--color-border);
+	border: none;
+	border-radius: 10px;
+	box-sizing: border-box;
+	color: var(--cn-board-text-soft);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+	margin-inline-start: 8px;
+	min-height: 20px;
+	min-width: 20px;
+	padding: 0 6px;
+}
+
+/* The Actions button at the end of the strip, level with the tabs. */
+.cn-look-board .cn-tabs--board .cn-tabs__nav-end {
+	align-self: flex-start;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__nav-end .button-vue {
+	min-height: 34px;
+	block-size: 34px;
+}
+
+/* The tab list and its panel: the first card of the panel joins the strip. */
+.cn-look-board .cn-tabs--board .cn-tabs__content {
+	padding-top: 0;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content > .cn-tab > :first-child .cn-widget-wrapper,
+.cn-look-board .cn-tabs--board .cn-tabs__content > .cn-tab > .cn-widget-wrapper,
+.cn-look-board .cn-tabs--board .cn-tabs__content > .cn-tab > .cn-detail-card {
+	border-top: none;
+	border-radius: 0 12px 12px 12px;
+}
+
+/* ---- Body cards and side cards ----------------------------------------- */
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper,
+.cn-look-board .cn-detail-page .cn-detail-card {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius);
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__header,
+.cn-look-board .cn-detail-page .cn-detail-card__header {
+	border-bottom: none;
+	padding: 20px 22px 0;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__title,
+.cn-look-board .cn-detail-page .cn-detail-card__title {
+	font-size: var(--cn-board-heading-size);
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content {
+	padding: 12px 22px 20px;
+}
+
+.cn-look-board .cn-detail-page .cn-detail-card__content {
+	padding: 12px 22px 20px;
+}
+
+/* A header-less card keeps the full 20px 22px. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(:has(.cn-widget-wrapper__header)) > .cn-widget-wrapper__content {
+	padding: var(--cn-board-card-padding);
+}
+
+/* The data card: 200px columns, a 12px 24px gap, label over value, hairline. */
+.cn-look-board .cn-object-data-widget__grid {
+	font-size: 15px;
+	gap: 12px 24px;
+}
+
+.cn-look-board .cn-object-data-widget__cell {
+	border-bottom: 1px solid var(--cn-board-hairline);
+	gap: 2px;
+	padding: 0 0 10px;
+}
+
+.cn-look-board .cn-object-data-widget__label {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	font-weight: 400;
+}
+
+.cn-look-board .cn-object-data-widget__value {
+	font-weight: 500;
+}
+
+/* Side cards: the heading is a 15px muted label, not a title. */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__title,
+.cn-look-board .cn-detail-page__side .cn-detail-card__title {
+	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-board-side-heading-size);
+	font-weight: 600;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__header,
+.cn-look-board .cn-detail-page__side .cn-detail-card__header {
+	padding-bottom: 0;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content {
+	padding: 10px 22px 20px;
+}
+
+/* No Actions menu on a side card. */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions {
+	display: none;
+}
+
+/* The notice at the top of the side column: radius 12, padding 14px 16px. */
+.cn-look-board .cn-detail-page__side-item--notice .cn-widget-wrapper,
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget,
+.cn-look-board .cn-detail-page__side-item--notice > * {
+	background: var(--cn-board-notice-bg);
+	border: none;
+	border-radius: var(--cn-board-card-radius);
+	font-size: 14px;
+	padding: 14px 16px;
+}
+
+/* The History card ends with the record's identifier. */
+.cn-look-board .cn-detail-page__side-item--with-identifier .cn-widget-wrapper {
+	border-bottom: none;
+	border-radius: var(--cn-board-card-radius) var(--cn-board-card-radius) 0 0;
+}
+
+.cn-look-board .cn-detail-page__side-identifier {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: 0 0 var(--cn-board-card-radius) var(--cn-board-card-radius);
+	border-top: 1px solid var(--cn-board-hairline);
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	margin: 0;
+	padding: 10px 22px 14px;
+}
+
+/* ---- The next-step card ------------------------------------------------- */
+
+.cn-look-board .cn-next-step-card--board {
+	border-radius: 12px;
+	gap: 16px 32px;
+	padding: 20px 24px 20px 28px;
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__title.cn-next-step-card__title {
+	color: var(--color-primary-element-light-text);
+	font-size: 13px !important;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__list {
+	font-size: 15px;
+	gap: 8px;
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__item--done .cn-next-step-card__marker {
+	background: var(--cn-board-success-tint);
+	border-color: var(--cn-board-success-tint);
+	color: var(--color-success-text);
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__item--current .cn-next-step-card__marker {
+	border: 2px solid var(--color-primary-element);
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__item:not(.cn-next-step-card__item--done, .cn-next-step-card__item--current) .cn-next-step-card__marker {
+	border: 2px solid var(--color-border-dark);
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__side .button-vue {
+	block-size: 44px;
+	font-size: 15px;
+	font-weight: 600;
+	min-height: 44px;
+	padding: 0 20px;
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__after {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+/* ---- History: the activity tab ------------------------------------------ */
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__board-head {
+	align-items: flex-start;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px 16px;
+	justify-content: space-between;
+	margin-bottom: 16px;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__board-title {
+	font-size: var(--cn-board-heading-size);
+	font-weight: 700;
+	margin: 0;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__board-subtitle {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	margin: 2px 0 0;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__board-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__board-actions .button-vue {
+	block-size: var(--cn-board-control-height);
+	min-height: var(--cn-board-control-height);
+}
+
+/* The kind chips: 36px pills, the selected one filled with the text colour. */
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__kinds {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__kind {
+	align-items: center;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border-dark);
+	border-radius: 18px;
+	color: var(--color-main-text);
+	cursor: pointer;
+	display: inline-flex;
+	font-size: 14px;
+	font-weight: 600;
+	gap: 8px;
+	height: 36px;
+	padding: 0 12px;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__kind--active {
+	background: var(--color-main-text);
+	border-color: var(--color-main-text);
+	color: var(--color-main-background);
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__kind-count {
+	background: var(--color-border);
+	border-radius: 10px;
+	color: var(--cn-board-text-soft);
+	font-size: 12px;
+	line-height: 20px;
+	min-width: 20px;
+	padding: 0 6px;
+	text-align: center;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__select {
+	border-radius: 8px;
+	min-height: 36px;
+}
+
+/* The events as a rail. */
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__rail {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__event {
+	align-items: flex-start;
+	display: flex;
+	gap: 14px;
+	padding-bottom: 14px;
+	position: relative;
+}
+
+/* The 2px connector from this event's icon to the next one. */
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__event:not(:last-child)::before {
+	background: var(--color-border);
+	content: '';
+	inset-block: 34px 0;
+	inset-inline-start: 16px;
+	position: absolute;
+	width: 2px;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__event-icon {
+	align-items: center;
+	background: var(--color-background-dark);
+	border-radius: 50%;
+	color: var(--color-main-text);
+	display: inline-flex;
+	flex: none;
+	height: 34px;
+	justify-content: center;
+	width: 34px;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__event--note .cn-activity-tab__event-icon {
+	background: var(--cn-board-success-tint);
+	color: var(--color-success-text);
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__event--audit .cn-activity-tab__event-icon {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__event--mail .cn-activity-tab__event-icon {
+	background: var(--cn-board-notice-bg);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__event-body {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__event-line {
+	font-size: 15px;
+	line-height: 1.4;
+	margin: 0;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__event-line strong {
+	font-weight: 600;
+}
+
+.cn-look-board .cn-activity-tab--board .cn-activity-tab__event-meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	margin: 2px 0 0;
+}

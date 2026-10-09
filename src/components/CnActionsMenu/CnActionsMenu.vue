@@ -25,6 +25,7 @@
 			:forceMenu="true"
 			:forceName="true"
 			:menuName="actionsMenuLabel"
+			:variant="variant || undefined"
 			:open="menuOpen"
 			:data-testid="`${testidBase}-actions`"
 			@update:open="menuOpen = $event">
@@ -488,6 +489,19 @@ export default {
 		actionsMenuLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Actions'),
+		},
+
+		/**
+		 * How the trigger button is drawn: `tertiary` (NcActions' own default,
+		 * used when empty), `secondary` for a header that wants a bordered
+		 * button, as the board look's "More".
+		 *
+		 * @type {''|'primary'|'secondary'|'tertiary'|'tertiary-no-background'}
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-buttons-follow-one-order
+		 */
+		variant: {
+			type: String,
+			default: '',
 		},
 
 		/**

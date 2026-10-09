@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.68.0",
+	"version": "2.69.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3923,10 +3923,25 @@
 							"minLength": 1,
 							"description": "type='dashboard' | type='detail': the accessible name of the page's view switch, e.g. \"Whose work\"; defaults to \"View\" (view-switch-containers). Maps to `viewsLabel`."
 						},
+						"headerMeta": {
+							"type": "string",
+							"minLength": 1,
+							"description": "type='detail', board look: the meta line on row 2 of the header, after the breadcrumb and a middle dot (screens-detail-page-parity). A field template such as `\"via {channel}\"`: every `{path}` is read from the record, and a line with an empty value is dropped. Maps to CnDetailPage `headerMeta`."
+						},
+						"tabsLabel": {
+							"type": "string",
+							"minLength": 1,
+							"description": "type='detail', board look: the accessible name of the tab list, for example \"Case parts\". Defaults to \"<type> parts\" from the page title (screens-detail-page-parity). Maps to CnDetailPage `tabsLabel`."
+						},
+						"identifierField": {
+							"type": "string",
+							"minLength": 1,
+							"description": "type='detail', board look: the record field (a dotted path, for example `identifier`) that names the record in the last line of the side column's History card (screens-detail-page-parity). Maps to CnDetailPage `identifierField`."
+						},
 						"showWidgetActions": {
 							"type": "boolean",
 							"default": true,
-							"description": "type='dashboard' and type='detail': `false` drops the overflow Actions menu from every widget that does not set `showActions` itself, for a dashboard whose widget headers carry a header link and nothing else (zuiddrecht-pixel-gaps-2), or a record page whose data cards carry none (zuiddrecht-pixel-gaps-3; a card with an Add action keeps it). Maps to CnDashboardPage / CnDetailPage `showWidgetActions`."
+							"description": "type='dashboard' and type='detail': `false` drops the overflow Actions menu from every widget that does not set `showActions` itself, for a dashboard whose widget headers carry a header link and nothing else (zuiddrecht-pixel-gaps-2), or a record page whose data cards carry none (zuiddrecht-pixel-gaps-3; a card with an Add action keeps it). When the key is not set a detail page keeps the menu, except under the board look, where side cards carry none (screens-detail-page-parity). Maps to CnDashboardPage / CnDetailPage `showWidgetActions`."
 						},
 						"gridFloat": {
 							"type": "boolean",

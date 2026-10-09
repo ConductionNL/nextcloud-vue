@@ -49,3 +49,11 @@ These names are what the feed's contract implies; they have not been measured ag
 ## Slots
 
 None.
+
+## The board look
+
+In the board look the tab draws as the History panel: a header with an h2, a muted subtitle and the Export button (plus "Add note", which emits `add-note`, when `showAddNote` is set), the kind chips as 36px pills with count badges, and the events as one rail. Each event has a 34px round icon on a tint of its kind, a 2px connector to the next one, the verb in bold and a meta line "Kind · who · when". The date range, reads toggle and date pickers stay below the chips.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showAddNote` | Boolean | `false` | Draw an "Add note" button in the board look's header. It emits `add-note`. |
