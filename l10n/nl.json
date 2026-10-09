@@ -1345,6 +1345,8 @@
     "This server does not keep track of what you open.": "Deze server houdt niet bij welke items je opent.",
     "Log in to see what you opened recently.": "Log in om te zien wat je onlangs opende.",
     "Your recent items are not available right now.": "Je recente items zijn nu niet beschikbaar.",
+    "yesterday": "gisteren",
+    "tomorrow": "morgen",
     "Filter by {column}": "Filteren op {column}",
     "Filter by {column}, active": "Filteren op {column}, actief"
   },
@@ -1400,6 +1402,14 @@
     "You see {count} capability of {total}.": [
       "Je ziet {count} functionaliteit van {total}.",
       "Je ziet {count} functionaliteiten van {total}."
+    ],
+    "{count} day ago": [
+      "{count} dag geleden",
+      "{count} dagen geleden"
+    ],
+    "in {count} day": [
+      "over {count} dag",
+      "over {count} dagen"
     ]
   }
 }

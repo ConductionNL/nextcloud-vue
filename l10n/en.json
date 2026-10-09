@@ -1294,6 +1294,8 @@
     "This server does not keep track of what you open.": "This server does not keep track of what you open.",
     "Log in to see what you opened recently.": "Log in to see what you opened recently.",
     "Your recent items are not available right now.": "Your recent items are not available right now.",
+    "yesterday": "yesterday",
+    "tomorrow": "tomorrow",
     "Filter by {column}": "Filter by {column}",
     "Filter by {column}, active": "Filter by {column}, active"
   },
@@ -1349,6 +1351,14 @@
     "You see {count} capability of {total}.": [
       "You see {count} capability of {total}.",
       "You see {count} capabilities of {total}."
+    ],
+    "{count} day ago": [
+      "{count} day ago",
+      "{count} days ago"
+    ],
+    "in {count} day": [
+      "in {count} day",
+      "in {count} days"
     ]
   }
 }
