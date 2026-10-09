@@ -33,8 +33,8 @@
 					<!-- @slot title-meta Content on the title's row, right of the title (e.g. a page-wide picker). Fill it from a manifest with `page.slots: { "title-meta": "<RegistryName>" }`. -->
 					<slot name="title-meta" />
 				</div>
-				<p v-if="description" class="cn-dashboard-page__description">
-					{{ resolvedDescription }}
+				<p v-if="subtitleText" class="cn-dashboard-page__description" data-testid="cn-dashboard-page-subtitle">
+					{{ subtitleText }}
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
@@ -42,7 +42,7 @@
 				     widget on the page draws it. Its options control the view
 				     region below the grid. -->
 				<CnSegmentedControl
-					v-if="showsPageViewSwitch"
+					v-if="showsPageViewSwitch && !switchInRow"
 					class="cn-page-view-switch"
 					:options="viewSwitchOptions"
 					:modelValue="activeViewId"
@@ -97,6 +97,7 @@
 				     Separate from the per-widget menus. `docs-anchor` deep-links
 				     the docs item to THIS page's section. -->
 				<CnActionsMenu
+					v-if="showActionsMenu"
 					:showRefresh="showRefresh"
 					:showRequestFeature="showRequestFeature"
 					:showReportBug="showReportBug"
@@ -136,6 +137,39 @@
 					<slot name="actions" />
 				</template>
 			</div>
+		</div>
+
+		<!-- The switch row (screens-dashboard-greeting-header): in the board
+		     look the page's view switch sits under the header, left, and the
+		     page's `viewLinks` sit right of it as small pills (DqMijnWerk). -->
+		<div
+			v-if="showHeader && (switchInRow || resolvedViewLinks.length > 0)"
+			class="cn-dashboard-page__switch-row"
+			data-testid="cn-dashboard-page-switch-row">
+			<CnSegmentedControl
+				v-if="switchInRow"
+				class="cn-page-view-switch"
+				:options="viewSwitchOptions"
+				:modelValue="activeViewId"
+				:ariaLabel="viewSwitchLabel"
+				:controls="viewRegionId"
+				data-testid="cn-dashboard-page-view-switch"
+				@update:modelValue="selectView" />
+			<span class="cn-dashboard-page__switch-row-spacer" />
+			<component
+				:is="link.tag"
+				v-for="link in resolvedViewLinks"
+				:key="link.key"
+				v-bind="link.attrs"
+				class="cn-dashboard-page__view-link"
+				data-testid="cn-dashboard-page-view-link">
+				<CnWidgetIcon
+					v-if="link.icon"
+					:name="link.icon"
+					:size="14"
+					class="cn-dashboard-page__view-link-icon" />
+				{{ link.label }}
+			</component>
 		</div>
 
 		<!-- Date-range header (optional).
@@ -868,7 +902,8 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { getCurrentUser } from '@nextcloud/auth'
+import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionInput, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { provide, ref, watch } from 'vue'
 import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
@@ -892,6 +927,7 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
+import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
@@ -1056,6 +1092,7 @@ export default {
 		CnLeafMountHost,
 		CnSegmentedControl,
 		CnKpiGrid,
+		CnWidgetIcon,
 	},
 
 	mixins: [pageViews],
@@ -1154,6 +1191,50 @@ export default {
 		kpiRow: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Greet the reader in the header subtitle (manifest `config.greeting`):
+		 * `true` (or `"first"`) writes "Good afternoon, Pieter · Monday 5
+		 * October 2026", `"full"` uses the whole display name. The page
+		 * `description`, when set, follows after another middle dot. Off by
+		 * default: the subtitle is the description alone, as before.
+		 *
+		 * @spec openspec/changes/screens-dashboard-greeting-header/specs/dashboard-page/spec.md#requirement-the-header-subtitle-can-greet-the-reader
+		 * @type {boolean|string}
+		 */
+		greeting: {
+			type: [Boolean, String],
+			default: false,
+		},
+
+		/**
+		 * Links drawn as small pills on the switch row under the header
+		 * (manifest `config.viewLinks`), as DqMijnWerk's "Uw wachtrij / Aan
+		 * mij toegewezen / Dag afsluiten". Each `{ label, icon?, route?,
+		 * href? }`: `route` is a route name or a `{ name, params?, query? }`
+		 * location, `href` a plain URL; `label` goes through the host
+		 * translate function. An entry without a label or a target is skipped.
+		 *
+		 * @spec openspec/changes/screens-dashboard-greeting-header/specs/dashboard-page/spec.md#requirement-a-switch-row-carries-the-view-switch-and-link-pills
+		 * @type {Array<object>}
+		 */
+		viewLinks: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Whether the header draws the page Actions menu (manifest
+		 * `config.showActionsMenu`). `false` removes it, for a board page
+		 * whose header carries only the buildiq square and the primary.
+		 *
+		 * @spec openspec/changes/screens-dashboard-greeting-header/specs/dashboard-page/spec.md#requirement-the-header-can-drop-the-page-actions-menu
+		 * @type {boolean}
+		 */
+		showActionsMenu: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -1846,6 +1927,97 @@ export default {
 		 */
 		effectiveTranslate() {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+		},
+
+		/**
+		 * The greeting for the time of day, with the reader's first (or
+		 * full) name when known, or '' when `greeting` is off.
+		 *
+		 * @spec openspec/changes/screens-dashboard-greeting-header/specs/dashboard-page/spec.md#requirement-the-header-subtitle-can-greet-the-reader
+		 * @return {string}
+		 */
+		greetingLine() {
+			if (this.greeting !== true && this.greeting !== 'first' && this.greeting !== 'full') {
+				return ''
+			}
+			let user
+			try {
+				user = getCurrentUser()
+			} catch {
+				user = null
+			}
+			const displayName = (user && typeof user.displayName === 'string') ? user.displayName.trim() : ''
+			const name = this.greeting === 'full' ? displayName : displayName.split(/\s+/)[0]
+			const hour = new Date().getHours()
+			if (hour < 12) {
+				return name ? t('nextcloud-vue', 'Good morning, {name}', { name }) : t('nextcloud-vue', 'Good morning')
+			}
+			if (hour < 18) {
+				return name ? t('nextcloud-vue', 'Good afternoon, {name}', { name }) : t('nextcloud-vue', 'Good afternoon')
+			}
+			return name ? t('nextcloud-vue', 'Good evening, {name}', { name }) : t('nextcloud-vue', 'Good evening')
+		},
+
+		/**
+		 * The header subtitle: with `greeting` on, the greeting, today's date
+		 * written out and the description, joined by a middle dot; else the
+		 * description alone, as before.
+		 *
+		 * @spec openspec/changes/screens-dashboard-greeting-header/specs/dashboard-page/spec.md#requirement-the-header-subtitle-can-greet-the-reader
+		 * @return {string}
+		 */
+		subtitleText() {
+			const description = this.description ? this.resolvedDescription : ''
+			const greeting = this.greetingLine
+			if (greeting === '') {
+				return description
+			}
+			const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+			let date
+			try {
+				date = new Intl.DateTimeFormat(getCanonicalLocale() || undefined, options).format(new Date())
+			} catch {
+				date = new Intl.DateTimeFormat(undefined, options).format(new Date())
+			}
+			return [greeting, date, description].filter((part) => part !== '').join(' · ')
+		},
+
+		/**
+		 * Whether the page's view switch sits on the switch row under the
+		 * header (board look) rather than among the header actions.
+		 *
+		 * @spec openspec/changes/screens-dashboard-greeting-header/specs/dashboard-page/spec.md#requirement-a-switch-row-carries-the-view-switch-and-link-pills
+		 * @return {boolean}
+		 */
+		switchInRow() {
+			return this.isBoardLook && this.showsPageViewSwitch
+		},
+
+		/**
+		 * `viewLinks` as render descriptors: a router link for a route, an
+		 * anchor for an href, the label translated. Entries without a label
+		 * or a target are dropped.
+		 *
+		 * @spec openspec/changes/screens-dashboard-greeting-header/specs/dashboard-page/spec.md#requirement-a-switch-row-carries-the-view-switch-and-link-pills
+		 * @return {Array<{key: string, tag: string, attrs: object, label: string, icon: string}>}
+		 */
+		resolvedViewLinks() {
+			const links = Array.isArray(this.viewLinks) ? this.viewLinks : []
+			const out = []
+			links.forEach((link, index) => {
+				if (!link || typeof link.label !== 'string' || link.label === '') {
+					return
+				}
+				const icon = typeof link.icon === 'string' ? link.icon : ''
+				const label = this.effectiveTranslate(link.label)
+				if (link.route && this.$router) {
+					const to = typeof link.route === 'string' ? { name: link.route } : link.route
+					out.push({ key: `route-${index}`, tag: 'router-link', attrs: { to }, label, icon })
+				} else if (typeof link.href === 'string' && link.href !== '') {
+					out.push({ key: `href-${index}`, tag: 'a', attrs: { href: link.href }, label, icon })
+				}
+			})
+			return out
 		},
 
 		/**
@@ -4365,6 +4537,49 @@ export default {
 .cn-dashboard-page--board .cn-dashboard-page__header-actions :deep(.button-vue) {
 	min-height: var(--cn-board-control-height, 40px);
 	height: var(--cn-board-control-height, 40px);
+}
+
+/* The switch row under the header (screens-dashboard-greeting-header): the
+   view switch left, the `viewLinks` pills right (DqMijnWerk: pills 34px high,
+   radius 17, 13px/600, a 14px icon, primary light on primary deep). */
+.cn-dashboard-page__switch-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: var(--cn-board-section-gap, 20px);
+}
+
+.cn-dashboard-page__switch-row-spacer {
+	flex: 1 1 auto;
+}
+
+.cn-dashboard-page__view-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 34px;
+	padding: 0 12px;
+	border-radius: 17px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 13px;
+	font-weight: 600;
+	white-space: nowrap;
+	text-decoration: none !important;
+}
+
+.cn-dashboard-page__view-link:hover {
+	background: var(--color-primary-element-light-hover, var(--color-primary-element-light));
+}
+
+.cn-dashboard-page__view-link:focus-visible {
+	outline: 2px solid var(--color-main-text);
+	outline-offset: 2px;
+}
+
+.cn-dashboard-page__view-link-icon {
+	display: inline-flex;
 }
 
 /* The period group, in a row of its own between the header and the KPI row. */
