@@ -25,7 +25,7 @@
   - Padding 24px 28px, max width 1240px, 20px block gap under the look
   - The 56px header inset only while the navigation is closed
 - [x] Implement
-- [ ] Test — not run: no browser/e2e run in this lane; `e2e/screens-chrome-parity.e2e.js` is not written. A stylesheet contract test (`tests/css/lookBoardChrome.spec.js`) pins the values.
+- [x] Test — measured in a browser: padding 24px 28px and content width capped at 1240px, with a control without the look; the 56px inset with the navigation closed is not measured; `e2e/screens-index-card-chrome-parity.e2e.js` (library harness, not a live Nextcloud)
 
 ### Task 3: The board header button
 - **spec_ref**: `openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-header-buttons-share-one-board-button`
@@ -34,7 +34,7 @@
   - 40px, radius 8, 14px weight 600, outlined secondary and filled primary on index, detail, dashboard and settings headers
   - The header Actions or More menu shows its label under the look
 - [x] Implement — The header "Actions"/"More" menu already shows its label (`forceName` + `menuName`), so `CnActionsMenu.vue` is unchanged.
-- [ ] Test — not run: no browser/e2e run in this lane; `e2e/screens-chrome-parity.e2e.js` is not written. A stylesheet contract test (`tests/css/lookBoardChrome.spec.js`) pins the values.
+- [x] Test — measured in a browser: index header buttons 40px high with an 8px radius; detail, dashboard and settings headers and the Actions menu label are not measured; `e2e/screens-index-card-chrome-parity.e2e.js` (library harness, not a live Nextcloud)
 
 ### Task 4: The navigation anatomy and counts
 - **spec_ref**: `openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-navigation-takes-the-board-anatomy`

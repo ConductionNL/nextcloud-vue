@@ -10,6 +10,13 @@
  * Supported tokens:
  *  - `@me`                → the current Nextcloud user id (`getCurrentUser()` from
  *                           `@nextcloud/auth`; `window.OC.currentUser` fallback)
+ *  - `@myGroups`          → the ids of the Nextcloud groups the current user is
+ *                           in, as an ARRAY (an IN filter). `ctx.myGroups` wins;
+ *                           otherwise a reactive peek over `getCurrentUserGroups`.
+ *                           Stays UNRESOLVED while loading and when the user is
+ *                           in no group, so the caller waits instead of sending
+ *                           an empty IN list (which OpenRegister reads as "no
+ *                           constraint"). Spread in place inside an IN-list array.
  *  - `@now`               → the current instant, ISO-8601
  *  - `@today`             → today at 00:00, `YYYY-MM-DD` (date-prefix comparable)
  *  - `@today±Nd`          → relative-date arithmetic at day granularity: N days
@@ -56,6 +63,34 @@
 
 import { getCurrentUser } from '@nextcloud/auth'
 import { TODAY_DELTA_RE } from './sentinelTokens.js'
+import { peekCurrentUserGroups } from './widgetVisibility.js'
+
+/** The filter token for the current user's group ids. */
+export const MY_GROUPS_TOKEN = '@myGroups'
+
+/**
+ * Resolve `@myGroups`: the current user's group ids, or the token itself while
+ * they are loading or when there are none (an empty IN list would match every
+ * row, so "no team" must mean "wait", never "everything").
+ *
+ * @spec openspec/changes/nextcloud-group-surfaces/specs/schema-utilities/spec.md#requirement-mygroups-resolves-to-the-current-users-group-ids
+ * @param {{myGroups?: string[]}} [ctx] Optional context; `ctx.myGroups` wins.
+ * @return {string[]|string} The group ids, or `'@myGroups'` when unresolved.
+ */
+function resolveMyGroups(ctx) {
+	let groups = ctx && Array.isArray(ctx.myGroups) ? ctx.myGroups : null
+	if (groups === null) {
+		try {
+			groups = peekCurrentUserGroups()
+		} catch {
+			groups = null
+		}
+	}
+	const ids = Array.isArray(groups)
+		? groups.filter((g) => typeof g === 'string' && g !== '')
+		: []
+	return ids.length > 0 ? [...ids] : MY_GROUPS_TOKEN
+}
 
 /**
  * Format a Date as `YYYY-MM-DD` (local).
@@ -73,7 +108,7 @@ function ymd(d) {
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
  * @param {unknown} v The candidate value.
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object}} [ctx] Optional
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object, myGroups?: string[]}} [ctx] Optional
  *   context for `@objectId` / `@object.<field>` (detail page),
  *   `@workspace.<key>` (page-level workspace state), and `@config.<key>`
  *   (page-level app config) tokens.
@@ -84,6 +119,9 @@ export function resolveFilterValue(v, ctx) {
 		return v
 	}
 	const now = new Date()
+	if (v === MY_GROUPS_TOKEN) {
+		return resolveMyGroups(ctx)
+	}
 	if (v === '@objectId') {
 		return (ctx && ctx.objectId !== undefined && ctx.objectId !== null) ? String(ctx.objectId) : v
 	}
@@ -313,8 +351,13 @@ export function resolveFilterTokens(filter, ctx) {
 	if (!filter || typeof filter !== 'object') {
 		return filter
 	}
+	// An item that resolves to a list (`@myGroups`) is spread in place, so
+	// `['@myGroups', 'archive']` stays one flat IN list.
 	const resolveOne = (v) => (Array.isArray(v)
-		? v.map((item) => resolveFilterValue(item, ctx))
+		? v.flatMap((item) => {
+				const r = resolveFilterValue(item, ctx)
+				return Array.isArray(r) ? r : [r]
+			})
 		: resolveFilterValue(v, ctx))
 	const out = {}
 	for (const [k, v] of Object.entries(filter)) {

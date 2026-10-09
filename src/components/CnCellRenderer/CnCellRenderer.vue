@@ -10,6 +10,20 @@
 			:formatted="formattedValue"
 			v-bind="widgetProps" />
 
+		<!-- Built-in "group" widget: a Nextcloud group id (or a list of them)
+		     shown as the group's display name, cached per id. Used on its own
+		     for a property marked `referenceType: nextcloud-group` /
+		     `format: nc-group` unless the column has a formatter. -->
+		<template v-else-if="isGroupCell">
+			<span v-if="!groupIds.length" class="cn-cell-renderer__dash">—</span>
+			<span v-else class="cn-cell-renderer__groups">
+				<template v-for="(gid, i) in groupIds" :key="gid">
+					<span v-if="i > 0">, </span>
+					<CnGroupNameCell :gid="gid" />
+				</template>
+			</span>
+		</template>
+
 		<!-- Built-in "badge" widget — renders the (possibly formatter-shaped) value as a status pill -->
 		<template v-else-if="widget === 'badge'">
 			<CnStatusBadge v-if="hasValue"
@@ -192,11 +206,12 @@ import { getCanonicalLocale } from '@nextcloud/l10n'
 import { NcAvatar, NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
+import CnGroupNameCell from './CnGroupNameCell.vue'
 import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { safeHref } from '../../utils/safeHref.js'
-import { formatValue } from '../../utils/schema.js'
+import { formatValue, isGroupProp } from '../../utils/schema.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /** A uuid in any version, the shape OpenRegister ids take. */
@@ -226,6 +241,7 @@ export default {
 	components: {
 		CnStatusBadge,
 		CnFkResolveCell,
+		CnGroupNameCell,
 		CheckBold,
 		NcAvatar,
 		NcDateTime,
@@ -307,6 +323,9 @@ export default {
 		 * a date whose colour follows `widgetProps.variantWhen`, rules on the
 		 * number of days until the date (`[{ op: "lt", value: 0, variant:
 		 * "error" }, { op: "lte", value: 5, variant: "warning" }]`).
+		 * The built-in id `"group"` shows a Nextcloud group id (or a list of
+		 * them) as the group's display name; a column whose property is
+		 * marked `referenceType: "nextcloud-group"` gets it without asking.
 		 * Takes precedence over `formatter`/the type-aware rendering, but the
 		 * value handed to the widget is the formatter-shaped `formatted` when
 		 * `formatter` is also set.
@@ -575,6 +594,42 @@ export default {
 			}
 			const c = this.cnCellWidgets && this.cnCellWidgets[this.widget]
 			return c || null
+		},
+
+		/**
+		 * Whether this cell shows Nextcloud group names: the column asks for
+		 * `widget: "group"`, or it names no widget and no formatter and its
+		 * property is a group (or a list of groups).
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-a-group-cell-shows-the-groups-display-name
+		 * @return {boolean}
+		 */
+		isGroupCell() {
+			if (this.widget === 'group') {
+				return true
+			}
+			if (this.widget || this.hasFormatter) {
+				return false
+			}
+			const p = this.property
+			if (!p || typeof p !== 'object') {
+				return false
+			}
+			return isGroupProp(p) || (p.type === 'array' && isGroupProp(p.items))
+		},
+
+		/**
+		 * The group ids in this cell, empty ones dropped.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-a-group-cell-shows-the-groups-display-name
+		 * @return {string[]}
+		 */
+		groupIds() {
+			const raw = this.value
+			const list = Array.isArray(raw) ? raw : [raw]
+			return list
+				.filter((gid) => (typeof gid === 'string' && gid !== '') || typeof gid === 'number')
+				.map((gid) => String(gid))
 		},
 
 		/** Variant for the built-in `badge` widget — `widgetProps.variant` or `'default'`. */

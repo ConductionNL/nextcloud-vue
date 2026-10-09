@@ -23,6 +23,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `statusOf`       | `func`          |          | `null`                                          | Board look: `(object) =&gt; status` for each card's status pill. See CnObjectCard `status`.                                                                                        |
 | `leadingOf`      | `func`          |          | `null`                                          | Board look: `(object) =&gt; { initials \| icon }` for each card's leading element. See CnObjectCard `leading`.                                                                     |
 | `footerActionOf` | `func`          |          | `null`                                          | Board look: `(object) =&gt; { label, meta? }` for each card's footer action. See CnObjectCard `footerAction`.                                                                      |
+| `accentOf`       | `func`          |          | `null`                                          | `(object) =&gt; { variant, icon?, label? }` for each card's status accent. See CnObjectCard `accent`.                                                                              |
 | `emptyText`      | `string`        |          | `() =&gt; t('nextcloud-vue', 'No items found')` | Text shown when there are no objects                                                                                                                                               |
 
 ### Events

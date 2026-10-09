@@ -44,7 +44,7 @@ export default {
 | `text` | `String` | `''` | Inline helper text — a field's short description. |
 | `more` | `String` | `''` | The full description, revealed in the popover. Empty (and no `help`) means no ⓘ button is rendered. |
 | `help` | `String` | `''` | A schema property's `x-help` explanation. Opened in place by the ⓘ button, before `more`; the same text as `more` shows once. |
-| `label` | `String` | `''` | The field's label. Names the button "About {label}" for screen readers; without it the button is named "Show the full description". |
+| `label` | `String` | `''` | The field's label. Names the button "About \{label\}" for screen readers; without it the button is named "Show the full description". |
 | `error` | `String` | `''` | Validation error. Replaces the helper text and colours the line. The ⓘ button stays available beside it. |
 
 Nothing renders at all when `text`, `more`, `help` and `error` are all empty. With only `more` set (a schema `x-help` on a field without a description) the line holds just the ⓘ button.

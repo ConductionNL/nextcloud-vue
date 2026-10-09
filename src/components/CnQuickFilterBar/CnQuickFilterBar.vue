@@ -46,7 +46,7 @@
 					:name="entry.tab.icon"
 					:size="16"
 					class="cn-quick-filter-bar__icon" />
-				<span class="cn-quick-filter-bar__label">{{ entry.tab.label }}</span>
+				<span class="cn-quick-filter-bar__label">{{ tl(entry.tab.label) }}</span>
 				<span
 					v-if="countOf(entry) !== null"
 					class="cn-quick-filter-bar__count"
@@ -102,7 +102,7 @@
 							:name="entry.tab.icon"
 							:size="16"
 							class="cn-quick-filter-bar__icon" />
-						<span class="cn-quick-filter-bar__label">{{ entry.tab.label }}</span>
+						<span class="cn-quick-filter-bar__label">{{ tl(entry.tab.label) }}</span>
 						<span
 							v-if="countOf(entry) !== null"
 							class="cn-quick-filter-bar__count"
@@ -152,6 +152,11 @@ export default {
 	inject: {
 		/** The look CnAppRoot provides; `board` draws the tabs as pressed chips. */
 		cnLook: { default: 'nextcloud' },
+		/**
+		 * The host's label lookup (CnAppRoot provides it); identity without one, so a
+		 * label that is not a key renders as written.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	// NO `model: { prop, event }` OPTION.
@@ -336,7 +341,7 @@ export default {
 		overflowLabel() {
 			const active = this.activeOverflowEntries
 			if (active.length === 1) {
-				return active[0].tab.label
+				return this.tl(active[0].tab.label)
 			}
 			if (active.length > 1) {
 				return t('nextcloud-vue', '{count} filters', { count: active.length })
@@ -370,7 +375,7 @@ export default {
 				.map((tab, index) => {
 					const count = this.countOf({ tab, index })
 					return {
-						label: count === null ? tab.label : `${tab.label} (${count})`,
+						label: count === null ? this.tl(tab.label) : `${this.tl(tab.label)} (${count})`,
 						icon: tab.icon,
 						index,
 						_empty: this.isEmptyFilter(tab),
@@ -394,6 +399,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A manifest string through the host's label lookup (`cnTranslate`), so a key
+		 * such as "Mine" reads in the user's language.
+		 *
+		 * @param {string} text The text as written in the manifest.
+		 * @return {string} The translated text.
+		 */
+		tl(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
 		t,
 
 		/**

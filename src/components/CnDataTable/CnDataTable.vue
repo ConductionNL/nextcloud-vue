@@ -202,9 +202,12 @@
 					<!-- Empty state -->
 					<tr v-if="effectiveRows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
 						<td :colspan="totalColumns">
-							<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`). -->
+							<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`, or why an unavailable personal lens is empty). -->
 							<slot name="empty">
-								{{ translateLabel(emptyText) }}
+								<span v-if="lensReasonText" class="cn-table-empty__lens-reason" data-testid="cn-data-table-lens-reason">{{ lensReasonText }}</span>
+								<template v-else>
+									{{ translateLabel(emptyText) }}
+								</template>
 							</slot>
 						</td>
 					</tr>
@@ -397,6 +400,7 @@ import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
+import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
@@ -688,6 +692,20 @@ export default {
 			default: () => t('nextcloud-vue', 'No items found'),
 		},
 
+		/**
+		 * App wording for an unavailable personal lens in self-fetch mode,
+		 * keyed `<lens>.<reason>` (`recent.audit-trail-disabled`) or
+		 * `<reason>`. Without it the library's object-neutral text is shown
+		 * when the response reports `@self.lenses.<lens>.available: false`.
+		 *
+		 * @type {{[key: string]: string}|null}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lensReasonTexts: {
+			type: Object,
+			default: null,
+		},
+
 		/** Function returning CSS class(es) for a row: (row) => string|object */
 		rowClass: {
 			type: Function,
@@ -964,6 +982,8 @@ export default {
 			aggregateRequestId: 0,
 			/** Rows fetched in self-fetch mode (register + schemaId). */
 			fetchedRows: [],
+			/** Personal-lens reports (`@self.lenses`) of the latest self-fetch response. */
+			fetchedLenses: {},
 			/** True while a self-fetch request is in flight. */
 			selfFetchLoading: false,
 		}
@@ -986,6 +1006,22 @@ export default {
 		 */
 		actionsColumnLabel() {
 			return t('nextcloud-vue', 'Actions')
+		},
+
+		/**
+		 * Why the self-fetched list is empty when a personal lens could not
+		 * answer (openregister#4514), or `''` to keep `emptyText`. Only the
+		 * table's own fetch reports: external `rows` carry no report.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lensReasonText() {
+			if (this.rows && this.rows.length > 0) {
+				return ''
+			}
+			const text = lensUnavailableText(this.fetchedLenses, this.lensReasonTexts)
+			return text ? this.translateLabel(text) : ''
 		},
 
 		/** @return {number} Leading cells before the data columns (selection, icon). */
@@ -1517,8 +1553,10 @@ export default {
 					...(this.fetchParams ? { params: this.fetchParams } : {}),
 				})
 				this.fetchedRows = (data && data.results) || (Array.isArray(data) ? data : [])
+				this.fetchedLenses = readLensReports(data)
 			} catch {
 				this.fetchedRows = []
+				this.fetchedLenses = {}
 			} finally {
 				this.selfFetchLoading = false
 			}

@@ -24,7 +24,7 @@
 - **spec_ref**: `openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md#requirement-the-board-dialog-frame`
 - **files**: `src/css/dialog.css`, `e2e/screens-dialog-parity.e2e.js`
 - [x] Implement: radius, shadow, header, body and footer spacing, backdrop (`src/css/dialog.css`)
-- [ ] Test: browser measurement against `opencatalogi/OcPublicatieVerwijderen`; `noClose` while loading — not run: no running Nextcloud instance in this lane, `e2e/screens-dialog-parity.e2e.js` not written. Done as unit tests: `noClose` disables the header close button and is passed to NcDialog; the frame numbers are asserted on `dialog.css`
+- [x] Test: browser measurement against `opencatalogi/OcPublicatieVerwijderen`; `noClose` while loading — measured in a browser: 640px wide, 12px radius, 1px footer hairline, 40px buttons, Cancel left of Delete, `noClose` keeps the dialog open on Escape; `e2e/screens-form-dialog-wizard-parity.e2e.js` (the library harness, not a live Nextcloud); not compared with the opencatalogi board itself
 
 ### Task 5: The footer order is fixed
 - **spec_ref**: `openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md#requirement-the-footer-order-is-fixed`
