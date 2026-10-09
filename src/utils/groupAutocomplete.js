@@ -14,6 +14,7 @@
 
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+import { reactive } from 'vue'
 
 const OCS_HEADERS = {
 	'OCS-APIRequest': 'true',
@@ -116,4 +117,78 @@ export async function resolveNextcloudGroup(gid) {
 	}
 	const results = await searchNextcloudGroups(String(gid))
 	return results.find((opt) => opt.id === String(gid)) || fallback
+}
+
+/**
+ * Display names already looked up, by group id. Reactive, so every cell that
+ * shows the same group updates when its name arrives.
+ *
+ * @type {Record<string, string>}
+ */
+const groupNames = reactive({})
+
+/** In-flight lookups by group id, so one id is asked for once. */
+const pendingNames = new Map()
+
+/**
+ * The cached display name of a group, or `null` when it has not been looked
+ * up yet. Reactive: read in a computed or a render, it updates when
+ * {@link loadGroupDisplayName} finishes.
+ *
+ * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-a-group-cell-shows-the-groups-display-name
+ * @param {string} gid The group id.
+ * @return {string|null} The display name, or null when unknown.
+ */
+export function groupDisplayName(gid) {
+	if (gid === undefined || gid === null || gid === '') {
+		return null
+	}
+	const name = groupNames[String(gid)]
+	return typeof name === 'string' ? name : null
+}
+
+/**
+ * Look a group's display name up once per page and cache it. Concurrent
+ * callers for the same id share one request. A failed or empty lookup caches
+ * the id itself, so the cell shows the id and does not ask again.
+ *
+ * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-a-group-cell-shows-the-groups-display-name
+ * @param {string} gid The group id.
+ * @return {Promise<string>} The display name, or the id.
+ */
+export function loadGroupDisplayName(gid) {
+	if (gid === undefined || gid === null || gid === '') {
+		return Promise.resolve('')
+	}
+	const key = String(gid)
+	const known = groupDisplayName(key)
+	if (known !== null) {
+		return Promise.resolve(known)
+	}
+	if (pendingNames.has(key)) {
+		return pendingNames.get(key)
+	}
+	const request = resolveNextcloudGroup(key)
+		.then((option) => (option && option.label) || key)
+		.catch(() => key)
+		.then((label) => {
+			groupNames[key] = label
+			pendingNames.delete(key)
+			return label
+		})
+	pendingNames.set(key, request)
+	return request
+}
+
+/**
+ * Forget every cached group name (tests, or after a group was renamed).
+ *
+ * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-a-group-cell-shows-the-groups-display-name
+ * @return {void}
+ */
+export function clearGroupNameCache() {
+	pendingNames.clear()
+	for (const key of Object.keys(groupNames)) {
+		delete groupNames[key]
+	}
 }
