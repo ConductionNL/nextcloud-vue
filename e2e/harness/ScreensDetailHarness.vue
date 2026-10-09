@@ -75,10 +75,12 @@ export default {
 				async fetchObject() {
 					return record
 				},
+
 				async fetchSchema() {
 					return caseSchema
 				},
 			},
+
 			widgets: [
 				{ id: 'case-tabs', type: 'tabs', content: { tabs: [{ widgetId: 'case-overview', label: 'Overview' }, { widgetId: 'case-docs', label: 'Documents' }] } },
 				{ id: 'case-overview', type: 'harness-note', title: 'Overview', content: { text: 'The application, its location and the decision so far.', height: 240 } },
@@ -86,6 +88,7 @@ export default {
 				{ id: 'w-deadline', type: 'harness-note', title: 'Deadline', content: { text: '12 November 2026' } },
 				{ id: 'w-requester', type: 'harness-note', title: 'Requester', content: { text: 'Anouk Bakker' } },
 			],
+
 			layout: [
 				{ id: '1', widgetId: 'case-tabs', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 6 },
 			],

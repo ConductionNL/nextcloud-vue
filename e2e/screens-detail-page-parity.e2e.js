@@ -35,13 +35,15 @@ function rect(locator) {
 	})
 }
 
-const boxes = async (page) => ({
-	body: await rect(page.locator('.cn-detail-page__body').first()),
-	side: await rect(page.locator('[data-testid="cn-detail-page-side"]').first()),
-	firstSide: await rect(page.locator('.cn-detail-page__side-item').first()),
-	strip: await rect(page.locator('.cn-tabs__bar').first()),
-	panel: await rect(page.locator('.cn-tabs__content').first()),
-})
+async function boxes(page) {
+	return {
+		body: await rect(page.locator('.cn-detail-page__body').first()),
+		side: await rect(page.locator('[data-testid="cn-detail-page-side"]').first()),
+		firstSide: await rect(page.locator('.cn-detail-page__side-item').first()),
+		strip: await rect(page.locator('.cn-tabs__bar').first()),
+		panel: await rect(page.locator('.cn-tabs__content').first()),
+	}
+}
 
 test.describe('the tabs and their panel take the body column (detail task 4)', () => {
 	test('at 1440px the first side card is level with the strip, and the strip ends where the body column ends', async ({ page }) => {
