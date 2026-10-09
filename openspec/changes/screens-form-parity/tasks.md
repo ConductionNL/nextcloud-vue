@@ -6,7 +6,7 @@
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-the-label-sits-above-the-input`
 - **files**: `src/components/CnFormField/CnFormField.vue` (new, internal wrapper: label, hint, error, control slot), `src/css/form-field.css` (new), `src/components/CnFormDialog/CnFormDialog.vue`, `src/components/CnFormPage/CnFormPage.vue`
 - [x] Implement: `CnFormField` (the label and error head), `labelOutside` and an id on the Nextcloud controls in the board look, field tokens in `src/css/form-field.css`. Applied to CnFormDialog and CnFormPage; it wraps the label and error only, the control and hint stay where the form drew them. Widgets that draw their own label (switch, checkbox, file, duration, child records, sub objects, property source, reference widget) keep it
-- [ ] Test: label `for` matches the control id; sizes in a browser — partly run: the `for`/`id` match is tested for CnFormPage and CnFormDialog; the 14px, 40px and 6px sizes are only asserted as CSS, not measured in a browser (no running instance)
+- [x] Test: label `for` matches the control id; sizes in a browser — measured in a browser: 14px label, 6px gap, control at least 40px, label above the control; `e2e/screens-form-dialog-wizard-parity.e2e.js` (the library harness, not a live Nextcloud)
 
 ### Task 2: Optional fields are marked, required fields are not
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-optional-fields-are-marked-required-fields-are-not`
@@ -18,7 +18,7 @@
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-hint-under-the-input-error-above-it`
 - **files**: `src/components/CnFormField/CnFormField.vue`, `src/css/form-field.css`
 - [x] Implement: hint and error placement, `aria-invalid`, `aria-describedby` order in both looks. Text, number, textarea and password controls bind the attributes directly; NcSelect forwards none to its input, so `v-cn-select-aria` (`src/directives/cnSelectAria.js`) sets them on the combobox input for the enum field of CnFormPage and the select, multiselect and tags fields of CnFormDialog. NcDateTimePickerNative and the other composite widgets are not wired
-- [ ] Test: attribute order; the error edge and border in the board look — attribute order is tested; the 4px edge and 2px border are only asserted as CSS, not measured in a browser
+- [x] Test: attribute order; the error edge and border in the board look — measured in a browser: 4px edge, 16px inset and 2px control border on an invalid field (the e2e found the 2px border was outweighed by the 1px control rule; fixed in form-field.css); `e2e/screens-form-dialog-wizard-parity.e2e.js` (the library harness, not a live Nextcloud)
 
 ### Task 4: A failed submit shows an error summary
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-a-failed-submit-shows-an-error-summary`
@@ -30,7 +30,7 @@
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-short-fields-can-pair-up`
 - **files**: `src/components/CnFormDialog/CnFormDialog.vue`, `src/components/CnFormPage/CnFormPage.vue`, `src/schemas/app-manifest-v2.schema.json`
 - [x] Implement: `width: "half"` on a form field, consecutive half fields share the grid (CnFormDialog, CnFormPage). The manifest schema is left alone on purpose: `config.fields[]` items already accept extra keys (`additionalProperties: true`), and a typed property would bump the schema version in parallel with other lanes
-- [ ] Test: one row at 640px, stacked at 390px — not run: needs layout. The class is tested in both looks; the grid (`repeat(auto-fit, minmax(220px, 1fr))`) is in `form-field.css`
+- [x] Test: one row at 640px, stacked at 390px — measured in a browser: half fields share a row at 640px and stack at 390px; `e2e/screens-form-dialog-wizard-parity.e2e.js` (the library harness, not a live Nextcloud)
 
 ### Task 6: A public form says what optional means
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-a-public-form-says-what-optional-means`

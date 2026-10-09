@@ -108,12 +108,12 @@ test.describe('dialog', () => {
 test.describe('wizard', () => {
 	test('the board stepper draws 28px circles and a finished step is a green check', async ({ page }) => {
 		await open(page, '?screensform=wizard')
-		const stepper = page.locator('.cn-dialog-board ol').first()
+		const stepper = page.locator('[data-testid="cn-stepper"]').first()
 		await expect(stepper).toBeVisible({ timeout: 30_000 })
 		const items = stepper.locator('li')
 		await expect(items).toHaveCount(3)
 		await expect(items.nth(1)).toHaveAttribute('aria-current', 'step')
-		const circle = items.first().locator('[class*="circle"]').first()
+		const circle = items.first().locator('.cn-stepper__dot').first()
 		const box = await rect(circle)
 		expect(Math.round(box.width)).toBe(28)
 		expect(Math.round(box.height)).toBe(28)
