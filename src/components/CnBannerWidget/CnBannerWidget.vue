@@ -142,6 +142,14 @@ export default {
 
 	components: { NcNoteCard },
 
+	inject: {
+		/**
+		 * The host's label lookup (CnAppRoot provides it); identity without one, so a
+		 * label that is not a key renders as written.
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/**
 		 * Banner severity variant: `info | warning | error` (plus `success`
@@ -362,7 +370,7 @@ export default {
 		 */
 		resolvedKicker() {
 			const kicker = this.kicker || (this.content && this.content.kicker) || ''
-			return kicker
+			return kicker ? this.tl(kicker) : ''
 		},
 
 		/**
@@ -373,7 +381,7 @@ export default {
 		 */
 		displayTitle() {
 			const title = this.title || (this.content && this.content.title) || ''
-			return title ? this.fillValue(title) : this.displayText
+			return title ? this.fillValue(this.tl(title)) : this.displayText
 		},
 
 		/**
@@ -386,7 +394,7 @@ export default {
 		displayReason() {
 			const reason = this.reason || (this.content && this.content.reason) || ''
 			if (reason) {
-				return this.fillValue(reason)
+				return this.fillValue(this.tl(reason))
 			}
 			const title = this.title || (this.content && this.content.title) || ''
 			// A card that sets `text` to the same words as its `title` says
@@ -424,7 +432,7 @@ export default {
 				return {
 					key: `${index}-${action.id || action.label}`,
 					id: action.id,
-					label: action.label,
+					label: this.tl(action.label),
 					href,
 					target,
 					primary: index === primaryIndex,
@@ -526,6 +534,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A manifest string through the host's label lookup (`cnTranslate`), so a key
+		 * such as "Mine" reads in the user's language.
+		 *
+		 * @param {string} text The text as written in the manifest.
+		 * @return {string} The translated text.
+		 */
+		tl(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
 		/**
 		 * Replace `{value}` in a text by the value the predicate read, once
 		 * one is known.

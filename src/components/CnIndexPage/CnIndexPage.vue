@@ -82,7 +82,7 @@
 			:activeFilterChips="activeFilterChips"
 			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
-			:bulkHint="bulkHint"
+			:bulkHint="bulkHint ? cnTranslate(bulkHint) : bulkHint"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -848,7 +848,7 @@
 				<CnPagination
 					v-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
 					:variant="isBoardLook ? 'board' : ''"
-					:footerNote="footerNote"
+					:footerNote="footerNote ? cnTranslate(footerNote) : footerNote"
 					:currentPage="effectivePagination.page || 1"
 					:totalPages="effectivePagination.pages || 1"
 					:totalItems="effectivePagination.total || 0"
