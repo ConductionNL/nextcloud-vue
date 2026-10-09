@@ -11,7 +11,7 @@ A manifest `type: "index"` page can turn the built-in row actions (View, Edit, C
 - The keyboard primary action runs the first entry the row menu shows and enables, skipping hidden and disabled entries.
 - Unknown `builtin:*` strings, bare strings such as `"edit"`, a placeholder repeated in one array, and an app action object whose `id` starts with `builtin:` or that sets `builtin` are schema errors.
 - Built-in actions get stable internal ids (`view`, `edit`, `copy`, `delete`). Their `data-testid`, render key and click matching use the id instead of the translated label. English testids do not change (`cn-action-item-edit` and so on); in other locales they stop depending on the translation.
-- A row's availability block (`@self.actions`) matches built-ins by id only. There is no label fallback: OpenRegister sends permission verbs, never labels, and only on single-object fetches.
+- A row's availability block (`@self.actions`) matches built-ins by id, never by label. There is no label fallback: OpenRegister sends permission verbs, never labels, and only on single-object fetches.
 - The library validator reports a warning, not an error, when Delete is not the last entry of the rendered order, appended built-ins included. `validateManifest()` returns these in a `warnings` array, and the docs tell consumer apps to print them from their `check:manifest` so they show in CI.
 - One resolver produces the ordered list for every row surface: table, list view, card grid, the right-click context menu and the keyboard primary action.
 - The right-click context menu and the row actions menu are the same menu. The context menu reads the same per-row list as the row menu (`rowActionsFor(row)`), so it honours `@self.actions` and the same visibility rules, in the same order.
@@ -20,7 +20,7 @@ A manifest `type: "index"` page can turn the built-in row actions (View, Edit, C
 
 - Placeholders in `bulkActions` or `headerActions`. They get the same syntax in their own change.
 - Placeholders on `type: "detail"` pages, whose `config.actions` is a different dialect.
-- Mapping OpenRegister's permission verbs (`read`, `update`, `delete`) onto built-in ids for `@self.actions` filtering. See design D-6; tracked in [#1328](https://github.com/ConductionNL/nextcloud-vue/issues/1328).
+- Mapping OpenRegister's permission verbs (`read`, `update`, `delete`) onto built-in ids for `@self.actions` filtering. See design D-6; tracked in [#1328](https://github.com/ConductionNL/nextcloud-vue/issues/1328) and delivered by the change `row-action-openregister-verbs`.
 - Changing consumer apps' `check:manifest` scripts. The library returns the warnings and documents how to print them; each app adopts that in its own change.
 - Any migration of existing manifests. The syntax is opt-in and `actionToggles` stays the way to enable or disable a built-in.
 
