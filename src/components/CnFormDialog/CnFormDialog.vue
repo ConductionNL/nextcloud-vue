@@ -3618,6 +3618,10 @@ export default {
 				return
 			}
 			const [head, ...rest] = key.split('.')
+			const unsafe = ['__proto__', 'constructor', 'prototype']
+			if (unsafe.includes(head) || rest.some((k) => unsafe.includes(k))) {
+				return
+			}
 			const clone = JSON.parse(JSON.stringify(this.formData[head] ?? {}))
 			let cur = clone
 			rest.slice(0, -1).forEach((k) => {

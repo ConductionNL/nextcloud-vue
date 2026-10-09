@@ -19,7 +19,7 @@ An image is written `![name](url)`. It renders as an image only when its URL is 
 |------|------|---------|-------------|
 | `message` | String | `''` | The raw note text. |
 | `record` | Object | `null` | The record the note belongs to, `{ apiBase, register, schema, objectId }`. Only images that are files of this record show as images; `null` shows every image as a link. |
-| `names` | Object | `{}` | Display names by id. An unresolved user shows its id as a muted chip; a group shows "Group <gid>" unless `group/<gid>` has a name here. |
+| `names` | Object | `{}` | Display names by id. An unresolved user shows its id as a muted chip; a group shows "Group &lt;gid&gt;" unless `group/<gid>` has a name here. |
 
 ## Slots
 

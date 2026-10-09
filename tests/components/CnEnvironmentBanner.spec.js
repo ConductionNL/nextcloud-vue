@@ -62,4 +62,12 @@ describe('resolveEnvironment', () => {
 		expect(resolveEnvironment('', 'Acceptance')).toBe('acceptance')
 		expect(resolveEnvironment(undefined, 'nonsense')).toBe('')
 	})
+
+	it('removes only its own prefix, with no pattern built from it', () => {
+		document.title = '[DEV] \\ [x] Pipelinq'
+		const wrapper = mount(CnEnvironmentBanner, { propsData: { environment: 'test' } })
+		expect(document.title).toBe('[TEST] \\ [x] Pipelinq')
+		wrapper.unmount()
+		expect(document.title).toBe('\\ [x] Pipelinq')
+	})
 })

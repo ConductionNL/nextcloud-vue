@@ -1082,8 +1082,8 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 
 - **Header**: no icon; the title (28px), the count line and the buttons. `countText` is a template with `{shown}` (rows on this page), `{total}` and free text, default `"{shown} of {total}"`. The buttons render in a fixed order whatever the manifest declares: `export` (labelled "Download" by default), `actions-menu`, any other secondary button, the buildiq square, the primary button.
 - **Toolbar**: no band. Row 1 holds the saved-view chips (with their counts; the selected one filled), a "Save view" button, the labelled Filter button with the number of active filters, and the view switch (icon-only segments in the order table, cards, board, map). Row 2 holds the search field and, when filters are active, "Active:", one removable chip per filter and "Clear all".
-- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected <plural>", the bulk actions and the optional `bulkHint`.
-- **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for <title>".
+- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected &lt;plural&gt;", the bulk actions and the optional `bulkHint`.
+- **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for &lt;title&gt;".
 - **Footer**: inside the card (and under the card grid): the count text, `footerNote` after it, and numbered page links with Previous and Next. No First, Last or page-size select.
 - **Cards view**: the same header, toolbar and footer; `cardFields` (default: the first four list columns) names the facts shown on each card.
 
