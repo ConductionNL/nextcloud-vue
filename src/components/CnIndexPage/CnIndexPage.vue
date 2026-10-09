@@ -2457,6 +2457,10 @@ export default {
 		 * stays out too, and its reason is available from
 		 * `rowActionRefusal(row, action)`.
 		 *
+		 * An action matches by its id. The built-in View, Edit, Copy and Delete
+		 * also match OpenRegister's permission verbs: `read` permits View and
+		 * Copy, `update` permits Edit, `delete` permits Delete.
+		 *
 		 * A row carrying nothing at this path is a server that does not answer
 		 * about actions, and the page's declaration stands unchanged.
 		 *
