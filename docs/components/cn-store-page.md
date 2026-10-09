@@ -90,3 +90,7 @@ app can write them before it upgrades and keep the administrator default until t
 
 Discovery runs through OpenRegister's `GenericStoreService`, so the SSRF guard, the
 redirect refusal and the registry token stay on the server.
+
+## Board look
+
+Under the board look the catalogue cards lay out on the same 260px track and take the screens' shape: a 40px icon chip (`card.icon`, else a package), the title, "<kind> · <publisher>", a state pill ("Installed" when `card.installed`, "Update" when `card.updateAvailable`), the description, and a footer with the version and one named action: Open (`card.openUrl`), Install or Update. Install and Update stay hidden when the viewer may not install.

@@ -1,5 +1,9 @@
 <template>
-	<div class="cn-actions-bar" data-testid="cn-actions-bar">
+	<div
+		class="cn-actions-bar"
+		:class="{ 'cn-actions-bar--board': isBoardLayout }"
+		data-testid="cn-actions-bar"
+		v-bind="$attrs">
 		<div class="cn-actions-bar__info">
 			<!-- Inline search field (opt-in) -->
 			<div v-if="showSearch" class="cn-actions-bar__search">
@@ -17,6 +21,32 @@
 			</span>
 			<!-- @slot after-search Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. a filter menu button). Convention: the left side groups the VISUAL controls — search, filters, view toggle — while the right cluster holds the ACT controls (add, overflow); the standalone sort select is a display control too but keeps its legacy right-side placement. -->
 			<slot name="after-search" />
+			<!-- Board look, row 2: the active filters as removable chips and a
+			     "Clear all" link, after the search field. -->
+			<template v-if="isBoardLayout && activeFilterChips.length > 0">
+				<span class="cn-actions-bar__active-label" data-testid="cn-actions-bar-active-label">{{ t('nextcloud-vue', 'Active:') }}</span>
+				<span
+					v-for="chip in activeFilterChips"
+					:key="chip.key"
+					class="cn-actions-bar__filter-chip"
+					data-testid="cn-actions-bar-filter-chip">
+					<span class="cn-actions-bar__filter-chip-label">{{ chip.label }}</span>
+					<button
+						type="button"
+						class="cn-actions-bar__filter-chip-remove"
+						:aria-label="t('nextcloud-vue', 'Remove filter: {label}', { label: chip.label })"
+						@click="$emit('remove-filter', chip)">
+						<Close :size="14" aria-hidden="true" />
+					</button>
+				</span>
+				<button
+					type="button"
+					class="cn-actions-bar__clear-all"
+					data-testid="cn-actions-bar-clear-all"
+					@click="$emit('clear-filters')">
+					{{ t('nextcloud-vue', 'Clear all') }}
+				</button>
+			</template>
 			<!-- Counter beside the search (`showCountWithSearch`): after the search and its #after-search controls. The live region stays mounted while there is no total, so results coming back after none are announced too. -->
 			<span v-if="showCount && showSearch && showCountWithSearch"
 				class="cn-actions-bar__count cn-actions-bar__count--beside-search"
@@ -31,11 +61,12 @@
 			<div v-if="showViewToggle && viewSegments.length > 1"
 				class="cn-actions-bar__view-toggle"
 				role="group"
-				:aria-label="t('nextcloud-vue', 'View mode')">
+				:aria-label="isBoardLayout ? t('nextcloud-vue', 'View') : t('nextcloud-vue', 'View mode')">
 				<!-- Sliding pill that sits behind the active segment. Width and
 				     offset are driven by the segment count so the same markup
 				     works for 2–4 segments (cards / table / list / map). -->
 				<span
+					v-if="!isBoardLayout"
 					class="cn-actions-bar__view-toggle-thumb"
 					:style="thumbStyle"
 					aria-hidden="true" />
@@ -51,6 +82,8 @@
 					class="cn-actions-bar__view-toggle-btn"
 					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode }"
 					:aria-pressed="viewMode === seg.mode"
+					:aria-label="isBoardLayout ? seg.label : null"
+					:title="isBoardLayout ? seg.label : null"
 					@click="$emit('view-mode-change', seg.mode)">
 					<CnIcon v-if="seg.icon"
 						:name="seg.icon"
@@ -60,10 +93,13 @@
 						v-else
 						:size="24"
 						class="cn-actions-bar__view-toggle-icon" />
-					<span class="cn-actions-bar__view-toggle-label">{{ seg.label }}</span>
+					<span v-if="!isBoardLayout" class="cn-actions-bar__view-toggle-label">{{ seg.label }}</span>
 				</button>
 			</div>
 		</div>
+		<!-- Board look: flexible space on row 1 and the break before row 2. -->
+		<span v-if="isBoardLayout" class="cn-actions-bar__spacer" aria-hidden="true" />
+		<span v-if="isBoardLayout" class="cn-actions-bar__row-break" aria-hidden="true" />
 		<div class="cn-actions-bar__actions">
 			<!-- Sort select (opt-in). A standalone sort control for card/list
 			     views, which — unlike the table — have no sortable column
@@ -93,7 +129,23 @@
 				@event toggle-sidebar
 				@description User clicked the Search/Columns sidebar toggle. No payload — the host flips the sidebar open state.
 			-->
-			<NcButton v-if="showSidebarToggle"
+			<NcButton v-if="showSidebarToggle && isBoardLayout"
+				variant="secondary"
+				class="cn-actions-bar__filter-button"
+				data-testid="cn-actions-bar-filter-button"
+				:pressed="sidebarOpen"
+				@click="$emit('toggle-sidebar')">
+				<template #icon>
+					<Tune :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Filter') }}
+				<span
+					v-if="filterCount > 0"
+					class="cn-actions-bar__filter-badge"
+					data-testid="cn-actions-bar-filter-badge"
+					:aria-label="t('nextcloud-vue', '{count} active', { count: filterCount })">{{ filterCount }}</span>
+			</NcButton>
+			<NcButton v-else-if="showSidebarToggle"
 				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Search and columns')"
 				:title="t('nextcloud-vue', 'Search and columns')"
@@ -136,7 +188,7 @@
 			<slot name="actions-end" />
 
 			<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
-			<CnBuildiqEditButton />
+			<CnBuildiqEditButton v-if="showEditButton" />
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
@@ -288,7 +340,7 @@
 		     menu above, while a host decides for its own actions (strip-only
 		     is fine — keepiq does exactly that). -->
 		<div
-			v-if="selectable && selectedIds.length > 0"
+			v-if="!isBoardLayout && selectable && selectedIds.length > 0"
 			class="cn-actions-bar__selection"
 			data-testid="cn-selection-strip">
 			<span class="cn-actions-bar__selection-count" aria-hidden="true">
@@ -356,6 +408,47 @@
 			</NcButton>
 		</div>
 	</div>
+
+	<!--
+		Board look: the bulk band is its own row between the toolbar and the
+		table card, outside the toolbar element, and only while rows are
+		selected. The count stays announced by the live region above.
+	-->
+	<div
+		v-if="isBoardLayout && selectable && selectedIds.length > 0"
+		class="cn-actions-bar__band"
+		role="region"
+		:aria-label="t('nextcloud-vue', 'Actions for the selection')"
+		data-testid="cn-bulk-band">
+		<strong class="cn-actions-bar__band-lead">{{ bulkBandLead }}</strong>
+		<NcButton
+			v-if="showMassCopy"
+			variant="secondary"
+			@click="$emit('show-copy')">
+			{{ t('nextcloud-vue', 'Copy selected') }}
+		</NcButton>
+		<NcButton
+			v-if="showMassDelete"
+			variant="secondary"
+			@click="$emit('show-delete')">
+			{{ t('nextcloud-vue', 'Delete selected') }}
+		</NcButton>
+		<NcButton
+			v-for="entry in bulkActions"
+			:key="entry.id"
+			variant="secondary"
+			:disabled="entry.disabled === true"
+			:data-testid="`cn-bulk-action-${entry.id}`"
+			:lang="bulkLang(entry)"
+			@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
+			{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
+		</NcButton>
+		<slot
+			name="selection-actions"
+			:count="selectedIds.length"
+			:selectedIds="selectedIds" />
+		<span v-if="bulkHint" class="cn-actions-bar__band-hint" data-testid="cn-bulk-band-hint">{{ bulkHint }}</span>
+	</div>
 </template>
 
 <script>
@@ -375,9 +468,11 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import SortVariant from 'vue-material-design-icons/SortVariant.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
+import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
 import ViewListOutline from 'vue-material-design-icons/ViewListOutline.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { isModifiedClick } from '../../utils/linkNavigation.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
@@ -420,6 +515,7 @@ export default {
 		Export,
 		Magnify,
 		Tune,
+		ViewColumnOutline,
 		ViewGridOutline,
 		FormatListBulletedSquare,
 		CalendarMonthOutline,
@@ -427,6 +523,8 @@ export default {
 	},
 
 	inject: {
+		/** The look CnAppRoot provides; `board` draws the two-row toolbar. */
+		cnLook: { default: 'nextcloud' },
 		/**
 		 * Host translate function provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). The
@@ -438,7 +536,65 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 	},
 
+	// Attributes go on the toolbar element, not on the fragment (the toolbar
+	// plus, under the board look, the bulk band).
+	inheritAttrs: false,
+
 	props: {
+		/**
+		 * `board` draws the toolbar of the board look: no band, two rows (saved
+		 * views, Filter and the view switch; then the search field and the
+		 * active filters). Empty follows the `cnLook` the app provides.
+		 *
+		 * @type {('' | 'board' | 'nextcloud')}
+		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
+		 */
+		layout: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The active filters as chips for row 2 of the board toolbar:
+		 * `{ key, label }`, the label reading "Team: Woo". Removing one emits
+		 * `remove-filter` with the chip; "Clear all" emits `clear-filters`.
+		 *
+		 * @type {Array<{key: string, label: string}>}
+		 */
+		activeFilterChips: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The number on the Filter button's badge. Empty (`null`) counts the
+		 * `activeFilterChips`.
+		 *
+		 * @type {?number}
+		 */
+		activeFilterCount: {
+			type: Number,
+			default: null,
+		},
+
+		/** Whether the in-app edit button (the buildiq square) renders here; the index page takes it into its header under the board look. */
+		showEditButton: {
+			type: Boolean,
+			default: true,
+		},
+
+		/** The plural the board bulk band names ("With the selected cases"). */
+		bulkNoun: {
+			type: String,
+			default: '',
+		},
+
+		/** The 13px hint after the board bulk band's buttons (`config.bulkHint`). */
+		bulkHint: {
+			type: String,
+			default: '',
+		},
+
 		/** Pagination state: { total, page, pages, limit } */
 		pagination: {
 			type: Object,
@@ -784,9 +940,11 @@ export default {
 	emits: [
 		'add',
 		'bulk-action',
+		'clear-filters',
 		'clear-selection',
 		'header-action',
 		'refresh',
+		'remove-filter',
 		'search',
 		'show-copy',
 		'show-delete',
@@ -798,6 +956,37 @@ export default {
 	],
 
 	computed: {
+		/**
+		 * Whether the board toolbar is drawn: the `layout` prop, else the look
+		 * the app provides.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLayout() {
+			if (this.layout) {
+				return this.layout === 'board'
+			}
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The number on the Filter button.
+		 *
+		 * @return {number}
+		 */
+		filterCount() {
+			return typeof this.activeFilterCount === 'number' ? this.activeFilterCount : this.activeFilterChips.length
+		},
+
+		/**
+		 * The bold lead of the board bulk band.
+		 *
+		 * @return {string}
+		 */
+		bulkBandLead() {
+			return t('nextcloud-vue', 'With the selected {plural}', { plural: this.bulkNoun || t('nextcloud-vue', 'items') })
+		},
+
 		/**
 		 * Name of the overflow Actions menu. Library chrome, so it resolves
 		 * against the LIBRARY catalogue — it was a bare `menu-name="Actions"`
@@ -889,6 +1078,17 @@ export default {
 			const modes = [...this.availableViewModes]
 			if (this.showMap && !modes.includes('map')) {
 				modes.push('map')
+			}
+			if (this.isBoardLayout) {
+				// The board look's fixed order: table, cards, board, map, each
+				// only when the page offers it. A mode the board switch does not
+				// name (list, calendar) follows, so it is never lost.
+				defs.board = { label: t('nextcloud-vue', 'Board'), icon: '', fallback: ViewColumnOutline }
+				const fixed = ['table', 'cards', 'board', 'map']
+				const rest = modes.filter((mode) => !fixed.includes(mode))
+				return [...fixed.filter((mode) => modes.includes(mode)), ...rest]
+					.filter((mode) => defs[mode])
+					.map((mode) => ({ mode, ...defs[mode] }))
 			}
 			return modes
 				.filter((mode) => defs[mode])

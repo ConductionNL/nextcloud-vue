@@ -92,3 +92,7 @@ When any view is shared with the user, the list is split under two captions, **M
 - `utils/viewDefaults.js` — the landing view, the columns per role and what a new view starts from.
 - `utils/viewActions.js` — the actions a view offers, intersected with what the reader may run.
 - `utils/groupRows.js` — grouping a list by one field, with a count per group.
+
+## Board look
+
+Under the board look the views render as a row of chips on the ground, each with its count (`counts`) and `aria-pressed`, the one named by `selectedViewId` filled. The menu stays for managing views and is labelled "Save view".

@@ -1,7 +1,7 @@
 <template>
 	<div
 		class="cn-object-card"
-		:class="{ 'cn-object-card--selected': selected }"
+		:class="{ 'cn-object-card--selected': selected, 'cn-object-card--board': isBoardLook }"
 		@mousedown="onCardMouseDown"
 		@click="onCardClick($event)"
 		@auxclick="onCardAuxClick($event)">
@@ -19,6 +19,16 @@
 		<div class="cn-object-card__content">
 			<!-- Header: image + title -->
 			<div class="cn-object-card__header">
+				<!-- Board look: the leading element, initials in a circle or an icon on a tint. -->
+				<span
+					v-if="isBoardLook && leadingKind"
+					class="cn-object-card__leading"
+					:class="`cn-object-card__leading--${leadingKind}`"
+					data-testid="cn-object-card-leading"
+					aria-hidden="true">
+					<template v-if="leadingKind === 'initials'">{{ leading.initials }}</template>
+					<CnIcon v-else :name="leading.icon" :size="20" />
+				</span>
 				<img
 					v-if="imageUrl"
 					:src="imageUrl"
@@ -38,6 +48,22 @@
 						{{ truncatedDescription }}
 					</p>
 				</div>
+				<!-- Board look, end of the head: the status pill, or else the row menu. -->
+				<template v-if="isBoardLook">
+					<CnStatusBadge
+						v-if="statusPill"
+						class="cn-object-card__status"
+						:label="statusPill.label"
+						:variant="statusPill.variant"
+						data-testid="cn-object-card-status" />
+					<div
+						v-else-if="$slots.actions"
+						class="cn-object-card__menu"
+						@click.stop
+						@auxclick.stop>
+						<slot name="actions" :object="object" />
+					</div>
+				</template>
 			</div>
 
 			<!-- Badges slot -->
@@ -46,7 +72,7 @@
 			</div>
 
 			<!-- Metadata: visible properties as label:value pairs -->
-			<div v-if="metadataFields.length > 0" class="cn-object-card__metadata">
+			<div v-if="metadataFields.length > 0" class="cn-object-card__metadata" :class="{ 'cn-object-card__metadata--facts': isBoardLook }">
 				<slot name="metadata" :object="object" :fields="metadataFields">
 					<div
 						v-for="field in metadataFields"
@@ -60,10 +86,28 @@
 					</div>
 				</slot>
 			</div>
+
+			<!-- Board look: one footer action, with a muted meta text at the start. -->
+			<div
+				v-if="isBoardLook && footerAction"
+				class="cn-object-card__footer"
+				data-testid="cn-object-card-footer"
+				@click.stop
+				@auxclick.stop>
+				<span v-if="footerAction.meta" class="cn-object-card__footer-meta">{{ footerAction.meta }}</span>
+				<NcButton
+					variant="secondary"
+					class="cn-object-card__footer-action"
+					data-testid="cn-object-card-footer-action"
+					:aria-label="footerAction.ariaLabel || `${footerAction.label} ${title}`"
+					@click="$emit('footer-action', object, footerAction)">
+					{{ footerAction.label }}
+				</NcButton>
+			</div>
 		</div>
 
 		<!-- Actions slot -->
-		<div v-if="$slots.actions"
+		<div v-if="$slots.actions && !isBoardLook"
 			class="cn-object-card__actions"
 			@click.stop
 			@auxclick.stop>
@@ -73,13 +117,16 @@
 </template>
 
 <script>
-import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { formatValue } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
  * CnObjectCard — Schema-configuration-driven card for object display.
@@ -99,9 +146,12 @@ export default {
 	name: 'CnObjectCard',
 
 	components: {
+		NcButton,
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
+		CnIcon,
 		CnLockIndicator,
+		CnStatusBadge,
 	},
 
 	inject: {
@@ -114,6 +164,8 @@ export default {
 		 * standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The look CnAppRoot provides; `board` draws the record card of the screens. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -154,6 +206,56 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Board look: the status pill at the end of the head row, as a label
+		 * (`"Open"`) or `{ label, variant }` with a CnStatusBadge variant
+		 * (`success`, `warning`, `error`, `info`, `primary`, `default`).
+		 * Without it the head row ends in the row menu, when there is one.
+		 *
+		 * @type {(string|{label: string, variant?: string})}
+		 * @spec openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-a-record-card-has-a-head-facts-and-one-action
+		 */
+		status: {
+			type: [String, Object],
+			default: null,
+		},
+
+		/**
+		 * Board look: the leading element of the head row. `{ initials }`
+		 * draws the initials in a 36px circle; `{ icon }` a schema icon in a
+		 * 36px rounded square on a tint.
+		 *
+		 * @type {{initials?: string, icon?: string}}
+		 */
+		leading: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Board look: the card's one footer action. `{ label, meta?,
+		 * ariaLabel? }`; `meta` is the 13px muted text at the start of the
+		 * footer. Clicking emits `footer-action`.
+		 *
+		 * @type {{label: string, meta?: string, ariaLabel?: string}}
+		 */
+		footerAction: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The property keys the facts list shows, in order (manifest key
+		 * `config.cardFields`). Without it the card shows the first
+		 * `maxMetadata` visible properties, as before.
+		 *
+		 * @type {Array<string>}
+		 */
+		cardFields: {
+			type: Array,
+			default: null,
+		},
+
 		/** Maximum number of metadata fields to show */
 		maxMetadata: {
 			type: Number,
@@ -161,7 +263,7 @@ export default {
 		},
 	},
 
-	emits: ['click', 'select', 'aux-click'],
+	emits: ['click', 'select', 'aux-click', 'footer-action'],
 
 	setup() {
 		// Tell a deliberate card click apart from a text-selection drag.
@@ -169,6 +271,42 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the record card of the board look is drawn.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * `initials`, `icon` or '' for the head row's leading element.
+		 *
+		 * @return {string}
+		 */
+		leadingKind() {
+			if (this.leading && typeof this.leading.initials === 'string' && this.leading.initials !== '') {
+				return 'initials'
+			}
+			return this.leading && typeof this.leading.icon === 'string' && this.leading.icon !== '' ? 'icon' : ''
+		},
+
+		/**
+		 * The status as `{ label, variant }`, or null.
+		 *
+		 * @return {?{label: string, variant: string}}
+		 */
+		statusPill() {
+			if (typeof this.status === 'string' && this.status !== '') {
+				return { label: this.status, variant: 'default' }
+			}
+			if (this.status && typeof this.status.label === 'string' && this.status.label !== '') {
+				return { label: this.status.label, variant: this.status.variant || 'default' }
+			}
+			return null
+		},
+
 		config() {
 			return this.schema?.configuration || {}
 		},
@@ -221,6 +359,18 @@ export default {
 		metadataFields() {
 			if (!this.schema?.properties) {
 				return []
+			}
+
+			// The page names the facts: those properties, in that order.
+			if (Array.isArray(this.cardFields)) {
+				return this.cardFields
+					.filter((key) => typeof key === 'string' && this.schema.properties[key] && !this.configFields.includes(key))
+					.map((key) => ({
+						key,
+						label: this.cnTranslate(this.schema.properties[key].title || key),
+						value: this.object[key],
+						property: this.schema.properties[key],
+					}))
 			}
 
 			return Object.entries(this.schema.properties)

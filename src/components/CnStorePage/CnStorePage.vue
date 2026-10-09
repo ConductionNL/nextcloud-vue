@@ -115,37 +115,92 @@
 		<ul
 			v-if="!loading && cards.length > 0"
 			class="cn-store-page__grid"
+			:style="gridStyle"
 			data-testid="store-results">
-			<li v-for="card in cards" :key="card.slug" class="cn-store-page__card">
-				<h3 class="cn-store-page__card-title">
-					{{ card.title || card.slug }}
-				</h3>
-				<p v-if="card.typeName || card.kind" class="cn-store-page__card-kind">
-					{{ card.typeName || card.kind }}
-				</p>
-				<p class="cn-store-page__card-description">
-					{{ card.description }}
-				</p>
-				<div class="cn-store-page__card-footer">
-					<span v-if="card.publisher" class="cn-store-page__card-publisher">
-						{{ card.publisher }}
-					</span>
-					<span v-if="card.version" class="cn-store-page__card-version">
-						{{ card.version }}
-					</span>
-					<NcButton
-						v-if="showInstall"
-						variant="primary"
-						data-testid="store-install"
-						:disabled="installing === card.slug"
-						@click="install(card)">
-						{{
-							installing === card.slug
-								? t('nextcloud-vue', 'Installing…')
-								: t('nextcloud-vue', 'Install')
-						}}
-					</NcButton>
-				</div>
+			<li
+				v-for="card in cards"
+				:key="card.slug"
+				class="cn-store-page__card"
+				:class="{ 'cn-store-page__card--board': isBoardLook }">
+				<!--
+					Board look: an icon chip, the title, "<kind> · <publisher>" and a
+					state pill, then the description, then a footer with the version
+					and one named action. The same card without the look is the
+					plain one below.
+				-->
+				<template v-if="isBoardLook">
+					<div class="cn-store-page__card-head">
+						<span class="cn-store-page__card-chip" aria-hidden="true">
+							<CnIcon v-if="card.icon" :name="card.icon" :size="22" />
+							<PackageVariantClosed v-else :size="22" />
+						</span>
+						<div class="cn-store-page__card-heading">
+							<h3 class="cn-store-page__card-title">
+								{{ card.title || card.slug }}
+							</h3>
+							<p v-if="cardKindLine(card)" class="cn-store-page__card-kind" data-testid="store-card-kind">
+								{{ cardKindLine(card) }}
+							</p>
+						</div>
+						<span
+							v-if="cardState(card)"
+							class="cn-store-page__card-state"
+							:class="`cn-store-page__card-state--${cardState(card)}`"
+							data-testid="store-card-state">
+							{{ cardState(card) === 'update' ? t('nextcloud-vue', 'Update') : t('nextcloud-vue', 'Installed') }}
+						</span>
+					</div>
+					<p class="cn-store-page__card-description">
+						{{ card.description }}
+					</p>
+					<div class="cn-store-page__card-footer" data-testid="store-card-footer">
+						<span v-if="card.version" class="cn-store-page__card-version">
+							{{ t('nextcloud-vue', 'Version {version}', { version: card.version }) }}
+						</span>
+						<NcButton
+							v-if="cardAction(card)"
+							variant="secondary"
+							class="cn-store-page__card-action"
+							data-testid="store-card-action"
+							:href="cardAction(card).href"
+							:disabled="installing === card.slug"
+							:aria-label="`${cardAction(card).label} ${card.title || card.slug}`"
+							@click="onCardAction(card, cardAction(card))">
+							{{ cardAction(card).label }}
+						</NcButton>
+					</div>
+				</template>
+				<template v-else>
+					<h3 class="cn-store-page__card-title">
+						{{ card.title || card.slug }}
+					</h3>
+					<p v-if="card.typeName || card.kind" class="cn-store-page__card-kind">
+						{{ card.typeName || card.kind }}
+					</p>
+					<p class="cn-store-page__card-description">
+						{{ card.description }}
+					</p>
+					<div class="cn-store-page__card-footer">
+						<span v-if="card.publisher" class="cn-store-page__card-publisher">
+							{{ card.publisher }}
+						</span>
+						<span v-if="card.version" class="cn-store-page__card-version">
+							{{ card.version }}
+						</span>
+						<NcButton
+							v-if="showInstall"
+							variant="primary"
+							data-testid="store-install"
+							:disabled="installing === card.slug"
+							@click="install(card)">
+							{{
+								installing === card.slug
+									? t('nextcloud-vue', 'Installing…')
+									: t('nextcloud-vue', 'Install')
+							}}
+						</NcButton>
+					</div>
+				</template>
 			</li>
 		</ul>
 
@@ -155,7 +210,7 @@
 			<h3 class="cn-store-page__builtin-title">
 				{{ builtInHeading }}
 			</h3>
-			<ul class="cn-store-page__grid" data-testid="store-builtin">
+			<ul class="cn-store-page__grid" :style="gridStyle" data-testid="store-builtin">
 				<li
 					v-for="item in visibleBuiltIn"
 					:key="item.slug"
@@ -191,7 +246,10 @@ import {
 	NcNoteCard,
 	NcTextField,
 } from '@nextcloud/vue'
+import PackageVariantClosed from 'vue-material-design-icons/PackageVariantClosed.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * The kind vocabulary from ADR-080 Decision 5. A `kind` names what installing
@@ -210,6 +268,8 @@ export default {
 	name: 'CnStorePage',
 
 	components: {
+		CnIcon,
+		PackageVariantClosed,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -220,6 +280,8 @@ export default {
 	inject: {
 		/** The label lookup from CnAppRoot, so manifest labels show in the user's language. */
 		cnTranslate: { default: null },
+		/** The look CnAppRoot provides; `board` draws the catalogue cards of the screens. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -365,6 +427,33 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the cards are drawn as the board look's catalogue cards.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The board track for the cards: `minmax(var(--cn-card-grid-min,
+		 * 260px), 1fr)` and `var(--cn-card-grid-gap, 16px)`. Empty without
+		 * the look.
+		 *
+		 * @spec openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-the-card-grid-takes-the-board-track
+		 * @return {object}
+		 */
+		gridStyle() {
+			if (!this.isBoardLook) {
+				return {}
+			}
+			return {
+				gridTemplateColumns: 'repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))',
+				gap: 'var(--cn-card-grid-gap, 16px)',
+			}
+		},
+
 		/**
 		 * The page title, preferring the flattened prop over the page object.
 		 *
@@ -629,6 +718,65 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The "<kind> · <publisher>" line of a catalogue card.
+		 *
+		 * @param {object} card The card.
+		 * @return {string} The line, or ''.
+		 */
+		cardKindLine(card) {
+			return [card.typeName || card.kind, card.publisher].filter((part) => typeof part === 'string' && part !== '').join(' · ')
+		},
+
+		/**
+		 * The state a catalogue card shows as a pill: `update` when the item
+		 * says an update is available, `installed` when it says it is
+		 * installed, none otherwise.
+		 *
+		 * @param {object} card The card.
+		 * @return {('installed'|'update'|'')} The state.
+		 */
+		cardState(card) {
+			if (card.updateAvailable === true) {
+				return 'update'
+			}
+			return card.installed === true ? 'installed' : ''
+		},
+
+		/**
+		 * The one action in a catalogue card's footer: Update for an item with
+		 * an update, Open for an installed one that says where it opens
+		 * (`openUrl`), Install for one that is not installed. Nothing when the
+		 * viewer may not install and there is nowhere to open.
+		 *
+		 * @param {object} card The card.
+		 * @return {?{id: string, label: string, href?: string}} The action, or null.
+		 */
+		cardAction(card) {
+			const state = this.cardState(card)
+			if (state === 'update') {
+				return this.showInstall ? { id: 'update', label: t('nextcloud-vue', 'Update') } : null
+			}
+			if (state === 'installed') {
+				return typeof card.openUrl === 'string' && card.openUrl !== '' ? { id: 'open', label: t('nextcloud-vue', 'Open'), href: card.openUrl } : null
+			}
+			return this.showInstall ? { id: 'install', label: t('nextcloud-vue', 'Install') } : null
+		},
+
+		/**
+		 * The footer action was clicked: install and update run the install
+		 * endpoint; Open is a link and has nothing to run.
+		 *
+		 * @param {object} card The card.
+		 * @param {{id: string}} action The action.
+		 * @return {void}
+		 */
+		onCardAction(card, action) {
+			if (action.id === 'install' || action.id === 'update') {
+				this.install(card)
+			}
+		},
+
 		/**
 		 * A manifest label through the injected lookup, or as written.
 		 *

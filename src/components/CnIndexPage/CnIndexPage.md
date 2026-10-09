@@ -375,7 +375,7 @@ export default {
 | `showFormDialog` | Boolean | `true` | Whether to show the built-in form dialog for Add/Edit |
 | `useAdvancedFormDialog` | Boolean | `false` | Use `CnAdvancedFormDialog` instead of `CnFormDialog` for Add/Edit |
 | `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject` — the override owns persistence (e.g. a contact-aware endpoint that fills a required FK) and returns the created object. Create-only (edits fall through). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Unchanged behaviour when absent. |
-| `showViewAction` | Boolean | `true` | Whether to add a View row action |
+| `showViewAction` | Boolean | `true` | Whether to add a View row action. Left out of a row's menu whenever a click on that row already opens its detail page (the menu offers Edit instead); a row with no detail page keeps it |
 | `viewTo` | Function | `null` | `(row) => location \| null`: where the View row action links to. A location makes View a real link (no `view` event); null keeps it a button. CnPageRenderer sets it to where a row click opens |
 | `showEditAction` | Boolean | `true` | Whether to add an Edit row action |
 | `editOpensDetail` | Boolean | `false` | Send the Edit row action to the record's detail page (emits `@edit-open`) instead of opening the edit modal. Opt-in per page; `CnPageRenderer` does not set it, since routing Edit makes it a repeat of the row click. |
@@ -1053,3 +1053,7 @@ manifest restating it. A value on the folder entry wins over the row's, key by
 key. Try it on one folder first, then move the layouts onto the rows once the
 columns are right.
 
+
+## Board look
+
+With `look: "board"` (the page's `look` prop, `config.look`, or the app's) the index page takes the DqZaken setup: a header with the count line from `countText` (`{shown}`, `{total}`), the buttons Download, Actions, the buildiq square and the primary one in that order, a two-row toolbar (saved-view chips, Filter with a count and the view switch; then search and active filter chips), a bulk band between toolbar and table (`bulkHint`), the table as a white card with one menu button per row, and a footer inside the card (`footerNote`). `cardFields` names the facts of each card in the cards view. Without the look nothing changes.

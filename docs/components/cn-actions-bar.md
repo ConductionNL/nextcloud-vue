@@ -135,3 +135,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 ## `showCount` and `showActionsMenu`
 
 `showCount` (default `true`): `false` drops the "Showing 20 of 258" line. `showActionsMenu` (default `true`): `false` drops the overflow Actions menu (Refresh, Import, Export, mass actions, header actions), for a page that offers its actions as buttons elsewhere (CnIndexPage `headerButtons`).
+
+## Board layout
+
+Under the board look (`layout="board"`, or the app's `cnLook`) the bar draws no band and lays out two rows: the quick-filter chips, the saved-view chips and the "Save view" button, a labelled Filter button carrying the number of active filters, and an icon-only view switch (table, cards, board, map) on row 1; the search field, "Active:", one removable chip per `activeFilterChips` entry and "Clear all" on row 2. New props: `layout`, `activeFilterChips` (`{ key, label }`), `activeFilterCount`, `showEditButton`, `bulkNoun` and `bulkHint`. New events: `remove-filter` and `clear-filters`. While rows are selected the bulk band renders as its own region after the toolbar element, not inside it. Without the look the bar renders as before.
