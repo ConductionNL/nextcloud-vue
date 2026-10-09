@@ -1335,7 +1335,9 @@
     "Development environment": "Ontwikkelomgeving",
     "Test environment": "Testomgeving",
     "Acceptance environment": "Acceptatieomgeving",
-    "About {label}": "Over {label}"
+    "About {label}": "Over {label}",
+    "yesterday": "gisteren",
+    "tomorrow": "morgen"
   },
   "plurals": {
     "%n year": [
@@ -1389,6 +1391,14 @@
     "You see {count} capability of {total}.": [
       "Je ziet {count} functionaliteit van {total}.",
       "Je ziet {count} functionaliteiten van {total}."
+    ],
+    "{count} day ago": [
+      "{count} dag geleden",
+      "{count} dagen geleden"
+    ],
+    "in {count} day": [
+      "over {count} dag",
+      "over {count} dagen"
     ]
   }
 }

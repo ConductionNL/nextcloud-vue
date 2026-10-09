@@ -1284,7 +1284,9 @@
     "Development environment": "Development environment",
     "Test environment": "Test environment",
     "Acceptance environment": "Acceptance environment",
-    "About {label}": "About {label}"
+    "About {label}": "About {label}",
+    "yesterday": "yesterday",
+    "tomorrow": "tomorrow"
   },
   "plurals": {
     "%n year": [
@@ -1338,6 +1340,14 @@
     "You see {count} capability of {total}.": [
       "You see {count} capability of {total}.",
       "You see {count} capabilities of {total}."
+    ],
+    "{count} day ago": [
+      "{count} day ago",
+      "{count} days ago"
+    ],
+    "in {count} day": [
+      "in {count} day",
+      "in {count} days"
     ]
   }
 }
