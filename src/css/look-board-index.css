@@ -71,14 +71,25 @@
 	margin-inline-start: 0;
 }
 
-/* The first of Save view, Filter and the view switch takes the free space, so
-   the three sit at the end of row 1. */
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views > :is(.cn-saved-views__save, .cn-actions-bar__filter-button, .cn-actions-bar__view-toggle) {
+/* The first of Save view and the Filter + view switch unit takes the free
+   space (the board's `flex: 1` spacer), so they sit at the end of row 1.
+   When the line is full the unit wraps as one to the START of the next line
+   while Save view stays at the end of row 1 (DqZaken); without Save view the
+   unit sits at the end of row 1 (PqTickets, PqLeads, PtPortals). */
+.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views > :is(.cn-saved-views__save, .cn-actions-bar__view-controls) {
 	margin-inline-start: auto;
 }
 
-.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views > :is(.cn-saved-views__save, .cn-actions-bar__filter-button, .cn-actions-bar__view-toggle) ~ :is(.cn-saved-views__save, .cn-actions-bar__filter-button, .cn-actions-bar__view-toggle) {
+.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views > .cn-saved-views__save ~ .cn-actions-bar__view-controls {
 	margin-inline-start: 0;
+}
+
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__view-controls {
+	display: flex;
+	flex: 0 0 auto;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 8px;
 }
 
 /* Row 2: the search field and the active filters on a line of their own. */
@@ -166,16 +177,39 @@
 	color: var(--color-primary-element-text);
 }
 
-/* Save view: 34px, radius 17, on the light primary tint. */
+/* Save view: a ghost button, 34px, radius 17, no border, on the light primary
+   tint, a 14px icon 6px before the label, on one line. */
 .cn-look-board .cn-saved-views__save .button-vue {
 	min-height: 34px;
 	height: 34px;
-	padding: 0 14px;
+	padding: 0 12px;
+	border: 0;
 	border-radius: 17px;
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
 	font-size: 13px;
 	font-weight: 600;
+	white-space: nowrap;
+}
+
+.cn-look-board .cn-saved-views__save .button-vue:hover {
+	background: var(--color-primary-element-light-hover);
+}
+
+.cn-look-board .cn-saved-views__save .button-vue .button-vue__wrapper {
+	gap: 6px;
+}
+
+.cn-look-board .cn-saved-views__save .button-vue .button-vue__icon {
+	width: auto;
+	min-width: 0;
+	height: auto;
+	min-height: 0;
+}
+
+.cn-look-board .cn-saved-views__save .button-vue .button-vue__text {
+	margin: 0;
+	padding: 0;
 }
 
 /* Filter: a labelled secondary button, 36px, radius 8, with the active count. */
