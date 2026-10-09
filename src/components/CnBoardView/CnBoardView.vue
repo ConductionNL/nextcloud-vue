@@ -3,7 +3,10 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-board-view" data-testid="cn-board-view">
+	<div
+		class="cn-board-view"
+		:class="{ 'cn-board-view--board': isBoardLook }"
+		data-testid="cn-board-view">
 		<p v-if="!usable" class="cn-board-view__unusable" data-testid="cn-board-unusable">
 			{{ unusableText }}
 		</p>
@@ -38,7 +41,28 @@
 					:data-column="column.key"
 					@dragover.prevent
 					@drop="onDrop(column, $event)">
-					<h3 class="cn-board-view__column-header">
+					<!-- Board look: a dot, the label and a white count badge, with an
+					     optional sum line under it (screens-kanban-parity). -->
+					<div v-if="isBoardLook" class="cn-board-view__column-head">
+						<h2 class="cn-board-view__column-header cn-board-view__column-header--board">
+							<span
+								class="cn-board-view__dot"
+								data-testid="cn-board-dot"
+								:style="{ background: dotColor(column) }"
+								aria-hidden="true" />
+							<span class="cn-board-view__column-title">{{ column.label }}</span>
+							<span class="cn-board-view__badge" data-testid="cn-board-count">
+								{{ column.count }}<span v-if="paged" class="hidden-visually"> {{ t('nextcloud-vue', 'on this page') }}</span>
+							</span>
+						</h2>
+						<span
+							v-if="columnSum(column) !== ''"
+							class="cn-board-view__sum"
+							data-testid="cn-board-sum">
+							{{ columnSum(column) }}
+						</span>
+					</div>
+					<h3 v-else class="cn-board-view__column-header">
 						{{ column.label }}
 						<span class="cn-board-view__count" data-testid="cn-board-count">
 							{{ countLabel(column) }}
@@ -80,68 +104,172 @@
 							mechanical floor, not the standard.
 						-->
 						<article
-							v-for="card in column.cards"
+							v-for="card in visibleCards(lane, column)"
 							:key="`card-${cardKey(card)}`"
 							class="cn-board-view__card"
-							:class="dueState(card) ? `cn-board-view__card--${dueState(card)}` : null"
+							:class="[
+								cardDueState(card) ? `cn-board-view__card--${cardDueState(card)}` : null,
+								{ 'cn-board-view__card--board': isBoardLook },
+							]"
 							role="listitem"
 							data-testid="cn-board-card"
 							:data-card-id="cardKey(card)"
 							:draggable="canMove"
-							@dragstart="onDragStart(card, column, $event)">
-							<span
-								v-if="dueLabel(card)"
-								class="cn-board-view__due"
-								:class="`cn-board-view__due--${dueState(card)}`"
-								data-testid="cn-board-due">
-								{{ dueLabel(card) }}
-							</span>
-							<span
-								v-for="field in cardFields"
-								:key="`f-${cardKey(card)}-${field}`"
-								class="cn-board-view__card-field">
-								{{ card[field] }}
-							</span>
+							@dragstart="onDragStart(card, column, $event)"
+							@keydown="onCardKeydown(card, column, lane, $event)">
+							<!-- Board look: title link, sub line, pill, footer, and a
+							     menu button instead of the Move to select. -->
+							<template v-if="isBoardLook">
+								<div class="cn-board-view__card-head">
+									<a
+										href="#"
+										class="cn-board-view__card-title"
+										data-testid="cn-board-card-open"
+										:data-card-id="cardKey(card)"
+										:aria-label="cardLabel(card, column)"
+										@click.prevent="openCard(card, $event)"
+										@mousedown="preventMiddleClickAutoscroll"
+										@auxclick="onCardAuxClick(card, $event)">
+										{{ roleText(card, roles.title) || cardKey(card) }}
+									</a>
+									<span class="cn-board-view__menu-wrap">
+										<button
+											type="button"
+											class="cn-board-view__menu-button"
+											data-testid="cn-board-card-menu"
+											:data-card-id="cardKey(card)"
+											aria-haspopup="menu"
+											:aria-expanded="String(isMenuOpen(card))"
+											:aria-label="menuButtonLabel(card)"
+											@click="toggleMenu(card)">
+											<span class="cn-board-view__menu-dots" aria-hidden="true">&#8943;</span>
+										</button>
+										<div
+											v-if="isMenuOpen(card)"
+											class="cn-board-view__menu"
+											role="menu"
+											data-testid="cn-board-card-menu-list"
+											:aria-label="menuButtonLabel(card)"
+											@keydown="onMenuKeydown(card, $event)">
+											<div
+												v-if="canMove"
+												role="group"
+												:aria-label="moveLabel">
+												<span class="cn-board-view__menu-heading" aria-hidden="true">{{ moveLabel }}</span>
+												<button
+													v-for="target in moveTargets(lane, column)"
+													:key="`m-${cardKey(card)}-${target.key}`"
+													type="button"
+													role="menuitem"
+													class="cn-board-view__menu-item"
+													data-testid="cn-board-menu-move"
+													:data-target="target.key"
+													@click="onMenuMove(card, column, target)">
+													{{ target.label }}
+												</button>
+											</div>
+											<button
+												type="button"
+												role="menuitem"
+												class="cn-board-view__menu-item"
+												data-testid="cn-board-menu-new-tab"
+												@click="onMenuOpenNewTab(card)">
+												{{ openInNewTabLabel }}
+											</button>
+										</div>
+									</span>
+								</div>
+								<span
+									v-if="roleText(card, roles.sub) !== ''"
+									class="cn-board-view__card-sub"
+									data-testid="cn-board-card-sub">
+									{{ roleText(card, roles.sub) }}
+								</span>
+								<span
+									v-if="roleText(card, roles.pill) !== ''"
+									class="cn-board-view__card-pills">
+									<CnStatusBadge
+										class="cn-board-view__pill"
+										data-testid="cn-board-card-pill"
+										:label="roleText(card, roles.pill)"
+										:variant="pillVariant(card)" />
+								</span>
+								<span
+									v-if="dueText(card) !== '' || ownerName(card) !== ''"
+									class="cn-board-view__card-footer"
+									data-testid="cn-board-card-footer">
+									<span
+										class="cn-board-view__due-text"
+										:class="cardDueState(card) ? `cn-board-view__due-text--${cardDueState(card)}` : null"
+										data-testid="cn-board-card-due">
+										{{ dueText(card) }}
+									</span>
+									<span
+										v-if="ownerName(card) !== ''"
+										class="cn-board-view__avatar"
+										data-testid="cn-board-card-owner"
+										:title="ownerName(card)"
+										role="img"
+										:aria-label="ownerName(card)">
+										<span aria-hidden="true">{{ ownerInitials(card) }}</span>
+									</span>
+								</span>
+							</template>
+							<template v-else>
+								<span
+									v-if="dueLabel(card)"
+									class="cn-board-view__due"
+									:class="`cn-board-view__due--${dueState(card)}`"
+									data-testid="cn-board-due">
+									{{ dueLabel(card) }}
+								</span>
+								<span
+									v-for="field in cardFields"
+									:key="`f-${cardKey(card)}-${field}`"
+									class="cn-board-view__card-field">
+									{{ card[field] }}
+								</span>
 
-							<!--
+								<!--
 								Opening the card. A native button, so Enter and
 								Space both work: the old markup handled Enter
 								only, and Space is what most people try on
 								something that looks like a button.
 							-->
-							<button
-								type="button"
-								class="cn-board-view__card-open"
-								data-testid="cn-board-card-open"
-								:data-card-id="cardKey(card)"
-								:aria-label="cardLabel(card, column)"
-								@click="openCard(card, $event)"
-								@mousedown="preventMiddleClickAutoscroll"
-								@auxclick="onCardAuxClick(card, $event)">
-								{{ openLabel }}
-							</button>
+								<button
+									type="button"
+									class="cn-board-view__card-open"
+									data-testid="cn-board-card-open"
+									:data-card-id="cardKey(card)"
+									:aria-label="cardLabel(card, column)"
+									@click="openCard(card, $event)"
+									@mousedown="preventMiddleClickAutoscroll"
+									@auxclick="onCardAuxClick(card, $event)">
+									{{ openLabel }}
+								</button>
 
-							<!--
+								<!--
 								The keyboard's way to do what a drag does. A board
 								whose only move is a drag is a board a keyboard
 								user cannot use at all, and "drag the card" is not
 								an instruction you can follow with a keyboard.
 							-->
-							<label v-if="canMove" class="cn-board-view__move">
-								<span class="cn-board-view__move-label">{{ moveLabel }}</span>
-								<select
-									data-testid="cn-board-move"
-									:data-card-id="cardKey(card)"
-									:value="column.key"
-									@change="onMoveTo(card, column, $event)">
-									<option
-										v-for="target in lane.columns"
-										:key="`t-${cardKey(card)}-${target.key}`"
-										:value="target.key">
-										{{ target.label }}
-									</option>
-								</select>
-							</label>
+								<label v-if="canMove" class="cn-board-view__move">
+									<span class="cn-board-view__move-label">{{ moveLabel }}</span>
+									<select
+										data-testid="cn-board-move"
+										:data-card-id="cardKey(card)"
+										:value="column.key"
+										@change="onMoveTo(card, column, $event)">
+										<option
+											v-for="target in lane.columns"
+											:key="`t-${cardKey(card)}-${target.key}`"
+											:value="target.key">
+											{{ target.label }}
+										</option>
+									</select>
+								</label>
+							</template>
 						</article>
 					</div>
 
@@ -151,6 +279,17 @@
 						data-testid="cn-board-column-empty">
 						{{ emptyColumnText }}
 					</p>
+
+					<!-- A column cut by `columnLimit`: the rest behind one dashed
+					     button. The badge keeps showing the column's total. -->
+					<button
+						v-if="hiddenCount(lane, column) > 0"
+						type="button"
+						class="cn-board-view__show-more"
+						data-testid="cn-board-show-more"
+						@click="showMore(lane, column)">
+						{{ showMoreLabel(hiddenCount(lane, column)) }}
+					</button>
 				</section>
 			</div>
 		</div>
@@ -167,11 +306,17 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { buildBoardColumns } from '../../utils/boardColumns.js'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { buildBoardColumns, resolveStageColor } from '../../utils/boardColumns.js'
 import { buildSwimlanes } from '../../utils/boardSwimlanes.js'
 import { DROP_OUTCOMES, runBoardDrop } from '../../utils/boardTransition.js'
-import { dueStateForRow } from '../../utils/dueRule.js'
+import { daysUntil, dueStateForRow } from '../../utils/dueRule.js'
+import { formatMetricValue } from '../../utils/formatMetric.js'
+import { readPath } from '../../utils/readPath.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+
+import '../../css/board.css'
 
 /**
  * CnBoardView — the index page's rows as a board, one column per stage.
@@ -199,6 +344,16 @@ import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowA
  */
 export default {
 	name: 'CnBoardView',
+
+	components: { CnStatusBadge },
+
+	inject: {
+		/**
+		 * The look the app is drawn in, provided by CnAppRoot. The board look
+		 * draws the screens' board anatomy (screens-kanban-parity).
+		 */
+		cnLook: { default: 'nextcloud' },
+	},
 
 	props: {
 		/** The rows the list holds. */
@@ -277,9 +432,70 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The board look's card roles (manifest `config.board.card`):
+		 * `{ title, sub, pill, due, owner, pillColors? }`. `sub` is a field or
+		 * a list of fields joined by a middle dot; `pillColors` maps a pill
+		 * value to a badge variant. Missing, the first of `cardFields` is the
+		 * title and the rest form the sub line. The Nextcloud look ignores it.
+		 *
+		 * @type {{title?: string, sub?: string|Array<string>, pill?: string, due?: string, owner?: string, pillColors?: object}|null}
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-board-card-anatomy
+		 */
+		cardRoles: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The field on a column's state that holds its dot colour (manifest
+		 * `config.board.colorField`). Empty, the lifecycle state's declared
+		 * `color` is used, else the secondary text colour.
+		 *
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-board-column-header
+		 */
+		colorField: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A numeric field whose sum each column shows under its heading
+		 * (manifest `config.board.sumField`). Empty shows no sum line.
+		 *
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-board-column-header
+		 */
+		sumField: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * How the sum is formatted, the metric format shape:
+		 * `{ style: 'currency', currency: 'EUR', decimals: 2 }`.
+		 *
+		 * @type {{style?: string, currency?: string, decimals?: number}|null}
+		 */
+		sumFormat: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * How many cards a column draws before a "Show N more" button
+		 * (manifest `config.board.columnLimit`). 0 (the default) draws every
+		 * card.
+		 *
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-a-long-column-is-cut-with-a-show-more-button
+		 */
+		columnLimit: {
+			type: Number,
+			default: 0,
+		},
 	},
 
-	emits: ['card-click', 'card-aux-click', 'moved', 'refused', 'stale'],
+	emits: ['card-click', 'card-aux-click', 'moved', 'refused', 'stale', 'load-more'],
 
 	data() {
 		return {
@@ -291,6 +507,10 @@ export default {
 			dragging: null,
 			/** The day late marking measures from. */
 			today: new Date(),
+			/** Columns the reader has expanded past `columnLimit` (lane::column). */
+			expanded: [],
+			/** The card whose menu is open (board look), by card key. */
+			openMenuKey: null,
 		}
 	},
 
@@ -307,7 +527,40 @@ export default {
 				rows: this.rows,
 				statusField: this.statusField,
 				offBoardLabel: t('nextcloud-vue', 'Elsewhere'),
+				colorField: this.colorField,
 			})
+		},
+
+		/** @return {boolean} Whether the app takes the board look. */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The card's roles: `cardRoles`, else the first of `cardFields` as the
+		 * title and the rest as the sub line.
+		 *
+		 * @return {{title: string, sub: Array<string>, pill: string, due: string, owner: string, pillColors: object}} The roles.
+		 */
+		roles() {
+			const given = this.cardRoles && typeof this.cardRoles === 'object' ? this.cardRoles : null
+			const fields = Array.isArray(this.cardFields) ? this.cardFields : []
+			const sub = given && given.sub !== undefined
+				? (Array.isArray(given.sub) ? given.sub : [given.sub])
+				: (given ? [] : fields.slice(1))
+			return {
+				title: (given && given.title) || fields[0] || '',
+				sub: sub.filter(Boolean),
+				pill: (given && given.pill) || '',
+				due: (given && given.due) || '',
+				owner: (given && given.owner) || '',
+				pillColors: (given && given.pillColors) || {},
+			}
+		},
+
+		/** @return {string} The Open in new tab menu item. */
+		openInNewTabLabel() {
+			return t('nextcloud-vue', 'Open in new tab')
 		},
 
 		/** @return {Array<object>} The board as rows of columns. */
@@ -372,6 +625,374 @@ export default {
 		 */
 		dueState(card) {
 			return dueStateForRow(card, this.dueRule, this.today)
+		},
+
+		/**
+		 * The due state of a card: in the board look from the card's `due`
+		 * role (under `dueRule` when given), else from `dueRule` as before.
+		 *
+		 * @param {object} card The card's row.
+		 * @return {'overdue'|'soon'|'ok'|null} The state.
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-board-card-anatomy
+		 */
+		cardDueState(card) {
+			if (this.isBoardLook && this.roles.due !== '') {
+				const rule = { ...(this.dueRule || {}), field: this.roles.due }
+				return dueStateForRow(card, rule, this.today)
+			}
+			return this.dueState(card)
+		},
+
+		/**
+		 * The text of one role on a card: a field's value, or a list of
+		 * fields joined by a middle dot. An empty value drops out together
+		 * with its separator.
+		 *
+		 * @param {object} card The card's row.
+		 * @param {string|Array<string>} role The field or fields.
+		 * @return {string} The text, '' when every value is empty.
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-board-card-anatomy
+		 */
+		roleText(card, role) {
+			const fields = Array.isArray(role) ? role : [role]
+			return fields
+				.filter((field) => typeof field === 'string' && field !== '')
+				.map((field) => this.textOf(readPath(card, field)))
+				.filter((value) => value !== '')
+				.join(' \u00b7 ')
+		},
+
+		/**
+		 * A value as text: a string or number as is, an object by its label.
+		 *
+		 * @param {unknown} value The raw value.
+		 * @return {string} The text.
+		 */
+		textOf(value) {
+			if (value === null || value === undefined) {
+				return ''
+			}
+			if (typeof value === 'object') {
+				const named = value.displayName ?? value.name ?? value.label ?? value.title ?? ''
+				return String(named).trim()
+			}
+			return String(value).trim()
+		},
+
+		/**
+		 * The pill's badge variant, from `cardRoles.pillColors`.
+		 *
+		 * @param {object} card The card's row.
+		 * @return {string} A CnStatusBadge variant.
+		 */
+		pillVariant(card) {
+			const raw = this.textOf(readPath(card, this.roles.pill))
+			const variant = this.roles.pillColors[raw] ?? this.roles.pillColors[raw.toLowerCase()]
+			return ['default', 'primary', 'success', 'warning', 'error', 'info'].includes(variant) ? variant : 'default'
+		},
+
+		/**
+		 * The footer's due text: "Due today", "Due 2 Nov", or "Overdue 2 Nov"
+		 * for a date in the past. Words, so the late tone is not colour alone.
+		 *
+		 * @param {object} card The card's row.
+		 * @return {string} The text, '' without a readable date.
+		 */
+		dueText(card) {
+			if (this.roles.due === '') {
+				return ''
+			}
+			const value = readPath(card, this.roles.due)
+			const days = daysUntil(value, this.today)
+			if (days === null) {
+				return ''
+			}
+			if (days === 0) {
+				return t('nextcloud-vue', 'Due today')
+			}
+			const date = new Date(value)
+			const shown = Number.isNaN(date.getTime())
+				? String(value)
+				: date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+			return days < 0
+				? t('nextcloud-vue', 'Overdue {date}', { date: shown })
+				: t('nextcloud-vue', 'Due {date}', { date: shown })
+		},
+
+		/**
+		 * The owner's name.
+		 *
+		 * @param {object} card The card's row.
+		 * @return {string} The name, '' when there is none.
+		 */
+		ownerName(card) {
+			return this.roles.owner === '' ? '' : this.textOf(readPath(card, this.roles.owner))
+		},
+
+		/**
+		 * The owner's initials: the first letters of the first two words.
+		 *
+		 * @param {object} card The card's row.
+		 * @return {string} Up to two capital letters.
+		 */
+		ownerInitials(card) {
+			return this.ownerName(card)
+				.split(/\s+/)
+				.filter(Boolean)
+				.slice(0, 2)
+				.map((word) => word.charAt(0).toUpperCase())
+				.join('')
+		},
+
+		/**
+		 * The colour of a column's dot.
+		 *
+		 * @param {object} column The column.
+		 * @return {string} A CSS colour or variable.
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-board-column-header
+		 */
+		dotColor(column) {
+			return resolveStageColor(column.color)
+		},
+
+		/**
+		 * The sum of `sumField` over a column's cards, formatted.
+		 *
+		 * @param {object} column The column.
+		 * @return {string} The sum, '' when no `sumField` is set.
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-board-column-header
+		 */
+		columnSum(column) {
+			if (!this.sumField) {
+				return ''
+			}
+			const total = column.cards.reduce((sum, card) => {
+				const n = Number(readPath(card, this.sumField))
+				return Number.isFinite(n) ? sum + n : sum
+			}, 0)
+			return formatMetricValue(total, this.sumFormat || { style: 'decimal', decimals: 0 }, {})
+		},
+
+		/**
+		 * The cards a column draws: all of them, or the first `columnLimit`
+		 * until the reader shows the rest.
+		 *
+		 * @param {object} lane The lane.
+		 * @param {object} column The column.
+		 * @return {Array<object>} The cards.
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-a-long-column-is-cut-with-a-show-more-button
+		 */
+		visibleCards(lane, column) {
+			const limit = Number(this.columnLimit)
+			if (!(limit > 0) || this.expanded.includes(this.expandKey(lane, column))) {
+				return column.cards
+			}
+			return column.cards.slice(0, limit)
+		},
+
+		/**
+		 * How many cards of a column are cut.
+		 *
+		 * @param {object} lane The lane.
+		 * @param {object} column The column.
+		 * @return {number} The hidden count.
+		 */
+		hiddenCount(lane, column) {
+			return column.cards.length - this.visibleCards(lane, column).length
+		},
+
+		/**
+		 * @param {object} lane The lane.
+		 * @param {object} column The column.
+		 * @return {string} The key `expanded` holds.
+		 */
+		expandKey(lane, column) {
+			return `${lane.key}::${column.key}`
+		},
+
+		/**
+		 * The show-more button's text.
+		 *
+		 * @param {number} count The hidden count.
+		 * @return {string} "Show N more".
+		 */
+		showMoreLabel(count) {
+			return t('nextcloud-vue', 'Show {count} more', { count })
+		},
+
+		/**
+		 * Show the rest of one column. With `paged` the host is also asked
+		 * for the column's next page (`load-more`), and the column is
+		 * expanded so the rows that arrive show.
+		 *
+		 * @param {object} lane The lane.
+		 * @param {object} column The column.
+		 * @return {void}
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-a-long-column-is-cut-with-a-show-more-button
+		 */
+		showMore(lane, column) {
+			if (this.paged) {
+				/**
+				 * @event load-more Emitted when the reader presses "Show N more" on a paged board. Payload: `{ columnKey }`; the host loads that column's next page.
+				 */
+				this.$emit('load-more', { columnKey: column.key })
+			}
+			this.expanded = [...this.expanded, this.expandKey(lane, column)]
+		},
+
+		/**
+		 * The columns a card can move to: every other column of its lane.
+		 *
+		 * @param {object} lane The lane.
+		 * @param {object} column The card's own column.
+		 * @return {Array<object>} The targets.
+		 */
+		moveTargets(lane, column) {
+			return lane.columns.filter((target) => target.key !== column.key)
+		},
+
+		/**
+		 * @param {object} card The card.
+		 * @return {boolean} Whether its menu is open.
+		 */
+		isMenuOpen(card) {
+			return this.openMenuKey === this.cardKey(card)
+		},
+
+		/**
+		 * @param {object} card The card.
+		 * @return {string} The menu button's accessible name.
+		 */
+		menuButtonLabel(card) {
+			const name = this.roleText(card, this.roles.title) || this.cardKey(card)
+			return t('nextcloud-vue', 'Actions for {name}', { name })
+		},
+
+		/**
+		 * Open or close a card's menu, and put focus on its first item.
+		 *
+		 * @param {object} card The card.
+		 * @return {void}
+		 */
+		toggleMenu(card) {
+			const key = this.cardKey(card)
+			this.openMenuKey = this.openMenuKey === key ? null : key
+			if (this.openMenuKey !== null) {
+				this.focusMenuItem(card, 0)
+			}
+		},
+
+		/**
+		 * Close the open menu, optionally returning focus to its button.
+		 *
+		 * @param {object} [card] The card whose button gets focus back.
+		 * @return {void}
+		 */
+		closeMenu(card) {
+			this.openMenuKey = null
+			if (card && this.$el && typeof this.$el.querySelector === 'function') {
+				this.$nextTick(() => {
+					const button = this.$el.querySelector(`[data-testid="cn-board-card-menu"][data-card-id="${this.cardKey(card)}"]`)
+					button?.focus?.()
+				})
+			}
+		},
+
+		/**
+		 * Focus the menu item at an index (opened menus only).
+		 *
+		 * @param {object} card The card.
+		 * @param {number} index The item's position.
+		 * @return {void}
+		 */
+		focusMenuItem(card, index) {
+			this.$nextTick(() => {
+				const items = this.menuItems(card)
+				const item = items[((index % items.length) + items.length) % items.length]
+				item?.focus?.()
+			})
+		},
+
+		/**
+		 * @param {object} card The card.
+		 * @return {Array<HTMLElement>} The open menu's items.
+		 */
+		menuItems(card) {
+			const article = this.$el?.querySelector?.(`[data-testid="cn-board-card"][data-card-id="${this.cardKey(card)}"]`)
+			return article ? Array.from(article.querySelectorAll('[role="menuitem"]')) : []
+		},
+
+		/**
+		 * Keys inside the open menu: arrows move, Escape closes.
+		 *
+		 * @param {object} card The card.
+		 * @param {KeyboardEvent} event The key press.
+		 * @return {void}
+		 */
+		onMenuKeydown(card, event) {
+			const items = this.menuItems(card)
+			const at = items.indexOf(document.activeElement)
+			if (event.key === 'Escape') {
+				event.preventDefault()
+				event.stopPropagation()
+				this.closeMenu(card)
+			} else if (event.key === 'ArrowDown') {
+				event.preventDefault()
+				this.focusMenuItem(card, at + 1)
+			} else if (event.key === 'ArrowUp') {
+				event.preventDefault()
+				this.focusMenuItem(card, at - 1)
+			} else if (event.key === 'Tab') {
+				this.closeMenu()
+			}
+		},
+
+		/**
+		 * M on a card, or a control inside it, opens its menu. Only in the
+		 * board look and only when the card can move.
+		 *
+		 * @param {object} card The card.
+		 * @param {object} column Its column.
+		 * @param {object} lane Its lane.
+		 * @param {KeyboardEvent} event The key press.
+		 * @return {void}
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-card-shows-no-form-controls-at-rest
+		 */
+		onCardKeydown(card, column, lane, event) {
+			if (!this.isBoardLook || !this.canMove) {
+				return
+			}
+			if ((event.key === 'm' || event.key === 'M') && !event.ctrlKey && !event.metaKey && !event.altKey) {
+				event.preventDefault()
+				if (!this.isMenuOpen(card)) {
+					this.openMenuKey = this.cardKey(card)
+					this.focusMenuItem(card, 0)
+				}
+			}
+		},
+
+		/**
+		 * Choose a column from the card's menu: the identical call a drop runs.
+		 *
+		 * @param {object} card The card.
+		 * @param {object} column Its column.
+		 * @param {object} target The column chosen.
+		 * @return {Promise<void>} Nothing.
+		 */
+		async onMenuMove(card, column, target) {
+			this.closeMenu(card)
+			await this.move(card, column.key, target.key)
+		},
+
+		/**
+		 * Open the card in a new tab: the same event a ctrl-click emits.
+		 *
+		 * @param {object} card The card.
+		 * @return {void}
+		 */
+		onMenuOpenNewTab(card) {
+			this.closeMenu(card)
+			this.openCard(card, new MouseEvent('click', { ctrlKey: true, bubbles: true }))
 		},
 
 		/**

@@ -646,9 +646,15 @@
 					:cardFields="board.cardFields || []"
 					:swimlaneField="board.swimlaneField || ''"
 					:dueRule="board.dueRule || null"
+					:cardRoles="board.card || null"
+					:colorField="board.colorField || ''"
+					:sumField="board.sumField || ''"
+					:sumFormat="boardSumFormat"
+					:columnLimit="board.columnLimit || 0"
 					:rowKey="rowKey"
 					:runTransition="runTransition"
 					:paged="isPaged"
+					@loadMore="onBoardLoadMore"
 					@cardClick="onRowClick"
 					@cardAuxClick="onRowAuxClick"
 					@moved="onBoardMoved" />
@@ -3507,6 +3513,26 @@ export default {
 		},
 
 		/**
+		 * How the board's column sums are formatted: `board.sumFormat`, else
+		 * what the sum field's schema declares (`format: "currency"` or
+		 * `"percent"`), else a plain number.
+		 *
+		 * @return {object|null} A metric format, or null for the plain default.
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-board-column-header
+		 */
+		boardSumFormat() {
+			if (this.board?.sumFormat && typeof this.board.sumFormat === 'object') {
+				return this.board.sumFormat
+			}
+			const field = this.board?.sumField
+			const property = field ? this.effectiveSchema?.properties?.[field] : null
+			if (property && (property.format === 'currency' || property.format === 'percent')) {
+				return { style: property.format, currency: property.currency, decimals: property.format === 'currency' ? 2 : 0 }
+			}
+			return null
+		},
+
+		/**
 		 * Whether the list holds one page of more.
 		 *
 		 * The board says so beside its counts: a count of a page shown as
@@ -6101,6 +6127,19 @@ export default {
 			this.list.refresh(1)
 			this.persistViewStateToRoute(this.currentViewState())
 			this.$emit('clear-filters')
+		},
+
+		/**
+		 * A paged board's "Show N more": ask for the next page.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-a-long-column-is-cut-with-a-show-more-button
+		 */
+		onBoardLoadMore() {
+			const page = Number(this.pagination?.page || 1)
+			if (page < Number(this.pagination?.pages || 1)) {
+				this.onPageEvent(page + 1)
+			}
 		},
 
 		/**

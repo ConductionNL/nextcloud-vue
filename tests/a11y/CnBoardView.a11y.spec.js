@@ -96,6 +96,44 @@ describe('CnBoardView — accessibility', () => {
 		await expectAccessible(wrapper)
 	})
 
+	describe('in the board look (screens-kanban-parity)', () => {
+		const board = { global: { provide: { cnLook: 'board' } } }
+		const boardProps = {
+			...baseProps,
+			cardRoles: { title: 'title', sub: ['who'], owner: 'who' },
+			colorField: 'color',
+			columnLimit: 1,
+			runTransition: async () => ({ outcome: 'moved' }),
+		}
+
+		it('has no WCAG 2.1 AA violations at rest', async () => {
+			wrapper = mountAttached(CnBoardView, { propsData: boardProps, ...board })
+
+			await expectAccessible(wrapper)
+		})
+
+		it('has no WCAG 2.1 AA violations with a card menu open', async () => {
+			wrapper = mountAttached(CnBoardView, { propsData: boardProps, ...board })
+			await wrapper.find('[data-testid="cn-board-card-menu"]').trigger('click')
+			expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+
+			await expectAccessible(wrapper)
+		})
+
+		it('keeps the card a listitem with no role=button and no nested controls', () => {
+			wrapper = mountAttached(CnBoardView, { propsData: boardProps, ...board })
+
+			const card = wrapper.element.querySelector('[data-testid="cn-board-card"]')
+
+			expect(card.getAttribute('role')).toBe('listitem')
+			expect(card.querySelector('[role="button"]')).toBeNull()
+			expect(card.querySelector('select')).toBeNull()
+			card.querySelectorAll('button, a[href]').forEach((control) => {
+				expect(control.parentElement.closest('button, a[href]')).toBeNull()
+			})
+		})
+	})
+
 	describe('the card is a container and its actions are controls', () => {
 		it('names the kind of every focusable thing on a card', () => {
 			wrapper = mountAttached(CnBoardView, {
