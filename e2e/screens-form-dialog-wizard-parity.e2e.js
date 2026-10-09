@@ -23,10 +23,12 @@ async function open(page, query) {
 	await expect(page.locator('[data-testid="screensform-box"]')).toBeAttached({ timeout: 90_000 })
 }
 
-const rect = (locator) => locator.evaluate((el) => {
-	const r = el.getBoundingClientRect()
-	return { top: r.top, left: r.left, width: r.width, height: r.height, right: r.right, bottom: r.bottom }
-})
+function rect(locator) {
+	return locator.evaluate((el) => {
+		const r = el.getBoundingClientRect()
+		return { top: r.top, left: r.left, width: r.width, height: r.height, right: r.right, bottom: r.bottom }
+	})
+}
 
 test.describe('form page', () => {
 	test('label 14px above a 40px control with a 6px gap', async ({ page }) => {

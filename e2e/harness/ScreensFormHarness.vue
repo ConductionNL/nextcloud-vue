@@ -47,21 +47,28 @@
 			eyebrowContext="Import"
 			:steps="wizardSteps"
 			initialStep="b">
-			<template #step-a><p>Source</p></template>
-			<template #step-b><p>Mapping</p></template>
-			<template #step-c><p>Review</p></template>
+			<template #step-a>
+				<p>Source</p>
+			</template>
+			<template #step-b>
+				<p>Mapping</p>
+			</template>
+			<template #step-c>
+				<p>Review</p>
+			</template>
 		</CnWizardDialog>
 	</div>
 </template>
 
 <script>
 import { NcButton } from '@nextcloud/vue'
-import '../../src/css/look-board.css'
-import '../../src/css/form-field.css'
-import '../../src/css/dialog.css'
 import CnDialog from '../../src/components/CnDialog/CnDialog.vue'
 import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
 import CnWizardDialog from '../../src/components/CnWizardDialog/CnWizardDialog.vue'
+
+import '../../src/css/look-board.css'
+import '../../src/css/form-field.css'
+import '../../src/css/dialog.css'
 
 const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
 
@@ -87,14 +94,17 @@ export default {
 				{ key: 'last', label: 'Last name', type: 'string', width: 'half' },
 				{ key: 'note', label: 'Note', type: 'string', help: 'A short hint.' },
 			],
+
 			stepFields: [
 				{ key: 'a', label: 'Name', type: 'string', step: 'one' },
 				{ key: 'b', label: 'City', type: 'string', step: 'two' },
 			],
+
 			steps: [
 				{ id: 'one', title: 'Who', fields: ['a'] },
 				{ id: 'two', title: 'Where', fields: ['b'] },
 			],
+
 			wizardSteps: [
 				{ id: 'a', label: 'Source' },
 				{ id: 'b', label: 'Mapping' },
