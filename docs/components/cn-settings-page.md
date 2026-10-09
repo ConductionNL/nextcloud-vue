@@ -290,3 +290,15 @@ The two shapes are XOR — pick one per page. A page mixing them is rejected by 
 - **Tab IDs MUST be unique within a page**. The validator emits a duplicate-id error pointing at the second occurrence so you can fix the manifest fast.
 - **Active-tab persistence is the consumer's responsibility**. The page emits `@tab-change` and accepts `initialTab` — wire those to your preference store or URL hash if you want the active tab to survive a reload. The manifest never carries user state.
 - **`widget.type === "component"` is the recommended way to host consumer Vue components as widgets**. The legacy "fall back to customComponents on unknown `widget.type`" path still works (back-compat) but is JSDoc-deprecated; future built-in widget names risk silently shadowing consumer registry entries.
+
+## Board look and where the page saves
+
+Under the board look the sections are cards in a grid of `repeat(auto-fit, minmax(420px, 1fr))` (a section with `wide: true` spans the row) and the buildiq square sits in the header. `config.saveMode` declares one place to save:
+
+| `saveMode` | Result |
+|---|---|
+| `section` | Each section with fields ends in its own Save, bottom right of the card. No page save bar. |
+| `page` | One Save as the last header button and a Changes card listing the changed fields. No section save. |
+| empty | The save bar under the last section, as before. |
+
+`config.autosave: true` draws no save button, saves 600 ms after the last change, and ends the description with "Changes are saved automatically." `saveMode` together with `autosave`, or with a section that declares its own `save`, fails manifest validation.

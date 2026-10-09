@@ -8,20 +8,21 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name                  | Type      | Required | Default                                            | Description                                                                                   |
-| --------------------- | --------- | -------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `name`                | `string`  | ✓        | —                                                  | Section name/title                                                                            |
-| `description`         | `string`  |          | `''`                                               | Brief section description (shown under title by NcSettingsSection)                            |
-| `detailedDescription` | `string`  |          | `''`                                               | Detailed description shown in a separate block below the title                                |
-| `docUrl`              | `string`  |          | `''`                                               | Documentation URL (shows info icon next to title)                                             |
-| `loading`             | `boolean` |          | `false`                                            | Whether the section is in a loading state                                                     |
-| `loadingMessage`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Loading…')`          | Message shown during loading                                                                  |
-| `error`               | `boolean` |          | `false`                                            | Whether the section is in an error state                                                      |
-| `errorMessage`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'An error occurred')` | Message shown when in error state                                                             |
-| `onRetry`             | `func`    |          | `null`                                             | Callback function for retry button (shown in error state). If null, no retry button is shown. |
-| `retryButtonText`     | `string`  |          | `() =&gt; t('nextcloud-vue', 'Retry')`             | Text for the retry button                                                                     |
-| `empty`               | `boolean` |          | `false`                                            | Whether the section has no data to show                                                       |
-| `emptyMessage`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'No data available')` | Message shown when section is empty                                                           |
+| Name                  | Type      | Required | Default                                            | Description                                                                                                                                  |
+| --------------------- | --------- | -------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                | `string`  | ✓        | —                                                  | Section name/title                                                                                                                           |
+| `description`         | `string`  |          | `''`                                               | Brief section description (shown under title by NcSettingsSection)                                                                           |
+| `wide`                | `boolean` |          | `false`                                            | Span the whole row of the settings grid instead of one column. Only the board look draws a grid; elsewhere the section is full width anyway. |
+| `detailedDescription` | `string`  |          | `''`                                               | Detailed description shown in a separate block below the title                                                                               |
+| `docUrl`              | `string`  |          | `''`                                               | Documentation URL (shows info icon next to title)                                                                                            |
+| `loading`             | `boolean` |          | `false`                                            | Whether the section is in a loading state                                                                                                    |
+| `loadingMessage`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Loading…')`          | Message shown during loading                                                                                                                 |
+| `error`               | `boolean` |          | `false`                                            | Whether the section is in an error state                                                                                                     |
+| `errorMessage`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'An error occurred')` | Message shown when in error state                                                                                                            |
+| `onRetry`             | `func`    |          | `null`                                             | Callback function for retry button (shown in error state). If null, no retry button is shown.                                                |
+| `retryButtonText`     | `string`  |          | `() =&gt; t('nextcloud-vue', 'Retry')`             | Text for the retry button                                                                                                                    |
+| `empty`               | `boolean` |          | `false`                                            | Whether the section has no data to show                                                                                                      |
+| `emptyMessage`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'No data available')` | Message shown when section is empty                                                                                                          |
 
 ### Slots
 

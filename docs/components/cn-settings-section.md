@@ -66,3 +66,7 @@ Admin settings section with loading and error states. Wraps NcSettingsSection wi
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnSettingsSection.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnSettingsSection/CnSettingsSection.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## `wide`
+
+`wide` makes the section span the whole row of the board-look settings grid. It has no effect without the look.

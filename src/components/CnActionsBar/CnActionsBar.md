@@ -206,3 +206,6 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `sortLabel` | String | *(i18n)* | Accessible label for the sort dropdown. |
 
 `showCount` (Boolean, default `true`): `false` drops the "Showing 20 of 258" line. `showActionsMenu` (Boolean, default `true`): `false` drops the overflow Actions menu, for a page that offers its actions as buttons elsewhere (CnIndexPage `headerButtons`).
+
+
+`showBuildiqButton` is documented in the prop table of the component reference (board look, screens-chrome-parity).

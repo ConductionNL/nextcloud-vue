@@ -90,3 +90,6 @@ With `title`, `description`, `docUrl`, `cardTitle`, `loading`, and `labels`:
 | `cardTitle` | String | `'Application information'` | Heading inside the gray version card |
 | `loading` | Boolean | `false` | Show a loading spinner and hide the card content while data is fetching |
 | `labels` | Object | `{ appName, version, configuredVersion }` | Custom labels for the standard row headings (for i18n) |
+
+
+`look` is documented in the prop table of the component reference (board look, screens-chrome-parity).
