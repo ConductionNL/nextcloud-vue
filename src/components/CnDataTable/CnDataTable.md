@@ -205,6 +205,7 @@ export default {
 | `filterable` | Boolean | `false` | Show a filter button in every header whose column can filter: enum, boolean, text, number, date and reference columns backed by a schema property. A column opts out with `filterable: false`. Applying a filter emits `column-filter`; the host owns the state and passes it back as `activeFilters`. `CnIndexPage` turns it on by default. |
 | `activeFilters` | Object | `{}` | The active filter map, `{ paramKey: values[] }`: the same map the facet sidebar writes, so a header filter and a sidebar filter on one field show the same state. |
 | `filterRegister` | String | `''` | Register slug a reference column's filter searches in when the column names none. |
+| `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable personal lens in self-fetch mode, keyed `<lens>.<reason>` or `<reason>`. Without it the library's text is used (see below). |
 
 ## Slots
 
@@ -233,6 +234,14 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `fetchParams` — extra query params for the self-fetch (a resolved filter map,
   `_order[field]` ordering, `_limit`); changing it re-triggers the fetch. Used by
   `CnWidgetObjectTable`'s declarative `source`.
+- When the self-fetch asked for a personal lens (a "Recently opened" tile with
+  `source.filter._recent: true`) and the response reports it unavailable
+  (`@self.lenses.recent.available: false`, openregister#4514), the empty row
+  says why instead of `emptyText`: "This server does not keep track of what you
+  open." (`audit-trail-disabled`), "Log in to see what you opened recently."
+  (`anonymous`) or "Your recent items are not available right now."
+  (`read-history-unavailable`). `lensReasonTexts` replaces the wording; no
+  report, an available lens or an unknown reason keeps `emptyText`.
 - `rowClickRoute` — a function mapping a row to a vue-router route. Each such row renders a real `<a href>` in its first cell, stretched over the row, so hovering shows the URL, a plain or alt click routes in place, a ctrl/cmd/shift or middle click opens a new tab, and the row is reachable with Tab. The link is named by the first cell's text ("Open row" when that is empty or not plain text). There is no link on a `selectable` table without `rowClickToView`, where a row click selects. `CnWidgetObjectTable` rows inherit it. Trade-offs: cell text cannot be selected by dragging on a linked row, and a right-click on it shows the browser's link menu only when no host listens to `row-context-menu`.
 - `hideHeader` — drop the column-label row for a compact list widget.
 - `#footer` slot — supply a custom footer link (e.g. "+ New" or an always-shown
