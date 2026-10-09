@@ -161,6 +161,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { computed } from 'vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
@@ -217,6 +218,12 @@ export default {
 		 * identity when used standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+	},
+
+	provide() {
+		// The properties tab reads the dialog's own look, which a `look` prop
+		// can set apart from the app's.
+		return { cnLook: computed(() => (this.isBoardLook ? 'board' : 'nextcloud')) }
 	},
 
 	props: {

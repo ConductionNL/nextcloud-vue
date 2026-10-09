@@ -9,17 +9,17 @@
  * @spec openspec/changes/screens-dialog-parity/tasks.md
  */
 import { mount } from '@vue/test-utils'
-import CnDialog from '../../src/components/CnDialog/CnDialog.vue'
-import CnDeleteDialog from '../../src/components/CnDeleteDialog/CnDeleteDialog.vue'
 import CnCopyDialog from '../../src/components/CnCopyDialog/CnCopyDialog.vue'
+import CnDeleteDialog from '../../src/components/CnDeleteDialog/CnDeleteDialog.vue'
+import CnDialog from '../../src/components/CnDialog/CnDialog.vue'
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import CnMassDeleteDialog from '../../src/components/CnMassDeleteDialog/CnMassDeleteDialog.vue'
 import CnRichSubmitDialog from '../../src/components/CnRichSubmitDialog/CnRichSubmitDialog.vue'
 import CnTabbedFormDialog from '../../src/components/CnTabbedFormDialog/CnTabbedFormDialog.vue'
 import CnWizardDialog from '../../src/components/CnWizardDialog/CnWizardDialog.vue'
 import CnConfirmDialog from '../../src/dialogs/CnConfirmDialog.vue'
-import { DIALOG_WIDTHS, resolveDialogWidth } from '../../src/utils/dialogWidths.js'
 import { splitAroundPlaceholder } from '../../src/utils/dialogSentence.js'
+import { DIALOG_WIDTHS, resolveDialogWidth } from '../../src/utils/dialogWidths.js'
 
 const board = { global: { provide: { cnLook: 'board' } } }
 const footerButtons = (wrapper) => wrapper.findAll('.stub.NcButton:not(.cn-dialog-header__close), [data-testid="cn-dialog-tertiary"]')
@@ -139,7 +139,6 @@ describe('the footer order (task 5)', () => {
 	const schema = { title: 'Item', properties: { title: { type: 'string', title: 'Title' } } }
 
 	const draftable = { ...schema, properties: { ...schema.properties, isDraft: { type: 'boolean', title: 'Draft' } } }
-
 
 	it('moves Save draft to the far left in the board look', () => {
 		const w = mount(CnFormDialog, { ...board, props: { schema: draftable, item: null, allowDraft: true, draftField: 'isDraft' } })

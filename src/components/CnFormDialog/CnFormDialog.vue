@@ -96,7 +96,21 @@
 					:key="field.key"
 					:data-cn-field="field.key"
 					class="cn-form-dialog__field"
-					:class="{ 'cn-form-dialog__field--wide': fieldSpansBothColumns(field) }">
+					:class="{
+						'cn-form-dialog__field--wide': fieldSpansBothColumns(field),
+						'cn-form-field--half': isBoardLook && field.width === 'half',
+						'cn-form-field--invalid': isBoardLook && !!errors[field.key],
+					}">
+					<!-- Board look: the label sits above the control, the error between
+					     them; the control and the hint keep their place below. -->
+					<CnFormField
+						v-if="showsOuterLabel(field)"
+						:controlId="'cn-form-' + field.key"
+						:text="field.label"
+						:optional="!field.required"
+						:optionalLabel="optionalLabel"
+						:error="errors[field.key] || ''"
+						:errorId="errorIdFor(field)" />
 					<!-- @slot field-{key} Replace one auto-generated field with your own control. -->
 					<!-- @binding {object} field The field definition. -->
 					<!-- @binding {*} value The field's current value. -->
@@ -130,7 +144,10 @@
 						class="cn-form-dialog__semantic-unresolved"
 						:title="semanticUnavailableText(field)">
 						<NcTextField
-							:label="field.label + (field.required ? ' *' : '')"
+							:id="fieldControlId(field)"
+							:label="fieldLabelText(field)"
+							:labelOutside="isBoardLook"
+							v-bind="fieldAria(field)"
 							:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 							:helperText="isSemanticLoading(field) ? '' : semanticUnavailableText(field)"
 							:disabled="true"
@@ -144,7 +161,10 @@
 						v-else-if="field.codeList && codedFailed[field.key]"
 						class="cn-form-dialog__coded-fallback">
 						<NcTextField
-							:label="field.label + (field.required ? ' *' : '')"
+							:id="fieldControlId(field)"
+							:label="fieldLabelText(field)"
+							:labelOutside="isBoardLook"
+							v-bind="fieldAria(field)"
 							:modelValue="codedFallbackText(field)"
 							:disabled="field.readOnly"
 							:helperText="t('nextcloud-vue', 'The list of choices could not be loaded. Enter the value by hand.')"
@@ -158,7 +178,10 @@
 						     description can hang its info popover off it. -->
 						<template v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
 							<NcTextField
-								:label="field.label + (field.required ? ' *' : '')"
+								:id="fieldControlId(field)"
+								:label="fieldLabelText(field)"
+								:labelOutside="isBoardLook"
+								v-bind="fieldAria(field)"
 								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:error="!!errors[field.key]"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
@@ -166,17 +189,21 @@
 								:placeholder="field.description"
 								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</template>
 
 						<!-- Number -->
 						<template v-else-if="field.widget === 'number'">
 							<NcTextField
-								:label="field.label + (field.required ? ' *' : '')"
+								:id="fieldControlId(field)"
+								:label="fieldLabelText(field)"
+								:labelOutside="isBoardLook"
+								v-bind="fieldAria(field)"
 								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:error="!!errors[field.key]"
 								type="number"
@@ -184,32 +211,35 @@
 								:placeholder="field.description"
 								@update:modelValue="value => updateField(field.key, value !== '' ? Number(value) : null)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</template>
 
 						<!-- Textarea -->
 						<div v-else-if="field.widget === 'textarea'" class="cn-form-dialog__textarea-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
+							<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+								{{ field.label }}{{ requiredSuffix(field) }}
 							</label>
 							<textarea
 								:id="'cn-form-' + field.key"
 								class="cn-form-dialog__textarea"
+								v-bind="fieldAria(field)"
 								:value="formData[field.key] || ''"
 								:disabled="field.readOnly"
 								:placeholder="field.description"
 								rows="4"
 								@input="updateField(field.key, $event.target.value)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Object reference with inline create (`x-allow-create`):
@@ -222,7 +252,8 @@
 							class="cn-form-dialog__select-wrapper">
 							<CnResourceSelect
 								:inputId="'cn-form-' + field.key"
-								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:inputLabel="fieldLabelText(field)"
+								:labelOutside="isBoardLook"
 								:register="referenceRegister(field)"
 								:schema="String(field.reference.schema)"
 								:labelField="referenceLabelField(field)"
@@ -235,11 +266,12 @@
 								@update:modelValue="value => onReferenceSelected(field, value)"
 								@create="obj => onReferenceCreated(field, obj)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Enum toggle (`widget: "switch"` on a 2-value enum):
@@ -250,14 +282,15 @@
 								:disabled="field.readOnly"
 								type="switch"
 								@update:modelValue="value => updateField(field.key, switchValueFor(field, value))">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
+								{{ field.label }}{{ requiredSuffix(field) }}
 							</NcCheckboxRadioSwitch>
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Select (enum / $ref object reference / single Nextcloud user, supports async function).
@@ -277,7 +310,8 @@
 							<component
 								:is="isUserField(field) ? 'NcSelectUsers' : 'NcSelect'"
 								:inputId="'cn-form-' + field.key"
-								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:inputLabel="fieldLabelText(field)"
+								:labelOutside="isBoardLook"
 								:options="getEffectiveOptions(field)"
 								:modelValue="getEffectiveSelectedOption(field)"
 								:clearable="!field.required"
@@ -313,18 +347,20 @@
 								</template>
 							</component>
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Multiselect (array enum items / $ref array / Nextcloud users, supports async function) -->
 						<div v-else-if="field.widget === 'multiselect' || field.widget === 'user-multiselect' || field.widget === 'group-multiselect'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
 								:inputId="'cn-form-' + field.key"
-								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:inputLabel="fieldLabelText(field)"
+								:labelOutside="isBoardLook"
 								:options="getEffectiveArrayOptions(field)"
 								:modelValue="getEffectiveSelectedArrayOptions(field)"
 								:multiple="true"
@@ -353,11 +389,12 @@
 								</template>
 							</NcSelect>
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Tags (array, freeform, supports async suggestions) -->
@@ -365,7 +402,8 @@
 							<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
 							<NcSelect
 								:inputId="'cn-form-' + field.key"
-								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:inputLabel="fieldLabelText(field)"
+								:labelOutside="isBoardLook"
 								:modelValue="formData[field.key] || []"
 								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
 								:multiple="true"
@@ -395,11 +433,12 @@
 								</template>
 							</NcSelect>
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Checkbox / Switch (boolean) -->
@@ -409,14 +448,15 @@
 								:disabled="field.readOnly"
 								type="switch"
 								@update:modelValue="value => updateField(field.key, value)">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
+								{{ field.label }}{{ requiredSuffix(field) }}
 							</NcCheckboxRadioSwitch>
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Date / Datetime (NcTextField's type validator rejects
@@ -424,8 +464,8 @@
 						<div
 							v-else-if="field.widget === 'date' || field.widget === 'datetime'"
 							class="cn-form-dialog__select-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
+							<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+								{{ field.label }}{{ requiredSuffix(field) }}
 							</label>
 							<NcDateTimePickerNative
 								:id="'cn-form-' + field.key"
@@ -436,17 +476,18 @@
 								:disabled="field.readOnly"
 								@update:modelValue="date => onDateFieldInput(field, date)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- JSON (type: 'object'|'array'|... with widget: 'json'): parses on input, stores parsed value in formData -->
 						<div v-else-if="field.widget === 'json'" class="cn-form-dialog__json-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
+							<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+								{{ field.label }}{{ requiredSuffix(field) }}
 							</label>
 							<CnJsonViewer
 								:value="jsonStringFor(field)"
@@ -455,17 +496,18 @@
 								:errorText="jsonErrors[field.key] || ''"
 								@update:value="value => onJsonFieldInput(field, value)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Code (freeform editor, stored as raw string; optional `field.language` chooses highlighting) -->
 						<div v-else-if="field.widget === 'code'" class="cn-form-dialog__json-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
+							<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+								{{ field.label }}{{ requiredSuffix(field) }}
 							</label>
 							<CnJsonViewer
 								:value="formData[field.key] != null ? String(formData[field.key]) : ''"
@@ -473,18 +515,19 @@
 								:readOnly="field.readOnly"
 								@update:value="value => updateField(field.key, value)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- File (widget: 'file'): one file or several, small ones inline, big ones uploaded after save, optional camera. -->
 						<div v-else-if="field.widget === 'file'" class="cn-form-dialog__file-wrapper">
 							<CnFileField
 								:modelValue="formData[field.key]"
-								:label="field.label + (field.required ? ' *' : '')"
+								:label="fieldLabelText(field)"
 								:accept="field.file ? field.file.accept : ''"
 								:multiple="!!(field.file && field.file.multiple)"
 								:capture="field.file ? field.file.capture : ''"
@@ -503,16 +546,17 @@
 						<div v-else-if="field.widget === 'duration'" class="cn-form-dialog__duration-wrapper">
 							<CnDurationField
 								:modelValue="formData[field.key] != null ? String(formData[field.key]) : null"
-								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:inputLabel="fieldLabelText(field)"
 								:disabled="field.readOnly"
 								:error="!!errors[field.key]"
 								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Child records (widget: 'child-records'): another schema's records as an editable table, saved after the parent. -->
@@ -522,7 +566,7 @@
 								:config="field.childRecords"
 								:register="register"
 								:parentId="item ? (item.id || item.uuid || '') : ''"
-								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:inputLabel="fieldLabelText(field)"
 								:disabled="field.readOnly"
 								:error="errors[field.key] || ''"
 								@update:modelValue="value => updateField(field.key, value)"
@@ -540,7 +584,7 @@
 							<CnSubObjectsField
 								:modelValue="Array.isArray(formData[field.key]) ? formData[field.key] : []"
 								:items="field.items"
-								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:inputLabel="fieldLabelText(field)"
 								:disabled="field.readOnly"
 								:error="errors[field.key] || ''"
 								@update:modelValue="value => updateField(field.key, value)" />
@@ -558,25 +602,26 @@
 								:provider="field.propertySource.provider"
 								:mode="field.propertySource.mode"
 								:inputId="'cn-form-' + field.key"
-								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:inputLabel="fieldLabelText(field)"
 								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:disabled="field.readOnly"
 								:error="!!errors[field.key]"
 								@update:modelValue="value => updateField(field.key, value)"
 								@resolved="payload => onPropertySourceResolved(field, payload)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Icon (widget: 'icon'): renders CnIconBrowser, forwarding the field's icon config.
 						     `searchable` is gone — the browser always searches. -->
 						<div v-else-if="field.widget === 'icon'" class="cn-form-dialog__icon-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
+							<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+								{{ field.label }}{{ requiredSuffix(field) }}
 							</label>
 							<CnIconBrowser
 								:value="formData[field.key] != null ? String(formData[field.key]) : null"
@@ -586,28 +631,33 @@
 								:clearable="!field.required"
 								@input="value => updateField(field.key, value)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</div>
 
 						<!-- Fallback: text input -->
 						<template v-else>
 							<NcTextField
-								:label="field.label + (field.required ? ' *' : '')"
+								:id="fieldControlId(field)"
+								:label="fieldLabelText(field)"
+								:labelOutside="isBoardLook"
+								v-bind="fieldAria(field)"
 								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:error="!!errors[field.key]"
 								:disabled="field.readOnly"
 								:placeholder="field.description"
 								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
+								:id="helpId(field)"
 								:text="field.description"
 								:more="field.descriptionLong"
 								:help="field.help"
 								:label="field.label"
-								:error="errors[field.key]" />
+								:error="helperError(field)" />
 						</template>
 						<small
 							v-if="assignedFrom[field.key]"
@@ -727,6 +777,7 @@ import CnDialog from '../CnDialog/CnDialog.vue'
 import CnDurationField from '../CnDurationField/CnDurationField.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import CnFileField from '../CnFileField/CnFileField.vue'
+import CnFormField from '../CnFormField/CnFormField.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
@@ -966,6 +1017,7 @@ export default {
 		CnSubObjectsField,
 		CnChildRecordsField,
 		CnDialog,
+		CnFormField,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
@@ -1041,6 +1093,15 @@ export default {
 		register: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * The word shown as "(optional)" after an optional field's label in the
+		 * board look. Required fields carry no mark and there is no asterisk.
+		 */
+		optionalLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'optional'),
 		},
 
 		/**
@@ -2930,6 +2991,115 @@ export default {
 		 * @param {object|string} option The option (slot props).
 		 * @return {string} The text.
 		 */
+		/**
+		 * The mark a required field carries in the label: " *" in the Nextcloud
+		 * look, nothing in the board look (optional fields say "(optional)").
+		 *
+		 * @param {object} field The field definition.
+		 * @return {string} The suffix.
+		 */
+		requiredSuffix(field) {
+			return !this.isBoardLook && field.required ? ' *' : ''
+		},
+
+		/**
+		 * The label text handed to a control that draws or announces its own.
+		 *
+		 * @param {object} field The field definition.
+		 * @return {string} The label.
+		 */
+		fieldLabelText(field) {
+			return field.label + this.requiredSuffix(field)
+		},
+
+		/**
+		 * Whether the board look draws this field's label above the control. The
+		 * switch and checkbox keep their inline label, and the widgets that draw
+		 * their own label inside the control (file, duration, child records, sub
+		 * objects, property source, a reference widget) keep it too.
+		 *
+		 * @param {object} field The field definition.
+		 * @return {boolean} True when the label sits above the control.
+		 */
+		showsOuterLabel(field) {
+			if (!this.isBoardLook || this.$slots['field-' + field.key]) {
+				return false
+			}
+			if (['switch', 'checkbox', 'file', 'duration', 'child-records', 'sub-objects', 'property-source'].includes(field.widget)) {
+				return false
+			}
+			return !this.resolveReferenceWidget(field)
+		},
+
+		/**
+		 * The id of a text control the board label points at (`for`); unset in the
+		 * Nextcloud look so the control keeps its generated id.
+		 *
+		 * @param {object} field The field definition.
+		 * @return {string|undefined} The id.
+		 */
+		fieldControlId(field) {
+			return this.showsOuterLabel(field) ? 'cn-form-' + field.key : undefined
+		},
+
+		/**
+		 * The id of the field's error element.
+		 *
+		 * @param {object} field The field definition.
+		 * @return {string} The id.
+		 */
+		errorIdFor(field) {
+			return 'cn-form-' + field.key + '-error'
+		},
+
+		/**
+		 * The id of the field's hint (the helper line).
+		 *
+		 * @param {object} field The field definition.
+		 * @return {string} The id.
+		 */
+		helpId(field) {
+			return 'cn-form-' + field.key + '-help'
+		},
+
+		/**
+		 * The error the helper line shows: in the board look the error sits above
+		 * the control instead, so the helper keeps only the hint.
+		 *
+		 * @param {object} field The field definition.
+		 * @return {string|undefined} The error, or '' in the board look.
+		 */
+		helperError(field) {
+			return this.showsOuterLabel(field) ? '' : this.errors[field.key]
+		},
+
+		/**
+		 * The accessibility attributes of a text control. In both looks an invalid
+		 * control is `aria-invalid` and `aria-describedby` lists the error before
+		 * the hint; `aria-required` is set in the board look, where the asterisk is
+		 * gone.
+		 *
+		 * @param {object} field The field definition.
+		 * @return {object} The attributes to bind.
+		 */
+		fieldAria(field) {
+			const error = this.errors[field.key]
+			const boardError = this.showsOuterLabel(field)
+			const hasHint = !!(field.description || field.descriptionLong || field.help)
+			const ids = []
+			if (error) {
+				ids.push(boardError ? this.errorIdFor(field) : this.helpId(field))
+			}
+			if (hasHint && (boardError || !error)) {
+				ids.push(this.helpId(field))
+			}
+			return {
+				'aria-invalid': error ? 'true' : undefined,
+				'aria-describedby': ids.length > 0 ? ids.join(' ') : undefined,
+				'aria-required': this.isBoardLook && field.required ? 'true' : undefined,
+			}
+		},
+
 		optionText(option) {
 			if (option === null || option === undefined) {
 				return ''
