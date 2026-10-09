@@ -8,6 +8,9 @@
 			v-if="browserRoot !== null"
 			:rootPath="browserRoot"
 			:rootLabel="browserRootLabel"
+			:uploadButton="uploadButton"
+			:dropOverlay="dropOverlay"
+			:dropHint="dropHint"
 			:rowActions="rowActions"
 			:newActions="newActions"
 			:linkedItems="linkedItems"
@@ -307,6 +310,12 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** What the files browser's root crumb reads; null shows the folder's own name, as the Files app does. */
 		browserRootLabel: { type: String, default: null },
+		/** Forwarded to CnFilesBrowser: a primary "Add files" button beside the New menu. */
+		uploadButton: { type: Boolean, default: false },
+		/** Forwarded to CnFilesBrowser: the drop state drawn over the list ("Drop to add") and announced. */
+		dropOverlay: { type: Boolean, default: false },
+		/** Forwarded to CnFilesBrowser: "Or drag files onto this list." under the list. */
+		dropHint: { type: Boolean, default: false },
 		/**
 		 * The host's own actions on each file row of the browser, forwarded
 		 * to CnFilesBrowser's `rowActions`: declared like any manifest action

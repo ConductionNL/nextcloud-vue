@@ -1285,7 +1285,9 @@
     "Test environment": "Test environment",
     "Acceptance environment": "Acceptance environment",
     "About {label}": "About {label}",
-    "Could not load the form for this item.": "Could not load the form for this item."
+    "Could not load the form for this item.": "Could not load the form for this item.",
+    "Drop to add": "Drop to add",
+    "Or drag files onto this list.": "Or drag files onto this list."
   },
   "plurals": {
     "%n year": [
@@ -1339,6 +1341,10 @@
     "You see {count} capability of {total}.": [
       "You see {count} capability of {total}.",
       "You see {count} capabilities of {total}."
+    ],
+    "%n file added": [
+      "%n file added",
+      "%n files added"
     ]
   }
 }

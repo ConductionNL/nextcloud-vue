@@ -1336,7 +1336,9 @@
     "Test environment": "Testomgeving",
     "Acceptance environment": "Acceptatieomgeving",
     "About {label}": "Over {label}",
-    "Could not load the form for this item.": "Kon het formulier voor dit item niet laden."
+    "Could not load the form for this item.": "Kon het formulier voor dit item niet laden.",
+    "Drop to add": "Laat los om toe te voegen",
+    "Or drag files onto this list.": "Of sleep bestanden op deze lijst."
   },
   "plurals": {
     "%n year": [
@@ -1390,6 +1392,10 @@
     "You see {count} capability of {total}.": [
       "Je ziet {count} functionaliteit van {total}.",
       "Je ziet {count} functionaliteiten van {total}."
+    ],
+    "%n file added": [
+      "%n bestand toegevoegd",
+      "%n bestanden toegevoegd"
     ]
   }
 }
