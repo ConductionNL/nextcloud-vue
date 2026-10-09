@@ -206,3 +206,14 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `sortLabel` | String | *(i18n)* | Accessible label for the sort dropdown. |
 
 `showCount` (Boolean, default `true`): `false` drops the "Showing 20 of 258" line. `showActionsMenu` (Boolean, default `true`): `false` drops the overflow Actions menu, for a page that offers its actions as buttons elsewhere (CnIndexPage `headerButtons`).
+
+## Board layout props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `layout` | String | `''` | `board` draws the two-row board toolbar; empty follows the `cnLook` the app provides |
+| `activeFilterChips` | Array | `[]` | Active filters as `{ key, label }` chips on row 2; removing one emits `remove-filter` |
+| `activeFilterCount` | Number | `null` | The number on the Filter button; empty counts `activeFilterChips` |
+| `showEditButton` | Boolean | `true` | Whether the buildiq square renders in the bar (the index page takes it into its header under the board look) |
+| `bulkNoun` | String | `''` | The plural in the bulk band lead, "With the selected <noun>" (default "items") |
+| `bulkHint` | String | `''` | The 13px hint after the bulk band's buttons |

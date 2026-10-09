@@ -121,3 +121,7 @@ Compact mode names the **items**, not the pages: in a widget the row range is wh
   :current-page-size="pageSize"
   @page-changed="onPageChange" />
 ```
+
+## Board variant
+
+`variant="board"` draws the card footer of the board look. `footerNote` (String, default `''`) is free text after its count text.

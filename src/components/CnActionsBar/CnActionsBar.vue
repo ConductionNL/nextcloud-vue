@@ -34,7 +34,7 @@
 					<button
 						type="button"
 						class="cn-actions-bar__filter-chip-remove"
-						:aria-label="t('nextcloud-vue', 'Remove filter: {label}', { label: chip.label })"
+						:aria-label="removeFilterLabel(chip)"
 						@click="$emit('remove-filter', chip)">
 						<Close :size="14" aria-hidden="true" />
 					</button>
@@ -143,7 +143,7 @@
 					v-if="filterCount > 0"
 					class="cn-actions-bar__filter-badge"
 					data-testid="cn-actions-bar-filter-badge"
-					:aria-label="t('nextcloud-vue', '{count} active', { count: filterCount })">{{ filterCount }}</span>
+					:aria-label="filterCountLabel">{{ filterCount }}</span>
 			</NcButton>
 			<NcButton v-else-if="showSidebarToggle"
 				variant="tertiary"
@@ -570,7 +570,7 @@ export default {
 		 * The number on the Filter button's badge. Empty (`null`) counts the
 		 * `activeFilterChips`.
 		 *
-		 * @type {?number}
+		 * @type {(number|null)}
 		 */
 		activeFilterCount: {
 			type: Number,
@@ -979,6 +979,15 @@ export default {
 		},
 
 		/**
+		 * The accessible name of the Filter badge.
+		 *
+		 * @return {string}
+		 */
+		filterCountLabel() {
+			return t('nextcloud-vue', '{count} active', { count: this.filterCount })
+		},
+
+		/**
 		 * The bold lead of the board bulk band.
 		 *
 		 * @return {string}
@@ -1147,6 +1156,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The accessible name of a filter chip's remove button.
+		 *
+		 * @param {{label: string}} chip The chip.
+		 * @return {string}
+		 */
+		removeFilterLabel(chip) {
+			return t('nextcloud-vue', 'Remove filter: {label}', { label: chip.label })
+		},
+
 		/**
 		 * The `lang` of a bulk action label that fell back to its written text in another language.
 		 *
