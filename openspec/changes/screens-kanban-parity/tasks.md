@@ -5,7 +5,7 @@
 ### Task 1: The board column grid
 - **spec_ref**: `openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-board-column-grid`
 - **files**: `src/components/CnBoardView/CnBoardView.vue`, `src/css/board.css` (new), `src/components/CnObjectKanban/CnObjectKanban.vue`
-- [x] Implement: grid tracks, gap, column panel, horizontal scroll; same tokens on CnObjectKanban
+- [x] Implement: grid tracks, gap, column panel, horizontal scroll; same tokens on CnObjectKanban (column 240px min, 12px padding, radius 12; card 14px, radius 10)
 - [x] Test: column widths at four and six columns in a browser
 
 ### Task 2: The board column header
