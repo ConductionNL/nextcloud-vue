@@ -106,6 +106,7 @@ Custom card slot — replace the default CnObjectCard with your own rendering:
 |---|---|---|---|
 | `selectable` | `Boolean` | `false` | When `true`, each card shows a selection checkbox and the grid emits `select` events |
 | `selectedIds` | `Array` | `[]` | Array of currently selected object IDs (matched against `object[rowKey]`) |
+| `accentOf` | `Function` | `null` | `(object) => { variant, icon?, label? } \| null`, each card's status accent (see CnObjectCard `accent`) |
 
 ## Board look props
 
