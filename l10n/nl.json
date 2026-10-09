@@ -1341,7 +1341,10 @@
     "Test environment": "Testomgeving",
     "Acceptance environment": "Acceptatieomgeving",
     "About {label}": "Over {label}",
-    "Could not load the form for this item.": "Kon het formulier voor dit item niet laden."
+    "Could not load the form for this item.": "Kon het formulier voor dit item niet laden.",
+    "This server does not keep track of what you open.": "Deze server houdt niet bij welke items je opent.",
+    "Log in to see what you opened recently.": "Log in om te zien wat je onlangs opende.",
+    "Your recent items are not available right now.": "Je recente items zijn nu niet beschikbaar."
   },
   "plurals": {
     "%n year": [
