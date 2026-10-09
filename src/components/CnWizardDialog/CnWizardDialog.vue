@@ -3,7 +3,7 @@
 		:look="look"
 		:width="width"
 		defaultWidth="wizard"
-		:eyebrow="eyebrow"
+		:eyebrow="boardEyebrow"
 		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="large"
@@ -33,31 +33,14 @@
 		<div v-else
 			class="cn-wizard-dialog__wizard"
 			data-testid-phase="form">
-			<!-- Progress indicator. Click jumps back to a completed
-			     step when allowJumpBack is true. -->
-			<ol class="cn-wizard-dialog__progress" role="tablist">
-				<li v-for="(step, idx) in steps"
-					:key="step.id"
-					class="cn-wizard-dialog__progress-item"
-					:class="{
-						'cn-wizard-dialog__progress-item--active': idx === currentIndex,
-						'cn-wizard-dialog__progress-item--done': idx < currentIndex,
-						'cn-wizard-dialog__progress-item--clickable': allowJumpBack && idx < currentIndex,
-					}"
-					role="tab"
-					:aria-selected="idx === currentIndex"
-					@click="allowJumpBack && idx < currentIndex ? jumpTo(step.id) : null">
-					<span class="cn-wizard-dialog__progress-dot">
-						<span v-if="idx < currentIndex" class="cn-wizard-dialog__progress-check" aria-hidden="true">✓</span>
-						<span v-else>{{ idx + 1 }}</span>
-					</span>
-					<span class="cn-wizard-dialog__progress-label">{{ step.label }}</span>
-					<span v-if="idx < steps.length - 1"
-						class="cn-wizard-dialog__progress-connector"
-						:class="{ 'cn-wizard-dialog__progress-connector--done': idx < currentIndex }"
-						aria-hidden="true" />
-				</li>
-			</ol>
+			<!-- Progress indicator: an ordered list with the current step marked.
+			     A finished step is a button when allowJumpBack is true. -->
+			<CnStepper
+				:steps="steps"
+				:currentIndex="currentIndex"
+				:allowJumpBack="allowJumpBack"
+				:look="look"
+				@jump="jumpTo" />
 
 			<!-- Validation error from the current step's validate() result. -->
 			<NcNoteCard v-if="validationError" type="error">
@@ -106,14 +89,22 @@
 					data-testid="cn-wizard-back"
 					:disabled="loading"
 					@click="back">
+					<template v-if="isBoardLook" #icon>
+						<ChevronLeft :size="20" />
+					</template>
 					{{ backLabel }}
 				</NcButton>
 				<NcButton variant="primary"
 					data-testid="cn-wizard-next"
+					:alignment="isBoardLook && !isLast ? 'center-reverse' : 'center'"
 					:disabled="loading || nextDisabled"
 					@click="isLast ? submit() : next()">
 					<template #icon>
 						<NcLoadingIcon v-if="loading" :size="20" />
+						<template v-else-if="isBoardLook">
+							<ChevronRight v-if="!isLast" :size="20" />
+							<component :is="submitIcon || Check" v-else :size="20" />
+						</template>
 					</template>
 					{{ isLast ? submitLabel : nextLabel }}
 				</NcButton>
@@ -123,8 +114,13 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
+import CnStepper from '../CnStepper/CnStepper.vue'
 import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
@@ -187,7 +183,7 @@ import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
  */
 export default {
 	name: 'CnWizardDialog',
-	components: { CnDialog, NcButton, NcNoteCard, NcLoadingIcon },
+	components: { CnDialog, CnStepper, ChevronLeft, ChevronRight, NcButton, NcNoteCard, NcLoadingIcon },
 
 	mixins: [dialogBoardMixin],
 	props: {
@@ -264,6 +260,24 @@ export default {
 			default: () => ({}),
 		},
 
+		/**
+		 * The context in the board look's eyebrow ("<context>, step N of M").
+		 * Empty uses the dialog title.
+		 */
+		eyebrowContext: { type: String, default: '' },
+		/**
+		 * The eyebrow sentence, with `{context}`, `{step}` and `{total}`
+		 * placeholders, so it can be translated.
+		 */
+		stepEyebrow: { type: String, default: () => t('nextcloud-vue', '{context}, step {step} of {total}') },
+		/**
+		 * Icon component on the finishing button of the last step (board look).
+		 * Empty draws a check.
+		 *
+		 * @type {object|Function|null}
+		 */
+		submitIcon: { type: [Object, Function], default: null },
+
 		/** Cancel-button label (wizard phase). */
 		cancelLabel: { type: String, default: 'Cancel' },
 		/** Back-button label. */
@@ -326,6 +340,27 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The board look's eyebrow, "<context>, step N of M", updated on every step
+		 * change. Empty in the Nextcloud look and in the result phase.
+		 *
+		 * @return {string} The eyebrow.
+		 */
+		boardEyebrow() {
+			if (!this.isBoardLook || this.result !== null) {
+				return ''
+			}
+			return this.stepEyebrow
+				.replace('{context}', this.eyebrowContext || this.eyebrow || this.dialogTitle)
+				.replace('{step}', String(this.currentIndex + 1))
+				.replace('{total}', String(this.steps.length))
+		},
+
+		/** @return {object} The check icon, the default finishing icon. */
+		Check() {
+			return Check
+		},
+
 		/**
 		 * The currently-active step object from `steps[]`.
 		 *
@@ -561,103 +596,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-wizard-dialog__progress {
-	display: flex;
-	align-items: flex-start;
-	justify-content: center;
-	gap: 0;
-	padding: 8px 0 4px;
-	margin: 0 0 20px;
-	list-style: none;
-}
-
-.cn-wizard-dialog__progress-item {
-	position: relative;
-	flex: 1 1 0;
-	min-width: 0;
-	max-width: 180px;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 6px;
-	text-align: center;
-	color: var(--color-text-maxcontrast);
-	font-size: 0.8125rem;
-}
-
-.cn-wizard-dialog__progress-item--clickable {
-	cursor: pointer;
-}
-
-/* Marker circle */
-.cn-wizard-dialog__progress-dot {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 34px;
-	height: 34px;
-	border-radius: 50%;
-	border: 2px solid var(--color-border-dark);
-	background: var(--color-main-background);
-	color: var(--color-text-maxcontrast);
-	font-size: 14px;
-	font-weight: 600;
-	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-	z-index: 1;
-}
-
-.cn-wizard-dialog__progress-check {
-	font-size: 16px;
-	line-height: 1;
-}
-
-.cn-wizard-dialog__progress-label {
-	max-width: 100%;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-/* Connector line between this marker and the next, centered on the marker. */
-.cn-wizard-dialog__progress-connector {
-	position: absolute;
-	top: 17px;
-	left: calc(50% + 21px);
-	right: calc(-50% + 21px);
-	height: 2px;
-	background: var(--color-border-dark);
-}
-
-.cn-wizard-dialog__progress-connector--done {
-	background: var(--color-primary-element);
-}
-
-/* States */
-.cn-wizard-dialog__progress-item--active .cn-wizard-dialog__progress-dot {
-	border-color: var(--color-primary-element);
-	background: var(--color-primary-element);
-	color: var(--color-primary-element-text, #fff);
-}
-
-.cn-wizard-dialog__progress-item--active .cn-wizard-dialog__progress-label {
-	color: var(--color-main-text);
-	font-weight: 600;
-}
-
-.cn-wizard-dialog__progress-item--done .cn-wizard-dialog__progress-dot {
-	border-color: var(--color-primary-element);
-	background: var(--color-primary-element);
-	color: var(--color-primary-element-text, #fff);
-}
-
-.cn-wizard-dialog__progress-item--done .cn-wizard-dialog__progress-label {
-	color: var(--color-main-text);
-}
-
-.cn-wizard-dialog__progress-item--clickable:hover .cn-wizard-dialog__progress-label {
-	color: var(--color-primary-element);
-}
-
 .cn-wizard-dialog__step-body {
 	min-height: 200px;
 }

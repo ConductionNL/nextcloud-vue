@@ -144,9 +144,17 @@
 				:errors="summaryItems"
 				@focusField="focusField" />
 
+			<!-- Board look: the same stepper as CnWizardDialog. -->
+			<CnStepper
+				v-if="hasSteps && isBoardLook"
+				:steps="boardSteps"
+				:currentIndex="currentStepIndex"
+				look="board"
+				:ariaLabel="t('nextcloud-vue', 'Form steps')" />
+
 			<!-- Step indicator — only rendered when `steps` is non-empty. -->
 			<nav
-				v-if="hasSteps"
+				v-if="hasSteps && !isBoardLook"
 				:aria-label="t('nextcloud-vue', 'Form steps')"
 				class="cn-form-page__steps-nav">
 				<ol class="cn-form-page__steps">
@@ -282,19 +290,38 @@
 				</ul>
 			</NcNoteCard>
 
-			<div class="cn-form-page__submit">
+			<div class="cn-form-page__submit" :class="{ 'cn-form-page__footer': isBoardLook }">
+				<!-- Board look: Cancel on the first step, at the left edge of the card. -->
+				<NcButton
+					v-if="isBoardLook && canCancel && (!hasSteps || isFirstStep)"
+					variant="secondary"
+					type="button"
+					data-testid="cn-form-page-cancel"
+					@click="cancel">
+					{{ t('nextcloud-vue', 'Cancel') }}
+				</NcButton>
 				<NcButton
 					v-if="hasSteps && !isFirstStep"
 					variant="secondary"
 					type="button"
+					data-testid="cn-form-page-back"
 					@click="back">
-					{{ t('nextcloud-vue', 'Back') }}
+					<template v-if="isBoardLook" #icon>
+						<ChevronLeft :size="20" />
+					</template>
+					{{ isBoardLook ? t('nextcloud-vue', 'Previous') : t('nextcloud-vue', 'Back') }}
 				</NcButton>
 				<NcButton
 					v-if="hasSteps && !isLastStep"
+					class="cn-form-page__primary"
 					variant="primary"
 					type="button"
+					:alignment="isBoardLook ? 'center-reverse' : 'center'"
+					data-testid="cn-form-page-next"
 					@click="next">
+					<template v-if="isBoardLook" #icon>
+						<ChevronRight :size="20" />
+					</template>
 					{{ t('nextcloud-vue', 'Next') }}
 				</NcButton>
 				<!-- @slot submit Replaces the default submit button. -->
@@ -324,6 +351,7 @@
 						passed while the real component was broken.
 					-->
 					<NcButton
+						class="cn-form-page__primary"
 						variant="primary"
 						type="submit"
 						:disabled="submitting || submitBlocked"
@@ -360,10 +388,13 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import CnSmartPasteDialog from '../../dialogs/CnSmartPasteDialog.vue'
 import CnFormErrorSummary from '../CnFormErrorSummary/CnFormErrorSummary.vue'
 import CnFormField from '../CnFormField/CnFormField.vue'
+import CnStepper from '../CnStepper/CnStepper.vue'
 import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
 import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
 import { normalizeLook } from '../../composables/useLook.js'
@@ -413,8 +444,11 @@ export default {
 	components: {
 		CnFormErrorSummary,
 		CnFormField,
+		ChevronLeft,
+		ChevronRight,
 		CnPageHeader,
 		CnSmartPasteDialog,
+		CnStepper,
 		NcButton,
 		NcLoadingIcon,
 		NcNoteCard,
@@ -447,6 +481,16 @@ export default {
 	},
 
 	props: {
+		/**
+		 * Where Cancel goes (board look). With a route, Cancel navigates there and
+		 * emits `cancel`; with only a `cancel` listener it just emits. With neither
+		 * the board footer has no Cancel.
+		 */
+		cancelRoute: {
+			type: String,
+			default: '',
+		},
+
 		/** The word shown as "(optional)" after an optional field's label in the board look. */
 		optionalLabel: {
 			type: String,
@@ -666,7 +710,7 @@ export default {
 	 * @event step
 	 * @description Fired on Next/Back step navigation; payload is `{ from, to }` (step indices).
 	 */
-	emits: ['submit', 'error', 'input', 'step'],
+	emits: ['submit', 'error', 'input', 'step', 'cancel'],
 
 	data() {
 		return {
@@ -711,6 +755,17 @@ export default {
 	},
 
 	computed: {
+		/** @return {Array<{id: string, label: string}>} The steps in the stepper's shape. */
+		boardSteps() {
+			return this.steps.map((step) => ({ id: step.id, label: this.resolveLabel(step.title) }))
+		},
+
+		/** @return {boolean} Whether the page has somewhere to cancel to. */
+		canCancel() {
+			const listener = this.$.vnode && this.$.vnode.props && this.$.vnode.props.onCancel
+			return this.cancelRoute !== '' || !!listener
+		},
+
 		/** @return {boolean} Whether the board look is active. */
 		isBoardLook() {
 			return normalizeLook(this.cnLook) === 'board'
@@ -1251,6 +1306,20 @@ export default {
 				}
 			}
 			return props
+		},
+
+		/**
+		 * Cancel (board look footer): go to `cancelRoute` when set, and tell the
+		 * host.
+		 */
+		cancel() {
+			if (this.cancelRoute !== '' && this.$router && typeof this.$router.push === 'function') {
+				this.$router.push(this.cancelRoute)
+			}
+			/**
+			 * @event cancel Emitted when the user presses Cancel in the board look.
+			 */
+			this.$emit('cancel')
 		},
 
 		resolveLabel(key) {
