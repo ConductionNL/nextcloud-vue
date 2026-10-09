@@ -131,4 +131,4 @@ The form opens in the list's context: it receives the list's `register` (so a `$
 
 ## Write feedback
 
-A row action of type `object-op` with `op: "delete"` toasts "Deleted {title}" with an Undo for ten seconds; Undo restores the row from the OpenRegister trash (`POST /apps/openregister/api/deleted/{id}/restore`) and refreshes the list, and a failed delete toasts an error. A create through the widget shows one toast, the create dialog's, never a second from the widget. `feedback: false` in the widget `content` suppresses the delete toasts.
+A row action of type `object-op` with `op: "delete"` toasts "Deleted \{title\}" with an Undo for ten seconds; Undo restores the row from the OpenRegister trash (`POST /apps/openregister/api/deleted/{id}/restore`) and refreshes the list, and a failed delete toasts an error. A create through the widget shows one toast, the create dialog's, never a second from the widget. `feedback: false` in the widget `content` suppresses the delete toasts.

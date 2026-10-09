@@ -106,7 +106,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls; forwarded to `CnActionsBar` (manifest: `config.showCountWithSearch`). Only relevant with `inlineSearch` |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`) |
 | `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a visibility checkbox — the in-table equivalent of the sidebar's Columns tab (manifest: `config.columnMenu`). See [Filter and columns: table header vs sidebar](#filter-and-columns-table-header-vs-sidebar). |
-| `searchInFiles` | Boolean | `false` | Show an "Also search inside files" switch beside the search box (manifest: `config.searchInFiles`). On, a search that has a term also sends `_content_search=true` (OpenRegister file-content search, capped at 50 candidates, noted under the list), and a row found through a file shows "Found in {file}" from `@self.matchedFile`. The switch is kept in the route as `contentSearch=1`. |
+| `searchInFiles` | Boolean | `false` | Show an "Also search inside files" switch beside the search box (manifest: `config.searchInFiles`). On, a search that has a term also sends `_content_search=true` (OpenRegister file-content search, capped at 50 candidates, noted under the list), and a row found through a file shows "Found in \{file\}" from `@self.matchedFile`. The switch is kept in the route as `contentSearch=1`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest: `config.searchPlaceholder`) |
 | `cardsLabel` / `tableLabel` | String | `''` | View-toggle option labels, e.g. "Tiles" / "List" (manifest: `config.cardsLabel` / `config.tableLabel`) |
 | `cardsIcon` / `tableIcon` | String | `''` | MDI icon names for the view-toggle options (manifest: `config.cardsIcon` / `config.tableIcon`) |
@@ -1082,8 +1082,8 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 
 - **Header**: no icon; the title (28px), the count line and the buttons. `countText` is a template with `{shown}` (rows on this page), `{total}` and free text, default `"{shown} of {total}"`. The buttons render in a fixed order whatever the manifest declares: `export` (labelled "Download" by default), `actions-menu`, any other secondary button, the buildiq square, the primary button.
 - **Toolbar**: no band. Row 1 holds the saved-view chips (with their counts; the selected one filled), a "Save view" button, the labelled Filter button with the number of active filters, and the view switch (icon-only segments in the order table, cards, board, map). Row 2 holds the search field and, when filters are active, "Active:", one removable chip per filter and "Clear all".
-- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected <plural>", the bulk actions and the optional `bulkHint`.
-- **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for <title>".
+- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected &lt;plural&gt;", the bulk actions and the optional `bulkHint`.
+- **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for &lt;title&gt;".
 - **Footer**: inside the card (and under the card grid): the count text, `footerNote` after it, and numbered page links with Previous and Next. No First, Last or page-size select.
 - **Cards view**: the same header, toolbar and footer; `cardFields` (default: the first four list columns) names the facts shown on each card.
 

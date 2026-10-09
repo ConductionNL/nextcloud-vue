@@ -59,9 +59,24 @@ export function configureCnFetch(config = {}) {
 	}
 	transport = {
 		host,
-		baseUrl: typeof config.baseUrl === 'string' ? config.baseUrl.replace(/\/+$/, '') : '',
+		baseUrl: typeof config.baseUrl === 'string' ? stripTrailingSlashes(config.baseUrl) : '',
 		credential: config.credential || null,
 	}
+}
+
+/**
+ * Drop trailing `/` characters in one linear pass (a `/\/+$/` pattern
+ * backtracks quadratically on a long run of slashes).
+ *
+ * @param {string} value The string to trim.
+ * @return {string} The string without trailing slashes.
+ */
+export function stripTrailingSlashes(value) {
+	let end = value.length
+	while (end > 0 && value.charCodeAt(end - 1) === 47) {
+		end--
+	}
+	return value.slice(0, end)
 }
 
 /**

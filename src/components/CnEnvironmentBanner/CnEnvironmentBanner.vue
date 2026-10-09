@@ -103,7 +103,10 @@ export default {
 				return
 			}
 			const all = Object.values(ENVIRONMENT_TITLE_PREFIX)
-			const bare = document.title.replace(new RegExp(`^(?:${all.map((p) => p.replace(/[[\]]/g, '\\$&')).join('|')}) `), '')
+			// Plain string comparison: no pattern is built from the prefixes, so
+			// there is nothing to escape.
+			const owned = all.find((p) => document.title.startsWith(`${p} `))
+			const bare = owned ? document.title.slice(owned.length + 1) : document.title
 			const wanted = environment ? `${ENVIRONMENT_TITLE_PREFIX[environment]} ${bare}` : bare
 			if (document.title !== wanted) {
 				document.title = wanted
