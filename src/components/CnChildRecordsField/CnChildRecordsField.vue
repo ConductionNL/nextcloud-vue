@@ -84,7 +84,7 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
-import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import { defineAsyncComponent } from 'vue'
 import { describeRowProblem, useChildRecords, validateChildRows } from '../../composables/useChildRecords.js'
 
 /**
@@ -106,7 +106,13 @@ import { describeRowProblem, useChildRecords, validateChildRows } from '../../co
 export default {
 	name: 'CnChildRecordsField',
 
-	components: { CnFormDialog, NcButton, NcLoadingIcon, NcTextField },
+	components: {
+		// Lazy: CnFormDialog renders this field, so a static import is a cycle.
+		CnFormDialog: defineAsyncComponent(() => import('../CnFormDialog/CnFormDialog.vue')),
+		NcButton,
+		NcLoadingIcon,
+		NcTextField,
+	},
 
 	props: {
 		/** The rows (v-model). Each saved row carries its `id`. */
