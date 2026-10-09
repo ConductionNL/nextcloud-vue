@@ -268,6 +268,32 @@ Before this overload existed, virtual-app hosts had to fake an HTTP fetch by pas
 - [migrating-to-manifest](../migrating-to-manifest.md) — Tier-by-tier adoption guide.
 - [useScopedTheme](../utilities/composables/use-scoped-theme.md) — Backs the `runtime.theme` scoped-theming wiring above.
 
+## Board look
+
+An app opts in to the look of the screens on identity.conduction.nl with one key. An app without it renders exactly as before.
+
+```json
+{ "look": "board", "pages": [ { "id": "settings", "type": "settings", "config": { "look": "nextcloud" } } ] }
+```
+
+- `look` at the manifest root is `"nextcloud"` (the default) or `"board"`. The `look` prop of `CnAppRoot` wins over it.
+- In the board look `CnAppRoot` puts the class `cn-look-board` on its root element. A page with its own `config.look` that differs puts `cn-look-board` or `cn-look-nextcloud` on its own root, and the nearest class wins.
+- `src/css/look-board.css` defines the board dimensions as `--cn-board-*` custom properties on `.cn-look-board`: `--cn-board-content-padding`, `--cn-board-content-max-width`, `--cn-board-section-gap`, `--cn-board-control-height`, `--cn-board-control-radius`, `--cn-board-card-radius`, `--cn-board-card-padding`, `--cn-board-hairline` and `--cn-board-text-soft`. Colours stay Nextcloud variables.
+- `CnAppRoot` provides the resolved look as `cnLook`, and a page with `config.look` re-provides its own to its descendants. Components read it with `useLook(props)`, which returns `look`, `isBoard` and `lookClass`. A `look` prop on the component overrides the injected value.
+- A dialog is teleported to `document.body`, outside `CnAppRoot`, so a `.cn-look-board` rule cannot reach it. Bind `lookClass` on the dialog's own container.
+
+```js
+import { useLook } from '@conduction/nextcloud-vue'
+
+export default {
+  props: { look: { type: String, default: '' } },
+  setup(props) {
+    const { isBoard, lookClass } = useLook(props)
+    return { isBoard, lookClass } // <div :class="lookClass"> on the teleported container
+  },
+}
+```
+
 ## Support dialog
 
 | Prop | Type | Default | Description |

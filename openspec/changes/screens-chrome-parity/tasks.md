@@ -15,8 +15,8 @@
   - `cn-look-board` on the root, `cn-look-nextcloud` or `cn-look-board` on a page that overrides, nearest wins
   - `look-board.css` defines the nine `--cn-board-*` properties and nothing outside `.cn-look-board`
   - A snapshot of an index page without the key is unchanged
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: The board page frame
 - **spec_ref**: `openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-page-content-takes-the-board-frame`

@@ -60,7 +60,7 @@
 	<NcContent
 		:appName="appDisplayName || (manifest && manifest.name) || appId"
 		:data-nldesign-theme-scope="appId"
-		:class="{ 'cn-app-root--with-environment': environmentName }"
+		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board' }"
 		data-testid="cn-app-root">
 		<!-- Names a development, test or acceptance environment on every screen; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner
@@ -827,9 +827,9 @@ export default {
 			// — the working copy while editing, the live manifest otherwise. A
 			// getter so it stays reactive despite provide() running once; when
 			// not editing it returns the live manifest, identical to before.
-			get cnLook() {
-				return (self.look || self.manifest?.look) === 'board' ? 'board' : 'nextcloud'
-			},
+			// A computed ref, not a getter: options-API inject resolves a plain
+			// value once, so a getter would freeze the look at creation.
+			cnLook: computed(() => self.resolvedLook),
 
 			get cnManifest() {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
@@ -2051,6 +2051,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The look the app is drawn in: the `look` prop, else the manifest's
+		 * root `look`, else `nextcloud`. `board` puts `cn-look-board` on the
+		 * root element.
+		 *
+		 * @return {string} `board` or `nextcloud`.
+		 */
+		resolvedLook() {
+			return (this.look || this.manifest?.look) === 'board' ? 'board' : 'nextcloud'
+		},
+
 		/**
 		 * The label lookup provided as `cnTranslate`: the manifest's own
 		 * translations for the language first, then the host `translate`, then the

@@ -26,6 +26,7 @@
 @import 'gridstack/dist/gridstack.min.css';
 
 @import './main.css';
+@import './look-board.css';
 @import './table.css';
 @import './card.css';
 @import './pagination.css';

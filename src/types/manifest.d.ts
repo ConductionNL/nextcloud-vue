@@ -415,6 +415,12 @@ export interface TManifest {
 	 */
 	openbuildEditable?: boolean
 	/**
+	 * The look the whole app is drawn in: `nextcloud` (the default) or `board`,
+	 * the look of the screens on identity.conduction.nl. A page overrides it
+	 * with `config.look`.
+	 */
+	look?: 'nextcloud' | 'board'
+	/**
 	 * First-time setup wizard descriptor (ADR-042). See the `setup` $def in
 	 * the v2 schema for the full shape.
 	 */
