@@ -8,10 +8,10 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name        | Type     | Required | Default | Description                                              |
-| ----------- | -------- | -------- | ------- | -------------------------------------------------------- |
-| `columns`   | `number` |          | `4`     | Number of columns at max width: 2, 3, or 4               |
-| `gridClass` | `string` |          | `''`    | Additional CSS class(es) applied to the KPI grid element |
+| Name        | Type                 | Required | Default | Description                                                                                                                            |
+| ----------- | -------------------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `columns`   | `number&#124;string` |          | `4`     | Number of columns at max width: 2, 3, or 4. `"auto"` lays the tiles out as `repeat(auto-fit, minmax(200px, 1fr))` (the board KPI row). |
+| `gridClass` | `string`             |          | `''`    | Additional CSS class(es) applied to the KPI grid element                                                                               |
 
 ### Slots
 

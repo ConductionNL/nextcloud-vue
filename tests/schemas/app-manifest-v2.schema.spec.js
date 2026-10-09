@@ -1351,6 +1351,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.67.0 adds the root look and the page config.look (board look).
 		// 2.68.0 adds menu counterVariant and the settings page saveMode and autosave.
 		// 2.69.0 adds the detail page keys headerMeta, tabsLabel and identifierField.
+		// 2.71.0 adds the dashboard config.kpiRow and the board keys card, colorField, sumField, sumFormat and columnLimit.
 		// 2.72.0 adds the index keys countText, footerNote, bulkHint and cardFields, and the header button action actions-menu (screens-index-list-parity, screens-card-parity).
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
 		expect(schema.version).toBe('2.72.0')

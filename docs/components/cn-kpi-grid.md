@@ -19,7 +19,7 @@ Responsive grid layout for KPI/statistics cards. Adapts columns to screen width.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `columns` | Number | `4` | Number of columns (2, 3, or 4) |
+| `columns` | Number \| `"auto"` | `4` | Number of columns (2, 3, or 4), or `"auto"` for `repeat(auto-fit, minmax(200px, 1fr))` |
 | `grid-class` | String | `''` | Extra classes to add on top of the grid |
 
 ## Slots
@@ -39,6 +39,11 @@ Responsive grid layout for KPI/statistics cards. Adapts columns to screen width.
 </CnKpiGrid>
 ```
 
+## `columns: "auto"`
+
+`columns="auto"` lays the tiles out as `repeat(auto-fit, minmax(200px, 1fr))`
+with a 16px gap: four in a row at 1240px, two at 700px, one on a phone, each at
+least 200px wide. `CnDashboardPage` uses it for `config.kpiRow`.
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnKpiGrid.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnKpiGrid/CnKpiGrid.vue) and update automatically whenever the component changes.

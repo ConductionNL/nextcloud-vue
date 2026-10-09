@@ -1072,6 +1072,52 @@
 					"type": "string",
 					"description": "A second field to group the board into rows by, while the columns stay the stages. Cards with no value for it land in one named row, last, rather than being dropped: grouping by handler and hiding the unassigned work turns a board into a picture of what is already somebody's problem."
 				},
+				"card": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "screens-kanban-parity: the board look's card, by role instead of by list. Each value is a dot-path to a field on the row. Missing, the board look takes the first of `cardFields` as the title and the rest as the sub line. The Nextcloud look ignores it.",
+					"properties": {
+						"title": { "type": "string", "description": "The field that is the card's title, and the link that opens it." },
+						"sub": {
+							"description": "The field, or fields, of the sub line; several are joined by a middle dot and an empty one drops out with its separator.",
+							"oneOf": [
+								{ "type": "string" },
+								{ "type": "array", "items": { "type": "string" } }
+							]
+						},
+						"pill": { "type": "string", "description": "The field shown as a status pill." },
+						"pillColors": {
+							"type": "object",
+							"description": "Pill value to badge variant. A value without an entry takes the default variant.",
+							"additionalProperties": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info"] }
+						},
+						"due": { "type": "string", "description": "The date field of the footer's due text, marked by `dueRule`." },
+						"owner": { "type": "string", "description": "The field of the owner shown as an avatar (initials) at the footer's end." }
+					}
+				},
+				"colorField": {
+					"type": "string",
+					"description": "screens-kanban-parity: the key on a column's state that holds its dot colour. Without it the lifecycle state's declared `color` is used, else the secondary text colour."
+				},
+				"sumField": {
+					"type": "string",
+					"description": "screens-kanban-parity: a numeric field whose sum each column shows under its heading, formatted as the field's format declares."
+				},
+				"sumFormat": {
+					"type": "object",
+					"description": "screens-kanban-parity: how the sum is formatted when the field's own schema does not say: `{ style, currency, decimals }`.",
+					"properties": {
+						"style": { "type": "string", "enum": ["number", "currency", "percent", "duration-hours", "decimal"] },
+						"currency": { "type": "string" },
+						"decimals": { "type": "integer", "minimum": 0 }
+					}
+				},
+				"columnLimit": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0,
+					"description": "screens-kanban-parity: how many cards a column draws before a dashed \"Show N more\" button. 0 draws every card. The count badge keeps showing the column's total."
+				},
 				"dueRule": {
 					"$ref": "#/$defs/dueRule",
 					"description": "Marks late cards. A card whose date is before today gets an error edge and the label 'Overdue'; one due within `soonDays` gets 'Due soon'. Omitted, no card is marked."
@@ -3942,6 +3988,12 @@
 							"type": "boolean",
 							"default": true,
 							"description": "type='dashboard' and type='detail': `false` drops the overflow Actions menu from every widget that does not set `showActions` itself, for a dashboard whose widget headers carry a header link and nothing else (zuiddrecht-pixel-gaps-2), or a record page whose data cards carry none (zuiddrecht-pixel-gaps-3; a card with an Add action keeps it). When the key is not set a detail page keeps the menu, except under the board look, where side cards carry none (screens-detail-page-parity). Maps to CnDashboardPage / CnDetailPage `showWidgetActions`."
+						},
+						"kpiRow": {
+							"type": "array",
+							"items": { "type": "string" },
+							"default": [],
+							"description": "type='dashboard': widget ids drawn as a KPI row above the grid, in the listed order, in an auto-fit grid (`repeat(auto-fit, minmax(200px, 1fr))`, gap 16). The named widgets are not GridStack items, so they do not reflow with the grid and are not part of the emitted layout; an id that names no widget is skipped with a development warning (screens-dashboard-parity). Maps to CnDashboardPage `kpiRow`. `dateRange.control` also accepts \"segmented\": the presets as one compact segmented group under the header."
 						},
 						"gridFloat": {
 							"type": "boolean",

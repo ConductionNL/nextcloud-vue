@@ -20,7 +20,7 @@
 			</slot>
 		</div>
 
-		<div v-else class="cn-object-kanban__board">
+		<div v-else class="cn-object-kanban__board" :class="{ 'cn-object-kanban__board--board': isBoardLook }">
 			<div
 				v-for="column in localColumns"
 				:key="columnKey(column.value)"
@@ -109,6 +109,7 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import draggable from 'vuedraggable'
 import ViewColumn from 'vue-material-design-icons/ViewColumn.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { dueStateForRow } from '../../utils/dueRule.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 
@@ -173,6 +174,11 @@ export default {
 		CnEmptyContent,
 		ViewColumn,
 		CnCellRenderer,
+	},
+
+	inject: {
+		/** The look the app is drawn in; the board look takes the board column tokens. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -280,6 +286,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {boolean} Whether the app takes the board look. */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		emptyText() {
 			return t('nextcloud-vue', 'No columns to show')
 		},
@@ -806,5 +817,22 @@ export default {
 	display: flex;
 	justify-content: center;
 	padding-top: 8px;
+}
+
+/* Board look (screens-kanban-parity): the same column tokens as CnBoardView. */
+.cn-object-kanban__board--board {
+	gap: 16px;
+}
+
+.cn-object-kanban__board--board .cn-object-kanban__column {
+	flex: 1 0 240px;
+	min-width: 240px;
+	padding: 12px;
+	border-radius: 12px;
+}
+
+.cn-object-kanban__board--board .cn-object-kanban__card {
+	padding: 14px;
+	border-radius: 10px;
 }
 </style>
