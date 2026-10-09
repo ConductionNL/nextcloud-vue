@@ -1,6 +1,10 @@
 <template>
 	<CnTabbedFormDialog
 		ref="dialog"
+		:look="look"
+		:width="width"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:tabs="dialogTabs"
 		:item="item"
 		:dialogTitle="dialogTitle"
@@ -199,6 +203,7 @@ import CnTabbedFormDialog from '../CnTabbedFormDialog/CnTabbedFormDialog.vue'
 import CnSchemaConfigurationTab from './CnSchemaConfigurationTab.vue'
 import CnSchemaPropertiesTab from './CnSchemaPropertiesTab.vue'
 import CnSchemaSecurityTab from './CnSchemaSecurityTab.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnSchemaFormDialog — Generic JSON Schema editor dialog.
@@ -237,6 +242,8 @@ export default {
 		DeleteSweep,
 		Upload,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** Existing schema item for edit mode. Pass null for create mode. */

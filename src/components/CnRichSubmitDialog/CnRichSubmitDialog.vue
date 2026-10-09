@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="normal"
 		:noClose="loading"
@@ -100,11 +105,13 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnRichSubmitDialog — Single-screen rich-submit modal with reason
@@ -145,7 +152,9 @@ import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
  */
 export default {
 	name: 'CnRichSubmitDialog',
-	components: { NcDialog, NcButton, NcNoteCard, NcLoadingIcon },
+	components: { CnDialog, NcButton, NcNoteCard, NcLoadingIcon },
+
+	mixins: [dialogBoardMixin],
 	props: {
 		/**
 		 * Dialog title shown in the NcDialog header.

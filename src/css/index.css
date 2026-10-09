@@ -27,6 +27,7 @@
 
 @import './main.css';
 @import './look-board.css';
+@import './dialog.css';
 @import './table.css';
 @import './card.css';
 @import './pagination.css';

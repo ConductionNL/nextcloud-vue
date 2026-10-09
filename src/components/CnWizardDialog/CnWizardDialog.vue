@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="wizard"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="large"
 		:open="dialogOpen"
@@ -114,11 +119,13 @@
 				</NcButton>
 			</template>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnWizardDialog — Multi-step modal with per-step slots,
@@ -180,7 +187,9 @@ import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
  */
 export default {
 	name: 'CnWizardDialog',
-	components: { NcDialog, NcButton, NcNoteCard, NcLoadingIcon },
+	components: { CnDialog, NcButton, NcNoteCard, NcLoadingIcon },
+
+	mixins: [dialogBoardMixin],
 	props: {
 		/**
 		 * Step declarations. Order is significant — the wizard

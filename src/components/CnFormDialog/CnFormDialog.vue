@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="resolvedTitle"
 		:size="size"
 		:noClose="loading"
@@ -657,9 +662,29 @@
 			@decline="resolveReplace(false)" />
 
 		<template #actions>
+			<!-- Board look: Save draft is the tertiary action at the far left, with
+			     the draft-state live region beside it (screens-dialog-parity). -->
+			<span
+				v-if="isBoardLook"
+				class="cn-dialog__tertiary"
+				data-testid="cn-dialog-tertiary">
+				<NcButton
+					v-if="result === null && canSaveDraft"
+					variant="tertiary"
+					:disabled="loading"
+					data-testid="cn-form-dialog-save-draft"
+					@click="saveDraft">
+					{{ t('nextcloud-vue', 'Save draft') }}
+				</NcButton>
+				<span
+					class="cn-form-dialog__draft-state"
+					aria-live="polite"
+					data-testid="cn-form-dialog-draft-state">{{ draftIndicatorLabel }}</span>
+			</span>
 			<!-- One announcement per state change, so a screen reader hears
 			     "Draft saved" once rather than on every keystroke. -->
 			<span
+				v-else
 				class="cn-form-dialog__draft-state"
 				aria-live="polite"
 				data-testid="cn-form-dialog-draft-state">{{ draftIndicatorLabel }}</span>
@@ -667,7 +692,7 @@
 				{{ result !== null ? closeLabel : cancelLabel }}
 			</NcButton>
 			<NcButton
-				v-if="result === null && canSaveDraft"
+				v-if="!isBoardLook && result === null && canSaveDraft"
 				:disabled="loading"
 				data-testid="cn-form-dialog-save-draft"
 				@click="saveDraft">
@@ -686,18 +711,19 @@
 				{{ resolvedConfirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import axios from '@nextcloud/axios'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcLoadingIcon, NcNoteCard, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnReplaceValuesDialog from '../../dialogs/CnReplaceValuesDialog.vue'
 import CnChildRecordsField from '../CnChildRecordsField/CnChildRecordsField.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import CnDurationField from '../CnDurationField/CnDurationField.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import CnFileField from '../CnFileField/CnFileField.vue'
@@ -712,6 +738,7 @@ import { heldFromFailures, splitHeldFiles, uploadHeldFiles } from '../../composa
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
@@ -938,7 +965,7 @@ export default {
 		CnReplaceValuesDialog,
 		CnSubObjectsField,
 		CnChildRecordsField,
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
@@ -955,7 +982,7 @@ export default {
 		ContentSaveOutline,
 	},
 
-	mixins: [formDraftMixin()],
+	mixins: [dialogBoardMixin, formDraftMixin()],
 
 	inject: {
 		_cnTenantContext: {

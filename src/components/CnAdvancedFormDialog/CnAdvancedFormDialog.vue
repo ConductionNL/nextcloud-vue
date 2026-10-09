@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="wizard"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="resolvedTitle"
 		size="large"
 		:noClose="loading"
@@ -150,23 +155,20 @@
 			</NcButton>
 			<slot name="actions-right" />
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import {
-	NcButton,
-	NcDialog,
-	NcLoadingIcon,
-	NcNoteCard,
-} from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import CnDataTab from './CnDataTab.vue'
 import CnMetadataTab from './CnMetadataTab.vue'
 import CnPropertiesTab from './CnPropertiesTab.vue'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
@@ -187,7 +189,7 @@ export default {
 	name: 'CnAdvancedFormDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
@@ -197,6 +199,8 @@ export default {
 		CnMetadataTab,
 		CnDataTab,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	inject: {
 		_cnTenantContext: {
