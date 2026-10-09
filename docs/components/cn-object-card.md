@@ -27,6 +27,7 @@ Schema-driven card for displaying an object's key information. Uses schema confi
 | `selectable` | Boolean | `false` | Show selection checkbox |
 | `clickToView` | Boolean | `false` | Body click on a selectable card emits `click` (navigation) instead of toggling selection — the checkbox stays the only selection surface (the card counterpart of a table's `rowClickToView`) |
 | `maxMetadata` | Number | `4` | Max metadata fields shown |
+| `accent` | Object | `null` | Status accent `{ variant, icon?, label? }`: a 4px start border in the `variant` color (`success`, `warning`, `error`, `info`, `primary`) and, with `icon` (a CnIcon name), a colored icon before the title. `label` is the icon's tooltip and accessible name. An unknown variant draws nothing. |
 
 ## Schema Configuration Keys
 
@@ -74,4 +75,4 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 
 ## Board look
 
-Under the board look the card is white with a 12px radius, no shadow and no hover lift. The head row holds an optional `leading` element (`{ initials }` in a 36px circle, or `{ icon }` on a tint), the title with the description as its sub line, and at the end the `status` pill (a label, or `{ label, variant }`) or, without a status, the row menu from the `actions` slot. `cardFields` (property keys, in order) fills a two-column facts list; without it the card shows its first `maxMetadata` properties. `footerAction` (`{ label, meta?, ariaLabel? }`) adds a footer with one action and emits `footer-action`. The `metadata` slot still replaces the facts list.
+Under the board look the card is white with a 12px radius, no shadow and no hover lift. The head row holds an optional `leading` element (`{ initials }` in a 36px circle, or `{ icon }` on a tint), the title with the description as its sub line, and at the end the `status` pill (a label, or `{ label, variant }`) or, without a status, the row menu from the `actions` slot. `cardFields` (property keys, in order) fills a two-column facts list; without it the card shows its first `maxMetadata` properties. `footerAction` (`{ label, meta?, ariaLabel? }`) adds a footer with one action and emits `footer-action`. The `metadata` slot still replaces the facts list. The `accent` border and icon show in the board look too, also on hover and on a selected card.
