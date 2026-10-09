@@ -181,6 +181,19 @@
 	border-radius: 0 12px 12px 12px;
 }
 
+/* A panel of CnTabsWidget is the content block itself: the open tab flows
+   straight into it. The widget in the panel renders chromeless, but the board
+   card rule below (and the first-card rule above) used to give its wrapper a
+   border and a 12px radius again, so a second card sat inside the panel. Its
+   left edge ran down from the open tab and its rounded top-right drew a line
+   across the top right of the content block, where DqZaak shows one sheet.
+   Same specificity as the first-card rule and later, so it wins on order. */
+.cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content .cn-widget-wrapper.cn-widget-wrapper--chromeless {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+}
+
 /* ---- Body cards and side cards ----------------------------------------- */
 
 .cn-look-board .cn-detail-page .cn-widget-wrapper,
