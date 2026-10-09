@@ -1,0 +1,28 @@
+/*
+ * The board look (screens-chrome-parity).
+ *
+ * Opt-in: an app sets `look: "board"` in its manifest (or a page sets
+ * `config.look`) and CnAppRoot / CnPageRenderer put `cn-look-board` on their
+ * root. Every board rule in the library is scoped under that class, so an app
+ * without the key renders exactly as before. A dialog is teleported out of
+ * CnAppRoot and carries the class on its own container (see `useLook`).
+ *
+ * This file only defines the board dimensions as custom properties. Colours
+ * stay Nextcloud variables; the two properties below with no Nextcloud
+ * counterpart default to one.
+ */
+.cn-look-board {
+	/* Page content area: padding, max width, gap between blocks. */
+	--cn-board-content-padding: 24px 28px;
+	--cn-board-content-max-width: 1240px;
+	--cn-board-section-gap: 20px;
+	/* Buttons and inputs. */
+	--cn-board-control-height: 40px;
+	--cn-board-control-radius: 8px;
+	/* Cards. */
+	--cn-board-card-radius: 12px;
+	--cn-board-card-padding: 20px 22px;
+	/* Hairline inside a card, and the soft secondary text. */
+	--cn-board-hairline: var(--color-border);
+	--cn-board-text-soft: var(--color-main-text);
+}

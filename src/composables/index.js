@@ -32,6 +32,7 @@ export {
 	useContextMenu,
 } from './useContextMenu.js'
 export { useAppManifest } from './useAppManifest.js'
+export { LOOKS, normalizeLook, useLook } from './useLook.js'
 export { useAppStatus } from './useAppStatus.js'
 export { useChildRecords } from './useChildRecords.js'
 export { COPY_LINK_KINDS, copyKindsOf, useObjectCopy } from './useObjectCopy.js'

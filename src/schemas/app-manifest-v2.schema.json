@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.66.0",
+	"version": "2.67.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -29,6 +29,12 @@
 			"type": "string",
 			"pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
 			"description": "Semver of the manifest content. Bump when the manifest changes meaningfully. Used for cache busting and app-builder migration tracking. Distinct from the schema's own version."
+		},
+		"look": {
+			"type": "string",
+			"enum": ["nextcloud", "board"],
+			"default": "nextcloud",
+			"description": "screens-chrome-parity: the look the whole app is drawn in. `nextcloud` (the default) renders exactly as before. `board` moves the app to the look of the screens on identity.conduction.nl: CnAppRoot puts `cn-look-board` on its root and provides `cnLook` to dialogs and other teleported components. A page can override it with `config.look`."
 		},
 		"i18n": {
 			"type": "object",
@@ -3848,6 +3854,11 @@
 						"splitCloseLabel": {
 							"type": "string",
 							"description": "type='index': accessible name and tooltip for the split pane's close button. Defaults to \"Close\". Maps to CnIndexPage `splitCloseLabel`."
+						},
+						"look": {
+							"type": "string",
+							"enum": ["nextcloud", "board"],
+							"description": "screens-chrome-parity: draw this page in the `nextcloud` or the `board` look, over the manifest's root `look`. The nearest value wins: the page root carries `cn-look-board` or `cn-look-nextcloud`, and `cnLook` is re-provided to the page's descendants."
 						},
 						"showHeader": {
 							"type": "boolean",

@@ -31,7 +31,7 @@
 		data-testid="cn-page"
 		:data-testid-page-id="currentPage.id"
 		class="cn-page-renderer"
-		:class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
+		:class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }, pageLookClass]">
 		<!--
 		  A page whose `requiresApp` is not installed renders the missing-
 		  dependency screen INSTEAD of its body.
@@ -290,7 +290,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
@@ -439,6 +439,8 @@ export default {
 		cnOpenModal: { default: null },
 		/** ADR-041: true while the in-app editor is editing — makes the body grid draggable. */
 		cnEditingBody: { default: false },
+		/** The app's look, provided by CnAppRoot (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	/**
@@ -469,6 +471,11 @@ export default {
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this
 		return {
+			// The look for this page's descendants: the page's own
+			// `config.look` when it is a known look, else the app's. A computed
+			// ref so it follows the route, because provide() runs once.
+			cnLook: computed(() => self.resolvedLook),
+
 			// Per-page slot→columns override (page.config.slotColumns), read by
 			// CnWidgetGrid. A getter so it tracks the active page reactively
 			// despite provide() running once.
@@ -669,6 +676,36 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The look this page is drawn in: its `config.look` when `nextcloud` or
+		 * `board`, else the look it inherits from CnAppRoot.
+		 *
+		 * @return {string} `board` or `nextcloud`.
+		 */
+		resolvedLook() {
+			const own = this.currentPage?.config?.look
+			if (own === 'board' || own === 'nextcloud') {
+				return own
+			}
+			return this.cnLook === 'board' ? 'board' : 'nextcloud'
+		},
+
+		/**
+		 * The class on the page root when the page overrides the app's look
+		 * (nearest wins); empty when it inherits, so an app without the key
+		 * renders exactly as before.
+		 *
+		 * @return {string} `cn-look-board`, `cn-look-nextcloud` or `''`.
+		 */
+		pageLookClass() {
+			const own = this.currentPage?.config?.look
+			if (own !== 'board' && own !== 'nextcloud') {
+				return ''
+			}
+			const inherited = this.cnLook === 'board' ? 'board' : 'nextcloud'
+			return own === inherited ? '' : 'cn-look-' + own
+		},
+
 		/**
 		 * Whether the body slot should be editable (ADR-041). Unwraps the
 		 * injected `cnEditingBody`, which CnAppRoot provides as a raw ref.
