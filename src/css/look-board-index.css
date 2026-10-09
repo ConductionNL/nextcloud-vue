@@ -580,6 +580,37 @@
 	background: var(--color-primary-element-light);
 }
 
+/* The status accent outranks the board's border, also on hover and selection. */
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent {
+	border-inline-start-width: 4px;
+	padding-inline-start: 13px;
+}
+
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-success,
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-success:hover {
+	border-inline-start-color: var(--color-element-success);
+}
+
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-warning,
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-warning:hover {
+	border-inline-start-color: var(--color-element-warning);
+}
+
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-error,
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-error:hover {
+	border-inline-start-color: var(--color-element-error);
+}
+
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-info,
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-info:hover {
+	border-inline-start-color: var(--color-element-info);
+}
+
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-primary,
+.cn-look-board .cn-object-card.cn-object-card--board.cn-object-card--accent-primary:hover {
+	border-inline-start-color: var(--color-primary-element);
+}
+
 .cn-look-board .cn-object-card--board .cn-object-card__content {
 	display: flex;
 	flex: 1 1 auto;
