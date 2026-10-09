@@ -1016,6 +1016,18 @@ export default {
 			 */
 			cnAppId: this.appId,
 			/**
+			 * The app's labels for its notification rules, read by the
+			 * notification-preferences pane in the user-settings modal. A
+			 * getter so a late prop update is still seen by a pane that
+			 * mounts after it.
+			 *
+			 * @spec openspec/changes/notification-rule-labels-and-runtime-version/specs/notification-preferences/spec.md
+			 */
+			get cnNotificationLabels() {
+				return self.notificationLabels || {}
+			},
+
+			/**
 			 * Target repo slug for the in-product feature-request deep
 			 * link (e.g. `ConductionNL/pipelinq`). Read from the
 			 * manifest's `nav.featureRequestRepo` when set; falls back
@@ -1471,6 +1483,23 @@ export default {
 		diagnostics: {
 			type: Function,
 			default: null,
+		},
+
+		/**
+		 * Labels for the app's notification rules, shown in the
+		 * user-settings notification pane instead of the rule keys. Keyed
+		 * `<schema>.<key>` (or just `<key>`); values are already translated
+		 * strings, e.g. `{ 'case.caseAssigned': t('dossiq', 'A case is
+		 * assigned to me') }`, or per-locale maps `{ nl, en }`. A rule's own
+		 * `label` from OpenRegister wins; a rule with no label anywhere reads
+		 * as its key split into words, never as the raw key.
+		 *
+		 * @type {{[key: string]: (string|object)}}
+		 * @spec openspec/changes/notification-rule-labels-and-runtime-version/specs/notification-preferences/spec.md
+		 */
+		notificationLabels: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/**
