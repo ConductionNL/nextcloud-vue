@@ -50,3 +50,7 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `'Delete'` | Label for the confirm/delete button. |
 | `removeLabel` | `'Remove from list'` | Aria-label for the per-item remove button (the × icon beside each item). |
+
+## Board look
+
+In the board look the sentence ends with "This action cannot be undone." unless you pass `:irreversible="false"`.

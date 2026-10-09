@@ -317,3 +317,7 @@ silently hiding a user-facing input.
 | Prop | Default | Description |
 |---|---|---|
 | `referenceContext` (`reference-context`) | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for fields that declare a `referenceType`. Optional. |
+
+## Board look
+
+The `optionalLabel` prop sets the word in "(optional)" after an optional field label. Required fields carry no asterisk in the board look.

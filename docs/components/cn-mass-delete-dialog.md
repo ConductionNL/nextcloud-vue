@@ -100,3 +100,7 @@ Use `nameFormatter` when items don't have a simple name field:
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassDeleteDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnMassDeleteDialog/CnMassDeleteDialog.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Board look
+
+The `irreversible` prop (default `true`) ends the board sentence with "This action cannot be undone."; set it to `false` for a delete that can be undone. `confirmValue` and `confirmFieldLabel` add type-to-confirm.
