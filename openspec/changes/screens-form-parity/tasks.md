@@ -17,7 +17,7 @@
 ### Task 3: Hint under the input, error above it
 - **spec_ref**: `openspec/changes/screens-form-parity/specs/form-field-anatomy/spec.md#requirement-hint-under-the-input-error-above-it`
 - **files**: `src/components/CnFormField/CnFormField.vue`, `src/css/form-field.css`
-- [ ] Implement: hint and error placement, `aria-invalid`, `aria-describedby` order in both looks — partly built: done for text, number, textarea and password controls (CnFormDialog and CnFormPage). Not done for NcSelect, NcDateTimePickerNative and the other composite widgets: NcSelect forwards no attributes to its input, so the wiring needs a change in the select wrapper
+- [x] Implement: hint and error placement, `aria-invalid`, `aria-describedby` order in both looks. Text, number, textarea and password controls bind the attributes directly; NcSelect forwards none to its input, so `v-cn-select-aria` (`src/directives/cnSelectAria.js`) sets them on the combobox input for the enum field of CnFormPage and the select, multiselect and tags fields of CnFormDialog. NcDateTimePickerNative and the other composite widgets are not wired
 - [ ] Test: attribute order; the error edge and border in the board look — attribute order is tested; the 4px edge and 2px border are only asserted as CSS, not measured in a browser
 
 ### Task 4: A failed submit shows an error summary
