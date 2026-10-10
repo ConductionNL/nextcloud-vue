@@ -26,7 +26,7 @@
 - **spec_ref**: `openspec/changes/screens-index-toolbar-parity/specs/index-toolbar-board-look/spec.md#requirement-the-search-placeholder-comes-from-the-manifest`
 - **files**: `src/components/CnIndexPage/CnIndexPage.vue`, `src/schemas/app-manifest-v2.schema.json`, `tests/components/CnIndexToolbarRowParity.spec.js`
 - **acceptance_criteria**:
-  - `searchPlaceholder` validates (schema 2.74.0); an empty string does not
+  - `searchPlaceholder` validates (schema 2.76.0); an empty string does not
   - The value goes through `cnTranslate`; without it the library default stays
 - [x] Implement
 - [x] Test

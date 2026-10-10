@@ -26,7 +26,7 @@
  * A token is valid only in the context whose resolver runs on it:
  *
  *  - **filter**       — `resolveFilterTokens`, resolved at fetch time:
- *                       `@me`, `@now`, `@today`, `@today±Nd`, `@monthStart`,
+ *                       `@me`, `@myGroups`, `@now`, `@today`, `@today±Nd`, `@monthStart`,
  *                       `@quarterStart`, `@yearStart`.
  *  - **config**       — `IAppConfig`-sourced: `@resolve:<key>`, `@config.<key>`
  *                       (trailing `?` marks optional).
@@ -67,7 +67,7 @@
  * @type {Readonly<Record<string, string>>}
  */
 export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
-	filter: '^@(?:me(?:\\.(?:displayName|email))?|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$',
+	filter: '^@(?:me(?:\\.(?:displayName|email))?|myGroups|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$',
 	config: '^@resolve:[a-z][a-z0-9_-]*$|^@config\\.[A-Za-z][A-Za-z0-9_.]*\\??$',
 	object: '^@objectId$|^@object\\.[A-Za-z][A-Za-z0-9_]*$',
 	workspace: '^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$',
@@ -116,8 +116,8 @@ export const SENTINEL_CONTEXTS = Object.freeze([
 export const SENTINEL_VOCABULARY = Object.freeze({
 	filter: {
 		resolver: 'resolveFilterTokens',
-		description: 'Relative fetch-time tokens (current user / relative dates).',
-		members: ['@me', '@me.displayName', '@me.email', '@now', '@today', '@today±Nd', '@monthStart', '@quarterStart', '@yearStart'],
+		description: 'Relative fetch-time tokens (current user, the current user\'s groups as an IN list, relative dates).',
+		members: ['@me', '@me.displayName', '@me.email', '@myGroups', '@now', '@today', '@today±Nd', '@monthStart', '@quarterStart', '@yearStart'],
 	},
 	config: {
 		resolver: 'resolveManifestSentinels / resolveFilterTokens',

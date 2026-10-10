@@ -266,6 +266,7 @@ export const NcRichContenteditable = {
 	},
 }
 export const NcSelect = createStub('NcSelect')
+export const NcSelectUsers = createStub('NcSelectUsers')
 export const NcSettingsSection = createStub('NcSettingsSection')
 export const NcAppSidebar = createStub('NcAppSidebar')
 export const NcAppSidebarTab = createStub('NcAppSidebarTab')
@@ -395,6 +396,7 @@ export default {
 	NcActionCheckbox,
 	NcActionSeparator,
 	NcSelect,
+	NcSelectUsers,
 	NcSettingsSection,
 	NcAppSidebar,
 	NcAppSidebarTab,
