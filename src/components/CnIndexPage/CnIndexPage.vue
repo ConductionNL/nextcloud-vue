@@ -565,6 +565,7 @@
 					:includeColumns="includeColumns"
 					:columnOverrides="columnOverrides"
 					:rowClass="rowClass"
+					:rowTitle="rowTitle"
 					:filterable="tableHeaderFilters"
 					:activeFilters="effectiveActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
@@ -1531,6 +1532,21 @@ export default {
 		headerButtons: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * How the board look draws the table's title column (manifest
+		 * `config.rowTitle`): `link` (the default) underlines the title,
+		 * `plain` draws it as bold text without an underline over a 13px muted
+		 * secondary line. The row stays clickable. The Nextcloud look ignores
+		 * it. Maps to CnDataTable `rowTitle`.
+		 *
+		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 */
+		rowTitle: {
+			type: String,
+			default: 'link',
+			validator: (value) => ['link', 'plain'].includes(value),
 		},
 
 		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */
