@@ -94,9 +94,9 @@ describe('CnAppRoot walkthrough progress', () => {
 		const tour = w.findComponent(CnWalkthrough)
 		tour.vm.advance()
 		await flushPromises()
-		const call = axios.put.mock.calls.find(([url]) => String(url).includes(PROGRESS_PATH))
-		expect(call).toBeTruthy()
-		expect(JSON.parse(call[1].value)).toEqual({ tourId: 'getting-started', stepId: 'products', index: 1, version: '2.1.0' })
+		const calls = axios.put.mock.calls.filter(([url]) => String(url).includes(PROGRESS_PATH))
+		expect(calls.length).toBeGreaterThan(0)
+		expect(JSON.parse(calls[calls.length - 1][1].value)).toEqual({ tourId: 'getting-started', stepId: 'products', index: 1, version: '2.1.0' })
 		w.unmount()
 	})
 
@@ -136,6 +136,23 @@ describe('CnAppRoot walkthrough progress', () => {
 		jest.useRealTimers()
 		expect(tour.vm.wt.running.value).toBe(true)
 		expect(tour.vm.step.id).toBe('products')
+		w.unmount()
+	})
+
+	// dossiq review, 10 October 2026: a tour that opened on its own and was
+	// never touched came back on every page load, because step 1 of a fresh
+	// tour was not recorded at all.
+	it('records a tour that opened on its own as paused at its first step', async () => {
+		serve(null)
+		const w = mountRoot('wtp-autostart')
+		await flushPromises()
+		const tour = w.findComponent(CnWalkthrough)
+		expect(tour.vm.wt.running.value).toBe(true)
+		const calls = axios.put.mock.calls.filter(([url]) => String(url).includes(PROGRESS_PATH))
+		expect(calls).toHaveLength(1)
+		expect(JSON.parse(calls[0][1].value)).toEqual({ tourId: 'getting-started', stepId: 'welcome', index: 0, version: '2.1.0', paused: true })
+		// The open tour runs on, and the next step is recorded as usual.
+		expect(w.vm.walkthroughProgressValue).toBeNull()
 		w.unmount()
 	})
 

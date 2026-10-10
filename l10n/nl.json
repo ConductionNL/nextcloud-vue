@@ -1362,7 +1362,11 @@
     "Filter by {column}, active": "Filteren op {column}, actief",
     "Turn notifications off": "Meldingen uitzetten",
     "Turn notifications on": "Meldingen aanzetten",
-    "Could not change notifications.": "Meldingen konden niet worden gewijzigd."
+    "Could not change notifications.": "Meldingen konden niet worden gewijzigd.",
+    "1 day left": "Nog 1 dag",
+    "{count} days left": "Nog {count} dagen",
+    "1 day overdue": "1 dag te laat",
+    "{count} days overdue": "{count} dagen te laat"
   },
   "plurals": {
     "%n year": [
