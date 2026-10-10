@@ -131,6 +131,100 @@ describe('CnFilesBrowser', () => {
 		wrapper.unmount()
 	})
 
+	describe('the drop state and the upload button', () => {
+		/**
+		 * A DragEvent stand-in carrying files.
+		 *
+		 * @param {Array<File>} files What is dragged.
+		 * @return {object} The event init.
+		 */
+		const filesDrag = (files = []) => ({ dataTransfer: { types: ['Files'], files } })
+
+		function mountWith(props) {
+			return mount(CnFilesBrowser, {
+				propsData: { rootPath: '/Open Registers/Cases/abc', ...props },
+				global: { stubs: { NcDateTime: { template: '<time />' }, NcIconSvgWrapper: { template: '<i />' } } },
+			})
+		}
+
+		it('keeps today\'s browser when the host asks for none of it', async () => {
+			const wrapper = mountWith({})
+			await flushPromises()
+			expect(wrapper.find('[data-testid="cn-files-browser-upload-button"]').exists()).toBe(false)
+			expect(wrapper.find('[data-testid="cn-files-browser-drop-status"]').exists()).toBe(false)
+			expect(wrapper.find('[data-testid="cn-files-browser-drop-hint"]').exists()).toBe(false)
+			await wrapper.trigger('dragenter', filesDrag())
+			expect(wrapper.classes()).toContain('cn-files-browser--dragging')
+			expect(wrapper.find('[data-testid="cn-files-browser-drop-overlay"]').exists()).toBe(false)
+			wrapper.unmount()
+		})
+
+		it('offers Add files as its own button that opens the same picker', async () => {
+			const wrapper = mountWith({ uploadButton: true })
+			await flushPromises()
+			const button = wrapper.find('[data-testid="cn-files-browser-upload-button"]')
+			expect(button.text()).toBe('Add files')
+			wrapper.vm.fileInputEl.click = jest.fn()
+			await button.trigger('click')
+			expect(wrapper.vm.fileInputEl.click).toHaveBeenCalled()
+			wrapper.unmount()
+		})
+
+		it('draws the drop state over the list, says it, and keeps it while the drag crosses children', async () => {
+			const wrapper = mountWith({ dropOverlay: true })
+			await flushPromises()
+			const status = wrapper.find('[data-testid="cn-files-browser-drop-status"]')
+			expect(status.attributes('aria-live')).toBe('polite')
+			expect(status.text()).toBe('')
+
+			await wrapper.trigger('dragenter', filesDrag())
+			const overlay = wrapper.find('[data-testid="cn-files-browser-drop-overlay"]')
+			expect(overlay.exists()).toBe(true)
+			expect(overlay.attributes('aria-hidden')).toBe('true')
+			expect(overlay.text()).toBe('Drop to add')
+			expect(status.text()).toBe('Drop to add')
+
+			// Entering a row and leaving it again is not leaving the browser.
+			await wrapper.trigger('dragenter', filesDrag())
+			await wrapper.trigger('dragleave')
+			expect(wrapper.find('[data-testid="cn-files-browser-drop-overlay"]').exists()).toBe(true)
+			await wrapper.trigger('dragleave')
+			expect(wrapper.find('[data-testid="cn-files-browser-drop-overlay"]').exists()).toBe(false)
+			expect(status.text()).toBe('')
+			wrapper.unmount()
+		})
+
+		it('ignores a drag that carries no files', async () => {
+			const wrapper = mountWith({ dropOverlay: true })
+			await flushPromises()
+			await wrapper.trigger('dragenter', { dataTransfer: { types: ['text/plain'] } })
+			expect(wrapper.find('[data-testid="cn-files-browser-drop-overlay"]').exists()).toBe(false)
+			wrapper.unmount()
+		})
+
+		it('uploads a drop through the same path as the button, and says how many were added', async () => {
+			const axios = require('@nextcloud/axios').default
+			axios.__puts.length = 0
+			const wrapper = mountWith({ dropOverlay: true })
+			await flushPromises()
+			const files = [new File(['a'], 'a.txt'), new File(['b'], 'b.txt')]
+			await wrapper.trigger('dragenter', filesDrag(files))
+			await wrapper.trigger('drop', filesDrag(files))
+			await flushPromises()
+			expect(axios.__puts.map((put) => put.url.split('/').pop())).toEqual(['a.txt', 'b.txt'])
+			expect(wrapper.find('[data-testid="cn-files-browser-drop-overlay"]').exists()).toBe(false)
+			expect(wrapper.find('[data-testid="cn-files-browser-drop-status"]').text()).toBe('2 files added')
+			wrapper.unmount()
+		})
+
+		it('says under the list that files can be dropped on it', async () => {
+			const wrapper = mountWith({ dropHint: true })
+			await flushPromises()
+			expect(wrapper.find('[data-testid="cn-files-browser-drop-hint"]').text()).toBe('Or drag files onto this list.')
+			wrapper.unmount()
+		})
+	})
+
 	it('renames through a DAV move within the folder, and refuses a taken name or a slash', async () => {
 		const { __calls } = require('../../tests/__mocks__/nextcloud-files-dav.js')
 		__calls.moveFile.length = 0

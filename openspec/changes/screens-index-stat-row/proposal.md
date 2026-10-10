@@ -43,4 +43,4 @@ the page renders as before.
 ## Backward compatibility
 
 Additive. Manifest schema: the next free minor after
-`screens-dashboard-greeting-header` (2.76.0).
+`screens-dashboard-greeting-header` (2.77.0; merge after screens-dashboard-greeting-header, which takes 2.76.0).
