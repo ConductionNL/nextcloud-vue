@@ -1571,7 +1571,10 @@ export default {
 		 * `$route.params` just like the `filter` prop. The first tab with
 		 * `default:true` (else index 0) is active on mount; changing tabs
 		 * re-fetches at page 1. Omit (or `null`) → no tab strip, behaviour
-		 * unchanged.
+		 * unchanged. Under the board look a tab with `activeLabel` ("Pipeline:
+		 * Sales") adds a removable chip with that text to the Active line and
+		 * counts on the Filter badge while it is selected; removing the chip
+		 * goes back to the default tab.
 		 */
 		quickFilters: {
 			type: Array,
@@ -5242,11 +5245,11 @@ export default {
 				return []
 			}
 			const props = this.effectiveSchema?.properties || {}
-			const chips = []
+			const chips = [...this.quickFilterActiveChips]
 			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
 				const values = (Array.isArray(raw) ? raw : [raw])
 					.filter((value) => value !== null && value !== undefined && value !== '')
-					.map((value) => String(value))
+					.map((value) => this.activeFilterValueLabel(key, value))
 				if (values.length === 0) {
 					continue
 				}
@@ -5254,6 +5257,87 @@ export default {
 				chips.push({ key, label: `${field}: ${values.join(', ')}` })
 			}
 			return chips
+		},
+
+		/**
+		 * The Active line's chips for the selected quick filters: one per
+		 * selected tab that declares an `activeLabel` ("Pipeline: Sales"), run
+		 * through the app's translate. A tab without one (an "All" tab) adds no
+		 * chip. The chip carries the tab's index so removing it can deselect it.
+		 *
+		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-a-quick-filter-with-an-active-label-joins-the-active-line
+		 * @return {Array<{key: string, label: string, quickFilterIndex: number}>}
+		 */
+		quickFilterActiveChips() {
+			const tabs = this.tabStripEntries || []
+			if (tabs.length === 0) {
+				return []
+			}
+			const indices = this.quickFilterMultiple
+				? (this.selectedQuickFilterIndices || [])
+				: [this.activeQuickFilterIndex]
+			return indices
+				.filter((index) => typeof index === 'number' && tabs[index] && typeof tabs[index].activeLabel === 'string' && tabs[index].activeLabel !== '')
+				.map((index) => ({ key: `quick-filter:${index}`, label: this.cnTranslate(tabs[index].activeLabel), quickFilterIndex: index }))
+		},
+
+		/**
+		 * Filter keys over a reference property that the Active line must name,
+		 * and that no reference column resolves already: one spec each, with the
+		 * referenced register and schema off the page schema's `$ref`.
+		 *
+		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-an-active-chip-names-the-value-not-its-id
+		 * @return {Array<{key: string, labelField: string, register: string, schema: string}>}
+		 */
+		activeFilterRefSpecs() {
+			if (!this.isBoardLook || !this.effectiveSchema) {
+				return []
+			}
+			const keys = Object.keys(this.effectiveActiveFilters || {})
+			if (keys.length === 0) {
+				return []
+			}
+			const covered = new Set(this.refLabelSpecs.map((spec) => spec.key))
+			const fields = fieldsFromSchema(this.effectiveSchema, { includeReadOnly: true })
+			const specs = []
+			for (const key of keys) {
+				if (covered.has(key)) {
+					continue
+				}
+				const field = fields.find((f) => f.key === key)
+				const ref = field && field.reference
+				if (!ref || ref.schema === undefined || ref.schema === null) {
+					continue
+				}
+				specs.push({
+					key,
+					labelField: '',
+					register: ref.register || (typeof this.register === 'string' ? this.register : ''),
+					schema: String(ref.schema),
+				})
+			}
+			return specs
+		},
+
+		/**
+		 * The ids each active reference filter holds, per filter key, for the
+		 * label lookup of the Active line.
+		 *
+		 * @return {{[key: string]: string[]}} Distinct ids per filter key.
+		 */
+		activeFilterRefIds() {
+			const out = {}
+			const keys = new Set([...this.refLabelSpecs, ...this.activeFilterRefSpecs].map((spec) => spec.key))
+			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
+				if (!keys.has(key)) {
+					continue
+				}
+				out[key] = (Array.isArray(raw) ? raw : [raw])
+					.filter((id) => id !== null && id !== undefined && id !== '' && typeof id !== 'object')
+					.map((id) => String(id))
+					.sort()
+			}
+			return out
 		},
 
 		/**
@@ -5528,6 +5612,14 @@ export default {
 			},
 		},
 
+		// The Active line names a referenced value, not its id.
+		activeFilterRefIds: {
+			deep: true,
+			handler() {
+				this.loadRefLabels()
+			},
+		},
+
 		countRequestKey: {
 			immediate: true,
 			/** @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views */
@@ -5796,7 +5888,7 @@ export default {
 		 * @spec openspec/changes/index-ref-column-labels/tasks.md#task-2
 		 */
 		async loadRefLabels() {
-			const specs = this.refLabelSpecs
+			const specs = [...this.refLabelSpecs, ...this.activeFilterRefSpecs]
 			if (specs.length === 0) {
 				return
 			}
@@ -5811,7 +5903,8 @@ export default {
 			}
 			await Promise.all(specs.map(async (spec) => {
 				const known = this.refLabels[spec.key] || {}
-				const ids = (this.refLabelIds[spec.key] || []).filter((id) => !Object.hasOwn(known, id))
+				const wanted = new Set([...(this.refLabelIds[spec.key] || []), ...(this.activeFilterRefIds[spec.key] || [])])
+				const ids = [...wanted].filter((id) => !Object.hasOwn(known, id))
 				if (ids.length === 0) {
 					return
 				}
@@ -6495,6 +6588,11 @@ export default {
 		 * @return {void}
 		 */
 		onClearFilters() {
+			// "Clear all" on the Active line also undoes the quick filters it
+			// listed (a tab without an `activeLabel` is not a filter there).
+			for (const chip of this.quickFilterActiveChips) {
+				this.deselectQuickFilterChip(chip.quickFilterIndex)
+			}
 			// Clearing the view brings the person's own columns back.
 			this.appliedViewColumns = null
 			this.appliedSavedViewId = ''
@@ -6585,9 +6683,72 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
 		 */
 		onRemoveActiveFilter(chip) {
+			if (chip && typeof chip.quickFilterIndex === 'number') {
+				this.deselectQuickFilterChip(chip.quickFilterIndex)
+				return
+			}
 			if (chip && typeof chip.key === 'string') {
 				this.onFilterEvent({ key: chip.key, values: [] })
 			}
+		},
+
+		/**
+		 * Undo a quick filter from the Active line. With several tabs selectable
+		 * the tab leaves the selection; with one, the page goes back to its
+		 * default tab when that tab names no active filter itself, and else to no
+		 * tab at all, so the chip does not come straight back.
+		 *
+		 * @param {number} index The tab index the chip stands for.
+		 * @return {void}
+		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-a-quick-filter-with-an-active-label-joins-the-active-line
+		 */
+		deselectQuickFilterChip(index) {
+			if (this.quickFilterMultiple) {
+				this.onQuickFilterMultiChange((this.selectedQuickFilterIndices || []).filter((i) => i !== index))
+				return
+			}
+			if (this.activeQuickFilterIndex !== index) {
+				return
+			}
+			const tabs = this.tabStripEntries || []
+			let fallback = tabs.findIndex((tab) => tab && tab.default === true)
+			if (fallback < 0 && tabs.length > 0) {
+				fallback = 0
+			}
+			const fallbackNamed = fallback >= 0 && typeof tabs[fallback].activeLabel === 'string' && tabs[fallback].activeLabel !== ''
+			this.onQuickFilterChange(fallback >= 0 && fallback !== index && !fallbackNamed ? fallback : null)
+		},
+
+		/**
+		 * The text an Active chip shows for one filter value: the referenced
+		 * object's label, the facet bucket's label, the schema's `oneOf` title,
+		 * else the value itself.
+		 *
+		 * @param {string} key The filter key.
+		 * @param {unknown} value One value of that filter.
+		 * @return {string} The label.
+		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-an-active-chip-names-the-value-not-its-id
+		 */
+		activeFilterValueLabel(key, value) {
+			const id = String(value)
+			const refs = this.refLabels[key]
+			if (refs && typeof refs[id] === 'string' && refs[id] !== '') {
+				return refs[id]
+			}
+			const facet = this.effectiveFacetData && this.effectiveFacetData[key]
+			const bucket = facet && Array.isArray(facet.values)
+				? facet.values.find((fv) => fv && typeof fv === 'object' && String(fv.value) === id)
+				: null
+			if (bucket && typeof bucket.label === 'string' && bucket.label !== '') {
+				return this.cnTranslate(bucket.label)
+			}
+			const prop = this.effectiveSchema?.properties?.[key]
+			const options = prop && Array.isArray(prop.oneOf) ? prop.oneOf : []
+			const option = options.find((o) => o && String(o.const) === id && typeof o.title === 'string')
+			if (option) {
+				return this.cnTranslate(option.title)
+			}
+			return id
 		},
 
 		/**
