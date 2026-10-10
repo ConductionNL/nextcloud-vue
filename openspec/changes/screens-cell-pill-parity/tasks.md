@@ -11,7 +11,7 @@
 - **acceptance_criteria**:
   - `purple` and `teal` validate and resolve through a `colorMap`
   - Their colours are tokens on `:root` with the board values
-  - The schema tone enums list eight names; schema version 2.74.0 and its hash recorded
+  - The schema tone enums list eight names; schema version 2.76.0 and its hash recorded
 - [x] Implement
 - [x] Test
 

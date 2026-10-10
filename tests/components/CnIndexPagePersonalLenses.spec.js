@@ -6,6 +6,7 @@ const { mount } = require('@vue/test-utils')
  * Personal lenses and the star column on CnIndexPage.
  *
  * @spec openspec/changes/record-favourite-and-follow/tasks.md#task-3
+ * @spec openspec/changes/one-follow-control/specs/record-follow/spec.md#requirement-index-pages-offer-one-following-lens-and-a-follow-column
  */
 const { reactive } = require('vue')
 
@@ -39,7 +40,7 @@ const stubs = {
 	CnIndexSidebar: true,
 	CnPageHeader: true,
 	CnFormDialog: true,
-	CnFavouriteToggle: true,
+	CnFollowToggle: true,
 	NcLoadingIcon: true,
 	NcEmptyContent: true,
 	CnIcon: true,
@@ -62,6 +63,7 @@ describe('personalLenses', () => {
 
 	it('declares the props with defaults', () => {
 		expect(CnIndexPage.props.personalLenses.default()).toEqual([])
+		expect(CnIndexPage.props.showFollowColumn.default).toBe(false)
 		expect(CnIndexPage.props.showFavouriteColumn.default).toBe(false)
 	})
 
@@ -69,30 +71,30 @@ describe('personalLenses', () => {
 		const w = mountPage()
 		await flush()
 		expect(w.vm.effectiveQuickFilters).toBeNull()
-		expect(w.vm.renderedColumns.some((c) => c.key === '__favourite')).toBe(false)
+		expect(w.vm.renderedColumns.some((c) => c.key === '__follow')).toBe(false)
 	})
 
 	it('appends the lenses after the own quick filters, in order', async () => {
 		const own = [{ label: 'Open', filter: { status: 'open' }, default: true }]
-		const w = mountPage({ quickFilters: own, personalLenses: ['favourite', 'recent', 'watching'] })
+		const w = mountPage({ quickFilters: own, personalLenses: ['watching', 'recent', 'unread'] })
 		await flush()
-		expect(w.vm.effectiveQuickFilters.map((t) => t.label)).toEqual(['Open', 'Favourites', 'Recent', 'Following'])
+		expect(w.vm.effectiveQuickFilters.map((t) => t.label)).toEqual(['Open', 'Following', 'Recent', 'Unread'])
 	})
 
 	it('puts All first when the page has no quick filters, so no lens is on at mount', async () => {
-		const w = mountPage({ personalLenses: ['favourite'] })
+		const w = mountPage({ personalLenses: ['watching'] })
 		await flush()
-		expect(w.vm.effectiveQuickFilters.map((t) => t.label)).toEqual(['All', 'Favourites'])
+		expect(w.vm.effectiveQuickFilters.map((t) => t.label)).toEqual(['All', 'Following'])
 		expect(w.vm.activeQuickFilterIndex).toBe(0)
-		expect(lastParams()._favourite).toBeUndefined()
+		expect(lastParams()._watching).toBeUndefined()
 	})
 
 	it('combines a lens with the own filters in the list query', async () => {
-		const w = mountPage({ filter: { status: 'open' }, personalLenses: ['favourite'] })
+		const w = mountPage({ filter: { status: 'open' }, personalLenses: ['watching'] })
 		await flush()
 		w.vm.onQuickFilterChange(1)
 		await flush()
-		expect(lastParams()._favourite).toBe(true)
+		expect(lastParams()._watching).toBe(true)
 		expect(lastParams().status).toBe('open')
 	})
 
@@ -128,12 +130,31 @@ describe('the unread lens', () => {
 	})
 })
 
-describe('showFavouriteColumn', () => {
-	it('adds a first, unsortable star column', async () => {
-		const w = mountPage({ showFavouriteColumn: true, columns: [{ key: 'title', label: 'Title' }] })
+describe('the follow column', () => {
+	it('adds a first, unsortable follow column', async () => {
+		const w = mountPage({ showFollowColumn: true, columns: [{ key: 'title', label: 'Title' }] })
 		await flush()
 		const cols = w.vm.renderedColumns
-		expect(cols[0]).toMatchObject({ key: '__favourite', sortable: false })
+		expect(cols[0]).toMatchObject({ key: '__follow', sortable: false })
 		expect(cols[1].key).toBe('title')
+	})
+
+	it('treats the deprecated showFavouriteColumn as the follow column', async () => {
+		const w = mountPage({ showFavouriteColumn: true, columns: [{ key: 'title', label: 'Title' }] })
+		await flush()
+		expect(w.vm.renderedColumns[0]).toMatchObject({ key: '__follow', sortable: false })
+	})
+})
+
+describe('the favourite lens alias', () => {
+	it('reads favourite as Following, and asking for both gives one tab', async () => {
+		mockStore.fetchCollection.mockClear()
+		const w = mountPage({ personalLenses: ['favourite', 'recent', 'watching'] })
+		await flush()
+		expect(w.vm.effectiveQuickFilters.map((t) => t.label)).toEqual(['All', 'Following', 'Recent'])
+		w.vm.onQuickFilterChange(1)
+		await flush()
+		expect(lastParams()._watching).toBe(true)
+		expect(lastParams()._favourite).toBeUndefined()
 	})
 })

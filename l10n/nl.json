@@ -1,5 +1,10 @@
 {
   "translations": {
+    "Linked items": "Gekoppelde items",
+    "Still loading: {sections}": "Nog aan het laden: {sections}",
+    "Could not load {section}.": "{section} kon niet worden geladen.",
+    "Organisation credentials let apps act for your organisation. Keepiq, the credential vault of Nextcloud, keeps the secret. The app never holds it. You choose which apps may use each credential.": "Met inloggegevens van de organisatie handelen apps namens je organisatie. Keepiq, de kluis voor inloggegevens van Nextcloud, bewaart het geheim. De app krijgt het nooit in handen. Je kiest welke apps elk inloggegeven mogen gebruiken.",
+    "Apps sometimes act for you on an external service. You give the secret to Nextcloud once, and Keepiq keeps it in an encrypted vault. Apps make the call through Keepiq and never see the secret. You choose which apps may use each credential. Share one across apps, or keep one per app.": "Apps handelen soms namens jou bij een externe dienst. Je geeft het geheim één keer aan Nextcloud, en Keepiq bewaart het in een versleutelde kluis. Apps doen de aanvraag via Keepiq en zien het geheim nooit. Je kiest welke apps elk inloggegeven mogen gebruiken. Deel er één tussen apps, of houd er één per app.",
     "Show as": "Toon als",
     "Board": "Bord",
     "Calendar": "Kalender",
@@ -1336,7 +1341,19 @@
     "Test environment": "Testomgeving",
     "Acceptance environment": "Acceptatieomgeving",
     "About {label}": "Over {label}",
-    "Could not load the form for this item.": "Kon het formulier voor dit item niet laden."
+    "Could not load the form for this item.": "Kon het formulier voor dit item niet laden.",
+    "Drop to add": "Laat los om toe te voegen",
+    "Or drag files onto this list.": "Of sleep bestanden op deze lijst.",
+    "This server does not keep track of what you open.": "Deze server houdt niet bij welke items je opent.",
+    "Log in to see what you opened recently.": "Log in om te zien wat je onlangs opende.",
+    "Your recent items are not available right now.": "Je recente items zijn nu niet beschikbaar.",
+    "yesterday": "gisteren",
+    "tomorrow": "morgen",
+    "Filter by {column}": "Filteren op {column}",
+    "Filter by {column}, active": "Filteren op {column}, actief",
+    "Turn notifications off": "Meldingen uitzetten",
+    "Turn notifications on": "Meldingen aanzetten",
+    "Could not change notifications.": "Meldingen konden niet worden gewijzigd."
   },
   "plurals": {
     "%n year": [
@@ -1390,6 +1407,18 @@
     "You see {count} capability of {total}.": [
       "Je ziet {count} functionaliteit van {total}.",
       "Je ziet {count} functionaliteiten van {total}."
+    ],
+    "%n file added": [
+      "%n bestand toegevoegd",
+      "%n bestanden toegevoegd"
+    ],
+    "{count} day ago": [
+      "{count} dag geleden",
+      "{count} dagen geleden"
+    ],
+    "in {count} day": [
+      "over {count} dag",
+      "over {count} dagen"
     ]
   }
 }

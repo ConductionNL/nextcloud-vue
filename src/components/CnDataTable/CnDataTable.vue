@@ -130,24 +130,41 @@
 								pinClass(leadingCount + colIndex),
 							]"
 							:style="{ ...(col.width ? { width: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
-							:tabindex="col.sortable ? 0 : null"
 							:aria-sort="ariaSortFor(col)"
 							:data-filtered="isColumnFiltered(col) ? 'true' : null"
 							:title="translateLabel(col.description) || null"
 							@click="col.sortable ? onHeaderClick(col.key, $event) : null"
 							@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
-							<span :class="col.description ? 'cn-table-header--described' : ''">
+							<!-- The sort control is a real button named by the column
+							     label; the header's `aria-sort` carries the state. Its
+							     click and Enter bubble to the header's own handlers, so
+							     a click anywhere in the header still sorts. -->
+							<button
+								v-if="col.sortable"
+								type="button"
+								class="cn-table-header__sort"
+								data-testid="cn-table-header-sort">
+								<span :class="col.description ? 'cn-table-header--described' : ''">{{ translateLabel(col.label) }}</span>
+								<span
+									v-if="sortKeyIndex(col.key) !== -1"
+									class="cn-table-header__chevron cn-table-sort-indicator"
+									:data-sort-direction="effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? 'asc' : 'desc'">
+									<ChevronUp v-if="effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc'" :size="14" />
+									<ChevronDown v-else :size="14" />
+								</span>
+								<span
+									v-else
+									class="cn-table-header__chevron cn-table-header__chevron--idle">
+									<ChevronDown :size="14" />
+								</span>
+								<span
+									v-if="sortBadgeFor(col.key) !== null"
+									class="cn-table-sort-badge">
+									{{ sortBadgeFor(col.key) }}
+								</span>
+							</button>
+							<span v-else :class="col.description ? 'cn-table-header--described' : ''">
 								{{ translateLabel(col.label) }}
-							</span>
-							<span
-								v-if="col.sortable && sortKeyIndex(col.key) !== -1"
-								class="cn-table-sort-indicator">
-								{{ effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? '▲' : '▼' }}
-							</span>
-							<span
-								v-if="col.sortable && sortBadgeFor(col.key) !== null"
-								class="cn-table-sort-badge">
-								{{ sortBadgeFor(col.key) }}
 							</span>
 							<!-- Header filter: a real button, so it is reachable with Tab
 							     and its click and Enter never also sort the column. -->
@@ -163,8 +180,11 @@
 								data-testid="cn-table-header-filter"
 								@click.stop="toggleColumnFilter(col, $event)"
 								@keydown.enter.stop>
-								<FilterIcon v-if="isColumnFiltered(col)" :size="16" />
-								<FilterOutline v-else :size="16" />
+								<FilterOutline :size="14" />
+								<span
+									v-if="isColumnFiltered(col)"
+									class="cn-table-header__filter-dot"
+									data-testid="cn-table-header-filter-dot" />
 							</button>
 						</th>
 
@@ -182,9 +202,12 @@
 					<!-- Empty state -->
 					<tr v-if="effectiveRows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
 						<td :colspan="totalColumns">
-							<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`). -->
+							<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`, or why an unavailable personal lens is empty). -->
 							<slot name="empty">
-								{{ translateLabel(emptyText) }}
+								<span v-if="lensReasonText" class="cn-table-empty__lens-reason" data-testid="cn-data-table-lens-reason">{{ lensReasonText }}</span>
+								<template v-else>
+									{{ translateLabel(emptyText) }}
+								</template>
 							</slot>
 						</td>
 					</tr>
@@ -370,12 +393,14 @@ import axios from '@nextcloud/axios'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
-import FilterIcon from 'vue-material-design-icons/Filter.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
+import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
@@ -485,7 +510,8 @@ export default {
 		CnIcon,
 		CnLockIndicator,
 		CnUnreadMarker,
-		FilterIcon,
+		ChevronDown,
+		ChevronUp,
 		FilterOutline,
 	},
 
@@ -664,6 +690,20 @@ export default {
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No items found'),
+		},
+
+		/**
+		 * App wording for an unavailable personal lens in self-fetch mode,
+		 * keyed `<lens>.<reason>` (`recent.audit-trail-disabled`) or
+		 * `<reason>`. Without it the library's object-neutral text is shown
+		 * when the response reports `@self.lenses.<lens>.available: false`.
+		 *
+		 * @type {{[key: string]: string}|null}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lensReasonTexts: {
+			type: Object,
+			default: null,
 		},
 
 		/** Function returning CSS class(es) for a row: (row) => string|object */
@@ -942,6 +982,8 @@ export default {
 			aggregateRequestId: 0,
 			/** Rows fetched in self-fetch mode (register + schemaId). */
 			fetchedRows: [],
+			/** Personal-lens reports (`@self.lenses`) of the latest self-fetch response. */
+			fetchedLenses: {},
 			/** True while a self-fetch request is in flight. */
 			selfFetchLoading: false,
 		}
@@ -964,6 +1006,22 @@ export default {
 		 */
 		actionsColumnLabel() {
 			return t('nextcloud-vue', 'Actions')
+		},
+
+		/**
+		 * Why the self-fetched list is empty when a personal lens could not
+		 * answer (openregister#4514), or `''` to keep `emptyText`. Only the
+		 * table's own fetch reports: external `rows` carry no report.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lensReasonText() {
+			if (this.rows && this.rows.length > 0) {
+				return ''
+			}
+			const text = lensUnavailableText(this.fetchedLenses, this.lensReasonTexts)
+			return text ? this.translateLabel(text) : ''
 		},
 
 		/** @return {number} Leading cells before the data columns (selection, icon). */
@@ -1495,8 +1553,10 @@ export default {
 					...(this.fetchParams ? { params: this.fetchParams } : {}),
 				})
 				this.fetchedRows = (data && data.results) || (Array.isArray(data) ? data : [])
+				this.fetchedLenses = readLensReports(data)
 			} catch {
 				this.fetchedRows = []
+				this.fetchedLenses = {}
 			} finally {
 				this.selfFetchLoading = false
 			}
@@ -1980,8 +2040,8 @@ export default {
 		filterButtonLabel(col) {
 			const column = this.translateLabel(col.label)
 			return this.isColumnFiltered(col)
-				? t('nextcloud-vue', 'Filter {column}, active', { column })
-				: t('nextcloud-vue', 'Filter {column}', { column })
+				? t('nextcloud-vue', 'Filter by {column}, active', { column })
+				: t('nextcloud-vue', 'Filter by {column}', { column })
 		},
 
 		/**

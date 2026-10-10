@@ -49,6 +49,6 @@ any non-object is ignored. Alternatives considered:
 
 ## Manifest schema
 
-2.74.0: the tone enums gain `purple` and `teal`; the `config.columns`
+2.76.0: the tone enums gain `purple` and `teal`; the `config.columns`
 description names `colorMap`. Column objects stay free-form, so no manifest
 that validated before is refused.

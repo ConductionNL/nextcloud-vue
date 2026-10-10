@@ -5,7 +5,7 @@ export { findRepeatingWrite, journeyItemTargets } from './journeyRepeatingWrite.
 export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, validateValue } from './schema.js'
 export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData, usesArrayValues, valueArrayFor, valueRecordsFor } from './dynamicProperties.js'
 export { deleteSchema, describeSchemaChange, saveSchema, SchemaBreakingChangeError, SchemaHasObjectsError } from './schemaApi.js'
-export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, resetVisibilityCache } from './widgetVisibility.js'
+export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, peekCurrentUserGroups, resetVisibilityCache } from './widgetVisibility.js'
 export { isAppInstalled } from './appInstalled.js'
 export { getAssistantMark } from './assistantMark.js'
 export { passesContextPredicates } from './visibleIfContext.js'
