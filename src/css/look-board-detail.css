@@ -114,7 +114,7 @@
 
 /* ---- Folder tabs ------------------------------------------------------- */
 
-/* The strip draws no line of its own (design-system#147). The card under it
+/* The strip draws no line of its own (design-system pull request 147). The card under it
    carries its full border, top included, so the top-right corner is the
    card's own rounded corner instead of a strip rule running straight past it.
    The open tab overlaps that top border by 1px (the nav's -1px margin) and
