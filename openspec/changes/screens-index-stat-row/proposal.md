@@ -42,5 +42,4 @@ the page renders as before.
 
 ## Backward compatibility
 
-Additive. Manifest schema: the next free minor after
-`screens-dashboard-greeting-header` (2.80.0).
+Additive. Manifest schema 2.80.0.
