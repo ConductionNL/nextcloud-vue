@@ -954,11 +954,14 @@ export default {
 
 		/**
 		 * What the draft indicator announces: Saving, then Saved with a relative time.
+		 * After a failed submit it says the draft is kept on this device instead,
+		 * so it cannot be read as the server save that just failed.
 		 *
 		 * @return {string} The text, or '' before anything is typed.
+		 * @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-the-draft-indicator-never-reads-as-a-server-save-after-a-failed-save
 		 */
 		draftIndicatorLabel() {
-			return draftIndicatorText(this.draftState, this.draftSavedAt)
+			return draftIndicatorText(this.draftState, this.draftSavedAt, Date.now(), { saveFailed: Boolean(this.lastError) })
 		},
 	},
 
