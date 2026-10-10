@@ -1,5 +1,6 @@
 import { computed, isRef, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useObjectStore } from '../store/index.js'
+import { facetFilterParams } from '../utils/facets.js'
 
 /**
  * Composable for managing list view state with full objectStore integration.
@@ -163,10 +164,9 @@ export function useListView(objectTypeOrOptions, options) {
 		}
 
 		for (const [key, values] of Object.entries(activeFilters.value)) {
-			if (values && values.length > 0) {
-				// Single-value arrays are unwrapped to scalar params
-				params[key] = values.length === 1 ? values[0] : values
-			}
+			// Single-value arrays are unwrapped to scalar params; the
+			// missing-value option becomes `<key>_isnull=true`.
+			Object.assign(params, facetFilterParams(key, values))
 		}
 
 		// Fixed filters (e.g. a route-param-scoped `pages[].config.filter`) are

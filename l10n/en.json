@@ -1,5 +1,6 @@
 {
   "translations": {
+    "No value ({count})": "No value ({count})",
     "Linked items": "Linked items",
     "Still loading: {sections}": "Still loading: {sections}",
     "Could not load {section}.": "Could not load {section}.",

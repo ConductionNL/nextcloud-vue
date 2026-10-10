@@ -270,7 +270,7 @@ import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
-import { facetOptionLabel } from '../../utils/facets.js'
+import { facetOptions } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
 import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
@@ -867,12 +867,12 @@ export default {
 		 * @param {object} filter Filter object
 		 */
 		getFilterOptions(filter) {
-			const facet = this.facetData[filter.key]
-			if (facet?.values?.length > 0) {
-				return facet.values.map((v) => ({
-					id: v.value,
-					label: facetOptionLabel(v),
-				}))
+			const live = facetOptions(
+				this.facetData[filter.key],
+				(count) => t('nextcloud-vue', 'No value ({count})', { count }),
+			)
+			if (live !== null) {
+				return live
 			}
 			// A reference picker's rows come from another list, and neither a
 			// schema enum nor a facet bucket can carry them.
