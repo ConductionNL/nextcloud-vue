@@ -543,6 +543,7 @@ export { cnFetch, cnFetchJson, CnHttpError, configureCnFetch } from './utils/cnF
 // need the same answer without rendering a padlock.
 export { isLockedByCurrentUser, isObjectLocked, lockHolder, readLockPayload, resolveObjectLock } from './utils/objectLock.js'
 export { dispatchObjectsChanged } from './utils/objectSignals.js'
+export { lensUnavailableText, readLensReports } from './utils/lensAvailability.js'
 export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, findRepeatingWrite, formatValue, journeyItemTargets, validateValue } from './utils/index.js'
 export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData, usesArrayValues, valueArrayFor, valueRecordsFor } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot
@@ -569,7 +570,7 @@ export {
 	SENTINEL_RESOLVERS,
 	warnIfDeprecated,
 } from './utils/resolveManifestTokens.js'
-export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, resetVisibilityCache } from './utils/index.js'
+export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, peekCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { followLinkClick, isModifiedClick, isNewTabHandled, isRowMiddleClick, openRowTarget, resolveHref } from './utils/index.js'
 export { resolveImageUrl } from './utils/index.js'

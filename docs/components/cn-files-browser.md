@@ -128,6 +128,12 @@ chooser once the set is settled.
 | `newFolderLabel` | `String` | `'New folder'` | Label of the new-folder entry and its dialog. |
 | `renameLabel` | `String` | `'Rename'` | Label of the rename action and its dialog. The Files app's own rename is its list's inline input, so the browser renames through a dialog and a DAV move. |
 | `showInFilesLabel` | `String` | `'Show in Files'` | Label of the link that opens the file in the Files app. |
+| `uploadButton` | `Boolean` | `false` | Show a primary upload button beside the New menu, which then renders as secondary. It opens the same picker as the New menu's upload entry. |
+| `uploadButtonLabel` | `String` | `'Add files'` | Label of the button `uploadButton` shows. |
+| `dropOverlay` | `Boolean` | `false` | While a drag that carries files is over the browser, cover it with a dashed frame and `dropLabel` centred, and say `dropLabel` in a polite live region; after a drop the region says how many files were added. The overlay is decoration (`aria-hidden`); keep a button or the New menu as the way in for anyone who cannot drag. Off keeps the plain dashed outline and announces nothing. |
+| `dropLabel` | `String` | `'Drop to add'` | The line `dropOverlay` draws and announces. |
+| `dropHint` | `Boolean` | `false` | Show a line under the list saying files can be dropped on it. |
+| `dropHintLabel` | `String` | `'Or drag files onto this list.'` | The line `dropHint` shows. |
 | `emptyLabel` | `String` | `'This folder is empty'` | Title of the empty state. |
 | `emptyHint` | `String` | `'Drop files here, or use New'` | Line under the empty state's title. |
 | `retryLabel` | `String` | `'Try again'` | Label of the retry button on a failed listing. |

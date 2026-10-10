@@ -284,9 +284,64 @@
 	background-color: var(--color-background-hover);
 }
 
-.cn-table-sort-indicator {
-	margin-inline-start: var(--default-grid-baseline);
-	opacity: 0.6;
+/* The sort control: a real button that looks like the header text, the label
+   followed by a 14px chevron 4px after it (the "Wettelijke termijn" header on
+   the DqWooVerzoeken board). Selector scoped under the table so it outranks
+   Nextcloud's own `button` rule, which would otherwise give it a border, a
+   fill, a 34px min-height and a margin. */
+.cn-data-table th .cn-table-header__sort {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	max-width: 100%;
+	min-width: 0;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: var(--border-radius, 4px);
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-weight: inherit;
+	text-align: start;
+	vertical-align: middle;
+	cursor: pointer;
+}
+
+.cn-data-table th .cn-table-header__sort:hover,
+.cn-data-table th .cn-table-header__sort:focus {
+	background: transparent;
+}
+
+.cn-data-table th .cn-table-header__sort:focus-visible {
+	outline: 2px solid var(--color-main-text);
+	outline-offset: 2px;
+}
+
+.cn-data-table th .cn-table-header__sort > :first-child {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* The chevron. Unsorted columns show a pale down chevron, so every sortable
+   column says it sorts; the sorted column shows the direction at full text
+   colour. The direction is also in the header's `aria-sort`. */
+.cn-table-header__chevron {
+	display: inline-flex;
+	flex: none;
+	color: var(--color-main-text);
+}
+
+.cn-table-header__chevron--idle {
+	color: var(--color-text-maxcontrast);
+	opacity: 0.5;
+}
+
+.cn-data-table th.cn-table-header--sortable:hover .cn-table-header__chevron--idle,
+.cn-data-table th .cn-table-header__sort:focus-visible .cn-table-header__chevron--idle {
+	opacity: 1;
 }
 
 /* A column carrying a `description` gets a dotted underline — the long-standing
@@ -302,15 +357,12 @@
 	cursor: help;
 }
 
-.cn-data-table th.cn-table-header--sortable:focus-visible {
-	outline: 2px solid var(--color-main-text);
-	outline-offset: -2px;
-}
-
-/* Header filter button (CnDataTable `filterable`). 24px hit area with the
-   16px icon; the filled icon plus the primary colour marks an active filter,
-   so the state never rests on colour alone. */
-.cn-table-header__filter {
+/* Header filter button (CnDataTable `filterable`): a 14px funnel directly
+   after the sort chevron, in a 24px hit area. Muted with no filter set; with
+   a filter set it takes the dark primary and a dot, so the state never rests
+   on colour alone. */
+.cn-data-table th .cn-table-header__filter {
+	position: relative;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -318,7 +370,7 @@
 	min-width: 24px;
 	height: 24px;
 	min-height: 24px;
-	margin: 0 0 0 4px;
+	margin: 0 0 0 2px;
 	padding: 0;
 	border: none;
 	border-radius: var(--border-radius, 4px);
@@ -328,18 +380,31 @@
 	cursor: pointer;
 }
 
-.cn-table-header__filter:hover {
+.cn-data-table th .cn-table-header__filter:hover {
 	background-color: var(--color-background-hover);
 	color: var(--color-main-text);
 }
 
-.cn-table-header__filter:focus-visible {
+.cn-data-table th .cn-table-header__filter:focus-visible {
 	outline: 2px solid var(--color-main-text);
 	outline-offset: 0;
 }
 
-.cn-table-header__filter--active {
-	color: var(--color-primary-element);
+.cn-data-table th .cn-table-header__filter--active,
+.cn-data-table th .cn-table-header__filter--active:hover {
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+}
+
+/* The active-filter dot, on the funnel's top right. */
+.cn-table-header__filter-dot {
+	position: absolute;
+	inset-block-start: 3px;
+	inset-inline-end: 3px;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background-color: var(--color-primary-element);
+	pointer-events: none;
 }
 
 /* Active header filters above the table, one removable chip each. */
