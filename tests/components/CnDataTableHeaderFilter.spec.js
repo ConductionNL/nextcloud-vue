@@ -61,13 +61,26 @@ describe('CnDataTable header sorting', () => {
 })
 
 describe('CnDataTable header filters', () => {
+	it('puts the filter button beside the sort button, not inside it, and a click on it does not sort', async () => {
+		const wrapper = mountTable()
+		const header = headerFor(wrapper, 'Status')
+		const sort = header.find('[data-testid="cn-table-header-sort"]')
+		const filter = header.find('[data-testid="cn-table-header-filter"]')
+		expect(sort.exists()).toBe(true)
+		expect(sort.find('[data-testid="cn-table-header-filter"]').exists()).toBe(false)
+		expect(filter.element.tagName).toBe('BUTTON')
+		await filter.trigger('click')
+		expect(wrapper.emitted('sort')).toBeUndefined()
+		wrapper.unmount()
+	})
+
 	beforeEach(() => {
 		axios.get.mockReset()
 	})
 
 	it('puts a labelled filter button on each filterable column only', () => {
 		const wrapper = mountTable()
-		expect(headerFor(wrapper, 'Status').find('[data-testid="cn-table-header-filter"]').attributes('aria-label')).toBe('Filter Status')
+		expect(headerFor(wrapper, 'Status').find('[data-testid="cn-table-header-filter"]').attributes('aria-label')).toBe('Filter by Status')
 		expect(headerFor(wrapper, 'Value').find('[data-testid="cn-table-header-filter"]').exists()).toBe(false)
 		expect(headerFor(wrapper, 'Open deals').find('[data-testid="cn-table-header-filter"]').exists()).toBe(false)
 	})
@@ -115,7 +128,7 @@ describe('CnDataTable header filters', () => {
 	it('does not show an exact sidebar filter as the text header filter', () => {
 		const wrapper = mountTable({ activeFilters: { title: ['Acme'] } })
 		const button = headerFor(wrapper, 'Title').find('[data-testid="cn-table-header-filter"]')
-		expect(button.attributes('aria-label')).toBe('Filter Title')
+		expect(button.attributes('aria-label')).toBe('Filter by Title')
 		wrapper.unmount()
 	})
 
@@ -135,8 +148,10 @@ describe('CnDataTable header filters', () => {
 	it('marks an active filter on the header and as a removable chip', async () => {
 		const wrapper = mountTable({ activeFilters: { status: ['open'] } })
 		const button = headerFor(wrapper, 'Status').find('[data-testid="cn-table-header-filter"]')
-		expect(button.attributes('aria-label')).toBe('Filter Status, active')
+		expect(button.attributes('aria-label')).toBe('Filter by Status, active')
 		expect(button.classes()).toContain('cn-table-header__filter--active')
+		expect(button.find('[data-testid="cn-table-header-filter-dot"]').exists()).toBe(true)
+		expect(headerFor(wrapper, 'Title').find('[data-testid="cn-table-header-filter-dot"]').exists()).toBe(false)
 		const chips = wrapper.find('[data-testid="cn-table-filter-chips"]')
 		expect(chips.text()).toContain('Status: Open')
 		await chips.find('[data-testid="cn-table-filter-chip-remove"]').trigger('click')
