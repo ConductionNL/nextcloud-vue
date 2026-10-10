@@ -1394,6 +1394,10 @@
       "%n maand",
       "%n maanden"
     ],
+    "%n hour": [
+      "%n uur",
+      "%n uur"
+    ],
     "%n day": [
       "%n dag",
       "%n dagen"
