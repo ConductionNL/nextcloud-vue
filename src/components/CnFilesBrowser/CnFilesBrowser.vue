@@ -1880,6 +1880,13 @@ export default {
 	flex: 1 1 auto;
 }
 
+/* The crumbs give way, the controls do not: a long crumb (a folder named
+   after a uuid) shrank the upload button to "Bestanden..." while the crumbs
+   kept their width. */
+.cn-files-browser__bar > :not(.cn-files-browser__crumbs) {
+	flex-shrink: 0;
+}
+
 .cn-files-browser__file-input {
 	display: none;
 }

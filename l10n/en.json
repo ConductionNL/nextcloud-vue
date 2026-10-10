@@ -1429,6 +1429,10 @@
     "in {count} day": [
       "in {count} day",
       "in {count} days"
+    ],
+    "{count} more filter": [
+      "{count} more filter",
+      "{count} more filters"
     ]
   }
 }
