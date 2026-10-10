@@ -15,8 +15,10 @@ primary button was cut to "Bestanden...".
 ## What changes
 
 1. Dutch translations for every string of `CnFilesBrowser`, `CnFilesTab`,
-   `CnQuickFilterBar`, `CnFormField` and `CnFormDialog` that had none (45
-   strings).
+   `CnQuickFilterBar`, `CnFormField` and `CnFormDialog` that had none (44
+   strings and one plural). The quick filter chip's count becomes a plural
+   (`{count} more filter` / `{count} more filters`), so one hidden filter no
+   longer reads "1 more filters" (Dutch "Nog 1 filter").
 2. `CnFilesTab` names the files browser's root crumb after the object: the
    host's `browserRootLabel`, else the object's name (`@self.name`, else
    `title`, else `name`, never its uuid), else the folder's own name. The name

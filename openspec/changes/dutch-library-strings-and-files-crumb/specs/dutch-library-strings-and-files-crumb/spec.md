@@ -11,13 +11,15 @@ names what it shows.
 
 Every string `CnFilesBrowser`, `CnFilesTab`, `CnQuickFilterBar`, `CnFormField`
 and `CnFormDialog` pass to `t('nextcloud-vue', …)` SHALL have a Dutch
-translation in `l10n/nl.json`, in sentence case and without em-dashes.
+translation in `l10n/nl.json`, in sentence case and without em-dashes. A
+string that counts SHALL be a plural, so a count of one reads in the singular.
 
 #### Scenario: The chip, the optional mark and the files browser
 
 - **GIVEN** a reader whose language is Dutch
 - **WHEN** the quick filter chip counts 14 hidden filters, a form marks a field optional and the files browser draws its bar and header
 - **THEN** they read "Nog 14 filters", "optioneel", "Nieuw", "Grootte" and "Gewijzigd"
+- **AND** with one hidden filter the chip reads "Nog 1 filter"
 - @e2e exclude translation lookup is covered by `tests/l10n/libraryStringsDutch.spec.js` with the real @nextcloud/l10n; the harness runs in English
 
 ### Requirement: The files browser names the object in its root crumb

@@ -1381,7 +1381,6 @@
     "More filters": "Meer filters",
     "Quick filters": "Snelfilters",
     "{count} filters": "{count} filters",
-    "{count} more filters": "Nog {count} filters",
     "{label} — show the other filters": "{label}: toon de andere filters",
     "Error:": "Fout:",
     "optional": "optioneel",
@@ -1464,6 +1463,10 @@
     "in {count} day": [
       "over {count} dag",
       "over {count} dagen"
+    ],
+    "{count} more filter": [
+      "Nog {count} filter",
+      "Nog {count} filters"
     ]
   }
 }

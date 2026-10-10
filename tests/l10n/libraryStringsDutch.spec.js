@@ -25,7 +25,8 @@ describe('library strings in Dutch', () => {
 		globalThis._nc_l10n_language = 'nl'
 		registerTranslations()
 
-		expect(t('nextcloud-vue', '{count} more filters', { count: 14 })).toBe('Nog 14 filters')
+		expect(n('nextcloud-vue', '{count} more filter', '{count} more filters', 14, { count: 14 })).toBe('Nog 14 filters')
+		expect(n('nextcloud-vue', '{count} more filter', '{count} more filters', 1, { count: 1 })).toBe('Nog 1 filter')
 		expect(t('nextcloud-vue', 'optional')).toBe('optioneel')
 		expect(t('nextcloud-vue', 'New')).toBe('Nieuw')
 		expect(t('nextcloud-vue', 'Size')).toBe('Grootte')
