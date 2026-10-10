@@ -164,9 +164,21 @@
 		</template>
 
 		<!--
+			Table cells in a real browser (?celllabels=1). See CellLabelsHarness.vue.
+		-->
+		<template v-else-if="showCellLabels">
+			<CellLabelsHarness />
+		</template>
+
+		<!--
 			Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs). See
 			PixelGapsHarness.vue.
 		-->
+		<!-- screens-detail-page-parity (?screensdetail=tabs). See ScreensDetailHarness.vue. -->
+		<template v-else-if="showScreensDetail">
+			<ScreensDetailHarness />
+		</template>
+
 		<template v-else-if="showPixelGaps2">
 			<PixelGapsHarness />
 		</template>
@@ -200,6 +212,11 @@
 		<!-- screens-form/dialog/wizard-parity (?screensform=form|steps|dialog|wizard). See ScreensFormHarness.vue. -->
 		<template v-else-if="showScreensForm">
 			<ScreensFormHarness />
+		</template>
+
+		<!-- screens-chrome-parity, the navigation inset and the headers (?screenschrome=index|detail|dashboard|settings). See ScreensChromeHarness.vue. -->
+		<template v-else-if="showScreensChrome">
+			<ScreensChromeHarness />
 		</template>
 
 		<template v-else-if="showTabsWidget">
@@ -611,8 +628,11 @@ import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
 import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
 import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
+import CellLabelsHarness from './CellLabelsHarness.vue'
 import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
+import ScreensChromeHarness from './ScreensChromeHarness.vue'
+import ScreensDetailHarness from './ScreensDetailHarness.vue'
 import ScreensFormHarness from './ScreensFormHarness.vue'
 import ScreensIndexHarness from './ScreensIndexHarness.vue'
 import ScreensParityHarness from './ScreensParityHarness.vue'
@@ -641,7 +661,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, PixelGaps3Harness, PixelGapsHarness, ScreensFormHarness, ScreensIndexHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, PixelGaps3Harness, PixelGapsHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -701,14 +721,19 @@ export default {
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Stages widget and status badge tile harness (?stageswidget=1 / ?statbadge=1).
 			showStages: (typeof window !== 'undefined' && /[?&](stageswidget|statbadge)=/.test(window.location.search)),
+			// Table cells in a real browser (?celllabels=1).
+			showCellLabels: (typeof window !== 'undefined' && /[?&]celllabels=/.test(window.location.search)),
 			// Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs).
 			showPixelGaps2: (typeof window !== 'undefined' && /[?&]pixgaps2=/.test(window.location.search)),
 			// Zuiddrecht pixel gaps, round 3 (?pixgaps3=…).
 			showPixelGaps3: (typeof window !== 'undefined' && /[?&]pixgaps3=/.test(window.location.search)),
+			// screens-detail-page-parity (?screensdetail=tabs).
+			showScreensDetail: (typeof window !== 'undefined' && /[?&]screensdetail=/.test(window.location.search)),
 			// screens-dashboard-parity / screens-kanban-parity (?screens=…).
 			showScreensParity: (typeof window !== 'undefined' && /[?&]screens=/.test(window.location.search)),
 			showScreensIndex: (typeof window !== 'undefined' && /[?&]screensindex=/.test(window.location.search)),
 			showScreensForm: (typeof window !== 'undefined' && /[?&]screensform=/.test(window.location.search)),
+			showScreensChrome: (typeof window !== 'undefined' && /[?&]screenschrome=/.test(window.location.search)),
 			// Tabs widget chrome harness (?tabswidget=1).
 			showTabsBoard: (typeof window !== 'undefined' && window.location.search.includes('tabswidget=board')),
 			showTabsWidget: (typeof window !== 'undefined' && window.location.search.includes('tabswidget')),

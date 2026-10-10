@@ -19,7 +19,7 @@
 - **spec_ref**: `openspec/changes/screens-dashboard-greeting-header/specs/dashboard-page/spec.md#requirement-the-header-can-drop-the-page-actions-menu`
 - **files**: `src/components/CnDashboardPage/CnDashboardPage.vue`, `src/schemas/app-manifest-v2.schema.json`
 - [x] Implement: `showActionsMenu`
-- [x] Test: menu by default, none with `false`; schema accepts the three keys (2.76.0)
+- [x] Test: menu by default, none with `false`; schema accepts the three keys (2.79.0)
 
 ### Task 4: Documentation
 - **files**: `docs/components/cn-dashboard-page.md`

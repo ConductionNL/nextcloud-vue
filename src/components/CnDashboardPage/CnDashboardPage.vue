@@ -918,7 +918,7 @@ import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
-import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
+import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow, translatePresetLabel } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
@@ -2181,9 +2181,12 @@ export default {
 		 * doesn't supply one.
 		 */
 		effectivePresets() {
-			return Array.isArray(this.dateRange?.presets) && this.dateRange.presets.length > 0
+			const presets = Array.isArray(this.dateRange?.presets) && this.dateRange.presets.length > 0
 				? this.dateRange.presets
-				: DEFAULT_DATE_RANGE_PRESETS.map((p) => ({ ...p }))
+				: DEFAULT_DATE_RANGE_PRESETS
+			// Labels in the user's language (screens-dashboard-i18n): the app's
+			// catalogue first, then the library's own for the default labels.
+			return presets.map((p) => ({ ...p, label: translatePresetLabel(p.label, this.effectiveTranslate) }))
 		},
 
 		/**
@@ -3526,13 +3529,35 @@ export default {
 		 * @return {object}
 		 */
 		registryWidgetBindings(item) {
-			const content = this.getWidgetContent(item)
+			const content = this.collectionContent(this.getWidgetContent(item))
 			const def = this.getWidgetDef(item.widgetId)
 			if (!this.isBannerDef(def)) {
 				return content
 			}
 			const outcome = this.widgetConditionOutcome[item.widgetId]
 			return outcome ? { ...content, conditionOutcome: outcome } : content
+		},
+
+		/**
+		 * A widget's content with the board's quiet collection footer: in the
+		 * board look a dashboard that drops the widget Actions menu
+		 * (`showWidgetActions: false`) also drops the Add footer of its list
+		 * widgets, whose Add is the menu's create entry at the bottom of the
+		 * card. A widget that says `content.allowCreate` keeps its own value.
+		 * Otherwise the content is returned as is.
+		 *
+		 * @spec openspec/changes/screens-dashboard-legacy-widgets/specs/dashboard-page/spec.md#requirement-a-board-dashboard-without-widget-actions-drops-the-add-footer
+		 * @param {object} content The widget's stored content.
+		 * @return {object}
+		 */
+		collectionContent(content) {
+			if (!this.isBoardLook || this.showWidgetActions !== false) {
+				return content
+			}
+			if (content && Object.hasOwn(content, 'allowCreate')) {
+				return content
+			}
+			return { ...content, allowCreate: false }
 		},
 
 		/**

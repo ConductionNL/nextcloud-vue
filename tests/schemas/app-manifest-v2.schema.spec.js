@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.76.0', () => {
+	it('the manifest schema version reads 2.79.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1356,9 +1356,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.73.0 adds nav.brand.placement (screens-brand-block-top-bar).
 		// 2.74.0 adds the @myGroups filter token (nextcloud-group-surfaces).
 		// 2.75.0 adds showFollowColumn and deprecates favourite, showFavouriteColumn and the favourite lens (one-follow-control).
-		// 2.76.0 adds the dashboard keys greeting, viewLinks and showActionsMenu (screens-dashboard-greeting-header).
+		// 2.76.0 adds the pill tones purple and teal and the column colorMap (screens-cell-pill-parity).
+		// 2.77.0 adds the index key rowTitle (screens-table-rows-parity).
+		// 2.78.0 adds config.searchPlaceholder on index pages (screens-index-toolbar-parity).
+		// 2.79.0 adds the dashboard keys greeting, viewLinks and showActionsMenu (screens-dashboard-greeting-header).
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.76.0')
+		expect(schema.version).toBe('2.79.0')
 	})
 
 	it('accepts the dashboard keys greeting, viewLinks and showActionsMenu, and refuses a link without a label', () => {

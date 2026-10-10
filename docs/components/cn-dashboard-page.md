@@ -558,6 +558,8 @@ The page needs an app id to store under: its `appId` prop, else the one `CnAppRo
 |------|------|---------|-------------|
 | `showWidgetActions` | `Boolean` | `true` | `false` (manifest `config.showWidgetActions: false`) drops the overflow Actions menu from every widget that does not set `showActions` itself, for a dashboard whose widget headers carry a `headerLink` and nothing else. A widget with `showActions: true` keeps its menu. |
 
+In the board look `showWidgetActions: false` also drops the Add footer of the list widgets (`table`, `object-list`): they receive `allowCreate: false` unless their content sets `allowCreate` itself. This holds on a `config.widgets` dashboard too, where the catalog widgets (`banner`, `table`, `stat` and the rest) mount through the widget registry next to tile, chart and stats-block widgets.
+
 A `header` widget whose content sets `ground: true` is drawn without a card; see [CnHeaderWidget](./cn-header-widget.md).
 
 ## `gridFloat`, `showButtons` and stacked stats blocks (zuiddrecht-pixel-gaps-3)

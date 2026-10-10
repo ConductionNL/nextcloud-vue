@@ -44,4 +44,4 @@ every board-look dashboard with `views` (today: dossiq only).
 ## Backward compatibility
 
 Additive. Without the keys and without the board look the header renders
-as before. Manifest schema 2.76.0.
+as before. Manifest schema 2.79.0.

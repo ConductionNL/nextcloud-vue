@@ -146,6 +146,14 @@
 	margin-inline-start: -264px;
 }
 
+/* The navigation draws the line between it and the content. NcContent draws a
+   second one on the content while the navigation is open, which doubled the
+   line and put the page 1px further from the navigation than the board's 28px.
+   Outranks NcContent's rule (six classes) with seven. */
+.cn-look-board .app-navigation[data-testid="cn-nav"]:not(.app-navigation--closed):not(.app-navigation--close) ~ .app-content.app-content {
+	border-inline-start: none;
+}
+
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__content {
 	box-sizing: border-box;
 	gap: 20px;
@@ -434,4 +442,19 @@
 	background: var(--color-background-hover);
 	color: var(--color-main-text);
 	opacity: 1;
+}
+
+/* ---- Status pills (screens-cell-pill-parity) ---------------------------- */
+/* The board draws a primary pill in the deep primary ink on the light primary
+   ground ("Verzoek", "Nieuw"); the default look keeps the brighter
+   primary-element text. The other tones already match the board. */
+.cn-look-board .cn-status-badge--primary:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
+	color: var(--color-primary-element-light-text);
+}
+
+/* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
+/* The board sets every waiting time ("3 dagen", "4 uur") in weight 600; a
+   late one is red through its variant class. */
+.cn-look-board .cn-cell-renderer__age:not(.cn-look-nextcloud *) {
+	font-weight: 600;
 }
