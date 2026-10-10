@@ -148,4 +148,8 @@ describe('look-board.css: the navigation', () => {
 		expect(rulesFor('.cn-app-nav__footer-list + [data-testid="cn-nav-settings"]')).toContain('margin-top: -18px')
 		expect(rulesFor('[data-testid="cn-nav-settings"] > :first-child .button-vue')).toMatch(/height: 40px[\s\S]*font-weight: 400/)
 	})
+
+	it('draws one line between the navigation and the content, not NcContent\'s second one', () => {
+		expect(rulesFor('~ .app-content.app-content')).toContain('border-inline-start: none')
+	})
 })
