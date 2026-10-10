@@ -1353,7 +1353,11 @@
     "Filter by {column}, active": "Filteren op {column}, actief",
     "Turn notifications off": "Meldingen uitzetten",
     "Turn notifications on": "Meldingen aanzetten",
-    "Could not change notifications.": "Meldingen konden niet worden gewijzigd."
+    "Could not change notifications.": "Meldingen konden niet worden gewijzigd.",
+    "Select {name}": "{name} selecteren",
+    "Select all files": "Alle bestanden selecteren",
+    "No files match the filter.": "Geen bestanden passen bij het filter.",
+    "Actions for the selected files": "Acties voor de geselecteerde bestanden"
   },
   "plurals": {
     "%n year": [

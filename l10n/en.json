@@ -1302,7 +1302,11 @@
     "Filter by {column}, active": "Filter by {column}, active",
     "Turn notifications off": "Turn notifications off",
     "Turn notifications on": "Turn notifications on",
-    "Could not change notifications.": "Could not change notifications."
+    "Could not change notifications.": "Could not change notifications.",
+    "Select {name}": "Select {name}",
+    "Select all files": "Select all files",
+    "No files match the filter.": "No files match the filter.",
+    "Actions for the selected files": "Actions for the selected files"
   },
   "plurals": {
     "%n year": [
