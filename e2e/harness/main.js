@@ -105,6 +105,17 @@ if (typeof window !== 'undefined' && /[?&]pixgaps3=(nav|greeting)/.test(window.l
 		],
 	}))
 }
+// The navigation against board AppZijbalk (?screensnav=1): the entries route
+// by name, so the Dashboard entry is the active route as it is on the board.
+if (typeof window !== 'undefined' && /[?&]screensnav=/.test(window.location.search)) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const page = { render: () => null }
+	const names = ['Dashboard', 'Mine', 'Queue', 'Requests', 'Contacts', 'Appointments', 'People', 'Organisations', 'Help']
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: names.map((name, i) => ({ path: i === 0 ? '/' : '/' + name.toLowerCase(), name, component: page })),
+	}))
+}
 // Vue 3's replacement for Vue.prototype.
 app.config.globalProperties.t = t
 app.config.globalProperties.n = n
