@@ -1,5 +1,7 @@
 # CnFavouriteToggle
 
+> **Deprecated.** Following and favourites are one feature since OpenRegister's `merge-follow-and-favourites`: a favourite is a follow with notifications off. Use [`CnFollowToggle`](./cn-follow-toggle.md). `CnDetailPage` and `CnIndexPage` no longer render this star; it stays exported until the next major.
+
 A star bound to a record's `@self.favourite` marker (OpenRegister `favourites-and-recent`). `CnDetailPage` renders it beside the title when the object carries the marker; `CnIndexPage` renders one per row for `showFavouriteColumn`.
 
 A click flips the star at once and sends `PUT` (star) or `DELETE` (unstar) `/apps/openregister/api/objects/{register}/{schema}/{id}/favourite`. On failure the star flips back and the server's message is shown; on a 404 the message says the user can no longer see the record and `not-found` is emitted. The server's answer is written into the stored object's `@self`, so a list showing the same record agrees. The button carries `aria-pressed`.

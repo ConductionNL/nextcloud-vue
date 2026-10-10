@@ -2,8 +2,10 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * The per-user interaction calls OpenRegister serves on a record: favourite,
- * watch (follow) and the watchers list. Plain functions over `fetch`, shared
+ * The per-user interaction calls OpenRegister serves on a record: follow
+ * (watch, with its notifications switch), the watchers list, the read state,
+ * and the deprecated favourite (a quiet follow since OpenRegister's
+ * `merge-follow-and-favourites`). Plain functions over `fetch`, shared
  * by the interactions store plugin and by the toggles, so a toggle works with
  * or without the plugin installed.
  *
@@ -31,13 +33,18 @@ export function interactionUrl(register, schema, id, tail) {
 /**
  * Send one interaction call and normalise the answer. Never throws.
  *
- * @param {string} method HTTP method.
- * @param {string} url    Full URL.
+ * @param {string}      method HTTP method.
+ * @param {string}      url    Full URL.
+ * @param {object|null} [body] JSON body, or null for none.
  * @return {Promise<{ok: boolean, status: number|null, data: (object|null), message: string}>} The outcome; `message` is the server's, or a network message.
  */
-async function call(method, url) {
+async function call(method, url, body = null) {
 	try {
-		const response = await fetch(prefixUrl(url), { method, headers: buildHeaders() })
+		const init = { method, headers: buildHeaders() }
+		if (body !== null) {
+			init.body = JSON.stringify(body)
+		}
+		const response = await fetch(prefixUrl(url), init)
 		if (!response.ok) {
 			const error = await parseResponseError(response, 'record')
 			// The server's own words win over the generic status text.
@@ -61,6 +68,9 @@ async function call(method, url) {
 /**
  * Star or unstar a record for the current user.
  *
+ * @deprecated A star is a quiet follow since OpenRegister's
+ * `merge-follow-and-favourites`; use `setWatching(..., { notify: false })`.
+ *
  * @param {string}  register Register slug.
  * @param {string}  schema   Schema slug.
  * @param {string}  id       Object id.
@@ -72,16 +82,24 @@ export function setFavourite(register, schema, id, on) {
 }
 
 /**
- * Follow or unfollow a record for the current user.
+ * Follow or unfollow a record for the current user, optionally setting the
+ * follow's notifications switch.
  *
- * @param {string}  register Register slug.
- * @param {string}  schema   Schema slug.
- * @param {string}  id       Object id.
- * @param {boolean} on       True to follow, false to unfollow.
+ * `options.notify` is sent only when following and only when it is a boolean:
+ * left out, a new follow notifies and an existing follow keeps its setting.
+ *
+ * @param {string}  register         Register slug.
+ * @param {string}  schema           Schema slug.
+ * @param {string}  id               Object id.
+ * @param {boolean} on               True to follow, false to unfollow.
+ * @param {object}  [options]        Options.
+ * @param {boolean} [options.notify] The notifications switch.
  * @return {Promise<object>} The outcome (see `call`).
+ * @spec openspec/changes/one-follow-control/specs/record-follow/spec.md#requirement-one-follow-control-with-a-notifications-switch
  */
-export function setWatching(register, schema, id, on) {
-	return call(on ? 'PUT' : 'DELETE', interactionUrl(register, schema, id, 'watch'))
+export function setWatching(register, schema, id, on, options = {}) {
+	const body = on && options && typeof options.notify === 'boolean' ? { notify: options.notify } : null
+	return call(on ? 'PUT' : 'DELETE', interactionUrl(register, schema, id, 'watch'), body)
 }
 
 /**
