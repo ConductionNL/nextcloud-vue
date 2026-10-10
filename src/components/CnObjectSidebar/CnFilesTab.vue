@@ -7,7 +7,7 @@
 		<CnFilesBrowser
 			v-if="browserRoot !== null"
 			:rootPath="browserRoot"
-			:rootLabel="browserRootLabel"
+			:rootLabel="effectiveBrowserRootLabel"
 			:uploadButton="uploadButton"
 			:dropOverlay="dropOverlay"
 			:dropHint="dropHint"
@@ -238,7 +238,7 @@ import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
 import CnFilesBrowser from '../CnFilesBrowser/CnFilesBrowser.vue'
 import { useFileOpener } from '../../composables/useFileOpener.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
-import { resolveObjectFolder } from '../CnFilesBrowser/filesBrowser.js'
+import { resolveObjectFolderInfo } from '../CnFilesBrowser/filesBrowser.js'
 
 /**
  * The mime types Nextcloud Office opens by default for the current person.
@@ -308,7 +308,7 @@ export default {
 		openInOfficeLabel: { type: String, default: () => t('nextcloud-vue', 'Open in Office') },
 		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
-		/** What the files browser's root crumb reads; null shows the folder's own name, as the Files app does. */
+		/** What the files browser's root crumb reads; null shows the object's name, else the folder's own name. */
 		browserRootLabel: { type: String, default: null },
 		/** Forwarded to CnFilesBrowser: a primary "Add files" button beside the New menu. */
 		uploadButton: { type: Boolean, default: false },
@@ -385,6 +385,7 @@ export default {
 			share: false,
 			/** The object's folder as a user-relative path, or null while unresolved or absent. */
 			browserRoot: null,
+			browserObjectName: null,
 			linkedItems: [],
 			/** File ids whose preview request failed, so the row falls back to the mime icon. */
 			previewFailed: {},
@@ -401,6 +402,19 @@ export default {
 			/** The mime types Nextcloud Office opens for this person; empty without Office. */
 			officeMimetypes: readOfficeMimetypes(),
 		}
+	},
+
+	computed: {
+		/**
+		 * The root crumb: the host's label, else the object's name (its folder
+		 * on disk is called after its uuid), else the folder's own name.
+		 *
+		 * @return {string|null}
+		 * @spec openspec/changes/dutch-library-strings-and-files-crumb/specs/dutch-library-strings-and-files-crumb/spec.md#requirement-the-files-browser-names-the-object-in-its-root-crumb
+		 */
+		effectiveBrowserRootLabel() {
+			return this.browserRootLabel || this.browserObjectName || null
+		},
 	},
 
 	watch: {
@@ -483,6 +497,7 @@ export default {
 
 		async resolveBrowserRoot() {
 			this.browserRoot = null
+			this.browserObjectName = null
 			if (!this.objectId || !this.register || !this.schema) {
 				return
 			}
@@ -492,7 +507,7 @@ export default {
 			} catch {
 				return
 			}
-			this.browserRoot = await resolveObjectFolder({
+			const info = await resolveObjectFolderInfo({
 				apiBase: this.apiBase,
 				register: this.register,
 				schema: this.schema,
@@ -500,6 +515,8 @@ export default {
 				uid: getCurrentUser()?.uid || '',
 				remoteUrl,
 			})
+			this.browserRoot = info === null ? null : info.path
+			this.browserObjectName = info === null ? null : info.name
 		},
 
 		async fetchFiles(append = false) {
