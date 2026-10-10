@@ -2582,6 +2582,14 @@
 					"type": "string",
 					"description": "open-form: overrides the create dialog's heading. Defaults to 'Create {schema title}'."
 				},
+				"formEyebrow": {
+					"type": "string",
+					"description": "open-form: the context line above the create dialog's heading (board look), e.g. the list the record joins. Through the host translate. Absent: no line."
+				},
+				"formSubtitle": {
+					"type": "string",
+					"description": "open-form: the sentence under the create dialog's heading (board look), e.g. which fields are required and what happens on save. Through the host translate. Absent: no sentence."
+				},
 				"size": {
 					"type": "string",
 					"enum": ["small", "normal", "large", "full"],

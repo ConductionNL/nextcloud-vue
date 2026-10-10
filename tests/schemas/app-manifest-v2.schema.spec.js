@@ -1445,6 +1445,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 						excludeFields: ['status'],
 						fieldOverrides: { title: { order: 1 } },
 						formTitle: 'File a case',
+						formEyebrow: 'All cases',
+						formSubtitle: 'Fields with * are required.',
 						advanced: false,
 						size: 'large',
 						columns: 2,
