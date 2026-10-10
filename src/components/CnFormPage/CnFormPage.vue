@@ -116,6 +116,19 @@
 			v-if="!submitted || mode !== 'public'"
 			class="cn-form-page__form"
 			@submit.prevent="submit">
+			<!-- Spam protection: a field no person sees or reaches. A filled one
+			     means a bot; the submit then sends nothing (see `honeypot`). -->
+			<div v-if="honeypot" class="cn-form-page__honeypot" aria-hidden="true">
+				<label :for="`cn-form-page-hp-${honeypot}`">{{ t('nextcloud-vue', 'Leave this field empty') }}</label>
+				<input
+					:id="`cn-form-page-hp-${honeypot}`"
+					v-model="honeypotValue"
+					:name="honeypot"
+					type="text"
+					tabindex="-1"
+					autocomplete="off"
+					data-testid="cn-form-page-honeypot">
+			</div>
 			<!-- Paste to fill: only where it may be used (see smartPasteAvailable). -->
 			<div v-if="smartPasteAvailable" class="cn-form-page__smart-paste">
 				<NcButton type="button" data-testid="cn-form-page-smart-paste" @click="smartPasteOpen = true">
@@ -610,6 +623,17 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Name of a honeypot field for a form anonymous visitors fill in.
+		 * The field is rendered out of sight and out of the tab order; when
+		 * it is filled, submit sends nothing and shows the normal success,
+		 * so a bot learns nothing. Empty (default): no honeypot.
+		 */
+		honeypot: {
+			type: String,
+			default: '',
+		},
+
 		/** HTTP method for endpoint mode. POST | PUT | PATCH. */
 		submitMethod: {
 			type: String,
@@ -748,6 +772,8 @@ export default {
 			summaryKeys: [],
 			/** Per-field validation error messages, keyed by field.key. */
 			fieldErrors: {},
+			/** What a bot typed into the honeypot field; stays empty for a person. */
+			honeypotValue: '',
 			/**
 			 * Cache of resolved `endpoint`/`source` visibleWhen outcomes,
 			 * keyed by field.key. Resolved ONCE in `mounted()` — see the
@@ -1768,6 +1794,11 @@ export default {
 			}
 
 			this.lastError = null
+			if (this.honeypot && this.honeypotValue !== '') {
+				// A bot filled the field no person sees: send nothing, look done.
+				this.submitted = true
+				return
+			}
 			this.submitting = true
 			try {
 				if (this.submitEndpoint) {
@@ -1793,6 +1824,9 @@ export default {
 				// describes the transport ("Request failed with status code 400")
 				// and leaves the user to guess which field it meant.
 				this.lastError = serverErrorMessage(err)
+				// A refusal that names its fields (`findings[]`, as OpenRegister's
+				// form destination check answers 422) is marked on each field.
+				this.showServerFindings(err)
 				/**
 				 * Submit failure event. Payload is the thrown error / rejected reason.
 				 *
@@ -1803,6 +1837,45 @@ export default {
 			} finally {
 				this.submitting = false
 			}
+		},
+
+		/**
+		 * Put each finding of a refused submit on its field.
+		 *
+		 * Reads `response.data.findings[]`, each `{ field?, property, message }`,
+		 * and marks the field whose key is the finding's `field`, or else its
+		 * `property`. Findings on no field of this form stay in the general
+		 * error above the form. Nothing happens for an answer without findings.
+		 *
+		 * @param {object} err The rejected request.
+		 * @return {void}
+		 */
+		showServerFindings(err) {
+			const findings = err?.response?.data?.findings
+			if (!Array.isArray(findings) || findings.length === 0) {
+				return
+			}
+			const keys = new Set(this.fields.map((f) => f && f.key))
+			const marked = []
+			for (const finding of findings) {
+				const key = finding && (finding.field || finding.property)
+				if (!key || !keys.has(key) || this.fieldErrors[key]) {
+					continue
+				}
+				this.fieldErrors[key] = String(finding.message || t('nextcloud-vue', 'This answer was refused.'))
+				marked.push(key)
+			}
+			if (marked.length === 0) {
+				return
+			}
+			this.summaryKeys = this.fields.map((f) => f.key).filter((key) => marked.includes(key))
+			if (this.hasSteps) {
+				const stepIndex = this.steps.findIndex((step) => this.stepFields(step).some((f) => f.key === this.summaryKeys[0]))
+				if (stepIndex >= 0) {
+					this.currentStepIndex = stepIndex
+				}
+			}
+			this.focusFirstError(this.summaryKeys[0])
 		},
 
 		async submitViaEndpoint() {
@@ -1828,6 +1901,14 @@ export default {
 </script>
 
 <style>
+.cn-form-page__honeypot {
+	position: absolute;
+	left: -10000px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
 .cn-form-page {
 	display: flex;
 	flex-direction: column;

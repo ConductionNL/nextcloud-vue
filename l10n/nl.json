@@ -1362,7 +1362,9 @@
     "Filter by {column}, active": "Filteren op {column}, actief",
     "Turn notifications off": "Meldingen uitzetten",
     "Turn notifications on": "Meldingen aanzetten",
-    "Could not change notifications.": "Meldingen konden niet worden gewijzigd."
+    "Could not change notifications.": "Meldingen konden niet worden gewijzigd.",
+    "Leave this field empty": "Laat dit veld leeg",
+    "This answer was refused.": "Dit antwoord is geweigerd."
   },
   "plurals": {
     "%n year": [

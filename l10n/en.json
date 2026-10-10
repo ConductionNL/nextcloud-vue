@@ -1311,7 +1311,9 @@
     "Filter by {column}, active": "Filter by {column}, active",
     "Turn notifications off": "Turn notifications off",
     "Turn notifications on": "Turn notifications on",
-    "Could not change notifications.": "Could not change notifications."
+    "Could not change notifications.": "Could not change notifications.",
+    "Leave this field empty": "Leave this field empty",
+    "This answer was refused.": "This answer was refused."
   },
   "plurals": {
     "%n year": [
