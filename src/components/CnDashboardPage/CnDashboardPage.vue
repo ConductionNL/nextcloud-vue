@@ -883,7 +883,7 @@ import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
-import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
+import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow, translatePresetLabel } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
@@ -2009,9 +2009,12 @@ export default {
 		 * doesn't supply one.
 		 */
 		effectivePresets() {
-			return Array.isArray(this.dateRange?.presets) && this.dateRange.presets.length > 0
+			const presets = Array.isArray(this.dateRange?.presets) && this.dateRange.presets.length > 0
 				? this.dateRange.presets
-				: DEFAULT_DATE_RANGE_PRESETS.map((p) => ({ ...p }))
+				: DEFAULT_DATE_RANGE_PRESETS
+			// Labels in the user's language (screens-dashboard-i18n): the app's
+			// catalogue first, then the library's own for the default labels.
+			return presets.map((p) => ({ ...p, label: translatePresetLabel(p.label, this.effectiveTranslate) }))
 		},
 
 		/**

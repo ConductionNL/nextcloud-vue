@@ -70,6 +70,44 @@ export const DEFAULT_DATE_RANGE_PRESETS = Object.freeze([
 ])
 
 /**
+ * The library's own translations of the default preset labels. Literal
+ * `t()` calls, so the strings are extracted into the `nextcloud-vue`
+ * catalogue.
+ *
+ * @type {Object<string, function(): string>}
+ */
+const LIBRARY_PRESET_LABELS = Object.freeze({
+	'Last 8 hours': () => t('nextcloud-vue', 'Last 8 hours'),
+	'Last 24 hours': () => t('nextcloud-vue', 'Last 24 hours'),
+	Today: () => t('nextcloud-vue', 'Today'),
+	'Last 7 days': () => t('nextcloud-vue', 'Last 7 days'),
+	'Last 30 days': () => t('nextcloud-vue', 'Last 30 days'),
+	'Last 90 days': () => t('nextcloud-vue', 'Last 90 days'),
+	'Custom range': () => t('nextcloud-vue', 'Custom range'),
+})
+
+/**
+ * A preset label in the user's language: the host translation when the app's
+ * catalogue has the key, else the library's own translation of a default
+ * label ("Last 30 days"), else the label as written.
+ *
+ * @spec openspec/changes/screens-dashboard-i18n/specs/dashboard-page/spec.md#requirement-date-range-preset-labels-are-translated
+ * @param {string} label The preset label (an i18n key).
+ * @param {function(string): string} [translate] The host translate function.
+ * @return {string} The translated label.
+ */
+export function translatePresetLabel(label, translate) {
+	if (typeof label !== 'string' || label === '') {
+		return ''
+	}
+	const own = typeof translate === 'function' ? translate(label) : label
+	if (typeof own === 'string' && own !== '' && own !== label) {
+		return own
+	}
+	return Object.hasOwn(LIBRARY_PRESET_LABELS, label) ? LIBRARY_PRESET_LABELS[label]() : label
+}
+
+/**
  * Resolve a `period` preset into its calendar-aligned `{ from, to }`
  * window — the CURRENT week / month / quarter / year to date, not a
  * rolling span. ISO week semantics: weeks start on Monday.
@@ -194,6 +232,11 @@ export default {
 	components: {
 		NcDateTimePicker,
 		NcSelect,
+	},
+
+	inject: {
+		/** Host translate function provided by CnAppRoot, for app-authored preset labels. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -327,7 +370,7 @@ export default {
 		},
 
 		presetOptions() {
-			return this.presets.map((p) => ({ id: p.id, label: p.label, days: p.days }))
+			return this.presets.map((p) => ({ id: p.id, label: translatePresetLabel(p.label, this.cnTranslate), days: p.days }))
 		},
 
 		selectedPresetOption() {
