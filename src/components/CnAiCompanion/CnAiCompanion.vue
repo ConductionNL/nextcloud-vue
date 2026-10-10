@@ -66,6 +66,7 @@ import CnAiChatPanel from './CnAiChatPanel.vue'
 import CnAiFloatingButton from './CnAiFloatingButton.vue'
 import { chatHealthUrl, DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAiChatStream } from '../../composables/useAiChatStream.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 
 const HEALTH_TIMEOUT = 5000
 
@@ -340,6 +341,15 @@ export default {
 			}
 		},
 
+		/**
+		 * Ask the chat backend whether it can answer, and render only if so.
+		 *
+		 * Skipped without a request when the backend app is not installed for
+		 * this user.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/no-calls-to-missing-apps-and-presence-beacon/specs/ai-companion/spec.md#requirement-the-companion-does-not-probe-a-backend-that-is-not-installed
+		 */
 		async runHealthProbe() {
 			// RETRY before hiding. A single probe makes the whole companion
 			// disappear on one slow response, and "slow" is normal: measured on a
@@ -351,6 +361,19 @@ export default {
 			//
 			// A backend that is genuinely down fails all attempts and is still
 			// reported; this only stops one unlucky request from deciding.
+			//
+			// 🔴 NO PROBE AT AN APP THAT IS NOT THERE. Nextcloud already tells
+			// the page which apps the user has (`OC.appswebroots`), so asking a
+			// missing backend for its health is a guaranteed 404, three times
+			// per page, in every console. Measured on cloud.conduction.nl
+			// (round-5 check): hermiq not installed, three
+			// `/apps/hermiq/api/chat/health` 404s on every pipelinq and dossiq
+			// page. Hidden either way; now hidden without the requests.
+			if (!isAppInstalled(this.chatAppId || DEFAULT_CHAT_APP_ID)) {
+				this.probeSucceeded = false
+				return
+			}
+
 			for (let attempt = 1; attempt <= HEALTH_PROBE_ATTEMPTS; attempt++) {
 				try {
 					const response = await axios.get(chatHealthUrl(this.chatAppId), {
