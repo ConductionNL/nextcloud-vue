@@ -237,3 +237,18 @@ filtered list (`content.link` or `route`). A caption variant colours the note
 only for `warning`, `error` or `danger`; `success` and `info` read as the plain
 grey note (the rule still evaluates, so the screen reader text is unchanged).
 Without the look the stacked value stays 34px.
+
+In the board look a tile that names no `content.layout` takes the stacked
+layout, since every KPI tile on the screens is stacked; an explicit `layout`
+keeps what it says. A linked board tile is one link without underline, in any
+layout. The value keeps its state colour (`variant`, `variantWhen`, an
+override), the success tone included.
+
+`content.iconPlacement: "end"` draws the icon in a 32px circle at the right of
+the label row instead of the glyph before the label, tinted by the tile's
+state: primary light for a plain tile, else the success, warning or error
+tone the value takes. It has no effect without the board look.
+
+```json
+{ "type": "stat", "content": { "label": "Te laat", "icon": "AlertCircleOutline", "iconPlacement": "end", "variant": "error", "caption": "actie nodig" } }
+```
