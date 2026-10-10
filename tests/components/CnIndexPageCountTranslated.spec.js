@@ -7,8 +7,8 @@
  *
  * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-the-count-reads-in-the-users-language
  */
-import { mount } from '@vue/test-utils'
 import { translate } from '@nextcloud/l10n'
+import { mount } from '@vue/test-utils'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import en from '../../l10n/en.json'
 import nl from '../../l10n/nl.json'
