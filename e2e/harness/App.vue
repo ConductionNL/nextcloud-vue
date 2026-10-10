@@ -174,6 +174,11 @@
 			Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs). See
 			PixelGapsHarness.vue.
 		-->
+		<!-- screens-detail-page-parity (?screensdetail=tabs). See ScreensDetailHarness.vue. -->
+		<template v-else-if="showScreensDetail">
+			<ScreensDetailHarness />
+		</template>
+
 		<template v-else-if="showPixelGaps2">
 			<PixelGapsHarness />
 		</template>
@@ -627,6 +632,7 @@ import CellLabelsHarness from './CellLabelsHarness.vue'
 import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
 import ScreensChromeHarness from './ScreensChromeHarness.vue'
+import ScreensDetailHarness from './ScreensDetailHarness.vue'
 import ScreensFormHarness from './ScreensFormHarness.vue'
 import ScreensIndexHarness from './ScreensIndexHarness.vue'
 import ScreensParityHarness from './ScreensParityHarness.vue'
@@ -655,7 +661,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, PixelGaps3Harness, PixelGapsHarness, ScreensChromeHarness, ScreensFormHarness, ScreensIndexHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, PixelGaps3Harness, PixelGapsHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -721,6 +727,8 @@ export default {
 			showPixelGaps2: (typeof window !== 'undefined' && /[?&]pixgaps2=/.test(window.location.search)),
 			// Zuiddrecht pixel gaps, round 3 (?pixgaps3=…).
 			showPixelGaps3: (typeof window !== 'undefined' && /[?&]pixgaps3=/.test(window.location.search)),
+			// screens-detail-page-parity (?screensdetail=tabs).
+			showScreensDetail: (typeof window !== 'undefined' && /[?&]screensdetail=/.test(window.location.search)),
 			// screens-dashboard-parity / screens-kanban-parity (?screens=…).
 			showScreensParity: (typeof window !== 'undefined' && /[?&]screens=/.test(window.location.search)),
 			showScreensIndex: (typeof window !== 'undefined' && /[?&]screensindex=/.test(window.location.search)),

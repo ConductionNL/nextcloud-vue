@@ -5344,6 +5344,7 @@ export default {
 		 * filled in when one is known, else `description`.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-index-page-title-is-a-manifest-key
+		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-the-count-reads-in-the-users-language
 		 * @return {string}
 		 */
 		headerDescription() {
@@ -5351,9 +5352,16 @@ export default {
 			// Board look: the count line is a template over the rows on this page
 			// and all rows, "{shown} of {total}" unless the page says otherwise.
 			if (this.isBoardLook && typeof total === 'number' && total >= 0) {
-				const template = this.countText || this.countSubtitle || '{shown} of {total}'
+				const shown = this.effectiveObjects.length
+				// The default count line is the library's own string, so it
+				// reads "14 van 14" in Dutch; a page's own template goes
+				// through the app's label lookup.
+				if (!this.countText && !this.countSubtitle) {
+					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
+				}
+				const template = this.countText || this.countSubtitle
 				return this.cnTranslate(template)
-					.replace('{shown}', String(this.effectiveObjects.length))
+					.replace('{shown}', String(shown))
 					.replace('{total}', String(total))
 			}
 			if (this.countSubtitle && typeof total === 'number' && total >= 0) {
