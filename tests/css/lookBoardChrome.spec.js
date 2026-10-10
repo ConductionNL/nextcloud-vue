@@ -135,4 +135,8 @@ describe('look-board.css: the navigation', () => {
 		expect(rulesFor('[data-testid="cn-nav-settings"]')).toContain('order: 2')
 		expect(rulesFor('.cn-app-nav__card {')).toContain('margin: auto 0 0')
 	})
+
+	it('draws one line between the navigation and the content, not NcContent\'s second one', () => {
+		expect(rulesFor('~ .app-content.app-content')).toContain('border-inline-start: none')
+	})
 })

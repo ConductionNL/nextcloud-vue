@@ -18,45 +18,54 @@
 				@description Under the board look: saved views as chips and the Save view button, in row 1 after the quick-filter chips.
 			-->
 			<slot name="actions-end" />
-			<NcButton v-if="showSidebarToggle"
-				variant="secondary"
-				class="cn-actions-bar__filter-button"
-				data-testid="cn-actions-bar-filter-button"
-				:pressed="sidebarOpen"
-				@click="$emit('toggle-sidebar')">
-				<template #icon>
-					<Tune :size="18" />
-				</template>
-				{{ t('nextcloud-vue', 'Filter') }}
-				<span
-					v-if="filterCount > 0"
-					class="cn-actions-bar__filter-badge"
-					data-testid="cn-actions-bar-filter-badge"
-					:aria-label="filterCountLabel">{{ filterCount }}</span>
-			</NcButton>
-			<div v-if="showViewToggle && viewSegments.length > 1"
-				class="cn-actions-bar__view-toggle"
-				role="group"
-				:aria-label="t('nextcloud-vue', 'View')">
-				<button
-					v-for="seg in viewSegments"
-					:key="seg.mode"
-					type="button"
-					class="cn-actions-bar__view-toggle-btn"
-					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode }"
-					:aria-pressed="viewMode === seg.mode"
-					:aria-label="seg.label"
-					:title="seg.label"
-					@click="$emit('view-mode-change', seg.mode)">
-					<CnIcon v-if="seg.icon"
-						:name="seg.icon"
-						:size="24"
-						class="cn-actions-bar__view-toggle-icon" />
-					<component :is="seg.fallback"
-						v-else
-						:size="24"
-						class="cn-actions-bar__view-toggle-icon" />
-				</button>
+			<!--
+				Filter and the view switch are one unit: when row 1 is full they
+				wrap together to the start of the next line (the DqZaken board),
+				never the switch alone.
+			-->
+			<div v-if="showSidebarToggle || (showViewToggle && viewSegments.length > 1)"
+				class="cn-actions-bar__view-controls"
+				data-testid="cn-actions-bar-view-controls">
+				<NcButton v-if="showSidebarToggle"
+					variant="secondary"
+					class="cn-actions-bar__filter-button"
+					data-testid="cn-actions-bar-filter-button"
+					:pressed="sidebarOpen"
+					@click="$emit('toggle-sidebar')">
+					<template #icon>
+						<Tune :size="16" />
+					</template>
+					{{ t('nextcloud-vue', 'Filter') }}
+					<span
+						v-if="filterCount > 0"
+						class="cn-actions-bar__filter-badge"
+						data-testid="cn-actions-bar-filter-badge"
+						:aria-label="filterCountLabel">{{ filterCount }}</span>
+				</NcButton>
+				<div v-if="showViewToggle && viewSegments.length > 1"
+					class="cn-actions-bar__view-toggle"
+					role="group"
+					:aria-label="t('nextcloud-vue', 'View')">
+					<button
+						v-for="seg in viewSegments"
+						:key="seg.mode"
+						type="button"
+						class="cn-actions-bar__view-toggle-btn"
+						:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode }"
+						:aria-pressed="viewMode === seg.mode"
+						:aria-label="seg.label"
+						:title="seg.label"
+						@click="$emit('view-mode-change', seg.mode)">
+						<CnIcon v-if="seg.icon"
+							:name="seg.icon"
+							:size="24"
+							class="cn-actions-bar__view-toggle-icon" />
+						<component :is="seg.fallback"
+							v-else
+							:size="24"
+							class="cn-actions-bar__view-toggle-icon" />
+					</button>
+				</div>
 			</div>
 		</div>
 		<div v-if="!isBoardLayout" class="cn-actions-bar__info">
