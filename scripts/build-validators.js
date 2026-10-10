@@ -148,6 +148,32 @@ if (/require\("ajv-formats/.test(moduleCode)) {
 	throw new Error('build-validators: a require("ajv-formats…") reference survived inlining — the standalone validator is not self-contained')
 }
 
+// Inline Ajv's runtime helpers for the same reason. The standalone output
+// emits `require("ajv/dist/runtime/ucs2length").default` (every `minLength` /
+// `maxLength`) and `require("ajv/dist/runtime/equal").default` (`enum` / `const`
+// on objects). Rollup turns each into a bare side-effect import that fills an
+// `__exports` object, and a consumer's webpack drops that import because the
+// library's `sideEffects` allowlist does not name it. `.default` is then
+// undefined, the validator throws "f is not a function" on the first string it
+// length-checks, and useAppManifest's catch-all kept the bundled manifest: the
+// `/api/manifest` delta never reached the navigation (observed 2026-10-10 on
+// dossiq). Both helpers are self-contained functions (fast-deep-equal recurses
+// through its own name), so their source inlines as is.
+moduleCode = moduleCode.replace(
+	/require\("ajv\/dist\/runtime\/([A-Za-z0-9_]+)"\)\.default/g,
+	(_match, name) => {
+		const fn = require(`ajv/dist/runtime/${name}`).default
+		if (typeof fn !== 'function') {
+			throw new Error(`build-validators: ajv runtime helper "${name}" is not a function and cannot be inlined`)
+		}
+		return `(${fn.toString()})`
+	},
+)
+
+if (/require\(/.test(moduleCode)) {
+	throw new Error('build-validators: a require(…) survived inlining — the standalone validator is not self-contained')
+}
+
 const banner = `// SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Conduction B.V.
 //

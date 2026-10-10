@@ -602,3 +602,17 @@ below changes.
 ```
 
 The KPI tile in this look is described in the CnStatWidget docs.
+
+## Greeting, switch row and the Actions menu (screens-dashboard-greeting-header)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `greeting` | `Boolean \| String` | `false` | `true` or `"first"` (manifest `config.greeting`) writes the header subtitle as "Good afternoon, Pieter · Monday 5 October 2026", followed by the description after another middle dot. `"full"` uses the whole display name. |
+| `viewLinks` | `Array` | `[]` | Small pills on a row under the header (manifest `config.viewLinks`): each `{ label, icon?, route?, href? }`, `route` a route name or a location. The label is an i18n key. An entry without a label or a target is skipped. |
+| `showActionsMenu` | `Boolean` | `true` | `false` removes the page Actions menu from the header. |
+
+In the board look the page view switch (`views`) sits on the same row, left of the pills, instead of among the header actions.
+
+```json
+{ "greeting": true, "showActionsMenu": false, "allowEdit": false, "viewLinks": [{ "label": "Your queue", "icon": "TrayFull", "route": "Queue" }] }
+```

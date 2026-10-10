@@ -55,6 +55,34 @@ const rootPath = await resolveObjectFolder({
 
 It reads the object's `@self.folder` file id and turns it into a path with a DAV search; `null` means the object has no folder or the user cannot see it, and the caller falls back to the object's files endpoint. `CnFilesTab` does exactly this.
 
+## An OpenRegister object's folder, through OpenRegister
+
+Since OpenRegister keeps every object folder in its own account, out of each person's Files app, a reader has no WebDAV path to the files. Pass a `source` and the browser reads and writes the folder through OpenRegister's files API instead, under the object's own access rule:
+
+```js
+import { CnFilesBrowser, createOpenRegisterSource } from '@conduction/nextcloud-vue'
+
+const source = createOpenRegisterSource({
+	apiBase: '/apps/openregister/api',
+	register: 'dossiq',
+	schema: 'case',
+	objectId,
+})
+```
+
+```vue
+<CnFilesBrowser root-path="/" :source="source" :root-label="caseTitle" />
+```
+
+With a source:
+
+- every request goes to `/api/objects/<register>/<schema>/<id>/folder` (list a folder or subfolder, create a folder, upload, rename, delete) and downloads use the object's `files/<fileId>` endpoint, so a person who may read the object browses it and nobody else does, without a share;
+- `rootPath` is `/`, the object folder; subfolders open in place;
+- the Files app's registered actions and New menu entries are not offered, because they act over WebDAV on a tree the reader does not have; the row menu holds download, and for a person who may change the object, rename and delete;
+- upload, the New menu, the upload button, the drop state and the drop hint appear only when the listing says the person may change the folder (`canChange`, which is update on the object).
+
+`CnFilesTab` uses this source by default (`source: 'openregister'`); `source: 'webdav'` keeps the WebDAV lookup.
+
 ## The host's actions and linked rows
 
 A host that keeps a record about each file (dossiq's ZGW document record, say) can put its own action on every file row and show files that belong to the object without living in its folder:
@@ -121,6 +149,8 @@ chooser once the set is settled.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `source` | `Object` | `null` | Where the folder is read from and written to. Null is WebDAV under the person's files root. `createOpenRegisterSource({ apiBase, register, schema, objectId })` reads one OpenRegister object's folder through OpenRegister, under the object's access rule; see above. |
+| `deleteLabel` | `String` | `'Delete'` | Label of the delete action and its dialog, with a `source`. |
 | `rootPath` | `String` | required | The folder the browser is rooted at, relative to the current user's files root. The browser never navigates above it. |
 | `rootLabel` | `String` | `null` | What the root crumb reads. Null shows the folder's own name, as the Files app does; pass a label when the folder on disk is a uuid and the host knows a better name. |
 | `newLabel` | `String` | `'New'` | Label of the New menu. |
@@ -158,6 +188,7 @@ chooser once the set is settled.
 
 Exported alongside the component:
 
+- `createOpenRegisterSource({ apiBase, register, schema, objectId })`: the data source for one OpenRegister object's folder, for the `source` prop.
 - `resolveObjectFolder({ apiBase, register, schema, objectId, uid, remoteUrl })` — the object's folder as a user-relative path, or `null`.
 - `userRelativePathFromHref(href, uid)` — a DAV href as a path under the user's files root.
 - `crumbsFor(rootPath, currentPath, rootLabel?)` — the whole trail, outermost first; crumbs above the root carry `aboveRoot: true`.
