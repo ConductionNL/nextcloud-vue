@@ -463,6 +463,57 @@ a.cn-kpi-card--stacked:focus-visible {
 	gap: 6px;
 }
 
+/* A linked board tile is one link: the label is not underlined link text, in
+   any layout (screens-stat-tile-parity). The NL Design theme underlines every
+   `a` with `!important`, so the opt-out needs it too. */
+a.cn-kpi-card--board,
+a.cn-kpi-card--board:hover,
+a.cn-kpi-card--board:focus-visible,
+a.cn-kpi-card--board * {
+	text-decoration: none !important;
+}
+
+/* `content.iconPlacement: "end"` (DqDashboard): label left, the icon in a
+   32px circle right, tinted by the tile's state. */
+.cn-kpi-card--board .cn-kpi-card__title--badge-end {
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.cn-kpi-card__badge {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	margin-inline-start: auto;
+	border-radius: 50%;
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+	background: var(--color-primary-element-light, color-mix(in srgb, var(--color-primary-element) 12%, transparent));
+}
+
+.cn-kpi-card__badge svg {
+	width: 18px;
+	height: 18px;
+	fill: currentcolor;
+}
+
+.cn-kpi-card__badge--success {
+	color: var(--color-text-success, var(--color-success-text));
+	background: color-mix(in srgb, var(--color-text-success, var(--color-success-text)) 12%, var(--color-main-background));
+}
+
+.cn-kpi-card__badge--warning {
+	color: var(--color-element-warning, var(--color-warning-text));
+	background: color-mix(in srgb, var(--color-element-warning, var(--color-warning-text)) 12%, var(--color-main-background));
+}
+
+.cn-kpi-card__badge--error {
+	color: var(--color-text-error, var(--color-error-text));
+	background: color-mix(in srgb, var(--color-text-error, var(--color-error-text)) 10%, var(--color-main-background));
+}
+
 .cn-kpi-card__glyph {
 	display: inline-flex;
 	flex: 0 0 auto;

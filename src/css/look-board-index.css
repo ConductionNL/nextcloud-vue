@@ -45,6 +45,42 @@
 	margin-inline-start: 0;
 }
 
+/* The header buttons keep the board's button under a theme that styles every
+   secondary or primary button with `!important` (the nldesign theme: a
+   primary border, 8px 16px padding): Download and the Actions menu are 40px,
+   a grey border on the main background (PqTickets, DqZaken), the primary
+   button is the primary fill without a border. The buildiq square is not a
+   direct child button and keeps its own rule. */
+.cn-look-board .cn-index-page .cn-index-page__header-buttons > .button-vue--secondary,
+.cn-look-board .cn-index-page .cn-index-page__header-buttons > .action-item .button-vue {
+	height: var(--cn-board-control-height) !important;
+	min-height: var(--cn-board-control-height) !important;
+	padding: 0 14px !important;
+	border: 1px solid var(--color-border-dark) !important;
+	border-radius: var(--cn-board-control-radius) !important;
+	background: var(--color-main-background) !important;
+	color: var(--color-main-text) !important;
+}
+
+.cn-look-board .cn-index-page .cn-index-page__header-buttons > .button-vue--secondary:hover,
+.cn-look-board .cn-index-page .cn-index-page__header-buttons > .action-item .button-vue:hover {
+	background: var(--color-background-hover) !important;
+}
+
+.cn-look-board .cn-index-page .cn-index-page__header-buttons > .button-vue--primary {
+	height: var(--cn-board-control-height) !important;
+	min-height: var(--cn-board-control-height) !important;
+	padding: 0 16px !important;
+	border: 0 !important;
+	border-radius: var(--cn-board-control-radius) !important;
+	background: var(--color-primary-element) !important;
+	color: var(--color-primary-element-text) !important;
+}
+
+.cn-look-board .cn-index-page .cn-index-page__header-buttons > .button-vue--primary:hover {
+	background: var(--color-primary-element-hover) !important;
+}
+
 /* ----------------------------------------------------------------- toolbar */
 
 /* No band, no padding, no radius. The DOM is already in reading order (row 1,

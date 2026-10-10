@@ -1466,11 +1466,17 @@ export default {
 
 		/**
 		 * What the draft indicator announces, or '' when it says nothing.
+		 * While the dialog shows a failed save it never says Saved: it says
+		 * the draft is kept on this device, so it cannot be read as the
+		 * server save that just failed.
 		 *
 		 * @return {string} The text.
+		 * @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-the-draft-indicator-never-reads-as-a-server-save-after-a-failed-save
 		 */
 		draftIndicatorLabel() {
-			return draftIndicatorText(this.draftState, this.draftSavedAt)
+			const saveFailed = this.result !== null && typeof this.result === 'object'
+				&& (Boolean(this.result.error) || this.result.success === false)
+			return draftIndicatorText(this.draftState, this.draftSavedAt, Date.now(), { saveFailed })
 		},
 
 		isCreateMode() {

@@ -5,7 +5,7 @@
 ### Task 1: A row title can be plain text
 - **spec_ref**: `openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text`
 - **files**: `src/components/CnDataTable/CnDataTable.vue`, `src/components/CnIndexPage/CnIndexPage.vue`, `src/css/look-board-index.css`, `src/schemas/app-manifest-v2.schema.json`
-- [x] Implement: `rowTitle` prop on CnDataTable and CnIndexPage, `config.rowTitle` in the manifest schema (2.76.0), the plain title CSS
+- [x] Implement: `rowTitle` prop on CnDataTable and CnIndexPage, `config.rowTitle` in the manifest schema (2.77.0), the plain title CSS
 - [x] Test: container class per look and value, prop validator, CSS values (`tests/components/CnDataTableRowTitle.spec.js`, `tests/css/lookBoardTableRows.spec.js`)
 - [ ] Browser check against PqTickets — not run: the app lanes own the browsers and :8080
 
