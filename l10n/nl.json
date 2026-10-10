@@ -65,6 +65,7 @@
     "Follow this record to get its updates": "Volg dit dossier om de wijzigingen te ontvangen",
     "You will see it under Following. This register sends no change notifications.": "U ziet het onder Volgend. Dit register stuurt geen wijzigingsmeldingen.",
     "Since {date}": "Sinds {date}",
+    "since {date}": "sinds {date}",
     "Remove {name} as a follower": "{name} als volger verwijderen",
     "Could not change following.": "Volgen kon niet worden gewijzigd.",
     "Could not add this colleague.": "Deze collega kon niet worden toegevoegd.",
