@@ -1,5 +1,6 @@
 {
   "translations": {
+    "No value ({count})": "Geen waarde ({count})",
     "Linked items": "Gekoppelde items",
     "Still loading: {sections}": "Nog aan het laden: {sections}",
     "Could not load {section}.": "{section} kon niet worden geladen.",
