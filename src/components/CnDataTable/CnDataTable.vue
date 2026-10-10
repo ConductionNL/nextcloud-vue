@@ -97,7 +97,7 @@
 			:aria-label="isScrollable ? scrollRegionLabel : undefined">
 			<table
 				class="cn-data-table"
-				:class="{ 'cn-data-table--fixed': fixedLayout }"
+				:class="{ 'cn-data-table--fixed': fixedLayout, 'cn-data-table--fit': fitWidth }"
 				data-testid="cn-object-list-table">
 				<thead v-if="!hideHeader">
 					<tr>
@@ -129,6 +129,7 @@
 								col.sortable ? 'cn-table-header--sortable' : '',
 								col.class || '',
 								pinClass(leadingCount + colIndex),
+								isGrowColumn(col) ? 'cn-table-col--grow' : '',
 							]"
 							:style="{ ...(col.width ? { width: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							:aria-sort="ariaSortFor(col)"
@@ -257,7 +258,7 @@
 						<td
 							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
-							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === 0 ? 'cn-table-col--title' : '']"
+							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === 0 ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '']"
 							:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							@mouseenter="titleWhenClipped">
 							<!-- A row with a `rowClickRoute` is a real link: this anchor
@@ -847,6 +848,23 @@ export default {
 		},
 
 		/**
+		 * Fit the table to its container instead of letting it grow past it.
+		 * One column takes the room that is left and cuts its text with an
+		 * ellipsis (the full value stays in the tooltip); every other column
+		 * keeps its content on one line at its own width, so trailing columns
+		 * such as a date stay visible in a narrow tile. The column that grows
+		 * is the first with `grow: true`, else the one keyed `title` or `name`,
+		 * else the first column. CnWidgetObjectTable turns this on.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-a-narrow-object-table-keeps-its-trailing-columns-in-view
+		 */
+		fitWidth: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Max number of rows to display. When the total exceeds it, only the first
 		 * `limit` render and the "View all" footer appears (with `viewAllRoute`).
 		 * 0 = show all. Folded in from CnTableWidget.
@@ -1051,6 +1069,25 @@ export default {
 		},
 
 		/** @return {number} Leading cells before the data columns (selection, icon). */
+		/**
+		 * The key of the column that takes the spare width under `fitWidth`:
+		 * the first with `grow: true`, else `title` or `name`, else the first.
+		 *
+		 * @return {string|null} The column key, or null when not fitting.
+		 * @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-a-narrow-object-table-keeps-its-trailing-columns-in-view
+		 */
+		growColumnKey() {
+			if (!this.fitWidth || this.effectiveColumns.length === 0) {
+				return null
+			}
+			const cols = this.effectiveColumns
+			const chosen = cols.find((c) => c && c.grow === true)
+				|| cols.find((c) => c && c.key === 'title')
+				|| cols.find((c) => c && c.key === 'name')
+				|| cols[0]
+			return chosen ? chosen.key : null
+		},
+
 		leadingCount() {
 			return (this.selectable ? 1 : 0) + (this.rowIcon ? 1 : 0)
 		},
@@ -1347,6 +1384,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a column is the one that takes the spare width (`fitWidth`).
+		 *
+		 * @param {object} col The column.
+		 * @return {boolean}
+		 */
+		isGrowColumn(col) {
+			return this.growColumnKey !== null && !!col && col.key === this.growColumnKey
+		},
+
 		/**
 		 * Whether a row's record changed since the user last looked
 		 * (`@self.unread`). A row without the marker renders as it always did.
