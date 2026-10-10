@@ -7,7 +7,9 @@
 		<CnFilesBrowser
 			v-if="browserRoot !== null"
 			:rootPath="browserRoot"
-			:rootLabel="browserRootLabel"
+			:rootLabel="browserRootLabel || objectTitle"
+			:source="browserSource"
+			:deleteLabel="deleteLabel"
 			:uploadButton="uploadButton"
 			:dropOverlay="dropOverlay"
 			:dropHint="dropHint"
@@ -239,6 +241,7 @@ import CnFilesBrowser from '../CnFilesBrowser/CnFilesBrowser.vue'
 import { useFileOpener } from '../../composables/useFileOpener.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { resolveObjectFolder } from '../CnFilesBrowser/filesBrowser.js'
+import { createOpenRegisterSource } from '../CnFilesBrowser/openRegisterSource.js'
 
 /**
  * The mime types Nextcloud Office opens by default for the current person.
@@ -308,8 +311,22 @@ export default {
 		openInOfficeLabel: { type: String, default: () => t('nextcloud-vue', 'Open in Office') },
 		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
-		/** What the files browser's root crumb reads; null shows the folder's own name, as the Files app does. */
+		/** What the files browser's root crumb reads; null shows the object's title (or, over WebDAV, the folder's own name). */
 		browserRootLabel: { type: String, default: null },
+		/**
+		 * Where the files browser reads the object's folder from.
+		 * `openregister` (the default) goes through OpenRegister's files API under
+		 * the object's access rule, so anyone who may read the object sees its
+		 * files, without a share. `webdav` is the earlier behaviour: the folder is
+		 * looked up in the person's own Files over WebDAV and the browser shows
+		 * only when it is shared with them.
+		 */
+		source: {
+			type: String,
+			default: 'openregister',
+			validator: (value) => ['openregister', 'webdav'].includes(value),
+		},
+
 		/** Forwarded to CnFilesBrowser: a primary "Add files" button beside the New menu. */
 		uploadButton: { type: Boolean, default: false },
 		/** Forwarded to CnFilesBrowser: the drop state drawn over the list ("Drop to add") and announced. */
@@ -385,6 +402,10 @@ export default {
 			share: false,
 			/** The object's folder as a user-relative path, or null while unresolved or absent. */
 			browserRoot: null,
+			/** The browser's data source for `source: 'openregister'`, or null for WebDAV. */
+			browserSource: null,
+			/** The object's title, for the browser's root crumb. */
+			objectTitle: null,
 			linkedItems: [],
 			/** File ids whose preview request failed, so the row falls back to the mime icon. */
 			previewFailed: {},
@@ -422,6 +443,10 @@ export default {
 
 		linkedItemsUrl() {
 			this.fetchLinkedItems()
+		},
+
+		source() {
+			this.resolveBrowserRoot()
 		},
 	},
 
@@ -483,7 +508,12 @@ export default {
 
 		async resolveBrowserRoot() {
 			this.browserRoot = null
+			this.browserSource = null
 			if (!this.objectId || !this.register || !this.schema) {
+				return
+			}
+			if (this.source === 'openregister') {
+				await this.resolveOpenRegisterSource()
 				return
 			}
 			let remoteUrl
@@ -500,6 +530,57 @@ export default {
 				uid: getCurrentUser()?.uid || '',
 				remoteUrl,
 			})
+		},
+
+		/**
+		 * Use OpenRegister's files API for the browser, when this person may read
+		 * the object's folder through it. A listing that fails (no read on the
+		 * object, or an OpenRegister without the folder endpoints) leaves the
+		 * legacy list, as an unresolved WebDAV folder did.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/files-browser-openregister-source/specs/files-browser/spec.md
+		 */
+		async resolveOpenRegisterSource() {
+			const objectId = this.objectId
+			const source = createOpenRegisterSource({
+				apiBase: this.apiBase,
+				register: this.register,
+				schema: this.schema,
+				objectId,
+			})
+			try {
+				await source.list('/')
+			} catch {
+				return
+			}
+			if (objectId !== this.objectId) {
+				return
+			}
+			this.browserSource = source
+			this.browserRoot = '/'
+			this.fetchObjectTitle()
+		},
+
+		/**
+		 * Read the object's title for the root crumb. A failure keeps the crumb
+		 * on its default.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchObjectTitle() {
+			this.objectTitle = null
+			try {
+				const { data } = await axios.get(generateUrl(`${this.apiBase}/objects/{register}/{schema}/{objectId}`, {
+					register: this.register,
+					schema: this.schema,
+					objectId: this.objectId,
+				}))
+				const title = data?.['@self']?.name || data?.title || data?.name || null
+				this.objectTitle = typeof title === 'string' && title !== '' ? title : null
+			} catch {
+				this.objectTitle = null
+			}
 		},
 
 		async fetchFiles(append = false) {

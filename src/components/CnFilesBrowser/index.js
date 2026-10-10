@@ -5,5 +5,6 @@
 import CnFilesBrowser from './CnFilesBrowser.vue'
 
 export { CnFilesBrowser }
+export { createOpenRegisterSource, entryToNode, toApiPath } from './openRegisterSource.js'
 export { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, joinPath, resolveObjectFolder, userRelativePathFromHref } from './filesBrowser.js'
 export default CnFilesBrowser

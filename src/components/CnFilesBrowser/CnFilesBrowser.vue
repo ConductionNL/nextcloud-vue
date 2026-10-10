@@ -71,7 +71,7 @@
 					{{ columnLabel(column) }}
 				</NcActionCheckbox>
 			</NcActions>
-			<NcActions
+			<NcActions v-if="canChange"
 				:menuName="newLabel"
 				:forceMenu="true"
 				:forceName="true"
@@ -116,7 +116,7 @@
 			<!-- A plain upload as its own button, when the host names it
 			     (`uploadButton`). It takes the primary place and the New
 			     menu steps back beside it. -->
-			<NcButton v-if="uploadButton"
+			<NcButton v-if="uploadButton && canChange"
 				variant="primary"
 				:disabled="folder === null"
 				data-testid="cn-files-browser-upload-button"
@@ -166,7 +166,7 @@
 		<CnEmptyContent
 			v-else-if="sorted.length === 0 && linkedItems.length === 0"
 			:name="emptyLabel"
-			:description="emptyHint"
+			:description="canChange ? emptyHint : ''"
 			class="cn-files-browser__state">
 			<template #icon>
 				<FolderOutline :size="44" />
@@ -284,14 +284,40 @@
 							<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && rowActions.length > 0)" />
 							<!-- The Files app's own rename is its list's inline input,
 							     which is not here; this one is a dialog over a DAV move. -->
-							<NcActionButton :closeAfterClick="true" data-testid="cn-files-browser-action-rename" @click="askRename(node)">
+							<!-- With a `source`, the Files app's actions (which act over
+							     WebDAV) are not offered; download and delete go through
+							     the source instead. -->
+							<NcActionLink
+								v-if="source && sourceDownloadUrl(node)"
+								:href="sourceDownloadUrl(node)"
+								:download="node.basename"
+								:closeAfterClick="true"
+								data-testid="cn-files-browser-action-download">
+								<template #icon>
+									<Download :size="20" />
+								</template>
+								{{ downloadLabel }}
+							</NcActionLink>
+							<NcActionButton v-if="source && canChange"
+								:closeAfterClick="true"
+								data-testid="cn-files-browser-action-delete"
+								@click="askRemove(node)">
+								<template #icon>
+									<TrashCanOutline :size="20" />
+								</template>
+								{{ deleteLabel }}
+							</NcActionButton>
+							<NcActionButton v-if="canChange"
+								:closeAfterClick="true"
+								data-testid="cn-files-browser-action-rename"
+								@click="askRename(node)">
 								<template #icon>
 									<Pencil :size="20" />
 								</template>
 								{{ renameLabel }}
 							</NcActionButton>
 							<NcActionLink
-								v-if="node.fileid"
+								v-if="node.fileid && !source"
 								:href="permalink(node)"
 								target="_blank"
 								:closeAfterClick="true">
@@ -376,7 +402,7 @@
 			</tbody>
 		</table>
 
-		<p v-if="dropHint && !loading && error === ''"
+		<p v-if="dropHint && canChange && !loading && error === ''"
 			class="cn-files-browser__drop-hint"
 			data-testid="cn-files-browser-drop-hint">
 			<Upload :size="16" />
@@ -406,6 +432,26 @@
 					data-testid="cn-files-browser-rename-confirm"
 					@click="rename">
 					{{ renameLabel }}
+				</NcButton>
+			</template>
+		</NcDialog>
+
+		<NcDialog
+			v-if="removing !== null"
+			:name="deleteLabel"
+			size="small"
+			data-testid="cn-files-browser-delete"
+			@closing="removing = null">
+			<p>{{ t('nextcloud-vue', 'Delete {name}? This cannot be undone here.', { name: removing.basename }) }}</p>
+			<p v-if="removeError" class="cn-files-browser__upload-error" role="alert">
+				{{ removeError }}
+			</p>
+			<template #actions>
+				<NcButton @click="removing = null">
+					{{ t('nextcloud-vue', 'Cancel') }}
+				</NcButton>
+				<NcButton variant="error" data-testid="cn-files-browser-delete-confirm" @click="remove">
+					{{ deleteLabel }}
 				</NcButton>
 			</template>
 		</NcDialog>
@@ -494,6 +540,7 @@ import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import CnCellRenderer from '../CnCellRenderer/CnCellRenderer.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
@@ -543,6 +590,7 @@ export default {
 		OpenInNew,
 		Pencil,
 		Plus,
+		TrashCanOutline,
 		Upload,
 	},
 
@@ -553,6 +601,30 @@ export default {
 	},
 
 	props: {
+		/**
+		 * Where the folder is read from and written to. Null (the default)
+		 * is WebDAV under the signed-in person's files root, with the Files
+		 * app's own actions and New menu. An object from
+		 * `createOpenRegisterSource()` reads one OpenRegister object's folder
+		 * through OpenRegister's files API instead, under the object's access
+		 * rule: `rootPath` is then `/`, the Files app's actions and New menu
+		 * are not offered (they act over WebDAV), and upload, new folder,
+		 * rename and delete appear only when the listing says the person may
+		 * change the folder.
+		 *
+		 * @type {object|null}
+		 */
+		source: {
+			type: Object,
+			default: null,
+		},
+
+		/** Label of the delete action and its dialog, with a `source`. */
+		deleteLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Delete'),
+		},
+
 		/**
 		 * The host's own actions on each file row, declared the way a
 		 * manifest declares any action (`open-modal`, `handler`, ...), and
@@ -823,6 +895,9 @@ export default {
 			renaming: null,
 			renameName: '',
 			renameError: '',
+			/** The row being deleted (with a `source`), or null. */
+			removing: null,
+			removeError: '',
 			fileInputEl: null,
 			/**
 			 * The view the Files app's actions are handed. They read `view.id`
@@ -842,6 +917,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether this person may add to and change the open folder. Over
+		 * WebDAV the server answers each write on its own, so this is true;
+		 * with a `source` it is what the listing said.
+		 *
+		 * @return {boolean} True when upload, new folder, rename and delete are offered.
+		 */
+		canChange() {
+			if (!this.source) {
+				return true
+			}
+			return this.folder !== null && this.folder.canChange === true
+		},
+
 		/**
 		 * The breadcrumb trail from the root to the open folder.
 		 *
@@ -946,7 +1035,7 @@ export default {
 		 * @return {Array<object>} The entries, in the plugins' order.
 		 */
 		newMenuEntries() {
-			if (this.folder === null) {
+			if (this.folder === null || this.source) {
 				return []
 			}
 			try {
@@ -1004,6 +1093,10 @@ export default {
 		async refresh() {
 			this.loading = true
 			this.error = ''
+			if (this.source) {
+				await this.refreshFromSource()
+				return
+			}
 			try {
 				const client = getClient()
 				const { data } = await client.getDirectoryContents(this.davPath(this.currentPath), {
@@ -1028,6 +1121,70 @@ export default {
 				this.nodes = []
 			} finally {
 				this.loading = false
+			}
+		},
+
+		/**
+		 * List the open folder through the `source`.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async refreshFromSource() {
+			try {
+				const { folder, nodes } = await this.source.list(this.currentPath)
+				this.folder = folder
+				this.nodes = nodes
+				await this.resolveRowData(this.nodes)
+			} catch (err) {
+				const atRoot = (this.currentPath.replace(/\/+$/, '') || '/') === (this.rootPath.replace(/\/+$/, '') || '/')
+				this.error = err?.status === 404
+					? (atRoot ? t('nextcloud-vue', 'You cannot see these files') : t('nextcloud-vue', 'This folder no longer exists'))
+					: (err?.status === 403 ? t('nextcloud-vue', 'You cannot see this folder') : t('nextcloud-vue', 'The folder could not be read'))
+				this.folder = null
+				this.nodes = []
+			} finally {
+				this.loading = false
+			}
+		},
+
+		/**
+		 * Where a file downloads from, through the `source`.
+		 *
+		 * @param {object} node The row.
+		 * @return {string|null} The url.
+		 */
+		sourceDownloadUrl(node) {
+			return this.source && typeof this.source.downloadUrl === 'function' ? this.source.downloadUrl(node) : null
+		},
+
+		/**
+		 * Open the delete dialog on a row.
+		 *
+		 * @param {object} node The row.
+		 * @return {void}
+		 */
+		askRemove(node) {
+			this.removing = node
+			this.removeError = ''
+		},
+
+		/**
+		 * Delete the row named in the dialog, through the `source`.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async remove() {
+			const node = this.removing
+			if (node === null || !this.source) {
+				return
+			}
+			try {
+				await this.source.remove(node)
+				this.removing = null
+				await this.refresh()
+				this.$emit('changed')
+			} catch (err) {
+				this.removeError = err?.message || t('nextcloud-vue', '{action} did not succeed', { action: this.deleteLabel })
 			}
 		},
 
@@ -1066,6 +1223,13 @@ export default {
 		async open(node) {
 			if (this.isFolder(node)) {
 				this.navigate(node.path)
+				return
+			}
+			if (this.source) {
+				const url = this.sourceDownloadUrl(node)
+				if (url) {
+					window.open(url, '_blank', 'noopener,noreferrer')
+				}
 				return
 			}
 			const view = this.actionsFor(node).find((action) => action.id === 'view')
@@ -1114,6 +1278,16 @@ export default {
 		 * @return {void}
 		 */
 		openInNewTab(node) {
+			if (this.source) {
+				if (this.isFolder(node)) {
+					return
+				}
+				const url = this.sourceDownloadUrl(node)
+				if (url) {
+					window.open(url, '_blank', 'noopener,noreferrer')
+				}
+				return
+			}
 			if (node.fileid) {
 				window.open(this.permalink(node), '_blank', 'noopener,noreferrer')
 			}
@@ -1141,6 +1315,9 @@ export default {
 		 * @return {Array<object>} The actions.
 		 */
 		actionsFor(node) {
+			if (this.source) {
+				return []
+			}
 			let actions
 			try {
 				actions = getFileActions()
@@ -1270,7 +1447,11 @@ export default {
 				return
 			}
 			try {
-				await getClient().createDirectory(this.davPath(joinPath(this.currentPath, name)))
+				if (this.source) {
+					await this.source.createFolder(this.currentPath, name)
+				} else {
+					await getClient().createDirectory(this.davPath(joinPath(this.currentPath, name)))
+				}
 				this.newFolderOpen = false
 				await this.refresh()
 				this.$emit('changed')
@@ -1311,7 +1492,11 @@ export default {
 				return
 			}
 			try {
-				await getClient().moveFile(this.davPath(node.path), this.davPath(joinPath(this.currentPath, name)))
+				if (this.source) {
+					await this.source.rename(node, name)
+				} else {
+					await getClient().moveFile(this.davPath(node.path), this.davPath(joinPath(this.currentPath, name)))
+				}
 				this.renaming = null
 				await this.refresh()
 				this.$emit('changed')
@@ -1355,6 +1540,9 @@ export default {
 			this.dragging = false
 			this.dragDepth = 0
 			this.dropStatus = ''
+			if (!this.canChange) {
+				return
+			}
 			const files = event.dataTransfer?.files
 			if (files?.length) {
 				await this.uploadFiles(files)
@@ -1372,7 +1560,7 @@ export default {
 		 * @return {void}
 		 */
 		onDragEnter(event) {
-			if (!this.carriesFiles(event)) {
+			if (!this.canChange || !this.carriesFiles(event)) {
 				return
 			}
 			this.dragDepth++
@@ -1389,7 +1577,7 @@ export default {
 		 * @return {void}
 		 */
 		onDragOver(event) {
-			if (this.carriesFiles(event)) {
+			if (this.canChange && this.carriesFiles(event)) {
 				this.dragging = true
 			}
 		},
@@ -1442,6 +1630,10 @@ export default {
 			const batch = [...files].map((file) => ({ key: `u${++uploadSeq}`, name: file.name, progress: 0, error: '', file }))
 			this.uploads = [...this.uploads, ...batch]
 			for (const upload of batch) {
+				if (this.source) {
+					await this.uploadThroughSource(upload)
+					continue
+				}
 				try {
 					await axios.put(`${getRemoteURL()}${this.davPath(joinPath(this.currentPath, upload.name))}`, upload.file, {
 						headers: {
@@ -1468,6 +1660,25 @@ export default {
 			window.setTimeout(() => {
 				this.uploads = this.uploads.filter((upload) => upload.error !== '' || batch.every((b) => b.key !== upload.key))
 			}, 1500)
+		},
+
+		/**
+		 * Store one upload through the `source`, keeping its progress row.
+		 *
+		 * @param {object} upload The progress row, carrying the file.
+		 * @return {Promise<void>}
+		 */
+		async uploadThroughSource(upload) {
+			try {
+				await this.source.upload(this.currentPath, upload.file, (percent) => {
+					upload.progress = percent
+				})
+				upload.progress = 100
+			} catch (err) {
+				upload.error = err?.status === 409
+					? t('nextcloud-vue', 'A file with that name is already here')
+					: (err?.message || t('nextcloud-vue', 'The upload failed'))
+			}
 		},
 
 		/**
@@ -1701,6 +1912,9 @@ export default {
 			const mime = node.mime || ''
 			if (!node.fileid || this.isFolder(node) || !/^image\//i.test(mime) || /svg/i.test(mime) || this.previewFailed[node.fileid]) {
 				return null
+			}
+			if (this.source) {
+				return typeof this.source.previewUrl === 'function' ? this.source.previewUrl(node) : null
 			}
 			return generateUrl('/core/preview?fileId={fileId}&x=64&y=64&a=1', { fileId: node.fileid })
 		},

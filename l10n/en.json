@@ -1,5 +1,7 @@
 {
   "translations": {
+    "You cannot see these files": "You cannot see these files",
+    "Delete {name}? This cannot be undone here.": "Delete {name}? This cannot be undone here.",
     "Linked items": "Linked items",
     "Still loading: {sections}": "Still loading: {sections}",
     "Could not load {section}.": "Could not load {section}.",

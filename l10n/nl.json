@@ -1,5 +1,7 @@
 {
   "translations": {
+    "You cannot see these files": "Je kunt deze bestanden niet zien",
+    "Delete {name}? This cannot be undone here.": "{name} verwijderen? Dit kun je hier niet ongedaan maken.",
     "Linked items": "Gekoppelde items",
     "Still loading: {sections}": "Nog aan het laden: {sections}",
     "Could not load {section}.": "{section} kon niet worden geladen.",
