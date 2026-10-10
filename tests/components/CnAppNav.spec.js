@@ -1336,6 +1336,30 @@ describe('CnAppNav', () => {
 			})
 			expect(wrapper.find('[data-testid="cn-nav-caption-section-1"]').exists()).toBe(true)
 			expect(wrapper.find('[data-testid="cn-nav-entry-section-1"]').exists()).toBe(false)
+			// No href, no pencil.
+			expect(wrapper.find('[data-testid="cn-nav-caption-edit-section-1"]').exists()).toBe(false)
+		})
+
+		it('draws a caption href as a pencil link that names the caption', () => {
+			const wrapper = mountNav({
+				manifest: {
+					version: '1.0.0',
+					pages: [],
+					menu: [
+						{ id: 'mine', type: 'caption', label: 'My case types', order: 1, href: '/index.php/settings/user/dossiq' },
+						{ id: 'a', label: 'app.a', route: 'a', order: 2 },
+					],
+				},
+				useProps: true,
+				routeName: 'a',
+			})
+			const edit = wrapper.find('[data-testid="cn-nav-caption-edit-mine"]')
+			expect(edit.exists()).toBe(true)
+			// Inside the caption, as its action (NcActionLink is stubbed here).
+			expect(wrapper.find('[data-testid="cn-nav-caption-mine"] [data-testid="cn-nav-caption-edit-mine"]').exists()).toBe(true)
+			expect(edit.attributes('href')).toBe('/index.php/settings/user/dossiq')
+			expect(edit.attributes('aria-label')).toBe('Change My case types')
+			expect(edit.find('.pencil-icon').exists()).toBe(true)
 		})
 	})
 
