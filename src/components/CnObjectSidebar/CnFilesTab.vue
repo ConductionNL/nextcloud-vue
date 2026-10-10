@@ -14,6 +14,10 @@
 			:rowActions="rowActions"
 			:newActions="newActions"
 			:linkedItems="linkedItems"
+			:columns="columns"
+			:rowData="rowDataSource"
+			:preferenceApp="preferenceApp"
+			:preferenceKey="preferenceKey"
 			@changed="onBrowserChanged" />
 		<template v-else>
 			<!-- Upload error -->
@@ -238,7 +242,7 @@ import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
 import CnFilesBrowser from '../CnFilesBrowser/CnFilesBrowser.vue'
 import { useFileOpener } from '../../composables/useFileOpener.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
-import { resolveObjectFolder } from '../CnFilesBrowser/filesBrowser.js'
+import { indexRowData, resolveObjectFolder } from '../CnFilesBrowser/filesBrowser.js'
 
 /**
  * The mime types Nextcloud Office opens by default for the current person.
@@ -342,6 +346,31 @@ export default {
 		 * Null fetches nothing.
 		 */
 		linkedItemsUrl: { type: String, default: null },
+		/**
+		 * Forwarded to CnFilesBrowser: the columns the browser shows, built-in
+		 * names or declared columns (`{ key, label, source, formatter }`).
+		 * A `source: 'row'` column reads the host's record for the file from
+		 * `rowDataUrl`. None keeps name, size and modified.
+		 *
+		 * @type {Array<string|object>}
+		 */
+		columns: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: the app id the user's column choice is stored under; unset offers no Columns chooser. */
+		preferenceApp: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the key the column choice is stored under. */
+		preferenceKey: { type: String, default: 'files-browser-columns' },
+		/**
+		 * An app endpoint that answers the host's own record per file, for the
+		 * browser's `source: 'row'` columns. App-relative; `{objectId}` is
+		 * replaced. Read once per listing. The answer is a list of records
+		 * (or the list at `rowDataPath`, or under `items` or `results`), each
+		 * naming its file in `rowDataKey`. Null reads nothing.
+		 */
+		rowDataUrl: { type: String, default: null },
+		/** A dotted path to the list of records in the `rowDataUrl` answer; empty reads the answer itself. */
+		rowDataPath: { type: String, default: '' },
+		/** The record field that holds the Nextcloud file id. */
+		rowDataKey: { type: String, default: 'fileId' },
 		/** Label of the Download action. */
 		downloadLabel: { type: String, default: () => t('nextcloud-vue', 'Download') },
 		/** Label of the action that opens the Files sidebar on the file. */
@@ -401,6 +430,29 @@ export default {
 			/** The mime types Nextcloud Office opens for this person; empty without Office. */
 			officeMimetypes: readOfficeMimetypes(),
 		}
+	},
+
+	computed: {
+		/**
+		 * The browser's `rowData`: a function that reads the host's records
+		 * from `rowDataUrl` and keys them by file id, or null without a url.
+		 * The browser calls it once per listing.
+		 *
+		 * @return {(function(): Promise<object>)|null} The row data source.
+		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
+		 */
+		rowDataSource() {
+			if (!this.rowDataUrl || !this.objectId) {
+				return null
+			}
+			const url = generateUrl(this.rowDataUrl.replace('{objectId}', encodeURIComponent(this.objectId)))
+			const path = this.rowDataPath
+			const key = this.rowDataKey
+			return async () => {
+				const { data } = await axios.get(url)
+				return indexRowData(data, { path, key })
+			}
+		},
 	},
 
 	watch: {

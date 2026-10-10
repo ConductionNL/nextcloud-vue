@@ -179,3 +179,103 @@ export async function resolveObjectFolder({ apiBase, register, schema, objectId,
 		return null
 	}
 }
+
+/**
+ * Read a dotted path off a value without throwing on a missing segment.
+ *
+ * @param {(Array|object|string|number|boolean|null|undefined)} value The value.
+ * @param {string} path A dotted path; empty answers the value itself.
+ * @return {(Array|object|string|number|boolean|null|undefined)} What sits at the path, or undefined.
+ */
+function readPath(value, path) {
+	if (typeof path !== 'string' || path === '') {
+		return value
+	}
+	return path.split('.').reduce((acc, key) => (acc === null || acc === undefined ? undefined : acc[key]), value)
+}
+
+/**
+ * Turn a host endpoint's answer into the browser's `rowData`: the host's own
+ * record for each file, keyed by file id.
+ *
+ * The answer may be a list of records (directly, at `path`, or under `items`
+ * or `results`), each naming its file in `key` (`fileId` unless the host says
+ * otherwise); a record without one is skipped. An object that is not a list
+ * and holds neither is taken as already keyed by file id. Anything else is
+ * an empty map: the extra columns stay empty, the files still list.
+ *
+ * @param {(Array|object|string|number|boolean|null|undefined)} data The endpoint answer.
+ * @param {object} [options] Where to look.
+ * @param {string} [options.path] A dotted path to the list in the answer.
+ * @param {string} [options.key] The record field that holds the file id.
+ * @return {object} The records by file id.
+ */
+export function indexRowData(data, { path = '', key = 'fileId' } = {}) {
+	let picked = readPath(data, path)
+	if (picked && typeof picked === 'object' && !Array.isArray(picked)) {
+		if (Array.isArray(picked.items)) {
+			picked = picked.items
+		} else if (Array.isArray(picked.results)) {
+			picked = picked.results
+		} else {
+			return { ...picked }
+		}
+	}
+	if (!Array.isArray(picked)) {
+		return {}
+	}
+	const byId = {}
+	picked.forEach((record) => {
+		if (!record || typeof record !== 'object') {
+			return
+		}
+		const id = record[key]
+		if (id === null || id === undefined || id === '') {
+			return
+		}
+		byId[String(id)] = record
+	})
+	return byId
+}
+
+/**
+ * Whether a host row action is offered on a file, by its `visibleIf`.
+ *
+ * `visibleIf.extension` lists file extensions (no case, a leading dot is
+ * allowed); `visibleIf.mime` lists mime types, where one ending in `/` or
+ * `/*` names the whole family. Every condition named must hold. An action
+ * without `visibleIf` is offered on every file, as before.
+ *
+ * @param {object} action The declared action.
+ * @param {object} node The file (`basename`, `mime`).
+ * @return {boolean} True when the action belongs on this file.
+ */
+export function hostActionApplies(action, node) {
+	const condition = action && action.visibleIf
+	if (!condition || typeof condition !== 'object') {
+		return true
+	}
+	if (Array.isArray(condition.extension)) {
+		const name = String((node && node.basename) || '')
+		const dot = name.lastIndexOf('.')
+		const extension = dot > 0 ? name.slice(dot + 1).toLowerCase() : ''
+		const wanted = condition.extension.map((entry) => String(entry).replace(/^\./, '').toLowerCase())
+		if (extension === '' || !wanted.includes(extension)) {
+			return false
+		}
+	}
+	if (Array.isArray(condition.mime)) {
+		const mime = String((node && node.mime) || '').toLowerCase()
+		const matches = condition.mime.some((entry) => {
+			const wanted = String(entry).toLowerCase()
+			if (wanted.endsWith('/*') || wanted.endsWith('/')) {
+				return mime.startsWith(wanted.replace(/\*$/, ''))
+			}
+			return mime === wanted
+		})
+		if (!matches) {
+			return false
+		}
+	}
+	return true
+}

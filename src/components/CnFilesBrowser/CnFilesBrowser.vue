@@ -270,7 +270,7 @@
 							     with the node's file id, name and path merged in. -->
 							<template v-if="!isFolder(node)">
 								<NcActionButton
-									v-for="action in rowActions"
+									v-for="action in hostActionsFor(node)"
 									:key="`host-${action.id}`"
 									:closeAfterClick="true"
 									:data-testid="`cn-files-browser-host-action-${action.id}`"
@@ -281,7 +281,7 @@
 									{{ action.label }}
 								</NcActionButton>
 							</template>
-							<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && rowActions.length > 0)" />
+							<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && hostActionsFor(node).length > 0)" />
 							<!-- The Files app's own rename is its list's inline input,
 							     which is not here; this one is a dialog over a DAV move. -->
 							<NcActionButton :closeAfterClick="true" data-testid="cn-files-browser-action-rename" @click="askRename(node)">
@@ -501,7 +501,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isNewTabClick, isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
-import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, joinPath } from './filesBrowser.js'
+import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, hostActionApplies, joinPath } from './filesBrowser.js'
 import {
 	attributePropertiesFor,
 	fileColumnValue,
@@ -559,9 +559,11 @@ export default {
 		 * dispatched through the page's action runner with the node's
 		 * `fileId`, `fileName` and `path` merged into an `open-modal` action's
 		 * props (or appended as the node to a `handler` action's args). Folders
-		 * get none. `icon` is an MDI icon name.
+		 * get none. `icon` is an MDI icon name. `visibleIf` offers the action
+		 * only on some files: `extension` (a list, no case) and `mime` (a list;
+		 * `image/` or `image/*` names the family), each that is named must hold.
 		 *
-		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object, handler?: string, args?: Array}>}
+		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object, handler?: string, args?: Array, visibleIf?: {extension?: string[], mime?: string[]}}>}
 		 */
 		rowActions: {
 			type: Array,
@@ -1733,6 +1735,18 @@ export default {
 		 */
 		permalink(node) {
 			return generateUrl('/f/{fileid}', { fileid: node.fileid })
+		},
+
+		/**
+		 * The host's own row actions that belong on this file: those whose
+		 * `visibleIf` (extension, mime) holds for it, or that name none.
+		 *
+		 * @param {object} node The file.
+		 * @return {Array<object>} The actions to offer.
+		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
+		 */
+		hostActionsFor(node) {
+			return this.rowActions.filter((action) => hostActionApplies(action, node))
 		},
 
 		/**
