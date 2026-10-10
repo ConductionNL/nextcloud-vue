@@ -1050,10 +1050,31 @@ export function fieldsFromSchema(schema, options = {}) {
 		if (overrides[key]) {
 			Object.assign(field, overrides[key])
 			applyPickerOverride(field, overrides[key])
+			translateOverrideText(field, overrides[key], tr)
 		}
 
 		return field
 	})
+}
+
+/**
+ * Run an override's display text through the translate function, as the
+ * schema's own title and description are. A manifest writes `label`,
+ * `description` and `placeholder` in its source language; without this a
+ * form showed "Requester" to a Dutch user whose catalogue holds "Aanvrager".
+ *
+ * @param {object} field The field, with the override already merged in.
+ * @param {object} override The per-key override.
+ * @param {(text: string) => string} tr The translate function (identity when none).
+ * @return {void}
+ * @spec openspec/changes/screens-form-override-labels-parity/specs/form-override-labels/spec.md#requirement-override-text-reads-in-the-users-language
+ */
+function translateOverrideText(field, override, tr) {
+	for (const name of ['label', 'description', 'placeholder']) {
+		if (typeof override[name] === 'string' && override[name] !== '') {
+			field[name] = tr(override[name])
+		}
+	}
 }
 
 /**
