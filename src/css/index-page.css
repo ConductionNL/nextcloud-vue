@@ -240,3 +240,74 @@
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
 }
+
+/* An index page with cards beside its list (`sidePanel`,
+   screens-index-stat-row): the header rows span the page, the toolbar and the
+   list take the first column and the side panel the second (300px, 20px
+   apart), spanning both. Every other child (dialogs, the inline sidebar) sits
+   in a zero-height area after them. The list row is the flexible one, so a
+   side panel taller than the toolbar never opens a gap under the toolbar.
+   Below 1024px the panel moves above the toolbar. */
+.cn-index-page--with-side-panel {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) var(--cn-index-side-panel-width, 300px);
+	grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+	grid-template-areas:
+		"head head"
+		"below below"
+		"stats stats"
+		"bar side"
+		"body side"
+		"extra extra";
+	column-gap: 20px;
+	align-content: start;
+}
+
+.cn-index-page--with-side-panel > * {
+	grid-area: extra;
+	min-width: 0;
+}
+
+.cn-index-page--with-side-panel > :first-child {
+	grid-area: head;
+}
+
+.cn-index-page--with-side-panel > .cn-index-page__below-header {
+	grid-area: below;
+}
+
+.cn-index-page--with-side-panel > .cn-index-page__stat-row {
+	grid-area: stats;
+}
+
+.cn-index-page--with-side-panel > .cn-actions-bar {
+	grid-area: bar;
+}
+
+.cn-index-page--with-side-panel > .cn-index-page__body {
+	grid-area: body;
+}
+
+.cn-index-page--with-side-panel > .cn-index-page__side-panel {
+	grid-area: side;
+	align-self: start;
+}
+
+@media (max-width: 1024px) {
+	.cn-index-page--with-side-panel {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-areas:
+			"head"
+			"below"
+			"stats"
+			"side"
+			"bar"
+			"body"
+			"extra";
+		grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
+	}
+
+	.cn-index-page--with-side-panel > .cn-index-page__side-panel {
+		margin-bottom: 20px;
+	}
+}

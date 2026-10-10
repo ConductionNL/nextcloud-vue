@@ -1128,3 +1128,23 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 ## The row menu edits when the row opens the detail
 
 When a click on a row navigates to the record's detail page, the built-in View is left out of that row's menu (and of the right-click menu): viewing is what the click does. The menu offers Edit (Dutch "Bewerken", pencil icon). A row whose `viewTo` answers `null`, or a page with no row-click target, keeps View. Actions the page declares itself are not touched. The rule applies in every look.
+
+## Stat row and side panel (`statRow`, `sidePanel`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `statRow` | `Array` | `[]` | KPI tiles above the list (manifest `config.statRow`): widget definitions `{ id, type, title?, content }`, usually `type: "stat"`, drawn between the header and the toolbar in an auto-fit row (each tile at least 200px), in the listed order. |
+| `sidePanel` | `Array` | `[]` | Cards beside the list (manifest `config.sidePanel`): widget definitions `{ id, type, title?, content, headerLink? }` in a 300px column right of the toolbar and the list. Below 1024px the column sits above the toolbar. |
+
+Types resolve like dashboard widgets: the app's widget registry first, then the dashboard catalog (`stat`, `table`, `people`, `stats-block` and the rest). An entry without an id, or with a type nothing resolves, is skipped with a development warning.
+
+```json
+{
+  "statRow": [
+    { "id": "unassigned", "type": "stat", "content": { "label": "Without handler", "endpointSource": { "url": "/apps/dossiq/api/queue/kpis" }, "valueField": "unassigned" } }
+  ],
+  "sidePanel": [
+    { "id": "team", "type": "TeamToday", "title": "Team today" }
+  ]
+}
+```

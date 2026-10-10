@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="lookClass"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -75,6 +75,20 @@
 		<div v-if="$slots['below-header']" class="cn-index-page__below-header">
 			<slot name="below-header" />
 		</div>
+
+		<!-- KPI tiles above the list (`statRow`) and cards beside it
+		     (`sidePanel`), as DqTeamwachtrij and PqContracten
+		     (screens-index-stat-row). -->
+		<CnIndexPageWidgets
+			v-if="statRow && statRow.length > 0"
+			class="cn-index-page__stat-row"
+			variant="stat-row"
+			:widgets="statRow" />
+		<CnIndexPageWidgets
+			v-if="hasSidePanel"
+			class="cn-index-page__side-panel"
+			variant="side-panel"
+			:widgets="sidePanel" />
 
 		<!-- Actions bar -->
 		<CnActionsBar
@@ -957,6 +971,7 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
+import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
@@ -1241,6 +1256,7 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnIndexPageWidgets,
 		CnBuildiqEditButton,
 		CnFavouriteToggle,
 		NcLoadingIcon,
@@ -1437,7 +1453,6 @@ export default {
 			default: true,
 		},
 
-		// eslint-disable-next-line vue/no-unused-properties
 		/**
 		 * Draw this page in the `board` look (or `nextcloud`) whatever the app
 		 * does. Empty follows the `cnLook` CnAppRoot provides. Manifest key
@@ -2616,6 +2631,35 @@ export default {
 		},
 
 		/**
+		 * KPI tiles above the list (manifest `config.statRow`): dashboard
+		 * widget definitions `{ id, type, title?, content }`, usually `stat`,
+		 * drawn in an auto-fit row (each at least 200px) in the listed order.
+		 * Types resolve like dashboard widgets: the app registry, then the
+		 * dashboard catalog. Empty by default.
+		 *
+		 * @spec openspec/changes/screens-index-stat-row/specs/index-page/spec.md#requirement-an-index-page-can-draw-a-stat-row-above-the-list
+		 * @type {Array<object>}
+		 */
+		statRow: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Cards beside the list (manifest `config.sidePanel`): dashboard
+		 * widget definitions `{ id, type, title?, content, headerLink? }`
+		 * drawn in a 300px column right of the toolbar and the list. Empty
+		 * by default; below 1024px the column moves above the list.
+		 *
+		 * @spec openspec/changes/screens-index-stat-row/specs/index-page/spec.md#requirement-an-index-page-can-draw-a-side-panel-beside-the-list
+		 * @type {Array<object>}
+		 */
+		sidePanel: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Where a row carries the actions the server says this caller may run
 		 * on it: a dotted path, read off the rows the list already fetched, so
 		 * ninety rows cost one request rather than ninety.
@@ -3294,6 +3338,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the page draws cards beside its list (`sidePanel`).
+		 *
+		 * @spec openspec/changes/screens-index-stat-row/specs/index-page/spec.md#requirement-an-index-page-can-draw-a-side-panel-beside-the-list
+		 * @return {boolean}
+		 */
+		hasSidePanel() {
+			return Array.isArray(this.sidePanel) && this.sidePanel.length > 0
+		},
+
 		/**
 		 * The empty-state copy run through the host translate function
 		 * (the injected `cnTranslate`, identity by default). Only this

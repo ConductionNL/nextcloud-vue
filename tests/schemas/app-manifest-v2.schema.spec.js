@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.74.0', () => {
+	it('the manifest schema version reads 2.76.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1355,8 +1355,15 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.72.0 adds the index keys countText, footerNote, bulkHint and cardFields, and the header button action actions-menu (screens-index-list-parity, screens-card-parity).
 		// 2.73.0 adds nav.brand.placement (screens-brand-block-top-bar).
 		// 2.74.0 adds the @myGroups filter token (nextcloud-group-surfaces).
+		// 2.76.0 adds the index keys statRow and sidePanel (screens-index-stat-row).
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.74.0')
+		expect(schema.version).toBe('2.76.0')
+	})
+
+	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
+		const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'queue', route: '/queue', type: 'index', title: 'Queue', config: { register: 'r', schema: 's', ...config } }] })
+		expect(validateManifestV2(page({ statRow: [{ id: 'a', type: 'stat', content: { label: 'Open' } }], sidePanel: [{ id: 't', type: 'TeamToday', title: 'Team today', headerLink: { label: 'All', href: '#' } }] })).valid).toBe(true)
+		expect(validateManifestV2(page({ statRow: [{ id: 'a' }] })).valid).toBe(false)
 	})
 
 	it('accepts page views on a dashboard and a detail page, and refuses a view without an id or label', () => {
