@@ -65,6 +65,7 @@
     "Follow this record to get its updates": "Follow this record to get its updates",
     "You will see it under Following. This register sends no change notifications.": "You will see it under Following. This register sends no change notifications.",
     "Since {date}": "Since {date}",
+    "since {date}": "since {date}",
     "Remove {name} as a follower": "Remove {name} as a follower",
     "Could not change following.": "Could not change following.",
     "Could not add this colleague.": "Could not add this colleague.",

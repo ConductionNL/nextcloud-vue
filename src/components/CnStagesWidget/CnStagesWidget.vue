@@ -178,8 +178,10 @@ import {
 	readAvailableActions,
 	transitionError,
 } from '../../composables/useLifecycleTransitions.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { formatBoardDate } from '../../utils/boardDate.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import {
 	dropOptionalUnresolved,
@@ -437,6 +439,8 @@ export default {
 		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
 		const appConfigRaw = inject('cnAppConfig', ref({}))
 		const cnTranslate = inject('cnTranslate', (key) => key)
+		// The app's look (`nextcloud` or `board`), provided by CnAppRoot or CnPageRenderer.
+		const cnLook = inject('cnLook', 'nextcloud')
 
 		/**
 		 * The token context: the bound record, its id, and the page context.
@@ -466,6 +470,7 @@ export default {
 			detailCtxRaw,
 			objectCtxRaw,
 			cnTranslate,
+			cnLook,
 			tokenCtx,
 			stagesBody: stagesRead.data,
 			stagesBodyLoading: stagesRead.loading,
@@ -795,7 +800,7 @@ export default {
 				}
 				return {
 					...stage,
-					date: this.stages[index]?.date || '',
+					date: this.barDate(this.stages[index]?.date || '', state),
 					state,
 					clickable: this.interactive && state !== 'current',
 				}
@@ -891,6 +896,28 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A bar's date line. Under the board look a date value reads in the
+		 * board's short form ("3 okt"), and the current step's reads "sinds
+		 * 4 okt", as DqZaak draws it. Any other value, and every value outside
+		 * the board look, shows as written.
+		 *
+		 * @param {string} value The `dateField` value of the stage row.
+		 * @param {string} state The bar state (`done`, `current`, `todo`).
+		 * @return {string} The date line, or ''.
+		 * @spec openspec/changes/screens-stage-bar-dates-parity/specs/stage-bar-dates/spec.md#requirement-a-bar-date-reads-as-the-board-draws-it
+		 */
+		barDate(value, state) {
+			if (!value || normalizeLook(this.cnLook) !== 'board') {
+				return value
+			}
+			const short = formatBoardDate(value)
+			if (short === '') {
+				return value
+			}
+			return state === 'current' ? t('nextcloud-vue', 'since {date}', { date: short }) : short
+		},
+
 		/**
 		 * Translate a library string.
 		 *

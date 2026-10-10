@@ -2980,7 +2980,7 @@
 		},
 		"CnStagesWidget": {
 			"direct": 2,
-			"transitive": 14,
+			"transitive": 15,
 			"tier": "heavy",
 			"via": [
 				"CnIndexPage",
