@@ -127,12 +127,22 @@ export function readDraft(key, { objectUpdated = '', now = Date.now() } = {}) {
  * What the draft indicator says: "Saving" while a local write is pending,
  * "Saved just now" / "Saved 3 minutes ago" once it landed, nothing before that.
  *
+ * After a failed save (`options.saveFailed`) it never says Saving or Saved:
+ * next to a server error those words read as if the record had been saved.
+ * It then says "Draft kept on this device" when a local copy is stored, and
+ * nothing otherwise.
+ *
  * @param {string} state `idle`, `saving` or `saved`.
  * @param {number} [savedAt] When the last write landed, in epoch ms.
  * @param {number} [now] The current epoch ms, for testing.
+ * @param {{saveFailed?: boolean}} [options] `saveFailed`: the form shows a failed save.
  * @return {string} The text, or '' when it says nothing.
+ * @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-the-draft-indicator-never-reads-as-a-server-save-after-a-failed-save
  */
-export function draftIndicatorText(state, savedAt = 0, now = Date.now()) {
+export function draftIndicatorText(state, savedAt = 0, now = Date.now(), options = {}) {
+	if (options && options.saveFailed === true) {
+		return state === 'saved' ? t('nextcloud-vue', 'Draft kept on this device') : ''
+	}
 	if (state === 'saving') {
 		return t('nextcloud-vue', 'Saving')
 	}
