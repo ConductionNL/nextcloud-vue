@@ -1646,19 +1646,24 @@ export default {
 		 * handed a `:schema` for at all) still get type-aware rendering.
 		 * `enumLabels` rides with `enum` rather than getting its own `if`
 		 * branch: a column can't usefully declare labels without also
-		 * declaring the codes they label.
+		 * declaring the codes they label. A column `colorMap` (raw value to
+		 * badge variant) colours the enum pill from the manifest and wins over
+		 * the schema property's own `colorMap` / `x-color-map`.
 		 *
 		 * @param {object} col Column definition.
 		 * @return {object} Property definition for CnCellRenderer.
+		 * @spec openspec/changes/screens-cell-pill-parity/specs/cell-pill-tones/spec.md#requirement-a-manifest-column-colours-its-enum-pills
 		 */
 		columnProperty(col) {
 			const base = this.getSchemaProperty(col.key)
-			if (col && (col.format || col.type || col.enum)) {
+			const colorMap = col && col.colorMap && typeof col.colorMap === 'object' && !Array.isArray(col.colorMap) ? col.colorMap : null
+			if (col && (col.format || col.type || col.enum || colorMap)) {
 				return {
 					...base,
 					...(col.type ? { type: col.type } : {}),
 					...(col.format ? { format: col.format } : {}),
 					...(col.enum ? { enum: col.enum, enumLabels: col.enumLabels || base.enumLabels } : {}),
+					...(colorMap ? { colorMap } : {}),
 				}
 			}
 			return base
