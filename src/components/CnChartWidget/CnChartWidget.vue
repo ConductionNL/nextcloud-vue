@@ -29,7 +29,7 @@
 				:aria-pressed="String(Boolean(activeView && activeView.key === view.key))"
 				:data-testid="`cn-chart-widget-view-${view.key}`"
 				@click="activeViewKey = view.key">
-				{{ view.label || view.key }}
+				{{ view.label ? hostTranslate(view.label) : view.key }}
 			</button>
 		</div>
 		<div v-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
@@ -53,7 +53,7 @@
 				:height="computedHeight"
 				:width="computedWidth"
 				:options="mergedOptions"
-				:series="displayedSeries" />
+				:series="plottedSeries" />
 		</div>
 		<div v-else class="cn-chart-widget__fallback">
 			<!-- @slot Rendered when the ApexCharts peer dependency is not available (defaults to the unavailableLabel text). -->
@@ -213,6 +213,11 @@ export default {
 		 * always a ref to inject, even outside a dashboard.
 		 */
 		cnDashboardDateRange: { default: () => ref(null) },
+		/**
+		 * Host translate function provided by CnAppRoot: manifest-authored
+		 * view labels and series names are i18n keys (screens-dashboard-i18n).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -918,6 +923,25 @@ export default {
 		 *
 		 * @return {Array} The displayed series.
 		 */
+		/**
+		 * The displayed series with each series name through the host
+		 * translate function, so a manifest series named "Revenue" reads in
+		 * the user's language in the legend and the tooltip. Views still
+		 * filter on the name as written (`displayedSeries`).
+		 *
+		 * @spec openspec/changes/screens-dashboard-i18n/specs/dashboard-page/spec.md#requirement-chart-view-labels-and-series-names-are-translated
+		 * @return {Array} The series handed to ApexCharts.
+		 */
+		plottedSeries() {
+			const series = this.displayedSeries
+			if (!Array.isArray(series)) {
+				return series
+			}
+			return series.map((entry) => (entry && typeof entry === 'object' && typeof entry.name === 'string' && entry.name !== '')
+				? { ...entry, name: this.hostTranslate(entry.name) }
+				: entry)
+		},
+
 		displayedSeries() {
 			const series = this.resolvedSeries
 			const view = this.activeView
@@ -1417,6 +1441,19 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A manifest-authored label through the host translate function.
+		 *
+		 * @spec openspec/changes/screens-dashboard-i18n/specs/dashboard-page/spec.md#requirement-chart-view-labels-and-series-names-are-translated
+		 * @param {string} key The label.
+		 * @return {string} The translated label.
+		 */
+		hostTranslate(key) {
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : null
+			const out = translate ? translate(key) : key
+			return (typeof out === 'string' && out !== '') ? out : key
+		},
+
 		/**
 		 * Re-query the chart's dataSource / endpointSource. Exposed as a
 		 * ref-callable method (B3 canonical refresh mode) AND invoked by the

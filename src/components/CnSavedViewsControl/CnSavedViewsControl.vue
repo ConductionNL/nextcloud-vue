@@ -41,7 +41,7 @@
 		data-testid="cn-saved-views-control"
 		:aria-label="isBoardLook ? t('nextcloud-vue', 'Save view') : menuLabel">
 		<template #icon>
-			<ContentSaveOutline v-if="isBoardLook" :size="18" />
+			<ContentSaveOutline v-if="isBoardLook" :size="14" />
 			<BookmarkOutline v-else :size="20" />
 		</template>
 

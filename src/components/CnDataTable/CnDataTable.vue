@@ -4,6 +4,7 @@
 		data-testid="cn-object-list"
 		:class="{
 			'cn-table-container--board': isBoardLook,
+			'cn-table-container--title-plain': isBoardLook && rowTitle === 'plain',
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
 			'cn-table-container--fill': fillHeight,
@@ -499,6 +500,16 @@ function fillSecondaryTemplate(template, valueOf) {
  * </CnDataTable>
  * ```
  */
+
+/**
+ * Column keys that name an object's system dates in OpenRegister's `@self`
+ * block. A column may declare one as its key (`@self.created`); it renders as
+ * a date-time although the schema has no property behind it.
+ *
+ * @type {string[]}
+ */
+const SYSTEM_DATE_KEYS = ['@self.created', '@self.updated', '@self.published', '@self.depublished']
+
 export default {
 	name: 'CnDataTable',
 
@@ -759,6 +770,21 @@ export default {
 		title: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * How the board look draws the title column: `link` (the default) is
+		 * the 15px weight 600 underlined title of the DqZaken board; `plain` is
+		 * the 15px bold title without an underline and a 13px muted secondary
+		 * line, as the PqTickets and OcPublicaties boards draw it. The row stays
+		 * clickable either way. The Nextcloud look ignores it.
+		 *
+		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 */
+		rowTitle: {
+			type: String,
+			default: 'link',
+			validator: (value) => ['link', 'plain'].includes(value),
 		},
 
 		/**
@@ -1646,19 +1672,30 @@ export default {
 		 * handed a `:schema` for at all) still get type-aware rendering.
 		 * `enumLabels` rides with `enum` rather than getting its own `if`
 		 * branch: a column can't usefully declare labels without also
-		 * declaring the codes they label.
+		 * declaring the codes they label. A column `colorMap` (raw value to
+		 * badge variant) colours the enum pill from the manifest and wins over
+		 * the schema property's own `colorMap` / `x-color-map`.
 		 *
 		 * @param {object} col Column definition.
+		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-a-system-date-can-be-a-column
 		 * @return {object} Property definition for CnCellRenderer.
+		 * @spec openspec/changes/screens-cell-pill-parity/specs/cell-pill-tones/spec.md#requirement-a-manifest-column-colours-its-enum-pills
 		 */
 		columnProperty(col) {
 			const base = this.getSchemaProperty(col.key)
-			if (col && (col.format || col.type || col.enum)) {
+			// A system date (`@self.created`, `@self.updated`, ...) has no
+			// schema property behind it; it renders as a date-time.
+			if (Object.keys(base).length === 0 && SYSTEM_DATE_KEYS.includes(col.key) && !col.type && !col.format) {
+				return { type: 'string', format: 'date-time' }
+			}
+			const colorMap = col && col.colorMap && typeof col.colorMap === 'object' && !Array.isArray(col.colorMap) ? col.colorMap : null
+			if (col && (col.format || col.type || col.enum || colorMap)) {
 				return {
 					...base,
 					...(col.type ? { type: col.type } : {}),
 					...(col.format ? { format: col.format } : {}),
 					...(col.enum ? { enum: col.enum, enumLabels: col.enumLabels || base.enumLabels } : {}),
+					...(colorMap ? { colorMap } : {}),
 				}
 			}
 			return base
