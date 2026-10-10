@@ -214,6 +214,11 @@
 			<ScreensFormHarness />
 		</template>
 
+		<!-- screens-chrome-parity, the navigation inset and the headers (?screenschrome=index|detail|dashboard|settings). See ScreensChromeHarness.vue. -->
+		<template v-else-if="showScreensChrome">
+			<ScreensChromeHarness />
+		</template>
+
 		<template v-else-if="showTabsWidget">
 			<h2>Tabs widget</h2>
 			<div class="tw-box" data-testid="tw-widget">
@@ -626,6 +631,7 @@ import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CellLabelsHarness from './CellLabelsHarness.vue'
 import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
+import ScreensChromeHarness from './ScreensChromeHarness.vue'
 import ScreensDetailHarness from './ScreensDetailHarness.vue'
 import ScreensFormHarness from './ScreensFormHarness.vue'
 import ScreensIndexHarness from './ScreensIndexHarness.vue'
@@ -655,7 +661,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, PixelGaps3Harness, PixelGapsHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, PixelGaps3Harness, PixelGapsHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -727,6 +733,7 @@ export default {
 			showScreensParity: (typeof window !== 'undefined' && /[?&]screens=/.test(window.location.search)),
 			showScreensIndex: (typeof window !== 'undefined' && /[?&]screensindex=/.test(window.location.search)),
 			showScreensForm: (typeof window !== 'undefined' && /[?&]screensform=/.test(window.location.search)),
+			showScreensChrome: (typeof window !== 'undefined' && /[?&]screenschrome=/.test(window.location.search)),
 			// Tabs widget chrome harness (?tabswidget=1).
 			showTabsBoard: (typeof window !== 'undefined' && window.location.search.includes('tabswidget=board')),
 			showTabsWidget: (typeof window !== 'undefined' && window.location.search.includes('tabswidget')),
