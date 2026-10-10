@@ -171,6 +171,11 @@
 			<PixelGapsHarness />
 		</template>
 
+		<!-- The files browser bar with a long crumb (?filesbar=1). See FilesBarHarness.vue. -->
+		<template v-else-if="showFilesBar">
+			<FilesBarHarness />
+		</template>
+
 		<!--
 			Zuiddrecht pixel gaps, round 3 (?pixgaps3=greeting|bar|header|kicker|nav).
 			See PixelGaps3Harness.vue.
@@ -611,6 +616,7 @@ import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
 import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
 import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
+import FilesBarHarness from './FilesBarHarness.vue'
 import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
 import ScreensFormHarness from './ScreensFormHarness.vue'
@@ -641,7 +647,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, PixelGaps3Harness, PixelGapsHarness, ScreensFormHarness, ScreensIndexHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, FilesBarHarness, PixelGaps3Harness, PixelGapsHarness, ScreensFormHarness, ScreensIndexHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -704,6 +710,7 @@ export default {
 			// Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs).
 			showPixelGaps2: (typeof window !== 'undefined' && /[?&]pixgaps2=/.test(window.location.search)),
 			// Zuiddrecht pixel gaps, round 3 (?pixgaps3=…).
+			showFilesBar: (typeof window !== 'undefined' && /[?&]filesbar=/.test(window.location.search)),
 			showPixelGaps3: (typeof window !== 'undefined' && /[?&]pixgaps3=/.test(window.location.search)),
 			// screens-dashboard-parity / screens-kanban-parity (?screens=…).
 			showScreensParity: (typeof window !== 'undefined' && /[?&]screens=/.test(window.location.search)),
