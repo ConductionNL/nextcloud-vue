@@ -1410,7 +1410,11 @@
     "Quick filters": "Snelfilters",
     "{count} filters": "{count} filters",
     "{count} more filters": "{count} filters meer",
-    "{label} — show the other filters": "{label}, toon de andere filters"
+    "{label} — show the other filters": "{label}, toon de andere filters",
+    "1 day left": "Nog 1 dag",
+    "{count} days left": "Nog {count} dagen",
+    "1 day overdue": "1 dag te laat",
+    "{count} days overdue": "{count} dagen te laat"
   },
   "plurals": {
     "%n year": [

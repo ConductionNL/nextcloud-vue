@@ -3724,6 +3724,7 @@ export default {
 		 * entry continues there (local mirror + per-user preference).
 		 *
 		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @spec openspec/changes/walkthrough-autostart-and-countdown-dutch/specs/walkthrough-autostart-and-countdown-dutch/spec.md#requirement-a-tour-that-opens-on-its-own-opens-once
 		 * @param {object} progress `{ tourId, stepId, index }` from CnWalkthrough.
 		 * @return {void}
 		 */
@@ -3731,9 +3732,18 @@ export default {
 			if (!progress || !progress.tourId) {
 				return
 			}
-			// The first step of a fresh tour is where a restart lands anyway,
-			// so it costs no request.
+			// A fresh tour that opens on its own is recorded as paused at its
+			// first step, so a user who never touches it does not get it again
+			// on every page load; "Continue" in the settings brings it back.
+			// Kept out of memory so the open tour runs on as it is.
 			if (progress.index === 0 && !this.walkthroughProgressValue) {
+				persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, {
+					tourId: progress.tourId,
+					stepId: progress.stepId || '',
+					index: 0,
+					version: String((this.manifest && this.manifest.version) || ''),
+					paused: true,
+				})
 				return
 			}
 			const value = {
