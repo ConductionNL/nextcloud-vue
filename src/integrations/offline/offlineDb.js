@@ -257,10 +257,12 @@ export async function getPlanningMeta(register, schema, collection = 'planning')
  *
  * @param {object} operation                  The mutation operation.
  * @param {string} operation.deviceId         Owning device id (IDOR scope).
- * @param {string} operation.operationType    create / update / delete.
+ * @param {string} operation.operationType    create / update / delete / submit.
  * @param {string} operation.register         Target register slug or id.
  * @param {string} operation.schema           Target schema slug or id.
  * @param {string} [operation.targetId]       Existing object id (update/delete).
+ * @param {string} [operation.endpoint]       Path under the Nextcloud root a
+ *                                            `submit` row is POSTed to.
  * @param {object} [operation.payload]        The object body (create/update).
  *
  * @return {Promise<string>} The queued operation id.
@@ -275,6 +277,9 @@ export async function enqueueMutation(operation) {
 		register: operation.register,
 		schema: operation.schema,
 		targetId: operation.targetId ?? null,
+		// A `submit` operation replays to an app's own endpoint instead of the
+		// object API (see checklistSubmission.js); every other row has none.
+		endpoint: operation.endpoint ?? null,
 		payload: operation.payload ?? {},
 		queuedAt: operation.queuedAt || new Date().toISOString(),
 		attemptCount: 0,
