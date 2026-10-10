@@ -130,24 +130,41 @@
 								pinClass(leadingCount + colIndex),
 							]"
 							:style="{ ...(col.width ? { width: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
-							:tabindex="col.sortable ? 0 : null"
 							:aria-sort="ariaSortFor(col)"
 							:data-filtered="isColumnFiltered(col) ? 'true' : null"
 							:title="translateLabel(col.description) || null"
 							@click="col.sortable ? onHeaderClick(col.key, $event) : null"
 							@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
-							<span :class="col.description ? 'cn-table-header--described' : ''">
+							<!-- The sort control is a real button named by the column
+							     label; the header's `aria-sort` carries the state. Its
+							     click and Enter bubble to the header's own handlers, so
+							     a click anywhere in the header still sorts. -->
+							<button
+								v-if="col.sortable"
+								type="button"
+								class="cn-table-header__sort"
+								data-testid="cn-table-header-sort">
+								<span :class="col.description ? 'cn-table-header--described' : ''">{{ translateLabel(col.label) }}</span>
+								<span
+									v-if="sortKeyIndex(col.key) !== -1"
+									class="cn-table-header__chevron cn-table-sort-indicator"
+									:data-sort-direction="effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? 'asc' : 'desc'">
+									<ChevronUp v-if="effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc'" :size="14" />
+									<ChevronDown v-else :size="14" />
+								</span>
+								<span
+									v-else
+									class="cn-table-header__chevron cn-table-header__chevron--idle">
+									<ChevronDown :size="14" />
+								</span>
+								<span
+									v-if="sortBadgeFor(col.key) !== null"
+									class="cn-table-sort-badge">
+									{{ sortBadgeFor(col.key) }}
+								</span>
+							</button>
+							<span v-else :class="col.description ? 'cn-table-header--described' : ''">
 								{{ translateLabel(col.label) }}
-							</span>
-							<span
-								v-if="col.sortable && sortKeyIndex(col.key) !== -1"
-								class="cn-table-sort-indicator">
-								{{ effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? '▲' : '▼' }}
-							</span>
-							<span
-								v-if="col.sortable && sortBadgeFor(col.key) !== null"
-								class="cn-table-sort-badge">
-								{{ sortBadgeFor(col.key) }}
 							</span>
 							<!-- Header filter: a real button, so it is reachable with Tab
 							     and its click and Enter never also sort the column. -->
@@ -163,8 +180,11 @@
 								data-testid="cn-table-header-filter"
 								@click.stop="toggleColumnFilter(col, $event)"
 								@keydown.enter.stop>
-								<FilterIcon v-if="isColumnFiltered(col)" :size="16" />
-								<FilterOutline v-else :size="16" />
+								<FilterOutline :size="14" />
+								<span
+									v-if="isColumnFiltered(col)"
+									class="cn-table-header__filter-dot"
+									data-testid="cn-table-header-filter-dot" />
 							</button>
 						</th>
 
@@ -373,7 +393,8 @@ import axios from '@nextcloud/axios'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
-import FilterIcon from 'vue-material-design-icons/Filter.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
@@ -489,7 +510,8 @@ export default {
 		CnIcon,
 		CnLockIndicator,
 		CnUnreadMarker,
-		FilterIcon,
+		ChevronDown,
+		ChevronUp,
 		FilterOutline,
 	},
 
@@ -2013,8 +2035,8 @@ export default {
 		filterButtonLabel(col) {
 			const column = this.translateLabel(col.label)
 			return this.isColumnFiltered(col)
-				? t('nextcloud-vue', 'Filter {column}, active', { column })
-				: t('nextcloud-vue', 'Filter {column}', { column })
+				? t('nextcloud-vue', 'Filter by {column}, active', { column })
+				: t('nextcloud-vue', 'Filter by {column}', { column })
 		},
 
 		/**
