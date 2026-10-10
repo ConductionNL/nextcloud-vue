@@ -1453,6 +1453,7 @@ export default {
 			default: true,
 		},
 
+		// eslint-disable-next-line vue/no-unused-properties
 		/**
 		 * Draw this page in the `board` look (or `nextcloud`) whatever the app
 		 * does. Empty follows the `cnLook` CnAppRoot provides. Manifest key
