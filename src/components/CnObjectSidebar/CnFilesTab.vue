@@ -18,6 +18,9 @@
 			:rowData="rowDataSource"
 			:preferenceApp="preferenceApp"
 			:preferenceKey="preferenceKey"
+			:bulkActions="bulkActions"
+			:groupBy="groupBy"
+			:facets="facets"
 			@changed="onBrowserChanged" />
 		<template v-else>
 			<!-- Upload error -->
@@ -367,6 +370,22 @@ export default {
 		 * naming its file in `rowDataKey`. Null reads nothing.
 		 */
 		rowDataUrl: { type: String, default: null },
+		/**
+		 * Forwarded to CnFilesBrowser: the host's actions on a selection of
+		 * files. With at least one, files get checkboxes and a bulk bar.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object}>}
+		 */
+		bulkActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: the key of a declared column to group the files on. */
+		groupBy: { type: String, default: '' },
+		/**
+		 * Forwarded to CnFilesBrowser: keys of declared columns to filter on,
+		 * a chip per value in use.
+		 *
+		 * @type {string[]}
+		 */
+		facets: { type: Array, default: () => [] },
 		/** A dotted path to the list of records in the `rowDataUrl` answer; empty reads the answer itself. */
 		rowDataPath: { type: String, default: '' },
 		/** The record field that holds the Nextcloud file id. */

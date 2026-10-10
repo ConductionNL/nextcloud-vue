@@ -7,7 +7,11 @@
 - [x] 1.3 Row action `visibleIf` (`extension`, `mime`, family by `/` or `/*`); `hostActionApplies` in `filesBrowser.js`.
   - `tests/components/CnFilesBrowserHostRows.spec.js` (hostActionApplies, host rows)
 - [x] 1.4 Docs: `docs/components/cn-files-browser.md` (visibleIf, from a manifest), generated partials.
-- [ ] 2.1 `bulkActions`: checkbox per file (never a folder or a linked row), select all, a bar with the count, the host's bulk actions and Clear selection; `open-modal` gets `files` and `fileIds`, `handler` gets the nodes; selection clears after a dispatch and on navigation.
-- [ ] 2.2 `groupBy`: files grouped under a heading per value of a declared column, with a count, empty value last.
-- [ ] 2.3 `facets`: a chip per value in use of each declared column (lists flattened) with its count; chips narrow the list (any within a facet, all across facets); a filter that matches nothing says so.
-- [ ] 2.4 `CnFilesTab` forwards `bulkActions`, `groupBy`, `facets`; en and nl strings; docs.
+- [x] 2.1 `bulkActions`: checkbox per file (never a folder or a linked row), select all, a bar with the count, the host's bulk actions and Clear selection; `open-modal` gets `files` and `fileIds`, `handler` gets the nodes; selection clears after a dispatch and on navigation.
+  - `tests/components/CnFilesBrowserDocumentsList.spec.js` (selection and bulk actions)
+- [x] 2.2 `groupBy`: files grouped under a heading per value of a declared column, with a count, empty value last.
+  - `tests/components/CnFilesBrowserDocumentsList.spec.js` (groupNodes, groups the files)
+- [x] 2.3 `facets`: a chip per value in use of each declared column (lists flattened) with its count; chips narrow the list (any within a facet, all across facets); a filter that matches nothing says so.
+  - `tests/components/CnFilesBrowserDocumentsList.spec.js` (facetCounts, nodeMatchesFacets, narrows the files)
+- [x] 2.4 `CnFilesTab` forwards `bulkActions`, `groupBy`, `facets`; en and nl strings; docs.
+  - `tests/components/CnFilesBrowserDocumentsList.spec.js` (CnFilesTab forwards)

@@ -151,6 +151,49 @@ and a record without one is skipped. An object that is none of those is taken
 as already keyed by file id. A failed read leaves the extra cells empty and the
 files listed.
 
+## A documents list: selection, groups and a filter
+
+A host whose files are documents it keeps a record about can let people act
+on several at once, read them by kind, and narrow them, all from the columns
+it already declared. Each is off unless named.
+
+```json
+"props": {
+  "columns": ["name", { "key": "type", "label": "Type", "source": "row" },
+              { "key": "keywords", "label": "Keywords", "source": "row" }, "modified"],
+  "rowDataUrl": "/apps/myapp/api/cases/OBJECT_ID/dossier",
+  "bulkActions": [
+    { "id": "mark-final", "label": "Mark as final", "icon": "FileCheckOutline",
+      "type": "open-modal", "target": "BulkDocumentDialog", "props": { "mode": "mark-final" } }
+  ],
+  "groupBy": "type",
+  "facets": ["keywords"]
+}
+```
+
+- `bulkActions` puts a checkbox on every file (never on a folder or a linked
+  row, which the browser cannot act on) and a select-all in the header, named
+  for screen readers. While files are selected a bar says how many and offers
+  each bulk action and Clear selection. An `open-modal` action's props gain
+  `files` (each `{ fileId, fileName, path }`) and `fileIds`; a `handler`
+  action's args gain the selected nodes. The selection clears after an action
+  runs and when another folder opens. Select all takes the files the filter
+  keeps, not the hidden ones.
+- `groupBy` names a declared column. The files are listed under a heading per
+  value, in the order each value is first met, with how many files sit under
+  it; files with no value come last under `groupEmptyLabel` ("Other"). Folders
+  stay above the groups. A list value groups under its first entry.
+- `facets` names declared columns. Each gets a chip per value in use among
+  the folder's files with its count, most used first; a list value counts per
+  entry. A chosen chip keeps the files that carry it; within one column any
+  chosen value will do, and every column with a choice must pass. Clear filters
+  drops them, and a filter that matches nothing says so instead of showing an
+  empty table.
+
+The values come from the same cells the table shows, so a `row` column needs
+its row data, and a column the user hid with the Columns chooser still groups
+and filters, because the host declared it.
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -179,6 +222,10 @@ files listed.
 | `preferenceApp` | `String` | `''` | The app id the Columns chooser stores this user's choice under. Unset means no chooser, and every declared column renders. |
 | `preferenceKey` | `String` | `'files-browser-columns'` | The key the choice is stored under, so two browsers in one app remember separately. |
 | `columnsLabel` | `String` | `'Columns'` | Label of the Columns chooser. |
+| `bulkActions` | `Array` | `[]` | The host's actions on a selection of files, declared like `rowActions`. With at least one, files get a checkbox, the header a select-all, and a bar with these actions shows while files are selected. An `open-modal` action's props gain `files` and `fileIds`; a `handler` action's args gain the selected nodes. |
+| `groupBy` | `String` | `''` | The key of a declared column to group the files on, a heading per value with its count. Empty does not group. |
+| `groupEmptyLabel` | `String` | `'Other'` | The heading of the files with no value in the `groupBy` column. |
+| `facets` | `Array` | `[]` | Keys of declared columns to filter on: a chip per value in use with its count. |
 | `openLinkedLabel` | `String` | `'Open'` | Label of a linked row's open action. |
 | `downloadLabel` | `String` | `'Download'` | Label of a linked row's download action. |
 

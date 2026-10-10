@@ -219,3 +219,143 @@ export function sortNodesByColumn(nodes, column, ascending, rowData = null, isFo
 		return String(left).localeCompare(String(right)) * direction
 	})
 }
+
+/**
+ * Whether a cell value counts as filled in.
+ *
+ * @param {(Array|object|string|number|boolean|null|undefined)} value The value.
+ * @return {boolean} False for nothing, an empty string or an empty list.
+ */
+function isFilled(value) {
+	if (value === null || value === undefined || value === '') {
+		return false
+	}
+	return !(Array.isArray(value) && value.length === 0)
+}
+
+/**
+ * The single value a node is grouped under, as a string key: a list groups
+ * under its first entry, an object under its label, title, name or id.
+ *
+ * @param {(Array|object|string|number|boolean|null|undefined)} value The cell value.
+ * @return {(string|null)} The group key, or null when nothing is filled in.
+ */
+function groupKeyOf(value) {
+	const first = Array.isArray(value) ? value[0] : value
+	if (!isFilled(first)) {
+		return null
+	}
+	if (typeof first === 'object') {
+		const label = first.label ?? first.title ?? first.name ?? first.id
+		return isFilled(label) ? String(label) : null
+	}
+	return String(first)
+}
+
+/**
+ * The values a node carries in a column, as strings, for counting and
+ * filtering: every entry of a list, the one value otherwise.
+ *
+ * @param {object} column A resolved column.
+ * @param {object} node The node.
+ * @param {object} [rowData] The host's per-file data.
+ * @return {string[]} The values, deduplicated.
+ */
+function facetValuesOf(column, node, rowData) {
+	const value = fileColumnValue(column, node, rowData)
+	const entries = Array.isArray(value) ? value : [value]
+	const out = []
+	entries.forEach((entry) => {
+		const key = groupKeyOf(entry)
+		if (key !== null && !out.includes(key)) {
+			out.push(key)
+		}
+	})
+	return out
+}
+
+/**
+ * Group nodes on a column's value, in the order each value is first met.
+ * Nodes with no value come last, in one group whose value is null.
+ *
+ * @param {Array<object>} nodes The nodes, already in display order.
+ * @param {object} column The resolved column.
+ * @param {object} [rowData] The host's per-file data.
+ * @return {Array<{value: (string|null), nodes: Array<object>}>} The groups.
+ */
+export function groupNodes(nodes, column, rowData = null) {
+	const groups = []
+	const byKey = new Map()
+	const empty = { value: null, nodes: [] }
+	;(Array.isArray(nodes) ? nodes : []).forEach((node) => {
+		const key = column ? groupKeyOf(fileColumnValue(column, node, rowData)) : null
+		if (key === null) {
+			empty.nodes.push(node)
+			return
+		}
+		if (!byKey.has(key)) {
+			const group = { value: key, nodes: [] }
+			byKey.set(key, group)
+			groups.push(group)
+		}
+		byKey.get(key).nodes.push(node)
+	})
+	if (empty.nodes.length > 0) {
+		groups.push(empty)
+	}
+	return groups
+}
+
+/**
+ * The values in use in a column across the nodes, with how many nodes carry
+ * each; a list counts once per entry. Most used first, then in first-seen
+ * order.
+ *
+ * @param {Array<object>} nodes The nodes.
+ * @param {object} column The resolved column.
+ * @param {object} [rowData] The host's per-file data.
+ * @return {Array<{value: string, count: number}>} The values and counts.
+ */
+export function facetCounts(nodes, column, rowData = null) {
+	const counts = []
+	const byValue = new Map()
+	;(Array.isArray(nodes) ? nodes : []).forEach((node) => {
+		facetValuesOf(column, node, rowData).forEach((value) => {
+			if (!byValue.has(value)) {
+				const entry = { value, count: 0 }
+				byValue.set(value, entry)
+				counts.push(entry)
+			}
+			byValue.get(value).count += 1
+		})
+	})
+	return counts
+		.map((entry, index) => ({ entry, index }))
+		.sort((a, b) => (b.entry.count - a.entry.count) || (a.index - b.index))
+		.map(({ entry }) => entry)
+}
+
+/**
+ * Whether a node passes the chosen facet values: within one facet any chosen
+ * value will do, and every facet with a choice must pass. A facet with
+ * nothing chosen does not filter.
+ *
+ * @param {object} node The node.
+ * @param {object} selections Chosen values by column key.
+ * @param {object} columnsByKey Resolved columns by key.
+ * @param {object} [rowData] The host's per-file data.
+ * @return {boolean} True when the node stays in the list.
+ */
+export function nodeMatchesFacets(node, selections, columnsByKey, rowData = null) {
+	return Object.entries(selections || {}).every(([key, chosen]) => {
+		if (!Array.isArray(chosen) || chosen.length === 0) {
+			return true
+		}
+		const column = columnsByKey && columnsByKey[key]
+		if (!column) {
+			return true
+		}
+		const values = facetValuesOf(column, node, rowData)
+		return chosen.some((value) => values.includes(value))
+	})
+}

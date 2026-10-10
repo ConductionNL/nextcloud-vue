@@ -147,6 +147,61 @@
 			</li>
 		</ul>
 
+		<!-- The host's filter: per declared column, a chip per value in use
+		     with how many files carry it. Chips narrow the list. -->
+		<div v-if="facetGroups.length > 0 && !loading && error === ''"
+			class="cn-files-browser__facets"
+			data-testid="cn-files-browser-facets">
+			<div v-for="facet in facetGroups"
+				:key="facet.key"
+				class="cn-files-browser__facet"
+				role="group"
+				:aria-label="t('nextcloud-vue', 'Filter by {column}', { column: facet.label })">
+				<button v-for="option in facet.values"
+					:key="option.value"
+					type="button"
+					class="cn-files-browser__facet-chip"
+					:class="{ 'cn-files-browser__facet-chip--active': option.active }"
+					:aria-pressed="option.active ? 'true' : 'false'"
+					data-testid="cn-files-browser-facet-chip"
+					@click="toggleFacet(facet.key, option.value)">
+					{{ option.value }}
+					<strong class="cn-files-browser__facet-count">{{ option.count }}</strong>
+				</button>
+			</div>
+			<NcButton v-if="facetActive"
+				variant="tertiary"
+				data-testid="cn-files-browser-facets-clear"
+				@click="clearFacets">
+				{{ t('nextcloud-vue', 'Clear filters') }}
+			</NcButton>
+		</div>
+
+		<!-- The host's bulk actions, once something is selected. -->
+		<div v-if="bulkEnabled && selectedIds.length > 0"
+			class="cn-files-browser__bulk-bar"
+			role="toolbar"
+			:aria-label="t('nextcloud-vue', 'Actions for the selected files')"
+			data-testid="cn-files-browser-bulk-bar">
+			<span class="cn-files-browser__bulk-count" aria-live="polite">
+				{{ t('nextcloud-vue', '{count} selected', { count: selectedIds.length }) }}
+			</span>
+			<NcButton v-for="action in bulkActions"
+				:key="action.id"
+				:data-testid="`cn-files-browser-bulk-action-${action.id}`"
+				@click="runBulkAction(action)">
+				<template #icon>
+					<CnIcon :name="action.icon || 'CheckboxMultipleMarkedOutline'" :size="20" />
+				</template>
+				{{ action.label }}
+			</NcButton>
+			<NcButton variant="tertiary"
+				data-testid="cn-files-browser-bulk-clear"
+				@click="clearSelection">
+				{{ t('nextcloud-vue', 'Clear selection') }}
+			</NcButton>
+		</div>
+
 		<NcLoadingIcon v-if="loading" :size="32" class="cn-files-browser__loading" />
 
 		<CnEmptyContent v-else-if="error !== ''"
@@ -181,6 +236,16 @@
 		<table v-else class="cn-files-browser__table" data-testid="cn-files-browser-table">
 			<thead>
 				<tr>
+					<th v-if="bulkEnabled" class="cn-files-browser__col-select" scope="col">
+						<input type="checkbox"
+							class="cn-files-browser__select"
+							:checked="allSelected"
+							:indeterminate.prop="someSelected && !allSelected"
+							:disabled="selectableIds.length === 0"
+							:aria-label="t('nextcloud-vue', 'Select all files')"
+							data-testid="cn-files-browser-select-all"
+							@change="toggleAll($event.target.checked)">
+					</th>
 					<th class="cn-files-browser__col-icon" scope="col">
 						<span class="hidden-visually">{{ t('nextcloud-vue', 'Type') }}</span>
 					</th>
@@ -207,100 +272,129 @@
 				</tr>
 			</thead>
 			<tbody>
-				<tr
-					v-for="node in sorted"
-					:key="node.source"
-					class="cn-files-browser__row"
-					:class="{ 'cn-files-browser__row--folder': isFolder(node) }"
-					data-testid="cn-files-browser-row"
-					:data-name="node.basename"
-					@click="onRowClick(node, $event)"
-					@mousedown="preventMiddleClickAutoscroll"
-					@auxclick="onRowAuxClick(node, $event)">
-					<td class="cn-files-browser__col-icon">
-						<img
-							v-if="previewUrlFor(node)"
-							class="cn-files-browser__thumb"
-							:src="previewUrlFor(node)"
-							alt=""
-							loading="lazy"
-							@error="onPreviewError(node)">
-						<img
-							v-else-if="mimeIconFor(node)"
-							class="cn-files-browser__mime"
-							:src="mimeIconFor(node)"
-							alt="">
-						<FolderOutline v-else-if="isFolder(node)" :size="32" />
-						<FileOutline v-else :size="32" />
-					</td>
-					<td v-for="column in renderedColumns"
-						:key="column.key"
-						:class="`cn-files-browser__col-${column.key}`"
-						:data-testid="`cn-files-browser-cell-${column.key}`">
-						<span v-if="column.key === 'name'" class="cn-files-browser__name">{{ node.basename }}</span>
-						<template v-else-if="column.key === 'size'">
-							{{ isFolder(node) ? '' : formatSize(node.size) }}
-						</template>
-						<NcDateTime v-else-if="column.key === 'modified'" :timestamp="node.mtime" :ignoreSeconds="true" />
-						<!-- Everything the host declared renders through the same
-						     cell renderer the tables use, so a `formatter` means
-						     here what it means there. -->
-						<CnCellRenderer v-else
-							:value="cellValue(column, node)"
-							:formatter="column.formatter || null"
-							:formatterOptions="column.formatterOptions || null"
-							:widget="column.widget || null"
-							:row="node" />
-					</td>
-					<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
-						<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
-							<NcActionButton
-								v-for="action in actionsFor(node)"
-								:key="action.id"
-								:closeAfterClick="true"
-								:data-testid="`cn-files-browser-action-${action.id}`"
-								@click="run(action, node)">
-								<template #icon>
-									<NcIconSvgWrapper :svg="iconOf(action, node)" />
-								</template>
-								{{ labelOf(action, node) }}
-							</NcActionButton>
-							<!-- The host's own actions on a file (never on a folder): declared
-							     in its manifest, dispatched through the page's action runner
-							     with the node's file id, name and path merged in. -->
-							<template v-if="!isFolder(node)">
-								<NcActionButton
-									v-for="action in hostActionsFor(node)"
-									:key="`host-${action.id}`"
-									:closeAfterClick="true"
-									:data-testid="`cn-files-browser-host-action-${action.id}`"
-									@click="runHostAction(action, node)">
-									<template #icon>
-										<CnIcon :name="action.icon || 'FileDocumentEditOutline'" :size="20" />
-									</template>
-									{{ action.label }}
-								</NcActionButton>
+				<!-- A heading row per group when the host groups on a column; the
+				     destructured entry is either a group or a node. -->
+				<template v-for="{ key, group, node } in displayRows" :key="key">
+					<tr v-if="group"
+						class="cn-files-browser__group"
+						data-testid="cn-files-browser-group">
+						<th :colspan="columnCount" scope="rowgroup" class="cn-files-browser__group-heading">
+							{{ group.label }}
+							<span class="cn-files-browser__group-count">{{ group.count }}</span>
+						</th>
+					</tr>
+					<tr
+						v-else
+						:key="key"
+						class="cn-files-browser__row"
+						:class="{ 'cn-files-browser__row--folder': isFolder(node) }"
+						data-testid="cn-files-browser-row"
+						:data-name="node.basename"
+						@click="onRowClick(node, $event)"
+						@mousedown="preventMiddleClickAutoscroll"
+						@auxclick="onRowAuxClick(node, $event)">
+						<td v-if="bulkEnabled"
+							class="cn-files-browser__col-select"
+							@click.stop
+							@auxclick.stop>
+							<input v-if="!isFolder(node)"
+								type="checkbox"
+								class="cn-files-browser__select"
+								:checked="isSelected(node)"
+								:aria-label="t('nextcloud-vue', 'Select {name}', { name: node.basename })"
+								data-testid="cn-files-browser-select"
+								@change="toggleSelected(node, $event.target.checked)">
+						</td>
+						<td class="cn-files-browser__col-icon">
+							<img
+								v-if="previewUrlFor(node)"
+								class="cn-files-browser__thumb"
+								:src="previewUrlFor(node)"
+								alt=""
+								loading="lazy"
+								@error="onPreviewError(node)">
+							<img
+								v-else-if="mimeIconFor(node)"
+								class="cn-files-browser__mime"
+								:src="mimeIconFor(node)"
+								alt="">
+							<FolderOutline v-else-if="isFolder(node)" :size="32" />
+							<FileOutline v-else :size="32" />
+						</td>
+						<td v-for="column in renderedColumns"
+							:key="column.key"
+							:class="`cn-files-browser__col-${column.key}`"
+							:data-testid="`cn-files-browser-cell-${column.key}`">
+							<span v-if="column.key === 'name'" class="cn-files-browser__name">{{ node.basename }}</span>
+							<template v-else-if="column.key === 'size'">
+								{{ isFolder(node) ? '' : formatSize(node.size) }}
 							</template>
-							<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && hostActionsFor(node).length > 0)" />
-							<!-- The Files app's own rename is its list's inline input,
-							     which is not here; this one is a dialog over a DAV move. -->
-							<NcActionButton :closeAfterClick="true" data-testid="cn-files-browser-action-rename" @click="askRename(node)">
-								<template #icon>
-									<Pencil :size="20" />
+							<NcDateTime v-else-if="column.key === 'modified'" :timestamp="node.mtime" :ignoreSeconds="true" />
+							<!-- Everything the host declared renders through the same
+							     cell renderer the tables use, so a `formatter` means
+							     here what it means there. -->
+							<CnCellRenderer v-else
+								:value="cellValue(column, node)"
+								:formatter="column.formatter || null"
+								:formatterOptions="column.formatterOptions || null"
+								:widget="column.widget || null"
+								:row="node" />
+						</td>
+						<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
+							<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
+								<NcActionButton
+									v-for="action in actionsFor(node)"
+									:key="action.id"
+									:closeAfterClick="true"
+									:data-testid="`cn-files-browser-action-${action.id}`"
+									@click="run(action, node)">
+									<template #icon>
+										<NcIconSvgWrapper :svg="iconOf(action, node)" />
+									</template>
+									{{ labelOf(action, node) }}
+								</NcActionButton>
+								<!-- The host's own actions on a file (never on a folder): declared
+								     in its manifest, dispatched through the page's action runner
+								     with the node's file id, name and path merged in. -->
+								<template v-if="!isFolder(node)">
+									<NcActionButton
+										v-for="action in hostActionsFor(node)"
+										:key="`host-${action.id}`"
+										:closeAfterClick="true"
+										:data-testid="`cn-files-browser-host-action-${action.id}`"
+										@click="runHostAction(action, node)">
+										<template #icon>
+											<CnIcon :name="action.icon || 'FileDocumentEditOutline'" :size="20" />
+										</template>
+										{{ action.label }}
+									</NcActionButton>
 								</template>
-								{{ renameLabel }}
-							</NcActionButton>
-							<NcActionLink
-								v-if="node.fileid"
-								:href="permalink(node)"
-								target="_blank"
-								:closeAfterClick="true">
-								<template #icon>
-									<OpenInNew :size="20" />
-								</template>
-								{{ showInFilesLabel }}
-							</NcActionLink>
-						</NcActions>
+								<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && hostActionsFor(node).length > 0)" />
+								<!-- The Files app's own rename is its list's inline input,
+								     which is not here; this one is a dialog over a DAV move. -->
+								<NcActionButton :closeAfterClick="true" data-testid="cn-files-browser-action-rename" @click="askRename(node)">
+									<template #icon>
+										<Pencil :size="20" />
+									</template>
+									{{ renameLabel }}
+								</NcActionButton>
+								<NcActionLink
+									v-if="node.fileid"
+									:href="permalink(node)"
+									target="_blank"
+									:closeAfterClick="true">
+									<template #icon>
+										<OpenInNew :size="20" />
+									</template>
+									{{ showInFilesLabel }}
+								</NcActionLink>
+							</NcActions>
+						</td>
+					</tr>
+				</template>
+				<tr v-if="facetActive && filteredFiles.length === 0" class="cn-files-browser__no-match-row">
+					<td :colspan="columnCount" class="cn-files-browser__no-match" data-testid="cn-files-browser-no-match">
+						{{ t('nextcloud-vue', 'No files match the filter.') }}
 					</td>
 				</tr>
 				<!-- Rows that are not nodes of this folder: documents the host
@@ -315,6 +409,7 @@
 					@click="openLinked(item)"
 					@mousedown="preventMiddleClickAutoscroll"
 					@auxclick="onLinkedAuxClick(item, $event)">
+					<td v-if="bulkEnabled" class="cn-files-browser__col-select" />
 					<td class="cn-files-browser__col-icon">
 						<img
 							v-if="mimeIconFor({ mime: item.mime })"
@@ -504,7 +599,10 @@ import { isNewTabClick, isRowMiddleClick, preventMiddleClickAutoscroll } from '.
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, hostActionApplies, joinPath } from './filesBrowser.js'
 import {
 	attributePropertiesFor,
+	facetCounts,
 	fileColumnValue,
+	groupNodes,
+	nodeMatchesFacets,
 	normaliseFileColumns,
 	sortNodesByColumn,
 	visibleFileColumns,
@@ -783,6 +881,52 @@ export default {
 			default: 'files-browser-columns',
 		},
 
+		/**
+		 * The host's actions on a selection of files, declared like
+		 * `rowActions`. With at least one, every file row (never a folder or a
+		 * linked row) gets a checkbox, the header a select-all, and a bar with
+		 * these actions shows while files are selected. An `open-modal`
+		 * action's props gain `files` (each `{ fileId, fileName, path }`) and
+		 * `fileIds`; a `handler` action's args gain the selected nodes. The
+		 * selection clears after an action and when another folder opens.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object, handler?: string, args?: Array}>}
+		 */
+		bulkActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The key of a declared column to group the files on: a heading row
+		 * per value, in the order each is first met, with its count. Files
+		 * with no value come last under `groupEmptyLabel`; folders stay above.
+		 * Empty (the default) does not group.
+		 */
+		groupBy: {
+			type: String,
+			default: '',
+		},
+
+		/** The heading of the group of files with no value in the `groupBy` column. */
+		groupEmptyLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Other'),
+		},
+
+		/**
+		 * Keys of declared columns to filter on. Each gets a chip per value in
+		 * use among the folder's files (a list counts per entry) with how many
+		 * files carry it; chosen chips keep the files with any chosen value of
+		 * that column, across every column with a choice.
+		 *
+		 * @type {string[]}
+		 */
+		facets: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Label of the toolbar's Columns chooser. */
 		columnsLabel: {
 			type: String,
@@ -805,6 +949,10 @@ export default {
 			sortAsc: true,
 			/** The host's per-file data for `row` columns, by file id. */
 			resolvedRowData: null,
+			/** File ids (as strings) of the selected files. */
+			selectedIds: [],
+			/** Chosen facet values by column key. */
+			facetSelections: {},
 			/**
 			 * The column keys this user chose to see, or null while they have
 			 * chosen nothing. Never a source of membership: it is intersected
@@ -919,6 +1067,149 @@ export default {
 		},
 
 		/**
+		 * The declared columns by key, for grouping and facets.
+		 *
+		 * @return {object} Resolved columns by key.
+		 */
+		columnsByKey() {
+			const byKey = {}
+			this.declaredColumns.forEach((column) => {
+				byKey[column.key] = column
+			})
+			return byKey
+		},
+
+		/**
+		 * How many cells a row has, for a heading or message spanning the row.
+		 *
+		 * @return {number} The column count.
+		 */
+		columnCount() {
+			return this.renderedColumns.length + 2 + (this.bulkEnabled ? 1 : 0)
+		},
+
+		/**
+		 * Whether the host gave bulk actions, which turns on the selection.
+		 *
+		 * @return {boolean} True with at least one bulk action.
+		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
+		 */
+		bulkEnabled() {
+			return Array.isArray(this.bulkActions) && this.bulkActions.length > 0
+		},
+
+		/**
+		 * The listed folders, in display order.
+		 *
+		 * @return {Array<object>} The folder nodes.
+		 */
+		folderNodes() {
+			return this.sorted.filter((node) => this.isFolder(node))
+		},
+
+		/**
+		 * The listed files, in display order, before the filter.
+		 *
+		 * @return {Array<object>} The file nodes.
+		 */
+		fileNodes() {
+			return this.sorted.filter((node) => !this.isFolder(node))
+		},
+
+		/**
+		 * Whether any facet value is chosen.
+		 *
+		 * @return {boolean} True when the filter narrows the list.
+		 */
+		facetActive() {
+			return Object.values(this.facetSelections).some((values) => Array.isArray(values) && values.length > 0)
+		},
+
+		/**
+		 * The chips: per facet column, the values in use with their counts.
+		 *
+		 * @return {Array<{key: string, label: string, values: Array<{value: string, count: number, active: boolean}>}>} The facets.
+		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
+		 */
+		facetGroups() {
+			const keys = Array.isArray(this.facets) ? this.facets : []
+			return keys
+				.map((key) => this.columnsByKey[key])
+				.filter(Boolean)
+				.map((column) => {
+					const chosen = this.facetSelections[column.key] || []
+					return {
+						key: column.key,
+						label: this.columnLabel(column),
+						values: facetCounts(this.fileNodes, column, this.resolvedRowData)
+							.map((entry) => ({ ...entry, active: chosen.includes(entry.value) })),
+					}
+				})
+				.filter((facet) => facet.values.length > 0)
+		},
+
+		/**
+		 * The files the filter keeps.
+		 *
+		 * @return {Array<object>} The file nodes.
+		 */
+		filteredFiles() {
+			if (!this.facetActive) {
+				return this.fileNodes
+			}
+			return this.fileNodes.filter((node) => nodeMatchesFacets(node, this.facetSelections, this.columnsByKey, this.resolvedRowData))
+		},
+
+		/**
+		 * What the table body renders, in order: folders, then the files,
+		 * under a heading per group when the host groups.
+		 *
+		 * @return {Array<{key: string, group?: object, node?: object}>} The rows.
+		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
+		 */
+		displayRows() {
+			const rows = this.folderNodes.map((node) => ({ key: node.source, node }))
+			const column = this.groupBy ? this.columnsByKey[this.groupBy] : null
+			if (!column) {
+				this.filteredFiles.forEach((node) => rows.push({ key: node.source, node }))
+				return rows
+			}
+			groupNodes(this.filteredFiles, column, this.resolvedRowData).forEach((group) => {
+				const label = group.value === null ? this.groupEmptyLabel : group.value
+				rows.push({ key: `group-${group.value === null ? '' : group.value}`, group: { label, count: group.nodes.length } })
+				group.nodes.forEach((node) => rows.push({ key: node.source, node }))
+			})
+			return rows
+		},
+
+		/**
+		 * The ids of the files a select-all takes: the files the filter keeps.
+		 *
+		 * @return {string[]} File ids as strings.
+		 */
+		selectableIds() {
+			return this.filteredFiles.map((node) => String(node.fileid))
+		},
+
+		/**
+		 * Whether every selectable file is selected.
+		 *
+		 * @return {boolean} True when all are.
+		 */
+		allSelected() {
+			return this.selectableIds.length > 0 && this.selectableIds.every((id) => this.selectedIds.includes(id))
+		},
+
+		/**
+		 * Whether some file is selected.
+		 *
+		 * @return {boolean} True when one or more are.
+		 */
+		someSelected() {
+			return this.selectedIds.length > 0
+		},
+
+		/**
 		 * The column the table is currently sorted on, or null when the sort
 		 * key belongs to no declared column.
 		 *
@@ -965,6 +1256,11 @@ export default {
 		rootPath(next) {
 			this.currentPath = next
 			this.refresh()
+		},
+
+		// A selection belongs to the folder it was made in.
+		currentPath() {
+			this.selectedIds = []
 		},
 	},
 
@@ -1738,6 +2034,92 @@ export default {
 		},
 
 		/**
+		 * Whether a file is selected.
+		 *
+		 * @param {object} node The file.
+		 * @return {boolean} True when selected.
+		 */
+		isSelected(node) {
+			return this.selectedIds.includes(String(node.fileid))
+		},
+
+		/**
+		 * Select or deselect one file.
+		 *
+		 * @param {object} node The file.
+		 * @param {boolean} checked Whether it is now selected.
+		 * @return {void}
+		 */
+		toggleSelected(node, checked) {
+			const id = String(node.fileid)
+			const rest = this.selectedIds.filter((entry) => entry !== id)
+			this.selectedIds = checked ? [...rest, id] : rest
+		},
+
+		/**
+		 * Select every file the filter keeps, or none.
+		 *
+		 * @param {boolean} checked Whether to select all.
+		 * @return {void}
+		 */
+		toggleAll(checked) {
+			this.selectedIds = checked ? [...this.selectableIds] : []
+		},
+
+		/** Drop the selection. */
+		clearSelection() {
+			this.selectedIds = []
+		},
+
+		/**
+		 * Run one of the host's bulk actions on the selected files, then drop
+		 * the selection. An `open-modal` action's props gain `files` and
+		 * `fileIds`; a `handler` action's args gain the selected nodes.
+		 *
+		 * @param {object} action The declared bulk action.
+		 * @return {void}
+		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
+		 */
+		runBulkAction(action) {
+			if (!action || typeof action !== 'object') {
+				return
+			}
+			const nodes = this.fileNodes.filter((node) => this.selectedIds.includes(String(node.fileid)))
+			const type = action.type || 'handler'
+			let wrapped = action
+			if (type === 'open-modal') {
+				const files = nodes.map((node) => ({ fileId: node.fileid, fileName: node.basename, path: node.path }))
+				wrapped = { ...action, props: { ...(action.props || {}), files, fileIds: files.map((file) => file.fileId) } }
+			} else if (type === 'handler') {
+				wrapped = { ...action, args: [...(action.args || []), nodes] }
+			}
+			this.selectedIds = []
+			if (typeof this.cnDispatchAction === 'function') {
+				this.cnDispatchAction(wrapped)
+				return
+			}
+			dispatchAction(wrapped, { router: this.$router || null })
+		},
+
+		/**
+		 * Choose or drop one facet value.
+		 *
+		 * @param {string} key The column key.
+		 * @param {string} value The value.
+		 * @return {void}
+		 */
+		toggleFacet(key, value) {
+			const chosen = this.facetSelections[key] || []
+			const next = chosen.includes(value) ? chosen.filter((entry) => entry !== value) : [...chosen, value]
+			this.facetSelections = { ...this.facetSelections, [key]: next }
+		},
+
+		/** Drop every facet choice. */
+		clearFacets() {
+			this.facetSelections = {}
+		},
+
+		/**
 		 * The host's own row actions that belong on this file: those whose
 		 * `visibleIf` (extension, mime) holds for it, or that name none.
 		 *
@@ -1985,6 +2367,81 @@ export default {
 .cn-files-browser__col-mtime {
 	width: 140px;
 	white-space: nowrap;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-files-browser__col-select {
+	width: 36px;
+	text-align: center;
+}
+
+.cn-files-browser__select {
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	accent-color: var(--color-primary-element);
+}
+
+.cn-files-browser__bulk-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border-radius: var(--border-radius-large);
+	background: var(--color-primary-element-light);
+}
+
+.cn-files-browser__bulk-count {
+	font-weight: 600;
+	margin-inline-end: 8px;
+}
+
+.cn-files-browser__facets {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+}
+
+.cn-files-browser__facet {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.cn-files-browser__facet-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 32px;
+	padding: 0 12px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-pill);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	cursor: pointer;
+}
+
+.cn-files-browser__facet-chip--active {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element-light);
+}
+
+.cn-files-browser__group-heading {
+	padding: 12px 8px 4px;
+	text-align: start;
+	font-weight: 700;
+}
+
+.cn-files-browser__group-count {
+	margin-inline-start: 6px;
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-files-browser__no-match {
+	padding: 16px 8px;
 	color: var(--color-text-maxcontrast);
 }
 
