@@ -1346,7 +1346,9 @@
     "Log in to see what you opened recently.": "Log in om te zien wat je onlangs opende.",
     "Your recent items are not available right now.": "Je recente items zijn nu niet beschikbaar.",
     "yesterday": "gisteren",
-    "tomorrow": "morgen"
+    "tomorrow": "morgen",
+    "Filter by {column}": "Filteren op {column}",
+    "Filter by {column}, active": "Filteren op {column}, actief"
   },
   "plurals": {
     "%n year": [

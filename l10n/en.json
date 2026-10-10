@@ -1295,7 +1295,9 @@
     "Log in to see what you opened recently.": "Log in to see what you opened recently.",
     "Your recent items are not available right now.": "Your recent items are not available right now.",
     "yesterday": "yesterday",
-    "tomorrow": "tomorrow"
+    "tomorrow": "tomorrow",
+    "Filter by {column}": "Filter by {column}",
+    "Filter by {column}, active": "Filter by {column}, active"
   },
   "plurals": {
     "%n year": [

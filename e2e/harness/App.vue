@@ -244,6 +244,25 @@
 			</div>
 		</template>
 
+		<!--
+			Data table header affordances (?dtheader=1): a sort chevron on every
+			sortable header and a filter button on every filterable one. Colour
+			and position are layout facts, so they are measured in a browser.
+		-->
+		<template v-else-if="showDtHeader">
+			<h2>Data table header</h2>
+			<div class="dt-header-box" data-testid="dt-header">
+				<CnDataTable
+					:rows="dtHeaderRows"
+					:columns="dtHeaderColumns"
+					:schema="dtHeaderSchema"
+					sortKey="due"
+					sortOrder="desc"
+					:filterable="true"
+					:activeFilters="{ status: ['open'] }" />
+			</div>
+		</template>
+
 		<template v-else-if="showDtScroll">
 			<h2>Data table — horizontal scroll</h2>
 			<div class="dt-narrow" data-testid="dt-overflowing">
@@ -652,6 +671,27 @@ export default {
 			showRunSidebar: (typeof window !== 'undefined' && window.location.search.includes('runsidebar')),
 			showCron: (typeof window !== 'undefined' && window.location.search.includes('cron=1')),
 			cronValue: '0 9 * * 1',
+			showDtHeader: (typeof window !== 'undefined' && window.location.search.includes('dtheader')),
+			dtHeaderSchema: {
+				properties: {
+					title: { type: 'string', title: 'Case' },
+					status: { type: 'string', enum: ['open', 'closed'] },
+					due: { type: 'string', format: 'date' },
+				},
+			},
+
+			dtHeaderColumns: [
+				{ key: 'title', label: 'Case' },
+				{ key: 'status', label: 'Status' },
+				{ key: 'due', label: 'Statutory term' },
+				{ key: 'note', label: 'Note', sortable: false, filterable: false },
+			],
+
+			dtHeaderRows: [
+				{ id: 'a', title: 'Lindelaan', status: 'open', due: '2026-10-20', note: 'x' },
+				{ id: 'b', title: 'Parkeren', status: 'open', due: '2026-10-12', note: 'y' },
+			],
+
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Stages widget and status badge tile harness (?stageswidget=1 / ?statbadge=1).
 			showStages: (typeof window !== 'undefined' && /[?&](stageswidget|statbadge)=/.test(window.location.search)),
