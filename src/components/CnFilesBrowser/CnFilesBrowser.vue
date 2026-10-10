@@ -7,10 +7,29 @@
 		class="cn-files-browser"
 		:class="{ 'cn-files-browser--dragging': dragging }"
 		data-testid="cn-files-browser"
-		@dragenter.prevent="dragging = true"
-		@dragover.prevent="dragging = true"
-		@dragleave.prevent="dragging = false"
+		@dragenter.prevent="onDragEnter"
+		@dragover.prevent="onDragOver"
+		@dragleave.prevent="onDragLeave"
 		@drop.prevent="onDrop">
+		<!-- The drop state, drawn on the browser itself when the host names it
+		     (`dropOverlay`): a dashed frame and one centred line over the list,
+		     so it is plain where the files go. The overlay is decoration for
+		     sighted users; the live region below says the same thing to a
+		     screen reader, and the upload button stays the way in for anyone
+		     who cannot drag. -->
+		<div v-if="dropOverlay && dragging"
+			class="cn-files-browser__drop-overlay"
+			aria-hidden="true"
+			data-testid="cn-files-browser-drop-overlay">
+			<span class="cn-files-browser__drop-icon"><Upload :size="28" /></span>
+			<strong class="cn-files-browser__drop-label">{{ dropLabel }}</strong>
+		</div>
+		<p v-if="dropOverlay"
+			class="hidden-visually"
+			aria-live="polite"
+			data-testid="cn-files-browser-drop-status">
+			{{ dropStatus }}
+		</p>
 		<!-- The bar: where you are, and what you can add. The crumbs are the
 		     Files app's own breadcrumb component; the New menu lists what the
 		     Files app and its plugins registered for this folder (a new folder,
@@ -56,7 +75,7 @@
 				:menuName="newLabel"
 				:forceMenu="true"
 				:forceName="true"
-				variant="primary"
+				:variant="uploadButton ? 'secondary' : 'primary'"
 				:disabled="folder === null"
 				data-testid="cn-files-browser-new">
 				<template #icon>
@@ -94,6 +113,19 @@
 					{{ action.label }}
 				</NcActionButton>
 			</NcActions>
+			<!-- A plain upload as its own button, when the host names it
+			     (`uploadButton`). It takes the primary place and the New
+			     menu steps back beside it. -->
+			<NcButton v-if="uploadButton"
+				variant="primary"
+				:disabled="folder === null"
+				data-testid="cn-files-browser-upload-button"
+				@click="pickFiles">
+				<template #icon>
+					<Upload :size="20" />
+				</template>
+				{{ uploadButtonLabel }}
+			</NcButton>
 		</div>
 
 		<!-- `:ref` (dynamic), not `ref`: a static ref on a vnode with only static
@@ -344,6 +376,13 @@
 			</tbody>
 		</table>
 
+		<p v-if="dropHint && !loading && error === ''"
+			class="cn-files-browser__drop-hint"
+			data-testid="cn-files-browser-drop-hint">
+			<Upload :size="16" />
+			{{ dropHintLabel }}
+		</p>
+
 		<NcDialog
 			v-if="renaming !== null"
 			:name="renameLabel"
@@ -443,7 +482,7 @@ import { getClient, getDefaultPropfind, getRemoteURL, getRootPath, resultToNode 
  * copy read `window._nc_fileactions`, which the server's plugins never write,
  * and saw nothing while the page held thirty actions.
  */
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcBreadcrumb, NcBreadcrumbs, NcButton, NcDateTime, NcDialog, NcIconSvgWrapper, NcLoadingIcon, NcProgressBar, NcTextField } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -624,6 +663,51 @@ export default {
 			default: () => t('nextcloud-vue', 'Show in Files'),
 		},
 
+		/**
+		 * Show a primary upload button beside the New menu, which then steps
+		 * back to a secondary button. Off (the default) keeps the upload
+		 * inside the New menu only.
+		 */
+		uploadButton: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Label of the upload button `uploadButton` shows. */
+		uploadButtonLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Add files'),
+		},
+
+		/**
+		 * Draw the drop state over the browser while files are dragged onto
+		 * it (a dashed frame and `dropLabel`, centred) and announce it to
+		 * screen readers. Off (the default) keeps the plain dashed outline and
+		 * announces nothing.
+		 */
+		dropOverlay: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The line `dropOverlay` draws and announces. */
+		dropLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Drop to add'),
+		},
+
+		/** Show a line under the list saying files can be dropped on it. */
+		dropHint: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The line `dropHint` shows. */
+		dropHintLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Or drag files onto this list.'),
+		},
+
 		/** Title of the empty state. */
 		emptyLabel: {
 			type: String,
@@ -726,6 +810,10 @@ export default {
 			 */
 			visibleColumnKeys: null,
 			dragging: false,
+			/** Nested dragenter/dragleave pairs, so a child does not end the drag. */
+			dragDepth: 0,
+			/** What the live region says: the drop label, then what was added. */
+			dropStatus: '',
 			uploads: [],
 			previewFailed: {},
 			newFolderOpen: false,
@@ -1265,10 +1353,74 @@ export default {
 		 */
 		async onDrop(event) {
 			this.dragging = false
+			this.dragDepth = 0
+			this.dropStatus = ''
 			const files = event.dataTransfer?.files
 			if (files?.length) {
 				await this.uploadFiles(files)
+				if (this.dropOverlay) {
+					this.dropStatus = n('nextcloud-vue', '%n file added', '%n files added', files.length)
+				}
 			}
+		},
+
+		/**
+		 * Something is dragged into the browser: show the drop state when it
+		 * carries files, and say so once.
+		 *
+		 * @param {DragEvent} event The drag.
+		 * @return {void}
+		 */
+		onDragEnter(event) {
+			if (!this.carriesFiles(event)) {
+				return
+			}
+			this.dragDepth++
+			if (!this.dragging) {
+				this.dragging = true
+				this.dropStatus = this.dropOverlay ? this.dropLabel : ''
+			}
+		},
+
+		/**
+		 * Keep the drop state while files move over the browser.
+		 *
+		 * @param {DragEvent} event The drag.
+		 * @return {void}
+		 */
+		onDragOver(event) {
+			if (this.carriesFiles(event)) {
+				this.dragging = true
+			}
+		},
+
+		/**
+		 * Something left the browser, or one of its children. The drop state
+		 * ends only when the drag has left the browser itself.
+		 *
+		 * @return {void}
+		 */
+		onDragLeave() {
+			this.dragDepth = Math.max(0, this.dragDepth - 1)
+			if (this.dragDepth === 0) {
+				this.dragging = false
+				this.dropStatus = ''
+			}
+		},
+
+		/**
+		 * Whether a drag carries files (not text or a link from the page).
+		 * A drag whose types cannot be read counts as files, as before.
+		 *
+		 * @param {DragEvent} event The drag.
+		 * @return {boolean}
+		 */
+		carriesFiles(event) {
+			const types = event?.dataTransfer?.types
+			if (!types) {
+				return true
+			}
+			return Array.from(types).includes('Files')
 		},
 
 		/**
@@ -1660,12 +1812,59 @@ export default {
 	flex-direction: column;
 	gap: 8px;
 	min-width: 0;
+	position: relative;
 	border-radius: var(--border-radius-large, 8px);
 }
 
 .cn-files-browser--dragging {
 	outline: 2px dashed var(--color-primary-element);
 	outline-offset: 4px;
+}
+
+.cn-files-browser__drop-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 24px;
+	box-sizing: border-box;
+	border: 2px dashed var(--color-primary-element);
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text, var(--color-main-text));
+	text-align: center;
+	pointer-events: none;
+}
+
+.cn-files-browser__drop-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	background: var(--color-main-background);
+	color: var(--color-primary-element);
+}
+
+.cn-files-browser__drop-label {
+	font-size: 20px;
+	font-weight: 700;
+}
+
+.cn-files-browser__drop-hint {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding-top: 12px;
+	border-top: 1px solid var(--color-border);
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-files-browser__bar {

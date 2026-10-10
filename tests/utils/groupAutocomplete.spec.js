@@ -51,3 +51,29 @@ describe('searchNextcloudGroups', () => {
 		await expect(resolveNextcloudGroup('other')).resolves.toEqual({ id: 'other', label: 'other' })
 	})
 })
+
+describe('group display names (nextcloud-group-surfaces)', () => {
+	// @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-a-group-cell-shows-the-groups-display-name
+	const { clearGroupNameCache, groupDisplayName, loadGroupDisplayName } = require('@/utils/groupAutocomplete.js')
+
+	beforeEach(() => {
+		clearGroupNameCache()
+	})
+
+	it('looks a name up once and caches it', async () => {
+		axios.get.mockResolvedValue({ data: { ocs: { data: [{ id: 'toezicht', label: 'Toezicht en handhaving', source: 'groups' }] } } })
+		expect(groupDisplayName('toezicht')).toBeNull()
+		const [a, b] = await Promise.all([loadGroupDisplayName('toezicht'), loadGroupDisplayName('toezicht')])
+		expect(a).toBe('Toezicht en handhaving')
+		expect(b).toBe('Toezicht en handhaving')
+		await loadGroupDisplayName('toezicht')
+		expect(axios.get).toHaveBeenCalledTimes(1)
+		expect(groupDisplayName('toezicht')).toBe('Toezicht en handhaving')
+	})
+
+	it('caches the id for a group it cannot find', async () => {
+		axios.get.mockResolvedValue({ data: { ocs: { data: [] } } })
+		expect(await loadGroupDisplayName('ghost')).toBe('ghost')
+		expect(groupDisplayName('ghost')).toBe('ghost')
+	})
+})
