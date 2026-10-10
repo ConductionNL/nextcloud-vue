@@ -1410,7 +1410,7 @@
     "Quick filters": "Snelfilters",
     "{count} filters": "{count} filters",
     "{count} more filters": "{count} filters meer",
-    "{label} — show the other filters": "{label}: toon de andere filters",
+    "{label} — show the other filters": "{label}, toon de andere filters",
     "A file or folder with that name is already here": "Hier staat al een bestand of map met die naam",
     "A file with that name is already here": "Hier staat al een bestand met die naam",
     "A name cannot contain a slash": "Een naam kan geen schuine streep bevatten",
