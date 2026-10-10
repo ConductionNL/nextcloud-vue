@@ -28,7 +28,7 @@
 - **files**: `src/utils/resolveFilterTokens.js`, `src/utils/sentinelTokens.js`, `src/schemas/app-manifest-v2.schema.json`, `tests/components/CnIndexActiveFilterLine.spec.js`
 - **acceptance_criteria**:
   - Both resolve in local time, across February and the year end
-  - The schema pattern and the vocabulary pattern stay byte equal (schema 2.77.0)
+  - The schema pattern and the vocabulary pattern stay byte equal (schema 2.78.0)
 - [x] Implement
 - [x] Test
 
