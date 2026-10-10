@@ -564,6 +564,8 @@
     "Order": "Volgorde",
     "Owner:": "Eigenaar:",
     "Page {current} of {total}": "Pagina {current} van {total}",
+    "{shown} of {total}": "{shown} van {total}",
+    "{from}–{to} of {total}": "{from}–{to} van {total}",
     "Parent schemas:": "Bovenliggende schema's:",
     "Password": "Wachtwoord",
     "Pattern (regex)": "Patroon (regex)",
