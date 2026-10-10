@@ -114,6 +114,7 @@
     "Saved just now": "Zojuist opgeslagen",
     "Saved {time}": "Opgeslagen {time}",
     "Saved": "Opgeslagen",
+    "Draft kept on this device": "Concept bewaard op dit apparaat",
     "Edit {title} (draft)": "{title} bewerken (concept)",
     "Also search inside files": "Zoek ook in bestanden",
     "File matches are limited to the best 50.": "Bestandstreffers zijn beperkt tot de beste 50.",
@@ -452,6 +453,12 @@
     "NC Activity is currently unavailable.": "NC Activiteit is momenteel niet beschikbaar.",
     "Could not load activity.": "Kon activiteit niet laden.",
     "Today": "Vandaag",
+    "Last 8 hours": "Laatste 8 uur",
+    "Last 24 hours": "Laatste 24 uur",
+    "Last 7 days": "Laatste 7 dagen",
+    "Last 30 days": "Laatste 30 dagen",
+    "Last 90 days": "Laatste 90 dagen",
+    "Custom range": "Aangepaste periode",
     "Yesterday": "Gisteren",
     "Earlier": "Eerder",
     "System": "Systeem",
@@ -564,6 +571,8 @@
     "Order": "Volgorde",
     "Owner:": "Eigenaar:",
     "Page {current} of {total}": "Pagina {current} van {total}",
+    "{shown} of {total}": "{shown} van {total}",
+    "{from}–{to} of {total}": "{from}–{to} van {total}",
     "Parent schemas:": "Bovenliggende schema's:",
     "Password": "Wachtwoord",
     "Pattern (regex)": "Patroon (regex)",
@@ -1390,6 +1399,10 @@
     "%n month": [
       "%n maand",
       "%n maanden"
+    ],
+    "%n hour": [
+      "%n uur",
+      "%n uur"
     ],
     "%n day": [
       "%n dag",
