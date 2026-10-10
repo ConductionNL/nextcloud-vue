@@ -435,3 +435,10 @@
 	color: var(--color-main-text);
 	opacity: 1;
 }
+
+/* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
+/* The board sets every waiting time ("3 dagen", "4 uur") in weight 600; a
+   late one is red through its variant class. */
+.cn-look-board .cn-cell-renderer__age:not(.cn-look-nextcloud *) {
+	font-weight: 600;
+}

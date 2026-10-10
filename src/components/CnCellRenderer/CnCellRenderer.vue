@@ -115,6 +115,19 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
+		<!-- Built-in "age" widget: how long something has waited ("4 uur",
+		     "3 dagen"), coloured by widgetProps.variantWhen rules on the days
+		     the cell shows. The full date is the tooltip. -->
+		<template v-else-if="widget === 'age'">
+			<time
+				v-if="dateTimestamp"
+				class="cn-cell-renderer__age"
+				:class="ageVariant ? 'cn-cell-renderer__age--' + ageVariant : null"
+				:datetime="dateTimestamp.toISOString()"
+				:title="absoluteDateLabel">{{ ageLabel }}</time>
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
 		<!-- Built-in "date" widget: a date whose colour follows
 		     widgetProps.variantWhen, rules on the number of days until it
 		     (0 = today, negative = overdue). -->
@@ -153,7 +166,12 @@
 
 		<!-- Date / date-time: dynamic NcDateTime (relative time, absolute on hover) -->
 		<template v-else-if="isDate">
-			<NcDateTime v-if="dateTimestamp" :timestamp="dateTimestamp" />
+			<time
+				v-if="dateTimestamp && isBoardLook"
+				class="cn-cell-renderer__date"
+				:datetime="dateTimestamp.toISOString()"
+				:title="absoluteDateLabel">{{ boardDateLabel }}</time>
+			<NcDateTime v-else-if="dateTimestamp" :timestamp="dateTimestamp" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -207,6 +225,8 @@ import { NcAvatar, NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnGroupNameCell from './CnGroupNameCell.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { formatAge, formatBoardDate, resolveAgeVariant } from '../../utils/boardDate.js'
 import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
 import { objectFieldValue } from '../../utils/objectName.js'
@@ -269,6 +289,12 @@ export default {
 		 * Defaults to identity so standalone use is unaffected.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The look the app is drawn in, provided by CnAppRoot (or a page with
+		 * `config.look`). Under `board` a date cell reads the board's short
+		 * form ("5 okt"). Defaults to `nextcloud`, which renders as before.
+		 */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -323,6 +349,10 @@ export default {
 		 * a date whose colour follows `widgetProps.variantWhen`, rules on the
 		 * number of days until the date (`[{ op: "lt", value: 0, variant:
 		 * "error" }, { op: "lte", value: 5, variant: "warning" }]`).
+		 * The built-in id `"age"` renders how long the row has waited since
+		 * the date ("4 hours", "3 days"), coloured by `widgetProps.variantWhen`
+		 * rules on the days it shows (`[{ op: "gte", value: 3, variant:
+		 * "error" }]`).
 		 * The built-in id `"group"` shows a Nextcloud group id (or a list of
 		 * them) as the group's display name; a column whose property is
 		 * marked `referenceType: "nextcloud-group"` gets it without asking.
@@ -526,6 +556,69 @@ export default {
 		},
 
 		/**
+		 * Whether the app takes the board look (`cnLook` is `board`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-cell-date-parity/specs/cell-date-age/spec.md#requirement-a-board-date-cell-reads-day-and-short-month-in-the-user-language
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The board's short date ("5 okt", "14 feb 2024" outside this year).
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/screens-cell-date-parity/specs/cell-date-age/spec.md#requirement-a-board-date-cell-reads-day-and-short-month-in-the-user-language
+		 */
+		boardDateLabel() {
+			return formatBoardDate(this.value)
+		},
+
+		/**
+		 * The full date for a tooltip: day, month and year in the user's
+		 * locale, with the time for a date-time value.
+		 *
+		 * @return {string|undefined}
+		 * @spec openspec/changes/screens-cell-date-parity/specs/cell-date-age/spec.md#requirement-an-age-cell-says-how-long-something-has-waited
+		 */
+		absoluteDateLabel() {
+			const date = parseDateValue(this.value)
+			if (date === null) {
+				return undefined
+			}
+			const withTime = this.property?.format === 'date-time' || this.widget === 'age'
+			const options = { day: 'numeric', month: 'long', year: 'numeric', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}) }
+			try {
+				return new Intl.DateTimeFormat(getCanonicalLocale() || undefined, options).format(date)
+			} catch {
+				return new Intl.DateTimeFormat(undefined, options).format(date)
+			}
+		},
+
+		/**
+		 * `age` widget: how long the row has waited ("4 uur", "3 dagen").
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/screens-cell-date-parity/specs/cell-date-age/spec.md#requirement-an-age-cell-says-how-long-something-has-waited
+		 */
+		ageLabel() {
+			return formatAge(this.value)
+		},
+
+		/**
+		 * `age` widget: the variant of the first `widgetProps.variantWhen`
+		 * rule the shown days match, or '' for none.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/screens-cell-date-parity/specs/cell-date-age/spec.md#requirement-an-age-cell-turns-red-past-its-threshold
+		 */
+		ageVariant() {
+			const variant = resolveAgeVariant(this.value, this.widgetProps && this.widgetProps.variantWhen)
+			return variant === 'default' ? '' : variant
+		},
+
+		/**
 		 * `date` widget: the date written out in the user's locale.
 		 *
 		 * @return {string}
@@ -541,6 +634,11 @@ export default {
 			// 08:30"); `widgetProps.timeOnly: true` shows just the time
 			// ("08:30"), for a timetable row. Default: the date alone.
 			const props = this.widgetProps || {}
+			// The board look writes a plain date in its short form ("5 okt");
+			// a time of day keeps the full form below.
+			if (this.isBoardLook && props.timeOnly !== true && props.showTime !== true) {
+				return formatBoardDate(date)
+			}
 			const options = props.timeOnly === true
 				? { hour: '2-digit', minute: '2-digit' }
 				: { day: 'numeric', month: 'short', year: 'numeric', ...(props.showTime === true ? { hour: '2-digit', minute: '2-digit' } : {}) }
@@ -1087,8 +1185,27 @@ export default {
    does not rest on colour alone. */
 .cn-cell-renderer__date--success,
 .cn-cell-renderer__date--warning,
-.cn-cell-renderer__date--error {
+.cn-cell-renderer__date--error,
+.cn-cell-renderer__age--success,
+.cn-cell-renderer__age--warning,
+.cn-cell-renderer__age--error {
 	font-weight: 600;
+}
+
+.cn-cell-renderer__age {
+	white-space: nowrap;
+}
+
+.cn-cell-renderer__age--success {
+	color: var(--color-text-success, var(--color-success-text));
+}
+
+.cn-cell-renderer__age--warning {
+	color: var(--color-text-warning, var(--color-warning-text));
+}
+
+.cn-cell-renderer__age--error {
+	color: var(--color-text-error, var(--color-error-text));
 }
 
 .cn-cell-renderer__date--success {

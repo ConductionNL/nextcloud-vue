@@ -73,6 +73,16 @@ Without a user id the cell shows the initials of the name, such as "PV" for "Pie
 
 Each rule compares the number of days until the date: `0` is today, a negative number is overdue. The first rule that matches wins. `variant` is `success`, `warning`, `error` or `default`. A date that matched a rule is also set in a heavier weight, so the signal does not rest on colour alone. The same rules are available as [`resolveDateVariant`](../utilities/resolve-date-variant.md), for a board card or any other place a deadline shows.
 
+Under the board look (`look: "board"`) a date cell, the `"date"` widget without `showTime` or `timeOnly` and a schema `date` / `date-time` property alike, reads the board's short form: day and short month in the user's language ("5 okt"), with the year only outside the current year ("14 feb 2024"). The full date is the tooltip. Without the look nothing changes.
+
+**`"age"`** shows how long something has waited since the date: hours under a day ("4 hours", "4 uur"), whole calendar days after that ("1 day", "3 dagen"). Rules in `widgetProps.variantWhen` colour it, compared against the number of days the cell shows (0 under a day):
+
+```json
+{ "key": "occurredAt", "label": "Waiting", "widget": "age", "widgetProps": { "variantWhen": [{ "op": "gte", "value": 3, "variant": "error" }] } }
+```
+
+A cell that matched a rule is set in weight 600; under the board look every age cell is. The full date and time is the tooltip.
+
 ## Group cells
 
 A Nextcloud group id is not something a person should read. A column whose
