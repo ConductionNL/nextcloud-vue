@@ -278,6 +278,18 @@ describe('CnFilesTab picks the OpenRegister source by default', () => {
 		wrapper.unmount()
 	})
 
+	it('never puts the uuid on the root crumb, as on the WebDAV path', async () => {
+		mockAnswers = {
+			GET: ({ url, options }) => (url.includes('/folder')
+				? listingAnswer(false)({ options })
+				: { status: 200, data: { '@self': { id: OBJECT, name: OBJECT } } }),
+		}
+		const wrapper = mount(CnFilesTab, { propsData: { objectId: OBJECT, register: '20', schema: '35' } })
+		await flushPromises()
+		expect(wrapper.findComponent(CnFilesBrowser).props('rootLabel')).toBeNull()
+		wrapper.unmount()
+	})
+
 	it('keeps the legacy list for a person the object refuses', async () => {
 		mockAnswers = { GET: ({ url }) => (url.includes('/folder') ? { status: 404, data: { error: 'Object not found' } } : { status: 200, data: {} }) }
 		const wrapper = mount(CnFilesTab, { propsData: { objectId: OBJECT, register: '20', schema: '35' } })

@@ -7,7 +7,7 @@
 		<CnFilesBrowser
 			v-if="browserRoot !== null"
 			:rootPath="browserRoot"
-			:rootLabel="browserRootLabel || objectTitle"
+			:rootLabel="effectiveBrowserRootLabel"
 			:source="browserSource"
 			:deleteLabel="deleteLabel"
 			:uploadButton="uploadButton"
@@ -240,7 +240,7 @@ import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
 import CnFilesBrowser from '../CnFilesBrowser/CnFilesBrowser.vue'
 import { useFileOpener } from '../../composables/useFileOpener.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
-import { resolveObjectFolder } from '../CnFilesBrowser/filesBrowser.js'
+import { objectDisplayName, resolveObjectFolderInfo } from '../CnFilesBrowser/filesBrowser.js'
 import { createOpenRegisterSource } from '../CnFilesBrowser/openRegisterSource.js'
 
 /**
@@ -311,7 +311,7 @@ export default {
 		openInOfficeLabel: { type: String, default: () => t('nextcloud-vue', 'Open in Office') },
 		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
-		/** What the files browser's root crumb reads; null shows the object's title (or, over WebDAV, the folder's own name). */
+		/** What the files browser's root crumb reads; null shows the object's name, else the folder's own name. */
 		browserRootLabel: { type: String, default: null },
 		/**
 		 * Where the files browser reads the object's folder from.
@@ -404,8 +404,7 @@ export default {
 			browserRoot: null,
 			/** The browser's data source for `source: 'openregister'`, or null for WebDAV. */
 			browserSource: null,
-			/** The object's title, for the browser's root crumb. */
-			objectTitle: null,
+			browserObjectName: null,
 			linkedItems: [],
 			/** File ids whose preview request failed, so the row falls back to the mime icon. */
 			previewFailed: {},
@@ -422,6 +421,19 @@ export default {
 			/** The mime types Nextcloud Office opens for this person; empty without Office. */
 			officeMimetypes: readOfficeMimetypes(),
 		}
+	},
+
+	computed: {
+		/**
+		 * The root crumb: the host's label, else the object's name (its folder
+		 * on disk is called after its uuid), else the folder's own name.
+		 *
+		 * @return {string|null}
+		 * @spec openspec/changes/dutch-library-strings-and-files-crumb/specs/dutch-library-strings-and-files-crumb/spec.md#requirement-the-files-browser-names-the-object-in-its-root-crumb
+		 */
+		effectiveBrowserRootLabel() {
+			return this.browserRootLabel || this.browserObjectName || null
+		},
 	},
 
 	watch: {
@@ -509,6 +521,7 @@ export default {
 		async resolveBrowserRoot() {
 			this.browserRoot = null
 			this.browserSource = null
+			this.browserObjectName = null
 			if (!this.objectId || !this.register || !this.schema) {
 				return
 			}
@@ -522,7 +535,7 @@ export default {
 			} catch {
 				return
 			}
-			this.browserRoot = await resolveObjectFolder({
+			const info = await resolveObjectFolderInfo({
 				apiBase: this.apiBase,
 				register: this.register,
 				schema: this.schema,
@@ -530,6 +543,8 @@ export default {
 				uid: getCurrentUser()?.uid || '',
 				remoteUrl,
 			})
+			this.browserRoot = info === null ? null : info.path
+			this.browserObjectName = info === null ? null : info.name
 		},
 
 		/**
@@ -559,27 +574,30 @@ export default {
 			}
 			this.browserSource = source
 			this.browserRoot = '/'
-			this.fetchObjectTitle()
+			this.fetchObjectName()
 		},
 
 		/**
-		 * Read the object's title for the root crumb. A failure keeps the crumb
-		 * on its default.
+		 * Read the object's name for the root crumb, by the same rule the WebDAV
+		 * path uses (`objectDisplayName`: never the uuid). The OpenRegister path
+		 * has no folder lookup to piggyback on, so this is its one object read.
+		 * A failure keeps the crumb on its default.
 		 *
 		 * @return {Promise<void>}
 		 */
-		async fetchObjectTitle() {
-			this.objectTitle = null
+		async fetchObjectName() {
+			const objectId = this.objectId
 			try {
 				const { data } = await axios.get(generateUrl(`${this.apiBase}/objects/{register}/{schema}/{objectId}`, {
 					register: this.register,
 					schema: this.schema,
-					objectId: this.objectId,
+					objectId,
 				}))
-				const title = data?.['@self']?.name || data?.title || data?.name || null
-				this.objectTitle = typeof title === 'string' && title !== '' ? title : null
+				if (objectId === this.objectId) {
+					this.browserObjectName = objectDisplayName(data, objectId)
+				}
 			} catch {
-				this.objectTitle = null
+				// The crumb keeps its default.
 			}
 		},
 

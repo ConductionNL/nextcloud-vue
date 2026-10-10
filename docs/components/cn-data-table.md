@@ -67,7 +67,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `schema` | Object | `null` | Schema object for auto-generating columns from its `properties` map |
-| `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable?, width?, align?, class?, cellClass?, formatter?, formatterOptions?, widget?, widgetProps?, aggregate? }]`. `formatter`/`widget`/`widgetProps` resolve against the app's `cnFormatters`/`cnCellWidgets` registries (provided by `CnAppRoot`); `formatterOptions` is passed as the formatter's fourth argument (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter, or the `{ negative, zero, positive }` phrases for `conditionalPhrase`) — see [migrating-to-manifest → Column formatters / Column widgets](../migrating-to-manifest.md#column-formatters). `aggregate` (`{ register?, schema, op:"count", where }`) renders the cell as a count of related OpenRegister objects (one `_limit=0` request per row; `@self.<path>` in `where` interpolated per-row; `…` while loading, `—` on failure) — see [migrating-to-manifest → Aggregate columns](../migrating-to-manifest.md#aggregate-columns). The `#column-{key}` scoped slot still overrides everything. |
+| `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable?, width?, align?, class?, cellClass?, grow?, formatter?, formatterOptions?, widget?, widgetProps?, aggregate? }]`. `formatter`/`widget`/`widgetProps` resolve against the app's `cnFormatters`/`cnCellWidgets` registries (provided by `CnAppRoot`); `formatterOptions` is passed as the formatter's fourth argument (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter, or the `{ negative, zero, positive }` phrases for `conditionalPhrase`) — see [migrating-to-manifest → Column formatters / Column widgets](../migrating-to-manifest.md#column-formatters). `aggregate` (`{ register?, schema, op:"count", where }`) renders the cell as a count of related OpenRegister objects (one `_limit=0` request per row; `@self.<path>` in `where` interpolated per-row; `…` while loading, `—` on failure) — see [migrating-to-manifest → Aggregate columns](../migrating-to-manifest.md#aggregate-columns). The `#column-{key}` scoped slot still overrides everything. |
 | `rowIcon` | String \| Function | `null` | Optional leading icon at the start of every row. A static MDI icon name (PascalCase, e.g. `'FileDocumentOutline'`) applied to all rows, or `(row) => iconName` to vary it per row. Resolved through the shared `CnIcon` registry. Unset = no icon column. |
 | `columnOverrides` | Object | `{}` | Per-column overrides applied on top of schema-generated columns; keyed by column key |
 | `excludeColumns` | Array | `[]` | Column keys to hide when using schema auto-generation |
@@ -89,9 +89,11 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `scrollable` | Boolean | `false` | Enables horizontal scrolling for wide tables |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `rowTitle` | String | `'link'` | Board look only. `link` underlines the title column's title; `plain` draws it as 15px bold text without an underline over a 13px muted secondary line (the PqTickets board). The row stays clickable. |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`). Useful for compact dashboard list widgets that want a plain bordered-row list without column labels. |
 | `pinnedCount` | Number | `0` | How many data columns are pinned to the start of the table. They, and the selection and icon columns, stay in view when the table scrolls sideways. |
 | `fixedLayout` | Boolean | `false` | Switch to `table-layout: fixed`, making each column's `width` authoritative instead of a hint the browser may override from cell content. Opt in when content would otherwise dictate the layout: a long unbreakable value (a PHP FQCN, a UUID) widens its own column under the default auto layout and can paint past the cell box into its neighbour, while a column left unsized soaks up all remaining width. Cells break long words rather than overflowing. Columns with no `width` share what is left, so size every column when you want exact control — percentages summing to 100 are the easiest to reason about. |
+| `fitWidth` | Boolean | `false` | Fit the table to its container instead of growing past it. One column takes the room that is left and cuts its text with an ellipsis (the full value stays in the tooltip); every other column keeps its content on one line at its own width, so trailing columns stay visible in a narrow tile. The column that grows is the first with `grow: true`, else the one keyed `title` or `name`, else the first. `CnWidgetObjectTable` turns it on. |
 | `rowIndicators` | Array | `[]` | State indicators the page declares for its rows. Each entry is `{ id, field, equals?, in?, icon, text, tooltip? }`: `field` is a dotted path on the row, the condition is `equals`, `in`, or plain truthiness when neither is given, `icon` is a CnIcon name, and `text` is the text alternative. An entry without `text` does not render, because an icon with no text is colour and shape alone (WCAG 2.2 SC 1.4.1). The page decides which indicators exist: a record cannot add one the page has not declared, and a page declaring none renders its rows exactly as before. |
 | `rowIndicatorCap` | Number | `3` | How many declared indicators render on the row itself. The rest stay available from `indicatorsFor(row).overflow`, for the row menu. |
 | `fillHeight` | Boolean | `false` | Fill the parent's height (a flex-column card / widget content area) so an optional `#footer` is pushed to the bottom instead of floating under a short list; the footer stays pinned via its sticky rule when the list overflows. No-op outside a height-constrained parent — opt-in so ordinary in-flow tables are unaffected. |
@@ -206,6 +208,14 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 ```
 
 Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.
+
+## A system date as a column (`@self.created`)
+
+A column may name one of the object's system dates in OpenRegister's `@self` block as its key: `@self.created`, `@self.updated`, `@self.published` or `@self.depublished`. The cell reads the value from `@self` and renders it as a date-time, unless the column declares its own `type` or `format`.
+
+```json
+{ "key": "@self.created", "label": "Created" }
+```
 
 ## Pill colours on a column (`columns[].colorMap`)
 
