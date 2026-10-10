@@ -65,6 +65,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `actions` | Array | `[]` | Custom row action definitions. Each entry accepts the runtime `{label, icon, handler, …}` shape (function-typed `handler` fires directly) AND the manifest shape with a string `handler` resolved through the v2 `registry` first, then `customComponents` — see "Action handlers" below. An entry may also be a `"builtin:view"` / `"builtin:edit"` / `"builtin:copy"` / `"builtin:delete"` placeholder that puts that built-in at its position — see [Placing built-in row actions](#placing-built-in-row-actions). |
 | `customComponents` | Object | `null` | Custom-component / handler registry. When set takes precedence over the injected `cnCustomComponents` from a CnAppRoot ancestor. Used to resolve `actions[].handler` registry names (manifest-actions-dispatch). Named handlers resolve out of the v2 `registry` (a `kind: "handler"` entry) FIRST and fall back to this map. |
 | `emptyText` | String | `'No items found'` | Empty state message |
+| `lenses` | Object \| null | `null` | Personal-lens report (`@self.lenses`) of the list on screen, for a host that fetches itself; self-fetch mode reads it from the store. A lens with `available: false` makes the empty state say why ("This server does not keep track of what you open.", "Log in to see what you opened recently.", "Your recent items are not available right now."). Needs openregister#4514. |
+| `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable lens, keyed `<lens>.<reason>` or `<reason>`. |
 | `rowClass` | Function | `null` | CSS class provider for rows |
 | `addLabel` | String | `''` | Add button label |
 | `inlineActionCount` | Number | `2` | Number of inline action buttons before overflow menu |
@@ -1097,8 +1099,9 @@ A column object over a `$ref` property can name the field of the referenced obje
 
 | Prop (manifest `config.*`) | Type | Default | Description |
 |------|------|---------|-------------|
-| `personalLenses` | Array | `[]` | Any of `favourite`, `recent`, `watching`: quick filters Favourites (`_favourite`), Recent (`_recent`) and Following (`_watching`), appended after the page's own quick filters. They combine with every other filter. While Recent is active column sorting is off, because the lens owns the order. A page with no quick filters of its own gets an "All" tab first. |
-| `showFavouriteColumn` | Boolean | `false` | Adds a first column with a [`CnFavouriteToggle`](./cn-favourite-toggle.md) per row, bound to the row's `@self.favourite`. Clicking it does not open the row. |
+| `personalLenses` | Array | `[]` | Any of `watching`, `recent`, `unread`: quick filters Following (`_watching`), Recent (`_recent`) and Unread (`_unread`), appended after the page's own quick filters. `favourite` is a deprecated alias of `watching`; asking for both gives one tab. They combine with every other filter. While Recent is active column sorting is off, because the lens owns the order. A page with no quick filters of its own gets an "All" tab first. |
+| `showFollowColumn` | Boolean | `false` | Adds a first column with a compact [`CnFollowToggle`](./cn-follow-toggle.md) per row, bound to the row's `@self.watching`. Clicking it does not open the row. |
+| `showFavouriteColumn` | Boolean | `false` | Deprecated alias of `showFollowColumn`. |
 
 The `personalLenses` value `unread` adds the quick filter Unread (`_unread=true`). Rows whose `@self.unread` is true show a [`CnUnreadMarker`](./cn-unread-marker.md) in the first cell and read in bold, with no prop needed.
 

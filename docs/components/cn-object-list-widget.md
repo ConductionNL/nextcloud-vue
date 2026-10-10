@@ -48,6 +48,7 @@ On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many ro
 - An empty collection renders a compact one-line empty state (`emptyText`), never a full-height void.
 - `viewAllRoute` names a page id; `viewAllQuery` values are token-resolved (`@objectId` / `@object.<field>` / `@workspace.<key>`) so the target index opens pre-scoped.
 - The `table` registry alias uses the same renderer.
+- `filter` values may use the filter tokens. `@myGroups` is the ids of the groups the reader is in, sent as an IN filter (`assignedGroup[]=a&assignedGroup[]=b`), so `{ "assignedGroup": "@myGroups", "assignee": "IS NULL" }` is the unclaimed work of the reader's teams. While the groups load, and for a reader in no group, the list does not fetch and shows its `prompt`: an empty IN list would match every row. Set `content.prompt` to say what that means for your list.
 
 ### Reading several fields off one reference: `extend`
 

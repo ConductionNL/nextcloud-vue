@@ -183,7 +183,19 @@
 					v-if="isCaption(item)"
 					:key="item.id"
 					:name="resolveLabel(item)"
-					:data-testid="`cn-nav-caption-${item.id}`" />
+					:data-testid="`cn-nav-caption-${item.id}`">
+					<template v-if="item.href" #actions>
+						<NcActionLink
+							:href="item.href"
+							:aria-label="captionEditLabel(item)"
+							:data-testid="`cn-nav-caption-edit-${item.id}`">
+							<template #icon>
+								<Pencil :size="20" />
+							</template>
+							{{ captionEditLabel(item) }}
+						</NcActionLink>
+					</template>
+				</NcAppNavigationCaption>
 				<NcAppNavigationItem
 					v-else
 					:key="item.id"
@@ -424,7 +436,19 @@
 							v-if="isCaption(item)"
 							:key="item.id"
 							:name="resolveLabel(item)"
-							:data-testid="`cn-nav-caption-${item.id}`" />
+							:data-testid="`cn-nav-caption-${item.id}`">
+							<template v-if="item.href" #actions>
+								<NcActionLink
+									:href="item.href"
+									:aria-label="captionEditLabel(item)"
+									:data-testid="`cn-nav-caption-edit-${item.id}`">
+									<template #icon>
+										<Pencil :size="20" />
+									</template>
+									{{ captionEditLabel(item) }}
+								</NcActionLink>
+							</template>
+						</NcAppNavigationCaption>
 						<NcAppNavigationItem
 							v-else
 							:key="item.id"
@@ -466,7 +490,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcButton, NcCounterBubble } from '@nextcloud/vue'
+import { NcActionLink, NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcButton, NcCounterBubble } from '@nextcloud/vue'
 import { toRaw } from 'vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
@@ -474,6 +498,7 @@ import Cog from 'vue-material-design-icons/Cog.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
@@ -560,6 +585,8 @@ export default {
 	name: 'CnAppNav',
 
 	components: {
+		NcActionLink,
+		Pencil,
 		NcAppNavigation,
 		NcAppNavigationCaption,
 		NcAppNavigationItem,
@@ -1921,14 +1948,26 @@ export default {
 		/**
 		 * Whether a menu entry renders as a `NcAppNavigationCaption`
 		 * (`type: "caption"`) rather than a clickable
-		 * `NcAppNavigationItem`. Caption entries ignore `route`, `href`,
-		 * `action`, `icon`, `count`, `children`, and `pinned`.
+		 * `NcAppNavigationItem`. Caption entries ignore `route`, `action`,
+		 * `icon`, `count`, `children`, and `pinned`. A caption's `href` is
+		 * drawn as a pencil link beside the heading: the place where what
+		 * stands under it is changed (a user's own choice of entries, say).
 		 *
 		 * @param {{ type?: string }} item Menu entry descriptor.
 		 * @return {boolean}
 		 */
 		isCaption(item) {
 			return item?.type === 'caption'
+		},
+
+		/**
+		 * The accessible name of a caption's pencil link.
+		 *
+		 * @param {object} item The caption entry.
+		 * @return {string} "Change {caption}", translated.
+		 */
+		captionEditLabel(item) {
+			return t('nextcloud-vue', 'Change {name}', { name: this.resolveLabel(item) })
 		},
 
 		/**

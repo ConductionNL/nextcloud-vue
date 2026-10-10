@@ -533,7 +533,8 @@
 				<!-- Empty state -->
 				<div v-else-if="effectiveObjects.length === 0" class="cn-index-page__empty">
 					<slot name="empty">
-						<CnEmptyContent :name="resolvedEmptyText">
+						<CnEmptyContent :name="lensReasonText || resolvedEmptyText"
+							:data-lens-unavailable="lensReasonText ? 'true' : null">
 							<template #icon>
 								<CnIcon v-if="resolvedIcon" :name="resolvedIcon" :size="64" />
 								<DatabaseSearch v-else :size="64" />
@@ -574,14 +575,15 @@
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
 					@rowContextMenu="onRowContextMenu">
-					<!-- Star column (showFavouriteColumn) -->
-					<template v-if="showFavouriteColumn" #column-__favourite="{ row }">
-						<CnFavouriteToggle
-							v-if="row && row['@self'] && typeof row['@self'].favourite === 'boolean'"
+					<!-- Follow column (showFollowColumn, or the deprecated showFavouriteColumn) -->
+					<template v-if="followColumnOn" #column-__follow="{ row }">
+						<CnFollowToggle
+							v-if="row && row['@self'] && typeof row['@self'].watching === 'boolean'"
+							compact
 							:register="typeof register === 'string' ? register : ''"
 							:schema="favouriteSchemaSlug"
 							:objectId="String(row['@self'].id || row.id || '')"
-							:favourite="row['@self'].favourite === true" />
+							:watching="row['@self'].watching === true" />
 					</template>
 
 					<!-- Pass through column slots -->
@@ -956,7 +958,7 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
-import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
+import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
@@ -969,6 +971,7 @@ import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actio
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
@@ -1038,8 +1041,8 @@ const CALENDAR_PAGE_SIZE = 200
  */
 const RANGE_SEPARATOR = '..'
 
-/** Key of the synthetic star column (`showFavouriteColumn`). */
-const FAVOURITE_COLUMN_KEY = '__favourite'
+/** Key of the synthetic follow column (`showFollowColumn`). */
+const FOLLOW_COLUMN_KEY = '__follow'
 
 /**
  * Whether a schema property wants a from/to pair rather than a value list.
@@ -1241,7 +1244,7 @@ export default {
 
 	components: {
 		CnBuildiqEditButton,
-		CnFavouriteToggle,
+		CnFollowToggle,
 		NcLoadingIcon,
 		CnEmptyContent,
 		NcActions,
@@ -1592,9 +1595,10 @@ export default {
 		},
 
 		/**
-		 * Personal lenses appended to the quick filters: any of `favourite`
-		 * (`_favourite`), `recent` (`_recent`), `watching` (`_watching`) and
-		 * `unread` (`_unread`).
+		 * Personal lenses appended to the quick filters: any of `watching`
+		 * (`_watching`, labelled Following), `recent` (`_recent`) and `unread`
+		 * (`_unread`). `favourite` is a deprecated alias of `watching`: a
+		 * favourite is a follow now, and asking for both gives one tab.
 		 * They combine with every other filter. While Recent is active column
 		 * sorting is off, because the lens owns the order. Manifest
 		 * `config.personalLenses`.
@@ -1607,9 +1611,20 @@ export default {
 		},
 
 		/**
-		 * Add a first column with a star per row (`CnFavouriteToggle`), bound to
-		 * each row's `@self.favourite`. Clicking it does not open the row.
-		 * Manifest `config.showFavouriteColumn`.
+		 * Add a first column with a follow toggle per row (`CnFollowToggle`,
+		 * compact), bound to each row's `@self.watching`. Clicking it does not
+		 * open the row. Manifest `config.showFollowColumn`.
+		 */
+		showFollowColumn: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Deprecated alias of `showFollowColumn`: the star column became the
+		 * follow column (OpenRegister `merge-follow-and-favourites`).
+		 *
+		 * @deprecated Use `showFollowColumn`.
 		 */
 		showFavouriteColumn: {
 			type: Boolean,
@@ -2102,6 +2117,34 @@ export default {
 		emptyText: {
 			type: String,
 			default: 'No items found',
+		},
+
+		/**
+		 * Personal-lens report of the list on screen, for a host that fetches
+		 * itself: the response's `@self.lenses` (`{ recent: { available,
+		 * reason } }`). In self-fetch mode the page reads it from the store
+		 * and this prop is ignored. When a lens reports `available: false`
+		 * the empty state explains why instead of showing `emptyText`.
+		 *
+		 * @type {object|null}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lenses: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * App wording for an unavailable lens, keyed `<lens>.<reason>`
+		 * (`recent.audit-trail-disabled`) or `<reason>`; the specific key
+		 * wins, and both win over the library's object-neutral text.
+		 *
+		 * @type {{[key: string]: string}|null}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lensReasonTexts: {
+			type: Object,
+			default: null,
 		},
 
 		/** Accessible label for the loading spinner (NcLoadingIcon aria-label) */
@@ -3296,6 +3339,40 @@ export default {
 		},
 
 		/**
+		 * The personal-lens reports of the list on screen: the store's copy
+		 * of the latest response in self-fetch mode, else the `lenses` prop.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-a-list-response-carries-the-report-of-the-lenses-it-was-asked-for
+		 */
+		effectiveLenses() {
+			if (this.isNamedSource) {
+				return {}
+			}
+			if (this.isSelfFetchMode) {
+				return (this.list.lenses && this.list.lenses.value) || {}
+			}
+			return this.lenses || {}
+		},
+
+		/**
+		 * Why the list is empty when a personal lens could not answer (the
+		 * audit trail is off, nobody is logged in, the history could not be
+		 * read), or `''` to keep the generic empty text.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lensReasonText() {
+			const text = lensUnavailableText(this.effectiveLenses, this.lensReasonTexts)
+			if (!text) {
+				return ''
+			}
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return fn(text)
+		},
+
+		/**
 		 * Whether the host manifest editor is in edit mode (unwraps the injected
 		 * `cnEditingBody`, which may be a Vue ref or a plain boolean). Drives the
 		 * in-header config cog.
@@ -4188,10 +4265,20 @@ export default {
 			if (this.recentLensActive) {
 				cols = cols.map((col) => (col && typeof col === 'object' ? { ...col, sortable: false } : col))
 			}
-			if (this.showFavouriteColumn && this.favouriteSchemaSlug !== '') {
-				cols = [{ key: FAVOURITE_COLUMN_KEY, label: '', sortable: false, width: '48px' }, ...cols]
+			if (this.followColumnOn && this.favouriteSchemaSlug !== '') {
+				cols = [{ key: FOLLOW_COLUMN_KEY, label: '', sortable: false, width: '48px' }, ...cols]
 			}
 			return cols
+		},
+
+		/**
+		 * Whether the follow column renders (`showFollowColumn`, or the deprecated `showFavouriteColumn`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/one-follow-control/specs/record-follow/spec.md#requirement-index-pages-offer-one-following-lens-and-a-follow-column
+		 */
+		followColumnOn() {
+			return this.showFollowColumn || this.showFavouriteColumn
 		},
 
 		/**
@@ -4208,7 +4295,7 @@ export default {
 		},
 
 		/**
-		 * Schema slug the star column calls with: the page's own slug in self-fetch
+		 * Schema slug the follow column calls with: the page's own slug in self-fetch
 		 * mode, else the schema object's `slug`. Empty when neither is known.
 		 *
 		 * @return {string}
