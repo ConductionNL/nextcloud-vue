@@ -18,45 +18,57 @@
 				@description Under the board look: saved views as chips and the Save view button, in row 1 after the quick-filter chips.
 			-->
 			<slot name="actions-end" />
-			<NcButton v-if="showSidebarToggle"
-				variant="secondary"
-				class="cn-actions-bar__filter-button"
-				data-testid="cn-actions-bar-filter-button"
-				:pressed="sidebarOpen"
-				@click="$emit('toggle-sidebar')">
-				<template #icon>
-					<Tune :size="18" />
-				</template>
-				{{ t('nextcloud-vue', 'Filter') }}
-				<span
-					v-if="filterCount > 0"
-					class="cn-actions-bar__filter-badge"
-					data-testid="cn-actions-bar-filter-badge"
-					:aria-label="filterCountLabel">{{ filterCount }}</span>
-			</NcButton>
-			<div v-if="showViewToggle && viewSegments.length > 1"
-				class="cn-actions-bar__view-toggle"
-				role="group"
-				:aria-label="t('nextcloud-vue', 'View')">
-				<button
-					v-for="seg in viewSegments"
-					:key="seg.mode"
-					type="button"
-					class="cn-actions-bar__view-toggle-btn"
-					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode }"
-					:aria-pressed="viewMode === seg.mode"
-					:aria-label="seg.label"
-					:title="seg.label"
-					@click="$emit('view-mode-change', seg.mode)">
-					<CnIcon v-if="seg.icon"
-						:name="seg.icon"
-						:size="24"
-						class="cn-actions-bar__view-toggle-icon" />
-					<component :is="seg.fallback"
-						v-else
-						:size="24"
-						class="cn-actions-bar__view-toggle-icon" />
-				</button>
+			<!--
+				Filter and the view switch are one unit: when row 1 is full they
+				wrap together to the start of the next line (the DqZaken board),
+				never the switch alone.
+			-->
+			<div v-if="showSidebarToggle || (showViewToggle && viewSegments.length > 1)"
+				class="cn-actions-bar__view-controls"
+				data-testid="cn-actions-bar-view-controls">
+				<NcButton v-if="showSidebarToggle"
+					variant="secondary"
+					class="cn-actions-bar__filter-button"
+					data-testid="cn-actions-bar-filter-button"
+					:pressed="sidebarOpen"
+					@click="$emit('toggle-sidebar')">
+					<template #icon>
+						<Tune :size="16" />
+					</template>
+					{{ t('nextcloud-vue', 'Filter') }}
+					<span
+						v-if="filterCount > 0"
+						class="cn-actions-bar__filter-badge"
+						data-testid="cn-actions-bar-filter-badge"
+						:aria-label="filterCountLabel">{{ filterCount }}</span>
+				</NcButton>
+				<div v-if="showViewToggle && viewSegments.length > 1"
+					class="cn-actions-bar__view-toggle"
+					role="group"
+					:aria-label="t('nextcloud-vue', 'View mode')">
+					<!-- A segment the page cannot open (`disabledViewModes`) is drawn, as the board does, but disabled and named so. -->
+					<button
+						v-for="seg in viewSegments"
+						:key="seg.mode"
+						type="button"
+						class="cn-actions-bar__view-toggle-btn"
+						:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode, 'cn-actions-bar__view-toggle-btn--disabled': seg.disabled }"
+						:aria-pressed="viewMode === seg.mode"
+						:aria-label="seg.label"
+						:title="seg.disabled ? unavailableViewLabel(seg.label) : seg.label"
+						:disabled="seg.disabled"
+						:data-mode="seg.mode"
+						@click="seg.disabled || $emit('view-mode-change', seg.mode)">
+						<CnIcon v-if="seg.icon"
+							:name="seg.icon"
+							:size="18"
+							class="cn-actions-bar__view-toggle-icon" />
+						<component :is="seg.boardFallback || seg.fallback"
+							v-else
+							:size="18"
+							class="cn-actions-bar__view-toggle-icon" />
+					</button>
+				</div>
 			</div>
 		</div>
 		<div v-if="!isBoardLayout" class="cn-actions-bar__info">
@@ -518,6 +530,7 @@ import CalendarMonthOutline from 'vue-material-design-icons/CalendarMonthOutline
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
+import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue'
 import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
 import Import from 'vue-material-design-icons/Import.vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
@@ -576,6 +589,7 @@ export default {
 		Tune,
 		ViewColumnOutline,
 		ViewGridOutline,
+		FormatListBulleted,
 		FormatListBulletedSquare,
 		CalendarMonthOutline,
 		MapMarkerOutline,
@@ -621,6 +635,19 @@ export default {
 		 * @type {Array<{key: string, label: string}>}
 		 */
 		activeFilterChips: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Board look: view modes the switch draws although the page cannot
+		 * open them, as disabled segments (the boards always draw table, cards,
+		 * board and map). Ignored without the board look.
+		 *
+		 * @type {Array<string>}
+		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
+		 */
+		disabledViewModes: {
 			type: Array,
 			default: () => [],
 		},
@@ -1156,11 +1183,15 @@ export default {
 				// only when the page offers it. A mode the board switch does not
 				// name (list, calendar) follows, so it is never lost.
 				defs.board = { label: t('nextcloud-vue', 'Board'), icon: '', fallback: ViewColumnOutline }
+				// The board's list icon: plain bullets, not the boxed ones.
+				defs.table.boardFallback = FormatListBulleted
+				const disabled = (this.disabledViewModes || []).filter((mode) => !modes.includes(mode))
+				const all = [...modes, ...disabled]
 				const fixed = ['table', 'cards', 'board', 'map']
-				const rest = modes.filter((mode) => !fixed.includes(mode))
-				return [...fixed.filter((mode) => modes.includes(mode)), ...rest]
+				const rest = all.filter((mode) => !fixed.includes(mode))
+				return [...fixed.filter((mode) => all.includes(mode)), ...rest]
 					.filter((mode) => defs[mode])
-					.map((mode) => ({ mode, ...defs[mode] }))
+					.map((mode) => ({ mode, ...defs[mode], disabled: disabled.includes(mode) }))
 			}
 			return modes
 				.filter((mode) => defs[mode])
@@ -1219,6 +1250,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The tooltip of a segment the page cannot open.
+		 *
+		 * @param {string} label The segment's name.
+		 * @return {string} "Map: not available on this list".
+		 */
+		unavailableViewLabel(label) {
+			return t('nextcloud-vue', '{view}: not available on this list', { view: label })
+		},
+
 		/**
 		 * The accessible name of a filter chip's remove button.
 		 *
