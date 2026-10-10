@@ -112,6 +112,16 @@
 	gap: 20px;
 }
 
+/* GridStack insets every cell by its 12px margin, the outer edge included, so
+   the tab strip started 12px below the top of the body column and stopped 12px
+   short of its end, while the side column started at the top. Pulling the grid
+   out by that margin puts its first card on the column's edges: the side column
+   is level with the strip, and the strip ends where the body column ends. */
+.cn-look-board.cn-detail-page--with-side > .cn-detail-page__body > .cn-detail-page__grid {
+	margin: -12px;
+	width: auto;
+}
+
 /* ---- Folder tabs ------------------------------------------------------- */
 
 /* The strip draws no line of its own (design-system pull request 147). The card under it
