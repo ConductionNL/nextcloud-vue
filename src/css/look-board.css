@@ -443,3 +443,11 @@
 	color: var(--color-main-text);
 	opacity: 1;
 }
+
+/* ---- Status pills (screens-cell-pill-parity) ---------------------------- */
+/* The board draws a primary pill in the deep primary ink on the light primary
+   ground ("Verzoek", "Nieuw"); the default look keeps the brighter
+   primary-element text. The other tones already match the board. */
+.cn-look-board .cn-status-badge--primary:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
+	color: var(--color-primary-element-light-text);
+}
