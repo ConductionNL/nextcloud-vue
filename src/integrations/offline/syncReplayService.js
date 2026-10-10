@@ -35,7 +35,8 @@ function objectsUrl(register, schema) {
 }
 
 /**
- * Replay one queued mutation against the OR object API.
+ * Replay one queued mutation against the OR object API, or, for a row that
+ * names an `endpoint`, as one POST to that endpoint.
  *
  * @param {object} operation       The queue operation row.
  * @param {object} [offlineConfig] The leaf's offline config (`register`,
@@ -54,7 +55,12 @@ export async function replayOperation(operation, offlineConfig = {}) {
 
 	try {
 		let response
-		if (operation.operationType === 'create' || operation.operationType === 'upload') {
+		if (typeof operation.endpoint === 'string' && operation.endpoint !== '') {
+			// A run the app checks and stores itself (a completed task, say):
+			// one POST to its endpoint under the Nextcloud root. The endpoint
+			// decides access from what it has stored, as the object API does.
+			response = await axios.post(generateUrl(operation.endpoint), payload)
+		} else if (operation.operationType === 'create' || operation.operationType === 'upload') {
 			response = await axios.post(base, payload)
 		} else if (operation.operationType === 'update') {
 			response = await axios.put(`${base}/${operation.targetId}`, payload)

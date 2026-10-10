@@ -1,0 +1,1 @@
+- No screen: library behaviour of an existing leaf; the consuming app's board covers the screen.

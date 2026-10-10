@@ -60,9 +60,12 @@ export {
 	checklistProgress,
 	classifyGps,
 	GPS_POOR_ACCURACY_M,
+	normaliseChecklistTemplate,
 	syncIndicator,
 	validateChecklistAnswers,
 } from './fieldCollectionHelpers.js'
+
+export { buildChecklistSubmission, fillEndpoint } from './checklistSubmission.js'
 
 export {
 	CACHE_PREFIX,
