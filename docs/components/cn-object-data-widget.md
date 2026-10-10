@@ -127,6 +127,15 @@ The widget auto-detects the editor based on the JSON Schema property type:
 | `checkbox` | `boolean` | Toggle switch |
 | `date` | `string` format `date` | Date picker |
 | `datetime` | `string` format `date-time` | Datetime picker |
+| `group` | `string` with `referenceType: "nextcloud-group"` (or `format: "nc-group"`) | Searchable list of Nextcloud groups |
+| `group-multiselect` | `array` whose `items` is a group | Searchable list of groups, several at once |
+| `user` | `string` with `referenceType: "nextcloud-user"` (or `format: "user"`) | Searchable list of Nextcloud users |
+| `user-multiselect` | `array` whose `items` is a user | Searchable list of users, several at once |
+
+A group or user field is picked by display name and stores the group id or
+uid, with the same search the create and edit dialogs use. When not editing, a
+group field shows the group's display name (cached per id, the id while it
+loads or when it cannot be found).
 
 ## Example with overrides
 
