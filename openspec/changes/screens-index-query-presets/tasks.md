@@ -10,7 +10,7 @@
 - **acceptance_criteria**:
   - All `match` pairs required, first preset wins, repeated parameter matches
   - Only the listed keys replace; `queryPresets` never reaches the page
-  - The render key changes with the preset; schema 2.80.0 refuses a preset without `match` or with other keys
+  - The render key changes with the preset; schema 2.83.0 refuses a preset without `match` or with other keys
 - [x] Implement
 - [x] Test
 

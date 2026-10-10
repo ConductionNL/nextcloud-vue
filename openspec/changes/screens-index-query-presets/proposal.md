@@ -34,5 +34,5 @@ satisfied.
 
 ## Impact
 
-Additive: one manifest key (schema 2.80.0), resolved in `CnPageRenderer`.
+Additive: one manifest key (schema 2.83.0), resolved in `CnPageRenderer`.
 Pages without the key render as before.
