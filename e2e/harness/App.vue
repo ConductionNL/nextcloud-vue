@@ -171,6 +171,13 @@
 		</template>
 
 		<!--
+			The files tab on an OpenRegister object (?filestabor=1). See FilesTabOrHarness.vue.
+		-->
+		<template v-else-if="showFilesTabOr">
+			<FilesTabOrHarness />
+		</template>
+
+		<!--
 			Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs). See
 			PixelGapsHarness.vue.
 		-->
@@ -639,6 +646,7 @@ import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
 import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CellLabelsHarness from './CellLabelsHarness.vue'
+import FilesTabOrHarness from './FilesTabOrHarness.vue'
 import NarrowTableHarness from './NarrowTableHarness.vue'
 import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
@@ -673,7 +681,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -735,6 +743,7 @@ export default {
 			showStages: (typeof window !== 'undefined' && /[?&](stageswidget|statbadge)=/.test(window.location.search)),
 			// Table cells in a real browser (?celllabels=1).
 			showCellLabels: (typeof window !== 'undefined' && /[?&]celllabels=/.test(window.location.search)),
+			showFilesTabOr: (typeof window !== 'undefined' && /[?&]filestabor=/.test(window.location.search)),
 			// Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs).
 			showPixelGaps2: (typeof window !== 'undefined' && /[?&]pixgaps2=/.test(window.location.search)),
 			// Zuiddrecht pixel gaps, round 3 (?pixgaps3=…).

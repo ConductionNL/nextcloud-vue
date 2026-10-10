@@ -34,7 +34,9 @@ async function browserFor(info, props = {}) {
 	resolveObjectFolderInfo.mockResolvedValue(info)
 	global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ results: [], total: 0 }) })
 	const wrapper = mount(CnFilesTab, {
-		propsData: { objectId: UUID, register: 'dossiq', schema: 'case', ...props },
+		// The WebDAV lookup is what these cases pin; the OpenRegister source (the
+		// default since files-browser-openregister-source) has its own crumb test.
+		propsData: { objectId: UUID, register: 'dossiq', schema: 'case', source: 'webdav', ...props },
 		global: { stubs: { CnFilesBrowser: { name: 'CnFilesBrowser', props: ['rootPath', 'rootLabel'], template: '<div class="browser-stub" />' } } },
 	})
 	await flushPromises()
