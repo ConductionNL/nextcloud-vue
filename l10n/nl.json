@@ -1450,7 +1450,11 @@
     "Saved, but some rows were not saved: {rows}": "Opgeslagen, maar sommige rijen zijn niet opgeslagen: {rows}",
     "The list of choices could not be loaded. Enter the value by hand.": "De keuzelijst kon niet worden geladen. Vul de waarde zelf in.",
     "You have unsaved changes from an earlier visit.": "Je hebt niet-opgeslagen wijzigingen van een eerder bezoek.",
-    "no longer offered": "niet meer beschikbaar"
+    "no longer offered": "niet meer beschikbaar",
+    "1 day left": "Nog 1 dag",
+    "{count} days left": "Nog {count} dagen",
+    "1 day overdue": "1 dag te laat",
+    "{count} days overdue": "{count} dagen te laat"
   },
   "plurals": {
     "%n year": [
