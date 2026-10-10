@@ -94,7 +94,7 @@ test.describe('the navigation against board AppZijbalk', () => {
 	test('the captions: 12px uppercase at 600 with 0.06em tracking, in the board order', async ({ page }) => {
 		await open(page, '?screensnav=1')
 		const caption = page.locator('[data-testid="cn-nav-caption-cap-contact"]').first()
-		const heading = caption.locator('.app-navigation-caption__name, h2, span').first()
+		const heading = caption.locator('.app-navigation-caption__name').first()
 		const style = await measure(heading, ['fontSize', 'fontWeight', 'textTransform', 'letterSpacing'])
 		expect(style.fontSize).toBe('12px')
 		expect(style.fontWeight).toBe('600')
@@ -116,6 +116,24 @@ test.describe('the navigation against board AppZijbalk', () => {
 			'cn-nav-entry-people',
 			'cn-nav-entry-orgs',
 		])
+	})
+
+	test('the vertical rhythm: 20px to the primary action and the list, entries 2px apart, 20px captions 20px after their group', async ({ page }) => {
+		await open(page, '?screensnav=1')
+		const nav = await measure(page.locator('[data-testid="cn-nav"]'))
+		const button = await measure(page.locator('[data-testid="cn-nav"] .app-navigation-new .button-vue').first())
+		const entry = async (id) => measure(page.locator(`[data-testid="cn-nav-entry-${id}"] .app-navigation-entry`).first())
+		const dashboard = await entry('dashboard')
+		const mine = await entry('mine')
+		const queue = await entry('queue')
+		const requests = await entry('requests')
+		const caption = await measure(page.locator('[data-testid="cn-nav-caption-cap-contact"]'))
+		expect(Math.round(button.top - nav.top)).toBe(20)
+		expect(Math.round(dashboard.top - button.bottom)).toBe(20)
+		expect(Math.round(mine.top - dashboard.bottom)).toBe(2)
+		expect(Math.round(caption.top - queue.bottom)).toBe(20)
+		expect(Math.round(caption.height)).toBe(20)
+		expect(Math.round(requests.top - caption.bottom)).toBe(2)
 	})
 
 	test('the counts: 22px pills, radius 11, 12px at 700, red when they ask for attention', async ({ page }) => {
@@ -141,9 +159,14 @@ test.describe('the navigation against board AppZijbalk', () => {
 		const advanced = page.locator('[data-testid="cn-nav"]').getByText('Geavanceerd', { exact: true }).first()
 		await expect(help).toBeVisible()
 		await expect(advanced).toBeVisible()
-		const h = await measure(help.locator('xpath=ancestor-or-self::*[contains(@class,"app-navigation-entry-link") or contains(@class,"button-vue")][1]'))
-		const a = await measure(advanced.locator('xpath=ancestor-or-self::*[contains(@class,"app-navigation-entry-link") or contains(@class,"button-vue")][1]'))
+		// The rows, not the labels: Help is a footer entry, Advanced the settings foldout's button.
+		const h = await measure(page.locator('[data-testid="cn-nav-help"] .app-navigation-entry').first())
+		const a = await measure(page.locator('[data-testid="cn-nav-settings"] .button-vue').first())
+		await expect(page.locator('[data-testid="cn-nav-help"]')).toContainText('Hulp en uitleg')
+		await expect(page.locator('[data-testid="cn-nav-settings"] .button-vue').first()).toContainText('Geavanceerd')
 		expect(h.top).toBeLessThan(a.top)
+		expect(Math.round(a.top - h.bottom)).toBe(2)
+		expect(await page.locator('[data-testid="cn-nav-help"] .app-navigation-entry-link').first().evaluate((el) => getComputedStyle(el).fontWeight)).toBe('400')
 		expect(Math.round(h.height)).toBe(40)
 		expect(Math.round(a.height)).toBe(40)
 		const lastEntry = await measure(page.locator('[data-testid="cn-nav-entry-orgs"]'))
