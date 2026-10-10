@@ -111,7 +111,7 @@
 			:sortValue="sortSelectValue"
 			:showSearch="inlineSearch || isBoardLook"
 			:searchValue="effectiveSearchValue"
-			:searchPlaceholder="searchPlaceholder"
+			:searchPlaceholder="searchPlaceholder ? cnTranslate(searchPlaceholder) : searchPlaceholder"
 			:showCountWithSearch="showCountWithSearch"
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"

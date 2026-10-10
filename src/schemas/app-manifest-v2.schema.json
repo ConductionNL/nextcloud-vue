@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.77.0",
+	"version": "2.78.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4037,6 +4037,11 @@
 							"type": "string",
 							"minLength": 1,
 							"description": "type='index', board look: free text after the footer's count, e.g. \"click a column header to sort\" (screens-index-list-parity). Maps to CnIndexPage `footerNote`."
+						},
+						"searchPlaceholder": {
+							"type": "string",
+							"minLength": 1,
+							"description": "type='index': the placeholder (and accessible name) of the list's search field, e.g. \"Search by case, number or requester\". Run through the app's translate, so an English key with a Dutch catalogue entry reads Dutch. Absent: the library's \"Search…\" (screens-index-toolbar-parity). Maps to CnIndexPage `searchPlaceholder`."
 						},
 						"bulkHint": {
 							"type": "string",
