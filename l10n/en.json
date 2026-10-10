@@ -572,6 +572,8 @@
     "Order": "Order",
     "Owner:": "Owner:",
     "Page {current} of {total}": "Page {current} of {total}",
+    "{shown} of {total}": "{shown} of {total}",
+    "{from}–{to} of {total}": "{from}–{to} of {total}",
     "Parent schemas:": "Parent schemas:",
     "Password": "Password",
     "Pattern (regex)": "Pattern (regex)",

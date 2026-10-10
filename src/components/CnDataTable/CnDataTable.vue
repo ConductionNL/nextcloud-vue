@@ -499,6 +499,16 @@ function fillSecondaryTemplate(template, valueOf) {
  * </CnDataTable>
  * ```
  */
+
+/**
+ * Column keys that name an object's system dates in OpenRegister's `@self`
+ * block. A column may declare one as its key (`@self.created`); it renders as
+ * a date-time although the schema has no property behind it.
+ *
+ * @type {string[]}
+ */
+const SYSTEM_DATE_KEYS = ['@self.created', '@self.updated', '@self.published', '@self.depublished']
+
 export default {
 	name: 'CnDataTable',
 
@@ -1651,11 +1661,17 @@ export default {
 		 * the schema property's own `colorMap` / `x-color-map`.
 		 *
 		 * @param {object} col Column definition.
+		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-a-system-date-can-be-a-column
 		 * @return {object} Property definition for CnCellRenderer.
 		 * @spec openspec/changes/screens-cell-pill-parity/specs/cell-pill-tones/spec.md#requirement-a-manifest-column-colours-its-enum-pills
 		 */
 		columnProperty(col) {
 			const base = this.getSchemaProperty(col.key)
+			// A system date (`@self.created`, `@self.updated`, ...) has no
+			// schema property behind it; it renders as a date-time.
+			if (Object.keys(base).length === 0 && SYSTEM_DATE_KEYS.includes(col.key) && !col.type && !col.format) {
+				return { type: 'string', format: 'date-time' }
+			}
 			const colorMap = col && col.colorMap && typeof col.colorMap === 'object' && !Array.isArray(col.colorMap) ? col.colorMap : null
 			if (col && (col.format || col.type || col.enum || colorMap)) {
 				return {

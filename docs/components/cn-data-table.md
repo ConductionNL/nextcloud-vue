@@ -207,6 +207,14 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 
 Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.
 
+## A system date as a column (`@self.created`)
+
+A column may name one of the object's system dates in OpenRegister's `@self` block as its key: `@self.created`, `@self.updated`, `@self.published` or `@self.depublished`. The cell reads the value from `@self` and renders it as a date-time, unless the column declares its own `type` or `format`.
+
+```json
+{ "key": "@self.created", "label": "Created" }
+```
+
 ## Pill colours on a column (`columns[].colorMap`)
 
 An enum column renders each value as a status pill. `colorMap` on the column maps the raw value to a pill tone, so the manifest colours the pills without touching the schema. The map is keyed on the raw enum value, not on the translated label, and it wins over the schema property's own `colorMap` or `x-color-map`. A value the map does not name, and a column without a map, keep the default grey pill.
