@@ -3,7 +3,8 @@ import { listWatchers, setFavourite, setReadState, setWatcher, setWatching } fro
 /**
  * Interactions plugin for the object store.
  *
- * Per-user interaction calls on a record: favourite, follow (watch) and the
+ * Per-user interaction calls on a record: follow (watch, with its
+ * notifications switch), the deprecated favourite (a quiet follow), and the
  * followers list. Each write puts the server's answer into the stored object's
  * `@self`, so a list showing the same object agrees with the toggle.
  *
@@ -55,7 +56,10 @@ export function interactionsPlugin() {
 			},
 
 			/**
-			 * Star a record.
+			 * Star a record: a quiet follow on the server.
+			 *
+			 * @deprecated A favourite is a follow with notifications off since
+			 * OpenRegister's `merge-follow-and-favourites`; use `watch(type, id, { notify: false })`.
 			 *
 			 * @param {string} type The registered object type slug
 			 * @param {string} objectId The object ID
@@ -65,13 +69,15 @@ export function interactionsPlugin() {
 				const { register, schema } = this._interactionTarget(type)
 				const result = await setFavourite(register, schema, objectId, true)
 				if (result.ok) {
-					this._patchSelf(type, objectId, { favourite: true })
+					this._patchSelf(type, objectId, { favourite: true, watching: true })
 				}
 				return result
 			},
 
 			/**
-			 * Unstar a record.
+			 * Unstar a record: unfollow it.
+			 *
+			 * @deprecated Use `unwatch`.
 			 *
 			 * @param {string} type The registered object type slug
 			 * @param {string} objectId The object ID
@@ -81,7 +87,7 @@ export function interactionsPlugin() {
 				const { register, schema } = this._interactionTarget(type)
 				const result = await setFavourite(register, schema, objectId, false)
 				if (result.ok) {
-					this._patchSelf(type, objectId, { favourite: false })
+					this._patchSelf(type, objectId, { favourite: false, watching: false, watchNotify: undefined })
 				}
 				return result
 			},
@@ -119,17 +125,21 @@ export function interactionsPlugin() {
 			},
 
 			/**
-			 * Follow a record.
+			 * Follow a record, optionally setting its notifications switch.
 			 *
 			 * @param {string} type The registered object type slug
 			 * @param {string} objectId The object ID
+			 * @param {object} [options] Options
+			 * @param {boolean} [options.notify] The notifications switch; left out, a new follow notifies
 			 * @return {Promise<object>} The outcome
+			 * @spec openspec/changes/one-follow-control/specs/record-follow/spec.md#requirement-one-follow-control-with-a-notifications-switch
 			 */
-			async watch(type, objectId) {
+			async watch(type, objectId, options = {}) {
 				const { register, schema } = this._interactionTarget(type)
-				const result = await setWatching(register, schema, objectId, true)
+				const result = await setWatching(register, schema, objectId, true, options)
 				if (result.ok) {
-					this._patchSelf(type, objectId, { watching: true })
+					const notify = result.data && typeof result.data.notify === 'boolean' ? result.data.notify : true
+					this._patchSelf(type, objectId, { watching: true, favourite: true, watchNotify: notify })
 				}
 				return result
 			},
@@ -145,7 +155,7 @@ export function interactionsPlugin() {
 				const { register, schema } = this._interactionTarget(type)
 				const result = await setWatching(register, schema, objectId, false)
 				if (result.ok) {
-					this._patchSelf(type, objectId, { watching: false })
+					this._patchSelf(type, objectId, { watching: false, favourite: false, watchNotify: undefined })
 				}
 				return result
 			},

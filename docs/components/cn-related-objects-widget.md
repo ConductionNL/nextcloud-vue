@@ -12,6 +12,8 @@ With `layout="tabs"` (the default), the widget resolves the object's `register` 
 
 It renders **one tab per non-empty group**, each with a count badge equal to the group's `total`, and shows that group's items inline. An item with an owning Nextcloud app renders as a **real link** (new tab, so middle-click and copy-link work): files open via the canonical `/f/{fileid}` permalink (Files + Viewer), records carrying a `url`/`link`/`accessUrl` open that, and known leaf types (contacts, deck) build their app route; related **objects** emit `@select-object` for the host to route to their detail page. When no link can be resolved, `@select-related` is emitted so the host can route it. When every group is empty, no tab renders and the empty state shows.
 
+Each section shows as soon as its own request returns: a fast `/relations` does not wait for slow `/uses` and `/used` calls. Tabs keep their fixed order as sections arrive, and the tab the reader saw first stays open. While another section is still loading, a line names it ("Still loading: Objects"). A section whose request failed is named with `Could not load {section}.` and the other sections stay visible.
+
 > Earlier builds offered an "open in sidebar" action per tab. That was removed — it only worked when the host mounted `CnObjectSidebar`, and silently did nothing otherwise. Deep-linking to the owning app works regardless of host wiring. (`open-in-sidebar-label` is kept as a deprecated no-op prop.)
 
 ## Legacy list mode (deprecated)

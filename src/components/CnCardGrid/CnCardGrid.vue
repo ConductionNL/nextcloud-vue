@@ -40,6 +40,7 @@
 						:status="statusOf ? statusOf(object) : null"
 						:leading="leadingOf ? leadingOf(object) : null"
 						:footerAction="footerActionOf ? footerActionOf(object) : null"
+						:accent="accentOf ? accentOf(object) : null"
 						v-on="cardListeners(object)">
 						<template v-if="$slots['card-actions']" #actions="{ object: obj }">
 							<slot name="card-actions" :object="obj" />
@@ -178,6 +179,12 @@ export default {
 
 		/** Board look: `(object) => { label, meta? }` for each card's footer action. See CnObjectCard `footerAction`. */
 		footerActionOf: {
+			type: Function,
+			default: null,
+		},
+
+		/** `(object) => { variant, icon?, label? }` for each card's status accent. See CnObjectCard `accent`. */
+		accentOf: {
 			type: Function,
 			default: null,
 		},

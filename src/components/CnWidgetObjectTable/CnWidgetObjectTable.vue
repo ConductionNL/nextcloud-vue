@@ -371,6 +371,19 @@ export default {
 		},
 
 		/**
+		 * App wording for an unavailable personal lens (a `source.filter._recent`
+		 * tile on an instance that does not log reads), keyed `<lens>.<reason>`
+		 * or `<reason>`. Forwarded to CnDataTable, which shows the library's
+		 * object-neutral text without it.
+		 *
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lensReasonTexts: {
+			type: Object,
+			default: undefined,
+		},
+
+		/**
 		 * Leading per-row icon: a static MDI icon name string, or a function
 		 * `(row) => iconName`. Forwarded to CnDataTable.
 		 *
