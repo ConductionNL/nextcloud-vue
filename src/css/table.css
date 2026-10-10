@@ -230,6 +230,34 @@
 	min-width: 0;
 }
 
+/* Fit to the container (CnDataTable's `fitWidth`, on in CnWidgetObjectTable).
+
+   In a narrow tile the auto layout made the table as wide as its one-line
+   cells, so it ran past the tile and clipped the trailing column (a date).
+   Here every column but one takes the width of its content (`width: 1%` asks
+   for as little as the content allows), and the grow column takes what is
+   left. `max-width: 0` is what lets that column go below its content's width:
+   the table no longer counts its text, so the text is cut with an ellipsis
+   instead of widening the table. The full value stays in the cell's tooltip. */
+.cn-data-table--fit {
+	width: 100%;
+}
+
+.cn-data-table--fit th,
+.cn-data-table--fit td {
+	width: 1%;
+}
+
+.cn-data-table--fit th.cn-table-col--grow,
+.cn-data-table--fit td.cn-table-col--grow {
+	width: auto;
+	min-width: 0;
+	max-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .cn-data-table th {
 	background: var(--color-background-dark);
 	font-weight: 500;
@@ -576,6 +604,15 @@
 	text-align: center;
 	padding: calc(12 * var(--default-grid-baseline)) calc(6 * var(--default-grid-baseline));
 	color: var(--color-text-maxcontrast);
+}
+
+/* The empty row holds a sentence (the empty text, or why a lens cannot
+   answer), not a cell value: it wraps instead of being cut to one line. The
+   selector carries the table class so it outranks the one-line cell rule. */
+.cn-data-table .cn-table-empty td {
+	max-width: none;
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 
 /* ========================================

@@ -65,8 +65,11 @@ and bottom, 28px at the sides), a maximum width of
 `var(--cn-board-content-max-width)` (1240px) aligned to the start, and
 `var(--cn-board-section-gap)` (20px) between its blocks. The 56px start inset
 that clears the navigation toggle (`.cn-page-header`, `.cn-detail-page__header`)
-SHALL apply only while the navigation is closed, because the toggle overlays
-the content only then.
+SHALL apply only while the navigation is closed. While the navigation is open
+Nextcloud's toggle sits on the navigation's end edge: its click area overlaps
+the start of the title by about 5px by 7px, while the icon does not touch the
+text. That overlap is accepted, because Nextcloud owns the toggle; the board
+look does not move it and does not inset the open header for it.
 
 #### Scenario: The frame of a list
 

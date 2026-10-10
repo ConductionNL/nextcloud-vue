@@ -324,6 +324,19 @@ export default {
 		},
 
 		/**
+		 * Fit the table to the tile: the title column (a column's `grow: true`,
+		 * else `title` or `name`, else the first) shrinks and ends in an
+		 * ellipsis so the trailing columns stay visible. On by default; pass
+		 * `false` for the table's own auto layout. Forwarded to CnDataTable.
+		 *
+		 * @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-a-narrow-object-table-keeps-its-trailing-columns-in-view
+		 */
+		fitWidth: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * Route NAME for row-click navigation. Mapped onto CnDataTable's
 		 * `rowClickRoute` as `{ name: rowRoute, params: { id } }` with the
 		 * row's `id` (or `@self.id`). Empty (the default) = no navigation.

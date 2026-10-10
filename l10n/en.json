@@ -1,5 +1,7 @@
 {
   "translations": {
+    "You cannot see these files": "You cannot see these files",
+    "Delete {name}? This cannot be undone here.": "Delete {name}? This cannot be undone here.",
     "Linked items": "Linked items",
     "Still loading: {sections}": "Still loading: {sections}",
     "Could not load {section}.": "Could not load {section}.",
@@ -572,6 +574,8 @@
     "Order": "Order",
     "Owner:": "Owner:",
     "Page {current} of {total}": "Page {current} of {total}",
+    "{shown} of {total}": "{shown} of {total}",
+    "{from}–{to} of {total}": "{from}–{to} of {total}",
     "Parent schemas:": "Parent schemas:",
     "Password": "Password",
     "Pattern (regex)": "Pattern (regex)",
@@ -771,6 +775,27 @@
     "Message input": "Message input",
     "Start new chat": "Start new chat",
     "History": "History",
+    "No audit entries yet": "No audit entries yet",
+    "Meetings": "Meetings",
+    "No meetings": "No meetings",
+    "Open in Calendar": "Open in Calendar",
+    "(no title)": "(no title)",
+    "Could not load meetings.": "Could not load meetings.",
+    "Could not load meeting.": "Could not load meeting.",
+    "Calendar is currently unavailable.": "Calendar is currently unavailable.",
+    "Show all {count} fields": "Show all {count} fields",
+    "Show less": "Show less",
+    "{count} more": "{count} more",
+    "Identifier: {identifier}": "Identifier: {identifier}",
+    "What happened, who did it and when, newest first": "What happened, who did it and when, newest first",
+    "{app} is not installed": "{app} is not installed",
+    "Install and enable the {app} app to see this.": "Install and enable the {app} app to see this.",
+    "{title} needs the {app} app. Install and enable it to see this.": "{title} needs the {app} app. Install and enable it to see this.",
+    "View all ({total})": "View all ({total})",
+    "No items": "No items",
+    "Nothing here yet": "Nothing here yet",
+    "No items match this filter": "No items match this filter",
+    "Could not load these records": "Could not load these records",
     "No conversations yet": "No conversations yet",
     "Connecting...": "Connecting...",
     "Loading conversations...": "Loading conversations...",
@@ -1309,7 +1334,34 @@
     "Filter by {column}, active": "Filter by {column}, active",
     "Turn notifications off": "Turn notifications off",
     "Turn notifications on": "Turn notifications on",
-    "Could not change notifications.": "Could not change notifications."
+    "Could not change notifications.": "Could not change notifications.",
+    "Actions for the selection": "Actions for the selection",
+    "Active:": "Active:",
+    "Filter": "Filter",
+    "List": "List",
+    "Map": "Map",
+    "Remove filter: {label}": "Remove filter: {label}",
+    "Search and columns": "Search and columns",
+    "Sort by": "Sort by",
+    "View mode": "View mode",
+    "With the selected {plural}": "With the selected {plural}",
+    "items": "items",
+    "{count} active": "{count} active",
+    "Delete \"{name}\"": "Delete \"{name}\"",
+    "No saved views yet": "No saved views yet",
+    "No views with this label": "No views with this label",
+    "Save current view…": "Save current view…",
+    "Save view": "Save view",
+    "Saved views": "Saved views",
+    "Show only views labelled \"{label}\"": "Show only views labelled \"{label}\"",
+    "Stop filtering on \"{label}\"": "Stop filtering on \"{label}\"",
+    "{name}, level {level}": "{name}, level {level}",
+    "{name}. Parts of this view come from one you cannot see.": "{name}. Parts of this view come from one you cannot see.",
+    "More filters": "More filters",
+    "Quick filters": "Quick filters",
+    "{count} filters": "{count} filters",
+    "{count} more filters": "{count} more filters",
+    "{label} — show the other filters": "{label} — show the other filters"
   },
   "plurals": {
     "%n year": [
@@ -1319,6 +1371,10 @@
     "%n month": [
       "%n month",
       "%n months"
+    ],
+    "%n hour": [
+      "%n hour",
+      "%n hours"
     ],
     "%n day": [
       "%n day",
@@ -1375,6 +1431,10 @@
     "in {count} day": [
       "in {count} day",
       "in {count} days"
+    ],
+    "{count} more filter": [
+      "{count} more filter",
+      "{count} more filters"
     ]
   }
 }

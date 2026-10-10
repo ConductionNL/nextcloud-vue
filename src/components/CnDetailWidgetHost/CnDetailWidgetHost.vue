@@ -244,7 +244,9 @@ import CnObjectFilesWidget from '../CnObjectFilesWidget/CnObjectFilesWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import {
 	isCardWidgetDef,
@@ -332,6 +334,11 @@ export default {
 			from: PANEL_ACTION_SINK,
 			default: null,
 		},
+
+		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
+		/** The host's translate (CnAppRoot provides `cnTranslate`). */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	/**
@@ -780,7 +787,9 @@ export default {
 		integrationProps() {
 			return {
 				surface: this.surface,
-				title: this.widget?.title || '',
+				// Through the host's translate: an integration card (CnDetailCard)
+				// prints its title as given.
+				title: this.translateLabel(this.widget?.title || ''),
 				// A provider opting into `bareWidget` is being rendered where the
 				// tab strip already supplies the card and the title, so tell it to
 				// drop its own. Without this the panel gets a titled card inside
@@ -836,7 +845,44 @@ export default {
 					surface: this.surface,
 				})
 			}
+			// The board look: a self-titled card (an audit trail, a calendar)
+			// takes the manifest title, so the side column's History card says
+			// what the board says instead of the widget's own default.
+			const title = this.cardTitle
+			if (title) {
+				base.title = title
+			}
 			return { ...base, ...this.content }
+		},
+
+		/**
+		 * The title a self-titled renderer gets under the board look: the
+		 * manifest title through the host's translate, else History for the
+		 * activity widget. Empty outside the board look, in a tab panel, and
+		 * when `content.title` already names the card.
+		 *
+		 * @return {string} The title, or ''.
+		 * @spec openspec/changes/screens-detail-labels-parity/specs/detail-labels-board-look/spec.md#requirement-a-side-card-takes-its-manifest-title
+		 */
+		cardTitle() {
+			if (normalizeLook(this.cnLook) !== 'board' || this.isBare || !this.widget || this.isContentOnly || this.isCard) {
+				return ''
+			}
+			// Only a renderer that takes a `title` prop: on any other the value
+			// would land on its root element as a tooltip.
+			const declared = this.renderer && this.renderer.props
+			const takesTitle = Array.isArray(declared) ? declared.includes('title') : Boolean(declared && Object.hasOwn(declared, 'title'))
+			if (!takesTitle) {
+				return ''
+			}
+			if (typeof this.content.title === 'string' && this.content.title !== '') {
+				return ''
+			}
+			const title = widgetTitleOf(this.widget)
+			if (title) {
+				return this.translateLabel(title)
+			}
+			return isActivityWidget(this.widget) ? t('nextcloud-vue', 'History') : ''
 		},
 
 		/**
@@ -946,6 +992,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A manifest label through the host's translate; '' stays ''.
+		 *
+		 * @param {string} text The label as written in the manifest.
+		 * @return {string} The label in the user's language.
+		 * @spec openspec/changes/screens-detail-labels-parity/specs/detail-labels-board-look/spec.md#requirement-detail-labels-read-in-the-users-language
+		 */
+		translateLabel(text) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
 		/**
 		 * Re-key a call on the channel this host provides onto the one it holds.
 		 * A widget publishes `set(items)`; a host nested in this one speaks the
