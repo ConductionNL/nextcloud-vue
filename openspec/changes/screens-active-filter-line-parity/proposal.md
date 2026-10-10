@@ -52,5 +52,5 @@ it. The app lanes found three things the library cannot draw yet:
 
 ## Impact
 
-Additive. Schema 2.78.0 (filter token pattern). No change without the board
+Additive. Schema 2.81.0 (filter token pattern). No change without the board
 look, and none on the board look for a tab without `activeLabel`.
