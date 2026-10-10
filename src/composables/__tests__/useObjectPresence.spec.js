@@ -40,6 +40,7 @@ jest.mock('@nextcloud/router', () => ({
 jest.mock('@nextcloud/auth', () => ({
 	__esModule: true,
 	getCurrentUser: () => ({ uid: 'anna' }),
+	getRequestToken: () => 'token-123',
 }))
 
 /** The subscription the composable made, so a test can push into it. */
@@ -244,6 +245,29 @@ describe('useObjectPresence', () => {
 		expect(mockAxios.put).toHaveBeenCalledWith('/apps/openregister/api/objects/dossiq/case/case-9/presence')
 
 		scope.stop()
+	})
+
+	it('🔴 a closing tab departs with a beacon that carries the request token', async () => {
+		// A beacon cannot set headers, and the departure route keeps the CSRF
+		// check, so the token has to travel in the form body. The old beacon
+		// sent no body at all and could never pass that check.
+		const sendBeacon = jest.fn(() => true)
+		const original = navigator.sendBeacon
+		Object.defineProperty(navigator, 'sendBeacon', { value: sendBeacon, configurable: true, writable: true })
+		try {
+			await withPresence(async () => {
+				await nextTick()
+				await Promise.resolve()
+				window.dispatchEvent(new Event('beforeunload'))
+			})
+		} finally {
+			Object.defineProperty(navigator, 'sendBeacon', { value: original, configurable: true, writable: true })
+		}
+
+		const call = sendBeacon.mock.calls.find(([url]) => url === '/apps/openregister/api/objects/dossiq/case/case-1/presence?_method=DELETE')
+		expect(call).toBeDefined()
+		expect(call[1]).toBeInstanceOf(FormData)
+		expect(call[1].get('requesttoken')).toBe('token-123')
 	})
 
 	it('does nothing at all when disabled', async () => {

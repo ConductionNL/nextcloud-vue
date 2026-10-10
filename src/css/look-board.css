@@ -436,6 +436,14 @@
 	opacity: 1;
 }
 
+/* ---- Status pills (screens-cell-pill-parity) ---------------------------- */
+/* The board draws a primary pill in the deep primary ink on the light primary
+   ground ("Verzoek", "Nieuw"); the default look keeps the brighter
+   primary-element text. The other tones already match the board. */
+.cn-look-board .cn-status-badge--primary:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
+	color: var(--color-primary-element-light-text);
+}
+
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
 /* The board sets every waiting time ("3 dagen", "4 uur") in weight 600; a
    late one is red through its variant class. */

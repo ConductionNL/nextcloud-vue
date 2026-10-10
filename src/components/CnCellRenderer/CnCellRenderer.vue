@@ -24,12 +24,15 @@
 			</span>
 		</template>
 
-		<!-- Built-in "badge" widget — renders the (possibly formatter-shaped) value as a status pill -->
+		<!-- Built-in "badge" widget: renders the value as a status pill. An enum
+		     value shows its label (x-enum-labels, translated) unless a formatter
+		     shapes it; the colour stays keyed on the raw value. -->
 		<template v-else-if="widget === 'badge'">
 			<CnStatusBadge v-if="hasValue"
-				:label="String(formattedValue)"
+				:label="labelledValue"
 				:variant="badgeVariant"
-				:colorMap="badgeColorMap" />
+				:colorMap="badgeColorMap"
+				:colorKey="badgeColorKey" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -78,7 +81,7 @@
 				v-if="linkRoute"
 				:to="linkRoute"
 				class="cn-cell-renderer__link">
-				{{ formattedValue }}
+				{{ labelledValue }}
 			</router-link>
 			<a
 				v-else-if="linkHref"
@@ -86,9 +89,9 @@
 				target="_blank"
 				rel="noopener"
 				class="cn-cell-renderer__link">
-				{{ formattedValue }}
+				{{ labelledValue }}
 			</a>
-			<span v-else :title="rawTitle">{{ formattedValue }}</span>
+			<span v-else :title="rawTitle">{{ labelledValue }}</span>
 		</template>
 
 		<!-- Built-in "avatar" widget: a person as an avatar with the name beside
@@ -154,7 +157,7 @@
 					class="cn-cell-renderer__swatch-dot"
 					:style="{ backgroundColor: swatchColor }"
 					aria-hidden="true" />
-				<span v-if="hasValue" :title="rawTitle">{{ formattedValue }}</span>
+				<span v-if="hasValue" :title="rawTitle">{{ labelledValue }}</span>
 				<span v-else class="cn-cell-renderer__dash">—</span>
 			</span>
 		</template>
@@ -730,6 +733,43 @@ export default {
 				.map((gid) => String(gid))
 		},
 
+		/**
+		 * The text a built-in widget (`badge`, `link`) or a swatch shows. An
+		 * enum value reads its label the way the plain enum cell does
+		 * (`enumLabel`: `x-enum-labels`, translated), so a list says "Active"
+		 * where the detail page does, not the stored "active". A column
+		 * formatter still wins: an app that shapes the value itself gets
+		 * exactly what its formatter returns.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-a-built-in-cell-widget-shows-an-enum-value-by-its-label
+		 */
+		labelledValue() {
+			if (!this.hasFormatter && this.isEnum && this.hasValue && typeof this.value !== 'object') {
+				return this.enumLabel
+			}
+			return String(this.formattedValue)
+		},
+
+		/**
+		 * The key the built-in `badge` looks its colour up by: the raw value
+		 * when `widgetProps.colorMap` has an entry for it (case-insensitive),
+		 * so a translated label keeps the colour the manifest keyed on the
+		 * stored code. Otherwise '' and the badge looks up its label, as before,
+		 * which keeps a map keyed on a formatter's output working.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-a-built-in-cell-widget-shows-an-enum-value-by-its-label
+		 */
+		badgeColorKey() {
+			const map = this.badgeColorMap
+			if (!map || !this.hasValue || typeof this.value === 'object') {
+				return ''
+			}
+			const raw = String(this.value).toLowerCase()
+			return Object.keys(map).some((key) => key.toLowerCase() === raw) ? String(this.value) : ''
+		},
+
 		/** Variant for the built-in `badge` widget — `widgetProps.variant` or `'default'`. */
 		badgeVariant() {
 			return (this.widgetProps && this.widgetProps.variant) || 'default'
@@ -1220,8 +1260,10 @@ export default {
 	color: var(--color-text-error, var(--color-error-text));
 }
 
+/* The text variant, not the fill: from Nextcloud 32 `--color-success` is a
+   background colour and too pale for a 16px glyph on a light theme. */
 .cn-cell-renderer__icon--success {
-	color: var(--color-success);
+	color: var(--color-text-success, var(--color-success-text, var(--color-success)));
 }
 
 .cn-cell-renderer__swatch-wrap {
