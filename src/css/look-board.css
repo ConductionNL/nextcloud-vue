@@ -163,6 +163,31 @@
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__list {
 	height: auto;
 	flex: 1 1 auto;
+	margin: 0;
+	gap: 2px;
+}
+
+/* The board's vertical rhythm (AppZijbalk): the primary action 20px from the
+   top, the list 20px under it, entries 2px apart. An empty search slot is a
+   flex child too and pushed everything 20px down, so it goes. */
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__search:empty {
+	display: none;
+}
+
+/* A caption is a 12px label with 6px under it, 20px after the group above
+   and 2px before its first entry. NcAppNavigationCaption gives its name a
+   15px font on a 34px line, which made it 44px high. */
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__list > .app-navigation-caption:not(:first-child) {
+	margin-top: 18px;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-caption .app-navigation-caption__name {
+	margin: 0;
+	padding: 0;
+	font-size: inherit;
+	font-weight: inherit;
+	line-height: normal;
+	color: inherit;
 }
 
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry,
@@ -245,6 +270,43 @@
 .cn-look-board .cn-app-nav__settings-list .app-navigation-entry-link {
 	min-height: 40px;
 	font-size: 15px;
+}
+
+/* The footer of the board: Help and Advanced as two 40px rows at weight 400,
+   2px apart. The Help row kept the 42px of a list entry, and the Advanced
+   foldout drew a 34px button inside 4px of padding, 20px under Help. */
+.cn-look-board .app-navigation[data-testid="cn-nav"] .cn-app-nav__footer-list {
+	gap: 2px;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .cn-app-nav__footer-list .app-navigation-entry,
+.cn-look-board .app-navigation[data-testid="cn-nav"] .cn-app-nav__footer-list .app-navigation-entry-link {
+	min-height: 40px;
+	font-weight: 400;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] [data-testid="cn-nav-settings"] {
+	padding: 0;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .cn-app-nav__footer-list + [data-testid="cn-nav-settings"] {
+	margin-top: -18px;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] [data-testid="cn-nav-settings"] > :first-child {
+	margin: 0;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] [data-testid="cn-nav-settings"] > :first-child .button-vue {
+	box-sizing: border-box;
+	width: 100%;
+	height: 40px;
+	min-height: 40px;
+	padding: 0 10px;
+	border-radius: 8px;
+	font-size: 15px;
+	font-weight: 400;
+	justify-content: flex-start;
 }
 
 /* The card above the footer, pushed down. */

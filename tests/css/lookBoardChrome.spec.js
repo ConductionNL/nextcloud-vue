@@ -136,6 +136,19 @@ describe('look-board.css: the navigation', () => {
 		expect(rulesFor('.cn-app-nav__card {')).toContain('margin: auto 0 0')
 	})
 
+	it('keeps the board rhythm: no empty search slot, entries 2px apart, 20px captions at 12px', () => {
+		expect(rulesFor('.app-navigation__search:empty')).toContain('display: none')
+		expect(rulesFor('.app-navigation__list {')).toMatch(/margin: 0;[\s\S]*gap: 2px/)
+		expect(rulesFor('.app-navigation-caption:not(:first-child)')).toContain('margin-top: 18px')
+		expect(rulesFor('.app-navigation-caption .app-navigation-caption__name')).toMatch(/font-size: inherit[\s\S]*line-height: normal/)
+	})
+
+	it('draws Help and Advanced as two 40px rows at weight 400, 2px apart', () => {
+		expect(rulesFor('.cn-app-nav__footer-list .app-navigation-entry {')).toContain('font-weight: 400')
+		expect(rulesFor('.cn-app-nav__footer-list + [data-testid="cn-nav-settings"]')).toContain('margin-top: -18px')
+		expect(rulesFor('[data-testid="cn-nav-settings"] > :first-child .button-vue')).toMatch(/height: 40px[\s\S]*font-weight: 400/)
+	})
+
 	it('draws one line between the navigation and the content, not NcContent\'s second one', () => {
 		expect(rulesFor('~ .app-content.app-content')).toContain('border-inline-start: none')
 	})
