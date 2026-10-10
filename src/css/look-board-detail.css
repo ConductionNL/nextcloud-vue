@@ -114,12 +114,26 @@
 
 /* ---- Folder tabs ------------------------------------------------------- */
 
+/* The strip draws no line of its own (design-system pull request 147). The card under it
+   carries its full border, top included, so the top-right corner is the
+   card's own rounded corner instead of a strip rule running straight past it.
+   The open tab overlaps that top border by 1px (the nav's -1px margin) and
+   paints over it, so it flows into the card as a folder tab. */
 .cn-look-board .cn-tabs--board .cn-tabs__bar {
-	border-bottom: 1px solid var(--color-border-dark);
+	border-bottom: none;
 	gap: 4px;
+	position: relative;
 }
 
+.cn-look-board .cn-tabs.cn-tabs--board .cn-tabs__bar::after {
+	content: none;
+}
+
+/* Tabs sit on the card's top edge; only the open tab reaches 1px further
+   down (min-height 35px below), over the card's top border. Top-aligned so
+   the inactive tabs do not stretch to the open tab's height. */
 .cn-look-board .cn-tabs--board .cn-tabs__nav {
+	align-items: flex-start;
 	gap: 4px;
 }
 
@@ -140,7 +154,11 @@
 	border-bottom: 1px solid var(--color-main-background);
 	border-top: 1px solid var(--color-border-dark);
 	font-weight: 700;
+	min-height: 35px;
+	padding-bottom: 9px;
 	padding-top: 8px;
+	position: relative;
+	z-index: 1;
 }
 
 /* The count: a grey, borderless 20px badge 8px after the label. */
@@ -177,8 +195,28 @@
 .cn-look-board .cn-tabs--board .cn-tabs__content > .cn-tab > :first-child .cn-widget-wrapper,
 .cn-look-board .cn-tabs--board .cn-tabs__content > .cn-tab > .cn-widget-wrapper,
 .cn-look-board .cn-tabs--board .cn-tabs__content > .cn-tab > .cn-detail-card {
-	border-top: none;
+	border-top: 1px solid var(--color-border);
 	border-radius: 0 12px 12px 12px;
+}
+
+/* A CnTabsWidget panel is the card itself: the same full border, so it joins
+   the open tab the same way. The top-left stays square under the first tab. */
+.cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content {
+	border: 1px solid var(--color-border);
+	border-radius: 0 12px 12px 12px;
+}
+
+/* A panel of CnTabsWidget is the content block itself: the open tab flows
+   straight into it. The widget in the panel renders chromeless, but the board
+   card rule below (and the first-card rule above) used to give its wrapper a
+   border and a 12px radius again, so a second card sat inside the panel. Its
+   left edge ran down from the open tab and its rounded top-right drew a line
+   across the top right of the content block, where DqZaak shows one sheet.
+   Same specificity as the first-card rule and later, so it wins on order. */
+.cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content .cn-widget-wrapper.cn-widget-wrapper--chromeless {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
 }
 
 /* ---- Body cards and side cards ----------------------------------------- */
