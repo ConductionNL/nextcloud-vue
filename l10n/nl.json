@@ -1380,7 +1380,8 @@
     "Quick filters": "Snelfilters",
     "{count} filters": "{count} filters",
     "{count} more filters": "{count} filters meer",
-    "{label} — show the other filters": "{label}, toon de andere filters"
+    "{label} — show the other filters": "{label}, toon de andere filters",
+    "{view}: not available on this list": "{view}: niet beschikbaar in deze lijst"
   },
   "plurals": {
     "%n year": [

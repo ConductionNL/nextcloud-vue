@@ -1329,7 +1329,8 @@
     "Quick filters": "Quick filters",
     "{count} filters": "{count} filters",
     "{count} more filters": "{count} more filters",
-    "{label} — show the other filters": "{label} — show the other filters"
+    "{label} — show the other filters": "{label} — show the other filters",
+    "{view}: not available on this list": "{view}: not available on this list"
   },
   "plurals": {
     "%n year": [

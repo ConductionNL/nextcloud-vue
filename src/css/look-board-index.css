@@ -265,6 +265,15 @@
 	color: var(--color-main-text);
 }
 
+/* A segment the page cannot open: drawn, as the boards do, but faded and inert. */
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn--disabled,
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn--disabled:hover {
+	background: transparent !important;
+	color: var(--color-text-maxcontrast);
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 /* The search field: 40px, radius 8, not a pill. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__search {
 	flex: 1 1 260px;

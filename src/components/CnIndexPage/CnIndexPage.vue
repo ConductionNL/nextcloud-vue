@@ -97,6 +97,7 @@
 			:viewMode="currentViewMode"
 			:showViewToggle="showViewToggle"
 			:availableViewModes="effectiveToggleModes"
+			:disabledViewModes="viewSwitchDisabledModes"
 			:cardsLabel="cardsLabel"
 			:tableLabel="tableLabel"
 			:listLabel="listLabel"
@@ -1943,6 +1944,22 @@ export default {
 		},
 
 		/**
+		 * Board look: the segments the view switch draws, e.g. `['table',
+		 * 'cards', 'board', 'map']` as the boards do. A listed mode the page
+		 * can open is an ordinary segment; one it cannot (no board columns, no
+		 * map configured) is drawn disabled, named "<mode>: not available on
+		 * this list". Fed from `pages[].config.viewSwitch`. Ignored without the
+		 * board look, and absent the switch is as before.
+		 *
+		 * @type {Array<'table' | 'cards' | 'board' | 'map'>}
+		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
+		 */
+		viewSwitch: {
+			type: Array,
+			default: null,
+		},
+
+		/**
 		 * The board's configuration, mirroring the manifest `config.board`
 		 * block: `{ statusField, cardFields, swimlaneField }`. The board is
 		 * offered only when this names a `statusField` AND `viewModes` lists
@@ -3677,6 +3694,21 @@ export default {
 				return this.viewModes.includes('map')
 			}
 			return Object.keys(this.mapConfig || {}).length > 0
+		},
+
+		/**
+		 * Board look: the modes `viewSwitch` lists that this page cannot open,
+		 * drawn as disabled segments.
+		 *
+		 * @return {Array<string>} The disabled modes.
+		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
+		 */
+		viewSwitchDisabledModes() {
+			if (!this.isBoardLook || !Array.isArray(this.viewSwitch)) {
+				return []
+			}
+			const offered = [...this.effectiveToggleModes, ...(this.showMapSegment ? ['map'] : [])]
+			return this.viewSwitch.filter((mode) => ['table', 'cards', 'board', 'map'].includes(mode) && !offered.includes(mode))
 		},
 
 		/**
