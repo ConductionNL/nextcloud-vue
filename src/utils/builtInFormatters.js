@@ -164,13 +164,15 @@ export function formatDaysUntil(value) {
 
 /**
  * Elapsed-time formatter (`daysSince` registry key), i18n'd through the
- * library's own translation slug (`nextcloud-vue`): a past date renders
- * "N days ago", today renders "Today", and a (nonsensical but harmless)
- * future date renders "In N days". Day counts are plural-aware via
- * `translatePlural`.
+ * library's own translation slug (`nextcloud-vue`) in the Nextcloud user
+ * language. Whole calendar days, read as a running phrase so it sits after a
+ * title or in a meta line: today renders "today", one day back renders
+ * "yesterday", further back renders "N days ago". A (nonsensical but
+ * harmless) future date renders "tomorrow" or "in N days". Day counts are
+ * plural-aware via `translatePlural`.
  *
  * Null-safe per the built-in-formatter contract: `''` for null/empty,
- * `String(value)` for unparseable input — never throws.
+ * `String(value)` for unparseable input, never throws.
  *
  * @param {unknown} value A `Date`, parseable date string, or timestamp.
  * @return {string} The relative-day phrasing (or ''/original on bad input).
@@ -185,13 +187,19 @@ export function formatDaysSince(value) {
 	}
 	const days = dayDiffFromToday(d)
 	if (days === 0) {
-		return t('nextcloud-vue', 'Today')
+		return t('nextcloud-vue', 'today')
+	}
+	if (days === -1) {
+		return t('nextcloud-vue', 'yesterday')
+	}
+	if (days === 1) {
+		return t('nextcloud-vue', 'tomorrow')
 	}
 	if (days < 0) {
 		const ago = Math.abs(days)
 		return n('nextcloud-vue', '{count} day ago', '{count} days ago', ago, { count: ago })
 	}
-	return n('nextcloud-vue', 'In {count} day', 'In {count} days', days, { count: days })
+	return n('nextcloud-vue', 'in {count} day', 'in {count} days', days, { count: days })
 }
 
 /**

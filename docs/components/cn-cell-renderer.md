@@ -73,6 +73,25 @@ Without a user id the cell shows the initials of the name, such as "PV" for "Pie
 
 Each rule compares the number of days until the date: `0` is today, a negative number is overdue. The first rule that matches wins. `variant` is `success`, `warning`, `error` or `default`. A date that matched a rule is also set in a heavier weight, so the signal does not rest on colour alone. The same rules are available as [`resolveDateVariant`](../utilities/resolve-date-variant.md), for a board card or any other place a deadline shows.
 
+## Group cells
+
+A Nextcloud group id is not something a person should read. A column whose
+schema property is marked as a group shows the group's display name instead:
+
+```json
+{ "assignedGroup": { "type": "string", "referenceType": "nextcloud-group" } }
+```
+
+`format: "nc-group"` works the same, and so does an array whose `items` is
+marked (the names are joined with a comma). A column without such a property
+can ask for it with `"widget": "group"`.
+
+Each id is looked up once per page and cached, so a table of fifty cases in
+three teams makes three requests, and every cell with the same id updates at
+once. While the name loads, and when the group cannot be found, the cell shows
+the id. A column `formatter` or a consumer-registered cell widget still wins.
+The lookup is [`loadGroupDisplayName`](../utilities/group-display-name.md).
+
 ## Type Rendering
 
 | Property Type | Rendering |
