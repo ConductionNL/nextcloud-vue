@@ -74,7 +74,7 @@ export const DEFAULT_DATE_RANGE_PRESETS = Object.freeze([
  * `t()` calls, so the strings are extracted into the `nextcloud-vue`
  * catalogue.
  *
- * @type {Object<string, function(): string>}
+ * @type {{[label: string]: function(): string}}
  */
 const LIBRARY_PRESET_LABELS = Object.freeze({
 	'Last 8 hours': () => t('nextcloud-vue', 'Last 8 hours'),
