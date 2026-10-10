@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.75.0",
+	"version": "2.83.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4037,6 +4037,29 @@
 							"type": "string",
 							"minLength": 1,
 							"description": "type='index', board look: free text after the footer's count, e.g. \"click a column header to sort\" (screens-index-list-parity). Maps to CnIndexPage `footerNote`."
+						},
+						"queryPresets": {
+							"type": "array",
+							"minItems": 1,
+							"description": "type='index': per-query overlays of this page (screens-index-query-presets). A menu entry that deep-links here with a query (`menu[].query`, e.g. { caseType: '<uuid>' }, the shape hydra gate-68 asks for instead of a second page) gets its own lenses, columns and copy: the first preset whose every `match` pair is in the route query replaces those keys of this config. Only the listed keys can be replaced; register, schema and permissions stay the page's. Switching preset remounts the list.",
+							"items": {
+								"type": "object",
+								"required": ["match"],
+								"additionalProperties": false,
+								"properties": {
+									"id": { "type": "string", "minLength": 1, "description": "A name for the preset, for people reading the manifest." },
+									"match": { "type": "object", "minProperties": 1, "additionalProperties": { "type": ["string", "number", "boolean"] }, "description": "Route query pairs that must ALL be present, e.g. { \"caseType\": \"<uuid>\" }. A repeated parameter matches when it holds the value." },
+									"title": { "type": "string", "minLength": 1, "description": "The page title while the preset applies." },
+									"quickFilters": { "type": "array", "description": "The lenses while the preset applies; same shape as config.quickFilters." },
+									"columns": { "type": "array", "description": "The columns while the preset applies; same shape as config.columns." },
+									"cardFields": { "type": "array", "items": { "type": "string" }, "description": "The card facts while the preset applies." },
+									"countText": { "type": "string", "minLength": 1, "description": "The count line while the preset applies." },
+									"searchPlaceholder": { "type": "string", "minLength": 1, "description": "The search placeholder while the preset applies." },
+									"footerNote": { "type": "string", "minLength": 1, "description": "The footer note while the preset applies." },
+									"defaultSort": { "type": "array", "description": "The default sort while the preset applies; same shape as config.defaultSort." },
+									"viewSwitch": { "type": "array", "items": { "type": "string", "enum": ["table", "cards", "board", "map"] }, "description": "The drawn view segments while the preset applies." }
+								}
+							}
 						},
 						"bulkHint": {
 							"type": "string",
