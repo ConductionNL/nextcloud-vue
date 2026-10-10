@@ -40,6 +40,6 @@ schema, run through the app's translate.
 
 ## Impact
 
-Additive. One manifest key (`searchPlaceholder`, schema 2.76.0), one wrapper
+Additive. One manifest key (`searchPlaceholder`, schema 2.78.0), one wrapper
 element in the board toolbar, CSS under `.cn-look-board`, catalogue entries.
 Without the board look nothing changes apart from the translated placeholder.
