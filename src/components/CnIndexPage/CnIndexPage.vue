@@ -533,7 +533,8 @@
 				<!-- Empty state -->
 				<div v-else-if="effectiveObjects.length === 0" class="cn-index-page__empty">
 					<slot name="empty">
-						<CnEmptyContent :name="resolvedEmptyText">
+						<CnEmptyContent :name="lensReasonText || resolvedEmptyText"
+							:data-lens-unavailable="lensReasonText ? 'true' : null">
 							<template #icon>
 								<CnIcon v-if="resolvedIcon" :name="resolvedIcon" :size="64" />
 								<DatabaseSearch v-else :size="64" />
@@ -969,6 +970,7 @@ import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actio
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
@@ -2099,6 +2101,34 @@ export default {
 		emptyText: {
 			type: String,
 			default: 'No items found',
+		},
+
+		/**
+		 * Personal-lens report of the list on screen, for a host that fetches
+		 * itself: the response's `@self.lenses` (`{ recent: { available,
+		 * reason } }`). In self-fetch mode the page reads it from the store
+		 * and this prop is ignored. When a lens reports `available: false`
+		 * the empty state explains why instead of showing `emptyText`.
+		 *
+		 * @type {object|null}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lenses: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * App wording for an unavailable lens, keyed `<lens>.<reason>`
+		 * (`recent.audit-trail-disabled`) or `<reason>`; the specific key
+		 * wins, and both win over the library's object-neutral text.
+		 *
+		 * @type {{[key: string]: string}|null}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lensReasonTexts: {
+			type: Object,
+			default: null,
 		},
 
 		/** Accessible label for the loading spinner (NcLoadingIcon aria-label) */
@@ -3290,6 +3320,40 @@ export default {
 		resolvedEmptyText() {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 			return this.emptyText ? fn(this.emptyText) : this.emptyText
+		},
+
+		/**
+		 * The personal-lens reports of the list on screen: the store's copy
+		 * of the latest response in self-fetch mode, else the `lenses` prop.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-a-list-response-carries-the-report-of-the-lenses-it-was-asked-for
+		 */
+		effectiveLenses() {
+			if (this.isNamedSource) {
+				return {}
+			}
+			if (this.isSelfFetchMode) {
+				return (this.list.lenses && this.list.lenses.value) || {}
+			}
+			return this.lenses || {}
+		},
+
+		/**
+		 * Why the list is empty when a personal lens could not answer (the
+		 * audit trail is off, nobody is logged in, the history could not be
+		 * read), or `''` to keep the generic empty text.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lensReasonText() {
+			const text = lensUnavailableText(this.effectiveLenses, this.lensReasonTexts)
+			if (!text) {
+				return ''
+			}
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return fn(text)
 		},
 
 		/**
