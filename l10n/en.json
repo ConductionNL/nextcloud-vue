@@ -1322,6 +1322,10 @@
       "%n month",
       "%n months"
     ],
+    "%n hour": [
+      "%n hour",
+      "%n hours"
+    ],
     "%n day": [
       "%n day",
       "%n days"
