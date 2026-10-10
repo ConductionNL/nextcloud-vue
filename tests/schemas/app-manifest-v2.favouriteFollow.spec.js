@@ -19,6 +19,7 @@ describe('manifest keys favourite, follow, showFavouriteColumn, personalLenses',
 	it('accepts them with their types', () => {
 		expect(validateManifestV2(manifest('detail', { register: 'r', schema: 's', favourite: false, follow: true })).valid).toBe(true)
 		expect(validateManifestV2(manifest('index', { register: 'r', schema: 's', showFavouriteColumn: true, personalLenses: ['favourite', 'recent', 'watching'] })).valid).toBe(true)
+		expect(validateManifestV2(manifest('index', { register: 'r', schema: 's', showFollowColumn: true, personalLenses: ['watching'] })).valid).toBe(true)
 	})
 
 	it('refuses a wrong type, naming the key', () => {

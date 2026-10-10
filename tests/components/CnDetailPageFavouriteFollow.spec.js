@@ -2,10 +2,11 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * The star and Follow beside the title of a schema-driven detail page, and the
- * `@self.can` extend on its object read.
+ * The one Follow control beside the title of a schema-driven detail page (no
+ * star since `one-follow-control`), and the `@self.can` extend on its object read.
  *
  * @spec openspec/changes/record-favourite-and-follow/tasks.md#task-3
+ * @spec openspec/changes/one-follow-control/specs/record-follow/spec.md#requirement-one-follow-control-with-a-notifications-switch
  */
 import { flushPromises, mount } from '@vue/test-utils'
 import { reactive } from 'vue'
@@ -27,7 +28,7 @@ function makeStore(self) {
 
 const stubs = {
 	CnFavouriteToggle: { props: ['favourite'], template: '<i class="fav" :data-on="favourite" />' },
-	CnFollowToggle: { props: ['watching', 'watcherCount', 'canManage', 'notifies'], template: '<i class="follow" :data-count="watcherCount" :data-manage="canManage" :data-notifies="notifies" />' },
+	CnFollowToggle: { props: ['watching', 'notify', 'watcherCount', 'canManage', 'notifies'], template: '<i class="follow" :data-notify="notify" :data-count="watcherCount" :data-manage="canManage" :data-notifies="notifies" />' },
 }
 
 function mountPage(self, props = {}) {
@@ -46,13 +47,21 @@ describe('CnDetailPage favourite and follow', () => {
 		expect(CnDetailPage.props.extend.default()).toEqual([])
 	})
 
-	it('renders both toggles when the object carries the markers', async () => {
-		const { w } = mountPage({ favourite: true, watching: true, watcherCount: 3, can: { manage: true } })
+	it('renders only the Follow control, with its notifications switch, never a star', async () => {
+		const { w } = mountPage({ favourite: true, watching: true, watchNotify: false, watcherCount: 3, can: { manage: true } })
 		await flushPromises()
-		expect(w.find('.fav').attributes('data-on')).toBe('true')
+		expect(w.find('.fav').exists()).toBe(false)
 		const follow = w.find('.follow')
+		expect(follow.attributes('data-notify')).toBe('false')
 		expect(follow.attributes('data-count')).toBe('3')
 		expect(follow.attributes('data-manage')).toBe('true')
+	})
+
+	it('ignores the deprecated favourite prop', async () => {
+		const { w } = mountPage({ favourite: true, watching: true }, { favourite: true })
+		await flushPromises()
+		expect(w.find('.fav').exists()).toBe(false)
+		expect(w.find('.follow').exists()).toBe(true)
 	})
 
 	it('renders nothing without the markers', async () => {
