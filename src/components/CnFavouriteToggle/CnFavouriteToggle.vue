@@ -31,12 +31,17 @@ import { setFavourite } from '../../utils/recordInteractions.js'
 /**
  * CnFavouriteToggle — a star bound to a record's `@self.favourite` marker.
  *
+ * @deprecated Following and favourites are one feature since OpenRegister's
+ * `merge-follow-and-favourites`: a favourite is a follow with notifications
+ * off. Use `CnFollowToggle`. Neither `CnDetailPage` nor `CnIndexPage` renders
+ * this star any more; it stays exported for one minor line so an app that
+ * placed it itself keeps working (the server answers it as a quiet follow).
+ *
  * A click flips the star at once and sends `PUT` (star) or `DELETE` (unstar)
  * `/apps/openregister/api/objects/{register}/{schema}/{id}/favourite`; on
  * failure it flips back and shows the server's message. The server's answer is
  * written into the stored object's `@self`, so a list showing the same record
- * agrees. `CnDetailPage` renders it beside the title; `CnIndexPage` renders it
- * per row for `showFavouriteColumn`.
+ * agrees.
  *
  * Example:
  * ```vue

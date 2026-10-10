@@ -35,7 +35,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | Region | Description |
 |--------|-------------|
 | **Select-all checkbox** | Checks/unchecks all rows on the current page |
-| **Column headers** | Clickable to sort; cycles through ascending (▲), descending (▼), and no sort (indicator hidden) |
+| **Column headers** | A sortable header holds a sort button: a pale chevron while unsorted, a dark chevron pointing up (ascending) or down (descending) once sorted. Clicking cycles ascending, descending, no sort |
 | **Avatar / icon** | Auto-generated from the row's name field via CnCellRenderer |
 | **Cell value** | Type-aware rendering: email links, dates, booleans, status badges |
 | **Row actions** | Per-row `⋮` menu — rendered via the `#row-actions` slot |
@@ -75,7 +75,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `rows` | Array | `[]` | Array of row data objects to display |
 | `loading` | Boolean | `false` | Shows a loading spinner overlay while `true` |
 | `loadingText` | String | `'Loading...'` | Accessible label for the loading spinner |
-| `sortKey` | String | `null` | Currently sorted column key; controls the ▲/▼ indicator. `null` means no column is actively sorted. |
+| `sortKey` | String | `null` | Currently sorted column key; controls the direction chevron. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | Current sort direction — `'asc'`, `'desc'`, or `null` (no sort) |
 | `sortKeys` | Array | `[]` | Ordered multi-column ("shift+click") sort key list, `[{ key, order }, …]` (0–3 entries). When non-empty it takes precedence over `sortKey`/`sortOrder`; a single-key list is single-sort's behavior unchanged. Shift+click a sortable header to append/cycle a secondary or tertiary key. A numbered priority badge marks each sorted column only when two or more rendered, sortable columns are sorted; a key whose column is not rendered or not sortable (such as a `_uuid` tie-break) still sorts, but is not counted or numbered, and `aria-sort` goes to the first sort key whose column is rendered and sortable. |
 | `selectable` | Boolean | `false` | Enables the checkbox column for multi-row selection |
@@ -153,9 +153,20 @@ searches `/apps/openregister/api/objects/{register}/{schema}`, with the
 register from the column (`widgetProps.register`, `x-external-register`) or
 the `filterRegister` prop.
 
-Active filters show as a filled icon on the header and as removable chips
-above the table. The panel is a labelled dialog of native inputs; Escape
-closes it and focus returns to the filter button.
+Every sortable header shows a chevron after its label: pale while the
+column is unsorted, dark and pointing in the sort direction once it is
+sorted. The label and chevron are one real button named by the column label,
+and the header carries `aria-sort`, so a screen reader hears the column name
+and its sort state. Enter sorts, Shift+Enter adds the column as a secondary
+sort key.
+
+A filterable header shows a 14px funnel right after the chevron, in the
+muted text colour while no filter is set. It is a separate button, labelled
+`Filter by {column}` (Dutch: `Filteren op {column}`), so opening the filter
+never sorts the column. Active filters show as the funnel in the primary
+colour with a dot, and as removable chips above the table. The panel is a
+labelled dialog of native inputs; Escape closes it and focus returns to the
+filter button.
 
 ## Reference (auto-generated)
 

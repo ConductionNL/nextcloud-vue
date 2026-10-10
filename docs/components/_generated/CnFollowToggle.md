@@ -8,21 +8,23 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name           | Type      | Required | Default | Description                                                                                 |
-| -------------- | --------- | -------- | ------- | ------------------------------------------------------------------------------------------- |
-| `register`     | `string`  | ✓        | —       | Register slug of the record.                                                                |
-| `schema`       | `string`  | ✓        | —       | Schema slug of the record.                                                                  |
-| `objectId`     | `string`  | ✓        | —       | Id of the record.                                                                           |
-| `watching`     | `boolean` |          | `false` | Whether the current user follows the record (`@self.watching`).                             |
-| `watcherCount` | `number`  |          | `null`  | Number of followers (`@self.watcherCount`). Null hides the count and the popover.           |
-| `canManage`    | `boolean` |          | `false` | Whether the user may add and remove other followers (`@self.can.manage`).                   |
-| `notifies`     | `boolean` |          | `true`  | Whether following sends change notifications. False changes the tooltip to say it does not. |
-| `currentUser`  | `string`  |          | `''`    | User id of the current user. Defaults to Nextcloud's `OC.currentUser`.                      |
+| Name           | Type      | Required | Default | Description                                                                                                          |
+| -------------- | --------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| `register`     | `string`  | ✓        | —       | Register slug of the record.                                                                                         |
+| `schema`       | `string`  | ✓        | —       | Schema slug of the record.                                                                                           |
+| `objectId`     | `string`  | ✓        | —       | Id of the record.                                                                                                    |
+| `watching`     | `boolean` |          | `false` | Whether the current user follows the record (`@self.watching`).                                                      |
+| `notify`       | `boolean` |          | `null`  | Whether the user's follow notifies them (`@self.watchNotify`). Null (an older server, or not following) reads as on. |
+| `compact`      | `boolean` |          | `false` | Icon only, without the bell, count or popover: for a column in a list.                                               |
+| `watcherCount` | `number`  |          | `null`  | Number of followers (`@self.watcherCount`). Null hides the count and the popover.                                    |
+| `canManage`    | `boolean` |          | `false` | Whether the user may add and remove other followers (`@self.can.manage`).                                            |
+| `notifies`     | `boolean` |          | `true`  | Whether following sends change notifications. False changes the tooltip to say it does not.                          |
+| `currentUser`  | `string`  |          | `''`    | User id of the current user. Defaults to Nextcloud's `OC.currentUser`.                                               |
 
 ### Events
 
-| Name        | Payload | Description                                                      |
-| ----------- | ------- | ---------------------------------------------------------------- |
-| `change`    | —       | Emitted after a successful call. Payload: `{ watching, count }`. |
-| `error`     | —       | Emitted when a call failed; payload is the message shown.        |
-| `not-found` | —       | Emitted on a 404: the record went away or access was withdrawn.  |
+| Name        | Payload | Description                                                              |
+| ----------- | ------- | ------------------------------------------------------------------------ |
+| `change`    | —       | Emitted after a successful call. Payload: `{ watching, notify, count }`. |
+| `error`     | —       | Emitted when a call failed; payload is the message shown.                |
+| `not-found` | —       | Emitted on a 404: the record went away or access was withdrawn.          |
