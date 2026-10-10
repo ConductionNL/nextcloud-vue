@@ -1299,7 +1299,10 @@
     "yesterday": "yesterday",
     "tomorrow": "tomorrow",
     "Filter by {column}": "Filter by {column}",
-    "Filter by {column}, active": "Filter by {column}, active"
+    "Filter by {column}, active": "Filter by {column}, active",
+    "Turn notifications off": "Turn notifications off",
+    "Turn notifications on": "Turn notifications on",
+    "Could not change notifications.": "Could not change notifications."
   },
   "plurals": {
     "%n year": [

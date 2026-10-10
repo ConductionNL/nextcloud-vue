@@ -1350,7 +1350,10 @@
     "yesterday": "gisteren",
     "tomorrow": "morgen",
     "Filter by {column}": "Filteren op {column}",
-    "Filter by {column}, active": "Filteren op {column}, actief"
+    "Filter by {column}, active": "Filteren op {column}, actief",
+    "Turn notifications off": "Meldingen uitzetten",
+    "Turn notifications on": "Meldingen aanzetten",
+    "Could not change notifications.": "Meldingen konden niet worden gewijzigd."
   },
   "plurals": {
     "%n year": [

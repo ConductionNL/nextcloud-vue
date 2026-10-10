@@ -66,7 +66,47 @@ describe('CnFollowToggle', () => {
 		expect(mockSetWatching).toHaveBeenCalledWith('pipelinq', 'ticket', 'c1', true)
 		resolve({ ok: true, status: 200 })
 		await flushPromises()
-		expect(w.emitted('change')[0][0]).toEqual({ watching: true, count: 3 })
+		expect(w.emitted('change')[0][0]).toEqual({ watching: true, notify: true, count: 3 })
+	})
+
+	it('offers the notifications switch only while following', () => {
+		expect(mountIt().find('[data-testid="cn-follow-toggle-notify"]').exists()).toBe(false)
+		const on = mountIt({ watching: true })
+		const bell = on.get('[data-testid="cn-follow-toggle-notify"]')
+		expect(bell.attributes('aria-pressed')).toBe('true')
+		expect(bell.attributes('aria-label')).toBe('Turn notifications off')
+	})
+
+	it('turns notifications off with PUT .../watch {notify:false}, keeping the follow', async () => {
+		mockSetWatching.mockResolvedValue({ ok: true, status: 200 })
+		const w = mountIt({ watching: true, notify: true })
+		await w.get('[data-testid="cn-follow-toggle-notify"]').trigger('click')
+		await flushPromises()
+		expect(mockSetWatching).toHaveBeenCalledWith('pipelinq', 'ticket', 'c1', true, { notify: false })
+		expect(toggle(w).text()).toBe('Following')
+		expect(w.get('[data-testid="cn-follow-toggle-notify"]').attributes('aria-pressed')).toBe('false')
+		expect(w.emitted('change')[0][0]).toEqual({ watching: true, notify: false, count: null })
+	})
+
+	it('reverts the switch and shows the server message when it fails', async () => {
+		mockSetWatching.mockResolvedValue({ ok: false, status: 500, message: 'Database down' })
+		const w = mountIt({ watching: true, notify: false })
+		await w.get('[data-testid="cn-follow-toggle-notify"]').trigger('click')
+		await flushPromises()
+		expect(w.get('[data-testid="cn-follow-toggle-notify"]').attributes('aria-pressed')).toBe('false')
+		expect(mockShowError).toHaveBeenCalledWith('Database down')
+	})
+
+	it('hides the switch when the register sends no notifications', () => {
+		expect(mountIt({ watching: true, notifies: false }).find('[data-testid="cn-follow-toggle-notify"]').exists()).toBe(false)
+	})
+
+	it('renders icon only in compact mode, with an accessible name and no switch or count', () => {
+		const w = mountIt({ watching: true, compact: true, watcherCount: 4 })
+		expect(toggle(w).text()).toBe('')
+		expect(toggle(w).attributes('aria-label')).toBe('Following')
+		expect(w.find('[data-testid="cn-follow-toggle-notify"]').exists()).toBe(false)
+		expect(w.find('[data-testid="cn-follow-toggle-count"]').exists()).toBe(false)
 	})
 
 	it('sends DELETE to unfollow', async () => {
