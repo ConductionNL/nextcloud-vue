@@ -10,7 +10,7 @@
 - **acceptance_criteria**:
   - Listed modes the page cannot open render disabled in the board order, inert, with the tooltip
   - Offered modes are not doubled; no key or no look leaves the switch as before
-  - `viewSwitch` validates with the four modes only (schema 2.78.0)
+  - `viewSwitch` validates with the four modes only (schema 2.82.0)
 - [x] Implement
 - [x] Test
 

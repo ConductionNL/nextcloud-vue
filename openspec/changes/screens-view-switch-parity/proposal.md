@@ -41,6 +41,6 @@ the board's drawing, and the honest state of the page.
 
 ## Impact
 
-Additive: one manifest key (schema 2.78.0), one optional `CnActionsBar` prop
+Additive: one manifest key (schema 2.82.0), one optional `CnActionsBar` prop
 (`disabledViewModes`). The existing spec named the group "View"; the boards
 name it "Weergave", so that requirement is amended to "View mode".
