@@ -26,6 +26,7 @@ jest.mock('@microsoft/fetch-event-source', () => ({
 
 const axios = require('@nextcloud/axios').default
 const CnAiCompanion = require('../../src/components/CnAiCompanion/CnAiCompanion.vue').default
+const { __resetAppInstalledCacheForTests } = require('../../src/utils/appInstalled.js')
 
 function mountCompanion(options = {}) {
 	const { aiContext = null, axiosGetMock = null, attachTo = null } = options
@@ -45,11 +46,20 @@ function mountCompanion(options = {}) {
 
 // The chat URLs are asserted in their `/index.php` form, so describe an
 // instance without pretty URLs.
+//
+// Both chat backends are installed unless a test says otherwise: the companion
+// only probes a backend Nextcloud lists in `OC.appswebroots`.
+let savedAppsWebRoots
 beforeEach(() => {
 	window.OC.config.modRewriteWorking = false
+	savedAppsWebRoots = window.OC.appswebroots
+	window.OC.appswebroots = { hermiq: '/apps/hermiq', openregister: '/apps/openregister' }
+	__resetAppInstalledCacheForTests()
 })
 afterEach(() => {
 	window.OC.config.modRewriteWorking = true
+	window.OC.appswebroots = savedAppsWebRoots
+	__resetAppInstalledCacheForTests()
 })
 
 describe('CnAiCompanion', () => {
@@ -86,6 +96,21 @@ describe('CnAiCompanion', () => {
 			'/index.php/apps/openregister/api/chat/health',
 			expect.any(Object),
 		)
+	})
+
+	it('🔴 does not probe a backend that is not installed, and renders nothing', async () => {
+		// cloud.conduction.nl, round-5 check: hermiq not installed, three
+		// `/apps/hermiq/api/chat/health` 404s on every page. Nextcloud already
+		// lists the installed apps, so the probe is skipped, not failed.
+		window.OC.appswebroots = { openregister: '/apps/openregister' }
+		__resetAppInstalledCacheForTests()
+		axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+		const wrapper = mountCompanion()
+		await flushPromises()
+
+		expect(axios.get).not.toHaveBeenCalled()
+		expect(wrapper.vm.probeSucceeded).toBe(false)
+		expect(wrapper.find('.cn-ai-floating-button').exists()).toBe(false)
 	})
 
 	it('renders FAB when health probe returns 200', async () => {

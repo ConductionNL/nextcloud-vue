@@ -207,6 +207,24 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 
 Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.
 
+## A system date as a column (`@self.created`)
+
+A column may name one of the object's system dates in OpenRegister's `@self` block as its key: `@self.created`, `@self.updated`, `@self.published` or `@self.depublished`. The cell reads the value from `@self` and renders it as a date-time, unless the column declares its own `type` or `format`.
+
+```json
+{ "key": "@self.created", "label": "Created" }
+```
+
+## Pill colours on a column (`columns[].colorMap`)
+
+An enum column renders each value as a status pill. `colorMap` on the column maps the raw value to a pill tone, so the manifest colours the pills without touching the schema. The map is keyed on the raw enum value, not on the translated label, and it wins over the schema property's own `colorMap` or `x-color-map`. A value the map does not name, and a column without a map, keep the default grey pill.
+
+```json
+{ "key": "status", "label": "Status", "colorMap": { "new": "primary", "in_progress": "purple", "awaiting_customer": "warning", "resolved": "success", "converted": "teal" } }
+```
+
+The tones are `default`, `primary`, `success`, `warning`, `error`, `info`, `purple` and `teal`. See [CnStatusBadge](./cn-status-badge.md).
+
 ## Board look
 
 Under the board look the table container is a white card (radius 12, no shadow), header cells are weight 600 on the hover ground, the first data cell is the title column (a 15px link with the `secondary` line under it) and the last column is headed by a visually hidden "Actions".
