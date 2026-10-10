@@ -68,6 +68,15 @@ A host that keeps a record about each file (dossiq's ZGW document record, say) c
 
 A row action is dispatched the way a widget's row action is: through the page's `cnDispatchAction` when the browser sits in a `CnPageRenderer` tree, else through the bare dispatcher. Folders get no host action. A linked row is read-only here; what changes it lives where the file does.
 
+A row action that only means something for some files says which, with `visibleIf`, and is left off every other row:
+
+```json
+{ "id": "read-as-message", "label": "Read as a message", "type": "handler", "handler": "readFileAsMessage",
+  "visibleIf": { "extension": ["eml", "msg"] } }
+```
+
+`extension` lists extensions (case does not matter, a leading dot is allowed). `mime` lists mime types, and one ending in `/` or `/*` names the whole family (`image/*`). When both are named, both must hold. An action without `visibleIf` is on every file, as before. It decides what is offered, not what is allowed: the act itself still checks what it was handed.
+
 ## Columns the host declares
 
 Set `columns` and the table shows what this page needs rather than what a file
@@ -117,6 +126,31 @@ directions rather than pushing the filled rows out of sight.
 Start with one declared column and `rowData` as a function, then add the
 chooser once the set is settled.
 
+### From a manifest
+
+A manifest cannot hold a function, so a `files` widget names an endpoint
+instead and `CnFilesTab` turns it into `rowData`:
+
+```json
+"props": {
+  "columns": ["name", { "key": "senderName", "label": "Sender", "source": "row" }, "modified"],
+  "rowDataUrl": "/apps/myapp/api/cases/OBJECT_ID/dossier",
+  "rowDataPath": "documents",
+  "rowDataKey": "fileId",
+  "preferenceApp": "myapp",
+  "preferenceKey": "case-files-columns"
+}
+```
+
+Where `OBJECT_ID` stands above, write the word objectId between curly braces,
+the same placeholder `linkedItemsUrl` takes; the tab replaces it with the
+object's id. The answer is read once per listing. It
+can be a list of records, the list at `rowDataPath`, or a list under `items` or
+`results`; each record names its file in `rowDataKey` (`fileId` by default),
+and a record without one is skipped. An object that is none of those is taken
+as already keyed by file id. A failed read leaves the extra cells empty and the
+files listed.
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -137,7 +171,7 @@ chooser once the set is settled.
 | `emptyLabel` | `String` | `'This folder is empty'` | Title of the empty state. |
 | `emptyHint` | `String` | `'Drop files here, or use New'` | Line under the empty state's title. |
 | `retryLabel` | `String` | `'Try again'` | Label of the retry button on a failed listing. |
-| `rowActions` | `Array` | `[]` | The host's own actions on each file row (never on a folder), declared like any manifest action: `{ id, label, icon?, type, target?, props?, handler?, args? }`. Dispatched through the page's action runner (`cnDispatchAction`, provided by `CnPageRenderer`) with the file merged in: an `open-modal` action's props gain `fileId`, `fileName` and `path`; a `handler` action's args gain the node. `icon` is an MDI icon name. |
+| `rowActions` | `Array` | `[]` | The host's own actions on each file row (never on a folder), declared like any manifest action: `{ id, label, icon?, type, target?, props?, handler?, args?, visibleIf? }`. Dispatched through the page's action runner (`cnDispatchAction`, provided by `CnPageRenderer`) with the file merged in: an `open-modal` action's props gain `fileId`, `fileName` and `path`; a `handler` action's args gain the node. `icon` is an MDI icon name. `visibleIf` (`{ extension?, mime? }`) offers the action only on the files it names. |
 | `newActions` | `Array` | `[]` | The host's own entries in the New menu, after the ones the Files app and its plugins register. Declared like a row action (`{ id, label, icon?, type, target?, props?, handler?, args? }`) and dispatched the same way, but with the folder rather than a row: an `open-modal` action's props gain `path`, a `handler` action's args gain the folder node. Use it for "new from template" or "request a file from a party". |
 | `linkedItems` | `Array` | `[]` | Rows that are not nodes of this folder: files the host joined from another object's folder, shown after the folder's own rows with open and download only. Each is `{ id, name, mime?, size?, mtime?, href?, downloadHref?, note?, noteHref? }`; `note` says where the file lives, `noteHref` links there. |
 | `columns` | `Array` | `[]` | The columns the browser shows, in order. A string names a built-in (`name`, `size`, `modified`, `owner`, `type`, `tags`); an object declares its own: `{ key, label, source, attribute, formatter, sortable }`, where `source` is `node`, `attribute` or `row`. Declaring none keeps today's name, size and modified. |
