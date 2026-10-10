@@ -141,3 +141,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 Under the board look (`layout="board"`, or the app's `cnLook`) the bar draws no band and lays out two rows: the quick-filter chips, the saved-view chips and the "Save view" button, a labelled Filter button carrying the number of active filters, and an icon-only view switch (table, cards, board, map) on row 1; the search field, "Active:", one removable chip per `activeFilterChips` entry and "Clear all" on row 2. New props: `layout`, `activeFilterChips` (`{ key, label }`), `activeFilterCount`, `showBuildiqButton`, `bulkNoun` and `bulkHint`. New events: `remove-filter` and `clear-filters`. While rows are selected the bulk band renders as its own region after the toolbar element, not inside it. Without the look the bar renders as before.
 
 `showBuildiqButton` (Boolean, default true): set false when the page draws the buildiq square in its own header.
+
+### Disabled view segments
+
+Under the board look `disabledViewModes` (an array of modes) draws view switch segments the page cannot open, in the fixed order table, cards, board, map, disabled and titled "<mode>: not available on this list". A mode that is also offered renders once, enabled. `CnIndexPage` fills it from `config.viewSwitch`.
