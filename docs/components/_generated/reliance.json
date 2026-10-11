@@ -637,7 +637,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 168,
+			"transitive": 169,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -853,7 +853,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 171,
+			"transitive": 172,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3185,7 +3185,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 0,
-			"transitive": 125,
+			"transitive": 127,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3543,7 +3543,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 158,
+			"transitive": 159,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
