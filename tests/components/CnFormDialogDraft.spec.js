@@ -305,3 +305,51 @@ describe('Publish a stored draft', () => {
 		expect(wrapper.find('[data-testid="cn-form-dialog-draft-state"]').text()).toBe('Saved just now')
 	})
 })
+
+// "Saved just now" beside a failed save reads as if the server save worked.
+// While the dialog shows an error result the indicator says where the draft
+// lives, or nothing.
+// @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-the-draft-indicator-never-reads-as-a-server-save-after-a-failed-save
+describe('the draft indicator after a failed save', () => {
+	beforeEach(() => window.localStorage.clear())
+
+	const indicator = (wrapper) => wrapper.find('[data-testid="cn-form-dialog-draft-state"]').text()
+
+	it('says the draft is kept on this device, never Saved, beside the error', async () => {
+		const wrapper = open()
+		await flushPromises()
+		wrapper.vm.draftState = 'saved'
+		wrapper.vm.draftSavedAt = Date.now()
+		await wrapper.vm.$nextTick()
+		// CONTROL: without a result the local save is announced as before.
+		expect(indicator(wrapper)).toBe('Saved just now')
+
+		wrapper.vm.setResult({ success: false, error: 'server said no' })
+		await flushPromises()
+
+		expect(wrapper.text()).toContain('server said no')
+		expect(indicator(wrapper)).toBe('Draft kept on this device')
+		expect(indicator(wrapper)).not.toMatch(/Saved|Saving/)
+	})
+
+	it('says nothing while a local write is still pending', async () => {
+		const wrapper = open()
+		await flushPromises()
+		wrapper.vm.setResult({ error: 'server said no' })
+		wrapper.vm.draftState = 'saving'
+		await flushPromises()
+
+		expect(indicator(wrapper)).toBe('')
+	})
+
+	it('holds on the board look too', async () => {
+		const wrapper = open({ look: 'board' })
+		await flushPromises()
+		wrapper.vm.draftState = 'saved'
+		wrapper.vm.setResult({ error: 'server said no' })
+		await flushPromises()
+
+		expect(wrapper.find('[data-testid="cn-dialog-tertiary"]').exists()).toBe(true)
+		expect(indicator(wrapper)).toBe('Draft kept on this device')
+	})
+})
