@@ -637,7 +637,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 170,
+			"transitive": 171,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -695,6 +695,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -854,7 +855,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 173,
+			"transitive": 174,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -912,6 +913,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -1077,9 +1079,11 @@
 		},
 		"CnFactsWidget": {
 			"direct": 1,
-			"transitive": 3,
+			"transitive": 5,
 			"tier": "medium",
-			"via": [],
+			"via": [
+				"CnIndexPage"
+			],
 			"page": "cn-facts-widget"
 		},
 		"CnFavouriteToggle": {
@@ -1276,7 +1280,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 180,
+			"transitive": 181,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1334,6 +1338,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -1554,7 +1559,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 177,
+			"transitive": 178,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1611,6 +1616,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -2517,7 +2523,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 193,
+			"transitive": 194,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2579,6 +2585,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterMapping",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
@@ -2716,6 +2723,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-quicklinks-widget-form"
+		},
+		"CnRecordListWidget": {
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-record-list-widget"
 		},
 		"CnReferencePreview": {
 			"direct": 0,
@@ -3686,7 +3700,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 160,
+			"transitive": 161,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3740,6 +3754,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",

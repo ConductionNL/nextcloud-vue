@@ -41,10 +41,12 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * created by a flow, never by a person clicking Add.
  * `facts` is a bare list of label/value rows about one object: on a side
  * card it needs the same titled wrapper, and there is nothing to Add.
+ * `record-list` draws bare rows of another schema's objects; the card and its
+ * header (link, note) come from the host, and it has no Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'facts'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'facts', 'record-list'])
 
 /**
  * The stored content/config blob for a widget definition.
