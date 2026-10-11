@@ -133,8 +133,10 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 			expect.stringContaining('/apps/wt-close' + PREF_PATH),
 			{ value: '2.1.0' },
 		)
-		// Read and write must address one identical URL.
-		expect(axios.put.mock.calls[0][0]).toBe(axios.get.mock.calls[0][0])
+		// Read and write must address one identical URL. (The first PUT
+		// may be the auto-started tour's progress, on its own key.)
+		const seenPut = axios.put.mock.calls.find(([, body]) => body && body.value === '2.1.0')
+		expect(seenPut[0]).toBe(axios.get.mock.calls[0][0])
 		w.unmount()
 	})
 

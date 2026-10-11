@@ -3891,7 +3891,7 @@ export default {
 					const mappedProps = propertiesFromDefinitions(
 						Array.isArray(records) ? records : [],
 						config,
-						{ orderFrom: 1000 + Object.keys(properties).length },
+						{ orderFrom: 1000 + Object.keys(properties).length, create: this.isCreateMode },
 					)
 					Object.assign(properties, mappedProps.properties)
 					required.push(...mappedProps.required)

@@ -151,14 +151,55 @@ export function firstHrefIn(xml) {
  * @param {string} options.remoteUrl The DAV remote url, `…/remote.php/dav`.
  * @return {Promise<string|null>} The user-relative folder path, or null.
  */
-export async function resolveObjectFolder({ apiBase, register, schema, objectId, uid, remoteUrl }) {
+export async function resolveObjectFolder(options) {
+	const info = await resolveObjectFolderInfo(options)
+	return info === null ? null : info.path
+}
+
+/**
+ * The object's display name: `@self.name`, else `title`, else `name`. A
+ * value equal to the object's uuid is no name (the folder already reads so).
+ *
+ * @param {object|null} object The object as OpenRegister returns it.
+ * @param {string} objectId The object's uuid.
+ * @return {string|null} The name, or null.
+ * @spec openspec/changes/dutch-library-strings-and-files-crumb/specs/dutch-library-strings-and-files-crumb/spec.md#requirement-the-files-browser-names-the-object-in-its-root-crumb
+ */
+export function objectDisplayName(object, objectId) {
+	const candidates = [object?.['@self']?.name, object?.title, object?.name]
+	for (const candidate of candidates) {
+		if (typeof candidate === 'string' && candidate.trim() !== '' && candidate.trim() !== String(objectId)) {
+			return candidate.trim()
+		}
+	}
+	return null
+}
+
+/**
+ * `resolveObjectFolder`, plus the object's display name from the same read,
+ * so the browser can name the root crumb after the object instead of the
+ * uuid its folder is called on disk.
+ *
+ * @param {object} options The lookup, as for `resolveObjectFolder`.
+ * @param {string} options.apiBase OpenRegister's API base, `/apps/openregister/api`.
+ * @param {string} options.register The register slug.
+ * @param {string} options.schema The schema slug.
+ * @param {string} options.objectId The object's uuid.
+ * @param {string} options.uid The current user's id.
+ * @param {string} options.remoteUrl The DAV remote url, `…/remote.php/dav`.
+ * @return {Promise<{path: string, name: (string|null)}|null>} The folder and the object's name, or null.
+ * @spec openspec/changes/dutch-library-strings-and-files-crumb/specs/dutch-library-strings-and-files-crumb/spec.md#requirement-the-files-browser-names-the-object-in-its-root-crumb
+ */
+export async function resolveObjectFolderInfo({ apiBase, register, schema, objectId, uid, remoteUrl }) {
 	if (!register || !schema || !objectId || !uid) {
 		return null
 	}
 	let folderId
+	let name
 	try {
 		const { data } = await axios.get(generateUrl(`${apiBase}/objects/{register}/{schema}/{objectId}`, { register, schema, objectId }))
 		folderId = data?.['@self']?.folder ?? null
+		name = objectDisplayName(data, objectId)
 	} catch {
 		return null
 	}
@@ -174,7 +215,7 @@ export async function resolveObjectFolder({ apiBase, register, schema, objectId,
 			responseType: 'text',
 		})
 		const href = firstHrefIn(response.data)
-		return href === null ? null : userRelativePathFromHref(href, uid)
+		return href === null ? null : { path: userRelativePathFromHref(href, uid), name }
 	} catch {
 		return null
 	}
