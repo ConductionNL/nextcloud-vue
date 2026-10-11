@@ -47,7 +47,9 @@ function t(app, text, vars) {
 }
 const n = (app, s, p, count) => (count === 1 ? s : p)
 
-const app = createApp(App)
+// The files browser bar (?filesbar=1) mounts on its own, outside App.vue.
+const filesBar = typeof window !== 'undefined' && /[?&]filesbar=/.test(window.location.search)
+const app = createApp(filesBar ? (await import('./FilesBarHarness.vue')).default : App)
 app.use(createPinia())
 
 // A ROUTER, FOR ONE SCENARIO ONLY (?runlink=1).

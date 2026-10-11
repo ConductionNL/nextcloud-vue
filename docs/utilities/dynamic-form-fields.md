@@ -55,7 +55,9 @@ Some domains keep half of an object's shape in the database instead of the schem
 
 Which field on a definition record supplies each part of the resulting form field. Every key is optional and falls back to the dossiq names shown above, so a schema that follows that convention can omit `map` entirely.
 
-Recognised roles: `title`, `description`, `definition`, `type`, `format`, `maxLength`, `enum`, `required`, `default`.
+Recognised roles: `title`, `description`, `definition`, `type`, `format`, `maxLength`, `enum`, `required`, `default`, `hideOnCreate`.
+
+`hideOnCreate` (record field `hideOnCreate` by default) keeps a question off the create form: when the record's value is `true`, `CnFormDialog` gives it no field while it creates an object, required or not, and shows it as usual on the edit form. Use it for an answer the app fills itself at creation, such as the date a request was received. `propertiesFromDefinitions` applies it when called with `{ create: true }`.
 
 ### `values`
 
