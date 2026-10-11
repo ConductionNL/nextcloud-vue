@@ -25,7 +25,7 @@
 
 ### Task 3: `@monthEnd` and `@nextMonthStart`
 - **spec_ref**: `openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-the-filter-vocabulary-names-the-end-of-the-month`
-- **files**: `src/utils/resolveFilterTokens.js`, `src/utils/sentinelTokens.js`, `src/schemas/app-manifest-v2.schema.json`, `tests/components/CnIndexActiveFilterLine.spec.js`
+- **files**: `src/utils/resolveFilterTokens.js`, `src/utils/sentinelTokens.js`, `src/schemas/app-manifest-v2.schema.json`, `tests/components/CnIndexActiveFilterLine.spec.js`, `tests/schemas/filterTokens.spec.js`
 - **acceptance_criteria**:
   - Both resolve in local time, across February and the year end
   - The schema pattern and the vocabulary pattern stay byte equal (schema 2.81.0)
