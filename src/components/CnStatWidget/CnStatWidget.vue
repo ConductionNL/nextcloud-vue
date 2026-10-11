@@ -46,7 +46,7 @@
 					aria-hidden="true">
 					<CnWidgetIcon :name="resolvedIcon" :size="18" />
 				</span>
-				<span v-if="content.label" :title="resolvedLabel">{{ resolvedLabel }}</span>
+				<span v-if="content.label" class="cn-kpi-card__title-text" :title="resolvedLabel">{{ resolvedLabel }}</span>
 
 				<!-- Per-tile range override. Rendered ONLY when the tile declares its
 				     own `content.dateRange.presets`; a tile that merely follows the

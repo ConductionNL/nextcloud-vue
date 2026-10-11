@@ -305,6 +305,7 @@ import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } fro
 import { reportDiagnostic, reportDiagnosticOnce } from '../../utils/diagnostics.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
+import { applyQueryPreset, matchQueryPreset } from '../../utils/queryPresets.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { parseSortKeys } from '../../utils/routeFilters.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
@@ -1050,7 +1051,25 @@ export default {
 				return 'none'
 			}
 			const cfg = (page.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
-			return [page.id, cfg.register || '', cfg.schema || ''].join(':')
+			// A query preset swaps the lenses and columns, so it remounts the
+			// page: the active lens index belongs to the lenses it indexes.
+			const preset = this.activeQueryPresetIndex >= 0 ? `:preset-${this.activeQueryPresetIndex}` : ''
+			return [page.id, cfg.register || '', cfg.schema || ''].join(':') + preset
+		},
+
+		/**
+		 * The index of the current index page's query preset that the route
+		 * query matches, or -1.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/screens-index-query-presets/specs/index-query-presets/spec.md#requirement-a-query-preset-overlays-lenses-columns-and-copy
+		 */
+		activeQueryPresetIndex() {
+			const page = this.currentPage
+			if (!page || page.type !== 'index' || !page.config || !Array.isArray(page.config.queryPresets)) {
+				return -1
+			}
+			return matchQueryPreset(page.config.queryPresets, this.$route?.query || {})
 		},
 
 		/**
@@ -1297,6 +1316,15 @@ export default {
 			// container before forwarding — CnIndexPage has no
 			// `actionToggles` prop.
 			const isIndex = page?.type === 'index'
+			// A query preset (`config.queryPresets`): the menu entry's query
+			// brings its own lenses, columns and copy to the same page.
+			if (isIndex && Array.isArray(config.queryPresets)) {
+				const preset = config.queryPresets[this.activeQueryPresetIndex] || null
+				config = applyQueryPreset(config, preset)
+				if (preset && typeof preset.title === 'string' && preset.title !== '') {
+					topLevel.title = preset.title
+				}
+			}
 			// When an index page has somewhere to open a row, make a row click
 			// go there: set `rowClickToView` so the row body emits `row-click`
 			// (→ onRowOpen navigates) even though the page is selectable.

@@ -6,7 +6,9 @@
  * (opt-in through `recoverDraft`).
  */
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { post: jest.fn(() => Promise.resolve({ data: {} })) } }))
+jest.mock('@nextcloud/auth', () => ({ ...jest.requireActual('@nextcloud/auth'), getCurrentUser: jest.fn(() => null) }))
 
+import { getCurrentUser } from '@nextcloud/auth'
 import { mount } from '@vue/test-utils'
 import CnFormPage from '@/components/CnFormPage/CnFormPage.vue'
 import { draftKey, writeDraft } from '../../src/composables/useFormDraft.js'
@@ -133,5 +135,31 @@ describe('CnFormPage draft indicator after a failed submit', () => {
 		expect(state()).toBe('Draft kept on this device')
 		expect(state()).not.toMatch(/Saved|Saving/)
 		w.unmount()
+	})
+})
+
+// @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-a-draft-belongs-to-the-signed-in-user
+describe('CnFormPage draft owner', () => {
+	beforeEach(() => {
+		window.localStorage.clear()
+		jest.useFakeTimers()
+	})
+	afterEach(() => {
+		jest.useRealTimers()
+		getCurrentUser.mockReturnValue(null)
+	})
+
+	it('keys the draft on the signed-in user when the host passes no user, and removes anonymous drafts', async () => {
+		getCurrentUser.mockReturnValue({ uid: 'cluade', displayName: 'Cluade', isAdmin: false })
+		const anonymous = draftKey({ appId: 'survey', schema: 'intake', objectId: 'new', userId: '' })
+		writeDraft(anonymous, { name: 'typed by somebody else' })
+
+		const w = mountForm({ draftUserId: '' })
+		expect(w.find('[data-testid="cn-form-page-draft-offer"]').exists()).toBe(false)
+		expect(window.localStorage.getItem(anonymous)).toBeNull()
+
+		await w.find('.nc-textfield-stub').setValue('Cluade')
+		jest.advanceTimersByTime(600)
+		expect(window.localStorage.getItem(draftKey({ appId: 'survey', schema: 'intake', objectId: 'new', userId: 'cluade' }))).not.toBeNull()
 	})
 })

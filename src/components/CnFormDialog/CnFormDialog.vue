@@ -186,7 +186,7 @@
 								:error="!!errors[field.key]"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:disabled="field.readOnly"
-								:placeholder="field.description"
+								:placeholder="fieldPlaceholder(field)"
 								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
 								:id="helpId(field)"
@@ -208,7 +208,7 @@
 								:error="!!errors[field.key]"
 								type="number"
 								:disabled="field.readOnly"
-								:placeholder="field.description"
+								:placeholder="fieldPlaceholder(field)"
 								@update:modelValue="value => updateField(field.key, value !== '' ? Number(value) : null)" />
 							<CnFieldHelper
 								:id="helpId(field)"
@@ -230,7 +230,7 @@
 								v-bind="fieldAria(field)"
 								:value="formData[field.key] || ''"
 								:disabled="field.readOnly"
-								:placeholder="field.description"
+								:placeholder="fieldPlaceholder(field)"
 								rows="4"
 								@input="updateField(field.key, $event.target.value)" />
 							<CnFieldHelper
@@ -652,7 +652,7 @@
 								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:error="!!errors[field.key]"
 								:disabled="field.readOnly"
-								:placeholder="field.description"
+								:placeholder="fieldPlaceholder(field)"
 								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
 								:id="helpId(field)"
@@ -787,7 +787,7 @@ import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceFiel
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnSubObjectsField from '../CnSubObjectsField/CnSubObjectsField.vue'
 import { describeRowProblem, useChildRecords } from '../../composables/useChildRecords.js'
-import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
+import { clearAnonymousDrafts, draftIndicatorText, draftKey, formDraftMixin, hasDraftChanges, readDraft, resolveDraftUserId } from '../../composables/useFormDraft.js'
 import { heldFromFailures, splitHeldFiles, uploadHeldFiles } from '../../composables/useHeldFileUpload.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
@@ -1172,16 +1172,16 @@ export default {
 		 * 🔴 THE USER IS PART OF THE DRAFT KEY. A shared browser profile at a
 		 * service desk is the ordinary case in a municipality, and a draft
 		 * keyed without the user hands the next person at the counter what the
-		 * last one typed. A host that passes nothing gets `anonymous`, which
-		 * is correct for a single-user context and wrong for a counter — so
-		 * the prop exists and is documented rather than guessed at.
+		 * last one typed. A host that passes nothing gets the signed-in
+		 * Nextcloud user (`@nextcloud/auth`), and `anonymous` only when
+		 * nobody is signed in.
 		 */
 		draftAppId: {
 			type: String,
 			default: '',
 		},
 
-		/** Who is typing, for the draft key. See `draftAppId`. */
+		/** Who is typing, for the draft key. Empty: the signed-in user. See `draftAppId`. */
 		draftUserId: {
 			type: String,
 			default: '',
@@ -1442,8 +1442,18 @@ export default {
 				appId: this.draftAppId,
 				schema: (this.schema?.slug || this.schema?.title || ''),
 				objectId: (this.item?.id || this.item?.uuid || ''),
-				userId: this.draftUserId,
+				userId: this.draftUserOwner,
 			})
+		},
+
+		/**
+		 * Who the draft belongs to: `draftUserId`, else the signed-in user.
+		 *
+		 * @return {string} The user id, or '' when nobody is signed in.
+		 * @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-a-draft-belongs-to-the-signed-in-user
+		 */
+		draftUserOwner() {
+			return resolveDraftUserId(this.draftUserId)
 		},
 
 		/**
@@ -1757,22 +1767,24 @@ export default {
 		formData: {
 			deep: true,
 			handler(values) {
-				// 🔴 THE FIRST CHANGE IS THE COMPONENT SEEDING THE FORM, NOT
-				// SOMEBODY TYPING. Writing a draft for it stores the empty
-				// form over a real one, and the indicator announces "Saving
-				// draft" about work nobody did — an instrument reporting
-				// activity that did not happen, which is the whole class of
-				// defect this library keeps paying down.
-				if (this.draftSeeded !== true) {
-					this.draftSeeded = true
-					return
-				}
-
 				// Nothing is written while a draft is being offered: the user
 				// has not chosen yet, and overwriting the stored draft with the
 				// empty form they are looking at would destroy the thing they
 				// are about to be asked about.
 				if (!this.formDraftKey || this.draftOffer !== null) {
+					return
+				}
+
+				// 🔴 ONLY A PERSON'S CHANGE IS WORTH A DRAFT. The form fills
+				// in values by itself after it opens (an input reporting its
+				// value back, normalised dates, defaults, the organisation),
+				// and each of those used to write a draft and say "Saved just
+				// now" on a dialog nobody had touched. A field counts once a
+				// person edited it AND it differs from what the form opened
+				// with, so undoing the edit drops the draft again.
+				const edited = Object.keys(this.touchedFields || {}).filter((key) => this.touchedFields[key])
+				if (!hasDraftChanges(values, this.draftBaseline, edited)) {
+					this.settleUnchangedDraft(this.formDraftKey)
 					return
 				}
 
@@ -1940,6 +1952,12 @@ export default {
 		// Silently refilling a form is how somebody submits last week's answers
 		// without noticing they were there, and a form that fills itself is
 		// indistinguishable from one the server prefilled.
+		// A draft stored under `anonymous` was written by a page that did not
+		// know who was typing. Once somebody is signed in it is removed, never
+		// offered: it may be another person's.
+		if (this.formDraftKey && this.draftUserOwner) {
+			clearAnonymousDrafts()
+		}
 		if (this.formDraftKey) {
 			this.draftOffer = readDraft(this.formDraftKey, {
 				objectUpdated: (this.item?.updated || this.item?.['@self']?.updated || ''),
@@ -2298,6 +2316,10 @@ export default {
 				this.runAssignments(null)
 				this.loadProfileDefaults()
 			}
+			// What the form opened with. A draft is written only once a field
+			// a person edited differs from this (see the `formData` watcher).
+			// Not reactive: nothing renders from it.
+			this.draftBaseline = JSON.parse(JSON.stringify(this.formData || {}))
 		},
 
 		/**
@@ -3083,6 +3105,27 @@ export default {
 		 */
 		helperError(field) {
 			return this.showsOuterLabel(field) ? '' : this.errors[field.key]
+		},
+
+		/**
+		 * The placeholder of a text, number or textarea control.
+		 *
+		 * The field's description already shows as the help line under the
+		 * control, so the placeholder stays empty rather than repeat it word
+		 * for word. The help line is the one kept: it is still there after
+		 * somebody typed (a placeholder disappears with the first keystroke),
+		 * it is read out through `aria-describedby`, and in the Nextcloud look
+		 * a placeholder is hidden until the field has focus anyway. While an
+		 * error takes the help line's place, the description returns as the
+		 * placeholder so it is not lost.
+		 *
+		 * @param {object} field The field definition.
+		 * @return {string} The placeholder, or '' when the help line says it.
+		 * @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-a-field-description-shows-once
+		 */
+		fieldPlaceholder(field) {
+			const description = field.description || ''
+			return this.helperError(field) ? description : ''
 		},
 
 		/**
@@ -4567,6 +4610,11 @@ export default {
 			}
 
 			this.formData = { ...this.formData, ...this.draftOffer.values }
+			// What the person typed last time is their edit now: it counts for
+			// the next draft write and survives the record arriving late.
+			for (const key of Object.keys(this.draftOffer.values)) {
+				this.touchedFields[key] = true
+			}
 			this.draftOffer = null
 		},
 

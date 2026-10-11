@@ -222,3 +222,7 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 `showBuildiqButton` is documented in the prop table of the component reference (board look, screens-chrome-parity).
 
 Slot `actions-end`: custom buttons after the primary Add button (CnIndexPage's saved views). Under the board look it renders in row 1, after the quick-filter chips.
+
+### Disabled view segments
+
+Under the board look `disabledViewModes` (an array of modes) draws view switch segments the page cannot open, in the fixed order table, cards, board, map, disabled and titled "<mode>: not available on this list". A mode that is also offered renders once, enabled. `CnIndexPage` fills it from `config.viewSwitch`.
