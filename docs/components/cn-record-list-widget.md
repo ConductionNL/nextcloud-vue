@@ -69,6 +69,14 @@ In a tab panel there is no card header, so neither is drawn.
 
 `emptyText` on one line when the list is empty; one quiet line (`errorText`, else "This list could not be loaded.") when the read fails, never both. The error goes to the console.
 
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `content` | `object` | `{}` | The list configuration above. |
+| `objectId` | `string\|number` | `null` | The current record's id, for the `@objectId` token. Passed by the detail page host. |
+| `objectData` | `object` | `null` | The current record, for `@object.<field>` tokens. Passed by the detail page host. |
+
 ## Events
 
 | Event | Payload | Description |

@@ -391,6 +391,10 @@ export default {
 
 		/** Tell the card around this list what its header shows. */
 		emitHeader() {
+			/**
+			 * @event header Emitted after every read with the card header's parts.
+			 * @type {{link: (object|null), note: string}} The header link (resolved, with `{total}` filled) and the note.
+			 */
 			this.$emit('header', { link: this.headerLink, note: this.headerNote })
 		},
 
