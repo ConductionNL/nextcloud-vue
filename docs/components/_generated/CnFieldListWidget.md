@@ -18,6 +18,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name    | Payload | Description |
-| ------- | ------- | ----------- |
-| `saved` | —       |             |
+| Name    | Payload | Description                                           |
+| ------- | ------- | ----------------------------------------------------- |
+| `saved` | —       | The list was saved: one PATCH of the field succeeded. |

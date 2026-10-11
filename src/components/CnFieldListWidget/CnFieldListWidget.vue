@@ -540,6 +540,10 @@ export default {
 				const { data } = await axios.patch(prefixUrl(this.objectUrl), { [this.content.field]: next })
 				const written = readPath(data || {}, this.content.field)
 				this.saved = Array.isArray(written) ? written : next
+				/**
+				 * @event saved The list was saved: one PATCH of the field succeeded.
+				 * @type {{field: string, value: Array}}
+				 */
 				this.$emit('saved', { field: this.content.field, value: this.saved })
 				return true
 			} catch (e) {
