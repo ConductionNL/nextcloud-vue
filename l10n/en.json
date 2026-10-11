@@ -67,6 +67,7 @@
     "Follow this record to get its updates": "Follow this record to get its updates",
     "You will see it under Following. This register sends no change notifications.": "You will see it under Following. This register sends no change notifications.",
     "Since {date}": "Since {date}",
+    "since {date}": "since {date}",
     "Remove {name} as a follower": "Remove {name} as a follower",
     "Could not change following.": "Could not change following.",
     "Could not add this colleague.": "Could not add this colleague.",
@@ -301,6 +302,9 @@
     "Constant": "Constant",
     "Copy": "Copy",
     "Copied": "Copied",
+    "Show": "Show",
+    "Copy {label}": "Copy {label}",
+    "Show {label}": "Show {label}",
     "Copy item": "Copy item",
     "Copy items": "Copy items",
     "Copy of {name}": "Copy of {name}",
@@ -795,6 +799,7 @@
     "View all ({total})": "View all ({total})",
     "No items": "No items",
     "Nothing here yet": "Nothing here yet",
+    "This list could not be loaded.": "This list could not be loaded.",
     "No items match this filter": "No items match this filter",
     "Could not load these records": "Could not load these records",
     "No conversations yet": "No conversations yet",
@@ -1362,7 +1367,8 @@
     "Quick filters": "Quick filters",
     "{count} filters": "{count} filters",
     "{count} more filters": "{count} more filters",
-    "{label} — show the other filters": "{label} — show the other filters"
+    "{label} — show the other filters": "{label} — show the other filters",
+    "{view}: not available on this list": "{view}: not available on this list"
   },
   "plurals": {
     "{count} selected": [

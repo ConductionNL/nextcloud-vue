@@ -1,0 +1,82 @@
+# CnFieldListWidget
+
+A list stored INSIDE one field of the current object, shown as rows and edited in place. Registered under the `field-list` widget type.
+
+A portal keeps its domains in `portal.domains[]` and its administrators in `portal.editors[]`; neither is a separate object, so an object list (which queries a schema) cannot show them, and before this widget each was an app component (portaliq `PortalDomains`, `PortalEditors`). The manifest now says which field, how a row reads, what the add form asks, and what a row can do.
+
+Every change is ONE `PATCH` of that one field on the object, after re-reading the stored value, so an entry someone else added a moment ago is not overwritten with a stale copy. The server decides who may write: a refused PATCH shows the server's own words and the list stays as stored.
+
+## Content shape
+
+```json
+{
+  "id": "portal-domains",
+  "type": "field-list",
+  "title": "Domeinen",
+  "content": {
+    "field": "domains",
+    "key": "hostname",
+    "row": {
+      "title": "hostname",
+      "pill": { "path": "verified", "map": { "true": "Geverifieerd", "false": "Wacht op controle" }, "variantMap": { "true": "success", "false": "warning" } },
+      "aside": { "path": "certificateValidUntil", "format": "date-long", "prefix": "Certificaat tot" },
+      "detail": { "template": "Zet dit TXT-record: {name} = {value}", "when": { "verified": false } }
+    },
+    "rowActions": [
+      { "id": "verify", "label": "Opnieuw controleren", "when": { "verified": false },
+        "request": { "method": "POST", "url": "/apps/portaliq/api/cms/domains/verify", "payload": { "portal": "@object.slug", "hostname": "@row.hostname" } } }
+    ],
+    "rowSource": { "url": "/apps/portaliq/api/cms/domains?portal=@object.slug", "path": "results", "key": "hostname" },
+    "add": {
+      "label": "Domein toevoegen",
+      "unique": "hostname",
+      "defaults": { "verified": false },
+      "fields": [ { "key": "hostname", "label": "Domein", "required": true, "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$", "patternMessage": "Dit is geen domeinnaam." } ]
+    },
+    "remove": { "label": "Verwijderen" },
+    "hint": "Een domein werkt pas als het gecontroleerd is.",
+    "emptyText": "Nog geen domein."
+  }
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `field` | The object field that holds the array (required). |
+| `key` | The item field that identifies an entry (rows, remove, live state). Strings in the array are their own key. |
+| `row.title` / `row.titleFallback` | Paths of the bold line. |
+| `row.avatar` | Initials of the title in a round badge. |
+| `row.meta` | Paths, or `{ path, map?, format? }`, joined by " · " under the title. |
+| `row.pill` | `{ path, map?, variantMap? }`: a CnStatusBadge. |
+| `row.aside` | `{ path, format?, prefix? }`: muted text at the row's end. `format` is `date` or `date-long`. |
+| `row.detail` | `{ template, when? }`: a muted line under the row; `{path}` placeholders, left out when one is empty. |
+| `rowActions[]` | `{ id, label, when?, request: { method?, url, payload? } }`: a button on matching rows. Tokens: `@objectId`, `@object.<field>`, `@row.<field>` (a whole-string token keeps its type; inside a url it is encoded). After the request the live state is read again; a `message` in the answer shows as an info note. |
+| `rowSource` | `{ url, path?, key }`: live per-row state merged over each entry by key, never written back. |
+| `add` | `{ label?, fields[], unique?, defaults? }`. A field is `{ key, label, type?: "text" \| "select", options?, required?, pattern?, patternMessage?, default? }`. `unique` refuses an entry whose key is already stored. `defaults` are written with every new entry. |
+| `remove` | `{ label? }`: a remove button per row. Omitted: no remove. |
+| `readOnly` | No add form, no remove, no row actions. |
+| `hint`, `emptyText` | Muted texts. |
+
+`when` is `{ field: value }`, every field equal; `false` also matches an absent value. Labels, map values, templates, hint and empty text go through the host app's `cnTranslate`.
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `content` | `object` | `{}` | The configuration above. |
+| `objectData` | `object` | `null` | The current detail-page object; the list is read from `objectData[field]`. |
+| `objectId` | `string\|number` | `''` | The object id, for the PATCH and the `@objectId` token. |
+| `register` | `string\|object` | `''` | Register slug of the surface, for the PATCH url. |
+| `schema` | `string\|object` | `''` | Schema slug of the surface, for the PATCH url. |
+
+## Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `saved` | `{ field, value }` | After a successful PATCH, with the list as the server returned it. |
+
+## Notes
+
+- Content-only on the detail page: it gets the titled card; in a tab panel or a `sections` widget it renders bare.
+- A save without a register, schema or id says "This list cannot be saved here." and writes nothing.
+- Renderer only: no config form.

@@ -77,6 +77,7 @@ A tab can show a count, and a strip can keep to a few tabs and put the rest unde
 | --- | --- | --- |
 | `count` | a tab | A number shown after the label. |
 | `countField` | a tab | Reads the count off the record. A list counts its items, a number is used as is, a missing field counts as 0. |
+| `countFrom` | a tab | Counts a list on the server when the record does not carry the number: `"widget"` counts the child widget's own list (its `content.register`, `content.schema` and `content.filter`, with `@objectId` and other tokens resolved), an object with `register`, `schema` and an optional `filter` names the list. One request per tab (`_limit=1`, the response's `total`), again when the record changes or the page refreshes. `count` and `countField` win over it; a failed count shows no number. |
 | `overflow` | a tab | Lists the tab under "More". |
 | `maxVisibleTabs` | `content` | The most tabs the strip shows. Later tabs go under "More". A tab that is already there does not use up a place. |
 | `hideEmpty` | `content` | Moves a tab whose count is 0 under "More". A tab without a count is never moved. |
@@ -86,11 +87,28 @@ The strip opens on the first tab that is in it. None of these keys is required, 
 
 Tab titles are separately configurable for a reason: "Files and attachments" reads fine on a card and is too long once six tabs share the width. [`CnTabsWidgetForm`](./cn-tabs-widget-form.md) edits them in Buildiq edit mode.
 
+### A stack of widgets in one tab
+
+A tab can hold several widgets with `widgetIds` instead of `widgetId`. The
+Overview of a person or organisation page shows the record's card, then its
+open cases, then its latest contact moments, and only on that tab:
+
+```json
+{ "widgetIds": ["person-card", "person-cases", "person-moments"], "label": "Overview" }
+```
+
+Every widget renders as a titled card without its own Actions menu (the strip's
+Actions button serves the tab). In the board look the panel draws no frame of
+its own: the first card joins the open tab and the next ones stand 20px apart.
+An id that names no widget is skipped. Without `label` the tab takes the first
+widget's title. `countFrom: "widget"` counts the first widget of the stack that
+has a list. A `widgetId` tab renders as before.
+
 ## Props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }`, or a bare widget-id string. |
+| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }` or `{ widgetIds, label?, icon? }`, or a bare widget-id string. |
 | `availableWidgets` | `Array` | `[]` | Every widget definition on the surface, so `content.tabs[]` can reference siblings by id. |
 | `objectId` | `String \| Number` | `''` | The bound record's id. |
 | `objectData` | `Object` | `null` | The loaded record, or null while it is still being fetched. |

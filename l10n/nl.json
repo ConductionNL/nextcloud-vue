@@ -67,6 +67,7 @@
     "Follow this record to get its updates": "Volg dit dossier om de wijzigingen te ontvangen",
     "You will see it under Following. This register sends no change notifications.": "U ziet het onder Volgend. Dit register stuurt geen wijzigingsmeldingen.",
     "Since {date}": "Sinds {date}",
+    "since {date}": "sinds {date}",
     "Remove {name} as a follower": "{name} als volger verwijderen",
     "Could not change following.": "Volgen kon niet worden gewijzigd.",
     "Could not add this colleague.": "Deze collega kon niet worden toegevoegd.",
@@ -300,6 +301,9 @@
     "Constant": "Constante",
     "Copy": "Kopiëren",
     "Copied": "Gekopieerd",
+    "Show": "Tonen",
+    "Copy {label}": "{label} kopiëren",
+    "Show {label}": "{label} tonen",
     "Copy item": "Item kopiëren",
     "Copy items": "Items kopiëren",
     "Copy of {name}": "Kopie van {name}",
@@ -798,6 +802,7 @@
     "View all ({total})": "Alles bekijken ({total})",
     "No items": "Geen items",
     "Nothing here yet": "Hier staat nog niets",
+    "This list could not be loaded.": "Deze lijst kon niet worden geladen.",
     "No items match this filter": "Geen items voldoen aan dit filter",
     "Could not load these records": "Deze gegevens konden niet worden geladen",
     "No conversations yet": "Nog geen gesprekken",
@@ -1443,7 +1448,6 @@
     "You cannot see this folder": "Je kunt deze map niet zien",
     "{action} did not succeed": "{action} is niet gelukt",
     "Error:": "Fout:",
-    "optional": "optioneel",
     "Copy link": "Link kopiëren",
     "Details and sharing": "Details en delen",
     "Link copied": "Link gekopieerd",
@@ -1461,7 +1465,8 @@
     "1 day left": "Nog 1 dag",
     "{count} days left": "Nog {count} dagen",
     "1 day overdue": "1 dag te laat",
-    "{count} days overdue": "{count} dagen te laat"
+    "{count} days overdue": "{count} dagen te laat",
+    "{view}: not available on this list": "{view}: niet beschikbaar in deze lijst"
   },
   "plurals": {
     "{count} selected": [

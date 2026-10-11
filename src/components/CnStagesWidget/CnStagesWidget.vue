@@ -178,8 +178,10 @@ import {
 	readAvailableActions,
 	transitionError,
 } from '../../composables/useLifecycleTransitions.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { formatBoardDate } from '../../utils/boardDate.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import {
 	dropOptionalUnresolved,
@@ -263,6 +265,14 @@ function userError(message) {
  * - `stagesSource`: `{ register, schema, filter?, orderBy?, idField?,
  *   labelField?, descriptionField?, finalField?, limit? }`, an OpenRegister
  *   query whose filter takes the same tokens.
+ *
+ * `datesSource`: `{ url, method?, params?, path?, idField?, dateField? }`, an
+ * endpoint (same token grammar) answering the date the record reached each
+ * stage, when the stage list does not carry it: the case type's statuses list
+ * the steps, `/blueprint?case=@objectId` says when this case reached them.
+ * Read once, merged into the steps by `idField` (default `id`) with the value
+ * at `dateField` (default `reachedAt`); a date it does not give falls back to
+ * the stage list's own `dateField`. The bars variant draws it.
  *
  * `finalField` marks the stages that close the record, which the timeline
  * draws differently. It grants nothing either.
@@ -356,7 +366,7 @@ export default {
 		 * `label`, the placement's own title, so a titled card does not have to
 		 * repeat itself, and then to "Stages".
 		 *
-		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string, label?: string, variant?: ('dots'|'bars')}}
+		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string, label?: string, variant?: ('dots'|'bars'), datesSource?: {url: string, method?: string, params?: object, path?: string, idField?: string, dateField?: string}}}
 		 */
 		content: {
 			type: Object,
@@ -437,6 +447,8 @@ export default {
 		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
 		const appConfigRaw = inject('cnAppConfig', ref({}))
 		const cnTranslate = inject('cnTranslate', (key) => key)
+		// The app's look (`nextcloud` or `board`), provided by CnAppRoot or CnPageRenderer.
+		const cnLook = inject('cnLook', 'nextcloud')
 
 		/**
 		 * The token context: the bound record, its id, and the page context.
@@ -462,15 +474,24 @@ export default {
 			return (cfg && cfg.url) ? { url: cfg.url, method: cfg.method, params: cfg.params } : null
 		}, { ctx: tokenCtx })
 
+		// The dates the record reached each stage, when they live apart from
+		// the stage list (`datesSource`): one read, merged into the steps by id.
+		const datesRead = useEndpointSource(() => {
+			const cfg = props.content?.datesSource
+			return (cfg && cfg.url) ? { url: cfg.url, method: cfg.method, params: cfg.params } : null
+		}, { ctx: tokenCtx })
+
 		return {
 			detailCtxRaw,
 			objectCtxRaw,
 			cnTranslate,
+			cnLook,
 			tokenCtx,
 			stagesBody: stagesRead.data,
 			stagesBodyLoading: stagesRead.loading,
 			stagesBodyError: stagesRead.error,
 			stagesBodyBlocked: stagesRead.blocked,
+			datesBody: datesRead.data,
 		}
 	},
 
@@ -612,6 +633,42 @@ export default {
 			const rows = this.endpointStages ? getByPath(this.stagesBody, cfg.path) : this.sourceRows
 			const orderField = cfg.orderField || (this.endpointStages ? '' : cfg.orderBy)
 			return normalizeStages(rows, { ...cfg, orderField })
+		},
+
+		/**
+		 * The reached dates by stage id, from `datesSource`: the rows at its
+		 * `path` (or the response itself when it is a list), keyed by
+		 * `idField` (default `id`), the value at `dateField` (default
+		 * `reachedAt`). Empty without the option, while it loads, or when it
+		 * failed: the steps then show the stage list's own dates.
+		 *
+		 * @return {{[id: string]: string}} Date by stage id.
+		 * @spec openspec/changes/screens-stage-dates-source/specs/stage-dates-source/spec.md#requirement-the-reached-dates-can-come-from-their-own-endpoint
+		 */
+		stageDates() {
+			const cfg = this.content.datesSource
+			const body = this.datesBody
+			if (!cfg || !cfg.url || body === null || body === undefined) {
+				return {}
+			}
+			const rows = Array.isArray(body) ? body : getByPath(body, cfg.path || '')
+			if (!Array.isArray(rows)) {
+				return {}
+			}
+			const idField = cfg.idField || 'id'
+			const dateField = cfg.dateField || 'reachedAt'
+			const out = {}
+			for (const row of rows) {
+				if (!row || typeof row !== 'object') {
+					continue
+				}
+				const id = getByPath(row, idField)
+				const date = getByPath(row, dateField)
+				if (id !== null && id !== undefined && id !== '' && typeof date === 'string' && date !== '') {
+					out[String(id)] = date
+				}
+			}
+			return out
 		},
 
 		/**
@@ -795,7 +852,7 @@ export default {
 				}
 				return {
 					...stage,
-					date: this.stages[index]?.date || '',
+					date: this.barDate(this.stageDates[stage.id] || this.stages[index]?.date || '', state),
 					state,
 					clickable: this.interactive && state !== 'current',
 				}
@@ -891,6 +948,28 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A bar's date line. Under the board look a date value reads in the
+		 * board's short form ("3 okt"), and the current step's reads "sinds
+		 * 4 okt", as DqZaak draws it. Any other value, and every value outside
+		 * the board look, shows as written.
+		 *
+		 * @param {string} value The `dateField` value of the stage row.
+		 * @param {string} state The bar state (`done`, `current`, `todo`).
+		 * @return {string} The date line, or ''.
+		 * @spec openspec/changes/screens-stage-bar-dates-parity/specs/stage-bar-dates/spec.md#requirement-a-bar-date-reads-as-the-board-draws-it
+		 */
+		barDate(value, state) {
+			if (!value || normalizeLook(this.cnLook) !== 'board') {
+				return value
+			}
+			const short = formatBoardDate(value)
+			if (short === '') {
+				return value
+			}
+			return state === 'current' ? t('nextcloud-vue', 'since {date}', { date: short }) : short
+		},
+
 		/**
 		 * Translate a library string.
 		 *
