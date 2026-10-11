@@ -637,7 +637,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 170,
+			"transitive": 172,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -663,6 +663,7 @@
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
 				"CnFactsWidget",
+				"CnFieldListWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -695,6 +696,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -854,7 +856,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 173,
+			"transitive": 175,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -880,6 +882,7 @@
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
 				"CnFactsWidget",
+				"CnFieldListWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -912,6 +915,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -1077,9 +1081,11 @@
 		},
 		"CnFactsWidget": {
 			"direct": 1,
-			"transitive": 3,
+			"transitive": 5,
 			"tier": "medium",
-			"via": [],
+			"via": [
+				"CnIndexPage"
+			],
 			"page": "cn-facts-widget"
 		},
 		"CnFavouriteToggle": {
@@ -1141,6 +1147,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-field-helper"
+		},
+		"CnFieldListWidget": {
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-field-list-widget"
 		},
 		"CnFieldPicker": {
 			"direct": 0,
@@ -1276,7 +1289,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 180,
+			"transitive": 182,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1301,6 +1314,7 @@
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
 				"CnFactsWidget",
+				"CnFieldListWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -1334,6 +1348,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -1554,7 +1569,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 177,
+			"transitive": 179,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1579,6 +1594,7 @@
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
 				"CnFactsWidget",
+				"CnFieldListWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -1611,6 +1627,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -2517,7 +2534,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 193,
+			"transitive": 195,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2545,6 +2562,7 @@
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
 				"CnFactsWidget",
+				"CnFieldListWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -2579,6 +2597,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterMapping",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
@@ -2716,6 +2735,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-quicklinks-widget-form"
+		},
+		"CnRecordListWidget": {
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-record-list-widget"
 		},
 		"CnReferencePreview": {
 			"direct": 0,
@@ -3686,7 +3712,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 160,
+			"transitive": 162,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3710,6 +3736,7 @@
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
 				"CnFactsWidget",
+				"CnFieldListWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -3740,6 +3767,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",

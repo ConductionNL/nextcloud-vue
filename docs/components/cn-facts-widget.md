@@ -44,6 +44,38 @@ The object is the current detail-page object, or one other object named by `sour
 
 Consecutive rows form one two-column list (`max-content 1fr`, gap 8px 16px, label muted), as the boards draw it.
 
+### Relation pages: contact details, identity and a lead
+
+The person and organisation boards (screens-relation-pages) draw their side cards with these keys. An entry that uses none of them renders as before.
+
+| Key | On | Meaning |
+|-----|----|---------|
+| `format: "email"` / `"phone"` / `"url"` | a row | The value is a `mailto:` / `tel:` / web link (a url opens in a new tab). |
+| `format: "masked"` | a row | Only the last four characters show ("*****7609"). |
+| `reveal` | a masked row | `true` adds a Show button. Showing emits `reveal` with `{ path }` and announces `{ path, objectId, register, schema }` on the event bus channel `cn:facts:reveal` (`FACTS_REVEAL_CHANNEL`), so the app can log who saw it. |
+| `copy` | a row | `true` adds a copy button that writes the raw value to the clipboard. |
+| `icon` | a row | An icon in place of the label (the label stays for a screen reader). A row with only an `icon` is a row too. |
+| `as: "lead"` | an entry | An icon tile (`icon`) or the initials of the value at `initialsPath`, beside a bold `title` and a muted `subtitle`. `title` and `subtitle` take a path, a part, or an array of parts joined as a line. `tone` (`success`, `info`) tints the tile. A lead with an empty title is left out. |
+| `as: "text"` | an entry | A line in the normal ink (address lines), with `parts` as a `line` takes them. |
+| `{ "text": "..." }` | a part | A constant part ("Handelsregister"). A `line` or `text` entry without `path` or `parts` shows its own `text` ("Het tonen van het BSN wordt gelogd."). |
+| `action` | `content` | An action object (the header action shape) drawn as a tinted button under the facts. `@objectId` / `@object.<field>` resolve before it is dispatched. |
+| `headerAction` | `content` | The same, drawn as a small button in the card header ("+ Toevoegen"). The widget reports it through the `header` event; the detail page puts it in the card header, also on a side card. |
+
+```json
+{
+  "type": "facts",
+  "title": "Identiteit",
+  "content": {
+    "fields": [
+      { "as": "lead", "icon": "ShieldAccountOutline", "tone": "success", "title": [{ "text": "Ingelogd met DigiD" }], "subtitle": [{ "path": "lastLoginAt", "label": "bij het contactmoment van", "format": "date" }] },
+      { "label": "BSN", "path": "bsn", "format": "masked", "reveal": true },
+      { "label": "Geheimhouding", "path": "confidential", "map": { "true": "Ja", "false": "Nee" } },
+      { "as": "line", "text": "Het tonen van het BSN wordt gelogd." }
+    ]
+  }
+}
+```
+
 ### Other keys
 
 | Key | Meaning |
@@ -60,6 +92,13 @@ Consecutive rows form one two-column list (`max-content 1fr`, gap 8px 16px, labe
 | `content` | `object` | `{}` | The widget configuration above. |
 | `objectData` | `object` | `null` | The current detail-page object, passed by the detail page host. Read when `content.source` is not set, and for `@object.<field>` tokens. |
 | `objectId` | `string\|number` | `null` | The current object id, for the `@objectId` token. |
+
+## Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `reveal` | `{ path }` | A masked value was shown. |
+| `header` | `{ link, note, action }` | The card header's parts; `action` is the `headerAction` (`{ label, icon, run }`) or null. |
 
 ## Notes
 
