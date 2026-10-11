@@ -186,3 +186,89 @@ describe('a day of capture with no signal', () => {
 		wrapper.unmount()
 	})
 })
+
+describe('a sectioned template replayed to an app endpoint', () => {
+	const SECTIONED = {
+		id: 'tpl-s',
+		version: 2,
+		sections: [
+			{ name: 'Fundering', items: [
+				{ id: 'f1', label: 'Wapening zichtbaar?', responseType: 'yes_no_na', required: true },
+				{ id: 'f2', label: 'Opmerkingen', responseType: 'text' },
+			] },
+		],
+	}
+	const PLANNED_S = { id: 'i-2', caseRef: 'case-77', checklistTemplateRef: 'tpl-s' }
+	const CONFIG = {
+		plannedSchema: SCHEMA,
+		referenceSchema: 'inspectionChecklistTemplate',
+		templateRefField: 'checklistTemplateRef',
+		titleField: 'caseRef',
+		sectionsField: 'sections',
+		itemKeyField: 'id',
+		itemTextField: 'label',
+		itemTypeField: 'responseType',
+		itemTypeMap: { yes_no_na: 'yes_no' },
+		resultEndpoint: '/apps/myapp/api/cases/{caseRef}/checklist-run',
+		resultTemplateParam: 'checklistId',
+		resultPlannedItemParam: 'inspection',
+	}
+
+	beforeEach(async () => {
+		__setDexie(Dexie)
+		await getDb().mutationQueue.clear()
+		await getDb().objectCache.clear()
+		await getDb().meta.clear()
+		await storePlanning({
+			register: REGISTER,
+			schema: SCHEMA,
+			items: [PLANNED_S],
+			references: [SECTIONED],
+			referenceSchema: 'inspectionChecklistTemplate',
+		})
+		window.OCA = { OpenRegister: { integrations: { get: (id) => (id === 'field-inspection' ? { offlineConfig: CONFIG } : null) } } }
+		setOnline(false)
+	})
+
+	afterEach(() => {
+		delete window.OCA
+		setOnline(true)
+		__resetDbForTests()
+	})
+
+	it('reads the items from the sections and queues one submit to the endpoint', async () => {
+		const wrapper = await mountCard()
+
+		await wrapper.vm.openItem(PLANNED_S)
+		expect(wrapper.vm.activeTemplate.items.map((i) => i.questionId)).toEqual(['f1', 'f2'])
+		expect(wrapper.vm.activeTemplate.items[0].type).toBe('yes_no')
+
+		wrapper.vm.answers.f1.answer = 'no'
+		await wrapper.vm.saveChecklist()
+
+		const queue = await listQueue(resolveDeviceId())
+		expect(queue).toHaveLength(1)
+		expect(queue[0].operationType).toBe('submit')
+		expect(queue[0].endpoint).toBe('/apps/myapp/api/cases/case-77/checklist-run')
+		expect(queue[0].payload).toMatchObject({
+			checklistId: 'tpl-s',
+			inspection: 'i-2',
+			capturedOffline: true,
+			items: [{ itemId: 'f1', value: 'no' }],
+		})
+
+		wrapper.unmount()
+	})
+
+	it('still refuses the run when a required sectioned item is open', async () => {
+		const wrapper = await mountCard()
+
+		await wrapper.vm.openItem(PLANNED_S)
+		await wrapper.vm.saveChecklist()
+
+		expect(wrapper.vm.errors.map((e) => e.questionId)).toEqual(['f1'])
+		expect(await listQueue(resolveDeviceId())).toHaveLength(0)
+
+		wrapper.unmount()
+	})
+})
