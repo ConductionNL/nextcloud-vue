@@ -637,7 +637,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 169,
+			"transitive": 170,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -662,6 +662,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnFactsWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -853,7 +854,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 172,
+			"transitive": 173,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -878,6 +879,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnFactsWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -1073,6 +1075,13 @@
 			"via": [],
 			"page": "cn-facet-sidebar"
 		},
+		"CnFactsWidget": {
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-facts-widget"
+		},
 		"CnFavouriteToggle": {
 			"direct": 0,
 			"transitive": 4,
@@ -1267,7 +1276,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 179,
+			"transitive": 180,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1291,6 +1300,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnFactsWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -1544,7 +1554,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 176,
+			"transitive": 177,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1568,6 +1578,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnFactsWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -2506,7 +2517,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 192,
+			"transitive": 193,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2533,6 +2544,7 @@
 				"CnDetailPage",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnFactsWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
@@ -3674,7 +3686,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 159,
+			"transitive": 160,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3697,6 +3709,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnFactsWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFilesWidget",
