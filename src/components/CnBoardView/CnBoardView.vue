@@ -308,6 +308,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { buildBoardColumns, resolveStageColor } from '../../utils/boardColumns.js'
 import { buildSwimlanes } from '../../utils/boardSwimlanes.js'
 import { DROP_OUTCOMES, runBoardDrop } from '../../utils/boardTransition.js'
@@ -688,7 +689,7 @@ export default {
 		pillVariant(card) {
 			const raw = this.textOf(readPath(card, this.roles.pill))
 			const variant = this.roles.pillColors[raw] ?? this.roles.pillColors[raw.toLowerCase()]
-			return ['default', 'primary', 'success', 'warning', 'error', 'info'].includes(variant) ? variant : 'default'
+			return isBadgeVariant(variant) ? variant : 'default'
 		},
 
 		/**

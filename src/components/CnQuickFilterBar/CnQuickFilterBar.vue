@@ -115,7 +115,7 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcPopover, NcSelect } from '@nextcloud/vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
@@ -354,7 +354,8 @@ export default {
 			if (this.overflowLabel) {
 				return t('nextcloud-vue', '{label} — show the other filters', { label: this.overflowLabel })
 			}
-			return t('nextcloud-vue', '{count} more filters', { count: this.overflowEntries.length })
+			const count = this.overflowEntries.length
+			return n('nextcloud-vue', '{count} more filter', '{count} more filters', count, { count })
 		},
 
 		/** @return {string} Heading above the hidden chips in the panel. */
