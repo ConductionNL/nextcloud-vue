@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.81.0', () => {
+	it('the manifest schema version reads 2.82.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1362,8 +1362,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.79.0 adds the dashboard keys greeting, viewLinks and showActionsMenu (screens-dashboard-greeting-header).
 		// 2.80.0 adds the index keys statRow and sidePanel (screens-index-stat-row).
 		// 2.81.0 adds the @monthEnd and @nextMonthStart filter tokens (screens-active-filter-line-parity).
+		// 2.82.0 adds config.viewSwitch on index pages (screens-view-switch-parity).
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.81.0')
+		expect(schema.version).toBe('2.82.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
