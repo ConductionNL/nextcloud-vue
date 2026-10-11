@@ -84,7 +84,8 @@ With loading state, custom components, translate, permissions, and custom page t
 | `notificationLabels` | Object | No | `{}` | Labels for the app's notification rules in the user-settings notification pane, keyed `<schema>.<key>` or `<key>`; values are translated strings or `{ nl, en }` maps. A rule without a label reads as its key split into words ("Case assigned"), never as the raw key. Provided to descendants as `cnNotificationLabels` |
 | `permissions` | Array | No | `[]` | Permission strings for the current user; forwarded to `CnAppNav` for menu filtering |
 | `pageTypes` | Object | No | `null` | Page-type registry map (`type → component`). Falls back to the library's `defaultPageTypes`. Extend with `{ ...defaultPageTypes, report: MyReportPage }` |
-| `userSettingsTitle` | String | No | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')`. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
+| `userSettingsTitle` | String | No | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to "User settings" from the library catalogue ("Persoonlijke instellingen" in Dutch), then the app's `translate`. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
+| `userSettingsSections` | Array | No | `null` | The user-settings sections to draw, in order: `app` (the app's slot content), `notifications`, `credentials`, `walkthrough`, `integrations`. A key left out is not drawn. `null` keeps the defaults: every section after `#user-settings-sections` content, or only the `#user-settings` content and the integrations section. |
 | `adminSettingsTitle` | String | No | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
 | `requiresApps` | Array | No | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the empty state from the `or-missing` slot (default: `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app) — useful for any consumer that does not depend on OpenRegister. |
 | `look` | String | No | `''` | The look the app is drawn in: `board` or `nextcloud`. Empty falls back to the manifest's top-level `look`, then `nextcloud`. Provided to descendants as `cnLook`. |
@@ -104,7 +105,8 @@ With loading state, custom components, translate, permissions, and custom page t
 | `header-actions` | — | Extra buttons rendered in the app header |
 | `sidebar` | — | Sidebar area rendered alongside `NcAppContent` |
 | `footer` | — | Footer area rendered inside `NcAppContent` |
-| `user-settings` | — | `NcAppSettingsSection` children rendered inside the host `NcAppSettingsDialog`. CnAppRoot always mounts the dialog and exposes `cnOpenUserSettings` via inject; CnAppNav binds it to manifest items declaring `action: "user-settings"`. Defaults to a single placeholder section. |
+| `user-settings-sections` | — | The app's own `NcAppSettingsSection` children, ADDED to the default sections (notifications, credentials, walkthrough replay, integrations). Place, order or hide the defaults with `userSettingsSections`. |
+| `user-settings` | — | The older slot: the app's own `NcAppSettingsSection` children, REPLACING the default sections (only this content and the integrations section are drawn, unless `userSettingsSections` names more). CnAppRoot always mounts the dialog and exposes `cnOpenUserSettings` via inject; CnAppNav binds it to manifest items declaring `action: "user-settings"`. |
 
 ## AI Chat Companion — Context push
 
