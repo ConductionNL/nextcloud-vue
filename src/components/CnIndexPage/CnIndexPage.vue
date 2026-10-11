@@ -111,7 +111,7 @@
 			:sortValue="sortSelectValue"
 			:showSearch="inlineSearch || isBoardLook"
 			:searchValue="effectiveSearchValue"
-			:searchPlaceholder="searchPlaceholder"
+			:searchPlaceholder="searchPlaceholder ? cnTranslate(searchPlaceholder) : searchPlaceholder"
 			:showCountWithSearch="showCountWithSearch"
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"
@@ -565,6 +565,7 @@
 					:includeColumns="includeColumns"
 					:columnOverrides="columnOverrides"
 					:rowClass="rowClass"
+					:rowTitle="rowTitle"
 					:filterable="tableHeaderFilters"
 					:activeFilters="effectiveActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
@@ -1531,6 +1532,21 @@ export default {
 		headerButtons: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * How the board look draws the table's title column (manifest
+		 * `config.rowTitle`): `link` (the default) underlines the title,
+		 * `plain` draws it as bold text without an underline over a 13px muted
+		 * secondary line. The row stays clickable. The Nextcloud look ignores
+		 * it. Maps to CnDataTable `rowTitle`.
+		 *
+		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 */
+		rowTitle: {
+			type: String,
+			default: 'link',
+			validator: (value) => ['link', 'plain'].includes(value),
 		},
 
 		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */
@@ -5156,6 +5172,7 @@ export default {
 		 * stable key and a variant.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @spec openspec/changes/screens-index-header-buttons-parity/specs/index-list-board-look/spec.md#requirement-the-add-header-button-carries-a-plus
 		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string}>}
 		 */
 		resolvedHeaderButtons() {
@@ -5167,6 +5184,11 @@ export default {
 					let icon = typeof button.icon === 'string' ? button.icon : ''
 					if (label === '' && button.action === 'add') {
 						label = this.resolvedAddLabel
+					}
+					// The board's primary button reads "+ New request": the Add
+					// button takes the plus unless the manifest names an icon.
+					if (this.isBoardLook && button.action === 'add' && icon === '') {
+						icon = 'Plus'
 					}
 					// The board's header: Export reads "Download" with its icon and
 					// the Actions menu reads "Actions", without the manifest saying so.
@@ -5338,6 +5360,7 @@ export default {
 		 * filled in when one is known, else `description`.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-index-page-title-is-a-manifest-key
+		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-the-count-reads-in-the-users-language
 		 * @return {string}
 		 */
 		headerDescription() {
@@ -5345,9 +5368,16 @@ export default {
 			// Board look: the count line is a template over the rows on this page
 			// and all rows, "{shown} of {total}" unless the page says otherwise.
 			if (this.isBoardLook && typeof total === 'number' && total >= 0) {
-				const template = this.countText || this.countSubtitle || '{shown} of {total}'
+				const shown = this.effectiveObjects.length
+				// The default count line is the library's own string, so it
+				// reads "14 van 14" in Dutch; a page's own template goes
+				// through the app's label lookup.
+				if (!this.countText && !this.countSubtitle) {
+					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
+				}
+				const template = this.countText || this.countSubtitle
 				return this.cnTranslate(template)
-					.replace('{shown}', String(this.effectiveObjects.length))
+					.replace('{shown}', String(shown))
 					.replace('{total}', String(total))
 			}
 			if (this.countSubtitle && typeof total === 'number' && total >= 0) {
