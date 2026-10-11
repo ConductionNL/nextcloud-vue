@@ -182,6 +182,12 @@
 			<StartCardHarness />
 		</template>
 
+		<!-- The field-list widget (?fieldlist=1). See FieldListHarness.vue. -->
+		<template v-else-if="showFieldList">
+			<h2>Field list</h2>
+			<FieldListHarness />
+		</template>
+
 		<template v-else-if="showStages">
 			<h2>Stages widget</h2>
 			<StagesHarness />
@@ -676,6 +682,7 @@ import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CellLabelsHarness from './CellLabelsHarness.vue'
 import FactsHarness from './FactsHarness.vue'
+import FieldListHarness from './FieldListHarness.vue'
 import FilesTabOrHarness from './FilesTabOrHarness.vue'
 import NarrowTableHarness from './NarrowTableHarness.vue'
 import PixelGaps3Harness from './PixelGaps3Harness.vue'
@@ -715,7 +722,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -778,6 +785,7 @@ export default {
 			showFacts: (typeof window !== 'undefined' && /[?&]factswidget=/.test(window.location.search)),
 			showProgressCell: (typeof window !== 'undefined' && /[?&]progresscell=/.test(window.location.search)),
 			showStartCard: (typeof window !== 'undefined' && /[?&]startcard=/.test(window.location.search)),
+			showFieldList: (typeof window !== 'undefined' && /[?&]fieldlist=/.test(window.location.search)),
 			showStages: (typeof window !== 'undefined' && /[?&](stageswidget|statbadge)=/.test(window.location.search)),
 			// Table cells in a real browser (?celllabels=1).
 			showCellLabels: (typeof window !== 'undefined' && /[?&]celllabels=/.test(window.location.search)),

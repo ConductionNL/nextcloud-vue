@@ -121,6 +121,7 @@ export {
 	CnFeaturesTab,
 	CnFederationStatus,
 	CnFieldHelper,
+	CnFieldListWidget,
 	CnFileField,
 	CnFileManager,
 	CnFilePreview,
