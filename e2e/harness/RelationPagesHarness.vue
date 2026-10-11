@@ -21,7 +21,7 @@
 			:showRelatedObjects="false"
 			:widgets="widgets"
 			:layout="layout"
-			:sideColumn="['side-open', 'side-note']" />
+			:sideColumn="['side-identity', 'side-channels', 'side-open', 'side-note']" />
 	</div>
 </template>
 
@@ -57,6 +57,9 @@ const record = {
 	id: 'p-1',
 	name: 'Sanne de Vries',
 	birthDate: '1986-03-14',
+	bsn: '123457609',
+	email: 's.devries@example.nl',
+	phone: '06 12 34 56 78',
 	address: { street: 'Parkstraat', number: '24', postcode: '3311 AB', city: 'Zuiddrecht' },
 }
 const personSchema = { title: 'Person', properties: { name: { type: 'string', title: 'Name' }, birthDate: { type: 'string', format: 'date', title: 'Birth date' } } }
@@ -129,6 +132,31 @@ export default {
 						meta: '{startTime|datetime} · {channel}',
 						text: '{summary}',
 						headerNote: '{total} in total',
+					},
+				},
+				{
+					id: 'side-identity',
+					type: 'facts',
+					title: 'Identity',
+					content: {
+						fields: [
+							{ as: 'lead', key: 'digid', icon: 'ShieldAccountOutline', tone: 'success', title: [{ text: 'Signed in with DigiD' }], subtitle: [{ text: 'at the contact moment of 4 October' }] },
+							{ label: 'BSN', path: 'bsn', format: 'masked', reveal: true },
+							{ as: 'line', key: 'logged', text: 'Showing the BSN is logged.' },
+						],
+					},
+				},
+				{
+					id: 'side-channels',
+					type: 'facts',
+					title: 'Contact channels',
+					content: {
+						fields: [
+							{ label: 'Email', path: 'email', format: 'email', copy: true },
+							{ label: 'Phone', path: 'phone', format: 'phone' },
+						],
+
+						headerAction: { label: 'Add', icon: 'Plus', type: 'handler', handler: 'noop' },
 					},
 				},
 				{

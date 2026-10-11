@@ -989,13 +989,14 @@ export default {
 }
 
 .cn-facts-widget__lead-tile--success {
-	background: var(--color-success-hover, var(--color-background-dark));
+	background: color-mix(in srgb, var(--color-success) 14%, var(--color-main-background));
 	border-radius: 50%;
 	color: var(--color-success-text, var(--color-success));
 }
 
 .cn-facts-widget__lead-tile--info {
 	background: var(--color-primary-element-light);
+	border-radius: 50%;
 	color: var(--color-primary-element-light-text, var(--color-primary-element));
 }
 

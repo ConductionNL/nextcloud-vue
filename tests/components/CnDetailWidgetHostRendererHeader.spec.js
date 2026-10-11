@@ -59,4 +59,16 @@ describe('CnDetailWidgetHost renderer header', () => {
 		expect(w.find('[data-testid="cn-detail-widget-header-note"]').exists()).toBe(false)
 		expect(w.find('.wrapper').attributes('data-link')).toBe('')
 	})
+
+	it('draws a reported header action as a button that runs it', async () => {
+		const w = mountHost('facts')
+		await nextTick()
+		const run = jest.fn()
+		w.vm.onRendererHeader({ link: null, note: '', action: { label: 'Toevoegen', icon: 'Plus', run } })
+		await nextTick()
+		const button = w.find('[data-testid="cn-detail-widget-header-action"]')
+		expect(button.text()).toBe('Toevoegen')
+		await button.trigger('click')
+		expect(run).toHaveBeenCalled()
+	})
 })
