@@ -113,7 +113,7 @@ export default {
 | `allowDraft` | `false` | Offer a **Save draft** button that stores the record with a draft marker instead of validating it. Inert unless the schema declares `draftField`. |
 | `draftField` | `'isDraft'` | The boolean property that marks a record as a draft. |
 | `draftAppId` | `''` | The app the draft belongs to, for the storage key. |
-| `draftUserId` | `''` | Who is typing, for the storage key. **Pass this on any shared device.** |
+| `draftUserId` | `''` | Who is typing, for the storage key. Empty: the signed-in Nextcloud user, and `anonymous` only when nobody is signed in. |
 
 #### What the draft does and does not do
 
@@ -122,9 +122,15 @@ Restore and Discard; the values go in only when somebody presses Restore. A form
 that filled itself would be indistinguishable from one the server prefilled, and
 somebody would submit last week's answers without knowing they were there.
 
-`draftUserId` is part of the storage key. A shared browser profile at a service
+The user is part of the storage key. A shared browser profile at a service
 desk is the ordinary case in a municipality, and a draft keyed without the user
-hands the next person at the counter what the last one typed. Pass it.
+hands the next person at the counter what the last one typed. Without
+`draftUserId` the dialog uses the signed-in Nextcloud user. A draft stored
+under `anonymous` is removed, never offered, once somebody is signed in.
+
+A draft is written only after a person changes a field, and only while that
+field differs from the value the form opened with. Opening a dialog, or the
+form filling in values by itself, writes nothing and shows no Saving or Saved.
 
 A draft is dropped rather than offered when it is more than seven days old, when
 the record has been saved by somebody else since it was written, or when the

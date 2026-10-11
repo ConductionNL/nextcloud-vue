@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.84.0', () => {
+	it('the manifest schema version reads 2.85.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1365,8 +1365,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.82.0 adds config.viewSwitch on index pages (screens-view-switch-parity).
 		// 2.83.0 adds config.queryPresets on index pages (screens-index-query-presets).
 		// 2.84.0 adds formEyebrow and formSubtitle on an open-form action (screens-form-dialog-intro-parity).
+		// 2.85.0 lets a header pill be a constant (`text`) or a count of a related list (`countFrom`, `countLabel`) (screens-relation-pages).
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.84.0')
+		expect(schema.version).toBe('2.85.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -1907,5 +1908,51 @@ describe('app-manifest-v2 — menu entry route params', () => {
 				menu: [{ id: 'news', label: 'News', route: 'Items', params: { slug: value } }],
 			}).valid).toBe(false)
 		}
+	})
+})
+
+/**
+ * Build a minimal v2 manifest with one type='detail' page whose config is
+ * merged from `config`.
+ *
+ * @param {object} config `pages[0].config` overrides.
+ * @return {object} Complete v2 manifest.
+ */
+function manifestWithDetailPage(config) {
+	return {
+		...MINIMAL_V2,
+		pages: [{
+			id: 'PersonDetail',
+			route: '/persons/:id',
+			type: 'detail',
+			title: 'app.person',
+			config: { register: 'r', schema: 'person', ...config },
+		}],
+	}
+}
+
+describe('app-manifest-v2 — header pills: a constant or a count (screens-relation-pages, 2.85.0)', () => {
+	it('a constant pill validates', () => {
+		const result = validateManifestV2(manifestWithDetailPage({ typePill: { text: 'Inwoner', variant: 'info' } }))
+		expect(result.valid).toBe(true)
+	})
+
+	it('a count pill validates', () => {
+		const result = validateManifestV2(manifestWithDetailPage({
+			statusPill: { countFrom: { register: 'r', schema: 'case', filter: { requester: '@objectId' } }, countLabel: { one: '{count} lopende zaak', other: '{count} lopende zaken' }, variant: 'purple' },
+		}))
+		expect(result.valid).toBe(true)
+	})
+
+	it('a field pill still validates', () => {
+		expect(validateManifestV2(manifestWithDetailPage({ typePill: { field: 'legalForm' } })).valid).toBe(true)
+	})
+
+	it('a pill with none of field, text or countFrom is refused', () => {
+		expect(validateManifestV2(manifestWithDetailPage({ typePill: { variant: 'info' } })).valid).toBe(false)
+	})
+
+	it('a count list without a schema is refused', () => {
+		expect(validateManifestV2(manifestWithDetailPage({ statusPill: { countFrom: { register: 'r' } } })).valid).toBe(false)
 	})
 })

@@ -22,9 +22,9 @@
 
 ### Task 4: Constant and count header pills (schema 2.85.0)
 - **spec_ref**: `openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count`
-- **files**: `src/components/CnDetailPage/CnDetailHeaderChips.vue` or the pill code in `CnDetailPage.vue`, `src/schemas/app-manifest-v2.schema.json`
-- [ ] Implement: `text`, `countFrom` + `countLabel`
-- [ ] Test: constant pill, count 1 and 2, 0 and failure render nothing, field pill unchanged
+- **files**: `src/utils/detailActionModel.js`, `src/components/CnDetailPage/CnDetailPage.vue`, `src/schemas/app-manifest-v2.schema.json`, `docs/components/cn-detail-page.md`
+- [x] Implement: `text`, `countFrom` + `countLabel` (`resolvePill`, `pillCountSource`, `resolveCountPill`; CnDetailPage counts on record change and page refresh); schema 2.85.0
+- [x] Test: constant pill, count 1 and 2, 0 and failure render nothing, field pill unchanged (`tests/components/CnDetailPageCountPills.spec.js`, schema spec)
 
 ### Task 5: Per-row count column
 - **spec_ref**: `openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-list-column-can-count-related-objects-per-row`
