@@ -102,3 +102,36 @@ describe('CnFormPage draft recovery', () => {
 		expect(window.localStorage.getItem(KEY)).toBeNull()
 	})
 })
+
+// A failed submit with "Saved just now" beside the error reads as if the record
+// was saved. After a failure the indicator says where the draft lives instead.
+// @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-the-draft-indicator-never-reads-as-a-server-save-after-a-failed-save
+describe('CnFormPage draft indicator after a failed submit', () => {
+	beforeEach(() => window.localStorage.clear())
+
+	it('says the draft is kept on this device, never Saved', async () => {
+		const failing = () => Promise.reject(new Error('server said no'))
+		const w = mount(CnFormPage, {
+			propsData: { fields: FIELDS, submitHandler: 'failing', recoverDraft: true, draftAppId: 'survey', draftUserId: 'anne', draftScope: 'intake' },
+			stubs,
+			mocks: { $route: { params: {} }, $router: { push: jest.fn() } },
+			provide: { cnCustomComponents: { failing } },
+		})
+		w.vm.draftState = 'saved'
+		w.vm.draftSavedAt = Date.now()
+		await w.vm.$nextTick()
+		const state = () => w.find('[data-testid="cn-form-page-draft-state"]').text()
+		// CONTROL: before the submit the local save is announced as before.
+		expect(state()).toBe('Saved just now')
+
+		await w.find('.nc-textfield-stub').setValue('Anne')
+		w.vm.draftState = 'saved'
+		await w.find('form').trigger('submit')
+		await flush()
+
+		expect(w.text()).toContain('server said no')
+		expect(state()).toBe('Draft kept on this device')
+		expect(state()).not.toMatch(/Saved|Saving/)
+		w.unmount()
+	})
+})

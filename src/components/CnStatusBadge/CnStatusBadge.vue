@@ -10,6 +10,8 @@
 </template>
 
 <script>
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
+
 /**
  * CnStatusBadge — Color-coded pill badge for status, priority, or category display.
  *
@@ -39,12 +41,14 @@ export default {
 		},
 
 		/**
-		 * Color variant: 'default', 'primary', 'success', 'warning', 'error', 'info'
+		 * Color variant: 'default', 'primary', 'success', 'warning', 'error',
+		 * 'info', or one of the two board tones without a Nextcloud role,
+		 * 'purple' (work in progress) and 'teal' (handed on).
 		 */
 		variant: {
 			type: String,
 			default: 'default',
-			validator: (v) => ['default', 'primary', 'success', 'warning', 'error', 'info'].includes(v),
+			validator: (v) => isBadgeVariant(v),
 		},
 
 		/** Size: 'small' or 'medium' */

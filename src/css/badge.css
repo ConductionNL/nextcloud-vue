@@ -2,6 +2,15 @@
    @conduction/nextcloud-vue — Status Badge
    ======================================== */
 
+/* The two board tones without a Nextcloud colour role (screens-cell-pill-parity).
+   A theme may redefine them; the six role variants below use Nextcloud's own. */
+:root {
+	--cn-status-purple-bg: #e8e6f6;
+	--cn-status-purple-text: #4a3f8f;
+	--cn-status-teal-bg: #e3f1f3;
+	--cn-status-teal-text: #1d5e66;
+}
+
 .cn-status-badge {
 	display: inline-flex;
 	align-items: center;
@@ -51,6 +60,18 @@
 	color: var(--color-info-text, var(--color-info, #0082c9));
 }
 
+/* Work in progress ("In behandeling"), a board tone. */
+.cn-status-badge--purple {
+	background-color: var(--cn-status-purple-bg);
+	color: var(--cn-status-purple-text);
+}
+
+/* Handed on ("Omgezet naar een zaak"), a board tone. */
+.cn-status-badge--teal {
+	background-color: var(--cn-status-teal-bg);
+	color: var(--cn-status-teal-text);
+}
+
 /* Solid variants — solid background with white text for use on colored backgrounds */
 .cn-status-badge--solid.cn-status-badge--default {
 	background-color: var(--color-background-dark);
@@ -79,5 +100,15 @@
 
 .cn-status-badge--solid.cn-status-badge--info {
 	background-color: var(--color-info, #0082c9);
+	color: white;
+}
+
+.cn-status-badge--solid.cn-status-badge--purple {
+	background-color: var(--cn-status-purple-text);
+	color: white;
+}
+
+.cn-status-badge--solid.cn-status-badge--teal {
+	background-color: var(--cn-status-teal-text);
 	color: white;
 }

@@ -33,11 +33,14 @@
 		</div>
 
 		<div class="cn-kpi-card__body cn-stat-widget__body">
-			<div v-if="content.label || rangePresets.length" class="cn-kpi-card__title cn-stat-widget__label">
+			<div
+				v-if="content.label || rangePresets.length"
+				class="cn-kpi-card__title cn-stat-widget__label"
+				:class="{ 'cn-kpi-card__title--badge-end': hasEndBadge }">
 				<!-- Board look: the icon is an 18px glyph before the label, and
 				     only when the tile links to a filtered list. -->
 				<span
-					v-if="isBoardLook && isLinked && resolvedIcon"
+					v-if="isBoardLook && isLinked && resolvedIcon && !hasEndBadge"
 					class="cn-kpi-card__glyph cn-stat-widget__glyph"
 					data-testid="cn-stat-widget-glyph"
 					aria-hidden="true">
@@ -66,6 +69,17 @@
 						{{ effectiveTranslate(preset.label || preset.id) }}
 					</option>
 				</select>
+				<!-- Board look, `content.iconPlacement: "end"`: the icon sits in a
+				     32px circle at the right of the label row, tinted by the
+				     tile's state (DqDashboard). -->
+				<span
+					v-if="hasEndBadge"
+					class="cn-kpi-card__badge cn-stat-widget__badge-icon"
+					:class="'cn-kpi-card__badge--' + stateTone"
+					data-testid="cn-stat-widget-icon-badge"
+					aria-hidden="true">
+					<CnWidgetIcon :name="resolvedIcon" :size="18" />
+				</span>
 			</div>
 
 			<div class="cn-kpi-card__value-row cn-stat-widget__value-row">
@@ -1330,7 +1344,43 @@ export default {
 			if (layout === 'vertical' || layout === 'stacked') {
 				return layout
 			}
+			// Board look: every KPI tile on the screens is stacked, so a tile
+			// that names no layout takes it. An explicit `horizontal` stays.
+			if (this.isBoardLook && layout === undefined) {
+				return 'stacked'
+			}
 			return 'horizontal'
+		},
+
+		/**
+		 * Whether the board look draws the icon in a tinted circle at the
+		 * right of the label row (`content.iconPlacement: "end"`), as the
+		 * DqDashboard tiles. Off without the board look and without an icon.
+		 *
+		 * @spec openspec/changes/screens-stat-tile-parity/specs/dashboard-page/spec.md#requirement-the-board-kpi-tile-can-carry-its-icon-at-the-end
+		 * @return {boolean}
+		 */
+		hasEndBadge() {
+			return this.isBoardLook
+				&& (this.content || {}).iconPlacement === 'end'
+				&& Boolean(this.resolvedIcon)
+		},
+
+		/**
+		 * The tile's state as a tone name for the end badge: the variant the
+		 * value colour comes from (`success`, `warning`, `error`), else
+		 * `primary`. A custom `valueColor` has no tone and reads as primary.
+		 *
+		 * @spec openspec/changes/screens-stat-tile-parity/specs/dashboard-page/spec.md#requirement-the-board-kpi-tile-can-carry-its-icon-at-the-end
+		 * @return {'primary'|'success'|'warning'|'error'}
+		 */
+		stateTone() {
+			const color = this.variantColor
+			if (!color) {
+				return 'primary'
+			}
+			const tone = ['success', 'warning', 'error'].find((name) => VARIANT_COLORS[name] === color)
+			return tone || 'primary'
 		},
 
 		/**
