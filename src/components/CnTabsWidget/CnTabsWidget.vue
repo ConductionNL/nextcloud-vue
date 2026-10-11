@@ -84,6 +84,7 @@
 					v-if="entry.widget"
 					:widget="entry.widget"
 					chrome="bare"
+					:availableWidgets="availableWidgets"
 					:objectId="objectId"
 					:object="objectData"
 					:objectType="objectType"
