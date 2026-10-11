@@ -1,5 +1,7 @@
 {
   "translations": {
+    "You cannot see these files": "You cannot see these files",
+    "Delete {name}? This cannot be undone here.": "Delete {name}? This cannot be undone here.",
     "Linked items": "Linked items",
     "Still loading: {sections}": "Still loading: {sections}",
     "Could not load {section}.": "Could not load {section}.",
@@ -225,6 +227,7 @@
     "Access URL": "Access URL",
     "Action": "Action",
     "Actions": "Actions",
+    "optional": "optional",
     "Add": "Add",
     "Add condition": "Add condition",
     "Add enum value": "Add enum value",
@@ -1430,6 +1433,10 @@
     "in {count} day": [
       "in {count} day",
       "in {count} days"
+    ],
+    "{count} more filter": [
+      "{count} more filter",
+      "{count} more filters"
     ]
   }
 }
