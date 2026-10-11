@@ -16,9 +16,9 @@
 
 ### Task 3: The facts card draws contact details, identity and a lead (on top of lane A's `facts`, #1477)
 - **spec_ref**: `openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-the-facts-card-draws-contact-details-identity-and-a-lead`
-- **files**: `src/components/CnFactsWidget/CnFactsWidget.vue`, `docs/components/cn-facts-widget.md`
-- [ ] Implement: email / phone / url / masked formats, reveal, copy, row icon, lead, text lines, constant text, action, header action
-- [ ] Test: each key, reveal event, mailto and tel links, entries without the keys unchanged
+- **files**: `src/components/CnFactsWidget/CnFactsWidget.vue`, `src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue`, `src/css/look-board-detail.css`, `docs/components/cn-facts-widget.md`
+- [x] Implement: email / phone / url / masked formats, reveal (event + `cn:facts:reveal` bus channel), copy, row icon, lead, text lines, constant text, action, header action (the detail host draws it in the card header, also on a side card)
+- [x] Test: each key, reveal event, mailto and tel links, entries without the keys unchanged (`tests/components/CnFactsWidgetRelationKeys.spec.js`, `tests/components/CnDetailWidgetHostRendererHeader.spec.js`, e2e `e2e/screens-relation-pages.e2e.js`)
 
 ### Task 4: Constant and count header pills (schema 2.85.0)
 - **spec_ref**: `openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count`

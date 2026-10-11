@@ -162,3 +162,32 @@ test.describe('a record list draws the board rows', () => {
 		await expect(row.locator('.cn-record-list__chevron')).toHaveCount(0)
 	})
 })
+
+test.describe('the facts card draws the relation side cards', () => {
+	test('identity: a lead tile, a masked BSN that shows on request, a constant note', async ({ page }) => {
+		await open(page, '?relation=person')
+		const card = page.locator('[data-testid="cn-detail-page-side-side-identity"]')
+		await expect(card.locator('[data-testid="cn-fact-digid"]')).toContainText('Signed in with DigiD')
+		const tile = await rect(card.locator('.cn-facts-widget__lead-tile'))
+		expect(Math.round(tile.width)).toBe(40)
+		await expect(card.locator('[data-testid="cn-fact-bsn"] dd')).toContainText('*****7609')
+		await card.locator('[data-testid="cn-fact-reveal-bsn"]').click()
+		await expect(card.locator('[data-testid="cn-fact-bsn"] dd')).toContainText('123457609')
+		await expect(card.locator('[data-testid="cn-fact-logged"]')).toHaveText('Showing the BSN is logged.')
+	})
+
+	test('contact channels: links, and the header action shows on a side card', async ({ page }) => {
+		await open(page, '?relation=person')
+		const card = page.locator('[data-testid="cn-detail-page-side-side-channels"]')
+		await expect(card.locator('a[href="mailto:s.devries@example.nl"]')).toBeVisible()
+		await expect(card.locator('a[href="tel:0612345678"]')).toBeVisible()
+		const action = card.locator('[data-testid="cn-detail-widget-header-action"]')
+		await expect(action).toBeVisible()
+		await expect(action).toHaveText('Add')
+		// In the header, level with the title.
+		const title = await rect(card.locator('.cn-widget-wrapper__title').first())
+		const button = await rect(action)
+		expect(Math.abs((button.top + button.height / 2) - (title.top + title.height / 2))).toBeLessThan(12)
+		await page.locator('[data-testid="cn-detail-page-side"]').screenshot({ path: test.info().outputPath('relation-side.png') })
+	})
+})
