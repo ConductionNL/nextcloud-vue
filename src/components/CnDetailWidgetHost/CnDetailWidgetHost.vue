@@ -169,9 +169,15 @@
 			:showActions="actionsShown || catalogAddEnabled"
 			:showRefresh="false"
 			:showRequestFeature="false"
+			:headerLink="rendererHeader.link"
 			class="cn-detail-page__catalog-card">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<!-- A renderer that reports its own header (`header` event:
+			     `{ link, note }`, e.g. record-list's "3 in totaal"). -->
+			<template v-if="rendererHeader.note" #actions>
+				<span class="cn-detail-page__catalog-note" data-testid="cn-detail-widget-header-note">{{ rendererHeader.note }}</span>
 			</template>
 			<template v-if="catalogAddEnabled" #action-items>
 				<NcActionButton @click="invokeCatalogAdd">
@@ -185,6 +191,7 @@
 				:is="renderer"
 				ref="renderer"
 				v-bind="rendererProps"
+				@header="onRendererHeader"
 				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
@@ -531,6 +538,17 @@ export default {
 			resolveRegistryBaseWidget: resolveBaseWidget,
 			resolveRegistryTab: resolveTab,
 			getRegistryProvider: getById,
+		}
+	},
+
+	data() {
+		return {
+			/**
+			 * The card header a content-only renderer reports through its
+			 * `header` event (screens-relation-pages): a link and a note,
+			 * with the list's total already filled in.
+			 */
+			rendererHeader: { link: null, note: '' },
 		}
 	},
 
@@ -993,6 +1011,18 @@ export default {
 
 	methods: {
 		/**
+		 * Take the header a content-only renderer reports.
+		 *
+		 * @param {{link?: object|null, note?: string}} header The header parts.
+		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-record-list-shows-the-objects-that-point-at-this-record
+		 */
+		onRendererHeader(header) {
+			const link = header && header.link && typeof header.link === 'object' ? header.link : null
+			const note = header && typeof header.note === 'string' ? header.note : ''
+			this.rendererHeader = { link, note }
+		},
+
+		/**
 		 * A manifest label through the host's translate; '' stays ''.
 		 *
 		 * @param {string} text The label as written in the manifest.
@@ -1110,6 +1140,12 @@ export default {
 </script>
 
 <style scoped>
+.cn-detail-page__catalog-note {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	white-space: nowrap;
+}
+
 .cn-detail-widget-host,
 .cn-detail-widget-host > * {
 	height: 100%;

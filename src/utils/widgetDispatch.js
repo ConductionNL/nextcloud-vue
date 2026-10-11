@@ -43,10 +43,12 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * card it needs the same titled wrapper, and there is nothing to Add.
  * `field-list` draws rows of one object field and carries its own add form,
  * so it takes the titled wrapper and not the catalog Add action.
+ * `record-list` draws bare rows of another schema's objects; the card and its
+ * header (link, note) come from the host, and it has no Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'facts', 'field-list'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'facts', 'field-list', 'record-list'])
 
 /**
  * The stored content/config blob for a widget definition.

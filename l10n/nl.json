@@ -795,6 +795,7 @@
     "View all ({total})": "Alles bekijken ({total})",
     "No items": "Geen items",
     "Nothing here yet": "Hier staat nog niets",
+    "This list could not be loaded.": "Deze lijst kon niet worden geladen.",
     "No items match this filter": "Geen items voldoen aan dit filter",
     "Could not load these records": "Deze gegevens konden niet worden geladen",
     "No conversations yet": "Nog geen gesprekken",

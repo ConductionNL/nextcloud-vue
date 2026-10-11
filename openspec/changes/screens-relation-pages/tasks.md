@@ -10,15 +10,15 @@
 
 ### Task 2: A record list
 - **spec_ref**: `openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-record-list-shows-the-objects-that-point-at-this-record`
-- **files**: `src/components/CnRecordListWidget/`, `src/utils/fillTemplate.js`, `src/components/CnWidgetGrid/registerDashboardWidgets.js`, `src/utils/libraryWidgetKeys.js`, `docs/components/cn-record-list-widget.md`
-- [ ] Implement: fetch, templates with formats, rows / feed / inline, header link and note with `{total}`, empty and error lines
-- [ ] Test: each presentation, first-filled trailing, total in the header, no fetch while a token is unresolved
+- **files**: `src/components/CnRecordListWidget/`, `src/utils/fillTemplate.js`, `src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue`, `src/utils/widgetDispatch.js`, `src/components/CnWidgetGrid/registerDashboardWidgets.js`, `src/utils/libraryWidgetKeys.js`, `docs/components/cn-record-list-widget.md`
+- [x] Implement: fetch, templates with formats, rows / feed / inline, header link and note with `{total}` (the detail host draws them in the card header), empty and error lines
+- [x] Test: each presentation, first-filled trailing, total in the header, no fetch while a token is unresolved (`tests/components/CnRecordListWidget.spec.js`, `tests/utils/fillTemplate.spec.js`, `tests/components/CnDetailWidgetHostRendererHeader.spec.js`, e2e `e2e/screens-relation-pages.e2e.js`)
 
-### Task 3: A facts card
-- **spec_ref**: `openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-facts-card-shows-configured-fields-of-the-record`
-- **files**: `src/components/CnFactsWidget/`, `src/components/CnWidgetGrid/registerDashboardWidgets.js`, `src/utils/libraryWidgetKeys.js`, `docs/components/cn-facts-widget.md`
-- [ ] Implement: lead, lines, rows with formats, copy, masked reveal, note, link, action, header action, empty state
-- [ ] Test: each part, empty rows dropped, reveal event, mailto and tel links
+### Task 3: The facts card draws contact details, identity and a lead (on top of lane A's `facts`, #1477)
+- **spec_ref**: `openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-the-facts-card-draws-contact-details-identity-and-a-lead`
+- **files**: `src/components/CnFactsWidget/CnFactsWidget.vue`, `docs/components/cn-facts-widget.md`
+- [ ] Implement: email / phone / url / masked formats, reveal, copy, row icon, lead, text lines, constant text, action, header action
+- [ ] Test: each key, reveal event, mailto and tel links, entries without the keys unchanged
 
 ### Task 4: Constant and count header pills (schema 2.85.0)
 - **spec_ref**: `openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count`
