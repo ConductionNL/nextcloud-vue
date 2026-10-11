@@ -301,6 +301,15 @@
 	color: var(--color-main-text);
 }
 
+/* A segment the page cannot open: drawn, as the boards do, but faded and inert. */
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn--disabled,
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn--disabled:hover {
+	background: transparent !important;
+	color: var(--color-text-maxcontrast);
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 /* The search field: 40px, radius 8, not a pill. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__search {
 	flex: 1 1 260px;
@@ -446,6 +455,48 @@
 
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-row {
 	border-bottom: 0;
+}
+
+/* The table fits its card (screens-index-table-fit-parity). Under the auto
+   layout every one-line cell asked for its whole text up to the 22rem cap, so
+   seven text columns made a 1500px table in a 1118px card at a 1440px
+   viewport: the last columns and the row menus sat past the card's edge. The
+   fixed layout shares the card's width: the selection and menu columns keep
+   their own width, the first data column takes 18%, the others split the
+   rest, and a value that does not fit is cut with an ellipsis (its full text
+   stays in the cell's tooltip). A column's own `width` still wins. */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table {
+	table-layout: fixed;
+	width: 100%;
+}
+
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th.cn-table-head--title {
+	width: 18%;
+}
+
+/* The board's data cells sit 12px apart (PqTickets), the first one 18px from
+   the selection column; the selection and menu columns keep 16px. */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th:not(.cn-table-col--checkbox):not(.cn-table-col--actions):not(.cn-table-col--icon),
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td:not(.cn-table-col--checkbox):not(.cn-table-col--actions):not(.cn-table-col--icon) {
+	padding-inline: 12px;
+}
+
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th.cn-table-head--title,
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td.cn-table-col--title {
+	padding-inline-start: 18px;
+}
+
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td > .cn-cell-renderer {
+	display: block;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* A narrow header cuts its label, not its filter funnel. */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th .cn-table-header__sort:has(~ .cn-table-header__filter) {
+	max-width: calc(100% - 26px);
 }
 
 /* The selection column: 28px, 18px checkboxes. */
