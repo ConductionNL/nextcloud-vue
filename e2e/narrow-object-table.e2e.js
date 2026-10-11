@@ -9,6 +9,7 @@
 //
 // @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-a-narrow-object-table-keeps-its-trailing-columns-in-view
 // @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-the-empty-text-of-a-table-wraps
+// @spec openspec/changes/dashboard-tile-text-fits/specs/dashboard-tile-text-fits/spec.md#requirement-the-secondary-line-of-a-narrow-tables-growing-column-sits-under-the-value
 
 import { expect, test } from '@playwright/test'
 
@@ -75,5 +76,49 @@ test.describe('a narrow object-table tile', () => {
 		})
 		expect(m.clipped).toBe(false)
 		expect(m.textHeight).toBeGreaterThan(m.lineHeight * 1.5)
+	})
+
+	// Found on the dossiq dashboard on 11 October 2026 (F7): in the board look
+	// the case number sat beside the title in the one-line cell and ran out of
+	// the tile. It belongs on a line of its own under the title.
+	test('puts the case number under the title, inside the cell, in the board look', async ({ page }) => {
+		await page.goto('/?narrowtable=1&board=1')
+		const rows = await page.locator('[data-testid="narrow-table-rows"] tbody tr').evaluateAll((trs) => trs.map((tr) => {
+			const td = tr.querySelector('td.cn-table-col--title')
+			const value = td.querySelector('.cn-cell-renderer')
+			const secondary = td.querySelector('.cn-table-cell__secondary')
+			const cell = td.getBoundingClientRect()
+			const sec = secondary.getBoundingClientRect()
+			const range = document.createRange()
+			range.selectNodeContents(secondary)
+			const text = range.getBoundingClientRect()
+			return {
+				text: secondary.textContent.trim(),
+				belowValue: sec.top >= value.getBoundingClientRect().bottom - 1,
+				textInsideCell: text.left >= cell.left - 0.5 && text.left < cell.right,
+				startsAtCellStart: Math.abs(sec.left - (cell.left + parseFloat(getComputedStyle(td).paddingLeft))) <= 1,
+				insideCell: sec.right <= cell.right + 0.5 && sec.bottom <= cell.bottom + 0.5,
+				display: getComputedStyle(secondary).display,
+				overflow: getComputedStyle(secondary).textOverflow,
+				underlined: getComputedStyle(td).textDecorationLine,
+				float: getComputedStyle(secondary).float,
+			}
+		}))
+		expect(rows.length).toBe(2)
+		for (const row of rows) {
+			expect(row.text).toMatch(/^ZAAK-2026-/)
+			expect(row.belowValue).toBe(true)
+			expect(row.startsAtCellStart).toBe(true)
+			expect(row.textInsideCell).toBe(true)
+			expect(row.insideCell).toBe(true)
+			expect(row.display).toBe('block')
+			expect(row.overflow).toBe('ellipsis')
+			// The board look underlines the title cell. A computed style cannot
+			// show a propagated underline, so assert what keeps it off the
+			// number: the line is out of the flow (a float), where a cell's
+			// underline does not reach.
+			expect(row.underlined).toContain('underline')
+			expect(row.float).not.toBe('none')
+		}
 	})
 })
