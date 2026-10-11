@@ -25,7 +25,7 @@ describe('CnActionsBar view switch (board look)', () => {
 		expect(buttons.map((b) => b.attributes('aria-pressed'))).toEqual(['true', 'false', 'false', 'false'])
 		expect(wrapper.find('.cn-actions-bar__view-toggle-label').exists()).toBe(false)
 		expect(wrapper.find('.cn-actions-bar__view-toggle-thumb').exists()).toBe(false)
-		expect(wrapper.find('.cn-actions-bar__view-toggle').attributes('aria-label')).toBe('View')
+		expect(wrapper.find('.cn-actions-bar__view-toggle').attributes('aria-label')).toBe('View mode')
 	})
 
 	it('renders three segments for a page without a map', () => {
