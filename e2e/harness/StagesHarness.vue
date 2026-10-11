@@ -3,7 +3,8 @@
   SPDX-License-Identifier: EUPL-1.2
 
   A case detail surface for the stages widget and the status badge tile
-  (?stageswidget=1, ?statbadge=1).
+  (?stageswidget=1, ?statbadge=1). `&variant=bars` draws the bars, `&dates=1`
+  adds the per-case reached dates (`datesSource`), `&look=board` the board look.
 
   The widgets resolve through CnDetailWidgetHost by their REGISTRY type, the
   path a manifest placement takes, so a broken registration fails here. The
@@ -57,6 +58,11 @@ const STAGES_CONTENT = {
 	transition: { kind: 'lifecycle' },
 	// `&variant=bars` draws the bars variant (zuiddrecht-pixel-gaps).
 	...(params.get('variant') === 'bars' ? { variant: 'bars' } : {}),
+	// `&dates=1` reads the reached dates from the per-case blueprint
+	// (screens-stage-dates-source).
+	...(params.get('dates') === '1'
+		? { datesSource: { url: '/apps/dossiq/api/case-types/@object.caseType/blueprint?case=@objectId', path: 'statuses', idField: 'statusType', dateField: 'reachedAt' } }
+		: {}),
 }
 
 const STATUS_CONTENT = {
@@ -94,6 +100,8 @@ export default {
 		})
 		const context = ref({ objectId: 'case-1', object: record.value, register: 'dossiq', schema: 'case' })
 		provide('cnObjectContext', context)
+		// `&look=board` renders in the board look.
+		provide('cnLook', params.get('look') === 'board' ? 'board' : 'nextcloud')
 		return { record, context }
 	},
 
