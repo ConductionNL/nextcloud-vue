@@ -102,7 +102,7 @@ share, delete) SHALL stay in the existing saved-views menu, reached from the
 
 ### Requirement: The view switch is four icon segments in a fixed order
 
-Under the board look the view switch SHALL render as a group (named "View")
+Under the board look the view switch SHALL render as a group (named "View mode", "Weergave" as the boards write it)
 on a track with padding 3px, radius 8px, gap 2px, background
 `--color-background-dark`. Each segment SHALL be an icon-only button 40px by
 34px, radius 6px, with its label as its accessible name and `aria-pressed`;

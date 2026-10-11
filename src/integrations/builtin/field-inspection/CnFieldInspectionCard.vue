@@ -134,6 +134,13 @@
 					     (an invalid `ButtonType`, so the visual primary style never applied
 					     either). See CnFormPage.vue's inline comment for the submit-button
 					     half of this bug in detail. -->
+					<p v-if="saveError"
+						class="cn-field-inspection__error"
+						role="alert"
+						data-testid="cn-fi-save-error">
+						{{ saveError }}
+					</p>
+
 					<NcButton type="submit"
 						variant="primary"
 						data-testid="cn-fi-save"
@@ -157,7 +164,8 @@ import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import ClipboardCheckOutline from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import CnOfflineQueue from '../../../components/CnOfflineQueue/index.js'
-import { checklistProgress, classifyGps, syncIndicator, validateChecklistAnswers } from '../../offline/fieldCollectionHelpers.js'
+import { buildChecklistSubmission } from '../../offline/checklistSubmission.js'
+import { checklistProgress, classifyGps, normaliseChecklistTemplate, syncIndicator, validateChecklistAnswers } from '../../offline/fieldCollectionHelpers.js'
 import {
 	countPending,
 	countStuck,
@@ -236,6 +244,8 @@ export default {
 			activeTemplate: null,
 			answers: {},
 			errors: [],
+			/** Why the last save could not be queued, in words. */
+			saveError: '',
 		}
 	},
 
@@ -449,8 +459,13 @@ export default {
 			this.errors = []
 			const cfg = this.config
 			const templateRef = item?.[cfg.templateRefField]
+			// The app's template shape (sections, its own item keys and type
+			// words) is read into the leaf's flat item list here, once.
 			this.activeTemplate = templateRef
-				? await getCachedObject(this.effectiveRegister, cfg.referenceSchema, 'references', String(templateRef))
+				? normaliseChecklistTemplate(
+						await getCachedObject(this.effectiveRegister, cfg.referenceSchema, 'references', String(templateRef)),
+						cfg,
+					)
 				: null
 			const initial = {}
 			for (const q of (this.activeTemplate?.items || [])) {
@@ -464,6 +479,7 @@ export default {
 			this.activeTemplate = null
 			this.answers = {}
 			this.errors = []
+			this.saveError = ''
 		},
 
 		/**
@@ -485,7 +501,9 @@ export default {
 		},
 
 		/**
-		 * Validate answers, then queue a `create` mutation for the result.
+		 * Validate answers, then queue the run: an object create on
+		 * `resultSchema`, or, when the config names a `resultEndpoint`, one
+		 * `submit` to that endpoint.
 		 *
 		 * @return {Promise<void>}
 		 */
@@ -499,26 +517,22 @@ export default {
 			try {
 				const cfg = this.config
 				const gps = await this.captureGps()
-				const gpsClass = classifyGps(gps)
-				const now = new Date().toISOString()
-				const items = this.activeTemplate.items.map((q) => ({
-					questionId: q.questionId,
-					answer: this.answers[q.questionId].answer,
-					evidenceRefs: this.answers[q.questionId].evidenceRefs,
-					answeredAt: now,
-					gpsAtAnswer: gps ? { ...gps, source: gpsClass.source } : { source: 'sensorless' },
-				}))
-				const payload = {
-					inspectionRef: this.itemId(this.activeItem),
-					checklistTemplateRef: this.activeTemplate.id ?? this.activeTemplate['@self']?.id,
-					items,
-				}
+				const submission = buildChecklistSubmission(cfg, {
+					plannedItem: this.activeItem,
+					template: this.activeTemplate,
+					answers: this.answers,
+					gps,
+					gpsSource: classifyGps(gps).source,
+					capturedAt: new Date().toISOString(),
+					capturedOffline: this.offline,
+				})
 				await enqueueMutation({
 					deviceId: this.deviceId,
-					operationType: 'create',
+					operationType: submission.operationType,
 					register: this.effectiveRegister,
-					schema: cfg.resultSchema,
-					payload,
+					schema: submission.schema,
+					endpoint: submission.endpoint,
+					payload: submission.payload,
 				})
 				this.pendingCount = await countPending(this.deviceId)
 				this.stuckCount = await countStuck(this.deviceId)
@@ -527,6 +541,7 @@ export default {
 					await this.drain()
 				}
 			} catch (e) {
+				this.saveError = e?.message || t('nextcloud-vue', 'The answers could not be saved on this device.')
 				// eslint-disable-next-line no-console
 				console.error('[CnFieldInspectionCard] saveChecklist failed', e)
 			} finally {
