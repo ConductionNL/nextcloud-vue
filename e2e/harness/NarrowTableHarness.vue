@@ -5,10 +5,12 @@
   A "Recently opened" tile at the width it gets on the dossiq dashboard
   (?narrowtable=1): identifier, a long title and a trailing date in 342px, and
   an empty tile whose text is a sentence. `&plain=1` mounts the same tile with
-  `fitWidth: false`, the table's own auto layout, as the control.
+  `fitWidth: false`, the table's own auto layout, as the control. `&board=1`
+  renders the tiles in the board look with the case number as the title's
+  secondary line, as dossiq's dashboard does (dashboard-tile-text-fits).
 -->
 <template>
-	<div class="narrow-table">
+	<div class="narrow-table" :class="{ 'cn-look-board': board }">
 		<div class="narrow-table__tile" data-testid="narrow-table-rows">
 			<CnWidgetObjectTable
 				:rows="rows"
@@ -31,18 +33,31 @@
 
 <script>
 import CnWidgetObjectTable from '../../src/components/CnWidgetObjectTable/CnWidgetObjectTable.vue'
+import '../../src/css/look-board-index.css'
+
+const board = typeof window !== 'undefined' && /[?&]board=1/.test(window.location.search)
 
 export default {
 	name: 'NarrowTableHarness',
 	components: { CnWidgetObjectTable },
+
+	provide() {
+		return { cnLook: board ? 'board' : 'nextcloud' }
+	},
 	data() {
 		return {
 			plain: typeof window !== 'undefined' && /[?&]plain=1/.test(window.location.search),
-			columns: [
-				{ key: 'identifier', cellClass: 'cn-cell--muted' },
-				{ key: 'title', cellClass: 'cn-cell--strong' },
-				{ key: 'viewedAt', cellClass: 'cn-cell--muted cn-cell--end' },
-			],
+			board,
+			columns: board
+				? [
+					{ key: 'title', cellClass: 'cn-cell--strong', secondary: 'identifier' },
+					{ key: 'viewedAt', cellClass: 'cn-cell--muted cn-cell--end' },
+				]
+				: [
+					{ key: 'identifier', cellClass: 'cn-cell--muted' },
+					{ key: 'title', cellClass: 'cn-cell--strong' },
+					{ key: 'viewedAt', cellClass: 'cn-cell--muted cn-cell--end' },
+				],
 
 			rows: [
 				{ id: '1', identifier: 'ZAAK-2026-000123', title: 'Omgevingsvergunning voor het verbouwen van een monumentaal pand aan de Herengracht', viewedAt: '3 days ago' },

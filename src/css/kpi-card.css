@@ -450,6 +450,38 @@ a.cn-kpi-card--stacked:focus-visible {
 	font-weight: 400;
 }
 
+/* A caption on a line of its own wraps, up to two lines (DqDashboard: "haalden
+   hun termijn, naar doorlooptijd" runs over two lines in a narrow tile). The
+   one-line rule of `.cn-kpi-card__label` is for a caption BESIDE the number,
+   where a second line would push the tile taller; this line has the width of
+   the tile to itself. The clamp is safe here because the element is a plain
+   span, not a flex row (compare the title note above).
+   @spec openspec/changes/dashboard-tile-text-fits/specs/dashboard-tile-text-fits/spec.md#requirement-a-kpi-tiles-caption-and-board-label-wrap-to-two-lines */
+.cn-kpi-card--stacked .cn-kpi-card__caption-line {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	white-space: normal;
+	overflow-wrap: break-word;
+}
+
+/* Board look: the label wraps too, up to two lines, beside its icon badge
+   ("Afgehandeld deze maand"). The clamp sits on the label's own span
+   (`cn-kpi-card__title-text`), not on the title row, which stays the flex row
+   that carries the badge or the range select. */
+.cn-kpi-card--board .cn-kpi-card__title-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	white-space: normal;
+	overflow-wrap: break-word;
+}
+
 /* The 18px glyph before the label, drawn only on a link tile. */
 .cn-kpi-card--board .cn-kpi-card__title {
 	display: flex;

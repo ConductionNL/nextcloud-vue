@@ -258,6 +258,25 @@
 	white-space: nowrap;
 }
 
+/* The secondary line of the growing column ("2026-0004" under a case title)
+   is a line of its own with its own ellipsis. The cell does not wrap, so in
+   the board look, where the secondary line is an inline block (the title
+   underline cannot reach an atomic inline box), it stayed on the title's line
+   and ran out of the tile. A full-width float is a block (computed `display:
+   block`) that always starts under the line before it, and, being out of the
+   flow, the cell's underline does not reach it either. The cell is a table
+   cell, which contains its floats, so the row grows to hold the line.
+   @spec openspec/changes/dashboard-tile-text-fits/specs/dashboard-tile-text-fits/spec.md#requirement-the-secondary-line-of-a-narrow-tables-growing-column-sits-under-the-value */
+.cn-data-table.cn-data-table--fit td.cn-table-col--grow .cn-table-cell__secondary {
+	float: inline-start;
+	clear: both;
+	box-sizing: border-box;
+	width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .cn-data-table th {
 	background: var(--color-background-dark);
 	font-weight: 500;
