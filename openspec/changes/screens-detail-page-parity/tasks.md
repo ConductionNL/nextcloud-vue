@@ -44,7 +44,7 @@
   - The strip and panel live in the body column; the side column starts level with the strip
   - The side column drops under the body when there is no room
 - [x] Implement
-- [ ] Test — not run: the acceptance is a measurement in a live browser (`e2e/screens-detail-page-parity.e2e.js` against dossiq/DqZaak); the unit tests only assert the layout rules and the DOM order (`CnDetailCardsBoardLook.spec.js`)
+- [x] Test — measured in a browser on the real CnDetailPage (`e2e/screens-detail-page-parity.e2e.js`, harness `ScreensDetailHarness.vue` with a fake object store and a static widget registry, library harness, not a live Nextcloud): at 1440px the first side card is level with the tab strip, the strip and panel end where the body column ends, 20px apart; at 760px the side column drops under the body; control without the look. The first run failed by 12px (GridStack's outer cell margin); fixed in `look-board-detail.css`
 
 ### Task 5: History as the last tab
 - **spec_ref**: `openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-history-is-the-last-tab`

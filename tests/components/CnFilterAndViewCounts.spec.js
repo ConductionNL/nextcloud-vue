@@ -9,6 +9,7 @@
 
 jest.mock('@nextcloud/l10n', () => ({
 	translate: (app, text, params) => String(text).replace(/\{(\w+)\}/g, (_, key) => String((params || {})[key] ?? `{${key}}`)),
+	translatePlural: (app, one, many, count, params) => String(count === 1 ? one : many).replace(/\{(\w+)\}/g, (_, key) => String((params || {})[key] ?? `{${key}}`)),
 }))
 
 const { mount } = require('@vue/test-utils')

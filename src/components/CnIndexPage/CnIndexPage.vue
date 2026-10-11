@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="lookClass"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -76,6 +76,20 @@
 			<slot name="below-header" />
 		</div>
 
+		<!-- KPI tiles above the list (`statRow`) and cards beside it
+		     (`sidePanel`), as DqTeamwachtrij and PqContracten
+		     (screens-index-stat-row). -->
+		<CnIndexPageWidgets
+			v-if="statRow && statRow.length > 0"
+			class="cn-index-page__stat-row"
+			variant="stat-row"
+			:widgets="statRow" />
+		<CnIndexPageWidgets
+			v-if="hasSidePanel"
+			class="cn-index-page__side-panel"
+			variant="side-panel"
+			:widgets="sidePanel" />
+
 		<!-- Actions bar -->
 		<CnActionsBar
 			:layout="isBoardLook ? 'board' : 'nextcloud'"
@@ -97,6 +111,7 @@
 			:viewMode="currentViewMode"
 			:showViewToggle="showViewToggle"
 			:availableViewModes="effectiveToggleModes"
+			:disabledViewModes="viewSwitchDisabledModes"
 			:cardsLabel="cardsLabel"
 			:tableLabel="tableLabel"
 			:listLabel="listLabel"
@@ -111,7 +126,7 @@
 			:sortValue="sortSelectValue"
 			:showSearch="inlineSearch || isBoardLook"
 			:searchValue="effectiveSearchValue"
-			:searchPlaceholder="searchPlaceholder"
+			:searchPlaceholder="searchPlaceholder ? cnTranslate(searchPlaceholder) : searchPlaceholder"
 			:showCountWithSearch="showCountWithSearch"
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"
@@ -565,6 +580,7 @@
 					:includeColumns="includeColumns"
 					:columnOverrides="columnOverrides"
 					:rowClass="rowClass"
+					:rowTitle="rowTitle"
 					:filterable="tableHeaderFilters"
 					:activeFilters="effectiveActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
@@ -958,6 +974,7 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
@@ -1242,6 +1259,7 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnIndexPageWidgets,
 		CnBuildiqEditButton,
 		CnFollowToggle,
 		NcLoadingIcon,
@@ -1533,6 +1551,21 @@ export default {
 			default: () => [],
 		},
 
+		/**
+		 * How the board look draws the table's title column (manifest
+		 * `config.rowTitle`): `link` (the default) underlines the title,
+		 * `plain` draws it as bold text without an underline over a 13px muted
+		 * secondary line. The row stays clickable. The Nextcloud look ignores
+		 * it. Maps to CnDataTable `rowTitle`.
+		 *
+		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 */
+		rowTitle: {
+			type: String,
+			default: 'link',
+			validator: (value) => ['link', 'plain'].includes(value),
+		},
+
 		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */
 		icon: {
 			type: String,
@@ -1571,7 +1604,10 @@ export default {
 		 * `$route.params` just like the `filter` prop. The first tab with
 		 * `default:true` (else index 0) is active on mount; changing tabs
 		 * re-fetches at page 1. Omit (or `null`) → no tab strip, behaviour
-		 * unchanged.
+		 * unchanged. Under the board look a tab with `activeLabel` ("Pipeline:
+		 * Sales") adds a removable chip with that text to the Active line and
+		 * counts on the Filter badge while it is selected; removing the chip
+		 * goes back to the default tab.
 		 */
 		quickFilters: {
 			type: Array,
@@ -1938,6 +1974,22 @@ export default {
 		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis' | 'calendar'>}
 		 */
 		viewModes: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Board look: the segments the view switch draws, e.g. `['table',
+		 * 'cards', 'board', 'map']` as the boards do. A listed mode the page
+		 * can open is an ordinary segment; one it cannot (no board columns, no
+		 * map configured) is drawn disabled, named "<mode>: not available on
+		 * this list". Fed from `pages[].config.viewSwitch`. Ignored without the
+		 * board look, and absent the switch is as before.
+		 *
+		 * @type {Array<'table' | 'cards' | 'board' | 'map'>}
+		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
+		 */
+		viewSwitch: {
 			type: Array,
 			default: null,
 		},
@@ -2629,6 +2681,35 @@ export default {
 		},
 
 		/**
+		 * KPI tiles above the list (manifest `config.statRow`): dashboard
+		 * widget definitions `{ id, type, title?, content }`, usually `stat`,
+		 * drawn in an auto-fit row (each at least 200px) in the listed order.
+		 * Types resolve like dashboard widgets: the app registry, then the
+		 * dashboard catalog. Empty by default.
+		 *
+		 * @spec openspec/changes/screens-index-stat-row/specs/index-page/spec.md#requirement-an-index-page-can-draw-a-stat-row-above-the-list
+		 * @type {Array<object>}
+		 */
+		statRow: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Cards beside the list (manifest `config.sidePanel`): dashboard
+		 * widget definitions `{ id, type, title?, content, headerLink? }`
+		 * drawn in a 300px column right of the toolbar and the list. Empty
+		 * by default; below 1024px the column moves above the list.
+		 *
+		 * @spec openspec/changes/screens-index-stat-row/specs/index-page/spec.md#requirement-an-index-page-can-draw-a-side-panel-beside-the-list
+		 * @type {Array<object>}
+		 */
+		sidePanel: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Where a row carries the actions the server says this caller may run
 		 * on it: a dotted path, read off the rows the list already fetched, so
 		 * ninety rows cost one request rather than ninety.
@@ -3308,6 +3389,16 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the page draws cards beside its list (`sidePanel`).
+		 *
+		 * @spec openspec/changes/screens-index-stat-row/specs/index-page/spec.md#requirement-an-index-page-can-draw-a-side-panel-beside-the-list
+		 * @return {boolean}
+		 */
+		hasSidePanel() {
+			return Array.isArray(this.sidePanel) && this.sidePanel.length > 0
+		},
+
+		/**
 		 * The empty-state copy run through the host translate function
 		 * (the injected `cnTranslate`, identity by default). Only this
 		 * component's OWN `NcEmptyContent` uses it — the raw `emptyText`
@@ -3677,6 +3768,21 @@ export default {
 				return this.viewModes.includes('map')
 			}
 			return Object.keys(this.mapConfig || {}).length > 0
+		},
+
+		/**
+		 * Board look: the modes `viewSwitch` lists that this page cannot open,
+		 * drawn as disabled segments.
+		 *
+		 * @return {Array<string>} The disabled modes.
+		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
+		 */
+		viewSwitchDisabledModes() {
+			if (!this.isBoardLook || !Array.isArray(this.viewSwitch)) {
+				return []
+			}
+			const offered = [...this.effectiveToggleModes, ...(this.showMapSegment ? ['map'] : [])]
+			return this.viewSwitch.filter((mode) => ['table', 'cards', 'board', 'map'].includes(mode) && !offered.includes(mode))
 		},
 
 		/**
@@ -5156,6 +5262,7 @@ export default {
 		 * stable key and a variant.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @spec openspec/changes/screens-index-header-buttons-parity/specs/index-list-board-look/spec.md#requirement-the-add-header-button-carries-a-plus
 		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string}>}
 		 */
 		resolvedHeaderButtons() {
@@ -5167,6 +5274,11 @@ export default {
 					let icon = typeof button.icon === 'string' ? button.icon : ''
 					if (label === '' && button.action === 'add') {
 						label = this.resolvedAddLabel
+					}
+					// The board's primary button reads "+ New request": the Add
+					// button takes the plus unless the manifest names an icon.
+					if (this.isBoardLook && button.action === 'add' && icon === '') {
+						icon = 'Plus'
 					}
 					// The board's header: Export reads "Download" with its icon and
 					// the Actions menu reads "Actions", without the manifest saying so.
@@ -5242,11 +5354,11 @@ export default {
 				return []
 			}
 			const props = this.effectiveSchema?.properties || {}
-			const chips = []
+			const chips = [...this.quickFilterActiveChips]
 			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
 				const values = (Array.isArray(raw) ? raw : [raw])
 					.filter((value) => value !== null && value !== undefined && value !== '')
-					.map((value) => String(value))
+					.map((value) => this.activeFilterValueLabel(key, value))
 				if (values.length === 0) {
 					continue
 				}
@@ -5254,6 +5366,87 @@ export default {
 				chips.push({ key, label: `${field}: ${values.join(', ')}` })
 			}
 			return chips
+		},
+
+		/**
+		 * The Active line's chips for the selected quick filters: one per
+		 * selected tab that declares an `activeLabel` ("Pipeline: Sales"), run
+		 * through the app's translate. A tab without one (an "All" tab) adds no
+		 * chip. The chip carries the tab's index so removing it can deselect it.
+		 *
+		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-a-quick-filter-with-an-active-label-joins-the-active-line
+		 * @return {Array<{key: string, label: string, quickFilterIndex: number}>}
+		 */
+		quickFilterActiveChips() {
+			const tabs = this.tabStripEntries || []
+			if (tabs.length === 0) {
+				return []
+			}
+			const indices = this.quickFilterMultiple
+				? (this.selectedQuickFilterIndices || [])
+				: [this.activeQuickFilterIndex]
+			return indices
+				.filter((index) => typeof index === 'number' && tabs[index] && typeof tabs[index].activeLabel === 'string' && tabs[index].activeLabel !== '')
+				.map((index) => ({ key: `quick-filter:${index}`, label: this.cnTranslate(tabs[index].activeLabel), quickFilterIndex: index }))
+		},
+
+		/**
+		 * Filter keys over a reference property that the Active line must name,
+		 * and that no reference column resolves already: one spec each, with the
+		 * referenced register and schema off the page schema's `$ref`.
+		 *
+		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-an-active-chip-names-the-value-not-its-id
+		 * @return {Array<{key: string, labelField: string, register: string, schema: string}>}
+		 */
+		activeFilterRefSpecs() {
+			if (!this.isBoardLook || !this.effectiveSchema) {
+				return []
+			}
+			const keys = Object.keys(this.effectiveActiveFilters || {})
+			if (keys.length === 0) {
+				return []
+			}
+			const covered = new Set(this.refLabelSpecs.map((spec) => spec.key))
+			const fields = fieldsFromSchema(this.effectiveSchema, { includeReadOnly: true })
+			const specs = []
+			for (const key of keys) {
+				if (covered.has(key)) {
+					continue
+				}
+				const field = fields.find((f) => f.key === key)
+				const ref = field && field.reference
+				if (!ref || ref.schema === undefined || ref.schema === null) {
+					continue
+				}
+				specs.push({
+					key,
+					labelField: '',
+					register: ref.register || (typeof this.register === 'string' ? this.register : ''),
+					schema: String(ref.schema),
+				})
+			}
+			return specs
+		},
+
+		/**
+		 * The ids each active reference filter holds, per filter key, for the
+		 * label lookup of the Active line.
+		 *
+		 * @return {{[key: string]: string[]}} Distinct ids per filter key.
+		 */
+		activeFilterRefIds() {
+			const out = {}
+			const keys = new Set([...this.refLabelSpecs, ...this.activeFilterRefSpecs].map((spec) => spec.key))
+			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
+				if (!keys.has(key)) {
+					continue
+				}
+				out[key] = (Array.isArray(raw) ? raw : [raw])
+					.filter((id) => id !== null && id !== undefined && id !== '' && typeof id !== 'object')
+					.map((id) => String(id))
+					.sort()
+			}
+			return out
 		},
 
 		/**
@@ -5338,6 +5531,7 @@ export default {
 		 * filled in when one is known, else `description`.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-index-page-title-is-a-manifest-key
+		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-the-count-reads-in-the-users-language
 		 * @return {string}
 		 */
 		headerDescription() {
@@ -5345,9 +5539,16 @@ export default {
 			// Board look: the count line is a template over the rows on this page
 			// and all rows, "{shown} of {total}" unless the page says otherwise.
 			if (this.isBoardLook && typeof total === 'number' && total >= 0) {
-				const template = this.countText || this.countSubtitle || '{shown} of {total}'
+				const shown = this.effectiveObjects.length
+				// The default count line is the library's own string, so it
+				// reads "14 van 14" in Dutch; a page's own template goes
+				// through the app's label lookup.
+				if (!this.countText && !this.countSubtitle) {
+					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
+				}
+				const template = this.countText || this.countSubtitle
 				return this.cnTranslate(template)
-					.replace('{shown}', String(this.effectiveObjects.length))
+					.replace('{shown}', String(shown))
 					.replace('{total}', String(total))
 			}
 			if (this.countSubtitle && typeof total === 'number' && total >= 0) {
@@ -5522,6 +5723,14 @@ export default {
 		// Resolve the labels of reference columns in one batch per schema.
 		refLabelIds: {
 			immediate: true,
+			deep: true,
+			handler() {
+				this.loadRefLabels()
+			},
+		},
+
+		// The Active line names a referenced value, not its id.
+		activeFilterRefIds: {
 			deep: true,
 			handler() {
 				this.loadRefLabels()
@@ -5796,7 +6005,7 @@ export default {
 		 * @spec openspec/changes/index-ref-column-labels/tasks.md#task-2
 		 */
 		async loadRefLabels() {
-			const specs = this.refLabelSpecs
+			const specs = [...this.refLabelSpecs, ...this.activeFilterRefSpecs]
 			if (specs.length === 0) {
 				return
 			}
@@ -5811,7 +6020,8 @@ export default {
 			}
 			await Promise.all(specs.map(async (spec) => {
 				const known = this.refLabels[spec.key] || {}
-				const ids = (this.refLabelIds[spec.key] || []).filter((id) => !Object.hasOwn(known, id))
+				const wanted = new Set([...(this.refLabelIds[spec.key] || []), ...(this.activeFilterRefIds[spec.key] || [])])
+				const ids = [...wanted].filter((id) => !Object.hasOwn(known, id))
 				if (ids.length === 0) {
 					return
 				}
@@ -6495,6 +6705,11 @@ export default {
 		 * @return {void}
 		 */
 		onClearFilters() {
+			// "Clear all" on the Active line also undoes the quick filters it
+			// listed (a tab without an `activeLabel` is not a filter there).
+			for (const chip of this.quickFilterActiveChips) {
+				this.deselectQuickFilterChip(chip.quickFilterIndex)
+			}
 			// Clearing the view brings the person's own columns back.
 			this.appliedViewColumns = null
 			this.appliedSavedViewId = ''
@@ -6585,9 +6800,72 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
 		 */
 		onRemoveActiveFilter(chip) {
+			if (chip && typeof chip.quickFilterIndex === 'number') {
+				this.deselectQuickFilterChip(chip.quickFilterIndex)
+				return
+			}
 			if (chip && typeof chip.key === 'string') {
 				this.onFilterEvent({ key: chip.key, values: [] })
 			}
+		},
+
+		/**
+		 * Undo a quick filter from the Active line. With several tabs selectable
+		 * the tab leaves the selection; with one, the page goes back to its
+		 * default tab when that tab names no active filter itself, and else to no
+		 * tab at all, so the chip does not come straight back.
+		 *
+		 * @param {number} index The tab index the chip stands for.
+		 * @return {void}
+		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-a-quick-filter-with-an-active-label-joins-the-active-line
+		 */
+		deselectQuickFilterChip(index) {
+			if (this.quickFilterMultiple) {
+				this.onQuickFilterMultiChange((this.selectedQuickFilterIndices || []).filter((i) => i !== index))
+				return
+			}
+			if (this.activeQuickFilterIndex !== index) {
+				return
+			}
+			const tabs = this.tabStripEntries || []
+			let fallback = tabs.findIndex((tab) => tab && tab.default === true)
+			if (fallback < 0 && tabs.length > 0) {
+				fallback = 0
+			}
+			const fallbackNamed = fallback >= 0 && typeof tabs[fallback].activeLabel === 'string' && tabs[fallback].activeLabel !== ''
+			this.onQuickFilterChange(fallback >= 0 && fallback !== index && !fallbackNamed ? fallback : null)
+		},
+
+		/**
+		 * The text an Active chip shows for one filter value: the referenced
+		 * object's label, the facet bucket's label, the schema's `oneOf` title,
+		 * else the value itself.
+		 *
+		 * @param {string} key The filter key.
+		 * @param {unknown} value One value of that filter.
+		 * @return {string} The label.
+		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-an-active-chip-names-the-value-not-its-id
+		 */
+		activeFilterValueLabel(key, value) {
+			const id = String(value)
+			const refs = this.refLabels[key]
+			if (refs && typeof refs[id] === 'string' && refs[id] !== '') {
+				return refs[id]
+			}
+			const facet = this.effectiveFacetData && this.effectiveFacetData[key]
+			const bucket = facet && Array.isArray(facet.values)
+				? facet.values.find((fv) => fv && typeof fv === 'object' && String(fv.value) === id)
+				: null
+			if (bucket && typeof bucket.label === 'string' && bucket.label !== '') {
+				return this.cnTranslate(bucket.label)
+			}
+			const prop = this.effectiveSchema?.properties?.[key]
+			const options = prop && Array.isArray(prop.oneOf) ? prop.oneOf : []
+			const option = options.find((o) => o && String(o.const) === id && typeof o.title === 'string')
+			if (option) {
+				return this.cnTranslate(option.title)
+			}
+			return id
 		},
 
 		/**

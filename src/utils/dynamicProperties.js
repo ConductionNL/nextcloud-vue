@@ -101,6 +101,7 @@ const DEFAULT_MAP = {
 	enum: 'enumValues',
 	required: 'isRequired',
 	default: 'defaultValue',
+	hideOnCreate: 'hideOnCreate',
 }
 
 /**
@@ -312,6 +313,8 @@ export function definitionQueryParams(config, value, formData = {}) {
  * @param {object} [config] The `x-openregister-extends-form` block (`map`, `typeMap`).
  * @param {object} [options] Extra options.
  * @param {number} [options.orderFrom] Order assigned to the first field; each subsequent field takes the next integer. Dynamic fields sort after the schema's own, so pass a number above every declared `order`.
+ * @param {boolean} [options.create] The form creates a new object: a definition whose `hideOnCreate` (or the field `config.map.hideOnCreate` names) is `true` gets no field, because the app fills that answer itself at creation. Edit forms still show it.
+ * @spec openspec/changes/dynamic-question-hide-on-create/specs/dynamic-question-hide-on-create/spec.md#requirement-a-question-can-stay-off-the-create-form
  * @return {{properties: object, required: string[]}} Properties keyed by prefixed id, plus the required key list.
  */
 export function propertiesFromDefinitions(definitions, config = {}, options = {}) {
@@ -321,7 +324,8 @@ export function propertiesFromDefinitions(definitions, config = {}, options = {}
 
 	const properties = {}
 	const required = []
-	const list = Array.isArray(definitions) ? definitions : []
+	const list = (Array.isArray(definitions) ? definitions : [])
+		.filter((record) => !(options.create === true && record && mapped(record, map, 'hideOnCreate') === true))
 
 	list.forEach((record, index) => {
 		if (!record || !record.id) {

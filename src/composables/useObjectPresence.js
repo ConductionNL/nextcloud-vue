@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Conduction B.V.
 
-import { getCurrentUser } from '@nextcloud/auth'
+import { getCurrentUser, getRequestToken } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { computed, getCurrentScope, onScopeDispose, ref, unref, watch } from 'vue'
@@ -201,7 +201,15 @@ export function useObjectPresence(register, schema, objectUuid, options = {}) {
 	 * the browser and survives the navigation, which is the only mechanism
 	 * that does.
 	 *
+	 * 🔴 THE TOKEN RIDES IN THE BODY. A beacon cannot set headers, so the
+	 * `requesttoken` header axios adds is missing, and the departure route
+	 * keeps Nextcloud's CSRF check. Nextcloud also reads the token from a
+	 * POST field, so it goes in a form body. Without it the beacon answers
+	 * 412; before OpenRegister registered POST on `/presence` it answered 405
+	 * (seen on cloud.conduction.nl on every dossiq case page).
+	 *
 	 * @return {void}
+	 * @spec openspec/changes/no-calls-to-missing-apps-and-presence-beacon/specs/object-presence/spec.md#requirement-a-closing-tab-departs-through-a-route-that-exists
 	 */
 	function beaconDepart() {
 		const url = presenceUrl()
@@ -209,9 +217,12 @@ export function useObjectPresence(register, schema, objectUuid, options = {}) {
 			return
 		}
 		try {
-			// No DELETE from a beacon — it is always a POST — so the server's
-			// own POST release path is used. Both reach one implementation.
-			navigator.sendBeacon?.(url.replace(/\/presence$/, '/presence?_method=DELETE'))
+			// No DELETE from a beacon, it is always a POST, so the server's
+			// POST departure route is used, marked `_method=DELETE`. Both reach
+			// one implementation.
+			const body = new FormData()
+			body.append('requesttoken', getRequestToken() || '')
+			navigator.sendBeacon?.(url.replace(/\/presence$/, '/presence?_method=DELETE'), body)
 		} catch {
 			// Best effort.
 		}

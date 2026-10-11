@@ -80,6 +80,24 @@ describe('syncReplayService.drainQueue', () => {
 		expect(await offlineDb.countPending('dev-1')).toBe(0)
 	})
 
+	it('replays a submit row as one POST to its endpoint, not to the object API', async () => {
+		mockAxios.post.mockResolvedValue({ status: 201, data: { id: 'task-1' } })
+		await offlineDb.enqueueMutation({
+			deviceId: 'dev-3',
+			operationType: 'submit',
+			register: 'r',
+			schema: '',
+			endpoint: '/apps/myapp/api/cases/case-9/checklist-run',
+			payload: { templateId: 't' },
+		})
+
+		const tally = await drainQueue('dev-3')
+		expect(tally.synced).toBe(1)
+		expect(mockAxios.post).toHaveBeenCalledTimes(1)
+		expect(mockAxios.post).toHaveBeenCalledWith('/apps/myapp/api/cases/case-9/checklist-run', { templateId: 't' })
+		expect(await offlineDb.countPending('dev-3')).toBe(0)
+	})
+
 	it('marks a 409 replay as a conflict (stays pending in the badge)', async () => {
 		mockAxios.post.mockRejectedValue({ response: { status: 409, data: { v: 2 } } })
 		await offlineDb.enqueueMutation({ deviceId: 'dev-2', operationType: 'create', register: 'r', schema: 's', payload: {} })

@@ -330,3 +330,24 @@ describe('propertiesFromDefinitions field titles', () => {
 		expect(titleFor('Plafond per aanvraag')).toBe('Plafond per aanvraag')
 	})
 })
+
+describe('propertiesFromDefinitions: hideOnCreate', () => {
+	const { propertiesFromDefinitions: build } = require('../../src/utils/dynamicProperties.js')
+	const records = [
+		{ id: 'a', name: 'Shown', propertyType: 'string' },
+		{ id: 'b', name: 'Filled by the app', propertyType: 'date', isRequired: true, hideOnCreate: true },
+		{ id: 'c', name: 'Mapped flag', propertyType: 'string', autoFilled: true },
+	]
+
+	it('drops a hideOnCreate definition, and its required mark, on a create form only', () => {
+		const create = build(records, {}, { create: true })
+		expect(Object.values(create.properties).map((p) => p.title)).toEqual(['Shown', 'Mapped flag'])
+		expect(create.required).toEqual([])
+		expect(Object.keys(build(records).properties)).toHaveLength(3)
+	})
+
+	it('reads the flag from the field config.map.hideOnCreate names', () => {
+		const create = build(records, { map: { hideOnCreate: 'autoFilled' } }, { create: true })
+		expect(Object.values(create.properties).map((p) => p.title)).toEqual(['Shown', 'Filled by the app'])
+	})
+})

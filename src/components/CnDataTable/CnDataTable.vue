@@ -4,6 +4,7 @@
 		data-testid="cn-object-list"
 		:class="{
 			'cn-table-container--board': isBoardLook,
+			'cn-table-container--title-plain': isBoardLook && rowTitle === 'plain',
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
 			'cn-table-container--fill': fillHeight,
@@ -96,7 +97,7 @@
 			:aria-label="isScrollable ? scrollRegionLabel : undefined">
 			<table
 				class="cn-data-table"
-				:class="{ 'cn-data-table--fixed': fixedLayout }"
+				:class="{ 'cn-data-table--fixed': fixedLayout, 'cn-data-table--fit': fitWidth }"
 				data-testid="cn-object-list-table">
 				<thead v-if="!hideHeader">
 					<tr>
@@ -128,6 +129,8 @@
 								col.sortable ? 'cn-table-header--sortable' : '',
 								col.class || '',
 								pinClass(leadingCount + colIndex),
+								isGrowColumn(col) ? 'cn-table-col--grow' : '',
+								colIndex === 0 ? 'cn-table-head--title' : '',
 							]"
 							:style="{ ...(col.width ? { width: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							:aria-sort="ariaSortFor(col)"
@@ -256,7 +259,7 @@
 						<td
 							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
-							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === 0 ? 'cn-table-col--title' : '']"
+							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === 0 ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '']"
 							:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							@mouseenter="titleWhenClipped">
 							<!-- A row with a `rowClickRoute` is a real link: this anchor
@@ -499,6 +502,16 @@ function fillSecondaryTemplate(template, valueOf) {
  * </CnDataTable>
  * ```
  */
+
+/**
+ * Column keys that name an object's system dates in OpenRegister's `@self`
+ * block. A column may declare one as its key (`@self.created`); it renders as
+ * a date-time although the schema has no property behind it.
+ *
+ * @type {string[]}
+ */
+const SYSTEM_DATE_KEYS = ['@self.created', '@self.updated', '@self.published', '@self.depublished']
+
 export default {
 	name: 'CnDataTable',
 
@@ -762,6 +775,21 @@ export default {
 		},
 
 		/**
+		 * How the board look draws the title column: `link` (the default) is
+		 * the 15px weight 600 underlined title of the DqZaken board; `plain` is
+		 * the 15px bold title without an underline and a 13px muted secondary
+		 * line, as the PqTickets and OcPublicaties boards draw it. The row stays
+		 * clickable either way. The Nextcloud look ignores it.
+		 *
+		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 */
+		rowTitle: {
+			type: String,
+			default: 'link',
+			validator: (value) => ['link', 'plain'].includes(value),
+		},
+
+		/**
 		 * Drop the container's card chrome (border, radius, shadow) so the table
 		 * sits flush inside a parent that already provides a card (e.g. a
 		 * CnWidgetWrapper dashboard slot). Folded in from CnTableWidget.
@@ -816,6 +844,23 @@ export default {
 		 * @type {boolean}
 		 */
 		fixedLayout: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Fit the table to its container instead of letting it grow past it.
+		 * One column takes the room that is left and cuts its text with an
+		 * ellipsis (the full value stays in the tooltip); every other column
+		 * keeps its content on one line at its own width, so trailing columns
+		 * such as a date stay visible in a narrow tile. The column that grows
+		 * is the first with `grow: true`, else the one keyed `title` or `name`,
+		 * else the first column. CnWidgetObjectTable turns this on.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-a-narrow-object-table-keeps-its-trailing-columns-in-view
+		 */
+		fitWidth: {
 			type: Boolean,
 			default: false,
 		},
@@ -1025,6 +1070,25 @@ export default {
 		},
 
 		/** @return {number} Leading cells before the data columns (selection, icon). */
+		/**
+		 * The key of the column that takes the spare width under `fitWidth`:
+		 * the first with `grow: true`, else `title` or `name`, else the first.
+		 *
+		 * @return {string|null} The column key, or null when not fitting.
+		 * @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-a-narrow-object-table-keeps-its-trailing-columns-in-view
+		 */
+		growColumnKey() {
+			if (!this.fitWidth || this.effectiveColumns.length === 0) {
+				return null
+			}
+			const cols = this.effectiveColumns
+			const chosen = cols.find((c) => c && c.grow === true)
+				|| cols.find((c) => c && c.key === 'title')
+				|| cols.find((c) => c && c.key === 'name')
+				|| cols[0]
+			return chosen ? chosen.key : null
+		},
+
 		leadingCount() {
 			return (this.selectable ? 1 : 0) + (this.rowIcon ? 1 : 0)
 		},
@@ -1321,6 +1385,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a column is the one that takes the spare width (`fitWidth`).
+		 *
+		 * @param {object} col The column.
+		 * @return {boolean}
+		 */
+		isGrowColumn(col) {
+			return this.growColumnKey !== null && !!col && col.key === this.growColumnKey
+		},
+
 		/**
 		 * Whether a row's record changed since the user last looked
 		 * (`@self.unread`). A row without the marker renders as it always did.
@@ -1646,19 +1720,30 @@ export default {
 		 * handed a `:schema` for at all) still get type-aware rendering.
 		 * `enumLabels` rides with `enum` rather than getting its own `if`
 		 * branch: a column can't usefully declare labels without also
-		 * declaring the codes they label.
+		 * declaring the codes they label. A column `colorMap` (raw value to
+		 * badge variant) colours the enum pill from the manifest and wins over
+		 * the schema property's own `colorMap` / `x-color-map`.
 		 *
 		 * @param {object} col Column definition.
+		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-a-system-date-can-be-a-column
 		 * @return {object} Property definition for CnCellRenderer.
+		 * @spec openspec/changes/screens-cell-pill-parity/specs/cell-pill-tones/spec.md#requirement-a-manifest-column-colours-its-enum-pills
 		 */
 		columnProperty(col) {
 			const base = this.getSchemaProperty(col.key)
-			if (col && (col.format || col.type || col.enum)) {
+			// A system date (`@self.created`, `@self.updated`, ...) has no
+			// schema property behind it; it renders as a date-time.
+			if (Object.keys(base).length === 0 && SYSTEM_DATE_KEYS.includes(col.key) && !col.type && !col.format) {
+				return { type: 'string', format: 'date-time' }
+			}
+			const colorMap = col && col.colorMap && typeof col.colorMap === 'object' && !Array.isArray(col.colorMap) ? col.colorMap : null
+			if (col && (col.format || col.type || col.enum || colorMap)) {
 				return {
 					...base,
 					...(col.type ? { type: col.type } : {}),
 					...(col.format ? { format: col.format } : {}),
 					...(col.enum ? { enum: col.enum, enumLabels: col.enumLabels || base.enumLabels } : {}),
+					...(colorMap ? { colorMap } : {}),
 				}
 			}
 			return base
