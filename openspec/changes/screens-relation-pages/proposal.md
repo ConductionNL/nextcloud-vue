@@ -42,7 +42,8 @@ what makes a relation page a relation page:
 - `CnTabsWidget`: a tab entry takes `widgetIds` (a stack) next to `widgetId`.
 - A new `record-list` widget (`CnRecordListWidget`) with three presentations,
   `rows`, `feed` and `inline`, over the same source keys as `object-list`.
-- A new `facts` widget (`CnFactsWidget`).
+- The `facts` widget (lane A, `abstract-facts-widget`) gains link formats,
+  masked with reveal, copy, per-row icons, a lead, plain text lines and actions.
 - `headerPill` takes `text`, and `countFrom` with `countLabel`. This is the only
   manifest schema change (version 2.85.0, assigned by the coordinator).
 - A documented canonical manifest for a person page and an organisation page

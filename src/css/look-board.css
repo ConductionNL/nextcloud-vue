@@ -12,9 +12,14 @@
  * counterpart default to one.
  */
 .cn-look-board {
-	/* Page content area: padding, max width, gap between blocks. */
+	/* Page content area: padding, max width, gap between blocks. The content
+	   spans the whole content area (screens-one-scroller-parity): grids grow
+	   with the window and shrink only when the sidebar takes its share. A
+	   1240px cap left dead space right of the content, and on a dashboard,
+	   which scrolled itself, put the scrollbar beside the content instead of
+	   at the window edge. */
 	--cn-board-content-padding: 24px 28px;
-	--cn-board-content-max-width: 1240px;
+	--cn-board-content-max-width: none;
 	--cn-board-section-gap: 20px;
 	/* Buttons and inputs. */
 	--cn-board-control-height: 40px;
@@ -52,6 +57,15 @@
 .cn-look-board .cn-index-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page:not(.cn-look-nextcloud *) {
 	gap: var(--cn-board-section-gap);
+}
+
+/* One scroller: the content area. CnDashboardPage scrolls itself
+   (`height: 100%; overflow-y: auto`), which nested a second scrollbar inside
+   NcAppContent's; under the board look the page grows with its widgets and
+   NcAppContent, which already spans to the window edge, scrolls it. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) {
+	height: auto;
+	overflow-y: visible;
 }
 
 .cn-look-board .cn-index-page:not(.cn-look-nextcloud *) .cn-page-header,
@@ -165,6 +179,27 @@
 	flex: 1 1 auto;
 	margin: 0;
 	gap: 2px;
+}
+
+/* No scrollbars inside the navigation (screens-one-scroller-parity).
+   NcAppNavigation gives the region above the list `overflow-y: scroll`, an
+   always-on track (with arrow buttons on classic scrollbars) beside the
+   primary action that has nothing to scroll. It takes its content's height
+   instead. A menu taller than the window still scrolls (wheel, touch, focus),
+   without drawing a bar of its own; the one visible scrollbar is the page's. */
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__body:not(.app-navigation__body--no-list) {
+	flex-shrink: 0;
+	overflow: visible;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__list,
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__body--no-list {
+	scrollbar-width: none;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__list::-webkit-scrollbar,
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation__body--no-list::-webkit-scrollbar {
+	display: none;
 }
 
 /* The board's vertical rhythm (AppZijbalk): the primary action 20px from the
