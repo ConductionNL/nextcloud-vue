@@ -144,6 +144,30 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
+		<!-- Built-in "progress" widget: a bar with the percentage beside it,
+		     toned by widgetProps.thresholds, and an optional age badge
+		     ("Out of date 12 days") from widgetProps.badge. -->
+		<template v-else-if="widget === 'progress'">
+			<span v-if="progressPercent === null" class="cn-cell-renderer__dash">—</span>
+			<span v-else class="cn-cell-renderer__progress">
+				<span class="cn-cell-renderer__progress-line">
+					<span class="cn-cell-renderer__progress-bar" aria-hidden="true">
+						<span
+							class="cn-cell-renderer__progress-fill"
+							:class="'cn-cell-renderer__progress-fill--' + progressTone"
+							:style="{ width: progressPercent + '%' }" />
+					</span>
+					<strong
+						class="cn-cell-renderer__progress-value"
+						:class="'cn-cell-renderer__progress-value--' + progressTone">{{ progressPercent }}%</strong>
+				</span>
+				<span
+					v-if="progressBadge"
+					class="cn-cell-renderer__progress-badge"
+					:class="'cn-cell-renderer__progress-badge--' + progressBadge.tone">{{ progressBadge.label }}</span>
+			</span>
+		</template>
+
 		<!-- Explicit column formatter — overrides the type-aware paths below -->
 		<template v-else-if="hasFormatter">
 			<span :title="rawTitle">{{ formattedValue }}</span>
@@ -229,10 +253,11 @@ import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
-import { formatAge, formatBoardDate, resolveAgeVariant } from '../../utils/boardDate.js'
+import { ageInDays, formatAge, formatBoardDate, resolveAgeVariant } from '../../utils/boardDate.js'
 import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
 import { objectFieldValue } from '../../utils/objectName.js'
+import { readPath } from '../../utils/readPath.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue, isGroupProp } from '../../utils/schema.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
@@ -607,6 +632,83 @@ export default {
 		 */
 		ageLabel() {
 			return formatAge(this.value)
+		},
+
+		/**
+		 * `progress` widget: the value as a whole percentage of
+		 * `widgetProps.max` (default 100), clamped to 0..100. An empty value
+		 * falls back to the first `widgetProps.fallbackFields` row field that
+		 * holds a number. Null when nothing holds one.
+		 *
+		 * @return {number|null}
+		 * @spec openspec/changes/abstract-progress-cell/specs/progress-cell/spec.md#requirement-a-progress-cell-draws-a-toned-bar-with-its-percentage
+		 */
+		progressPercent() {
+			const props = this.widgetProps || {}
+			const fallbacks = Array.isArray(props.fallbackFields) ? props.fallbackFields : []
+			const candidates = [this.value, ...fallbacks.map((field) => readPath(this.row || {}, field))]
+			const raw = candidates.find((v) => v !== null && v !== undefined && v !== '' && !Number.isNaN(Number(v)))
+			if (raw === undefined) {
+				return null
+			}
+			const max = Number(props.max) > 0 ? Number(props.max) : 100
+			return Math.max(0, Math.min(100, Math.round((Number(raw) / max) * 100)))
+		},
+
+		/**
+		 * `progress` widget: the tone. `widgetProps.thresholds`
+		 * `{ good: 60, warn: 30 }` (the defaults): at or above `good` is
+		 * success, at or above `warn` is warning, below is error. With
+		 * `widgetProps.lowerIsBetter` the scale turns around.
+		 *
+		 * @return {'success'|'warning'|'error'}
+		 * @spec openspec/changes/abstract-progress-cell/specs/progress-cell/spec.md#requirement-a-progress-cell-draws-a-toned-bar-with-its-percentage
+		 */
+		progressTone() {
+			const props = this.widgetProps || {}
+			const thresholds = props.thresholds || {}
+			const good = Number.isFinite(Number(thresholds.good)) ? Number(thresholds.good) : 60
+			const warn = Number.isFinite(Number(thresholds.warn)) ? Number(thresholds.warn) : 30
+			const value = props.lowerIsBetter === true ? 100 - this.progressPercent : this.progressPercent
+			if (value >= good) {
+				return 'success'
+			}
+			return value >= warn ? 'warning' : 'error'
+		},
+
+		/**
+		 * `progress` widget: the age badge, or null. `widgetProps.badge`
+		 * `{ label, dateField, afterDays, when?, tone? }`: shown when the row's
+		 * `dateField` (default `@self.updated`) lies `afterDays` or more days
+		 * back and every `when` field equals its value. `label` is translated
+		 * and takes `{days}`.
+		 *
+		 * @return {{label: string, tone: string}|null}
+		 * @spec openspec/changes/abstract-progress-cell/specs/progress-cell/spec.md#requirement-a-progress-cell-can-carry-an-age-badge
+		 */
+		progressBadge() {
+			const badge = this.widgetProps && this.widgetProps.badge
+			if (!badge || typeof badge !== 'object' || !badge.label) {
+				return null
+			}
+			const row = this.row || {}
+			const when = badge.when && typeof badge.when === 'object' ? badge.when : {}
+			for (const [field, expected] of Object.entries(when)) {
+				const actual = readPath(row, field)
+				if (actual !== undefined && actual !== null && actual !== '' && String(actual) !== String(expected)) {
+					return null
+				}
+			}
+			const days = ageInDays(readPath(row, badge.dateField || '@self.updated'))
+			const after = Number(badge.afterDays)
+			if (days === null || !Number.isFinite(after) || days < after) {
+				return null
+			}
+			const label = this.cnTranslate(badge.label)
+			return {
+				label: String(label).replace(/\{days\}/g, String(days)),
+				tone: ['error', 'warning', 'success'].includes(badge.tone) ? badge.tone : 'error',
+			}
 		},
 
 		/**
@@ -1234,6 +1336,91 @@ export default {
 
 .cn-cell-renderer__age {
 	white-space: nowrap;
+}
+
+/* The progress cell (abstract-progress-cell): a 56 x 8 bar, the percentage
+   8px beside it in the bar's tone, and an optional age badge after them, as
+   PqLeads' Winkans column. The value is bold, so the tone is not the only signal. */
+.cn-cell-renderer__progress {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 8px;
+}
+
+.cn-cell-renderer__progress-line {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	white-space: nowrap;
+}
+
+.cn-cell-renderer__progress-bar {
+	display: inline-block;
+	width: 56px;
+	height: 8px;
+	border-radius: 4px;
+	background: var(--color-background-dark);
+	overflow: hidden;
+}
+
+.cn-cell-renderer__progress-fill {
+	display: block;
+	height: 100%;
+}
+
+.cn-cell-renderer__progress-fill--success {
+	background: var(--color-element-success, var(--color-success));
+}
+
+.cn-cell-renderer__progress-fill--warning {
+	background: var(--color-element-warning, var(--color-warning));
+}
+
+.cn-cell-renderer__progress-fill--error {
+	background: var(--color-element-error, var(--color-error));
+}
+
+.cn-cell-renderer__progress-value {
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.cn-cell-renderer__progress-value--success {
+	color: var(--color-text-success, var(--color-success-text));
+}
+
+.cn-cell-renderer__progress-value--warning {
+	color: var(--color-text-warning, var(--color-warning-text));
+}
+
+.cn-cell-renderer__progress-value--error {
+	color: var(--color-text-error, var(--color-error-text));
+}
+
+.cn-cell-renderer__progress-badge {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 12px;
+	font-size: 13px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.cn-cell-renderer__progress-badge--error {
+	color: var(--color-text-error, var(--color-error-text));
+	background: var(--color-error-hover, var(--color-background-dark));
+	background: color-mix(in srgb, var(--color-error) 12%, transparent);
+}
+
+.cn-cell-renderer__progress-badge--warning {
+	color: var(--color-text-warning, var(--color-warning-text));
+	background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+}
+
+.cn-cell-renderer__progress-badge--success {
+	color: var(--color-text-success, var(--color-success-text));
+	background: color-mix(in srgb, var(--color-success) 12%, transparent);
 }
 
 .cn-cell-renderer__age--success {
