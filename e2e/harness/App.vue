@@ -158,6 +158,36 @@
 			The stages widget and the status badge tile on a case detail surface
 			(?stageswidget=1, ?statbadge=1). See StagesHarness.vue.
 		-->
+		<!-- The sections widget (?sectionswidget=1 / =cards). See SectionsHarness.vue. -->
+		<template v-else-if="showSections">
+			<h2>Sections widget</h2>
+			<SectionsHarness />
+		</template>
+
+		<!-- The facts widget as a side card (?factswidget=1). See FactsHarness.vue. -->
+		<template v-else-if="showFacts">
+			<h2>Facts widget</h2>
+			<FactsHarness />
+		</template>
+
+		<!-- Progress cells (?progresscell=1). See ProgressCellHarness.vue. -->
+		<template v-else-if="showProgressCell">
+			<h2>Progress cells</h2>
+			<ProgressCellHarness />
+		</template>
+
+		<!-- The workspace-filter start card (?startcard=1). See StartCardHarness.vue. -->
+		<template v-else-if="showStartCard">
+			<h2>Start card</h2>
+			<StartCardHarness />
+		</template>
+
+		<!-- The field-list widget (?fieldlist=1). See FieldListHarness.vue. -->
+		<template v-else-if="showFieldList">
+			<h2>Field list</h2>
+			<FieldListHarness />
+		</template>
+
 		<template v-else-if="showStages">
 			<h2>Stages widget</h2>
 			<StagesHarness />
@@ -171,6 +201,13 @@
 		</template>
 
 		<!--
+			Help text under form fields (?fieldhint=1). See FieldHintHarness.vue.
+		-->
+		<template v-else-if="showFieldHint">
+			<FieldHintHarness />
+		</template>
+
+		<!--
 			The files tab on an OpenRegister object (?filestabor=1). See FilesTabOrHarness.vue.
 		-->
 		<template v-else-if="showFilesTabOr">
@@ -181,6 +218,11 @@
 			Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs). See
 			PixelGapsHarness.vue.
 		-->
+		<!-- screens-relation-pages (?relation=person). See RelationPagesHarness.vue. -->
+		<template v-else-if="showRelationPages">
+			<RelationPagesHarness />
+		</template>
+
 		<!-- screens-detail-page-parity (?screensdetail=tabs). See ScreensDetailHarness.vue. -->
 		<template v-else-if="showScreensDetail">
 			<ScreensDetailHarness />
@@ -646,17 +688,24 @@ import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
 import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CellLabelsHarness from './CellLabelsHarness.vue'
+import FactsHarness from './FactsHarness.vue'
+import FieldHintHarness from './FieldHintHarness.vue'
+import FieldListHarness from './FieldListHarness.vue'
 import FilesTabOrHarness from './FilesTabOrHarness.vue'
 import NarrowTableHarness from './NarrowTableHarness.vue'
 import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
+import ProgressCellHarness from './ProgressCellHarness.vue'
+import RelationPagesHarness from './RelationPagesHarness.vue'
 import ScreensChromeHarness from './ScreensChromeHarness.vue'
 import ScreensDetailHarness from './ScreensDetailHarness.vue'
 import ScreensFormHarness from './ScreensFormHarness.vue'
 import ScreensIndexHarness from './ScreensIndexHarness.vue'
 import ScreensNavHarness from './ScreensNavHarness.vue'
 import ScreensParityHarness from './ScreensParityHarness.vue'
+import SectionsHarness from './SectionsHarness.vue'
 import StagesHarness from './StagesHarness.vue'
+import StartCardHarness from './StartCardHarness.vue'
 import TabsBoardHarness from './TabsBoardHarness.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
@@ -681,7 +730,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -740,9 +789,16 @@ export default {
 
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Stages widget and status badge tile harness (?stageswidget=1 / ?statbadge=1).
+			showSections: (typeof window !== 'undefined' && /[?&]sectionswidget=/.test(window.location.search)),
+			showFacts: (typeof window !== 'undefined' && /[?&]factswidget=/.test(window.location.search)),
+			showProgressCell: (typeof window !== 'undefined' && /[?&]progresscell=/.test(window.location.search)),
+			showStartCard: (typeof window !== 'undefined' && /[?&]startcard=/.test(window.location.search)),
+			showFieldList: (typeof window !== 'undefined' && /[?&]fieldlist=/.test(window.location.search)),
 			showStages: (typeof window !== 'undefined' && /[?&](stageswidget|statbadge)=/.test(window.location.search)),
 			// Table cells in a real browser (?celllabels=1).
 			showCellLabels: (typeof window !== 'undefined' && /[?&]celllabels=/.test(window.location.search)),
+			// Help text under form fields (?fieldhint=1).
+			showFieldHint: (typeof window !== 'undefined' && /[?&]fieldhint=/.test(window.location.search)),
 			showFilesTabOr: (typeof window !== 'undefined' && /[?&]filestabor=/.test(window.location.search)),
 			// Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs).
 			showPixelGaps2: (typeof window !== 'undefined' && /[?&]pixgaps2=/.test(window.location.search)),
@@ -753,6 +809,7 @@ export default {
 			showScreensNav: (typeof window !== 'undefined' && /[?&]screensnav=/.test(window.location.search)),
 			// screens-detail-page-parity (?screensdetail=tabs).
 			showScreensDetail: (typeof window !== 'undefined' && /[?&]screensdetail=/.test(window.location.search)),
+			showRelationPages: (typeof window !== 'undefined' && /[?&]relation=/.test(window.location.search)),
 			// screens-dashboard-parity / screens-kanban-parity (?screens=…).
 			showScreensParity: (typeof window !== 'undefined' && /[?&]screens=/.test(window.location.search)),
 			showScreensIndex: (typeof window !== 'undefined' && /[?&]screensindex=/.test(window.location.search)),

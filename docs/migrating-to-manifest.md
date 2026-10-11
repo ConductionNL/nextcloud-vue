@@ -703,7 +703,10 @@ everything else is a literal. `register` defaults to the page's `config.register
 (`CnIndexPage` fills it in before handing the columns to `CnDataTable` — so most
 manifests can omit it). The cell shows `…` while the count is loading and `—` if the
 request fails (logged); a failed cell never blanks the page, and a stale batch is
-discarded when the rows change. `op` is `"count"` for now (`sum`/`min`/`max`/`avg`,
+discarded when the rows change. A count of zero shows `0`, unless the column
+sets `aggregate.zeroLabel`: then a zero reads as that label, translated through the
+app's `cnTranslate` (`"zeroLabel": "None"` with a Dutch catalogue entry reads "Geen",
+as the drawn boards show it). `op` is `"count"` for now (`sum`/`min`/`max`/`avg`,
 each needing a `field`, are a planned follow-up — the column-config shape is forward-compatible).
 
 > `aggregate` columns light up on a manifest `type:"index"` page because `CnIndexPage` self-fetches its `register`+`schema` collection (see below) — and also work on any consumer that passes `rows` + `columns` (with `aggregate`) to `CnDataTable` directly, or via `CnTableWidget`'s self-fetch mode.

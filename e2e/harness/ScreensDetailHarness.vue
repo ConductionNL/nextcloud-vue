@@ -8,6 +8,8 @@
   static card type, so nothing reaches a server. The body grid holds a `tabs`
   widget; the side column holds two cards. `&plain=1` mounts the same page
   without the look. `&w=<px>` sets the width of the box the page sits in.
+  `&header=1` adds a status pill, a breadcrumb and a meta line, the header's
+  row 2 (screens-detail-header-row-parity).
 -->
 <template>
 	<div :style="{ width: width + 'px' }" data-testid="screensdetail-box">
@@ -21,7 +23,10 @@
 			:showRelatedObjects="false"
 			:widgets="widgets"
 			:layout="layout"
-			:sideColumn="['w-deadline', 'w-requester']" />
+			:sideColumn="['w-deadline', 'w-requester']"
+			:statusPill="header ? { field: 'status', colorMap: { open: 'success' }, labels: { open: 'Open' } } : null"
+			:breadcrumb="header ? { label: 'Cases', href: '#cases', currentField: 'identifier', separator: '/' } : null"
+			:headerMeta="header ? 'via {channel}' : ''" />
 	</div>
 </template>
 
@@ -49,8 +54,8 @@ const HarnessNote = {
 	},
 }
 
-const record = { id: 'id-1', title: 'Roof extension Main Street 12', identifier: '2026-0082' }
-const caseSchema = { title: 'Case', properties: { title: { type: 'string', title: 'Title' }, identifier: { type: 'string', title: 'Identifier' } } }
+const record = { id: 'id-1', title: 'Roof extension Main Street 12', identifier: '2026-0082', status: 'open', channel: 'Mijn Zuiddrecht' }
+const caseSchema = { title: 'Case', properties: { title: { type: 'string', title: 'Title' }, identifier: { type: 'string', title: 'Identifier' }, status: { type: 'string', title: 'Status' }, channel: { type: 'string', title: 'Channel' } } }
 
 export default {
 	name: 'ScreensDetailHarness',
@@ -67,6 +72,7 @@ export default {
 	data() {
 		return {
 			width: Number(params.get('w') || 1240),
+			header: params.get('header') === '1',
 			store: {
 				objects: { 'reg-case': { 'id-1': record } },
 				schemas: { case: caseSchema },
