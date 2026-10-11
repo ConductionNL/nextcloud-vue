@@ -17,11 +17,21 @@
  * one, and it would be this library's fault in somebody else's app.
  */
 
+jest.mock('@nextcloud/auth', () => ({
+	...jest.requireActual('@nextcloud/auth'),
+	getCurrentUser: jest.fn(() => null),
+}))
+
+import { getCurrentUser } from '@nextcloud/auth'
 import {
+	clearAnonymousDrafts,
 	clearDraft,
 	DRAFT_MAX_AGE_MS,
 	draftKey,
+	hasDraftChanges,
 	readDraft,
+	resolveDraftUserId,
+	sameDraftValue,
 	writeDraft,
 } from '../useFormDraft.js'
 
@@ -168,5 +178,64 @@ describe('when storage is not available', () => {
 
 	it('forgets without throwing', () => {
 		expect(() => clearDraft('cn-form-draft:a:s:new:u')).not.toThrow()
+	})
+})
+
+// @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-a-draft-belongs-to-the-signed-in-user
+describe('resolveDraftUserId', () => {
+	afterEach(() => getCurrentUser.mockReturnValue(null))
+
+	it('prefers the id the host passed', () => {
+		getCurrentUser.mockReturnValue({ uid: 'cluade' })
+		expect(resolveDraftUserId('anne')).toBe('anne')
+	})
+
+	it('falls back to the signed-in user', () => {
+		getCurrentUser.mockReturnValue({ uid: 'cluade' })
+		expect(resolveDraftUserId('')).toBe('cluade')
+	})
+
+	it('is empty when nobody is signed in, and when the lookup throws', () => {
+		expect(resolveDraftUserId()).toBe('')
+		getCurrentUser.mockImplementationOnce(() => {
+			throw new Error('no head')
+		})
+		expect(resolveDraftUserId()).toBe('')
+	})
+})
+
+describe('clearAnonymousDrafts', () => {
+	beforeEach(() => window.localStorage.clear())
+
+	it('removes only drafts stored under anonymous', () => {
+		const anon = draftKey({ appId: 'pipelinq', schema: 'crmTask', objectId: 't1' })
+		const anne = draftKey({ appId: 'pipelinq', schema: 'crmTask', objectId: 't1', userId: 'anne' })
+		writeDraft(anon, { title: 'x' })
+		writeDraft(anne, { title: 'y' })
+		window.localStorage.setItem('unrelated:anonymous', 'keep')
+
+		expect(clearAnonymousDrafts()).toBe(1)
+		expect(window.localStorage.getItem(anon)).toBeNull()
+		expect(window.localStorage.getItem(anne)).not.toBeNull()
+		expect(window.localStorage.getItem('unrelated:anonymous')).toBe('keep')
+	})
+})
+
+// @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-a-draft-is-written-only-after-a-person-changes-a-field
+describe('hasDraftChanges', () => {
+	it('treats empty values as equal', () => {
+		expect(sameDraftValue(null, '')).toBe(true)
+		expect(sameDraftValue(undefined, [])).toBe(true)
+		expect(sameDraftValue('a', 'b')).toBe(false)
+		expect(sameDraftValue({ a: 1 }, { a: 1 })).toBe(true)
+	})
+
+	it('counts only fields a person edited', () => {
+		const baseline = { title: 'Call back', notes: '' }
+		// The form changed `notes` by itself; nobody edited it.
+		expect(hasDraftChanges({ title: 'Call back', notes: 'filled in' }, baseline, [])).toBe(false)
+		// Edited, but back to what it was.
+		expect(hasDraftChanges({ title: 'Call back' }, baseline, ['title'])).toBe(false)
+		expect(hasDraftChanges({ title: 'Call back tomorrow' }, baseline, ['title'])).toBe(true)
 	})
 })

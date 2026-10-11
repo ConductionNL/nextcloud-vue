@@ -101,7 +101,7 @@ const stubs = {
 	},
 	CnFormDialog: {
 		name: 'CnFormDialog',
-		props: ['schema', 'item', 'initialData', 'register', 'dialogTitle', 'includeFields', 'excludeFields', 'fieldOverrides'],
+		props: ['schema', 'item', 'initialData', 'register', 'dialogTitle', 'eyebrow', 'subtitle', 'includeFields', 'excludeFields', 'fieldOverrides'],
 		template: '<div class="form-dialog-stub" />',
 		methods: { setResult() {} },
 	},
@@ -284,6 +284,41 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			expect(saveObject).toHaveBeenCalledWith('crm/lead', { name: 'Acme' })
 			expect(wrapper.emitted('created')).toBeTruthy()
+		})
+
+		it('hands the dialog the action\'s eyebrow and intro sentence (screens-form-dialog-intro-parity)', async () => {
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Case', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject: jest.fn(), fetchSchema })
+
+			const wrapper = mountBar([
+				{
+					id: 'new-case',
+					label: 'New case',
+					type: 'open-form',
+					register: 'dossiq',
+					schema: 'case',
+					formTitle: 'New case',
+					formEyebrow: 'All cases',
+					formSubtitle: 'Fields with * are required.',
+				},
+				{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead' },
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-case"]').trigger('click')
+			await flush()
+
+			const dialog = wrapper.findComponent({ name: 'CnFormDialog' })
+			expect(dialog.props('dialogTitle')).toBe('New case')
+			expect(dialog.props('eyebrow')).toBe('All cases')
+			expect(dialog.props('subtitle')).toBe('Fields with * are required.')
+
+			wrapper.vm.closeForm()
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+			const plain = wrapper.findComponent({ name: 'CnFormDialog' })
+			expect(plain.props('eyebrow')).toBe('')
+			expect(plain.props('subtitle')).toBe('')
 		})
 
 		it('seeds the create form with the action props without flipping it to edit mode', async () => {
