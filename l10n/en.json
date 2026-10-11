@@ -1371,6 +1371,10 @@
     "{view}: not available on this list": "{view}: not available on this list"
   },
   "plurals": {
+    "{count} selected": [
+      "{count} selected",
+      "{count} selected"
+    ],
     "%n year": [
       "%n year",
       "%n years"
