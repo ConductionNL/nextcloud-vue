@@ -123,6 +123,7 @@ export default {
 				{ label: 'Afgehandeld deze maand', value: 22, caption: 'gemiddeld 18 dagen', layout: 'stacked', icon: 'CheckCircleOutline', iconPlacement: 'end' },
 				{ label: 'Binnen termijn', value: '91%', caption: 'haalden hun termijn, naar doorlooptijd', layout: 'stacked', icon: 'ChartLine', iconPlacement: 'end' },
 			],
+
 			TileIcon: markRaw({ render: () => h('svg', { viewBox: '0 0 24 24', width: 18, height: 18 }, [h('path', { d: 'M3 3h18v18H3z' })]) }),
 		}
 	},

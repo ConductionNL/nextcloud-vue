@@ -33,6 +33,7 @@
 
 <script>
 import CnWidgetObjectTable from '../../src/components/CnWidgetObjectTable/CnWidgetObjectTable.vue'
+
 import '../../src/css/look-board-index.css'
 
 const board = typeof window !== 'undefined' && /[?&]board=1/.test(window.location.search)
@@ -44,20 +45,21 @@ export default {
 	provide() {
 		return { cnLook: board ? 'board' : 'nextcloud' }
 	},
+
 	data() {
 		return {
 			plain: typeof window !== 'undefined' && /[?&]plain=1/.test(window.location.search),
 			board,
 			columns: board
 				? [
-					{ key: 'title', cellClass: 'cn-cell--strong', secondary: 'identifier' },
-					{ key: 'viewedAt', cellClass: 'cn-cell--muted cn-cell--end' },
-				]
+						{ key: 'title', cellClass: 'cn-cell--strong', secondary: 'identifier' },
+						{ key: 'viewedAt', cellClass: 'cn-cell--muted cn-cell--end' },
+					]
 				: [
-					{ key: 'identifier', cellClass: 'cn-cell--muted' },
-					{ key: 'title', cellClass: 'cn-cell--strong' },
-					{ key: 'viewedAt', cellClass: 'cn-cell--muted cn-cell--end' },
-				],
+						{ key: 'identifier', cellClass: 'cn-cell--muted' },
+						{ key: 'title', cellClass: 'cn-cell--strong' },
+						{ key: 'viewedAt', cellClass: 'cn-cell--muted cn-cell--end' },
+					],
 
 			rows: [
 				{ id: '1', identifier: 'ZAAK-2026-000123', title: 'Omgevingsvergunning voor het verbouwen van een monumentaal pand aan de Herengracht', viewedAt: '3 days ago' },
