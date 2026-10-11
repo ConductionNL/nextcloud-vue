@@ -315,6 +315,31 @@ absent, release their subscription on unmount, and honour a
 `config.subscribe: false` opt-out on the page entry. Nothing connects
 while no such page is mounted.
 
+## Query presets on an index page
+
+A menu entry can deep-link to an index page with a query (`menu[].query`, for
+example `{ "caseType": "<uuid>" }`). With `config.queryPresets` that entry gets
+its own lenses, columns and copy without a second page:
+
+```json
+"queryPresets": [
+  {
+    "id": "woo",
+    "match": { "caseType": "<uuid>" },
+    "title": "Woo requests",
+    "quickFilters": [{ "label": "All", "filter": {}, "default": true }],
+    "columns": ["title", "requester", "receivedAt"]
+  }
+]
+```
+
+The first preset whose every `match` pair is in the route query replaces
+`title`, `quickFilters`, `columns`, `cardFields`, `countText`,
+`searchPlaceholder`, `footerNote`, `defaultSort` and `viewSwitch`. Other keys
+stay the page's own: a preset never changes the register, the schema or what
+the list may write. Switching preset remounts the list, so the active lens
+always belongs to the lenses on screen.
+
 ## Related
 
 - [CnAppRoot](./cn-app-root.md) — Provides manifest / customComponents / pageTypes via inject.
