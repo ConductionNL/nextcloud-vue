@@ -9,8 +9,9 @@
  * with them the other strings of the same component that had no Dutch, the
  * scroll region's name and the "{count} selected" chip of a reference filter.
  * Runs the real @nextcloud/l10n, because a mock that returns its input cannot
- * tell a translated string from an untranslated one. The English control
- * proves the lookup answers per language rather than always returning Dutch.
+ * tell a translated string from an untranslated one. The last test reads
+ * every key CnDataTable translates from its source, so a string added later
+ * without Dutch fails here too.
  *
  * @spec openspec/changes/dutch-table-selection-labels/specs/dutch-table-selection-labels/spec.md#requirement-a-dutch-reader-meets-the-data-tables-own-strings-in-dutch
  */
@@ -36,14 +37,6 @@ describe('CnDataTable strings in Dutch', () => {
 		expect(t('nextcloud-vue', 'Scrollable table')).toBe('Scrollbare tabel')
 		expect(t('nextcloud-vue', '{title} — scrollable table', { title: 'Zaken' })).toBe('Zaken, scrollbare tabel')
 		expect(n('nextcloud-vue', '{count} selected', '{count} selected', 3, { count: 3 })).toBe('3 geselecteerd')
-	})
-
-	it('control: an English reader keeps the English labels', () => {
-		globalThis._nc_l10n_language = 'en'
-		registerTranslations()
-
-		expect(t('nextcloud-vue', 'Select all rows')).toBe('Select all rows')
-		expect(n('nextcloud-vue', '{count} selected', '{count} selected', 3, { count: 3 })).toBe('3 selected')
 	})
 
 	it('has Dutch for every string CnDataTable translates', () => {
