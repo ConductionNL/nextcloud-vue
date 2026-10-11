@@ -1766,17 +1766,6 @@ export default {
 		},
 
 		/**
-		 * Value to render in a cell. For a column that declares `aggregate`
-		 * (a count of related objects), returns the cached count once
-		 * `loadAggregates()` has resolved it (or `'…'` while pending, `'—'`
-		 * if it failed / there's nothing to count). Otherwise the row's
-		 * property value via `getCellValue`.
-		 *
-		 * @param {object} row The row data.
-		 * @param {object} col The column definition.
-		 * @return {unknown} The value handed to the slot / CnCellRenderer.
-		 */
-		/**
 		 * The secondary line of a cell, from `col.secondary`: a function is
 		 * called with the row; a string with `{field}` placeholders is a
 		 * template filled from the row (dotted paths allowed); any other
@@ -1806,12 +1795,31 @@ export default {
 			return asText(this.getCellValue(row, spec))
 		},
 
+		/**
+		 * Value to render in a cell. For a column that declares `aggregate`
+		 * (a count of related objects), returns the cached count once
+		 * `loadAggregates()` has resolved it (or `'…'` while pending, `'—'`
+		 * if it failed / there's nothing to count). A count of zero reads as
+		 * `aggregate.zeroLabel` when the column sets one ("None", which the
+		 * app's `cnTranslate` turns into "Geen" as the boards draw it); without
+		 * it the cell shows `0` as before. Otherwise the row's property value
+		 * via `getCellValue`.
+		 *
+		 * @spec openspec/changes/aggregate-zero-label/specs/aggregate-zero-label/spec.md#requirement-a-count-column-can-name-zero
+		 * @param {object} row The row data.
+		 * @param {object} col The column definition.
+		 * @return {unknown} The value handed to the slot / CnCellRenderer.
+		 */
 		cellValue(row, col) {
 			if (col && col.aggregate) {
 				const cached = this.aggregateValues[String(row[this.rowKey])]
 				const v = cached ? cached[col.key] : undefined
 				if (v === undefined) {
 					return this.aggregateLoading ? '…' : '—'
+				}
+				const zeroLabel = col.aggregate.zeroLabel
+				if ((v === 0 || v === '0') && typeof zeroLabel === 'string' && zeroLabel !== '') {
+					return typeof this.cnTranslate === 'function' ? this.cnTranslate(zeroLabel) : zeroLabel
 				}
 				return v
 			}
