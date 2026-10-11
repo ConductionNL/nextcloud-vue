@@ -1079,9 +1079,11 @@
 		},
 		"CnFactsWidget": {
 			"direct": 1,
-			"transitive": 3,
+			"transitive": 5,
 			"tier": "medium",
-			"via": [],
+			"via": [
+				"CnIndexPage"
+			],
 			"page": "cn-facts-widget"
 		},
 		"CnFavouriteToggle": {
