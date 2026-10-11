@@ -22,7 +22,13 @@ as read-only.
 ## The filter context
 
 `@me`, `@me.displayName`, `@me.email`, `@myGroups`, `@now`, `@today`,
-`@today±Nd`, `@monthStart`, `@quarterStart` and `@yearStart`.
+`@today±Nd`, `@monthStart`, `@monthEnd`, `@nextMonthStart`, `@quarterStart` and
+`@yearStart`.
+
+`@monthEnd` is the last day of the current month. Use it with `lte` on a date
+field. On a date-time field `lte` stops at midnight of that day, so write
+`lt: "@nextMonthStart"` there: "closes this month" is
+`{ "expectedCloseDate": { "gte": "@monthStart", "lt": "@nextMonthStart" } }`.
 
 `@myGroups` resolves to an array: the ids of the Nextcloud groups the current
 user is in, so `{ "assignedGroup": "@myGroups" }` becomes an IN filter. Inside

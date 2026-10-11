@@ -83,6 +83,31 @@ Under the board look (`look: "board"`) a date cell, the `"date"` widget without 
 
 A cell that matched a rule is set in weight 600; under the board look every age cell is. The full date and time is the tooltip.
 
+## Progress cells
+
+`widget: "progress"` draws a score or a share as PqLeads' Winkans column does: a 56 x 8 bar, the percentage 8px beside it in bold, both in the bar's tone, and an optional age badge after them.
+
+```json
+{
+  "key": "qualificationScore",
+  "label": "Winkans",
+  "widget": "progress",
+  "widgetProps": {
+    "fallbackFields": ["probability"],
+    "thresholds": { "good": 60, "warn": 30 },
+    "badge": { "label": "Out of date {days} days", "dateField": "@self.updated", "afterDays": 14, "when": { "status": "open" } }
+  }
+}
+```
+
+| `widgetProps` key | Meaning |
+|-----|---------|
+| `max` | The value that is 100% (default 100). The percentage is rounded and clamped to 0..100. |
+| `fallbackFields` | Row fields read, in order, when the cell value is empty. With no number anywhere the cell shows a dash. |
+| `thresholds` | `{ good, warn }`, default `{ good: 60, warn: 30 }`: at or above `good` success, at or above `warn` warning, below error. |
+| `lowerIsBetter` | Turn the scale around (a risk score). |
+| `badge` | `{ label, dateField?, afterDays, when?, tone? }`: shown when the row's `dateField` (default `@self.updated`) lies `afterDays` or more calendar days back and every `when` field equals its value (an empty field does not block). `label` goes through the host translate function and takes `{days}`. `tone` is `error` (default), `warning` or `success`. |
+
 ## Group cells
 
 A Nextcloud group id is not something a person should read. A column whose

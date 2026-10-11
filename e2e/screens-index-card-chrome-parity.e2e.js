@@ -7,7 +7,8 @@
 //
 // @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-table-is-a-white-card-with-one-row-menu
 // @spec openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-the-cards-view-keeps-the-list-toolbar-and-footer
-// @spec openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-page-content-takes-the-board-frame
+// @spec openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-the-content-spans-the-content-area
+// @spec openspec/changes/screens-one-scroller-parity/specs/app-look/spec.md#requirement-the-content-spans-the-content-area
 // @spec openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-header-buttons-share-one-board-button
 
 import { expect, test } from '@playwright/test'
@@ -100,10 +101,11 @@ test.describe('the board chrome (chrome tasks 2 and 3)', () => {
 		expect(plainPad).not.toBe('28px')
 	})
 
-	test('the page content stops at 1240px', async ({ page }) => {
+	// screens-one-scroller-parity: the content spans the whole content area.
+	test('the page content fills a 1600px content area', async ({ page }) => {
 		await open(page, '?screensindex=table&w=1600')
+		const box = await rect(page.locator('[data-testid="screensindex-box"]'))
 		const width = (await rect(page.locator('.cn-index-page').first())).width
-		expect(Math.round(width)).toBeLessThanOrEqual(1240)
-		expect(Math.round(width)).toBeGreaterThan(1000)
+		expect(Math.round(width)).toBe(Math.round(box.width))
 	})
 })

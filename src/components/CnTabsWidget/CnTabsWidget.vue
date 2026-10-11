@@ -80,10 +80,64 @@
 					</span>
 				</template>
 
+				<!-- A stack (`widgetIds`): every widget is a titled card; the
+				     first joins the open tab, the next ones stand below it. -->
+				<div
+					v-if="entry.widget && entry.stack.length"
+					class="cn-tabs-widget__stack"
+					data-testid="cn-tabs-widget-stack">
+					<div class="cn-tabs-widget__stack-first">
+						<CnDetailWidgetHost
+							:widget="entry.widget"
+							chrome="card"
+							:showCardTitle="true"
+							:showActions="false"
+							:availableWidgets="availableWidgets"
+							:objectId="objectId"
+							:object="objectData"
+							:objectType="objectType"
+							:schemaObject="schemaObject"
+							:register="register"
+							:schema="schema"
+							:store="store"
+							:surface="surface"
+							:integrationContext="integrationContext"
+							:cnRegistry="cnRegistry"
+							@geoSaved="onGeoSaved"
+							@openIntegration="onOpenIntegration"
+							@selectObject="onSelectObject" />
+					</div>
+					<div
+						v-for="child in entry.stack"
+						:key="`${entry.key}-${child.id}`"
+						class="cn-tabs-widget__stack-item"
+						:data-testid="`cn-tabs-widget-stack-${child.id}`">
+						<CnDetailWidgetHost
+							:widget="child"
+							chrome="card"
+							:showCardTitle="true"
+							:showActions="false"
+							:availableWidgets="availableWidgets"
+							:objectId="objectId"
+							:object="objectData"
+							:objectType="objectType"
+							:schemaObject="schemaObject"
+							:register="register"
+							:schema="schema"
+							:store="store"
+							:surface="surface"
+							:integrationContext="integrationContext"
+							:cnRegistry="cnRegistry"
+							@geoSaved="onGeoSaved"
+							@openIntegration="onOpenIntegration"
+							@selectObject="onSelectObject" />
+					</div>
+				</div>
 				<CnDetailWidgetHost
-					v-if="entry.widget"
+					v-else-if="entry.widget"
 					:widget="entry.widget"
 					chrome="bare"
+					:availableWidgets="availableWidgets"
 					:objectId="objectId"
 					:object="objectData"
 					:objectType="objectType"
@@ -114,6 +168,7 @@ import CnTab from '../CnTabs/CnTab.vue'
 import CnTabs from '../CnTabs/CnTabs.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
+import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
@@ -268,7 +323,11 @@ export default {
 		 * `tabs[]` entries are `{ widgetId, label?, icon?, count?, countField?, overflow? }`.
 		 * `label` and `icon` fall back to the referenced widget's own title and
 		 * icon. `count` is a number shown after the label; `countField` reads
-		 * it off the record instead (a list counts its items). `overflow: true`
+		 * it off the record instead (a list counts its items). `countFrom`
+		 * counts a list on the server: `"widget"` counts the child widget's
+		 * own list (`content.register`, `schema`, `filter`, tokens such as
+		 * `@objectId` resolved), an object `{ register, schema, filter? }`
+		 * names the list; `count` and `countField` win over it. `overflow: true`
 		 * lists the tab under "More".
 		 *
 		 * `maxVisibleTabs` caps the strip: later tabs go under "More".
@@ -276,7 +335,7 @@ export default {
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId: string, label?: string, icon?: string, count?: number, countField?: string, overflow?: boolean}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}), overflow?: boolean}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -396,6 +455,9 @@ export default {
 			sourceVisibility: {},
 			// Bumped per evaluation round, so a slow answer from an earlier round is dropped.
 			visibilitySeq: 0,
+			// Totals counted for tabs with `countFrom`, by position in `content.tabs`.
+			widgetCounts: {},
+			countSeq: 0,
 			// Tab id named by the route hash that has not appeared yet (still pending).
 			hashTargetId: '',
 			// Items published by the panels, keyed by widget id. Keyed rather
@@ -438,7 +500,7 @@ export default {
 			// whatever its place in the manifest. `index` stays the position in
 			// `content.tabs`, which the source-mode conditions are keyed on.
 			const isActivityTab = (tab) => {
-				const id = typeof tab === 'string' ? tab : tab?.widgetId
+				const id = this.tabWidgetIds(tab)[0]
 				return isActivityWidget(this.availableWidgets.find((w) => w && w.id === id))
 			}
 			const ordered = authored.map((tab, index) => ({ tab, index }))
@@ -460,9 +522,19 @@ export default {
 				if (visibility === 'hidden') {
 					return
 				}
-				const widgetId = typeof tab === 'string' ? tab : tab?.widgetId
-				const widget = this.availableWidgets.find((w) => w && w.id === widgetId) || null
-				const count = resolveTabCount(typeof tab === 'object' ? tab : null, this.objectData)
+				// A stack (`widgetIds`) resolves every id; one that names no
+				// widget is skipped. The first that resolves is the panel's.
+				const ids = this.tabWidgetIds(tab)
+				const widgets = ids.length > 1
+					? ids.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null).filter(Boolean)
+					: []
+				const widget = ids.length > 1
+					? (widgets[0] || null)
+					: (this.availableWidgets.find((w) => w && w.id === ids[0]) || null)
+				const widgetId = widget ? widget.id : ids[0]
+				const declared = resolveTabCount(typeof tab === 'object' ? tab : null, this.objectData)
+				const counted = this.widgetCounts[index]
+				const count = declared === null && typeof counted === 'number' ? counted : declared
 				// The board strip has no "More": every tab is in the strip.
 				let overflow = !this.isBoard && ((tab && tab.overflow === true) || (hideEmpty && count === 0))
 				if (!overflow && !this.isBoard) {
@@ -479,6 +551,7 @@ export default {
 					label: this.tabLabel(tab, widget, widgetId),
 					icon: (tab && tab.icon) || widget?.icon || '',
 					widget,
+					stack: widgets.slice(1),
 					count,
 					overflow,
 					pending: visibility === 'pending',
@@ -495,6 +568,17 @@ export default {
 		/** @return {string} Accessible name of a pending tab's spinner. */
 		loadingLabel() {
 			return t('nextcloud-vue', 'Loading …')
+		},
+
+		/**
+		 * The lists the tabs count (`countFrom`), serialised, to count again
+		 * when they change.
+		 *
+		 * @return {string} The key.
+		 */
+		countSourcesKey() {
+			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
+			return JSON.stringify(tabs.map((tab) => this.countSourceOf(tab)))
 		},
 
 		/** @return {string} The source-mode conditions, serialised, to re-evaluate when they change. */
@@ -609,6 +693,12 @@ export default {
 		objectId() {
 			this.sourceVisibility = {}
 			this.refreshSourceVisibility()
+			this.widgetCounts = {}
+			this.refreshWidgetCounts()
+		},
+
+		countSourcesKey() {
+			this.refreshWidgetCounts()
 		},
 
 		sourceConditionsKey() {
@@ -643,10 +733,14 @@ export default {
 		}
 		this.activeKey = this.resolvedTabs[this.activeIndex]?.key || ''
 		this.refreshSourceVisibility()
+		this.refreshWidgetCounts()
 	},
 
 	mounted() {
-		this._onRefresh = () => this.refreshSourceVisibility()
+		this._onRefresh = () => {
+			this.refreshSourceVisibility()
+			this.refreshWidgetCounts()
+		}
 		subscribe('cn:page:refresh', this._onRefresh)
 		subscribe('cn:widget:refresh', this._onRefresh)
 	},
@@ -657,6 +751,27 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The widget ids a tab names: `widgetIds` (a stack) when it holds at
+		 * least one id, else `widgetId`, or the bare string.
+		 *
+		 * @param {object|string} tab The `content.tabs[]` entry.
+		 * @return {string[]} The ids, at least one entry (possibly undefined).
+		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-tab-can-hold-a-stack-of-widgets
+		 */
+		tabWidgetIds(tab) {
+			if (typeof tab === 'string') {
+				return [tab]
+			}
+			if (tab && Array.isArray(tab.widgetIds)) {
+				const ids = tab.widgetIds.filter((id) => typeof id === 'string' && id !== '')
+				if (ids.length) {
+					return ids
+				}
+			}
+			return [tab?.widgetId]
+		},
+
 		/**
 		 * The label a tab shows: the authored `label`, else (board look) History
 		 * for the activity widget, else the child widget's title, else its id.
@@ -729,6 +844,60 @@ export default {
 				const answer = await evaluateVisibleWhen(cond, ctx)
 				if (seq === this.visibilitySeq) {
 					this.sourceVisibility = { ...this.sourceVisibility, [index]: answer }
+				}
+			}))
+		},
+
+		/**
+		 * The list a tab counts (`countFrom`): `"widget"` counts the child
+		 * widget's own list (its `content.register`, `content.schema` and
+		 * `content.filter`); an object `{ register, schema, filter? }` names
+		 * the list itself. Null for a tab that does not ask, or a child with
+		 * no list.
+		 *
+		 * @param {object|string} tab The `content.tabs[]` entry.
+		 * @return {{register: string, schema: string, filter: object}|null} The list.
+		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
+		 */
+		countSourceOf(tab) {
+			const from = tab && typeof tab === 'object' ? tab.countFrom : null
+			let source = null
+			if (from === 'widget') {
+				// A stack counts its first widget that has a list.
+				const lists = this.tabWidgetIds(tab)
+					.map((id) => this.availableWidgets.find((w) => w && w.id === id))
+					.filter((w) => w && w.content && typeof w.content === 'object' && w.content.register && w.content.schema)
+				source = lists.length ? lists[0].content : null
+			} else if (from && typeof from === 'object') {
+				source = from
+			}
+			if (!source || typeof source.register !== 'string' || source.register === '' || typeof source.schema !== 'string' || source.schema === '') {
+				return null
+			}
+			const filter = source.filter && typeof source.filter === 'object' && !Array.isArray(source.filter) ? source.filter : {}
+			return { register: source.register, schema: source.schema, filter }
+		},
+
+		/**
+		 * Count the list behind every tab with `countFrom`: once on mount,
+		 * when the record changes and after a refresh. A tab keeps its last
+		 * total while the new one is on its way; a failed count shows none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
+		 */
+		async refreshWidgetCounts() {
+			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
+			const seq = ++this.countSeq
+			const ctx = { objectId: this.objectId, object: this.objectData || undefined }
+			await Promise.all(tabs.map(async (tab, index) => {
+				const source = this.countSourceOf(tab)
+				if (!source) {
+					return
+				}
+				const total = await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
+				if (seq === this.countSeq) {
+					this.widgetCounts = { ...this.widgetCounts, [index]: total }
 				}
 			}))
 		},
@@ -823,6 +992,13 @@ export default {
 </script>
 
 <style scoped>
+/* A stack (`widgetIds`): the panel's widget, then cards 20px apart. */
+.cn-tabs-widget__stack {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
 /* The panel is the card; the strip is not inside it. There is no title bar
    above the tabs either: the open tab names the panel, so a title row would
    say the same thing twice and cost a row of height on a card that is mostly
