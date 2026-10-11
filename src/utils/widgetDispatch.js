@@ -39,10 +39,12 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * because a run is started by a flow, never by a person clicking Add.
  * `tasks` follows for the same two reasons: a bare row list, and a task is
  * created by a flow, never by a person clicking Add.
+ * `record-list` draws bare rows of another schema's objects; the card and its
+ * header (link, note) come from the host, and it has no Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'record-list'])
 
 /**
  * The stored content/config blob for a widget definition.
