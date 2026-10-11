@@ -130,6 +130,7 @@
 								col.class || '',
 								pinClass(leadingCount + colIndex),
 								isGrowColumn(col) ? 'cn-table-col--grow' : '',
+								colIndex === 0 ? 'cn-table-head--title' : '',
 							]"
 							:style="{ ...(col.width ? { width: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							:aria-sort="ariaSortFor(col)"
