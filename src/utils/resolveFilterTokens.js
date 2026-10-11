@@ -22,6 +22,10 @@
  *  - `@today±Nd`          → relative-date arithmetic at day granularity: N days
  *                           from today (e.g. `@today-30d`, `@today+7d`)
  *  - `@monthStart`        → first day of the current month, `YYYY-MM-DD`
+ *  - `@monthEnd`          → last day of the current month, `YYYY-MM-DD`; on a
+ *                           date-time field use `lt: '@nextMonthStart'` instead,
+ *                           since `lte` a date stops at that day's midnight
+ *  - `@nextMonthStart`    → first day of the next month, `YYYY-MM-DD`
  *  - `@quarterStart`      → first day of the current quarter, `YYYY-MM-DD`
  *  - `@yearStart`         → first day of the current year, `YYYY-MM-DD`
  *  - `@currentFiscalYear` → the current calendar year as a number string, e.g. `2026`
@@ -213,6 +217,13 @@ export function resolveFilterValue(v, ctx) {
 	}
 	if (v === '@monthStart') {
 		return ymd(new Date(now.getFullYear(), now.getMonth(), 1))
+	}
+	if (v === '@monthEnd') {
+		// Day 0 of the next month is the last day of this one.
+		return ymd(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+	}
+	if (v === '@nextMonthStart') {
+		return ymd(new Date(now.getFullYear(), now.getMonth() + 1, 1))
 	}
 	if (v === '@quarterStart') {
 		return ymd(new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1))
