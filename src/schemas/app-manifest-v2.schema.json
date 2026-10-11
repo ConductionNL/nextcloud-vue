@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.84.0",
+	"version": "2.85.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1132,13 +1132,42 @@
 		"headerPill": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["field"],
-			"description": "A pill in a detail page header, rendered through CnStatusBadge from one field of the record. Nothing renders while the field is empty.",
+			"anyOf": [
+				{ "required": ["field"] },
+				{ "required": ["text"] },
+				{ "required": ["countFrom"] }
+			],
+			"description": "A pill in a detail page header, rendered through CnStatusBadge: from one field of the record (`field`; nothing renders while it is empty), a constant (`text`), or a count of a related list (`countFrom` with `countLabel`; nothing renders at 0, while counting or after a failed count). screens-relation-pages, 2.85.0.",
 			"properties": {
 				"field": {
 					"type": "string",
 					"minLength": 1,
 					"description": "Dot-path to the value on the record."
+				},
+				"text": {
+					"type": "string",
+					"minLength": 1,
+					"description": "A constant label (an i18n key), such as \"Inwoner\" or \"Klant\". Used when `field` is not set."
+				},
+				"countFrom": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": ["register", "schema"],
+					"description": "The list the pill counts with one list request (`_limit=1`, the response's `total`). `filter` values take the `@objectId` and `@object.<field>` tokens. Used when `field` is not set.",
+					"properties": {
+						"register": { "type": "string", "minLength": 1 },
+						"schema": { "type": "string", "minLength": 1 },
+						"filter": { "type": "object", "additionalProperties": true }
+					}
+				},
+				"countLabel": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "The count pill's label for one and for more, i18n keys with `{count}`: `{ \"one\": \"{count} lopende zaak\", \"other\": \"{count} lopende zaken\" }`.",
+					"properties": {
+						"one": { "type": "string", "minLength": 1 },
+						"other": { "type": "string", "minLength": 1 }
+					}
 				},
 				"colorMap": {
 					"type": "object",
