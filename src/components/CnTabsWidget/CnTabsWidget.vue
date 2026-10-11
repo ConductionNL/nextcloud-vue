@@ -254,6 +254,11 @@ export default {
 		cnLook: { default: 'nextcloud' },
 		/** The tab list's name under the board look, provided by CnDetailPage (`config.tabsLabel`). */
 		cnDetailTabsLabel: { default: null },
+		/**
+		 * The host's translate (CnAppRoot provides `cnTranslate`), so a tab
+		 * label written in the manifest reads in the user's language.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -471,7 +476,7 @@ export default {
 					key: `${widgetId || 'tab'}-${index}`,
 					id: (tab && typeof tab === 'object' && tab.id) || widgetId || '',
 					widgetId,
-					label: (tab && tab.label) || (this.isBoard && isActivityWidget(widget) ? t('nextcloud-vue', 'History') : '') || widgetTitleOf(widget) || widgetId || '',
+					label: this.tabLabel(tab, widget, widgetId),
 					icon: (tab && tab.icon) || widget?.icon || '',
 					widget,
 					count,
@@ -652,6 +657,30 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The label a tab shows: the authored `label`, else (board look) History
+		 * for the activity widget, else the child widget's title, else its id.
+		 * A manifest label or title goes through the host's translate; the
+		 * library's own History is translated by the library catalogue.
+		 *
+		 * @param {object|string} tab The `content.tabs[]` entry.
+		 * @param {object|null} widget The widget definition it names.
+		 * @param {string} widgetId The widget id.
+		 * @return {string} The label.
+		 * @spec openspec/changes/screens-detail-labels-parity/specs/detail-labels-board-look/spec.md#requirement-detail-labels-read-in-the-users-language
+		 */
+		tabLabel(tab, widget, widgetId) {
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			if (tab && typeof tab.label === 'string' && tab.label !== '') {
+				return translate(tab.label)
+			}
+			if (this.isBoard && isActivityWidget(widget)) {
+				return t('nextcloud-vue', 'History')
+			}
+			const title = widgetTitleOf(widget)
+			return title ? translate(title) : (widgetId || '')
+		},
+
 		/**
 		 * Whether a tab shows: `visible`, `hidden`, or `pending` while its
 		 * condition cannot be decided yet (object not loaded, count not back).

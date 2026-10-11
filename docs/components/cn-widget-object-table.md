@@ -153,6 +153,7 @@ REST endpoint computes (e.g. a per-source performance report):
 | `loading` | `Boolean` | Loading flag forwarded to CnDataTable's skeleton state. |
 | `hideHeader` | `Boolean` | Hide the column-header row (compact list surface, default `false`). |
 | `borderless` | `Boolean` | Drop CnDataTable's card chrome (default `false`). |
+| `fitWidth` | `Boolean` | Fit the table to the tile (default `true`): the title column (a column's `grow: true`, else `title` or `name`, else the first) shrinks and ends in an ellipsis, so trailing columns such as a date stay visible. Pass `false` for the table's own auto layout. |
 | `rowRoute` | `String` | Route NAME for row-click navigation — mapped to CnDataTable's `rowClickRoute` with `{ params: { id } }`. |
 | `viewAllRoute` | `Object` | vue-router location for the "View all" footer link (default `null`). |
 | `viewAllLabel` | `String` | Pre-translated "View all" label (CnDataTable default when unset). |
