@@ -195,29 +195,24 @@ Field paths are an example; each app fills its own schema's paths.
     ],
     "layout": [{ "id": "1", "widgetId": "person-panels", "gridX": 0, "gridY": 0, "gridWidth": 12, "gridHeight": 12, "showTitle": false }],
     "sideColumn": [
-      { "id": "side-reach", "type": "facts", "title": "Reachable via", "content": {
-        "lead": { "icon": "EmailOutline", "title": "{preferredChannel}" },
-        "note": "Last contact on {lastContactAt|date}, via {lastContactChannel}.",
-        "action": { "label": "Log contact", "icon": "PhoneLogOutline", "type": "open-form", "register": "my-register", "schema": "contactMoment", "props": { "contact": "@objectId" } }
-      } },
-      { "id": "side-identity", "type": "facts", "title": "Identity", "content": {
-        "rows": [
-          { "label": "BSN", "field": "bsn", "format": "masked", "reveal": true },
-          { "label": "Confidentiality", "field": "confidential", "format": "boolean" },
-          { "label": "Source", "field": "source" }
-        ],
-        "note": "Showing the BSN is logged."
-      } },
-      { "id": "side-address", "type": "facts", "title": "Home address", "content": {
-        "lines": ["{address.street} {address.number}", "{address.postcode} {address.city}"],
-        "link": { "label": "Cases on the map", "icon": "MapMarkerOutline", "route": "CasesMap", "query": { "requester": "@objectId" } }
-      } },
-      { "id": "side-channels", "type": "facts", "title": "Contact channels", "content": {
-        "rows": [
-          { "label": "Email", "field": "email", "format": "email", "copy": true },
-          { "label": "Phone", "field": "phone", "format": "phone", "copy": true }
-        ]
-      } },
+      { "id": "side-reach", "type": "facts", "title": "Reachable via", "content": { "fields": [
+        { "as": "lead", "icon": "EmailOutline", "title": "preferredChannel" },
+        { "as": "line", "parts": [{ "path": "lastContactAt", "label": "Last contact on", "format": "date" }, { "path": "lastContactChannel", "label": "via" }] }
+      ], "action": { "label": "Log contact", "icon": "PhoneLogOutline", "type": "open-form", "register": "my-register", "schema": "contactMoment", "props": { "contact": "@objectId" } } } },
+      { "id": "side-identity", "type": "facts", "title": "Identity", "content": { "fields": [
+        { "label": "BSN", "path": "bsn", "format": "masked", "reveal": true },
+        { "label": "Confidentiality", "path": "confidential", "map": { "true": "Yes", "false": "No" } },
+        { "label": "Source", "path": "source" },
+        { "as": "line", "text": "Showing the BSN is logged." }
+      ] } },
+      { "id": "side-address", "type": "facts", "title": "Home address", "content": { "fields": [
+        { "as": "text", "parts": ["address.street", "address.number"], "separator": " " },
+        { "as": "text", "parts": ["address.postcode", "address.city"], "separator": " " }
+      ], "link": { "label": "Cases on the map", "route": { "name": "CasesMap", "query": { "requester": "@objectId" } } } } },
+      { "id": "side-channels", "type": "facts", "title": "Contact channels", "content": { "fields": [
+        { "label": "Email", "path": "email", "format": "email", "copy": true },
+        { "label": "Phone", "path": "phone", "format": "phone", "copy": true }
+      ], "headerAction": { "label": "Add", "icon": "Plus", "type": "open-form", "register": "my-register", "schema": "channel", "props": { "owner": "@objectId" } } } },
       { "id": "side-relations", "type": "record-list", "title": "Relations", "content": {
         "register": "my-register", "schema": "relation", "filter": { "from": "@objectId" }, "extend": ["to"],
         "presentation": "inline", "label": "{roleLabel}", "title": "{to.name}", "rowRoute": "OrganisationDetail", "rowIdField": "to.id"
@@ -243,16 +238,15 @@ The same page with these differences:
       "presentation": "rows", "title": "{name}", "meta": "{role} · {email}", "rowRoute": "PersonDetail" } }
   ],
   "sideColumn": [
-    { "id": "side-kvk", "type": "facts", "title": "KvK and address", "content": {
-      "lead": { "icon": "OfficeBuildingOutline", "title": "KvK {kvkNumber}", "subtitle": "{legalForm} · Trade register" },
-      "lines": ["{address.street} {address.number}", "{address.postcode} {address.city}"],
-      "link": { "label": "Cases on the map", "icon": "MapMarkerOutline", "route": "CasesMap", "query": { "requester": "@objectId" } }
-    } },
-    { "id": "side-main-contact", "type": "facts", "title": "Main contact", "content": {
-      "lead": { "initialsFrom": "mainContact.name", "title": "{mainContact.name}", "subtitle": "{mainContact.role}" },
-      "rows": [{ "icon": "EmailOutline", "field": "mainContact.email", "format": "email" }],
-      "link": { "label": "All contact persons", "route": "Persons", "query": { "organisation": "@objectId" } }
-    } },
+    { "id": "side-kvk", "type": "facts", "title": "KvK and address", "content": { "fields": [
+      { "as": "lead", "icon": "OfficeBuildingOutline", "title": "kvkNumber", "subtitle": "legalForm" },
+      { "as": "text", "parts": ["address.street", "address.number"], "separator": " " },
+      { "as": "text", "parts": ["address.postcode", "address.city"], "separator": " " }
+    ], "link": { "label": "Cases on the map", "route": { "name": "CasesMap", "query": { "requester": "@objectId" } } } } },
+    { "id": "side-main-contact", "type": "facts", "title": "Main contact", "content": { "fields": [
+      { "as": "lead", "initialsPath": "mainContact.name", "title": "mainContact.name", "subtitle": "mainContact.role" },
+      { "icon": "EmailOutline", "path": "mainContact.email", "format": "email" }
+    ], "link": { "label": "All contact persons", "route": { "name": "Persons", "query": { "organisation": "@objectId" } } } } },
     { "id": "side-open-case", "type": "record-list", "title": "Open cases", "content": {
       "register": "my-register", "schema": "case", "filter": { "requester": "@objectId", "status[ne]": "closed" }, "limit": 1,
       "presentation": "rows", "title": "{title}", "meta": "{identifier} · handler {assigneeName}",
@@ -284,7 +278,13 @@ The same page with these differences:
   "Lopende zaken" card is a `rows` list with `limit: 1`; in the narrow side
   column its row stacks (title, meta, then pill and date) instead of growing a
   separate presentation.
-- **Masked values reveal on request.** `format: "masked"` shows the last four
-  characters; `reveal: true` adds a Show button. The widget emits
-  `reveal` with the field path so the app can log it (the board's "Het tonen van
-  het BSN wordt gelogd").
+- **The side cards are lane A's `facts` widget** (`abstract-facts-widget`,
+  #1477), extended for the relation boards (requirement "The facts card draws
+  contact details, identity and a lead"): link formats, masked with reveal,
+  copy, per-row icon, a lead, plain text lines, an action and a header action.
+  `format: "masked"` shows the last four characters; `reveal: true` emits
+  `reveal` with the path so the app can log it ("Het tonen van het BSN wordt
+  gelogd"). The `fields[]` shapes above use those keys.
+- **A tab's grid cell is its budget.** A detail grid cell has a fixed height
+  (ADR-062), so the tabs widget holding a stacked Overview needs a
+  `gridHeight` that fits the stack (16 rows for a data card and two lists).

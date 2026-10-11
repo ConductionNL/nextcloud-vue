@@ -379,6 +379,12 @@
 	display: none;
 }
 
+/* A side card whose widget reports a header action (screens-relation-pages:
+   the "+ Toevoegen" of Contactkanalen and Relaties) keeps that one button. */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions:has(.cn-detail-page__catalog-action) {
+	display: flex;
+}
+
 /* The notice at the top of the side column: radius 12, padding 14px 16px. */
 .cn-look-board .cn-detail-page__side-item--notice .cn-widget-wrapper,
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget,

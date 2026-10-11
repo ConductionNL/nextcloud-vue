@@ -103,49 +103,40 @@ on one line, and a failed fetch one quiet error line.
 - **WHEN** the widget mounts
 - **THEN** no request is sent
 
-### Requirement: A facts card shows configured fields of the record
+### Requirement: The facts card draws contact details, identity and a lead
 
-The library SHALL register a `facts` widget type that reads the page's record
-(`objectData`) and draws a card through CnWidgetWrapper with the widget title.
-Its content SHALL take, all optional and drawn in this order:
+The `facts` widget (`abstract-facts-widget`, CnFactsWidget) SHALL gain what the
+relation boards' side cards need, all optional, with no change to an entry
+that does not use them:
 
-- `lead`: `{ icon?, initialsFrom?, title, subtitle? }`: an icon in a tinted
-  square, or the initials of the value at `initialsFrom`, beside a bold title
-  and a muted subtitle (templates). The lead SHALL not render when its title is
-  empty.
-- `lines`: an array of templates, one line each; empty lines are dropped.
-- `rows`: `[{ label?, icon?, field, format?, copy?, reveal? }]`, a label or icon
-  beside the value of `field`. `format` is `text` (default), `email` (a mailto
-  link), `phone` (a tel link), `url` (a link), `date`, `boolean` (Ja/Nee
-  through translate) or `masked` (all but the last four characters as `*`).
-  `copy: true` adds a copy button that writes the raw value to the clipboard.
-  `reveal: true` on a masked row adds a Show button that shows the value and
-  emits `reveal` with `{ field }`. A row with an empty value SHALL be dropped
-  unless `hideEmpty` is `false`.
-- `note`: a muted template line.
-- `link`: `{ label, icon?, route?, params?, query?, href? }`, a link with
-  token-resolved `query`.
-- `action`: an action object, dispatched through the page's action dispatcher,
-  drawn as a tinted button.
-- `headerAction`: the same, drawn as a small "add" button in the card header.
-
-When the lead, lines and rows are all empty the card SHALL show `emptyText`
-(default "Nothing on file").
+- row `format` `email` (a mailto link), `phone` (a tel link), `url` (a link)
+  and `masked` (all but the last four characters as `*`);
+- `reveal: true` on a masked row: a Show button that shows the value and emits
+  `reveal` with `{ path }`, so the app can log it;
+- `copy: true` on a row: a copy button that writes the raw value to the
+  clipboard;
+- `icon` on a row: an icon in place of the label;
+- an entry `as: "lead"`: an icon tile (`icon`) or the initials of the value at
+  `initialsPath`, beside a bold `title` and a muted `subtitle`;
+- an entry `as: "text"`: a line in the normal ink (address lines), with
+  `parts` as a `line` takes them; and `text` on a line or text entry for a
+  constant;
+- `action` (an action object drawn as a tinted button under the facts) and
+  `headerAction` (the same, drawn as a small add button in the card header),
+  dispatched through the page's action dispatcher.
 
 #### Scenario: An address card
 
-- **GIVEN** `lines: ["{address.street} {address.number}", "{address.postcode} {address.city}"]` and a record at Parkstraat 24, 3311 AB Zuiddrecht
+- **GIVEN** fields `[{ "as": "text", "parts": ["address.street", "address.number"], "separator": " " }, { "as": "text", "parts": ["address.postcode", "address.city"], "separator": " " }]` and a record at Parkstraat 24, 3311 AB Zuiddrecht
 - **WHEN** the card renders
-- **THEN** it shows "Parkstraat 24" and "3311 AB Zuiddrecht" on two lines
-
-@e2e include e2e/screens-relation-pages.e2e.js
+- **THEN** it shows "Parkstraat 24" and "3311 AB Zuiddrecht" on two lines in the normal ink
 
 #### Scenario: A masked number with reveal
 
-- **GIVEN** a row `{ label: "BSN", field: "bsn", format: "masked", reveal: true }` and BSN 123457609
+- **GIVEN** a row `{ "label": "BSN", "path": "bsn", "format": "masked", "reveal": true }` and BSN 123457609
 - **WHEN** the card renders
 - **THEN** the row shows "*****7609" and a Show button
-- **AND** after Show it shows "123457609" and the widget has emitted `reveal` with `{ field: "bsn" }`
+- **AND** after Show it shows "123457609" and the widget has emitted `reveal` with `{ path: "bsn" }`
 
 #### Scenario: Contact channels as links
 
