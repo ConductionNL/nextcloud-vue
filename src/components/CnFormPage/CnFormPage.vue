@@ -397,7 +397,7 @@ import CnFormErrorSummary from '../CnFormErrorSummary/CnFormErrorSummary.vue'
 import CnFormField from '../CnFormField/CnFormField.vue'
 import CnStepper from '../CnStepper/CnStepper.vue'
 import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
-import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
+import { clearAnonymousDrafts, draftIndicatorText, draftKey, formDraftMixin, readDraft, resolveDraftUserId } from '../../composables/useFormDraft.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { cnSelectAria } from '../../directives/cnSelectAria.js'
 import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
@@ -529,7 +529,7 @@ export default {
 			default: '',
 		},
 
-		/** Who is typing; part of the draft's storage key so a shared browser profile never leaks a draft between users. */
+		/** Who is typing; part of the draft's storage key so a shared browser profile never leaks a draft between users. Empty: the signed-in Nextcloud user. */
 		draftUserId: {
 			type: String,
 			default: '',
@@ -949,7 +949,17 @@ export default {
 			if (this.recoverDraft !== true) {
 				return ''
 			}
-			return draftKey({ appId: this.draftAppId, schema: this.draftScope, objectId: 'new', userId: this.draftUserId })
+			return draftKey({ appId: this.draftAppId, schema: this.draftScope, objectId: 'new', userId: this.draftUserOwner })
+		},
+
+		/**
+		 * Who the draft belongs to: `draftUserId`, else the signed-in user.
+		 *
+		 * @return {string} The user id, or '' when nobody is signed in.
+		 * @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-a-draft-belongs-to-the-signed-in-user
+		 */
+		draftUserOwner() {
+			return resolveDraftUserId(this.draftUserId)
 		},
 
 		/**
@@ -997,6 +1007,11 @@ export default {
 		this.calcTimers = {}
 		// Offered, never applied: a form that fills itself is indistinguishable
 		// from one the server prefilled.
+		// A draft under `anonymous` may be somebody else's: removed once a
+		// signed-in user is known, never offered.
+		if (this.formDraftKey && this.draftUserOwner) {
+			clearAnonymousDrafts()
+		}
 		if (this.formDraftKey) {
 			this.draftOffer = readDraft(this.formDraftKey)
 		}
