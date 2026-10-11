@@ -1365,6 +1365,10 @@
     "{label} — show the other filters": "{label} — show the other filters"
   },
   "plurals": {
+    "{count} selected": [
+      "{count} selected",
+      "{count} selected"
+    ],
     "%n year": [
       "%n year",
       "%n years"

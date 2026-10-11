@@ -570,6 +570,10 @@
     "Open": "Openen",
     "Open access:": "Openbare toegang:",
     "Open row": "Rij openen",
+    "Select all rows": "Alle rijen selecteren",
+    "Select row": "Rij selecteren",
+    "Scrollable table": "Scrollbare tabel",
+    "{title} — scrollable table": "{title}, scrollbare tabel",
     "Operator": "Operator",
     "Order": "Volgorde",
     "Owner:": "Eigenaar:",
@@ -1460,6 +1464,10 @@
     "{count} days overdue": "{count} dagen te laat"
   },
   "plurals": {
+    "{count} selected": [
+      "{count} geselecteerd",
+      "{count} geselecteerd"
+    ],
     "%n year": [
       "%n jaar",
       "%n jaar"
