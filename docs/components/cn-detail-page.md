@@ -164,6 +164,19 @@ The card renders above the body and the side column. While it shows, the primary
 
 `colorMap` is keyed on the raw value. `labels` maps a raw value to the text to show, and goes through the translate function. A pill whose field is empty does not render.
 
+A pill does not need a field (schema 2.85.0, screens-relation-pages). `text` is a constant ("Inwoner", "Klant"). `countFrom` counts a related list with one list request and `countLabel` names the count; the pill does not render at 0, while counting or after a failed count:
+
+```json
+"typePill": { "text": "Inwoner", "variant": "info" },
+"statusPill": {
+  "countFrom": { "register": "my-register", "schema": "case", "filter": { "requester": "@objectId", "status": { "ne": "closed" } } },
+  "countLabel": { "one": "{count} lopende zaak", "other": "{count} lopende zaken" },
+  "variant": "purple"
+}
+```
+
+The count is read again for another record and after a page refresh.
+
 ### Side column
 
 ```json

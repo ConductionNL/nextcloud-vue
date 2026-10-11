@@ -102,4 +102,4 @@ Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
 
 ## Board look
 
-Under the board look the title is an h1 of 28px with the description under it, a labelled "Documentation" button (when `docUrl` is set) sits before the buildiq square, no documentation icon is drawn, and the sections lay out as cards in a two-column grid up to 1240px wide. The `look` prop overrides the `cnLook` that `CnAppRoot` provides.
+Under the board look the title is an h1 of 28px with the description under it, a labelled "Documentation" button (when `docUrl` is set) sits before the buildiq square, no documentation icon is drawn, and the sections lay out as cards in a two-column grid as wide as the content area. The `look` prop overrides the `cnLook` that `CnAppRoot` provides.

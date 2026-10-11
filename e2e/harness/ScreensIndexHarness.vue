@@ -6,14 +6,16 @@
   screens-chrome-parity that only a real browser can measure
   (?screensindex=table|cards). The real CnIndexPage renders in the board look
   (`cnLook: board`); `&plain=1` mounts the same page without it. `&w=<px>` sets
-  the width of the box the page sits in.
+  the width of the box the page sits in. `&wide=1` swaps in a ticket list
+  with seven columns and long values (PqTickets), the table that ran past
+  its card (screens-index-table-fit-parity).
 -->
 <template>
 	<div :class="plain ? '' : 'cn-look-board'" :style="{ width: width + 'px' }" data-testid="screensindex-box">
 		<CnIndexPage
 			title="Cases"
-			:schema="schema"
-			:objects="rows"
+			:schema="wide ? wideSchema : schema"
+			:objects="wide ? wideRows : rows"
 			:loading="false"
 			:showRefresh="false"
 			:viewMode="scenario"
@@ -44,7 +46,36 @@ export default {
 		for (let i = 1; i <= 5; i++) {
 			rows.push({ id: String(i), title: `Case ${i}`, status: i % 2 ? 'open' : 'closed', owner: 'Anouk Bakker' })
 		}
+		const wideRows = []
+		const clients = ['M. de Graaf', 'Stichting Wijkcentrum De Lindenhof en omgeving', 'Bakkerij De Basislijn BV', 'J. van der Heijden-Oosterhuis']
+		for (let i = 1; i <= 6; i++) {
+			wideRows.push({
+				id: 'w' + i,
+				subject: i === 1 ? 'Afvalpas werkt niet bij de ondergrondse container aan de Lindelaan sinds vorige week' : `Vraag over vergunning straatfeest ${i}`,
+				client: clients[i % clients.length],
+				type: i % 2 ? 'Verzoek' : 'Klacht',
+				status: i % 2 ? 'In behandeling' : 'Nieuw',
+				channel: 'Mijn Zuiddrecht',
+				waiting: `${i * 27} dagen`,
+				assignee: i % 3 ? 'Pieter Jansen' : 'Fatma Yildiz-van Leeuwen',
+			})
+		}
 		return {
+			wide: params.get('wide') === '1',
+			wideRows,
+			wideSchema: {
+				title: 'Ticket',
+				properties: {
+					subject: { type: 'string', title: 'Onderwerp' },
+					client: { type: 'string', title: 'Klant' },
+					type: { type: 'string', title: 'Type' },
+					status: { type: 'string', title: 'Status' },
+					channel: { type: 'string', title: 'Kanaal' },
+					waiting: { type: 'string', title: 'Wachtend' },
+					assignee: { type: 'string', title: 'Behandelaar' },
+				},
+			},
+
 			scenario: params.get('screensindex') || 'table',
 			plain: params.get('plain') === '1',
 			width: Number(params.get('w') || 1200),

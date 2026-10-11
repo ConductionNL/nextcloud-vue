@@ -137,6 +137,29 @@ describe('CnDataTable — columns[].aggregate', () => {
 		expect(axios.get.mock.calls[firstCalls][1]).toEqual({ params: { automation: 'c', _limit: 0 } })
 		expect(wrapper.findAll('.cell').map((w) => w.text())).toEqual(['1'])
 	})
+
+	// @spec openspec/changes/aggregate-zero-label/specs/aggregate-zero-label/spec.md#requirement-a-count-column-can-name-zero
+	it('names a zero count with aggregate.zeroLabel, translated through cnTranslate', async () => {
+		axios.get
+			.mockResolvedValueOnce({ data: { total: 0 } })
+			.mockResolvedValueOnce({ data: { total: 4 } })
+		const column = { ...aggregateCol, aggregate: { ...aggregateCol.aggregate, zeroLabel: 'None' } }
+		const wrapper = mount(CnDataTable, {
+			propsData: { rows, columns: [column] },
+			global: { provide: { cnTranslate: (key) => (key === 'None' ? 'Geen' : key) } },
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+		})
+		await flush(wrapper)
+		expect(wrapper.findAll('.cell').map((w) => w.text())).toEqual(['Geen', '4'])
+	})
+
+	// @spec openspec/changes/aggregate-zero-label/specs/aggregate-zero-label/spec.md#requirement-a-count-column-can-name-zero
+	it('keeps showing 0 for a zero count when the column sets no zeroLabel', async () => {
+		axios.get.mockResolvedValue({ data: { total: 0 } })
+		const wrapper = mountTable({ rows, columns: [aggregateCol] })
+		await flush(wrapper)
+		expect(wrapper.findAll('.cell').map((w) => w.text())).toEqual(['0', '0'])
+	})
 })
 
 describe('CnDataTable — row click selection', () => {

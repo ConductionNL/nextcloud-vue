@@ -169,9 +169,27 @@
 			:showActions="actionsShown || catalogAddEnabled"
 			:showRefresh="false"
 			:showRequestFeature="false"
+			:headerLink="rendererHeader.link"
 			class="cn-detail-page__catalog-card">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<!-- A renderer that reports its own header (`header` event:
+			     `{ link, note }`, e.g. record-list's "3 in totaal"). -->
+			<template v-if="rendererHeader.note || rendererHeader.action" #actions>
+				<span
+					v-if="rendererHeader.note"
+					class="cn-detail-page__catalog-note"
+					data-testid="cn-detail-widget-header-note">{{ rendererHeader.note }}</span>
+				<button
+					v-if="rendererHeader.action"
+					type="button"
+					class="cn-detail-page__catalog-action"
+					data-testid="cn-detail-widget-header-action"
+					@click="rendererHeader.action.run()">
+					<CnIcon v-if="rendererHeader.action.icon" :name="rendererHeader.action.icon" :size="16" />
+					{{ rendererHeader.action.label }}
+				</button>
 			</template>
 			<template v-if="catalogAddEnabled" #action-items>
 				<NcActionButton @click="invokeCatalogAdd">
@@ -185,6 +203,7 @@
 				:is="renderer"
 				ref="renderer"
 				v-bind="rendererProps"
+				@header="onRendererHeader"
 				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
@@ -531,6 +550,17 @@ export default {
 			resolveRegistryBaseWidget: resolveBaseWidget,
 			resolveRegistryTab: resolveTab,
 			getRegistryProvider: getById,
+		}
+	},
+
+	data() {
+		return {
+			/**
+			 * The card header a content-only renderer reports through its
+			 * `header` event (screens-relation-pages): a link and a note,
+			 * with the list's total already filled in.
+			 */
+			rendererHeader: { link: null, note: '', action: null },
 		}
 	},
 
@@ -993,6 +1023,19 @@ export default {
 
 	methods: {
 		/**
+		 * Take the header a content-only renderer reports.
+		 *
+		 * @param {{link?: object|null, note?: string, action?: {label: string, icon?: string, run: () => unknown}|null}} header The header parts.
+		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-record-list-shows-the-objects-that-point-at-this-record
+		 */
+		onRendererHeader(header) {
+			const link = header && header.link && typeof header.link === 'object' ? header.link : null
+			const note = header && typeof header.note === 'string' ? header.note : ''
+			const action = header && header.action && typeof header.action.run === 'function' && header.action.label ? header.action : null
+			this.rendererHeader = { link, note, action }
+		},
+
+		/**
 		 * A manifest label through the host's translate; '' stays ''.
 		 *
 		 * @param {string} text The label as written in the manifest.
@@ -1110,6 +1153,29 @@ export default {
 </script>
 
 <style scoped>
+.cn-detail-page__catalog-action {
+	align-items: center;
+	background: var(--color-primary-element-light);
+	border: 0;
+	border-radius: 16px;
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+	cursor: pointer;
+	display: inline-flex;
+	font: inherit;
+	font-size: 13px;
+	font-weight: 700;
+	gap: 6px;
+	min-height: 32px;
+	padding: 0 14px;
+	white-space: nowrap;
+}
+
+.cn-detail-page__catalog-note {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	white-space: nowrap;
+}
+
 .cn-detail-widget-host,
 .cn-detail-widget-host > * {
 	height: 100%;

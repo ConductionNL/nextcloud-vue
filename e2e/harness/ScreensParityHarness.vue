@@ -3,7 +3,7 @@
   SPDX-License-Identifier: EUPL-1.2
 
   Layout facts of screens-dashboard-parity and screens-kanban-parity that only a
-  real browser can measure (?screens=segmented|kpi|tile|header|board). The real
+  real browser can measure (?screens=segmented|kpi|tile|kpicaption|header|board). The real
   components render here, in the board look (`cnLook: board`); `&plain=1` mounts
   the same surface without it. `&w=<px>` sets the width of the content box.
 -->
@@ -53,6 +53,18 @@
 				data-testid="screens-tile-linked" />
 		</template>
 
+		<!-- dashboard-tile-text-fits: DqDashboard's "Afgehandeld deze maand" and
+		     "Binnen termijn" tiles, stacked with the icon badge at the end, in a
+		     tile as narrow as on the dossiq dashboard. -->
+		<div v-else-if="scenario === 'kpicaption'" class="screens-parity__kpicaption">
+			<div v-for="tile in captionTiles"
+				:key="tile.label"
+				class="screens-parity__kpicaption-tile"
+				data-testid="screens-kpicaption-tile">
+				<CnStatWidget :content="tile" />
+			</div>
+		</div>
+
 		<CnDashboardPage
 			v-else-if="scenario === 'header'"
 			title="Dashboard"
@@ -79,6 +91,7 @@ import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPag
 import CnKpiGrid from '../../src/components/CnKpiGrid/CnKpiGrid.vue'
 import CnSegmentedControl from '../../src/components/CnSegmentedControl/CnSegmentedControl.vue'
 import CnStatsBlock from '../../src/components/CnStatsBlock/CnStatsBlock.vue'
+import CnStatWidget from '../../src/components/CnStatWidget/CnStatWidget.vue'
 
 const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
 const STATES = ['Received', 'Review', 'Decision', 'Publish', 'Archive', 'Closed']
@@ -86,7 +99,7 @@ const STATES = ['Received', 'Review', 'Decision', 'Publish', 'Archive', 'Closed'
 export default {
 	name: 'ScreensParityHarness',
 
-	components: { CnBoardView, CnDashboardPage, CnKpiGrid, CnSegmentedControl, CnStatsBlock },
+	components: { CnBoardView, CnDashboardPage, CnKpiGrid, CnSegmentedControl, CnStatsBlock, CnStatWidget },
 
 	provide() {
 		return { cnLook: params.get('plain') === '1' ? 'nextcloud' : 'board' }
@@ -106,6 +119,11 @@ export default {
 			width: Number(params.get('w') || 1184),
 			states,
 			rows,
+			captionTiles: [
+				{ label: 'Afgehandeld deze maand', value: 22, caption: 'gemiddeld 18 dagen', layout: 'stacked', icon: 'CheckCircleOutline', iconPlacement: 'end' },
+				{ label: 'Binnen termijn', value: '91%', caption: 'haalden hun termijn, naar doorlooptijd', layout: 'stacked', icon: 'ChartLine', iconPlacement: 'end' },
+			],
+
 			TileIcon: markRaw({ render: () => h('svg', { viewBox: '0 0 24 24', width: 18, height: 18 }, [h('path', { d: 'M3 3h18v18H3z' })]) }),
 		}
 	},
@@ -120,6 +138,17 @@ export default {
 
 .screens-parity__normal {
 	margin-top: 16px;
+}
+
+.screens-parity__kpicaption {
+	display: flex;
+	gap: 16px;
+}
+
+.screens-parity__kpicaption-tile {
+	width: 190px;
+	height: 170px;
+	border: 1px solid var(--color-border);
 }
 
 .screens-parity__tile {

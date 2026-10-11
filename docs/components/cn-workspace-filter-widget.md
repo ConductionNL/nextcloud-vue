@@ -54,6 +54,35 @@ Selection precedence on mount: an existing workspace value → `content.default`
 → (when no `allLabel`) the first option, so siblings always have a value to
 filter on.
 
+## Start card and object picker
+
+A dashboard often opens with a "start" card: a title and one line of guidance on the left, the control that puts something in focus on the right (PqDashboard's "Contact starten"). Declare it on the same widget:
+
+```json
+{
+  "id": "contact-start",
+  "type": "workspace-filter",
+  "showTitle": false,
+  "content": {
+    "layout": "start",
+    "title": "Contact starten",
+    "description": "Zoek de klant aan de lijn of aan de balie.",
+    "writes": "@workspace.selectedClient",
+    "objectSource": { "register": "pipelinq", "schema": "client", "labelField": "name", "placeholder": "Naam, telefoon, e-mail, postcode of klantnummer" },
+    "link": { "label": "Bekijk een voorbeeld", "route": { "name": "Help" } }
+  }
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `layout` | `"start"`: `title` and `description` left, the control and `link` right; they wrap below each other on a narrow cell. |
+| `title`, `description` | The card's heading (17px, bold) and guidance line (muted, at most 420px wide). Translated through `cnTranslate`. |
+| `objectSource` | `{ register, schema, labelField?, placeholder?, ariaLabel?, preload? }`: the control becomes an OpenRegister object picker (`CnResourceSelect`) that searches on the server, so it reaches every object and not only a fetched page, and writes the picked object's id. With no selection, no `default` and no `allLabel` it selects the first object the source lists (one `_limit=1` read), so the page always has one in focus. Its accessible name is `ariaLabel`, else the title. |
+| `link` | `{ label, route? }` or `{ label, href? }`, drawn after the control. |
+
+`objectSource` wins over `options`, `source` and `endpointSource`. Without these keys the widget renders exactly as before.
+
 ## Events
 
 | Event | Payload | Description |

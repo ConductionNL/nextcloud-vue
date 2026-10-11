@@ -82,6 +82,20 @@
 	min-height: var(--cn-field-height);
 }
 
+/* NcTextField draws its input inside `.input-field__main-wrapper`, which has a
+   FIXED height (`--default-clickable-area`, 34px on Nextcloud 34) and a 2px
+   padding ring for the focus outline. The min-height above makes the input
+   40px, so without this the input overflowed its wrapper by 6px and the help
+   line under it, which starts at the wrapper's bottom edge, sat behind the
+   input's lower border. NcSelect grows with its content, which is why only
+   plain inputs showed it. The wrapper now takes the field height plus its
+   padding ring, so the input fits and the help line starts below it.
+   @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-help-text-starts-below-every-input */
+.cn-look-board .cn-form-dialog__field .input-field__main-wrapper,
+.cn-look-board .cn-form-page__field .input-field__main-wrapper {
+	height: calc(var(--cn-field-height) + 2 * var(--border-width-input-focused, 2px));
+}
+
 .cn-look-board .cn-form-dialog__field textarea,
 .cn-look-board .cn-form-page__field textarea {
 	padding: 10px 12px;
