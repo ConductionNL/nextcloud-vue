@@ -175,6 +175,8 @@
 			:register="formRegister"
 			:initialData="formInitialValues || {}"
 			:dialogTitle="tr(formEntry.formTitle) || ''"
+			:eyebrow="tr(formEntry.formEyebrow) || ''"
+			:subtitle="tr(formEntry.formSubtitle) || ''"
 			:includeFields="formEntry.includeFields || null"
 			:excludeFields="formEntry.excludeFields || []"
 			:fieldOverrides="formEntry.fieldOverrides || {}"
