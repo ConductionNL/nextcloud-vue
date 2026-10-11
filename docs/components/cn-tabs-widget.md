@@ -77,6 +77,7 @@ A tab can show a count, and a strip can keep to a few tabs and put the rest unde
 | --- | --- | --- |
 | `count` | a tab | A number shown after the label. |
 | `countField` | a tab | Reads the count off the record. A list counts its items, a number is used as is, a missing field counts as 0. |
+| `countFrom` | a tab | Counts a list on the server when the record does not carry the number: `"widget"` counts the child widget's own list (its `content.register`, `content.schema` and `content.filter`, with `@objectId` and other tokens resolved), an object with `register`, `schema` and an optional `filter` names the list. One request per tab (`_limit=1`, the response's `total`), again when the record changes or the page refreshes. `count` and `countField` win over it; a failed count shows no number. |
 | `overflow` | a tab | Lists the tab under "More". |
 | `maxVisibleTabs` | `content` | The most tabs the strip shows. Later tabs go under "More". A tab that is already there does not use up a place. |
 | `hideEmpty` | `content` | Moves a tab whose count is 0 under "More". A tab without a count is never moved. |

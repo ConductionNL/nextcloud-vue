@@ -105,6 +105,12 @@ describe('the body and side layout rules', () => {
 		expect(rule('.cn-look-board.cn-detail-page--with-side > .cn-detail-page__body')).toMatch(/flex: 999 1 520px/)
 		expect(rule('.cn-look-board.cn-detail-page--with-side > .cn-detail-page__side')).toMatch(/flex: 1 1 300px/)
 	})
+
+	it('pulls the body grid out by its 12px GridStack margin so the strip is level with the side column', () => {
+		const grid = rule('.cn-look-board.cn-detail-page--with-side > .cn-detail-page__body > .cn-detail-page__grid')
+		expect(grid).toMatch(/margin: -12px/)
+		expect(grid).toMatch(/width: auto/)
+	})
 })
 
 describe('the board card anatomy rules', () => {

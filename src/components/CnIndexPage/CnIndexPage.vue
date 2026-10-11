@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="lookClass"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -76,6 +76,20 @@
 			<slot name="below-header" />
 		</div>
 
+		<!-- KPI tiles above the list (`statRow`) and cards beside it
+		     (`sidePanel`), as DqTeamwachtrij and PqContracten
+		     (screens-index-stat-row). -->
+		<CnIndexPageWidgets
+			v-if="statRow && statRow.length > 0"
+			class="cn-index-page__stat-row"
+			variant="stat-row"
+			:widgets="statRow" />
+		<CnIndexPageWidgets
+			v-if="hasSidePanel"
+			class="cn-index-page__side-panel"
+			variant="side-panel"
+			:widgets="sidePanel" />
+
 		<!-- Actions bar -->
 		<CnActionsBar
 			:layout="isBoardLook ? 'board' : 'nextcloud'"
@@ -111,7 +125,7 @@
 			:sortValue="sortSelectValue"
 			:showSearch="inlineSearch || isBoardLook"
 			:searchValue="effectiveSearchValue"
-			:searchPlaceholder="searchPlaceholder"
+			:searchPlaceholder="searchPlaceholder ? cnTranslate(searchPlaceholder) : searchPlaceholder"
 			:showCountWithSearch="showCountWithSearch"
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"
@@ -565,6 +579,7 @@
 					:includeColumns="includeColumns"
 					:columnOverrides="columnOverrides"
 					:rowClass="rowClass"
+					:rowTitle="rowTitle"
 					:filterable="tableHeaderFilters"
 					:activeFilters="effectiveActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
@@ -958,6 +973,7 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
@@ -1242,6 +1258,7 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnIndexPageWidgets,
 		CnBuildiqEditButton,
 		CnFollowToggle,
 		NcLoadingIcon,
@@ -1531,6 +1548,21 @@ export default {
 		headerButtons: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * How the board look draws the table's title column (manifest
+		 * `config.rowTitle`): `link` (the default) underlines the title,
+		 * `plain` draws it as bold text without an underline over a 13px muted
+		 * secondary line. The row stays clickable. The Nextcloud look ignores
+		 * it. Maps to CnDataTable `rowTitle`.
+		 *
+		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 */
+		rowTitle: {
+			type: String,
+			default: 'link',
+			validator: (value) => ['link', 'plain'].includes(value),
 		},
 
 		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */
@@ -2632,6 +2664,35 @@ export default {
 		},
 
 		/**
+		 * KPI tiles above the list (manifest `config.statRow`): dashboard
+		 * widget definitions `{ id, type, title?, content }`, usually `stat`,
+		 * drawn in an auto-fit row (each at least 200px) in the listed order.
+		 * Types resolve like dashboard widgets: the app registry, then the
+		 * dashboard catalog. Empty by default.
+		 *
+		 * @spec openspec/changes/screens-index-stat-row/specs/index-page/spec.md#requirement-an-index-page-can-draw-a-stat-row-above-the-list
+		 * @type {Array<object>}
+		 */
+		statRow: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Cards beside the list (manifest `config.sidePanel`): dashboard
+		 * widget definitions `{ id, type, title?, content, headerLink? }`
+		 * drawn in a 300px column right of the toolbar and the list. Empty
+		 * by default; below 1024px the column moves above the list.
+		 *
+		 * @spec openspec/changes/screens-index-stat-row/specs/index-page/spec.md#requirement-an-index-page-can-draw-a-side-panel-beside-the-list
+		 * @type {Array<object>}
+		 */
+		sidePanel: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Where a row carries the actions the server says this caller may run
 		 * on it: a dotted path, read off the rows the list already fetched, so
 		 * ninety rows cost one request rather than ninety.
@@ -3310,6 +3371,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the page draws cards beside its list (`sidePanel`).
+		 *
+		 * @spec openspec/changes/screens-index-stat-row/specs/index-page/spec.md#requirement-an-index-page-can-draw-a-side-panel-beside-the-list
+		 * @return {boolean}
+		 */
+		hasSidePanel() {
+			return Array.isArray(this.sidePanel) && this.sidePanel.length > 0
+		},
+
 		/**
 		 * The empty-state copy run through the host translate function
 		 * (the injected `cnTranslate`, identity by default). Only this
@@ -5159,6 +5230,7 @@ export default {
 		 * stable key and a variant.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @spec openspec/changes/screens-index-header-buttons-parity/specs/index-list-board-look/spec.md#requirement-the-add-header-button-carries-a-plus
 		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string}>}
 		 */
 		resolvedHeaderButtons() {
@@ -5170,6 +5242,11 @@ export default {
 					let icon = typeof button.icon === 'string' ? button.icon : ''
 					if (label === '' && button.action === 'add') {
 						label = this.resolvedAddLabel
+					}
+					// The board's primary button reads "+ New request": the Add
+					// button takes the plus unless the manifest names an icon.
+					if (this.isBoardLook && button.action === 'add' && icon === '') {
+						icon = 'Plus'
 					}
 					// The board's header: Export reads "Download" with its icon and
 					// the Actions menu reads "Actions", without the manifest saying so.
@@ -5422,6 +5499,7 @@ export default {
 		 * filled in when one is known, else `description`.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-index-page-title-is-a-manifest-key
+		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-the-count-reads-in-the-users-language
 		 * @return {string}
 		 */
 		headerDescription() {
@@ -5429,9 +5507,16 @@ export default {
 			// Board look: the count line is a template over the rows on this page
 			// and all rows, "{shown} of {total}" unless the page says otherwise.
 			if (this.isBoardLook && typeof total === 'number' && total >= 0) {
-				const template = this.countText || this.countSubtitle || '{shown} of {total}'
+				const shown = this.effectiveObjects.length
+				// The default count line is the library's own string, so it
+				// reads "14 van 14" in Dutch; a page's own template goes
+				// through the app's label lookup.
+				if (!this.countText && !this.countSubtitle) {
+					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
+				}
+				const template = this.countText || this.countSubtitle
 				return this.cnTranslate(template)
-					.replace('{shown}', String(this.effectiveObjects.length))
+					.replace('{shown}', String(shown))
 					.replace('{total}', String(total))
 			}
 			if (this.countSubtitle && typeof total === 'number' && total >= 0) {

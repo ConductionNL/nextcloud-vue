@@ -1113,10 +1113,10 @@ With `allowSavedViews`, views shared with the user list under "Shared with me" i
 
 With `look: "board"` (the page's `look` prop or `config.look`, else the app's `look`) the index page is drawn as the DqZaken list of the screens. Without it nothing changes.
 
-- **Header**: no icon; the title (28px), the count line and the buttons. `countText` is a template with `{shown}` (rows on this page), `{total}` and free text, default `"{shown} of {total}"`. The buttons render in a fixed order whatever the manifest declares: `export` (labelled "Download" by default), `actions-menu`, any other secondary button, the buildiq square, the primary button.
+- **Header**: no icon; the title (28px), the count line and the buttons. `countText` is a template with `{shown}` (rows on this page), `{total}` and free text, default `"{shown} of {total}"`. The buttons render in a fixed order whatever the manifest declares: `export` (labelled "Download" by default), `actions-menu`, any other secondary button, the buildiq square, the primary button. An `add` button without an `icon` carries a plus. The buttons keep the board's look (a grey-bordered Download, a primary fill without a border) also under a theme that restyles every button.
 - **Toolbar**: no band. Row 1 holds the saved-view chips (with their counts; the selected one filled), a "Save view" button, the labelled Filter button with the number of active filters, and the view switch (icon-only segments in the order table, cards, board, map). Row 2 holds the search field and, when filters are active, "Active:", one removable chip per filter and "Clear all".
 - **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected &lt;plural&gt;", the bulk actions and the optional `bulkHint`.
-- **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for &lt;title&gt;".
+- **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for &lt;title&gt;", a grey-bordered square whatever the theme does to secondary buttons. The title column underlines the title (not its secondary line); `rowTitle: "plain"` draws it as 15px bold text without an underline over a 13px muted secondary line, as the PqTickets board does. The row stays clickable either way.
 - **Footer**: inside the card (and under the card grid): the count text, `footerNote` after it, and numbered page links with Previous and Next. No First, Last or page-size select.
 - **Cards view**: the same header, toolbar and footer; `cardFields` (default: the first four list columns) names the facts shown on each card.
 
@@ -1129,3 +1129,23 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 ## The row menu edits when the row opens the detail
 
 When a click on a row navigates to the record's detail page, the built-in View is left out of that row's menu (and of the right-click menu): viewing is what the click does. The menu offers Edit (Dutch "Bewerken", pencil icon). A row whose `viewTo` answers `null`, or a page with no row-click target, keeps View. Actions the page declares itself are not touched. The rule applies in every look.
+
+## Stat row and side panel (`statRow`, `sidePanel`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `statRow` | `Array` | `[]` | KPI tiles above the list (manifest `config.statRow`): widget definitions `{ id, type, title?, content }`, usually `type: "stat"`, drawn between the header and the toolbar in an auto-fit row (each tile at least 200px), in the listed order. |
+| `sidePanel` | `Array` | `[]` | Cards beside the list (manifest `config.sidePanel`): widget definitions `{ id, type, title?, content, headerLink? }` in a 300px column right of the toolbar and the list. Below 1024px the column sits above the toolbar. |
+
+Types resolve like dashboard widgets: the app's widget registry first, then the dashboard catalog (`stat`, `table`, `people`, `stats-block` and the rest). An entry without an id, or with a type nothing resolves, is skipped with a development warning.
+
+```json
+{
+  "statRow": [
+    { "id": "unassigned", "type": "stat", "content": { "label": "Without handler", "endpointSource": { "url": "/apps/dossiq/api/queue/kpis" }, "valueField": "unassigned" } }
+  ],
+  "sidePanel": [
+    { "id": "team", "type": "TeamToday", "title": "Team today" }
+  ]
+}
+```
