@@ -18,7 +18,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name     | Payload | Description |
-| -------- | ------- | ----------- |
-| `header` | —       |             |
-| `reveal` | —       |             |
+| Name     | Payload | Description                                                      |
+| -------- | ------- | ---------------------------------------------------------------- |
+| `header` | —       | Emitted with the card header's parts: the header action, if any. |
+| `reveal` | —       | Emitted when the reader shows a masked value.                    |

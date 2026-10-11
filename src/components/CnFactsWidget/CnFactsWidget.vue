@@ -574,6 +574,10 @@ export default {
 		reveal(row) {
 			this.revealed = { ...this.revealed, [row.key]: true }
 			const detail = { path: row.path }
+			/**
+			 * @event reveal Emitted when the reader shows a masked value.
+			 * @type {{path: string}} The path of the shown field.
+			 */
 			this.$emit('reveal', detail)
 			emit(FACTS_REVEAL_CHANNEL, { ...detail, objectId: this.tokenCtx.objectId, register: this.tokenCtx.register || null, schema: this.tokenCtx.schema || null })
 		},
@@ -653,6 +657,10 @@ export default {
 		/** Tell the card around the facts what its header shows (the header action). */
 		emitHeader() {
 			const view = this.headerAction
+			/**
+			 * @event header Emitted with the card header's parts: the header action, if any.
+			 * @type {{link: null, note: string, action: (object|null)}} `action` is `{ label, icon, run }`.
+			 */
 			this.$emit('header', {
 				link: null,
 				note: '',
