@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.83.0",
+	"version": "2.84.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2581,6 +2581,14 @@
 				"formTitle": {
 					"type": "string",
 					"description": "open-form: overrides the create dialog's heading. Defaults to 'Create {schema title}'."
+				},
+				"formEyebrow": {
+					"type": "string",
+					"description": "open-form: the context line above the create dialog's heading (board look), e.g. the list the record joins. Through the host translate. Absent: no line."
+				},
+				"formSubtitle": {
+					"type": "string",
+					"description": "open-form: the sentence under the create dialog's heading (board look), e.g. which fields are required and what happens on save. Through the host translate. Absent: no sentence."
 				},
 				"size": {
 					"type": "string",
