@@ -56,6 +56,27 @@ export const DEFAULT_FIELD_INSPECTION_CONFIG = {
 	// Schema holding conflict records. Empty keeps a conflict on the device,
 	// and the queue row says so rather than pretending it was filed.
 	conflictSchema: '',
+	// How a template's items are read (normaliseChecklistTemplate). Empty
+	// `sectionsField` reads a flat `items[]`; set it when the items sit inside
+	// ordered sections, each with its own `items[]`.
+	sectionsField: '',
+	itemKeyField: 'questionId',
+	itemTextField: 'text',
+	itemTypeField: 'type',
+	// The app's own item type words onto the leaf's (`yes_no`,
+	// `photo_required`; anything else renders as free text).
+	itemTypeMap: {},
+	// An item whose `photoRequiredField` equals `photoRequiredValue` needs a
+	// photo as well as an answer. Empty switches the gate off.
+	photoRequiredField: '',
+	photoRequiredValue: '',
+	// Where a finished run goes (checklistSubmission). Empty queues an object
+	// create on `resultSchema`. Set, it is a path under the Nextcloud root with
+	// `{field}` placeholders from the planned item, and the run replays as one
+	// POST there, naming the template and the planned item under these keys.
+	resultEndpoint: '',
+	resultTemplateParam: 'templateId',
+	resultPlannedItemParam: 'plannedItem',
 }
 
 /**

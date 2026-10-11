@@ -112,6 +112,7 @@ export {
 	CnEnvironmentBanner,
 	CnExportWizard,
 	CnFacetSidebar,
+	CnFactsWidget,
 	CnFavouriteToggle,
 	CnFeaturesAndRoadmapLink,
 	CnFeaturesAndRoadmapPage,
@@ -337,6 +338,10 @@ export {
 // docs/components/cn-buildiq-edit-button.md; no separate doc page.
 // @deprecated Use `CnBuildiqEditButton`.
 export { CnOpenBuildEditButton } from './components/index.js'
+
+// A CnFilesBrowser data source that reads an OpenRegister object's folder
+// through OpenRegister's files API (openspec: files-browser-openregister-source).
+export { createOpenRegisterSource } from './components/index.js'
 
 // Workplace dashboard primitives (openspec: workplace-dashboard-primitives):
 // the week strip and stacked bar widgets with their forms, the segmented

@@ -1,5 +1,7 @@
 {
   "translations": {
+    "You cannot see these files": "You cannot see these files",
+    "Delete {name}? This cannot be undone here.": "Delete {name}? This cannot be undone here.",
     "Linked items": "Linked items",
     "Still loading: {sections}": "Still loading: {sections}",
     "Could not load {section}.": "Could not load {section}.",
@@ -65,6 +67,7 @@
     "Follow this record to get its updates": "Follow this record to get its updates",
     "You will see it under Following. This register sends no change notifications.": "You will see it under Following. This register sends no change notifications.",
     "Since {date}": "Since {date}",
+    "since {date}": "since {date}",
     "Remove {name} as a follower": "Remove {name} as a follower",
     "Could not change following.": "Could not change following.",
     "Could not add this colleague.": "Could not add this colleague.",
@@ -224,6 +227,7 @@
     "Access URL": "Access URL",
     "Action": "Action",
     "Actions": "Actions",
+    "optional": "optional",
     "Add": "Add",
     "Add condition": "Add condition",
     "Add enum value": "Add enum value",
@@ -773,6 +777,27 @@
     "Message input": "Message input",
     "Start new chat": "Start new chat",
     "History": "History",
+    "No audit entries yet": "No audit entries yet",
+    "Meetings": "Meetings",
+    "No meetings": "No meetings",
+    "Open in Calendar": "Open in Calendar",
+    "(no title)": "(no title)",
+    "Could not load meetings.": "Could not load meetings.",
+    "Could not load meeting.": "Could not load meeting.",
+    "Calendar is currently unavailable.": "Calendar is currently unavailable.",
+    "Show all {count} fields": "Show all {count} fields",
+    "Show less": "Show less",
+    "{count} more": "{count} more",
+    "Identifier: {identifier}": "Identifier: {identifier}",
+    "What happened, who did it and when, newest first": "What happened, who did it and when, newest first",
+    "{app} is not installed": "{app} is not installed",
+    "Install and enable the {app} app to see this.": "Install and enable the {app} app to see this.",
+    "{title} needs the {app} app. Install and enable it to see this.": "{title} needs the {app} app. Install and enable it to see this.",
+    "View all ({total})": "View all ({total})",
+    "No items": "No items",
+    "Nothing here yet": "Nothing here yet",
+    "No items match this filter": "No items match this filter",
+    "Could not load these records": "Could not load these records",
     "No conversations yet": "No conversations yet",
     "Connecting...": "Connecting...",
     "Loading conversations...": "Loading conversations...",
@@ -1338,7 +1363,8 @@
     "Quick filters": "Quick filters",
     "{count} filters": "{count} filters",
     "{count} more filters": "{count} more filters",
-    "{label} — show the other filters": "{label} — show the other filters"
+    "{label} — show the other filters": "{label} — show the other filters",
+    "{view}: not available on this list": "{view}: not available on this list"
   },
   "plurals": {
     "%n year": [
@@ -1408,6 +1434,10 @@
     "in {count} day": [
       "in {count} day",
       "in {count} days"
+    ],
+    "{count} more filter": [
+      "{count} more filter",
+      "{count} more filters"
     ]
   }
 }

@@ -87,6 +87,61 @@
 	margin-bottom: 0;
 }
 
+/* The breadcrumb is a line of 14px text between the pills and the meta, as
+   the boards draw it (screens-detail-header-row-parity). NcBreadcrumbs grows to
+   the full row and draws each crumb as a 34px tertiary button, which pushed the
+   pills above it and the meta under it. The doubled class outranks its scoped
+   rules. */
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__breadcrumbs.cn-detail-page__breadcrumbs {
+	flex: 0 1 auto;
+	height: auto;
+	min-height: 0;
+	min-width: 0;
+	width: auto;
+}
+
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__breadcrumbs .breadcrumb__crumbs {
+	gap: 8px;
+	margin: 0;
+	min-height: 0;
+	padding: 0;
+	vertical-align: middle;
+}
+
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__breadcrumbs .vue-crumb.vue-crumb {
+	gap: 8px;
+	height: auto;
+	min-height: 0;
+	min-width: 0;
+}
+
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__breadcrumbs .vue-crumb .button-vue.button-vue {
+	background: transparent;
+	border: 0;
+	font-size: 14px;
+	font-weight: 400;
+	height: auto;
+	min-height: 0;
+	min-width: 0;
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__breadcrumbs .vue-crumb .button-vue__text {
+	font-weight: inherit;
+	line-height: 20px;
+	padding: 0;
+}
+
+/* The list is the link; the record's own crumb is plain muted text. */
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__breadcrumbs .vue-crumb .button-vue[aria-current='page'] {
+	color: var(--color-text-maxcontrast);
+	cursor: default;
+}
+
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__breadcrumbs .vue-crumb__separator {
+	margin: 0;
+}
+
 .cn-look-board .cn-detail-page__header-dot,
 .cn-look-board .cn-detail-page__header-meta {
 	color: var(--color-text-maxcontrast);

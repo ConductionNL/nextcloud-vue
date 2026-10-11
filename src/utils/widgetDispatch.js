@@ -39,10 +39,12 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * because a run is started by a flow, never by a person clicking Add.
  * `tasks` follows for the same two reasons: a bare row list, and a task is
  * created by a flow, never by a person clicking Add.
+ * `facts` is a bare list of label/value rows about one object: on a side
+ * card it needs the same titled wrapper, and there is nothing to Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'facts'])
 
 /**
  * The stored content/config blob for a widget definition.
