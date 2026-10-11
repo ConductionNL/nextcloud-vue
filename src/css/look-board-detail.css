@@ -229,6 +229,22 @@
 	border-radius: 0;
 }
 
+/* A tab that holds a stack (`widgetIds`, screens-relation-pages): the panel
+   draws no frame and no padding; each widget is its own card. The first card
+   joins the open tab (the first-card rule above), the next ones stand 20px
+   apart, as the Overzicht of DqContact and PqOrganisatie draws them. */
+.cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content:has(> .cn-tab:not([hidden]) > .cn-tabs-widget__stack) {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+}
+
+/* The stack's next cards are whole cards, not joined to the strip. */
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-item .cn-widget-wrapper {
+	border-radius: var(--cn-board-card-radius);
+}
+
 /* ---- Body cards and side cards ----------------------------------------- */
 
 .cn-look-board .cn-detail-page .cn-widget-wrapper,
