@@ -31,10 +31,12 @@
 
   Hosts a per-user `NcAppSettingsDialog` that any descendant can open
   via the injected `cnOpenUserSettings()` method. CnAppNav binds the
-  inject to manifest entries with `action: "user-settings"`. Apps
-  populate the modal by passing `NcAppSettingsSection`s into the
-  `#user-settings` slot; the slot falls back to a single placeholder
-  section when no content is supplied.
+  inject to manifest entries with `action: "user-settings"`. The modal
+  draws the library's default sections (notifications, credentials,
+  walkthrough replay, integrations). Apps add their own
+  `NcAppSettingsSection`s through `#user-settings-sections` and place,
+  order or hide the defaults with the `userSettingsSections` prop. The
+  older `#user-settings` slot replaces the defaults instead.
 
   A SECOND, distinct `NcAppSettingsDialog` hosts admin-only, app-level
   (not per-user) settings, driven GENERICALLY by `manifest.adminSettings[]`
@@ -534,18 +536,33 @@
 			  User-settings modal. Always mounted so descendants can
 			  open it via the `cnOpenUserSettings` inject (CnAppNav
 			  wires this to manifest entries with
-			  `action: "user-settings"`). The `#user-settings` slot
-			  hosts NcAppSettingsSection children; the placeholder
-			  fallback below renders when no slot content is supplied.
+			  `action: "user-settings"`).
+
+			  The dialog draws its sections in the order
+			  `userSettingsSectionOrder()` returns: `app` (the app's own
+			  sections from the slots), `notifications`, `credentials`,
+			  `walkthrough` and `integrations`. A key that is left out is
+			  not drawn. Two slots carry the app's sections:
+			  - `#user-settings-sections` adds them: the library's default
+			    sections stay unless `userSettingsSections` leaves them out.
+			  - `#user-settings` (the original slot) replaces the defaults,
+			    as it always did: only the app's content and the
+			    integrations section are drawn, unless `userSettingsSections`
+			    names more.
 			-->
 			<NcAppSettingsDialog
 				:open="userSettingsOpen"
 				:showNavigation="true"
 				:name="resolvedUserSettingsTitle"
 				@update:open="userSettingsOpen = $event">
-				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. -->
-				<slot name="user-settings">
-					<CnNotificationPreferences v-if="userSettingsOpen" />
+				<template v-for="section in userSettingsSectionOrder()" :key="section">
+					<template v-if="section === 'app'">
+						<!-- @slot user-settings The app's own sections (NcAppSettingsSection children), REPLACING the library's default sections: filling it draws only this content and the integrations section, unless the `userSettingsSections` prop names more. Prefer `#user-settings-sections`. -->
+						<slot name="user-settings" />
+						<!-- @slot user-settings-sections The app's own sections (NcAppSettingsSection children), ADDED to the library's default sections (notifications, credentials, walkthrough, integrations). Place, order or hide the defaults with the `userSettingsSections` prop. -->
+						<slot name="user-settings-sections" />
+					</template>
+					<CnNotificationPreferences v-else-if="section === 'notifications' && userSettingsOpen" />
 					<!--
 						Credential broker (OpenRegister). Lets the user manage the
 						secrets OR holds on their behalf; apps call external providers
@@ -553,7 +570,7 @@
 						`credentials[]` declarations drive the informational "Apps
 						requesting credentials" list.
 					-->
-					<NcAppSettingsSection v-if="userSettingsOpen"
+					<NcAppSettingsSection v-else-if="section === 'credentials' && userSettingsOpen"
 						id="credentials"
 						:name="libraryCopy('Credentials')">
 						<CnCredentials
@@ -567,7 +584,7 @@
 						when the manifest declares an enabled tour, so apps
 						without a walkthrough never show an empty section.
 					-->
-					<NcAppSettingsSection v-if="walkthroughEnabled"
+					<NcAppSettingsSection v-else-if="section === 'walkthrough' && walkthroughEnabled"
 						id="cn-walkthrough"
 						:name="restartWalkthroughSectionName">
 						<p class="cn-app-root__walkthrough-hint">
@@ -595,48 +612,47 @@
 							</NcButton>
 						</div>
 					</NcAppSettingsSection>
-				</slot>
-				<!--
-					Integrations (ADR-110) — the links that leave this app for
-					another one, gathered out of the navigation into one place.
+					<!--
+						Integrations (ADR-110): the links that leave this app for
+						another one, gathered out of the navigation into one place.
 
-					DELIBERATELY OUTSIDE the #user-settings slot. Six fleet apps
-					override that slot, and anything placed inside the default
-					fallback disappears the moment an app supplies its own
-					content — silently, because an unmatched slot renders nothing
-					and reports nothing. A contract every app is supposed to
-					honour cannot live somewhere six apps switch off by accident.
+						Drawn whether or not the app fills `#user-settings`: six
+						fleet apps fill that slot, and a section placed inside its
+						fallback disappeared for all of them in silence. Only an
+						explicit `userSettingsSections` without `integrations`
+						hides it, for an app whose board does not draw it.
 
-					Renders nothing when the app declares no integration
-					entries, so apps without any never show an empty section.
-				-->
-				<NcAppSettingsSection v-if="userSettingsOpen && integrationEntries.length"
-					id="cn-integrations"
-					:name="translate('Integrations')">
-					<p class="cn-app-root__integrations-hint">
-						{{ libraryCopy('These open in another app.') }}
-					</p>
-					<ul class="cn-app-root__integrations">
-						<li v-for="entry in integrationEntries" :key="entry.id">
-							<!--
-								One uniform external-link icon rather than the
-								entry's own: every row here goes to a different
-								app, which is the thing worth signalling, and
-								CnIcon falls back to a question mark for any
-								name an app has not registered — a broken-looking
-								glyph on a link that works fine.
-							-->
-							<NcButton variant="tertiary"
-								:href="entry.href"
-								:aria-label="entry.label">
-								<template #icon>
-									<OpenInNew :size="20" />
-								</template>
-								{{ entry.label }}
-							</NcButton>
-						</li>
-					</ul>
-				</NcAppSettingsSection>
+						Renders nothing when the app declares no integration
+						entries, so apps without any never show an empty section.
+					-->
+					<NcAppSettingsSection v-else-if="section === 'integrations' && userSettingsOpen && integrationEntries.length"
+						id="cn-integrations"
+						:name="translate('Integrations')">
+						<p class="cn-app-root__integrations-hint">
+							{{ libraryCopy('These open in another app.') }}
+						</p>
+						<ul class="cn-app-root__integrations">
+							<li v-for="entry in integrationEntries" :key="entry.id">
+								<!--
+									One uniform external-link icon rather than the
+									entry's own: every row here goes to a different
+									app, which is the thing worth signalling, and
+									CnIcon falls back to a question mark for any
+									name an app has not registered, a broken-looking
+									glyph on a link that works fine.
+								-->
+								<NcButton variant="tertiary"
+									:href="entry.href"
+									:aria-label="entry.label">
+									<template #icon>
+										<OpenInNew :size="20" />
+									</template>
+									{{ entry.label }}
+								</NcButton>
+							</li>
+						</ul>
+					</NcAppSettingsSection>
+				</template>
 			</NcAppSettingsDialog>
 
 			<!--
@@ -780,6 +796,12 @@ const KNOWN_REGISTRY_KINDS = Object.keys(REGISTRY_KIND_REQUIRED_FIELDS)
  * via the `#or-missing` slot.
  */
 const OR_STORE_LINK = '/index.php/settings/apps/integration/openregister'
+
+/**
+ * The sections of the user-settings modal, in their default order. `app`
+ * stands for the app's own slot content.
+ */
+const USER_SETTINGS_SECTIONS = ['app', 'notifications', 'credentials', 'walkthrough', 'integrations']
 
 export default {
 	name: 'CnAppRoot',
@@ -1623,6 +1645,28 @@ export default {
 		userSettingsTitle: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * The sections of the user-settings modal, in the order they are
+		 * drawn. Keys: `app` (the content of the `#user-settings-sections`
+		 * and `#user-settings` slots), `notifications`, `credentials`,
+		 * `walkthrough` and `integrations`. A key that is left out is not
+		 * drawn, so `['app', 'credentials', 'walkthrough']` hides the
+		 * notifications pane and the integrations section. Unknown keys are
+		 * ignored. The app's slot content is always drawn: without `app` in
+		 * the list it comes first.
+		 *
+		 * `null` (the default) keeps what each slot always did: all
+		 * defaults after the `#user-settings-sections` content, or only the
+		 * `#user-settings` content and the integrations section when an app
+		 * fills that older slot.
+		 *
+		 * @type {Array<string>|null}
+		 */
+		userSettingsSections: {
+			type: Array,
+			default: null,
 		},
 
 		/**
@@ -3387,6 +3431,31 @@ export default {
 			}
 			const legacy = this.customComponents && this.customComponents[key]
 			return legacy || null
+		},
+
+		/**
+		 * The keys of the user-settings sections to draw, in order. A method
+		 * rather than a computed, because which slots an app fills is read
+		 * from `$slots`, which a computed does not track.
+		 *
+		 * @return {Array<string>} Keys out of `USER_SETTINGS_SECTIONS`.
+		 * @spec openspec/changes/user-settings-sections/specs/user-settings-sections/spec.md#requirement-the-user-settings-dialog-keeps-its-default-sections-next-to-the-apps-own
+		 */
+		userSettingsSectionOrder() {
+			const replaces = Boolean(this.$slots['user-settings'])
+			const adds = Boolean(this.$slots['user-settings-sections'])
+			let order
+			if (Array.isArray(this.userSettingsSections)) {
+				order = [...new Set(this.userSettingsSections.filter((key) => USER_SETTINGS_SECTIONS.includes(key)))]
+			} else if (replaces) {
+				order = ['app', 'integrations']
+			} else {
+				order = [...USER_SETTINGS_SECTIONS]
+			}
+			if ((replaces || adds) && !order.includes('app')) {
+				order.unshift('app')
+			}
+			return order
 		},
 
 		/**
