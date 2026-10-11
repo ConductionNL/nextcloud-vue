@@ -4,12 +4,43 @@
 -->
 
 <template>
-	<div class="cn-workspace-filter-widget" data-testid="cn-workspace-filter-widget">
+	<div
+		class="cn-workspace-filter-widget"
+		:class="{ 'cn-workspace-filter-widget--start': isStart }"
+		data-testid="cn-workspace-filter-widget">
+		<!-- The start card (`layout: "start"`): a title and one line of
+		     guidance beside the control, as the "Contact starten" card. -->
+		<div v-if="isStart && (title || description)" class="cn-workspace-filter-widget__text">
+			<h3 v-if="title" class="cn-workspace-filter-widget__title">
+				{{ title }}
+			</h3>
+			<p v-if="description" class="cn-workspace-filter-widget__description">
+				{{ description }}
+			</p>
+		</div>
+
 		<p v-if="label" class="cn-workspace-filter-widget__label">
 			{{ label }}
 		</p>
 
-		<div v-if="loading" class="cn-workspace-filter-widget__status">
+		<!-- An object picker (`objectSource`): searches OpenRegister on the
+		     server, so it reaches every object, not a fetched page. -->
+		<CnResourceSelect
+			v-if="objectSource"
+			class="cn-workspace-filter-widget__control"
+			:register="objectSource.register"
+			:schema="objectSource.schema"
+			:labelField="objectSource.labelField || 'title'"
+			:modelValue="selected === undefined || selected === null ? '' : String(selected)"
+			:placeholder="tr(objectSource.placeholder || '')"
+			:ariaLabelCombobox="tr(objectSource.ariaLabel || '') || title || label || writeKey"
+			:preload="objectSource.preload !== false"
+			:clearable="Boolean(content.allLabel)"
+			:allowCreate="false"
+			data-testid="cn-workspace-filter-object"
+			@update:modelValue="applySelection($event || '')" />
+
+		<div v-else-if="loading" class="cn-workspace-filter-widget__status">
 			{{ loadingLabel }}
 		</div>
 
@@ -47,12 +78,23 @@
 				</NcCheckboxRadioSwitch>
 			</li>
 		</ul>
+
+		<component
+			:is="startLink.to ? 'router-link' : 'a'"
+			v-if="startLink"
+			:to="startLink.to || undefined"
+			:href="startLink.href || undefined"
+			class="cn-workspace-filter-widget__link"
+			data-testid="cn-workspace-filter-link">
+			{{ startLink.label }}
+		</component>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
@@ -94,7 +136,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 export default {
 	name: 'CnWorkspaceFilterWidget',
 
-	components: { NcSelect, NcCheckboxRadioSwitch },
+	components: { CnResourceSelect, NcSelect, NcCheckboxRadioSwitch },
 
 	inject: {
 		/**
@@ -104,13 +146,23 @@ export default {
 		 * Null on pages without one (the widget then just emits `@change`).
 		 */
 		cnWorkspaceContext: { default: null },
+		/** Host translate function, for the start card's texts. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
 		/**
 		 * Persisted configuration blob.
 		 *
-		 * @type {{label?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, default?: (string|number)}}
+		 * Start card keys (abstract-start-card): `layout: "start"` draws
+		 * `title` and `description` beside the control, and `link`
+		 * (`{ label, route? | href? }`) after it. `objectSource`
+		 * (`{ register, schema, labelField?, placeholder?, ariaLabel?, preload? }`)
+		 * makes the control an OpenRegister object picker that searches on the
+		 * server and writes the picked object's id; without a selection and
+		 * without `allLabel` it selects the first object.
+		 *
+		 * @type {{label?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
 		 */
 		content: {
 			type: Object,
@@ -135,6 +187,50 @@ export default {
 		/** Section label. */
 		label() {
 			return this.content.label || ''
+		},
+
+		/** Whether the widget draws the start card. */
+		isStart() {
+			return this.content.layout === 'start'
+		},
+
+		/** The start card's title, translated. */
+		title() {
+			return this.tr(this.content.title || '')
+		},
+
+		/** The start card's guidance line, translated. */
+		description() {
+			return this.tr(this.content.description || '')
+		},
+
+		/**
+		 * The link after the control, or null.
+		 *
+		 * @return {{label: string, to?: object, href?: string}|null}
+		 */
+		startLink() {
+			const link = this.content.link
+			if (!link || typeof link !== 'object' || !link.label) {
+				return null
+			}
+			if (link.route && typeof link.route === 'object' && link.route.name) {
+				return { label: this.tr(link.label), to: link.route }
+			}
+			if (typeof link.href === 'string' && link.href !== '') {
+				return { label: this.tr(link.label), href: link.href }
+			}
+			return null
+		},
+
+		/**
+		 * The object picker declaration, or null.
+		 *
+		 * @return {{register: string, schema: string, labelField?: string}|null}
+		 */
+		objectSource() {
+			const src = this.content.objectSource
+			return src && typeof src === 'object' && src.register && src.schema ? src : null
 		},
 
 		/** Choice style: 'select' or 'radio' (default). */
@@ -263,6 +359,10 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async loadOptions() {
+			if (this.objectSource) {
+				await this.seedFirstObject()
+				return
+			}
 			if (this.content.endpointSource && this.content.endpointSource.url) {
 				await this.loadFromEndpoint()
 			} else if (this.content.source && this.content.source.schema) {
@@ -278,6 +378,51 @@ export default {
 					this.selected = first.value
 					this.writeWorkspace(first.value)
 				}
+			}
+		},
+
+		/**
+		 * Translate a manifest string through the host app.
+		 *
+		 * @param {string} text The text.
+		 * @return {string}
+		 */
+		tr(text) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The object picker's default: with nothing selected, no `default` and
+		 * no `allLabel`, select the first object the source lists, so the page
+		 * always has one in focus. Fail-safe: a failed read selects nothing.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async seedFirstObject() {
+			if ((this.selected !== undefined && this.selected !== '') || this.content.allLabel || this.content.default !== undefined) {
+				return
+			}
+			const src = this.objectSource
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: src.register, schema: src.schema })
+				const res = await axios.get(url, { params: { _limit: 1 } })
+				const data = res && res.data
+				const rows = Array.isArray(data) ? data : ((data && data.results) || [])
+				const first = rows[0]
+				const id = first && (first.id || (first['@self'] && first['@self'].id))
+				if (id && (this.selected === undefined || this.selected === '') && this.readWorkspace() === undefined) {
+					this.selected = String(id)
+					this.writeWorkspace(String(id))
+				}
+			} catch {
+				// Nothing selected: the siblings wait for a pick.
 			}
 		},
 
@@ -463,6 +608,45 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
+}
+
+/* The start card: text left, control (and link) right, as PqDashboard's "Contact starten". */
+.cn-workspace-filter-widget--start {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px 24px;
+}
+
+.cn-workspace-filter-widget__text {
+	flex: 1 1 320px;
+	min-width: 0;
+}
+
+.cn-workspace-filter-widget__title {
+	margin: 0 0 4px;
+	font-size: 17px;
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
+.cn-workspace-filter-widget__description {
+	margin: 0;
+	max-width: 420px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-workspace-filter-widget--start .cn-workspace-filter-widget__control,
+.cn-workspace-filter-widget--start > .v-select {
+	flex: 0 1 480px;
+	min-width: 240px;
+}
+
+.cn-workspace-filter-widget__link {
+	font-weight: 600;
+	color: var(--color-primary-element);
+	text-decoration: underline;
+	white-space: nowrap;
 }
 
 .cn-workspace-filter-widget__count {

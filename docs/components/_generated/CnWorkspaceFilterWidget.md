@@ -2,15 +2,17 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 1 direct reference, 1 file reached through imports.
+**heavy**: this component cannot work without OpenRegister. 3 direct references, 10 files reached through imports.
+
+Through: `CnResourceSelect`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name      | Type    | Required | Default | Description                   |
-| --------- | ------- | -------- | ------- | ----------------------------- |
-| `content` | `union` |          | `\{\}`  | Persisted configuration blob. |
+| Name      | Type    | Required | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------- | ------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `content` | `union` |          | `\{\}`  | Persisted configuration blob. Start card keys (abstract-start-card): `layout: "start"` draws `title` and `description` beside the control, and `link` (`{ label, route? \| href? }`) after it. `objectSource` (`{ register, schema, labelField?, placeholder?, ariaLabel?, preload? }`) makes the control an OpenRegister object picker that searches on the server and writes the picked object's id; without a selection and without `allLabel` it selects the first object. |
 
 ### Events
 
