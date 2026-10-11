@@ -34,9 +34,8 @@ const Wrapper = {
 
 function mountHost(type) {
 	return mount(CnDetailWidgetHost, {
-		props: { widget: { id: 'w', type, title: 'Zaken', content: { register: 'r', schema: 'case' } }, chrome: 'card', objectId: 'p-1' },
+		props: { widget: { id: 'w', type, title: 'Zaken', content: { register: 'r', schema: 'case' } }, chrome: 'card', objectId: 'p-1', cnRegistry: { [type]: Reporter } },
 		global: {
-			provide: { cnRegistry: { [type]: Reporter } },
 			stubs: { CnWidgetWrapper: Wrapper },
 		},
 	})

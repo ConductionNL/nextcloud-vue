@@ -4,8 +4,9 @@
 
   screens-relation-pages (?relation=person). A person page as the canonical
   manifest configures it: the real CnDetailPage in the board look, a tab strip
-  whose Overview holds a stack of widgets, and a side column. The registry
-  holds one static card type, so the stack measures without a server.
+  whose Overview holds a stack of widgets (the record's data card and two
+  record lists), and a side column. The record lists read
+  /apps/openregister/api/objects/..., which the e2e answers with page.route.
   `&plain=1` mounts the same page without the look.
 -->
 <template>
@@ -20,7 +21,7 @@
 			:showRelatedObjects="false"
 			:widgets="widgets"
 			:layout="layout"
-			:sideColumn="['side-note']" />
+			:sideColumn="['side-open', 'side-note']" />
 	</div>
 </template>
 
@@ -95,18 +96,52 @@ export default {
 					content: {
 						tabs: [
 							{ widgetIds: ['person-card', 'person-cases', 'person-moments'], label: 'Overview' },
-							{ widgetId: 'person-cases', label: 'Cases' },
+							{ widgetId: 'side-note', label: 'Cases' },
 						],
 					},
 				},
 				{ id: 'person-card', type: 'data', title: 'Resident', content: { columns: 2, editable: false, include: ['name', 'birthDate'] } },
-				{ id: 'person-cases', type: 'harness-note', title: 'Cases', content: { title: 'Cases', text: 'Two cases.' } },
-				{ id: 'person-moments', type: 'harness-note', title: 'Latest contact moments', content: { title: 'Latest contact moments', text: 'Three moments.' } },
+				{
+					id: 'person-cases',
+					type: 'record-list',
+					title: 'Cases',
+					content: {
+						register: 'reg',
+						schema: 'case',
+						filter: { requester: '@objectId' },
+						title: '{title}',
+						meta: '{identifier} · {caseTypeName}',
+						pill: { field: 'status', labels: { open: 'In progress', closed: 'Closed' }, colorMap: { open: 'purple', closed: 'success' } },
+						trailing: ['Done {closedAt|date}', 'Due {deadline|date}'],
+						headerLink: { label: 'View all {total} cases', href: '#cases' },
+					},
+				},
+				{
+					id: 'person-moments',
+					type: 'record-list',
+					title: 'Latest contact moments',
+					content: {
+						register: 'reg',
+						schema: 'moment',
+						filter: { contact: '@objectId' },
+						presentation: 'feed',
+						icon: { field: 'channel', map: { phone: 'Phone' }, default: 'EmailOutline' },
+						meta: '{startTime|datetime} · {channel}',
+						text: '{summary}',
+						headerNote: '{total} in total',
+					},
+				},
+				{
+					id: 'side-open',
+					type: 'record-list',
+					title: 'Open cases',
+					content: { register: 'reg', schema: 'case', filter: { requester: '@objectId', status: 'open' }, limit: 1, title: '{title}', meta: '{identifier}', pill: { field: 'status', colorMap: { open: 'purple' } }, trailing: 'Due {deadline|date}' },
+				},
 				{ id: 'side-note', type: 'harness-note', title: 'Home address', content: { title: 'Home address', text: 'Parkstraat 24' } },
 			],
 
 			layout: [
-				{ id: '1', widgetId: 'person-tabs', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 8 },
+				{ id: '1', widgetId: 'person-tabs', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 16 },
 			],
 		}
 	},

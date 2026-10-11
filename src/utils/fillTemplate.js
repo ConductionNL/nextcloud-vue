@@ -22,7 +22,7 @@ export function formatBoardDateTime(value, now = new Date()) {
 	if (day === '' || date === null) {
 		return ''
 	}
-	let time = ''
+	let time
 	try {
 		time = new Intl.DateTimeFormat(boardDateLocale(), { hour: '2-digit', minute: '2-digit' }).format(date)
 	} catch {
@@ -90,7 +90,7 @@ export function fillTemplate(template, object, now = new Date()) {
  *
  * @param {string|string[]} templates The candidates, in order.
  * @param {object|null} object The object to read.
- * @param {Function} [translate] Applied to each template before filling.
+ * @param {(key: string) => string} [translate] Applied to each template before filling.
  * @param {Date} [now] The reference moment for dates.
  * @return {string} The first filled text, or ''.
  * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-record-list-shows-the-objects-that-point-at-this-record

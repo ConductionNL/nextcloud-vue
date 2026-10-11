@@ -637,7 +637,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 169,
+			"transitive": 170,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -694,6 +694,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -853,7 +854,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 172,
+			"transitive": 173,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -910,6 +911,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -1267,7 +1269,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 179,
+			"transitive": 180,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1324,6 +1326,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -1544,7 +1547,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 176,
+			"transitive": 177,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1600,6 +1603,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -2506,7 +2510,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 192,
+			"transitive": 193,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2567,6 +2571,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterMapping",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
@@ -2704,6 +2709,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-quicklinks-widget-form"
+		},
+		"CnRecordListWidget": {
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-record-list-widget"
 		},
 		"CnReferencePreview": {
 			"direct": 0,
@@ -3615,7 +3627,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 159,
+			"transitive": 160,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3668,6 +3680,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",

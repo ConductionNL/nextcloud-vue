@@ -1,3 +1,4 @@
+import axios from '@nextcloud/axios'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -7,7 +8,6 @@
  */
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
-import axios from '@nextcloud/axios'
 import CnRecordListWidget from '../../src/components/CnRecordListWidget/CnRecordListWidget.vue'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn() } }))

@@ -143,11 +143,13 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** The current record's id, for the `@objectId` token. */
 		objectId: {
 			type: [String, Number],
 			default: null,
 		},
+
 		/** The current record, for `@object.<field>` tokens. */
 		objectData: {
 			type: Object,
@@ -266,7 +268,7 @@ export default {
 
 		/** @return {string} The spinner's accessible name. */
 		loadingLabel() {
-			return t('nextcloud-vue', 'Loading …')
+			return t('nextcloud-vue', 'Loading …')
 		},
 	},
 
