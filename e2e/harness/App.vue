@@ -164,6 +164,12 @@
 			<FactsHarness />
 		</template>
 
+		<!-- The workspace-filter start card (?startcard=1). See StartCardHarness.vue. -->
+		<template v-else-if="showStartCard">
+			<h2>Start card</h2>
+			<StartCardHarness />
+		</template>
+
 		<template v-else-if="showStages">
 			<h2>Stages widget</h2>
 			<StagesHarness />
@@ -670,6 +676,7 @@ import ScreensIndexHarness from './ScreensIndexHarness.vue'
 import ScreensNavHarness from './ScreensNavHarness.vue'
 import ScreensParityHarness from './ScreensParityHarness.vue'
 import StagesHarness from './StagesHarness.vue'
+import StartCardHarness from './StartCardHarness.vue'
 import TabsBoardHarness from './TabsBoardHarness.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
@@ -694,7 +701,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, StagesHarness, TabsBoardHarness, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, StagesHarness, StartCardHarness, TabsBoardHarness, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -754,6 +761,7 @@ export default {
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Stages widget and status badge tile harness (?stageswidget=1 / ?statbadge=1).
 			showFacts: (typeof window !== 'undefined' && /[?&]factswidget=/.test(window.location.search)),
+			showStartCard: (typeof window !== 'undefined' && /[?&]startcard=/.test(window.location.search)),
 			showStages: (typeof window !== 'undefined' && /[?&](stageswidget|statbadge)=/.test(window.location.search)),
 			// Table cells in a real browser (?celllabels=1).
 			showCellLabels: (typeof window !== 'undefined' && /[?&]celllabels=/.test(window.location.search)),

@@ -3784,10 +3784,12 @@
 			"page": "cn-wizard-dialog"
 		},
 		"CnWorkspaceFilterWidget": {
-			"direct": 1,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"direct": 3,
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnResourceSelect"
+			],
 			"page": "cn-workspace-filter-widget"
 		},
 		"CnXwikiPageCreate": {
