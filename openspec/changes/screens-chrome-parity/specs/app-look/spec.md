@@ -23,7 +23,7 @@ page whose `config.look` differs from the root SHALL put `cn-look-board` or
 library SHALL scope every board rule under `.cn-look-board`, in a new
 stylesheet `src/css/look-board.css` that defines the board dimensions as
 custom properties: `--cn-board-content-padding` (24px 28px),
-`--cn-board-content-max-width` (1240px), `--cn-board-section-gap` (20px),
+`--cn-board-content-max-width` (`none` since screens-one-scroller-parity; was 1240px), `--cn-board-section-gap` (20px),
 `--cn-board-control-height` (40px), `--cn-board-control-radius` (8px),
 `--cn-board-card-radius` (12px), `--cn-board-card-padding` (20px 22px),
 `--cn-board-hairline` (default `var(--color-border)`) and
@@ -62,7 +62,7 @@ before.
 Under the board look the content area of an index, detail, dashboard and
 settings page SHALL have padding `var(--cn-board-content-padding)` (24px top
 and bottom, 28px at the sides), a maximum width of
-`var(--cn-board-content-max-width)` (1240px) aligned to the start, and
+`var(--cn-board-content-max-width)` (`none`: the content spans the content area, see screens-one-scroller-parity) aligned to the start, and
 `var(--cn-board-section-gap)` (20px) between its blocks. The 56px start inset
 that clears the navigation toggle (`.cn-page-header`, `.cn-detail-page__header`)
 SHALL apply only while the navigation is closed. While the navigation is open
@@ -75,7 +75,7 @@ look does not move it and does not inset the open header for it.
 
 - **GIVEN** an index page under the board look with the navigation open, at 1440px
 - **WHEN** it renders in a browser
-- **THEN** the page title starts 28px from the navigation's right edge, 24px below the top of the content, and the content is no wider than 1240px
+- **THEN** the page title starts 28px from the navigation's right edge, 24px below the top of the content, and the content spans the content area
 
 #### Scenario: The navigation is closed
 

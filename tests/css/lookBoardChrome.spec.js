@@ -7,8 +7,10 @@
  * carry the pixel values of the spec. jsdom draws no layout, so the values are
  * read from the stylesheet text.
  *
- * @spec openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-page-content-takes-the-board-frame
+ * @spec openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-the-content-spans-the-content-area
  * @spec openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-header-buttons-share-one-board-button
+ * @spec openspec/changes/screens-one-scroller-parity/specs/app-look/spec.md#requirement-the-content-spans-the-content-area
+ * @spec openspec/changes/screens-one-scroller-parity/specs/app-look/spec.md#requirement-one-scrollbar-at-the-window-edge
  */
 const fs = require('fs')
 const path = require('path')
@@ -70,6 +72,17 @@ describe('look-board.css: the page frame', () => {
 		}
 	})
 
+	it('lets the content span the whole content area: no width cap', () => {
+		expect(rulesFor('.cn-look-board {')).toContain('--cn-board-content-max-width: none')
+		expect(css).not.toMatch(/1240px/)
+	})
+
+	it('scrolls a dashboard with the content area instead of inside the page', () => {
+		const dashboard = rulesFor('.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) {')
+		expect(dashboard).toContain('height: auto')
+		expect(dashboard).toContain('overflow-y: visible')
+	})
+
 	it('keeps the 56px header inset only while the navigation is closed', () => {
 		expect(rulesFor('.cn-look-board .cn-page-header:not')).toContain('padding-inline-start: 0')
 		const closed = rulesFor(':has(.app-navigation--closed) .cn-page-header')
@@ -121,6 +134,15 @@ describe('look-board.css: the navigation', () => {
 		expect(caption).toContain('text-transform: uppercase')
 		expect(caption).toContain('letter-spacing: 0.06em')
 		expect(rulesFor('.app-navigation-entry.active')).toContain('var(--color-primary-element-light)')
+	})
+
+	it('draws no scrollbar of its own: no track beside the primary action, none on the list', () => {
+		const body = rulesFor('.app-navigation__body:not(.app-navigation__body--no-list) {')
+		expect(body).toContain('overflow: visible')
+		expect(body).toContain('flex-shrink: 0')
+		expect(rulesFor('.app-navigation__list {')).toContain('scrollbar-width: none')
+		expect(rulesFor('.app-navigation__body--no-list {')).toContain('scrollbar-width: none')
+		expect(rulesFor('.app-navigation__list::-webkit-scrollbar')).toContain('display: none')
 	})
 
 	it('draws counts as 22px pills, red for attention', () => {
