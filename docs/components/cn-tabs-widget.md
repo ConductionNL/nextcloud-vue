@@ -87,11 +87,28 @@ The strip opens on the first tab that is in it. None of these keys is required, 
 
 Tab titles are separately configurable for a reason: "Files and attachments" reads fine on a card and is too long once six tabs share the width. [`CnTabsWidgetForm`](./cn-tabs-widget-form.md) edits them in Buildiq edit mode.
 
+### A stack of widgets in one tab
+
+A tab can hold several widgets with `widgetIds` instead of `widgetId`. The
+Overview of a person or organisation page shows the record's card, then its
+open cases, then its latest contact moments, and only on that tab:
+
+```json
+{ "widgetIds": ["person-card", "person-cases", "person-moments"], "label": "Overview" }
+```
+
+Every widget renders as a titled card without its own Actions menu (the strip's
+Actions button serves the tab). In the board look the panel draws no frame of
+its own: the first card joins the open tab and the next ones stand 20px apart.
+An id that names no widget is skipped. Without `label` the tab takes the first
+widget's title. `countFrom: "widget"` counts the first widget of the stack that
+has a list. A `widgetId` tab renders as before.
+
 ## Props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }`, or a bare widget-id string. |
+| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }` or `{ widgetIds, label?, icon? }`, or a bare widget-id string. |
 | `availableWidgets` | `Array` | `[]` | Every widget definition on the surface, so `content.tabs[]` can reference siblings by id. |
 | `objectId` | `String \| Number` | `''` | The bound record's id. |
 | `objectData` | `Object` | `null` | The loaded record, or null while it is still being fetched. |
