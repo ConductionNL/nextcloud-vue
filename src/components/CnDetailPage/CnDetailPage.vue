@@ -1231,12 +1231,15 @@ import {
 	groupMenuEntries,
 	MAX_QUICK_ACTIONS,
 	normalisePinnedAction,
+	pillCountSource,
+	resolveCountPill,
 	resolveNextStep,
 	resolvePill,
 	stageEntry,
 	stageOf,
 } from '../../utils/detailActionModel.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
+import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
@@ -2393,9 +2396,13 @@ export default {
 		 * A pill above the title saying what kind of record this is
 		 * (manifest `config.typePill`): `{ field, colorMap?, labels?, variant? }`.
 		 * Rendered through `CnStatusBadge`; `colorMap` is keyed on the field's
-		 * raw value, `labels` maps a raw value to the text to show.
+		 * raw value, `labels` maps a raw value to the text to show. Instead of
+		 * `field`: `text`, a constant ("Inwoner"), or `countFrom`
+		 * (`{ register, schema, filter? }`) with `countLabel` (`{ one, other }`
+		 * with `{count}`), a count of a related list ("1 lopende zaak") that
+		 * shows nothing at 0.
 		 *
-		 * @type {{field: string, colorMap?: object, labels?: object, variant?: string}|null}
+		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string}|null}
 		 */
 		typePill: {
 			type: Object,
@@ -2747,6 +2754,10 @@ export default {
 
 	data() {
 		return {
+			/** The counts of the header's count pills (`countFrom`), by pill key (`type`, `status`). */
+			pillCounts: {},
+			/** Sequence of the last pill count round, so a late answer does not overwrite a newer one. */
+			pillCountSeq: 0,
 			/** `register/schema/id` the read-state call was last made for, so it is sent once per load. */
 			readStateSentFor: '',
 			/** Whether the user is arranging the chosen view (`userLayout`). */
@@ -3259,10 +3270,23 @@ export default {
 		headerPills() {
 			return [['type', this.typePill], ['status', this.statusPill]]
 				.map(([key, config]) => {
-					const pill = resolvePill(config, this.resolvedObject)
+					const pill = pillCountSource(config)
+						? resolveCountPill(config, this.pillCounts[key], (text) => this.effectiveTranslate(text))
+						: resolvePill(config, this.resolvedObject)
 					return pill ? { ...pill, key, label: this.effectiveTranslate(pill.label) } : null
 				})
 				.filter(Boolean)
+		},
+
+		/**
+		 * What the count pills depend on: the record id and the lists they
+		 * count. A change counts again.
+		 *
+		 * @return {string} The key.
+		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count
+		 */
+		pillCountKey() {
+			return JSON.stringify([this.objectId, pillCountSource(this.typePill), pillCountSource(this.statusPill)])
 		},
 
 		/**
@@ -4337,6 +4361,14 @@ export default {
 	},
 
 	watch: {
+		// The header's count pills count again for another record or other lists.
+		pillCountKey: {
+			immediate: true,
+			handler() {
+				this.refreshPillCounts()
+			},
+		},
+
 		// Opening a record marks it read, once, after its data has rendered.
 		readStateDue: {
 			immediate: true,
@@ -4755,6 +4787,33 @@ export default {
 		},
 
 		/**
+		 * Count the lists behind the header's count pills (`countFrom`): one
+		 * list request each (`_limit=1`, the `total`). A failed count, or a
+		 * record without an id yet, shows no pill.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count
+		 */
+		async refreshPillCounts() {
+			const pills = [['type', this.typePill], ['status', this.statusPill]]
+				.map(([key, config]) => [key, pillCountSource(config)])
+				.filter(([, source]) => source)
+			const seq = ++this.pillCountSeq
+			if (pills.length === 0 || this.objectId === null || this.objectId === undefined || this.objectId === '') {
+				this.pillCounts = {}
+				return
+			}
+			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
+			const counts = {}
+			await Promise.all(pills.map(async ([key, source]) => {
+				counts[key] = await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
+			}))
+			if (seq === this.pillCountSeq) {
+				this.pillCounts = counts
+			}
+		},
+
+		/**
 		 * A `cn:page:refresh` reached the page — re-read the object so every
 		 * object-bound widget re-renders from what the backend now holds.
 		 *
@@ -4768,6 +4827,7 @@ export default {
 		 * @return {void}
 		 */
 		onPageRefreshBus(payload) {
+			this.refreshPillCounts()
 			if (!this.hasSchemaDrivenFetch) {
 				return
 			}

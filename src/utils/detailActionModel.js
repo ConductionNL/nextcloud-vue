@@ -201,13 +201,29 @@ export function resolveNextStep(config, object, stageField = 'status') {
 /**
  * Resolve a header pill from the record.
  *
- * @param {{field?: string, colorMap?: object, labels?: object, variant?: string}|null} config The pill config.
+ * A pill with `field` reads it off the record; one without `field` and with
+ * `text` is a constant. A count pill (`countFrom`) is resolved by
+ * {@link resolveCountPill} once its count is known.
+ *
+ * @param {{field?: string, text?: string, colorMap?: object, labels?: object, variant?: string}|null} config The pill config.
  * @param {object|null} object The record.
  * @return {{label: string, colorKey: string, colorMap: object|null, variant: string}|null} What CnStatusBadge needs, or null when the field is empty.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-header-pills
  */
 export function resolvePill(config, object) {
-	if (!config || typeof config !== 'object' || typeof config.field !== 'string' || config.field === '') {
+	if (!config || typeof config !== 'object') {
+		return null
+	}
+	// A constant pill (`text`): "Inwoner", "Klant" (screens-relation-pages).
+	if ((typeof config.field !== 'string' || config.field === '') && typeof config.text === 'string' && config.text !== '') {
+		return {
+			label: config.text,
+			colorKey: config.text,
+			colorMap: config.colorMap && typeof config.colorMap === 'object' ? config.colorMap : null,
+			variant: typeof config.variant === 'string' && config.variant !== '' ? config.variant : 'default',
+		}
+	}
+	if (typeof config.field !== 'string' || config.field === '') {
 		return null
 	}
 	const raw = stageOf(object, config.field)
@@ -259,4 +275,45 @@ export function resolveTabCount(tab, object) {
 	}
 	const number = Number(value)
 	return Number.isFinite(number) ? number : null
+}
+
+/**
+ * The list a count pill counts (`countFrom`), or null for any other pill.
+ *
+ * @param {object|null} config The pill config.
+ * @return {{register: string, schema: string, filter: object}|null} The list.
+ * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count
+ */
+export function pillCountSource(config) {
+	const from = config && typeof config === 'object' && !config.field ? config.countFrom : null
+	if (!from || typeof from !== 'object' || typeof from.register !== 'string' || from.register === '' || typeof from.schema !== 'string' || from.schema === '') {
+		return null
+	}
+	const filter = from.filter && typeof from.filter === 'object' && !Array.isArray(from.filter) ? from.filter : {}
+	return { register: from.register, schema: from.schema, filter }
+}
+
+/**
+ * A count pill once its count is known: "1 lopende zaak", "2 lopende zaken".
+ * Nothing for a count of 0, an unknown count or a failed one.
+ *
+ * @param {{countLabel?: {one?: string, other?: string}, colorMap?: object, variant?: string}|null} config The pill config.
+ * @param {number|null|undefined} count The count.
+ * @param {(text: string) => string} [translate] Applied to the label before `{count}` is filled.
+ * @return {{label: string, colorKey: string, colorMap: object|null, variant: string}|null} What CnStatusBadge needs, or null.
+ * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count
+ */
+export function resolveCountPill(config, count, translate = (text) => text) {
+	if (!pillCountSource(config) || typeof count !== 'number' || !Number.isFinite(count) || count <= 0) {
+		return null
+	}
+	const labels = config.countLabel && typeof config.countLabel === 'object' ? config.countLabel : {}
+	const template = (count === 1 ? labels.one : labels.other) || labels.other || labels.one || '{count}'
+	const label = translate(template).replace(/\{count\}/g, String(count))
+	return {
+		label,
+		colorKey: '',
+		colorMap: config.colorMap && typeof config.colorMap === 'object' ? config.colorMap : null,
+		variant: typeof config.variant === 'string' && config.variant !== '' ? config.variant : 'default',
+	}
 }
