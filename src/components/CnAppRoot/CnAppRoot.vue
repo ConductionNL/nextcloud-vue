@@ -555,7 +555,7 @@
 					-->
 					<NcAppSettingsSection v-if="userSettingsOpen"
 						id="credentials"
-						:name="translate('Credentials')">
+						:name="libraryCopy('Credentials')">
 						<CnCredentials
 							scope="personal"
 							:appId="appId"
@@ -614,7 +614,7 @@
 					id="cn-integrations"
 					:name="translate('Integrations')">
 					<p class="cn-app-root__integrations-hint">
-						{{ translate('These open in another app.') }}
+						{{ libraryCopy('These open in another app.') }}
 					</p>
 					<ul class="cn-app-root__integrations">
 						<li v-for="entry in integrationEntries" :key="entry.id">
@@ -3017,7 +3017,7 @@ export default {
 		},
 
 		resolvedUserSettingsTitle() {
-			return this.userSettingsTitle || this.translate('User settings')
+			return this.userSettingsTitle || this.libraryCopy('User settings')
 		},
 
 		/**
@@ -3036,7 +3036,7 @@ export default {
 		 * @return {string}
 		 */
 		restartWalkthroughSectionName() {
-			return this.translate('Walkthrough')
+			return this.libraryCopy('Walkthrough')
 		},
 
 		/**
@@ -3045,7 +3045,7 @@ export default {
 		 * @return {string}
 		 */
 		restartWalkthroughHint() {
-			return this.translate('Take the guided tour of this app again.')
+			return this.libraryCopy('Take the guided tour of this app again.')
 		},
 
 		/**
@@ -3054,7 +3054,7 @@ export default {
 		 * @return {string}
 		 */
 		restartWalkthroughLabel() {
-			return this.translate('Restart walkthrough')
+			return this.libraryCopy('Restart walkthrough')
 		},
 
 		/**
@@ -3387,6 +3387,29 @@ export default {
 			}
 			const legacy = this.customComponents && this.customComponents[key]
 			return legacy || null
+		},
+
+		/**
+		 * Copy for a part of the user settings dialog the library draws itself
+		 * (its title, the credentials and walkthrough sections). The library's
+		 * own catalogue answers first, because the app's catalogue may give
+		 * the same English word another meaning: learniq translates
+		 * "Credentials" as "Diploma's" for its own records, and the dialog
+		 * showed that above the vault pane. Only when the library has no
+		 * translation in the user's language does the host `translate` get a
+		 * turn, then the text as written.
+		 *
+		 * @param {string} key The English source string.
+		 * @return {string} The translated copy.
+		 * @spec openspec/changes/dutch-user-settings-dialog/specs/dutch-user-settings-dialog/spec.md#requirement-the-user-settings-dialog-reads-dutch-for-a-dutch-reader
+		 */
+		libraryCopy(key) {
+			const own = t('nextcloud-vue', key)
+			if (typeof own === 'string' && own !== '' && own !== key) {
+				return own
+			}
+			const host = this.translate(key)
+			return typeof host === 'string' && host !== '' ? host : key
 		},
 
 		/**
