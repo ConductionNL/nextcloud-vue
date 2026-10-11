@@ -135,6 +135,14 @@ jobs:
       # use these components; one stray import makes it unusable, and the
       # failure lands in the CONSUMER's build rather than here.
       #
+      # check:docs-mdx compiles every docs/ page with the site's own MDX
+      # syntax extensions. check:docs and check:docs-fresh read the pages as
+      # text, so a page MDX cannot compile passed both and only broke the
+      # "Deploy Documentation" run after the push to beta (11 Oct 2026, a
+      # literal `<mode>` and a `|` inside a table code span). It reuses the
+      # docusaurus deps the setup command already installs: seconds, not the
+      # minutes of a full `docusaurus build`.
+      #
       # ⚠️ check:dist-sideeffects is deliberately still absent, and that is a
       # gap, not a decision. It needs `dist/`, which each check leg would have to
       # build for itself — and it cannot be verified from a checkout inside the
@@ -142,7 +150,7 @@ jobs:
       # artifact), so wiring it blind would mean shipping a gate nobody has seen
       # pass. It belongs in a job of its own, like the e2e one.
       frontend-checks: >-
-        ["test", "check:build", "check:docs", "check:jsdoc",
+        ["test", "check:build", "check:docs", "check:docs-mdx", "check:jsdoc",
          "check:integration-parity", "check:peers", "check:docs-fresh",
          "check:a11y", "check:smoke", "check:vue3-compile",
          "check:public-safe", "check:journey-vocabulary"]

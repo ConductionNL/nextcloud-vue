@@ -72,6 +72,7 @@
     "check:css-entry": "node scripts/check-css-entry.js",
     "check:dist-sideeffects": "node scripts/check-dist-sideeffects.mjs",
     "check:docs": "node scripts/check-docs.js",
+    "check:docs-mdx": "node scripts/check-docs-mdx.mjs",
     "check:docs-fresh": "cd docusaurus && npm run prebuild:docs && cd .. && node scripts/check-docs-fresh.js",
     "check:integration-parity": "node scripts/check-integration-parity.js",
     "check:journey-vocabulary": "node scripts/gates/journey-vocabulary.mjs .",

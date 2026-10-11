@@ -34,9 +34,10 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `rowRoute` | String | `''` | Route name a clicked row opens on THIS app's router, overriding a named `entitySource`'s own navigation. A source knows where its rows live and navigates itself, which is right when the detail page belongs to another app: `tasks` sends a click to OpenRegister's task page. It is wrong for an app that ships its own page for those rows, and the `@row-click` event cannot recover it, because `openRow` calls `window.location.assign()` and the host's push never lands. Set it and the row pushes `{ name: rowRoute, params: { id } }` instead. Ignored when `entitySource` is not set. |
 | `sourceConfig` | Object | `null` | Config handed to the named `entitySource`'s loader — e.g. `{ app: 'dossiq' }` scopes the `flows` source to one app's flows; `{ scope: 'pooled' }` scopes the `tasks` source. On a manifest page `CnPageRenderer` fills it with the resolved page config when none is set explicitly. Ignored when `entitySource` is not set. |
 | `filter` | Object | `null` | [Self-fetch mode](#self-fetch-mode) only — a base filter map applied to every fetch as a *fixed* filter (the user's facet filters can't override it). String values of the form `"@route.<name>"` or `":<name>"` resolve to `$route.params[<name>]`; other values pass through. Re-resolves when `$route.params` change. Fed from `pages[].config.filter` in the manifest path. No effect in consumer-managed mode. |
-| `quickFilters` | Array | `null` | [Self-fetch mode](#self-fetch-mode) only — array of `\{ label, filter, default?, icon? \}` rendered as a tab strip above the table (see [CnQuickFilterBar](./cn-quick-filter-bar.md)). The active tab's `filter` is merged into every fetch *after* `filter` (the tab wins on a colliding key) and *before* the user's `activeFilters` (which still narrow within the active tab). String values follow the same `"@route.<name>"` resolution as `filter`. First entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change`. Fed from `pages[].config.quickFilters`. |
+| `quickFilters` | Array | `null` | [Self-fetch mode](#self-fetch-mode) only — array of `\{ label, filter, default?, icon? \}` rendered as a tab strip above the table (see [CnQuickFilterBar](./cn-quick-filter-bar.md)). The active tab's `filter` is merged into every fetch *after* `filter` (the tab wins on a colliding key) and *before* the user's `activeFilters` (which still narrow within the active tab). String values follow the same `"@route.<name>"` resolution as `filter`. First entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change`. Under the board look an entry with `activeLabel` ("Pipeline: Sales") puts a removable chip with that text on the Active line and counts on the Filter badge while selected; removing it returns to the default tab. Fed from `pages[].config.quickFilters`. |
 | `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`; the empty-filter "All" tab is dropped). Fed from `pages[].config.quickFilterMode`. |
 | `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once. Selected tabs' filters are OR-ed together into the fetch (same field → array value → `field[]=` IN query). Fed from `pages[].config.quickFilterMultiple`. |
+| `viewSwitch` | Array | `null` | Board look only: the segments the view switch draws (`table`, `cards`, `board`, `map`), always in that order. A listed mode the page cannot open (no board config, no `mapConfig`) is drawn disabled with the tooltip "not available on this list". Fed from `pages[].config.viewSwitch`. |
 | `quickFilterMaxVisible` | Number | `0` | Chips mode only: how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
@@ -1129,3 +1130,23 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 ## The row menu edits when the row opens the detail
 
 When a click on a row navigates to the record's detail page, the built-in View is left out of that row's menu (and of the right-click menu): viewing is what the click does. The menu offers Edit (Dutch "Bewerken", pencil icon). A row whose `viewTo` answers `null`, or a page with no row-click target, keeps View. Actions the page declares itself are not touched. The rule applies in every look.
+
+## Stat row and side panel (`statRow`, `sidePanel`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `statRow` | `Array` | `[]` | KPI tiles above the list (manifest `config.statRow`): widget definitions `{ id, type, title?, content }`, usually `type: "stat"`, drawn between the header and the toolbar in an auto-fit row (each tile at least 200px), in the listed order. |
+| `sidePanel` | `Array` | `[]` | Cards beside the list (manifest `config.sidePanel`): widget definitions `{ id, type, title?, content, headerLink? }` in a 300px column right of the toolbar and the list. Below 1024px the column sits above the toolbar. |
+
+Types resolve like dashboard widgets: the app's widget registry first, then the dashboard catalog (`stat`, `table`, `people`, `stats-block` and the rest). An entry without an id, or with a type nothing resolves, is skipped with a development warning.
+
+```json
+{
+  "statRow": [
+    { "id": "unassigned", "type": "stat", "content": { "label": "Without handler", "endpointSource": { "url": "/apps/dossiq/api/queue/kpis" }, "valueField": "unassigned" } }
+  ],
+  "sidePanel": [
+    { "id": "team", "type": "TeamToday", "title": "Team today" }
+  ]
+}
+```

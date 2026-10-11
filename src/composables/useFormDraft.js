@@ -23,6 +23,7 @@
  * value, and the audit trail is read by people answering "who changed this".
  */
 
+import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 
 /** How long a draft stays interesting, in milliseconds (7 days). */
@@ -33,6 +34,9 @@ export const DRAFT_DEBOUNCE_MS = 500
 
 /** The prefix every draft key carries, so a sweep can find them. */
 export const DRAFT_KEY_PREFIX = 'cn-form-draft'
+
+/** The user part of a draft key when nobody is signed in. */
+export const DRAFT_ANONYMOUS_USER = 'anonymous'
 
 /**
  * The storage key one form's draft lives under.
@@ -54,8 +58,122 @@ export function draftKey({ appId = '', schema = '', objectId = '', userId = '' }
 		String(appId || 'app'),
 		String(schema || 'schema'),
 		String(objectId || 'new'),
-		String(userId || 'anonymous'),
+		String(userId || DRAFT_ANONYMOUS_USER),
 	].join(':')
+}
+
+/**
+ * Who a draft belongs to: the id the host passed, else the signed-in
+ * Nextcloud user, else '' (which {@link draftKey} stores as `anonymous`).
+ *
+ * 🔴 A HOST THAT PASSES NOTHING STILL GETS PER-USER DRAFTS. Leaving the user
+ * to every host meant no host passed it, and every draft on a shared device
+ * was keyed `anonymous`: the next person at the counter was offered what the
+ * last one typed.
+ *
+ * @param {string} [explicit] The id the host passed (`draftUserId`).
+ * @return {string} The user id, or '' when nobody is signed in.
+ * @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-a-draft-belongs-to-the-signed-in-user
+ */
+export function resolveDraftUserId(explicit = '') {
+	if (explicit) {
+		return String(explicit)
+	}
+	try {
+		const uid = getCurrentUser()?.uid
+		return uid ? String(uid) : ''
+	} catch {
+		// No Nextcloud page around us (a test, an embed): nobody is signed in.
+		return ''
+	}
+}
+
+/**
+ * Remove every draft stored under the anonymous user.
+ *
+ * Called once a signed-in user is known. Such a draft was written by a page
+ * that did not know who was typing, so it may be somebody else's, and it is
+ * deleted rather than moved: moving it would hand it to whoever opened the
+ * form next.
+ *
+ * @return {number} How many drafts were removed.
+ * @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-a-draft-belongs-to-the-signed-in-user
+ */
+export function clearAnonymousDrafts() {
+	let removed = 0
+	try {
+		const storage = window.localStorage
+		const suffix = ':' + DRAFT_ANONYMOUS_USER
+		const doomed = []
+		for (let i = 0; i < storage.length; i++) {
+			const key = storage.key(i)
+			if (key && key.startsWith(DRAFT_KEY_PREFIX + ':') && key.endsWith(suffix)) {
+				doomed.push(key)
+			}
+		}
+		for (const key of doomed) {
+			storage.removeItem(key)
+			removed++
+		}
+	} catch {
+		// Blocked storage holds no drafts to leak.
+	}
+	return removed
+}
+
+/**
+ * Whether a value counts as empty for a draft: null, undefined, '' and [].
+ *
+ * @param {unknown} value The value.
+ * @return {boolean} True when empty.
+ */
+function isEmptyDraftValue(value) {
+	return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)
+}
+
+/**
+ * Whether two field values are the same for the purpose of a draft.
+ *
+ * Empty values are equal to each other: an input reports a missing value back
+ * as '', and that is the control normalising, not a person typing.
+ *
+ * @param {unknown} a One value.
+ * @param {unknown} b The other.
+ * @return {boolean} True when they are the same.
+ */
+export function sameDraftValue(a, b) {
+	if (isEmptyDraftValue(a) && isEmptyDraftValue(b)) {
+		return true
+	}
+	if (a === b) {
+		return true
+	}
+	try {
+		return JSON.stringify(a) === JSON.stringify(b)
+	} catch {
+		return false
+	}
+}
+
+/**
+ * Whether a person changed the form: one of the fields they edited holds a
+ * value different from the one the form opened with.
+ *
+ * 🔴 ONLY EDITED FIELDS COUNT. A form fills in values by itself after it
+ * opens (defaults, normalised dates, the active organisation, options that
+ * arrive later). Counting those wrote a draft and said "Saved just now" on a
+ * dialog nobody had touched.
+ *
+ * @param {object} values The current values.
+ * @param {object} baseline The values the form opened with.
+ * @param {string[]} editedKeys The fields a person edited.
+ * @return {boolean} True when there is something worth keeping.
+ * @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-a-draft-is-written-only-after-a-person-changes-a-field
+ */
+export function hasDraftChanges(values, baseline, editedKeys) {
+	const now = values || {}
+	const base = baseline || {}
+	return (editedKeys || []).some((key) => !sameDraftValue(now[key], base[key]))
 }
 
 /**
@@ -218,13 +336,6 @@ export function formDraftMixin() {
 				draftSavedAt: 0,
 				/** Non-reactive handle for the debounce. */
 				draftTimeout: null,
-				/**
-				 * Whether the form's own initial population has happened.
-				 *
-				 * The first change to the values is the component building
-				 * them, not a person typing. See the watcher that reads this.
-				 */
-				draftSeeded: false,
 			}
 		},
 
@@ -263,6 +374,26 @@ export function formDraftMixin() {
 					this.draftState = stored ? 'saved' : 'idle'
 					this.draftSavedAt = stored ? Date.now() : 0
 				}, DRAFT_DEBOUNCE_MS)
+			},
+
+			/**
+			 * The form is back to what it opened with: cancel a pending write,
+			 * remove a draft written earlier and stop announcing anything.
+			 *
+			 * @param {string} key The storage key.
+			 * @return {void}
+			 * @spec openspec/changes/form-draft-on-change-and-help-text-spacing/specs/form-draft-on-change-and-help-text-spacing/spec.md#requirement-a-draft-is-written-only-after-a-person-changes-a-field
+			 */
+			settleUnchangedDraft(key) {
+				if (this.draftTimeout) {
+					clearTimeout(this.draftTimeout)
+					this.draftTimeout = null
+				}
+				if (this.draftState !== 'idle') {
+					clearDraft(key)
+					this.draftState = 'idle'
+					this.draftSavedAt = 0
+				}
 			},
 
 			/**
