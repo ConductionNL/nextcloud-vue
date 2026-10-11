@@ -104,7 +104,8 @@ it renders the note card it always did.
 | `kicker` | `string` | The small label above the title. |
 | `title` | `string` | The title. Falls back to `text`. |
 | `reason` | `string` | The line that says why this needs attention. `{value}` is replaced by the value `visibleWhen` read. |
-| `actions` | `Array<{ label, route?, href?, primary?, id? }>` | At most two. The first is the primary one unless an action sets `primary: true`. An action with neither `route` nor `href` renders a button and emits `action`. |
+| `actions` | `Array<{ label, route?, href?, primary?, id? }>` | Two at most, four under the board look (DqMijnWerk draws three secondary actions and the primary one). The first is the primary one unless an action sets `primary: true`. An action with neither `route` nor `href` renders a button and emits `action`. The manifest schema still allows two in `content.actions`; a host component that renders the card passes more as the `actions` prop. |
+| `maxActions` | `number` | Prop: the most actions the card shows, overriding the default (two, four under the board look). |
 | `visibleWhen` | `object` | Same predicate as the banner. The card stays hidden until it holds. |
 
 **When the check itself fails.** An attention card whose `visibleWhen` request fails (the endpoint or source answers an error, or the network is down) does not stay hidden. It renders one muted line, "Could not check:" followed by the card's title, with the reason as a tooltip, and on a dashboard it keeps its cell. A hidden card would read as "nothing needs attention", and a failed count does not know that. The line carries no severity colour, no alert role and no actions. When the title uses `{value}`, the line says only "Could not check". A request that succeeds with a value that does not meet the condition still renders nothing, and a plain banner (no `layout`) still stays hidden on failure.

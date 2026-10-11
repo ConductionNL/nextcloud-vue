@@ -1458,7 +1458,8 @@
     "1 day left": "Nog 1 dag",
     "{count} days left": "Nog {count} dagen",
     "1 day overdue": "1 dag te laat",
-    "{count} days overdue": "{count} dagen te laat"
+    "{count} days overdue": "{count} dagen te laat",
+    "{view}: not available on this list": "{view}: niet beschikbaar in deze lijst"
   },
   "plurals": {
     "%n year": [

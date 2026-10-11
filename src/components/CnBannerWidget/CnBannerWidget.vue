@@ -64,6 +64,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcNoteCard } from '@nextcloud/vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { nextUid } from '../../utils/uid.js'
@@ -77,6 +78,12 @@ const LAYOUTS = ['banner', 'attention']
 
 /** An attention card offers a primary and a secondary action, no more. */
 const MAX_ACTIONS = 2
+
+/**
+ * Under the board look the card takes what the boards draw: DqMijnWerk's
+ * "Vandaag eerst" has three secondary actions and the primary one.
+ */
+const MAX_ACTIONS_BOARD = 4
 
 /**
  * CnBannerWidget — declarative notice banner for dashboards and v2 pages
@@ -148,6 +155,8 @@ export default {
 		 * label that is not a key renders as written.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -232,7 +241,8 @@ export default {
 		},
 
 		/**
-		 * Attention card: at most two actions. Each is `{ label, route?,
+		 * Attention card: its actions, two at most (four under the board look,
+		 * or `maxActions`). Each is `{ label, route?,
 		 * href?, primary?, id? }`: `route` is a route name or location,
 		 * `href` an URL. An action with neither renders a button that emits
 		 * `action`. The first action is the primary one unless one sets
@@ -242,6 +252,17 @@ export default {
 		 */
 		actions: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Attention card: how many actions it shows at most. Null takes the
+		 * default: two, four under the board look.
+		 *
+		 * @spec openspec/changes/screens-banner-actions-parity/specs/banner-actions/spec.md#requirement-the-board-attention-card-shows-the-boards-actions
+		 */
+		maxActions: {
+			type: Number,
 			default: null,
 		},
 
@@ -403,12 +424,27 @@ export default {
 		},
 
 		/**
-		 * The attention card's actions: the first two that have a label, each
+		 * The attention card's actions: the first `actionCap` that have a label, each
 		 * with its href and whether it is the primary one.
 		 *
 		 * @return {Array<{key: string, id: (string|undefined), label: string, href: string, target: (object|null), primary: boolean, index: number}>}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
+		/**
+		 * How many actions the attention card shows: `maxActions` (prop, then
+		 * content), else four under the board look and two without it.
+		 *
+		 * @return {number} The cap.
+		 * @spec openspec/changes/screens-banner-actions-parity/specs/banner-actions/spec.md#requirement-the-board-attention-card-shows-the-boards-actions
+		 */
+		actionCap() {
+			const explicit = this.maxActions ?? (this.content ? this.content.maxActions : undefined)
+			if (Number.isInteger(explicit) && explicit > 0) {
+				return explicit
+			}
+			return normalizeLook(this.cnLook) === 'board' ? MAX_ACTIONS_BOARD : MAX_ACTIONS
+		},
+
 		resolvedActions() {
 			const raw = this.actions || (this.content && this.content.actions) || []
 			if (!Array.isArray(raw)) {
@@ -416,7 +452,7 @@ export default {
 			}
 			const usable = raw
 				.filter((action) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
-				.slice(0, MAX_ACTIONS)
+				.slice(0, this.actionCap)
 			const declaredPrimary = usable.findIndex((action) => action.primary === true)
 			const primaryIndex = declaredPrimary === -1 ? 0 : declaredPrimary
 			return usable.map((action, index) => {

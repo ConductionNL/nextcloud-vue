@@ -112,6 +112,7 @@ export {
 	CnEnvironmentBanner,
 	CnExportWizard,
 	CnFacetSidebar,
+	CnFactsWidget,
 	CnFavouriteToggle,
 	CnFeaturesAndRoadmapLink,
 	CnFeaturesAndRoadmapPage,
