@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.88.0",
+	"version": "2.89.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -808,6 +808,11 @@
 			"pattern": "^@row\\.[A-Za-z][A-Za-z0-9_.@]*$",
 			"description": "Row context: a field of the row a row action runs on (@row.<field>, dot path allowed), read by the field-list widget's rowActions request url and payload (payload values resolve at any depth). Mirrors SENTINEL_TOKEN_PATTERNS.row."
 		},
+		"sentinelSubjectToken": {
+			"type": "string",
+			"pattern": "^@subject\\.[A-Za-z][A-Za-z0-9_.]*$",
+			"description": "Subject context: a field of the record an attention card names (the first row of its ordered `visibleWhen` source query), read by the banner widget's action route params and query (@subject.<field>, dot path allowed). Mirrors SENTINEL_TOKEN_PATTERNS.subject."
+		},
 		"sentinelTokenAny": {
 			"$comment": "Union of every canonical context plus the deprecated-during-window overlay. Single source the shared resolver + gate import.",
 			"anyOf": [
@@ -820,6 +825,7 @@
 				{ "$ref": "#/$defs/sentinelVisibleWhenToken" },
 				{ "$ref": "#/$defs/sentinelAnswerToken" },
 				{ "$ref": "#/$defs/sentinelRowToken" },
+				{ "$ref": "#/$defs/sentinelSubjectToken" },
 				{ "$ref": "#/$defs/sentinelDeprecatedToken" }
 			]
 		},
@@ -1904,11 +1910,16 @@
 												"properties": {
 													"register": { "type": "string" },
 													"schema": { "type": "string" },
-													"filter": { "type": "object", "additionalProperties": true }
+													"filter": { "type": "object", "additionalProperties": true },
+													"order": {
+														"type": "object",
+														"additionalProperties": { "type": "string", "enum": ["asc", "desc"] },
+														"description": "Order of the query (`{ field: \"asc\" | \"desc\" }`), so the first result is the first of an ordered list. With it an attention card names that row: `{subject.<field>}` in its title, reason and kicker and `@subject.<field>` in an action route read it (screens-start-here-banner, 2.89.0)."
+													}
 												}
 											},
 											"field": { "type": "string", "description": "Dot-path into the response ('@total' or omitted = collection total for a source)." },
-											"op": { "type": "string", "enum": ["eq", "neq", "gt", "gte", "lt", "lte"], "default": "eq", "description": "Comparison operator." },
+											"op": { "type": "string", "enum": ["eq", "neq", "gt", "gte", "lt", "lte", "empty", "notEmpty"], "default": "eq", "description": "Comparison operator. `notEmpty` on `id` is the \"there is a first row\" test of a card that names one." },
 											"value": { "description": "Literal right-hand side of the comparison." }
 										}
 									},
@@ -1924,6 +1935,11 @@
 										"enum": ["banner", "attention"],
 										"default": "banner",
 										"description": "How the banner renders. `banner` (default) is the note card. `attention` is a card with a severity edge, a kicker, a title, a reason line and up to two actions."
+									},
+									"stacked": {
+										"type": "boolean",
+										"default": false,
+										"description": "Attention card: put the actions under the text instead of beside it, with a 16px title (PqMijnWerk \"Begin hier\"; screens-start-here-banner, 2.89.0)."
 									},
 									"kicker": {
 										"type": "string",
