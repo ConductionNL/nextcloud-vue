@@ -295,6 +295,10 @@ export default {
 		async write(next) {
 			if (this.controlled) {
 				this.error = ''
+				/**
+				 * @event update:modelValue Form mode: the new list, for the parent to hold. Nothing is written.
+				 * @type {string[]}
+				 */
 				this.$emit('update:modelValue', next)
 				return true
 			}
