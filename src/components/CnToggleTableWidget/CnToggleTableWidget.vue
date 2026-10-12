@@ -63,7 +63,7 @@
 <script>
 import { NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
 import { prefixUrl } from '../../utils/headers.js'
-import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
+import { objectUrlOf, writeFields } from '../../utils/objectWrite.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 
@@ -103,6 +103,7 @@ export default {
 		 * - `source` — `{ url, path?, key, label, hint? }`: rows read from an endpoint (tokens `@objectId`, `@object.<field>`), in addition to `rows`.
 		 * - `columns` — extra columns `[{ header, path, map? }]` read off each row.
 		 * - `titleHeader`, `toggleHeader`, `emptyText`, `readOnly`.
+		 * - `save` — `{ url, method?, payload? }`, write through an app endpoint (tokens `{value}`, `{field}`, `{changes}`, `{object.<path>}`).
 		 *
 		 * @type {object}
 		 */
@@ -295,7 +296,7 @@ export default {
 		 */
 		async toggle(row, on) {
 			const field = this.bind.mode === 'list' ? this.bind.field : row.field
-			if (!this.objectUrl || !field) {
+			if ((!this.objectUrl && !(this.content.save && this.content.save.url)) || !field) {
 				this.notice = this.tr('This switch cannot be saved here.')
 				return
 			}
@@ -310,8 +311,9 @@ export default {
 			this.notice = ''
 			this.busy = row.key
 			try {
-				const data = await patchObject(this.objectUrl, { [field]: next })
-				const written = data[field] !== undefined ? data[field] : next
+				const data = await writeFields(this.objectUrl, { [field]: next }, { save: this.content.save, object: this.objectData })
+				const answered = readPath(data, field)
+				const written = answered !== undefined ? answered : next
 				this.saved = { ...this.saved, [field]: written }
 				/**
 				 * @event saved A switch was written.

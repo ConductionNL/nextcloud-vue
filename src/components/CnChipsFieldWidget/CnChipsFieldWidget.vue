@@ -27,7 +27,7 @@
 				</button>
 			</li>
 			<li v-if="!readOnly" class="cn-chips-field__add-item">
-				<form v-if="adding" class="cn-chips-field__form" @submit.prevent="add">
+				<form v-if="adding" class="cn-chips-field__form" @submit.prevent.stop="add">
 					<select
 						v-if="choices.length > 0"
 						ref="input"
@@ -82,7 +82,7 @@
 
 <script>
 import { NcButton } from '@nextcloud/vue'
-import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
+import { objectUrlOf, writeFields } from '../../utils/objectWrite.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 
@@ -111,13 +111,15 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `field` (required) — the top-level array field of strings.
+		 * - `field` (required) — the array field of strings, a top-level name or a dot-path.
+		 * - `save` — `{ url, method?, payload? }`, write through an app endpoint (tokens `{value}`, `{field}`, `{changes}`, `{object.<path>}`).
 		 * - `label`, `hint`, `placeholder`.
 		 * - `addLabel` — the add chip's text (default "Add").
 		 * - `removeLabel`, `confirmLabel`.
 		 * - `pattern`, `patternMessage` — checked on every new entry.
 		 * - `lowercase` — store entries in lower case.
 		 * - `options` — `[{ value, label }]`: add by choosing one of the remaining options instead of typing.
+		 * - `minItems` — the fewest entries the list may hold (default 0); `required: true` means 1. Removing the last allowed entry is refused with `minItemsMessage` (default "Keep at least {count}.") and sends nothing.
 		 * - `readOnly`.
 		 *
 		 * @type {object}
@@ -125,6 +127,16 @@ export default {
 		content: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * Form mode: the list the parent holds. When given (even empty) the widget
+		 * writes nothing itself and emits `update:modelValue` with the new list, so a
+		 * `settings-form` can keep it in its one Save.
+		 */
+		modelValue: {
+			type: Array,
+			default: undefined,
 		},
 
 		/** The current detail-page object. */
@@ -152,7 +164,7 @@ export default {
 		},
 	},
 
-	emits: ['saved'],
+	emits: ['saved', 'update:modelValue'],
 
 	data() {
 		uid += 1
@@ -167,8 +179,22 @@ export default {
 	},
 
 	computed: {
+		/** Whether a parent form holds the list (`modelValue`). */
+		controlled() {
+			return Array.isArray(this.modelValue)
+		},
+
+		/** The fewest entries the list may hold. */
+		minItems() {
+			const declared = Number(this.content.minItems)
+			return Number.isFinite(declared) && declared > 0 ? declared : (this.content.required === true ? 1 : 0)
+		},
+
 		/** The stored list. */
 		items() {
+			if (this.controlled) {
+				return this.modelValue.map((item) => String(item))
+			}
 			const list = this.saved !== null ? this.saved : readPath(this.objectData || {}, this.content.field)
 			return Array.isArray(list) ? list.map((item) => String(item)) : []
 		},
@@ -209,7 +235,7 @@ export default {
 		},
 
 		readOnly() {
-			return this.content.readOnly === true || !this.content.field
+			return this.content.readOnly === true || (!this.controlled && !this.content.field)
 		},
 
 		objectUrl() {
@@ -267,14 +293,23 @@ export default {
 		 * @return {Promise<boolean>} Whether it saved.
 		 */
 		async write(next) {
-			if (!this.objectUrl) {
+			if (this.controlled) {
+				this.error = ''
+				/**
+				 * @event update:modelValue Form mode: the new list, for the parent to hold. Nothing is written.
+				 * @type {string[]}
+				 */
+				this.$emit('update:modelValue', next)
+				return true
+			}
+			if (!this.objectUrl && !(this.content.save && this.content.save.url)) {
 				this.error = this.tr('This list cannot be saved here.')
 				return false
 			}
 			this.busy = true
 			this.error = ''
 			try {
-				const data = await patchObject(this.objectUrl, { [this.content.field]: next })
+				const data = await writeFields(this.objectUrl, { [this.content.field]: next }, { save: this.content.save, object: this.objectData })
 				const written = readPath(data, this.content.field)
 				this.saved = Array.isArray(written) ? written.map((item) => String(item)) : next
 				/**
@@ -326,6 +361,10 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async remove(item) {
+			if (this.items.length - 1 < this.minItems) {
+				this.error = this.tr(this.content.minItemsMessage || 'Keep at least {count}.').replace('{count}', String(this.minItems))
+				return
+			}
 			await this.write(this.items.filter((candidate) => candidate !== item))
 		},
 	},
