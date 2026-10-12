@@ -90,7 +90,9 @@
 			:modelValue="selectedOption"
 			:options="displayOptions"
 			:clearable="false"
-			:inputLabel="label || writeKey"
+			:inputLabel="content.inline ? '' : (label || writeKey)"
+			:labelOutside="content.inline === true"
+			:ariaLabelCombobox="label || writeKey"
 			label="label"
 			data-testid="cn-workspace-filter-select"
 			@update:modelValue="onSelect" />
@@ -927,5 +929,30 @@ export default {
 	background: var(--color-background-hover);
 	color: var(--color-text-maxcontrast);
 	font-size: 0.85em;
+}
+
+/* On a phone the bar's controls take a row each (the chips already wrap), and
+   a switch and a select are 44px touch targets. */
+@media (max-width: 640px) {
+	.cn-workspace-filter-widget--bar > .cn-workspace-filter-widget--inline {
+		flex: 1 1 100%;
+	}
+
+	.cn-workspace-filter-widget--bar > .cn-workspace-filter-widget--end {
+		margin-inline-start: 0;
+	}
+
+	.cn-workspace-filter-widget--inline .cn-workspace-filter-widget__toggle {
+		min-height: 44px;
+	}
+
+	.cn-workspace-filter-widget--inline :deep(.v-select) {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	.cn-workspace-filter-widget--inline :deep(.vs__dropdown-toggle) {
+		min-height: 44px;
+	}
 }
 </style>
