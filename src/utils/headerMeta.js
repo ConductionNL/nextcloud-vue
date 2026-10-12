@@ -1,36 +1,27 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 // SPDX-License-Identifier: EUPL-1.2
 
-import { readPath } from './readPath.js'
-
-const TOKEN = /\{([^{}\s]+)\}/g
+import { fillTemplate } from './fillTemplate.js'
 
 /**
- * Fill a header meta template such as `"via {channel}"` from a record.
+ * Fill a header meta template such as `"via {channel}"` or
+ * `"received {createdAt|relative}"` from a record.
  *
  * Every `{path}` token (a dotted path into the record) is replaced by its
- * value. A token with no value drops the WHOLE line, because "via " is worse
- * than nothing. A template without tokens is returned as written.
+ * value; `{path|date}`, `{path|datetime}`, `{path|relative}`,
+ * `{path|relativetime}` and `{path|days}` format a date as a record-list
+ * row does (the shared `fillTemplate`). A token with no value drops the
+ * WHOLE line, because "via " is worse than nothing. A template without
+ * tokens is returned as written.
  *
  * @param {string} template The template, already translated.
  * @param {object|null} object The record.
+ * @param {Date} [now] The reference moment for dates.
  * @return {string} The line, or '' when it cannot be filled.
  * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
  */
-export function resolveHeaderMeta(template, object) {
-	if (typeof template !== 'string' || template.trim() === '') {
-		return ''
-	}
-	let missing = false
-	const line = template.replace(TOKEN, (_match, path) => {
-		const value = object && typeof object === 'object' ? readPath(object, path) : undefined
-		if (value === null || value === undefined || value === '' || typeof value === 'object') {
-			missing = true
-			return ''
-		}
-		return String(value)
-	})
-	return missing ? '' : line.trim()
+export function resolveHeaderMeta(template, object, now = new Date()) {
+	return fillTemplate(template, object, now)
 }
 
 /**
