@@ -1116,6 +1116,7 @@
     "Normal": "Normal",
     "High": "High",
     "Urgent": "Urgent",
+    "Stale": "Stale",
     "State": "State",
     "Priority": "Priority",
     "Due": "Due",
