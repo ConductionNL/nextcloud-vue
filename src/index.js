@@ -62,6 +62,7 @@ export {
 	CnChildRecordsField,
 	CnChipsFieldWidget,
 	CnChoiceCards,
+	CnChoicePickerWidget,
 	CnColorPicker,
 	CnCommandPalette,
 	CnConfigurationCard,

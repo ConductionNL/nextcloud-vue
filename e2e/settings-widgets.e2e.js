@@ -18,6 +18,7 @@ const STORED = {
 	loginLabel: '',
 	pageLimit: 33,
 	signup: 'approval',
+	theme: 'zuiddrecht',
 	signinDigid: true,
 	signinEherkenning: false,
 	hiddenCaseTypes: ['c3'],
@@ -243,4 +244,49 @@ test('toggle table: rows from a source, a hidden case type reads as off, switchi
 	await table.locator('[data-testid="cn-toggle-table-row-c1"] input').click({ force: true })
 	await expect.poll(() => patches.length).toBe(1)
 	expect(patches[0]).toEqual({ hiddenCaseTypes: ['c3', 'c1'] })
+})
+
+const THEMES = {
+	sets: [
+		{ id: 'zuiddrecht', name: 'Zuiddrecht', colors: ['#234a78', '#cc0000', '#ffffff'], verdict: { passes: true }, findings: [] },
+		{ id: 'licht', name: 'Zuiddrecht licht', colors: ['#eaf0f7', '#3669a5', '#ffffff'], verdict: { passes: false }, findings: [{ token: 'tekst', surface: 'voet', ratio: 3.1, threshold: 4.5 }] },
+		{ id: 'rijks', name: 'Rijkshuisstijl', colors: ['#154273', '#ffffff', '#f3f3f3'], findings: [] },
+	],
+}
+
+test('choice picker: swatches and pills, a risky card shows the warning, Opslaan and Toch gebruiken tell the server apart', async ({ page }) => {
+	const puts = []
+	await page.route('**/apps/portaliq/api/portals/zuiddrecht/theme', async (route) => {
+		if (route.request().method() === 'PUT') {
+			puts.push(route.request().postDataJSON())
+			await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+			return
+		}
+		await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(THEMES) })
+	})
+	await stubPortal(page, [])
+	await page.goto('/?settingswidgets=theme', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const picker = page.locator('[data-testid="settings-widgets-harness"] .cn-choice-picker')
+	await picker.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(picker.locator('.cn-choice-picker__card')).toHaveCount(3)
+	await expect(picker.locator('[data-testid="cn-choice-picker-option-zuiddrecht"] .cn-choice-picker__swatch')).toHaveCount(3)
+	// A swatch is an 18px square painted from the item's colour.
+	const swatch = await picker.locator('[data-testid="cn-choice-picker-option-zuiddrecht"] .cn-choice-picker__swatch').first().evaluate((el) => {
+		const r = el.getBoundingClientRect()
+		return { w: Math.round(r.width), h: Math.round(r.height), bg: getComputedStyle(el).backgroundColor }
+	})
+	expect(swatch).toEqual({ w: 18, h: 18, bg: 'rgb(35, 74, 120)' })
+	await expect(picker.locator('[data-testid="cn-choice-picker-option-zuiddrecht"]')).toContainText('Leesbaar')
+	await expect(picker.locator('[data-testid="cn-choice-picker-option-licht"]')).toContainText('Slecht leesbaar')
+	await expect(picker.locator('[data-testid="cn-choice-picker-option-rijks"]')).toContainText('Niet gecontroleerd')
+	await expect(picker.locator('[data-testid="cn-choice-picker-warning"]')).toHaveCount(0)
+
+	await picker.locator('[data-testid="cn-choice-picker-option-licht"]').click()
+	await expect(picker.locator('[data-testid="cn-choice-picker-warning"]')).toContainText('tekst op de voet is 3.1:1, nodig 4.5:1.')
+	await picker.locator('[data-testid="cn-choice-picker-save"]').click()
+	await expect.poll(() => puts.length).toBe(1)
+	expect(puts[0]).toEqual({ theme: 'licht', acceptFindings: false })
+	await picker.locator('[data-testid="cn-choice-picker-confirm"]').click()
+	await expect.poll(() => puts.length).toBe(2)
+	expect(puts[1]).toEqual({ theme: 'licht', acceptFindings: true })
 })

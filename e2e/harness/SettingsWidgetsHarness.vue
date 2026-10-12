@@ -34,6 +34,7 @@ const RECORD = {
 	trafficEnabled: true,
 	installDisabled: false,
 	signup: 'approval',
+	theme: 'zuiddrecht',
 	signinDigid: true,
 	signinEherkenning: false,
 	hiddenCaseTypes: ['c3'],
@@ -41,6 +42,29 @@ const RECORD = {
 }
 
 const WIDGETS = {
+	theme: {
+		id: 'portal-theme',
+		type: 'choice-picker',
+		title: 'Huisstijl',
+		content: {
+			field: 'theme',
+			legend: 'Huisstijl',
+			saveLabel: 'Opslaan',
+			confirmLabel: 'Toch gebruiken',
+			warningIntro: 'Deze huisstijl is slecht leesbaar:',
+			save: { method: 'PUT', url: '/apps/portaliq/api/portals/@object.slug/theme', payload: { theme: '@value', acceptFindings: '@confirmed' } },
+			source: {
+				url: '/apps/portaliq/api/portals/@object.slug/theme',
+				path: 'sets',
+				key: 'id',
+				label: 'name',
+				swatches: 'colors',
+				refusal: 'refusal',
+				state: { path: 'verdict.passes', map: { true: 'Leesbaar', false: 'Slecht leesbaar' }, variantMap: { true: 'success', false: 'warning' }, empty: 'Niet gecontroleerd' },
+				warning: { list: 'findings', item: '{token} op de {surface} is {ratio}:1, nodig {threshold}:1.' },
+			},
+		},
+	},
 	signin: {
 		id: 'portal-signin',
 		type: 'toggle-table',
