@@ -264,7 +264,7 @@
 			"transitive": 3,
 			"tier": "light",
 			"via": [],
-			"page": null
+			"page": "cn-banner-widget"
 		},
 		"CnBannerWidgetForm": {
 			"direct": 0,
