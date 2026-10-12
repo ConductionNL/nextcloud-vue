@@ -262,7 +262,7 @@ import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { ageInDays, formatAge, formatBoardDate, formatRelativeDate, resolveAgeVariant } from '../../utils/boardDate.js'
 import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
-import { safeCurrencyCode } from '../../utils/formatMetric.js'
+import { formatMoney } from '../../utils/formatMetric.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
 import { safeHref } from '../../utils/safeHref.js'
@@ -1227,12 +1227,8 @@ export default {
 				: (fmt.style === 'currency' ? 2 : 0)
 			let body
 			if (fmt.style === 'currency') {
-				body = new Intl.NumberFormat(undefined, {
-					style: 'currency',
-					currency: safeCurrencyCode(fmt.currency),
-					minimumFractionDigits: decimals,
-					maximumFractionDigits: decimals,
-				}).format(num)
+				// `format.currencyField` reads the code from the row's own field.
+				body = formatMoney(num, { currency: fmt.currency, currencyField: fmt.currencyField, decimals }, this.row)
 			} else if (fmt.style === 'percent') {
 				// Values are stored as the literal percent (83.3), not a 0–1 ratio.
 				body = new Intl.NumberFormat(undefined, {

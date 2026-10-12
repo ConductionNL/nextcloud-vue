@@ -98,3 +98,7 @@ A list can follow the page's controls (a `workspace-filter` select and switch). 
 ```
 
 `sort`: the workspace value at `key` picks an entry of `map`; a value with no entry leaves the list's own `sort`. `toggle`: while the value at `key` is on (true, 1, "1", "true"), the filter keys in `removes` are dropped, so a list that hides finished work shows it. The list fetches again when either changes.
+
+## Money
+
+`{amount|currency}` writes an amount as money in euros, `{amount|currency:USD}` in the named currency, and `{amount|currency:price.code}` in the currency the row holds at that field. The number follows the user's language ("€ 12.000,00" for Dutch). A row without an amount empties the template, as for every token.

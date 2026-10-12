@@ -3,9 +3,10 @@
 
 import { boardDateLocale, formatBoardDate, formatRelativeDate } from './boardDate.js'
 import { parseDateValue } from './dateVariant.js'
+import { formatMoney } from './formatMetric.js'
 import { readPath } from './readPath.js'
 
-const TOKEN = /\{([^{}\s|]+)(?:\|([a-z]+))?\}/g
+const TOKEN = /\{([^{}\s|]+)(?:\|([a-z]+)(?::([^{}\s]+))?)?\}/g
 
 /**
  * A moment in the board's short form with the time: "4 okt, 10:52", or
@@ -37,9 +38,11 @@ export function formatBoardDateTime(value, now = new Date()) {
  * @param {unknown} value The raw value.
  * @param {string} format `date`, `datetime`, `relative`, `relativetime`, `days` or '' (as is).
  * @param {Date} now The reference moment.
+ * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
+ * @param {object|null} [object] The row, for a currency read from a field.
  * @return {string} The text, '' when nothing can be shown.
  */
-function formatValue(value, format, now) {
+function formatValue(value, format, now, arg = '', object = null) {
 	if (value === null || value === undefined || value === '' || typeof value === 'object') {
 		return ''
 	}
@@ -48,6 +51,12 @@ function formatValue(value, format, now) {
 	}
 	if (format === 'datetime') {
 		return formatBoardDateTime(value, now)
+	}
+	if (format === 'currency') {
+		// `{amount|currency:EUR}` names the code, `{amount|currency:price.code}`
+		// reads it from the row, `{amount|currency}` is EUR.
+		const isCode = /^[A-Za-z]{3}$/.test(arg)
+		return formatMoney(value, { currency: isCode ? arg : undefined, currencyField: !isCode && arg ? arg : undefined }, object)
 	}
 	if (format === 'relative') {
 		return formatRelativeDate(value, { now })
@@ -68,7 +77,9 @@ function formatValue(value, format, now) {
  * `"Termijn {deadline|date}"` from an object.
  *
  * Every `{path}` token is a dot path into the object; `{path|date}` and
- * `{path|datetime}` format it as the boards write dates, `{path|relative}` and
+ * `{path|datetime}` format it as the boards write dates, `{path|currency}`,
+ * `{path|currency:EUR}` and `{path|currency:field}` write an amount in a
+ * currency (a code, or the row field that holds it), `{path|relative}` and
  * `{path|relativetime}` say "today", "yesterday" and then the short date
  * ("vandaag, 09.42"), and `{path|days}` is the
  * whole days since that date ("has waited {createdAt|days} days"). A token without a
@@ -86,9 +97,9 @@ export function fillTemplate(template, object, now = new Date()) {
 		return ''
 	}
 	let missing = false
-	const text = template.replace(TOKEN, (_match, path, format) => {
+	const text = template.replace(TOKEN, (_match, path, format, arg) => {
 		const value = object && typeof object === 'object' ? readPath(object, path) : undefined
-		const shown = formatValue(value, format || '', now)
+		const shown = formatValue(value, format || '', now, arg || '', object)
 		if (shown === '') {
 			missing = true
 		}
