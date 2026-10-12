@@ -49,6 +49,13 @@ describe('the currency template token', () => {
 		expect(plain(fillTemplate('Waarde {value|currency:code}', row))).toMatch(/^Waarde US\$\s?12\.000,00$/)
 	})
 
+	it('falls back to the app reporting currency, for a row without a code and for a bare token', () => {
+		const context = { config: { currency: 'USD' } }
+		expect(plain(fillTemplate('{value|currency:code}', { value: 5 }, new Date(), context))).toMatch(/US\$\s?5,00/)
+		expect(plain(fillTemplate('{value|currency}', { value: 5 }, new Date(), context))).toMatch(/US\$\s?5,00/)
+		expect(plain(fillTemplate('{value|currency:code}', { value: 5, code: 'GBP' }, new Date(), context))).toMatch(/£\s?5,00/)
+	})
+
 	it('empties the template when the amount is missing', () => {
 		expect(fillTemplate('{value|currency}', {})).toBe('')
 	})

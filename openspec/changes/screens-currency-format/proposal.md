@@ -11,7 +11,7 @@ and a table column could only name one fixed code. A money amount now reads in i
 
 ## What changes
 
-1. Template tokens `{path|currency}` (EUR), `{path|currency:USD}` (a code) and `{path|currency:price.code}` (the code in a row field).
+1. Template tokens `{path|currency}` (the app's reporting currency, EUR without one), `{path|currency:USD}` (a code) and `{path|currency:price.code}` (the code in a row field).
 2. The `currency` formatter and the `format: { style: "currency" }` cell take `currencyField` (and `formatterOptions.currencyField`) beside `currency`.
 3. The number follows the Nextcloud user language ("€ 1.234,50" for Dutch).
 

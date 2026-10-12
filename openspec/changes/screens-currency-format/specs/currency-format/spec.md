@@ -7,8 +7,9 @@
 A record-list template token `{path|currency}`, `{path|currency:CODE}` and
 `{path|currency:field.path}`, the `currency` formatter and a cell with
 `format.style: "currency"` SHALL write the amount as money in the currency named by
-a literal code or by the row field `currencyField` / `field.path` (EUR when none
-resolves to a three-letter code), with the number written in the Nextcloud user
+a literal code or by the row field `currencyField` / `field.path` (the app's reporting
+currency, `currency` in the app config, when none resolves to a three-letter code, and EUR
+without one), with the number written in the Nextcloud user
 language. An empty or non-numeric amount SHALL write nothing (the token empties its
 template; a cell keeps its dash).
 

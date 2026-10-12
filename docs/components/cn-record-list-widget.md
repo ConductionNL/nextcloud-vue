@@ -101,4 +101,4 @@ A list can follow the page's controls (a `workspace-filter` select and switch). 
 
 ## Money
 
-`{amount|currency}` writes an amount as money in euros, `{amount|currency:USD}` in the named currency, and `{amount|currency:price.code}` in the currency the row holds at that field. The number follows the user's language ("€ 12.000,00" for Dutch). A row without an amount empties the template, as for every token.
+`{amount|currency}` writes an amount as money, `{amount|currency:USD}` in the named currency, and `{amount|currency:price.code}` in the currency the row holds at that field. A row without a code, and the bare `{amount|currency}`, take the app's reporting currency (`currency` in the app config) and euros without one. The number follows the user's language ("€ 12.000,00" for Dutch). A row without an amount empties the template, as for every token.
