@@ -9,7 +9,10 @@
   with page.route().
 -->
 <template>
-	<div id="pt-host" class="cn-look-board" data-testid="pt-host" style="width: 760px">
+	<div id="pt-host"
+		class="cn-look-board"
+		data-testid="pt-host"
+		style="width: 760px">
 		<CnDashboardPage
 			title="Dashboard"
 			:widgets="widgets"
@@ -49,6 +52,7 @@ export default {
 					rowRoute: 'AccessRequest',
 				},
 			}],
+
 			layout: [{ id: '1', widgetId: 'list-requests', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 5 }],
 		}
 	},
