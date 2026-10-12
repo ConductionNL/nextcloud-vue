@@ -38,7 +38,7 @@
 						<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 					</span>
-					<span v-if="item.pill || item.badges.length > 0 || item.trailing" class="cn-record-list__aside">
+					<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing" class="cn-record-list__aside">
 						<CnStatusBadge
 							v-if="item.pill"
 							:label="item.pill.label"
@@ -51,6 +51,11 @@
 							:variant="badge.variant"
 							size="small"
 							:data-testid="`cn-record-list-badge-${badge.kind}`" />
+						<span
+							v-if="item.due"
+							class="cn-record-list__due"
+							:class="`cn-record-list__due--${item.due.tone}`"
+							data-testid="cn-record-list-due">{{ item.due.text }}</span>
 						<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
 					</span>
 					<ChevronRight
@@ -92,6 +97,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays } from '../../utils/boardDate.js'
+import { resolveDue } from '../../utils/dueText.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { initialsOf } from '../../utils/initials.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
@@ -246,6 +252,7 @@ export default {
 					trailing: c.trailing ? firstFilled(c.trailing, row, this.translate) : '',
 					pill: this.pillOf(row),
 					badges: this.badgesOf(row),
+					due: this.dueOf(row),
 					icon: this.iconOf(row),
 				}
 			})
@@ -373,6 +380,23 @@ export default {
 				return null
 			}
 			return { name: route, params: { id: String(id) } }
+		},
+
+		/**
+		 * The row's due text (`due`: `{ field, todayLabel?, overdueLabel?, emptyText? }`):
+		 * "3 dagen te laat" in the danger tone, "Vandaag", the date otherwise,
+		 * `emptyText` when the field is empty.
+		 *
+		 * @param {object} row The row.
+		 * @return {{text: string, tone: string}|null} The text and tone, or null.
+		 * @spec openspec/changes/screens-due-text/specs/due-text/spec.md#requirement-a-due-date-reads-as-text-with-a-tone
+		 */
+		dueOf(row) {
+			const due = this.content?.due
+			if (!due || typeof due !== 'object' || !due.field) {
+				return null
+			}
+			return resolveDue(readPath(row, due.field), due, (text) => this.translate(text))
 		},
 
 		/**
@@ -622,6 +646,20 @@ export default {
 .cn-record-list__trailing {
 	font-size: 14px;
 	white-space: nowrap;
+}
+
+.cn-record-list__due {
+	font-size: 14px;
+	white-space: nowrap;
+}
+
+.cn-record-list__due--danger {
+	color: var(--color-text-error, var(--color-error-text));
+	font-weight: 600;
+}
+
+.cn-record-list__due--empty {
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-record-list__chevron {
