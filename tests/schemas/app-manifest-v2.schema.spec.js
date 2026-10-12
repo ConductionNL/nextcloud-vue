@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.86.0', () => {
+	it('the manifest schema version reads 2.90.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1368,7 +1368,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.85.0 lets a header pill be a constant (`text`) or a count of a related list (`countFrom`, `countLabel`) (screens-relation-pages).
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
 		// 2.86.0 allows an @row.<field> token in a field-list rowActions payload, and corrects sizeToContent:<int> to a row MAXIMUM (GridStack's meaning).
-		expect(schema.version).toBe('2.86.0')
+		// 2.90.0 adds the workspace-filter style `chips` with `urlKey` and per-option `countFrom`, and the visibleWhen `workspace` mode with the `in` operator (screens-page-lenses).
+		expect(schema.version).toBe('2.90.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -1971,5 +1972,54 @@ describe('app-manifest-v2 — @row token in a field-list rowActions payload (2.8
 
 	it('still refuses an invented token', () => {
 		expect(validateManifestV2(withPayload({ id: '@rows.id' })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — page lenses: chips and a workspace visibleWhen (screens-page-lenses, 2.90.0)', () => {
+	const dashboard = (widgets) => ({
+		...MINIMAL_V2,
+		pages: [{
+			id: 'MyWork',
+			route: '/my-work',
+			type: 'dashboard',
+			title: 'app.mywork',
+			widgets,
+		}],
+	})
+
+	it('accepts a chips workspace-filter with urlKey and countFrom options, and a widget shown by a workspace value', () => {
+		const result = validateManifestV2(dashboard([
+			{
+				id: 'lens',
+				widgetKey: 'workspace-filter',
+				slot: 'body',
+				gridX: 0,
+				gridY: 0,
+				gridWidth: 12,
+				gridHeight: 2,
+				props: { content: { style: 'chips', writes: '@workspace.lens', urlKey: 'lens', default: 'all', options: [{ value: 'all', label: 'All', countFrom: [{ register: 'r', schema: 's' }] }] } },
+			},
+			{
+				id: 'tickets',
+				widgetKey: 'record-list',
+				slot: 'body',
+				gridX: 0,
+				gridY: 2,
+				gridWidth: 12,
+				gridHeight: 4,
+				visibleWhen: { workspace: 'lens', op: 'in', value: ['all', 'tickets'] },
+				props: { content: { register: 'r', schema: 's' } },
+			},
+		]))
+		expect(result.errors || []).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('refuses an unknown chip style and an unknown visibleWhen operator', () => {
+		const chip = (style) => dashboard([{ id: 'lens', widgetKey: 'workspace-filter', slot: 'body', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 2, props: { content: { style } } }])
+		expect(validateManifestV2(chip('tabs')).valid).toBe(false)
+		const op = (name) => dashboard([{ id: 'w', widgetKey: 'record-list', slot: 'body', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 2, visibleWhen: { workspace: 'lens', op: name, value: 'x' }, props: { content: { register: 'r', schema: 's' } } }])
+		expect(validateManifestV2(op('in')).valid).toBe(true)
+		expect(validateManifestV2(op('like')).valid).toBe(false)
 	})
 })

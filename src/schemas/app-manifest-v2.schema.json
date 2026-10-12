@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.86.0",
+	"version": "2.90.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2190,9 +2190,14 @@
 											},
 											"style": {
 												"type": "string",
-												"enum": ["radio", "select"],
+												"enum": ["radio", "select", "chips"],
 												"default": "radio",
-												"description": "Choice style: 'radio' (default) list or 'select' dropdown."
+												"description": "Choice style: 'radio' (default) list, 'select' dropdown, or 'chips' (one compact segmented group with a count after each label; screens-page-lenses, 2.90.0)."
+											},
+											"urlKey": {
+												"type": "string",
+												"minLength": 1,
+												"description": "Keep the choice in the address as `?<urlKey>=<value>` (replacing the history entry, keeping other query keys). The address wins over `default` on load, so a chip is linkable (screens-page-lenses, 2.90.0)."
 											},
 											"allLabel": {
 												"type": "string",
@@ -2205,7 +2210,7 @@
 											},
 											"options": {
 												"type": "array",
-												"description": "Static options — each { value, label, count? } (or { id, name } / bare strings, normalised).",
+												"description": "Static options — each { value, label, count?, countFrom? } (or { id, name } / bare strings, normalised). `countFrom` is `{ register, schema, filter? }`, or a list of those that are added up; the option shows that list's total (one list request each; none when it fails). screens-page-lenses, 2.90.0.",
 												"items": { "type": ["object", "string", "number"] }
 											},
 											"source": {
@@ -2931,15 +2936,20 @@
 						"filter": { "type": "object", "additionalProperties": true }
 					}
 				},
+				"workspace": {
+					"type": "string",
+					"minLength": 1,
+					"description": "WORKSPACE mode (screens-page-lenses, 2.90.0): the key of the page workspace context to compare, read at once with no request. A page control (a `workspace-filter` with `writes`) sets the key, and a dashboard widget carrying this condition appears and disappears as it changes. Honoured on a dashboard widget or KPI-row tile only, and as a top-level condition (not inside `all` / `any`)."
+				},
 				"field": {
 					"type": "string",
 					"description": "Dot-path to the compared value — into the endpoint body, the source's first result, or (LOCAL mode) the caller's object context."
 				},
 				"op": {
 					"type": "string",
-					"enum": ["eq", "neq", "gt", "gte", "lt", "lte", "empty", "notEmpty"],
+					"enum": ["eq", "neq", "gt", "gte", "lt", "lte", "empty", "notEmpty", "in"],
 					"default": "eq",
-					"description": "Comparison operator (default eq). eq/neq compare loosely-normalised primitives; ordering operators coerce both sides to Number. `empty` / `notEmpty` take no `value` and treat undefined, null, '' and an empty array alike — the one question eq cannot ask, because an unset field arrives in a shape that depends on the store and String(null) is the word 'null' rather than blank."
+					"description": "Comparison operator (default eq). eq/neq compare loosely-normalised primitives; ordering operators coerce both sides to Number. `in` holds when the value is one of the listed `value` array (2.90.0). `empty` / `notEmpty` take no `value` and treat undefined, null, '' and an empty array alike — the one question eq cannot ask, because an unset field arrives in a shape that depends on the store and String(null) is the word 'null' rather than blank."
 				},
 				"value": {
 					"description": "The right-hand side of the comparison, resolved through the shared @-token grammar so `@me` names the signed-in reader rather than a literal only the server knows. Omitted for `empty` / `notEmpty`."

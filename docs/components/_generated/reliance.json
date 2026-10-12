@@ -3859,7 +3859,7 @@
 		},
 		"CnWorkspaceFilterWidget": {
 			"direct": 3,
-			"transitive": 10,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnResourceSelect"
