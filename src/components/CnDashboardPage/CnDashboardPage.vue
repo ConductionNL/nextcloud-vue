@@ -3511,8 +3511,13 @@ export default {
 				const cond = this.widgetDisplayConfig(def).visibleWhen
 				let outcome
 				try {
-					const value = await readVisibleWhenValue(cond)
+					// `sink` keeps the first row of a source query, for a banner that names it.
+					const sink = {}
+					const value = await readVisibleWhenValue(cond, undefined, sink)
 					outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
+					if (sink.row) {
+						outcome.row = sink.row
+					}
 				} catch (error) {
 					// Fail-safe: not met. But the failure is kept, and said
 					// out loud: a failed count and "nothing to report" look
