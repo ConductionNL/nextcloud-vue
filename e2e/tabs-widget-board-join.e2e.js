@@ -120,3 +120,34 @@ test.describe('CnTabsWidget in the board look, narrow', () => {
 		expect(strip.rows).toBe(2)
 	})
 })
+
+test.describe('CnTabsWidget panel with a list footer', () => {
+	// The list widget's footer Add bleeds 16px through its card's padding; the
+	// panel of a tab pads 12px, so the footer stuck out by a constant 4px on the
+	// right and the bottom and the panel scrolled (the lead page).
+	test('a list footer in the panel bleeds the panel padding and does not make it scroll', async ({ page }) => {
+		await openHarness(page)
+		const result = await page.evaluate(() => {
+			// The list widget's own footer rule (its component is not in this harness).
+			const style = document.createElement('style')
+			style.textContent = '.cn-object-list-widget__add { align-self: stretch; border-top: 1px solid #ccc; margin: auto -16px -16px; padding: 4px; }'
+			document.head.prepend(style)
+			const host = document.querySelector('.tabs-board .cn-tabs__content > .cn-tab:not([hidden]) > .cn-detail-widget-host--bare')
+			const footer = document.createElement('div')
+			footer.className = 'cn-object-list-widget__add'
+			footer.textContent = 'Add'
+			host.appendChild(footer)
+			const content = document.querySelector('.tabs-board .cn-tabs__content')
+			return {
+				margin: getComputedStyle(footer).marginRight,
+				bottom: getComputedStyle(footer).marginBottom,
+				overX: content.scrollWidth - content.clientWidth,
+				overY: content.scrollHeight - content.clientHeight,
+			}
+		})
+		expect(result.margin).toBe('-12px')
+		expect(result.bottom).toBe('-12px')
+		expect(result.overX).toBeLessThanOrEqual(0)
+		expect(result.overY).toBeLessThanOrEqual(0)
+	})
+})

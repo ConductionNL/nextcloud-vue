@@ -1119,6 +1119,14 @@ export default {
 	height: 100%;
 }
 
+/* A list widget's footer Add bleeds through its card's 16px content padding
+   (margin 0 -16px -16px). The panel of a tab pads 12px, so on a tab that
+   holds the list directly the footer stuck out 4px on the right and at the
+   bottom and made the panel scroll. It bleeds exactly the panel's padding. */
+.cn-tabs-widget__tabs :deep(.cn-tabs__content > .cn-tab > .cn-detail-widget-host--bare .cn-object-list-widget__add) {
+	margin: auto -12px -12px;
+}
+
 .cn-tabs-widget__title {
 	align-items: center;
 	display: inline-flex;
