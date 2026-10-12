@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.89.0', () => {
+	it('the manifest schema version reads 2.90.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1371,7 +1371,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.87.0 adds the workspace-filter style `chips` with `urlKey` and per-option `countFrom`, and the visibleWhen `workspace` mode with the `in` operator (screens-page-lenses).
 		// 2.88.0 adds the workspace-filter style `toggle`, layout `bar` with `controls`, and `pageControls` on a list source (screens-page-controls).
 		// 2.89.0 adds source.order, notEmpty/empty operators and stacked on the banner widget (screens-start-here-banner).
-		expect(schema.version).toBe('2.89.0')
+		// 2.90.0 adds headerButtons[].items on the actions-menu button (screens-index-header-actions-menu).
+		expect(schema.version).toBe('2.90.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2065,5 +2066,23 @@ describe('app-manifest-v2 — a banner that names one record (screens-start-here
 
 	it('refuses an order direction that is not asc or desc', () => {
 		expect(validateManifestV2(banner({ text: 't', visibleWhen: { source: { register: 'r', schema: 's', order: { deadline: 'up' } }, field: 'id' } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — the header Actions menu names its entries (screens-index-header-actions-menu, 2.90.0)', () => {
+	const manifest = (button) => ({
+		$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
+		version: '2.0.0',
+		menu: [],
+		pages: [{ id: 'Meetings', route: '/meetings', type: 'index', title: 'Meetings', config: { register: 'r', schema: 'meeting', headerButtons: [button] } }],
+	})
+
+	it('accepts items on a header button', () => {
+		expect(validateManifestV2(manifest({ action: 'actions-menu', items: ['header-actions', 'import', 'refresh', 'documentation'] })).valid).toBe(true)
+	})
+
+	it('rejects an empty list and a non-string entry', () => {
+		expect(validateManifestV2(manifest({ action: 'actions-menu', items: [] })).valid).toBe(false)
+		expect(validateManifestV2(manifest({ action: 'actions-menu', items: [1] })).valid).toBe(false)
 	})
 })
