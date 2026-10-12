@@ -246,7 +246,7 @@ export default {
 					attrs: link ? { to: link } : {},
 					initials: this.initialsFor(row),
 					title: this.fill(c.title, row),
-					meta: this.fill(c.meta, row),
+					meta: this.metaOf(row),
 					text: this.fill(c.text, row),
 					label: this.fill(c.label, row),
 					trailing: c.trailing ? firstFilled(c.trailing, row, this.translate) : '',
@@ -439,6 +439,29 @@ export default {
 				}
 			})
 			return out
+		},
+
+		/**
+		 * The row's meta line. A string is one template, and one empty token
+		 * empties it. `{ parts: ["{identifier}", "{caseTypeName}", "{handler}"],
+		 * separator? }` fills each part on its own, drops the empty ones and
+		 * joins the rest (default " · "), so a row without a handler still
+		 * reads "2026-0082 · Woo-verzoek".
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The meta line, '' when nothing fills.
+		 * @spec openspec/changes/screens-record-list-meta-parts/specs/record-list-meta-parts/spec.md#requirement-a-meta-line-of-parts-skips-the-empty-ones
+		 */
+		metaOf(row) {
+			const meta = this.content?.meta
+			if (!meta || typeof meta !== 'object' || !Array.isArray(meta.parts)) {
+				return this.fill(meta, row)
+			}
+			const separator = typeof meta.separator === 'string' ? meta.separator : ' · '
+			return meta.parts
+				.map((part) => this.fill(part, row))
+				.filter((text) => text !== '')
+				.join(separator)
 		},
 
 		/**

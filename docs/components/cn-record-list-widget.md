@@ -66,6 +66,10 @@ On a card surface the detail page draws the titled card. The widget reports its 
 
 In a tab panel there is no card header, so neither is drawn.
 
+### A meta line of parts
+
+`meta` as a string is one template: a row that misses one of its tokens gets no meta line at all. For a line built from fields that may be empty, list the parts: `"meta": { "parts": ["{identifier}", "{caseTypeName}", "{handler.name}"], "separator": " · " }`. Each part is filled on its own, the empty ones are left out and the rest are joined by `separator` (default " · "). A part can hold text and formats, such as `"Termijn {deadline|date}"`.
+
 ### States
 
 `emptyText` on one line when the list is empty; one quiet line (`errorText`, else "This list could not be loaded.") when the read fails, never both. The error goes to the console.
