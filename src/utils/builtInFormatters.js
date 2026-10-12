@@ -1,4 +1,5 @@
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { formatRelativeDate } from './boardDate.js'
 import { safeCurrencyCode } from './formatMetric.js'
 
 /**
@@ -200,6 +201,29 @@ export function formatDaysSince(value) {
 		return n('nextcloud-vue', '{count} day ago', '{count} days ago', ago, { count: ago })
 	}
 	return n('nextcloud-vue', 'in {count} day', 'in {count} days', days, { count: days })
+}
+
+/**
+ * Relative-date formatter (`relativeDate` registry key): "today", "yesterday",
+ * then the board's short date ("5 okt"). The column's `formatterOptions` may set
+ * `time: true` to add the time of day after the day ("vandaag, 09.42").
+ *
+ * Null-safe per the built-in-formatter contract: `''` for null/empty,
+ * `String(value)` for unparseable input, never throws.
+ *
+ * @param {unknown} value A `Date`, parseable date string, or timestamp.
+ * @param {object} [_row] The full row (unused).
+ * @param {object} [_property] The schema property (unused).
+ * @param {{time?: boolean}} [options] The column's `formatterOptions`.
+ * @return {string} The relative-day phrasing (or ''/original on bad input).
+ * @spec openspec/changes/screens-relative-dates/specs/relative-dates/spec.md#requirement-a-relative-date-reads-today-yesterday-then-a-short-date
+ */
+export function formatRelativeDay(value, _row, _property, options) {
+	if (value === null || value === undefined || value === '') {
+		return ''
+	}
+	const text = formatRelativeDate(value, { withTime: options?.time === true })
+	return text === '' ? String(value) : text
 }
 
 /**
@@ -410,6 +434,7 @@ export const BUILT_IN_FORMATTERS = {
 	'relative-time': formatRelativeTime,
 	daysSince: formatDaysSince,
 	daysUntil: formatDaysUntil,
+	relativeDate: formatRelativeDay,
 	currency: formatCurrency,
 	conditionalPhrase: formatConditionalPhrase,
 	count: formatCount,

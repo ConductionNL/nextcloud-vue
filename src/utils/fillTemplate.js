@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 // SPDX-License-Identifier: EUPL-1.2
 
-import { boardDateLocale, formatBoardDate } from './boardDate.js'
+import { boardDateLocale, formatBoardDate, formatRelativeDate } from './boardDate.js'
 import { parseDateValue } from './dateVariant.js'
 import { readPath } from './readPath.js'
 
@@ -35,7 +35,7 @@ export function formatBoardDateTime(value, now = new Date()) {
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime` or '' (as is).
+ * @param {string} format `date`, `datetime`, `relative`, `relativetime`, `days` or '' (as is).
  * @param {Date} now The reference moment.
  * @return {string} The text, '' when nothing can be shown.
  */
@@ -48,6 +48,12 @@ function formatValue(value, format, now) {
 	}
 	if (format === 'datetime') {
 		return formatBoardDateTime(value, now)
+	}
+	if (format === 'relative') {
+		return formatRelativeDate(value, { now })
+	}
+	if (format === 'relativetime') {
+		return formatRelativeDate(value, { now, withTime: true })
 	}
 	if (format === 'days') {
 		// Whole days from the date to now (0 for today; negative for a future date).
@@ -62,7 +68,9 @@ function formatValue(value, format, now) {
  * `"Termijn {deadline|date}"` from an object.
  *
  * Every `{path}` token is a dot path into the object; `{path|date}` and
- * `{path|datetime}` format it as the boards write dates, and `{path|days}` is the
+ * `{path|datetime}` format it as the boards write dates, `{path|relative}` and
+ * `{path|relativetime}` say "today", "yesterday" and then the short date
+ * ("vandaag, 09.42"), and `{path|days}` is the
  * whole days since that date ("has waited {createdAt|days} days"). A token without a
  * value empties the WHOLE template, because "Termijn " is worse than nothing.
  * A template without tokens is returned as written (a constant label).

@@ -1335,6 +1335,7 @@
     "This server does not keep track of what you open.": "This server does not keep track of what you open.",
     "Log in to see what you opened recently.": "Log in to see what you opened recently.",
     "Your recent items are not available right now.": "Your recent items are not available right now.",
+    "{hours}:{minutes}": "{hours}:{minutes}",
     "yesterday": "yesterday",
     "tomorrow": "tomorrow",
     "Filter by {column}": "Filter by {column}",

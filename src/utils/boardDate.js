@@ -19,7 +19,7 @@
  * @spec openspec/changes/screens-cell-date-parity/specs/cell-date-age/spec.md
  */
 
-import { getCanonicalLocale, getLanguage, translatePlural as n } from '@nextcloud/l10n'
+import { getCanonicalLocale, getLanguage, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { parseDateValue } from './dateVariant.js'
 import { compareVisibleWhen } from './visibleWhen.js'
 
@@ -107,6 +107,54 @@ export function ageInDays(value, now = new Date()) {
 	const start = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
 	const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
 	return Math.round((today - start) / MS_PER_DAY)
+}
+
+/**
+ * The time of day the boards write: "09.42" for a Dutch reader, "09:42" for
+ * an English one. The separator belongs to the language, so it is one
+ * translatable string with two placeholders.
+ *
+ * @param {Date} date The moment.
+ * @return {string} The time of day.
+ * @spec openspec/changes/screens-relative-dates/specs/relative-dates/spec.md#requirement-a-relative-date-reads-today-yesterday-then-a-short-date
+ */
+export function formatTimeOfDay(date) {
+	const pad = (v) => String(v).padStart(2, '0')
+	return t('nextcloud-vue', '{hours}:{minutes}', { hours: pad(date.getHours()), minutes: pad(date.getMinutes()) })
+}
+
+/**
+ * A moment the way a list says when something came in: "today" or
+ * "yesterday" (with the time of day on request: "vandaag, 09.42"), and from
+ * the day before that the board's short date ("5 okt", "14 feb 2024").
+ * Tomorrow reads "tomorrow", for a due date. Word and month names follow the
+ * user's language through the library's catalogue.
+ *
+ * @param {unknown} value A Date, a timestamp or an ISO string.
+ * @param {object} [options] Options.
+ * @param {boolean} [options.withTime] Add the time of day after the day: "today, 09.42".
+ * @param {Date} [options.now] The reference moment (defaults to the current time).
+ * @return {string} The text, or '' when the value is not a date.
+ * @spec openspec/changes/screens-relative-dates/specs/relative-dates/spec.md#requirement-a-relative-date-reads-today-yesterday-then-a-short-date
+ */
+export function formatRelativeDate(value, options = {}) {
+	const now = options.now || new Date()
+	const date = parseDateValue(value)
+	if (date === null) {
+		return ''
+	}
+	const days = ageInDays(date, now)
+	let day
+	if (days === 0) {
+		day = t('nextcloud-vue', 'today')
+	} else if (days === 1) {
+		day = t('nextcloud-vue', 'yesterday')
+	} else if (days === -1) {
+		day = t('nextcloud-vue', 'tomorrow')
+	} else {
+		day = formatBoardDate(date, now)
+	}
+	return options.withTime === true ? `${day}, ${formatTimeOfDay(date)}` : day
 }
 
 /**
