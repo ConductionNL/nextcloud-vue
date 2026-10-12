@@ -99,6 +99,7 @@ import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays } from '../../utils/boardDate.js'
 import { resolveDue } from '../../utils/dueText.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
+import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { initialsOf } from '../../utils/initials.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
@@ -151,6 +152,8 @@ export default {
 		cnWorkspaceContext: { default: null },
 		/** The host app's translate function. */
 		cnTranslate: { default: () => (key) => key },
+		/** The page's app config map; its `currency` is the reporting currency of a money token. */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	props: {
@@ -226,6 +229,17 @@ export default {
 			return pageSort(this.content?.pageControls, this.tokenCtx.workspace, this.content?.sort)
 		},
 
+		/**
+		 * What a template may read beside the row: the app config, whose
+		 * `currency` is the reporting currency of a `{path|currency}` token.
+		 *
+		 * @return {{config: object}} The template context.
+		 * @spec openspec/changes/screens-currency-format/specs/currency-format/spec.md#requirement-a-money-value-reads-in-its-currency
+		 */
+		templateContext() {
+			return { config: unwrapAppConfig(this.cnAppConfig) }
+		},
+
 		/** @return {number} The fetch cap. */
 		limit() {
 			const value = Number(this.content?.limit)
@@ -252,7 +266,7 @@ export default {
 					meta: this.fill(c.meta, row),
 					text: this.fill(c.text, row),
 					label: this.fill(c.label, row),
-					trailing: c.trailing ? firstFilled(c.trailing, row, this.translate) : '',
+					trailing: c.trailing ? firstFilled(c.trailing, row, this.translate, new Date(), this.templateContext) : '',
 					pill: this.pillOf(row),
 					badges: this.badgesOf(row),
 					due: this.dueOf(row),
@@ -373,7 +387,7 @@ export default {
 		 * @return {string} The text, '' when a token is empty.
 		 */
 		fill(template, row) {
-			return typeof template === 'string' && template !== '' ? fillTemplate(this.translate(template), row) : ''
+			return typeof template === 'string' && template !== '' ? fillTemplate(this.translate(template), row, new Date(), this.templateContext) : ''
 		},
 
 		/**
