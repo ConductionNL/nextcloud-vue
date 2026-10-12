@@ -218,6 +218,11 @@
 			Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs). See
 			PixelGapsHarness.vue.
 		-->
+		<!-- A dashboard with a record-list card (?ptlistcard=1). See PtDashboardHarness.vue. -->
+		<template v-else-if="showPtDashboard">
+			<PtDashboardHarness />
+		</template>
+
 		<!-- screens-relation-pages (?relation=person). See RelationPagesHarness.vue. -->
 		<template v-else-if="showRelationPages">
 			<RelationPagesHarness />
@@ -697,6 +702,7 @@ import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
 import ProgressCellHarness from './ProgressCellHarness.vue'
 import RelationPagesHarness from './RelationPagesHarness.vue'
+import PtDashboardHarness from './PtDashboardHarness.vue'
 import ScreensChromeHarness from './ScreensChromeHarness.vue'
 import ScreensDetailHarness from './ScreensDetailHarness.vue'
 import ScreensFormHarness from './ScreensFormHarness.vue'
@@ -730,7 +736,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtDashboardHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -809,6 +815,7 @@ export default {
 			showScreensNav: (typeof window !== 'undefined' && /[?&]screensnav=/.test(window.location.search)),
 			// screens-detail-page-parity (?screensdetail=tabs).
 			showScreensDetail: (typeof window !== 'undefined' && /[?&]screensdetail=/.test(window.location.search)),
+			showPtDashboard: (typeof window !== 'undefined' && /[?&]ptlistcard=/.test(window.location.search)),
 			showRelationPages: (typeof window !== 'undefined' && /[?&]relation=/.test(window.location.search)),
 			// screens-dashboard-parity / screens-kanban-parity (?screens=…).
 			showScreensParity: (typeof window !== 'undefined' && /[?&]screens=/.test(window.location.search)),
