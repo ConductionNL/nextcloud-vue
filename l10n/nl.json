@@ -1436,6 +1436,7 @@
     "This server does not keep track of what you open.": "Deze server houdt niet bij welke items je opent.",
     "Log in to see what you opened recently.": "Log in om te zien wat je onlangs opende.",
     "Your recent items are not available right now.": "Je recente items zijn nu niet beschikbaar.",
+    "{hours}:{minutes}": "{hours}.{minutes}",
     "yesterday": "gisteren",
     "tomorrow": "morgen",
     "Filter by {column}": "Filteren op {column}",

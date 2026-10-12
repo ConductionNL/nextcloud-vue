@@ -159,4 +159,31 @@ describe('CnWorkspaceFilterWidget (#91 Wave 3)', () => {
 		// Unchanged — the pre-existing selection wins.
 		expect(workspace.value.queue).toBe('done')
 	})
+	describe('translation', () => {
+		const dutch = { Sort: 'Sorteren', Deadline: 'Termijn', Priority: 'Prioriteit' }
+		const cnTranslate = (key) => dutch[key] || key
+
+		it('translates the select style: label and options', async () => {
+			const wrapper = mount(CnWorkspaceFilterWidget, {
+				propsData: { content: { style: 'select', label: 'Sort', writes: '@workspace.sort', options: [{ value: 'deadline', label: 'Deadline' }, { value: 'priority', label: 'Priority' }] } },
+				provide: { cnWorkspaceContext: ref({}), cnTranslate },
+				stubs: { NcSelect: { name: 'NcSelect', props: ['options', 'inputLabel'], template: '<div class="nc-select-stub"><span class="lbl">{{ inputLabel }}</span><i v-for="o in options" :key="o.value" class="opt">{{ o.label }}</i></div>' } },
+			})
+			await flush()
+			expect(wrapper.find('.lbl').text()).toBe('Sorteren')
+			expect(wrapper.findAll('.opt').map((o) => o.text())).toEqual(['Termijn', 'Prioriteit'])
+		})
+
+		it('keeps the value of a translated option', async () => {
+			const workspace = ref({})
+			const wrapper = mount(CnWorkspaceFilterWidget, {
+				propsData: { content: { style: 'select', writes: '@workspace.sort', options: [{ value: 'deadline', label: 'Deadline' }] } },
+				provide: { cnWorkspaceContext: workspace, cnTranslate },
+				stubs: { NcSelect: true },
+			})
+			await flush()
+			expect(wrapper.vm.selectedOption).toEqual({ value: 'deadline', label: 'Termijn' })
+			expect(workspace.value.sort).toBe('deadline')
+		})
+	})
 })
