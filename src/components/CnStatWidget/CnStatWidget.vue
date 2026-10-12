@@ -163,6 +163,7 @@ import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { fetchListTotal, hasListValue } from '../../utils/fetchFilterCounts.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
@@ -1746,8 +1747,7 @@ export default {
 			// drop any optional `@workspace.<key>?` / `@config.<key>?` that stayed
 			// unresolved so an unset value omits the filter (show all) instead of
 			// sending a literal token.
-			const ctx = { ...(this.objectCtx || {}), workspace: this.pageCtx, config: this.configCtx }
-			filter = dropOptionalUnresolved(resolveFilterTokens(filter, ctx))
+			filter = this.resolveSourceFilter(filter)
 			for (const [k, v] of Object.entries(filter)) {
 				if (v && typeof v === 'object') {
 					for (const [op, ov] of Object.entries(v)) {
@@ -1760,6 +1760,21 @@ export default {
 		},
 
 		/**
+		 * A source filter with its @-tokens resolved against the object, page
+		 * and config contexts, and unresolved optional clauses dropped.
+		 *
+		 * @param {object} filter The raw filter map.
+		 * @return {object} The resolved filter.
+		 */
+		resolveSourceFilter(filter) {
+			if (!filter || typeof filter !== 'object') {
+				return {}
+			}
+			const ctx = { ...(this.objectCtx || {}), workspace: this.pageCtx, config: this.configCtx }
+			return dropOptionalUnresolved(resolveFilterTokens(filter, ctx))
+		},
+
+		/**
 		 * Fetch one scalar from the OpenRegister `/value` aggregation endpoint.
 		 *
 		 * @param {object} axios The axios instance.
@@ -1768,9 +1783,19 @@ export default {
 		 * @param {string} metric The aggregation metric.
 		 * @param {?string} field The numeric field (non-count metrics).
 		 * @param {object} filter The filter map.
+		 * @param {string} [via] `"list"` counts through the list endpoint's total.
 		 * @return {Promise<number|null>} The aggregated value.
 		 */
-		async fetchAggregate(axios, generateUrl, s, metric, field, filter) {
+		async fetchAggregate(axios, generateUrl, s, metric, field, filter, via) {
+			// A count the aggregation endpoint cannot express (a filter holding a
+			// list of values, or `via: "list"`, which a count of empty values
+			// needs because the endpoint has no null operator) reads the list
+			// endpoint's total instead.
+			const resolved = this.resolveSourceFilter(filter)
+			const listed = Object.values(resolved).some((v) => Array.isArray(v) || (v && typeof v === 'object' && Object.values(v).some(Array.isArray)))
+			if ((!metric || metric === 'count') && (via === 'list' || listed || hasListValue(resolved))) {
+				return fetchListTotal(s.register, s.schema, resolved, {})
+			}
 			const url = generateUrl(
 				'/apps/openregister/api/objects/aggregations/{register}/{schema}/value',
 				{ register: s.register, schema: s.schema },
@@ -1827,9 +1852,15 @@ export default {
 				if (s.kind === 'endpoint') {
 					this.value = await this.fetchEndpoint(s, refresh)
 				} else if (s.kind === 'ratio') {
-					const num = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.numerator && s.numerator.filter) || {})
-					const den = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.denominator && s.denominator.filter) || {})
+					// Each part may name its own metric, field and `via`, so "answered
+					// in time" over "answered" is two counts, and a share of a sum is
+					// two sums.
+					const part = (p) => this.fetchAggregate(axios, generateUrl, s, (p && p.metric) || s.metric, (p && p.field) || s.field, (p && p.filter) || {}, (p && p.via) || s.via)
+					const num = await part(s.numerator)
+					const den = await part(s.denominator)
 					this.value = (den && Number(den) !== 0) ? (Number(num) / Number(den)) * 100 : null
+				} else if (s.kind === 'elapsed') {
+					this.value = await this.fetchElapsed(axios, generateUrl, s)
 				} else if (s.kind === 'computed') {
 					// Fetch each named part, then evaluate the formula over them.
 					const { evalFormula } = await import('../../utils/evalFormula.js')
@@ -1842,7 +1873,7 @@ export default {
 				} else if (s.kind === 'weighted') {
 					this.value = await this.fetchWeighted(axios, generateUrl, s)
 				} else {
-					this.value = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, s.filter || {})
+					this.value = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, s.filter || {}, s.via)
 				}
 			} catch (e) {
 				this.error = (e && e.message) || 'error'
@@ -1850,6 +1881,56 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * The average time between two date fields of the matching objects
+		 * (`{ from, to, unit?, filter?, limit? }`): an average answer time is
+		 * `occurredAt` to `resolvedAt`. Computed client-side over the fetched
+		 * objects (capped at `limit`, default 1000), because the aggregation
+		 * endpoint averages one numeric field, not a difference. Objects missing
+		 * either date, or with `to` before `from`, are left out; null when none
+		 * is left. `unit` is `days` (default), `hours` or `minutes`.
+		 *
+		 * @param {object} axios The axios instance.
+		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
+		 * @param {object} s The elapsed source.
+		 * @return {Promise<number|null>} The average, in `unit`.
+		 * @spec openspec/changes/screens-ratio-stat/specs/ratio-stat/spec.md#requirement-a-stat-can-average-the-time-between-two-dates
+		 */
+		async fetchElapsed(axios, generateUrl, s) {
+			if (!s.from || !s.to) {
+				return null
+			}
+			const url = generateUrl(
+				'/apps/openregister/api/objects/{register}/{schema}',
+				{ register: s.register, schema: s.schema },
+			)
+			const params = { _limit: s.limit || 1000 }
+			const filter = this.resolveSourceFilter(s.filter || {})
+			for (const [k, v] of Object.entries(filter)) {
+				if (v && typeof v === 'object' && !Array.isArray(v)) {
+					for (const [op, operand] of Object.entries(v)) {
+						params[`${k}[${op}]`] = operand
+					}
+				} else if (v !== '' && v !== null && v !== undefined) {
+					params[k] = v
+				}
+			}
+			const res = await axios.get(url, { params })
+			const rows = (res && res.data && res.data.results) || []
+			const per = { minutes: 60000, hours: 3600000, days: 86400000 }[s.unit] || 86400000
+			let sum = 0
+			let n = 0
+			for (const r of rows) {
+				const from = Date.parse(r && r[s.from])
+				const to = Date.parse(r && r[s.to])
+				if (Number.isFinite(from) && Number.isFinite(to) && to >= from) {
+					sum += (to - from) / per
+					n += 1
+				}
+			}
+			return n > 0 ? sum / n : null
 		},
 
 		/**
