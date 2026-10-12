@@ -36,6 +36,7 @@ The object is the current detail-page object, or one other object named by `sour
 | `as` | `row`, `title`, `line` or `pill`. Without `as` and without `label` an entry is a `line`. |
 | `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year) or `list` (an array joined by ", "). |
 | `itemPath` | With `list`: the path read off each array item (`hostname` of `domains[]`). |
+| `resolve` | `{ register, schema, labelField? }`. The value is a reference (an id, or a list of ids): the row shows the label of the referenced object (`labelField`, else `title`, then `name`) instead of the id. Works on a row, a `title`, and on a part of a `line`. The ids are read through the object store, one batched request per register and schema, and the labels are shared by every facts widget on the page. The entry stays empty until its label is known, and when none can be read; it never shows the id. With an array of objects, `itemPath` names the id (default `id`, then `uuid`). |
 | `map` | Raw value to label, translated (`{ "published": "Published" }`). Booleans read `"true"` / `"false"`, else Yes / No. |
 | `parts` | On a `line`: paths (or `{ path, label?, format? }`) joined by `separator` (default " · "). Empty parts are dropped; a labelled part reads "label value". |
 | `route` | On a `title`: `{ name, params?, query? }` so the title links. Takes `@source.<field>` tokens. |

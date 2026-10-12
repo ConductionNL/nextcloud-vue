@@ -637,7 +637,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 172,
+			"transitive": 173,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -856,7 +856,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 175,
+			"transitive": 176,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1081,7 +1081,7 @@
 		},
 		"CnFactsWidget": {
 			"direct": 1,
-			"transitive": 5,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [
 				"CnIndexPage"
@@ -3712,7 +3712,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 162,
+			"transitive": 163,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3859,7 +3859,7 @@
 		},
 		"CnWorkspaceFilterWidget": {
 			"direct": 3,
-			"transitive": 10,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnResourceSelect"
