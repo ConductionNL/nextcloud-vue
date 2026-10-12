@@ -165,3 +165,32 @@ describe('CnCellRenderer: an app formatter still wins', () => {
 		wrapper.unmount()
 	})
 })
+
+describe('badge widget with a column-level colorMap', () => {
+	it('colours the pill from the column colorMap, keyed on the raw value', () => {
+		const wrapper = mount(CnCellRenderer, {
+			propsData: {
+				value: 'delivered',
+				widget: 'badge',
+				property: { type: 'string', enum: ['delivered', 'failed'], enumLabels: { delivered: 'Bevestigd', failed: 'Mislukt' }, colorMap: { delivered: 'success', failed: 'error' } },
+			},
+			mocks: { t: (_app, s) => s },
+		})
+		expect(wrapper.text()).toBe('Bevestigd')
+		expect(wrapper.html()).toContain('success')
+	})
+
+	it('widgetProps.colorMap still wins over the column colorMap', () => {
+		const wrapper = mount(CnCellRenderer, {
+			propsData: {
+				value: 'delivered',
+				widget: 'badge',
+				widgetProps: { colorMap: { delivered: 'warning' } },
+				property: { type: 'string', colorMap: { delivered: 'success' } },
+			},
+			mocks: { t: (_app, s) => s },
+		})
+		expect(wrapper.html()).toContain('warning')
+		expect(wrapper.html()).not.toContain('success')
+	})
+})
