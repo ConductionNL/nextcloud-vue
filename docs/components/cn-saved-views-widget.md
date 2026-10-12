@@ -35,4 +35,6 @@ The reader's own saved views as a list of links, the "Opgeslagen weergaven" card
 
 The list is read on load and on a page refresh. A saved view's own filters are the ones that count, so the count of a view saved with a search term ignores the search.
 
+The `api` prop (`{ fetchViews }`) replaces the Views API transport, for tests and hosts that stub it; by default the widget uses `useSavedViewsApi`.
+
 <GeneratedRef />
