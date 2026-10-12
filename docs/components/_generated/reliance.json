@@ -474,6 +474,13 @@
 			],
 			"page": "cn-child-records-field"
 		},
+		"CnChipsFieldWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-chips-field-widget"
+		},
 		"CnChoiceCards": {
 			"direct": 0,
 			"transitive": 0,
@@ -637,7 +644,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 173,
+			"transitive": 174,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -856,7 +863,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 176,
+			"transitive": 177,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1289,7 +1296,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 182,
+			"transitive": 183,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1569,7 +1576,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 179,
+			"transitive": 180,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -2534,7 +2541,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 195,
+			"transitive": 196,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2735,6 +2742,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-quicklinks-widget-form"
+		},
+		"CnRadioCardsWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-radio-cards-widget"
 		},
 		"CnRecordListWidget": {
 			"direct": 1,
@@ -3006,6 +3020,13 @@
 			"via": [],
 			"page": "cn-saved-views-control"
 		},
+		"CnSavedViewsWidget": {
+			"direct": 0,
+			"transitive": 5,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-saved-views-widget"
+		},
 		"CnSchemaFormDialog": {
 			"direct": 0,
 			"transitive": 10,
@@ -3096,6 +3117,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-settings-card"
+		},
+		"CnSettingsFormWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-settings-form-widget"
 		},
 		"CnSettingsPage": {
 			"direct": 0,
@@ -3190,8 +3218,8 @@
 			"page": "cn-stages-widget-form"
 		},
 		"CnStatWidget": {
-			"direct": 4,
-			"transitive": 9,
+			"direct": 5,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
 				"CnIndexPage",
@@ -3326,6 +3354,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-support-dialog"
+		},
+		"CnSwitchRowsWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-switch-rows-widget"
 		},
 		"CnTabbedFormDialog": {
 			"direct": 0,
@@ -3712,7 +3747,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 163,
+			"transitive": 164,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",

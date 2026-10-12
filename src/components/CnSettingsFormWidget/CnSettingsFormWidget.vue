@@ -1,0 +1,454 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 Conduction B.V.
+  - SPDX-License-Identifier: EUPL-1.2
+-->
+
+<template>
+	<form class="cn-settings-form"
+		data-testid="cn-settings-form"
+		novalidate
+		@submit.prevent="save">
+		<div class="cn-settings-form__grid" :class="`cn-settings-form__grid--${columns}`">
+			<div
+				v-for="field in fields"
+				:key="field.key"
+				class="cn-settings-form__field"
+				:class="{ 'cn-settings-form__field--wide': field.wide }"
+				:data-testid="`cn-settings-form-field-${field.key}`">
+				<NcCheckboxRadioSwitch
+					v-if="field.type === 'switch'"
+					v-model="form[field.key]"
+					type="switch"
+					:disabled="field.readOnly">
+					{{ field.label }}
+				</NcCheckboxRadioSwitch>
+				<template v-else>
+					<label class="cn-settings-form__label" :for="inputId(field)">{{ field.label }}</label>
+					<select
+						v-if="field.type === 'select'"
+						:id="inputId(field)"
+						v-model="form[field.key]"
+						class="cn-settings-form__control"
+						:disabled="field.readOnly">
+						<option v-for="option in field.options" :key="String(option.value)" :value="option.value">
+							{{ option.label }}
+						</option>
+					</select>
+					<textarea
+						v-else-if="field.type === 'textarea'"
+						:id="inputId(field)"
+						v-model="form[field.key]"
+						class="cn-settings-form__control cn-settings-form__control--area"
+						:rows="field.rows"
+						:placeholder="field.placeholder"
+						:readonly="field.readOnly" />
+					<input
+						v-else
+						:id="inputId(field)"
+						v-model="form[field.key]"
+						class="cn-settings-form__control"
+						:type="field.type === 'number' ? 'number' : 'text'"
+						:min="field.min"
+						:max="field.max"
+						:placeholder="field.placeholder"
+						:readonly="field.readOnly"
+						:aria-invalid="errors[field.key] ? 'true' : null">
+				</template>
+				<p v-if="errors[field.key]" class="cn-settings-form__error" role="alert">
+					{{ errors[field.key] }}
+				</p>
+				<p v-else-if="field.hint" class="cn-settings-form__hint">
+					{{ field.hint }}
+				</p>
+			</div>
+		</div>
+
+		<NcNoteCard v-if="notice" :type="noticeType" data-testid="cn-settings-form-notice">
+			{{ notice }}
+		</NcNoteCard>
+
+		<div v-if="!readOnly" class="cn-settings-form__actions">
+			<NcButton
+				variant="primary"
+				type="submit"
+				:disabled="saving"
+				data-testid="cn-settings-form-save">
+				{{ saveLabel }}
+			</NcButton>
+		</div>
+	</form>
+</template>
+
+<script>
+import { NcButton, NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
+import { changedFields, objectUrlOf, patchObject } from '../../utils/objectWrite.js'
+import { readPath } from '../../utils/readPath.js'
+import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
+
+const TYPES = ['text', 'textarea', 'select', 'switch', 'number']
+
+let uid = 0
+
+/**
+ * CnSettingsFormWidget — the `settings-form` widget: fields of the CURRENT
+ * object as a one- or two-column grid of framed inputs with light labels and
+ * hints, saved by ONE PATCH of the fields that changed since the last save.
+ *
+ * "Last save" is the baseline this widget keeps: a save moves it forward, so
+ * editing a field back to the value the page loaded with, after a save, still
+ * counts as a change (comparing against the loaded object skipped that PATCH).
+ *
+ * @spec openspec/changes/abstract-settings-form/specs/settings-form/spec.md
+ */
+export default {
+	name: 'CnSettingsFormWidget',
+
+	components: { NcButton, NcCheckboxRadioSwitch, NcNoteCard },
+
+	inject: {
+		cnTranslate: { default: () => (key) => key },
+	},
+
+	props: {
+		/**
+		 * The widget configuration.
+		 *
+		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number', hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a top-level field of the object.
+		 * - `columns` — 1 or 2 (default 2).
+		 * - `saveLabel`, `savedText`, `readOnly`.
+		 *
+		 * @type {object}
+		 */
+		content: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/** The current detail-page object. */
+		objectData: {
+			type: Object,
+			default: null,
+		},
+
+		/** The current object id. */
+		objectId: {
+			type: [String, Number],
+			default: '',
+		},
+
+		/** OpenRegister register slug of the surface. */
+		register: {
+			type: [String, Object],
+			default: '',
+		},
+
+		/** OpenRegister schema slug of the surface. */
+		schema: {
+			type: [String, Object],
+			default: '',
+		},
+	},
+
+	emits: ['saved'],
+
+	data() {
+		uid += 1
+		return {
+			uid,
+			form: {},
+			baseline: {},
+			errors: {},
+			saving: false,
+			notice: '',
+			noticeType: 'success',
+		}
+	},
+
+	computed: {
+		/**
+		 * The configured fields, normalised and translated.
+		 *
+		 * @return {Array<object>}
+		 */
+		fields() {
+			const list = Array.isArray(this.content.fields) ? this.content.fields : []
+			return list
+				.filter((field) => field && field.key)
+				.map((field) => ({
+					...field,
+					type: TYPES.includes(field.type) ? field.type : 'text',
+					label: this.tr(field.label || field.key),
+					hint: this.tr(field.hint || ''),
+					placeholder: this.tr(field.placeholder || ''),
+					rows: field.rows || 3,
+					wide: field.wide === true || field.type === 'textarea',
+					readOnly: this.readOnly || field.readOnly === true,
+					options: (Array.isArray(field.options) ? field.options : []).map((option) => (
+						typeof option === 'object' && option !== null
+							? { value: option.value, label: this.tr(String(option.label ?? option.value)) }
+							: { value: option, label: this.tr(String(option)) }
+					)),
+				}))
+		},
+
+		columns() {
+			return this.content.columns === 1 ? 1 : 2
+		},
+
+		readOnly() {
+			return this.content.readOnly === true
+		},
+
+		saveLabel() {
+			return this.tr(this.content.saveLabel || 'Save')
+		},
+
+		/** The object URL the form is saved to, or '' when it is not known. */
+		objectUrl() {
+			return objectUrlOf(this.register, this.schema, this.objectId || (this.objectData && this.objectData.id))
+		},
+	},
+
+	watch: {
+		objectData() {
+			this.adopt()
+		},
+	},
+
+	created() {
+		this.adopt(true)
+	},
+
+	methods: {
+		tr(text) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		inputId(field) {
+			return `cn-settings-form-${this.uid}-${field.key}`
+		},
+
+		/**
+		 * The stored value of a field as the input holds it.
+		 *
+		 * @param {object} field The field.
+		 * @return {unknown}
+		 */
+		stored(field) {
+			const value = readPath(this.objectData || {}, field.key)
+			if (field.type === 'switch') {
+				return value === true
+			}
+			return value === undefined || value === null ? '' : value
+		},
+
+		/**
+		 * Take the object's values as the new baseline; a field the person has
+		 * not touched follows it, a touched one keeps the typed value.
+		 *
+		 * @param {boolean} [first] Whether this is the first read.
+		 */
+		adopt(first = false) {
+			const baseline = {}
+			const form = {}
+			for (const field of this.fields) {
+				baseline[field.key] = this.stored(field)
+				const untouched = first || JSON.stringify(this.form[field.key]) === JSON.stringify(this.baseline[field.key])
+				form[field.key] = untouched ? baseline[field.key] : this.form[field.key]
+			}
+			this.baseline = baseline
+			this.form = form
+		},
+
+		/**
+		 * The value to send for a field: numbers as numbers, an empty value as null.
+		 *
+		 * @param {object} field The field.
+		 * @return {unknown}
+		 */
+		outgoing(field) {
+			const value = this.form[field.key]
+			if (field.type === 'number') {
+				return value === '' || value === null || value === undefined ? null : Number(value)
+			}
+			if (field.type === 'switch') {
+				return value === true
+			}
+			if (typeof value === 'string') {
+				return value.trim() === '' ? null : value.trim()
+			}
+			return value
+		},
+
+		/**
+		 * Check required, number range and pattern before any write.
+		 *
+		 * @return {object} Error text by field key.
+		 */
+		validate() {
+			const errors = {}
+			for (const field of this.fields) {
+				if (field.type === 'switch' || field.readOnly) {
+					continue
+				}
+				const value = this.outgoing(field)
+				const empty = value === null || value === undefined || value === ''
+				if (empty) {
+					if (field.required) {
+						errors[field.key] = this.tr('Fill this in.')
+					}
+					continue
+				}
+				if (field.type === 'number') {
+					if (Number.isNaN(value) || (field.min !== undefined && value < field.min) || (field.max !== undefined && value > field.max)) {
+						errors[field.key] = this.tr('This number is not valid.')
+					}
+				} else if (field.pattern && !new RegExp(field.pattern).test(String(value))) {
+					errors[field.key] = this.tr(field.patternMessage || 'This value is not valid.')
+				}
+			}
+			return errors
+		},
+
+		/**
+		 * Save: PATCH the fields that differ from the last saved values.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/abstract-settings-form/specs/settings-form/spec.md#requirement-a-settings-form-saves-only-what-changed
+		 */
+		async save() {
+			this.errors = this.validate()
+			this.notice = ''
+			if (Object.keys(this.errors).length > 0) {
+				return
+			}
+			if (!this.objectUrl) {
+				this.noticeType = 'error'
+				this.notice = this.tr('This form cannot be saved here.')
+				return
+			}
+			const next = {}
+			const compare = {}
+			for (const field of this.fields) {
+				if (!field.readOnly) {
+					next[field.key] = this.outgoing(field)
+					compare[field.key] = this.baseline[field.key] === '' ? null : this.baseline[field.key]
+				}
+			}
+			const patch = changedFields(compare, next)
+			this.saving = true
+			try {
+				if (Object.keys(patch).length > 0) {
+					const data = await patchObject(this.objectUrl, patch)
+					const baseline = { ...this.baseline }
+					const form = { ...this.form }
+					for (const key of Object.keys(patch)) {
+						const field = this.fields.find((candidate) => candidate.key === key)
+						const written = data[key] !== undefined ? data[key] : patch[key]
+						baseline[key] = field.type === 'switch' ? written === true : (written === null ? '' : written)
+						form[key] = baseline[key]
+					}
+					this.baseline = baseline
+					this.form = form
+				}
+				this.noticeType = 'success'
+				this.notice = this.tr(this.content.savedText || 'Saved.')
+				/**
+				 * @event saved The changed fields were written.
+				 * @type {{patch: object}}
+				 */
+				this.$emit('saved', { patch })
+			} catch (e) {
+				this.noticeType = 'error'
+				this.notice = serverErrorMessage(e)
+			} finally {
+				this.saving = false
+			}
+		},
+	},
+}
+</script>
+
+<style scoped>
+.cn-settings-form {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	min-width: 0;
+}
+
+.cn-settings-form__grid {
+	display: grid;
+	gap: 14px 16px;
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.cn-settings-form__grid--2 {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cn-settings-form__field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.cn-settings-form__field--wide {
+	grid-column: 1 / -1;
+}
+
+.cn-settings-form__label {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-settings-form__control {
+	width: 100%;
+	box-sizing: border-box;
+	height: var(--cn-board-control-height, 40px);
+	padding: 0 12px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: var(--cn-board-control-radius, 8px);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font: inherit;
+}
+
+.cn-settings-form__control--area {
+	height: auto;
+	padding: 10px 12px;
+	resize: vertical;
+}
+
+.cn-settings-form__control:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 1px;
+}
+
+.cn-settings-form__hint,
+.cn-settings-form__error {
+	margin: 0;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-settings-form__error {
+	color: var(--color-error-text);
+}
+
+.cn-settings-form__actions {
+	display: flex;
+	justify-content: flex-start;
+}
+
+@media (max-width: 640px) {
+	.cn-settings-form__grid--2 {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+</style>
