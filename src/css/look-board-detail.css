@@ -202,6 +202,15 @@
 	gap: 4px;
 }
 
+/* No inner scroller: tabs that do not fit the width wrap onto a second row
+   instead of scrolling sideways (the library's default strip), so the strip
+   has no scrollbar, no clipped tab and no fade or chevron to find the rest. */
+.cn-look-board .cn-tabs--board .cn-tabs__nav {
+	flex-wrap: wrap;
+	overflow: visible;
+	row-gap: 4px;
+}
+
 .cn-look-board .cn-tabs--board .cn-tabs__nav-item {
 	background-color: var(--color-background-dark);
 	border: 1px solid var(--color-border-dark);

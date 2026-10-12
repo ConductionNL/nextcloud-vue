@@ -95,3 +95,28 @@ test.describe('CnTabsWidget in the board look', () => {
 		expect(join.topIsTab).toBe(true)
 	})
 })
+
+test.describe('CnTabsWidget in the board look, narrow', () => {
+	// Ruben: no inner scrollbars. A strip wider than its box used to scroll
+	// sideways (client, contact and lead pages); the board strip wraps instead.
+	test('tabs that exceed the width wrap onto a second row: the strip does not scroll', async ({ page }) => {
+		await openHarness(page)
+		await page.evaluate(() => {
+			document.querySelector('.tabs-board').style.width = '300px'
+		})
+		const strip = await page.evaluate(() => {
+			const nav = document.querySelector('.tabs-board .cn-tabs__nav')
+			const tops = [...nav.querySelectorAll('.cn-tabs__nav-item')].map((el) => Math.round(el.getBoundingClientRect().top))
+			return {
+				overflowX: getComputedStyle(nav).overflowX,
+				scrollable: nav.scrollWidth > nav.clientWidth + 1,
+				rows: new Set(tops).size,
+				tabs: tops.length,
+			}
+		})
+		expect(strip.tabs).toBe(2)
+		expect(strip.overflowX).toBe('visible')
+		expect(strip.scrollable).toBe(false)
+		expect(strip.rows).toBe(2)
+	})
+})
