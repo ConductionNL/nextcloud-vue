@@ -379,7 +379,7 @@
 					:showDocumentation="showDocumentation && menuShowsHelpLinks"
 					:actionsMenuLabel="boardMenuLabel"
 					:variant="isBoard ? 'secondary' : undefined"
-					:hasPrimaryItems="headerMenuGroups.length > 0 || showMarkUnread"
+					:hasPrimaryItems="headerMenuGroups.length > 0 || showMarkUnread || showOpenSidebar"
 					:documentationUrl="documentationUrl"
 					:docsAnchor="resolvedPageId"
 					:documentationLabel="documentationLabel || undefined"
@@ -390,7 +390,7 @@
 					testidBase="cn-detail-page"
 					@refresh="onHeaderRefresh"
 					@requestFeature="onHeaderRequestFeature">
-					<template v-if="headerMenuGroups.length || showMarkUnread" #primary-items>
+					<template v-if="headerMenuGroups.length || showMarkUnread || showOpenSidebar" #primary-items>
 						<!-- One block per group. A page that groups nothing has
 						     a single captionless group, and renders exactly the
 						     flat list it always did. -->
@@ -448,6 +448,20 @@
 								<EyeOffOutline :size="20" />
 							</template>
 							{{ markUnreadLabel }}
+						</NcActionButton>
+						<!-- Board look: the sidebar's own open toggle is hidden (it sat
+						     over the header's last button, where the board draws none), so
+						     the menu opens it. -->
+						<NcActionButton
+							v-if="showOpenSidebar"
+							key="open-sidebar"
+							data-testid="cn-detail-page-open-sidebar"
+							:closeAfterClick="true"
+							@click="openSidebar">
+							<template #icon>
+								<DockRight :size="20" />
+							</template>
+							{{ openSidebarLabel }}
 						</NcActionButton>
 						<!-- Divides the page's own actions from the help links
 						     below. With the help links switched off there is
@@ -1191,6 +1205,7 @@ import Check from 'vue-material-design-icons/Check.vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
+import DockRight from 'vue-material-design-icons/DockRight.vue'
 import EyeOffOutline from 'vue-material-design-icons/EyeOffOutline.vue'
 import FileQuestionOutline from 'vue-material-design-icons/FileQuestionOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
@@ -1440,6 +1455,7 @@ export default {
 		CnSummaryAggregates,
 		CnDetailHeaderChips,
 		CnFollowToggle,
+		DockRight,
 		EyeOffOutline,
 		CnRelatedCollections,
 		CnBodySections,
@@ -3909,6 +3925,22 @@ export default {
 				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
 		},
 
+		/**
+		 * Whether the header menu offers "Open sidebar": the board look, where the
+		 * sidebar's own toggle is hidden, on a page whose sidebar is active and
+		 * closed.
+		 *
+		 * @return {boolean}
+		 */
+		showOpenSidebar() {
+			return this.isBoard && this.hasExternalSidebar && this.sidebarActive && this.objectSidebarState.open !== true
+		},
+
+		/** @return {string} Label of the Open sidebar entry. */
+		openSidebarLabel() {
+			return t('nextcloud-vue', 'Open sidebar')
+		},
+
 		/** @return {string} Label of the Mark as unread entry. */
 		markUnreadLabel() {
 			return t('nextcloud-vue', 'Mark as unread')
@@ -4619,6 +4651,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Open the object sidebar through the shared channel.
+		 *
+		 * @return {void}
+		 */
+		openSidebar() {
+			if (this.objectSidebarState) {
+				this.objectSidebarState.open = true
+			}
+		},
+
 		/**
 		 * Start or finish arranging the chosen view. Finishing stores the
 		 * arrangement of every view the user moved, once.

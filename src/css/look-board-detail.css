@@ -610,3 +610,12 @@
 	font-size: 13px;
 	margin: 2px 0 0;
 }
+
+/* The sidebar's own open toggle (NcAppSidebar's `.app-sidebar__toggle`, drawn
+   when the sidebar is closed) is positioned over the content's top-right
+   corner, which in this look is the header's last button: a stray square icon
+   on "More". The board draws none, so it is hidden on a detail page and the
+   header menu offers "Open sidebar" instead. */
+.cn-look-board:has(.cn-detail-page) > .app-sidebar__toggle {
+	display: none;
+}
