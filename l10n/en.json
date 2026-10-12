@@ -1368,8 +1368,12 @@
     "{count} filters": "{count} filters",
     "{count} more filters": "{count} more filters",
     "{label} — show the other filters": "{label} — show the other filters",
-    "No value ({count})": "No value ({count})",
-    "{view}: not available on this list": "{view}: not available on this list"
+    "Select {name}": "Select {name}",
+    "Select all files": "Select all files",
+    "No files match the filter.": "No files match the filter.",
+    "Actions for the selected files": "Actions for the selected files",
+    "{view}: not available on this list": "{view}: not available on this list",
+    "No value ({count})": "No value ({count})"
   },
   "plurals": {
     "{count} selected": [
