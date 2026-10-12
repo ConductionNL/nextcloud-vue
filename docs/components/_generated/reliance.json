@@ -3006,6 +3006,13 @@
 			"via": [],
 			"page": "cn-saved-views-control"
 		},
+		"CnSavedViewsWidget": {
+			"direct": 0,
+			"transitive": 5,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-saved-views-widget"
+		},
 		"CnSchemaFormDialog": {
 			"direct": 0,
 			"transitive": 10,
