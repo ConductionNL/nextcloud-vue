@@ -169,7 +169,13 @@ function sharedRefLabels() {
 	return refLabels
 }
 
-/** Key of a resolved reference in the widget's `labels` data. */
+/**
+ * Key of a resolved reference in the widget's `labels` data.
+ *
+ * @param {{register: string, schema: string, labelField?: string}} resolve The entry's `resolve` config.
+ * @param {string} id The referenced object's id.
+ * @return {string} The key.
+ */
 function refKey(resolve, id) {
 	return `${resolve.register}/${resolve.schema}/${resolve.labelField || ''}/${id}`
 }
