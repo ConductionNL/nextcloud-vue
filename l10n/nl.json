@@ -1597,6 +1597,10 @@
       "over {count} dag",
       "over {count} dagen"
     ],
+    "{count} day overdue": [
+      "{count} dag te laat",
+      "{count} dagen te laat"
+    ],
     "{count} more filter": [
       "Nog {count} filter",
       "Nog {count} filters"

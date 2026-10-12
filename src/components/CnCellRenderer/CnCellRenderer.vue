@@ -142,8 +142,20 @@
 		     widgetProps.variantWhen, rules on the number of days until it
 		     (0 = today, negative = overdue). -->
 		<template v-else-if="widget === 'date'">
+			<!-- `widgetProps.due`: the due text with its tone ("3 dagen te laat",
+			     "Vandaag", the date, or the empty text). -->
+			<template v-if="dueResult">
+				<time
+					v-if="dateTimestamp"
+					class="cn-cell-renderer__date"
+					:class="dueResult.tone === 'danger' ? 'cn-cell-renderer__date--error' : null"
+					:datetime="dateTimestamp.toISOString()"
+					:title="absoluteDateLabel"
+					data-testid="cn-cell-renderer-due">{{ dueResult.text }}</time>
+				<span v-else class="cn-cell-renderer__date cn-cell-renderer__due--empty" data-testid="cn-cell-renderer-due">{{ dueResult.text }}</span>
+			</template>
 			<time
-				v-if="dateTimestamp"
+				v-else-if="dateTimestamp"
 				class="cn-cell-renderer__date"
 				:class="dateVariant ? 'cn-cell-renderer__date--' + dateVariant : null"
 				:datetime="dateTimestamp.toISOString()"
@@ -262,6 +274,7 @@ import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { ageInDays, formatAge, formatBoardDate, formatRelativeDate, resolveAgeVariant } from '../../utils/boardDate.js'
 import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
+import { resolveDue } from '../../utils/dueText.js'
 import { formatMoney } from '../../utils/formatMetric.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
@@ -640,6 +653,21 @@ export default {
 			} catch {
 				return new Intl.DateTimeFormat(undefined, options).format(date)
 			}
+		},
+
+		/**
+		 * `date` widget with `widgetProps.due`: the due text and its tone.
+		 * Null without the key, or when the field is empty and no `emptyText`.
+		 *
+		 * @return {{text: string, tone: string}|null}
+		 * @spec openspec/changes/screens-due-text/specs/due-text/spec.md#requirement-a-due-date-reads-as-text-with-a-tone
+		 */
+		dueResult() {
+			const due = this.widgetProps && this.widgetProps.due
+			if (this.widget !== 'date' || !due || typeof due !== 'object') {
+				return null
+			}
+			return resolveDue(this.value, due, (text) => this.cnTranslate(text))
 		},
 
 		/**
@@ -1487,6 +1515,10 @@ export default {
 
 .cn-cell-renderer__age--error {
 	color: var(--color-text-error, var(--color-error-text));
+}
+
+.cn-cell-renderer__due--empty {
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-cell-renderer__date--success {
