@@ -1,0 +1,94 @@
+// SPDX-FileCopyrightText: 2026 Conduction B.V.
+// SPDX-License-Identifier: EUPL-1.2
+//
+// The settings widgets in a browser (abstract-settings-form and its siblings).
+// OpenRegister is stubbed with page.route(); the specs assert what goes on the
+// wire and what the person sees.
+
+import { expect, test } from '@playwright/test'
+
+test.describe.configure({ mode: 'serial', timeout: 120_000 })
+
+const STORED = {
+	id: 'p-1',
+	slug: 'zuiddrecht',
+	title: 'Gemeente Zuiddrecht',
+	tagline: 'Samen maken we Zuiddrecht',
+	kind: 'site',
+	loginLabel: '',
+	pageLimit: 33,
+}
+
+/**
+ * Stub the portal object: GET answers the stored object, PATCH merges and records the body.
+ *
+ * @param {import('@playwright/test').Page} page The page.
+ * @param {object[]} patches Collects PATCH bodies.
+ * @param {number} [status] Status for PATCH (non-200 refuses).
+ */
+async function stubPortal(page, patches, status = 200) {
+	await page.route('**/apps/openregister/api/objects/portaliq/portal/p-1', async (route) => {
+		if (route.request().method() === 'PATCH') {
+			const body = route.request().postDataJSON()
+			patches.push(body)
+			await route.fulfill({
+				status,
+				contentType: 'application/json',
+				body: JSON.stringify(status === 200 ? { ...STORED, ...body } : { error: 'U mag deze portal niet wijzigen.' }),
+			})
+			return
+		}
+		await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(STORED) })
+	})
+}
+
+test('settings form: framed two-column grid, PATCH of the changed fields only, then against the last save', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches)
+	await page.goto('/?settingswidgets=form', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const form = page.locator('[data-testid="settings-widgets-harness"] .cn-settings-form')
+	await form.waitFor({ state: 'visible', timeout: 60_000 })
+
+	// Two columns: the first two fields share a row.
+	const a = await form.locator('[data-testid="cn-settings-form-field-title"]').boundingBox()
+	const b = await form.locator('[data-testid="cn-settings-form-field-tagline"]').boundingBox()
+	expect(Math.abs(a.y - b.y)).toBeLessThan(2)
+	expect(b.x).toBeGreaterThan(a.x + a.width)
+	// Framed input: a 1px border and rounded corners.
+	const frame = await form.locator('[data-testid="cn-settings-form-field-title"] input').evaluate((el) => {
+		const s = getComputedStyle(el)
+		return { width: s.borderTopWidth, radius: s.borderTopLeftRadius }
+	})
+	expect(frame).toEqual({ width: '1px', radius: '8px' })
+	await expect(form.locator('[data-testid="cn-settings-form-field-slug"] .cn-settings-form__hint')).toContainText('horen via dit adres')
+
+	await form.locator('[data-testid="cn-settings-form-field-title"] input').fill('Zuiddrecht')
+	await form.locator('[data-testid="cn-settings-form-field-pageLimit"] input').fill('50')
+	await form.locator('[data-testid="cn-settings-form-save"]').click()
+	await expect(form.locator('[data-testid="cn-settings-form-notice"]')).toContainText('De portal is opgeslagen.')
+	expect(patches).toEqual([{ title: 'Zuiddrecht', pageLimit: 50 }])
+
+	// Back to the value the page LOADED with: still a change, because the baseline moved on.
+	await form.locator('[data-testid="cn-settings-form-field-title"] input').fill('Gemeente Zuiddrecht')
+	await form.locator('[data-testid="cn-settings-form-save"]').click()
+	await expect.poll(() => patches.length).toBe(2)
+	expect(patches[1]).toEqual({ title: 'Gemeente Zuiddrecht' })
+})
+
+test('settings form: an invalid value is refused before any write, a refused PATCH shows the server words', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches, 403)
+	await page.goto('/?settingswidgets=form', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const form = page.locator('[data-testid="settings-widgets-harness"] .cn-settings-form')
+	await form.waitFor({ state: 'visible', timeout: 60_000 })
+
+	await form.locator('[data-testid="cn-settings-form-field-slug"] input').fill('Niet Geldig')
+	await form.locator('[data-testid="cn-settings-form-save"]').click()
+	await expect(form.locator('[data-testid="cn-settings-form-field-slug"] .cn-settings-form__error')).toContainText('Alleen kleine letters')
+	expect(patches).toEqual([])
+
+	await form.locator('[data-testid="cn-settings-form-field-slug"] input').fill('zuiddrecht-2')
+	await form.locator('[data-testid="cn-settings-form-save"]').click()
+	await expect(form.locator('[data-testid="cn-settings-form-notice"]')).toContainText('U mag deze portal niet wijzigen.')
+	expect(patches).toHaveLength(1)
+})

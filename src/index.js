@@ -270,6 +270,7 @@ export {
 	CnSearchPage,
 	CnSectionsWidget,
 	CnSettingsCard,
+	CnSettingsFormWidget,
 	CnSettingsPage,
 	CnSettingsSection,
 	CnSetupWizard,
