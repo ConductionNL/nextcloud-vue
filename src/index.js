@@ -266,6 +266,7 @@ export {
 	CnSavedViewsControl,
 	CnSavedViewShareDialog,
 	CnSavedViewShareFields,
+	CnSavedViewsWidget,
 	CnSavedViewWidget,
 	CnSavedViewWidgetForm,
 	CnSaveViewDialog,

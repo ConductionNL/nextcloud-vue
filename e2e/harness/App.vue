@@ -176,6 +176,11 @@
 			<ProgressCellHarness />
 		</template>
 
+		<!-- The Mijn werk dashboard pieces (?l4=<name>): a file in l4/ per scenario. See L4Harness.vue. -->
+		<template v-else-if="showL4">
+			<L4Harness />
+		</template>
+
 		<!-- A start-here attention card naming one record (?starthere=1). See StartHereHarness.vue. -->
 		<template v-else-if="showStartHere">
 			<h2>Start here</h2>
@@ -242,6 +247,16 @@
 			Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs). See
 			PixelGapsHarness.vue.
 		-->
+		<!-- The accounts table with an avatar name column (?ptaccounts=1). See PtAccountsHarness.vue. -->
+		<template v-else-if="showPtAccounts">
+			<PtAccountsHarness />
+		</template>
+
+		<!-- A dashboard with a record-list card (?ptlistcard=1). See PtDashboardHarness.vue. -->
+		<template v-else-if="showPtDashboard">
+			<PtDashboardHarness />
+		</template>
+
 		<!-- screens-relation-pages (?relation=person). See RelationPagesHarness.vue. -->
 		<template v-else-if="showRelationPages">
 			<RelationPagesHarness />
@@ -716,12 +731,15 @@ import FactsHarness from './FactsHarness.vue'
 import FieldHintHarness from './FieldHintHarness.vue'
 import FieldListHarness from './FieldListHarness.vue'
 import FilesTabOrHarness from './FilesTabOrHarness.vue'
+import L4Harness from './L4Harness.vue'
 import NarrowTableHarness from './NarrowTableHarness.vue'
 import PageControlsHarness from './PageControlsHarness.vue'
 import PageLensesHarness from './PageLensesHarness.vue'
 import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
 import ProgressCellHarness from './ProgressCellHarness.vue'
+import PtAccountsHarness from './PtAccountsHarness.vue'
+import PtDashboardHarness from './PtDashboardHarness.vue'
 import RelationPagesHarness from './RelationPagesHarness.vue'
 import ScreensChromeHarness from './ScreensChromeHarness.vue'
 import ScreensDetailHarness from './ScreensDetailHarness.vue'
@@ -758,7 +776,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness, SettingsWidgetsHarness },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtAccountsHarness, PtDashboardHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness, SettingsWidgetsHarness, L4Harness },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -820,6 +838,7 @@ export default {
 			showSections: (typeof window !== 'undefined' && /[?&]sectionswidget=/.test(window.location.search)),
 			showFacts: (typeof window !== 'undefined' && /[?&]factswidget=/.test(window.location.search)),
 			showProgressCell: (typeof window !== 'undefined' && /[?&]progresscell=/.test(window.location.search)),
+			showL4: (typeof window !== 'undefined' && /[?&]l4=/.test(window.location.search)),
 			showStartHere: (typeof window !== 'undefined' && /[?&]starthere=/.test(window.location.search)),
 			showPageControls: (typeof window !== 'undefined' && /[?&]pagecontrols=/.test(window.location.search)),
 			showPageLenses: (typeof window !== 'undefined' && /[?&]lenses=/.test(window.location.search)),
@@ -841,6 +860,8 @@ export default {
 			showScreensNav: (typeof window !== 'undefined' && /[?&]screensnav=/.test(window.location.search)),
 			// screens-detail-page-parity (?screensdetail=tabs).
 			showScreensDetail: (typeof window !== 'undefined' && /[?&]screensdetail=/.test(window.location.search)),
+			showPtAccounts: (typeof window !== 'undefined' && /[?&]ptaccounts=/.test(window.location.search)),
+			showPtDashboard: (typeof window !== 'undefined' && /[?&]ptlistcard=/.test(window.location.search)),
 			showRelationPages: (typeof window !== 'undefined' && /[?&]relation=/.test(window.location.search)),
 			// screens-dashboard-parity / screens-kanban-parity (?screens=…).
 			showScreensParity: (typeof window !== 'undefined' && /[?&]screens=/.test(window.location.search)),
