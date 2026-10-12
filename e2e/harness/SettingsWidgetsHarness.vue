@@ -35,6 +35,7 @@ const RECORD = {
 	installDisabled: false,
 	signup: 'approval',
 	theme: 'zuiddrecht',
+	logo: '/Media/logo-zuiddrecht.svg',
 	domains: [
 		{ hostname: 'zuiddrecht.nl', verified: true, valid: 'geldig tot 14 jan 2027', txt: '' },
 		{ hostname: 'nieuw.zuiddrecht.nl', verified: false, valid: 'nog geen', txt: 'portaliq-verify=8f3a1c' },
@@ -46,6 +47,18 @@ const RECORD = {
 }
 
 const WIDGETS = {
+	logo: {
+		id: 'portal-logo',
+		type: 'settings-form',
+		title: 'Logo',
+		content: {
+			columns: 1,
+			saveLabel: 'Opslaan',
+			fields: [
+				{ key: 'logo', label: 'Logo', type: 'file', placeholder: 'Geen logo', chooseLabel: 'Logo kiezen uit media', picker: { title: 'Logo kiezen', mimeTypes: ['image/svg+xml', 'image/png'], startAt: '/Media' } },
+			],
+		},
+	},
 	domains: {
 		id: 'portal-domains',
 		type: 'field-list',

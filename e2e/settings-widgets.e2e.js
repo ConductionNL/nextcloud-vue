@@ -19,6 +19,7 @@ const STORED = {
 	pageLimit: 33,
 	signup: 'approval',
 	theme: 'zuiddrecht',
+	logo: '/Media/logo-zuiddrecht.svg',
 	signinDigid: true,
 	signinEherkenning: false,
 	hiddenCaseTypes: ['c3'],
@@ -330,4 +331,26 @@ test('field-list table variant: header, pill column, row menu with remove, warni
 	await expect(list.locator('[data-testid="cn-field-list-add"]')).toHaveCount(0)
 	await list.locator('[data-testid="cn-field-list-open-add"]').click()
 	await expect(list.locator('[data-testid="cn-field-list-add"]')).toBeVisible()
+})
+
+test('settings form file field: the stored file name beside a choose button, remove sends null in the form PATCH', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches)
+	await page.goto('/?settingswidgets=logo', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const form = page.locator('[data-testid="settings-widgets-harness"] .cn-settings-form')
+	await form.waitFor({ state: 'visible', timeout: 60_000 })
+	const file = form.locator('[data-testid="cn-settings-form-file-logo"]')
+	await expect(file.locator('.cn-settings-form__control--file')).toHaveText('logo-zuiddrecht.svg')
+	await expect(file.locator('[data-testid="cn-settings-form-choose-logo"]')).toHaveText('Logo kiezen uit media')
+	// The name and the button share a row.
+	const name = await file.locator('.cn-settings-form__control--file').boundingBox()
+	const button = await file.locator('[data-testid="cn-settings-form-choose-logo"]').boundingBox()
+	expect(Math.abs(name.y - button.y)).toBeLessThan(20)
+	expect(button.x).toBeGreaterThan(name.x)
+
+	await file.locator('[data-testid="cn-settings-form-clear-logo"]').click()
+	await expect(file.locator('.cn-settings-form__control--file')).toHaveText('Geen logo')
+	await form.locator('[data-testid="cn-settings-form-save"]').click()
+	await expect.poll(() => patches.length).toBe(1)
+	expect(patches[0]).toEqual({ logo: null })
 })

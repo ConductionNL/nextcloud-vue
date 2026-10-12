@@ -31,10 +31,12 @@ A portal's "Gegevens van de portal" card, a client portal's name, domain and col
 | `saveLabel`, `savedText` | Button text (default "Save") and the note after a save (default "Saved."). |
 | `readOnly` | Disables every control and hides the save button. |
 | `fields[].key` | A top-level field of the object. The PATCH is per top-level field, so a dotted path is not supported. |
-| `fields[].type` | `text` (default), `textarea`, `select`, `switch`, `number`. |
+| `fields[].type` | `text` (default), `textarea`, `select`, `switch`, `number`, `file`. |
 | `fields[].label`, `hint`, `placeholder` | Texts, translated through `cnTranslate`. |
 | `fields[].options` | For `select`: `[{ value, label }]` or plain strings. |
 | `fields[].required`, `pattern`, `patternMessage`, `min`, `max` | Checked before any request. |
+| `fields[].picker` | For `file`: `{ title?, mimeTypes?, startAt?, valueTemplate? }`. The button opens Nextcloud's file picker (filtered by `mimeTypes`, started at `startAt`); the chosen file is written through `valueTemplate` with `{path}`, `{fileid}` and `{name}` (default `{path}`). |
+| `fields[].chooseLabel`, `clearLabel`, `placeholder` | For `file`: the choose button text (default "Choose a file"), the remove button text (default "Remove") and the text when no file is set. |
 | `fields[].wide`, `rows`, `readOnly` | `wide` spans both columns (always for a textarea); `rows` is the textarea height. |
 
 ## Behaviour
