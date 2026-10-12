@@ -280,6 +280,15 @@ list. It is the one data widget a user may add (`userAddable`), because the view
 carries the register and schema.
 → [`CnSavedViewWidget`](./cn-saved-view-widget.md) · [`CnSavedViewWidgetForm`](./cn-saved-view-widget-form.md)
 
+### Saved views · `saved-views`
+
+The reader's own saved views as a list of links ("Opgeslagen weergaven"). Where
+`saved-view` draws the rows of one view named by id, this one lists the views
+themselves and has no id to configure: it asks the Views API for the signed-in
+user's views, keeps those of the configured source and links each to the index
+page with the view's filters, search and sort in the query, which the page applies.
+→ [`CnSavedViewsWidget`](./cn-saved-views-widget.md)
+
 ### Statistic card · `stats-block`
 
 ![stats-block widget rendering a labelled count card](/img/screenshots/widget-stats-block.png)
