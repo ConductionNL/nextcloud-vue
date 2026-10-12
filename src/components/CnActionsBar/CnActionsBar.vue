@@ -23,7 +23,7 @@
 				wrap together to the start of the next line (the DqZaken board),
 				never the switch alone.
 			-->
-			<div v-if="showSidebarToggle || (showViewToggle && viewSegments.length > 1)"
+			<div v-if="showSidebarToggle || $slots['filter-menu'] || (showViewToggle && viewSegments.length > 1)"
 				class="cn-actions-bar__view-controls"
 				data-testid="cn-actions-bar-view-controls">
 				<NcButton v-if="showSidebarToggle"
@@ -42,6 +42,11 @@
 						data-testid="cn-actions-bar-filter-badge"
 						:aria-label="filterCountLabel">{{ filterCount }}</span>
 				</NcButton>
+				<!--
+					@slot filter-menu
+					@description Board look, row 1: the Filter button drawn as a menu, for a page with no filter sidebar (`filterMenu`). Ignored while the sidebar toggle is shown.
+				-->
+				<slot v-else name="filter-menu" />
 				<div v-if="showViewToggle && viewSegments.length > 1"
 					class="cn-actions-bar__view-toggle"
 					role="group"
