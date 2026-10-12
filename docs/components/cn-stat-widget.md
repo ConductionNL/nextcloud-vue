@@ -53,6 +53,40 @@ Instead of an OpenRegister `source`, the tile can bind to an arbitrary app REST 
 
   A tile that declares **no** `dateRange` is unaffected by the page range. That is deliberate: adding a range to an existing dashboard must not silently change what its tiles request.
 
+### Share and average tiles
+
+An OpenRegister `source` is a count by default. Two more shapes give the tiles of a service board:
+
+```json
+{
+  "label": "Within the deadline",
+  "format": { "style": "percent", "decimals": 0 },
+  "source": {
+    "kind": "ratio", "register": "app", "schema": "ticket", "metric": "count",
+    "numerator":   { "filter": { "assignee": "@me", "answeredInTime": true } },
+    "denominator": { "filter": { "assignee": "@me", "status": "resolved" } }
+  }
+}
+```
+
+`kind: "ratio"` is the numerator over the denominator, times 100 (no value while the denominator is 0). Each part may carry its own `metric`, `field` and `via`, so a share of a sum is two sums. A field cannot be compared with another field in a filter, so a share such as "answered by the deadline" needs a stored flag on the object to count.
+
+```json
+{
+  "label": "Average answer time",
+  "format": { "style": "decimal", "decimals": 1, "suffix": " days" },
+  "source": {
+    "kind": "elapsed", "register": "app", "schema": "ticket",
+    "from": "occurredAt", "to": "resolvedAt", "unit": "days",
+    "filter": { "assignee": "@me", "status": { "in": ["resolved"] } }
+  }
+}
+```
+
+`kind: "elapsed"` is the average time between two date fields of the matching objects, in `unit` (`days` default, `hours`, `minutes`). The aggregation endpoint averages one numeric field, not a difference, so the widget reads the matching objects (up to `limit`, default 1000) and averages them itself. Objects missing either date, or whose `to` is before `from`, are left out; with none left the tile has no value.
+
+A count whose filter holds a list of values (`{ "status": { "in": [...] } }`, `notIn`) is read from the list endpoint's total, because the aggregation endpoint cannot express a list. `via: "list"` forces that for a count of empty values: the aggregation endpoint has no null operator.
+
 ### Quota tile
 
 ```json

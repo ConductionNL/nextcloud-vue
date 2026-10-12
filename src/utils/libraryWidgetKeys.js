@@ -130,6 +130,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'record-list',
 	'related',
 	'saved-view',
+	'saved-views',
 	'sections',
 	'settings-form',
 	'spend-analytics',

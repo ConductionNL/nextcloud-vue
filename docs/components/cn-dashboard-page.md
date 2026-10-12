@@ -616,3 +616,7 @@ In the board look the page view switch (`views`) sits on the same row, left of t
 ```json
 { "greeting": true, "showActionsMenu": false, "allowEdit": false, "viewLinks": [{ "label": "Your queue", "icon": "TrayFull", "route": "Queue" }] }
 ```
+
+## On a phone
+
+Under the board look, below 640px, the grid reflows to one column in reading order (top to bottom, then left to right) and the page does not scroll sideways. A widget that grows when its content wraps, such as a bar of chips, sets `sizeToContent: true` in its layout item. The compact chips wrap and are 44px high, the bar's switch and select are 44px, and record-list rows, KPI tiles and the widget Actions button are at least 44px. Without the board look the grid keeps its fixed columns.
