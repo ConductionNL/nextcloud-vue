@@ -250,7 +250,7 @@
 			"via": [
 				"CnAuditTrailCard"
 			],
-			"page": null
+			"page": "cn-audit-trail-widget"
 		},
 		"CnAuditTrailWidgetForm": {
 			"direct": 0,
@@ -1776,7 +1776,7 @@
 			"via": [
 				"CnResourceSelect"
 			],
-			"page": null
+			"page": "cn-interaction-form-widget"
 		},
 		"CnItemCard": {
 			"direct": 0,
