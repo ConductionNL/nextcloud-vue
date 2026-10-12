@@ -75,4 +75,36 @@ describe('CnFactsWidget resolve', () => {
 		expect(w.find('[data-testid="cn-fact-caseType"] .cn-facts-widget__value').text()).toBe('ct-1')
 		expect(mockResolve).not.toHaveBeenCalled()
 	})
+	it('draws a resolved value as a pill: map on the resolved label, tone by label then by id', async () => {
+		mockResolve.mockImplementation(async (register, schema, ids) => Object.fromEntries(ids.map((id) => [id, 'open'])))
+		const w = mountFacts({
+			fields: [
+				{ as: 'pill', path: 'status', resolve: { register: 'dossiq', schema: 'status', labelField: 'state' }, map: { open: 'In behandeling' }, variantMap: { open: 'warning' } },
+				{ as: 'pill', path: 'caseType', resolve: { register: 'dossiq', schema: 'status', labelField: 'state' }, colorMap: { 'ct-1': 'success' } },
+			],
+		})
+		await flush()
+		const pills = w.findAll('.cn-status-badge')
+		expect(pills).toHaveLength(2)
+		expect(pills[0].text()).toBe('In behandeling')
+		expect(pills[0].classes().join(' ')).toContain('warning')
+		expect(pills[1].text()).toBe('open')
+		expect(pills[1].classes().join(' ')).toContain('success')
+		expect(w.text()).not.toContain('st-9')
+	})
+
+	it('colours a resolved pill by a field of the referenced object (`resolve.toneField`)', async () => {
+		mockResolve.mockImplementation(async (register, schema, ids, labelField) => Object.fromEntries(ids.map((id) => [id, labelField === 'state' ? 'closed' : 'Afgehandeld'])))
+		const w = mountFacts({
+			fields: [
+				{ as: 'pill', path: 'status', resolve: { register: 'dossiq', schema: 'status', labelField: 'name', toneField: 'state' }, colorMap: { closed: 'success', Afgehandeld: 'error', 'st-9': 'error' } },
+			],
+		})
+		await flush()
+		const pill = w.find('.cn-status-badge')
+		expect(pill.text()).toBe('Afgehandeld')
+		expect(pill.classes().join(' ')).toContain('success')
+		expect(mockResolve).toHaveBeenCalledWith('dossiq', 'status', ['st-9'], 'state')
+		expect(mockResolve).toHaveBeenCalledWith('dossiq', 'status', ['st-9'], 'name')
+	})
 })
