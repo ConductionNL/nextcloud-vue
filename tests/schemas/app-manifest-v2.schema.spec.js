@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.90.0', () => {
+	it('the manifest schema version reads 2.87.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1368,8 +1368,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.85.0 lets a header pill be a constant (`text`) or a count of a related list (`countFrom`, `countLabel`) (screens-relation-pages).
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
 		// 2.86.0 allows an @row.<field> token in a field-list rowActions payload, and corrects sizeToContent:<int> to a row MAXIMUM (GridStack's meaning).
-		// 2.90.0 adds the workspace-filter style `chips` with `urlKey` and per-option `countFrom`, and the visibleWhen `workspace` mode with the `in` operator (screens-page-lenses).
-		expect(schema.version).toBe('2.90.0')
+		// 2.87.0 adds the workspace-filter style `chips` with `urlKey` and per-option `countFrom`, and the visibleWhen `workspace` mode with the `in` operator (screens-page-lenses).
+		expect(schema.version).toBe('2.87.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -1975,7 +1975,7 @@ describe('app-manifest-v2 — @row token in a field-list rowActions payload (2.8
 	})
 })
 
-describe('app-manifest-v2 — page lenses: chips and a workspace visibleWhen (screens-page-lenses, 2.90.0)', () => {
+describe('app-manifest-v2 — page lenses: chips and a workspace visibleWhen (screens-page-lenses, 2.87.0)', () => {
 	const dashboard = (widgets) => ({
 		...MINIMAL_V2,
 		pages: [{

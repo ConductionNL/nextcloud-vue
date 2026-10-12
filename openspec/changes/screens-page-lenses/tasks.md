@@ -17,6 +17,6 @@
 - [x] Implement: WORKSPACE mode, operator `in`, grid and KPI row collapse
 - [x] Test: `tests/components/ScreensPageLenses.spec.js`, `tests/schemas/app-manifest-v2.schema.spec.js`
 
-### Task 4: Schema 2.90.0 and docs
+### Task 4: Schema 2.87.0 and docs
 - [x] `src/schemas/app-manifest-v2.schema.json`, hash recorded
 - [x] `docs/components/cn-workspace-filter-widget.md` section "Chips and page lenses"

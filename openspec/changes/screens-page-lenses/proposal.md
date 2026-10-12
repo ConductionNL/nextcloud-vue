@@ -24,5 +24,5 @@ This change closes both gaps, in the existing mechanism:
 
 ## Scope
 
-CnWorkspaceFilterWidget, visibleWhen, CnDashboardPage; docs; unit tests; harness e2e. Manifest schema 2.90.0.
+CnWorkspaceFilterWidget, visibleWhen, CnDashboardPage; docs; unit tests; harness e2e. Manifest schema 2.87.0.
 Opt-in: a widget without the keys renders as before.
