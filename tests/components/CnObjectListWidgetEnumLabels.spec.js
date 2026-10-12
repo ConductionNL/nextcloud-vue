@@ -55,3 +55,23 @@ describe('manifest column enumLabels', () => {
 		expect(property.enumLabels).toEqual({ a: 'A' })
 	})
 })
+
+describe('manifest column colorMap', () => {
+	it('CnObjectListWidget passes a column colorMap through', async () => {
+		const w = shallowMount(CnObjectListWidget, {
+			propsData: {
+				content: {
+					register: 'r',
+					schema: 'submission',
+					columns: [{ key: 'deliveryStatus', widget: 'badge', colorMap: { delivered: 'success', failed: 'error' } }],
+				},
+			},
+			stubs: { CnDataTable: true, CnFormDialog: true },
+			mocks: { t: (_app, s) => s },
+		})
+		w.vm.rows = []
+		await w.vm.$nextTick()
+
+		expect(w.vm.resolvedColumns[0].colorMap).toEqual({ delivered: 'success', failed: 'error' })
+	})
+})

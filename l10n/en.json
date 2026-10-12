@@ -1374,7 +1374,8 @@
     "Actions for the selected files": "Actions for the selected files",
     "{view}: not available on this list": "{view}: not available on this list",
     "Leave this field empty": "Leave this field empty",
-    "This answer was refused.": "This answer was refused."
+    "This answer was refused.": "This answer was refused.",
+    "No value ({count})": "No value ({count})"
   },
   "plurals": {
     "{count} selected": [

@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.85.0",
+	"version": "2.86.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -803,6 +803,11 @@
 			"pattern": "^@answer\\.[A-Za-z][A-Za-z0-9_]*$",
 			"description": "form-live-values: another answer in the same form (@answer.<field>), read by a form field's assign rule and resolved client-side by CnFormPage / CnFormDialog. Mirrors SENTINEL_TOKEN_PATTERNS.answer."
 		},
+		"sentinelRowToken": {
+			"type": "string",
+			"pattern": "^@row\\.[A-Za-z][A-Za-z0-9_.@]*$",
+			"description": "Row context: a field of the row a row action runs on (@row.<field>, dot path allowed), read by the field-list widget's rowActions request url and payload (payload values resolve at any depth). Mirrors SENTINEL_TOKEN_PATTERNS.row."
+		},
 		"sentinelTokenAny": {
 			"$comment": "Union of every canonical context plus the deprecated-during-window overlay. Single source the shared resolver + gate import.",
 			"anyOf": [
@@ -814,6 +819,7 @@
 				{ "$ref": "#/$defs/sentinelDeclarativeToken" },
 				{ "$ref": "#/$defs/sentinelVisibleWhenToken" },
 				{ "$ref": "#/$defs/sentinelAnswerToken" },
+				{ "$ref": "#/$defs/sentinelRowToken" },
 				{ "$ref": "#/$defs/sentinelDeprecatedToken" }
 			]
 		},
@@ -1691,7 +1697,7 @@
 				"sizeToContent": {
 					"type": ["boolean", "integer"],
 					"minimum": 1,
-					"description": "Opt-in: hand this placement's height to whatever it renders, so a widget that decides AT RUNTIME it has nothing to show costs no row. `true` sizes purely to content; an integer is a row minimum. It makes gridHeight advisory for this widget — right for anything whose height is whatever it turned out to be (a banner whose condition is false, a list that came back empty), wrong for anything with a deliberate size. Maps to CnDashboardGrid's per-item `sizeToContent`."
+					"description": "Opt-in: hand this placement's height to whatever it renders, so a widget that decides AT RUNTIME it has nothing to show costs no row. `true` sizes purely to content; an integer sizes to content too but caps the height at that many rows (GridStack's maximum, NOT a minimum: content shorter than N rows is as short as it is, content taller is clipped at N). It makes gridHeight advisory for this widget — right for anything whose height is whatever it turned out to be (a banner whose condition is false, a list that came back empty), wrong for anything with a deliberate size. Maps to CnDashboardGrid's per-item `sizeToContent`."
 				},
 				"props": {
 					"type": "object",

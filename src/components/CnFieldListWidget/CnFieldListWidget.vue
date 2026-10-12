@@ -137,7 +137,7 @@ export default {
 		 *
 		 * - `field` (required) — the object field holding the array.
 		 * - `key` — the item field that identifies an entry (default: the item itself for strings).
-		 * - `row` — `{ title, titleFallback?, avatar?, meta?: [paths|{ path, map?, format? }], pill?: { path, map?, variantMap? }, aside?: { path, format?, prefix? }, detail?: { template, when? } }`.
+		 * - `row` — `{ title, titleFallback?, avatar?, meta?: [paths|{ path, map?, format? }], pill?: { path, map?, variantMap? }, aside?: { path, format?, prefix?, fallback? }, detail?: { template, when? } }`.
 		 * - `add` — `{ label?, fields: [{ key, label, type?: 'text'|'select', options?, required?, pattern?, patternMessage? }], unique?, defaults? }`.
 		 * - `remove` — `{ label? }`; omitted = no remove.
 		 * - `rowActions` — `[{ id, label, when?, request: { method?, url, payload? } }]`; tokens `@object.<field>`, `@objectId`, `@row.<field>`.
@@ -375,7 +375,8 @@ export default {
 		asideOf(entry, spec) {
 			const value = this.text(entry, spec)
 			if (value === '') {
-				return ''
+				// No value: the optional `fallback` label, translated, instead of an empty aside.
+				return this.tr(spec.fallback)
 			}
 			return spec.prefix ? `${this.tr(spec.prefix)} ${value}` : value
 		},

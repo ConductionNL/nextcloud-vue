@@ -3985,6 +3985,11 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
 			if (value === undefined || value === null) {
+				// A banner that names no title draws no title row: it used to show
+				// its widget id ("attention-first") as the card title.
+				if (this.isBannerDef(def) && !item.customTitle && !def?.customTitle && !def?.title) {
+					return false
+				}
 				return !this.isCardWidget(item)
 			}
 			return value !== false

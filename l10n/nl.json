@@ -1518,7 +1518,8 @@
     "Actions for the selected files": "Acties voor de geselecteerde bestanden",
     "{view}: not available on this list": "{view}: niet beschikbaar in deze lijst",
     "Leave this field empty": "Laat dit veld leeg",
-    "This answer was refused.": "Dit antwoord is geweigerd."
+    "This answer was refused.": "Dit antwoord is geweigerd.",
+    "No value ({count})": "Geen waarde ({count})"
   },
   "plurals": {
     "{count} selected": [

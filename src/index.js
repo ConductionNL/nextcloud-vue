@@ -43,6 +43,7 @@ export {
 	CnAppNav,
 	CnAppRoot,
 	CnAuditTrailCard,
+	CnBannerWidget,
 	CnBoardView,
 	CnBodySections,
 	CnBreadcrumbs,

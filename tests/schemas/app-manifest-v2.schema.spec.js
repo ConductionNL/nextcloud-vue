@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.85.0', () => {
+	it('the manifest schema version reads 2.86.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1367,7 +1367,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.84.0 adds formEyebrow and formSubtitle on an open-form action (screens-form-dialog-intro-parity).
 		// 2.85.0 lets a header pill be a constant (`text`) or a count of a related list (`countFrom`, `countLabel`) (screens-relation-pages).
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.85.0')
+		// 2.86.0 allows an @row.<field> token in a field-list rowActions payload, and corrects sizeToContent:<int> to a row MAXIMUM (GridStack's meaning).
+		expect(schema.version).toBe('2.86.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -1954,5 +1955,21 @@ describe('app-manifest-v2 — header pills: a constant or a count (screens-relat
 
 	it('a count list without a schema is refused', () => {
 		expect(validateManifestV2(manifestWithDetailPage({ statusPill: { countFrom: { register: 'r' } } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — @row token in a field-list rowActions payload (2.86.0)', () => {
+	const withPayload = (payload) => manifestWithDetailPage({
+		rowActions: [{ id: 'a', label: 'Do', request: { method: 'POST', url: '/apps/x/api/items', payload } }],
+	})
+
+	it('accepts @row.<field> and a dot path at any depth of the payload', () => {
+		const result = validateManifestV2(withPayload({ id: '@row.id', nested: [{ owner: '@row.owner.id' }] }))
+		expect(result.errors || []).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('still refuses an invented token', () => {
+		expect(validateManifestV2(withPayload({ id: '@rows.id' })).valid).toBe(false)
 	})
 })
