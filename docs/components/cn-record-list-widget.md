@@ -98,3 +98,7 @@ A list can follow the page's controls (a `workspace-filter` select and switch). 
 ```
 
 `sort`: the workspace value at `key` picks an entry of `map`; a value with no entry leaves the list's own `sort`. `toggle`: while the value at `key` is on (true, 1, "1", "true"), the filter keys in `removes` are dropped, so a list that hides finished work shows it. The list fetches again when either changes.
+
+## Badges
+
+`badges` adds status badges after the row's pill. A field badge takes the same keys as `pill` (`field`, `labels`, `colorMap`, `variant`) plus `hideValues`, a list of values that draw nothing, so a priority badge shows for urgent and high and stays away for normal. An age badge, `{ "kind": "stale", "field": "updatedAt", "afterDays": 7, "label": "Stale {days} days", "variant": "warning" }`, shows when the date field is more than `afterDays` whole days old and replaces `{days}` with the age. `pill.hideValues` hides the pill the same way.

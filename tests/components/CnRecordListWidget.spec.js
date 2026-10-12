@@ -167,4 +167,50 @@ describe('CnRecordListWidget avatar (screens-record-list-avatar)', () => {
 		await flush()
 		expect(plain.find('[data-testid="cn-record-list-avatar"]').exists()).toBe(false)
 	})
+	describe('badges', () => {
+		const rows = [
+			{ id: 't-1', title: 'A', priority: 'urgent', updatedAt: new Date(Date.now() - 10 * 86400000).toISOString() },
+			{ id: 't-2', title: 'B', priority: 'normal', updatedAt: new Date(Date.now() - 86400000).toISOString() },
+		]
+		const content = {
+			badges: [
+				{ field: 'priority', labels: { urgent: 'Urgent', high: 'High' }, colorMap: { urgent: 'error', high: 'warning' }, hideValues: ['normal', 'low'] },
+				{ kind: 'stale', field: 'updatedAt', afterDays: 7, label: 'Stale {days} days', variant: 'warning' },
+			],
+		}
+
+		it('draws a coloured badge for a field value and hides the listed values', async () => {
+			axios.get.mockResolvedValue({ data: { results: rows, total: 2 } })
+			const wrapper = mountList(content)
+			await flush()
+			const items = wrapper.findAll('[data-testid="cn-record-list-item"]')
+			expect(items[0].text()).toContain('Urgent')
+			expect(items[1].text()).not.toContain('normal')
+			expect(items[1].findAll('[data-testid="cn-record-list-badge-field"]')).toHaveLength(0)
+		})
+
+		it('draws an age badge only for a date older than afterDays, with the age in the label', async () => {
+			axios.get.mockResolvedValue({ data: { results: rows, total: 2 } })
+			const wrapper = mountList(content)
+			await flush()
+			const items = wrapper.findAll('[data-testid="cn-record-list-item"]')
+			expect(items[0].find('[data-testid="cn-record-list-badge-stale"]').text()).toBe('Stale 10 days')
+			expect(items[1].find('[data-testid="cn-record-list-badge-stale"]').exists()).toBe(false)
+		})
+
+		it('hides a pill whose value is in hideValues', async () => {
+			axios.get.mockResolvedValue({ data: { results: rows, total: 2 } })
+			const wrapper = mountList({ pill: { field: 'priority', hideValues: ['normal'] } })
+			await flush()
+			const items = wrapper.findAll('[data-testid="cn-record-list-item"]')
+			expect(items[0].text()).toContain('urgent')
+			expect(items[1].text()).not.toContain('normal')
+		})
+
+		it('draws nothing extra without badges', async () => {
+			const wrapper = mountList({})
+			await flush()
+			expect(wrapper.find('[data-testid="cn-record-list-badge-field"]').exists()).toBe(false)
+		})
+	})
 })
