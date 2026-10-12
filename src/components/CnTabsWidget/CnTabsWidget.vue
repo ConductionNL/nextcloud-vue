@@ -85,8 +85,9 @@
 				<div
 					v-if="entry.widget && entry.stack.length"
 					class="cn-tabs-widget__stack"
+					:class="{ 'cn-tabs-widget__stack--grid': !!entry.grid }"
 					data-testid="cn-tabs-widget-stack">
-					<div class="cn-tabs-widget__stack-first">
+					<div class="cn-tabs-widget__stack-first" :style="spanStyle(entry.grid, 0)">
 						<CnDetailWidgetHost
 							:widget="entry.widget"
 							chrome="card"
@@ -108,9 +109,10 @@
 							@selectObject="onSelectObject" />
 					</div>
 					<div
-						v-for="child in entry.stack"
+						v-for="(child, childIndex) in entry.stack"
 						:key="`${entry.key}-${child.id}`"
 						class="cn-tabs-widget__stack-item"
+						:style="spanStyle(entry.grid, childIndex + 1)"
 						:data-testid="`cn-tabs-widget-stack-${child.id}`">
 						<CnDetailWidgetHost
 							:widget="child"
@@ -330,12 +332,17 @@ export default {
 		 * names the list; `count` and `countField` win over it. `overflow: true`
 		 * lists the tab under "More".
 		 *
+		 * A tab with `widgetIds` can lay them out in a grid instead of one under
+		 * the other: `columns: 4` gives each a quarter of the row, and
+		 * `layout: [{ widgetId, gridWidth }]` sets a width (of 12) per widget, as
+		 * the page grid does. Widgets wrap onto the next row.
+		 *
 		 * `maxVisibleTabs` caps the strip: later tabs go under "More".
 		 * `hideEmpty: true` moves a tab whose count is 0 there too.
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}), overflow?: boolean}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}), overflow?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -552,6 +559,7 @@ export default {
 					icon: (tab && tab.icon) || widget?.icon || '',
 					widget,
 					stack: widgets.slice(1),
+					grid: this.stackGrid(tab, widgets),
 					count,
 					overflow,
 					pending: visibility === 'pending',
@@ -751,6 +759,46 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The grid a stack lays its widgets out in, as one column span (of 12)
+		 * per widget in order, or null for the plain vertical stack. A tab says
+		 * `columns: 4` (every widget spans a quarter of the row) and/or
+		 * `layout: [{ widgetId, gridWidth }]`, the page grid's width key per
+		 * widget (of 12; a widget it does not name takes the `columns` share, or
+		 * the whole row). Widgets wrap onto the next row. Heights follow the
+		 * content.
+		 *
+		 * @param {object|string} tab The `content.tabs[]` entry.
+		 * @param {Array<object>} widgets The widgets of the stack, in order.
+		 * @return {number[]|null} The column span of each widget, or null.
+		 */
+		stackGrid(tab, widgets) {
+			if (!tab || typeof tab !== 'object' || widgets.length < 2) {
+				return null
+			}
+			const clamp = (value) => Math.min(12, Math.max(1, Math.floor(Number(value))))
+			const columns = Number(tab.columns)
+			const share = Number.isFinite(columns) && columns >= 1 ? clamp(12 / Math.min(12, Math.floor(columns))) : 12
+			const placed = new Map((Array.isArray(tab.layout) ? tab.layout : [])
+				.filter((entry) => entry && typeof entry.widgetId === 'string' && Number.isFinite(Number(entry.gridWidth)))
+				.map((entry) => [entry.widgetId, clamp(entry.gridWidth)]))
+			if (placed.size === 0 && share === 12) {
+				return null
+			}
+			return widgets.map((widget) => placed.get(widget.id) ?? share)
+		},
+
+		/**
+		 * The inline column span of one widget of a gridded stack.
+		 *
+		 * @param {number[]|null} grid The spans of the stack, or null.
+		 * @param {number} index The widget's position in the stack.
+		 * @return {object|undefined} The style, or undefined without a grid.
+		 */
+		spanStyle(grid, index) {
+			return grid ? { gridColumn: `span ${grid[index] || 12}` } : undefined
+		},
+
 		/**
 		 * The widget ids a tab names: `widgetIds` (a stack) when it holds at
 		 * least one id, else `widgetId`, or the bare string.
@@ -997,6 +1045,29 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
+}
+
+/* A gridded stack (`columns` / `layout` on the tab): 12 columns, widgets wrap
+   onto the next row, a row's cards as tall as the tallest. Narrow, it is the
+   plain stack again. */
+.cn-tabs-widget__stack--grid {
+	display: grid;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	align-items: stretch;
+}
+
+.cn-tabs-widget__stack--grid > * {
+	min-width: 0;
+}
+
+@media (max-width: 700px) {
+	.cn-tabs-widget__stack--grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.cn-tabs-widget__stack--grid > * {
+		grid-column: auto !important;
+	}
 }
 
 /* The panel is the card; the strip is not inside it. There is no title bar

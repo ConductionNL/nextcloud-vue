@@ -93,3 +93,37 @@ describe('CnTabsWidget widgetIds (a stack)', () => {
 		expect(w.findAll('.host').map((h) => h.text())).toEqual(['w-cases|bare'])
 	})
 })
+
+describe('CnTabsWidget stack grid', () => {
+	const IDS = ['w-card', 'w-cases', 'w-moments']
+	const spans = (w) => [
+		w.find('.cn-tabs-widget__stack-first'),
+		...w.findAll('.cn-tabs-widget__stack-item'),
+	].map((el) => el.attributes('style') || '')
+
+	it('keeps the plain vertical stack without columns or layout', async () => {
+		const w = mountTabs([{ widgetIds: IDS, label: 'Overview' }])
+		await flush()
+		expect(w.find('.cn-tabs-widget__stack--grid').exists()).toBe(false)
+		expect(spans(w).every((style) => style === '')).toBe(true)
+	})
+
+	it('gives every widget a share of the 12 columns with `columns`', async () => {
+		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', columns: 3 }])
+		await flush()
+		expect(w.find('.cn-tabs-widget__stack--grid').exists()).toBe(true)
+		expect(spans(w)).toEqual(['grid-column: span 4;', 'grid-column: span 4;', 'grid-column: span 4;'])
+	})
+
+	it('takes the width of each widget from `layout`, the rest from `columns` or the whole row', async () => {
+		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', layout: [{ widgetId: 'w-card', gridWidth: 3 }, { widgetId: 'w-cases', gridWidth: 9 }] }])
+		await flush()
+		expect(spans(w)).toEqual(['grid-column: span 3;', 'grid-column: span 9;', 'grid-column: span 12;'])
+	})
+
+	it('clamps a width to 1..12 and ignores a bad columns value', async () => {
+		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', columns: 'x', layout: [{ widgetId: 'w-card', gridWidth: 40 }] }])
+		await flush()
+		expect(spans(w)[0]).toBe('grid-column: span 12;')
+	})
+})
