@@ -8,12 +8,12 @@
  */
 const { mount } = require('@vue/test-utils')
 const { registerTranslations } = require('../../src/l10n/index.js')
-const { formatMoney } = require('../../src/utils/formatMetric.js')
-const { fillTemplate } = require('../../src/utils/fillTemplate.js')
 const { BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+const { fillTemplate } = require('../../src/utils/fillTemplate.js')
+const { formatMoney } = require('../../src/utils/formatMetric.js')
 const CnCellRenderer = require('../../src/components/CnCellRenderer/CnCellRenderer.vue').default
 
-const plain = (text) => text.replace(/ /g, ' ')
+const plain = (text) => text.replace(/[\u00a0\u202f]/g, ' ')
 
 function setLanguage(language) {
 	globalThis._nc_l10n_language = language

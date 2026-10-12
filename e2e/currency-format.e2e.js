@@ -17,11 +17,11 @@ test('an amount reads as money in a template and in a cell, in the currency aske
 	await page.goto('/?l6=currency-format', { waitUntil: 'domcontentloaded', timeout: 90_000 })
 	const trailing = page.locator('.cn-record-list__trailing')
 	await trailing.first().waitFor({ state: 'visible', timeout: 60_000 })
-	const text = (await trailing.first().innerText()).replace(/ /g, ' ')
+	const text = (await trailing.first().innerText()).replace(/[\u00a0\u202f]/g, ' ')
 	expect(text).toContain('€')
 	expect(text).toMatch(/12[.,\s]?000[.,]00/)
 
-	const cell = (await page.locator('.l6-money-cell').innerText()).replace(/ /g, ' ')
+	const cell = (await page.locator('.l6-money-cell').innerText()).replace(/[\u00a0\u202f]/g, ' ')
 	expect(cell).toMatch(/\$|USD/)
 	expect(cell).toMatch(/2[.,\s]?500[.,]00/)
 })
