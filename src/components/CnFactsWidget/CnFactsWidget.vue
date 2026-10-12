@@ -140,6 +140,7 @@ import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { resolveEndpointRequest } from '../../composables/useEndpointSource.js'
+import { useRefLabels } from '../../composables/useRefLabels.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
@@ -149,6 +150,29 @@ import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveF
 
 /** Kinds of entry a `fields[]` item can be. A labelled item without `as` is a row. */
 const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text'])
+
+/**
+ * The label resolver every facts widget on the page shares, made on first use
+ * (the object store needs an active pinia). One batched request per register and
+ * schema for the ids it has not seen; a label it has read stays until the page
+ * reloads, and an object the store already holds is not fetched at all.
+ *
+ * @type {{resolve: Function}|null}
+ */
+let refLabels = null
+
+/** The page-wide reference label resolver. */
+function sharedRefLabels() {
+	if (!refLabels) {
+		refLabels = useRefLabels()
+	}
+	return refLabels
+}
+
+/** Key of a resolved reference in the widget's `labels` data. */
+function refKey(resolve, id) {
+	return `${resolve.register}/${resolve.schema}/${resolve.labelField || ''}/${id}`
+}
 
 /** Event-bus channel a reveal of a masked value is announced on, so an app can log it. */
 export const FACTS_REVEAL_CHANNEL = 'cn:facts:reveal'
@@ -213,6 +237,7 @@ export default {
 		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`) or `pill`.
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
+		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read.
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year) or `list` (an array joined by ", ", each item read at `itemPath`).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
@@ -255,6 +280,8 @@ export default {
 			revealed: {},
 			/** Key of the row whose value was just copied. */
 			copied: '',
+			/** Labels of the referenced objects read so far, by `refKey`. */
+			labels: {},
 		}
 	},
 
@@ -427,6 +454,13 @@ export default {
 			immediate: true,
 			handler() {
 				this.load()
+			},
+		},
+
+		record: {
+			immediate: true,
+			handler() {
+				this.loadLabels()
 			},
 		},
 
@@ -669,6 +703,94 @@ export default {
 		},
 
 		/**
+		 * The text of a reference: the labels of the objects its id(s) name, joined
+		 * by ", ". An id whose label is not known yet (or cannot be read) adds nothing.
+		 *
+		 * @param {unknown} raw The id, or a list of ids (or of `{ id }` objects).
+		 * @param {object} spec `{ resolve: { register, schema, labelField? }, itemPath? }`.
+		 * @return {string}
+		 */
+		refText(raw, spec) {
+			return this.refIds(raw, spec)
+				.map((id) => this.labels[refKey(spec.resolve, id)])
+				.filter((label) => typeof label === 'string' && label !== '')
+				.join(', ')
+		},
+
+		/**
+		 * The ids a reference value holds.
+		 *
+		 * @param {unknown} raw The value.
+		 * @param {object} spec `{ itemPath? }`.
+		 * @return {string[]}
+		 */
+		refIds(raw, spec) {
+			return (Array.isArray(raw) ? raw : [raw])
+				.map((item) => (item && typeof item === 'object' ? (spec.itemPath ? readPath(item, spec.itemPath) : (item.id ?? item.uuid)) : item))
+				.filter((id) => id !== null && id !== undefined && id !== '' && typeof id !== 'object')
+				.map(String)
+		},
+
+		/**
+		 * Every entry or part that carries `resolve`, with the record's value at its path.
+		 *
+		 * @param {object} record The object.
+		 * @return {Array<{spec: object, raw: unknown}>}
+		 */
+		refSpecs(record) {
+			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const specs = []
+			const visit = (spec) => {
+				if (!spec || typeof spec !== 'object') {
+					return
+				}
+				if (spec.resolve && typeof spec.resolve === 'object' && spec.path) {
+					specs.push({ spec, raw: readPath(record, spec.path) })
+				}
+				const nested = [...(Array.isArray(spec.parts) ? spec.parts : []), ...(Array.isArray(spec.title) ? spec.title : [spec.title]), ...(Array.isArray(spec.subtitle) ? spec.subtitle : [spec.subtitle])]
+				nested.forEach(visit)
+			}
+			fields.forEach(visit)
+			return specs
+		},
+
+		/**
+		 * Read the labels of the referenced objects, one batched request per
+		 * register and schema, and keep them in `labels`.
+		 *
+		 * @param {object|null} record The object shown (defaults to the current record).
+		 * @return {Promise<void>}
+		 */
+		async loadLabels(record = this.record) {
+			if (!record) {
+				return
+			}
+			const groups = new Map()
+			for (const { spec, raw } of this.refSpecs(record)) {
+				const { register, schema, labelField } = spec.resolve
+				if (!register || !schema) {
+					continue
+				}
+				const groupKey = `${register}/${schema}/${labelField || ''}`
+				const group = groups.get(groupKey) || { resolve: spec.resolve, ids: new Set() }
+				this.refIds(raw, spec).forEach((id) => group.ids.add(id))
+				groups.set(groupKey, group)
+			}
+			if (groups.size === 0) {
+				return
+			}
+			const resolver = sharedRefLabels()
+			const next = { ...this.labels }
+			await Promise.all([...groups.values()].map(async ({ resolve, ids }) => {
+				const found = await resolver.resolve(resolve.register, resolve.schema, [...ids], resolve.labelField)
+				Object.entries(found).forEach(([id, label]) => {
+					next[refKey(resolve, id)] = label
+				})
+			}))
+			this.labels = next
+		},
+
+		/**
 		 * Read the source object.
 		 *
 		 * @return {Promise<void>}
@@ -773,6 +895,9 @@ export default {
 		format(raw, spec) {
 			if (raw === null || raw === undefined || raw === '') {
 				return ''
+			}
+			if (spec.resolve && typeof spec.resolve === 'object') {
+				return this.refText(raw, spec)
 			}
 			const format = spec.format || 'text'
 			if (format === 'list' || Array.isArray(raw)) {
