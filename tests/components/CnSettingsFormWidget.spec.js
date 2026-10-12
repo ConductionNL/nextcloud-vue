@@ -152,4 +152,47 @@ describe('CnSettingsFormWidget', () => {
 		expect(wrapper.find('[data-testid="cn-settings-form-field-title"] label').text()).toBe('NL Name')
 		expect(wrapper.find('[data-testid="cn-settings-form-save"]').text()).toBe('NL Save')
 	})
+
+	test('a default is shown when nothing is stored and is written by the next save', async () => {
+		const content = { fields: [{ key: 'kind', label: 'Kind', type: 'select', default: 'site', options: ['site', 'portal'] }, { key: 'title', label: 'Name' }] }
+		const wrapper = make({ content, objectData: { id: 'p-1', title: 'Z' } })
+		expect(wrapper.find('[data-testid="cn-settings-form-field-kind"] select').element.value).toBe('site')
+		await wrapper.find('form').trigger('submit')
+		await flush()
+		expect(mockPatch).toHaveBeenCalledWith(OBJECT_URL, { kind: 'site' })
+	})
+
+	test('a stored value beats the default and nothing is sent for it', async () => {
+		const content = { fields: [{ key: 'kind', label: 'Kind', type: 'select', default: 'site', options: ['site', 'portal'] }] }
+		const wrapper = make({ content, objectData: { id: 'p-1', kind: 'portal' } })
+		expect(wrapper.find('[data-testid="cn-settings-form-field-kind"] select').element.value).toBe('portal')
+		await wrapper.find('form').trigger('submit')
+		await flush()
+		expect(mockPatch).not.toHaveBeenCalled()
+	})
+
+	test('a chips field is part of the one Save and its changed-fields diff', async () => {
+		const content = { fields: [{ key: 'title', label: 'Name' }, { key: 'locales', label: 'Languages', type: 'chips', default: ['nl'], minItems: 1, options: ['nl', 'en'] }] }
+		const wrapper = make({ content, objectData: { id: 'p-1', title: 'Z' } })
+		expect(wrapper.findAll('.cn-chips-field__chip')).toHaveLength(1)
+		// Nothing was typed: the default is written once, then nothing more.
+		await wrapper.find('[data-testid="cn-chips-field-add"]').trigger('click')
+		await wrapper.find('[data-testid="cn-chips-field-input"]').setValue('en')
+		await wrapper.find('.cn-chips-field__form').trigger('submit')
+		await flush()
+		expect(mockPatch).not.toHaveBeenCalled()
+		await wrapper.find('form.cn-settings-form').trigger('submit')
+		await flush()
+		expect(mockPatch).toHaveBeenCalledTimes(1)
+		expect(mockPatch).toHaveBeenCalledWith(OBJECT_URL, { locales: ['nl', 'en'] })
+	})
+
+	test('a chips field under its minimum refuses the Save before any write', async () => {
+		const content = { fields: [{ key: 'locales', label: 'Languages', type: 'chips', minItems: 1, minItemsMessage: 'Choose a language.' }] }
+		const wrapper = make({ content, objectData: { id: 'p-1', locales: [] } })
+		await wrapper.find('form.cn-settings-form').trigger('submit')
+		await flush()
+		expect(wrapper.find('.cn-settings-form__error').text()).toBe('Choose a language.')
+		expect(mockPatch).not.toHaveBeenCalled()
+	})
 })
