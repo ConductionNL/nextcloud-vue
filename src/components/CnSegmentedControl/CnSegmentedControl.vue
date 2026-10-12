@@ -367,4 +367,17 @@ export default {
 	border-color: transparent;
 	box-shadow: 0 1px 2px var(--color-box-shadow);
 }
+
+/* On a phone (screens-dashboard-phone) the compact group's segments are 44px
+   high touch targets, and the group wraps onto a second row instead of
+   running off the screen. */
+@media (max-width: 640px) {
+	.cn-segmented-control.cn-segmented-control--compact {
+		flex-wrap: wrap;
+	}
+
+	.cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option {
+		min-height: 44px;
+	}
+}
 </style>

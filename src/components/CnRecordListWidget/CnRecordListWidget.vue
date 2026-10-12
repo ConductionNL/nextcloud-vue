@@ -30,6 +30,10 @@
 					class="cn-record-list__row"
 					:class="{ 'cn-record-list__row--link': item.tag !== 'div' }"
 					v-bind="item.attrs">
+					<span v-if="item.initials"
+						class="cn-record-list__avatar"
+						aria-hidden="true"
+						data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 					<span class="cn-record-list__main">
 						<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
@@ -81,6 +85,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
+import { initialsOf } from '../../utils/initials.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -109,7 +114,8 @@ function unwrap(value) {
  * objects filtered on a reference to this record. The source keys are those of
  * `object-list` (`register`, `schema`, `filter` with the `@objectId` /
  * `@object.<field>` / `@workspace.<key>` tokens, `sort`, `limit`, `extend`,
- * `rowRoute`, `pageControls`); what differs is the drawing: `presentation` is `rows`, `feed`
+ * `rowRoute`, `pageControls`); `avatar` puts a circle with the initials of a name
+ * template before the title; what differs is the drawing: `presentation` is `rows`, `feed`
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`).
  *
@@ -224,6 +230,7 @@ export default {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
 					tag: link ? 'router-link' : 'div',
 					attrs: link ? { to: link } : {},
+					initials: this.initialsFor(row),
 					title: this.fill(c.title, row),
 					meta: this.fill(c.meta, row),
 					text: this.fill(c.text, row),
@@ -303,6 +310,20 @@ export default {
 		 */
 		translate(text) {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The initials of the row's avatar (`avatar`: a name template such as
+		 * `"{client.name}"`, or `{ text }`), or '' without one.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} One or two letters.
+		 * @spec openspec/changes/screens-record-list-avatar/specs/record-list-avatar/spec.md#requirement-a-record-list-row-can-carry-an-avatar
+		 */
+		initialsFor(row) {
+			const avatar = this.content?.avatar
+			const template = typeof avatar === 'string' ? avatar : (avatar && typeof avatar === 'object' ? avatar.text : '')
+			return initialsOf(this.fill(template, row))
 		},
 
 		/**
@@ -504,6 +525,20 @@ export default {
 	text-decoration: underline;
 }
 
+.cn-record-list__avatar {
+	align-items: center;
+	background: var(--color-background-hover);
+	border-radius: 50%;
+	color: var(--color-main-text);
+	display: flex;
+	flex: none;
+	font-size: 12px;
+	font-weight: 700;
+	height: 36px;
+	justify-content: center;
+	width: 36px;
+}
+
 .cn-record-list__main {
 	display: flex;
 	flex: 1 1 auto;
@@ -606,5 +641,12 @@ a.cn-record-list__inline-title {
 
 .cn-detail-page__side .cn-record-list__chevron {
 	display: none;
+}
+
+/* A row is a touch target of at least 44px on a phone. */
+@media (max-width: 640px) {
+	.cn-record-list__row {
+		min-height: 44px;
+	}
 }
 </style>
