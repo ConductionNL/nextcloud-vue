@@ -30,7 +30,7 @@ test('a share tile, an average tile and a list-filtered count tile show their fi
 				], total: 2 }
 		return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
 	})
-	await page.goto('/?ratiostat=1', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	await page.goto('/?l4=ratio-stat', { waitUntil: 'domcontentloaded', timeout: 90_000 })
 	await page.locator('[data-testid="tile-ratio"]').waitFor({ state: 'visible', timeout: 60_000 })
 
 	await expect(page.locator('[data-testid="tile-ratio"]')).toContainText('92%')
