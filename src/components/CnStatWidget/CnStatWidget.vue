@@ -163,7 +163,7 @@ import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
-import { fetchListTotal, hasListValue } from '../../utils/fetchFilterCounts.js'
+import { fetchListTotal, needsListEndpoint } from '../../utils/fetchFilterCounts.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
@@ -1788,12 +1788,12 @@ export default {
 		 */
 		async fetchAggregate(axios, generateUrl, s, metric, field, filter, via) {
 			// A count the aggregation endpoint cannot express (a filter holding a
-			// list of values, or `via: "list"`, which a count of empty values
-			// needs because the endpoint has no null operator) reads the list
-			// endpoint's total instead.
+			// list of values, a test for no value (`null` or `{ isnull: true }`),
+			// or `via: "list"`) reads the list endpoint's total instead, because
+			// the aggregation endpoint has no null operator.
 			const resolved = this.resolveSourceFilter(filter)
 			const listed = Object.values(resolved).some((v) => Array.isArray(v) || (v && typeof v === 'object' && Object.values(v).some(Array.isArray)))
-			if ((!metric || metric === 'count') && (via === 'list' || listed || hasListValue(resolved))) {
+			if ((!metric || metric === 'count') && (via === 'list' || listed || needsListEndpoint(resolved))) {
 				return fetchListTotal(s.register, s.schema, resolved, {})
 			}
 			const url = generateUrl(

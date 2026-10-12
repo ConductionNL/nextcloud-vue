@@ -107,6 +107,15 @@ describe('a count the aggregation endpoint cannot express', () => {
 		expect(sum.vm.value).toBe(3)
 	})
 
+	it('reads the list total for a filter that tests a field for no value, without via', async () => {
+		fetchListTotal.mockResolvedValue(48)
+		const w = mountStat({ source: { register: 'r', schema: 'ticket', metric: 'count', filter: { assignee: { isnull: true } } } })
+		await flush()
+		expect(axios.get).not.toHaveBeenCalled()
+		expect(fetchListTotal.mock.calls[0][2]).toEqual({ assignee: { isnull: true } })
+		expect(w.vm.value).toBe(48)
+	})
+
 	it('via: "list" counts through the list total (the endpoint has no null operator)', async () => {
 		fetchListTotal.mockResolvedValue(2)
 		const w = mountStat({ source: { register: 'r', schema: 'ticket', metric: 'count', via: 'list', filter: { resolvedAt: '' } } })
