@@ -58,6 +58,9 @@ export default {
 				filter: { assignee: 'me', status: { in: ['new'] } },
 				sort: { field: 'title', dir: 'asc' },
 				title: '{title}',
+				meta: '{client.name} · {channel}',
+				avatar: '{client.name}',
+				extend: ['client'],
 				pageControls: {
 					sort: { key: 'sort', map: { deadline: { field: 'slaDeadline', dir: 'asc' }, priority: { field: 'priority', dir: 'desc' } } },
 					toggle: { key: 'showDone', removes: ['status'] },

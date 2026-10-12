@@ -18,7 +18,7 @@ test('the bar holds chips, switch and select on one row, and the list follows th
 		return route.fulfill({
 			status: 200,
 			contentType: 'application/json',
-			body: JSON.stringify({ results: [{ id: 't1', title: 'Afvalpas' }], total: 1 }),
+			body: JSON.stringify({ results: [{ id: 't1', title: 'Afvalpas', channel: 'Mijn Zuiddrecht', client: { name: 'M. de Graaf' } }], total: 1 }),
 		})
 	})
 	await page.goto('/?pagecontrols=1', { waitUntil: 'domcontentloaded', timeout: 90_000 })
