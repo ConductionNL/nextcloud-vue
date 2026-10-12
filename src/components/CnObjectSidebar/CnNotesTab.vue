@@ -18,6 +18,8 @@
 					{{ cancelLabel }}
 				</NcButton>
 			</p>
+			<!-- @slot composer-before An app's own control above the composer, e.g. a template picker. Scope: `{ setText, text }`; `setText(text)` fills the composer, `text` is what it holds now. -->
+			<slot name="composer-before" :setText="setComposerText" :text="newNoteText" />
 			<CnNoteComposer
 				class="cn-sidebar-tab__composer"
 				:modelValue="newNoteText"
@@ -479,6 +481,20 @@ export default {
 			} finally {
 				this.saving = false
 			}
+		},
+
+		/**
+		 * Fill the composer from outside, for the `composer-before` slot.
+		 *
+		 * The app decides what goes in (a template body, a quoted line); the
+		 * composer stays the one place the text lives, so sending, editing and
+		 * the mention picker all see it exactly as if it had been typed.
+		 *
+		 * @param {string} text The text the composer should hold.
+		 * @return {void}
+		 */
+		setComposerText(text) {
+			this.newNoteText = (text === null || text === undefined) ? '' : String(text)
 		},
 
 		startEdit(note) {

@@ -1,6 +1,11 @@
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
-import { reactive } from 'vue'
+import { getCurrentUserId, peekCurrentUserGroups, resetGroupsPeek } from './userGroupsPeek.js'
+
+// The pure peek and user-id read live in userGroupsPeek.js so the filter-token
+// resolver can use them without importing axios; re-exported here so the public
+// API is unchanged.
+export { getCurrentUserId, peekCurrentUserGroups }
 
 /**
  * Cached user groups — fetched once per session and reused.
@@ -11,29 +16,6 @@ const _cache = {
 	userId: null,
 	groups: null,
 	promise: null,
-}
-
-/**
- * Reactive mirror of the group cache, keyed by user id, for synchronous
- * readers ({@link peekCurrentUserGroups}). A computed that reads a missing key
- * tracks it, so it re-runs when the groups arrive.
- *
- * @type {{ byUser: Record<string, string[]> }}
- */
-const _peek = reactive({ byUser: {} })
-
-/** User ids whose groups a peek already asked for (not reactive on purpose). */
-const _peekRequested = new Set()
-
-/**
- * Get the current Nextcloud user ID from OC.currentUser.
- *
- * @return {string|null} The current user ID, or null if not logged in
- */
-export function getCurrentUserId() {
-	return window.OC?.currentUser?.uid
-		|| window.OC?.currentUser
-		|| null
 }
 
 /**
@@ -70,34 +52,6 @@ export async function getCurrentUserGroups() {
 	}
 
 	return _cache.groups
-}
-
-/**
- * Synchronous, reactive read of the current user's group ids, for code that
- * cannot await (the `@myGroups` filter token). Returns the ids once they are
- * loaded, `null` while the first request is in flight (and starts that
- * request on first use), and `[]` when nobody is signed in. Read inside a
- * computed, the computed re-runs when the groups arrive.
- *
- * @spec openspec/changes/nextcloud-group-surfaces/specs/schema-utilities/spec.md#requirement-mygroups-resolves-to-the-current-users-group-ids
- * @return {string[]|null} The group ids, or null while loading.
- */
-export function peekCurrentUserGroups() {
-	const userId = getCurrentUserId()
-	if (!userId) {
-		return []
-	}
-	const known = _peek.byUser[userId]
-	if (Array.isArray(known)) {
-		return known
-	}
-	if (!_peekRequested.has(userId)) {
-		_peekRequested.add(userId)
-		getCurrentUserGroups().then((groups) => {
-			_peek.byUser[userId] = Array.isArray(groups) ? [...groups] : []
-		})
-	}
-	return null
 }
 
 /**
@@ -202,8 +156,5 @@ export function resetVisibilityCache() {
 	_cache.userId = null
 	_cache.groups = null
 	_cache.promise = null
-	_peekRequested.clear()
-	for (const key of Object.keys(_peek.byUser)) {
-		delete _peek.byUser[key]
-	}
+	resetGroupsPeek()
 }
