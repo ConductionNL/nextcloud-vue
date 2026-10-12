@@ -3190,8 +3190,8 @@
 			"page": "cn-stages-widget-form"
 		},
 		"CnStatWidget": {
-			"direct": 4,
-			"transitive": 9,
+			"direct": 5,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
 				"CnIndexPage",
