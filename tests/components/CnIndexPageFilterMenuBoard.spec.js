@@ -55,6 +55,24 @@ describe('CnIndexPage filterMenu under the board look', () => {
 		expect(w.vm.showHeaderFilterMenu).toBe(false)
 	})
 
+	it('carries no count while no filter is active', () => {
+		const menu = mountPage().find('[data-testid="cn-index-filter-menu"]')
+		expect(menu.classes()).not.toContain('cn-actions-bar__filter-menu--counted')
+		expect(menu.attributes('data-count')).toBeUndefined()
+		expect(menu.attributes('aria-label')).toBe('Filter')
+		expect(menu.attributes('style') || '').not.toContain('--cn-filter-menu-count')
+	})
+
+	it('counts the active filters on the button and in its name', () => {
+		const w = mountPage({ activeFilters: { status: ['active'] } })
+		const menu = w.find('[data-testid="cn-index-filter-menu"]')
+		expect(w.vm.activeFilterChips).toHaveLength(1)
+		expect(menu.classes()).toContain('cn-actions-bar__filter-menu--counted')
+		expect(menu.attributes('data-count')).toBe('1')
+		expect(menu.attributes('aria-label')).toBe('Filter, 1 active')
+		expect(menu.attributes('style')).toContain('--cn-filter-menu-count: "1"')
+	})
+
 	it('draws nothing in the toolbar without filterMenu', () => {
 		expect(mountPage({ filterMenu: false }).find('[data-testid="cn-index-filter-menu"]').exists()).toBe(false)
 	})
