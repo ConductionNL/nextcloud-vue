@@ -269,6 +269,10 @@
 			<template v-if="boardFilterMenu" #filter-menu>
 				<NcActions
 					class="cn-actions-bar__filter-menu"
+					:class="{ 'cn-actions-bar__filter-menu--counted': activeFilterChips.length > 0 }"
+					:style="filterMenuCountStyle"
+					:data-count="activeFilterChips.length > 0 ? activeFilterChips.length : null"
+					:aria-label="filterMenuLabel"
 					variant="secondary"
 					:forceMenu="true"
 					:menuName="t('nextcloud-vue', 'Filter')"
@@ -5371,6 +5375,33 @@ export default {
 				return [...sorted, square]
 			}
 			return [...sorted.slice(0, firstPrimary), square, ...sorted.slice(firstPrimary)]
+		},
+
+		/**
+		 * The count the board's Filter menu button carries, as the CSS string its
+		 * badge draws (`content: var(--cn-filter-menu-count)`). NcActions has no
+		 * slot beside its menu name, so the badge is a pseudo-element; nothing is
+		 * set while no filter is active, and no badge is drawn then.
+		 *
+		 * @spec openspec/changes/screens-filter-menu-count/specs/index-toolbar/spec.md#requirement-the-filter-menu-button-counts-the-active-filters
+		 * @return {object|null}
+		 */
+		filterMenuCountStyle() {
+			const count = this.activeFilterChips.length
+			return count > 0 ? { '--cn-filter-menu-count': `"${count}"` } : null
+		},
+
+		/**
+		 * The accessible name of the Filter menu button: "Filter" plus the count
+		 * while filters are active (the badge itself is decoration).
+		 *
+		 * @spec openspec/changes/screens-filter-menu-count/specs/index-toolbar/spec.md#requirement-the-filter-menu-button-counts-the-active-filters
+		 * @return {string}
+		 */
+		filterMenuLabel() {
+			const count = this.activeFilterChips.length
+			const name = t('nextcloud-vue', 'Filter')
+			return count > 0 ? `${name}, ${t('nextcloud-vue', '{count} active', { count })}` : name
 		},
 
 		/**
