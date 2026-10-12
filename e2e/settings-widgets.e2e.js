@@ -23,6 +23,10 @@ const STORED = {
 	signinEherkenning: false,
 	hiddenCaseTypes: ['c3'],
 	autoApproveDomains: ['zuiddrecht.nl', 'oosthaven.nl'],
+	domains: [
+		{ hostname: 'zuiddrecht.nl', verified: true, valid: 'geldig tot 14 jan 2027', txt: '' },
+		{ hostname: 'nieuw.zuiddrecht.nl', verified: false, valid: 'nog geen', txt: 'portaliq-verify=8f3a1c' },
+	],
 }
 
 /**
