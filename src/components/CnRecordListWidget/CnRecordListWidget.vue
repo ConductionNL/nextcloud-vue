@@ -38,12 +38,19 @@
 						<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 					</span>
-					<span v-if="item.pill || item.trailing" class="cn-record-list__aside">
+					<span v-if="item.pill || item.badges.length > 0 || item.trailing" class="cn-record-list__aside">
 						<CnStatusBadge
 							v-if="item.pill"
 							:label="item.pill.label"
 							:variant="item.pill.variant"
 							size="small" />
+						<CnStatusBadge
+							v-for="badge in item.badges"
+							:key="badge.key"
+							:label="badge.label"
+							:variant="badge.variant"
+							size="small"
+							:data-testid="`cn-record-list-badge-${badge.kind}`" />
 						<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
 					</span>
 					<ChevronRight
@@ -84,6 +91,7 @@ import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
+import { ageInDays } from '../../utils/boardDate.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { initialsOf } from '../../utils/initials.js'
@@ -251,6 +259,7 @@ export default {
 					label: this.fill(c.label, row),
 					trailing: c.trailing ? firstFilled(c.trailing, row, this.translate, new Date(), this.templateContext) : '',
 					pill: this.pillOf(row),
+					badges: this.badgesOf(row),
 					icon: this.iconOf(row),
 				}
 			})
@@ -381,13 +390,56 @@ export default {
 		},
 
 		/**
-		 * The row's pill: `{ field, labels?, colorMap?, variant? }`.
+		 * The row's extra badges (`badges`): a coloured badge from a field
+		 * (`{ field, labels?, colorMap?, variant?, hideValues? }`, the value
+		 * shown unless `hideValues` lists it) and an age badge
+		 * (`{ kind: "stale", field, afterDays, label?, variant? }`, shown when the
+		 * date field is older than `afterDays` whole days; `{days}` in the
+		 * label is the age).
 		 *
 		 * @param {object} row The row.
+		 * @return {Array<{key: string, kind: string, label: string, variant: string}>} The badges that apply.
+		 * @spec openspec/changes/screens-record-list-badges/specs/record-list-badges/spec.md#requirement-a-record-list-row-can-carry-badges
+		 */
+		badgesOf(row) {
+			const declared = Array.isArray(this.content?.badges) ? this.content.badges : []
+			const out = []
+			declared.forEach((badge, index) => {
+				if (!badge || typeof badge !== 'object' || !badge.field) {
+					return
+				}
+				if (badge.kind === 'stale') {
+					const days = ageInDays(readPath(row, badge.field))
+					const after = Number(badge.afterDays)
+					if (days === null || !Number.isFinite(after) || days <= after) {
+						return
+					}
+					const template = this.translate(badge.label || 'Stale')
+					out.push({
+						key: `stale-${index}`,
+						kind: 'stale',
+						label: template.replace(/\{days\}/g, String(days)),
+						variant: isBadgeVariant(badge.variant) ? badge.variant : 'warning',
+					})
+					return
+				}
+				const made = this.pillOf(row, badge)
+				if (made) {
+					out.push({ key: `field-${index}`, kind: 'field', ...made })
+				}
+			})
+			return out
+		},
+
+		/**
+		 * The row's pill: `{ field, labels?, colorMap?, variant?, hideValues? }`.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} [config] A pill config; the widget's `pill` by default.
 		 * @return {{label: string, variant: string}|null} The pill, or null.
 		 */
-		pillOf(row) {
-			const pill = this.content?.pill
+		pillOf(row, config) {
+			const pill = config || this.content?.pill
 			if (!pill || typeof pill !== 'object' || !pill.field) {
 				return null
 			}
@@ -396,6 +448,9 @@ export default {
 				return null
 			}
 			const key = String(raw)
+			if (Array.isArray(pill.hideValues) && pill.hideValues.map(String).includes(key)) {
+				return null
+			}
 			const labels = pill.labels && typeof pill.labels === 'object' ? pill.labels : {}
 			const map = pill.colorMap && typeof pill.colorMap === 'object' ? pill.colorMap : {}
 			const found = Object.keys(map).find((k) => k.toLowerCase() === key.toLowerCase())

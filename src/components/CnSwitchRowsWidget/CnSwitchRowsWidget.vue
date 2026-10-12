@@ -29,7 +29,7 @@
 
 <script>
 import { NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
-import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
+import { objectUrlOf, writeFields } from '../../utils/objectWrite.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 
@@ -54,7 +54,8 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `rows` (required) — `[{ key, label, hint?, invert? }]`; `key` is a top-level boolean field. `invert` shows the switch on when the field is false (a stored `disabled` read as "enabled").
+		 * - `rows` (required) — `[{ key, label, hint?, invert? }]`; `key` is a boolean field, a top-level name or a dot-path. `invert` shows the switch on when the field is false (a stored `disabled` read as "enabled").
+		 * - `save` — `{ url, method?, payload? }`, write through an app endpoint (tokens `{value}`, `{field}`, `{changes}`, `{object.<path>}`).
 		 * - `readOnly`.
 		 *
 		 * @type {object}
@@ -156,7 +157,7 @@ export default {
 		 * @spec openspec/changes/abstract-switch-rows/specs/switch-rows/spec.md#requirement-a-toggle-saves-that-one-field
 		 */
 		async toggle(row, on) {
-			if (!this.objectUrl) {
+			if (!this.objectUrl && !(this.content.save && this.content.save.url)) {
 				this.notice = this.tr('This switch cannot be saved here.')
 				return
 			}
@@ -165,8 +166,9 @@ export default {
 			this.values = { ...this.values, [row.key]: on }
 			const stored = row.invert ? !on : on
 			try {
-				const data = await patchObject(this.objectUrl, { [row.key]: stored })
-				const written = data[row.key] !== undefined ? data[row.key] === true : stored
+				const data = await writeFields(this.objectUrl, { [row.key]: stored }, { save: this.content.save, object: this.objectData })
+				const answered = readPath(data, row.key)
+				const written = answered !== undefined ? answered === true : stored
 				const shown = row.invert ? !written : written
 				this.saved = { ...this.saved, [row.key]: shown }
 				this.values = { ...this.values, [row.key]: shown }
