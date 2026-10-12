@@ -161,6 +161,21 @@ const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text'])
  */
 let refLabels = null
 
+/**
+ * The entry that reads a resolved pill's tone: the same reference, with the
+ * referenced object's `toneField` as the field to read.
+ *
+ * @param {object} spec A facts entry.
+ * @return {object|null} `{ path, itemPath, resolve }`, or null when no `toneField` is set.
+ */
+function toneSpec(spec) {
+	const resolve = spec && spec.resolve
+	if (!resolve || typeof resolve !== 'object' || typeof resolve.toneField !== 'string' || resolve.toneField === '') {
+		return null
+	}
+	return { path: spec.path, itemPath: spec.itemPath, resolve: { register: resolve.register, schema: resolve.schema, labelField: resolve.toneField } }
+}
+
 /** The page-wide reference label resolver. */
 function sharedRefLabels() {
 	if (!refLabels) {
@@ -239,11 +254,11 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, icon?, copy?, reveal?, text?, title?, subtitle?, initialsPath?, tone? }`.
+		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, text?, title?, subtitle?, initialsPath?, tone? }`.
 		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`) or `pill`.
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
-		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read.
+		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year) or `list` (an array joined by ", ", each item read at `itemPath`).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
@@ -391,7 +406,14 @@ export default {
 				}
 				if (kind === 'pill') {
 					const raw = readPath(record, field.path)
-					const variant = (field.variantMap && field.variantMap[raw]) || field.variant
+					const colours = field.variantMap || field.colorMap
+					// A resolved pill looks its tone up by the referenced object's tone field,
+					// then by the resolved label, then by the stored value.
+					const keys = field.resolve && typeof field.resolve === 'object'
+						? [toneSpec(field) ? this.refLabels(raw, toneSpec(field))[0] : undefined, this.refLabels(raw, field)[0], raw]
+						: [raw]
+					const hit = colours ? keys.find((candidate) => (typeof candidate === 'string' || typeof candidate === 'number') && Object.hasOwn(colours, candidate)) : undefined
+					const variant = hit !== undefined ? colours[hit] : field.variant
 					block.variant = isBadgeVariant(variant) ? variant : 'default'
 				}
 				out.push(block)
@@ -717,10 +739,23 @@ export default {
 		 * @return {string}
 		 */
 		refText(raw, spec) {
+			return this.refLabels(raw, spec)
+				.map((label) => (spec.map && Object.hasOwn(spec.map, label) ? this.tr(spec.map[label]) : label))
+				.join(', ')
+		},
+
+		/**
+		 * The labels of a reference as read, before `map` is applied: the key a
+		 * pill's `variantMap` and `colorMap` look up.
+		 *
+		 * @param {unknown} raw The id, or a list of ids.
+		 * @param {object} spec `{ resolve, itemPath? }`.
+		 * @return {string[]}
+		 */
+		refLabels(raw, spec) {
 			return this.refIds(raw, spec)
 				.map((id) => this.labels[refKey(spec.resolve, id)])
 				.filter((label) => typeof label === 'string' && label !== '')
-				.join(', ')
 		},
 
 		/**
@@ -752,6 +787,9 @@ export default {
 				}
 				if (spec.resolve && typeof spec.resolve === 'object' && spec.path) {
 					specs.push({ spec, raw: readPath(record, spec.path) })
+					if (toneSpec(spec)) {
+						specs.push({ spec: toneSpec(spec), raw: readPath(record, spec.path) })
+					}
 				}
 				const nested = [...(Array.isArray(spec.parts) ? spec.parts : []), ...(Array.isArray(spec.title) ? spec.title : [spec.title]), ...(Array.isArray(spec.subtitle) ? spec.subtitle : [spec.subtitle])]
 				nested.forEach(visit)
