@@ -54,11 +54,13 @@ An integration widget shows the page's own object. To show another one, name it 
   "type": "integration",
   "integrationId": "decidesk-decisions",
   "title": "On the linked case",
-  "props": { "register": "dossiq", "schema": "case", "objectId": "@object.caseReference" }
+  "props": { "register": "@config.caseRegister", "schema": "@config.caseSchema", "objectId": "@object.caseReference" }
 }
 ```
 
-The widget is not mounted while a prop written as a token has no value: the record is still loading, or it does not hold the field. A ticket without a case therefore shows no second list. A mount-mode leaf gets the named object as `integrationContext` too.
+`@objectId` and `@object.<field>` read the record. `@config.<key>` reads the page's app config (the `appConfig` prop of `CnDetailPage`), so the app that owns the other object is looked up on the instance and never written into the manifest.
+
+The widget is not mounted while a prop written as a token has no value: the record is still loading, it does not hold the field, or the app config does not hold the key. A ticket without a case therefore shows no second list, and neither does an instance with no app that keeps cases. A mount-mode leaf gets the named object as `integrationContext` too.
 
 ## Usage
 

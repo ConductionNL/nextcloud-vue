@@ -124,6 +124,72 @@ describe('CnDetailWidgetHost: tokens in an integration widget\'s props', () => {
 		expect(leaf.props('register')).toBe('pipelinq')
 	})
 
+	describe('tokens from the page\'s app config', () => {
+		const CONFIG_WIDGET = {
+			id: 'case-decisions',
+			type: 'integration',
+			integrationId: 'decisions',
+			props: { register: '@config.caseRegister', schema: '@config.caseSchema', objectId: '@object.caseReference' },
+		}
+		const TICKET = { id: 'ticket-1', title: 'Street party', caseReference: 'case-9' }
+
+		/**
+		 * Mount the host on a ticket under a page that provides an app config.
+		 *
+		 * @param {object} cnAppConfig What the page provides: a plain map or a ref.
+		 * @return {object} The wrapper.
+		 */
+		function mountWithConfig(cnAppConfig) {
+			integrations.register({ id: 'decisions', label: 'Decisions', requiredApp: null, tab: Leaf, widget: Leaf })
+			return mount(CnDetailWidgetHost, {
+				props: {
+					widget: CONFIG_WIDGET,
+					surface: 'detail-page',
+					objectId: 'ticket-1',
+					register: 'pipelinq',
+					schema: 'ticket',
+					object: TICKET,
+				},
+				global: { stubs: { CnIcon: true }, provide: { cnAppConfig } },
+			})
+		}
+
+		it('names the register and schema the instance configured', () => {
+			const wrapper = mountWithConfig({ caseRegister: 'cases', caseSchema: 'case-file' })
+
+			const leaf = wrapper.find('[data-testid="token-leaf"]')
+			expect(leaf.attributes('data-register')).toBe('cases')
+			expect(leaf.attributes('data-schema')).toBe('case-file')
+			expect(leaf.attributes('data-object')).toBe('case-9')
+		})
+
+		it('reads a config the page provides as a ref', () => {
+			const wrapper = mountWithConfig({ value: { caseRegister: 'cases', caseSchema: 'case-file' } })
+
+			expect(wrapper.find('[data-testid="token-leaf"]').attributes('data-register')).toBe('cases')
+		})
+
+		it.each([
+			['the page provides no config', {}],
+			['the config holds one of the two keys', { caseRegister: 'cases' }],
+			['a key is empty', { caseRegister: 'cases', caseSchema: '' }],
+		])('mounts nothing when %s', (label, config) => {
+			const wrapper = mountWithConfig(config)
+
+			// Never the page's own register: a proposal made here would be
+			// filed under the ticket's register with the case's id.
+			expect(wrapper.find('[data-testid="token-leaf"]').exists()).toBe(false)
+			expect(wrapper.find('[data-testid="cn-detail-widget-props-pending"]').exists()).toBe(true)
+		})
+
+		it('mounts nothing without a provider at all', () => {
+			integrations.register({ id: 'decisions', label: 'Decisions', requiredApp: null, tab: Leaf, widget: Leaf })
+			const wrapper = mountOnTicket(CONFIG_WIDGET, TICKET)
+
+			expect(wrapper.find('[data-testid="token-leaf"]').exists()).toBe(false)
+		})
+	})
+
 	describe('a mount-mode leaf', () => {
 		/**
 		 * Register a mount-mode leaf that records what it was mounted with.

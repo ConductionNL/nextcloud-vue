@@ -274,6 +274,7 @@ import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWi
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
@@ -368,6 +369,12 @@ export default {
 		cnLook: { default: 'nextcloud' },
 		/** The host's translate (CnAppRoot provides `cnTranslate`). */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The page-level app config (CnDetailPage provides `cnAppConfig` from
+		 * its `appConfig` prop), which answers `@config.<key>` in a widget's
+		 * `props`. Empty when no ancestor provides one.
+		 */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	/**
@@ -825,11 +832,14 @@ export default {
 		 * @return {object} The prop bag.
 		 */
 		/**
-		 * The widget's own `props` with the record's tokens resolved:
-		 * `@objectId` and `@object.<field>`, at any depth. A manifest can so
-		 * point an integration at another object than the page's, such as the
-		 * decisions on the case a ticket became
-		 * (`props: { objectId: "@object.caseReference" }`).
+		 * The widget's own `props` with their tokens resolved: `@objectId` and
+		 * `@object.<field>` from the record, `@config.<key>` from the page's
+		 * app config, at any depth. A manifest can so point an integration at
+		 * another object than the page's, such as the decisions on the case a
+		 * ticket became (`props: { objectId: "@object.caseReference" }`), and
+		 * name that object's register and schema from the instance's
+		 * configuration instead of as literals
+		 * (`register: "@config.caseRegister"`).
 		 *
 		 * @return {object} The resolved prop bag, `{}` when the widget declares none.
 		 */
@@ -838,12 +848,17 @@ export default {
 			if (!declared || typeof declared !== 'object' || Array.isArray(declared)) {
 				return {}
 			}
-			return resolveDeepTokens(declared, { objectId: this.objectId, object: this.object })
+			return resolveDeepTokens(declared, {
+				objectId: this.objectId,
+				object: this.object,
+				config: unwrapAppConfig(this.cnAppConfig),
+			})
 		},
 
 		/**
 		 * Whether a prop written as a token still has no value: the record is
-		 * not loaded, or it does not hold the field. Only top-level props
+		 * not loaded, it does not hold the field, or the app config does not
+		 * hold the key. Only top-level props
 		 * written as a token count; a literal empty string is the author's.
 		 *
 		 * @return {boolean} true while the widget must not mount.
