@@ -156,11 +156,17 @@ export function evaluateWorkspaceCondition(cond, workspace) {
  * modes). Throws on unusable conditions and failed fetches — callers that
  * want the fail-safe boolean use {@link evaluateVisibleWhen}.
  *
- * @param {{endpoint?: string, source?: {register: string, schema: string, filter?: object}, field?: string}} cond The visibleWhen condition.
+ * A `source` may carry `order` (`{ field: "asc" | "desc" }`), so "the first
+ * row" is the first of an ordered query. A caller that wants that row, not
+ * just the value, passes `sink`: the first result is written to `sink.row`.
+ *
+ * @param {{endpoint?: string, source?: {register: string, schema: string, filter?: object, order?: object}, field?: string}} cond The visibleWhen condition.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
+ * @param {{row?: object}} [sink] Receives the first result of a `source` query as `row`.
  * @return {Promise<unknown>} The value `field` points at.
+ * @spec openspec/changes/screens-start-here-banner/specs/start-here-banner/spec.md#requirement-a-banner-can-name-the-first-row-of-a-query
  */
-export async function readVisibleWhenValue(cond, ctx) {
+export async function readVisibleWhenValue(cond, ctx, sink) {
 	if (cond.endpoint) {
 		const response = await fetch(prefixUrl(cond.endpoint), { headers: buildHeaders() })
 		if (!response.ok) {
@@ -172,7 +178,11 @@ export async function readVisibleWhenValue(cond, ctx) {
 	const src = cond.source
 	if (src && src.register && src.schema) {
 		const filter = resolveFilterTokens(src.filter || {}, ctx)
-		const qs = buildQueryString({ ...filter, _limit: 1 })
+		const order = {}
+		for (const [field, dir] of Object.entries(src.order && typeof src.order === 'object' ? src.order : {})) {
+			order[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'
+		}
+		const qs = buildQueryString({ ...filter, ...order, _limit: 1 })
 		const url = prefixUrl(`/apps/openregister/api/objects/${src.register}/${src.schema}${qs}`)
 		const response = await fetch(url, { headers: buildHeaders() })
 		if (!response.ok) {
@@ -183,6 +193,9 @@ export async function readVisibleWhenValue(cond, ctx) {
 			return data.total ?? (Array.isArray(data.results) ? data.results.length : 0)
 		}
 		const first = Array.isArray(data.results) ? data.results[0] : data
+		if (sink && typeof sink === 'object') {
+			sink.row = first && typeof first === 'object' ? first : undefined
+		}
 		return readVisibleWhenPath(first, cond.field)
 	}
 	// Local mode (Wave 3): evaluate against the caller's object context.

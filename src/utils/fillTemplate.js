@@ -49,6 +49,11 @@ function formatValue(value, format, now) {
 	if (format === 'datetime') {
 		return formatBoardDateTime(value, now)
 	}
+	if (format === 'days') {
+		// Whole days from the date to now (0 for today; negative for a future date).
+		const date = parseDateValue(value)
+		return date === null ? '' : String(Math.floor((now.getTime() - date.getTime()) / 86400000))
+	}
 	return String(value)
 }
 
@@ -57,7 +62,8 @@ function formatValue(value, format, now) {
  * `"Termijn {deadline|date}"` from an object.
  *
  * Every `{path}` token is a dot path into the object; `{path|date}` and
- * `{path|datetime}` format it as the boards write dates. A token without a
+ * `{path|datetime}` format it as the boards write dates, and `{path|days}` is the
+ * whole days since that date ("has waited {createdAt|days} days"). A token without a
  * value empties the WHOLE template, because "Termijn " is worse than nothing.
  * A template without tokens is returned as written (a constant label).
  *

@@ -176,6 +176,12 @@
 			<ProgressCellHarness />
 		</template>
 
+		<!-- A start-here attention card naming one record (?starthere=1). See StartHereHarness.vue. -->
+		<template v-else-if="showStartHere">
+			<h2>Start here</h2>
+			<StartHereHarness />
+		</template>
+
 		<!-- Page controls: a bar with chips, a switch and a select, and a list that listens (?pagecontrols=1). -->
 		<template v-else-if="showPageControls">
 			<h2>Page controls</h2>
@@ -732,6 +738,7 @@ import ScreensParityHarness from './ScreensParityHarness.vue'
 import SectionsHarness from './SectionsHarness.vue'
 import StagesHarness from './StagesHarness.vue'
 import StartCardHarness from './StartCardHarness.vue'
+import StartHereHarness from './StartHereHarness.vue'
 import TabsBoardHarness from './TabsBoardHarness.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
@@ -756,7 +763,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtDashboardHarness, PtAccountsHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtAccountsHarness, PtDashboardHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -818,6 +825,7 @@ export default {
 			showSections: (typeof window !== 'undefined' && /[?&]sectionswidget=/.test(window.location.search)),
 			showFacts: (typeof window !== 'undefined' && /[?&]factswidget=/.test(window.location.search)),
 			showProgressCell: (typeof window !== 'undefined' && /[?&]progresscell=/.test(window.location.search)),
+			showStartHere: (typeof window !== 'undefined' && /[?&]starthere=/.test(window.location.search)),
 			showPageControls: (typeof window !== 'undefined' && /[?&]pagecontrols=/.test(window.location.search)),
 			showPageLenses: (typeof window !== 'undefined' && /[?&]lenses=/.test(window.location.search)),
 			showStartCard: (typeof window !== 'undefined' && /[?&]startcard=/.test(window.location.search)),
