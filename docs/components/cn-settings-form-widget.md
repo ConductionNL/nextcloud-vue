@@ -30,8 +30,10 @@ A portal's "Gegevens van de portal" card, a client portal's name, domain and col
 | `columns` | 1 or 2 (default 2). Under 640px it is always one column. |
 | `saveLabel`, `savedText` | Button text (default "Save") and the note after a save (default "Saved."). |
 | `readOnly` | Disables every control and hides the save button. |
-| `fields[].key` | A top-level field of the object. The PATCH is per top-level field, so a dotted path is not supported. |
-| `fields[].type` | `text` (default), `textarea`, `select`, `switch`, `number`, `file`. |
+| `fields[].key` | A field of the object: a top-level name or a dot-path such as `authentication.registration.policy`. Nested leaves are written by re-reading the enclosing top-level object, merging the changed leaves in and sending ONE PATCH of that object. |
+| `save` | `{ url, method?, payload? }`: write through an app endpoint instead of the object. `url` and `payload` are templates with the tokens `{value}` (the changed value), `{field}` (its path), `{changes}` (the changed values as a nested object) and `{object.<path>}` (a field of the current object). `method` is `PUT`, `POST` or `PATCH` (default `PATCH`); `payload` defaults to `{changes}`. A string that is exactly one token keeps the value's type. The stored value is still read from the object by path. |
+| `fields[].type` | `text` (default), `textarea`, `select`, `switch`, `number`, `file`, `chips`. A `chips` field is an array of strings edited with the chips widget (`options`, `pattern`, `patternMessage`, `lowercase`, `addLabel`, `confirmLabel`, `removeLabel`, `minItems`, `required`, `minItemsMessage`); it is part of the form's one Save and its changed-fields diff, nothing is written when a chip is added or removed. A save under `minItems` is refused before any write. |
+| `fields[].default` | Shown when the object holds no value for the field and written by the next Save (the stored value is the baseline, so a default that was never saved counts as a change). Arrays for `chips`. |
 | `fields[].label`, `hint`, `placeholder` | Texts, translated through `cnTranslate`. |
 | `fields[].options` | For `select`: `[{ value, label }]` or plain strings. |
 | `fields[].required`, `pattern`, `patternMessage`, `min`, `max` | Checked before any request. |
