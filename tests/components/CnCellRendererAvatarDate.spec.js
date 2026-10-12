@@ -136,3 +136,26 @@ describe('CnCellRenderer date widget', () => {
 		expect(mount(CnCellRenderer, { propsData: { value: 'not a date', widget: 'date' } }).find('time').exists()).toBe(false)
 	})
 })
+
+describe('CnCellRenderer avatar widget secondary line', () => {
+	it('draws the column secondary under the name, inside the avatar', () => {
+		const wrapper = mount(CnCellRenderer, { propsData: { value: 'Pieter de Vries', widget: 'avatar', secondary: 'pieter@example.nl' } })
+		const text = wrapper.find('.cn-cell-renderer__avatar-text')
+		expect(text.find('.cn-cell-renderer__avatar-name').text()).toBe('Pieter de Vries')
+		expect(text.find('.cn-cell-renderer__avatar-secondary').text()).toBe('pieter@example.nl')
+	})
+
+	it('draws no secondary line without one, and a size of 24 without the board look', () => {
+		const wrapper = mount(CnCellRenderer, { propsData: { value: 'Pieter de Vries', widget: 'avatar' } })
+		expect(wrapper.find('.cn-cell-renderer__avatar-secondary').exists()).toBe(false)
+		expect(wrapper.find('.cn-cell-renderer__avatar-initials').attributes('style')).toContain('width: 24px')
+	})
+
+	it('is 32px under the board look', () => {
+		const wrapper = mount(CnCellRenderer, {
+			propsData: { value: 'Pieter de Vries', widget: 'avatar' },
+			global: { provide: { cnLook: 'board' } },
+		})
+		expect(wrapper.find('.cn-cell-renderer__avatar-initials').attributes('style')).toContain('width: 32px')
+	})
+})
