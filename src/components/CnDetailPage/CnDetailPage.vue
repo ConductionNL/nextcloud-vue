@@ -379,7 +379,7 @@
 					:showDocumentation="showDocumentation && menuShowsHelpLinks"
 					:actionsMenuLabel="boardMenuLabel"
 					:variant="isBoard ? 'secondary' : undefined"
-					:hasPrimaryItems="headerMenuGroups.length > 0 || showMarkUnread"
+					:hasPrimaryItems="headerMenuGroups.length > 0 || showMarkUnread || showOpenSidebar"
 					:documentationUrl="documentationUrl"
 					:docsAnchor="resolvedPageId"
 					:documentationLabel="documentationLabel || undefined"
@@ -390,7 +390,7 @@
 					testidBase="cn-detail-page"
 					@refresh="onHeaderRefresh"
 					@requestFeature="onHeaderRequestFeature">
-					<template v-if="headerMenuGroups.length || showMarkUnread" #primary-items>
+					<template v-if="headerMenuGroups.length || showMarkUnread || showOpenSidebar" #primary-items>
 						<!-- One block per group. A page that groups nothing has
 						     a single captionless group, and renders exactly the
 						     flat list it always did. -->
@@ -448,6 +448,20 @@
 								<EyeOffOutline :size="20" />
 							</template>
 							{{ markUnreadLabel }}
+						</NcActionButton>
+						<!-- Board look: the sidebar's own open toggle is hidden (it sat
+						     over the header's last button, where the board draws none), so
+						     the menu opens it. -->
+						<NcActionButton
+							v-if="showOpenSidebar"
+							key="open-sidebar"
+							data-testid="cn-detail-page-open-sidebar"
+							:closeAfterClick="true"
+							@click="openSidebar">
+							<template #icon>
+								<DockRight :size="20" />
+							</template>
+							{{ openSidebarLabel }}
 						</NcActionButton>
 						<!-- Divides the page's own actions from the help links
 						     below. With the help links switched off there is
@@ -745,7 +759,7 @@
 				:layout="section.layout"
 				:editable="section.editable"
 				:columns="12"
-				:columnOpts="columnOpts"
+				:columnOpts="bodyColumnOpts"
 				class="cn-detail-page__grid"
 				@layoutChange="section.view ? onViewLayoutChange($event) : onBodyLayoutChange($event)">
 				<template #widget="{ item }">
@@ -1191,6 +1205,7 @@ import Check from 'vue-material-design-icons/Check.vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
+import DockRight from 'vue-material-design-icons/DockRight.vue'
 import EyeOffOutline from 'vue-material-design-icons/EyeOffOutline.vue'
 import FileQuestionOutline from 'vue-material-design-icons/FileQuestionOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
@@ -1294,6 +1309,35 @@ const DEFAULT_DETAIL_COLUMN_OPTS = Object.freeze({
 	layout: 'moveScale',
 	breakpointForWindow: false,
 })
+
+/**
+ * Where the default table stacks when a side column sits beside the body grid.
+ *
+ * The side column takes about 320px, so the grid it leaves is far narrower than
+ * the page: 790px at a 1100px window. Stacking that at 1000px made a row of
+ * small tiles (a KPI row of 5 or 6 stat tiles) impossible beside a side column.
+ * 1000px exists to keep a `gridWidth: 3` side PANEL inside the grid readable; a
+ * page with a real side column has no such panel, and 12 columns at 600px is
+ * still 50px a column, enough for a tile. Below 600px it stacks as before.
+ */
+const SIDE_COLUMN_STACK_WIDTH = 600
+
+/**
+ * Whether `opts` is the untouched default table, so a page that passed its own
+ * `columnOpts` keeps exactly what it asked for.
+ *
+ * @param {object|null} opts The `columnOpts` value.
+ * @return {boolean}
+ */
+function isDefaultColumnOpts(opts) {
+	const breakpoints = opts && opts.breakpoints
+	return !!opts
+		&& opts.columnMax === DEFAULT_DETAIL_COLUMN_OPTS.columnMax
+		&& Array.isArray(breakpoints)
+		&& breakpoints.length === 1
+		&& breakpoints[0].w === DEFAULT_DETAIL_COLUMN_OPTS.breakpoints[0].w
+		&& breakpoints[0].c === 1
+}
 
 /**
  * Event-bus channel a page-level refresh is announced on. The page's own
@@ -1411,6 +1455,7 @@ export default {
 		CnSummaryAggregates,
 		CnDetailHeaderChips,
 		CnFollowToggle,
+		DockRight,
 		EyeOffOutline,
 		CnRelatedCollections,
 		CnBodySections,
@@ -3336,6 +3381,20 @@ export default {
 		},
 
 		/**
+		 * The `columnOpts` the body grid gets: the default table stacks at 1000px
+		 * of grid width, or at 600px when a side column narrows the grid. An
+		 * explicit `columnOpts` prop is passed through untouched.
+		 *
+		 * @return {object|null} The column options.
+		 */
+		bodyColumnOpts() {
+			if (!this.showsSideColumn || !isDefaultColumnOpts(this.columnOpts)) {
+				return this.columnOpts
+			}
+			return { ...this.columnOpts, breakpoints: [{ w: SIDE_COLUMN_STACK_WIDTH, c: 1 }] }
+		},
+
+		/**
 		 * Whether the side column renders.
 		 *
 		 * @return {boolean} True when it has widgets and the body is showing.
@@ -3864,6 +3923,22 @@ export default {
 		showMarkUnread() {
 			return typeof this.resolvedSelf.unread === 'boolean'
 				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
+		},
+
+		/**
+		 * Whether the header menu offers "Open sidebar": the board look, where the
+		 * sidebar's own toggle is hidden, on a page whose sidebar is active and
+		 * closed.
+		 *
+		 * @return {boolean}
+		 */
+		showOpenSidebar() {
+			return this.isBoard && this.hasExternalSidebar && this.sidebarActive && this.objectSidebarState.open !== true
+		},
+
+		/** @return {string} Label of the Open sidebar entry. */
+		openSidebarLabel() {
+			return t('nextcloud-vue', 'Open sidebar')
 		},
 
 		/** @return {string} Label of the Mark as unread entry. */
@@ -4576,6 +4651,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Open the object sidebar through the shared channel.
+		 *
+		 * @return {void}
+		 */
+		openSidebar() {
+			if (this.objectSidebarState) {
+				this.objectSidebarState.open = true
+			}
+		},
+
 		/**
 		 * Start or finish arranging the chosen view. Finishing stores the
 		 * arrangement of every view the user moved, once.

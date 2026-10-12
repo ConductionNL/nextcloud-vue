@@ -5,9 +5,123 @@
 
 <template>
 	<div class="cn-field-list-widget" data-testid="cn-field-list-widget">
+		<div v-if="canAdd && addTrigger && addPlacement === 'header'" class="cn-field-list-widget__toolbar">
+			<NcButton
+				variant="secondary"
+				:disabled="busy !== ''"
+				data-testid="cn-field-list-open-add"
+				@click="adding = !adding">
+				+ {{ addLabel }}
+			</NcButton>
+		</div>
+		<form
+			v-if="canAdd && addTrigger && addPlacement === 'header' && adding"
+			class="cn-field-list-widget__add"
+			data-testid="cn-field-list-add"
+			@submit.prevent="add">
+			<div
+				v-for="field in addFields"
+				:key="field.key"
+				class="cn-field-list-widget__field"
+				:data-testid="`cn-field-list-input-${field.key}`">
+				<NcSelect
+					v-if="field.type === 'select'"
+					v-model="draft[field.key]"
+					:inputLabel="field.label"
+					:options="field.options"
+					:reduce="(option) => option.value"
+					:clearable="false"
+					label="label" />
+				<NcTextField
+					v-else
+					v-model="draft[field.key]"
+					:label="field.label"
+					:error="Boolean(errors[field.key])"
+					:helperText="errors[field.key] || ''" />
+			</div>
+			<NcButton type="submit"
+				variant="primary"
+				:disabled="busy !== ''"
+				data-testid="cn-field-list-submit">
+				{{ addLabel }}
+			</NcButton>
+		</form>
 		<p v-if="rows.length === 0" class="cn-field-list-widget__empty" data-testid="cn-field-list-empty">
 			{{ emptyLabel }}
 		</p>
+		<div v-else-if="isTable" class="cn-field-list-widget__table-wrap">
+			<table class="cn-field-list-widget__table" data-testid="cn-field-list-table">
+				<thead>
+					<tr>
+						<th
+							v-for="column in tableColumns"
+							:key="column.key"
+							scope="col"
+							class="cn-field-list-widget__th">
+							{{ column.header }}
+						</th>
+						<th v-if="hasMenu" scope="col" class="cn-field-list-widget__th cn-field-list-widget__th--menu">
+							<span class="cn-field-list-widget__sr">{{ tr('Actions') }}</span>
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr
+						v-for="row in rows"
+						:key="row.key"
+						class="cn-field-list-widget__tr"
+						:data-testid="`cn-field-list-row-${row.key}`">
+						<td
+							v-for="(column, index) in tableColumns"
+							:key="column.key"
+							class="cn-field-list-widget__td">
+							<CnStatusBadge
+								v-if="column.pill && row.cells[index].pill"
+								:label="row.cells[index].pill.label"
+								:variant="row.cells[index].pill.variant"
+								size="small" />
+							<strong v-else-if="column.strong">{{ row.cells[index].text }}</strong>
+							<template v-else>
+								{{ row.cells[index].text }}
+							</template>
+						</td>
+						<td v-if="hasMenu" class="cn-field-list-widget__td cn-field-list-widget__td--menu">
+							<NcActions
+								v-if="menuItems(row).length > 0"
+								:forceMenu="true"
+								:disabled="busy !== ''"
+								:ariaLabel="`${tr('More actions')}: ${row.title}`"
+								:data-testid="`cn-field-list-menu-${row.key}`">
+								<NcActionButton
+									v-for="item in menuItems(row)"
+									:key="item.id"
+									:data-testid="`cn-field-list-menu-${item.id}-${row.key}`"
+									@click="item.run">
+									{{ item.label }}
+								</NcActionButton>
+							</NcActions>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<div
+				v-for="row in bandRows"
+				:key="row.key"
+				class="cn-field-list-widget__band"
+				role="note"
+				:data-testid="`cn-field-list-band-${row.key}`">
+				<span class="cn-field-list-widget__band-text">{{ row.detail }}</span>
+				<NcButton
+					v-for="action in row.bandActions"
+					:key="action.id"
+					variant="secondary"
+					:disabled="busy !== ''"
+					:data-testid="`cn-field-list-band-action-${action.id}-${row.key}`"
+					@click="runAction(action, row)">
+					{{ action.label }}
+				</NcButton>
+			</div>
+		</div>
 		<ul v-else class="cn-field-list-widget__rows">
 			<li
 				v-for="row in rows"
@@ -55,8 +169,17 @@
 			{{ hint }}
 		</p>
 
+		<div v-if="canAdd && addTrigger && addPlacement !== 'header' && !adding" class="cn-field-list-widget__toolbar">
+			<NcButton
+				variant="secondary"
+				:disabled="busy !== ''"
+				data-testid="cn-field-list-open-add"
+				@click="adding = true">
+				+ {{ addLabel }}
+			</NcButton>
+		</div>
 		<form
-			v-if="canAdd"
+			v-if="canAdd && !(addTrigger && addPlacement === 'header') && (!addTrigger || adding)"
 			class="cn-field-list-widget__add"
 			data-testid="cn-field-list-add"
 			@submit.prevent="add">
@@ -95,7 +218,7 @@
 </template>
 
 <script>
-import { NcButton, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
@@ -125,7 +248,7 @@ import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 export default {
 	name: 'CnFieldListWidget',
 
-	components: { CnStatusBadge, NcButton, NcNoteCard, NcSelect, NcTextField },
+	components: { CnStatusBadge, NcActionButton, NcActions, NcButton, NcNoteCard, NcSelect, NcTextField },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -137,11 +260,13 @@ export default {
 		 *
 		 * - `field` (required) — the object field holding the array.
 		 * - `key` — the item field that identifies an entry (default: the item itself for strings).
-		 * - `row` — `{ title, titleFallback?, avatar?, meta?: [paths|{ path, map?, format? }], pill?: { path, map?, variantMap? }, aside?: { path, format?, prefix? }, detail?: { template, when? } }`.
+		 * - `row` — `{ title, titleFallback?, avatar?, meta?: [paths|{ path, map?, format? }], pill?: { path, map?, variantMap? }, aside?: { path, format?, prefix?, fallback? }, detail?: { template, when? } }`.
 		 * - `add` — `{ label?, fields: [{ key, label, type?: 'text'|'select', options?, required?, pattern?, patternMessage? }], unique?, defaults? }`.
 		 * - `remove` — `{ label? }`; omitted = no remove.
-		 * - `rowActions` — `[{ id, label, when?, request: { method?, url, payload? } }]`; tokens `@object.<field>`, `@objectId`, `@row.<field>`.
+		 * - `rowActions` — `[{ id, label, when?, placement?: 'band', request: { method?, url, payload? } }]`; tokens `@object.<field>`, `@objectId`, `@row.<field>`.
 		 * - `rowSource` — `{ url, path?, key }`: live per-row state merged by key.
+		 * - `variant: 'table'` + `columns` — `[{ header, path, map?, format?, strong?, pill?, variantMap? }]`: rows as a table; a per-row "..." menu holds the row actions and remove; `detail` lines become a warning band under the table, with the row actions that have `placement: 'band'`.
+		 * - `add.trigger: 'button'`, `add.placement: 'header' | 'footer'` — the add form opens from a button.
 		 * - `readOnly`, `hint`, `emptyText`.
 		 *
 		 * @type {object}
@@ -185,6 +310,8 @@ export default {
 			/** Live per-row state from `rowSource`, by key. */
 			live: {},
 			draft: {},
+			/** Whether the add form is open (only with `add.trigger: 'button'`). */
+			adding: false,
 			errors: {},
 			busy: '',
 			notice: '',
@@ -232,6 +359,7 @@ export default {
 					aside: spec.aside ? this.asideOf(entry, spec.aside) : '',
 					detail: spec.detail && this.matches(entry, spec.detail.when) ? this.fill(spec.detail.template, entry) : '',
 					actions: this.actionsFor(entry),
+					cells: this.isTable ? this.cellsOf(entry) : [],
 				}
 			})
 		},
@@ -267,6 +395,44 @@ export default {
 						typeof option === 'object' ? { value: option.value, label: this.tr(option.label || String(option.value)) } : { value: option, label: this.tr(String(option)) }
 					)),
 				}))
+		},
+
+		/** Whether the rows are drawn as a table (`variant: 'table'`). */
+		isTable() {
+			return this.content.variant === 'table' && this.tableColumns.length > 0
+		},
+
+		/**
+		 * The table columns, headers translated.
+		 *
+		 * @return {Array<object>}
+		 */
+		tableColumns() {
+			return (Array.isArray(this.content.columns) ? this.content.columns : [])
+				.filter((column) => column && column.path)
+				.map((column, index) => ({ ...column, key: `${column.path}-${index}`, header: this.tr(column.header || '') }))
+		},
+
+		/** Whether each row has a "more actions" menu (row actions not placed in the band, and remove). */
+		hasMenu() {
+			return this.isTable && !this.readOnly && (this.canRemove || this.rows.some((row) => this.menuItems(row).length > 0))
+		},
+
+		/** Rows with a detail line: in the table variant it is a warning band under the table. */
+		bandRows() {
+			return this.rows
+				.filter((row) => row.detail !== '')
+				.map((row) => ({ ...row, bandActions: row.actions.filter((action) => action.placement === 'band') }))
+		},
+
+		/** Whether the add form opens from a button (`add.trigger: 'button'`). */
+		addTrigger() {
+			return Boolean(this.content.add && this.content.add.trigger === 'button')
+		},
+
+		/** Where the add button sits: `header` (above the rows) or `footer` (default). */
+		addPlacement() {
+			return this.content.add && this.content.add.placement === 'header' ? 'header' : 'footer'
 		},
 
 		addLabel() {
@@ -313,6 +479,36 @@ export default {
 				return ''
 			}
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The cells of one table row, one per column.
+		 *
+		 * @param {object} entry The entry.
+		 * @return {Array<{text: string, pill: object|null}>}
+		 */
+		cellsOf(entry) {
+			return this.tableColumns.map((column) => ({
+				text: this.text(entry, column),
+				pill: column.pill ? this.pillOf(entry, column) : null,
+			}))
+		},
+
+		/**
+		 * The items of a row's menu in the table variant: the row actions not
+		 * placed in the band, then remove.
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<{id: string, label: string, run: Function}>}
+		 */
+		menuItems(row) {
+			const items = row.actions
+				.filter((action) => action.placement !== 'band')
+				.map((action) => ({ id: action.id, label: action.label, run: () => this.runAction(action, row) }))
+			if (this.canRemove) {
+				items.push({ id: 'remove', label: this.removeLabel, run: () => this.remove(row) })
+			}
+			return items
 		},
 
 		/**
@@ -375,7 +571,8 @@ export default {
 		asideOf(entry, spec) {
 			const value = this.text(entry, spec)
 			if (value === '') {
-				return ''
+				// No value: the optional `fallback` label, translated, instead of an empty aside.
+				return this.tr(spec.fallback)
 			}
 			return spec.prefix ? `${this.tr(spec.prefix)} ${value}` : value
 		},
@@ -598,6 +795,7 @@ export default {
 			}, '*')
 			if (saved) {
 				this.resetDraft()
+				this.adding = false
 				this.loadLive()
 			}
 		},
@@ -742,5 +940,69 @@ export default {
 
 .cn-field-list-widget__add > button {
 	flex: 0 0 auto;
+}
+
+.cn-field-list-widget__toolbar {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.cn-field-list-widget__table-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	overflow-x: auto;
+}
+
+.cn-field-list-widget__table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.cn-field-list-widget__th {
+	padding: 8px 12px;
+	text-align: start;
+	font-size: 13px;
+	font-weight: 600;
+	white-space: nowrap;
+	color: var(--color-text-maxcontrast);
+	background: var(--color-background-hover);
+}
+
+.cn-field-list-widget__th--menu,
+.cn-field-list-widget__td--menu {
+	width: 1%;
+	text-align: end;
+}
+
+.cn-field-list-widget__tr {
+	border-top: 1px solid var(--cn-board-hairline, var(--color-border));
+}
+
+.cn-field-list-widget__td {
+	padding: 10px 12px;
+	vertical-align: middle;
+	overflow-wrap: anywhere;
+}
+
+.cn-field-list-widget__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+}
+
+.cn-field-list-widget__band {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 12px;
+	padding: 12px 14px;
+	border: 1px solid var(--color-warning);
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--color-warning) 14%, var(--color-main-background));
+	font-size: 14px;
 }
 </style>

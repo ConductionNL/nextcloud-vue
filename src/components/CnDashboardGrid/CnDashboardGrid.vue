@@ -424,14 +424,14 @@ export default {
 		 * anything whose height is whatever it turned out to have.
 		 *
 		 * @param {object} item the layout item.
-		 * @return {string|undefined} `'true'`, a row minimum as a string, or undefined.
+		 * @return {string|undefined} `'true'`, a row maximum as a string, or undefined.
 		 */
 		sizeToContentAttr(item) {
 			const v = item && item.sizeToContent
 			if (v === true) {
 				return 'true'
 			}
-			// A number is GridStack's "size to content, but never below N rows".
+			// A number is GridStack's "size to content, but never taller than N rows" (a maximum).
 			if (Number.isFinite(v) && v > 0) {
 				return String(v)
 			}

@@ -19,6 +19,10 @@
 				hideHeader
 				borderless />
 		</div>
+		<!-- A list widget whose columns are wider than its card (?narrowtable=1&list=1). -->
+		<div v-if="list" class="narrow-table__tile narrow-table__tile--list" data-testid="narrow-list-widget">
+			<CnObjectListWidget :content="listContent" />
+		</div>
 		<div class="narrow-table__tile" data-testid="narrow-table-empty">
 			<CnWidgetObjectTable
 				:rows="[]"
@@ -32,6 +36,7 @@
 </template>
 
 <script>
+import CnObjectListWidget from '../../src/components/CnObjectListWidget/CnObjectListWidget.vue'
 import CnWidgetObjectTable from '../../src/components/CnWidgetObjectTable/CnWidgetObjectTable.vue'
 
 import '../../src/css/look-board-index.css'
@@ -40,7 +45,7 @@ const board = typeof window !== 'undefined' && /[?&]board=1/.test(window.locatio
 
 export default {
 	name: 'NarrowTableHarness',
-	components: { CnWidgetObjectTable },
+	components: { CnObjectListWidget, CnWidgetObjectTable },
 
 	provide() {
 		return { cnLook: board ? 'board' : 'nextcloud' }
@@ -48,6 +53,19 @@ export default {
 
 	data() {
 		return {
+			list: typeof window !== 'undefined' && /[?&]list=1/.test(window.location.search),
+			listContent: {
+				register: 'r',
+				schema: 's',
+				limit: 5,
+				columns: [
+					{ key: 'name', label: 'Name' },
+					{ key: 'email', label: 'Email' },
+					{ key: 'organisation', label: 'Organisation' },
+					{ key: 'updated', label: 'Updated' },
+				],
+			},
+
 			plain: typeof window !== 'undefined' && /[?&]plain=1/.test(window.location.search),
 			board,
 			columns: board

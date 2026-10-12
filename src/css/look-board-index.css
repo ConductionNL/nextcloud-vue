@@ -249,7 +249,8 @@
 }
 
 /* Filter: a labelled secondary button, 36px, radius 8, with the active count. */
-.cn-look-board .cn-actions-bar__filter-button.button-vue {
+.cn-look-board .cn-actions-bar__filter-button.button-vue,
+.cn-look-board .cn-actions-bar__filter-menu .button-vue {
 	min-height: 36px;
 	height: 36px;
 	border-radius: 8px;
@@ -499,11 +500,16 @@
 	max-width: calc(100% - 26px);
 }
 
-/* The selection column: 28px, 18px checkboxes. */
+/* The selection column: 18px checkboxes, 28px of content after 16px of padding.
+   The box model is set with `!important` and the widths include the padding:
+   Nextcloud's server.css sets `box-sizing: border-box` on everything under
+   `#content[class*="app-"]`, an id selector no class rule outranks, so a plain
+   `content-box` here was ignored and the cell left 12px for the checkbox (the
+   header's checkbox showed as a stray bracket). */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--checkbox {
-	box-sizing: content-box;
-	width: 28px;
-	min-width: 28px;
+	box-sizing: border-box !important;
+	width: 44px;
+	min-width: 44px;
 	padding-inline: 16px 0;
 	text-align: start;
 }
@@ -551,6 +557,29 @@
 	font-size: 13px;
 }
 
+/* An avatar in the title column (PtAccounts): a 32px chip circle, 10px before
+   the name, the e-mail under the name beside it. The name keeps the title's
+   weight and size, and its underline: an inline-flex box is atomic, so the
+   cell's own underline does not reach it. */
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar {
+	gap: 10px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials {
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 12px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title .cn-cell-renderer__avatar-name {
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.cn-look-board .cn-table-container--board.cn-table-container--title-plain .cn-data-table td.cn-table-col--title .cn-cell-renderer__avatar-name {
+	text-decoration: none;
+}
+
 /* A status pill: 3px 10px, radius 12, 13px weight 600. The colours stay the
    status colour map's. */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-status-badge {
@@ -561,10 +590,12 @@
 	line-height: 1.4;
 }
 
-/* The row menu column holds one 34px button. */
+/* The row menu column holds one 34px button between 16px of padding, so 66px
+   border to border (see the selection column for why the box model is forced). */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--actions {
-	width: 34px;
-	min-width: 0;
+	box-sizing: border-box !important;
+	width: 66px;
+	min-width: 66px;
 	padding-inline: 16px;
 	text-align: end;
 }

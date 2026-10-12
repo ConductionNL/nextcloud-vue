@@ -452,6 +452,7 @@
 			:layout="section.layout"
 			:editable="section.editable"
 			:columns="columns"
+			:columnOpts="gridColumnOpts"
 			:cellHeight="cellHeight"
 			:margin="gridMargin"
 			:float="gridFloat"
@@ -933,7 +934,8 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
-import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
+import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -2083,6 +2085,22 @@ export default {
 		},
 
 		/**
+		 * The responsive columns of the grid. Under the board look a phone gets
+		 * one column: below 640px the widgets stack in reading order (top to
+		 * bottom, then left to right) instead of squeezing six columns into
+		 * 150px. Without the board look the grid keeps its fixed columns.
+		 *
+		 * @return {object|null} GridStack `columnOpts`, or null.
+		 * @spec openspec/changes/screens-dashboard-phone/specs/dashboard-phone/spec.md#requirement-a-board-dashboard-stacks-on-a-phone
+		 */
+		gridColumnOpts() {
+			if (!this.isBoardLook) {
+				return null
+			}
+			return { columnMax: this.columns, breakpoints: [{ w: 640, c: 1 }], layout: 'list', breakpointForWindow: true }
+		},
+
+		/**
 		 * The layout this page renders: the user's arrangement when they have
 		 * one, the manifest otherwise.
 		 *
@@ -2256,6 +2274,10 @@ export default {
 			const items = []
 			for (const id of ids) {
 				if (this.getWidgetDef(id) || this.hasWidgetSlot(id)) {
+					// A tile a page control hides surrenders its cell.
+					if (!this.gridEditable && this.isHiddenByWorkspace(id)) {
+						continue
+					}
 					items.push({ widgetId: id })
 				} else if (process.env.NODE_ENV !== 'production') {
 					// eslint-disable-next-line no-console
@@ -3401,7 +3423,8 @@ export default {
 			const layout = content.layout || props.layout || ''
 			const title = layout === 'attention' ? (content.title || props.title || '') : ''
 			return {
-				text: content.text || props.text || title || '',
+				// A banner with only a bold `lead` has words to show too.
+				text: content.text || props.text || content.lead || props.lead || title || '',
 				visibleWhen: (def && def.visibleWhen) || content.visibleWhen || props.visibleWhen || null,
 				layout,
 			}
@@ -3435,11 +3458,33 @@ export default {
 			if (!visibleWhen) {
 				return false
 			}
+			// A workspace condition (a page control's choice) is answered at
+			// once from the reactive bag; nothing is fetched for it.
+			if (isWorkspaceCondition(visibleWhen)) {
+				return !evaluateWorkspaceCondition(visibleWhen, this.workspaceContext)
+			}
 			const outcome = this.widgetConditionOutcome[item.widgetId]
 			if (outcome && outcome.failed === true && layout === 'attention' && this.isBannerDef(def)) {
 				return false
 			}
 			return !outcome || outcome.met !== true
+		},
+
+		/**
+		 * Whether a page control (a workspace condition on `visibleWhen`)
+		 * hides this widget right now. Other conditions are not looked at.
+		 *
+		 * @param {string} widgetId The widget id.
+		 * @return {boolean} True when the widget must not draw.
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-widget-can-be-shown-by-a-workspace-value
+		 */
+		isHiddenByWorkspace(widgetId) {
+			const def = this.getWidgetDef(widgetId)
+			if (!def || !def.type) {
+				return false
+			}
+			const { visibleWhen } = this.widgetDisplayConfig(def)
+			return isWorkspaceCondition(visibleWhen) && !evaluateWorkspaceCondition(visibleWhen, this.workspaceContext)
 		},
 
 		/**
@@ -3464,7 +3509,8 @@ export default {
 		async evaluateWidgetConditions() {
 			const defs = [...(this.widgets || []), ...this.normalizedViews.flatMap((view) => view.widgets)]
 			const conditional = defs.filter((def) => def && def.id && def.type
-				&& this.widgetDisplayConfig(def).visibleWhen)
+				&& this.widgetDisplayConfig(def).visibleWhen
+				&& !isWorkspaceCondition(this.widgetDisplayConfig(def).visibleWhen))
 			// Skip when the CONDITIONAL SET is unchanged: the deep `widgets`
 			// watch fires on any def edit, but only an added/removed/edited
 			// predicate warrants refetching every conditional endpoint.
@@ -3484,8 +3530,13 @@ export default {
 				const cond = this.widgetDisplayConfig(def).visibleWhen
 				let outcome
 				try {
-					const value = await readVisibleWhenValue(cond)
+					// `sink` keeps the first row of a source query, for a banner that names it.
+					const sink = {}
+					const value = await readVisibleWhenValue(cond, undefined, sink)
 					outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
+					if (sink.row) {
+						outcome.row = sink.row
+					}
 				} catch (error) {
 					// Fail-safe: not met. But the failure is kept, and said
 					// out loud: a failed count and "nothing to report" look
@@ -3985,6 +4036,11 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
 			if (value === undefined || value === null) {
+				// A banner that names no title draws no title row: it used to show
+				// its widget id ("attention-first") as the card title.
+				if (this.isBannerDef(def) && !item.customTitle && !def?.customTitle && !def?.title) {
+					return false
+				}
 				return !this.isCardWidget(item)
 			}
 			return value !== false
@@ -4093,7 +4149,12 @@ export default {
 				return item.headerLink
 			}
 			const def = this.getWidgetDef(item.widgetId)
-			return (def?.headerLink && typeof def.headerLink === 'object') ? def.headerLink : null
+			if (def?.headerLink && typeof def.headerLink === 'object') {
+				return def.headerLink
+			}
+			// Last, what the widget's own content asks for (`headerLink`, or the
+			// `viewAllRoute` / `viewAllLabel` of the tasks widget).
+			return contentHeaderLink(item?.content) || contentHeaderLink(def?.content)
 		},
 
 		/**
@@ -4841,6 +4902,18 @@ export default {
 
 .cn-dashboard-page__content-item {
 	width: 100%;
+}
+/* On a phone (screens-dashboard-phone) the touch targets of a board dashboard
+   are 44px: the widget Actions menu and the KPI tiles. */
+@media (max-width: 640px) {
+	.cn-dashboard-page--board :deep(.cn-widget-wrapper__actions .action-item__menutoggle),
+	.cn-dashboard-page--board :deep(.cn-widget-wrapper__actions .button-vue) {
+		min-height: 44px;
+	}
+
+	.cn-dashboard-page--board .cn-dashboard-page__kpi-cell {
+		min-height: 44px;
+	}
 }
 </style>
 

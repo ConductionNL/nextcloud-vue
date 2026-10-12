@@ -140,7 +140,8 @@ export default {
 | `diagnostics` | `Function` | `null` | Listener for diagnostics: called with one report per request, render error, unknown component and binding problem (`{ kind, at, pageId, ... }`), and provided as `cnDiagnostics`. Without it no report is built. See [Diagnostics channel](../utilities/diagnostics.md). |
 | `notificationLabels` (`notification-labels`) | `Object` | `{}` | Labels for the app's notification rules in the user-settings notification pane, keyed `<schema>.<key>` or `<key>`. Values are translated strings or per-locale maps. A rule without a label reads as its key split into words, never as the raw key. Provided as `cnNotificationLabels`. |
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
-| `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')` so the title follows the user's locale. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
+| `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to "User settings" from the library catalogue ("Persoonlijke instellingen" in Dutch), then the app's `translate`. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
+| `userSettingsSections` | `Array` | `null` | The sections of the user-settings modal, in the order they are drawn: `app` (the app's own slot content), `notifications`, `credentials`, `walkthrough`, `integrations`. A key left out is not drawn, so `['app', 'credentials', 'walkthrough']` hides the notifications pane and the integrations section. The app's slot content always renders; without `app` it comes first. `null` keeps the defaults: every section after `#user-settings-sections` content, or only the `#user-settings` content and the integrations section. See [User-settings modal](#user-settings-modal). |
 | `adminSettingsTitle` | `String` | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
 | `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
 | `brand` | `Object \| null` | `null` | The brand block (`{ logo?, emblem?, name?, caption?, alt?, placement? }`) the board look draws at the start of Nextcloud's header. Empty falls back to the manifest's `nav.brand`. |
@@ -181,26 +182,49 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
 | `sidebar` | — | The resolved `cnPageSidebarComponent` when set, otherwise empty | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. The slot's **default content** is driven by the `cnPageSidebarComponent` inject — when the current page declares a `sidebarComponent` registry name, the resolved component renders here unless the consumer supplies a `#sidebar` slot override (override wins). See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility) and [Per-page sidebar component](./cn-page-renderer.md#per-page-sidebar-component). |
 | `footer` | — | — | Mounted inside `NcAppContent`, after the default slot |
-| `user-settings` | — | Notification preferences, plus a "Restart walkthrough" section when the manifest declares an enabled tour | `NcAppSettingsSection` children rendered inside the host `NcAppSettingsDialog`. The dialog is always mounted; CnAppNav opens it via `cnOpenUserSettings` (manifest items with `action: "user-settings"`). Supplying this slot replaces the default content (including the walkthrough section). |
+| `user-settings-sections` | — | — | The app's own `NcAppSettingsSection` children, ADDED to the library's default sections (notifications, credentials, walkthrough replay, integrations). Place, order or hide the defaults with `userSettingsSections`. |
+| `user-settings` | — | — | The older slot: the app's own `NcAppSettingsSection` children, REPLACING the default sections. Filling it draws only this content and the integrations section, unless `userSettingsSections` names more. Prefer `user-settings-sections`. |
 
 ## User-settings modal
 
 CnAppRoot always mounts a single `NcAppSettingsDialog` and exposes a `cnOpenUserSettings` provide-injected method any descendant can call to open it. The default trigger is [CnAppNav](./cn-app-nav.md) — manifest entries declaring `action: "user-settings"` are wired to this method automatically.
 
+The modal draws five kinds of section, in this order by default:
+
+| Key | Section | Drawn when |
+|---|---|---|
+| `app` | The app's own sections, from `#user-settings-sections` (and the older `#user-settings`) | the app fills a slot |
+| `notifications` | The notification-preferences pane ([CnNotificationPreferences](./cn-notification-preferences.md)) | always |
+| `credentials` | The personal credential broker ([CnCredentials](./cn-credentials.md)) | always |
+| `walkthrough` | A **Walkthrough** section with a **Restart walkthrough** button (ADR-043): it closes the dialog and re-fires the tour from step 1 | the manifest declares an enabled `walkthrough` with at least one tour |
+| `integrations` | The links that leave this app for another one (ADR-110) | the manifest declares `section: "integrations"` menu entries |
+
+An app adds its own sections through `#user-settings-sections` and keeps every default:
+
 ```vue {static}
 <CnAppRoot :manifest="manifest" app-id="decidesk">
-  <template #user-settings>
+  <template #user-settings-sections>
     <NcAppSettingsSection id="general" :name="t('decidesk', 'General')">
       <p>{{ t('decidesk', 'Personal preferences for Decidiq.') }}</p>
-    </NcAppSettingsSection>
-    <NcAppSettingsSection id="notifications" :name="t('decidesk', 'Notifications')">
-      <!-- toggles, selects, etc. -->
     </NcAppSettingsSection>
   </template>
 </CnAppRoot>
 ```
 
-When no `#user-settings` slot is supplied, the modal renders the built-in notification-preferences pane. If the app's manifest declares an enabled `walkthrough` with at least one tour (ADR-043), a **Walkthrough** section is appended with a **Restart walkthrough** button — a self-service way to re-run the product tour. Clicking it closes the settings dialog and re-fires the tour from step 1. The section is strictly gated on `walkthroughEnabled`, so apps without a walkthrough never show it. Supplying your own `#user-settings` slot replaces this default content entirely.
+To place, order or hide the defaults, pass `userSettingsSections`. A board that draws the app's sections, then credentials and the walkthrough, and no notifications pane or integrations:
+
+```vue {static}
+<CnAppRoot :manifest="manifest" app-id="decidesk"
+  :user-settings-sections="['app', 'credentials', 'walkthrough']">
+  <template #user-settings-sections>
+    <!-- the app's own NcAppSettingsSection children -->
+  </template>
+</CnAppRoot>
+```
+
+The older `#user-settings` slot keeps what it always did: it replaces the defaults, so only its content and the integrations section are drawn. An app on that slot that draws credentials or the walkthrough by hand can drop its copies and pass `userSettingsSections` (for example `['app', 'credentials', 'walkthrough']`), or move to `#user-settings-sections`.
+
+The dialog's title and the names of the sections the library draws come from the library catalogue first ("Persoonlijke instellingen", "Inloggegevens", "Rondleiding" in Dutch), then from the app's `translate`.
 
 ## Hoisted index sidebar
 

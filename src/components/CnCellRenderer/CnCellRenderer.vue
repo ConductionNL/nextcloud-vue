@@ -113,7 +113,14 @@
 					class="cn-cell-renderer__avatar-initials"
 					:style="{ width: avatarSize + 'px', height: avatarSize + 'px' }"
 					aria-hidden="true">{{ avatarInitials }}</span>
-				<span class="cn-cell-renderer__avatar-name" :title="avatarName || avatarUserId">{{ avatarName || avatarUserId }}</span>
+				<span class="cn-cell-renderer__avatar-text">
+					<span class="cn-cell-renderer__avatar-name" :title="avatarName || avatarUserId">{{ avatarName || avatarUserId }}</span>
+					<!-- The column's secondary line (e-mail), under the name and beside the picture. -->
+					<span
+						v-if="secondary"
+						class="cn-cell-renderer__avatar-secondary"
+						data-testid="cn-cell-secondary">{{ secondary }}</span>
+				</span>
 			</span>
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
@@ -407,6 +414,16 @@ export default {
 		},
 
 		/**
+		 * The column's secondary line (a muted second line under the value).
+		 * The `avatar` widget draws it under the name, beside the picture;
+		 * other cells ignore it, because the table draws it under the cell.
+		 */
+		secondary: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Optional declarative cell-format spec — a no-code alternative to a
 		 * registry `formatter`. Recognised `style` values:
 		 *
@@ -560,14 +577,15 @@ export default {
 		},
 
 		/**
-		 * `avatar` widget: the picture size in pixels (`widgetProps.size`, default 24).
+		 * `avatar` widget: the picture size in pixels (`widgetProps.size`, default 24,
+		 * 32 under the board look).
 		 *
 		 * @return {number}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
 		avatarSize() {
 			const size = Number(this.widgetProps && this.widgetProps.size)
-			return Number.isFinite(size) && size > 0 ? size : 24
+			return Number.isFinite(size) && size > 0 ? size : (this.isBoardLook ? 32 : 24)
 		},
 
 		/**
@@ -882,11 +900,14 @@ export default {
 		 * a `{ value: variant }` map (e.g. `{ placed: 'primary', delivered: 'success' }`)
 		 * that CnStatusBadge resolves per label. Null when unset (falls back to
 		 * `badgeVariant`). Lets a manifest colour a status column without code.
+		 * A column-level `colorMap` (it reaches the cell as the property's
+		 * `colorMap`) works too, so `{ widget: 'badge', colorMap }` and
+		 * `{ widget: 'badge', widgetProps: { colorMap } }` read the same.
 		 *
 		 * @return {object|null}
 		 */
 		badgeColorMap() {
-			return (this.widgetProps && this.widgetProps.colorMap) || null
+			return (this.widgetProps && this.widgetProps.colorMap) || this.enumColorMap || null
 		},
 
 		/**
@@ -1316,10 +1337,32 @@ export default {
 	line-height: 1;
 }
 
+.cn-cell-renderer__avatar-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
 .cn-cell-renderer__avatar-name {
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	white-space: nowrap;
+	/* The name is the cell's text: it keeps the weight, size and colour the
+	   cell sets, as a plain value does. */
+	font: inherit;
+	color: inherit;
+}
+
+.cn-cell-renderer__avatar-secondary {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	font-weight: 400;
+	line-height: 1.35;
+	text-overflow: ellipsis;
+	text-decoration: none;
 	white-space: nowrap;
 }
 

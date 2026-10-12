@@ -151,6 +151,8 @@
 						:sortKey="localSort.field || null"
 						:sortOrder="localSort.dir || 'asc'"
 						borderless
+						:fitWidth="fitWidthActive"
+						:fixedLayout="fixedLayoutActive"
 						:hideHeader="content.hideHeader === true"
 						@rowClick="onRowClick"
 						@rowAuxClick="onRowAuxClick"
@@ -173,6 +175,8 @@
 					:sortKey="localSort.field || null"
 					:sortOrder="localSort.dir || 'asc'"
 					borderless
+					:fitWidth="fitWidthActive"
+					:fixedLayout="fixedLayoutActive"
 					:hideHeader="content.hideHeader === true"
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
@@ -448,6 +452,15 @@ export default {
 			page: 1,
 			/** Rows that fit the host cell; null = unconstrained (dashboards). */
 			fitRows: null,
+			/**
+			 * How far the table has been squeezed to the widget's width, so the
+			 * card never scrolls sideways: 0 = its own auto layout, 1 = one column
+			 * takes what is left and is cut with an ellipsis while the rest keep
+			 * their content on one line, 2 = a fixed layout, every column an equal
+			 * share with its text wrapped. Each step is taken only while the table
+			 * still scrolls sideways. `content.fitWidth` forces stage 1 on or off.
+			 */
+			fitStage: 0,
 			/** Whether the create dialog is open. */
 			showCreate: false,
 			/**
@@ -480,6 +493,27 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the table fits the widget's width (stage 1): `content.fitWidth`
+		 * when it says, else once the columns were measured not to fit.
+		 *
+		 * @return {boolean}
+		 */
+		fitWidthActive() {
+			const forced = this.content?.fitWidth
+			return typeof forced === 'boolean' ? forced : this.fitStage === 1
+		},
+
+		/**
+		 * Whether the table takes a fixed layout, the last resort when even the
+		 * fitted table is wider than the widget (not with `content.fitWidth` set).
+		 *
+		 * @return {boolean}
+		 */
+		fixedLayoutActive() {
+			return typeof this.content?.fitWidth !== 'boolean' && this.fitStage >= 2
+		},
+
 		/**
 		 * The unwrapped detail-page object context for token resolution, or null
 		 * on surfaces (dashboards) that don't provide one.
@@ -619,7 +653,7 @@ export default {
 				// `secondary` (a second, muted line under the cell) rides
 				// along too: the table draws it, and dropping it here took the
 				// list rows' second line away (zuiddrecht-pixel-gaps-3).
-				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary']) {
+				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow']) {
 					if (c[k] !== undefined) {
 						out[k] = c[k]
 					}
@@ -1165,6 +1199,12 @@ export default {
 	mounted() {
 		this.fetchRows()
 		this.loadHeadingsIfNeeded()
+		// A table wider than the widget fits its columns to the width instead of
+		// scrolling sideways (no inner scrollbars).
+		if (typeof ResizeObserver !== 'undefined') {
+			this._widthObserver = new ResizeObserver(() => this.measureWidthFit())
+			this._widthObserver.observe(this.$el)
+		}
 		// Re-read on a page-level refresh. This list fetches its own rows from
 		// OpenRegister and subscribed to nothing, so after a write elsewhere on
 		// the page it went on rendering the result set it fetched on mount —
@@ -1202,6 +1242,9 @@ export default {
 		}
 		if (this._fitObserver) {
 			this._fitObserver.disconnect()
+		}
+		if (this._widthObserver) {
+			this._widthObserver.disconnect()
 		}
 	},
 
@@ -1277,7 +1320,10 @@ export default {
 				const res = await axios.get(url, { params })
 				this.rows = (res && res.data && res.data.results) || []
 				this.total = (res && res.data && typeof res.data.total === 'number') ? res.data.total : this.rows.length
-				this.$nextTick(() => this.measureFit())
+				this.$nextTick(() => {
+					this.measureFit()
+					this.measureWidthFit()
+				})
 			} catch (e) {
 				// Keep the raw message OUT of the template — log it for
 				// debugging, surface only the quiet `loadErrorLabel` line.
@@ -1288,6 +1334,27 @@ export default {
 				this.total = 0
 			} finally {
 				this.loading = false
+			}
+		},
+
+		/**
+		 * Squeeze the table to the widget's width while it scrolls sideways: its
+		 * `.cn-data-table__scroll` wrapper is wider than it is visible. First the
+		 * fit (stage 1), then, if that is still too wide, a fixed layout
+		 * (stage 2). It never goes back (a squeezed table does not overflow, so
+		 * there is nothing to measure to relax it). No-op when `content.fitWidth`
+		 * is set.
+		 *
+		 * @return {void}
+		 */
+		measureWidthFit() {
+			if (this.fitStage >= 2 || typeof this.content?.fitWidth === 'boolean') {
+				return
+			}
+			const scroller = this.$el && this.$el.querySelector ? this.$el.querySelector('.cn-data-table__scroll') : null
+			if (scroller && scroller.scrollWidth > scroller.clientWidth + 1) {
+				this.fitStage += 1
+				this.$nextTick(() => this.measureWidthFit())
 			}
 		},
 

@@ -49,7 +49,7 @@ import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
 
 /** Supported visibleWhen comparison operators. */
-export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty']
+export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty', 'in']
 
 /**
  * Read a dot-path off an object (`'a.b.c'`); the object itself when no
@@ -93,6 +93,12 @@ export function compareVisibleWhen(actual, op, expected, ctx) {
 	// The shared @-token grammar, so a condition can name the READER (`@me`)
 	// rather than a literal only the server knows.
 	const right = resolveFilterValue(expected, ctx || {})
+	// `in` holds when the left-hand value is one of the listed values
+	// (screens-page-lenses: a widget shown under several chips).
+	if (operator === 'in') {
+		const list = Array.isArray(right) ? right : [right]
+		return list.some((entry) => entry === actual || String(entry) === String(actual))
+	}
 	if (operator === 'eq' || operator === 'neq') {
 		const equal = actual === right || String(actual) === String(right)
 		return operator === 'eq' ? equal : !equal
@@ -115,16 +121,52 @@ export function compareVisibleWhen(actual, op, expected, ctx) {
 }
 
 /**
+ * Whether a condition reads the page workspace context (`workspace: "<key>"`).
+ * Such a condition is answered synchronously from the reactive bag, so a
+ * widget appears and disappears the moment a page control writes its key
+ * (screens-page-lenses). A condition that also names an endpoint or a source
+ * is not a workspace condition.
+ *
+ * @param {object|null} cond The visibleWhen condition.
+ * @return {boolean} True for a workspace-mode condition.
+ * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-widget-can-be-shown-by-a-workspace-value
+ */
+export function isWorkspaceCondition(cond) {
+	return Boolean(cond) && typeof cond === 'object' && typeof cond.workspace === 'string' && cond.workspace !== ''
+		&& !cond.endpoint && !cond.source
+}
+
+/**
+ * Evaluate a workspace-mode condition against the workspace bag. No fetch.
+ * A key nobody wrote is unset, so only `empty` and `neq` hold for it.
+ *
+ * @param {{workspace: string, op?: string, value?: unknown}} cond The condition.
+ * @param {object} [workspace] The plain workspace bag.
+ * @return {boolean} Whether the guarded element shows.
+ * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-widget-can-be-shown-by-a-workspace-value
+ */
+export function evaluateWorkspaceCondition(cond, workspace) {
+	const bag = workspace && typeof workspace === 'object' ? workspace : {}
+	return compareVisibleWhen(bag[cond.workspace], cond.op || 'eq', cond.value, { workspace: bag })
+}
+
+/**
  * Resolve the condition's left-hand value from its endpoint / OpenRegister
  * source / local object context (see the module docblock for the three
  * modes). Throws on unusable conditions and failed fetches — callers that
  * want the fail-safe boolean use {@link evaluateVisibleWhen}.
  *
- * @param {{endpoint?: string, source?: {register: string, schema: string, filter?: object}, field?: string}} cond The visibleWhen condition.
+ * A `source` may carry `order` (`{ field: "asc" | "desc" }`), so "the first
+ * row" is the first of an ordered query. A caller that wants that row, not
+ * just the value, passes `sink`: the first result is written to `sink.row`.
+ *
+ * @param {{endpoint?: string, source?: {register: string, schema: string, filter?: object, order?: object}, field?: string}} cond The visibleWhen condition.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
+ * @param {{row?: object}} [sink] Receives the first result of a `source` query as `row`.
  * @return {Promise<unknown>} The value `field` points at.
+ * @spec openspec/changes/screens-start-here-banner/specs/start-here-banner/spec.md#requirement-a-banner-can-name-the-first-row-of-a-query
  */
-export async function readVisibleWhenValue(cond, ctx) {
+export async function readVisibleWhenValue(cond, ctx, sink) {
 	if (cond.endpoint) {
 		const response = await fetch(prefixUrl(cond.endpoint), { headers: buildHeaders() })
 		if (!response.ok) {
@@ -136,7 +178,11 @@ export async function readVisibleWhenValue(cond, ctx) {
 	const src = cond.source
 	if (src && src.register && src.schema) {
 		const filter = resolveFilterTokens(src.filter || {}, ctx)
-		const qs = buildQueryString({ ...filter, _limit: 1 })
+		const order = {}
+		for (const [field, dir] of Object.entries(src.order && typeof src.order === 'object' ? src.order : {})) {
+			order[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'
+		}
+		const qs = buildQueryString({ ...filter, ...order, _limit: 1 })
 		const url = prefixUrl(`/apps/openregister/api/objects/${src.register}/${src.schema}${qs}`)
 		const response = await fetch(url, { headers: buildHeaders() })
 		if (!response.ok) {
@@ -147,6 +193,9 @@ export async function readVisibleWhenValue(cond, ctx) {
 			return data.total ?? (Array.isArray(data.results) ? data.results.length : 0)
 		}
 		const first = Array.isArray(data.results) ? data.results[0] : data
+		if (sink && typeof sink === 'object') {
+			sink.row = first && typeof first === 'object' ? first : undefined
+		}
 		return readVisibleWhenPath(first, cond.field)
 	}
 	// Local mode (Wave 3): evaluate against the caller's object context.
@@ -184,6 +233,9 @@ export async function evaluateVisibleWhen(cond, ctx) {
 		} catch {
 			return false
 		}
+	}
+	if (isWorkspaceCondition(cond)) {
+		return evaluateWorkspaceCondition(cond, ctx && ctx.workspace)
 	}
 	try {
 		// `appInstalled` is checked FIRST and on its own: it answers "is the app

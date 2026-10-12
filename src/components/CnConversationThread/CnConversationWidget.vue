@@ -29,7 +29,7 @@ import { readPath } from '../../utils/readPath.js'
  * `content: { field, endpoint?, authorField?, timeField?, textField?, sideField?, usValue? }`.
  * `@objectId` in `endpoint` is replaced by the record's id. A reply the
  * endpoint accepts is shown at once, until the record is read again.
- * Resolved by its registry key, not exported.
+ * Resolved by its registry key, and exported for an app that renders it itself.
  */
 export default {
 	name: 'CnConversationWidget',

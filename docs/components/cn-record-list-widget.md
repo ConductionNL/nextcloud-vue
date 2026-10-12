@@ -47,6 +47,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 `presentation` is one of:
 
 - `rows` (default): `title` in bold, `meta` under it, a `pill`, a `trailing` text and a chevron. A row with a route is a link. In a detail page's side column the row stacks (title as a link, meta, then pill and date) and drops the chevron, which is the board's "Lopende zaken" card with `limit: 1`.
+- A `rows` list can lead with an avatar: `avatar` is a name template (`"{client.name}"`, or `{ "text": "{client.name}" }`), drawn as a 36px circle with the initials of its first and last word ("Sanne de Vries" reads "SV"). A row whose name is empty has no circle. The second line is `meta`: `"meta": "{client.name} · {channel}"` with `"extend": ["client"]` puts the customer under the title. The circle is decoration (`aria-hidden`); the name is in the meta text.
 - `feed`: a round `icon`, a `meta` line and a `text` line. `icon` is an icon name, or `{ field, map, default }` to pick one per row ("phone" to `Phone`).
 - `inline`: a `label` followed by the `title`, the title a link when `rowRoute` is set.
 
@@ -84,3 +85,16 @@ In a tab panel there is no card header, so neither is drawn.
 | `header` | `{ link, note }` | After every read: the header link (resolved, or null) and note (or ''). |
 
 <GeneratedRef />
+
+## Page controls
+
+A list can follow the page's controls (a `workspace-filter` select and switch). Without `pageControls` it ignores them.
+
+```jsonc
+"pageControls": {
+  "sort":   { "key": "sort", "map": { "deadline": { "field": "slaDeadline", "dir": "asc" }, "priority": { "field": "priority", "dir": "desc" } } },
+  "toggle": { "key": "showDone", "removes": ["status"] }
+}
+```
+
+`sort`: the workspace value at `key` picks an entry of `map`; a value with no entry leaves the list's own `sort`. `toggle`: while the value at `key` is on (true, 1, "1", "true"), the filter keys in `removes` are dropped, so a list that hides finished work shows it. The list fetches again when either changes.

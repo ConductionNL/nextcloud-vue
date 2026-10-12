@@ -30,6 +30,10 @@
 					class="cn-record-list__row"
 					:class="{ 'cn-record-list__row--link': item.tag !== 'div' }"
 					v-bind="item.attrs">
+					<span v-if="item.initials"
+						class="cn-record-list__avatar"
+						aria-hidden="true"
+						data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 					<span class="cn-record-list__main">
 						<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
@@ -81,6 +85,8 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
+import { initialsOf } from '../../utils/initials.js'
+import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
@@ -108,7 +114,8 @@ function unwrap(value) {
  * objects filtered on a reference to this record. The source keys are those of
  * `object-list` (`register`, `schema`, `filter` with the `@objectId` /
  * `@object.<field>` / `@workspace.<key>` tokens, `sort`, `limit`, `extend`,
- * `rowRoute`); what differs is the drawing: `presentation` is `rows`, `feed`
+ * `rowRoute`, `pageControls`); `avatar` puts a circle with the initials of a name
+ * template before the title; what differs is the drawing: `presentation` is `rows`, `feed`
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`).
  *
@@ -188,13 +195,18 @@ export default {
 
 		/** @return {object} The filter with its tokens resolved. */
 		resolvedFilter() {
-			const filter = this.content?.filter
-			return dropOptionalUnresolved(resolveFilterTokens(filter && typeof filter === 'object' ? filter : {}, this.tokenCtx))
+			const filter = pageFilter(this.content?.pageControls, this.tokenCtx.workspace, this.content?.filter)
+			return dropOptionalUnresolved(resolveFilterTokens(filter, this.tokenCtx))
 		},
 
 		/** @return {boolean} A required token (the record id, say) has no value yet. */
 		waiting() {
 			return hasUnresolvedTokens(this.resolvedFilter)
+		},
+
+		/** @return {object|null} The sort: the page's sort control when the widget listens to one, else its own. */
+		effectiveSort() {
+			return pageSort(this.content?.pageControls, this.tokenCtx.workspace, this.content?.sort)
 		},
 
 		/** @return {number} The fetch cap. */
@@ -206,7 +218,7 @@ export default {
 		/** @return {string} What a fetch depends on; a change fetches again. */
 		requestKey() {
 			const c = this.content || {}
-			return JSON.stringify([c.register, c.schema, this.resolvedFilter, c.sort, this.limit, c.extend, this.waiting])
+			return JSON.stringify([c.register, c.schema, this.resolvedFilter, this.effectiveSort, this.limit, c.extend, this.waiting])
 		},
 
 		/** @return {Array<object>} The rows ready to draw. */
@@ -218,6 +230,7 @@ export default {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
 					tag: link ? 'router-link' : 'div',
 					attrs: link ? { to: link } : {},
+					initials: this.initialsFor(row),
 					title: this.fill(c.title, row),
 					meta: this.fill(c.meta, row),
 					text: this.fill(c.text, row),
@@ -297,6 +310,20 @@ export default {
 		 */
 		translate(text) {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The initials of the row's avatar (`avatar`: a name template such as
+		 * `"{client.name}"`, or `{ text }`), or '' without one.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} One or two letters.
+		 * @spec openspec/changes/screens-record-list-avatar/specs/record-list-avatar/spec.md#requirement-a-record-list-row-can-carry-an-avatar
+		 */
+		initialsFor(row) {
+			const avatar = this.content?.avatar
+			const template = typeof avatar === 'string' ? avatar : (avatar && typeof avatar === 'object' ? avatar.text : '')
+			return initialsOf(this.fill(template, row))
 		},
 
 		/**
@@ -422,8 +449,9 @@ export default {
 				])
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
 				const params = { _limit: this.limit }
-				if (c.sort && typeof c.sort === 'object' && c.sort.field) {
-					params[`_order[${c.sort.field}]`] = c.sort.dir === 'desc' ? 'desc' : 'asc'
+				const sort = this.effectiveSort
+				if (sort && typeof sort === 'object' && sort.field) {
+					params[`_order[${sort.field}]`] = sort.dir === 'desc' ? 'desc' : 'asc'
 				}
 				if (Array.isArray(c.extend)) {
 					const extend = c.extend.filter((e) => typeof e === 'string' && e !== '')
@@ -495,6 +523,20 @@ export default {
 .cn-record-list__row--link:hover .cn-record-list__title,
 .cn-record-list__row--link:focus-visible .cn-record-list__title {
 	text-decoration: underline;
+}
+
+.cn-record-list__avatar {
+	align-items: center;
+	background: var(--color-background-hover);
+	border-radius: 50%;
+	color: var(--color-main-text);
+	display: flex;
+	flex: none;
+	font-size: 12px;
+	font-weight: 700;
+	height: 36px;
+	justify-content: center;
+	width: 36px;
 }
 
 .cn-record-list__main {
@@ -599,5 +641,12 @@ a.cn-record-list__inline-title {
 
 .cn-detail-page__side .cn-record-list__chevron {
 	display: none;
+}
+
+/* A row is a touch target of at least 44px on a phone. */
+@media (max-width: 640px) {
+	.cn-record-list__row {
+		min-height: 44px;
+	}
 }
 </style>
