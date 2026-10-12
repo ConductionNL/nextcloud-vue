@@ -35,6 +35,10 @@ const RECORD = {
 	installDisabled: false,
 	signup: 'approval',
 	theme: 'zuiddrecht',
+	domains: [
+		{ hostname: 'zuiddrecht.nl', verified: true, valid: 'geldig tot 14 jan 2027', txt: '' },
+		{ hostname: 'nieuw.zuiddrecht.nl', verified: false, valid: 'nog geen', txt: 'portaliq-verify=8f3a1c' },
+	],
 	signinDigid: true,
 	signinEherkenning: false,
 	hiddenCaseTypes: ['c3'],
@@ -42,6 +46,27 @@ const RECORD = {
 }
 
 const WIDGETS = {
+	domains: {
+		id: 'portal-domains',
+		type: 'field-list',
+		title: 'Domeinen',
+		content: {
+			field: 'domains',
+			key: 'hostname',
+			variant: 'table',
+			columns: [
+				{ header: 'Domein', path: 'hostname', strong: true },
+				{ header: 'Status', path: 'verified', pill: true, map: { true: 'Geverifieerd', false: 'Wacht op verificatie' }, variantMap: { true: 'success', false: 'warning' } },
+				{ header: 'Certificaat', path: 'valid' },
+			],
+			row: { title: 'hostname', detail: { template: '{hostname}: zet het TXT-record {txt} bij uw domein.', when: { verified: false } } },
+			rowActions: [
+				{ id: 'verify', label: 'Opnieuw controleren', placement: 'band', when: { verified: false }, request: { method: 'POST', url: '/apps/portaliq/api/domains/verify', payload: { hostname: '@row.hostname' } } },
+			],
+			add: { label: 'Domein toevoegen', trigger: 'button', fields: [{ key: 'hostname', label: 'Domein', required: true }] },
+			remove: { label: 'Verwijderen' },
+		},
+	},
 	theme: {
 		id: 'portal-theme',
 		type: 'choice-picker',

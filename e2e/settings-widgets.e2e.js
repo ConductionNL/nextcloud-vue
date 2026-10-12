@@ -290,3 +290,40 @@ test('choice picker: swatches and pills, a risky card shows the warning, Opslaan
 	await expect.poll(() => puts.length).toBe(2)
 	expect(puts[1]).toEqual({ theme: 'licht', acceptFindings: true })
 })
+
+test('field-list table variant: header, pill column, row menu with remove, warning band with its action, add from a button', async ({ page }) => {
+	const patches = []
+	const posts = []
+	await stubPortal(page, patches)
+	await page.route('**/apps/portaliq/api/domains/verify', async (route) => {
+		posts.push(route.request().postDataJSON())
+		await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+	})
+	await page.goto('/?settingswidgets=domains', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const list = page.locator('[data-testid="settings-widgets-harness"] .cn-field-list-widget')
+	await list.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(list.locator('thead th').nth(0)).toHaveText('Domein')
+	await expect(list.locator('tbody tr')).toHaveCount(2)
+	await expect(list.locator('[data-testid="cn-field-list-row-zuiddrecht.nl"]')).toContainText('Geverifieerd')
+	await expect(list.locator('[data-testid="cn-field-list-row-nieuw.zuiddrecht.nl"]')).toContainText('Wacht op verificatie')
+	// The band: amber, under the table, with the check-again action.
+	const band = list.locator('[data-testid="cn-field-list-band-nieuw.zuiddrecht.nl"]')
+	await expect(band).toContainText('zet het TXT-record portaliq-verify=8f3a1c bij uw domein.')
+	const table = await list.locator('table').boundingBox()
+	const bandBox = await band.boundingBox()
+	expect(bandBox.y).toBeGreaterThan(table.y + table.height - 1)
+	await band.locator('[data-testid="cn-field-list-band-action-verify-nieuw.zuiddrecht.nl"]').click()
+	await expect.poll(() => posts.length).toBe(1)
+	expect(posts[0]).toEqual({ hostname: 'nieuw.zuiddrecht.nl' })
+
+	// The row menu holds remove.
+	await list.locator('[data-testid="cn-field-list-menu-nieuw.zuiddrecht.nl"] button').first().click()
+	await page.getByRole('menuitem', { name: 'Verwijderen' }).click()
+	await expect.poll(() => patches.length).toBe(1)
+	expect(patches[0]).toEqual({ domains: [STORED.domains[0]] })
+
+	// The add form opens from the button, not before.
+	await expect(list.locator('[data-testid="cn-field-list-add"]')).toHaveCount(0)
+	await list.locator('[data-testid="cn-field-list-open-add"]').click()
+	await expect(list.locator('[data-testid="cn-field-list-add"]')).toBeVisible()
+})
