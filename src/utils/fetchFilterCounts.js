@@ -9,8 +9,9 @@
  * `status: closed`, ...). Those are answered by one `/grouped` request on that
  * field. A filter that narrows on something else (two fields, an operator, a
  * list of values) cannot be read off a grouped result, so each of those costs
- * one `/value` count. A filter that holds a LIST of values is counted through
- * the list endpoint, because the aggregation endpoints cannot express it.
+ * one `/value` count. A filter that holds a LIST of values, or tests a field
+ * for no value (`isnull`), is counted through the list endpoint, because the
+ * aggregation endpoints cannot express it.
  * Nothing is requested for an entry that did not ask.
  *
  * @module utils/fetchFilterCounts
@@ -39,6 +40,37 @@ export function hasListValue(filter) {
 }
 
 /**
+ * Whether a filter tests a field for "no value" (`{ assignee: null }` or
+ * `{ supersededBy: { isnull: true } }`).
+ *
+ * OpenRegister's aggregation endpoints have no null operator: `isnull` is
+ * refused there and an empty value is dropped or matches nothing, so such a
+ * filter counted 0 while the list showed rows. The list endpoint does read
+ * `field[isnull]=true`, so a filter like this is counted through it.
+ *
+ * @param {object} filter A filter map.
+ * @return {boolean} True when any value is null or carries an `isnull` operator.
+ */
+export function hasNullTest(filter) {
+	if (!filter || typeof filter !== 'object') {
+		return false
+	}
+	return Object.values(filter).some((value) => value === null
+		|| (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).some((op) => op.toLowerCase() === 'isnull')))
+}
+
+/**
+ * Whether the aggregation endpoints cannot express a filter, so it is counted
+ * through the list endpoint: a list of values, or a test for no value.
+ *
+ * @param {object} filter A filter map.
+ * @return {boolean} True when the filter needs the list endpoint.
+ */
+export function needsListEndpoint(filter) {
+	return hasListValue(filter) || hasNullTest(filter)
+}
+
+/**
  * Count the records a filter matches by asking the LIST endpoint for one
  * record and reading its `total`. The filter is sent the way the list request
  * sends it: a list of values as repeated `field[]=`, an operator as
@@ -59,6 +91,9 @@ export async function fetchListTotal(register, schema, filter, ctx) {
 			for (const [op, operand] of Object.entries(value)) {
 				params[`${key}[${op}]`] = operand
 			}
+		} else if (value === null) {
+			// "No value": the list endpoint reads it as the isnull operator.
+			params[`${key}[isnull]`] = 'true'
 		} else {
 			params[key] = value
 		}
@@ -125,12 +160,12 @@ export async function fetchFilterCounts({ register, schema, entries, baseFilter,
 	// and `/value` returns exactly its number.
 	// A list of values anywhere in a request rules the aggregation endpoints
 	// out for it. A base filter with one rules them out for every entry.
-	const baseHasList = hasListValue(base)
+	const baseHasList = needsListEndpoint(base)
 	const byField = {}
 	const single = []
 	const viaList = []
 	for (const entry of entries) {
-		if (baseHasList || hasListValue(entry.filter)) {
+		if (baseHasList || needsListEndpoint(entry.filter)) {
 			viaList.push(entry)
 			continue
 		}
