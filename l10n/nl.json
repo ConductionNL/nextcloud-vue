@@ -1512,6 +1512,10 @@
     "{count} days left": "Nog {count} dagen",
     "1 day overdue": "1 dag te laat",
     "{count} days overdue": "{count} dagen te laat",
+    "Select {name}": "{name} selecteren",
+    "Select all files": "Alle bestanden selecteren",
+    "No files match the filter.": "Geen bestanden passen bij het filter.",
+    "Actions for the selected files": "Acties voor de geselecteerde bestanden",
     "{view}: not available on this list": "{view}: niet beschikbaar in deze lijst"
   },
   "plurals": {
