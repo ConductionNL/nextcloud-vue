@@ -1165,6 +1165,7 @@
     "Normal": "Normaal",
     "High": "Hoog",
     "Urgent": "Urgent",
+    "Stale": "Stilgevallen",
     "State": "Status",
     "Priority": "Prioriteit",
     "Due": "Deadline",
