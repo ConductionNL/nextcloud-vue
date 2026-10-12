@@ -31,7 +31,7 @@ import { readPath } from '../../utils/readPath.js'
  * Renders CnDocumentReviewList from a list on the bound record:
  * `content: { field, title?, statusField?, statuses?, rowAction?: { label, route } }`.
  * A row action with a `route` opens that route with the row's key as `id`.
- * Resolved by its registry key, not exported.
+ * Resolved by its registry key, and exported for an app that renders it itself.
  */
 export default {
 	name: 'CnDocumentReviewWidget',
