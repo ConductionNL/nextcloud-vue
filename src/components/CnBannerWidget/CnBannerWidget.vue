@@ -59,7 +59,7 @@
 					:class="{ 'cn-banner-widget__text--clickable': clickable }"
 					:href="clickable ? routeHref : null"
 					data-testid="cn-banner-widget-text"
-					@click="onClick"><strong v-if="displayLead" class="cn-banner-widget__lead" data-testid="cn-banner-widget-lead">{{ displayLead }}</strong><template v-if="displayLead && displayText" />{{ displayText }}</component>
+					@click="onClick"><strong v-if="displayLead" class="cn-banner-widget__lead" data-testid="cn-banner-widget-lead">{{ displayLead }}</strong>{{ displayLead && displayText ? ' ' : '' }}{{ displayText }}</component>
 				<!-- Board look: the actions as links at the end of the line. -->
 				<a
 					v-for="action in noteActions"
