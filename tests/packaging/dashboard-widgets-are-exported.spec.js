@@ -18,19 +18,12 @@ const root = require('../../src/index.js')
 const REGISTRAR = path.resolve(__dirname, '../../src/components/CnWidgetGrid/registerDashboardWidgets.js')
 
 /**
- * Widgets that are registered but not exported yet. Each is resolved by its
- * type key only. Exporting one means deleting its line here, so this list can
- * only shrink: a NEW widget missing from the entry fails the spec.
+ * Widgets that are registered but not exported yet. Empty: every registered
+ * widget is exported. A NEW widget missing from the entry fails the spec; a
+ * reason-bearing line here is the only way to defer one, and the list can only
+ * shrink.
  */
-const NOT_EXPORTED_YET = [
-	'CnConversationWidget',
-	'CnDocumentReviewWidget',
-	'CnNextStepWidget',
-	'CnAuditTrailWidget',
-	'CnKbSearchWidget',
-	'CnInteractionFormWidget',
-	'CnWorkspaceFilterWidget',
-]
+const NOT_EXPORTED_YET = []
 
 /**
  * The widget component names the registrar imports.
@@ -59,9 +52,8 @@ describe('registered dashboard widgets are exported from the package entry', () 
 		expect(root[name]).toBeDefined()
 	})
 
-	it.each(NOT_EXPORTED_YET)('%s is still unexported (remove it from the list once it is)', (name) => {
-		expect(widgets).toContain(name)
-		expect(root[name]).toBeUndefined()
+	it('has no deferred widget left', () => {
+		expect(NOT_EXPORTED_YET).toEqual([])
 	})
 
 	it('exports CnBannerWidget as the component the banner type renders', () => {
