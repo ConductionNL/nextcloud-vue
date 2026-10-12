@@ -31,9 +31,22 @@ const RECORD = {
 	kind: 'site',
 	loginLabel: '',
 	pageLimit: 33,
+	trafficEnabled: true,
+	installDisabled: false,
 }
 
 const WIDGETS = {
+	switches: {
+		id: 'portal-traffic',
+		type: 'switch-rows',
+		title: 'Verkeer meten',
+		content: {
+			rows: [
+				{ key: 'trafficEnabled', label: 'Verkeer meten', hint: 'Zonder cookies, op de eigen server' },
+				{ key: 'installDisabled', label: 'Als app installeren', hint: 'De app bewaart alleen de schil van de site.', invert: true },
+			],
+		},
+	},
 	form: {
 		id: 'portal-details',
 		type: 'settings-form',

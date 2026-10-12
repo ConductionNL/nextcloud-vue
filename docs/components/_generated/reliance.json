@@ -3334,6 +3334,13 @@
 			"via": [],
 			"page": "cn-support-dialog"
 		},
+		"CnSwitchRowsWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-switch-rows-widget"
+		},
 		"CnTabbedFormDialog": {
 			"direct": 0,
 			"transitive": 0,
