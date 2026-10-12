@@ -118,6 +118,20 @@ if (typeof window !== 'undefined' && /[?&]screensnav=/.test(window.location.sear
 		routes: names.map((name, i) => ({ path: i === 0 ? '/' : '/' + name.toLowerCase(), name, component: page })),
 	}))
 }
+// The portal dashboard and accounts boards (?ptlistcard=1, ?ptaccounts=1): a
+// row link needs a router to be an <a> at all.
+if (typeof window !== 'undefined' && /[?&](ptlistcard|ptaccounts)=/.test(window.location.search)) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const page = { render: () => null }
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: [
+			{ path: '/', name: 'Dashboard', component: page },
+			{ path: '/requests/:id', name: 'AccessRequest', component: page },
+			{ path: '/accounts/:id', name: 'AccountDetail', component: page },
+		],
+	}))
+}
 // Vue 3's replacement for Vue.prototype.
 app.config.globalProperties.t = t
 app.config.globalProperties.n = n
