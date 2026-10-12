@@ -38,7 +38,7 @@ describe('compareVisibleWhen', () => {
 	})
 
 	it('exports the operator set', () => {
-		expect(VISIBLE_WHEN_OPS).toEqual(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty'])
+		expect(VISIBLE_WHEN_OPS).toEqual(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty', 'in'])
 	})
 })
 

@@ -249,7 +249,8 @@
 }
 
 /* Filter: a labelled secondary button, 36px, radius 8, with the active count. */
-.cn-look-board .cn-actions-bar__filter-button.button-vue {
+.cn-look-board .cn-actions-bar__filter-button.button-vue,
+.cn-look-board .cn-actions-bar__filter-menu .button-vue {
 	min-height: 36px;
 	height: 36px;
 	border-radius: 8px;
