@@ -597,6 +597,7 @@ export default {
 			}
 			this.loading = true
 			this.error = false
+			const run = this.fetchRun = (this.fetchRun || 0) + 1
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -627,7 +628,12 @@ export default {
 					}
 				}
 				if (rank) {
+					// Several requests: a fetch started later (the sort changed
+					// meanwhile) must not be overwritten by this one.
 					const ranked = await this.fetchRanked(axios, url, params, sort, rank)
+					if (run !== this.fetchRun) {
+						return
+					}
 					this.rows = ranked.rows
 					this.total = ranked.total
 					return
