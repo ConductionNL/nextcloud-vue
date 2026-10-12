@@ -321,6 +321,7 @@
 									:formatterOptions="col.formatterOptions || null"
 									:widget="col.widget || null"
 									:widgetProps="col.widgetProps || undefined"
+									:secondary="col.widget === 'avatar' ? secondaryValue(row, col) : ''"
 									:format="columnFormat(col)"
 									:row="row"
 									:rowKey="rowKey" />
@@ -330,7 +331,7 @@
 							     of the row. Lets one column read "title" over "number ·
 							     requester" without a custom cell. -->
 							<span
-								v-if="secondaryValue(row, col)"
+								v-if="col.widget !== 'avatar' && secondaryValue(row, col)"
 								class="cn-table-cell__secondary"
 								data-testid="cn-cell-secondary">{{ secondaryValue(row, col) }}</span>
 							<!-- A row that entered a file-content search through an attached

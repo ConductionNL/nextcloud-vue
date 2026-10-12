@@ -202,6 +202,15 @@
 	gap: 4px;
 }
 
+/* No inner scroller: tabs that do not fit the width wrap onto a second row
+   instead of scrolling sideways (the library's default strip), so the strip
+   has no scrollbar, no clipped tab and no fade or chevron to find the rest. */
+.cn-look-board .cn-tabs--board .cn-tabs__nav {
+	flex-wrap: wrap;
+	overflow: visible;
+	row-gap: 4px;
+}
+
 .cn-look-board .cn-tabs--board .cn-tabs__nav-item {
 	background-color: var(--color-background-dark);
 	border: 1px solid var(--color-border-dark);
@@ -347,9 +356,25 @@
 	padding: 0 0 10px;
 }
 
-.cn-look-board .cn-object-data-widget__label {
-	color: var(--color-text-maxcontrast);
+/* Outranks the component's own `.cn-object-data-widget__label[data-v-...]`
+   (weight 500, 0.85em, which has the same specificity as the look's rule and
+   wins on source order wherever a bundle, such as a companion app's, loads
+   after this stylesheet), through the grid the labels sit in. Measured live:
+   the labels read bold and dark where the boards (DqContact, PqKlant, ShKlant)
+   draw them 13px, regular weight and light grey.
+
+   The colour carries `!important`: a theme (nldesign's element overrides) sets
+   the ink of every `div` outside the header with a selector that has an id in
+   its `:not()`, which no class rule outranks. */
+.cn-look-board .cn-object-data-widget__grid .cn-object-data-widget__label {
+	color: var(--color-text-maxcontrast) !important;
 	font-size: 13px;
+	font-weight: 400;
+}
+
+/* The facts card's labels: the same light grey, regular weight. */
+.cn-look-board .cn-facts-widget .cn-facts-widget__label {
+	color: var(--color-text-maxcontrast);
 	font-weight: 400;
 }
 
@@ -609,4 +634,13 @@
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 	margin: 2px 0 0;
+}
+
+/* The sidebar's own open toggle (NcAppSidebar's `.app-sidebar__toggle`, drawn
+   when the sidebar is closed) is positioned over the content's top-right
+   corner, which in this look is the header's last button: a stray square icon
+   on "More". The board draws none, so it is hidden on a detail page and the
+   header menu offers "Open sidebar" instead. */
+.cn-look-board:has(.cn-detail-page) > .app-sidebar__toggle {
+	display: none;
 }

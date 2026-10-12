@@ -169,7 +169,13 @@ function sharedRefLabels() {
 	return refLabels
 }
 
-/** Key of a resolved reference in the widget's `labels` data. */
+/**
+ * Key of a resolved reference in the widget's `labels` data.
+ *
+ * @param {{register: string, schema: string, labelField?: string}} resolve The entry's `resolve` config.
+ * @param {string} id The referenced object's id.
+ * @return {string} The key.
+ */
 function refKey(resolve, id) {
 	return `${resolve.register}/${resolve.schema}/${resolve.labelField || ''}/${id}`
 }
@@ -1012,12 +1018,21 @@ export default {
 	display: contents;
 }
 
-.cn-facts-widget__label {
+/* Nextcloud core styles `dt` and `dd` (text-align end, 12px padding), which
+   pushed the label to the right of its column and added 12px around both. The
+   class is doubled so these resets outrank that rule, and a dossiq-style
+   `:deep()` override in an app is not needed. */
+.cn-facts-widget__label.cn-facts-widget__label {
+	margin: 0;
+	padding: 0;
+	text-align: start;
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-facts-widget__value {
+.cn-facts-widget__value.cn-facts-widget__value {
 	margin: 0;
+	padding: 0;
+	text-align: start;
 	font-weight: 500;
 	min-width: 0;
 	overflow-wrap: anywhere;

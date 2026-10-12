@@ -59,6 +59,44 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 
 `when` is `{ field: value }`, every field equal; `false` also matches an absent value. Labels, map values, templates, hint and empty text go through the host app's `cnTranslate`.
 
+## Table variant
+
+`variant: "table"` with `columns` draws the entries as a table; the stored list, the one-field PATCH, the add form, the row actions and `rowSource` stay the same. Without `variant` the list rows stay as above.
+
+```json
+{
+  "id": "portal-domains",
+  "type": "field-list",
+  "title": "Domeinen",
+  "content": {
+    "field": "domains",
+    "key": "hostname",
+    "variant": "table",
+    "columns": [
+      { "header": "Domein", "path": "hostname", "strong": true },
+      { "header": "Status", "path": "verified", "pill": true, "map": { "true": "Geverifieerd", "false": "Wacht op verificatie" }, "variantMap": { "true": "success", "false": "warning" } },
+      { "header": "Certificaat", "path": "certificateValidUntil", "format": "date-long" }
+    ],
+    "row": { "title": "hostname", "detail": { "template": "{hostname}: zet het TXT-record {name} bij uw domein.", "when": { "verified": false } } },
+    "rowActions": [
+      { "id": "verify", "label": "Opnieuw controleren", "placement": "band", "when": { "verified": false }, "request": { "method": "POST", "url": "/apps/portaliq/api/cms/domains/verify", "payload": { "hostname": "@row.hostname" } } }
+    ],
+    "add": { "label": "Domein toevoegen", "trigger": "button", "fields": [{ "key": "hostname", "label": "Domein", "required": true }] },
+    "remove": { "label": "Verwijderen" }
+  }
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `variant` | `"table"` (needs `columns`). |
+| `columns[]` | `{ header, path, map?, format?, strong?, pill?, variantMap? }`: a cell reads the entry like a row part (`map`, `format`); `pill` draws a status pill (`variantMap` picks the colour); `strong` makes the cell bold. |
+| menu | Each row gets a "..." menu named after the row with its row actions (not those with `placement: "band"`) and remove. |
+| `row.detail` | In the table variant: a warning band under the table, one per matching row, with the row actions marked `placement: "band"` as buttons. |
+| `rowActions[].placement` | `"band"` puts the action in the warning band instead of the menu. |
+| `add.trigger` | `"button"`: the add form shows only after a "+ label" button; it closes after a successful add. |
+| `add.placement` | `"header"` (button above the rows, right-aligned) or `"footer"` (default). |
+
 ## Props
 
 | Prop | Type | Default | Description |

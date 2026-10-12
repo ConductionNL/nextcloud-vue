@@ -134,3 +134,37 @@ describe('CnRecordListWidget', () => {
 		warn.mockRestore()
 	})
 })
+
+describe('CnRecordListWidget avatar (screens-record-list-avatar)', () => {
+	const ROWS = [
+		{ id: 'a', title: 'Afvalpas', channel: 'Mijn Zuiddrecht', client: { name: 'Sanne de Vries' } },
+		{ id: 'b', title: 'Geen klant', channel: 'balie', client: null },
+	]
+
+	beforeEach(() => {
+		axios.get.mockResolvedValue({ data: { results: ROWS, total: 2 } })
+	})
+
+	it('draws the initials of a name template before the title, and the customer on the meta line', async () => {
+		const w = mountList({ title: '{title}', meta: '{client.name} · {channel}', avatar: '{client.name}', extend: ['client'] }, { objectId: null })
+		await flush()
+		const avatars = w.findAll('[data-testid="cn-record-list-avatar"]')
+		expect(avatars).toHaveLength(1)
+		expect(avatars[0].text()).toBe('SV')
+		expect(avatars[0].attributes('aria-hidden')).toBe('true')
+		const items = w.findAll('[data-testid="cn-record-list-item"]')
+		expect(items[0].find('.cn-record-list__meta').text()).toBe('Sanne de Vries · Mijn Zuiddrecht')
+		// A row without a name has no circle (and no half-filled meta line).
+		expect(items[1].find('[data-testid="cn-record-list-avatar"]').exists()).toBe(false)
+		expect(items[1].find('.cn-record-list__meta').exists()).toBe(false)
+	})
+
+	it('takes { text } too, and draws nothing without avatar', async () => {
+		const w = mountList({ title: '{title}', avatar: { text: '{client.name}' } }, { objectId: null })
+		await flush()
+		expect(w.find('[data-testid="cn-record-list-avatar"]').text()).toBe('SV')
+		const plain = mountList({ title: '{title}' }, { objectId: null })
+		await flush()
+		expect(plain.find('[data-testid="cn-record-list-avatar"]').exists()).toBe(false)
+	})
+})
