@@ -263,6 +263,31 @@
 					@update:activeIndex="onQuickFilterChange"
 					@update:selectedIndices="onQuickFilterMultiChange" />
 			</template>
+			<!-- Board look, `filterMenu` on a page with no filter sidebar: the
+			     board's Filter button, a menu of each enum column's values as
+			     toggleable filters. -->
+			<template v-if="boardFilterMenu" #filter-menu>
+				<NcActions
+					class="cn-actions-bar__filter-menu"
+					variant="secondary"
+					:forceMenu="true"
+					:menuName="t('nextcloud-vue', 'Filter')"
+					data-testid="cn-index-filter-menu">
+					<template #icon>
+						<Tune :size="16" />
+					</template>
+					<template v-for="field in filterableFields" :key="field.key">
+						<NcActionCaption :name="field.label" />
+						<NcActionCheckbox
+							v-for="val in field.values"
+							:key="`${field.key}-${val}`"
+							:modelValue="isFilterActive(field.key, val)"
+							@update:modelValue="toggleFilter(field.key, val)">
+							{{ val }}
+						</NcActionCheckbox>
+					</template>
+				</NcActions>
+			</template>
 		</CnActionsBar>
 
 		<!-- Quick edit: a few fields of one row, over the list, with the list
@@ -625,10 +650,10 @@
 					     the column menu lists every governed column as a visibility
 					     checkbox — compact, in-table alternatives to the sidebar. -->
 					<template
-						v-if="(filterMenu && filterableFields.length) || (columnMenu && governedColumns.length)"
+						v-if="(showHeaderFilterMenu) || (columnMenu && governedColumns.length)"
 						#actions-header>
 						<NcActions
-							v-if="filterMenu && filterableFields.length"
+							v-if="showHeaderFilterMenu"
 							:forceMenu="true"
 							:aria-label="t('nextcloud-vue', 'Filter')">
 							<template #icon>
@@ -968,6 +993,7 @@ import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Export from 'vue-material-design-icons/Export.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
@@ -1275,6 +1301,7 @@ export default {
 		DatabaseSearch,
 		Export,
 		FilterOutline,
+		Tune,
 		ViewColumnOutline,
 		NcCheckboxRadioSwitch,
 		CnPageHeader,
@@ -1606,7 +1633,10 @@ export default {
 		 * unchanged. Under the board look a tab with `activeLabel` ("Pipeline:
 		 * Sales") adds a removable chip with that text to the Active line and
 		 * counts on the Filter badge while it is selected; removing the chip
-		 * goes back to the default tab.
+		 * goes back to the default tab. A tab can say `empty: "field"` (or a
+		 * list of fields) for the rows where the field has no value, and
+		 * `notEmpty` for the rows where it has one: it reads as the filter
+		 * `{ field: { isnull: true } }`.
 		 */
 		quickFilters: {
 			type: Array,
@@ -2891,6 +2921,8 @@ export default {
 		 * Show a filter menu (funnel button) in the table header, above the
 		 * row-actions column. Its menu lists every enum/badge column's values as
 		 * toggleable facet filters — a compact alternative to the facet sidebar.
+		 * Under the board look, on a page with no filter sidebar, it is the
+		 * toolbar's labelled Filter button instead (row 1, before the view switch).
 		 * Fed from the manifest as `pages[].config.filterMenu`.
 		 */
 		filterMenu: {
@@ -5603,6 +5635,27 @@ export default {
 		 */
 		hasSidebar() {
 			return !!this.resolvedSidebar.enabled && this.resolvedSidebar.show !== false
+		},
+
+		/**
+		 * Whether the board toolbar draws the Filter button as a menu: the
+		 * board look, `filterMenu` on, something to filter by, and no filter
+		 * sidebar (whose toggle is that button otherwise).
+		 *
+		 * @return {boolean}
+		 */
+		boardFilterMenu() {
+			return this.isBoardLook && this.filterMenu && !this.hasSidebar && this.filterableFields.length > 0
+		},
+
+		/**
+		 * Whether the funnel menu sits in the table header: `filterMenu` with
+		 * values to offer, unless the toolbar's Filter button is that menu.
+		 *
+		 * @return {boolean}
+		 */
+		showHeaderFilterMenu() {
+			return this.filterMenu && this.filterableFields.length > 0 && !this.boardFilterMenu
 		},
 
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
