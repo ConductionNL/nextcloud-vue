@@ -3027,6 +3027,13 @@
 			"via": [],
 			"page": "cn-saved-views-control"
 		},
+		"CnSavedViewsWidget": {
+			"direct": 0,
+			"transitive": 5,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-saved-views-widget"
+		},
 		"CnSchemaFormDialog": {
 			"direct": 0,
 			"transitive": 10,
@@ -3218,8 +3225,8 @@
 			"page": "cn-stages-widget-form"
 		},
 		"CnStatWidget": {
-			"direct": 4,
-			"transitive": 9,
+			"direct": 5,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
 				"CnIndexPage",
