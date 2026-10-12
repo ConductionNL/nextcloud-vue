@@ -9,7 +9,9 @@
   widget; the side column holds two cards. `&plain=1` mounts the same page
   without the look. `&w=<px>` sets the width of the box the page sits in.
   `&header=1` adds a status pill, a breadcrumb and a meta line, the header's
-  row 2 (screens-detail-header-row-parity).
+  row 2 (screens-detail-header-row-parity). `?screensdetail=kpi` swaps the body
+  grid for one row of six small tiles (gridWidth 2), with `&noside=1` for a page
+  without a side column (detail-grid-breakpoint-with-side-column).
 -->
 <template>
 	<div :style="{ width: width + 'px' }" data-testid="screensdetail-box">
@@ -23,7 +25,7 @@
 			:showRelatedObjects="false"
 			:widgets="widgets"
 			:layout="layout"
-			:sideColumn="['w-deadline', 'w-requester']"
+			:sideColumn="noSide ? [] : ['w-deadline', 'w-requester']"
 			:statusPill="header ? { field: 'status', colorMap: { open: 'success' }, labels: { open: 'Open' } } : null"
 			:breadcrumb="header ? { label: 'Cases', href: '#cases', currentField: 'identifier', separator: '/' } : null"
 			:headerMeta="header ? 'via {channel}' : ''" />
@@ -73,6 +75,7 @@ export default {
 		return {
 			width: Number(params.get('w') || 1240),
 			header: params.get('header') === '1',
+			noSide: params.get('noside') === '1',
 			store: {
 				objects: { 'reg-case': { 'id-1': record } },
 				schemas: { case: caseSchema },
@@ -91,13 +94,16 @@ export default {
 				{ id: 'case-tabs', type: 'tabs', content: { tabs: [{ widgetId: 'case-overview', label: 'Overview' }, { widgetId: 'case-docs', label: 'Documents' }] } },
 				{ id: 'case-overview', type: 'harness-note', title: 'Overview', content: { text: 'The application, its location and the decision so far.', height: 240 } },
 				{ id: 'case-docs', type: 'harness-note', title: 'Documents', content: { text: 'Three documents.' } },
+				...[0, 1, 2, 3, 4, 5].map((n) => ({ id: 'kpi-' + n, type: 'harness-note', title: 'KPI ' + n, content: { text: String(n), height: 60 } })),
 				{ id: 'w-deadline', type: 'harness-note', title: 'Deadline', content: { text: '12 November 2026' } },
 				{ id: 'w-requester', type: 'harness-note', title: 'Requester', content: { text: 'Anouk Bakker' } },
 			],
 
-			layout: [
-				{ id: '1', widgetId: 'case-tabs', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 6 },
-			],
+			layout: params.get('screensdetail') === 'kpi'
+				? [0, 1, 2, 3, 4, 5].map((n) => ({ id: 'k' + n, widgetId: 'kpi-' + n, gridX: n * 2, gridY: 0, gridWidth: 2, gridHeight: 2 }))
+				: [
+					{ id: '1', widgetId: 'case-tabs', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 6 },
+				],
 		}
 	},
 }
