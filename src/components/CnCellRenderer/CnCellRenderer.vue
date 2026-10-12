@@ -147,7 +147,7 @@
 				class="cn-cell-renderer__date"
 				:class="dateVariant ? 'cn-cell-renderer__date--' + dateVariant : null"
 				:datetime="dateTimestamp.toISOString()"
-				:title="rawTitle">{{ dateLabel }}</time>
+				:title="isRelativeDate ? absoluteDateLabel : rawTitle">{{ dateLabel }}</time>
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -260,7 +260,7 @@ import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
-import { ageInDays, formatAge, formatBoardDate, resolveAgeVariant } from '../../utils/boardDate.js'
+import { ageInDays, formatAge, formatBoardDate, formatRelativeDate, resolveAgeVariant } from '../../utils/boardDate.js'
 import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
 import { objectFieldValue } from '../../utils/objectName.js'
@@ -633,13 +633,23 @@ export default {
 			if (date === null) {
 				return undefined
 			}
-			const withTime = this.property?.format === 'date-time' || this.widget === 'age'
+			const withTime = this.property?.format === 'date-time' || this.widget === 'age' || (this.widget === 'date' && this.widgetProps?.showTime === true)
 			const options = { day: 'numeric', month: 'long', year: 'numeric', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}) }
 			try {
 				return new Intl.DateTimeFormat(getCanonicalLocale() || undefined, options).format(date)
 			} catch {
 				return new Intl.DateTimeFormat(undefined, options).format(date)
 			}
+		},
+
+		/**
+		 * Whether the `date` widget reads relatively (`widgetProps.relative`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-relative-dates/specs/relative-dates/spec.md#requirement-a-relative-date-reads-today-yesterday-then-a-short-date
+		 */
+		isRelativeDate() {
+			return this.widgetProps?.relative === true
 		},
 
 		/**
@@ -757,6 +767,11 @@ export default {
 			// 08:30"); `widgetProps.timeOnly: true` shows just the time
 			// ("08:30"), for a timetable row. Default: the date alone.
 			const props = this.widgetProps || {}
+			// `widgetProps.relative: true` says "today" and "yesterday" and then
+			// the short date ("vandaag, 09.42" with `showTime`), in any look.
+			if (props.relative === true) {
+				return formatRelativeDate(date, { withTime: props.showTime === true })
+			}
 			// The board look writes a plain date in its short form ("5 okt");
 			// a time of day keeps the full form below.
 			if (this.isBoardLook && props.timeOnly !== true && props.showTime !== true) {
