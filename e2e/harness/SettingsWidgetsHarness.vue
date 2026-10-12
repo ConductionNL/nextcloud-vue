@@ -34,10 +34,36 @@ const RECORD = {
 	trafficEnabled: true,
 	installDisabled: false,
 	signup: 'approval',
+	signinDigid: true,
+	signinEherkenning: false,
+	hiddenCaseTypes: ['c3'],
 	autoApproveDomains: ['zuiddrecht.nl', 'oosthaven.nl'],
 }
 
 const WIDGETS = {
+	signin: {
+		id: 'portal-signin',
+		type: 'toggle-table',
+		title: 'Inloggen',
+		content: {
+			titleHeader: 'Inlogwijze',
+			toggleHeader: 'Aan',
+			columns: [{ header: 'Route', path: 'route' }],
+			rows: [
+				{ key: 'digid', label: 'DigiD', field: 'signinDigid', route: 'via integriq, de koppeling van de gemeente' },
+				{ key: 'eherkenning', label: 'eHerkenning', field: 'signinEherkenning', route: 'via integriq, ook per vestiging' },
+			],
+		},
+	},
+	casetypes: {
+		id: 'portal-case-types',
+		type: 'toggle-table',
+		title: 'Zaaktypen die inwoners zien',
+		content: {
+			bind: { mode: 'list', field: 'hiddenCaseTypes', invert: true },
+			source: { url: '/apps/portaliq/api/case-types?portal=@object.slug', path: 'results', key: 'id', label: 'name', hint: 'hint' },
+		},
+	},
 	chips: {
 		id: 'portal-domains-auto',
 		type: 'chips-field',

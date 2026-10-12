@@ -18,6 +18,9 @@ const STORED = {
 	loginLabel: '',
 	pageLimit: 33,
 	signup: 'approval',
+	signinDigid: true,
+	signinEherkenning: false,
+	hiddenCaseTypes: ['c3'],
 	autoApproveDomains: ['zuiddrecht.nl', 'oosthaven.nl'],
 }
 
@@ -198,4 +201,46 @@ test('chips field: a refused PATCH shows the server words and keeps the chips', 
 	await chips.locator('[data-testid="cn-chips-field-remove-zuiddrecht.nl"]').click()
 	await expect(chips.locator('[data-testid="cn-chips-field-error"]')).toContainText('U mag deze portal niet wijzigen.')
 	await expect(chips.locator('.cn-chips-field__chip')).toHaveCount(2)
+})
+
+test('toggle table: sign-in rows with an extra column, each switch PATCHes its own field', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches)
+	await page.goto('/?settingswidgets=signin', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const table = page.locator('[data-testid="settings-widgets-harness"] .cn-toggle-table')
+	await table.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(table.locator('thead th')).toHaveText(['Inlogwijze', 'Route', 'Aan'])
+	await expect(table.locator('[data-testid="cn-toggle-table-row-digid"]')).toContainText('via integriq, de koppeling van de gemeente')
+	await expect(table.locator('[data-testid="cn-toggle-table-row-digid"] input')).toBeChecked()
+	await expect(table.locator('[data-testid="cn-toggle-table-row-eherkenning"] input')).not.toBeChecked()
+	await table.locator('[data-testid="cn-toggle-table-row-eherkenning"] input').click({ force: true })
+	await expect.poll(() => patches.length).toBe(1)
+	expect(patches[0]).toEqual({ signinEherkenning: true })
+})
+
+test('toggle table: rows from a source, a hidden case type reads as off, switching writes the one list field', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches)
+	await page.route('**/apps/portaliq/api/case-types*', async (route) => {
+		await route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ results: [
+				{ id: 'c1', name: 'Woo-verzoek', hint: '' },
+				{ id: 'c3', name: 'Handhavingszaak', hint: 'Verborgen in dit portaal.' },
+			] }),
+		})
+	})
+	await page.goto('/?settingswidgets=casetypes', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const table = page.locator('[data-testid="settings-widgets-harness"] .cn-toggle-table')
+	await table.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(table.locator('.cn-toggle-table__row')).toHaveCount(2)
+	await expect(table.locator('[data-testid="cn-toggle-table-row-c1"] input')).toBeChecked()
+	await expect(table.locator('[data-testid="cn-toggle-table-row-c3"] input')).not.toBeChecked()
+	await expect(table.locator('[data-testid="cn-toggle-table-row-c3"]')).toContainText('Verborgen in dit portaal.')
+	expect(await table.locator('.cn-toggle-table__row').nth(1).evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe('1px')
+
+	await table.locator('[data-testid="cn-toggle-table-row-c1"] input').click({ force: true })
+	await expect.poll(() => patches.length).toBe(1)
+	expect(patches[0]).toEqual({ hiddenCaseTypes: ['c3', 'c1'] })
 })

@@ -313,6 +313,7 @@ export {
 	CnTimelineStages,
 	CnTimelineView,
 	CnTimelineWidget,
+	CnToggleTableWidget,
 	CnTranslatedBadge,
 	CnTreeView,
 	CnUnreadMarker,

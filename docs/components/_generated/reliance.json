@@ -3611,6 +3611,13 @@
 			"via": [],
 			"page": "cn-timeline-widget"
 		},
+		"CnToggleTableWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-toggle-table-widget"
+		},
 		"CnTranslatedBadge": {
 			"direct": 1,
 			"transitive": 0,
