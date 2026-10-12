@@ -59,7 +59,7 @@
 					:class="{ 'cn-banner-widget__text--clickable': clickable }"
 					:href="clickable ? routeHref : null"
 					data-testid="cn-banner-widget-text"
-					@click="onClick"><strong v-if="displayLead" class="cn-banner-widget__lead" data-testid="cn-banner-widget-lead">{{ displayLead }}</strong><template v-if="displayLead && displayText">{{ ' ' }}</template>{{ displayText }}</component>
+					@click="onClick"><strong v-if="displayLead" class="cn-banner-widget__lead" data-testid="cn-banner-widget-lead">{{ displayLead }}</strong><template v-if="displayLead && displayText" />{{ displayText }}</component>
 				<!-- Board look: the actions as links at the end of the line. -->
 				<a
 					v-for="action in noteActions"
@@ -76,8 +76,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcNoteCard } from '@nextcloud/vue'
-import { normalizeLook } from '../../composables/useLook.js'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { nextUid } from '../../utils/uid.js'
