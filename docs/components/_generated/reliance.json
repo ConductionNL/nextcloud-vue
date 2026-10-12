@@ -2736,6 +2736,13 @@
 			"via": [],
 			"page": "cn-quicklinks-widget-form"
 		},
+		"CnRadioCardsWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-radio-cards-widget"
+		},
 		"CnRecordListWidget": {
 			"direct": 1,
 			"transitive": 3,
