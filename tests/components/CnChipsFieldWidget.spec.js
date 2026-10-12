@@ -140,4 +140,30 @@ describe('CnChipsFieldWidget', () => {
 		expect(wrapper.find('[data-testid="cn-chips-field-add"]').exists()).toBe(false)
 		expect(wrapper.find('.cn-chips-field__remove').exists()).toBe(false)
 	})
+
+	test('minItems refuses removing the last allowed chip with the message and sends nothing', async () => {
+		const wrapper = make({ content: { ...CONTENT, minItems: 2 } })
+		await wrapper.find('[data-testid="cn-chips-field-remove-oosthaven.nl"]').trigger('click')
+		await flush()
+		expect(wrapper.find('[data-testid="cn-chips-field-error"]').text()).toBe('Keep at least 2.')
+		expect(mockPatch).not.toHaveBeenCalled()
+		expect(wrapper.findAll('.cn-chips-field__chip')).toHaveLength(2)
+	})
+
+	test('required means one: the last chip stays, a custom message is used', async () => {
+		const wrapper = make({ content: { ...CONTENT, required: true, minItemsMessage: 'Choose a language.' }, objectData: { id: 'p-1', domains: ['nl'] } })
+		await wrapper.find('[data-testid="cn-chips-field-remove-nl"]').trigger('click')
+		await flush()
+		expect(wrapper.find('[data-testid="cn-chips-field-error"]').text()).toBe('Choose a language.')
+		expect(mockPatch).not.toHaveBeenCalled()
+	})
+
+	test('with a modelValue the widget writes nothing and emits the new list', async () => {
+		const wrapper = make({ content: { lowercase: true, addLabel: 'Domain' }, modelValue: ['a.nl', 'b.nl'], objectData: null })
+		await wrapper.find('[data-testid="cn-chips-field-remove-a.nl"]').trigger('click')
+		await addValue(wrapper, 'C.NL')
+		expect(mockPatch).not.toHaveBeenCalled()
+		expect(wrapper.emitted('update:modelValue')[0]).toEqual([['b.nl']])
+		expect(wrapper.emitted('update:modelValue')[1]).toEqual([['a.nl', 'b.nl', 'c.nl']])
+	})
 })

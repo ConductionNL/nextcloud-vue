@@ -10,10 +10,11 @@
  * disables the inputs; labels go through cnTranslate.
  */
 var mockPatch = jest.fn()
+var mockGet = jest.fn()
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
-	default: { patch: (...args) => mockPatch(...args) },
+	default: { patch: (...args) => mockPatch(...args), get: (...args) => mockGet(...args) },
 }))
 
 jest.mock('@nextcloud/router', () => ({
@@ -110,5 +111,29 @@ describe('CnRadioCardsWidget', () => {
 		})
 		expect(wrapper.find('legend').text()).toBe('NL Sign up')
 		expect(wrapper.find('[data-testid="cn-radio-cards-option-nobody"]').text()).toContain('NL Nobody')
+	})
+	test('a nested field is read by path and written as the enclosing object, re-read first', async () => {
+		const stored = { id: 'p-1', authentication: { registration: { policy: 'approval', contact: 'a@b.nl' } } }
+		mockGet.mockResolvedValue({ data: stored })
+		const wrapper = make({
+			content: { ...CONTENT, field: 'authentication.registration.policy' },
+			objectData: stored,
+		})
+		expect(input(wrapper, 'approval').element.checked).toBe(true)
+		await input(wrapper, 'anyone').setValue(true)
+		await flush()
+		expect(mockPatch).toHaveBeenCalledTimes(1)
+		expect(mockPatch.mock.calls[0][1]).toEqual({ authentication: { registration: { policy: 'anyone', contact: 'a@b.nl' } } })
+		expect(input(wrapper, 'anyone').element.checked).toBe(true)
+	})
+
+	test('a save template writes through the endpoint and never PATCHes the object', async () => {
+		const put = jest.fn(() => Promise.resolve({ data: {} }))
+		require('@nextcloud/axios').default.put = put
+		const wrapper = make({ content: { ...CONTENT, save: { url: '/apps/x/api/{object.id}/signup', method: 'PUT', payload: { signup: '{value}' } } } })
+		await input(wrapper, 'anyone').setValue(true)
+		await flush()
+		expect(mockPatch).not.toHaveBeenCalled()
+		expect(put).toHaveBeenCalledWith('/index.php/apps/x/api/p-1/signup', { signup: 'anyone' })
 	})
 })
