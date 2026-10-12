@@ -18,7 +18,7 @@
 
 <script>
 import { provide, ref } from 'vue'
-import CnStatWidget from '../../../../src/components/CnStatWidget/CnStatWidget.vue'
+import CnStatWidget from '../../../src/components/CnStatWidget/CnStatWidget.vue'
 
 export default {
 	name: 'RatioStat',
