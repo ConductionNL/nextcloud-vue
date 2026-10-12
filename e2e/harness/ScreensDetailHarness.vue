@@ -102,8 +102,8 @@ export default {
 			layout: params.get('screensdetail') === 'kpi'
 				? [0, 1, 2, 3, 4, 5].map((n) => ({ id: 'k' + n, widgetId: 'kpi-' + n, gridX: n * 2, gridY: 0, gridWidth: 2, gridHeight: 2 }))
 				: [
-					{ id: '1', widgetId: 'case-tabs', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 6 },
-				],
+						{ id: '1', widgetId: 'case-tabs', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 6 },
+					],
 		}
 	},
 }
