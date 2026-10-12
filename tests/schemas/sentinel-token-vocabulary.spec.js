@@ -26,6 +26,7 @@ const DEF_FOR_CONTEXT = {
 	declarative: 'sentinelDeclarativeToken',
 	visibleWhen: 'sentinelVisibleWhenToken',
 	answer: 'sentinelAnswerToken',
+	row: 'sentinelRowToken',
 	deprecated: 'sentinelDeprecatedToken',
 }
 
