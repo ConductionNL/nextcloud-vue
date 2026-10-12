@@ -532,21 +532,20 @@ export default {
 		 * sort of a partial page. It costs one request for the total, one per rank
 		 * value read and one for the remainder.
 		 *
-		 * @param {object} axios The axios instance.
-		 * @param {string} url The list url.
+		 * @param {(params: object) => Promise<object>} get Reads the list with the given params.
 		 * @param {object} base The params without any order.
 		 * @param {{field: string, then?: {field: string, dir?: string}}} sort The sort.
 		 * @param {Array<string>} rank The values in rank order.
 		 * @return {Promise<{rows: Array<object>, total: number}>} The page and the total.
 		 * @spec openspec/changes/screens-enum-rank-sort/specs/enum-rank-sort/spec.md#requirement-a-record-list-can-sort-by-the-rank-of-an-enum-value
 		 */
-		async fetchRanked(axios, url, base, sort, rank) {
+		async fetchRanked(get, base, sort, rank) {
 			const order = {}
 			if (sort.then && typeof sort.then === 'object' && sort.then.field) {
 				order[`_order[${sort.then.field}]`] = sort.then.dir === 'desc' ? 'desc' : 'asc'
 			}
 			const read = async (extra) => {
-				const response = await axios.get(url, { params: { ...base, ...order, ...extra } })
+				const response = await get({ ...base, ...order, ...extra })
 				const data = response && response.data ? response.data : {}
 				return { results: Array.isArray(data.results) ? data.results : [], total: data.total }
 			}
@@ -630,7 +629,7 @@ export default {
 				if (rank) {
 					// Several requests: a fetch started later (the sort changed
 					// meanwhile) must not be overwritten by this one.
-					const ranked = await this.fetchRanked(axios, url, params, sort, rank)
+					const ranked = await this.fetchRanked((query) => axios.get(url, { params: query }), params, sort, rank)
 					if (run !== this.fetchRun) {
 						return
 					}
