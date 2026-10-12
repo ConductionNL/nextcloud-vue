@@ -86,6 +86,8 @@ fall back to the normal rendering. See `docs/migrating-to-manifest.md` →
 > `cnFormatters: { automationTrigger: v => ({ 'lead.created': 'Lead created' }[v] ?? v) }`);
 > standalone (no provider) it falls back to rendering the raw value.
 
+The `secondary` prop is the column's secondary line: the `avatar` widget draws it under the name, beside the picture (`CnDataTable` passes it for an avatar column); other cells ignore it.
+
 Column widget — `widget="badge"`, `widget="fkResolve"` (uuid → related object label via the shared object store with per-schema caching; config `widgetProps { register, schema, labelField }`), and `widget="link"` are built-in; any other id resolves against the app's `cellWidgets` registry (`CnAppRoot`'s `cellWidgets` prop → `cnCellWidgets`), and that component receives `{ value, row, property, formatted, ...widgetProps }`. `widget` takes precedence over `formatter`; when both are set the widget gets the formatter-shaped value as `formatted`. See `docs/migrating-to-manifest.md` → "Column widgets" + "Built-in cell formatters / widgets".
 
 - `widget="badge"` — `CnStatusBadge` pill; `widgetProps.variant` picks the colour.

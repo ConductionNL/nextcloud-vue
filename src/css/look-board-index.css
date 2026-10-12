@@ -557,6 +557,29 @@
 	font-size: 13px;
 }
 
+/* An avatar in the title column (PtAccounts): a 32px chip circle, 10px before
+   the name, the e-mail under the name beside it. The name keeps the title's
+   weight and size, and its underline: an inline-flex box is atomic, so the
+   cell's own underline does not reach it. */
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar {
+	gap: 10px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials {
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 12px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title .cn-cell-renderer__avatar-name {
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.cn-look-board .cn-table-container--board.cn-table-container--title-plain .cn-data-table td.cn-table-col--title .cn-cell-renderer__avatar-name {
+	text-decoration: none;
+}
+
 /* A status pill: 3px 10px, radius 12, 13px weight 600. The colours stay the
    status colour map's. */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-status-badge {

@@ -332,4 +332,60 @@ describe('CnTasksWidget', () => {
 			expect(mockRefetch).not.toHaveBeenCalled()
 		})
 	})
+
+	describe('list variant and the View all link', () => {
+		const list = { variant: 'list' }
+
+		it('draws a checkbox row: title, the subject on a second line, the due date at its right', () => {
+			const w = mountWidget({ payload: { results: [task()], total: 1 }, content: list })
+			expect(w.classes()).toContain('cn-tasks-widget--list')
+			const row = w.find('.cn-tasks-widget__row')
+			expect(row.find('input[type="checkbox"]').exists()).toBe(true)
+			expect(row.find('.cn-tasks-widget__name').text()).toBe('Beoordeel offerte serverhal')
+			expect(row.find('.cn-tasks-widget__subject').text()).toBe('Dossier 12')
+			expect(row.find('.cn-tasks-widget__due').text()).toBe('Due in 3 days')
+			// No state/priority words, no count line, no menu: the checkbox is the action.
+			expect(row.text()).not.toContain('In progress')
+			expect(w.find('.cn-tasks-widget__count').exists()).toBe(false)
+			expect(row.find('.cn-tasks-widget__actions').exists()).toBe(false)
+		})
+
+		it('completes the task from the checkbox with the default outcome, then refetches', async () => {
+			const w = mountWidget({ payload: { results: [task({ uuid: 'task-7' })], total: 1 }, content: list })
+			await w.find('input[type="checkbox"]').trigger('change')
+			await flush()
+			expect(mockPost.mock.calls[0][0]).toContain('/flow-tasks/task-7/complete')
+			expect(mockPost.mock.calls[0][1]).toEqual({ outcome: 'done' })
+			expect(mockRefetch).toHaveBeenCalled()
+		})
+
+		it('keeps the menu, not a checkbox, for a task that declares outcomes or is not the viewer\'s', () => {
+			const w = mountWidget({
+				payload: { results: [task({ uuid: 'a', outcomes: ['approved', 'rejected'] }), task({ uuid: 'b', assignee: null })], total: 2 },
+				content: list,
+			})
+			expect(w.findAll('input[type="checkbox"]').length).toBe(0)
+			expect(w.findAll('.cn-tasks-widget__check-spacer').length).toBe(2)
+			expect(w.findAll('.cn-tasks-widget__actions').length).toBe(2)
+		})
+
+		it('leaves the default rows alone without the variant', () => {
+			const w = mountWidget({ payload: { results: [task()], total: 1 } })
+			expect(w.classes()).not.toContain('cn-tasks-widget--list')
+			expect(w.find('input[type="checkbox"]').exists()).toBe(false)
+			expect(w.find('.cn-tasks-widget__count').exists()).toBe(true)
+		})
+
+		it('reports a View all link for the card header, with a default label', () => {
+			const w = mountWidget({ payload: { results: [], total: 0 }, content: { viewAllRoute: { name: 'Tasks', query: { scope: 'mine' } } } })
+			expect(w.emitted('header')[0][0].link).toEqual({ label: 'View all', route: 'Tasks', query: { scope: 'mine' } })
+		})
+
+		it('uses the configured label, and reports no link without a route', () => {
+			const withLabel = mountWidget({ payload: { results: [], total: 0 }, content: { viewAllRoute: 'Tasks', viewAllLabel: 'All my tasks' } })
+			expect(withLabel.emitted('header')[0][0].link).toEqual({ label: 'All my tasks', route: 'Tasks' })
+			const none = mountWidget({ payload: { results: [], total: 0 }, content: {} })
+			expect(none.emitted('header')[0][0].link).toBeNull()
+		})
+	})
 })

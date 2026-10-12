@@ -18,6 +18,8 @@ For the manifest keys and the attention card see the [dashboard widget catalog](
 |------|------|-------------|
 | `variant` | `'info' \| 'warning' \| 'error' \| 'success'` | The severity. Empty falls back to `content`, then `info`. |
 | `text` | `string` | The banner text. Empty falls back to `content`. |
+| `lead` | `string` | A bold lead before the text; `{value}` is filled like in `text`, and it goes through the app's translate (as `text` does). Empty falls back to `content`. |
+| `icon` | `string` | A named icon (`AccountPlus`, ...) drawn before the text instead of the variant's glyph. Empty falls back to `content`. Under the board look the first of `actions` is drawn as a link at the end of the line. |
 | `visibleWhen` | `object \| null` | The visibility condition. `null` shows the banner always. |
 | `route` | `string \| object \| null` | A route name or location. When set, the text is a link. |
 | `layout` | `'' \| 'banner' \| 'attention'` | The note card (default) or the attention card. |
