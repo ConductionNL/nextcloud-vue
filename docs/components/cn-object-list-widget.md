@@ -130,6 +130,8 @@ The form opens in the list's context: it receives the list's `register` (so a `$
 
 `content.hideHeader: true` drops the table's column header row (CnDataTable's `hideHeader`), for a short list that reads as rows rather than as a table.
 
+The table never scrolls sideways inside its card. When its columns are wider than the card it is squeezed in two steps, each taken only while it still overflows: first the fit (one column takes what is left and is cut with an ellipsis, the others keep their content on one line; `grow: true` on a column picks which one), then a fixed layout (every column an equal share, text wrapped). `content.fitWidth: true` forces the first step on, `false` keeps the table's own layout (and its scrollbar).
+
 ## Write feedback
 
 A row action of type `object-op` with `op: "delete"` toasts "Deleted \{title\}" with an Undo for ten seconds; Undo restores the row from the OpenRegister trash (`POST /apps/openregister/api/deleted/{id}/restore`) and refreshes the list, and a failed delete toasts an error. A create through the widget shows one toast, the create dialog's, never a second from the widget. `feedback: false` in the widget `content` suppresses the delete toasts.
