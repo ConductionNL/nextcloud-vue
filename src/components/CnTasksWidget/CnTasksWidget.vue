@@ -47,7 +47,7 @@
 							:aria-label="tr('Mark {title} as done').replace('{title}', titleOf(task))"
 							data-testid="cn-tasks-widget-check"
 							@click.stop
-							@change="check(task)" />
+							@change="check(task)">
 						<span v-else class="cn-tasks-widget__check-spacer" aria-hidden="true" />
 						<span class="cn-tasks-widget__body">
 							<span class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
@@ -251,6 +251,8 @@ export default {
 		},
 	},
 
+	emits: ['header'],
+
 	setup(props) {
 		// The shared endpoint engine owns request dedup, the short-TTL cache
 		// and the cn:page:refresh / cn:widget:refresh subscriptions — the
@@ -286,8 +288,6 @@ export default {
 			injectedTranslate,
 		}
 	},
-
-	emits: ['header'],
 
 	data() {
 		return {
