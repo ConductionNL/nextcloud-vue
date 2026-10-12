@@ -16,6 +16,7 @@
  */
 
 import { mount, shallowMount } from '@vue/test-utils'
+import { ref } from 'vue'
 
 jest.mock('../../../src/store/useObjectStore.js', () => ({
 	useObjectStore: jest.fn(() => ({ objectTypeRegistry: {}, errors: {}, registerObjectType: jest.fn() })),
@@ -124,6 +125,34 @@ describe('object-table dashboard registration (issue #89)', () => {
 		expect(props.source).toEqual(content.source)
 		expect(props.hideHeader).toBe(true)
 		expect(props.actions).toEqual(content.actions)
+	})
+
+	it('listens to the page controls: the sort map and the toggle (screens-page-controls)', async () => {
+		const entry = getWidgetTypeEntry('object-table')
+		const content = {
+			register: 'pipelinq',
+			schema: 'ticket',
+			filter: { assignee: '@me', status: 'new' },
+			sort: { field: 'title', dir: 'asc' },
+			pageControls: {
+				sort: { key: 'sort', map: { deadline: { field: 'slaDeadline', dir: 'desc' } } },
+				toggle: { key: 'showDone', removes: ['status'] },
+			},
+			columns: [{ key: 'title', label: 'Title' }],
+		}
+		const workspace = ref({ sort: 'deadline', showDone: false })
+		const Host = {
+			components: { Renderer: entry.renderer },
+			template: '<Renderer :content="content" v-bind="content" />',
+			data: () => ({ content }),
+		}
+		const wrapper = mount(Host, { provide: { cnWorkspaceContext: workspace } })
+		const table = () => wrapper.findComponent({ name: 'CnDataTable' })
+		expect(table().props('fetchParams')).toMatchObject({ '_order[slaDeadline]': 'desc', status: 'new' })
+		expect(table().props('fetchParams')['_order[title]']).toBeUndefined()
+		workspace.value = { sort: 'deadline', showDone: true }
+		await wrapper.vm.$nextTick()
+		expect(table().props('fetchParams').status).toBeUndefined()
 	})
 
 	it('resolves @workspace tokens via cnWorkspaceContext on the dashboard surface', () => {

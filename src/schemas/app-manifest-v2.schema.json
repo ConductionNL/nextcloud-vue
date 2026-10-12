@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.87.0",
+	"version": "2.88.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2190,10 +2190,23 @@
 											},
 											"style": {
 												"type": "string",
-												"enum": ["radio", "select", "chips"],
+												"enum": ["radio", "select", "chips", "toggle"],
 												"default": "radio",
-												"description": "Choice style: 'radio' (default) list, 'select' dropdown, or 'chips' (one compact segmented group with a count after each label; screens-page-lenses, 2.87.0)."
+												"description": "Choice style: 'radio' (default) list, 'select' dropdown, 'chips' (one compact segmented group with a count after each label; screens-page-lenses, 2.87.0) or 'toggle' (a switch writing `onValue` / `offValue`; screens-page-controls, 2.88.0)."
 											},
+											"layout": {
+												"type": "string",
+												"enum": ["start", "bar"],
+												"description": "'start' draws the start card; 'bar' draws `controls` side by side in one row (screens-page-controls, 2.88.0)."
+											},
+											"controls": {
+												"type": "array",
+												"items": { "type": "object", "additionalProperties": true },
+												"description": "With `layout: \"bar\"`: the bar's controls, each a workspace-filter content (chips, a toggle, a select) with its own `writes`. `align: \"end\"` pushes a control to the right edge (2.88.0)."
+											},
+											"onValue": { "description": "style 'toggle': the value written while the switch is on. Default true (2.88.0)." },
+											"offValue": { "description": "style 'toggle': the value written while the switch is off. Default false (2.88.0)." },
+											"align": { "type": "string", "enum": ["start", "end"], "description": "In a bar: 'end' pushes this control to the right edge (2.88.0)." },
 											"urlKey": {
 												"type": "string",
 												"minLength": 1,
@@ -3001,6 +3014,45 @@
 					"type": "array",
 					"items": { "type": "string" },
 					"description": "OpenRegister `_extend[]` values forwarded on the fetch (e.g. [\"calculations\"]) so read-time virtual/derived fields are hydrated and available as columns. Each entry is passed through verbatim."
+				},
+				"pageControls": { "$ref": "#/$defs/pageControls" }
+			}
+		},
+		"pageControls": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "screens-page-controls (2.88.0): which page controls a list widget (`record-list`, `object-table`) listens to, and what they mean for it. A page control is a `workspace-filter` select or switch that writes a workspace key. `sort` picks the list's sort from the key's value; `toggle` drops filter keys while the key is on. Without it the list ignores the page's controls.",
+			"properties": {
+				"sort": {
+					"type": "object",
+					"required": ["key", "map"],
+					"additionalProperties": false,
+					"description": "The workspace key a sort select writes, and what each of its values sorts by. A value with no entry leaves the list's own sort.",
+					"properties": {
+						"key": { "type": "string", "minLength": 1 },
+						"map": {
+							"type": "object",
+							"additionalProperties": {
+								"type": "object",
+								"required": ["field"],
+								"additionalProperties": false,
+								"properties": {
+									"field": { "type": "string", "minLength": 1 },
+									"dir": { "type": "string", "enum": ["asc", "desc"], "default": "asc" }
+								}
+							}
+						}
+					}
+				},
+				"toggle": {
+					"type": "object",
+					"required": ["key", "removes"],
+					"additionalProperties": false,
+					"description": "The workspace key a switch writes. While it is on (true, 1, \"1\", \"true\") the filter keys in `removes` are dropped, so a list that hides finished work shows it.",
+					"properties": {
+						"key": { "type": "string", "minLength": 1 },
+						"removes": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+					}
 				}
 			}
 		},

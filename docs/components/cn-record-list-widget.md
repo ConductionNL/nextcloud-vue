@@ -84,3 +84,16 @@ In a tab panel there is no card header, so neither is drawn.
 | `header` | `{ link, note }` | After every read: the header link (resolved, or null) and note (or ''). |
 
 <GeneratedRef />
+
+## Page controls
+
+A list can follow the page's controls (a `workspace-filter` select and switch). Without `pageControls` it ignores them.
+
+```jsonc
+"pageControls": {
+  "sort":   { "key": "sort", "map": { "deadline": { "field": "slaDeadline", "dir": "asc" }, "priority": { "field": "priority", "dir": "desc" } } },
+  "toggle": { "key": "showDone", "removes": ["status"] }
+}
+```
+
+`sort`: the workspace value at `key` picks an entry of `map`; a value with no entry leaves the list's own `sort`. `toggle`: while the value at `key` is on (true, 1, "1", "true"), the filter keys in `removes` are dropped, so a list that hides finished work shows it. The list fetches again when either changes.

@@ -86,6 +86,7 @@ import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { compareVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -517,7 +518,8 @@ export default {
 		 * @return {object}
 		 */
 		resolvedFilter() {
-			return dropOptionalUnresolved(resolveFilterTokens((this.source && this.source.filter) || {}, this.tokenCtx))
+			const filter = pageFilter(this.source && this.source.pageControls, this.workspaceCtx, this.source && this.source.filter)
+			return dropOptionalUnresolved(resolveFilterTokens(filter, this.tokenCtx))
 		},
 
 		/**
@@ -590,7 +592,10 @@ export default {
 		resolvedFetchParams() {
 			const src = this.source || {}
 			const params = {}
-			for (const [field, dir] of Object.entries(src.order || {})) {
+			// A page sort control (`source.pageControls.sort`) replaces the order.
+			const chosen = pageSort(src.pageControls, this.workspaceCtx, null)
+			const order = chosen ? { [chosen.field]: chosen.dir } : (src.order || {})
+			for (const [field, dir] of Object.entries(order)) {
 				params[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'
 			}
 			if (typeof src.limit === 'number' && src.limit > 0) {

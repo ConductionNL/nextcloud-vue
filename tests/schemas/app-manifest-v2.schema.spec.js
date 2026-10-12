@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.87.0', () => {
+	it('the manifest schema version reads 2.88.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1369,7 +1369,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
 		// 2.86.0 allows an @row.<field> token in a field-list rowActions payload, and corrects sizeToContent:<int> to a row MAXIMUM (GridStack's meaning).
 		// 2.87.0 adds the workspace-filter style `chips` with `urlKey` and per-option `countFrom`, and the visibleWhen `workspace` mode with the `in` operator (screens-page-lenses).
-		expect(schema.version).toBe('2.87.0')
+		// 2.88.0 adds the workspace-filter style `toggle`, layout `bar` with `controls`, and `pageControls` on a list source (screens-page-controls).
+		expect(schema.version).toBe('2.88.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2021,5 +2022,24 @@ describe('app-manifest-v2 — page lenses: chips and a workspace visibleWhen (sc
 		const op = (name) => dashboard([{ id: 'w', widgetKey: 'record-list', slot: 'body', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 2, visibleWhen: { workspace: 'lens', op: name, value: 'x' }, props: { content: { register: 'r', schema: 's' } } }])
 		expect(validateManifestV2(op('in')).valid).toBe(true)
 		expect(validateManifestV2(op('like')).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — page controls: toggle, bar and pageControls (screens-page-controls, 2.88.0)', () => {
+	const page = (widgets) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p', type: 'dashboard', title: 'app.p', widgets }] })
+	const entry = (id, widgetKey, content) => ({ id, widgetKey, slot: 'body', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 2, props: { content } })
+
+	it('accepts a bar of controls and a toggle', () => {
+		const result = validateManifestV2(page([entry('bar', 'workspace-filter', {
+			layout: 'bar',
+			controls: [{ style: 'toggle', label: 'Done', writes: '@workspace.done', align: 'end', onValue: 1, offValue: 0 }],
+		})]))
+		expect(result.errors || []).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('accepts pageControls on an object-table source', () => {
+		const table = (pageControls) => validateManifestV2(page([entry('t', 'object-table', { source: { register: 'r', schema: 's', pageControls } })]))
+		expect(table({ sort: { key: 'sort', map: { a: { field: 'f', dir: 'desc' } } }, toggle: { key: 'done', removes: ['status'] } }).valid).toBe(true)
 	})
 })
