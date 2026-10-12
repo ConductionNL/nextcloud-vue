@@ -229,6 +229,11 @@
 			<PtAccountsHarness />
 		</template>
 
+		<!-- A dashboard with a record-list card (?ptlistcard=1). See PtDashboardHarness.vue. -->
+		<template v-else-if="showPtDashboard">
+			<PtDashboardHarness />
+		</template>
+
 		<!-- screens-relation-pages (?relation=person). See RelationPagesHarness.vue. -->
 		<template v-else-if="showRelationPages">
 			<RelationPagesHarness />
@@ -709,6 +714,7 @@ import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
 import ProgressCellHarness from './ProgressCellHarness.vue'
 import PtAccountsHarness from './PtAccountsHarness.vue'
+import PtDashboardHarness from './PtDashboardHarness.vue'
 import RelationPagesHarness from './RelationPagesHarness.vue'
 import ScreensChromeHarness from './ScreensChromeHarness.vue'
 import ScreensDetailHarness from './ScreensDetailHarness.vue'
@@ -824,6 +830,7 @@ export default {
 			// screens-detail-page-parity (?screensdetail=tabs).
 			showScreensDetail: (typeof window !== 'undefined' && /[?&]screensdetail=/.test(window.location.search)),
 			showPtAccounts: (typeof window !== 'undefined' && /[?&]ptaccounts=/.test(window.location.search)),
+			showPtDashboard: (typeof window !== 'undefined' && /[?&]ptlistcard=/.test(window.location.search)),
 			showRelationPages: (typeof window !== 'undefined' && /[?&]relation=/.test(window.location.search)),
 			// screens-dashboard-parity / screens-kanban-parity (?screens=…).
 			showScreensParity: (typeof window !== 'undefined' && /[?&]screens=/.test(window.location.search)),
