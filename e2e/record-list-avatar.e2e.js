@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 //
 // A record-list row with an avatar and a customer line, in a browser
-// (screens-record-list-avatar). Uses the page-controls harness (?pagecontrols=1).
+// (screens-record-list-avatar). Uses the l4 harness (?l4=record-list-avatar).
 //
 // WHY PLAYWRIGHT: a 36px circle left of the text on one row is layout, which
 // jsdom does not compute. The customer comes through the real `_extend` request.
@@ -21,7 +21,7 @@ test('a row draws a 36px avatar with the customer initials left of the title, an
 			body: JSON.stringify({ results: [{ id: 't1', title: 'Afvalpas werkt niet', channel: 'Mijn Zuiddrecht', client: { name: 'M. de Graaf' } }], total: 1 }),
 		})
 	})
-	await page.goto('/?pagecontrols=1', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	await page.goto('/?l4=record-list-avatar', { waitUntil: 'domcontentloaded', timeout: 90_000 })
 	const avatar = page.locator('[data-testid="cn-record-list-avatar"]')
 	await avatar.waitFor({ state: 'visible', timeout: 60_000 })
 	await expect(avatar).toHaveText('MG')
