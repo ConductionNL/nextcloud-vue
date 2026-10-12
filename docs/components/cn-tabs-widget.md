@@ -97,6 +97,18 @@ open cases, then its latest contact moments, and only on that tab:
 { "widgetIds": ["person-card", "person-cases", "person-moments"], "label": "Overview" }
 ```
 
+By default the widgets stand one under the other. To lay them out in a grid,
+for example four KPI tiles in a row, give the tab `columns` (each widget takes
+that share of a 12-column row) and/or `layout`, the page grid's width key per
+widget (`gridWidth`, of 12; a widget it does not name takes the `columns` share,
+or the whole row). Widgets wrap onto the next row, and below 700px the stack is
+vertical again:
+
+```json
+{ "widgetIds": ["kpi-a", "kpi-b", "kpi-c", "kpi-d", "list"], "label": "Overview", "columns": 4,
+  "layout": [{ "widgetId": "list", "gridWidth": 12 }] }
+```
+
 Every widget renders as a titled card without its own Actions menu (the strip's
 Actions button serves the tab). In the board look the panel draws no frame of
 its own: the first card joins the open tab and the next ones stand 20px apart.
@@ -108,7 +120,7 @@ has a list. A `widgetId` tab renders as before.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }` or `{ widgetIds, label?, icon? }`, or a bare widget-id string. |
+| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }` or `{ widgetIds, label?, icon?, columns?, layout? }`, or a bare widget-id string. |
 | `availableWidgets` | `Array` | `[]` | Every widget definition on the surface, so `content.tabs[]` can reference siblings by id. |
 | `objectId` | `String \| Number` | `''` | The bound record's id. |
 | `objectData` | `Object` | `null` | The loaded record, or null while it is still being fetched. |
