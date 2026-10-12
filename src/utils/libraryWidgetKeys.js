@@ -135,6 +135,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'stages',
 	'stat',
 	'stats-block',
+	'switch-rows',
 	'table',
 	'tabs',
 	'tasks',

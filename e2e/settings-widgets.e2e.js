@@ -92,3 +92,40 @@ test('settings form: an invalid value is refused before any write, a refused PAT
 	await expect(form.locator('[data-testid="cn-settings-form-notice"]')).toContainText('U mag deze portal niet wijzigen.')
 	expect(patches).toHaveLength(1)
 })
+
+test('switch rows: a toggle PATCHes that one field, a refusal puts the switch back', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches)
+	await page.goto('/?settingswidgets=switches', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const rows = page.locator('[data-testid="settings-widgets-harness"] .cn-switch-rows')
+	await rows.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(rows.locator('.cn-switch-rows__row')).toHaveCount(2)
+	await expect(rows).toContainText('Zonder cookies, op de eigen server')
+	// Hairline between rows, none above the first.
+	expect(await rows.locator('.cn-switch-rows__row').nth(1).evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe('1px')
+
+	const traffic = rows.locator('[data-testid="cn-switch-rows-row-trafficEnabled"] input')
+	await expect(traffic).toBeChecked()
+	await traffic.click({ force: true })
+	await expect.poll(() => patches.length).toBe(1)
+	expect(patches[0]).toEqual({ trafficEnabled: false })
+	await expect(traffic).not.toBeChecked()
+
+	// Inverted row: showing "on" means installDisabled false; switching off stores true.
+	const install = rows.locator('[data-testid="cn-switch-rows-row-installDisabled"] input')
+	await expect(install).toBeChecked()
+	await install.click({ force: true })
+	await expect.poll(() => patches.length).toBe(2)
+	expect(patches[1]).toEqual({ installDisabled: true })
+})
+
+test('switch rows: a refused PATCH shows the server words and the switch stays as stored', async ({ page }) => {
+	await stubPortal(page, [], 403)
+	await page.goto('/?settingswidgets=switches', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const rows = page.locator('[data-testid="settings-widgets-harness"] .cn-switch-rows')
+	await rows.waitFor({ state: 'visible', timeout: 60_000 })
+	const traffic = rows.locator('[data-testid="cn-switch-rows-row-trafficEnabled"] input')
+	await traffic.click({ force: true })
+	await expect(rows.locator('[data-testid="cn-switch-rows-notice"]')).toContainText('U mag deze portal niet wijzigen.')
+	await expect(traffic).toBeChecked()
+})

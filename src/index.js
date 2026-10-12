@@ -290,6 +290,7 @@ export {
 	CnSubObjectsField,
 	CnSummaryAggregates,
 	CnSupportDialog,
+	CnSwitchRowsWidget,
 	CnTab,
 	CnTabbedFormDialog,
 	CnTableWidget,
