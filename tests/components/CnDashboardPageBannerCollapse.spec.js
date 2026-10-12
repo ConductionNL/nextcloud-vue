@@ -216,7 +216,7 @@ describe('CnDashboardPage — hidden banners collapse their grid cell', () => {
 		readVisibleWhenValue.mockResolvedValue('none')
 		const wrapper = mountWith({ banner: { props: { text: 'T', visibleWhen: CONDITION } } })
 		await flushPromises()
-		expect(readVisibleWhenValue).toHaveBeenCalledWith(CONDITION)
+		expect(readVisibleWhenValue).toHaveBeenCalledWith(CONDITION, undefined, expect.any(Object))
 		expect(cells(wrapper)).toEqual([{ wid: 'w', y: '0' }])
 	})
 

@@ -7,7 +7,7 @@
 	<section
 		v-if="visible && isAttention"
 		class="cn-banner-widget cn-banner-widget--attention"
-		:class="'cn-banner-widget--' + resolvedVariant"
+		:class="['cn-banner-widget--' + resolvedVariant, { 'cn-banner-widget--stacked': isStacked }]"
 		:aria-labelledby="headingId"
 		data-testid="cn-banner-widget-attention">
 		<div class="cn-banner-widget__body">
@@ -65,7 +65,9 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcNoteCard } from '@nextcloud/vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
+import { readPath } from '../../utils/readPath.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { nextUid } from '../../utils/uid.js'
 import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
@@ -267,6 +269,18 @@ export default {
 		},
 
 		/**
+		 * Attention card: stack the actions under the text instead of beside it,
+		 * the "Begin hier" card of PqMijnWerk (16px title, the action under the
+		 * reason). Falls back to the `content` blob.
+		 *
+		 * @spec openspec/changes/screens-start-here-banner/specs/start-here-banner/spec.md#requirement-a-card-can-stack-its-action-under-the-text
+		 */
+		stacked: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Stored content blob (CnDashboardPage registry branch) carrying the
 		 * same keys as the flat props: `{ variant, text, visibleWhen, route,
 		 * layout, kicker, title, reason, actions }`. Explicit flat props win
@@ -326,6 +340,12 @@ export default {
 			 * the text wherever it says `{value}`.
 			 */
 			conditionValue: null,
+			/**
+			 * The first row of the `visibleWhen` source query (its `order`
+			 * applied), the card's subject: `{subject.<field>}` in the texts
+			 * and `@subject.<field>` in an action route read it.
+			 */
+			conditionRow: null,
 			/** Whether the visibleWhen request itself failed (not: answered "no"). */
 			conditionFailed: false,
 			/** Why it failed, as the request reported it. */
@@ -384,6 +404,15 @@ export default {
 		},
 
 		/**
+		 * Whether the actions sit under the text.
+		 *
+		 * @return {boolean}
+		 */
+		isStacked() {
+			return this.stacked || Boolean(this.content && this.content.stacked)
+		},
+
+		/**
 		 * The attention card's kicker (prop, else content).
 		 *
 		 * @return {string}
@@ -391,7 +420,7 @@ export default {
 		 */
 		resolvedKicker() {
 			const kicker = this.kicker || (this.content && this.content.kicker) || ''
-			return kicker ? this.tl(kicker) : ''
+			return kicker ? this.fillValue(this.tl(kicker)) : ''
 		},
 
 		/**
@@ -459,7 +488,7 @@ export default {
 				let target = null
 				let href = ''
 				if (action.route) {
-					target = typeof action.route === 'string' ? { name: action.route } : action.route
+					target = typeof action.route === 'string' ? { name: action.route } : this.resolveSubject(action.route)
 					href = resolveHref(target, this.$router)
 				} else if (typeof action.href === 'string' && action.href !== '') {
 					const safe = safeHref(action.href)
@@ -518,7 +547,7 @@ export default {
 		 */
 		uncheckedText() {
 			const title = this.title || (this.content && this.content.title) || this.resolvedText
-			if (!title || title.includes('{value}')) {
+			if (!title || title.includes('{value}') || title.includes('{subject.')) {
 				return t('nextcloud-vue', 'Could not check')
 			}
 			// `escape: false`: the result is rendered through `{{ }}`, which escapes.
@@ -590,10 +619,55 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		fillValue(text) {
-			if (this.conditionValue === null || !text.includes('{value}')) {
+			let out = text
+			if (this.conditionValue !== null && out.includes('{value}')) {
+				out = out.replaceAll('{value}', String(this.conditionValue))
+			}
+			return this.fillSubject(out)
+		},
+
+		/**
+		 * Fill `{subject.<field>}` (and `{subject.<field>|date}`, `|days`) from
+		 * the card's subject row. A token with no value empties the whole text,
+		 * as in a record list. Text without a subject token is untouched.
+		 *
+		 * @param {string} text The text.
+		 * @return {string} The filled text.
+		 * @spec openspec/changes/screens-start-here-banner/specs/start-here-banner/spec.md#requirement-a-banner-can-name-the-first-row-of-a-query
+		 */
+		fillSubject(text) {
+			if (typeof text !== 'string' || !text.includes('{subject.')) {
 				return text
 			}
-			return text.replaceAll('{value}', String(this.conditionValue))
+			// `{value}` is not a subject token: keep it out of the template fill.
+			const guard = '\u0000value\u0000'
+			const filled = fillTemplate(text.replaceAll('{value}', guard), { subject: this.conditionRow || {} })
+			return filled.replaceAll(guard, '{value}')
+		},
+
+		/**
+		 * Replace `@subject.<field>` strings anywhere in an action route
+		 * (params, query) by the subject's value.
+		 *
+		 * @param {unknown} node A route name, location or any nested part of one.
+		 * @return {unknown} The same shape with the tokens resolved.
+		 * @spec openspec/changes/screens-start-here-banner/specs/start-here-banner/spec.md#requirement-a-banner-can-name-the-first-row-of-a-query
+		 */
+		resolveSubject(node) {
+			if (typeof node === 'string') {
+				if (!node.startsWith('@subject.')) {
+					return node
+				}
+				const value = this.conditionRow ? readPath(this.conditionRow, node.slice('@subject.'.length)) : undefined
+				return value === undefined || value === null ? '' : String(value)
+			}
+			if (Array.isArray(node)) {
+				return node.map((item) => this.resolveSubject(item))
+			}
+			if (node && typeof node === 'object') {
+				return Object.fromEntries(Object.entries(node).map(([key, value]) => [key, this.resolveSubject(value)]))
+			}
+			return node
 		},
 
 		/**
@@ -636,6 +710,7 @@ export default {
 			if (outcome) {
 				this.conditionMet = outcome.met === true
 				this.conditionValue = outcome.value !== undefined ? outcome.value : null
+				this.conditionRow = outcome.row && typeof outcome.row === 'object' ? outcome.row : null
 				this.conditionFailed = outcome.failed === true
 				this.conditionFailureReason = outcome.failed === true && typeof outcome.reason === 'string' ? outcome.reason : ''
 				return
@@ -644,12 +719,15 @@ export default {
 			if (!cond) {
 				this.conditionMet = null
 				this.conditionValue = null
+				this.conditionRow = null
 				this.conditionFailed = false
 				this.conditionFailureReason = ''
 				return
 			}
 			try {
-				const value = await readVisibleWhenValue(cond)
+				const sink = {}
+				const value = await readVisibleWhenValue(cond, undefined, sink)
+				this.conditionRow = sink.row || null
 				this.conditionValue = value
 				this.conditionMet = compareVisibleWhen(value, cond.op || 'eq', cond.value)
 				this.conditionFailed = false
@@ -662,6 +740,7 @@ export default {
 				console.warn('[CnBannerWidget] visibleWhen could not be evaluated, banner hidden:', error?.message || error)
 				this.conditionMet = false
 				this.conditionValue = null
+				this.conditionRow = null
 				this.conditionFailed = true
 				this.conditionFailureReason = typeof error?.message === 'string' ? error.message : String(error ?? '')
 			}
@@ -782,6 +861,32 @@ export default {
 .cn-banner-widget__reason {
 	margin: 0;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Stacked (PqMijnWerk "Begin hier"): the text, then the action under it. */
+.cn-banner-widget--stacked {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.cn-banner-widget--stacked .cn-banner-widget__body {
+	flex: 0 0 auto;
+	gap: 10px;
+}
+
+.cn-banner-widget--stacked .cn-banner-widget__title {
+	font-size: 16px;
+	line-height: 1.4;
+}
+
+.cn-banner-widget--stacked .cn-banner-widget__reason {
+	font-size: 14px;
+}
+
+.cn-banner-widget--stacked .cn-banner-widget__action {
+	min-height: var(--cn-board-control-height, 40px);
+	font-size: 14px;
 }
 
 .cn-banner-widget__actions {

@@ -1,6 +1,6 @@
 # SENTINEL_CONTEXTS
 
-A frozen array of the nine canonical sentinel-context names. It excludes
+A frozen array of the ten canonical sentinel-context names. It excludes
 `deprecated`, which is a transitional overlay in the schema union rather than a
 real resolution context.
 
@@ -10,7 +10,7 @@ real resolution context.
 import { SENTINEL_CONTEXTS } from '@conduction/nextcloud-vue'
 
 // string[] (frozen)
-SENTINEL_CONTEXTS // → ['filter', 'config', 'object', 'workspace', 'route', 'declarative', 'visibleWhen', 'answer', 'row']
+SENTINEL_CONTEXTS // → ['filter', 'config', 'object', 'workspace', 'route', 'declarative', 'visibleWhen', 'answer', 'row', 'subject']
 ```
 
 The array is `Object.freeze`d — treat it as read-only.

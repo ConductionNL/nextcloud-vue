@@ -26,8 +26,9 @@ For the manifest keys and the attention card see the [dashboard widget catalog](
 | `reason` | `string` | Attention card: the line that says why it needs attention. |
 | `actions` | `Array` | Attention card: the actions. |
 | `maxActions` | `number \| null` | Attention card: the most actions shown. |
+| `stacked` | `boolean` | Attention card: the actions under the text, with a 16px title. |
 | `content` | `object` | The stored content blob; flat props win on collision. |
-| `conditionOutcome` | `object \| null` | A verdict a host already evaluated, so the banner does not fetch again. |
+| `conditionOutcome` | `object \| null` | A verdict a host already evaluated, so the banner does not fetch again. Its `row` is the first row of an ordered `visibleWhen.source`, the card's subject (`{subject.title}` in the texts, `@subject.id` in an action route). |
 
 ## Events
 
