@@ -245,6 +245,7 @@ export {
 	CnQuickFilterBar,
 	CnQuicklinksWidget,
 	CnQuicklinksWidgetForm,
+	CnRadioCardsWidget,
 	CnRecordListWidget,
 	CnReferencePreview,
 	CnRegisterMapping,

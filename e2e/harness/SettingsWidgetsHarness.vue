@@ -33,9 +33,23 @@ const RECORD = {
 	pageLimit: 33,
 	trafficEnabled: true,
 	installDisabled: false,
+	signup: 'approval',
 }
 
 const WIDGETS = {
+	radio: {
+		id: 'portal-signup',
+		type: 'radio-cards',
+		title: 'Aanmelden',
+		content: {
+			field: 'signup',
+			options: [
+				{ value: 'nobody', label: 'Niemand', description: 'Alleen accounts die de gemeente uitgeeft of uitnodigt' },
+				{ value: 'approval', label: 'Met goedkeuring', description: 'Iedereen meldt zich aan, een beheerder keurt goed' },
+				{ value: 'anyone', label: 'Iedereen', description: 'Direct na de bevestigingsmail' },
+			],
+		},
+	},
 	switches: {
 		id: 'portal-traffic',
 		type: 'switch-rows',

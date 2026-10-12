@@ -17,6 +17,7 @@ const STORED = {
 	kind: 'site',
 	loginLabel: '',
 	pageLimit: 33,
+	signup: 'approval',
 }
 
 /**
@@ -128,4 +129,36 @@ test('switch rows: a refused PATCH shows the server words and the switch stays a
 	await traffic.click({ force: true })
 	await expect(rows.locator('[data-testid="cn-switch-rows-notice"]')).toContainText('U mag deze portal niet wijzigen.')
 	await expect(traffic).toBeChecked()
+})
+
+test('radio cards: the stored card is selected, choosing another PATCHes that one field, a refusal puts it back', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches)
+	await page.goto('/?settingswidgets=radio', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const cards = page.locator('[data-testid="settings-widgets-harness"] .cn-radio-cards')
+	await cards.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(cards.locator('.cn-radio-cards__card')).toHaveCount(3)
+	// Two columns: the first two cards share a row, the third wraps.
+	const first = await cards.locator('[data-testid="cn-radio-cards-option-nobody"]').boundingBox()
+	const second = await cards.locator('[data-testid="cn-radio-cards-option-approval"]').boundingBox()
+	const third = await cards.locator('[data-testid="cn-radio-cards-option-anyone"]').boundingBox()
+	expect(Math.abs(first.y - second.y)).toBeLessThan(2)
+	expect(third.y).toBeGreaterThan(first.y + first.height - 1)
+	await expect(cards.locator('[data-testid="cn-radio-cards-option-approval"]')).toHaveClass(/cn-radio-cards__card--selected/)
+	await expect(cards.locator('[data-testid="cn-radio-cards-option-approval"] input')).toBeChecked()
+
+	await cards.locator('[data-testid="cn-radio-cards-option-anyone"]').click()
+	await expect.poll(() => patches.length).toBe(1)
+	expect(patches[0]).toEqual({ signup: 'anyone' })
+	await expect(cards.locator('[data-testid="cn-radio-cards-option-anyone"]')).toHaveClass(/cn-radio-cards__card--selected/)
+})
+
+test('radio cards: a refused PATCH shows the server words and keeps the stored card', async ({ page }) => {
+	await stubPortal(page, [], 403)
+	await page.goto('/?settingswidgets=radio', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const cards = page.locator('[data-testid="settings-widgets-harness"] .cn-radio-cards')
+	await cards.waitFor({ state: 'visible', timeout: 60_000 })
+	await cards.locator('[data-testid="cn-radio-cards-option-nobody"]').click()
+	await expect(cards.locator('[data-testid="cn-radio-cards-notice"]')).toContainText('U mag deze portal niet wijzigen.')
+	await expect(cards.locator('[data-testid="cn-radio-cards-option-approval"]')).toHaveClass(/cn-radio-cards__card--selected/)
 })
