@@ -18,6 +18,7 @@ const STORED = {
 	loginLabel: '',
 	pageLimit: 33,
 	signup: 'approval',
+	autoApproveDomains: ['zuiddrecht.nl', 'oosthaven.nl'],
 }
 
 /**
@@ -161,4 +162,40 @@ test('radio cards: a refused PATCH shows the server words and keeps the stored c
 	await cards.locator('[data-testid="cn-radio-cards-option-nobody"]').click()
 	await expect(cards.locator('[data-testid="cn-radio-cards-notice"]')).toContainText('U mag deze portal niet wijzigen.')
 	await expect(cards.locator('[data-testid="cn-radio-cards-option-approval"]')).toHaveClass(/cn-radio-cards__card--selected/)
+})
+
+test('chips field: chips with a remove, an add chip that opens an input, a pattern refusal, then one PATCH of the full list', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches)
+	await page.goto('/?settingswidgets=chips', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const chips = page.locator('[data-testid="settings-widgets-harness"] .cn-chips-field')
+	await chips.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(chips.locator('.cn-chips-field__chip')).toHaveCount(2)
+	// A chip is a pill: fully rounded.
+	expect(await chips.locator('.cn-chips-field__chip').first().evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius))).toBeGreaterThan(10)
+
+	await chips.locator('[data-testid="cn-chips-field-add"]').click()
+	await chips.locator('[data-testid="cn-chips-field-input"]').fill('geen domein')
+	await chips.locator('[data-testid="cn-chips-field-submit"]').click()
+	await expect(chips.locator('[data-testid="cn-chips-field-error"]')).toContainText('Dit is geen domeinnaam.')
+	expect(patches).toEqual([])
+
+	await chips.locator('[data-testid="cn-chips-field-input"]').fill('Nieuw-Stad.nl')
+	await chips.locator('[data-testid="cn-chips-field-submit"]').click()
+	await expect(chips.locator('.cn-chips-field__chip')).toHaveCount(3)
+	expect(patches).toEqual([{ autoApproveDomains: ['zuiddrecht.nl', 'oosthaven.nl', 'nieuw-stad.nl'] }])
+
+	await chips.locator('[data-testid="cn-chips-field-remove-oosthaven.nl"]').click()
+	await expect(chips.locator('.cn-chips-field__chip')).toHaveCount(2)
+	expect(patches[1]).toEqual({ autoApproveDomains: ['zuiddrecht.nl', 'nieuw-stad.nl'] })
+})
+
+test('chips field: a refused PATCH shows the server words and keeps the chips', async ({ page }) => {
+	await stubPortal(page, [], 403)
+	await page.goto('/?settingswidgets=chips', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const chips = page.locator('[data-testid="settings-widgets-harness"] .cn-chips-field')
+	await chips.waitFor({ state: 'visible', timeout: 60_000 })
+	await chips.locator('[data-testid="cn-chips-field-remove-zuiddrecht.nl"]').click()
+	await expect(chips.locator('[data-testid="cn-chips-field-error"]')).toContainText('U mag deze portal niet wijzigen.')
+	await expect(chips.locator('.cn-chips-field__chip')).toHaveCount(2)
 })

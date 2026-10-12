@@ -93,6 +93,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'banner',
 	'calendar',
 	'chart',
+	'chips-field',
 	'container',
 	'conversation',
 	'countdown',
