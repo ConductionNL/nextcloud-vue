@@ -24,8 +24,31 @@
 				</NcCheckboxRadioSwitch>
 				<template v-else>
 					<label class="cn-settings-form__label" :for="inputId(field)">{{ field.label }}</label>
+					<div v-if="field.type === 'file'" class="cn-settings-form__file" :data-testid="`cn-settings-form-file-${field.key}`">
+						<span
+							:id="inputId(field)"
+							class="cn-settings-form__control cn-settings-form__control--file"
+							:class="{ 'cn-settings-form__control--placeholder': !form[field.key] }">
+							{{ form[field.key] ? fileName(form[field.key]) : field.placeholder }}
+						</span>
+						<NcButton
+							v-if="!field.readOnly"
+							variant="secondary"
+							:aria-describedby="inputId(field)"
+							:data-testid="`cn-settings-form-choose-${field.key}`"
+							@click="chooseFile(field)">
+							{{ field.chooseLabel }}
+						</NcButton>
+						<NcButton
+							v-if="!field.readOnly && form[field.key]"
+							variant="tertiary"
+							:data-testid="`cn-settings-form-clear-${field.key}`"
+							@click="form[field.key] = ''">
+							{{ field.clearLabel }}
+						</NcButton>
+					</div>
 					<select
-						v-if="field.type === 'select'"
+						v-else-if="field.type === 'select'"
 						:id="inputId(field)"
 						v-model="form[field.key]"
 						class="cn-settings-form__control"
@@ -80,12 +103,18 @@
 </template>
 
 <script>
+import { FilePickerClosed, getFilePickerBuilder } from '@nextcloud/dialogs'
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
 import { changedFields, objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 
-const TYPES = ['text', 'textarea', 'select', 'switch', 'number']
+// The native file-picker modal ships its chrome styles here; without this the
+// spawned picker renders unstyled. Rules are scoped to the picker/dialog classes.
+import '@nextcloud/dialogs/style.css'
+
+const TYPES = ['text', 'textarea', 'select', 'switch', 'number', 'file']
 
 let uid = 0
 
@@ -113,7 +142,7 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number', hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a top-level field of the object.
+		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file', picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a top-level field of the object.
 		 * - `columns` — 1 or 2 (default 2).
 		 * - `saveLabel`, `savedText`, `readOnly`.
 		 *
@@ -180,6 +209,8 @@ export default {
 					label: this.tr(field.label || field.key),
 					hint: this.tr(field.hint || ''),
 					placeholder: this.tr(field.placeholder || ''),
+					chooseLabel: this.tr(field.chooseLabel || 'Choose a file'),
+					clearLabel: this.tr(field.clearLabel || 'Remove'),
 					rows: field.rows || 3,
 					wide: field.wide === true || field.type === 'textarea',
 					readOnly: this.readOnly || field.readOnly === true,
@@ -229,6 +260,56 @@ export default {
 
 		inputId(field) {
 			return `cn-settings-form-${this.uid}-${field.key}`
+		},
+
+		/**
+		 * The name shown for a stored file value: its last path segment.
+		 *
+		 * @param {string} value The stored value.
+		 * @return {string}
+		 */
+		fileName(value) {
+			const text = String(value)
+			return text.split('/').filter(Boolean).pop() || text
+		},
+
+		/**
+		 * Open the Nextcloud file picker and take the chosen file as the value.
+		 * `field.picker` = `{ title?, mimeTypes?, startAt?, valueTemplate? }`; the
+		 * template's `{path}`, `{fileid}` and `{name}` are filled from the chosen
+		 * node (default `{path}`).
+		 *
+		 * @param {object} field The field.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/abstract-settings-form-file/specs/settings-form/spec.md#requirement-a-file-field-takes-a-file-from-the-nextcloud-picker
+		 */
+		async chooseFile(field) {
+			const picker = field.picker || {}
+			let builder = getFilePickerBuilder(this.tr(picker.title || field.label))
+				.setMultiSelect(false)
+				.allowDirectories(false)
+				.startAt(picker.startAt || '/')
+				.addButton({ label: t('nextcloud-vue', 'Choose'), type: 'primary', callback: () => {} })
+			if (Array.isArray(picker.mimeTypes) && picker.mimeTypes.length > 0) {
+				builder = builder.setMimeTypeFilter(picker.mimeTypes)
+			}
+			try {
+				const nodes = await builder.build().pickNodes()
+				const node = Array.isArray(nodes) ? nodes[0] : nodes
+				if (!node) {
+					return
+				}
+				this.form[field.key] = String(picker.valueTemplate || '{path}').replace(/\{(path|fileid|name)\}/g, (match, part) => {
+					const value = part === 'name' ? (node.basename || this.fileName(node.path)) : node[part]
+					return value === undefined || value === null ? '' : String(value)
+				})
+			} catch (e) {
+				if (e instanceof FilePickerClosed) {
+					return
+				}
+				this.noticeType = 'error'
+				this.notice = this.tr('The file picker could not be opened.')
+			}
 		},
 
 		/**
@@ -417,6 +498,26 @@ export default {
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font: inherit;
+}
+
+.cn-settings-form__file {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-settings-form__control--file {
+	display: inline-flex;
+	align-items: center;
+	width: auto;
+	min-width: 120px;
+	flex: 0 1 auto;
+	overflow-wrap: anywhere;
+}
+
+.cn-settings-form__control--placeholder {
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-settings-form__control--area {

@@ -18,7 +18,16 @@ const STORED = {
 	loginLabel: '',
 	pageLimit: 33,
 	signup: 'approval',
+	theme: 'zuiddrecht',
+	logo: '/Media/logo-zuiddrecht.svg',
+	signinDigid: true,
+	signinEherkenning: false,
+	hiddenCaseTypes: ['c3'],
 	autoApproveDomains: ['zuiddrecht.nl', 'oosthaven.nl'],
+	domains: [
+		{ hostname: 'zuiddrecht.nl', verified: true, valid: 'geldig tot 14 jan 2027', txt: '' },
+		{ hostname: 'nieuw.zuiddrecht.nl', verified: false, valid: 'nog geen', txt: 'portaliq-verify=8f3a1c' },
+	],
 }
 
 /**
@@ -198,4 +207,150 @@ test('chips field: a refused PATCH shows the server words and keeps the chips', 
 	await chips.locator('[data-testid="cn-chips-field-remove-zuiddrecht.nl"]').click()
 	await expect(chips.locator('[data-testid="cn-chips-field-error"]')).toContainText('U mag deze portal niet wijzigen.')
 	await expect(chips.locator('.cn-chips-field__chip')).toHaveCount(2)
+})
+
+test('toggle table: sign-in rows with an extra column, each switch PATCHes its own field', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches)
+	await page.goto('/?settingswidgets=signin', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const table = page.locator('[data-testid="settings-widgets-harness"] .cn-toggle-table')
+	await table.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(table.locator('thead th')).toHaveText(['Inlogwijze', 'Route', 'Aan'])
+	await expect(table.locator('[data-testid="cn-toggle-table-row-digid"]')).toContainText('via integriq, de koppeling van de gemeente')
+	await expect(table.locator('[data-testid="cn-toggle-table-row-digid"] input')).toBeChecked()
+	await expect(table.locator('[data-testid="cn-toggle-table-row-eherkenning"] input')).not.toBeChecked()
+	await table.locator('[data-testid="cn-toggle-table-row-eherkenning"] input').click({ force: true })
+	await expect.poll(() => patches.length).toBe(1)
+	expect(patches[0]).toEqual({ signinEherkenning: true })
+})
+
+test('toggle table: rows from a source, a hidden case type reads as off, switching writes the one list field', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches)
+	await page.route('**/apps/portaliq/api/case-types*', async (route) => {
+		await route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ results: [
+				{ id: 'c1', name: 'Woo-verzoek', hint: '' },
+				{ id: 'c3', name: 'Handhavingszaak', hint: 'Verborgen in dit portaal.' },
+			] }),
+		})
+	})
+	await page.goto('/?settingswidgets=casetypes', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const table = page.locator('[data-testid="settings-widgets-harness"] .cn-toggle-table')
+	await table.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(table.locator('.cn-toggle-table__row')).toHaveCount(2)
+	await expect(table.locator('[data-testid="cn-toggle-table-row-c1"] input')).toBeChecked()
+	await expect(table.locator('[data-testid="cn-toggle-table-row-c3"] input')).not.toBeChecked()
+	await expect(table.locator('[data-testid="cn-toggle-table-row-c3"]')).toContainText('Verborgen in dit portaal.')
+	expect(await table.locator('.cn-toggle-table__row').nth(1).evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe('1px')
+
+	await table.locator('[data-testid="cn-toggle-table-row-c1"] input').click({ force: true })
+	await expect.poll(() => patches.length).toBe(1)
+	expect(patches[0]).toEqual({ hiddenCaseTypes: ['c3', 'c1'] })
+})
+
+const THEMES = {
+	sets: [
+		{ id: 'zuiddrecht', name: 'Zuiddrecht', colors: ['#234a78', '#cc0000', '#ffffff'], verdict: { passes: true }, findings: [] },
+		{ id: 'licht', name: 'Zuiddrecht licht', colors: ['#eaf0f7', '#3669a5', '#ffffff'], verdict: { passes: false }, findings: [{ token: 'tekst', surface: 'voet', ratio: 3.1, threshold: 4.5 }] },
+		{ id: 'rijks', name: 'Rijkshuisstijl', colors: ['#154273', '#ffffff', '#f3f3f3'], findings: [] },
+	],
+}
+
+test('choice picker: swatches and pills, a risky card shows the warning, Opslaan and Toch gebruiken tell the server apart', async ({ page }) => {
+	const puts = []
+	await page.route('**/apps/portaliq/api/portals/zuiddrecht/theme', async (route) => {
+		if (route.request().method() === 'PUT') {
+			puts.push(route.request().postDataJSON())
+			await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+			return
+		}
+		await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(THEMES) })
+	})
+	await stubPortal(page, [])
+	await page.goto('/?settingswidgets=theme', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const picker = page.locator('[data-testid="settings-widgets-harness"] .cn-choice-picker')
+	await picker.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(picker.locator('.cn-choice-picker__card')).toHaveCount(3)
+	await expect(picker.locator('[data-testid="cn-choice-picker-option-zuiddrecht"] .cn-choice-picker__swatch')).toHaveCount(3)
+	// A swatch is an 18px square painted from the item's colour.
+	const swatch = await picker.locator('[data-testid="cn-choice-picker-option-zuiddrecht"] .cn-choice-picker__swatch').first().evaluate((el) => {
+		const r = el.getBoundingClientRect()
+		return { w: Math.round(r.width), h: Math.round(r.height), bg: getComputedStyle(el).backgroundColor }
+	})
+	expect(swatch).toEqual({ w: 18, h: 18, bg: 'rgb(35, 74, 120)' })
+	await expect(picker.locator('[data-testid="cn-choice-picker-option-zuiddrecht"]')).toContainText('Leesbaar')
+	await expect(picker.locator('[data-testid="cn-choice-picker-option-licht"]')).toContainText('Slecht leesbaar')
+	await expect(picker.locator('[data-testid="cn-choice-picker-option-rijks"]')).toContainText('Niet gecontroleerd')
+	await expect(picker.locator('[data-testid="cn-choice-picker-warning"]')).toHaveCount(0)
+
+	await picker.locator('[data-testid="cn-choice-picker-option-licht"]').click()
+	await expect(picker.locator('[data-testid="cn-choice-picker-warning"]')).toContainText('tekst op de voet is 3.1:1, nodig 4.5:1.')
+	await picker.locator('[data-testid="cn-choice-picker-save"]').click()
+	await expect.poll(() => puts.length).toBe(1)
+	expect(puts[0]).toEqual({ theme: 'licht', acceptFindings: false })
+	await picker.locator('[data-testid="cn-choice-picker-confirm"]').click()
+	await expect.poll(() => puts.length).toBe(2)
+	expect(puts[1]).toEqual({ theme: 'licht', acceptFindings: true })
+})
+
+test('field-list table variant: header, pill column, row menu with remove, warning band with its action, add from a button', async ({ page }) => {
+	const patches = []
+	const posts = []
+	await stubPortal(page, patches)
+	await page.route('**/apps/portaliq/api/domains/verify', async (route) => {
+		posts.push(route.request().postDataJSON())
+		await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+	})
+	await page.goto('/?settingswidgets=domains', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const list = page.locator('[data-testid="settings-widgets-harness"] .cn-field-list-widget')
+	await list.waitFor({ state: 'visible', timeout: 60_000 })
+	await expect(list.locator('thead th').nth(0)).toHaveText('Domein')
+	await expect(list.locator('tbody tr')).toHaveCount(2)
+	await expect(list.locator('[data-testid="cn-field-list-row-zuiddrecht.nl"]')).toContainText('Geverifieerd')
+	await expect(list.locator('[data-testid="cn-field-list-row-nieuw.zuiddrecht.nl"]')).toContainText('Wacht op verificatie')
+	// The band: amber, under the table, with the check-again action.
+	const band = list.locator('[data-testid="cn-field-list-band-nieuw.zuiddrecht.nl"]')
+	await expect(band).toContainText('zet het TXT-record portaliq-verify=8f3a1c bij uw domein.')
+	const table = await list.locator('table').boundingBox()
+	const bandBox = await band.boundingBox()
+	expect(bandBox.y).toBeGreaterThan(table.y + table.height - 1)
+	await band.locator('[data-testid="cn-field-list-band-action-verify-nieuw.zuiddrecht.nl"]').click()
+	await expect.poll(() => posts.length).toBe(1)
+	expect(posts[0]).toEqual({ hostname: 'nieuw.zuiddrecht.nl' })
+
+	// The row menu holds remove.
+	await list.locator('[data-testid="cn-field-list-menu-nieuw.zuiddrecht.nl"] button').first().click()
+	await page.getByRole('menuitem', { name: 'Verwijderen' }).click()
+	await expect.poll(() => patches.length).toBe(1)
+	expect(patches[0]).toEqual({ domains: [STORED.domains[0]] })
+
+	// The add form opens from the button, not before.
+	await expect(list.locator('[data-testid="cn-field-list-add"]')).toHaveCount(0)
+	await list.locator('[data-testid="cn-field-list-open-add"]').click()
+	await expect(list.locator('[data-testid="cn-field-list-add"]')).toBeVisible()
+})
+
+test('settings form file field: the stored file name beside a choose button, remove sends null in the form PATCH', async ({ page }) => {
+	const patches = []
+	await stubPortal(page, patches)
+	await page.goto('/?settingswidgets=logo', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const form = page.locator('[data-testid="settings-widgets-harness"] .cn-settings-form')
+	await form.waitFor({ state: 'visible', timeout: 60_000 })
+	const file = form.locator('[data-testid="cn-settings-form-file-logo"]')
+	await expect(file.locator('.cn-settings-form__control--file')).toHaveText('logo-zuiddrecht.svg')
+	await expect(file.locator('[data-testid="cn-settings-form-choose-logo"]')).toHaveText('Logo kiezen uit media')
+	// The name and the button share a row.
+	const name = await file.locator('.cn-settings-form__control--file').boundingBox()
+	const button = await file.locator('[data-testid="cn-settings-form-choose-logo"]').boundingBox()
+	expect(Math.abs(name.y - button.y)).toBeLessThan(20)
+	expect(button.x).toBeGreaterThan(name.x)
+
+	await file.locator('[data-testid="cn-settings-form-clear-logo"]').click()
+	await expect(file.locator('.cn-settings-form__control--file')).toHaveText('Geen logo')
+	await form.locator('[data-testid="cn-settings-form-save"]').click()
+	await expect.poll(() => patches.length).toBe(1)
+	expect(patches[0]).toEqual({ logo: null })
 })

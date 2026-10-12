@@ -488,6 +488,13 @@
 			"via": [],
 			"page": "cn-choice-cards"
 		},
+		"CnChoicePickerWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-choice-picker-widget"
+		},
 		"CnCollectivePageCreate": {
 			"direct": 1,
 			"transitive": 6,
@@ -3617,6 +3624,13 @@
 			"tier": "light",
 			"via": [],
 			"page": "cn-timeline-widget"
+		},
+		"CnToggleTableWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-toggle-table-widget"
 		},
 		"CnTranslatedBadge": {
 			"direct": 1,
