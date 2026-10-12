@@ -1,6 +1,6 @@
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { formatRelativeDate } from './boardDate.js'
-import { safeCurrencyCode } from './formatMetric.js'
+import { formatMoney } from './formatMetric.js'
 
 /**
  * @file Built-in formatters merged into the `cnFormatters` registry
@@ -236,12 +236,12 @@ export function formatRelativeDay(value, _row, _property, options) {
  * `String(value)` for non-numeric input — never throws.
  *
  * @param {unknown} value A numeric value (or numeric string).
- * @param {object} [_row] The full row (unused).
+ * @param {object} [row] The full row, for `currencyField`.
  * @param {object} [_property] The schema property (unused).
- * @param {{currency?: string, decimals?: number}} [options] The column's `formatterOptions`.
+ * @param {{currency?: string, currencyField?: string, decimals?: number}} [options] The column's `formatterOptions`.
  * @return {string} The locale currency string (or ''/original on bad input).
  */
-export function formatCurrency(value, _row, _property, options) {
+export function formatCurrency(value, row, _property, options) {
 	if (value === null || value === undefined || value === '') {
 		return ''
 	}
@@ -249,14 +249,7 @@ export function formatCurrency(value, _row, _property, options) {
 	if (!Number.isFinite(num)) {
 		return String(value)
 	}
-	const opts = options || {}
-	const decimals = Number.isFinite(opts.decimals) ? opts.decimals : 2
-	return new Intl.NumberFormat(undefined, {
-		style: 'currency',
-		currency: safeCurrencyCode(opts.currency),
-		minimumFractionDigits: decimals,
-		maximumFractionDigits: decimals,
-	}).format(num)
+	return formatMoney(num, options || {}, row)
 }
 
 /**
