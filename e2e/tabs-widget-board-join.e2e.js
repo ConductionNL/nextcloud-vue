@@ -95,3 +95,59 @@ test.describe('CnTabsWidget in the board look', () => {
 		expect(join.topIsTab).toBe(true)
 	})
 })
+
+test.describe('CnTabsWidget in the board look, narrow', () => {
+	// Ruben: no inner scrollbars. A strip wider than its box used to scroll
+	// sideways (client, contact and lead pages); the board strip wraps instead.
+	test('tabs that exceed the width wrap onto a second row: the strip does not scroll', async ({ page }) => {
+		await openHarness(page)
+		await page.evaluate(() => {
+			document.querySelector('.tabs-board').style.width = '300px'
+		})
+		const strip = await page.evaluate(() => {
+			const nav = document.querySelector('.tabs-board .cn-tabs__nav')
+			const tops = [...nav.querySelectorAll('.cn-tabs__nav-item')].map((el) => Math.round(el.getBoundingClientRect().top))
+			return {
+				overflowX: getComputedStyle(nav).overflowX,
+				scrollable: nav.scrollWidth > nav.clientWidth + 1,
+				rows: new Set(tops).size,
+				tabs: tops.length,
+			}
+		})
+		expect(strip.tabs).toBe(2)
+		expect(strip.overflowX).toBe('visible')
+		expect(strip.scrollable).toBe(false)
+		expect(strip.rows).toBe(2)
+	})
+})
+
+test.describe('CnTabsWidget panel with a list footer', () => {
+	// The list widget's footer Add bleeds 16px through its card's padding; the
+	// panel of a tab pads 12px, so the footer stuck out by a constant 4px on the
+	// right and the bottom and the panel scrolled (the lead page).
+	test('a list footer in the panel bleeds the panel padding and does not make it scroll', async ({ page }) => {
+		await openHarness(page)
+		const result = await page.evaluate(() => {
+			// The list widget's own footer rule (its component is not in this harness).
+			const style = document.createElement('style')
+			style.textContent = '.cn-object-list-widget__add { align-self: stretch; border-top: 1px solid #ccc; margin: auto -16px -16px; padding: 4px; }'
+			document.head.prepend(style)
+			const host = document.querySelector('.tabs-board .cn-tabs__content > .cn-tab:not([hidden]) > .cn-detail-widget-host--bare')
+			const footer = document.createElement('div')
+			footer.className = 'cn-object-list-widget__add'
+			footer.textContent = 'Add'
+			host.appendChild(footer)
+			const content = document.querySelector('.tabs-board .cn-tabs__content')
+			return {
+				margin: getComputedStyle(footer).marginRight,
+				bottom: getComputedStyle(footer).marginBottom,
+				overX: content.scrollWidth - content.clientWidth,
+				overY: content.scrollHeight - content.clientHeight,
+			}
+		})
+		expect(result.margin).toBe('-12px')
+		expect(result.bottom).toBe('-12px')
+		expect(result.overX).toBeLessThanOrEqual(0)
+		expect(result.overY).toBeLessThanOrEqual(0)
+	})
+})
