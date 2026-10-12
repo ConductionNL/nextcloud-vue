@@ -17,10 +17,42 @@
 <template>
 	<div
 		class="cn-stats-block-widget"
-		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries }]">
+		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries && !isRows, 'cn-stats-block-widget--rows': isRows }]">
+		<!-- Rows layout: a title and one label-left, number-right row per entry
+		     (the board's "Mijn Zuiddrecht nu" card). -->
+		<template v-if="isRows">
+			<h2 v-if="title" class="cn-stats-block-widget__rows-title" data-testid="cn-stats-block-rows-title">
+				{{ tl(title) }}
+			</h2>
+			<dl class="cn-stats-block-widget__rows" data-testid="cn-stats-block-rows">
+				<div
+					v-for="view in rowViews"
+					:key="view.key"
+					class="cn-stats-block-widget__row"
+					data-testid="cn-stats-block-row">
+					<dt class="cn-stats-block-widget__row-label">
+						<a
+							v-if="view.href"
+							:href="view.href"
+							data-testid="cn-stats-block-row-link"
+							@click="onRowClick($event, view.route)">{{ view.label }}</a>
+						<template v-else>
+							{{ view.label }}
+						</template>
+					</dt>
+					<dd
+						class="cn-stats-block-widget__row-value"
+						:class="'cn-stats-block-widget__row-value--' + view.variant"
+						data-testid="cn-stats-block-row-value">
+						{{ view.display }}
+					</dd>
+				</div>
+			</dl>
+		</template>
+
 		<!-- Multi-entry mode: one KPI per entry, all inside this widget card.
 		     An entry with hideWhenZero whose resolved count is 0 is omitted. -->
-		<template v-if="hasEntries">
+		<template v-else-if="hasEntries">
 			<CnStatsBlock
 				v-for="view in entryViews"
 				:key="view.key"
@@ -70,6 +102,7 @@
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
+import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { formatMetricValue, normalizeMetricFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
@@ -167,6 +200,8 @@ export default {
 		 * currency (`currency`) and `@config.<key>` tokens in `format`.
 		 */
 		cnAppConfig: { default: () => ({}) },
+		/** The host's label lookup (CnAppRoot provides it); identity without one. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -264,7 +299,10 @@ export default {
 
 		/**
 		 * `stacked` gives every block the board look (see CnStatsBlock
-		 * `layout`). Empty (the default) keeps the KPI card.
+		 * `layout`). `rows` draws the title and then one row per entry (or the
+		 * single source): the label on the left, the number on the right, the
+		 * label a link when the entry has a `route`. Empty (the default) keeps
+		 * the KPI card.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stats-block-can-take-the-stacked-board-look
 		 */
@@ -351,6 +389,52 @@ export default {
 		 */
 		hasEntries() {
 			return Array.isArray(this.entries) && this.entries.length > 0
+		},
+
+		/**
+		 * Whether the widget draws label/number rows (`layout: "rows"`).
+		 *
+		 * @return {boolean}
+		 */
+		isRows() {
+			return this.layout === 'rows'
+		},
+
+		/**
+		 * The rows of the rows layout: one per entry, or a single row from the
+		 * `dataSource` (labelled by `countLabel`). A row is `{ key, label,
+		 * display, variant, route, href }`; `display` is the formatted value,
+		 * a dash while it loads or when the count could not be read.
+		 *
+		 * @return {Array<object>}
+		 */
+		rowViews() {
+			if (!this.hasEntries) {
+				const formatted = this.formattedSingle
+				return [{
+					key: 'single',
+					label: this.tl(this.countLabel),
+					display: this.loading ? '\u2014' : (formatted !== null ? formatted : this.formatCount(this.resolvedCount)),
+					variant: this.variant || 'default',
+					route: this.route,
+					href: this.route ? resolveHref(this.route, this.$router) : '',
+				}]
+			}
+			return this.entryViews.map((view) => {
+				const resolved = view.resolved === true
+				let display = '\u2014'
+				if (resolved) {
+					display = view.formatted !== null ? view.formatted : this.formatCount(view.count)
+				}
+				return {
+					key: view.key,
+					label: this.tl(view.entry.title || ''),
+					display,
+					variant: view.entry.variant || 'default',
+					route: view.route,
+					href: view.route ? resolveHref(view.route, this.$router) : '',
+				}
+			})
 		},
 
 		/**
@@ -567,6 +651,37 @@ export default {
 
 	methods: {
 		/**
+		 * A manifest string through the host's label lookup.
+		 *
+		 * @param {string} text The text as written in the manifest.
+		 * @return {string} The translated text.
+		 */
+		tl(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * A count in the user's locale.
+		 *
+		 * @param {number} count The count.
+		 * @return {string} The localized count.
+		 */
+		formatCount(count) {
+			return new Intl.NumberFormat().format(count)
+		},
+
+		/**
+		 * Follow a row label's link in the router, leaving a modified click to the browser.
+		 *
+		 * @param {MouseEvent} event The click.
+		 * @param {object} route The route location.
+		 * @return {void}
+		 */
+		onRowClick(event, route) {
+			followLinkClick(event, route, this.$router)
+		},
+
+		/**
 		 * Re-query the tile's counts — the REST `/value` aggregation, the
 		 * per-entry counts of multi-entry mode, and the `dataSource` GraphQL
 		 * path. Exposed as a ref-callable method for parity with the other data
@@ -757,5 +872,67 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: var(--cn-kpi-stack-gap, 12px);
+}
+
+/* Rows layout: the board's "label left, number right" card body. */
+.cn-stats-block-widget--rows {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	box-sizing: border-box;
+	padding: 20px 22px;
+}
+
+.cn-stats-block-widget__rows-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-stats-block-widget__rows {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	font-size: 14px;
+}
+
+.cn-stats-block-widget__row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.cn-stats-block-widget__row-label {
+	min-width: 0;
+	margin: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cn-stats-block-widget__row-value {
+	flex: none;
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+	text-align: right;
+}
+
+.cn-stats-block-widget__row-value--success {
+	color: var(--color-text-success, var(--color-success-text));
+}
+
+.cn-stats-block-widget__row-value--warning {
+	color: var(--color-text-warning, var(--color-warning-text));
+}
+
+.cn-stats-block-widget__row-value--error {
+	color: var(--color-text-error, var(--color-error-text));
+}
+
+.cn-stats-block-widget__row-value--primary {
+	color: var(--color-primary-element);
 }
 </style>
