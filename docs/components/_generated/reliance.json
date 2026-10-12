@@ -637,7 +637,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 173,
+			"transitive": 174,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -856,7 +856,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 176,
+			"transitive": 177,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1289,7 +1289,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 182,
+			"transitive": 183,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1569,7 +1569,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 179,
+			"transitive": 180,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -2534,7 +2534,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 195,
+			"transitive": 196,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3096,6 +3096,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-settings-card"
+		},
+		"CnSettingsFormWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-settings-form-widget"
 		},
 		"CnSettingsPage": {
 			"direct": 0,
@@ -3712,7 +3719,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 163,
+			"transitive": 164,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
