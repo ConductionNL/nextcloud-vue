@@ -406,7 +406,7 @@
 		},
 		"CnChartWidget": {
 			"direct": 8,
-			"transitive": 7,
+			"transitive": 8,
 			"tier": "heavy",
 			"via": [
 				"CnIndexPage"
@@ -794,7 +794,7 @@
 		},
 		"CnDeltaWidget": {
 			"direct": 0,
-			"transitive": 5,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [
 				"CnDeltaWidgetForm",
@@ -1494,7 +1494,7 @@
 		},
 		"CnGaugeWidget": {
 			"direct": 0,
-			"transitive": 5,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [
 				"CnGaugeWidgetForm",
@@ -3177,7 +3177,7 @@
 		},
 		"CnSpendAnalyticsWidget": {
 			"direct": 0,
-			"transitive": 1,
+			"transitive": 3,
 			"tier": "light",
 			"via": [],
 			"page": "cn-spend-analytics-widget"
@@ -3253,7 +3253,7 @@
 		},
 		"CnStatsBlockWidget": {
 			"direct": 1,
-			"transitive": 3,
+			"transitive": 5,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-stats-block-widget"
