@@ -3401,7 +3401,8 @@ export default {
 			const layout = content.layout || props.layout || ''
 			const title = layout === 'attention' ? (content.title || props.title || '') : ''
 			return {
-				text: content.text || props.text || title || '',
+				// A banner with only a bold `lead` has words to show too.
+				text: content.text || props.text || content.lead || props.lead || title || '',
 				visibleWhen: (def && def.visibleWhen) || content.visibleWhen || props.visibleWhen || null,
 				layout,
 			}
