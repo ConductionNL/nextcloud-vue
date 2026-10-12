@@ -131,3 +131,24 @@ A widget (or a `kpiRow` tile) is shown by a choice with a WORKSPACE `visibleWhen
 It is answered at once from the page workspace, with no request. A widget whose condition does not hold gives up its grid cell and the rows below close up; edit mode shows every widget. A widget that reads a key nobody wrote is hidden, so give the chips a `default`. The condition is a top-level one: inside `all` or `any` it is not honoured on a dashboard.
 
 Give the chips a full-width cell with `showTitle: false` to get the board's bar. The group is a radio group: the arrow keys move the choice and Tab leaves it in one step.
+
+## Toggle, select and bar
+
+A switch and a select are page controls too. `style: "toggle"` draws a switch that writes `onValue` (default true) when on and `offValue` (default false) when off, and starts off. `layout: "bar"` with `controls` draws several controls in one row, each a workspace filter of its own; `align: "end"` pushes a control to the right edge.
+
+```jsonc
+{
+  "id": "my-bar", "type": "workspace-filter", "showTitle": false,
+  "content": {
+    "layout": "bar",
+    "controls": [
+      { "style": "chips", "label": "Show", "writes": "@workspace.lens", "urlKey": "lens", "default": "all", "options": [] },
+      { "style": "toggle", "label": "Show completed", "writes": "@workspace.showDone", "urlKey": "done", "align": "end" },
+      { "style": "select", "label": "Sort", "writes": "@workspace.sort", "default": "deadline",
+        "options": [ { "value": "deadline", "label": "Deadline first" }, { "value": "priority", "label": "Priority first" } ] }
+    ]
+  }
+}
+```
+
+A list says what the controls mean for it with `pageControls` (see the record list and object table pages).

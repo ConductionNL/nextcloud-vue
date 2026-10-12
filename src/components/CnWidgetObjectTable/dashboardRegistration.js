@@ -73,6 +73,11 @@ export function objectTableContentToProps(content) {
 	if (hasLimit) {
 		source.limit = limit
 	}
+	// The page controls the table listens to belong to its source.
+	if (rest.pageControls && typeof rest.pageControls === 'object') {
+		source.pageControls = rest.pageControls
+		delete rest.pageControls
+	}
 	return { ...rest, source }
 }
 

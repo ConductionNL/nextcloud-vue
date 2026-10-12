@@ -6,7 +6,13 @@
 <template>
 	<div
 		class="cn-workspace-filter-widget"
-		:class="{ 'cn-workspace-filter-widget--start': isStart, 'cn-workspace-filter-widget--chips': style === 'chips' }"
+		:class="{
+			'cn-workspace-filter-widget--start': isStart,
+			'cn-workspace-filter-widget--chips': style === 'chips',
+			'cn-workspace-filter-widget--bar': isBar,
+			'cn-workspace-filter-widget--inline': content.inline === true,
+			'cn-workspace-filter-widget--end': content.align === 'end',
+		}"
 		data-testid="cn-workspace-filter-widget">
 		<!-- The start card (`layout: "start"`): a title and one line of
 		     guidance beside the control, as the "Contact starten" card. -->
@@ -19,14 +25,24 @@
 			</p>
 		</div>
 
-		<p v-if="label && style !== 'chips'" class="cn-workspace-filter-widget__label">
+		<!-- A bar (`layout: "bar"`): its `controls` side by side in one row,
+		     each a workspace filter of its own (chips, a switch, a select). -->
+		<template v-if="isBar">
+			<CnWorkspaceFilterWidget
+				v-for="(control, index) in barControls"
+				:key="index"
+				:content="control"
+				@change="$emit('change', $event)" />
+		</template>
+
+		<p v-if="!isBar && label && style !== 'chips' && style !== 'toggle'" class="cn-workspace-filter-widget__label">
 			{{ label }}
 		</p>
 
 		<!-- An object picker (`objectSource`): searches OpenRegister on the
 		     server, so it reaches every object, not a fetched page. -->
 		<CnResourceSelect
-			v-if="objectSource"
+			v-if="!isBar && objectSource"
 			class="cn-workspace-filter-widget__control"
 			:register="objectSource.register"
 			:schema="objectSource.schema"
@@ -56,6 +72,18 @@
 			data-testid="cn-workspace-filter-chips"
 			@update:modelValue="applySelection" />
 
+		<!-- Toggle style (screens-page-controls): a switch that writes
+		     `onValue` / `offValue` (true / false) to the key. -->
+		<NcCheckboxRadioSwitch
+			v-else-if="style === 'toggle'"
+			class="cn-workspace-filter-widget__toggle"
+			type="switch"
+			:modelValue="toggleOn"
+			data-testid="cn-workspace-filter-toggle"
+			@update:modelValue="onToggle">
+			{{ tr(label) }}
+		</NcCheckboxRadioSwitch>
+
 		<!-- Select style -->
 		<NcSelect
 			v-else-if="style === 'select'"
@@ -68,7 +96,7 @@
 			@update:modelValue="onSelect" />
 
 		<!-- Radio-list style (default) -->
-		<ul v-else
+		<ul v-else-if="!isBar"
 			class="cn-workspace-filter-widget__list"
 			role="radiogroup"
 			:aria-label="label || writeKey">
@@ -184,7 +212,12 @@ export default {
 		 * `urlKey` keeps the choice in the address (`?<urlKey>=<value>`), and
 		 * the address wins over `default` on load.
 		 *
-		 * @type {{label?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
+		 * Page controls (screens-page-controls): `style: "toggle"` is a switch
+		 * that writes `onValue` / `offValue` (true / false); `layout: "bar"`
+		 * with `controls` draws several controls side by side in one row, and
+		 * `align: "end"` pushes a control to the right edge.
+		 *
+		 * @type {{label?: string, controls?: Array<object>, onValue?: unknown, offValue?: unknown, align?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
 		 */
 		content: {
 			type: Object,
@@ -259,7 +292,7 @@ export default {
 
 		/** Choice style: 'chips', 'select' or 'radio' (default). */
 		style() {
-			return ['select', 'chips'].includes(this.content.style) ? this.content.style : 'radio'
+			return ['select', 'chips', 'toggle'].includes(this.content.style) ? this.content.style : 'radio'
 		},
 
 		/**
@@ -279,6 +312,42 @@ export default {
 				}
 				return chip
 			})
+		},
+
+		/**
+		 * Whether the widget is a bar of controls (`layout: "bar"`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-page-controls/specs/page-controls/spec.md#requirement-a-bar-holds-the-pages-controls-in-one-row
+		 */
+		isBar() {
+			return this.content.layout === 'bar' && Array.isArray(this.content.controls)
+		},
+
+		/**
+		 * The bar's controls, each an inline workspace filter of its own.
+		 *
+		 * @return {Array<object>}
+		 */
+		barControls() {
+			return this.content.controls
+				.filter((control) => control && typeof control === 'object')
+				.map((control) => ({ ...control, inline: true }))
+		},
+
+		/** @return {unknown} The value a switch writes when on. */
+		onValue() {
+			return this.content.onValue !== undefined ? this.content.onValue : true
+		},
+
+		/** @return {unknown} The value a switch writes when off. */
+		offValue() {
+			return this.content.offValue !== undefined ? this.content.offValue : false
+		},
+
+		/** @return {boolean} Whether the switch is on. */
+		toggleOn() {
+			return this.selected !== undefined && String(this.selected) === String(this.onValue)
 		},
 
 		/**
@@ -378,6 +447,10 @@ export default {
 		} else if (this.content.default !== undefined) {
 			this.selected = this.content.default
 			this.writeWorkspace(this.content.default)
+		} else if (this.style === 'toggle') {
+			// A switch starts off, and says so, so a condition on its key holds.
+			this.selected = this.offValue
+			this.writeWorkspace(this.offValue)
 		}
 		this.loadOptions()
 	},
@@ -405,6 +478,12 @@ export default {
 				return undefined
 			}
 			const raw = this.$route.query[this.urlKey]
+			if (this.style === 'toggle') {
+				if (raw === undefined) {
+					return undefined
+				}
+				return [this.onValue, this.offValue].find((value) => String(value) === String(raw))
+			}
 			const known = this.displayOptions.some((option) => String(option.value) === String(raw))
 			return known ? String(raw) : undefined
 		},
@@ -644,6 +723,17 @@ export default {
 		},
 
 		/**
+		 * Switch handler: write `onValue` or `offValue`.
+		 *
+		 * @param {boolean} on Whether the switch is on.
+		 * @return {void}
+		 * @spec openspec/changes/screens-page-controls/specs/page-controls/spec.md#requirement-a-toggle-and-a-select-are-page-controls
+		 */
+		onToggle(on) {
+			this.applySelection(on ? this.onValue : this.offValue)
+		},
+
+		/**
 		 * NcSelect input handler.
 		 *
 		 * @param {object|null} option The picked option object.
@@ -756,6 +846,39 @@ export default {
 	flex-direction: row;
 	flex-wrap: wrap;
 	align-items: center;
+}
+
+/* A bar: its controls in one row, an `align: "end"` control pushed right. */
+.cn-workspace-filter-widget--bar {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px 16px;
+}
+
+/* An inline control sits in a bar: label left of the control, width to its content. */
+.cn-workspace-filter-widget--inline {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	width: auto;
+}
+
+.cn-workspace-filter-widget--inline .cn-workspace-filter-widget__label {
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-workspace-filter-widget--end {
+	margin-inline-start: auto;
+}
+
+.cn-workspace-filter-widget--end ~ .cn-workspace-filter-widget--end {
+	margin-inline-start: 0;
+}
+
+.cn-workspace-filter-widget__toggle {
+	font-weight: 600;
 }
 
 /* The start card: text left, control (and link) right, as PqDashboard's "Contact starten". */

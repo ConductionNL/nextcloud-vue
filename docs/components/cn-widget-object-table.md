@@ -245,3 +245,7 @@ etc.). The widget itself emits:
 - REQ-MVR-006 (manifest-v2-renderer) — built-in widget: object-table
 - list-widget-enrichment (ADR-049 Decision 2) — declarative source,
   actions, object-op, compact list surface
+
+## Page controls
+
+`source.pageControls` (flat dashboard content: `pageControls`) has the same shape as on the record list: `sort.map` replaces `source.order`, and `toggle.removes` drops filter keys while the page's switch is on. See the workspace filter page for the controls.
