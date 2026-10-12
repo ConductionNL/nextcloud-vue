@@ -8,7 +8,7 @@
  */
 
 import { fetchAggregateValue, fetchGroupedCounts } from '../../src/utils/fetchAggregate.js'
-import { fetchFilterCounts, hasListValue, singleEqualityOf } from '../../src/utils/fetchFilterCounts.js'
+import { fetchFilterCounts, hasListValue, hasNullTest, singleEqualityOf } from '../../src/utils/fetchFilterCounts.js'
 
 jest.mock('../../src/utils/fetchAggregate.js', () => ({
 	fetchAggregateValue: jest.fn(),
@@ -216,5 +216,55 @@ describe('fetchFilterCounts', () => {
 		expect(await fetchFilterCounts({ register: 'r', schema: 's', entries: [] })).toEqual({})
 		expect(fetchGroupedCounts).not.toHaveBeenCalled()
 		expect(fetchAggregateValue).not.toHaveBeenCalled()
+	})
+})
+
+describe('hasNullTest', () => {
+	it('spots a null value and an isnull operator, and nothing else', () => {
+		expect(hasNullTest({ assignee: null })).toBe(true)
+		expect(hasNullTest({ supersededBy: { isnull: true } })).toBe(true)
+		expect(hasNullTest({ supersededBy: { isNull: false } })).toBe(true)
+		expect(hasNullTest({ status: 'open', deadline: { lt: '2026-10-05' }, owners: ['a'] })).toBe(false)
+		expect(hasNullTest(null)).toBe(false)
+	})
+})
+
+describe('a lens whose filter tests a field for no value', () => {
+	const okResponse = (total) => ({ ok: true, json: async () => ({ total, results: [] }) })
+
+	afterEach(() => {
+		delete global.fetch
+	})
+
+	it('is counted through the list endpoint, not the aggregation endpoint that has no null operator', async () => {
+		global.fetch = jest.fn().mockResolvedValue(okResponse(48))
+		const counts = await fetchFilterCounts({
+			register: 'dossiq',
+			schema: 'caseType',
+			entries: [
+				{ key: 'current', filter: { supersededBy: { isnull: true } } },
+				{ key: 'unassigned', filter: { assignee: null } },
+			],
+		})
+		expect(fetchGroupedCounts).not.toHaveBeenCalled()
+		expect(fetchAggregateValue).not.toHaveBeenCalled()
+		expect(global.fetch).toHaveBeenCalledTimes(2)
+		const urls = global.fetch.mock.calls.map(([url]) => new URL(url, 'http://localhost'))
+		expect(urls.map((u) => u.searchParams.get('supersededBy[isnull]')).filter(Boolean)).toEqual(['true'])
+		expect(urls.map((u) => u.searchParams.get('assignee[isnull]')).filter(Boolean)).toEqual(['true'])
+		expect(counts).toEqual({ current: 48, unassigned: 48 })
+	})
+
+	it('sends a null-testing base filter through the list endpoint for every entry', async () => {
+		global.fetch = jest.fn().mockResolvedValue(okResponse(3))
+		await fetchFilterCounts({
+			register: 'r',
+			schema: 's',
+			baseFilter: { supersededBy: { isnull: true } },
+			entries: [{ key: 'a', filter: { status: 'open' } }, { key: 'b', filter: { status: 'closed' } }],
+		})
+		expect(fetchGroupedCounts).not.toHaveBeenCalled()
+		expect(fetchAggregateValue).not.toHaveBeenCalled()
+		expect(global.fetch).toHaveBeenCalledTimes(2)
 	})
 })
