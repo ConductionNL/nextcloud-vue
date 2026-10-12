@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 //
 // A record-list card on a dashboard shows the header the widget reports
-// (?l7=dashboard-list-header, harness l7/DashboardListHeader.vue): the link
+// (?l7=list-card-header, harness l7/ListCardHeader.vue): the link
 // with the list's total filled in and the note beside it. Before, the
 // dashboard dropped the widget's `header` event: the link read
 // "Alle {total} verzoeken" and the note was not drawn.
@@ -23,8 +23,8 @@ test('a record-list card on a dashboard shows its counted link and note', async 
 			body: JSON.stringify({ total: 7, results: [{ id: 'r1', displayName: 'R. Mulder' }, { id: 'r2', displayName: 'L. Hendriks' }] }),
 		})
 	})
-	await page.goto('/?l7=dashboard-list-header', { waitUntil: 'domcontentloaded', timeout: 90_000 })
-	const host = page.locator('[data-testid="dashboard-list-header"]')
+	await page.goto('/?l7=list-card-header', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const host = page.locator('[data-testid="list-card-header"]')
 	await host.locator('.cn-record-list__row').first().waitFor({ state: 'visible', timeout: 60_000 })
 
 	const link = host.locator('[data-testid="cn-widget-wrapper-header-link"]')

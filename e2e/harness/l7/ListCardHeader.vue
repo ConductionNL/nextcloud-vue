@@ -2,12 +2,12 @@
   SPDX-FileCopyrightText: 2026 Conduction B.V.
   SPDX-License-Identifier: EUPL-1.2
 
-  A `record-list` card on a dashboard page (?l7=dashboard-list-header) whose
+  A `record-list` card on a dashboard page (?l7=list-card-header) whose
   header carries a counted link and a note, as it does on a detail page.
   OpenRegister is stubbed by the spec with page.route().
 -->
 <template>
-	<div class="cn-look-board" data-testid="dashboard-list-header" style="width: 760px">
+	<div class="cn-look-board" data-testid="list-card-header" style="width: 760px">
 		<CnDashboardPage
 			title="Dashboard"
 			:widgets="widgets"
@@ -22,7 +22,7 @@ import CnDashboardPage from '../../../src/components/CnDashboardPage/CnDashboard
 import '../../../src/css/index.css'
 
 export default {
-	name: 'DashboardListHeader',
+	name: 'ListCardHeader',
 
 	components: { CnDashboardPage },
 
