@@ -933,7 +933,7 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
-import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -2256,6 +2256,10 @@ export default {
 			const items = []
 			for (const id of ids) {
 				if (this.getWidgetDef(id) || this.hasWidgetSlot(id)) {
+					// A tile a page control hides surrenders its cell.
+					if (!this.gridEditable && this.isHiddenByWorkspace(id)) {
+						continue
+					}
 					items.push({ widgetId: id })
 				} else if (process.env.NODE_ENV !== 'production') {
 					// eslint-disable-next-line no-console
@@ -3435,11 +3439,33 @@ export default {
 			if (!visibleWhen) {
 				return false
 			}
+			// A workspace condition (a page control's choice) is answered at
+			// once from the reactive bag; nothing is fetched for it.
+			if (isWorkspaceCondition(visibleWhen)) {
+				return !evaluateWorkspaceCondition(visibleWhen, this.workspaceContext)
+			}
 			const outcome = this.widgetConditionOutcome[item.widgetId]
 			if (outcome && outcome.failed === true && layout === 'attention' && this.isBannerDef(def)) {
 				return false
 			}
 			return !outcome || outcome.met !== true
+		},
+
+		/**
+		 * Whether a page control (a workspace condition on `visibleWhen`)
+		 * hides this widget right now. Other conditions are not looked at.
+		 *
+		 * @param {string} widgetId The widget id.
+		 * @return {boolean} True when the widget must not draw.
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-widget-can-be-shown-by-a-workspace-value
+		 */
+		isHiddenByWorkspace(widgetId) {
+			const def = this.getWidgetDef(widgetId)
+			if (!def || !def.type) {
+				return false
+			}
+			const { visibleWhen } = this.widgetDisplayConfig(def)
+			return isWorkspaceCondition(visibleWhen) && !evaluateWorkspaceCondition(visibleWhen, this.workspaceContext)
 		},
 
 		/**
@@ -3464,7 +3490,8 @@ export default {
 		async evaluateWidgetConditions() {
 			const defs = [...(this.widgets || []), ...this.normalizedViews.flatMap((view) => view.widgets)]
 			const conditional = defs.filter((def) => def && def.id && def.type
-				&& this.widgetDisplayConfig(def).visibleWhen)
+				&& this.widgetDisplayConfig(def).visibleWhen
+				&& !isWorkspaceCondition(this.widgetDisplayConfig(def).visibleWhen))
 			// Skip when the CONDITIONAL SET is unchanged: the deep `widgets`
 			// watch fires on any def edit, but only an added/removed/edited
 			// predicate warrants refetching every conditional endpoint.
@@ -3484,8 +3511,13 @@ export default {
 				const cond = this.widgetDisplayConfig(def).visibleWhen
 				let outcome
 				try {
-					const value = await readVisibleWhenValue(cond)
+					// `sink` keeps the first row of a source query, for a banner that names it.
+					const sink = {}
+					const value = await readVisibleWhenValue(cond, undefined, sink)
 					outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
+					if (sink.row) {
+						outcome.row = sink.row
+					}
 				} catch (error) {
 					// Fail-safe: not met. But the failure is kept, and said
 					// out loud: a failed count and "nothing to report" look
@@ -3985,6 +4017,11 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
 			if (value === undefined || value === null) {
+				// A banner that names no title draws no title row: it used to show
+				// its widget id ("attention-first") as the card title.
+				if (this.isBannerDef(def) && !item.customTitle && !def?.customTitle && !def?.title) {
+					return false
+				}
 				return !this.isCardWidget(item)
 			}
 			return value !== false

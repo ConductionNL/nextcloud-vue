@@ -81,6 +81,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
+import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
@@ -108,7 +109,7 @@ function unwrap(value) {
  * objects filtered on a reference to this record. The source keys are those of
  * `object-list` (`register`, `schema`, `filter` with the `@objectId` /
  * `@object.<field>` / `@workspace.<key>` tokens, `sort`, `limit`, `extend`,
- * `rowRoute`); what differs is the drawing: `presentation` is `rows`, `feed`
+ * `rowRoute`, `pageControls`); what differs is the drawing: `presentation` is `rows`, `feed`
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`).
  *
@@ -188,13 +189,18 @@ export default {
 
 		/** @return {object} The filter with its tokens resolved. */
 		resolvedFilter() {
-			const filter = this.content?.filter
-			return dropOptionalUnresolved(resolveFilterTokens(filter && typeof filter === 'object' ? filter : {}, this.tokenCtx))
+			const filter = pageFilter(this.content?.pageControls, this.tokenCtx.workspace, this.content?.filter)
+			return dropOptionalUnresolved(resolveFilterTokens(filter, this.tokenCtx))
 		},
 
 		/** @return {boolean} A required token (the record id, say) has no value yet. */
 		waiting() {
 			return hasUnresolvedTokens(this.resolvedFilter)
+		},
+
+		/** @return {object|null} The sort: the page's sort control when the widget listens to one, else its own. */
+		effectiveSort() {
+			return pageSort(this.content?.pageControls, this.tokenCtx.workspace, this.content?.sort)
 		},
 
 		/** @return {number} The fetch cap. */
@@ -206,7 +212,7 @@ export default {
 		/** @return {string} What a fetch depends on; a change fetches again. */
 		requestKey() {
 			const c = this.content || {}
-			return JSON.stringify([c.register, c.schema, this.resolvedFilter, c.sort, this.limit, c.extend, this.waiting])
+			return JSON.stringify([c.register, c.schema, this.resolvedFilter, this.effectiveSort, this.limit, c.extend, this.waiting])
 		},
 
 		/** @return {Array<object>} The rows ready to draw. */
@@ -422,8 +428,9 @@ export default {
 				])
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
 				const params = { _limit: this.limit }
-				if (c.sort && typeof c.sort === 'object' && c.sort.field) {
-					params[`_order[${c.sort.field}]`] = c.sort.dir === 'desc' ? 'desc' : 'asc'
+				const sort = this.effectiveSort
+				if (sort && typeof sort === 'object' && sort.field) {
+					params[`_order[${sort.field}]`] = sort.dir === 'desc' ? 'desc' : 'asc'
 				}
 				if (Array.isArray(c.extend)) {
 					const extend = c.extend.filter((e) => typeof e === 'string' && e !== '')

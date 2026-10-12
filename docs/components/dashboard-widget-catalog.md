@@ -110,6 +110,27 @@ it renders the note card it always did.
 
 **When the check itself fails.** An attention card whose `visibleWhen` request fails (the endpoint or source answers an error, or the network is down) does not stay hidden. It renders one muted line, "Could not check:" followed by the card's title, with the reason as a tooltip, and on a dashboard it keeps its cell. A hidden card would read as "nothing needs attention", and a failed count does not know that. The line carries no severity colour, no alert role and no actions. When the title uses `{value}`, the line says only "Could not check". A request that succeeds with a value that does not meet the condition still renders nothing, and a plain banner (no `layout`) still stays hidden on failure.
 
+**A card that names one record.** Give `visibleWhen.source` an `order` and the card reads the first row of that ordered query. `notEmpty` on `id` is the test that there is a first row, so an empty query shows nothing. The row is the card's subject: `{subject.<field>}` in the `kicker`, `title` and `reason` fills it (`{subject.createdAt|date}` and `{subject.createdAt|days}`, the whole days since, format it), and `@subject.<field>` in an action's `route` params or query becomes its value. A token the row has no value for empties that whole text. `stacked: true` puts the actions under the text with a 16px title, as PqMijnWerk's "Begin hier" card draws it. On a dashboard the page reads the query once and hands the row to the card.
+
+```json
+{
+  "widgetKey": "banner",
+  "props": {
+    "layout": "attention",
+    "stacked": true,
+    "kicker": "Start here",
+    "title": "{subject.title}",
+    "reason": "{subject.contactName} has waited {subject.createdAt|days} days.",
+    "visibleWhen": {
+      "source": { "register": "app", "schema": "ticket", "filter": { "assignee": "@me" }, "order": { "slaDeadline": "asc" } },
+      "field": "id",
+      "op": "notEmpty"
+    },
+    "actions": [ { "label": "Answer now", "route": { "name": "TicketDetail", "params": { "id": "@subject.id" } } } ]
+  }
+}
+```
+
 The component is `CnBannerWidget`, resolved by its key and configured by `CnBannerWidgetForm`.
 
 ### Divider · `divider`

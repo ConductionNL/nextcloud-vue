@@ -144,4 +144,4 @@ Under the board look (`layout="board"`, or the app's `cnLook`) the bar draws no 
 
 ### Disabled view segments
 
-Under the board look `disabledViewModes` (an array of modes) draws view switch segments the page cannot open, in the fixed order table, cards, board, map, disabled and titled "<mode>: not available on this list". A mode that is also offered renders once, enabled. `CnIndexPage` fills it from `config.viewSwitch`.
+Under the board look `disabledViewModes` (an array of modes) draws view switch segments the page cannot open, in the fixed order table, cards, board, map, disabled and titled `<mode>: not available on this list`. A mode that is also offered renders once, enabled. `CnIndexPage` fills it from `config.viewSwitch`.

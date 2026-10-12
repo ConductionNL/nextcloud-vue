@@ -21,7 +21,7 @@ import { resolveNextStep } from '../../utils/detailActionModel.js'
  * Renders CnNextStepCard for the bound record's stage from
  * `content: { field?, stages: { <stage>: { title?, checklist, after? } } }`.
  * The checklist only: the page's own primary button stays where the page
- * puts it. Resolved by its registry key, not exported.
+ * puts it. Resolved by its registry key, and exported for an app that renders it itself.
  */
 export default {
 	name: 'CnNextStepWidget',

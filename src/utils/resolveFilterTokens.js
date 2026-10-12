@@ -67,7 +67,9 @@
 
 import { getCurrentUser } from '@nextcloud/auth'
 import { TODAY_DELTA_RE } from './sentinelTokens.js'
-import { peekCurrentUserGroups } from './widgetVisibility.js'
+// userGroupsPeek, not widgetVisibility: that one imports @nextcloud/axios, and
+// this resolver runs on public pages and in node (see userGroupsPeek.js).
+import { peekCurrentUserGroups } from './userGroupsPeek.js'
 
 /** The filter token for the current user's group ids. */
 export const MY_GROUPS_TOKEN = '@myGroups'

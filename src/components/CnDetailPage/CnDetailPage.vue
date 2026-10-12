@@ -745,7 +745,7 @@
 				:layout="section.layout"
 				:editable="section.editable"
 				:columns="12"
-				:columnOpts="columnOpts"
+				:columnOpts="bodyColumnOpts"
 				class="cn-detail-page__grid"
 				@layoutChange="section.view ? onViewLayoutChange($event) : onBodyLayoutChange($event)">
 				<template #widget="{ item }">
@@ -1294,6 +1294,35 @@ const DEFAULT_DETAIL_COLUMN_OPTS = Object.freeze({
 	layout: 'moveScale',
 	breakpointForWindow: false,
 })
+
+/**
+ * Where the default table stacks when a side column sits beside the body grid.
+ *
+ * The side column takes about 320px, so the grid it leaves is far narrower than
+ * the page: 790px at a 1100px window. Stacking that at 1000px made a row of
+ * small tiles (a KPI row of 5 or 6 stat tiles) impossible beside a side column.
+ * 1000px exists to keep a `gridWidth: 3` side PANEL inside the grid readable; a
+ * page with a real side column has no such panel, and 12 columns at 600px is
+ * still 50px a column, enough for a tile. Below 600px it stacks as before.
+ */
+const SIDE_COLUMN_STACK_WIDTH = 600
+
+/**
+ * Whether `opts` is the untouched default table, so a page that passed its own
+ * `columnOpts` keeps exactly what it asked for.
+ *
+ * @param {object|null} opts The `columnOpts` value.
+ * @return {boolean}
+ */
+function isDefaultColumnOpts(opts) {
+	const breakpoints = opts && opts.breakpoints
+	return !!opts
+		&& opts.columnMax === DEFAULT_DETAIL_COLUMN_OPTS.columnMax
+		&& Array.isArray(breakpoints)
+		&& breakpoints.length === 1
+		&& breakpoints[0].w === DEFAULT_DETAIL_COLUMN_OPTS.breakpoints[0].w
+		&& breakpoints[0].c === 1
+}
 
 /**
  * Event-bus channel a page-level refresh is announced on. The page's own
@@ -3333,6 +3362,20 @@ export default {
 				.map((widget, index) => ({ widget, index }))
 				.sort((a, b) => (rank(a.widget) - rank(b.widget)) || (a.index - b.index))
 				.map(({ widget }) => widget)
+		},
+
+		/**
+		 * The `columnOpts` the body grid gets: the default table stacks at 1000px
+		 * of grid width, or at 600px when a side column narrows the grid. An
+		 * explicit `columnOpts` prop is passed through untouched.
+		 *
+		 * @return {object|null} The column options.
+		 */
+		bodyColumnOpts() {
+			if (!this.showsSideColumn || !isDefaultColumnOpts(this.columnOpts)) {
+				return this.columnOpts
+			}
+			return { ...this.columnOpts, breakpoints: [{ w: SIDE_COLUMN_STACK_WIDTH, c: 1 }] }
 		},
 
 		/**

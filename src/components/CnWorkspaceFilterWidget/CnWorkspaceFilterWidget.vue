@@ -6,7 +6,13 @@
 <template>
 	<div
 		class="cn-workspace-filter-widget"
-		:class="{ 'cn-workspace-filter-widget--start': isStart }"
+		:class="{
+			'cn-workspace-filter-widget--start': isStart,
+			'cn-workspace-filter-widget--chips': style === 'chips',
+			'cn-workspace-filter-widget--bar': isBar,
+			'cn-workspace-filter-widget--inline': content.inline === true,
+			'cn-workspace-filter-widget--end': content.align === 'end',
+		}"
 		data-testid="cn-workspace-filter-widget">
 		<!-- The start card (`layout: "start"`): a title and one line of
 		     guidance beside the control, as the "Contact starten" card. -->
@@ -19,14 +25,24 @@
 			</p>
 		</div>
 
-		<p v-if="label" class="cn-workspace-filter-widget__label">
+		<!-- A bar (`layout: "bar"`): its `controls` side by side in one row,
+		     each a workspace filter of its own (chips, a switch, a select). -->
+		<template v-if="isBar">
+			<CnWorkspaceFilterWidget
+				v-for="(control, index) in barControls"
+				:key="index"
+				:content="control"
+				@change="$emit('change', $event)" />
+		</template>
+
+		<p v-if="!isBar && label && style !== 'chips' && style !== 'toggle'" class="cn-workspace-filter-widget__label">
 			{{ label }}
 		</p>
 
 		<!-- An object picker (`objectSource`): searches OpenRegister on the
 		     server, so it reaches every object, not a fetched page. -->
 		<CnResourceSelect
-			v-if="objectSource"
+			v-if="!isBar && objectSource"
 			class="cn-workspace-filter-widget__control"
 			:register="objectSource.register"
 			:schema="objectSource.schema"
@@ -44,6 +60,30 @@
 			{{ loadingLabel }}
 		</div>
 
+		<!-- Chips style (screens-page-lenses): one compact segmented group,
+		     a count after each label, arrow keys move the choice. -->
+		<CnSegmentedControl
+			v-else-if="style === 'chips'"
+			class="cn-workspace-filter-widget__chips"
+			size="compact"
+			:options="chipOptions"
+			:modelValue="selected === undefined || selected === null ? null : String(selected)"
+			:ariaLabel="label || writeKey"
+			data-testid="cn-workspace-filter-chips"
+			@update:modelValue="applySelection" />
+
+		<!-- Toggle style (screens-page-controls): a switch that writes
+		     `onValue` / `offValue` (true / false) to the key. -->
+		<NcCheckboxRadioSwitch
+			v-else-if="style === 'toggle'"
+			class="cn-workspace-filter-widget__toggle"
+			type="switch"
+			:modelValue="toggleOn"
+			data-testid="cn-workspace-filter-toggle"
+			@update:modelValue="onToggle">
+			{{ tr(label) }}
+		</NcCheckboxRadioSwitch>
+
 		<!-- Select style -->
 		<NcSelect
 			v-else-if="style === 'select'"
@@ -56,7 +96,7 @@
 			@update:modelValue="onSelect" />
 
 		<!-- Radio-list style (default) -->
-		<ul v-else
+		<ul v-else-if="!isBar"
 			class="cn-workspace-filter-widget__list"
 			role="radiogroup"
 			:aria-label="label || writeKey">
@@ -92,10 +132,13 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
+import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
@@ -126,7 +169,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  * content: {
  *   label: 'Queue',
  *   writes: '@workspace.queue',
- *   style: 'radio',                 // 'radio' (default) | 'select'
+ *   style: 'radio',                 // 'radio' (default) | 'select' | 'chips'
  *   allLabel: 'All',
  *   showCounts: true,
  *   source: { register: 'pipelinq', schema: 'werkitem', groupBy: 'queue' },
@@ -136,7 +179,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 export default {
 	name: 'CnWorkspaceFilterWidget',
 
-	components: { CnResourceSelect, NcSelect, NcCheckboxRadioSwitch },
+	components: { CnResourceSelect, CnSegmentedControl, NcSelect, NcCheckboxRadioSwitch },
 
 	inject: {
 		/**
@@ -162,7 +205,19 @@ export default {
 		 * server and writes the picked object's id; without a selection and
 		 * without `allLabel` it selects the first object.
 		 *
-		 * @type {{label?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
+		 * Chips (screens-page-lenses): `style: "chips"` draws the options as one
+		 * compact segmented group with a count after each label. An option's
+		 * `countFrom` (`{ register, schema, filter? }`, or a list of them that
+		 * are added up) counts that list; a static `count` is used otherwise.
+		 * `urlKey` keeps the choice in the address (`?<urlKey>=<value>`), and
+		 * the address wins over `default` on load.
+		 *
+		 * Page controls (screens-page-controls): `style: "toggle"` is a switch
+		 * that writes `onValue` / `offValue` (true / false); `layout: "bar"`
+		 * with `controls` draws several controls side by side in one row, and
+		 * `align: "end"` pushes a control to the right edge.
+		 *
+		 * @type {{label?: string, controls?: Array<object>, onValue?: unknown, offValue?: unknown, align?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
 		 */
 		content: {
 			type: Object,
@@ -180,6 +235,8 @@ export default {
 			loading: false,
 			/** The currently-selected value (mirrors the workspace key). */
 			selected: undefined,
+			/** Counted totals of the options that ask (`countFrom`), by option position. */
+			optionCounts: {},
 		}
 	},
 
@@ -233,9 +290,73 @@ export default {
 			return src && typeof src === 'object' && src.register && src.schema ? src : null
 		},
 
-		/** Choice style: 'select' or 'radio' (default). */
+		/** Choice style: 'chips', 'select' or 'radio' (default). */
 		style() {
-			return this.content.style === 'select' ? 'select' : 'radio'
+			return ['select', 'chips', 'toggle'].includes(this.content.style) ? this.content.style : 'radio'
+		},
+
+		/**
+		 * The chips: each option with its label translated and its count,
+		 * the static one or the counted one.
+		 *
+		 * @return {Array<{value: string, label: string, count?: number}>}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-workspace-filter-can-draw-chips-with-counts
+		 */
+		chipOptions() {
+			return this.displayOptions.map((option, index) => {
+				const counted = this.optionCounts[index]
+				const count = counted !== undefined && counted !== null ? counted : option.count
+				const chip = { value: String(option.value), label: this.tr(option.label) }
+				if (this.showCounts && Number.isFinite(count)) {
+					chip.count = count
+				}
+				return chip
+			})
+		},
+
+		/**
+		 * Whether the widget is a bar of controls (`layout: "bar"`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-page-controls/specs/page-controls/spec.md#requirement-a-bar-holds-the-pages-controls-in-one-row
+		 */
+		isBar() {
+			return this.content.layout === 'bar' && Array.isArray(this.content.controls)
+		},
+
+		/**
+		 * The bar's controls, each an inline workspace filter of its own.
+		 *
+		 * @return {Array<object>}
+		 */
+		barControls() {
+			return this.content.controls
+				.filter((control) => control && typeof control === 'object')
+				.map((control) => ({ ...control, inline: true }))
+		},
+
+		/** @return {unknown} The value a switch writes when on. */
+		onValue() {
+			return this.content.onValue !== undefined ? this.content.onValue : true
+		},
+
+		/** @return {unknown} The value a switch writes when off. */
+		offValue() {
+			return this.content.offValue !== undefined ? this.content.offValue : false
+		},
+
+		/** @return {boolean} Whether the switch is on. */
+		toggleOn() {
+			return this.selected !== undefined && String(this.selected) === String(this.onValue)
+		},
+
+		/**
+		 * The address key that carries the choice (`urlKey`), or ''.
+		 *
+		 * @return {string}
+		 */
+		urlKey() {
+			return typeof this.content.urlKey === 'string' ? this.content.urlKey : ''
 		},
 
 		/** Whether to render per-option counts. */
@@ -316,17 +437,115 @@ export default {
 		// Seed the selection: existing workspace value → content.default → the
 		// "All" clear option (empty) when present, else the first option once
 		// loaded (handled in loadOptions).
+		const fromAddress = this.readAddress()
 		const existing = this.readWorkspace()
-		if (existing !== undefined) {
+		if (fromAddress !== undefined) {
+			this.selected = fromAddress
+			this.writeWorkspace(fromAddress)
+		} else if (existing !== undefined) {
 			this.selected = existing
 		} else if (this.content.default !== undefined) {
 			this.selected = this.content.default
 			this.writeWorkspace(this.content.default)
+		} else if (this.style === 'toggle') {
+			// A switch starts off, and says so, so a condition on its key holds.
+			this.selected = this.offValue
+			this.writeWorkspace(this.offValue)
 		}
 		this.loadOptions()
 	},
 
+	mounted() {
+		this.onPageRefresh = () => this.loadCounts()
+		subscribe('cn:page:refresh', this.onPageRefresh)
+		this.loadCounts()
+	},
+
+	beforeUnmount() {
+		unsubscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
 	methods: {
+		/**
+		 * The choice named in the address (`?<urlKey>=…`), when it is one of
+		 * the options; undefined otherwise.
+		 *
+		 * @return {string|undefined}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-the-choice-is-in-the-address
+		 */
+		readAddress() {
+			if (!this.urlKey || !this.$route || !this.$route.query) {
+				return undefined
+			}
+			const raw = this.$route.query[this.urlKey]
+			if (this.style === 'toggle') {
+				if (raw === undefined) {
+					return undefined
+				}
+				return [this.onValue, this.offValue].find((value) => String(value) === String(raw))
+			}
+			const known = this.displayOptions.some((option) => String(option.value) === String(raw))
+			return known ? String(raw) : undefined
+		},
+
+		/**
+		 * Write the choice to the address, replacing the history entry and
+		 * keeping the other query keys.
+		 *
+		 * @param {unknown} value The chosen value.
+		 * @return {void}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-the-choice-is-in-the-address
+		 */
+		writeAddress(value) {
+			if (!this.urlKey || !this.$router || !this.$route) {
+				return
+			}
+			const query = this.$route.query || {}
+			if (String(query[this.urlKey]) === String(value)) {
+				return
+			}
+			const result = this.$router.replace({ query: { ...query, [this.urlKey]: String(value) } })
+			if (result && typeof result.catch === 'function') {
+				result.catch(() => {})
+			}
+		},
+
+		/**
+		 * Count the lists behind the options that ask (`countFrom`: a list
+		 * `{ register, schema, filter? }`, or several that are added up). One
+		 * list request each; an option whose count failed shows none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-workspace-filter-can-draw-chips-with-counts
+		 */
+		async loadCounts() {
+			const options = this.displayOptions
+			const seq = (this.countSeq = (this.countSeq || 0) + 1)
+			const ctx = { workspace: this.readWorkspaceBag() }
+			await Promise.all(options.map(async (option, index) => {
+				const raw = (Array.isArray(this.content.options) ? this.content.options : [])
+					.find((candidate) => candidate && typeof candidate === 'object' && String(candidate.value ?? candidate.id) === String(option.value))
+				const from = raw ? raw.countFrom : null
+				const lists = (Array.isArray(from) ? from : [from]).filter((list) => list && typeof list === 'object' && list.register && list.schema)
+				if (lists.length === 0) {
+					return
+				}
+				let total
+				try {
+					const parts = await Promise.all(lists.map((list) => fetchListTotal(list.register, list.schema, list.filter || {}, ctx)))
+					if (parts.some((part) => part === null)) {
+						throw new Error('no total')
+					}
+					total = parts.reduce((sum, part) => sum + part, 0)
+				} catch {
+					total = null
+				}
+				if (seq === this.countSeq) {
+					this.optionCounts = { ...this.optionCounts, [index]: total }
+				}
+			}))
+		},
+
 		/**
 		 * Normalise a raw option into `{ value, label, count? }`. Accepts
 		 * `{ value, label, count }`, `{ id, name }`, `{ key, count }` (OR
@@ -504,6 +723,17 @@ export default {
 		},
 
 		/**
+		 * Switch handler: write `onValue` or `offValue`.
+		 *
+		 * @param {boolean} on Whether the switch is on.
+		 * @return {void}
+		 * @spec openspec/changes/screens-page-controls/specs/page-controls/spec.md#requirement-a-toggle-and-a-select-are-page-controls
+		 */
+		onToggle(on) {
+			this.applySelection(on ? this.onValue : this.offValue)
+		},
+
+		/**
 		 * NcSelect input handler.
 		 *
 		 * @param {object|null} option The picked option object.
@@ -523,6 +753,7 @@ export default {
 		applySelection(value) {
 			this.selected = value
 			this.writeWorkspace(value)
+			this.writeAddress(value)
 			/**
 			 * @event change Emitted when the selection changes. Payload: `{ key, value }`.
 			 */
@@ -608,6 +839,46 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
+}
+
+/* The chips: the compact segmented group, left, in the card the grid draws. */
+.cn-workspace-filter-widget--chips {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+/* A bar: its controls in one row, an `align: "end"` control pushed right. */
+.cn-workspace-filter-widget--bar {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px 16px;
+}
+
+/* An inline control sits in a bar: label left of the control, width to its content. */
+.cn-workspace-filter-widget--inline {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	width: auto;
+}
+
+.cn-workspace-filter-widget--inline .cn-workspace-filter-widget__label {
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-workspace-filter-widget--end {
+	margin-inline-start: auto;
+}
+
+.cn-workspace-filter-widget--end ~ .cn-workspace-filter-widget--end {
+	margin-inline-start: 0;
+}
+
+.cn-workspace-filter-widget__toggle {
+	font-weight: 600;
 }
 
 /* The start card: text left, control (and link) right, as PqDashboard's "Contact starten". */

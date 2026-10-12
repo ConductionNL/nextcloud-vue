@@ -73,13 +73,14 @@ const portal = {
  *
  * @param {object} content The content.
  * @param {object} [object] The object.
+ * @param {Function} [cnTranslate] The injected translator.
  * @return {object} The wrapper.
  */
-function mountList(content, object = portal) {
+function mountList(content, object = portal, cnTranslate = (key) => key) {
 	return mount(CnFieldListWidget, {
 		props: { content, objectData: object, objectId: 'p-1', register: 'portaliq', schema: 'portal' },
 		global: {
-			provide: { cnTranslate: (key) => key },
+			provide: { cnTranslate },
 			stubs: {
 				NcButton: { template: '<button v-bind="$attrs" @click="$emit(\'click\')"><slot /></button>' },
 				NcNoteCard: { props: ['type'], template: '<div class="note" :data-type="type"><slot /></div>' },
@@ -214,5 +215,18 @@ describe('CnFieldListWidget', () => {
 		const w = mountList({ ...EDITORS, readOnly: true })
 		expect(w.find('[data-testid="cn-field-list-add"]').exists()).toBe(false)
 		expect(w.find('[data-testid="cn-field-list-remove-pieter"]').exists()).toBe(false)
+	})
+
+	it('shows the translated aside fallback when a row has no value, and nothing without a fallback', () => {
+		const rows = { field: 'domains', key: 'hostname', row: { title: 'hostname' } }
+		const object = { ...portal, domains: [{ hostname: 'a.nl', checkedAt: '2026-10-01' }, { hostname: 'b.nl' }] }
+		const dutch = (key) => (key === 'Not checked' ? 'Niet gecontroleerd' : key)
+
+		const withFallback = mountList({ ...rows, row: { ...rows.row, aside: { path: 'checkedAt', prefix: 'Checked', fallback: 'Not checked' } } }, object, dutch)
+		expect(withFallback.find('[data-testid="cn-field-list-row-b.nl"] .cn-field-list-widget__aside').text()).toBe('Niet gecontroleerd')
+		expect(withFallback.find('[data-testid="cn-field-list-row-a.nl"] .cn-field-list-widget__aside').text()).toBe('Checked 2026-10-01')
+
+		const without = mountList({ ...rows, row: { ...rows.row, aside: { path: 'checkedAt' } } }, object)
+		expect(without.find('[data-testid="cn-field-list-row-b.nl"] .cn-field-list-widget__aside').exists()).toBe(false)
 	})
 })

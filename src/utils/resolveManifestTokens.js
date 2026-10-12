@@ -54,6 +54,8 @@ export const SENTINEL_RESOLVERS = Object.freeze({
 	declarative: 'fetchAggregate (OpenRegister server-side)',
 	visibleWhen: 'evaluateVisibleWhen (utils/visibleWhen.js)',
 	answer: 'resolveAssignValue (utils/formAssign.js)',
+	row: 'CnFieldListWidget (rowActions request)',
+	subject: 'CnBannerWidget (action route)',
 })
 
 /**

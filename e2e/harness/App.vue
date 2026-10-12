@@ -176,6 +176,24 @@
 			<ProgressCellHarness />
 		</template>
 
+		<!-- A start-here attention card naming one record (?starthere=1). See StartHereHarness.vue. -->
+		<template v-else-if="showStartHere">
+			<h2>Start here</h2>
+			<StartHereHarness />
+		</template>
+
+		<!-- Page controls: a bar with chips, a switch and a select, and a list that listens (?pagecontrols=1). -->
+		<template v-else-if="showPageControls">
+			<h2>Page controls</h2>
+			<PageControlsHarness />
+		</template>
+
+		<!-- Page lenses: workspace-filter chips (?lenses=1). See PageLensesHarness.vue. -->
+		<template v-else-if="showPageLenses">
+			<h2>Page lenses</h2>
+			<PageLensesHarness />
+		</template>
+
 		<!-- The workspace-filter start card (?startcard=1). See StartCardHarness.vue. -->
 		<template v-else-if="showStartCard">
 			<h2>Start card</h2>
@@ -693,6 +711,8 @@ import FieldHintHarness from './FieldHintHarness.vue'
 import FieldListHarness from './FieldListHarness.vue'
 import FilesTabOrHarness from './FilesTabOrHarness.vue'
 import NarrowTableHarness from './NarrowTableHarness.vue'
+import PageControlsHarness from './PageControlsHarness.vue'
+import PageLensesHarness from './PageLensesHarness.vue'
 import PixelGaps3Harness from './PixelGaps3Harness.vue'
 import PixelGapsHarness from './PixelGapsHarness.vue'
 import ProgressCellHarness from './ProgressCellHarness.vue'
@@ -706,6 +726,7 @@ import ScreensParityHarness from './ScreensParityHarness.vue'
 import SectionsHarness from './SectionsHarness.vue'
 import StagesHarness from './StagesHarness.vue'
 import StartCardHarness from './StartCardHarness.vue'
+import StartHereHarness from './StartHereHarness.vue'
 import TabsBoardHarness from './TabsBoardHarness.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
@@ -730,7 +751,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -792,6 +813,9 @@ export default {
 			showSections: (typeof window !== 'undefined' && /[?&]sectionswidget=/.test(window.location.search)),
 			showFacts: (typeof window !== 'undefined' && /[?&]factswidget=/.test(window.location.search)),
 			showProgressCell: (typeof window !== 'undefined' && /[?&]progresscell=/.test(window.location.search)),
+			showStartHere: (typeof window !== 'undefined' && /[?&]starthere=/.test(window.location.search)),
+			showPageControls: (typeof window !== 'undefined' && /[?&]pagecontrols=/.test(window.location.search)),
+			showPageLenses: (typeof window !== 'undefined' && /[?&]lenses=/.test(window.location.search)),
 			showStartCard: (typeof window !== 'undefined' && /[?&]startcard=/.test(window.location.search)),
 			showFieldList: (typeof window !== 'undefined' && /[?&]fieldlist=/.test(window.location.search)),
 			showStages: (typeof window !== 'undefined' && /[?&](stageswidget|statbadge)=/.test(window.location.search)),
