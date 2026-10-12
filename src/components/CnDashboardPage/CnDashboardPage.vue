@@ -452,6 +452,7 @@
 			:layout="section.layout"
 			:editable="section.editable"
 			:columns="columns"
+			:columnOpts="gridColumnOpts"
 			:cellHeight="cellHeight"
 			:margin="gridMargin"
 			:float="gridFloat"
@@ -2081,6 +2082,22 @@ export default {
 				return items
 			}
 			return this.compactDisplayLayout(visible)
+		},
+
+		/**
+		 * The responsive columns of the grid. Under the board look a phone gets
+		 * one column: below 640px the widgets stack in reading order (top to
+		 * bottom, then left to right) instead of squeezing six columns into
+		 * 150px. Without the board look the grid keeps its fixed columns.
+		 *
+		 * @return {object|null} GridStack `columnOpts`, or null.
+		 * @spec openspec/changes/screens-dashboard-phone/specs/dashboard-phone/spec.md#requirement-a-board-dashboard-stacks-on-a-phone
+		 */
+		gridColumnOpts() {
+			if (!this.isBoardLook) {
+				return null
+			}
+			return { columnMax: this.columns, breakpoints: [{ w: 640, c: 1 }], layout: 'list', breakpointForWindow: true }
 		},
 
 		/**
@@ -4885,6 +4902,18 @@ export default {
 
 .cn-dashboard-page__content-item {
 	width: 100%;
+}
+/* On a phone (screens-dashboard-phone) the touch targets of a board dashboard
+   are 44px: the widget Actions menu and the KPI tiles. */
+@media (max-width: 640px) {
+	.cn-dashboard-page--board :deep(.cn-widget-wrapper__actions .action-item__menutoggle),
+	.cn-dashboard-page--board :deep(.cn-widget-wrapper__actions .button-vue) {
+		min-height: 44px;
+	}
+
+	.cn-dashboard-page--board .cn-dashboard-page__kpi-cell {
+		min-height: 44px;
+	}
 }
 </style>
 

@@ -642,4 +642,11 @@ a.cn-record-list__inline-title {
 .cn-detail-page__side .cn-record-list__chevron {
 	display: none;
 }
+
+/* A row is a touch target of at least 44px on a phone. */
+@media (max-width: 640px) {
+	.cn-record-list__row {
+		min-height: 44px;
+	}
+}
 </style>
