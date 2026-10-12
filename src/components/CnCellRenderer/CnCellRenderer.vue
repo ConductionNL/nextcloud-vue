@@ -882,11 +882,14 @@ export default {
 		 * a `{ value: variant }` map (e.g. `{ placed: 'primary', delivered: 'success' }`)
 		 * that CnStatusBadge resolves per label. Null when unset (falls back to
 		 * `badgeVariant`). Lets a manifest colour a status column without code.
+		 * A column-level `colorMap` (it reaches the cell as the property's
+		 * `colorMap`) works too, so `{ widget: 'badge', colorMap }` and
+		 * `{ widget: 'badge', widgetProps: { colorMap } }` read the same.
 		 *
 		 * @return {object|null}
 		 */
 		badgeColorMap() {
-			return (this.widgetProps && this.widgetProps.colorMap) || null
+			return (this.widgetProps && this.widgetProps.colorMap) || this.enumColorMap || null
 		},
 
 		/**
