@@ -505,6 +505,82 @@ export default {
 		},
 
 		/**
+		 * The rank list of a sort (`{ field, rank: ["urgent", "high", "normal", "low"], then? }`),
+		 * or null when the sort has none or the list's own filter already fixes the field.
+		 *
+		 * @param {object|null} sort The effective sort.
+		 * @return {Array<string>|null} The values in rank order.
+		 * @spec openspec/changes/screens-enum-rank-sort/specs/enum-rank-sort/spec.md#requirement-a-record-list-can-sort-by-the-rank-of-an-enum-value
+		 */
+		rankOf(sort) {
+			if (!sort || typeof sort !== 'object' || !sort.field || !Array.isArray(sort.rank)) {
+				return null
+			}
+			const rank = sort.rank.filter((value) => typeof value === 'string' && value !== '')
+			if (rank.length === 0 || Object.hasOwn(this.resolvedFilter || {}, sort.field)) {
+				return null
+			}
+			return rank
+		},
+
+		/**
+		 * Read a list in the rank of an enum field. The list endpoint orders a
+		 * text field alphabetically ("high", "low", "normal", "urgent"), so the
+		 * rows are read one rank at a time, best first, each with the rest of the
+		 * sort (`then`) inside it, until the page is full; the rows with a value
+		 * outside the rank (or none) follow. The result is exact, not a client-side
+		 * sort of a partial page. It costs one request for the total, one per rank
+		 * value read and one for the remainder.
+		 *
+		 * @param {object} axios The axios instance.
+		 * @param {string} url The list url.
+		 * @param {object} base The params without any order.
+		 * @param {{field: string, then?: {field: string, dir?: string}}} sort The sort.
+		 * @param {Array<string>} rank The values in rank order.
+		 * @return {Promise<{rows: Array<object>, total: number}>} The page and the total.
+		 * @spec openspec/changes/screens-enum-rank-sort/specs/enum-rank-sort/spec.md#requirement-a-record-list-can-sort-by-the-rank-of-an-enum-value
+		 */
+		async fetchRanked(axios, url, base, sort, rank) {
+			const order = {}
+			if (sort.then && typeof sort.then === 'object' && sort.then.field) {
+				order[`_order[${sort.then.field}]`] = sort.then.dir === 'desc' ? 'desc' : 'asc'
+			}
+			const read = async (extra) => {
+				const response = await axios.get(url, { params: { ...base, ...order, ...extra } })
+				const data = response && response.data ? response.data : {}
+				return { results: Array.isArray(data.results) ? data.results : [], total: data.total }
+			}
+			const head = await read({ _limit: 1 })
+			const rows = []
+			const seen = new Set()
+			const idOf = (row) => (row && (row.id || row['@self']?.id)) || null
+			const take = (list) => {
+				for (const row of list) {
+					const id = idOf(row)
+					if (id !== null && seen.has(id)) {
+						continue
+					}
+					if (id !== null) {
+						seen.add(id)
+					}
+					if (rows.length < this.limit) {
+						rows.push(row)
+					}
+				}
+			}
+			for (const value of rank) {
+				if (rows.length >= this.limit) {
+					break
+				}
+				take((await read({ [sort.field]: value, _limit: this.limit - rows.length })).results)
+			}
+			if (rows.length < this.limit) {
+				take((await read({ _limit: this.limit + rows.length })).results)
+			}
+			return { rows, total: typeof head.total === 'number' ? head.total : rows.length }
+		},
+
+		/**
 		 * Fetch the list. Sends nothing while a required token is unresolved
 		 * or the source is incomplete.
 		 *
@@ -527,9 +603,12 @@ export default {
 					import('@nextcloud/router'),
 				])
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
-				const params = { _limit: this.limit }
 				const sort = this.effectiveSort
-				if (sort && typeof sort === 'object' && sort.field) {
+				const params = { _limit: this.limit }
+				// A rank sort (`sort.rank`) cannot be one `_order`: the list endpoint
+				// orders a text field alphabetically. It is read group by group below.
+				const rank = this.rankOf(sort)
+				if (!rank && sort && typeof sort === 'object' && sort.field) {
 					params[`_order[${sort.field}]`] = sort.dir === 'desc' ? 'desc' : 'asc'
 				}
 				if (Array.isArray(c.extend)) {
@@ -546,6 +625,12 @@ export default {
 					} else if (value !== '' && value !== null && value !== undefined) {
 						params[key] = value
 					}
+				}
+				if (rank) {
+					const ranked = await this.fetchRanked(axios, url, params, sort, rank)
+					this.rows = ranked.rows
+					this.total = ranked.total
+					return
 				}
 				const response = await axios.get(url, { params })
 				const data = response && response.data ? response.data : {}
