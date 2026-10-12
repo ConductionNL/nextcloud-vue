@@ -3,7 +3,7 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-tasks-widget">
+	<div class="cn-tasks-widget" :class="{ 'cn-tasks-widget--list': isList }">
 		<!-- One quiet line on failure, never a leaked axios status string
 		     (ADR-062). The real error goes to the console. -->
 		<p v-if="error" class="cn-tasks-widget__error">
@@ -21,7 +21,7 @@
 			<!-- The count states the server TOTAL, never the rendered length
 			     (ADR-062): the number a person acts on is how much work
 			     exists, not how much fits the cell. -->
-			<p class="cn-tasks-widget__count">
+			<p v-if="!isList" class="cn-tasks-widget__count">
 				{{ countLabel }}
 			</p>
 			<ul class="cn-tasks-widget__list">
@@ -33,23 +33,53 @@
 					@click="onRowClick(task, $event)"
 					@mousedown="preventMiddleClickAutoscroll"
 					@auxclick="onRowAuxClick(task, $event)">
-					<span class="cn-tasks-widget__body">
-						<span class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
-						<span class="cn-tasks-widget__meta">{{ metaLine(task) }}</span>
-					</span>
-					<!-- Overdue is carried by the WORDING (taskDueLabel) and by
-					     weight; the colour only reinforces it. -->
-					<span
-						class="cn-tasks-widget__due"
-						:class="{ 'cn-tasks-widget__due--overdue': task.overdue === true }">
-						{{ dueLabel(task) }}
-					</span>
+					<!-- List variant: a checkbox completes the viewer's own task
+					     (the task with a declared outcome list keeps the menu, as
+					     a checkbox cannot choose an outcome). Other rows get a
+					     spacer so the titles stay aligned. -->
+					<template v-if="isList">
+						<input
+							v-if="canCheck(task)"
+							type="checkbox"
+							class="cn-tasks-widget__check"
+							:checked="completing.includes(String(task.uuid))"
+							:disabled="completing.includes(String(task.uuid))"
+							:aria-label="tr('Mark {title} as done').replace('{title}', titleOf(task))"
+							data-testid="cn-tasks-widget-check"
+							@click.stop
+							@change="check(task)">
+						<span v-else class="cn-tasks-widget__check-spacer" aria-hidden="true" />
+						<span class="cn-tasks-widget__body">
+							<span class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
+							<span class="cn-tasks-widget__meta cn-tasks-widget__meta--split">
+								<span class="cn-tasks-widget__subject">{{ subjectOf(task) }}</span>
+								<span
+									class="cn-tasks-widget__due"
+									:class="{ 'cn-tasks-widget__due--overdue': task.overdue === true }">
+									{{ dueLabel(task) }}
+								</span>
+							</span>
+						</span>
+					</template>
+					<template v-else>
+						<span class="cn-tasks-widget__body">
+							<span class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
+							<span class="cn-tasks-widget__meta">{{ metaLine(task) }}</span>
+						</span>
+						<!-- Overdue is carried by the WORDING (taskDueLabel) and by
+						     weight; the colour only reinforces it. -->
+						<span
+							class="cn-tasks-widget__due"
+							:class="{ 'cn-tasks-widget__due--overdue': task.overdue === true }">
+							{{ dueLabel(task) }}
+						</span>
+					</template>
 					<!-- Only verbs the contract can accept are offered; the
 					     server still authorizes, and a refusal is toasted in
 					     its own words. Stopped clicks: the menu must not also
 					     open the row. -->
 					<NcActions
-						v-if="canClaim(task) || canComplete(task)"
+						v-if="(canClaim(task) || canComplete(task)) && !(isList && canCheck(task))"
 						class="cn-tasks-widget__actions"
 						:forceMenu="true"
 						:aria-label="tr('Task actions')"
@@ -90,6 +120,7 @@ import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 
@@ -185,8 +216,14 @@ export default {
 		 *   receiving the task uuid as `:id`. Omitted = the click opens the
 		 *   task's openregister deep link instead.
 		 * - `emptyText` — override for the empty-inbox line.
+		 * - `variant` — `list` draws a checkbox list: a checkbox that completes
+		 *   the viewer's own task, the title, the subject on a second muted
+		 *   line and the due date at its right. Default: the compact rows.
+		 * - `viewAllRoute` / `viewAllLabel` — a "View all" text link in the
+		 *   card header: a route name or location `{ name, params?, query? }`,
+		 *   and its label (default "View all"). `headerLink` works too.
 		 *
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string}}
 		 */
 		content: {
 			type: Object,
@@ -213,6 +250,8 @@ export default {
 			default: null,
 		},
 	},
+
+	emits: ['header'],
 
 	setup(props) {
 		// The shared endpoint engine owns request dedup, the short-TTL cache
@@ -253,10 +292,30 @@ export default {
 	data() {
 		return {
 			pollTimer: null,
+			/** Uuids of the tasks a checkbox is completing, until the next read. */
+			completing: [],
 		}
 	},
 
 	computed: {
+		/**
+		 * Whether the rows draw as the checkbox list (`content.variant: 'list'`).
+		 *
+		 * @return {boolean}
+		 */
+		isList() {
+			return this.content.variant === 'list'
+		},
+
+		/**
+		 * The header "View all" link the content declares, or null.
+		 *
+		 * @return {object|null}
+		 */
+		headerLink() {
+			return contentHeaderLink(this.content)
+		},
+
 		/**
 		 * Effective translate function: the explicit prop, then the injected
 		 * host one, then `@nextcloud/l10n` under the library's own app id.
@@ -357,6 +416,19 @@ export default {
 		},
 	},
 
+	watch: {
+		headerLink: {
+			immediate: true,
+			handler(link) {
+				/**
+				 * @event header Emitted with the card header's parts: the "View all" link, if any.
+				 * @type {{link: (object|null), note: string}}
+				 */
+				this.$emit('header', { link, note: '' })
+			},
+		},
+	},
+
 	mounted() {
 		this.startPolling()
 		document.addEventListener('visibilitychange', this.onVisibilityChange)
@@ -421,6 +493,43 @@ export default {
 		 */
 		titleOf(task) {
 			return task.displayTitle || task.title || String(task.uuid || '')
+		},
+
+		/**
+		 * The subject (the case a task sits on), for the list variant's second line.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The subject's title, or ''.
+		 */
+		subjectOf(task) {
+			return task.subject && task.subject.title ? String(task.subject.title) : ''
+		},
+
+		/**
+		 * Whether the list variant draws a checkbox on the row: the viewer's own
+		 * open task, with no outcome list to choose from.
+		 *
+		 * @param {object} task The task row.
+		 * @return {boolean}
+		 */
+		canCheck(task) {
+			return this.canComplete(task) && !(Array.isArray(task.outcomes) && task.outcomes.length > 0)
+		},
+
+		/**
+		 * Complete a task from its checkbox, with the server's default outcome.
+		 *
+		 * @param {object} task The task row.
+		 * @return {Promise<void>}
+		 */
+		async check(task) {
+			const uuid = String(task.uuid || '')
+			if (uuid === '' || this.completing.includes(uuid)) {
+				return
+			}
+			this.completing = [...this.completing, uuid]
+			await this.postVerb(task, 'complete', { outcome: 'done' })
+			this.completing = this.completing.filter((id) => id !== uuid)
 		},
 
 		/**
@@ -719,6 +828,57 @@ function normaliseScope(raw) {
 	color: var(--color-text-maxcontrast);
 	font-size: 12px;
 	font-variant-numeric: tabular-nums;
+}
+
+/* List variant, after the dashboard board's My tasks card: a checkbox, the
+   title, the subject on a muted second line and the due date at its right. */
+.cn-tasks-widget--list .cn-tasks-widget__row {
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px 0;
+}
+
+.cn-tasks-widget--list .cn-tasks-widget__name {
+	font-weight: 400;
+	font-size: 15px;
+	line-height: 1.35;
+	color: var(--color-main-text);
+}
+
+.cn-tasks-widget__check,
+.cn-tasks-widget__check-spacer {
+	flex: none;
+	width: 20px;
+	height: 20px;
+	margin: 1px 0 0;
+}
+
+.cn-tasks-widget__check {
+	accent-color: var(--color-primary-element);
+	cursor: pointer;
+}
+
+.cn-tasks-widget__meta--split {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 13px;
+	overflow: visible;
+}
+
+.cn-tasks-widget__subject {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cn-tasks-widget--list .cn-tasks-widget__due {
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.cn-tasks-widget--list .cn-tasks-widget__due--overdue {
+	font-weight: 600;
 }
 
 /* Overdue: weight AND colour on top of the wording, which already says
