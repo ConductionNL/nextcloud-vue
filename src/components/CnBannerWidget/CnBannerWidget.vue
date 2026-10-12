@@ -48,15 +48,27 @@
 	</p>
 	<div v-else-if="visible" class="cn-banner-widget">
 		<NcNoteCard :type="resolvedVariant" class="cn-banner-widget__card">
-			<component
-				:is="clickable ? 'a' : 'span'"
-				class="cn-banner-widget__text"
-				:class="{ 'cn-banner-widget__text--clickable': clickable }"
-				:href="clickable ? routeHref : null"
-				data-testid="cn-banner-widget-text"
-				@click="onClick">
-				{{ displayText }}
-			</component>
+			<!-- A named icon replaces the variant's own glyph. -->
+			<template v-if="resolvedIcon" #icon>
+				<CnIcon :name="resolvedIcon" :size="22" data-testid="cn-banner-widget-icon" />
+			</template>
+			<span class="cn-banner-widget__line">
+				<component
+					:is="clickable ? 'a' : 'span'"
+					class="cn-banner-widget__text"
+					:class="{ 'cn-banner-widget__text--clickable': clickable }"
+					:href="clickable ? routeHref : null"
+					data-testid="cn-banner-widget-text"
+					@click="onClick"><strong v-if="displayLead" class="cn-banner-widget__lead" data-testid="cn-banner-widget-lead">{{ displayLead }}</strong>{{ displayLead && displayText ? ' ' : '' }}{{ displayText }}</component>
+				<!-- Board look: the actions as links at the end of the line. -->
+				<a
+					v-for="action in noteActions"
+					:key="action.key"
+					class="cn-banner-widget__link"
+					:href="action.href || null"
+					data-testid="cn-banner-widget-link"
+					@click="onActionClick($event, action)">{{ action.label }}</a>
+			</span>
 		</NcNoteCard>
 	</div>
 </template>
@@ -64,6 +76,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcNoteCard } from '@nextcloud/vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { safeHref } from '../../utils/safeHref.js'
@@ -147,7 +160,7 @@ const MAX_ACTIONS_BOARD = 4
 export default {
 	name: 'CnBannerWidget',
 
-	components: { NcNoteCard },
+	components: { CnIcon, NcNoteCard },
 
 	inject: {
 		/**
@@ -173,6 +186,27 @@ export default {
 
 		/** Pre-translated banner text. Empty falls back to the `content` blob. */
 		text: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A bold lead in front of the text ("2 aanmeldingen wachten op
+		 * goedkeuring." before the rest of the sentence). `{value}` is replaced
+		 * like in `text`, and it goes through the app's translate. Empty falls
+		 * back to the `content` blob.
+		 */
+		lead: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A named icon (`AccountPlus`, `AlertOutline`, ...) drawn before the
+		 * text instead of the variant's own glyph. Empty falls back to the
+		 * `content` blob, then to the variant glyph.
+		 */
+		icon: {
 			type: String,
 			default: '',
 		},
@@ -340,9 +374,38 @@ export default {
 			return VARIANTS.includes(v) ? v : 'info'
 		},
 
-		/** The effective banner text (prop → content → ''). */
+		/** The effective banner text (prop → content → ''), through the app's translate. */
 		resolvedText() {
-			return this.text || (this.content && this.content.text) || ''
+			const text = this.text || (this.content && this.content.text) || ''
+			return text ? this.tl(text) : ''
+		},
+
+		/** The effective bold lead (prop → content → ''), through the app's translate. */
+		resolvedLead() {
+			const lead = this.lead || (this.content && this.content.lead) || ''
+			return lead ? this.tl(lead) : ''
+		},
+
+		/** The lead with `{value}` filled in. */
+		displayLead() {
+			return this.fillValue(this.resolvedLead)
+		},
+
+		/** The effective icon name (prop → content → ''). */
+		resolvedIcon() {
+			return this.icon || (this.content && this.content.icon) || ''
+		},
+
+		/**
+		 * The note card's actions as links, under the board look only: the
+		 * first resolved action of `actions`, as the board draws "Beleid
+		 * wijzigen" at the end of the line. Without the look the note card
+		 * ignores `actions`, as it always did.
+		 *
+		 * @return {Array<object>} The resolved actions (at most one).
+		 */
+		noteActions() {
+			return normalizeLook(this.cnLook) === 'board' ? this.resolvedActions.slice(0, 1) : []
 		},
 
 		/** The effective visibleWhen condition (prop → content → null). */
@@ -484,7 +547,7 @@ export default {
 		 */
 		visible() {
 			const title = this.title || (this.content && this.content.title) || ''
-			if (this.resolvedText === '' && !(this.isAttention && title !== '')) {
+			if (this.resolvedText === '' && this.resolvedLead === '' && !(this.isAttention && title !== '')) {
 				return false
 			}
 			if (!this.resolvedVisibleWhen) {
@@ -691,6 +754,23 @@ export default {
 
 .cn-banner-widget__card {
 	margin: 0;
+}
+
+.cn-banner-widget__line {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 20px;
+}
+
+.cn-banner-widget__lead {
+	font-weight: 700;
+}
+
+.cn-banner-widget__link {
+	margin-inline-start: auto;
+	font-size: 14px;
+	font-weight: 600;
 }
 
 .cn-banner-widget__text--clickable {
