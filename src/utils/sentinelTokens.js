@@ -83,6 +83,9 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 	visibleWhen: '^@total$',
 	// form-live-values: another answer in the same form, read by a field's `assign` rule.
 	answer: '^@answer\\.[A-Za-z][A-Za-z0-9_]*$',
+	// A field of the row a row action is run on (`@row.<field>`, dot path), read by the
+	// field-list widget's `rowActions` request URL and payload.
+	row: '^@row\\.[A-Za-z][A-Za-z0-9_.@]*$',
 	// Deprecated-but-not-yet-removed tokens. Kept in the schema union so
 	// deployed manifests still validate during the migration window; the gate
 	// downgrades them to a WARN (see SENTINEL_DEPRECATIONS).
@@ -90,7 +93,7 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 })
 
 /**
- * The eight canonical context names (excludes `deprecated`, which is a
+ * The nine canonical context names (excludes `deprecated`, which is a
  * transitional overlay, not a resolution context).
  *
  * @type {string[]}
@@ -104,6 +107,7 @@ export const SENTINEL_CONTEXTS = Object.freeze([
 	'declarative',
 	'visibleWhen',
 	'answer',
+	'row',
 ])
 
 /**
@@ -153,6 +157,11 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		resolver: 'resolveAssignValue (utils/formAssign.js)',
 		description: 'Another answer in the same form, read by a field\'s `assign` rule.',
 		members: ['@answer.<field>'],
+	},
+	row: {
+		resolver: 'CnFieldListWidget (rowActions request url and payload)',
+		description: 'A field of the row a row action runs on, read by the field-list widget when it sends the action\'s request. Dot paths are allowed (`@row.owner.id`).',
+		members: ['@row.<field>'],
 	},
 })
 
