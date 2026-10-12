@@ -94,3 +94,40 @@ A dashboard often opens with a "start" card: a title and one line of guidance on
 import GeneratedRef from './_generated/CnWorkspaceFilterWidget.md'
 
 <GeneratedRef />
+
+## Chips and page lenses
+
+A dashboard can offer chips that show one kind of work at a time (PqMijnWerk: Alle 9, Tickets 7, Leads 1, Opvolgingen 1). Declare the chips on this widget and let each widget say which choices show it.
+
+```jsonc
+{
+  "id": "lens",
+  "type": "workspace-filter",
+  "content": {
+    "style": "chips",
+    "label": "Show",                 // the group's accessible name
+    "writes": "@workspace.lens",
+    "urlKey": "lens",                // ?lens=tickets, wins over default on load
+    "default": "all",
+    "options": [
+      { "value": "all", "label": "All",
+        "countFrom": [ { "register": "app", "schema": "ticket", "filter": { "assignee": "@me" } },
+                       { "register": "app", "schema": "lead", "filter": { "assignee": "@me" } } ] },
+      { "value": "tickets", "label": "Tickets",
+        "countFrom": { "register": "app", "schema": "ticket", "filter": { "assignee": "@me" } } }
+    ]
+  }
+}
+```
+
+`countFrom` is one list or several whose totals are added up (one list request each); an option whose count failed shows its label only. A static `count` works too.
+
+A widget (or a `kpiRow` tile) is shown by a choice with a WORKSPACE `visibleWhen`:
+
+```jsonc
+{ "id": "my-leads", "type": "record-list", "visibleWhen": { "workspace": "lens", "op": "in", "value": ["all", "leads"] } }
+```
+
+It is answered at once from the page workspace, with no request. A widget whose condition does not hold gives up its grid cell and the rows below close up; edit mode shows every widget. A widget that reads a key nobody wrote is hidden, so give the chips a `default`. The condition is a top-level one: inside `all` or `any` it is not honoured on a dashboard.
+
+Give the chips a full-width cell with `showTitle: false` to get the board's bar. The group is a radio group: the arrow keys move the choice and Tab leaves it in one step.
