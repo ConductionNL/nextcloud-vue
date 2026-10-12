@@ -48,7 +48,7 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `row.avatar` | Initials of the title in a round badge. |
 | `row.meta` | Paths, or `{ path, map?, format? }`, joined by " · " under the title. |
 | `row.pill` | `{ path, map?, variantMap? }`: a CnStatusBadge. |
-| `row.aside` | `{ path, format?, prefix? }`: muted text at the row's end. `format` is `date` or `date-long`. |
+| `row.aside` | `{ path, format?, prefix?, fallback? }`: muted text at the row's end. `format` is `date` or `date-long`. `fallback` is an optional label (translated through `cnTranslate`) shown when the row has no value; without it the aside is left out. The prefix is not added to a fallback. |
 | `row.detail` | `{ template, when? }`: a muted line under the row; `{path}` placeholders, left out when one is empty. |
 | `rowActions[]` | `{ id, label, when?, request: { method?, url, payload? } }`: a button on matching rows. Tokens: `@objectId`, `@object.<field>`, `@row.<field>` (a whole-string token keeps its type; inside a url it is encoded). After the request the live state is read again; a `message` in the answer shows as an info note. |
 | `rowSource` | `{ url, path?, key }`: live per-row state merged over each entry by key, never written back. |

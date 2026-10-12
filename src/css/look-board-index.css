@@ -499,11 +499,16 @@
 	max-width: calc(100% - 26px);
 }
 
-/* The selection column: 28px, 18px checkboxes. */
+/* The selection column: 18px checkboxes, 28px of content after 16px of padding.
+   The box model is set with `!important` and the widths include the padding:
+   Nextcloud's server.css sets `box-sizing: border-box` on everything under
+   `#content[class*="app-"]`, an id selector no class rule outranks, so a plain
+   `content-box` here was ignored and the cell left 12px for the checkbox (the
+   header's checkbox showed as a stray bracket). */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--checkbox {
-	box-sizing: content-box;
-	width: 28px;
-	min-width: 28px;
+	box-sizing: border-box !important;
+	width: 44px;
+	min-width: 44px;
 	padding-inline: 16px 0;
 	text-align: start;
 }
@@ -561,10 +566,12 @@
 	line-height: 1.4;
 }
 
-/* The row menu column holds one 34px button. */
+/* The row menu column holds one 34px button between 16px of padding, so 66px
+   border to border (see the selection column for why the box model is forced). */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--actions {
-	width: 34px;
-	min-width: 0;
+	box-sizing: border-box !important;
+	width: 66px;
+	min-width: 66px;
 	padding-inline: 16px;
 	text-align: end;
 }
