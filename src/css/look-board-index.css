@@ -603,6 +603,27 @@
 	text-decoration: none;
 }
 
+/* A two-line avatar cell keeps the board's row height (PtAccounts: 59px, 12px
+   above and under a 32px circle beside two lines of 18px and 16px). The line
+   heights are set here because the host's own (Nextcloud's body sets 1.5)
+   made the pair 40px and more, and the cell is aligned to the top of its line
+   so the line box adds nothing under it. */
+.cn-look-board .cn-table-container--board .cn-data-table td:has(.cn-cell-renderer__avatar-secondary) {
+	padding-block: 12px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table td:has(.cn-cell-renderer__avatar-secondary) .cn-cell-renderer__avatar {
+	vertical-align: top;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table td:has(.cn-cell-renderer__avatar-secondary) .cn-cell-renderer__avatar-name {
+	line-height: 18px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table td:has(.cn-cell-renderer__avatar-secondary) .cn-cell-renderer__avatar-secondary {
+	line-height: 16px;
+}
+
 /* A status pill: 3px 10px, radius 12, 13px weight 600. The colours stay the
    status colour map's. */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-status-badge {
