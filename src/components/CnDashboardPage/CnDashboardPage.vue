@@ -4189,8 +4189,10 @@ export default {
 			}
 			// Then what the widget itself reported (`header` event): its link with
 			// `{total}` filled and its tokens resolved.
+			// A widget that reports no link (facts reports only its action) keeps
+			// the link its content asks for.
 			const reported = this.widgetHeaders[item.widgetId]
-			if (reported) {
+			if (reported && reported.link) {
 				return reported.link
 			}
 			// Last, what the widget's own content asks for (`headerLink`, or the
