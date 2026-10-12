@@ -213,4 +213,19 @@ describe('CnRecordListWidget avatar (screens-record-list-avatar)', () => {
 			expect(wrapper.find('[data-testid="cn-record-list-badge-field"]').exists()).toBe(false)
 		})
 	})
+	describe('due text', () => {
+		const day = (n) => new Date(Date.now() + n * 86400000).toISOString()
+
+		it('draws the due text with its tone, and the empty text', async () => {
+			axios.get.mockResolvedValue({ data: { results: [{ id: 'a', deadline: day(-3) }, { id: 'b', deadline: day(0) }, { id: 'c', deadline: null }], total: 3 } })
+			const wrapper = mountList({ due: { field: 'deadline', todayLabel: 'Vandaag', emptyText: 'Geen deadline' } })
+			await flush()
+			const dues = wrapper.findAll('[data-testid="cn-record-list-due"]')
+			expect(dues[0].classes()).toContain('cn-record-list__due--danger')
+			expect(dues[0].text()).toMatch(/3 days overdue|4 days overdue|2 days overdue/)
+			expect(dues[1].text()).toBe('Vandaag')
+			expect(dues[2].text()).toBe('Geen deadline')
+			expect(dues[2].classes()).toContain('cn-record-list__due--empty')
+		})
+	})
 })

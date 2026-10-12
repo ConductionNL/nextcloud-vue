@@ -7,6 +7,10 @@
   Resolved through CnDetailWidgetHost by its registry type, the path a
   manifest placement takes, so a broken registration fails here. The object is
   PtPortal's portal; no request is made (no `source`).
+
+  `?factswidget=pill` adds a task whose status is a reference: a pill that
+  shows the status's name and takes its tone from the status's `state`
+  (the spec stubs the OpenRegister list request).
 -->
 <template>
 	<div class="facts-harness cn-look-board">
@@ -18,6 +22,15 @@
 				:object="record"
 				register="portaliq"
 				schema="portal" />
+		</div>
+		<div v-if="showPill" class="facts-harness__side" data-testid="facts-harness-pill">
+			<CnDetailWidgetHost
+				:widget="pillWidget"
+				chrome="card"
+				objectId="task-1"
+				:object="task"
+				register="dossiq"
+				schema="task" />
 		</div>
 	</div>
 </template>
@@ -41,6 +54,21 @@ export default {
 				certificateUntil: '2027-01-14',
 				locales: ['Nederlands'],
 				status: 'published',
+			},
+
+			showPill: typeof window !== 'undefined' && /[?&]factswidget=pill/.test(window.location.search),
+
+			task: { id: 'task-1', title: 'Plan beoordelen', status: 'st-9' },
+
+			pillWidget: {
+				id: 'task-status',
+				type: 'facts',
+				title: 'Status',
+				content: {
+					fields: [
+						{ as: 'pill', path: 'status', resolve: { register: 'dossiq', schema: 'status', labelField: 'name', toneField: 'state' }, map: { 'In review': 'In behandeling' }, colorMap: { open: 'warning', closed: 'success' } },
+					],
+				},
 			},
 
 			widget: {

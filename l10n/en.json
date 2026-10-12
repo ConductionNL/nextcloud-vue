@@ -1453,6 +1453,10 @@
       "in {count} day",
       "in {count} days"
     ],
+    "{count} day overdue": [
+      "{count} day overdue",
+      "{count} days overdue"
+    ],
     "{count} more filter": [
       "{count} more filter",
       "{count} more filters"
