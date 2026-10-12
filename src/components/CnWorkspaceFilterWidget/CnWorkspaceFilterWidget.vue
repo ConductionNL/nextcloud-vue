@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-workspace-filter-widget"
-		:class="{ 'cn-workspace-filter-widget--start': isStart }"
+		:class="{ 'cn-workspace-filter-widget--start': isStart, 'cn-workspace-filter-widget--chips': style === 'chips' }"
 		data-testid="cn-workspace-filter-widget">
 		<!-- The start card (`layout: "start"`): a title and one line of
 		     guidance beside the control, as the "Contact starten" card. -->
@@ -19,7 +19,7 @@
 			</p>
 		</div>
 
-		<p v-if="label" class="cn-workspace-filter-widget__label">
+		<p v-if="label && style !== 'chips'" class="cn-workspace-filter-widget__label">
 			{{ label }}
 		</p>
 
@@ -43,6 +43,18 @@
 		<div v-else-if="loading" class="cn-workspace-filter-widget__status">
 			{{ loadingLabel }}
 		</div>
+
+		<!-- Chips style (screens-page-lenses): one compact segmented group,
+		     a count after each label, arrow keys move the choice. -->
+		<CnSegmentedControl
+			v-else-if="style === 'chips'"
+			class="cn-workspace-filter-widget__chips"
+			size="compact"
+			:options="chipOptions"
+			:modelValue="selected === undefined || selected === null ? null : String(selected)"
+			:ariaLabel="label || writeKey"
+			data-testid="cn-workspace-filter-chips"
+			@update:modelValue="applySelection" />
 
 		<!-- Select style -->
 		<NcSelect
@@ -92,10 +104,13 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
+import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
@@ -126,7 +141,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  * content: {
  *   label: 'Queue',
  *   writes: '@workspace.queue',
- *   style: 'radio',                 // 'radio' (default) | 'select'
+ *   style: 'radio',                 // 'radio' (default) | 'select' | 'chips'
  *   allLabel: 'All',
  *   showCounts: true,
  *   source: { register: 'pipelinq', schema: 'werkitem', groupBy: 'queue' },
@@ -136,7 +151,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 export default {
 	name: 'CnWorkspaceFilterWidget',
 
-	components: { CnResourceSelect, NcSelect, NcCheckboxRadioSwitch },
+	components: { CnResourceSelect, CnSegmentedControl, NcSelect, NcCheckboxRadioSwitch },
 
 	inject: {
 		/**
@@ -162,7 +177,14 @@ export default {
 		 * server and writes the picked object's id; without a selection and
 		 * without `allLabel` it selects the first object.
 		 *
-		 * @type {{label?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
+		 * Chips (screens-page-lenses): `style: "chips"` draws the options as one
+		 * compact segmented group with a count after each label. An option's
+		 * `countFrom` (`{ register, schema, filter? }`, or a list of them that
+		 * are added up) counts that list; a static `count` is used otherwise.
+		 * `urlKey` keeps the choice in the address (`?<urlKey>=<value>`), and
+		 * the address wins over `default` on load.
+		 *
+		 * @type {{label?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
 		 */
 		content: {
 			type: Object,
@@ -180,6 +202,8 @@ export default {
 			loading: false,
 			/** The currently-selected value (mirrors the workspace key). */
 			selected: undefined,
+			/** Counted totals of the options that ask (`countFrom`), by option position. */
+			optionCounts: {},
 		}
 	},
 
@@ -233,9 +257,37 @@ export default {
 			return src && typeof src === 'object' && src.register && src.schema ? src : null
 		},
 
-		/** Choice style: 'select' or 'radio' (default). */
+		/** Choice style: 'chips', 'select' or 'radio' (default). */
 		style() {
-			return this.content.style === 'select' ? 'select' : 'radio'
+			return ['select', 'chips'].includes(this.content.style) ? this.content.style : 'radio'
+		},
+
+		/**
+		 * The chips: each option with its label translated and its count,
+		 * the static one or the counted one.
+		 *
+		 * @return {Array<{value: string, label: string, count?: number}>}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-workspace-filter-can-draw-chips-with-counts
+		 */
+		chipOptions() {
+			return this.displayOptions.map((option, index) => {
+				const counted = this.optionCounts[index]
+				const count = counted !== undefined && counted !== null ? counted : option.count
+				const chip = { value: String(option.value), label: this.tr(option.label) }
+				if (this.showCounts && Number.isFinite(count)) {
+					chip.count = count
+				}
+				return chip
+			})
+		},
+
+		/**
+		 * The address key that carries the choice (`urlKey`), or ''.
+		 *
+		 * @return {string}
+		 */
+		urlKey() {
+			return typeof this.content.urlKey === 'string' ? this.content.urlKey : ''
 		},
 
 		/** Whether to render per-option counts. */
@@ -316,8 +368,12 @@ export default {
 		// Seed the selection: existing workspace value → content.default → the
 		// "All" clear option (empty) when present, else the first option once
 		// loaded (handled in loadOptions).
+		const fromAddress = this.readAddress()
 		const existing = this.readWorkspace()
-		if (existing !== undefined) {
+		if (fromAddress !== undefined) {
+			this.selected = fromAddress
+			this.writeWorkspace(fromAddress)
+		} else if (existing !== undefined) {
 			this.selected = existing
 		} else if (this.content.default !== undefined) {
 			this.selected = this.content.default
@@ -326,7 +382,91 @@ export default {
 		this.loadOptions()
 	},
 
+	mounted() {
+		this.onPageRefresh = () => this.loadCounts()
+		subscribe('cn:page:refresh', this.onPageRefresh)
+		this.loadCounts()
+	},
+
+	beforeUnmount() {
+		unsubscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
 	methods: {
+		/**
+		 * The choice named in the address (`?<urlKey>=…`), when it is one of
+		 * the options; undefined otherwise.
+		 *
+		 * @return {string|undefined}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-the-choice-is-in-the-address
+		 */
+		readAddress() {
+			if (!this.urlKey || !this.$route || !this.$route.query) {
+				return undefined
+			}
+			const raw = this.$route.query[this.urlKey]
+			const known = this.displayOptions.some((option) => String(option.value) === String(raw))
+			return known ? String(raw) : undefined
+		},
+
+		/**
+		 * Write the choice to the address, replacing the history entry and
+		 * keeping the other query keys.
+		 *
+		 * @param {unknown} value The chosen value.
+		 * @return {void}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-the-choice-is-in-the-address
+		 */
+		writeAddress(value) {
+			if (!this.urlKey || !this.$router || !this.$route) {
+				return
+			}
+			const query = this.$route.query || {}
+			if (String(query[this.urlKey]) === String(value)) {
+				return
+			}
+			const result = this.$router.replace({ query: { ...query, [this.urlKey]: String(value) } })
+			if (result && typeof result.catch === 'function') {
+				result.catch(() => {})
+			}
+		},
+
+		/**
+		 * Count the lists behind the options that ask (`countFrom`: a list
+		 * `{ register, schema, filter? }`, or several that are added up). One
+		 * list request each; an option whose count failed shows none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-workspace-filter-can-draw-chips-with-counts
+		 */
+		async loadCounts() {
+			const options = this.displayOptions
+			const seq = (this.countSeq = (this.countSeq || 0) + 1)
+			const ctx = { workspace: this.readWorkspaceBag() }
+			await Promise.all(options.map(async (option, index) => {
+				const raw = (Array.isArray(this.content.options) ? this.content.options : [])
+					.find((candidate) => candidate && typeof candidate === 'object' && String(candidate.value ?? candidate.id) === String(option.value))
+				const from = raw ? raw.countFrom : null
+				const lists = (Array.isArray(from) ? from : [from]).filter((list) => list && typeof list === 'object' && list.register && list.schema)
+				if (lists.length === 0) {
+					return
+				}
+				let total
+				try {
+					const parts = await Promise.all(lists.map((list) => fetchListTotal(list.register, list.schema, list.filter || {}, ctx)))
+					if (parts.some((part) => part === null)) {
+						throw new Error('no total')
+					}
+					total = parts.reduce((sum, part) => sum + part, 0)
+				} catch {
+					total = null
+				}
+				if (seq === this.countSeq) {
+					this.optionCounts = { ...this.optionCounts, [index]: total }
+				}
+			}))
+		},
+
 		/**
 		 * Normalise a raw option into `{ value, label, count? }`. Accepts
 		 * `{ value, label, count }`, `{ id, name }`, `{ key, count }` (OR
@@ -523,6 +663,7 @@ export default {
 		applySelection(value) {
 			this.selected = value
 			this.writeWorkspace(value)
+			this.writeAddress(value)
 			/**
 			 * @event change Emitted when the selection changes. Payload: `{ key, value }`.
 			 */
@@ -608,6 +749,13 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
+}
+
+/* The chips: the compact segmented group, left, in the card the grid draws. */
+.cn-workspace-filter-widget--chips {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
 }
 
 /* The start card: text left, control (and link) right, as PqDashboard's "Contact starten". */
