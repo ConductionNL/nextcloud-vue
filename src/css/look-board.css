@@ -555,3 +555,75 @@
 .cn-look-board .cn-cell-renderer__age:not(.cn-look-nextcloud *) {
 	font-weight: 600;
 }
+
+/* ---- Record list on a dashboard card (PtDashboard) ---------------------- */
+/* The dashboard's card body is flush, so the rows carry their own inset: the
+   board's card pads 24px at the sides and each row 14px, a soft hairline
+   between rows, the title 15px weight 600 and the meta 13px muted. A row is a
+   link, but only the hover says so: no underline on any text run, however the
+   host styles its links (`!important`, because a host rule such as
+   `#content a` outranks any class). The pill and the date sit at the right. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list {
+	padding: 0 24px 10px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--rows .cn-record-list__item + .cn-record-list__item {
+	border-top: 1px solid var(--color-border-dark, var(--color-border));
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row {
+	padding: 14px 0;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row:hover,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row:focus-visible,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row * {
+	color: inherit;
+	text-decoration: none !important;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__title {
+	color: var(--color-main-text);
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__trailing {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+/* Hover: the whole row takes the hover ground, 8px beyond the text so the
+   text does not move. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--link {
+	margin-inline: -8px;
+	padding-inline: 8px;
+	border-radius: 8px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--link:hover,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--link:focus-visible {
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--link:hover .cn-record-list__title {
+	text-decoration: none !important;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__aside {
+	margin-inline-start: auto;
+}
+
+/* The board draws no chevron after the pill and date. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__chevron {
+	display: none;
+}

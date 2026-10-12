@@ -12,7 +12,10 @@ Every Conduction app runs its human tasks on OpenRegister's one task store (ADR-
   "limit": 6,
   "pollSeconds": 30,
   "rowRoute": "TaskDetail",
-  "emptyText": "No open tasks"
+  "emptyText": "No open tasks",
+  "variant": "list",
+  "viewAllRoute": { "name": "Tasks" },
+  "viewAllLabel": "View all"
 }
 ```
 
@@ -20,9 +23,21 @@ Every Conduction app runs its human tasks on OpenRegister's one task store (ADR-
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The widget config blob (`scope`, `limit`, `pollSeconds`, `rowRoute`, `emptyText`). |
+| `content` | `object` | `{}` | The widget config blob (`scope`, `limit`, `pollSeconds`, `rowRoute`, `emptyText`, `variant`, `viewAllRoute`, `viewAllLabel`). |
 | `widgetId` | `string` | `''` | Placement id, so the per-widget Refresh action (`cn:widget:refresh`) reaches this instance. |
 | `translate` | `Function` | `null` | Translate function. Falls back to the injected `cnTranslate`. |
+
+## List variant
+
+`"variant": "list"` draws the board's My tasks card: a checkbox, the task title, the subject (the case the task sits on) on a muted second line and the due date at the right, with overdue spelled out in words and weight. The default stays the compact rows with state and priority words.
+
+- **The checkbox completes the task** with the server's default outcome, then the list refetches. It shows on the viewer's own open tasks that declare no outcome list.
+- A task that declares outcomes, or is not the viewer's, keeps the quick-actions menu and gets a spacer where the checkbox would be, so the titles stay aligned.
+- The list variant has no count line; the "+N more" line stays.
+
+## View all link
+
+`viewAllRoute` (a route name, or a location `{ name, params?, query? }`) and `viewAllLabel` (default "View all", translated) put a text link in the card header. A `headerLink` in the content works the same way. A dashboard card shows it through the wrapper's header link; a detail page card shows it through the widget's `header` event. A link set on the placement or the widget definition wins over the content.
 
 ## Quick actions
 
