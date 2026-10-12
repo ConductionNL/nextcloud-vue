@@ -34,9 +34,24 @@ const RECORD = {
 	trafficEnabled: true,
 	installDisabled: false,
 	signup: 'approval',
+	autoApproveDomains: ['zuiddrecht.nl', 'oosthaven.nl'],
 }
 
 const WIDGETS = {
+	chips: {
+		id: 'portal-domains-auto',
+		type: 'chips-field',
+		title: 'Zonder goedkeuring',
+		content: {
+			field: 'autoApproveDomains',
+			label: 'Zonder goedkeuring voor deze e-maildomeinen',
+			addLabel: 'Domein',
+			confirmLabel: 'Toevoegen',
+			lowercase: true,
+			pattern: '^[a-z0-9-]+(\\.[a-z0-9-]+)+$',
+			patternMessage: 'Dit is geen domeinnaam.',
+		},
+	},
 	radio: {
 		id: 'portal-signup',
 		type: 'radio-cards',

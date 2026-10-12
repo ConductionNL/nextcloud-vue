@@ -48,7 +48,7 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'facts', 'field-list', 'record-list', 'settings-form', 'switch-rows', 'radio-cards'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'facts', 'field-list', 'record-list', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field'])
 
 /**
  * The stored content/config blob for a widget definition.

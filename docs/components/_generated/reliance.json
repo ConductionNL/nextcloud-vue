@@ -474,6 +474,13 @@
 			],
 			"page": "cn-child-records-field"
 		},
+		"CnChipsFieldWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-chips-field-widget"
+		},
 		"CnChoiceCards": {
 			"direct": 0,
 			"transitive": 0,

@@ -60,6 +60,7 @@ export {
 	CnChartWidgetForm,
 	CnChatPage,
 	CnChildRecordsField,
+	CnChipsFieldWidget,
 	CnChoiceCards,
 	CnColorPicker,
 	CnCommandPalette,
