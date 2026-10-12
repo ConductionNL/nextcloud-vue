@@ -933,6 +933,7 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
@@ -4098,7 +4099,12 @@ export default {
 				return item.headerLink
 			}
 			const def = this.getWidgetDef(item.widgetId)
-			return (def?.headerLink && typeof def.headerLink === 'object') ? def.headerLink : null
+			if (def?.headerLink && typeof def.headerLink === 'object') {
+				return def.headerLink
+			}
+			// Last, what the widget's own content asks for (`headerLink`, or the
+			// `viewAllRoute` / `viewAllLabel` of the tasks widget).
+			return contentHeaderLink(item?.content) || contentHeaderLink(def?.content)
 		},
 
 		/**
