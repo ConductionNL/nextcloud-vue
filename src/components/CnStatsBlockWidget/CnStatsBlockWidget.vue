@@ -102,8 +102,8 @@
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
-import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { formatMetricValue, normalizeMetricFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 // The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported

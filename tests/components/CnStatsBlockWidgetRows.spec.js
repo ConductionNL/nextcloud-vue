@@ -8,8 +8,8 @@
  */
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
 
-import { flushPromises, mount } from '@vue/test-utils'
 import axios from '@nextcloud/axios'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnStatsBlockWidget from '@/components/CnStatsBlockWidget/CnStatsBlockWidget.vue'
 
 const entries = [
