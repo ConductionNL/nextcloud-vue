@@ -167,4 +167,112 @@ describe('CnRecordListWidget avatar (screens-record-list-avatar)', () => {
 		await flush()
 		expect(plain.find('[data-testid="cn-record-list-avatar"]').exists()).toBe(false)
 	})
+	describe('badges', () => {
+		const rows = [
+			{ id: 't-1', title: 'A', priority: 'urgent', updatedAt: new Date(Date.now() - 10 * 86400000).toISOString() },
+			{ id: 't-2', title: 'B', priority: 'normal', updatedAt: new Date(Date.now() - 86400000).toISOString() },
+		]
+		const content = {
+			badges: [
+				{ field: 'priority', labels: { urgent: 'Urgent', high: 'High' }, colorMap: { urgent: 'error', high: 'warning' }, hideValues: ['normal', 'low'] },
+				{ kind: 'stale', field: 'updatedAt', afterDays: 7, label: 'Stale {days} days', variant: 'warning' },
+			],
+		}
+
+		it('draws a coloured badge for a field value and hides the listed values', async () => {
+			axios.get.mockResolvedValue({ data: { results: rows, total: 2 } })
+			const wrapper = mountList(content)
+			await flush()
+			const items = wrapper.findAll('[data-testid="cn-record-list-item"]')
+			expect(items[0].text()).toContain('Urgent')
+			expect(items[1].text()).not.toContain('normal')
+			expect(items[1].findAll('[data-testid="cn-record-list-badge-field"]')).toHaveLength(0)
+		})
+
+		it('draws an age badge only for a date older than afterDays, with the age in the label', async () => {
+			axios.get.mockResolvedValue({ data: { results: rows, total: 2 } })
+			const wrapper = mountList(content)
+			await flush()
+			const items = wrapper.findAll('[data-testid="cn-record-list-item"]')
+			expect(items[0].find('[data-testid="cn-record-list-badge-stale"]').text()).toBe('Stale 10 days')
+			expect(items[1].find('[data-testid="cn-record-list-badge-stale"]').exists()).toBe(false)
+		})
+
+		it('hides a pill whose value is in hideValues', async () => {
+			axios.get.mockResolvedValue({ data: { results: rows, total: 2 } })
+			const wrapper = mountList({ pill: { field: 'priority', hideValues: ['normal'] } })
+			await flush()
+			const items = wrapper.findAll('[data-testid="cn-record-list-item"]')
+			expect(items[0].text()).toContain('urgent')
+			expect(items[1].text()).not.toContain('normal')
+		})
+
+		it('draws nothing extra without badges', async () => {
+			const wrapper = mountList({})
+			await flush()
+			expect(wrapper.find('[data-testid="cn-record-list-badge-field"]').exists()).toBe(false)
+		})
+	})
+	describe('due text', () => {
+		const day = (n) => new Date(Date.now() + n * 86400000).toISOString()
+
+		it('draws the due text with its tone, and the empty text', async () => {
+			axios.get.mockResolvedValue({ data: { results: [{ id: 'a', deadline: day(-3) }, { id: 'b', deadline: day(0) }, { id: 'c', deadline: null }], total: 3 } })
+			const wrapper = mountList({ due: { field: 'deadline', todayLabel: 'Vandaag', emptyText: 'Geen deadline' } })
+			await flush()
+			const dues = wrapper.findAll('[data-testid="cn-record-list-due"]')
+			expect(dues[0].classes()).toContain('cn-record-list__due--danger')
+			expect(dues[0].text()).toMatch(/3 days overdue|4 days overdue|2 days overdue/)
+			expect(dues[1].text()).toBe('Vandaag')
+			expect(dues[2].text()).toBe('Geen deadline')
+			expect(dues[2].classes()).toContain('cn-record-list__due--empty')
+		})
+	})
+	describe('rank sort', () => {
+		const all = [
+			{ id: '1', priority: 'low', n: 1 },
+			{ id: '2', priority: 'urgent', n: 2 },
+			{ id: '3', priority: 'high', n: 3 },
+			{ id: '4', priority: 'urgent', n: 4 },
+			{ id: '5', priority: null, n: 5 },
+			{ id: '6', priority: 'normal', n: 6 },
+		]
+		const serve = (_url, { params }) => {
+			let rows = all.filter((row) => params.priority === undefined || row.priority === params.priority)
+			const order = Object.keys(params).find((key) => key.startsWith('_order['))
+			if (order) {
+				const field = order.slice(7, -1)
+				rows = [...rows].sort((a, b) => (params[order] === 'desc' ? b[field] - a[field] : a[field] - b[field]))
+			}
+			return Promise.resolve({ data: { results: rows.slice(0, params._limit), total: all.length } })
+		}
+		const sort = { field: 'priority', rank: ['urgent', 'high', 'normal', 'low'], then: { field: 'n', dir: 'desc' } }
+
+		it('reads the rows in rank order, the rest of the sort inside a rank, and the total from the whole list', async () => {
+			axios.get.mockImplementation(serve)
+			const wrapper = mountList({ title: '{id}', sort, limit: 4 })
+			await flush()
+			expect(wrapper.findAll('.cn-record-list__title').map((t) => t.text())).toEqual(['4', '2', '3', '6'])
+			const calls = axios.get.mock.calls.map(([, { params }]) => params.priority ?? 'all')
+			expect(calls).toEqual(['all', 'urgent', 'high', 'normal'])
+		})
+
+		it('puts the rows outside the rank last, without repeating a row', async () => {
+			axios.get.mockImplementation(serve)
+			const wrapper = mountList({ title: '{id}', sort, limit: 6 })
+			await flush()
+			expect(wrapper.findAll('.cn-record-list__title').map((t) => t.text())).toEqual(['4', '2', '3', '6', '1', '5'])
+		})
+
+		it('keeps the plain order without rank, and ignores the rank when the filter fixes the field', async () => {
+			axios.get.mockImplementation(serve)
+			mountList({ sort: { field: 'n', dir: 'asc' }, limit: 2 })
+			await flush()
+			expect(axios.get).toHaveBeenCalledTimes(1)
+			axios.get.mockClear()
+			mountList({ sort, filter: { priority: 'urgent' }, limit: 2 })
+			await flush()
+			expect(axios.get).toHaveBeenCalledTimes(1)
+		})
+	})
 })

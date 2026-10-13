@@ -181,6 +181,11 @@
 			<L4Harness />
 		</template>
 
+		<!-- The board-gap pieces (?l6=<name>): a file in l6/ per scenario. See L6Harness.vue. -->
+		<template v-else-if="showL6">
+			<L6Harness />
+		</template>
+
 		<!-- A start-here attention card naming one record (?starthere=1). See StartHereHarness.vue. -->
 		<template v-else-if="showStartHere">
 			<h2>Start here</h2>
@@ -203,6 +208,16 @@
 		<template v-else-if="showStartCard">
 			<h2>Start card</h2>
 			<StartCardHarness />
+		</template>
+
+		<!-- Library lane L7 pieces (?l7=<name>): a file in l7/ per scenario. See L7Harness.vue. -->
+		<template v-else-if="showL7">
+			<L7Harness />
+		</template>
+
+		<!-- Library lane L8 pieces, the decidiq gaps (?l8=<name>): a file in l8/ per scenario. See L8Harness.vue. -->
+		<template v-else-if="showL8">
+			<L8Harness />
 		</template>
 
 		<!-- The settings widgets (?settingswidgets=<name>). See SettingsWidgetsHarness.vue. -->
@@ -732,6 +747,9 @@ import FieldHintHarness from './FieldHintHarness.vue'
 import FieldListHarness from './FieldListHarness.vue'
 import FilesTabOrHarness from './FilesTabOrHarness.vue'
 import L4Harness from './L4Harness.vue'
+import L6Harness from './L6Harness.vue'
+import L7Harness from './L7Harness.vue'
+import L8Harness from './L8Harness.vue'
 import NarrowTableHarness from './NarrowTableHarness.vue'
 import PageControlsHarness from './PageControlsHarness.vue'
 import PageLensesHarness from './PageLensesHarness.vue'
@@ -776,7 +794,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtAccountsHarness, PtDashboardHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness, SettingsWidgetsHarness, L4Harness },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtAccountsHarness, PtDashboardHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness, SettingsWidgetsHarness, L4Harness, L6Harness, L7Harness, L8Harness },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -838,7 +856,10 @@ export default {
 			showSections: (typeof window !== 'undefined' && /[?&]sectionswidget=/.test(window.location.search)),
 			showFacts: (typeof window !== 'undefined' && /[?&]factswidget=/.test(window.location.search)),
 			showProgressCell: (typeof window !== 'undefined' && /[?&]progresscell=/.test(window.location.search)),
+			showL7: (typeof window !== 'undefined' && /[?&]l7=/.test(window.location.search)),
+			showL8: (typeof window !== 'undefined' && /[?&]l8=/.test(window.location.search)),
 			showL4: (typeof window !== 'undefined' && /[?&]l4=/.test(window.location.search)),
+			showL6: (typeof window !== 'undefined' && /[?&]l6=/.test(window.location.search)),
 			showStartHere: (typeof window !== 'undefined' && /[?&]starthere=/.test(window.location.search)),
 			showPageControls: (typeof window !== 'undefined' && /[?&]pagecontrols=/.test(window.location.search)),
 			showPageLenses: (typeof window !== 'undefined' && /[?&]lenses=/.test(window.location.search)),

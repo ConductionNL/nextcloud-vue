@@ -406,7 +406,7 @@
 		},
 		"CnChartWidget": {
 			"direct": 8,
-			"transitive": 7,
+			"transitive": 8,
 			"tier": "heavy",
 			"via": [
 				"CnIndexPage"
@@ -651,7 +651,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 174,
+			"transitive": 175,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -714,6 +714,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
@@ -794,7 +795,7 @@
 		},
 		"CnDeltaWidget": {
 			"direct": 0,
-			"transitive": 5,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [
 				"CnDeltaWidgetForm",
@@ -870,7 +871,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 177,
+			"transitive": 178,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -933,6 +934,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
@@ -1303,7 +1305,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 183,
+			"transitive": 184,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1366,6 +1368,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
@@ -1494,7 +1497,7 @@
 		},
 		"CnGaugeWidget": {
 			"direct": 0,
-			"transitive": 5,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [
 				"CnGaugeWidgetForm",
@@ -1583,7 +1586,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 180,
+			"transitive": 181,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1645,6 +1648,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
@@ -2548,7 +2552,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 196,
+			"transitive": 197,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2617,6 +2621,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRoadmapTab",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
@@ -2759,9 +2764,11 @@
 		},
 		"CnRecordListWidget": {
 			"direct": 1,
-			"transitive": 3,
+			"transitive": 5,
 			"tier": "medium",
-			"via": [],
+			"via": [
+				"CnIndexPage"
+			],
 			"page": "cn-record-list-widget"
 		},
 		"CnReferencePreview": {
@@ -2898,9 +2905,95 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 176,
+			"tier": "heavy",
+			"via": [
+				"CnActionButtons",
+				"CnActionsMenu",
+				"CnAnalyticsReportPicker",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnBuildiqEditButton",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnChartWidget",
+				"CnChartWidgetForm",
+				"CnChildRecordsField",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDashboardPage",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnDeltaWidgetForm",
+				"CnDetailWidgetHost",
+				"CnEmailPicker",
+				"CnFactsWidget",
+				"CnFieldListWidget",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFilesWidget",
+				"CnFkResolveCell",
+				"CnFlowDetail",
+				"CnFlowOperationPicker",
+				"CnFlowRunsWidget",
+				"CnFlowRunsWidgetForm",
+				"CnFormDialog",
+				"CnGaugeWidgetForm",
+				"CnGraphCanvas",
+				"CnIndexPage",
+				"CnIntegrationWidget",
+				"CnInteractionFormWidget",
+				"CnKbSearchWidget",
+				"CnMapPoiPicker",
+				"CnMapWidget",
+				"CnMapWidgetForm",
+				"CnNavCardGrid",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectDataWidget",
+				"CnObjectFilesWidget",
+				"CnObjectGeoWidget",
+				"CnObjectListWidget",
+				"CnObjectListWidgetForm",
+				"CnObjectMetadataWidget",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnRecordListWidget",
+				"CnRegisterSchemaSelect",
+				"CnRelatedObjectsWidget",
+				"CnResourceSelect",
+				"CnSettingsFormWidget",
+				"CnStackedBarWidgetForm",
+				"CnStagesWidget",
+				"CnStagesWidgetForm",
+				"CnStatWidget",
+				"CnStatWidgetForm",
+				"CnStatsBlockWidget",
+				"CnStatsBlockWidgetForm",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTasksWidget",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnTimelineWidget",
+				"CnTranslatedBadge",
+				"CnVersionHistory",
+				"CnWeekStripWidget",
+				"CnWeekStripWidgetForm",
+				"CnWidgetObjectTable",
+				"CnWidgetRefItem",
+				"CnWorkspaceFilterWidget",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
+			],
 			"page": "cn-reports-page"
 		},
 		"CnResourceSelect": {
@@ -3126,10 +3219,12 @@
 			"page": "cn-settings-card"
 		},
 		"CnSettingsFormWidget": {
-			"direct": 0,
-			"transitive": 2,
-			"tier": "light",
-			"via": [],
+			"direct": 1,
+			"transitive": 8,
+			"tier": "medium",
+			"via": [
+				"CnIndexPage"
+			],
 			"page": "cn-settings-form-widget"
 		},
 		"CnSettingsPage": {
@@ -3177,7 +3272,7 @@
 		},
 		"CnSpendAnalyticsWidget": {
 			"direct": 0,
-			"transitive": 1,
+			"transitive": 3,
 			"tier": "light",
 			"via": [],
 			"page": "cn-spend-analytics-widget"
@@ -3253,7 +3348,7 @@
 		},
 		"CnStatsBlockWidget": {
 			"direct": 1,
-			"transitive": 3,
+			"transitive": 5,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-stats-block-widget"
@@ -3761,7 +3856,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 164,
+			"transitive": 165,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3820,6 +3915,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",

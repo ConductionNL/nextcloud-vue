@@ -402,11 +402,26 @@
 					v-bind="kpiWrapperProps(item)"
 					@refresh="onWidgetRefresh(item)"
 					@requestFeature="onWidgetRequestFeature(item)">
+					<template v-if="widgetHeaderNote(item) || widgetHeaderAction(item)" #actions>
+						<span
+							v-if="widgetHeaderNote(item)"
+							class="cn-dashboard-page__widget-note"
+							data-testid="cn-dashboard-widget-header-note">{{ widgetHeaderNote(item) }}</span>
+						<button
+							v-if="widgetHeaderAction(item)"
+							type="button"
+							class="cn-dashboard-page__widget-action"
+							data-testid="cn-dashboard-widget-header-action"
+							@click="widgetHeaderAction(item).run()">
+							{{ widgetHeaderAction(item).label }}
+						</button>
+					</template>
 					<component
 						:is="registryRenderer(item)"
 						:widgetId="item.widgetId"
 						:content="registryWidgetBindings(item)"
-						v-bind="registryWidgetBindings(item)" />
+						v-bind="registryWidgetBindings(item)"
+						@header="onWidgetHeader(item, $event)" />
 				</CnWidgetWrapper>
 				<CnWidgetWrapper
 					v-else-if="hasWidgetSlot(item.widgetId)"
@@ -789,8 +804,14 @@
 						     lets an abstract KPI tile carry its own period selector. Requires
 						     the widget header (`showTitle !== false`). Keep in sync with the
 						     custom-slot chip block. -->
-						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
+						<template v-if="(dateRangeEnabled && item.dateChip === true) || widgetHeaderCount(item) !== null" #title-meta>
+							<!-- The total a registry widget reported (`headerCount`), a chip after the title. -->
+							<span
+								v-if="widgetHeaderCount(item) !== null"
+								class="cn-dashboard-page__widget-count"
+								data-testid="cn-dashboard-widget-header-count">{{ widgetHeaderCount(item) }}</span>
 							<NcActions
+								v-if="dateRangeEnabled && item.dateChip === true"
 								v-model:open="openChipPicker[item.widgetId]"
 								:forceMenu="true"
 								container="body"
@@ -831,11 +852,29 @@
 						     subscription (useEndpointSource matches it against
 						     `cn:widget:refresh` payloads) — the chrome above
 						     broadcasts with the same id. -->
+						<!-- A renderer that reports its own header (`header` event:
+						     `{ link, note, action }`, e.g. record-list's "3 in total"),
+						     as on a detail page. -->
+						<template v-if="widgetHeaderNote(item) || widgetHeaderAction(item)" #actions>
+							<span
+								v-if="widgetHeaderNote(item)"
+								class="cn-dashboard-page__widget-note"
+								data-testid="cn-dashboard-widget-header-note">{{ widgetHeaderNote(item) }}</span>
+							<button
+								v-if="widgetHeaderAction(item)"
+								type="button"
+								class="cn-dashboard-page__widget-action"
+								data-testid="cn-dashboard-widget-header-action"
+								@click="widgetHeaderAction(item).run()">
+								{{ widgetHeaderAction(item).label }}
+							</button>
+						</template>
 						<component
 							:is="registryRenderer(item)"
 							:widgetId="item.widgetId"
 							:content="registryWidgetBindings(item)"
-							v-bind="registryWidgetBindings(item)" />
+							v-bind="registryWidgetBindings(item)"
+							@header="onWidgetHeader(item, $event)" />
 					</CnWidgetWrapper>
 				</template>
 
@@ -1867,6 +1906,8 @@ export default {
 			 * @type {Record<string, boolean>}
 			 */
 			openChipPicker: {},
+			// What a registry widget reported for its card header (`header` event), by widget id.
+			widgetHeaders: {},
 			/**
 			 * Pre-translated tooltip for the chart-widget date-range
 			 * chip — kept as a data field rather than a computed so the
@@ -4152,9 +4193,81 @@ export default {
 			if (def?.headerLink && typeof def.headerLink === 'object') {
 				return def.headerLink
 			}
+			// Then what the widget itself reported (`header` event): its link with
+			// `{total}` filled and its tokens resolved.
+			// A widget that reports no link (facts reports only its action) keeps
+			// the link its content asks for.
+			const reported = this.widgetHeaders[item.widgetId]
+			if (reported && reported.link) {
+				return reported.link
+			}
 			// Last, what the widget's own content asks for (`headerLink`, or the
 			// `viewAllRoute` / `viewAllLabel` of the tasks widget).
 			return contentHeaderLink(item?.content) || contentHeaderLink(def?.content)
+		},
+
+		/**
+		 * Keep what a registry widget reports for its card header: the link, the
+		 * note ("3 in total") and one action, as CnDetailWidgetHost does on a
+		 * detail page.
+		 *
+		 * @spec openspec/changes/screens-dashboard-widget-header/specs/dashboard-page/spec.md#requirement-a-dashboard-card-shows-the-header-its-widget-reports
+		 * @param {object} item Layout placement entry.
+		 * @param {{link?: object|null, note?: string, action?: object|null}} header What the widget reported.
+		 */
+		onWidgetHeader(item, header) {
+			if (!item || !item.widgetId || !header || typeof header !== 'object' || header instanceof Event) {
+				return
+			}
+			const link = header.link && typeof header.link === 'object' ? header.link : null
+			const note = typeof header.note === 'string' ? header.note : ''
+			const count = Number.isFinite(header.count) ? header.count : null
+			const action = header.action && typeof header.action.run === 'function' && header.action.label ? header.action : null
+			// Only a changed header is kept: a new object here re-renders the card,
+			// and a widget that reads again on render would report again, for ever.
+			const before = this.widgetHeaders[item.widgetId]
+			const same = before && JSON.stringify(before.link) === JSON.stringify(link) && before.note === note && (before.count ?? null) === count
+				&& (before.action ? before.action.label : '') === (action ? action.label : '')
+			if (same) {
+				before.action = action
+				return
+			}
+			this.widgetHeaders = { ...this.widgetHeaders, [item.widgetId]: { link, note, action, count } }
+		},
+
+		/**
+		 * The header note a registry widget reported.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {string}
+		 */
+		widgetHeaderNote(item) {
+			const reported = this.widgetHeaders[item.widgetId]
+			return reported ? reported.note : ''
+		},
+
+		/**
+		 * The total a registry widget reported for its card header
+		 * (record-list `headerCount`), or null.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {number|null}
+		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 */
+		widgetHeaderCount(item) {
+			const reported = this.widgetHeaders[item.widgetId]
+			return reported && Number.isFinite(reported.count) ? reported.count : null
+		},
+
+		/**
+		 * The header action a registry widget reported.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {{label: string, run: Function}|null}
+		 */
+		widgetHeaderAction(item) {
+			const reported = this.widgetHeaders[item.widgetId]
+			return reported ? reported.action : null
 		},
 
 		/**
@@ -4914,6 +5027,47 @@ export default {
 	.cn-dashboard-page--board .cn-dashboard-page__kpi-cell {
 		min-height: 44px;
 	}
+}
+
+/* What a registry widget reports for its card header (`header` event): the
+   note beside the link ("3 in total") and one action, as on a detail page. */
+.cn-dashboard-page__widget-count {
+	align-self: center;
+	padding: 1px 8px;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-dashboard-page__widget-note {
+	align-self: center;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	white-space: nowrap;
+}
+
+.cn-dashboard-page__widget-action {
+	display: inline-flex;
+	align-items: center;
+	align-self: center;
+	min-height: 32px;
+	padding: 0 14px;
+	border: 0;
+	border-radius: 16px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+	font: inherit;
+	font-size: 13px;
+	font-weight: 700;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.cn-dashboard-page__widget-action:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 </style>
 

@@ -516,7 +516,7 @@ export default {
 		 * counted between LOCAL CALENDAR DAYS, not as elapsed milliseconds, so
 		 * the time of day on a deadline never moves the answer.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, captionSource?: {register?: string, schema?: string, metric?: string, field?: string, filter?: object, via?: string, zeroText?: string}, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -606,6 +606,8 @@ export default {
 			// status badge saw `4f2b9c10-…` flash past where a state belonged.
 			referencePending: false,
 			value: null,
+			// The caption's own count (`content.captionSource`), null until read.
+			captionValue: null,
 			loading: false,
 			error: '',
 		}
@@ -677,12 +679,24 @@ export default {
 			if (!caption) {
 				return ''
 			}
+			// A caption with its own count (`captionSource`) is about that count:
+			// nothing to say while it is not read, and at zero the `zeroText`
+			// (or nothing) instead of "0 waiting".
+			const counted = this.hasCaptionSource
+			if (counted && !(Number(this.captionValue) > 0)) {
+				const zero = this.captionValue !== null && this.content.captionSource.zeroText
+				return typeof zero === 'string' && zero !== '' ? this.effectiveTranslate(zero) : ''
+			}
 			const translated = this.effectiveTranslate(caption)
 			if (translated.indexOf('{') === -1) {
 				return translated
 			}
 			const payload = this.endpointMode ? this.epData : null
 			return translated.replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
+				// `{count}` is the caption's own count.
+				if (path === 'count' && counted) {
+					return String(this.captionValue)
+				}
 				// `{value}` is the tile's own number, so a caption can read
 				// "{value} due today" on a register-counted tile that has no
 				// payload to read fields from.
@@ -692,6 +706,19 @@ export default {
 				const v = getByPath(payload, path)
 				return (v === undefined || v === null) ? '' : String(v)
 			}).replace(/\s{2,}/g, ' ').trim()
+		},
+
+		/**
+		 * Whether the caption has a count of its own (`content.captionSource`
+		 * with a register and schema, its own or the tile's).
+		 *
+		 * @spec openspec/changes/screens-stat-caption-source/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-carry-its-own-count
+		 * @return {boolean}
+		 */
+		hasCaptionSource() {
+			const own = this.content.captionSource
+			const base = this.content.source || {}
+			return !!own && typeof own === 'object' && !!(own.register || base.register) && !!(own.schema || base.schema)
 		},
 
 		/**
@@ -708,7 +735,8 @@ export default {
 			if (!Array.isArray(rules) || rules.length === 0) {
 				return null
 			}
-			const current = this.displayValue
+			// A caption with its own count is coloured by that count.
+			const current = this.hasCaptionSource ? this.captionValue : this.displayValue
 			if (current === null || current === undefined) {
 				return null
 			}
@@ -1514,6 +1542,7 @@ export default {
 		sourceKey() {
 			return JSON.stringify({
 				s: this.content.source || {},
+				cs: this.content.captionSource || null,
 				o: this.objectCtx ? this.objectCtx.objectId : null,
 				p: this.pageCtx,
 				c: this.configCtx,
@@ -1810,6 +1839,35 @@ export default {
 		},
 
 		/**
+		 * Read the caption's own count (`content.captionSource`:
+		 * `{ register?, schema?, metric?, field?, filter?, via?, zeroText? }`,
+		 * register and schema default to the tile's source). A failed read
+		 * leaves the caption out; it never shows a zero it did not count.
+		 *
+		 * @spec openspec/changes/screens-stat-caption-source/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-carry-its-own-count
+		 * @return {Promise<void>}
+		 */
+		async fetchCaptionValue() {
+			if (!this.hasCaptionSource) {
+				this.captionValue = null
+				return
+			}
+			const own = this.content.captionSource
+			const base = this.content.source || {}
+			const source = { register: own.register || base.register, schema: own.schema || base.schema }
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const found = await this.fetchAggregate(axios, generateUrl, source, own.metric, own.field, own.filter || {}, own.via)
+				this.captionValue = found === null || found === undefined || Number.isNaN(Number(found)) ? null : Number(found)
+			} catch {
+				this.captionValue = null
+			}
+		},
+
+		/**
 		 * Resolve the widget's value from its `source`. Supports three source
 		 * kinds (ADR-041): a plain `aggregate` (count/sum/avg/min/max with
 		 * operator filters), a `ratio` (numerator ÷ denominator × 100, e.g. a
@@ -1821,6 +1879,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async fetchValue(refresh) {
+			// The caption's own count is read beside the value, whatever the
+			// value's source is.
+			this.fetchCaptionValue()
 			// Endpoint-bound tiles are fetched by the shared useEndpointSource
 			// engine (see setup) — the OpenRegister paths below must not fire.
 			if (this.endpointMode) {

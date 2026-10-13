@@ -36,7 +36,7 @@
 		</template>
 
 		<p v-if="!isBar && label && style !== 'chips' && style !== 'toggle'" class="cn-workspace-filter-widget__label">
-			{{ label }}
+			{{ tr(label) }}
 		</p>
 
 		<!-- An object picker (`objectSource`): searches OpenRegister on the
@@ -68,7 +68,7 @@
 			size="compact"
 			:options="chipOptions"
 			:modelValue="selected === undefined || selected === null ? null : String(selected)"
-			:ariaLabel="label || writeKey"
+			:ariaLabel="tr(label) || writeKey"
 			data-testid="cn-workspace-filter-chips"
 			@update:modelValue="applySelection" />
 
@@ -88,11 +88,11 @@
 		<NcSelect
 			v-else-if="style === 'select'"
 			:modelValue="selectedOption"
-			:options="displayOptions"
+			:options="selectOptions"
 			:clearable="false"
-			:inputLabel="content.inline ? '' : (label || writeKey)"
+			:inputLabel="content.inline ? '' : (tr(label) || writeKey)"
 			:labelOutside="content.inline === true"
-			:ariaLabelCombobox="label || writeKey"
+			:ariaLabelCombobox="tr(label) || writeKey"
 			label="label"
 			data-testid="cn-workspace-filter-select"
 			@update:modelValue="onSelect" />
@@ -101,9 +101,9 @@
 		<ul v-else-if="!isBar"
 			class="cn-workspace-filter-widget__list"
 			role="radiogroup"
-			:aria-label="label || writeKey">
+			:aria-label="tr(label) || writeKey">
 			<li
-				v-for="option in displayOptions"
+				v-for="option in selectOptions"
 				:key="String(option.value)"
 				class="cn-workspace-filter-widget__item">
 				<NcCheckboxRadioSwitch
@@ -394,9 +394,21 @@ export default {
 			return raw.map((o) => this.normaliseOption(o)).filter((o) => o.value !== undefined && o.value !== null)
 		},
 
+		/**
+		 * The options a select or the radio list draws, each label run through
+		 * the host's translate (the chips did already; the bar's sort select
+		 * showed its English keys beside a translated switch).
+		 *
+		 * @return {Array<{value: unknown, label: string, count?: number}>}
+		 * @spec openspec/changes/screens-workspace-filter-translate/specs/workspace-filter/spec.md#requirement-every-workspace-filter-style-translates-its-texts
+		 */
+		selectOptions() {
+			return this.displayOptions.map((option) => ({ ...option, label: this.tr(option.label) }))
+		},
+
 		/** The selected option object (for NcSelect). */
 		selectedOption() {
-			return this.displayOptions.find((o) => String(o.value) === String(this.selected)) || null
+			return this.selectOptions.find((o) => String(o.value) === String(this.selected)) || null
 		},
 
 		/**

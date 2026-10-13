@@ -23,10 +23,59 @@
 				:key="item.key"
 				class="cn-record-list__item"
 				data-testid="cn-record-list-item">
+				<!-- rows with `rowAction`: the title is the link, and one action
+				     ends the row instead of the chevron ("Beoordelen"). -->
+				<div
+					v-if="presentation === 'rows' && item.action"
+					class="cn-record-list__row cn-record-list__row--action">
+					<span v-if="item.initials"
+						class="cn-record-list__avatar"
+						aria-hidden="true"
+						data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+					<span class="cn-record-list__main">
+						<component
+							:is="item.tag"
+							v-if="item.title"
+							class="cn-record-list__title"
+							:class="{ 'cn-record-list__title--link': item.tag !== 'div' }"
+							v-bind="item.attrs">
+							{{ item.title }}
+						</component>
+						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
+					</span>
+					<span v-if="item.pill || item.badges.length > 0" class="cn-record-list__pills">
+						<CnStatusBadge
+							v-if="item.pill"
+							:label="item.pill.label"
+							:variant="item.pill.variant"
+							size="small" />
+						<CnStatusBadge
+							v-for="badge in item.badges"
+							:key="badge.key"
+							:label="badge.label"
+							:variant="badge.variant"
+							size="small"
+							:data-testid="`cn-record-list-badge-${badge.kind}`" />
+					</span>
+					<span
+						v-if="item.due"
+						class="cn-record-list__due cn-record-list__due--column"
+						:class="`cn-record-list__due--${item.due.tone}`"
+						data-testid="cn-record-list-due">{{ item.due.text }}</span>
+					<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
+					<component
+						:is="item.action.tag"
+						class="cn-record-list__action"
+						v-bind="item.action.attrs"
+						data-testid="cn-record-list-action"
+						v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
+						{{ item.action.label }}
+					</component>
+				</div>
 				<!-- rows: title and meta, then the pill, the date and a chevron. -->
 				<component
 					:is="item.tag"
-					v-if="presentation === 'rows'"
+					v-else-if="presentation === 'rows'"
 					class="cn-record-list__row"
 					:class="{ 'cn-record-list__row--link': item.tag !== 'div' }"
 					v-bind="item.attrs">
@@ -38,12 +87,24 @@
 						<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 					</span>
-					<span v-if="item.pill || item.trailing" class="cn-record-list__aside">
+					<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing" class="cn-record-list__aside">
 						<CnStatusBadge
 							v-if="item.pill"
 							:label="item.pill.label"
 							:variant="item.pill.variant"
 							size="small" />
+						<CnStatusBadge
+							v-for="badge in item.badges"
+							:key="badge.key"
+							:label="badge.label"
+							:variant="badge.variant"
+							size="small"
+							:data-testid="`cn-record-list-badge-${badge.kind}`" />
+						<span
+							v-if="item.due"
+							class="cn-record-list__due"
+							:class="`cn-record-list__due--${item.due.tone}`"
+							data-testid="cn-record-list-due">{{ item.due.text }}</span>
 						<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
 					</span>
 					<ChevronRight
@@ -83,9 +144,14 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import { actionLink, dispatchAction, interpolateActionTarget } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
+import { ageInDays } from '../../utils/boardDate.js'
+import { resolveDue } from '../../utils/dueText.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
+import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { initialsOf } from '../../utils/initials.js'
+import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -119,8 +185,8 @@ function unwrap(value) {
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`).
  *
- * A content-only catalog type: on a card surface the detail host draws the
- * titled card. The widget emits `header` with `{ link, note }` (the
+ * A content-only catalog type: on a card surface the detail host or the
+ * dashboard page draws the titled card. The widget emits `header` with `{ link, note }` (the
  * `headerLink` and `headerNote` with `{total}` filled in) for that card's
  * header.
  */
@@ -136,6 +202,10 @@ export default {
 		cnWorkspaceContext: { default: null },
 		/** The host app's translate function. */
 		cnTranslate: { default: () => (key) => key },
+		/** The page's app config map; its `currency` is the reporting currency of a money token. */
+		cnAppConfig: { default: () => ({}) },
+		/** The page's pre-bound action dispatcher (CnPageRenderer), for `rowAction`. */
+		cnDispatchAction: { default: null },
 	},
 
 	props: {
@@ -172,6 +242,8 @@ export default {
 			total: 0,
 			loading: false,
 			error: false,
+			/** Personal-lens reports (`@self.lenses`) of the latest response. */
+			lenses: {},
 		}
 	},
 
@@ -209,6 +281,17 @@ export default {
 			return pageSort(this.content?.pageControls, this.tokenCtx.workspace, this.content?.sort)
 		},
 
+		/**
+		 * What a template may read beside the row: the app config, whose
+		 * `currency` is the reporting currency of a `{path|currency}` token.
+		 *
+		 * @return {{config: object}} The template context.
+		 * @spec openspec/changes/screens-currency-format/specs/currency-format/spec.md#requirement-a-money-value-reads-in-its-currency
+		 */
+		templateContext() {
+			return { config: unwrapAppConfig(this.cnAppConfig) }
+		},
+
 		/** @return {number} The fetch cap. */
 		limit() {
 			const value = Number(this.content?.limit)
@@ -228,15 +311,19 @@ export default {
 				const link = this.rowLink(row)
 				return {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
+					row,
+					action: this.rowActionOf(row),
 					tag: link ? 'router-link' : 'div',
 					attrs: link ? { to: link } : {},
 					initials: this.initialsFor(row),
 					title: this.fill(c.title, row),
-					meta: this.fill(c.meta, row),
+					meta: this.metaOf(row),
 					text: this.fill(c.text, row),
 					label: this.fill(c.label, row),
-					trailing: c.trailing ? firstFilled(c.trailing, row, this.translate) : '',
+					trailing: c.trailing ? firstFilled(c.trailing, row, this.translate, new Date(), this.templateContext) : '',
 					pill: this.pillOf(row),
+					badges: this.badgesOf(row),
+					due: this.dueOf(row),
 					icon: this.iconOf(row),
 				}
 			})
@@ -269,8 +356,28 @@ export default {
 			return typeof note === 'string' && note !== '' ? this.withTotal(note) : ''
 		},
 
+		/**
+		 * Why the list is empty when a personal lens could not answer
+		 * (`@self.lenses.<lens>.available: false`, as for `filter: { _recent: true }`),
+		 * or '' to keep `emptyText`. `lensReasonTexts` holds the app's wording,
+		 * keyed `<lens>.<reason>` or `<reason>`.
+		 *
+		 * @return {string} The explanation, or ''.
+		 * @spec openspec/changes/screens-record-list-lens-reason/specs/record-list-lens-reason/spec.md#requirement-a-record-list-says-why-a-lens-is-empty
+		 */
+		lensReasonText() {
+			if (this.rows.length > 0) {
+				return ''
+			}
+			const text = lensUnavailableText(this.lenses, this.content?.lensReasonTexts)
+			return text ? this.translate(text) : ''
+		},
+
 		/** @return {string} The empty line. */
 		emptyLabel() {
+			if (this.lensReasonText !== '') {
+				return this.lensReasonText
+			}
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
 
@@ -334,7 +441,7 @@ export default {
 		 * @return {string} The text, '' when a token is empty.
 		 */
 		fill(template, row) {
-			return typeof template === 'string' && template !== '' ? fillTemplate(this.translate(template), row) : ''
+			return typeof template === 'string' && template !== '' ? fillTemplate(this.translate(template), row, new Date(), this.templateContext) : ''
 		},
 
 		/**
@@ -353,6 +460,127 @@ export default {
 		 * @param {object} row The row.
 		 * @return {object|null} The router location, or null.
 		 */
+		/**
+		 * The one action that ends a row (`rowAction`): its label (from
+		 * `labels.map` by the row's `labels.field`, else `label`), and how it
+		 * renders: a link when it only navigates, else a button that
+		 * dispatches. Null without the key or a label.
+		 *
+		 * @param {object} row The row.
+		 * @return {{label: string, tag: string, attrs: object}|null}
+		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 */
+		rowActionOf(row) {
+			const action = this.content?.rowAction
+			if (!action || typeof action !== 'object' || !row) {
+				return null
+			}
+			let label = typeof action.label === 'string' ? action.label : ''
+			const by = action.labels
+			if (by && typeof by === 'object' && typeof by.field === 'string' && by.map && typeof by.map === 'object') {
+				const raw = readPath(row, by.field)
+				if (raw !== null && raw !== undefined && typeof by.map[String(raw)] === 'string') {
+					label = by.map[String(raw)]
+				}
+			}
+			if (label === '') {
+				return null
+			}
+			label = this.translate(label)
+			const link = this.rowActionLink(action, row)
+			if (link) {
+				return link.external
+					? { label, tag: 'a', attrs: { href: link.href, target: '_blank', rel: 'noopener' } }
+					: { label, tag: 'router-link', attrs: { to: link.to } }
+			}
+			return { label, tag: 'button', attrs: { type: 'button' } }
+		},
+
+		/**
+		 * The link a `rowAction` that only navigates renders as: `open-page`
+		 * opens that page for the row's id, `navigate` reads its
+		 * `@object.<field>` / `@objectId` tokens off the row. Null for any
+		 * other action, which is dispatched on click.
+		 *
+		 * @param {object} action The declared row action.
+		 * @param {object} row The row.
+		 * @return {{href: string, to: (string|object|null), external: boolean}|null}
+		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 */
+		rowActionLink(action, row) {
+			if (action.confirm) {
+				return null
+			}
+			if (action.type === 'open-page') {
+				const id = this.rowIdOf(row)
+				if (!this.$router || id === null || typeof action.target !== 'string' || action.target === '') {
+					return null
+				}
+				const to = { name: action.target, params: { id } }
+				try {
+					const href = this.$router.resolve(to).href
+					return href ? { href, to, external: false } : null
+				} catch {
+					return null
+				}
+			}
+			if (action.type !== 'navigate') {
+				return null
+			}
+			const target = interpolateActionTarget(action.target, this.rowTokenCtx(row))
+			// An external target needs no router; an in-app one does.
+			return actionLink({ ...action, target }, { router: this.$router || null })
+		},
+
+		/**
+		 * The token context of a row: the row is `@object`, its id `@objectId`.
+		 *
+		 * @param {object} row The row.
+		 * @return {object} The token context.
+		 */
+		rowTokenCtx(row) {
+			return { ...this.tokenCtx, objectId: this.rowIdOf(row), object: row }
+		},
+
+		/**
+		 * The id of a row (`rowIdField`, else `id`, else `@self.id`), or null.
+		 *
+		 * @param {object} row The row.
+		 * @return {string|null} The id.
+		 */
+		rowIdOf(row) {
+			const field = this.content?.rowIdField
+			const id = field ? readPath(row, field) : (row && (row.id || row['@self']?.id))
+			return (id === null || id === undefined || id === '' || typeof id === 'object') ? null : String(id)
+		},
+
+		/**
+		 * Run a `rowAction` that is not a plain link through the page's
+		 * dispatcher: a `handler` gets the row as its last argument, an
+		 * `open-modal` gets it as the `row` prop, an `object-op` acts on it.
+		 *
+		 * @param {object} row The row.
+		 * @return {unknown} What the dispatcher returns.
+		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 */
+		runRowAction(row) {
+			const action = this.content?.rowAction
+			if (!action || typeof action !== 'object') {
+				return undefined
+			}
+			const type = action.type || 'handler'
+			let wrapped = action
+			if (type === 'handler') {
+				wrapped = { ...action, args: [...(action.args || []), row] }
+			} else if (type === 'open-modal') {
+				wrapped = { ...action, props: { ...(action.props || {}), row } }
+			}
+			if (typeof this.cnDispatchAction === 'function') {
+				return this.cnDispatchAction(wrapped)
+			}
+			return dispatchAction(wrapped, { router: this.$router || null, row, tokenCtx: this.rowTokenCtx(row), source: { register: this.content?.register, schema: this.content?.schema } })
+		},
+
 		rowLink(row) {
 			const route = this.content?.rowRoute
 			if (!route || !this.$router || !row) {
@@ -367,13 +595,96 @@ export default {
 		},
 
 		/**
-		 * The row's pill: `{ field, labels?, colorMap?, variant? }`.
+		 * The row's due text (`due`: `{ field, todayLabel?, overdueLabel?, emptyText? }`):
+		 * "3 dagen te laat" in the danger tone, "Vandaag", the date otherwise,
+		 * `emptyText` when the field is empty.
 		 *
 		 * @param {object} row The row.
+		 * @return {{text: string, tone: string}|null} The text and tone, or null.
+		 * @spec openspec/changes/screens-due-text/specs/due-text/spec.md#requirement-a-due-date-reads-as-text-with-a-tone
+		 */
+		dueOf(row) {
+			const due = this.content?.due
+			if (!due || typeof due !== 'object' || !due.field) {
+				return null
+			}
+			return resolveDue(readPath(row, due.field), due, (text) => this.translate(text))
+		},
+
+		/**
+		 * The row's extra badges (`badges`): a coloured badge from a field
+		 * (`{ field, labels?, colorMap?, variant?, hideValues? }`, the value
+		 * shown unless `hideValues` lists it) and an age badge
+		 * (`{ kind: "stale", field, afterDays, label?, variant? }`, shown when the
+		 * date field is older than `afterDays` whole days; `{days}` in the
+		 * label is the age).
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<{key: string, kind: string, label: string, variant: string}>} The badges that apply.
+		 * @spec openspec/changes/screens-record-list-badges/specs/record-list-badges/spec.md#requirement-a-record-list-row-can-carry-badges
+		 */
+		badgesOf(row) {
+			const declared = Array.isArray(this.content?.badges) ? this.content.badges : []
+			const out = []
+			declared.forEach((badge, index) => {
+				if (!badge || typeof badge !== 'object' || !badge.field) {
+					return
+				}
+				if (badge.kind === 'stale') {
+					const days = ageInDays(readPath(row, badge.field))
+					const after = Number(badge.afterDays)
+					if (days === null || !Number.isFinite(after) || days <= after) {
+						return
+					}
+					const template = this.translate(badge.label || 'Stale')
+					out.push({
+						key: `stale-${index}`,
+						kind: 'stale',
+						label: template.replace(/\{days\}/g, String(days)),
+						variant: isBadgeVariant(badge.variant) ? badge.variant : 'warning',
+					})
+					return
+				}
+				const made = this.pillOf(row, badge)
+				if (made) {
+					out.push({ key: `field-${index}`, kind: 'field', ...made })
+				}
+			})
+			return out
+		},
+
+		/**
+		 * The row's meta line. A string is one template, and one empty token
+		 * empties it. `{ parts: ["{identifier}", "{caseTypeName}", "{handler}"],
+		 * separator? }` fills each part on its own, drops the empty ones and
+		 * joins the rest (default " · "), so a row without a handler still
+		 * reads "2026-0082 · Woo-verzoek".
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The meta line, '' when nothing fills.
+		 * @spec openspec/changes/screens-record-list-meta-parts/specs/record-list-meta-parts/spec.md#requirement-a-meta-line-of-parts-skips-the-empty-ones
+		 */
+		metaOf(row) {
+			const meta = this.content?.meta
+			if (!meta || typeof meta !== 'object' || !Array.isArray(meta.parts)) {
+				return this.fill(meta, row)
+			}
+			const separator = typeof meta.separator === 'string' ? meta.separator : ' · '
+			return meta.parts
+				.map((part) => this.fill(part, row))
+				.filter((text) => text !== '')
+				.join(separator)
+		},
+
+		/**
+		 * The row's pill: `{ field, labels?, colorMap?, variant?, hideValues? }`.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} [config] A pill config; the widget's `pill` by default.
 		 * @return {{label: string, variant: string}|null} The pill, or null.
 		 */
-		pillOf(row) {
-			const pill = this.content?.pill
+		pillOf(row, config) {
+			const pill = config || this.content?.pill
 			if (!pill || typeof pill !== 'object' || !pill.field) {
 				return null
 			}
@@ -382,6 +693,9 @@ export default {
 				return null
 			}
 			const key = String(raw)
+			if (Array.isArray(pill.hideValues) && pill.hideValues.map(String).includes(key)) {
+				return null
+			}
 			const labels = pill.labels && typeof pill.labels === 'object' ? pill.labels : {}
 			const map = pill.colorMap && typeof pill.colorMap === 'object' ? pill.colorMap : {}
 			const found = Object.keys(map).find((k) => k.toLowerCase() === key.toLowerCase())
@@ -418,11 +732,91 @@ export default {
 
 		/** Tell the card around this list what its header shows. */
 		emitHeader() {
+			const header = { link: this.headerLink, note: this.headerNote }
+			// `headerCount: true`: the card draws the total as a chip after its title.
+			if (this.content?.headerCount === true && !this.error) {
+				header.count = this.total
+			}
 			/**
 			 * @event header Emitted after every read with the card header's parts.
-			 * @type {{link: (object|null), note: string}} The header link (resolved, with `{total}` filled) and the note.
+			 * @type {{link: (object|null), note: string, count: (number|undefined)}} The header link (resolved, with `{total}` filled), the note, and with `headerCount` the total.
 			 */
-			this.$emit('header', { link: this.headerLink, note: this.headerNote })
+			this.$emit('header', header)
+		},
+
+		/**
+		 * The rank list of a sort (`{ field, rank: ["urgent", "high", "normal", "low"], then? }`),
+		 * or null when the sort has none or the list's own filter already fixes the field.
+		 *
+		 * @param {object|null} sort The effective sort.
+		 * @return {Array<string>|null} The values in rank order.
+		 * @spec openspec/changes/screens-enum-rank-sort/specs/enum-rank-sort/spec.md#requirement-a-record-list-can-sort-by-the-rank-of-an-enum-value
+		 */
+		rankOf(sort) {
+			if (!sort || typeof sort !== 'object' || !sort.field || !Array.isArray(sort.rank)) {
+				return null
+			}
+			const rank = sort.rank.filter((value) => typeof value === 'string' && value !== '')
+			if (rank.length === 0 || Object.hasOwn(this.resolvedFilter || {}, sort.field)) {
+				return null
+			}
+			return rank
+		},
+
+		/**
+		 * Read a list in the rank of an enum field. The list endpoint orders a
+		 * text field alphabetically ("high", "low", "normal", "urgent"), so the
+		 * rows are read one rank at a time, best first, each with the rest of the
+		 * sort (`then`) inside it, until the page is full; the rows with a value
+		 * outside the rank (or none) follow. The result is exact, not a client-side
+		 * sort of a partial page. It costs one request for the total, one per rank
+		 * value read and one for the remainder.
+		 *
+		 * @param {(params: object) => Promise<object>} get Reads the list with the given params.
+		 * @param {object} base The params without any order.
+		 * @param {{field: string, then?: {field: string, dir?: string}}} sort The sort.
+		 * @param {Array<string>} rank The values in rank order.
+		 * @return {Promise<{rows: Array<object>, total: number}>} The page and the total.
+		 * @spec openspec/changes/screens-enum-rank-sort/specs/enum-rank-sort/spec.md#requirement-a-record-list-can-sort-by-the-rank-of-an-enum-value
+		 */
+		async fetchRanked(get, base, sort, rank) {
+			const order = {}
+			if (sort.then && typeof sort.then === 'object' && sort.then.field) {
+				order[`_order[${sort.then.field}]`] = sort.then.dir === 'desc' ? 'desc' : 'asc'
+			}
+			const read = async (extra) => {
+				const response = await get({ ...base, ...order, ...extra })
+				const data = response && response.data ? response.data : {}
+				return { results: Array.isArray(data.results) ? data.results : [], total: data.total }
+			}
+			const head = await read({ _limit: 1 })
+			const rows = []
+			const seen = new Set()
+			const idOf = (row) => (row && (row.id || row['@self']?.id)) || null
+			const take = (list) => {
+				for (const row of list) {
+					const id = idOf(row)
+					if (id !== null && seen.has(id)) {
+						continue
+					}
+					if (id !== null) {
+						seen.add(id)
+					}
+					if (rows.length < this.limit) {
+						rows.push(row)
+					}
+				}
+			}
+			for (const value of rank) {
+				if (rows.length >= this.limit) {
+					break
+				}
+				take((await read({ [sort.field]: value, _limit: this.limit - rows.length })).results)
+			}
+			if (rows.length < this.limit) {
+				take((await read({ _limit: this.limit + rows.length })).results)
+			}
+			return { rows, total: typeof head.total === 'number' ? head.total : rows.length }
 		},
 
 		/**
@@ -442,15 +836,19 @@ export default {
 			}
 			this.loading = true
 			this.error = false
+			const run = this.fetchRun = (this.fetchRun || 0) + 1
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
 					import('@nextcloud/router'),
 				])
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
-				const params = { _limit: this.limit }
 				const sort = this.effectiveSort
-				if (sort && typeof sort === 'object' && sort.field) {
+				const params = { _limit: this.limit }
+				// A rank sort (`sort.rank`) cannot be one `_order`: the list endpoint
+				// orders a text field alphabetically. It is read group by group below.
+				const rank = this.rankOf(sort)
+				if (!rank && sort && typeof sort === 'object' && sort.field) {
 					params[`_order[${sort.field}]`] = sort.dir === 'desc' ? 'desc' : 'asc'
 				}
 				if (Array.isArray(c.extend)) {
@@ -468,13 +866,26 @@ export default {
 						params[key] = value
 					}
 				}
+				if (rank) {
+					// Several requests: a fetch started later (the sort changed
+					// meanwhile) must not be overwritten by this one.
+					const ranked = await this.fetchRanked((query) => axios.get(url, { params: query }), params, sort, rank)
+					if (run !== this.fetchRun) {
+						return
+					}
+					this.rows = ranked.rows
+					this.total = ranked.total
+					return
+				}
 				const response = await axios.get(url, { params })
 				const data = response && response.data ? response.data : {}
 				this.rows = Array.isArray(data.results) ? data.results : []
 				this.total = typeof data.total === 'number' ? data.total : this.rows.length
+				this.lenses = readLensReports(data)
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.warn('[CnRecordListWidget] failed to load objects:', e)
+				this.lenses = {}
 				this.rows = []
 				this.total = 0
 				this.error = true
@@ -567,6 +978,72 @@ export default {
 .cn-record-list__trailing {
 	font-size: 14px;
 	white-space: nowrap;
+}
+
+.cn-record-list__due {
+	font-size: 14px;
+	white-space: nowrap;
+}
+
+.cn-record-list__due--danger {
+	color: var(--color-text-error, var(--color-error-text));
+	font-weight: 600;
+}
+
+.cn-record-list__due--empty {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-record-list__row--action {
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	padding: 14px 0;
+}
+
+.cn-record-list__row--action .cn-record-list__main {
+	flex: 1 1 280px;
+	gap: 3px;
+}
+
+.cn-record-list__title--link {
+	color: var(--color-main-text);
+	text-decoration: underline;
+}
+
+.cn-record-list__pills {
+	display: flex;
+	flex: 0 0 120px;
+	gap: 6px;
+	justify-content: flex-end;
+}
+
+.cn-record-list__due--column {
+	flex: 0 0 96px;
+	font-size: 13px;
+	text-align: end;
+}
+
+.cn-record-list__action {
+	align-items: center;
+	background: var(--color-primary-element-light);
+	border: 0;
+	border-radius: 17px;
+	box-sizing: border-box;
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+	cursor: pointer;
+	display: inline-flex;
+	flex: 0 0 150px;
+	font-size: 14px;
+	font-weight: 600;
+	height: 34px;
+	justify-content: center;
+	padding: 0 14px;
+	text-decoration: none;
+}
+
+.cn-record-list__action:hover,
+.cn-record-list__action:focus-visible {
+	background: var(--color-primary-element-light-hover, var(--color-primary-element-light));
 }
 
 .cn-record-list__chevron {

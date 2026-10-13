@@ -261,6 +261,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import { appShownName } from '../../utils/appShownName.js'
 
 const CREDENTIALS_PATH = '/apps/openregister/api/credentials'
 const PROVIDERS_PATH = '/apps/openregister/api/credentials/providers'
@@ -328,8 +329,9 @@ export default {
 		},
 
 		/**
-		 * A friendly app name for copy ("{app} may use this credential"). Falls
-		 * back to the appId.
+		 * A friendly app name for copy ("{app} may use this credential"). When it
+		 * is empty or equal to the appId, the name in Nextcloud's app menu is used,
+		 * else the appId with a capital.
 		 *
 		 * @type {string}
 		 */
@@ -395,12 +397,13 @@ export default {
 
 	computed: {
 		/**
-		 * Friendly current-app label.
+		 * Friendly current-app label: the given name, else the name in Nextcloud's
+		 * app menu, else the id with a capital. Never the bare id.
 		 *
 		 * @return {string} App display name.
 		 */
 		appDisplayName() {
-			return this.appName || this.appId || t('nextcloud-vue', 'This app')
+			return appShownName(this.appId, this.appName) || t('nextcloud-vue', 'This app')
 		},
 
 		/**

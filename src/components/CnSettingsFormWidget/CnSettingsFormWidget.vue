@@ -22,6 +22,11 @@
 					:disabled="field.readOnly">
 					{{ field.label }}
 				</NcCheckboxRadioSwitch>
+				<CnChipsFieldWidget
+					v-else-if="field.type === 'chips'"
+					:modelValue="form[field.key]"
+					:content="chipsContent(field)"
+					@update:modelValue="form[field.key] = $event" />
 				<template v-else>
 					<label class="cn-settings-form__label" :for="inputId(field)">{{ field.label }}</label>
 					<div v-if="field.type === 'file'" class="cn-settings-form__file" :data-testid="`cn-settings-form-file-${field.key}`">
@@ -47,6 +52,18 @@
 							{{ field.clearLabel }}
 						</NcButton>
 					</div>
+					<select
+						v-else-if="field.type === 'reference'"
+						:id="inputId(field)"
+						v-model="form[field.key]"
+						class="cn-settings-form__control"
+						:disabled="field.readOnly"
+						:aria-busy="referenceState[field.key] === 'loading' ? 'true' : null"
+						:data-testid="`cn-settings-form-reference-${field.key}`">
+						<option v-for="option in referenceChoices(field)" :key="option.value" :value="option.value">
+							{{ option.label }}
+						</option>
+					</select>
 					<select
 						v-else-if="field.type === 'select'"
 						:id="inputId(field)"
@@ -106,7 +123,11 @@
 import { FilePickerClosed, getFilePickerBuilder } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
-import { changedFields, objectUrlOf, patchObject } from '../../utils/objectWrite.js'
+import CnChipsFieldWidget from '../CnChipsFieldWidget/CnChipsFieldWidget.vue'
+import { pickRefLabel } from '../../composables/useRefLabels.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
+import { prefixUrl } from '../../utils/headers.js'
+import { changedFields, objectUrlOf, writeFields } from '../../utils/objectWrite.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 
@@ -114,7 +135,7 @@ import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 // spawned picker renders unstyled. Rules are scoped to the picker/dialog classes.
 import '@nextcloud/dialogs/style.css'
 
-const TYPES = ['text', 'textarea', 'select', 'switch', 'number', 'file']
+const TYPES = ['text', 'textarea', 'select', 'switch', 'number', 'file', 'chips', 'reference']
 
 let uid = 0
 
@@ -132,7 +153,7 @@ let uid = 0
 export default {
 	name: 'CnSettingsFormWidget',
 
-	components: { NcButton, NcCheckboxRadioSwitch, NcNoteCard },
+	components: { CnChipsFieldWidget, NcButton, NcCheckboxRadioSwitch, NcNoteCard },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -142,7 +163,8 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file', picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a top-level field of the object.
+		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file'|'chips'|'reference', register?, schema?, labelField?, valueTemplate?, filter?, limit?, emptyLabel?, default?, minItems?, required?, minItemsMessage?, lowercase?, addLabel?, confirmLabel?, removeLabel?, picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a field of the object, a top-level name or a dot-path.
+		 * - `save` — `{ url, method?, payload? }`, write through an app endpoint (tokens `{value}`, `{field}`, `{changes}`, `{object.<path>}`).
 		 * - `columns` — 1 or 2 (default 2).
 		 * - `saveLabel`, `savedText`, `readOnly`.
 		 *
@@ -186,6 +208,10 @@ export default {
 			uid,
 			form: {},
 			baseline: {},
+			loaded: {},
+			// `reference` fields: the objects to choose from and the read's state (`loading`, `ready`, `error`), by field key.
+			referenceOptions: {},
+			referenceState: {},
 			errors: {},
 			saving: false,
 			notice: '',
@@ -248,9 +274,72 @@ export default {
 
 	created() {
 		this.adopt(true)
+		this.loadReferences()
 	},
 
 	methods: {
+		/**
+		 * Read the objects each `reference` field chooses from: one list read
+		 * per field of its `register` and `schema` (`filter` as query
+		 * parameters, at most `limit`, 100 by default). A failed read leaves the
+		 * field with its stored value only, and says so in the hint's place.
+		 *
+		 * @spec openspec/changes/screens-settings-form-reference/specs/settings-form/spec.md#requirement-a-settings-form-field-can-pick-an-object
+		 * @return {Promise<void>}
+		 */
+		async loadReferences() {
+			const fields = this.fields.filter((field) => field.type === 'reference' && typeof field.register === 'string' && field.register !== '' && typeof field.schema === 'string' && field.schema !== '')
+			if (fields.length === 0) {
+				return
+			}
+			const { default: axios } = await import('@nextcloud/axios')
+			await Promise.all(fields.map(async (field) => {
+				this.referenceState = { ...this.referenceState, [field.key]: 'loading' }
+				try {
+					const url = `/apps/openregister/api/objects/${encodeURIComponent(field.register)}/${encodeURIComponent(field.schema)}`
+					const params = { ...(field.filter && typeof field.filter === 'object' ? field.filter : {}), _limit: Number(field.limit) > 0 ? Number(field.limit) : 100 }
+					const { data } = await axios.get(prefixUrl(url), { params })
+					const rows = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : [])
+					const options = []
+					for (const row of rows) {
+						const id = row && (row.id ?? row.uuid ?? (row['@self'] && row['@self'].id))
+						if (id === undefined || id === null || id === '') {
+							continue
+						}
+						const scope = { ...row, id, register: field.register, schema: field.schema }
+						const value = fillTemplate(typeof field.valueTemplate === 'string' && field.valueTemplate !== '' ? field.valueTemplate : '{id}', scope)
+						if (value !== '') {
+							options.push({ value, label: pickRefLabel(row, field.labelField) || String(id) })
+						}
+					}
+					this.referenceOptions = { ...this.referenceOptions, [field.key]: options }
+					this.referenceState = { ...this.referenceState, [field.key]: 'ready' }
+				} catch {
+					this.referenceOptions = { ...this.referenceOptions, [field.key]: [] }
+					this.referenceState = { ...this.referenceState, [field.key]: 'error' }
+					this.errors = { ...this.errors, [field.key]: this.tr('The list to choose from could not be loaded.') }
+				}
+			}))
+		},
+
+		/**
+		 * The choices of a `reference` field: "none" (unless required), the
+		 * objects read, and the value the form holds when it is not one of
+		 * them (a free string such as a URL stays selectable, as it is stored).
+		 *
+		 * @param {object} field The field.
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		referenceChoices(field) {
+			const options = this.referenceOptions[field.key] || []
+			const current = this.form[field.key]
+			const choices = field.required ? [] : [{ value: '', label: this.tr(field.emptyLabel || 'None') }]
+			if (typeof current === 'string' && current !== '' && !options.some((option) => option.value === current)) {
+				choices.push({ value: current, label: current })
+			}
+			return [...choices, ...options]
+		},
+
 		tr(text) {
 			if (typeof text !== 'string' || text === '') {
 				return ''
@@ -323,7 +412,27 @@ export default {
 			if (field.type === 'switch') {
 				return value === true
 			}
+			if (field.type === 'chips') {
+				return Array.isArray(value) ? value.map((item) => String(item)) : []
+			}
 			return value === undefined || value === null ? '' : value
+		},
+
+		/**
+		 * The value the input shows for a field: the stored one, else the field's
+		 * `default` when nothing is stored. The baseline stays the stored value, so
+		 * a default that was never saved counts as a change and the next Save writes it.
+		 *
+		 * @param {object} field The field.
+		 * @return {unknown}
+		 */
+		shown(field) {
+			const value = this.stored(field)
+			const absent = readPath(this.objectData || {}, field.key) === undefined || readPath(this.objectData || {}, field.key) === null || value === '' || (field.type === 'chips' && value.length === 0)
+			if (absent && field.default !== undefined) {
+				return field.type === 'chips' && Array.isArray(field.default) ? [...field.default] : field.default
+			}
+			return value
 		},
 
 		/**
@@ -334,14 +443,42 @@ export default {
 		 */
 		adopt(first = false) {
 			const baseline = {}
+			const loaded = {}
 			const form = {}
 			for (const field of this.fields) {
 				baseline[field.key] = this.stored(field)
-				const untouched = first || JSON.stringify(this.form[field.key]) === JSON.stringify(this.baseline[field.key])
-				form[field.key] = untouched ? baseline[field.key] : this.form[field.key]
+				loaded[field.key] = this.shown(field)
+				const untouched = first || JSON.stringify(this.form[field.key]) === JSON.stringify(this.loaded[field.key])
+				form[field.key] = untouched ? loaded[field.key] : this.form[field.key]
 			}
 			this.baseline = baseline
+			this.loaded = loaded
 			this.form = form
+		},
+
+		/**
+		 * The configuration of the embedded chips widget for a `chips` field.
+		 *
+		 * @param {object} field The field.
+		 * @return {object}
+		 */
+		chipsContent(field) {
+			return {
+				label: field.label,
+				hint: field.hint,
+				placeholder: field.placeholder,
+				addLabel: field.addLabel,
+				confirmLabel: field.confirmLabel,
+				removeLabel: field.removeLabel,
+				pattern: field.pattern,
+				patternMessage: field.patternMessage,
+				lowercase: field.lowercase,
+				options: field.options,
+				minItems: field.minItems,
+				required: field.required,
+				minItemsMessage: field.minItemsMessage,
+				readOnly: field.readOnly,
+			}
 		},
 
 		/**
@@ -357,6 +494,9 @@ export default {
 			}
 			if (field.type === 'switch') {
 				return value === true
+			}
+			if (field.type === 'chips') {
+				return Array.isArray(value) ? [...value] : []
 			}
 			if (typeof value === 'string') {
 				return value.trim() === '' ? null : value.trim()
@@ -376,6 +516,13 @@ export default {
 					continue
 				}
 				const value = this.outgoing(field)
+				if (field.type === 'chips') {
+					const least = Number(field.minItems) > 0 ? Number(field.minItems) : (field.required ? 1 : 0)
+					if (value.length < least) {
+						errors[field.key] = this.tr(field.minItemsMessage || 'Keep at least {count}.').replace('{count}', String(least))
+					}
+					continue
+				}
 				const empty = value === null || value === undefined || value === ''
 				if (empty) {
 					if (field.required) {
@@ -406,7 +553,7 @@ export default {
 			if (Object.keys(this.errors).length > 0) {
 				return
 			}
-			if (!this.objectUrl) {
+			if (!this.objectUrl && !(this.content.save && this.content.save.url)) {
 				this.noticeType = 'error'
 				this.notice = this.tr('This form cannot be saved here.')
 				return
@@ -423,16 +570,20 @@ export default {
 			this.saving = true
 			try {
 				if (Object.keys(patch).length > 0) {
-					const data = await patchObject(this.objectUrl, patch)
+					const data = await writeFields(this.objectUrl, patch, { save: this.content.save, object: this.objectData })
 					const baseline = { ...this.baseline }
+					const loaded = { ...this.loaded }
 					const form = { ...this.form }
 					for (const key of Object.keys(patch)) {
 						const field = this.fields.find((candidate) => candidate.key === key)
-						const written = data[key] !== undefined ? data[key] : patch[key]
-						baseline[key] = field.type === 'switch' ? written === true : (written === null ? '' : written)
+						const answered = readPath(data, key)
+						const written = answered !== undefined ? answered : patch[key]
+						baseline[key] = field.type === 'switch' ? written === true : (written === null ? (field.type === 'chips' ? [] : '') : written)
 						form[key] = baseline[key]
+						loaded[key] = baseline[key]
 					}
 					this.baseline = baseline
+					this.loaded = loaded
 					this.form = form
 				}
 				this.noticeType = 'success'
