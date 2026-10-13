@@ -11,8 +11,9 @@ rapportage" link, four stat tiles with sub-lines, and a bar chart "Gemiddelde du
 a description, categories and cards.
 
 A reports page now takes `widgets` and `layout`, as a dashboard page does, and draws them as a dashboard grid under
-the cards. The tiles and the chart are the existing stat (`label`, `note`) and chart widgets; the card title and link
-are the dashboard card's `title` and `headerLink`.
+the cards. The board's section is one `sections` widget: its card title and link are the widget's `title` and
+`headerLink`, and inside it are the existing stat (`label`, `note`) and chart widgets, the chart under its own
+heading.
 
 ## Scope
 

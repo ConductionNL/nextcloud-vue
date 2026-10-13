@@ -24,8 +24,9 @@ test('the highlighted report sits under the report cards with its link, figure a
 	const section = host.locator('[data-testid="cn-reports-widgets"]')
 	await expect(section.getByText('Vergaderingen en efficiëntie')).toBeVisible({ timeout: 60_000 })
 	await expect(section.getByRole('link', { name: 'Hele rapportage' })).toBeVisible()
-	await expect(section.locator('.cn-stat-widget__value')).toHaveText('58')
-	await expect(section.locator('[data-testid="cn-stat-widget-note"]')).toHaveText('20 raad, 38 commissie')
+	await expect(section.locator('.cn-stat-widget__value')).toHaveText(['58', '58'])
+	await expect(section.locator('[data-testid="cn-stat-widget-note"]')).toHaveText(['20 raad, 38 commissie', 'gepland 2,5 uur'])
+	await expect(section.getByText('Gemiddelde duur per maand')).toBeVisible()
 
 	const grid = await host.locator('[data-testid="cn-reports-grid"]').boundingBox()
 	const below = await section.boundingBox()
