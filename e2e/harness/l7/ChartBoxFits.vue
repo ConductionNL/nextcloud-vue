@@ -2,11 +2,11 @@
   SPDX-FileCopyrightText: 2026 Conduction B.V.
   SPDX-License-Identifier: EUPL-1.2
 
-  Three charts with a fixed height (?l7=chart-canvas-fits), as pipelinq's
+  Three charts with a fixed height (?l7=chart-box-fits), as pipelinq's
   Rapportage draws them in 518px cards: a bar, a line and a donut chart.
 -->
 <template>
-	<div data-testid="chart-canvas-fits" style="display: flex; flex-direction: column; gap: 16px; width: 518px">
+	<div data-testid="chart-box-fits" style="display: flex; flex-direction: column; gap: 16px; width: 518px">
 		<CnChartWidget
 			type="bar"
 			:height="250"
@@ -29,7 +29,7 @@
 import CnChartWidget from '../../../src/components/CnChartWidget/CnChartWidget.vue'
 
 export default {
-	name: 'ChartCanvasFits',
+	name: 'ChartBoxFits',
 
 	components: { CnChartWidget },
 }
