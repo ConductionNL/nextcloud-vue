@@ -26,6 +26,13 @@ function rect(locator) {
 }
 
 test.describe('row 2 of the detail header (board look)', () => {
+	test('the meta line formats a date token (`{createdAt|days}`)', async ({ page }) => {
+		await page.clock.setFixedTime(new Date('2026-10-12T12:00:00'))
+		await page.goto('/?screensdetail=tabs&header=1&meta=' + encodeURIComponent('via {channel} · {createdAt|days} dagen open'), { waitUntil: 'domcontentloaded', timeout: 120_000 })
+		const meta = page.locator('[data-testid="cn-detail-page-header-meta"]')
+		await expect(meta).toHaveText('via Mijn Zuiddrecht · 6 dagen open', { timeout: 120_000 })
+	})
+
 	test('pills, breadcrumb, dot and meta share one line, in that order', async ({ page }) => {
 		await page.setViewportSize({ width: 1440, height: 1100 })
 		await page.goto('/?screensdetail=tabs&header=1', { waitUntil: 'domcontentloaded', timeout: 120_000 })
