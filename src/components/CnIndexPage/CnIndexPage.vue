@@ -130,6 +130,7 @@
 			:showViewToggle="showViewToggle"
 			:availableViewModes="effectiveToggleModes"
 			:disabledViewModes="viewSwitchDisabledModes"
+			:viewModeLinks="viewSwitchLinkTargets"
 			:cardsLabel="cardsLabel"
 			:tableLabel="tableLabel"
 			:listLabel="listLabel"
@@ -2051,6 +2052,23 @@ export default {
 		},
 
 		/**
+		 * Board look: view switch segments that open another PAGE, by mode
+		 * (`table`, `cards`, `board`, `map`): `{ board: { route: 'CaseBoard',
+		 * params?, query? } }` or `{ map: { href: '/apps/x/map' } }`. The
+		 * segment sits in its place in the switch as a link, for a board or a
+		 * map that is a page of its own. A mode this page opens in place stays
+		 * a button. Fed from `pages[].config.viewSwitchLinks`. Ignored without
+		 * the board look.
+		 *
+		 * @type {{[mode: string]: {route?: string, params?: object, query?: object, href?: string}}}
+		 * @spec openspec/changes/screens-view-switch-links/specs/view-switch/spec.md#requirement-a-view-switch-segment-can-open-another-page
+		 */
+		viewSwitchLinks: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The board's configuration, mirroring the manifest `config.board`
 		 * block: `{ statusField, cardFields, swimlaneField }`. The board is
 		 * offered only when this names a `statusField` AND `viewModes` lists
@@ -3826,6 +3844,43 @@ export default {
 				return this.viewModes.includes('map')
 			}
 			return Object.keys(this.mapConfig || {}).length > 0
+		},
+
+		/**
+		 * Board look: where the linked view switch segments go
+		 * (`viewSwitchLinks`), as `{ mode: { href, to? } }`. A route the router
+		 * cannot resolve, and an entry with neither route nor href, is left out.
+		 *
+		 * @return {{[mode: string]: {href: string, to?: object}}}
+		 * @spec openspec/changes/screens-view-switch-links/specs/view-switch/spec.md#requirement-a-view-switch-segment-can-open-another-page
+		 */
+		viewSwitchLinkTargets() {
+			const declared = this.viewSwitchLinks
+			if (!this.isBoardLook || !declared || typeof declared !== 'object') {
+				return {}
+			}
+			const targets = {}
+			for (const [mode, link] of Object.entries(declared)) {
+				if (!['table', 'cards', 'board', 'map'].includes(mode) || !link || typeof link !== 'object') {
+					continue
+				}
+				if (typeof link.route === 'string' && link.route !== '') {
+					const to = { name: link.route }
+					if (link.params && typeof link.params === 'object') {
+						to.params = link.params
+					}
+					if (link.query && typeof link.query === 'object') {
+						to.query = link.query
+					}
+					const href = routeHref(to, this.$router)
+					if (href) {
+						targets[mode] = { href, to }
+					}
+				} else if (typeof link.href === 'string' && link.href !== '') {
+					targets[mode] = { href: link.href }
+				}
+			}
+			return targets
 		},
 
 		/**

@@ -651,7 +651,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 174,
+			"transitive": 175,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -714,6 +714,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
@@ -870,7 +871,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 177,
+			"transitive": 178,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -933,6 +934,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
@@ -1303,7 +1305,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 183,
+			"transitive": 184,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1366,6 +1368,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
@@ -1583,7 +1586,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 180,
+			"transitive": 181,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1645,6 +1648,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
@@ -2548,7 +2552,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 196,
+			"transitive": 197,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2617,6 +2621,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRoadmapTab",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
@@ -3126,10 +3131,12 @@
 			"page": "cn-settings-card"
 		},
 		"CnSettingsFormWidget": {
-			"direct": 0,
-			"transitive": 2,
-			"tier": "light",
-			"via": [],
+			"direct": 1,
+			"transitive": 8,
+			"tier": "medium",
+			"via": [
+				"CnIndexPage"
+			],
 			"page": "cn-settings-form-widget"
 		},
 		"CnSettingsPage": {
@@ -3761,7 +3768,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 164,
+			"transitive": 165,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3820,6 +3827,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
 				"CnStagesWidgetForm",
