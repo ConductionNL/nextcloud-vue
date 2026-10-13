@@ -4223,6 +4223,18 @@
 							"items": { "type": "string", "enum": ["table", "cards", "board", "map"] },
 							"description": "type='index', board look: the segments the view switch draws, e.g. [\"table\", \"cards\", \"board\", \"map\"] as the boards do. A listed mode the page can open is an ordinary segment; one it cannot (no board columns, no map) is drawn disabled and named \"<mode>: not available on this list\". Order is always table, cards, board, map. Ignored without the board look (screens-view-switch-parity). Maps to CnIndexPage `viewSwitch`."
 						},
+						"viewSwitchLinks": {
+							"type": "object",
+							"additionalProperties": false,
+							"minProperties": 1,
+							"description": "type='index', board look: view switch segments that open another PAGE instead of switching in place, by mode: `{ \"board\": { \"route\": \"CaseBoard\" } }` for a board or a map that is a page of its own. The segment sits in its place in the switch (table, cards, board, map) as a link: `route` with optional `params` and `query`, or `href`. A mode the page opens in place stays a button, and a route the router cannot resolve is left out. Ignored without the board look (screens-view-switch-links, 2.91.0). Maps to CnIndexPage `viewSwitchLinks`.",
+							"properties": {
+								"table": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["route"] }, { "required": ["href"] }], "properties": { "route": { "type": "string", "minLength": 1 }, "params": { "type": "object", "additionalProperties": true }, "query": { "type": "object", "additionalProperties": true }, "href": { "type": "string", "minLength": 1 } } },
+								"cards": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["route"] }, { "required": ["href"] }], "properties": { "route": { "type": "string", "minLength": 1 }, "params": { "type": "object", "additionalProperties": true }, "query": { "type": "object", "additionalProperties": true }, "href": { "type": "string", "minLength": 1 } } },
+								"board": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["route"] }, { "required": ["href"] }], "properties": { "route": { "type": "string", "minLength": 1 }, "params": { "type": "object", "additionalProperties": true }, "query": { "type": "object", "additionalProperties": true }, "href": { "type": "string", "minLength": 1 } } },
+								"map": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["route"] }, { "required": ["href"] }], "properties": { "route": { "type": "string", "minLength": 1 }, "params": { "type": "object", "additionalProperties": true }, "query": { "type": "object", "additionalProperties": true }, "href": { "type": "string", "minLength": 1 } } }
+							}
+						},
 						"searchPlaceholder": {
 							"type": "string",
 							"minLength": 1,
