@@ -154,6 +154,23 @@
 					data-testid="cn-cell-renderer-due">{{ dueResult.text }}</time>
 				<span v-else class="cn-cell-renderer__date cn-cell-renderer__due--empty" data-testid="cn-cell-renderer-due">{{ dueResult.text }}</span>
 			</template>
+			<!-- `widgetProps.layout: "block"`: a date tile (day over short month)
+			     beside the weekday and the time range to `widgetProps.endField`. -->
+			<time
+				v-else-if="dateTimestamp && dateBlock"
+				class="cn-cell-renderer__date-block"
+				:datetime="dateTimestamp.toISOString()"
+				:title="absoluteDateLabel"
+				data-testid="cn-cell-date-block">
+				<span class="cn-cell-renderer__date-tile">
+					<strong class="cn-cell-renderer__date-day">{{ dateBlock.day }}</strong>
+					<span class="cn-cell-renderer__date-month">{{ dateBlock.month }}</span>
+				</span>
+				<span class="cn-cell-renderer__date-lines">
+					<span class="cn-cell-renderer__date-weekday">{{ dateBlock.weekday }}</span>
+					<span v-if="dateBlock.time" class="cn-cell-renderer__date-time">{{ dateBlock.time }}</span>
+				</span>
+			</time>
 			<time
 				v-else-if="dateTimestamp"
 				class="cn-cell-renderer__date"
@@ -266,13 +283,13 @@
 </template>
 
 <script>
-import { getCanonicalLocale } from '@nextcloud/l10n'
+import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
-import { ageInDays, formatAge, formatBoardDate, formatRelativeDate, resolveAgeVariant } from '../../utils/boardDate.js'
+import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeDate, formatTimeOfDay, resolveAgeVariant } from '../../utils/boardDate.js'
 import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { resolveDue } from '../../utils/dueText.js'
 import { formatMoney } from '../../utils/formatMetric.js'
@@ -786,6 +803,53 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
 		 */
+		/**
+		 * `date` widget with `widgetProps.layout: "block"`: the parts of the
+		 * date tile (day number, short month), the weekday and the time range
+		 * ("09.30 tot 12.00 uur") to the row field `widgetProps.endField`.
+		 * Null for any other cell.
+		 *
+		 * @return {{day: string, month: string, weekday: string, time: string}|null}
+		 * @spec openspec/changes/screens-date-tile-cell/specs/data-table/spec.md
+		 */
+		dateBlock() {
+			const props = this.widgetProps || {}
+			if (this.widget !== 'date' || props.layout !== 'block' || !this.dateTimestamp) {
+				return null
+			}
+			const start = this.dateTimestamp
+			const format = (options) => {
+				try {
+					return new Intl.DateTimeFormat(boardDateLocale(), options).format(start)
+				} catch {
+					return new Intl.DateTimeFormat(undefined, options).format(start)
+				}
+			}
+			// A date without a time of day (format `date`, or a bare
+			// YYYY-MM-DD) draws no time line.
+			const dateOnly = this.property?.format === 'date' || (typeof this.value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(this.value))
+			let time = ''
+			if (!dateOnly) {
+				const startTime = formatTimeOfDay(start)
+				let end = null
+				if (typeof props.endField === 'string' && props.endField !== '') {
+					const raw = objectFieldValue(this.row, props.endField)
+					const parsed = (raw === null || raw === undefined || raw === '') ? null : new Date(raw)
+					end = parsed && !Number.isNaN(parsed.getTime()) ? parsed : null
+				}
+				time = end
+					? t('nextcloud-vue', '{start} to {end}', { start: startTime, end: formatTimeOfDay(end) })
+					: startTime
+			}
+			return {
+				day: format({ day: 'numeric' }),
+				// "okt." in Dutch: the board draws the month without the dot.
+				month: format({ month: 'short' }).replace(/\.$/, ''),
+				weekday: format({ weekday: 'long' }),
+				time,
+			}
+		},
+
 		dateLabel() {
 			const date = parseDateValue(this.value)
 			if (date === null) {
@@ -1361,6 +1425,48 @@ export default {
 .cn-cell-renderer__avatar-picture {
 	display: inline-flex;
 	flex: none;
+}
+
+.cn-cell-renderer__date-block {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	white-space: nowrap;
+}
+
+.cn-cell-renderer__date-tile {
+	display: flex;
+	flex: 0 0 46px;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 5px 0;
+	border-radius: 8px;
+	background-color: var(--color-background-dark);
+}
+
+.cn-cell-renderer__date-day {
+	font-size: 17px;
+	line-height: 1;
+}
+
+.cn-cell-renderer__date-month,
+.cn-cell-renderer__date-time {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-cell-renderer__date-month {
+	font-size: 12px;
+}
+
+.cn-cell-renderer__date-lines {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cn-cell-renderer__date-weekday {
+	font-weight: 600;
 }
 
 .cn-cell-renderer__avatar-initials {
