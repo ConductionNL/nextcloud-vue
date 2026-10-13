@@ -14,7 +14,9 @@
  *   }
  *
  * `sort`: the workspace value at `key` picks an entry of `map` (the sort the
- * list uses); a value with no entry leaves the list's own sort.
+ * list uses); a value with no entry leaves the list's own sort. An entry may
+ * be a rank sort (`{ field, rank: [...], then? }`), which the record list reads
+ * group by group and the object table ignores.
  * `toggle`: while the workspace value at `key` is on (true, "1", "true"), the
  * filter keys in `removes` are dropped, so a list that hides finished work
  * shows it.
