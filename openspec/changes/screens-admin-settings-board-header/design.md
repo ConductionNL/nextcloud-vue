@@ -2,7 +2,7 @@
 
 - `ownLookClass`: `cn-look-board` on the shell root only when the shell's own `look` prop is `board`. Under a CnAppRoot
   that provides the look, an ancestor already carries the class, so nothing changes there. The four rules that style
-  the shell element itself (frame, grid, children spanning, cards) gain a `.cn-admin-settings-shell.cn-look-board`
+  the shell element itself (frame, grid, children spanning, cards) gain a `.cn-look-board.cn-admin-settings-shell`
   variant. Every other board rule matches descendants, and the root class reaches those.
 - `breadcrumbs: [{ label, href? }]` draws, in place of the description, a `<nav aria-label="Breadcrumb">` of the
   crumbs with `/` separators (`aria-hidden`), the last crumb `aria-current="page"`, then `·` and `breadcrumbNote`.

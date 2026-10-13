@@ -48,7 +48,7 @@
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *),
-.cn-admin-settings-shell.cn-look-board:not(.cn-look-nextcloud *) {
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) {
 	box-sizing: border-box;
 	padding: var(--cn-board-content-padding);
 	max-width: var(--cn-board-content-max-width);
@@ -415,16 +415,16 @@
 }
 
 /* The header, the environment banner and the setup wizard span the grid.
-   `.cn-admin-settings-shell.cn-look-board` is a shell told `look: "board"`
+   `.cn-look-board.cn-admin-settings-shell` is a shell told `look: "board"`
    itself, on an admin page no CnAppRoot wraps. */
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials),
-.cn-admin-settings-shell.cn-look-board:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials) {
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials) {
 	grid-column: 1 / -1;
 }
 
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *),
-.cn-admin-settings-shell.cn-look-board:not(.cn-look-nextcloud *),
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
@@ -434,7 +434,7 @@
 
 /* The card: a section of the shell, or a CnSettingsCard of the page. */
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
-.cn-admin-settings-shell.cn-look-board:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
 .cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) > .cn-settings-card {
 	box-sizing: border-box;
 	display: flex;
