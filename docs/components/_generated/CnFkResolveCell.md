@@ -19,6 +19,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Slots
 
-| Name      | Bindings                   | Description |
-| --------- | -------------------------- | ----------- |
-| `default` | `label`, `ids`, `resolved` |             |
+| Name      | Bindings                   | Description                                                                                                                                                 |
+| --------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `default` | `label`, `ids`, `resolved` | default Draw the label yourself (an avatar beside the name): receives `{ label, ids, resolved }`, the resolved text, the ids and whether every id resolved. |
