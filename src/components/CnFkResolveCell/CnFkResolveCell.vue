@@ -4,8 +4,7 @@
 -->
 
 <template>
-	<!-- A host that draws the label itself (an avatar beside the name) gets the
-	     resolved text through the default slot. -->
+	<!-- @slot default Draw the label yourself (an avatar beside the name): receives `{ label, ids, resolved }`, the resolved text, the ids and whether every id resolved. -->
 	<slot v-if="$slots.default"
 		:label="display"
 		:ids="ids"
