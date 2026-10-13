@@ -2361,6 +2361,10 @@ export default {
 	border-bottom: 1px solid var(--color-border);
 	vertical-align: top;
 	overflow-wrap: anywhere;
+	/* The cells wrap whatever an ancestor says: a `nowrap` inherited from the
+	   surface made a message and a timestamp column 766px wide in a 212px value
+	   cell, and the card 8px wider than its cell (pipelinq's ticket page). */
+	white-space: normal;
 }
 
 .cn-object-data-widget__mini-table th {
