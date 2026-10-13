@@ -21,7 +21,7 @@
 			:quickFilters="quickFilters"
 			:filterStrip="filterStrip"
 			:pagination="{ total: shown.length, page: 1, pages: 1, limit: 20 }"
-			@filter-change="onFilter" />
+			@filterChange="onFilter" />
 	</div>
 </template>
 
