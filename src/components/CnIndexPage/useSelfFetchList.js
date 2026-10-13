@@ -26,6 +26,26 @@ function resolveInitialQuickFilterIndex(quickFilters) {
  * @param {Array<object>} filterMaps Already route-resolved filter maps.
  * @return {object} The merged filter (scalar when a key has one value, array when many).
  */
+/**
+ * The sort a quick filter sets while it is active (`sort: { key, order }`, or a
+ * list of those for a multi-column order), as sort keys, or null when it sets
+ * none.
+ *
+ * @param {object|undefined} tab A quick filter.
+ * @return {Array<{key: string, order: string}>|null} The sort keys.
+ * @spec openspec/changes/screens-quick-filter-sort/specs/index-page/spec.md
+ */
+export function quickFilterSortKeys(tab) {
+	const sort = tab && tab.sort
+	if (!sort) {
+		return null
+	}
+	const keys = (Array.isArray(sort) ? sort : [sort])
+		.filter((entry) => entry && typeof entry.key === 'string' && entry.key !== '')
+		.map((entry) => ({ key: entry.key, order: entry.order === 'desc' ? 'desc' : 'asc' }))
+	return keys.length > 0 ? keys : null
+}
+
 function unionFilterMaps(filterMaps) {
 	const grouped = {}
 	for (const map of filterMaps) {
@@ -178,7 +198,10 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// Seed the visible-column set from the configured columns so the sidebar's
 	// Columns tab reflects the curated default; null when none are configured
 	// (schema-driven table — every column starts visible).
+	// A column marked `hidden: true` is declared but starts outside the set,
+	// so it is off until the person turns it on in the Columns tab.
 	const configuredColumnKeys = (props.columns || [])
+		.filter((c) => !(c && typeof c === 'object' && c.hidden === true))
 		.map((c) => (typeof c === 'string' ? c : c && c.key))
 		.filter(Boolean)
 
@@ -186,7 +209,17 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// link / reload); fall back to a host-passed `sortKeys` prop, then the
 	// legacy single-key `sortKey`/`sortOrder` props.
 	const initialRoute = instance && instance.proxy && instance.proxy.$route
+	// The page's own order, which a lens without a `sort` goes back to.
+	const pageSortKeys = (Array.isArray(props.sortKeys) && props.sortKeys.length > 0)
+		? props.sortKeys
+		: (props.sortKey ? [{ key: props.sortKey, order: props.sortOrder || 'asc' }] : [])
+	// The lens that is active on mount may set its own order.
+	const initialTabs = withPersonalLenses(props.quickFilters, props.personalLenses)
+	const initialTabSort = (!isMultiQuickFilter && Array.isArray(initialTabs))
+		? quickFilterSortKeys(initialTabs[activeQuickFilterIndex.value])
+		: null
 	const initialSortKeys = parseSortKeysFromQuery(initialRoute)
+		|| initialTabSort
 		|| (Array.isArray(props.sortKeys) && props.sortKeys.length > 0 ? props.sortKeys : undefined)
 	// Same deep-link restore for facet filters and search, so opening a
 	// shared/bookmarked URL reproduces the same view (CnIndexPage persists
@@ -257,7 +290,19 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// the list without a manual reload. A change to `props.filter` itself (a
 	// host toggling a filter checkbox) re-fetches the same way.
 	const filterSignature = computed(() => JSON.stringify(props.filter ?? null))
-	watch([activeQuickFilterIndex, selectedQuickFilterIndices, contentSearch, workspaceSignature, appConfigSignature, filterSignature], () => {
+	watch([activeQuickFilterIndex, selectedQuickFilterIndices, contentSearch, workspaceSignature, appConfigSignature, filterSignature], (now, before) => {
+		// Switching lens: a lens with a `sort` sets that order; leaving one
+		// for a lens without goes back to the page's own order. A column the
+		// person sorts by afterwards still wins until the next switch.
+		if (!isMultiQuickFilter && before && now[0] !== before[0]) {
+			const tabs = withPersonalLenses(props.quickFilters, props.personalLenses) || []
+			const keys = quickFilterSortKeys(tabs[now[0]]) || (quickFilterSortKeys(tabs[before[0]]) ? pageSortKeys : null)
+			if (keys && list.sortKeys) {
+				list.sortKeys.value = keys
+				list.sortKey.value = keys[0]?.key ?? null
+				list.sortOrder.value = keys[0]?.order ?? 'asc'
+			}
+		}
 		if (list && typeof list.refresh === 'function') {
 			list.refresh(1)
 		}
