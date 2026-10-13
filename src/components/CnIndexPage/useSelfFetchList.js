@@ -178,7 +178,10 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// Seed the visible-column set from the configured columns so the sidebar's
 	// Columns tab reflects the curated default; null when none are configured
 	// (schema-driven table — every column starts visible).
+	// A column marked `hidden: true` is declared but starts outside the set,
+	// so it is off until the person turns it on in the Columns tab.
 	const configuredColumnKeys = (props.columns || [])
+		.filter((c) => !(c && typeof c === 'object' && c.hidden === true))
 		.map((c) => (typeof c === 'string' ? c : c && c.key))
 		.filter(Boolean)
 
