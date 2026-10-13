@@ -2201,7 +2201,11 @@ export default {
 .cn-chart-widget__canvas {
 	min-width: 0;
 	max-width: 100%;
-	overflow-x: hidden;
+	/* Never a scroll region (see the root). `overflow-x: hidden` alone made
+	   the other axis `auto`, and the chart's inline SVG sat on a text line:
+	   its descender gap made the box 4 to 7px taller than the chart and drew a
+	   vertical scrollbar (pipelinq Rapportage). */
+	overflow: hidden;
 }
 
 /* apexcharts writes an inline `width` onto its own wrapper from its measured
@@ -2210,6 +2214,12 @@ export default {
 .cn-chart-widget :deep(.apexcharts-canvas),
 .cn-chart-widget :deep(.apexcharts-canvas svg) {
 	max-width: 100%;
+}
+
+/* The SVG is a block: as an inline box it sits on a line and adds the line's
+   descender space under the chart. */
+.cn-chart-widget :deep(.apexcharts-canvas svg) {
+	display: block;
 }
 
 /* `flex: 1 1 0` (not `1 1 auto`) is load-bearing: with an `auto` basis the box
