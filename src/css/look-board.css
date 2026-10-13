@@ -48,7 +48,8 @@
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-store-page:not(.cn-look-nextcloud *),
-.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) {
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *),
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) {
 	box-sizing: border-box;
 	padding: var(--cn-board-content-padding);
 	max-width: var(--cn-board-content-max-width);
@@ -390,19 +391,44 @@
 	line-height: 1.2;
 }
 
+.cn-look-board .cn-admin-settings-shell__crumbs:not(.cn-look-nextcloud *) {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-top: 6px;
+	font-size: 15px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-admin-settings-shell__crumb-list:not(.cn-look-nextcloud *) {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.cn-look-board .cn-admin-settings-shell__crumb-link:not(.cn-look-nextcloud *) {
+	color: var(--color-primary-element);
+	text-decoration: underline;
+}
+
 .cn-look-board .cn-admin-settings-shell__description:not(.cn-look-nextcloud *) {
 	margin: 6px 0 0;
 	font-size: 15px;
 	color: var(--color-text-maxcontrast);
 }
 
-/* The header, the environment banner and the setup wizard span the grid. */
+/* The header, the environment banner and the setup wizard span the grid.
+   `.cn-look-board.cn-admin-settings-shell` is a shell told `look: "board"`
+   itself, on an admin page no CnAppRoot wraps. */
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header,
-.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials) {
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials),
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials) {
 	grid-column: 1 / -1;
 }
 
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *),
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
@@ -412,6 +438,7 @@
 
 /* The card: a section of the shell, or a CnSettingsCard of the page. */
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
 .cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) > .cn-settings-card {
 	box-sizing: border-box;
 	display: flex;
@@ -463,6 +490,19 @@
 .cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-card:has(.cn-settings-section--wide):not(.cn-look-nextcloud *) {
 	grid-column: 1 / -1;
+}
+
+/* A wide section is as wide as its place: NcSettingsSection's own 900px cap
+   (`width: min(900px, ...)`, and on its name and description) is lifted, also
+   where the section is the whole page and not a card in the grid. */
+.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *) {
+	width: auto;
+	max-width: none;
+}
+
+.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *) .settings-section__name,
+.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *) .settings-section__desc {
+	max-width: none;
 }
 
 /* The section footer is the save row: the hairline replaces its own rule. */

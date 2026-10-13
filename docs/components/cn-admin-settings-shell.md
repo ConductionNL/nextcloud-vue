@@ -56,6 +56,8 @@ With a real up-to-date check (when the backend reports a configured version):
 | `title` | String | `''` | Page title. Defaults to `"<appName> Settings"` |
 | `description` | String | `''` | Page description. Defaults to `"Configure your <appName> installation"` |
 | `docUrl` | String | `''` | Documentation URL (renders the info icon next to the title) |
+| `breadcrumbs` | Array | `[]` | Board look: the path under the title, in place of the description, as `[{ label, href? }]`. The last crumb is the current page. |
+| `breadcrumbNote` | String | `''` | Board look: a note after the path, behind a dot ("geldt voor de hele organisatie"). |
 | `showVersionCard` | Boolean | `true` | Whether to render the version card |
 | `showOrganisationCredentials` | Boolean | `false` | Render the organisation credential broker (`CnCredentials scope="organisation"`) on this admin page. Opt-in — only an app that actually brokers org-wide secrets should surface it. This is the broker's home since ADR-079 Step 2: it previously lived in a generic `manifest.adminSettings[]` modal on `CnAppRoot`, gated on app ownership, which no app ever declared — so it was unreachable everywhere. Here the access decision is Nextcloud's, made server-side for `/settings/admin/<app>`. |
 | `appCredentials` | Array | `[]` | The app's manifest `credentials[]` declarations, forwarded to the broker to drive its informational "apps requesting credentials" list. Only read when `showOrganisationCredentials` is true. |
@@ -102,4 +104,4 @@ Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
 
 ## Board look
 
-Under the board look the title is an h1 of 28px with the description under it, a labelled "Documentation" button (when `docUrl` is set) sits before the buildiq square, no documentation icon is drawn, and the sections lay out as cards in a two-column grid as wide as the content area. The `look` prop overrides the `cnLook` that `CnAppRoot` provides.
+Under the board look the title is an h1 of 28px with the description under it, a labelled "Documentation" button (when `docUrl` is set) sits before the buildiq square, no documentation icon is drawn, and the sections lay out as cards in a two-column grid as wide as the content area. The `look` prop overrides the `cnLook` that `CnAppRoot` provides. A shell given `look="board"` itself carries the board class, so an admin page that no `CnAppRoot` wraps (Nextcloud mounts admin settings on their own) still takes the board look. With `breadcrumbs`, the path line ("Beheerinstellingen / Launchpad / Algemeen · geldt voor de hele organisatie") replaces the description. A `wide` section spans the grid and is not capped at NcSettingsSection's 900px.
