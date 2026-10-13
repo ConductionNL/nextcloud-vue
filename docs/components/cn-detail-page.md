@@ -700,7 +700,7 @@ With `look: "board"` (the manifest root key, `config.look`, or the `look` prop) 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `look` | String | `''` | `nextcloud` or `board`. Empty takes the look the app provides. |
-| `headerMeta` | String | `''` | The meta line on row 2 (manifest `config.headerMeta`): a field template such as `via {channel}`. A token can format a date as a record-list row does: `received {createdAt|relative}`, `{createdAt|days} days open` (`date`, `datetime`, `relative`, `relativetime`, `days`). A line with an empty value is dropped, and so is the dot before it. |
+| `headerMeta` | String | `''` | The meta line on row 2 (manifest `config.headerMeta`): a field template such as `via {channel}`. A token can format a date as a record-list row does: `received {createdAt\|relative}`, `{createdAt\|days} days open` (`date`, `datetime`, `relative`, `relativetime`, `days`). A line with an empty value is dropped, and so is the dot before it. |
 | `tabsLabel` | String | `''` | The accessible name of the tab list (manifest `config.tabsLabel`). |
 | `identifierField` | String | `''` | The record field named in the last line of the History side card (manifest `config.identifierField`). |
 
