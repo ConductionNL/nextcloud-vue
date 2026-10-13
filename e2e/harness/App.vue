@@ -215,6 +215,11 @@
 			<L7Harness />
 		</template>
 
+		<!-- Library lane L8 pieces, the decidiq gaps (?l8=<name>): a file in l8/ per scenario. See L8Harness.vue. -->
+		<template v-else-if="showL8">
+			<L8Harness />
+		</template>
+
 		<!-- The settings widgets (?settingswidgets=<name>). See SettingsWidgetsHarness.vue. -->
 		<template v-else-if="showSettingsWidgets">
 			<h2>Settings widgets</h2>
@@ -744,6 +749,7 @@ import FilesTabOrHarness from './FilesTabOrHarness.vue'
 import L4Harness from './L4Harness.vue'
 import L6Harness from './L6Harness.vue'
 import L7Harness from './L7Harness.vue'
+import L8Harness from './L8Harness.vue'
 import NarrowTableHarness from './NarrowTableHarness.vue'
 import PageControlsHarness from './PageControlsHarness.vue'
 import PageLensesHarness from './PageLensesHarness.vue'
@@ -788,7 +794,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtAccountsHarness, PtDashboardHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness, SettingsWidgetsHarness, L4Harness, L6Harness, L7Harness },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtAccountsHarness, PtDashboardHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness, SettingsWidgetsHarness, L4Harness, L6Harness, L7Harness, L8Harness },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -851,6 +857,7 @@ export default {
 			showFacts: (typeof window !== 'undefined' && /[?&]factswidget=/.test(window.location.search)),
 			showProgressCell: (typeof window !== 'undefined' && /[?&]progresscell=/.test(window.location.search)),
 			showL7: (typeof window !== 'undefined' && /[?&]l7=/.test(window.location.search)),
+			showL8: (typeof window !== 'undefined' && /[?&]l8=/.test(window.location.search)),
 			showL4: (typeof window !== 'undefined' && /[?&]l4=/.test(window.location.search)),
 			showL6: (typeof window !== 'undefined' && /[?&]l6=/.test(window.location.search)),
 			showStartHere: (typeof window !== 'undefined' && /[?&]starthere=/.test(window.location.search)),
