@@ -80,6 +80,15 @@
 				</a>
 			</li>
 		</ul>
+
+		<!-- `widgets` + `layout`: a grid of dashboard widgets under the cards,
+		     such as a highlighted report with stat tiles and a chart. -->
+		<div v-if="sectionWidgets.length > 0" class="cn-reports-page__widgets" data-testid="cn-reports-widgets">
+			<CnDashboardPage
+				:widgets="sectionWidgets"
+				:layout="sectionLayout"
+				:showHeader="false" />
+		</div>
 	</div>
 </template>
 
@@ -88,10 +97,17 @@
  * The Reports page: one surface listing an app's reports as cards.
  */
 import { translate as t } from '@nextcloud/l10n'
+import { defineAsyncComponent } from 'vue'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 
 export default {
 	name: 'CnReportsPage',
+
+	components: {
+		// Loaded only for a page that declares widgets: a cards-only reports
+		// page does not pull the dashboard in.
+		CnDashboardPage: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue').then((m) => m.default)),
+	},
 
 	inject: {
 		/**
@@ -190,6 +206,29 @@ export default {
 		},
 
 		/**
+		 * Dashboard widgets drawn under the report cards (`config.widgets`),
+		 * placed by `layout`, as on a `type: "dashboard"` page.
+		 *
+		 * @type {Array<object>|null}
+		 */
+		widgets: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Grid placement of `widgets` (`config.layout`): `{ id, widgetId,
+		 * gridX, gridY, gridWidth, gridHeight }` per widget. Without it each
+		 * widget takes a full row in the order declared.
+		 *
+		 * @type {Array<object>|null}
+		 */
+		layout: {
+			type: Array,
+			default: null,
+		},
+
+		/**
 		 * Translate function. Falls back to injected `cnTranslate`.
 		 *
 		 * @type {((key: string) => string)|null}
@@ -242,6 +281,8 @@ export default {
 				'allCategoriesLabel',
 				'categoryLabel',
 				'emptyLabel',
+				'widgets',
+				'layout',
 			]) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
@@ -249,6 +290,36 @@ export default {
 			}
 
 			return { ...fromPage, ...fromProps }
+		},
+
+		/**
+		 * The widgets under the cards.
+		 *
+		 * @return {Array<object>} The declared widgets, or none.
+		 * @spec openspec/changes/screens-reports-page-widgets/specs/reports-page/spec.md
+		 */
+		sectionWidgets() {
+			const widgets = this.config.widgets
+			return Array.isArray(widgets) ? widgets.filter((w) => w && typeof w === 'object' && w.id) : []
+		},
+
+		/**
+		 * Where the widgets go: the declared `layout`, else one full row per
+		 * widget in the order declared.
+		 *
+		 * @return {Array<object>} The placements.
+		 * @spec openspec/changes/screens-reports-page-widgets/specs/reports-page/spec.md
+		 */
+		sectionLayout() {
+			if (Array.isArray(this.config.layout) && this.config.layout.length > 0) {
+				return this.config.layout
+			}
+			let y = 0
+			return this.sectionWidgets.map((widget, index) => {
+				const placement = { id: String(index + 1), widgetId: widget.id, gridX: 0, gridY: y, gridWidth: 12, gridHeight: 4 }
+				y += 4
+				return placement
+			})
 		},
 
 		/**
@@ -501,5 +572,9 @@ export default {
 
 .cn-reports-page__empty {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-reports-page__widgets {
+	margin-top: 20px;
 }
 </style>
