@@ -313,6 +313,28 @@
 			</template>
 		</CnActionsBar>
 
+		<!-- A second filter strip on one field (`filterStrip`), under the
+		     toolbar: "All" and one pill per value, each with its count within
+		     the active quick filter (board PqWachtrij: "Soort, dan kanaal"). -->
+		<div
+			v-if="filterStripEntries.length > 0"
+			class="cn-index-page__filter-strip"
+			role="group"
+			:aria-label="filterStripLabel"
+			data-testid="cn-index-filter-strip">
+			<button
+				v-for="entry in filterStripEntries"
+				:key="entry.key"
+				type="button"
+				class="cn-index-page__filter-strip-pill"
+				:class="{ 'cn-index-page__filter-strip-pill--active': entry.active }"
+				:aria-pressed="entry.active ? 'true' : 'false'"
+				:data-testid="`cn-index-filter-strip-${entry.key}`"
+				@click="onFilterStripPick(entry.value)">
+				<span>{{ entry.label }}</span> <span v-if="entry.count !== null" class="cn-index-page__filter-strip-count">{{ entry.count }}</span>
+			</button>
+		</div>
+
 		<!-- Quick edit: a few fields of one row, over the list, with the list
 		     keeping its place. -->
 		<CnQuickEditDialog
@@ -1110,6 +1132,19 @@ const RANGE_SEPARATOR = '..'
 const FOLLOW_COLUMN_KEY = '__follow'
 
 /**
+ * Whether a declared column starts hidden (`{ key, hidden: true }`): it stays
+ * off until the visible-column set names it, which the person does from the
+ * Columns tab.
+ *
+ * @param {string|object} column A declared column.
+ * @return {boolean} True for a column object with `hidden: true`.
+ * @spec openspec/changes/screens-column-hidden-by-default/specs/index-page/spec.md
+ */
+function isHiddenByDefault(column) {
+	return Boolean(column && typeof column === 'object' && column.hidden === true)
+}
+
+/**
  * Whether a schema property wants a from/to pair rather than a value list.
  *
  * @param {object} prop The schema property.
@@ -1664,7 +1699,11 @@ export default {
 		 * goes back to the default tab. A tab can say `empty: "field"` (or a
 		 * list of fields) for the rows where the field has no value, and
 		 * `notEmpty` for the rows where it has one: it reads as the filter
-		 * `{ field: { isnull: true } }`.
+		 * `{ field: { isnull: true } }`. A tab can set its own order with
+		 * `sort: { key, order }` (or a list of those): selecting it sorts the
+		 * list that way, and selecting a tab without `sort` goes back to the
+		 * page's `sortKey`/`sortOrder`. A column the person sorts by still wins
+		 * until the next tab switch.
 		 */
 		quickFilters: {
 			type: Array,
@@ -1706,6 +1745,23 @@ export default {
 		showFavouriteColumn: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * A second filter strip under the toolbar, on one field (manifest
+		 * `config.filterStrip`): `{ field, label?, allLabel?, options?:
+		 * [{ value, label }], showCount? }`. It draws "All" and one pill per
+		 * value (the options, else the field's schema enum); picking one sets
+		 * the page's filter on that field, "All" clears it. With `showCount`
+		 * each pill counts the rows it would show within the active quick
+		 * filter. Absent (the default) draws nothing.
+		 *
+		 * @type {{field: string, label?: string, allLabel?: string, options?: Array<{value: string, label?: string}>, showCount?: boolean}|null}
+		 * @spec openspec/changes/screens-filter-strip/specs/index-filter-strip/spec.md#requirement-an-index-page-can-draw-a-second-filter-strip
+		 */
+		filterStrip: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -3367,6 +3423,8 @@ export default {
 			refLabels: {},
 			/** Count per tab-strip index, for the entries that asked for one; null = none. */
 			tabCounts: null,
+			// The counts of the `filterStrip` pills, by pill key ('all', 'v0', ...).
+			filterStripCounts: null,
 			/** Count per saved-view id, for the views control; null = none. */
 			savedViewCounts: null,
 			// The id (or slug) of the saved view that is applied; its chip shows selected under the board look.
@@ -4128,6 +4186,92 @@ export default {
 		 */
 		viewsForControl() {
 			return this.splitSavedViews.control
+		},
+
+		/**
+		 * The values the `filterStrip` offers: its options, else the field's
+		 * schema enum, each `{ value, label }`.
+		 *
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		filterStripValues() {
+			const strip = this.filterStrip
+			if (!strip || typeof strip !== 'object' || typeof strip.field !== 'string' || strip.field === '') {
+				return []
+			}
+			const declared = Array.isArray(strip.options) ? strip.options : null
+			const prop = (this.effectiveSchema?.properties || {})[strip.field] || {}
+			const raw = declared || (Array.isArray(prop.enum) ? prop.enum.map((value) => ({ value })) : [])
+			return raw
+				.map((option) => (option && typeof option === 'object' ? option : { value: option }))
+				.filter((option) => option.value !== undefined && option.value !== null && option.value !== '')
+				.map((option) => ({ value: String(option.value), label: this.cnTranslate(String(option.label ?? option.value)) }))
+		},
+
+		/**
+		 * The pills of the `filterStrip`: All, then one per value, with the
+		 * active one marked and its count when `showCount` is on.
+		 *
+		 * @spec openspec/changes/screens-filter-strip/specs/index-filter-strip/spec.md#requirement-an-index-page-can-draw-a-second-filter-strip
+		 * @return {Array<{key: string, value: string, label: string, active: boolean, count: (number|null)}>}
+		 */
+		filterStripEntries() {
+			const values = this.filterStripValues
+			if (values.length === 0) {
+				return []
+			}
+			const current = this.effectiveActiveFilters[this.filterStrip.field]
+			const picked = Array.isArray(current) ? current.map(String) : (current === undefined || current === null || current === '' ? [] : [String(current)])
+			const counts = this.filterStripCounts || {}
+			const countOf = (key) => (Object.hasOwn(counts, key) && typeof counts[key] === 'number' ? counts[key] : null)
+			const allLabel = this.filterStrip.allLabel ? this.cnTranslate(this.filterStrip.allLabel) : t('nextcloud-vue', 'All')
+			return [
+				{ key: 'all', value: '', label: allLabel, active: picked.length === 0, count: countOf('all') },
+				...values.map((option, index) => ({ key: `v${index}`, value: option.value, label: option.label, active: picked.length === 1 && picked[0] === option.value, count: countOf(`v${index}`) })),
+			]
+		},
+
+		/** @return {string} The accessible name of the filter strip. */
+		filterStripLabel() {
+			const strip = this.filterStrip || {}
+			if (strip.label) {
+				return this.cnTranslate(strip.label)
+			}
+			const prop = (this.effectiveSchema?.properties || {})[strip.field] || {}
+			return this.cnTranslate(prop.title || strip.field || '')
+		},
+
+		/**
+		 * The filter of the active quick filter tab, which the strip's counts
+		 * are narrowed by ("Soort, dan kanaal").
+		 *
+		 * @return {object}
+		 */
+		filterStripTabFilter() {
+			const tabs = this.tabStripEntries || []
+			const index = this.activeQuickFilterIndex
+			const tab = index !== null && index !== undefined ? tabs[index] : null
+			return tab && tab.filter && typeof tab.filter === 'object' ? tab.filter : {}
+		},
+
+		/**
+		 * Changes whenever the strip's counts have to be read again: another
+		 * quick filter, another page filter, or a list whose total moved.
+		 *
+		 * @return {string} The signature, '' when the strip counts nothing.
+		 */
+		filterStripCountKey() {
+			if (!this.filterStrip || this.filterStrip.showCount !== true || this.filterStripValues.length === 0) {
+				return ''
+			}
+			return JSON.stringify({
+				r: this.register,
+				s: this.exportSchemaSlug,
+				f: this.filter || null,
+				q: this.filterStripTabFilter,
+				v: this.filterStripValues.map((option) => option.value),
+				t: Number((this.isSelfFetchMode ? this.list.pagination.value : this.effectivePagination)?.total ?? 0),
+			})
 		},
 
 		/**
@@ -5114,12 +5258,19 @@ export default {
 			}
 			const visible = this.effectiveVisibleColumns
 			if (!Array.isArray(visible)) {
-				return cols
+				// No visible set at all: a column marked `hidden: true` still
+				// starts hidden.
+				return cols.filter((c) => !isHiddenByDefault(c))
 			}
 
 			const governed = this.sidebarGovernedColumnKeys
 			cols = cols.filter((c) => {
 				const key = typeof c === 'string' ? c : c.key
+				// A column marked `hidden: true` shows only once the visible set
+				// names it, also when the sidebar does not govern it.
+				if (isHiddenByDefault(c)) {
+					return visible.includes(key)
+				}
 				return !governed.has(key) || visible.includes(key)
 			})
 
@@ -5900,6 +6051,14 @@ export default {
 			},
 		},
 
+		filterStripCountKey: {
+			immediate: true,
+			/** @spec openspec/changes/screens-filter-strip/specs/index-filter-strip/spec.md#requirement-an-index-page-can-draw-a-second-filter-strip */
+			handler() {
+				this.loadFilterStripCounts()
+			},
+		},
+
 		countRequestKey: {
 			immediate: true,
 			/** @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views */
@@ -6205,6 +6364,52 @@ export default {
 				return true
 			}
 			return Array.isArray(this.viewCounts) && this.viewCounts.map(String).includes(String(id))
+		},
+
+		/**
+		 * Read the counts of the `filterStrip` pills in one grouped request,
+		 * narrowed by the page filter and the active quick filter. A failed
+		 * count leaves that pill without a number.
+		 *
+		 * @spec openspec/changes/screens-filter-strip/specs/index-filter-strip/spec.md#requirement-an-index-page-can-draw-a-second-filter-strip
+		 * @return {Promise<void>}
+		 */
+		async loadFilterStripCounts() {
+			const requestKey = this.filterStripCountKey
+			const schema = this.exportSchemaSlug
+			if (requestKey === '' || !this.register || !schema) {
+				this.filterStripCounts = null
+				return
+			}
+			const field = this.filterStrip.field
+			const params = (this.$route && this.$route.params) || {}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const base = { ...resolveFilterMap(this.filter, params, ctx), ...resolveFilterMap(this.filterStripTabFilter, params, ctx) }
+			const entries = [
+				{ key: 'all', filter: {} },
+				...this.filterStripValues.map((option, index) => ({ key: `v${index}`, filter: { [field]: option.value } })),
+			]
+			let counts
+			try {
+				counts = await fetchFilterCounts({ register: this.register, schema, entries, baseFilter: base, ctx })
+			} catch {
+				counts = {}
+			}
+			if (requestKey !== this.filterStripCountKey) {
+				return
+			}
+			this.filterStripCounts = counts
+		},
+
+		/**
+		 * A pill of the `filterStrip` was picked: filter the list on that value,
+		 * or clear the field's filter for All.
+		 *
+		 * @param {string} value The value, '' for All.
+		 * @return {void}
+		 */
+		onFilterStripPick(value) {
+			this.onFilterEvent({ key: this.filterStrip.field, values: value === '' ? [] : [value] })
 		},
 
 		/**
