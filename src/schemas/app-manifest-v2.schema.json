@@ -4223,6 +4223,19 @@
 							"items": { "type": "string", "enum": ["table", "cards", "board", "map"] },
 							"description": "type='index', board look: the segments the view switch draws, e.g. [\"table\", \"cards\", \"board\", \"map\"] as the boards do. A listed mode the page can open is an ordinary segment; one it cannot (no board columns, no map) is drawn disabled and named \"<mode>: not available on this list\". Order is always table, cards, board, map. Ignored without the board look (screens-view-switch-parity). Maps to CnIndexPage `viewSwitch`."
 						},
+						"filterStrip": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["field"],
+							"description": "type='index': a second filter strip under the toolbar, on one field (board PqWachtrij: the kind in the quick filters, the channel in this strip). \"All\" and one pill per value (`options`, else the field's schema enum); picking one filters the list on that value, All clears it. With `showCount` each pill counts its rows within the active quick filter (screens-filter-strip, 2.92.0). Maps to CnIndexPage `filterStrip`.",
+							"properties": {
+								"field": { "type": "string", "minLength": 1 },
+								"label": { "type": "string", "minLength": 1, "description": "The strip's accessible name; default the field's title." },
+								"allLabel": { "type": "string", "minLength": 1, "description": "The first pill; default \"All\"." },
+								"options": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["value"], "properties": { "value": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 } } } },
+								"showCount": { "type": "boolean", "default": false }
+							}
+						},
 						"searchPlaceholder": {
 							"type": "string",
 							"minLength": 1,
