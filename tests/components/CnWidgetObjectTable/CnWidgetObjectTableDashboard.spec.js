@@ -155,6 +155,23 @@ describe('object-table dashboard registration (issue #89)', () => {
 		expect(table().props('fetchParams').status).toBeUndefined()
 	})
 
+	it('ignores a sort entry with a rank: a paged table cannot order by an enum rank (screens-enum-rank-sort)', () => {
+		const entry = getWidgetTypeEntry('object-table')
+		const content = {
+			register: 'pipelinq',
+			schema: 'ticket',
+			pageControls: { sort: { key: 'sort', map: { priority: { field: 'priority', rank: ['urgent', 'high'] } } } },
+			columns: [{ key: 'title', label: 'Title' }],
+		}
+		const Host = {
+			components: { Renderer: entry.renderer },
+			template: '<Renderer :content="content" v-bind="content" />',
+			data: () => ({ content }),
+		}
+		const wrapper = mount(Host, { provide: { cnWorkspaceContext: ref({ sort: 'priority' }) } })
+		expect(wrapper.findComponent({ name: 'CnDataTable' }).props('fetchParams')['_order[priority]']).toBeUndefined()
+	})
+
 	it('resolves @workspace tokens via cnWorkspaceContext on the dashboard surface', () => {
 		const entry = getWidgetTypeEntry('object-table')
 		const content = {

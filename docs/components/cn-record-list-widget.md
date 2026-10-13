@@ -111,3 +111,7 @@ A list can follow the page's controls (a `workspace-filter` select and switch). 
 ## Money
 
 `{amount|currency}` writes an amount as money, `{amount|currency:USD}` in the named currency, and `{amount|currency:price.code}` in the currency the row holds at that field. A row without a code, and the bare `{amount|currency}`, take the app's reporting currency (`currency` in the app config) and euros without one. The number follows the user's language ("€ 12.000,00" for Dutch). A row without an amount empties the template, as for every token.
+
+## Sort by the rank of an enum
+
+A text field sorts alphabetically on the server, so priority reads high, low, normal, urgent. A sort with `rank` puts the values in your order: `"sort": { "field": "priority", "rank": ["urgent", "high", "normal", "low"], "then": { "field": "slaDeadline", "dir": "asc" } }`, and the same object works as an entry of `pageControls.sort.map`. The list reads the rows one value at a time, best first, each group in the order of `then`, until `limit` rows are in; rows with another value or none come last. The rows shown are the first `limit` of the whole filtered list and `{total}` counts all of them. It costs up to one request per value plus two, where a plain sort costs one. A list whose `filter` already fixes the field ignores `rank`. Only the record list does this: the object table and index pages page through their rows and ignore `rank`.
