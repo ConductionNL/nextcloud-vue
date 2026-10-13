@@ -14,10 +14,10 @@ A chart fits its box without a scrollbar.
 
 ### Requirement: A chart canvas does not scroll
 
-The chart widget's canvas box SHALL NOT be a scroll region, and its content SHALL NOT be taller than the box.
+The chart widget's canvas box SHALL NOT be a scroll region, and the drawn chart SHALL end inside the box.
 
 #### Scenario: Three report charts
 
 - **GIVEN** a bar, a line and a donut chart with a fixed height in a 518px card
 - **WHEN** they render
-- **THEN** no canvas box is taller inside than outside and none draws a scrollbar
+- **THEN** no canvas box is a scroll region, none draws a scrollbar, and each drawn chart ends inside its box
