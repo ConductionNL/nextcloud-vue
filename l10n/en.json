@@ -1402,6 +1402,7 @@
     "Leave this field empty": "Leave this field empty",
     "This answer was refused.": "This answer was refused.",
     "No value ({count})": "No value ({count})",
+    "{start} to {end}": "{start} to {end}",
     "Breadcrumb": "Breadcrumb"
   },
   "plurals": {
