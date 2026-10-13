@@ -98,6 +98,34 @@
 		     it. A user id (widgetProps.userField, or widgetProps.user for a cell
 		     that holds the id itself) gets the Nextcloud avatar; a free name
 		     gets its initials. The picture is decoration: the name is the text. -->
+		<!-- The avatar of a REFERENCED object (widgetProps.resolve
+		     { register, schema, labelField }): the cell holds a uuid, the name
+		     is resolved as an fkResolve cell resolves it, and its initials sit
+		     beside it. -->
+		<template v-else-if="widget === 'avatar' && avatarResolve">
+			<CnFkResolveCell
+				v-if="hasValue && typeof value !== 'object'"
+				v-slot="{ label, resolved }"
+				:value="value"
+				:register="avatarResolve.register"
+				:schema="avatarResolve.schema"
+				:labelField="avatarResolve.labelField || 'name'">
+				<span class="cn-cell-renderer__avatar" data-testid="cn-cell-avatar-resolved">
+					<span
+						class="cn-cell-renderer__avatar-initials"
+						:style="{ width: avatarSize + 'px', height: avatarSize + 'px' }"
+						aria-hidden="true">{{ resolved ? initialsOf(label) : '' }}</span>
+					<span class="cn-cell-renderer__avatar-text">
+						<span class="cn-cell-renderer__avatar-name" :title="label">{{ label }}</span>
+						<span
+							v-if="secondary"
+							class="cn-cell-renderer__avatar-secondary"
+							data-testid="cn-cell-secondary">{{ secondary }}</span>
+					</span>
+				</span>
+			</CnFkResolveCell>
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
 		<template v-else-if="widget === 'avatar'">
 			<span v-if="avatarName || avatarUserId" class="cn-cell-renderer__avatar">
 				<span v-if="avatarUserId" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
@@ -580,13 +608,27 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
 		avatarInitials() {
-			const words = this.avatarName.trim().split(/\s+/).filter((word) => word !== '')
-			if (words.length === 0) {
-				return ''
+			return this.initialsOf(this.avatarName)
+		},
+
+		/**
+		 * `avatar` widget: where a REFERENCED person's name comes from
+		 * (`widgetProps.resolve`, `{ register, schema, labelField? }`, the
+		 * shape the facts widget's `resolve` takes), or null when the cell
+		 * holds the name or user id itself.
+		 *
+		 * @return {{register: string, schema: string, labelField?: string}|null}
+		 * @spec openspec/changes/screens-avatar-cell-resolve/specs/data-table/spec.md
+		 */
+		avatarResolve() {
+			const resolve = this.widgetProps && this.widgetProps.resolve
+			if (!resolve || typeof resolve !== 'object') {
+				return null
 			}
-			const first = Array.from(words[0])[0] || ''
-			const last = words.length > 1 ? (Array.from(words[words.length - 1])[0] || '') : ''
-			return (first + last).toLocaleUpperCase()
+			if (typeof resolve.register !== 'string' || resolve.register === '' || typeof resolve.schema !== 'string' || resolve.schema === '') {
+				return null
+			}
+			return resolve
 		},
 
 		/**
@@ -1230,6 +1272,23 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The initials of a name, at most two letters (first and last word).
+		 *
+		 * @param {string} name The name.
+		 * @return {string} The initials, upper case, or ''.
+		 * @spec openspec/changes/screens-avatar-cell-resolve/specs/data-table/spec.md
+		 */
+		initialsOf(name) {
+			const words = String(name || '').trim().split(/\s+/).filter((word) => word !== '')
+			if (words.length === 0) {
+				return ''
+			}
+			const first = Array.from(words[0])[0] || ''
+			const last = words.length > 1 ? (Array.from(words[words.length - 1])[0] || '') : ''
+			return (first + last).toLocaleUpperCase()
+		},
+
 		/**
 		 * Render the cell value per the declarative `format` spec (currency /
 		 * number / percent / duration). Mirrors CnStatWidget's formatting so a
