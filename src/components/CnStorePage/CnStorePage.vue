@@ -61,8 +61,8 @@
 					{{ t('nextcloud-vue', 'Publish') }}
 				</NcButton>
 			</div>
-			<p v-if="resolvedDescription" class="cn-store-page__intro">
-				{{ resolvedDescription }}
+			<p v-if="resolvedDescription" class="cn-store-page__intro" :lang="langOf(resolvedDescription)">
+				{{ shown(resolvedDescription) }}
 			</p>
 		</div>
 
@@ -83,6 +83,7 @@
 					:key="option.value"
 					:variant="option.value === kind ? 'primary' : 'secondary'"
 					:disabled="offline"
+					:data-testid="`store-kind-${option.value || 'all'}`"
 					@click="selectKind(option.value)">
 					{{ option.label }}
 				</NcButton>
@@ -175,7 +176,7 @@
 						{{ card.title || card.slug }}
 					</h3>
 					<p v-if="card.typeName || card.kind" class="cn-store-page__card-kind">
-						{{ card.typeName || card.kind }}
+						{{ card.typeName || kindLabel(card.kind) }}
 					</p>
 					<p class="cn-store-page__card-description">
 						{{ card.description }}
@@ -584,7 +585,7 @@ export default {
 		kindOptions() {
 			return [
 				{ value: '', label: t('nextcloud-vue', 'All kinds') },
-				...this.effectiveKinds.map((value) => ({ value, label: value })),
+				...this.effectiveKinds.map((value) => ({ value, label: this.kindLabel(value) })),
 			]
 		},
 
@@ -725,7 +726,7 @@ export default {
 		 * @return {string} The line, or ''.
 		 */
 		cardKindLine(card) {
-			return [card.typeName || card.kind, card.publisher].filter((part) => typeof part === 'string' && part !== '').join(' · ')
+			return [card.typeName || this.kindLabel(card.kind), card.publisher].filter((part) => typeof part === 'string' && part !== '').join(' · ')
 		},
 
 		/**
@@ -775,6 +776,32 @@ export default {
 			if (action.id === 'install' || action.id === 'update') {
 				this.install(card)
 			}
+		},
+
+		/**
+		 * The label of a kind: the library's own for the five kinds of the
+		 * default vocabulary ("App template" for `app-template`), else the kind
+		 * through the app's translate, so an app with kinds of its own names
+		 * them in its catalogue. Never the raw id of a known kind.
+		 *
+		 * @spec openspec/changes/screens-store-page-translations/specs/store-page/spec.md#requirement-the-store-page-reads-in-the-users-language
+		 * @param {string} kind The kind id.
+		 * @return {string} The label.
+		 */
+		kindLabel(kind) {
+			const known = {
+				'app-template': t('nextcloud-vue', 'App template'),
+				adapter: t('nextcloud-vue', 'Adapter'),
+				'source-template': t('nextcloud-vue', 'Source template'),
+				'configuration-template': t('nextcloud-vue', 'Configuration template'),
+				'agent-template': t('nextcloud-vue', 'Agent template'),
+			}
+			if (typeof kind !== 'string' || kind === '') {
+				return ''
+			}
+			const translated = this.shown(kind)
+			// The app's own word for a kind wins over the library's.
+			return translated !== kind ? translated : (Object.hasOwn(known, kind) ? known[kind] : kind)
 		},
 
 		/**
