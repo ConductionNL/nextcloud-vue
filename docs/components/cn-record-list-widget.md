@@ -57,7 +57,7 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 ### Header
 
-On a card surface the detail page draws the titled card. The widget reports its header through the `header` event, and the card shows it:
+On a card surface the detail page or the dashboard page draws the titled card. The widget reports its header through the `header` event, and the card shows it:
 
 | Key | Meaning |
 |-----|---------|
@@ -66,7 +66,13 @@ On a card surface the detail page draws the titled card. The widget reports its 
 
 In a tab panel there is no card header, so neither is drawn.
 
+### A meta line of parts
+
+`meta` as a string is one template: a row that misses one of its tokens gets no meta line at all. For a line built from fields that may be empty, list the parts: `"meta": { "parts": ["{identifier}", "{caseTypeName}", "{handler.name}"], "separator": " · " }`. Each part is filled on its own, the empty ones are left out and the rest are joined by `separator` (default " · "). A part can hold text and formats, such as `"Termijn {deadline|date}"`.
+
 ### States
+
+A list that asks for a personal lens (`filter: { "_recent": true }`) and gets none back because the lens could not answer says why in place of `emptyText`: "This server does not keep track of what you open.", "Log in to see what you opened recently." or "Your recent items are not available right now.". `lensReasonTexts` replaces the wording, keyed by `<lens>.<reason>` or `<reason>`, such as `{ "recent.audit-trail-disabled": "Recent cases need the audit trail." }`; the text goes through the host's translate. A lens that is available, or a reason without text, keeps `emptyText`.
 
 `emptyText` on one line when the list is empty; one quiet line (`errorText`, else "This list could not be loaded.") when the read fails, never both. The error goes to the console.
 

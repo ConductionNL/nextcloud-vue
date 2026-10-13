@@ -51,28 +51,48 @@
 					class="cn-actions-bar__view-toggle"
 					role="group"
 					:aria-label="t('nextcloud-vue', 'View mode')">
-					<!-- A segment the page cannot open (`disabledViewModes`) is drawn, as the board does, but disabled and named so. -->
-					<button
-						v-for="seg in viewSegments"
-						:key="seg.mode"
-						type="button"
-						class="cn-actions-bar__view-toggle-btn"
-						:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode, 'cn-actions-bar__view-toggle-btn--disabled': seg.disabled }"
-						:aria-pressed="viewMode === seg.mode"
-						:aria-label="seg.label"
-						:title="seg.disabled ? unavailableViewLabel(seg.label) : seg.label"
-						:disabled="seg.disabled"
-						:data-mode="seg.mode"
-						@click="seg.disabled || $emit('view-mode-change', seg.mode)">
-						<CnIcon v-if="seg.icon"
-							:name="seg.icon"
-							:size="18"
-							class="cn-actions-bar__view-toggle-icon" />
-						<component :is="seg.boardFallback || seg.fallback"
+					<!-- A segment the page cannot open (`disabledViewModes`) is drawn, as the board does, but disabled and named so.
+					     A segment that opens another PAGE (`viewModeLinks`) is a link, never pressed. -->
+					<template v-for="seg in viewSegments" :key="seg.mode">
+						<a
+							v-if="seg.link"
+							class="cn-actions-bar__view-toggle-btn cn-actions-bar__view-toggle-btn--link"
+							:href="seg.link.href"
+							:aria-label="seg.label"
+							:title="seg.label"
+							:data-mode="seg.mode"
+							data-testid="cn-actions-bar-view-link"
+							@click="onViewLinkClick($event, seg)">
+							<CnIcon v-if="seg.icon"
+								:name="seg.icon"
+								:size="18"
+								class="cn-actions-bar__view-toggle-icon" />
+							<component :is="seg.boardFallback || seg.fallback"
+								v-else
+								:size="18"
+								class="cn-actions-bar__view-toggle-icon" />
+						</a>
+						<button
 							v-else
-							:size="18"
-							class="cn-actions-bar__view-toggle-icon" />
-					</button>
+							type="button"
+							class="cn-actions-bar__view-toggle-btn"
+							:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode, 'cn-actions-bar__view-toggle-btn--disabled': seg.disabled }"
+							:aria-pressed="viewMode === seg.mode"
+							:aria-label="seg.label"
+							:title="seg.disabled ? unavailableViewLabel(seg.label) : seg.label"
+							:disabled="seg.disabled"
+							:data-mode="seg.mode"
+							@click="seg.disabled || $emit('view-mode-change', seg.mode)">
+							<CnIcon v-if="seg.icon"
+								:name="seg.icon"
+								:size="18"
+								class="cn-actions-bar__view-toggle-icon" />
+							<component :is="seg.boardFallback || seg.fallback"
+								v-else
+								:size="18"
+								class="cn-actions-bar__view-toggle-icon" />
+						</button>
+					</template>
 				</div>
 			</div>
 		</div>
@@ -658,6 +678,21 @@ export default {
 		},
 
 		/**
+		 * Board look: view modes that open another PAGE instead of switching in
+		 * place, by mode: `{ board: { href, to? } }`. Such a segment is drawn as
+		 * a link in its place in the switch; `to` (a router location) is pushed
+		 * on a plain click, `href` serves a new tab. A mode the page offers in
+		 * place stays a button. Ignored without the board look.
+		 *
+		 * @type {{[mode: string]: {href: string, to?: (object|string)}}}
+		 * @spec openspec/changes/screens-view-switch-links/specs/view-switch/spec.md#requirement-a-view-switch-segment-can-open-another-page
+		 */
+		viewModeLinks: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * The number on the Filter button's badge. Empty (`null`) counts the
 		 * `activeFilterChips`.
 		 *
@@ -1190,13 +1225,16 @@ export default {
 				defs.board = { label: t('nextcloud-vue', 'Board'), icon: '', fallback: ViewColumnOutline }
 				// The board's list icon: plain bullets, not the boxed ones.
 				defs.table.boardFallback = FormatListBulleted
-				const disabled = (this.disabledViewModes || []).filter((mode) => !modes.includes(mode))
-				const all = [...modes, ...disabled]
+				// A mode that opens another page: a link, unless the page offers it in place.
+				const links = this.viewModeLinks && typeof this.viewModeLinks === 'object' ? this.viewModeLinks : {}
+				const linked = Object.keys(links).filter((mode) => !modes.includes(mode) && links[mode] && typeof links[mode].href === 'string' && links[mode].href !== '')
+				const disabled = (this.disabledViewModes || []).filter((mode) => !modes.includes(mode) && !linked.includes(mode))
+				const all = [...modes, ...linked, ...disabled]
 				const fixed = ['table', 'cards', 'board', 'map']
 				const rest = all.filter((mode) => !fixed.includes(mode))
 				return [...fixed.filter((mode) => all.includes(mode)), ...rest]
 					.filter((mode) => defs[mode])
-					.map((mode) => ({ mode, ...defs[mode], disabled: disabled.includes(mode) }))
+					.map((mode) => ({ mode, ...defs[mode], disabled: disabled.includes(mode), link: linked.includes(mode) ? links[mode] : null }))
 			}
 			return modes
 				.filter((mode) => defs[mode])
@@ -1255,6 +1293,23 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A click on a segment that opens another page: a plain click goes
+		 * through the router when the link names a route; a modified click
+		 * (new tab) and a link without a route are left to the browser.
+		 *
+		 * @param {MouseEvent} event The click.
+		 * @param {{link: {href: string, to?: (object|string)}}} seg The segment.
+		 */
+		onViewLinkClick(event, seg) {
+			const to = seg.link && seg.link.to
+			if (!to || !this.$router || typeof this.$router.push !== 'function' || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button > 0) {
+				return
+			}
+			event.preventDefault()
+			this.$router.push(to)
+		},
+
 		/**
 		 * The tooltip of a segment the page cannot open.
 		 *

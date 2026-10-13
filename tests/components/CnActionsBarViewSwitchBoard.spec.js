@@ -50,4 +50,36 @@ describe('CnActionsBar view switch (board look)', () => {
 		expect(wrapper.find('.cn-actions-bar__view-toggle-thumb').exists()).toBe(true)
 		expect(wrapper.find('.cn-actions-bar__view-toggle-label').exists()).toBe(true)
 	})
+
+	it('draws a mode that opens another page as a link in its place, never pressed', () => {
+		const wrapper = mountBar({ viewMode: 'table', availableViewModes: ['table', 'cards'], disabledViewModes: ['map'], viewModeLinks: { board: { href: '#/cases/board', to: { name: 'CaseBoard' } } } })
+		const segments = wrapper.findAll('.cn-actions-bar__view-toggle-btn')
+		expect(segments.map((s) => s.attributes('aria-label'))).toEqual(['Table', 'Cards', 'Board', 'Map'])
+		const board = segments[2]
+		expect(board.element.tagName).toBe('A')
+		expect(board.attributes('href')).toBe('#/cases/board')
+		expect(board.attributes('aria-pressed')).toBeUndefined()
+		expect(segments[3].attributes('disabled')).toBeDefined()
+	})
+
+	it('pushes the route on a plain click and leaves a modified click to the browser', async () => {
+		const push = jest.fn()
+		const wrapper = mount(CnActionsBar, {
+			props: { viewMode: 'table', availableViewModes: ['table'], viewModeLinks: { board: { href: '#/cases/board', to: { name: 'CaseBoard' } } } },
+			global: { provide: { cnLook: 'board' }, mocks: { $router: { push } }, stubs: { NcButton: true, NcActions: true, CnBuildiqEditButton: true } },
+		})
+		const link = wrapper.find('[data-testid="cn-actions-bar-view-link"]')
+		await link.trigger('click', { ctrlKey: true })
+		expect(push).not.toHaveBeenCalled()
+		await link.trigger('click')
+		expect(push).toHaveBeenCalledWith({ name: 'CaseBoard' })
+		expect(wrapper.emitted('view-mode-change')).toBeUndefined()
+	})
+
+	it('keeps a mode the page offers in place a button, and ignores links without the look', () => {
+		const inPlace = mountBar({ viewMode: 'table', availableViewModes: ['table', 'board'], viewModeLinks: { board: { href: '#/x' } } })
+		expect(inPlace.find('[data-testid="cn-actions-bar-view-link"]').exists()).toBe(false)
+		const plain = mountBar({ viewMode: 'table', availableViewModes: ['table', 'cards'], viewModeLinks: { board: { href: '#/x' } } }, 'nextcloud')
+		expect(plain.find('[data-testid="cn-actions-bar-view-link"]').exists()).toBe(false)
+	})
 })

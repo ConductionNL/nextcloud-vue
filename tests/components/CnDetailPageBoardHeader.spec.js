@@ -156,6 +156,20 @@ describe('resolveHeaderMeta', () => {
 	})
 })
 
+describe('resolveHeaderMeta formats', () => {
+	const now = new Date('2026-10-12T12:00:00')
+
+	it('writes a date token as the row templates do', () => {
+		expect(resolveHeaderMeta('{createdAt|days} days open', { createdAt: '2026-10-06T09:00:00' }, now)).toBe('6 days open')
+		expect(resolveHeaderMeta('via {channel} · {createdAt|relative}', { channel: 'Web', createdAt: '2026-10-12T09:42:00' }, now)).toMatch(/^via Web · \S+/)
+		expect(resolveHeaderMeta('via {channel} · {createdAt|relative}', { channel: 'Web', createdAt: '2026-10-12T09:42:00' }, now)).not.toContain('2026-10-12T')
+	})
+
+	it('drops the line when the formatted token has no value', () => {
+		expect(resolveHeaderMeta('via {channel} · {createdAt|relative}', { channel: 'Web' }, now)).toBe('')
+	})
+})
+
 describe('manifest: the board header keys on a detail page', () => {
 	const manifest = (config) => ({
 		$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
