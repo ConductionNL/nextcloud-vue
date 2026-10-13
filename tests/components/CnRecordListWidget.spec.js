@@ -228,4 +228,51 @@ describe('CnRecordListWidget avatar (screens-record-list-avatar)', () => {
 			expect(dues[2].classes()).toContain('cn-record-list__due--empty')
 		})
 	})
+	describe('rank sort', () => {
+		const all = [
+			{ id: '1', priority: 'low', n: 1 },
+			{ id: '2', priority: 'urgent', n: 2 },
+			{ id: '3', priority: 'high', n: 3 },
+			{ id: '4', priority: 'urgent', n: 4 },
+			{ id: '5', priority: null, n: 5 },
+			{ id: '6', priority: 'normal', n: 6 },
+		]
+		const serve = (_url, { params }) => {
+			let rows = all.filter((row) => params.priority === undefined || row.priority === params.priority)
+			const order = Object.keys(params).find((key) => key.startsWith('_order['))
+			if (order) {
+				const field = order.slice(7, -1)
+				rows = [...rows].sort((a, b) => (params[order] === 'desc' ? b[field] - a[field] : a[field] - b[field]))
+			}
+			return Promise.resolve({ data: { results: rows.slice(0, params._limit), total: all.length } })
+		}
+		const sort = { field: 'priority', rank: ['urgent', 'high', 'normal', 'low'], then: { field: 'n', dir: 'desc' } }
+
+		it('reads the rows in rank order, the rest of the sort inside a rank, and the total from the whole list', async () => {
+			axios.get.mockImplementation(serve)
+			const wrapper = mountList({ title: '{id}', sort, limit: 4 })
+			await flush()
+			expect(wrapper.findAll('.cn-record-list__title').map((t) => t.text())).toEqual(['4', '2', '3', '6'])
+			const calls = axios.get.mock.calls.map(([, { params }]) => params.priority ?? 'all')
+			expect(calls).toEqual(['all', 'urgent', 'high', 'normal'])
+		})
+
+		it('puts the rows outside the rank last, without repeating a row', async () => {
+			axios.get.mockImplementation(serve)
+			const wrapper = mountList({ title: '{id}', sort, limit: 6 })
+			await flush()
+			expect(wrapper.findAll('.cn-record-list__title').map((t) => t.text())).toEqual(['4', '2', '3', '6', '1', '5'])
+		})
+
+		it('keeps the plain order without rank, and ignores the rank when the filter fixes the field', async () => {
+			axios.get.mockImplementation(serve)
+			mountList({ sort: { field: 'n', dir: 'asc' }, limit: 2 })
+			await flush()
+			expect(axios.get).toHaveBeenCalledTimes(1)
+			axios.get.mockClear()
+			mountList({ sort, filter: { priority: 'urgent' }, limit: 2 })
+			await flush()
+			expect(axios.get).toHaveBeenCalledTimes(1)
+		})
+	})
 })
