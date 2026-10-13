@@ -52,7 +52,7 @@
 
 			<template v-else>
 				<a
-					v-for="(item, idx) in items"
+					v-for="(item, idx) in shownItems"
 					:key="item.sinceId || item.id || idx"
 					class="cn-nc-widget-widget__item"
 					:class="itemClass"
@@ -74,6 +74,14 @@
 						<span class="cn-nc-widget-widget__item-title">{{ item.title }}</span>
 						<span v-if="item.subtitle" class="cn-nc-widget-widget__item-subtitle">{{ item.subtitle }}</span>
 					</span>
+				</a>
+				<!-- With a `limit`, the rest is one link away (`showAllUrl`, else the widget's own page). -->
+				<a
+					v-if="showAllHref"
+					class="cn-nc-widget-widget__show-all"
+					data-testid="nc-widget-show-all"
+					:href="showAllHref">
+					{{ showAllLabel }}
 				</a>
 			</template>
 		</div>
@@ -124,7 +132,10 @@ export default {
 
 	props: {
 		/**
-		 * Persisted widget content `{widgetId, displayMode}`.
+		 * Persisted widget content `{widgetId, displayMode, limit?, showAllUrl?, showAllLabel?}`.
+		 * `limit` is the most items shown (the list then comes from the items
+		 * API, so it fits its cell); `showAllUrl` / `showAllLabel` the link to
+		 * the rest (default the widget's own page and "Show all").
 		 *
 		 * @type {object}
 		 */
@@ -215,6 +226,53 @@ export default {
 		},
 
 		/**
+		 * The most items the list shows (`content.limit`), or 0 for no limit.
+		 * A limit lets the widget fit a dashboard cell instead of scrolling
+		 * inside it.
+		 *
+		 * @spec openspec/changes/screens-nc-widget-limit/specs/nc-widget/spec.md#requirement-a-nextcloud-widget-shows-at-most-its-limit
+		 * @return {number} the limit.
+		 */
+		itemLimit() {
+			const limit = Number(this.content && this.content.limit)
+			return Number.isInteger(limit) && limit > 0 ? limit : 0
+		},
+
+		/**
+		 * The items drawn: at most `itemLimit`.
+		 *
+		 * @return {object[]} the items.
+		 */
+		shownItems() {
+			return this.itemLimit > 0 ? this.items.slice(0, this.itemLimit) : this.items
+		},
+
+		/**
+		 * Where "Show all" goes: `content.showAllUrl`, else the page the widget
+		 * names itself (its `url`). Only with a limit; '' for no link.
+		 *
+		 * @spec openspec/changes/screens-nc-widget-limit/specs/nc-widget/spec.md#requirement-a-nextcloud-widget-shows-at-most-its-limit
+		 * @return {string} the URL.
+		 */
+		showAllHref() {
+			if (this.itemLimit === 0) {
+				return ''
+			}
+			const own = this.content && typeof this.content.showAllUrl === 'string' ? this.content.showAllUrl : ''
+			return own || (this.widgetMeta && typeof this.widgetMeta.url === 'string' ? this.widgetMeta.url : '')
+		},
+
+		/**
+		 * The "Show all" text (`content.showAllLabel`, else the library's).
+		 *
+		 * @return {string} the label.
+		 */
+		showAllLabel() {
+			const label = this.content && this.content.showAllLabel
+			return typeof label === 'string' && label !== '' ? label : t('nextcloud-vue', 'Show all')
+		},
+
+		/**
 		 * The body orientation CSS modifier class.
 		 *
 		 * @return {string} the body class.
@@ -258,7 +316,9 @@ export default {
 			// must therefore skip the native fast-path, or the "Horizontal
 			// (cards)" option would silently do nothing for the (common) case
 			// where the widget has a registered native callback.
-			if (this.displayMode !== 'horizontal') {
+			// A `limit` also takes the API list first: the native callback paints
+			// as many items as it likes. Its fallback to native stays.
+			if (this.displayMode !== 'horizontal' && this.itemLimit === 0) {
 				const callback = this.resolveNativeCallback()
 				if (typeof callback === 'function') {
 					this.mountNative(callback)
@@ -343,7 +403,7 @@ export default {
 				// both the flat-array (older providers) and `{items}` (v2) shapes.
 				const url = generateOcsUrl('/apps/dashboard/api/v2/widget-items')
 				const response = await axios.get(url, {
-					params: { widgets: [this.widgetId], limit: API_ITEM_LIMIT },
+					params: { widgets: [this.widgetId], limit: this.itemLimit > 0 ? this.itemLimit : API_ITEM_LIMIT },
 				})
 				const data = response && response.data && response.data.ocs ? response.data.ocs.data : null
 				const widgetData = data ? data[this.widgetId] : null
@@ -438,6 +498,19 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-nc-widget-widget__show-all {
+	align-self: flex-start;
+	padding: 8px 0 0;
+	color: var(--color-primary-element);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.cn-nc-widget-widget__show-all:hover,
+.cn-nc-widget-widget__show-all:focus-visible {
+	text-decoration: underline;
 }
 
 .cn-nc-widget-widget__native {
