@@ -301,6 +301,22 @@
 	height: auto;
 }
 
+/* A titled bare widget (a `custom` slot with its grid heading): the heading
+   and the widget share the cell. The widget used to take 100% of the cell
+   UNDER the heading, so every such card overflowed its cell by the heading's
+   height (31px: 22px of text and 8px of margin), whatever the cell's height. */
+.cn-detail-page__grid-item:has(> .cn-detail-page__widget-title):not(.cn-detail-page__grid-item--fit) {
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-detail-page__grid-item:has(> .cn-detail-page__widget-title):not(.cn-detail-page__grid-item--fit) > :not(.cn-detail-page__widget-title, .cn-detail-page__widget-edit) {
+	flex: 1 1 0;
+	min-height: 0;
+	height: auto;
+	max-height: 100%;
+}
+
 /* Content-only catalog widgets (object-list / table) rendered on the
    CnWidgetWrapper card chrome (ADR-062). The wrapper fills its grid cell so
    the widget can fit its row count to the cell height, and the table region
