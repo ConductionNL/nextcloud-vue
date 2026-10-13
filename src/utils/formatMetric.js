@@ -4,6 +4,7 @@
  */
 
 import { getCanonicalLocale } from '@nextcloud/l10n'
+import { boardDateLocale } from './boardDate.js'
 import { resolveFilterValue } from './resolveFilterTokens.js'
 
 /**
@@ -136,6 +137,42 @@ export function resolveFormatCurrency(format, configCtx, object = null) {
 	}
 	const reporting = configCtx && typeof configCtx === 'object' ? configCtx.currency : undefined
 	return safeCurrencyCode(reporting)
+}
+
+/**
+ * A money amount in a currency, written for the reader's language ("€ 1.234,50").
+ * The currency is the literal `currency` or the code in the row's
+ * `currencyField` (a dot path); when neither is a three-letter code it is the
+ * app's reporting currency (`currency` in the app config), then EUR. Empty and non-numeric values answer ''.
+ *
+ * @param {unknown} value The amount.
+ * @param {{currency?: string, currencyField?: string, decimals?: number}} [format] The format spec.
+ * @param {object|null} [row] The row `currencyField` reads from.
+ * @param {object|null} [configCtx] The app config map; its `currency` (the reporting currency) is used when neither resolves.
+ * @return {string} The text.
+ * @spec openspec/changes/screens-currency-format/specs/currency-format/spec.md#requirement-a-money-value-reads-in-its-currency
+ */
+export function formatMoney(value, format = {}, row = null, configCtx = null) {
+	if (value === null || value === undefined || value === '' || typeof value === 'object') {
+		return ''
+	}
+	const num = Number(value)
+	if (!Number.isFinite(num)) {
+		return ''
+	}
+	const fmt = format || {}
+	const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 2
+	const options = {
+		style: 'currency',
+		currency: resolveFormatCurrency(fmt, configCtx, row),
+		minimumFractionDigits: decimals,
+		maximumFractionDigits: decimals,
+	}
+	try {
+		return new Intl.NumberFormat(boardDateLocale(), options).format(num)
+	} catch {
+		return new Intl.NumberFormat(undefined, options).format(num)
+	}
 }
 
 /**
