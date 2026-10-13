@@ -62,6 +62,9 @@ With static items:
 | `items` | `Array<{ title, meta?, date, route?, href?, late? }>` | `[]` | Static items, used when there is no source. |
 | `emptyText` | `string` | "Nothing planned" | Text of a day without items. |
 | `weekOffset` | `number` | `0` | Whole weeks from the current one (`1` is next week). |
+| `maxPerDay` | `number` | none | The most items a day shows. The rest sit behind "+N more". Without it a day shows all its items and grows with them. |
+| `moreRoute` | `string \| object` | none | Where "+N more" leads: a route name or a route object (the full list). Without it "+N more" is a button that opens the day in place, and "Show less" closes it. |
+| `moreLabel` | `string` | "+N more" | Text of the control, with `{count}` for the number hidden. Goes through the host's translate. |
 
 ## Props
 
