@@ -180,6 +180,12 @@ Without `registerTranslations()`, **every library-rendered string stays in Engli
 
 See [Internationalisation (i18n)](./integrations/i18n.md) for details on overriding individual strings via props, and how to contribute a new language to the library bundles.
 
+## The library stylesheet on a shared page
+
+Importing anything from `@conduction/nextcloud-vue` also installs the library stylesheet. It is installed ONCE per page as `<style data-cn-library="<build time>">`, and when several apps' builds of the library meet on one page (the Nextcloud dashboard and launchpad load every app's widgets; some apps load a script on every page), the newest build's stylesheet is the one that stays. Component styles are scoped by each component's path and source, so an older build of a changed component cannot restyle a newer one.
+
+The explicit `import '@conduction/nextcloud-vue/css/index.css'` above still works on the app's own pages. It is no longer needed for the library's rules to be present.
+
 ## Create the Object Store
 
 Use `createObjectStore` with plugins for your data needs:

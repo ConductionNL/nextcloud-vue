@@ -804,8 +804,14 @@
 						     lets an abstract KPI tile carry its own period selector. Requires
 						     the widget header (`showTitle !== false`). Keep in sync with the
 						     custom-slot chip block. -->
-						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
+						<template v-if="(dateRangeEnabled && item.dateChip === true) || widgetHeaderCount(item) !== null" #title-meta>
+							<!-- The total a registry widget reported (`headerCount`), a chip after the title. -->
+							<span
+								v-if="widgetHeaderCount(item) !== null"
+								class="cn-dashboard-page__widget-count"
+								data-testid="cn-dashboard-widget-header-count">{{ widgetHeaderCount(item) }}</span>
 							<NcActions
+								v-if="dateRangeEnabled && item.dateChip === true"
 								v-model:open="openChipPicker[item.widgetId]"
 								:forceMenu="true"
 								container="body"
@@ -4215,17 +4221,18 @@ export default {
 			}
 			const link = header.link && typeof header.link === 'object' ? header.link : null
 			const note = typeof header.note === 'string' ? header.note : ''
+			const count = Number.isFinite(header.count) ? header.count : null
 			const action = header.action && typeof header.action.run === 'function' && header.action.label ? header.action : null
 			// Only a changed header is kept: a new object here re-renders the card,
 			// and a widget that reads again on render would report again, for ever.
 			const before = this.widgetHeaders[item.widgetId]
-			const same = before && JSON.stringify(before.link) === JSON.stringify(link) && before.note === note
+			const same = before && JSON.stringify(before.link) === JSON.stringify(link) && before.note === note && (before.count ?? null) === count
 				&& (before.action ? before.action.label : '') === (action ? action.label : '')
 			if (same) {
 				before.action = action
 				return
 			}
-			this.widgetHeaders = { ...this.widgetHeaders, [item.widgetId]: { link, note, action } }
+			this.widgetHeaders = { ...this.widgetHeaders, [item.widgetId]: { link, note, action, count } }
 		},
 
 		/**
@@ -4237,6 +4244,19 @@ export default {
 		widgetHeaderNote(item) {
 			const reported = this.widgetHeaders[item.widgetId]
 			return reported ? reported.note : ''
+		},
+
+		/**
+		 * The total a registry widget reported for its card header
+		 * (record-list `headerCount`), or null.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {number|null}
+		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 */
+		widgetHeaderCount(item) {
+			const reported = this.widgetHeaders[item.widgetId]
+			return reported && Number.isFinite(reported.count) ? reported.count : null
 		},
 
 		/**
@@ -5011,6 +5031,16 @@ export default {
 
 /* What a registry widget reports for its card header (`header` event): the
    note beside the link ("3 in total") and one action, as on a detail page. */
+.cn-dashboard-page__widget-count {
+	align-self: center;
+	padding: 1px 8px;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 13px;
+	font-weight: 600;
+}
+
 .cn-dashboard-page__widget-note {
 	align-self: center;
 	color: var(--color-text-maxcontrast);

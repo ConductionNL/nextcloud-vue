@@ -23,10 +23,59 @@
 				:key="item.key"
 				class="cn-record-list__item"
 				data-testid="cn-record-list-item">
+				<!-- rows with `rowAction`: the title is the link, and one action
+				     ends the row instead of the chevron ("Beoordelen"). -->
+				<div
+					v-if="presentation === 'rows' && item.action"
+					class="cn-record-list__row cn-record-list__row--action">
+					<span v-if="item.initials"
+						class="cn-record-list__avatar"
+						aria-hidden="true"
+						data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+					<span class="cn-record-list__main">
+						<component
+							:is="item.tag"
+							v-if="item.title"
+							class="cn-record-list__title"
+							:class="{ 'cn-record-list__title--link': item.tag !== 'div' }"
+							v-bind="item.attrs">
+							{{ item.title }}
+						</component>
+						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
+					</span>
+					<span v-if="item.pill || item.badges.length > 0" class="cn-record-list__pills">
+						<CnStatusBadge
+							v-if="item.pill"
+							:label="item.pill.label"
+							:variant="item.pill.variant"
+							size="small" />
+						<CnStatusBadge
+							v-for="badge in item.badges"
+							:key="badge.key"
+							:label="badge.label"
+							:variant="badge.variant"
+							size="small"
+							:data-testid="`cn-record-list-badge-${badge.kind}`" />
+					</span>
+					<span
+						v-if="item.due"
+						class="cn-record-list__due cn-record-list__due--column"
+						:class="`cn-record-list__due--${item.due.tone}`"
+						data-testid="cn-record-list-due">{{ item.due.text }}</span>
+					<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
+					<component
+						:is="item.action.tag"
+						class="cn-record-list__action"
+						v-bind="item.action.attrs"
+						data-testid="cn-record-list-action"
+						v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
+						{{ item.action.label }}
+					</component>
+				</div>
 				<!-- rows: title and meta, then the pill, the date and a chevron. -->
 				<component
 					:is="item.tag"
-					v-if="presentation === 'rows'"
+					v-else-if="presentation === 'rows'"
 					class="cn-record-list__row"
 					:class="{ 'cn-record-list__row--link': item.tag !== 'div' }"
 					v-bind="item.attrs">
@@ -95,6 +144,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import { actionLink, dispatchAction, interpolateActionTarget } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays } from '../../utils/boardDate.js'
 import { resolveDue } from '../../utils/dueText.js'
@@ -154,6 +204,8 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The page's app config map; its `currency` is the reporting currency of a money token. */
 		cnAppConfig: { default: () => ({}) },
+		/** The page's pre-bound action dispatcher (CnPageRenderer), for `rowAction`. */
+		cnDispatchAction: { default: null },
 	},
 
 	props: {
@@ -259,6 +311,8 @@ export default {
 				const link = this.rowLink(row)
 				return {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
+					row,
+					action: this.rowActionOf(row),
 					tag: link ? 'router-link' : 'div',
 					attrs: link ? { to: link } : {},
 					initials: this.initialsFor(row),
@@ -406,6 +460,127 @@ export default {
 		 * @param {object} row The row.
 		 * @return {object|null} The router location, or null.
 		 */
+		/**
+		 * The one action that ends a row (`rowAction`): its label (from
+		 * `labels.map` by the row's `labels.field`, else `label`), and how it
+		 * renders: a link when it only navigates, else a button that
+		 * dispatches. Null without the key or a label.
+		 *
+		 * @param {object} row The row.
+		 * @return {{label: string, tag: string, attrs: object}|null}
+		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 */
+		rowActionOf(row) {
+			const action = this.content?.rowAction
+			if (!action || typeof action !== 'object' || !row) {
+				return null
+			}
+			let label = typeof action.label === 'string' ? action.label : ''
+			const by = action.labels
+			if (by && typeof by === 'object' && typeof by.field === 'string' && by.map && typeof by.map === 'object') {
+				const raw = readPath(row, by.field)
+				if (raw !== null && raw !== undefined && typeof by.map[String(raw)] === 'string') {
+					label = by.map[String(raw)]
+				}
+			}
+			if (label === '') {
+				return null
+			}
+			label = this.translate(label)
+			const link = this.rowActionLink(action, row)
+			if (link) {
+				return link.external
+					? { label, tag: 'a', attrs: { href: link.href, target: '_blank', rel: 'noopener' } }
+					: { label, tag: 'router-link', attrs: { to: link.to } }
+			}
+			return { label, tag: 'button', attrs: { type: 'button' } }
+		},
+
+		/**
+		 * The link a `rowAction` that only navigates renders as: `open-page`
+		 * opens that page for the row's id, `navigate` reads its
+		 * `@object.<field>` / `@objectId` tokens off the row. Null for any
+		 * other action, which is dispatched on click.
+		 *
+		 * @param {object} action The declared row action.
+		 * @param {object} row The row.
+		 * @return {{href: string, to: (string|object|null), external: boolean}|null}
+		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 */
+		rowActionLink(action, row) {
+			if (action.confirm) {
+				return null
+			}
+			if (action.type === 'open-page') {
+				const id = this.rowIdOf(row)
+				if (!this.$router || id === null || typeof action.target !== 'string' || action.target === '') {
+					return null
+				}
+				const to = { name: action.target, params: { id } }
+				try {
+					const href = this.$router.resolve(to).href
+					return href ? { href, to, external: false } : null
+				} catch {
+					return null
+				}
+			}
+			if (action.type !== 'navigate') {
+				return null
+			}
+			const target = interpolateActionTarget(action.target, this.rowTokenCtx(row))
+			// An external target needs no router; an in-app one does.
+			return actionLink({ ...action, target }, { router: this.$router || null })
+		},
+
+		/**
+		 * The token context of a row: the row is `@object`, its id `@objectId`.
+		 *
+		 * @param {object} row The row.
+		 * @return {object} The token context.
+		 */
+		rowTokenCtx(row) {
+			return { ...this.tokenCtx, objectId: this.rowIdOf(row), object: row }
+		},
+
+		/**
+		 * The id of a row (`rowIdField`, else `id`, else `@self.id`), or null.
+		 *
+		 * @param {object} row The row.
+		 * @return {string|null} The id.
+		 */
+		rowIdOf(row) {
+			const field = this.content?.rowIdField
+			const id = field ? readPath(row, field) : (row && (row.id || row['@self']?.id))
+			return (id === null || id === undefined || id === '' || typeof id === 'object') ? null : String(id)
+		},
+
+		/**
+		 * Run a `rowAction` that is not a plain link through the page's
+		 * dispatcher: a `handler` gets the row as its last argument, an
+		 * `open-modal` gets it as the `row` prop, an `object-op` acts on it.
+		 *
+		 * @param {object} row The row.
+		 * @return {unknown} What the dispatcher returns.
+		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 */
+		runRowAction(row) {
+			const action = this.content?.rowAction
+			if (!action || typeof action !== 'object') {
+				return undefined
+			}
+			const type = action.type || 'handler'
+			let wrapped = action
+			if (type === 'handler') {
+				wrapped = { ...action, args: [...(action.args || []), row] }
+			} else if (type === 'open-modal') {
+				wrapped = { ...action, props: { ...(action.props || {}), row } }
+			}
+			if (typeof this.cnDispatchAction === 'function') {
+				return this.cnDispatchAction(wrapped)
+			}
+			return dispatchAction(wrapped, { router: this.$router || null, row, tokenCtx: this.rowTokenCtx(row), source: { register: this.content?.register, schema: this.content?.schema } })
+		},
+
 		rowLink(row) {
 			const route = this.content?.rowRoute
 			if (!route || !this.$router || !row) {
@@ -557,11 +732,16 @@ export default {
 
 		/** Tell the card around this list what its header shows. */
 		emitHeader() {
+			const header = { link: this.headerLink, note: this.headerNote }
+			// `headerCount: true`: the card draws the total as a chip after its title.
+			if (this.content?.headerCount === true && !this.error) {
+				header.count = this.total
+			}
 			/**
 			 * @event header Emitted after every read with the card header's parts.
-			 * @type {{link: (object|null), note: string}} The header link (resolved, with `{total}` filled) and the note.
+			 * @type {{link: (object|null), note: string, count: (number|undefined)}} The header link (resolved, with `{total}` filled), the note, and with `headerCount` the total.
 			 */
-			this.$emit('header', { link: this.headerLink, note: this.headerNote })
+			this.$emit('header', header)
 		},
 
 		/**
@@ -812,6 +992,58 @@ export default {
 
 .cn-record-list__due--empty {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-record-list__row--action {
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	padding: 14px 0;
+}
+
+.cn-record-list__row--action .cn-record-list__main {
+	flex: 1 1 280px;
+	gap: 3px;
+}
+
+.cn-record-list__title--link {
+	color: var(--color-main-text);
+	text-decoration: underline;
+}
+
+.cn-record-list__pills {
+	display: flex;
+	flex: 0 0 120px;
+	gap: 6px;
+	justify-content: flex-end;
+}
+
+.cn-record-list__due--column {
+	flex: 0 0 96px;
+	font-size: 13px;
+	text-align: end;
+}
+
+.cn-record-list__action {
+	align-items: center;
+	background: var(--color-primary-element-light);
+	border: 0;
+	border-radius: 17px;
+	box-sizing: border-box;
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+	cursor: pointer;
+	display: inline-flex;
+	flex: 0 0 150px;
+	font-size: 14px;
+	font-weight: 600;
+	height: 34px;
+	justify-content: center;
+	padding: 0 14px;
+	text-decoration: none;
+}
+
+.cn-record-list__action:hover,
+.cn-record-list__action:focus-visible {
+	background: var(--color-primary-element-light-hover, var(--color-primary-element-light));
 }
 
 .cn-record-list__chevron {
