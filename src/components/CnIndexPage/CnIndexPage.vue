@@ -1132,6 +1132,19 @@ const RANGE_SEPARATOR = '..'
 const FOLLOW_COLUMN_KEY = '__follow'
 
 /**
+ * Whether a declared column starts hidden (`{ key, hidden: true }`): it stays
+ * off until the visible-column set names it, which the person does from the
+ * Columns tab.
+ *
+ * @param {string|object} column A declared column.
+ * @return {boolean} True for a column object with `hidden: true`.
+ * @spec openspec/changes/screens-column-hidden-by-default/specs/index-page/spec.md
+ */
+function isHiddenByDefault(column) {
+	return Boolean(column && typeof column === 'object' && column.hidden === true)
+}
+
+/**
  * Whether a schema property wants a from/to pair rather than a value list.
  *
  * @param {object} prop The schema property.
@@ -5241,12 +5254,19 @@ export default {
 			}
 			const visible = this.effectiveVisibleColumns
 			if (!Array.isArray(visible)) {
-				return cols
+				// No visible set at all: a column marked `hidden: true` still
+				// starts hidden.
+				return cols.filter((c) => !isHiddenByDefault(c))
 			}
 
 			const governed = this.sidebarGovernedColumnKeys
 			cols = cols.filter((c) => {
 				const key = typeof c === 'string' ? c : c.key
+				// A column marked `hidden: true` shows only once the visible set
+				// names it, also when the sidebar does not govern it.
+				if (isHiddenByDefault(c)) {
+					return visible.includes(key)
+				}
 				return !governed.has(key) || visible.includes(key)
 			})
 
