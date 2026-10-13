@@ -248,4 +248,4 @@ etc.). The widget itself emits:
 
 ## Page controls
 
-`source.pageControls` (flat dashboard content: `pageControls`) has the same shape as on the record list: `sort.map` replaces `source.order`, and `toggle.removes` drops filter keys while the page's switch is on. See the workspace filter page for the controls.
+`source.pageControls` (flat dashboard content: `pageControls`) has the same shape as on the record list: `sort.map` replaces `source.order`, and `toggle.removes` drops filter keys while the page's switch is on. A sort entry with `rank` (the record list's sort by an enum's rank) is ignored here and the table keeps `source.order`. See the workspace filter page for the controls.
