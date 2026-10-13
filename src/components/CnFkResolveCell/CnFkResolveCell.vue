@@ -4,7 +4,12 @@
 -->
 
 <template>
-	<span class="cn-fk-resolve-cell" :title="ids.join(', ')">{{ display }}</span>
+	<!-- @slot default Draw the label yourself (an avatar beside the name): receives `{ label, ids, resolved }`, the resolved text, the ids and whether every id resolved. -->
+	<slot v-if="$slots.default"
+		:label="display"
+		:ids="ids"
+		:resolved="resolved" />
+	<span v-else class="cn-fk-resolve-cell" :title="ids.join(', ')">{{ display }}</span>
 </template>
 
 <script>
@@ -22,6 +27,9 @@ import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
  * with a single request. Unresolvable ids (fetch failure, missing label
  * field, no Pinia store) degrade to the raw id — the cell never blanks out
  * or throws.
+ *
+ * A host can draw the label itself through the default slot, which receives
+ * `{ label, ids, resolved }` (the avatar cell does, to put initials beside the name).
  *
  * Declared on a table column via the cell-widget mechanism:
  * ```js
@@ -107,6 +115,16 @@ export default {
 		 */
 		display() {
 			return this.ids.map((id) => this.labels[id] || id).join(', ')
+		},
+
+		/**
+		 * Whether every id has a resolved label (false while fetching, and for
+		 * an id that could not be resolved, which shows as itself).
+		 *
+		 * @return {boolean}
+		 */
+		resolved() {
+			return this.ids.length > 0 && this.ids.every((id) => Boolean(this.labels[id]))
 		},
 	},
 

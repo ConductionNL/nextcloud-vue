@@ -25,7 +25,8 @@ A portal's "Aanmelden" (Niemand, Met goedkeuring, Iedereen) is this shape. The c
 
 | Key | Meaning |
 |-----|---------|
-| `field` | The top-level enum field of the object (required). |
+| `field` | The enum field of the object (required): a top-level name or a dot-path such as `authentication.registration.policy`. A nested path is written by re-reading the enclosing top-level object, merging the leaf in and PATCHing that object. |
+| `save` | `{ url, method?, payload? }`: write through an app endpoint instead of the object. `url` and `payload` are templates with the tokens `{value}` (the changed value), `{field}` (its path), `{changes}` (the changed values as a nested object) and `{object.<path>}` (a field of the current object). `method` is `PUT`, `POST` or `PATCH` (default `PATCH`); `payload` defaults to `{changes}`. A string that is exactly one token keeps the value's type. The stored value is still read from the object by path. |
 | `options[]` | `{ value, label, description? }`; plain strings also work. Texts are translated through `cnTranslate`. |
 | `label` | A legend over the cards. |
 | `columns` | 1, 2 or 3 (default 2); one column under 640px. |

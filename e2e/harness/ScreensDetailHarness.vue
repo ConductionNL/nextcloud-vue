@@ -28,7 +28,7 @@
 			:sideColumn="noSide ? [] : ['w-deadline', 'w-requester']"
 			:statusPill="header ? { field: 'status', colorMap: { open: 'success' }, labels: { open: 'Open' } } : null"
 			:breadcrumb="header ? { label: 'Cases', href: '#cases', currentField: 'identifier', separator: '/' } : null"
-			:headerMeta="header ? 'via {channel}' : ''" />
+			:headerMeta="header ? metaTemplate : ''" />
 	</div>
 </template>
 
@@ -56,7 +56,7 @@ const HarnessNote = {
 	},
 }
 
-const record = { id: 'id-1', title: 'Roof extension Main Street 12', identifier: '2026-0082', status: 'open', channel: 'Mijn Zuiddrecht' }
+const record = { id: 'id-1', title: 'Roof extension Main Street 12', identifier: '2026-0082', status: 'open', channel: 'Mijn Zuiddrecht', createdAt: '2026-10-06T09:00:00' }
 const caseSchema = { title: 'Case', properties: { title: { type: 'string', title: 'Title' }, identifier: { type: 'string', title: 'Identifier' }, status: { type: 'string', title: 'Status' }, channel: { type: 'string', title: 'Channel' } } }
 
 export default {
@@ -75,6 +75,8 @@ export default {
 		return {
 			width: Number(params.get('w') || 1240),
 			header: params.get('header') === '1',
+			// `&meta=<template>`: another meta line than the default (a date format).
+			metaTemplate: params.get('meta') || 'via {channel}',
 			noSide: params.get('noside') === '1',
 			store: {
 				objects: { 'reg-case': { 'id-1': record } },

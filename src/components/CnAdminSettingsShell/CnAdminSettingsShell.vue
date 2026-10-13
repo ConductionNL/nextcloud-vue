@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-admin-settings-shell">
+	<div class="cn-admin-settings-shell" :class="ownLookClass">
 		<!-- Names a development, test or acceptance environment; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner v-if="environmentName" :environment="environmentName" />
 
@@ -20,7 +20,23 @@
 				<h1 class="cn-admin-settings-shell__title">
 					{{ resolvedTitle }}
 				</h1>
-				<p class="cn-admin-settings-shell__description">
+				<!-- `breadcrumbs`: the board's path line in place of the
+				     description ("Beheerinstellingen / Launchpad / Algemeen ·
+				     geldt voor de hele organisatie"). -->
+				<div v-if="crumbs.length > 0" class="cn-admin-settings-shell__crumbs" data-testid="cn-admin-settings-breadcrumbs">
+					<nav class="cn-admin-settings-shell__crumb-list" :aria-label="breadcrumbLabel">
+						<template v-for="(crumb, index) in crumbs" :key="index">
+							<span v-if="index > 0" aria-hidden="true">/</span>
+							<a v-if="crumb.href" :href="crumb.href" class="cn-admin-settings-shell__crumb-link">{{ crumb.label }}</a>
+							<span v-else :aria-current="index === crumbs.length - 1 ? 'page' : null">{{ crumb.label }}</span>
+						</template>
+					</nav>
+					<template v-if="breadcrumbNote">
+						<span aria-hidden="true">·</span>
+						<span>{{ breadcrumbNote }}</span>
+					</template>
+				</div>
+				<p v-else class="cn-admin-settings-shell__description">
 					{{ resolvedDescription }}
 				</p>
 			</div>
@@ -155,6 +171,7 @@ import { loadState } from '@nextcloud/initial-state'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
+import { computed } from 'vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
@@ -164,7 +181,7 @@ import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import { useEnvironment } from '../../composables/useEnvironment.js'
-import { useLook } from '../../composables/useLook.js'
+import { normalizeLook, useLook } from '../../composables/useLook.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
@@ -305,6 +322,30 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Board look: the path under the title, in place of the description,
+		 * as `[{ label, href? }]` ("Beheerinstellingen" linking to the admin
+		 * settings, then the app and the section). A crumb without `href` is
+		 * text; the last one is the current page.
+		 *
+		 * @spec openspec/changes/screens-admin-settings-board-header/specs/settings-board-look/spec.md
+		 */
+		breadcrumbs: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Board look: a note after the path, behind a "·" ("geldt voor de
+		 * hele organisatie").
+		 *
+		 * @spec openspec/changes/screens-admin-settings-board-header/specs/settings-board-look/spec.md
+		 */
+		breadcrumbNote: {
+			type: String,
+			default: '',
+		},
+
 		/** Documentation URL (renders the info icon next to the title). */
 		docUrl: {
 			type: String,
@@ -427,7 +468,10 @@ export default {
 		// The app's own `environment` setting, else the active organisation's.
 		const { environment: environmentName } = useEnvironment({ environment: () => props.environment })
 		const { isBoard } = useLook(props)
-		return { environmentName, isBoard }
+		// A shell told `look: "board"` itself draws the board look also on an
+		// admin page that no CnAppRoot wraps, as Nextcloud's settings pages are.
+		const ownLookClass = computed(() => (normalizeLook(props.look) === 'board' ? 'cn-look-board' : ''))
+		return { environmentName, isBoard, ownLookClass }
 	},
 
 	data() {
@@ -438,6 +482,22 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The crumbs that have a label.
+		 *
+		 * @return {Array<{label: string, href?: string}>}
+		 * @spec openspec/changes/screens-admin-settings-board-header/specs/settings-board-look/spec.md
+		 */
+		crumbs() {
+			return (Array.isArray(this.breadcrumbs) ? this.breadcrumbs : [])
+				.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== '')
+		},
+
+		/** @return {string} The accessible name of the breadcrumb navigation. */
+		breadcrumbLabel() {
+			return t('nextcloud-vue', 'Breadcrumb')
+		},
+
 		/**
 		 * The "Help us" link target: the forge's feature-request issue form
 		 * for `helpRepo`, on the fleet-default forge. Empty (hiding the

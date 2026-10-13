@@ -274,6 +274,29 @@
 	line-height: 1;
 }
 
+/* The Filter MENU button (`filterMenu`): the same count badge. NcActions has
+   no slot beside its menu name, so the badge is drawn after the label from
+   the count the page sets; without active filters the property is absent and
+   nothing is drawn. */
+.cn-look-board .cn-actions-bar__filter-menu--counted .button-vue__text::after {
+	content: var(--cn-filter-menu-count);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-width: 20px;
+	height: 20px;
+	margin-inline-start: 6px;
+	padding: 0 6px;
+	border-radius: 10px;
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1;
+	vertical-align: middle;
+}
+
 /* The view switch: four icon segments on a track, no sliding thumb. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle {
 	gap: 2px;
@@ -300,6 +323,25 @@
 	background: var(--color-main-background) !important;
 	box-shadow: 0 1px 2px var(--color-box-shadow) !important;
 	color: var(--color-main-text);
+}
+
+/* A segment that opens another page: the same box as a button segment, as a link. */
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn--link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn--link:hover {
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn--link:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 1px;
 }
 
 /* A segment the page cannot open: drawn, as the boards do, but faded and inert. */
@@ -578,6 +620,27 @@
 
 .cn-look-board .cn-table-container--board.cn-table-container--title-plain .cn-data-table td.cn-table-col--title .cn-cell-renderer__avatar-name {
 	text-decoration: none;
+}
+
+/* A two-line avatar cell keeps the board's row height (PtAccounts: 59px, 12px
+   above and under a 32px circle beside two lines of 18px and 16px). The line
+   heights are set here because the host's own (Nextcloud's body sets 1.5)
+   made the pair 40px and more, and the cell is aligned to the top of its line
+   so the line box adds nothing under it. */
+.cn-look-board .cn-table-container--board .cn-data-table td:has(.cn-cell-renderer__avatar-secondary) {
+	padding-block: 12px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table td:has(.cn-cell-renderer__avatar-secondary) .cn-cell-renderer__avatar {
+	vertical-align: top;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table td:has(.cn-cell-renderer__avatar-secondary) .cn-cell-renderer__avatar-name {
+	line-height: 18px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table td:has(.cn-cell-renderer__avatar-secondary) .cn-cell-renderer__avatar-secondary {
+	line-height: 16px;
 }
 
 /* A status pill: 3px 10px, radius 12, 13px weight 600. The colours stay the

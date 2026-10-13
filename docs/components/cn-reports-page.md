@@ -22,6 +22,10 @@ An app has one reports page. For other pages of links, use [CnLinkCardsPage](./c
 
 A card names a route by name. A card without a route or a label is left out. With more than one category in use, a filter above the cards narrows the list.
 
+### Widgets under the cards
+
+`widgets` and `layout` take the shape a `type: "dashboard"` page takes, and draw as a dashboard grid under the cards. Use them for a report's key figures on the page itself: a card title with a `headerLink` ("Hele rapportage"), stat tiles with a `note` as sub-line, and a chart. Without `layout`, each widget takes a full row. The dashboard is only loaded for a page that declares widgets.
+
 ### Props
 
 | Prop | Type | Default | Description |
@@ -33,6 +37,8 @@ A card names a route by name. A card without a route or a label is left out. Wit
 | `allCategoriesLabel` | String | `null` | Label of the "all categories" filter option. |
 | `categoryLabel` | String | `null` | Label of the category filter. |
 | `emptyLabel` | String | `null` | Text shown when the filter admits no card. |
+| `widgets` | Array | `null` | Dashboard widgets drawn under the cards. |
+| `layout` | Array | `null` | Grid placement of `widgets`: `{ id, widgetId, gridX, gridY, gridWidth, gridHeight }`. |
 | `translate` | Function | `null` | Translate function. Falls back to the one `CnAppRoot` provides. |
 | `page` | Object | `{}` | The whole manifest page, for a host that mounts the component itself. The props above win. |
 

@@ -44,6 +44,24 @@ It renders rather than hides on purpose. A hidden widget leaves a hole a reader 
 
 Integration widgets (`type: "integration"`) already degrade this way through the registry's own `requiredApp`; this extends the same behaviour to every other widget type.
 
+## An integration for another object
+
+An integration widget shows the page's own object. To show another one, name it in `props`. The values may be record tokens: `@objectId` and `@object.<field>`, at any depth.
+
+```json
+{
+  "id": "ticket-case-decisions",
+  "type": "integration",
+  "integrationId": "decidesk-decisions",
+  "title": "On the linked case",
+  "props": { "register": "@config.caseRegister", "schema": "@config.caseSchema", "objectId": "@object.caseReference" }
+}
+```
+
+`@objectId` and `@object.<field>` read the record. `@config.<key>` reads the page's app config (the `appConfig` prop of `CnDetailPage`), so the app that owns the other object is looked up on the instance and never written into the manifest.
+
+The widget is not mounted while a prop written as a token has no value: the record is still loading, it does not hold the field, or the app config does not hold the key. A ticket without a case therefore shows no second list, and neither does an instance with no app that keeps cases. A mount-mode leaf gets the named object as `integrationContext` too.
+
 ## Usage
 
 ```vue

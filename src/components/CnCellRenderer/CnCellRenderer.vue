@@ -98,6 +98,34 @@
 		     it. A user id (widgetProps.userField, or widgetProps.user for a cell
 		     that holds the id itself) gets the Nextcloud avatar; a free name
 		     gets its initials. The picture is decoration: the name is the text. -->
+		<!-- The avatar of a REFERENCED object (widgetProps.resolve
+		     { register, schema, labelField }): the cell holds a uuid, the name
+		     is resolved as an fkResolve cell resolves it, and its initials sit
+		     beside it. -->
+		<template v-else-if="widget === 'avatar' && avatarResolve">
+			<CnFkResolveCell
+				v-if="hasValue && typeof value !== 'object'"
+				v-slot="{ label, resolved }"
+				:value="value"
+				:register="avatarResolve.register"
+				:schema="avatarResolve.schema"
+				:labelField="avatarResolve.labelField || 'name'">
+				<span class="cn-cell-renderer__avatar" data-testid="cn-cell-avatar-resolved">
+					<span
+						class="cn-cell-renderer__avatar-initials"
+						:style="{ width: avatarSize + 'px', height: avatarSize + 'px' }"
+						aria-hidden="true">{{ resolved ? initialsOf(label) : '' }}</span>
+					<span class="cn-cell-renderer__avatar-text">
+						<span class="cn-cell-renderer__avatar-name" :title="label">{{ label }}</span>
+						<span
+							v-if="secondary"
+							class="cn-cell-renderer__avatar-secondary"
+							data-testid="cn-cell-secondary">{{ secondary }}</span>
+					</span>
+				</span>
+			</CnFkResolveCell>
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
 		<template v-else-if="widget === 'avatar'">
 			<span v-if="avatarName || avatarUserId" class="cn-cell-renderer__avatar">
 				<span v-if="avatarUserId" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
@@ -142,12 +170,41 @@
 		     widgetProps.variantWhen, rules on the number of days until it
 		     (0 = today, negative = overdue). -->
 		<template v-else-if="widget === 'date'">
+			<!-- `widgetProps.due`: the due text with its tone ("3 dagen te laat",
+			     "Vandaag", the date, or the empty text). -->
+			<template v-if="dueResult">
+				<time
+					v-if="dateTimestamp"
+					class="cn-cell-renderer__date"
+					:class="dueResult.tone === 'danger' ? 'cn-cell-renderer__date--error' : null"
+					:datetime="dateTimestamp.toISOString()"
+					:title="absoluteDateLabel"
+					data-testid="cn-cell-renderer-due">{{ dueResult.text }}</time>
+				<span v-else class="cn-cell-renderer__date cn-cell-renderer__due--empty" data-testid="cn-cell-renderer-due">{{ dueResult.text }}</span>
+			</template>
+			<!-- `widgetProps.layout: "block"`: a date tile (day over short month)
+			     beside the weekday and the time range to `widgetProps.endField`. -->
 			<time
-				v-if="dateTimestamp"
+				v-else-if="dateTimestamp && dateBlock"
+				class="cn-cell-renderer__date-block"
+				:datetime="dateTimestamp.toISOString()"
+				:title="absoluteDateLabel"
+				data-testid="cn-cell-date-block">
+				<span class="cn-cell-renderer__date-tile">
+					<strong class="cn-cell-renderer__date-day">{{ dateBlock.day }}</strong>
+					<span class="cn-cell-renderer__date-month">{{ dateBlock.month }}</span>
+				</span>
+				<span class="cn-cell-renderer__date-lines">
+					<span class="cn-cell-renderer__date-weekday">{{ dateBlock.weekday }}</span>
+					<span v-if="dateBlock.time" class="cn-cell-renderer__date-time">{{ dateBlock.time }}</span>
+				</span>
+			</time>
+			<time
+				v-else-if="dateTimestamp"
 				class="cn-cell-renderer__date"
 				:class="dateVariant ? 'cn-cell-renderer__date--' + dateVariant : null"
 				:datetime="dateTimestamp.toISOString()"
-				:title="rawTitle">{{ dateLabel }}</time>
+				:title="isRelativeDate ? absoluteDateLabel : rawTitle">{{ dateLabel }}</time>
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -254,15 +311,16 @@
 </template>
 
 <script>
-import { getCanonicalLocale } from '@nextcloud/l10n'
+import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
-import { ageInDays, formatAge, formatBoardDate, resolveAgeVariant } from '../../utils/boardDate.js'
+import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeDate, formatTimeOfDay, resolveAgeVariant } from '../../utils/boardDate.js'
 import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
-import { safeCurrencyCode } from '../../utils/formatMetric.js'
+import { resolveDue } from '../../utils/dueText.js'
+import { formatMoney } from '../../utils/formatMetric.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
 import { safeHref } from '../../utils/safeHref.js'
@@ -567,13 +625,27 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
 		avatarInitials() {
-			const words = this.avatarName.trim().split(/\s+/).filter((word) => word !== '')
-			if (words.length === 0) {
-				return ''
+			return this.initialsOf(this.avatarName)
+		},
+
+		/**
+		 * `avatar` widget: where a REFERENCED person's name comes from
+		 * (`widgetProps.resolve`, `{ register, schema, labelField? }`, the
+		 * shape the facts widget's `resolve` takes), or null when the cell
+		 * holds the name or user id itself.
+		 *
+		 * @return {{register: string, schema: string, labelField?: string}|null}
+		 * @spec openspec/changes/screens-avatar-cell-resolve/specs/data-table/spec.md
+		 */
+		avatarResolve() {
+			const resolve = this.widgetProps && this.widgetProps.resolve
+			if (!resolve || typeof resolve !== 'object') {
+				return null
 			}
-			const first = Array.from(words[0])[0] || ''
-			const last = words.length > 1 ? (Array.from(words[words.length - 1])[0] || '') : ''
-			return (first + last).toLocaleUpperCase()
+			if (typeof resolve.register !== 'string' || resolve.register === '' || typeof resolve.schema !== 'string' || resolve.schema === '') {
+				return null
+			}
+			return resolve
 		},
 
 		/**
@@ -633,13 +705,38 @@ export default {
 			if (date === null) {
 				return undefined
 			}
-			const withTime = this.property?.format === 'date-time' || this.widget === 'age'
+			const withTime = this.property?.format === 'date-time' || this.widget === 'age' || (this.widget === 'date' && this.widgetProps?.showTime === true)
 			const options = { day: 'numeric', month: 'long', year: 'numeric', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}) }
 			try {
 				return new Intl.DateTimeFormat(getCanonicalLocale() || undefined, options).format(date)
 			} catch {
 				return new Intl.DateTimeFormat(undefined, options).format(date)
 			}
+		},
+
+		/**
+		 * `date` widget with `widgetProps.due`: the due text and its tone.
+		 * Null without the key, or when the field is empty and no `emptyText`.
+		 *
+		 * @return {{text: string, tone: string}|null}
+		 * @spec openspec/changes/screens-due-text/specs/due-text/spec.md#requirement-a-due-date-reads-as-text-with-a-tone
+		 */
+		dueResult() {
+			const due = this.widgetProps && this.widgetProps.due
+			if (this.widget !== 'date' || !due || typeof due !== 'object') {
+				return null
+			}
+			return resolveDue(this.value, due, (text) => this.cnTranslate(text))
+		},
+
+		/**
+		 * Whether the `date` widget reads relatively (`widgetProps.relative`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-relative-dates/specs/relative-dates/spec.md#requirement-a-relative-date-reads-today-yesterday-then-a-short-date
+		 */
+		isRelativeDate() {
+			return this.widgetProps?.relative === true
 		},
 
 		/**
@@ -748,6 +845,53 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
 		 */
+		/**
+		 * `date` widget with `widgetProps.layout: "block"`: the parts of the
+		 * date tile (day number, short month), the weekday and the time range
+		 * ("09.30 tot 12.00 uur") to the row field `widgetProps.endField`.
+		 * Null for any other cell.
+		 *
+		 * @return {{day: string, month: string, weekday: string, time: string}|null}
+		 * @spec openspec/changes/screens-date-tile-cell/specs/data-table/spec.md
+		 */
+		dateBlock() {
+			const props = this.widgetProps || {}
+			if (this.widget !== 'date' || props.layout !== 'block' || !this.dateTimestamp) {
+				return null
+			}
+			const start = this.dateTimestamp
+			const format = (options) => {
+				try {
+					return new Intl.DateTimeFormat(boardDateLocale(), options).format(start)
+				} catch {
+					return new Intl.DateTimeFormat(undefined, options).format(start)
+				}
+			}
+			// A date without a time of day (format `date`, or a bare
+			// YYYY-MM-DD) draws no time line.
+			const dateOnly = this.property?.format === 'date' || (typeof this.value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(this.value))
+			let time = ''
+			if (!dateOnly) {
+				const startTime = formatTimeOfDay(start)
+				let end = null
+				if (typeof props.endField === 'string' && props.endField !== '') {
+					const raw = objectFieldValue(this.row, props.endField)
+					const parsed = (raw === null || raw === undefined || raw === '') ? null : new Date(raw)
+					end = parsed && !Number.isNaN(parsed.getTime()) ? parsed : null
+				}
+				time = end
+					? t('nextcloud-vue', '{start} to {end}', { start: startTime, end: formatTimeOfDay(end) })
+					: startTime
+			}
+			return {
+				day: format({ day: 'numeric' }),
+				// "okt." in Dutch: the board draws the month without the dot.
+				month: format({ month: 'short' }).replace(/\.$/, ''),
+				weekday: format({ weekday: 'long' }),
+				time,
+			}
+		},
+
 		dateLabel() {
 			const date = parseDateValue(this.value)
 			if (date === null) {
@@ -757,6 +901,11 @@ export default {
 			// 08:30"); `widgetProps.timeOnly: true` shows just the time
 			// ("08:30"), for a timetable row. Default: the date alone.
 			const props = this.widgetProps || {}
+			// `widgetProps.relative: true` says "today" and "yesterday" and then
+			// the short date ("vandaag, 09.42" with `showTime`), in any look.
+			if (props.relative === true) {
+				return formatRelativeDate(date, { withTime: props.showTime === true })
+			}
 			// The board look writes a plain date in its short form ("5 okt");
 			// a time of day keeps the full form below.
 			if (this.isBoardLook && props.timeOnly !== true && props.showTime !== true) {
@@ -1188,6 +1337,23 @@ export default {
 
 	methods: {
 		/**
+		 * The initials of a name, at most two letters (first and last word).
+		 *
+		 * @param {string} name The name.
+		 * @return {string} The initials, upper case, or ''.
+		 * @spec openspec/changes/screens-avatar-cell-resolve/specs/data-table/spec.md
+		 */
+		initialsOf(name) {
+			const words = String(name || '').trim().split(/\s+/).filter((word) => word !== '')
+			if (words.length === 0) {
+				return ''
+			}
+			const first = Array.from(words[0])[0] || ''
+			const last = words.length > 1 ? (Array.from(words[words.length - 1])[0] || '') : ''
+			return (first + last).toLocaleUpperCase()
+		},
+
+		/**
 		 * Render the cell value per the declarative `format` spec (currency /
 		 * number / percent / duration). Mirrors CnStatWidget's formatting so a
 		 * KPI tile and a table column read identically. Non-numeric values fall
@@ -1212,12 +1378,8 @@ export default {
 				: (fmt.style === 'currency' ? 2 : 0)
 			let body
 			if (fmt.style === 'currency') {
-				body = new Intl.NumberFormat(undefined, {
-					style: 'currency',
-					currency: safeCurrencyCode(fmt.currency),
-					minimumFractionDigits: decimals,
-					maximumFractionDigits: decimals,
-				}).format(num)
+				// `format.currencyField` reads the code from the row's own field.
+				body = formatMoney(num, { currency: fmt.currency, currencyField: fmt.currencyField, decimals }, this.row)
 			} else if (fmt.style === 'percent') {
 				// Values are stored as the literal percent (83.3), not a 0–1 ratio.
 				body = new Intl.NumberFormat(undefined, {
@@ -1322,6 +1484,48 @@ export default {
 .cn-cell-renderer__avatar-picture {
 	display: inline-flex;
 	flex: none;
+}
+
+.cn-cell-renderer__date-block {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	white-space: nowrap;
+}
+
+.cn-cell-renderer__date-tile {
+	display: flex;
+	flex: 0 0 46px;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 5px 0;
+	border-radius: 8px;
+	background-color: var(--color-background-dark);
+}
+
+.cn-cell-renderer__date-day {
+	font-size: 17px;
+	line-height: 1;
+}
+
+.cn-cell-renderer__date-month,
+.cn-cell-renderer__date-time {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-cell-renderer__date-month {
+	font-size: 12px;
+}
+
+.cn-cell-renderer__date-lines {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cn-cell-renderer__date-weekday {
+	font-weight: 600;
 }
 
 .cn-cell-renderer__avatar-initials {
@@ -1476,6 +1680,10 @@ export default {
 
 .cn-cell-renderer__age--error {
 	color: var(--color-text-error, var(--color-error-text));
+}
+
+.cn-cell-renderer__due--empty {
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-cell-renderer__date--success {

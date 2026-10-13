@@ -16,3 +16,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `register`   | `string` |          | `''`     | OpenRegister register slug (or id) the reference points into.                                                              |
 | `schema`     | `string` |          | `''`     | OpenRegister schema slug (or id) the reference points into.                                                                |
 | `labelField` | `string` |          | `'name'` | Property on the referenced object used as the display label. Falls back to `title`, then `@self.name`, then the raw id.    |
+
+### Slots
+
+| Name      | Bindings                   | Description                                                                                                                                                 |
+| --------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `default` | `label`, `ids`, `resolved` | default Draw the label yourself (an avatar beside the name): receives `{ label, ids, resolved }`, the resolved text, the ids and whether every id resolved. |

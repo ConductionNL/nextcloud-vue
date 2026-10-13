@@ -138,6 +138,15 @@
 
 		<!-- Mount-mode integration leaf (openregister#2127): a bare host-owned
 		     element the leaf mounts its own framework into. -->
+		<!-- An integration widget whose `props` name a value the record does not
+		     hold yet (`objectId: "@object.caseReference"` on a ticket with no
+		     case) is absent. Mounting it would hand the leaf an empty host, and a
+		     leaf falls back to the page's own object from there. -->
+		<span
+			v-else-if="isIntegration && widgetPropsPending"
+			hidden
+			data-testid="cn-detail-widget-props-pending" />
+
 		<CnLeafMountHost
 			v-else-if="isMountIntegration"
 			:provider="integrationProvider"
@@ -265,8 +274,10 @@ import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWi
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
+import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -358,6 +369,12 @@ export default {
 		cnLook: { default: 'nextcloud' },
 		/** The host's translate (CnAppRoot provides `cnTranslate`). */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The page-level app config (CnDetailPage provides `cnAppConfig` from
+		 * its `appConfig` prop), which answers `@config.<key>` in a widget's
+		 * `props`. Empty when no ancestor provides one.
+		 */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	/**
@@ -814,6 +831,72 @@ export default {
 		 *
 		 * @return {object} The prop bag.
 		 */
+		/**
+		 * The widget's own `props` with their tokens resolved: `@objectId` and
+		 * `@object.<field>` from the record, `@config.<key>` from the page's
+		 * app config, at any depth. A manifest can so point an integration at
+		 * another object than the page's, such as the decisions on the case a
+		 * ticket became (`props: { objectId: "@object.caseReference" }`), and
+		 * name that object's register and schema from the instance's
+		 * configuration instead of as literals
+		 * (`register: "@config.caseRegister"`).
+		 *
+		 * @return {object} The resolved prop bag, `{}` when the widget declares none.
+		 */
+		resolvedWidgetProps() {
+			const declared = this.widget?.props
+			if (!declared || typeof declared !== 'object' || Array.isArray(declared)) {
+				return {}
+			}
+			return resolveDeepTokens(declared, {
+				objectId: this.objectId,
+				object: this.object,
+				config: unwrapAppConfig(this.cnAppConfig),
+			})
+		},
+
+		/**
+		 * Whether a prop written as a token still has no value: the record is
+		 * not loaded, it does not hold the field, or the app config does not
+		 * hold the key. Only top-level props
+		 * written as a token count; a literal empty string is the author's.
+		 *
+		 * @return {boolean} true while the widget must not mount.
+		 */
+		widgetPropsPending() {
+			const declared = this.widget?.props
+			if (!declared || typeof declared !== 'object' || Array.isArray(declared)) {
+				return false
+			}
+			const resolved = this.resolvedWidgetProps
+			return Object.keys(declared).some((key) => {
+				const written = declared[key]
+				if (typeof written !== 'string' || written.charAt(0) !== '@') {
+					return false
+				}
+				const value = resolved[key]
+				return value === undefined || value === null || value === ''
+					|| (typeof value === 'string' && value.charAt(0) === '@')
+			})
+		},
+
+		/**
+		 * The object an integration is mounted for: the page's, unless the
+		 * widget's `props` name another `register`, `schema` or `objectId`.
+		 *
+		 * @return {object} `{ register, schema, objectId }`.
+		 */
+		widgetIntegrationContext() {
+			const context = { ...this.derivedIntegrationContext }
+			const own = this.resolvedWidgetProps
+			for (const key of ['register', 'schema', 'objectId']) {
+				if (own[key] !== undefined && own[key] !== null && own[key] !== '') {
+					context[key] = String(own[key])
+				}
+			}
+			return context
+		},
+
 		integrationProps() {
 			return {
 				surface: this.surface,
@@ -826,7 +909,7 @@ export default {
 				// the tabs card, repeating the label the open tab already shows.
 				...(this.usesBareWidget ? { chromeless: true } : {}),
 				...this.derivedIntegrationContext,
-				...(this.widget?.props || {}),
+				...this.resolvedWidgetProps,
 			}
 		},
 
@@ -839,8 +922,11 @@ export default {
 			return {
 				surface: this.surface,
 				...this.derivedIntegrationContext,
-				integrationContext: this.derivedIntegrationContext,
-				...(this.widget?.props || {}),
+				// The context follows the widget's own host, so a leaf that
+				// reads `integrationContext.objectId` gets the same object as
+				// one that reads `objectId`.
+				integrationContext: this.widgetIntegrationContext,
+				...this.resolvedWidgetProps,
 			}
 		},
 

@@ -32,7 +32,7 @@
 						<span v-if="day.today" class="cn-week-strip__today">{{ todayLabel }}</span>
 					</span>
 					<ul v-if="day.items.length > 0" class="cn-week-strip__items">
-						<li v-for="item in day.items" :key="item.key" class="cn-week-strip__item-row">
+						<li v-for="item in day.shown" :key="item.key" class="cn-week-strip__item-row">
 							<component
 								:is="item.href ? 'a' : 'div'"
 								class="cn-week-strip__item"
@@ -46,7 +46,24 @@
 							</component>
 						</li>
 					</ul>
-					<span v-else class="cn-week-strip__empty">{{ emptyLabel }}</span>
+					<!-- `maxPerDay`: the rest of a full day sits behind "+N more": a link
+					     to `moreRoute`, or a button that opens the day in place. -->
+					<a
+						v-if="day.hidden > 0 && moreHref"
+						class="cn-week-strip__more"
+						:href="moreHref"
+						data-testid="cn-week-strip-more"
+						@click="onMoreClick($event)">{{ moreLabel(day.hidden) }}</a>
+					<button
+						v-else-if="day.hidden > 0 || day.expanded"
+						type="button"
+						class="cn-week-strip__more"
+						:aria-expanded="day.expanded ? 'true' : 'false'"
+						data-testid="cn-week-strip-more"
+						@click="toggleDay(day.key)">
+						{{ day.expanded ? lessLabel : moreLabel(day.hidden) }}
+					</button>
+					<span v-if="day.items.length === 0" class="cn-week-strip__empty">{{ emptyLabel }}</span>
 				</li>
 			</ol>
 		</div>
@@ -120,9 +137,13 @@ export default {
 		 * `emptyText` is the text of a day without items. `weekOffset` moves
 		 * the strip whole weeks from the current one. `inset: true` draws the
 		 * strip inside the board's inset (16px above, 24px at the sides, 22px
-		 * below) instead of from card edge to card edge.
+		 * below) instead of from card edge to card edge. `maxPerDay` caps the
+		 * items a day shows; the rest sit behind "+N more", a link to
+		 * `moreRoute` (a route name or object) or, without one, a button that
+		 * opens the day in place. `moreLabel` replaces the text (`{count}` is
+		 * the number hidden).
 		 *
-		 * @type {{days?: (5|7), inset?: boolean, source?: {register?: string, schema?: string, filter?: object, limit?: number}, dateField?: string, titleField?: string, metaFields?: Array<string>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
+		 * @type {{maxPerDay?: number, moreRoute?: (string|object), moreLabel?: string, days?: (5|7), inset?: boolean, source?: {register?: string, schema?: string, filter?: object, limit?: number}, dateField?: string, titleField?: string, metaFields?: Array<string>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
 		 */
 		content: {
 			type: Object,
@@ -157,6 +178,8 @@ export default {
 			rows: [],
 			loading: false,
 			error: '',
+			/** The days opened past `maxPerDay`, by day key. */
+			expandedDays: {},
 		}
 	},
 
@@ -275,13 +298,62 @@ export default {
 			const formatter = this.dayFormatter
 			return this.weekDays.map((day) => {
 				const key = dayKey(day)
+				const items = buckets[key] || []
+				const expanded = this.expandedDays[key] === true
+				const cap = this.maxPerDay > 0 && !expanded ? this.maxPerDay : items.length
 				return {
 					key,
 					label: formatter.format(day),
 					today: key === todayKey,
-					items: buckets[key] || [],
+					items,
+					shown: items.slice(0, cap),
+					hidden: Math.max(0, items.length - cap),
+					expanded: expanded && this.maxPerDay > 0 && items.length > this.maxPerDay,
 				}
 			})
+		},
+
+		/**
+		 * The most items a day shows (`content.maxPerDay`), or 0 for no cap.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/screens-week-strip-max-per-day/specs/week-strip-max-per-day/spec.md#requirement-a-day-shows-at-most-maxperday-items
+		 */
+		maxPerDay() {
+			const value = Number(this.content.maxPerDay)
+			return Number.isInteger(value) && value > 0 ? value : 0
+		},
+
+		/**
+		 * Where "+N more" leads (`content.moreRoute`), or null to open the day in place.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/screens-week-strip-max-per-day/specs/week-strip-max-per-day/spec.md#requirement-a-day-shows-at-most-maxperday-items
+		 */
+		moreTarget() {
+			const route = this.content.moreRoute
+			if (typeof route === 'string' && route !== '') {
+				return { name: route }
+			}
+			return route && typeof route === 'object' ? route : null
+		},
+
+		/**
+		 * @return {string} The href of the "+N more" link, '' without a target.
+		 *
+		 * @spec openspec/changes/screens-week-strip-max-per-day/specs/week-strip-max-per-day/spec.md#requirement-a-day-shows-at-most-maxperday-items
+		 */
+		moreHref() {
+			return this.moreTarget ? (resolveHref(this.moreTarget, this.$router) || '') : ''
+		},
+
+		/**
+		 * @return {string} The text that closes an opened day.
+		 *
+		 * @spec openspec/changes/screens-week-strip-max-per-day/specs/week-strip-max-per-day/spec.md#requirement-a-day-shows-at-most-maxperday-items
+		 */
+		lessLabel() {
+			return t('nextcloud-vue', 'Show less')
 		},
 
 		/**
@@ -534,6 +606,46 @@ export default {
 		},
 
 		/**
+		 * The text of the "+N more" control: `content.moreLabel` with `{count}`
+		 * filled, else "+N more" from the library's catalogue.
+		 *
+		 * @param {number} count The number of hidden items.
+		 * @return {string}
+		 * @spec openspec/changes/screens-week-strip-max-per-day/specs/week-strip-max-per-day/spec.md#requirement-a-day-shows-at-most-maxperday-items
+		 */
+		moreLabel(count) {
+			const own = this.content.moreLabel
+			if (typeof own === 'string' && own !== '') {
+				return this.effectiveTranslate(own).replace(/\{count\}/g, String(count))
+			}
+			return t('nextcloud-vue', '+{count} more', { count })
+		},
+
+		/**
+		 * Open or close a day past its cap.
+		 *
+		 * @param {string} key The day key.
+		 * @return {void}
+		 * @spec openspec/changes/screens-week-strip-max-per-day/specs/week-strip-max-per-day/spec.md#requirement-a-day-shows-at-most-maxperday-items
+		 */
+		toggleDay(key) {
+			this.expandedDays = { ...this.expandedDays, [key]: this.expandedDays[key] !== true }
+		},
+
+		/**
+		 * Route a plain click on the "+N more" link.
+		 *
+		 * @param {MouseEvent} event The click.
+		 * @return {void}
+		 * @spec openspec/changes/screens-week-strip-max-per-day/specs/week-strip-max-per-day/spec.md#requirement-a-day-shows-at-most-maxperday-items
+		 */
+		onMoreClick(event) {
+			if (this.moreTarget) {
+				followLinkClick(event, this.moreTarget, this.$router)
+			}
+		},
+
+		/**
 		 * Route a plain click on an in-app item; the browser handles the rest.
 		 *
 		 * @param {MouseEvent} event The click.
@@ -685,5 +797,31 @@ export default {
 .cn-week-strip__empty {
 	font-size: 0.9em;
 	color: var(--color-text-maxcontrast);
+}
+
+/* "+N more" under a capped day: a quiet text control, 24px high to click. */
+.cn-week-strip__more {
+	align-self: flex-start;
+	min-height: 24px;
+	margin: 0;
+	padding: 2px 4px;
+	border: 0;
+	border-radius: var(--border-radius, 4px);
+	background: transparent;
+	color: var(--color-primary-element);
+	font: inherit;
+	font-size: 0.85em;
+	font-weight: 600;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.cn-week-strip__more:hover {
+	text-decoration: underline;
+}
+
+.cn-week-strip__more:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 </style>

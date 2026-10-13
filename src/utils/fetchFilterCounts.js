@@ -11,7 +11,8 @@
  * list of values) cannot be read off a grouped result, so each of those costs
  * one `/value` count. A filter that holds a LIST of values, or tests a field
  * for no value (`isnull`), is counted through the list endpoint, because the
- * aggregation endpoints cannot express it.
+ * aggregation endpoints cannot express it. So is a filter that spells its
+ * operator in the key (`scheduledDate[gte]`): only the list endpoint reads it.
  * Nothing is requested for an entry that did not ask.
  *
  * @module utils/fetchFilterCounts
@@ -60,14 +61,43 @@ export function hasNullTest(filter) {
 }
 
 /**
+ * Matches a filter key that carries its operator, `field[op]`.
+ *
+ * @type {RegExp}
+ */
+const OPERATOR_KEY = /\[[A-Za-z_]+\]$/
+
+/**
+ * Whether a filter spells an operator in a KEY (`{ 'scheduledDate[gte]': '2026-10-13' }`).
+ *
+ * A lens on a date range needs this flat spelling, because the list request
+ * would JSON-encode a nested `{ gte }` object. The aggregation endpoints do
+ * not read it: they take the key as a field name, find no such field and
+ * answer 0, so the lens read 0 while the list beside it showed rows. The list
+ * endpoint reads the key exactly as the page's own request sends it.
+ *
+ * @param {object} filter A filter map.
+ * @return {boolean} True when any key ends in `[op]`.
+ * @spec openspec/changes/screens-operator-key-lens-counts/specs/index-page/spec.md
+ */
+export function hasOperatorKey(filter) {
+	if (!filter || typeof filter !== 'object' || Array.isArray(filter)) {
+		return false
+	}
+	return Object.keys(filter).some((key) => OPERATOR_KEY.test(key))
+}
+
+/**
  * Whether the aggregation endpoints cannot express a filter, so it is counted
- * through the list endpoint: a list of values, or a test for no value.
+ * through the list endpoint: a list of values, a test for no value, or an
+ * operator spelled in a key.
  *
  * @param {object} filter A filter map.
  * @return {boolean} True when the filter needs the list endpoint.
+ * @spec openspec/changes/screens-operator-key-lens-counts/specs/index-page/spec.md
  */
 export function needsListEndpoint(filter) {
-	return hasListValue(filter) || hasNullTest(filter)
+	return hasListValue(filter) || hasNullTest(filter) || hasOperatorKey(filter)
 }
 
 /**
@@ -110,7 +140,8 @@ export async function fetchListTotal(register, schema, filter, ctx) {
 
 /**
  * The single field a filter narrows on with a plain equality, or null when the
- * filter is anything else.
+ * filter is anything else, including an operator spelled in the key
+ * (`scheduledDate[gte]`), which is a comparison and not a field name.
  *
  * @param {object} filter A filter map.
  * @return {{field: string, value: string}|null} The field and the value it must equal.
@@ -121,7 +152,7 @@ export function singleEqualityOf(filter) {
 		return null
 	}
 	const keys = Object.keys(filter)
-	if (keys.length !== 1) {
+	if (keys.length !== 1 || OPERATOR_KEY.test(keys[0])) {
 		return null
 	}
 	const value = filter[keys[0]]

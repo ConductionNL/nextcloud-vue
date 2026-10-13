@@ -38,7 +38,7 @@
 
 <script>
 import { NcNoteCard } from '@nextcloud/vue'
-import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
+import { objectUrlOf, writeFields } from '../../utils/objectWrite.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 
@@ -67,7 +67,8 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `field` (required) — the top-level enum field.
+		 * - `field` (required) — the enum field, a top-level name or a dot-path.
+		 * - `save` — `{ url, method?, payload? }`, write through an app endpoint (tokens `{value}`, `{field}`, `{changes}`, `{object.<path>}`).
 		 * - `options` (required) — `[{ value, label, description? }]`.
 		 * - `label` — a legend over the cards (visually shown).
 		 * - `columns` — 1, 2 or 3 (default 2).
@@ -140,6 +141,11 @@ export default {
 			return this.content.readOnly === true
 		},
 
+		/** Whether the widget writes through the app's own endpoint (`content.save`). */
+		hasSave() {
+			return !!(this.content.save && this.content.save.url)
+		},
+
 		objectUrl() {
 			return objectUrlOf(this.register, this.schema, this.objectId || (this.objectData && this.objectData.id))
 		},
@@ -182,7 +188,7 @@ export default {
 		 * @spec openspec/changes/abstract-radio-cards/specs/radio-cards/spec.md#requirement-choosing-a-card-saves-that-one-field
 		 */
 		async choose(option) {
-			if (!this.objectUrl || !this.content.field) {
+			if ((!this.objectUrl && !this.hasSave) || !this.content.field) {
 				this.notice = this.tr('This choice cannot be saved here.')
 				return
 			}
@@ -190,7 +196,7 @@ export default {
 			this.busy = true
 			this.value = String(option.value)
 			try {
-				const data = await patchObject(this.objectUrl, { [this.content.field]: option.value })
+				const data = await writeFields(this.objectUrl, { [this.content.field]: option.value }, { save: this.content.save, object: this.objectData })
 				const written = readPath(data, this.content.field)
 				this.saved = String(written !== undefined && written !== null ? written : option.value)
 				this.value = this.saved

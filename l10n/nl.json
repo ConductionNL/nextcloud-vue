@@ -1165,6 +1165,7 @@
     "Normal": "Normaal",
     "High": "Hoog",
     "Urgent": "Urgent",
+    "Stale": "Stilgevallen",
     "State": "Status",
     "Priority": "Prioriteit",
     "Due": "Deadline",
@@ -1231,6 +1232,29 @@
     "A major version means a step, a connection or a setting was removed.": "Een major versie betekent dat een stap, een verbinding of een instelling is verwijderd.",
     "Connection": "Verbinding",
     "Publish": "Publiceren",
+    "All kinds": "Alle soorten",
+    "Filter by kind": "Filter op soort",
+    "Included with this app": "Meegeleverd met deze app",
+    "Included with {app}": "Meegeleverd met {app}",
+    "Install": "Installeren",
+    "Installed": "Geïnstalleerd",
+    "Installed.": "Geïnstalleerd.",
+    "Installing…": "Installeren…",
+    "No store registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.": "Er is geen winkelregister ingesteld, dus er is niets van het netwerk opgevraagd. Een beheerder kan er een koppelen in de beheerinstellingen.",
+    "Nothing matches that search": "Niets gevonden voor die zoekopdracht",
+    "Search the store": "Zoek in de winkel",
+    "Some parts were not installed: {schemas}": "Sommige onderdelen zijn niet geïnstalleerd: {schemas}",
+    "Store": "Winkel",
+    "The item could not be installed.": "Het item kon niet worden geïnstalleerd.",
+    "The items below ship with this app.": "De items hieronder worden met deze app meegeleverd.",
+    "The store registry did not answer.": "Het winkelregister gaf geen antwoord.",
+    "Try a different term, or clear the kind filter.": "Probeer een andere zoekterm of wis het soortfilter.",
+    "Version {version}": "Versie {version}",
+    "App template": "App-sjabloon",
+    "Adapter": "Adapter",
+    "Source template": "Bronsjabloon",
+    "Configuration template": "Configuratiesjabloon",
+    "Agent template": "Agentsjabloon",
     "Publish as a breaking change anyway": "Toch publiceren als brekende wijziging",
     "Publish this version": "Deze versie publiceren",
     "Setting": "Instelling",
@@ -1436,6 +1460,7 @@
     "This server does not keep track of what you open.": "Deze server houdt niet bij welke items je opent.",
     "Log in to see what you opened recently.": "Log in om te zien wat je onlangs opende.",
     "Your recent items are not available right now.": "Je recente items zijn nu niet beschikbaar.",
+    "{hours}:{minutes}": "{hours}.{minutes}",
     "yesterday": "gisteren",
     "tomorrow": "morgen",
     "Filter by {column}": "Filteren op {column}",
@@ -1520,7 +1545,9 @@
     "{view}: not available on this list": "{view}: niet beschikbaar in deze lijst",
     "Leave this field empty": "Laat dit veld leeg",
     "This answer was refused.": "Dit antwoord is geweigerd.",
-    "No value ({count})": "Geen waarde ({count})"
+    "No value ({count})": "Geen waarde ({count})",
+    "{start} to {end}": "{start} tot {end} uur",
+    "Breadcrumb": "Kruimelpad"
   },
   "plurals": {
     "{count} selected": [
@@ -1594,6 +1621,10 @@
     "in {count} day": [
       "over {count} dag",
       "over {count} dagen"
+    ],
+    "{count} day overdue": [
+      "{count} dag te laat",
+      "{count} dagen te laat"
     ],
     "{count} more filter": [
       "Nog {count} filter",

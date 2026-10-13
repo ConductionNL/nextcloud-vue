@@ -211,6 +211,22 @@
 	row-gap: 4px;
 }
 
+/* The same for a segmented strip (a tabs widget with `variant: "segmented"`):
+   dossiq's case page drew 13 segments as a 1669px scroller in a 686px card.
+   The look class sits on the strip itself, so this holds wherever the strip
+   is mounted. Once it wraps nothing overflows, and the fades and chevrons
+   (drawn only while the strip overflows) go with it. */
+.cn-tabs.cn-tabs--segmented.cn-look-board .cn-tabs__strip {
+	min-width: 0;
+	max-width: 100%;
+}
+
+.cn-tabs.cn-tabs--segmented.cn-look-board .cn-tabs__nav {
+	flex-wrap: wrap;
+	overflow: visible;
+	row-gap: 4px;
+}
+
 .cn-look-board .cn-tabs--board .cn-tabs__nav-item {
 	background-color: var(--color-background-dark);
 	border: 1px solid var(--color-border-dark);

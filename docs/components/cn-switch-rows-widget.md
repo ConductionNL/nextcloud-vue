@@ -21,7 +21,8 @@ A portal's "Verkeer meten", "Berichtenbox van MijnOverheid" and "Als app install
 
 | Key | Meaning |
 |-----|---------|
-| `rows[].key` | A top-level boolean field of the object. |
+| `rows[].key` | A boolean field of the object: a top-level name or a dot-path (written by re-reading the enclosing top-level object and merging the leaf in). |
+| `save` | `{ url, method?, payload? }`: write through an app endpoint instead of the object. `url` and `payload` are templates with the tokens `{value}` (the changed value), `{field}` (its path), `{changes}` (the changed values as a nested object) and `{object.<path>}` (a field of the current object). `method` is `PUT`, `POST` or `PATCH` (default `PATCH`); `payload` defaults to `{changes}`. A string that is exactly one token keeps the value's type. The stored value is still read from the object by path. |
 | `rows[].label`, `rows[].hint` | Texts, translated through `cnTranslate`. |
 | `rows[].invert` | The switch is on when the field is false (a stored `installDisabled` read as "on"). |
 | `readOnly` | Disables every switch. |
