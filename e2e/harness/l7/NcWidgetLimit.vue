@@ -3,7 +3,7 @@
   SPDX-License-Identifier: EUPL-1.2
 
   A Nextcloud dashboard widget in a short cell (?l7=nc-widget-limit): the
-  activity widget with `limit: 3` in a 240px box, as launchpad's start page
+  activity widget with `limit: 2` in a 240px box (160px for the list; launchpad's cell has 172px), as launchpad's start page
   places it. `&nolimit=1` mounts it without the limit. The spec stubs the
   OCS widget-items endpoint and the `OCA.Dashboard` global.
 -->
@@ -25,7 +25,7 @@ export default {
 
 	data() {
 		return {
-			content: noLimit ? { widgetId: 'activity' } : { widgetId: 'activity', limit: 3, showAllLabel: 'Alle activiteit' },
+			content: noLimit ? { widgetId: 'activity' } : { widgetId: 'activity', limit: 2, showAllLabel: 'Alle activiteit' },
 		}
 	},
 }

@@ -4,7 +4,7 @@
 // A Nextcloud dashboard widget with a `limit` fits its cell
 // (?l7=nc-widget-limit, harness l7/NcWidgetLimit.vue). Launchpad's activity
 // widget drew a 411px list in a 172px body and scrolled inside its cell. With
-// `limit: 3` the list holds three items, nothing scrolls, and "Show all" goes
+// `limit: 2` the list holds two items and the link, nothing scrolls, and "Show all" goes
 // to the widget's own page.
 //
 // WHY PLAYWRIGHT: whether a list scrolls inside its box is layout.
@@ -44,7 +44,7 @@ test('with a limit the list fits its cell and links to the rest', async ({ page 
 	await page.goto('/?l7=nc-widget-limit', { waitUntil: 'domcontentloaded', timeout: 90_000 })
 	const host = page.locator('[data-testid="nc-widget-limit"]')
 	await host.locator('.cn-nc-widget-widget__item').first().waitFor({ state: 'visible', timeout: 60_000 })
-	expect(await body(page)).toEqual({ items: 3, scrolls: false })
+	expect(await body(page)).toEqual({ items: 2, scrolls: false })
 	const all = host.locator('[data-testid="nc-widget-show-all"]')
 	await expect(all).toHaveText('Alle activiteit')
 	await expect(all).toHaveAttribute('href', '/apps/activity/')

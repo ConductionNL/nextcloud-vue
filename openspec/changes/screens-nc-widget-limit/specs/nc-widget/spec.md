@@ -20,6 +20,6 @@ render as before.
 
 #### Scenario: Activity in a short cell
 
-- **GIVEN** the activity widget with `limit: 3` and seven items
+- **GIVEN** the activity widget with `limit: 2` and seven items
 - **WHEN** it renders in a 240px cell
-- **THEN** three items show, the list does not scroll, and "Show all" links to the activity page
+- **THEN** two items show, the list does not scroll, and "Show all" links to the activity page
