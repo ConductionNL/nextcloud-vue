@@ -57,7 +57,7 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 ### Header
 
-On a card surface the detail page draws the titled card. The widget reports its header through the `header` event, and the card shows it:
+On a card surface the detail page or the dashboard page draws the titled card. The widget reports its header through the `header` event, and the card shows it:
 
 | Key | Meaning |
 |-----|---------|

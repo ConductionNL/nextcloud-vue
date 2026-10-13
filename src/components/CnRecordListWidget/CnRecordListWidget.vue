@@ -134,8 +134,8 @@ function unwrap(value) {
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`).
  *
- * A content-only catalog type: on a card surface the detail host draws the
- * titled card. The widget emits `header` with `{ link, note }` (the
+ * A content-only catalog type: on a card surface the detail host or the
+ * dashboard page draws the titled card. The widget emits `header` with `{ link, note }` (the
  * `headerLink` and `headerNote` with `{total}` filled in) for that card's
  * header.
  */
