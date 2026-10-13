@@ -488,7 +488,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 |------|------|---------|-------------|
 | `showHeader` | `Boolean` | `true` | `false` (manifest `config.showHeader: false`) drops the header row: title, description, header actions and the edit toggle, for a page that opens with its own heading such as a greeting widget. The title stays as a visually hidden heading so the page keeps an accessible name. |
 
-A widget definition or layout entry can carry `headerLink` (`{ label, route?, params?, query?, href? }`); the page forwards it to [CnWidgetWrapper](./cn-widget-wrapper.md), which draws it as a text link in the widget header.
+A widget definition or layout entry can carry `headerLink` (`{ label, route?, params?, query?, href? }`); the page forwards it to [CnWidgetWrapper](./cn-widget-wrapper.md), which draws it as a text link in the widget header. A registry widget that reports its own header (the `header` event of `record-list` and `facts`: the link with the total filled in, a note such as "3 in totaal", one action) gets it on its dashboard card as on a detail page; a `headerLink` on the placement or the definition still wins over the reported link.
 
 ## Views behind a switch (`views`)
 
