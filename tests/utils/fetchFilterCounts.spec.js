@@ -8,7 +8,7 @@
  */
 
 import { fetchAggregateValue, fetchGroupedCounts } from '../../src/utils/fetchAggregate.js'
-import { fetchFilterCounts, hasListValue, hasNullTest, singleEqualityOf } from '../../src/utils/fetchFilterCounts.js'
+import { fetchFilterCounts, hasListValue, hasNullTest, hasOperatorKey, needsListEndpoint, singleEqualityOf } from '../../src/utils/fetchFilterCounts.js'
 
 jest.mock('../../src/utils/fetchAggregate.js', () => ({
 	fetchAggregateValue: jest.fn(),
@@ -261,6 +261,61 @@ describe('a lens whose filter tests a field for no value', () => {
 			register: 'r',
 			schema: 's',
 			baseFilter: { supersededBy: { isnull: true } },
+			entries: [{ key: 'a', filter: { status: 'open' } }, { key: 'b', filter: { status: 'closed' } }],
+		})
+		expect(fetchGroupedCounts).not.toHaveBeenCalled()
+		expect(fetchAggregateValue).not.toHaveBeenCalled()
+		expect(global.fetch).toHaveBeenCalledTimes(2)
+	})
+})
+
+describe('a lens that spells its operator in the key (screens-operator-key-lens-counts)', () => {
+	const okResponse = (total) => ({ ok: true, json: async () => ({ total, results: [] }) })
+
+	afterEach(() => {
+		delete global.fetch
+	})
+
+	it('is no single equality and needs the list endpoint', () => {
+		expect(hasOperatorKey({ 'scheduledDate[gte]': '2026-10-13' })).toBe(true)
+		expect(hasOperatorKey({ status: 'open' })).toBe(false)
+		expect(hasOperatorKey({ deadline: { lt: '2026-10-05' } })).toBe(false)
+		expect(hasOperatorKey(null)).toBe(false)
+		expect(singleEqualityOf({ 'scheduledDate[gte]': '2026-10-13' })).toBeNull()
+		expect(needsListEndpoint({ 'scheduledDate[gte]': '2026-10-13' })).toBe(true)
+		expect(needsListEndpoint({ status: 'open' })).toBe(false)
+	})
+
+	it('is counted through the list endpoint with the key as the list request sends it, never as an aggregate', async () => {
+		global.fetch = jest.fn().mockImplementation(async (url) => okResponse(String(url).includes('lt%5D') || String(url).includes('lt]') ? 2 : 5))
+		fetchGroupedCounts.mockResolvedValue([{ key: 'closed', count: 9 }, { key: 'scheduled', count: 4 }])
+		const counts = await fetchFilterCounts({
+			register: 'decidiq',
+			schema: 'meeting',
+			entries: [
+				{ key: 'upcoming', filter: { 'scheduledDate[gte]': '2026-10-13T00:00:00Z' } },
+				{ key: 'month', filter: { 'scheduledDate[gte]': '2026-10-01T00:00:00Z', 'scheduledDate[lt]': '2026-11-01T00:00:00Z' } },
+				{ key: 'closed', filter: { lifecycle: 'closed' } },
+				{ key: 'scheduled', filter: { lifecycle: 'scheduled' } },
+			],
+		})
+		expect(fetchAggregateValue).not.toHaveBeenCalled()
+		expect(fetchGroupedCounts).toHaveBeenCalledTimes(1)
+		expect(fetchGroupedCounts.mock.calls[0][0].groupBy).toBe('lifecycle')
+		expect(global.fetch).toHaveBeenCalledTimes(2)
+		const urls = global.fetch.mock.calls.map(([url]) => new URL(url, 'http://localhost'))
+		expect(urls[0].searchParams.get('scheduledDate[gte]')).toBe('2026-10-13T00:00:00Z')
+		expect(urls[1].searchParams.get('scheduledDate[lt]')).toBe('2026-11-01T00:00:00Z')
+		expect(urls.every((u) => u.searchParams.get('_limit') === '1')).toBe(true)
+		expect(counts).toEqual({ upcoming: 5, month: 2, closed: 9, scheduled: 4 })
+	})
+
+	it('sends every entry through the list endpoint when the base filter spells an operator in a key', async () => {
+		global.fetch = jest.fn().mockResolvedValue(okResponse(1))
+		await fetchFilterCounts({
+			register: 'r',
+			schema: 's',
+			baseFilter: { 'scheduledDate[gte]': '2026-10-13' },
 			entries: [{ key: 'a', filter: { status: 'open' } }, { key: 'b', filter: { status: 'closed' } }],
 		})
 		expect(fetchGroupedCounts).not.toHaveBeenCalled()
