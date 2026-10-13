@@ -274,6 +274,29 @@
 	line-height: 1;
 }
 
+/* The Filter MENU button (`filterMenu`): the same count badge. NcActions has
+   no slot beside its menu name, so the badge is drawn after the label from
+   the count the page sets; without active filters the property is absent and
+   nothing is drawn. */
+.cn-look-board .cn-actions-bar__filter-menu--counted .button-vue__text::after {
+	content: var(--cn-filter-menu-count);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-width: 20px;
+	height: 20px;
+	margin-inline-start: 6px;
+	padding: 0 6px;
+	border-radius: 10px;
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1;
+	vertical-align: middle;
+}
+
 /* The view switch: four icon segments on a track, no sliding thumb. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle {
 	gap: 2px;
