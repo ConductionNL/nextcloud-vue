@@ -732,15 +732,15 @@ export default {
 
 		/** Tell the card around this list what its header shows. */
 		emitHeader() {
-			/**
-			 * @event header Emitted after every read with the card header's parts.
-			 * @type {{link: (object|null), note: string, count?: number}} The header link (resolved, with `{total}` filled), the note, and with `headerCount` the total.
-			 */
 			const header = { link: this.headerLink, note: this.headerNote }
 			// `headerCount: true`: the card draws the total as a chip after its title.
 			if (this.content?.headerCount === true && !this.error) {
 				header.count = this.total
 			}
+			/**
+			 * @event header Emitted after every read with the card header's parts.
+			 * @type {{link: (object|null), note: string, count: (number|undefined)}} The header link (resolved, with `{total}` filled), the note, and with `headerCount` the total.
+			 */
 			this.$emit('header', header)
 		},
 
