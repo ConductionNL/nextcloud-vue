@@ -593,7 +593,10 @@ export default {
 			const src = this.source || {}
 			const params = {}
 			// A page sort control (`source.pageControls.sort`) replaces the order.
-			const chosen = pageSort(src.pageControls, this.workspaceCtx, null)
+			// An entry with `rank` (a sort by an enum's rank) is the record list's:
+			// this table pages, and a rank order over pages needs the server.
+			const picked = pageSort(src.pageControls, this.workspaceCtx, null)
+			const chosen = picked && !Array.isArray(picked.rank) ? picked : null
 			const order = chosen ? { [chosen.field]: chosen.dir } : (src.order || {})
 			for (const [field, dir] of Object.entries(order)) {
 				params[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'

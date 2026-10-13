@@ -43,16 +43,34 @@
 								<template #icon>
 									<DotsHorizontal :size="20" />
 								</template>
-								<NcActionButton
-									v-for="entry in mergedHeaderActions"
-									:key="entry.id"
-									:disabled="Boolean(entry.disabled)"
-									@click="onHeaderAction({ action: entry.id, id: entry.id })">
-									<template v-if="entry.icon && typeof entry.icon === 'string' && !entry.icon.startsWith('icon-')" #icon>
-										<CnIcon :name="entry.icon" :size="20" />
-									</template>
-									{{ entry.label ? cnTranslate(entry.label) : entry.label }}
-								</NcActionButton>
+								<!-- The menu's entries (`items` on the button; the page's header
+								     actions when it names none): a header action, a built-in by
+								     name, or a link (an entry with `href`, the documentation). -->
+								<template v-for="entry in headerMenuEntries(button)" :key="entry.key">
+									<NcActionLink
+										v-if="entry.href"
+										:href="entry.href"
+										target="_blank"
+										rel="noopener noreferrer"
+										:data-testid="`cn-index-header-menu-${entry.key}`">
+										<template v-if="entry.icon" #icon>
+											<CnIcon :name="entry.icon" :size="20" />
+										</template>
+										{{ entry.label }}
+									</NcActionLink>
+									<NcActionButton
+										v-else
+										:disabled="entry.disabled"
+										:title="entry.title || null"
+										:closeAfterClick="true"
+										:data-testid="`cn-index-header-menu-${entry.key}`"
+										@click="entry.run()">
+										<template v-if="entry.icon" #icon>
+											<CnIcon :name="entry.icon" :size="20" />
+										</template>
+										{{ entry.label }}
+									</NcActionButton>
+								</template>
 							</NcActions>
 							<NcButton
 								v-else
@@ -988,7 +1006,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -1296,6 +1314,7 @@ export default {
 		NcLoadingIcon,
 		CnEmptyContent,
 		NcActions,
+		NcActionLink,
 		NcActionButton,
 		NcActionCaption,
 		NcActionCheckbox,
@@ -1573,9 +1592,13 @@ export default {
 		 * `showTitle`. When they show, the actions bar drops its Views and
 		 * Actions menus, and the Add button and Export menu when a button
 		 * takes their action. Empty (the default) changes nothing.
+		 * `action: "actions-menu"` is one labelled menu: the page's header
+		 * actions, or what its `items` name (`header-actions`, a header action
+		 * id, `import`, `export`, `refresh`, `copy-selected`, `delete-selected`,
+		 * `documentation`), so the entries the bar's menu loses have a place.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
-		 * @type {Array<{label?: string, action: string, variant?: ('primary'|'secondary'), icon?: string, format?: ('csv'|'excel'), id?: string}>}
+		 * @type {Array<{label?: string, action: string, variant?: ('primary'|'secondary'), icon?: string, format?: ('csv'|'excel'), id?: string, items?: string[]}>}
 		 */
 		headerButtons: {
 			type: Array,
@@ -5386,12 +5409,14 @@ export default {
 						variant: button.variant === 'primary' ? 'primary' : 'secondary',
 						icon,
 						format: button.format === 'excel' ? 'excel' : 'csv',
+						items: Array.isArray(button.items) ? button.items.filter((item) => typeof item === 'string' && item !== '') : null,
 					}
 				})
 				.filter((button) => button.label !== '')
-				// The Actions menu lists the page's header actions, so a page
-				// with none has nothing to put in it.
-				.filter((button) => button.action !== 'actions-menu' || this.mergedHeaderActions.length > 0)
+				// The Actions menu lists the page's header actions (or the
+				// entries its `items` name), so a menu with nothing to list
+				// is not drawn.
+				.filter((button) => button.action !== 'actions-menu' || this.headerMenuEntries(button).length > 0)
 		},
 
 		/**
@@ -6457,6 +6482,11 @@ export default {
 			if (typeof handler === 'function') {
 				return { ...entry }
 			}
+			// `type: "navigate"` with a `target` URL is a link: the bar and the
+			// header's Actions menu render it as a real anchor in a new tab.
+			if (typeof handler !== 'string' && entry.type === 'navigate' && typeof entry.target === 'string' && entry.target !== '' && !entry.href) {
+				return { ...entry, href: entry.target }
+			}
 			if (typeof handler !== 'string') {
 				// No handler declared — emit-only fall-through.
 				return { ...entry }
@@ -6609,6 +6639,81 @@ export default {
 		 */
 		headerButtonTakes(action) {
 			return this.headerButtonsShown && this.resolvedHeaderButtons.some((button) => button.action === action)
+		},
+
+		/**
+		 * The entries of the header's Actions menu (`headerButtons[]` with
+		 * `action: "actions-menu"`). Without `items` they are the page's header
+		 * actions, as before. `items` names them, in order: `header-actions`
+		 * (all of them), the id of one header action, or a built-in of the
+		 * actions bar's own menu, which the bar drops while header buttons show:
+		 * `import`, `export`, `refresh`, `copy-selected`, `delete-selected`
+		 * (disabled until a row is selected) and `documentation` (a link to
+		 * `documentationUrl`, left out when the page has none). An unknown name
+		 * is left out.
+		 *
+		 * @spec openspec/changes/screens-index-header-actions-menu/specs/index-header/spec.md#requirement-the-header-actions-menu-lists-what-its-items-name
+		 * @param {{items?: string[]|null, format?: string}} button The resolved header button.
+		 * @return {Array<{key: string, label: string, icon: string, href?: string, disabled?: boolean, title?: string, run?: Function}>}
+		 */
+		headerMenuEntries(button) {
+			const fromAction = (entry) => ({
+				key: String(entry.id),
+				label: entry.label ? this.cnTranslate(entry.label) : '',
+				icon: entry.icon && typeof entry.icon === 'string' && !entry.icon.startsWith('icon-') ? entry.icon : '',
+				href: typeof entry.href === 'string' && entry.href !== '' ? entry.href : '',
+				disabled: Boolean(entry.disabled),
+				run: () => this.onHeaderAction({ action: entry.id, id: entry.id }),
+			})
+			const names = button && Array.isArray(button.items) ? button.items : ['header-actions']
+			const noSelection = this.internalSelectedIds.length < 1
+			const builtIns = {
+				import: () => ({ key: 'import', label: t('nextcloud-vue', 'Import'), icon: 'Import', run: () => { this.showImportDialog = true } }),
+				export: () => ({ key: 'export', label: t('nextcloud-vue', 'Export'), icon: 'Export', run: () => this.onHeaderButton({ action: 'export', format: button.format }) }),
+				refresh: () => ({ key: 'refresh', label: t('nextcloud-vue', 'Refresh'), icon: 'Refresh', run: () => this.onRefreshEvent() }),
+				'copy-selected': () => ({
+					key: 'copy-selected',
+					label: t('nextcloud-vue', 'Copy selected'),
+					icon: 'ContentCopy',
+					disabled: noSelection,
+					title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to copy') : '',
+					run: () => { this.showMassCopyDialog = true },
+				}),
+
+				'delete-selected': () => ({
+					key: 'delete-selected',
+					label: t('nextcloud-vue', 'Delete selected'),
+					icon: 'TrashCanOutline',
+					disabled: noSelection,
+					title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to delete') : '',
+					run: () => { this.showMassDeleteDialog = true },
+				}),
+
+				documentation: () => (this.documentationUrl
+					? { key: 'documentation', label: this.documentationLabel || t('nextcloud-vue', 'Documentation'), icon: 'BookOpenVariantOutline', href: this.documentationUrl }
+					: null),
+			}
+			const entries = []
+			const seen = new Set()
+			const push = (entry) => {
+				if (entry && entry.label !== '' && !seen.has(entry.key)) {
+					seen.add(entry.key)
+					entries.push(entry)
+				}
+			}
+			for (const name of names) {
+				if (name === 'header-actions') {
+					this.mergedHeaderActions.forEach((entry) => push(fromAction(entry)))
+				} else if (Object.hasOwn(builtIns, name)) {
+					push(builtIns[name]())
+				} else {
+					const entry = this.mergedHeaderActions.find((candidate) => candidate.id === name)
+					if (entry) {
+						push(fromAction(entry))
+					}
+				}
+			}
+			return entries
 		},
 
 		/**
