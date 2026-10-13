@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.90.0', () => {
+	it('the manifest schema version reads 2.91.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1372,7 +1372,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.88.0 adds the workspace-filter style `toggle`, layout `bar` with `controls`, and `pageControls` on a list source (screens-page-controls).
 		// 2.89.0 adds source.order, notEmpty/empty operators and stacked on the banner widget (screens-start-here-banner).
 		// 2.90.0 adds headerButtons[].items on the actions-menu button (screens-index-header-actions-menu).
-		expect(schema.version).toBe('2.90.0')
+		// 2.91.0 adds viewSwitchLinks on an index page (screens-view-switch-links).
+		expect(schema.version).toBe('2.91.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
