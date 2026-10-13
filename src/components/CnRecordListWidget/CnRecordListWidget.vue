@@ -101,6 +101,7 @@ import { resolveDue } from '../../utils/dueText.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { initialsOf } from '../../utils/initials.js'
+import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -189,6 +190,8 @@ export default {
 			total: 0,
 			loading: false,
 			error: false,
+			/** Personal-lens reports (`@self.lenses`) of the latest response. */
+			lenses: {},
 		}
 	},
 
@@ -299,8 +302,28 @@ export default {
 			return typeof note === 'string' && note !== '' ? this.withTotal(note) : ''
 		},
 
+		/**
+		 * Why the list is empty when a personal lens could not answer
+		 * (`@self.lenses.<lens>.available: false`, as for `filter: { _recent: true }`),
+		 * or '' to keep `emptyText`. `lensReasonTexts` holds the app's wording,
+		 * keyed `<lens>.<reason>` or `<reason>`.
+		 *
+		 * @return {string} The explanation, or ''.
+		 * @spec openspec/changes/screens-record-list-lens-reason/specs/record-list-lens-reason/spec.md#requirement-a-record-list-says-why-a-lens-is-empty
+		 */
+		lensReasonText() {
+			if (this.rows.length > 0) {
+				return ''
+			}
+			const text = lensUnavailableText(this.lenses, this.content?.lensReasonTexts)
+			return text ? this.translate(text) : ''
+		},
+
 		/** @return {string} The empty line. */
 		emptyLabel() {
+			if (this.lensReasonText !== '') {
+				return this.lensReasonText
+			}
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
 
@@ -655,9 +678,11 @@ export default {
 				const data = response && response.data ? response.data : {}
 				this.rows = Array.isArray(data.results) ? data.results : []
 				this.total = typeof data.total === 'number' ? data.total : this.rows.length
+				this.lenses = readLensReports(data)
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.warn('[CnRecordListWidget] failed to load objects:', e)
+				this.lenses = {}
 				this.rows = []
 				this.total = 0
 				this.error = true
