@@ -55,6 +55,13 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 `pill` is `{ field, labels?, colorMap?, variant? }`: the label comes from `labels` (translated) or the raw value, the colour from `colorMap` (keyed on the raw value, ignoring case) or `variant`.
 
+### One action per row
+
+`rowAction` ends every `rows` row with one action, drawn as a 150px by 34px pill, as board DcMijnActies draws "Beoordelen" and "Stem uitbrengen". The title becomes the row's link (with `rowRoute`) and the chevron goes.
+
+- It is a manifest action plus a `label`: `open-page` opens that page for the row's id, `navigate` reads `@object.<field>` and `@objectId` off the row (`"/votes/@object.id"`). Both render as links. Any other type is a button that runs through the page's dispatcher: a `handler` gets the row as its last argument, `open-modal` gets it as the `row` prop.
+- `labels: { field, map }` picks the label per row: `{ "field": "status", "map": { "open": "Starten" } }` reads "Starten" for an open item and `label` ("Afronden") for the rest.
+
 ### Header
 
 On a card surface the detail page or the dashboard page draws the titled card. The widget reports its header through the `header` event, and the card shows it:
@@ -63,6 +70,7 @@ On a card surface the detail page or the dashboard page draws the titled card. T
 |-----|---------|
 | `headerLink` | `{ label, route, params?, query? }` or `{ label, href }`. `{total}` in the label is the list's total; `params` and `query` resolve tokens. |
 | `headerNote` | A muted text in the same place, such as `"{total} in totaal"`. |
+| `headerCount` | `true` reports the list's total, which the dashboard card draws as a chip after its title ("Actiepunten 5"). |
 
 In a tab panel there is no card header, so neither is drawn.
 
@@ -88,7 +96,7 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `header` | `{ link, note }` | After every read: the header link (resolved, or null) and note (or ''). |
+| `header` | `{ link, note, count? }` | After every read: the header link (resolved, or null), the note (or ''), and with `headerCount` the total. |
 
 <GeneratedRef />
 
