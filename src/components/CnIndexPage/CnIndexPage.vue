@@ -1699,7 +1699,11 @@ export default {
 		 * goes back to the default tab. A tab can say `empty: "field"` (or a
 		 * list of fields) for the rows where the field has no value, and
 		 * `notEmpty` for the rows where it has one: it reads as the filter
-		 * `{ field: { isnull: true } }`.
+		 * `{ field: { isnull: true } }`. A tab can set its own order with
+		 * `sort: { key, order }` (or a list of those): selecting it sorts the
+		 * list that way, and selecting a tab without `sort` goes back to the
+		 * page's `sortKey`/`sortOrder`. A column the person sorts by still wins
+		 * until the next tab switch.
 		 */
 		quickFilters: {
 			type: Array,
