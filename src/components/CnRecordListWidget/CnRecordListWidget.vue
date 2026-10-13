@@ -101,6 +101,7 @@ import { resolveDue } from '../../utils/dueText.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { initialsOf } from '../../utils/initials.js'
+import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -134,8 +135,8 @@ function unwrap(value) {
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`).
  *
- * A content-only catalog type: on a card surface the detail host draws the
- * titled card. The widget emits `header` with `{ link, note }` (the
+ * A content-only catalog type: on a card surface the detail host or the
+ * dashboard page draws the titled card. The widget emits `header` with `{ link, note }` (the
  * `headerLink` and `headerNote` with `{total}` filled in) for that card's
  * header.
  */
@@ -189,6 +190,8 @@ export default {
 			total: 0,
 			loading: false,
 			error: false,
+			/** Personal-lens reports (`@self.lenses`) of the latest response. */
+			lenses: {},
 		}
 	},
 
@@ -260,7 +263,7 @@ export default {
 					attrs: link ? { to: link } : {},
 					initials: this.initialsFor(row),
 					title: this.fill(c.title, row),
-					meta: this.fill(c.meta, row),
+					meta: this.metaOf(row),
 					text: this.fill(c.text, row),
 					label: this.fill(c.label, row),
 					trailing: c.trailing ? firstFilled(c.trailing, row, this.translate, new Date(), this.templateContext) : '',
@@ -299,8 +302,28 @@ export default {
 			return typeof note === 'string' && note !== '' ? this.withTotal(note) : ''
 		},
 
+		/**
+		 * Why the list is empty when a personal lens could not answer
+		 * (`@self.lenses.<lens>.available: false`, as for `filter: { _recent: true }`),
+		 * or '' to keep `emptyText`. `lensReasonTexts` holds the app's wording,
+		 * keyed `<lens>.<reason>` or `<reason>`.
+		 *
+		 * @return {string} The explanation, or ''.
+		 * @spec openspec/changes/screens-record-list-lens-reason/specs/record-list-lens-reason/spec.md#requirement-a-record-list-says-why-a-lens-is-empty
+		 */
+		lensReasonText() {
+			if (this.rows.length > 0) {
+				return ''
+			}
+			const text = lensUnavailableText(this.lenses, this.content?.lensReasonTexts)
+			return text ? this.translate(text) : ''
+		},
+
 		/** @return {string} The empty line. */
 		emptyLabel() {
+			if (this.lensReasonText !== '') {
+				return this.lensReasonText
+			}
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
 
@@ -453,6 +476,29 @@ export default {
 				}
 			})
 			return out
+		},
+
+		/**
+		 * The row's meta line. A string is one template, and one empty token
+		 * empties it. `{ parts: ["{identifier}", "{caseTypeName}", "{handler}"],
+		 * separator? }` fills each part on its own, drops the empty ones and
+		 * joins the rest (default " · "), so a row without a handler still
+		 * reads "2026-0082 · Woo-verzoek".
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The meta line, '' when nothing fills.
+		 * @spec openspec/changes/screens-record-list-meta-parts/specs/record-list-meta-parts/spec.md#requirement-a-meta-line-of-parts-skips-the-empty-ones
+		 */
+		metaOf(row) {
+			const meta = this.content?.meta
+			if (!meta || typeof meta !== 'object' || !Array.isArray(meta.parts)) {
+				return this.fill(meta, row)
+			}
+			const separator = typeof meta.separator === 'string' ? meta.separator : ' · '
+			return meta.parts
+				.map((part) => this.fill(part, row))
+				.filter((text) => text !== '')
+				.join(separator)
 		},
 
 		/**
@@ -655,9 +701,11 @@ export default {
 				const data = response && response.data ? response.data : {}
 				this.rows = Array.isArray(data.results) ? data.results : []
 				this.total = typeof data.total === 'number' ? data.total : this.rows.length
+				this.lenses = readLensReports(data)
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.warn('[CnRecordListWidget] failed to load objects:', e)
+				this.lenses = {}
 				this.rows = []
 				this.total = 0
 				this.error = true

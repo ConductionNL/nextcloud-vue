@@ -249,6 +249,18 @@ The caption can be coloured without recolouring the tile: `captionVariant` sets 
 
 The caption then carries `cn-kpi-card__label--<variant>`; the colours come from the status text tokens.
 
+## A caption with its own count (`captionSource`)
+
+A caption can count something else than the tile does: "3" open requests with "1 waiting for 6 days" under it. `captionSource` is a second count, `{ register?, schema?, metric?, field?, filter?, via?, zeroText? }`; `register` and `schema` default to the tile's `source`. The token `{count}` in the caption is that count, and `captionVariantWhen` then tests that count instead of the tile's value. While the count is zero the caption is left out, or reads `zeroText` when that is set; a count that could not be read leaves the caption out.
+
+```json
+{ "label": "Open requests", "layout": "stacked",
+  "source": { "register": "portaliq", "schema": "portalAccessRequest", "filter": { "state": "pending" } },
+  "caption": "{count} waiting for more than 5 days",
+  "captionSource": { "filter": { "state": "pending", "escalated": true } },
+  "captionVariantWhen": [{ "op": "gte", "value": 1, "variant": "error" }] }
+```
+
 ## The stacked tile (`layout: "stacked"`)
 
 `content.layout: "stacked"` is the board's KPI tile: no icon circle, the label as plain 14px muted text, the value at 34px/700 in the text colour, and the caption on a line of its own under the value. A linked stacked tile is not underlined. Theme hooks: `--cn-kpi-stacked-padding` (10px 6px, which adds up with a dashboard cell's 8px 14px to 18px 20px), `--cn-kpi-stacked-gap`, `--cn-kpi-stacked-title-size`, `--cn-kpi-stacked-title-weight`, `--cn-kpi-stacked-value-size`, `--cn-kpi-stacked-value-color`.
