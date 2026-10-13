@@ -47,6 +47,7 @@
 .cn-look-board .cn-detail-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page:not(.cn-look-nextcloud *),
+.cn-look-board .cn-store-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) {
 	box-sizing: border-box;
 	padding: var(--cn-board-content-padding);
@@ -81,14 +82,17 @@
 }
 
 /* The 56px inset clears the navigation toggle, which overlays the content
-   only while the navigation is closed. */
+   only while the navigation is closed. The store page's own header too: it
+   kept the inset with the navigation open, 56px right of the board's title. */
 .cn-look-board .cn-page-header:not(.cn-look-nextcloud *),
+.cn-look-board .cn-store-page:not(.cn-look-nextcloud *) .cn-store-page__header,
 .cn-look-board .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
 	padding-inline-start: 0;
 }
 
 .cn-look-board:has(.app-navigation--closed) .cn-page-header:not(.cn-look-nextcloud *),
+.cn-look-board:has(.app-navigation--closed) .cn-store-page:not(.cn-look-nextcloud *) .cn-store-page__header,
 .cn-look-board:has(.app-navigation--closed) .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
 .cn-look-board:has(.app-navigation--closed) .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
 	padding-inline-start: 56px;
