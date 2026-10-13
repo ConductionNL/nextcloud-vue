@@ -1786,14 +1786,37 @@ export default {
 			if (typeof spec !== 'string' || spec === '') {
 				return ''
 			}
-			const asText = (v) => (v === null || v === undefined ? '' : String(v))
 			if (spec.includes('{')) {
-				const filled = fillSecondaryTemplate(spec, (key) => asText(this.getCellValue(row, key)))
+				const filled = fillSecondaryTemplate(spec, (key) => this.secondaryFieldText(row, key))
 				// A template whose every field is empty leaves only separators:
 				// nothing worth a line.
 				return /[\p{L}\p{N}]/u.test(filled) ? filled.trim() : ''
 			}
-			return asText(this.getCellValue(row, spec))
+			return this.secondaryFieldText(row, spec)
+		},
+
+		/**
+		 * The text of one field on a secondary line. An enum field reads as its
+		 * label (`x-enum-labels`, in the user's language), as an enum cell
+		 * does, so "regular" reads "Gewone vergadering". Anything else is the
+		 * stored value as text.
+		 *
+		 * @spec openspec/changes/screens-secondary-enum-label/specs/data-table/spec.md
+		 * @param {object} row The row.
+		 * @param {string} key The field key (dotted paths allowed).
+		 * @return {string} The text, or '' when the field is empty.
+		 */
+		secondaryFieldText(row, key) {
+			const value = this.getCellValue(row, key)
+			if (value === null || value === undefined) {
+				return ''
+			}
+			const property = this.getSchemaProperty(key)
+			if (typeof value !== 'object' && value !== '' && Array.isArray(property.enum) && property.enum.length > 0) {
+				const labels = property.enumLabels || property['x-enum-labels'] || {}
+				return this.translateLabel(labels[String(value)] || String(value))
+			}
+			return String(value)
 		},
 
 		/**
