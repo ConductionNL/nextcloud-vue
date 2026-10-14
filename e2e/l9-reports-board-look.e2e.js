@@ -39,5 +39,4 @@ test('the reports page draws board DcRapportages under the board look', async ({
 	const boxes = await host.locator('[data-testid="cn-reports-section"]').nth(0).locator('[data-testid="cn-report-card"]').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top))
 	expect(boxes).toHaveLength(2)
 	expect(Math.abs(boxes[0] - boxes[1])).toBeLessThan(1)
-
 })
