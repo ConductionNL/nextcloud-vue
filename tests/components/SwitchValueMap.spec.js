@@ -22,11 +22,9 @@ jest.mock('@nextcloud/router', () => ({
 
 import { mount } from '@vue/test-utils'
 
-
 const CnSwitchRowsWidget = require('../../src/components/CnSwitchRowsWidget/CnSwitchRowsWidget.vue').default
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
-const OBJECT_URL = '/index.php/apps/openregister/api/objects/portaliq/portal/p-1'
 
 const CONTENT = {
 	rows: [
