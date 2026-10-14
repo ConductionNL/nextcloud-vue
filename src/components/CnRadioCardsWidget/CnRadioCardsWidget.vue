@@ -4,7 +4,10 @@
 -->
 
 <template>
-	<fieldset class="cn-radio-cards" data-testid="cn-radio-cards" :aria-busy="busy ? 'true' : 'false'">
+	<fieldset class="cn-radio-cards"
+		:class="{ 'cn-radio-cards--list': isList }"
+		data-testid="cn-radio-cards"
+		:aria-busy="busy ? 'true' : 'false'">
 		<legend v-if="label" class="cn-radio-cards__legend">
 			{{ label }}
 		</legend>
@@ -52,7 +55,7 @@ let uid = 0
  * underneath, so the choice is perceivable without colour and works from the
  * keyboard.
  *
- * @spec openspec/changes/abstract-radio-cards/specs/radio-cards/spec.md
+ * @spec openspec/changes/abstract-radio-cards/specs/abstract-radio-cards/spec.md
  */
 export default {
 	name: 'CnRadioCardsWidget',
@@ -72,6 +75,7 @@ export default {
 		 * - `options` (required) — `[{ value, label, description? }]`.
 		 * - `label` — a legend over the cards (visually shown).
 		 * - `columns` — 1, 2 or 3 (default 2).
+		 * - `variant` — `cards` (the default) or `list`: a compact list of radio buttons, one per line, with the description under the label and no card around each (board DcBeheer). A list is one column.
 		 * - `readOnly`.
 		 *
 		 * @type {object}
@@ -133,7 +137,20 @@ export default {
 			return this.tr(this.content.label || '')
 		},
 
+		/**
+		 * Whether the options draw as a compact list (`variant: "list"`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-radio-cards-list/specs/radio-cards/spec.md#requirement-radio-cards-can-draw-as-a-compact-list
+		 */
+		isList() {
+			return this.content.variant === 'list'
+		},
+
 		columns() {
+			if (this.isList) {
+				return 1
+			}
 			return [1, 3].includes(this.content.columns) ? this.content.columns : 2
 		},
 
@@ -185,7 +202,7 @@ export default {
 		 *
 		 * @param {object} option The chosen option.
 		 * @return {Promise<void>}
-		 * @spec openspec/changes/abstract-radio-cards/specs/radio-cards/spec.md#requirement-choosing-a-card-saves-that-one-field
+		 * @spec openspec/changes/abstract-radio-cards/specs/abstract-radio-cards/spec.md#requirement-choosing-a-card-saves-that-one-field
 		 */
 		async choose(option) {
 			if ((!this.objectUrl && !this.hasSave) || !this.content.field) {
@@ -308,6 +325,40 @@ export default {
 .cn-radio-cards__description {
 	font-size: 12px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* `variant: "list"`: one radio button per line, the description under the
+   label, no card around each (board DcBeheer, "Soort organisatie"). */
+.cn-radio-cards--list .cn-radio-cards__grid {
+	gap: 8px;
+}
+
+.cn-radio-cards--list .cn-radio-cards__card,
+.cn-radio-cards--list .cn-radio-cards__card--selected {
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	font-size: 15px;
+}
+
+.cn-radio-cards--list .cn-radio-cards__dot {
+	width: 18px;
+	height: 18px;
+	margin-top: 2px;
+}
+
+.cn-radio-cards--list .cn-radio-cards__card--selected .cn-radio-cards__dot {
+	border-width: 5px;
+}
+
+.cn-radio-cards--list .cn-radio-cards__title {
+	font-weight: 400;
+}
+
+.cn-radio-cards--list .cn-radio-cards__description {
+	font-size: 13px;
 }
 
 @media (max-width: 640px) {

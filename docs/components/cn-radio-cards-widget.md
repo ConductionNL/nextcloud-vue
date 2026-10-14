@@ -30,6 +30,7 @@ A portal's "Aanmelden" (Niemand, Met goedkeuring, Iedereen) is this shape. The c
 | `options[]` | `{ value, label, description? }`; plain strings also work. Texts are translated through `cnTranslate`. |
 | `label` | A legend over the cards. |
 | `columns` | 1, 2 or 3 (default 2); one column under 640px. |
+| `variant` | `cards` (default) or `list`: a compact list of radio buttons, one per line, with the description under the label and no card around each, as board DcBeheer draws "Soort organisatie". A list is one column, whatever `columns` says. |
 | `readOnly` | Disables every input. |
 
 ## Behaviour
