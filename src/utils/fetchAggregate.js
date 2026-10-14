@@ -37,9 +37,32 @@ export function flattenAggFilter(target, filter, ctx) {
 				target[`filter[${k}][${op}]`] = ov
 			}
 		} else if (v !== '' && v !== null && v !== undefined) {
-			target[`filter[${k}]`] = v
+			target[aggFilterParam(k)] = v
 		}
 	}
+}
+
+/**
+ * Matches a filter key that spells its operator, `field[op]`.
+ *
+ * @type {RegExp}
+ */
+const OPERATOR_KEY = /^(.+)\[([A-Za-z_]+)\]$/
+
+/**
+ * The query parameter of one plain filter key. A key that spells its operator
+ * (`scheduledDate[gte]`, the flat form a list page and a lens use) goes out as
+ * `filter[scheduledDate][gte]`, the form the aggregation endpoint reads, and
+ * not as `filter[scheduledDate[gte]]`, a field it does not have, which counted
+ * 0. Any other key goes out as `filter[key]`.
+ *
+ * @spec openspec/changes/screens-stats-block-operator-keys/specs/stats-block/spec.md#requirement-a-stats-block-filter-can-spell-its-operator-in-the-key
+ * @param {string} key The filter key.
+ * @return {string} The query parameter name.
+ */
+export function aggFilterParam(key) {
+	const match = OPERATOR_KEY.exec(key)
+	return match ? `filter[${match[1]}][${match[2]}]` : `filter[${key}]`
 }
 
 /**

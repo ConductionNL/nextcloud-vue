@@ -122,6 +122,7 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import CnStatWidget from '../CnStatWidget/CnStatWidget.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
+import { aggFilterParam } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, normalizeMetricFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -833,7 +834,8 @@ export default {
 							params[`filter[${k}][${op}]`] = ov
 						}
 					} else if (v !== '' && v !== null && v !== undefined) {
-						params[`filter[${k}]`] = v
+						// `field[gte]` goes out as `filter[field][gte]`, not `filter[field[gte]]`.
+						params[aggFilterParam(k)] = v
 					}
 				}
 				const res = await axios.get(url, { params })

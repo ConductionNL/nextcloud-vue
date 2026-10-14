@@ -56,6 +56,11 @@
 			</div>
 		</div>
 
+		<!-- `versionCardPosition: "end"`: the app's sections come first, and the
+		     version card and the credential broker follow them (board DcBeheer
+		     starts with the app's own card). The same slot, rendered once. -->
+		<slot v-if="versionCardAtEnd" />
+
 		<!-- Version information card (version, up-to-date check, re-import, support footer) -->
 		<CnVersionInfoCard
 			v-if="showVersionCard"
@@ -151,8 +156,8 @@
 			:appCredentials="appCredentials"
 			data-testid="cn-admin-organisation-credentials" />
 
-		<!-- @slot default The app's own settings sections, rendered below the version card. -->
-		<slot />
+		<!-- @slot default The app's own settings sections, rendered below the version card, or above it with `versionCardPosition: "end"`. -->
+		<slot v-if="!versionCardAtEnd" />
 
 		<!-- First-time setup wizard, opened from the admin page (ADR-042). -->
 		<CnSetupWizard
@@ -358,6 +363,20 @@ export default {
 			default: true,
 		},
 
+		/**
+		 * Where the version card (and the organisation credential broker) sits:
+		 * `start`, above the app's sections (the default), or `end`, after them,
+		 * for a page whose board starts with the app's own card. The keyboard
+		 * order follows, because the slot moves in the markup.
+		 *
+		 * @spec openspec/changes/screens-admin-settings-version-card-end/specs/settings-board-look/spec.md#requirement-the-version-card-can-follow-the-apps-sections
+		 */
+		versionCardPosition: {
+			type: String,
+			default: 'start',
+			validator: (value) => ['start', 'end'].includes(value),
+		},
+
 		/** Version card heading. */
 		versionTitle: {
 			type: String,
@@ -482,6 +501,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the app's sections come before the version card.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-admin-settings-version-card-end/specs/settings-board-look/spec.md#requirement-the-version-card-can-follow-the-apps-sections
+		 */
+		versionCardAtEnd() {
+			return this.versionCardPosition === 'end'
+		},
+
 		/**
 		 * The crumbs that have a label.
 		 *
