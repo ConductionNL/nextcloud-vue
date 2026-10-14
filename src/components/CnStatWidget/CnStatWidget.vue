@@ -163,6 +163,7 @@ import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { aggFilterParam } from '../../utils/fetchAggregate.js'
 import { fetchListTotal, needsListEndpoint } from '../../utils/fetchFilterCounts.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -1783,7 +1784,8 @@ export default {
 						target[`filter[${k}][${op}]`] = ov
 					}
 				} else if (v !== '' && v !== null && v !== undefined) {
-					target[`filter[${k}]`] = v
+					// `field[gte]` goes out as `filter[field][gte]`, not `filter[field[gte]]`.
+					target[aggFilterParam(k)] = v
 				}
 			}
 		},
