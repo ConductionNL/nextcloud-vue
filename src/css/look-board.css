@@ -436,9 +436,20 @@
 	align-items: start;
 }
 
-/* The card: a section of the shell, or a CnSettingsCard of the page. */
+/* An app component that wraps its sections in one element (decidiq's
+   Settings.vue) takes no box of its own: its sections are grid items and
+   cards, as if the shell held them directly. Only an element whose own
+   children are sections; anything else keeps spanning the grid. */
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section),
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) {
+	display: contents;
+}
+
+/* The card: a section of the shell (also one inside a wrapping element), or a CnSettingsCard of the page. */
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
 .cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) > .cn-settings-card {
 	box-sizing: border-box;
 	display: flex;

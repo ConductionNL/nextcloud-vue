@@ -47,6 +47,14 @@ describe('look-board.css: admin settings', () => {
 		expect(rule).toMatch(/font-size: 19px/)
 	})
 
+	it('makes sections inside a wrapping element grid items and cards', () => {
+		const wrapper = '.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section)'
+		expect(rulesFor(wrapper)).toMatch(/display: contents/)
+		expect(rulesFor('.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section)')).toMatch(/display: contents/)
+		expect(rulesFor(`${wrapper} > .settings-section`)).toMatch(/padding: 22px 24px/)
+		expect(rulesFor('.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section')).toMatch(/background: var\(--color-main-background\)/)
+	})
+
 	it('draws the path line muted at 15px', () => {
 		const rule = rulesFor('.cn-look-board .cn-admin-settings-shell__crumbs:not(.cn-look-nextcloud *)')
 		expect(rule).toMatch(/font-size: 15px/)
