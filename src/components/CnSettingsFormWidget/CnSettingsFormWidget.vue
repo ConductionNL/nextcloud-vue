@@ -129,6 +129,7 @@ import { fillTemplate } from '../../utils/fillTemplate.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { changedFields, objectUrlOf, writeFields } from '../../utils/objectWrite.js'
 import { readPath } from '../../utils/readPath.js'
+import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 
 // The native file-picker modal ships its chrome styles here; without this the
@@ -163,7 +164,7 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file'|'chips'|'reference', register?, schema?, labelField?, valueTemplate?, filter?, limit?, emptyLabel?, default?, minItems?, required?, minItemsMessage?, lowercase?, addLabel?, confirmLabel?, removeLabel?, picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a field of the object, a top-level name or a dot-path.
+		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file'|'chips'|'reference', register?, schema?, labelField?, valueTemplate?, filter?, limit?, emptyLabel?, default?, minItems?, required?, minItemsMessage?, lowercase?, addLabel?, confirmLabel?, removeLabel?, picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a field of the object, a top-level name or a dot-path. A `reference` field's `filter` values may be `@objectId` and `@object.<field>` (the record being edited).
 		 * - `save` — `{ url, method?, payload? }`, write through an app endpoint (tokens `{value}`, `{field}`, `{changes}`, `{object.<path>}`).
 		 * - `columns` — 1 or 2 (default 2).
 		 * - `saveLabel`, `savedText`, `readOnly`.
@@ -212,6 +213,9 @@ export default {
 			// `reference` fields: the objects to choose from and the read's state (`loading`, `ready`, `error`), by field key.
 			referenceOptions: {},
 			referenceState: {},
+			// The query each `reference` field was last read with, by field key, so a
+			// new object re-reads only the fields whose filter changes with it.
+			referenceQuery: {},
 			errors: {},
 			saving: false,
 			notice: '',
@@ -269,6 +273,7 @@ export default {
 	watch: {
 		objectData() {
 			this.adopt()
+			this.loadReferences()
 		},
 	},
 
@@ -284,7 +289,14 @@ export default {
 		 * parameters, at most `limit`, 100 by default). A failed read leaves the
 		 * field with its stored value only, and says so in the hint's place.
 		 *
+		 * `filter` values may be `@objectId` and `@object.<field>`: the record
+		 * the form edits, so a list can be narrowed to it (the logos of this
+		 * portal). Until the record has that value the field is not read; it is
+		 * read again when the record changes the resolved query, never twice
+		 * for the same query.
+		 *
 		 * @spec openspec/changes/screens-settings-form-reference/specs/settings-form/spec.md#requirement-a-settings-form-field-can-pick-an-object
+		 * @spec openspec/changes/screens-settings-form-reference-object-filter/specs/settings-form/spec.md#requirement-a-reference-fields-filter-can-name-the-record-being-edited
 		 * @return {Promise<void>}
 		 */
 		async loadReferences() {
@@ -292,13 +304,35 @@ export default {
 			if (fields.length === 0) {
 				return
 			}
+			const ctx = { objectId: this.objectId || (this.objectData && this.objectData.id) || undefined, object: this.objectData || undefined }
+			const pending = []
+			for (const field of fields) {
+				const filter = resolveFilterTokens(field.filter && typeof field.filter === 'object' ? field.filter : {}, ctx)
+				if (hasUnresolvedTokens(filter)) {
+					// The record has no value for the token yet: nothing to read.
+					continue
+				}
+				const params = { ...filter, _limit: Number(field.limit) > 0 ? Number(field.limit) : 100 }
+				const query = JSON.stringify(params)
+				if (this.referenceQuery[field.key] === query) {
+					continue
+				}
+				this.referenceQuery = { ...this.referenceQuery, [field.key]: query }
+				pending.push({ field, params, query })
+			}
+			if (pending.length === 0) {
+				return
+			}
 			const { default: axios } = await import('@nextcloud/axios')
-			await Promise.all(fields.map(async (field) => {
+			await Promise.all(pending.map(async ({ field, params, query }) => {
 				this.referenceState = { ...this.referenceState, [field.key]: 'loading' }
 				try {
 					const url = `/apps/openregister/api/objects/${encodeURIComponent(field.register)}/${encodeURIComponent(field.schema)}`
-					const params = { ...(field.filter && typeof field.filter === 'object' ? field.filter : {}), _limit: Number(field.limit) > 0 ? Number(field.limit) : 100 }
 					const { data } = await axios.get(prefixUrl(url), { params })
+					if (this.referenceQuery[field.key] !== query) {
+						// A newer record asked for another list meanwhile.
+						return
+					}
 					const rows = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : [])
 					const options = []
 					for (const row of rows) {
