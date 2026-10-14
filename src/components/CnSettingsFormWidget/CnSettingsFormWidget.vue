@@ -97,7 +97,8 @@
 				<p v-if="errors[field.key]" class="cn-settings-form__error" role="alert">
 					{{ errors[field.key] }}
 				</p>
-				<p v-else-if="field.hint" class="cn-settings-form__hint">
+				<!-- A chips field prints its own hint (it gets it in chipsContent). -->
+				<p v-else-if="field.hint && field.type !== 'chips'" class="cn-settings-form__hint">
 					{{ field.hint }}
 				</p>
 			</div>
