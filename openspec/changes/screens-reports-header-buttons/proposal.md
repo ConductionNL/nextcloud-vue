@@ -20,7 +20,7 @@ square sits between the secondary buttons and the primary one, as on the index h
 - `src/components/CnReportsPage/CnReportsPage.vue`: the `headerButtons` and `headerActions` props, `headerButtonsRow`,
   `onHeaderButton`, the heading row.
 - `src/css/look-board-reports.css`: the board's 40px buttons.
-- Manifest schema 2.95.0: the `headerButtons` description names `type: "reports"`. The key already validated on any
+- Manifest schema 2.96.0: the `headerButtons` description names `type: "reports"`. The key already validated on any
   page; the bump records the new meaning.
 - A reports page without `headerButtons` renders exactly as before, in both looks (no square, no extra wrapper).
 
