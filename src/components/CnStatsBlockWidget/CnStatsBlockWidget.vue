@@ -581,7 +581,7 @@ export default {
 			if (!fmt || this.loading) {
 				return null
 			}
-			return formatMetricValue(this.resolvedCount, fmt, this.configCtx, this.pageObject)
+			return formatMetricValue(this.resolvedCount, fmt, this.configCtx, this.pageObject, this.tl)
 		},
 
 		/**
@@ -613,7 +613,7 @@ export default {
 					return {
 						// The value as the entry's `format` says, money in the
 						// currency the entry names; null keeps the plain count.
-						formatted: fmt && resolved ? formatMetricValue(raw, fmt, this.configCtx, this.pageObject) : null,
+						formatted: fmt && resolved ? formatMetricValue(raw, fmt, this.configCtx, this.pageObject, this.tl) : null,
 						entry: entry || {},
 						key: `${(entry && entry.register) || ''}/${(entry && entry.schema) || ''}/${i}`,
 						count: resolved ? raw : 0,

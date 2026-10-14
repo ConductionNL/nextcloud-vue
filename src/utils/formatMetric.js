@@ -227,6 +227,35 @@ export function metricLocale() {
 }
 
 /**
+ * A format spec with its literal `prefix` / `suffix` run through the host
+ * translate function. A `@`-token, an empty string, or a missing translate
+ * leaves the affix as written.
+ *
+ * @param {object} format The `content.format` spec.
+ * @param {((text: string) => string)|null} translate The host translate function.
+ * @return {object} A copy of the spec (the same object when nothing changes).
+ * @spec openspec/changes/screens-metric-affix-translate/specs/dashboard-page/spec.md#requirement-a-metric-prefix-and-suffix-are-translated
+ */
+export function translateMetricAffixes(format, translate) {
+	const fmt = format || {}
+	if (typeof translate !== 'function') {
+		return fmt
+	}
+	let out = fmt
+	for (const key of ['prefix', 'suffix']) {
+		const text = fmt[key]
+		if (typeof text === 'string' && text.trim() !== '' && text.charAt(0) !== '@') {
+			const translated = translate(text)
+			if (typeof translated === 'string' && translated !== text) {
+				out = out === fmt ? { ...fmt } : out
+				out[key] = translated
+			}
+		}
+	}
+	return out
+}
+
+/**
  * Format a numeric value per a manifest `content.format` spec.
  *
  * Handles the `number` / `currency` / `percent` / `duration-hours` /
@@ -250,11 +279,18 @@ export function metricLocale() {
  * @param {unknown}      value     The raw value to format.
  * @param {object} format    The `content.format` spec (`{ style, currency, currencyField, decimals, prefix, suffix }`).
  * @param {object} configCtx The page-level app-config map for `@config.<key>` resolution.
+ * A literal `prefix` / `suffix` (one that is not a `@config.` or `@object.`
+ * token) is run through `translate` when one is given, as every other
+ * manifest-authored string is, so an app's catalogue entry for " days"
+ * (" dagen") applies. A token is resolved, never translated.
+ *
  * @param {object|null} [object] The detail page's object, for `currencyField` and `@object.<field>`.
+ * @param {((text: string) => string)|null} [translate] The host app's translate function (`cnTranslate`).
  * @return {string} The formatted display string.
  * @spec openspec/changes/stat-currency-from-object/specs/dashboard-page/spec.md#requirement-a-money-value-is-shown-in-the-currency-the-entry-names
+ * @spec openspec/changes/screens-metric-affix-translate/specs/dashboard-page/spec.md#requirement-a-metric-prefix-and-suffix-are-translated
  */
-export function formatMetricValue(value, format, configCtx, object = null) {
+export function formatMetricValue(value, format, configCtx, object = null, translate = null) {
 	if (value === null || value === undefined) {
 		return '—'
 	}
@@ -263,7 +299,7 @@ export function formatMetricValue(value, format, configCtx, object = null) {
 		return String(value)
 	}
 
-	const fmt = resolveConfigFormat(format, configCtx, object)
+	const fmt = resolveConfigFormat(translateMetricAffixes(format, translate), configCtx, object)
 	const locale = metricLocale()
 	// `duration-hours` and `decimal` default to ONE fraction digit; the
 	// other styles keep the pre-existing default of 0.
