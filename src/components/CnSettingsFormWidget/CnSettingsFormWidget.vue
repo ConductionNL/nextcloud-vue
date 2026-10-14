@@ -52,18 +52,33 @@
 							{{ field.clearLabel }}
 						</NcButton>
 					</div>
-					<select
-						v-else-if="field.type === 'reference'"
-						:id="inputId(field)"
-						v-model="form[field.key]"
-						class="cn-settings-form__control"
-						:disabled="field.readOnly"
-						:aria-busy="referenceState[field.key] === 'loading' ? 'true' : null"
-						:data-testid="`cn-settings-form-reference-${field.key}`">
-						<option v-for="option in referenceChoices(field)" :key="option.value" :value="option.value">
-							{{ option.label }}
-						</option>
-					</select>
+					<div v-else-if="field.type === 'reference'" class="cn-settings-form__reference">
+						<select
+							:id="inputId(field)"
+							v-model="form[field.key]"
+							class="cn-settings-form__control"
+							:disabled="field.readOnly"
+							:aria-busy="referenceState[field.key] === 'loading' ? 'true' : null"
+							:data-testid="`cn-settings-form-reference-${field.key}`">
+							<option v-for="option in referenceChoices(field)" :key="option.value" :value="option.value">
+								{{ option.label }}
+							</option>
+						</select>
+						<!-- `free`: a typed value (a URL) besides picking an object. -->
+						<template v-if="field.free && !field.readOnly">
+							<label class="cn-settings-form__sublabel" :for="`${inputId(field)}-free`">{{ field.freeLabel }}</label>
+							<input
+								:id="`${inputId(field)}-free`"
+								class="cn-settings-form__control"
+								type="text"
+								inputmode="url"
+								:value="freeValue(field)"
+								:placeholder="field.freePlaceholder"
+								:aria-invalid="errors[field.key] ? 'true' : null"
+								:data-testid="`cn-settings-form-reference-free-${field.key}`"
+								@input="form[field.key] = $event.target.value.trim()">
+						</template>
+					</div>
 					<select
 						v-else-if="field.type === 'select'"
 						:id="inputId(field)"
@@ -165,7 +180,7 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file'|'chips'|'reference', register?, schema?, labelField?, valueTemplate?, filter?, limit?, emptyLabel?, default?, minItems?, required?, minItemsMessage?, lowercase?, addLabel?, confirmLabel?, removeLabel?, picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a field of the object, a top-level name or a dot-path. A `reference` field's `filter` values may be `@objectId` and `@object.<field>` (the record being edited).
+		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file'|'chips'|'reference', register?, schema?, labelField?, valueTemplate?, filter?, limit?, emptyLabel?, free?, freeLabel?, freePlaceholder?, freePattern?, freePatternMessage?, default?, minItems?, required?, minItemsMessage?, lowercase?, addLabel?, confirmLabel?, removeLabel?, picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a field of the object, a top-level name or a dot-path. A `reference` field's `filter` values may be `@objectId` and `@object.<field>` (the record being edited).
 		 * - `save` — `{ url, method?, payload? }`, write through an app endpoint (tokens `{value}`, `{field}`, `{changes}`, `{object.<path>}`).
 		 * - `columns` — 1 or 2 (default 2).
 		 * - `saveLabel`, `savedText`, `readOnly`.
@@ -241,6 +256,9 @@ export default {
 					hint: this.tr(field.hint || ''),
 					placeholder: this.tr(field.placeholder || ''),
 					chooseLabel: this.tr(field.chooseLabel || 'Choose a file'),
+					free: field.type === 'reference' && field.free === true,
+					freeLabel: this.tr(field.freeLabel || 'Or type a value'),
+					freePlaceholder: this.tr(field.freePlaceholder || ''),
 					clearLabel: this.tr(field.clearLabel || 'Remove'),
 					rows: field.rows || 3,
 					wide: field.wide === true || field.type === 'textarea',
@@ -373,6 +391,24 @@ export default {
 				choices.push({ value: current, label: current })
 			}
 			return [...choices, ...options]
+		},
+
+		/**
+		 * The typed value of a `reference` field with `free`: the value the form
+		 * holds when it is not one of the objects to pick, else empty (picking
+		 * an object clears the typed value).
+		 *
+		 * @spec openspec/changes/screens-settings-form-reference-free-value/specs/settings-form/spec.md#requirement-a-reference-field-can-also-take-a-typed-value
+		 * @param {object} field The field.
+		 * @return {string}
+		 */
+		freeValue(field) {
+			const current = this.form[field.key]
+			if (typeof current !== 'string' || current === '') {
+				return ''
+			}
+			const options = this.referenceOptions[field.key] || []
+			return options.some((option) => option.value === current) ? '' : current
 		},
 
 		tr(text) {
@@ -569,6 +605,9 @@ export default {
 					if (Number.isNaN(value) || (field.min !== undefined && value < field.min) || (field.max !== undefined && value > field.max)) {
 						errors[field.key] = this.tr('This number is not valid.')
 					}
+				} else if (field.free && field.freePattern && this.freeValue(field) !== '' && !new RegExp(field.freePattern).test(String(value))) {
+					// A typed value (not one of the objects) answers to `freePattern`.
+					errors[field.key] = this.tr(field.freePatternMessage || 'This value is not valid.')
 				} else if (field.pattern && !new RegExp(field.pattern).test(String(value))) {
 					errors[field.key] = this.tr(field.patternMessage || 'This value is not valid.')
 				}
@@ -672,6 +711,17 @@ export default {
 	font-size: 13px;
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+.cn-settings-form__reference {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cn-settings-form__sublabel {
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-settings-form__control {
