@@ -132,6 +132,21 @@ if (typeof window !== 'undefined' && /[?&](ptlistcard|ptaccounts)=/.test(window.
 		],
 	}))
 }
+// The header Actions menu scenarios (?l7=header-menu-<name>): a navigate
+// entry is an in-app link only when the router can resolve its route, and the
+// claim is that clicking it routes, so these need the real router.
+if (typeof window !== 'undefined' && /[?&]l7=header-menu-/.test(window.location.search)) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const page = { render: () => null }
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: [
+			{ path: '/', name: 'Meetings', component: page },
+			{ path: '/calendar', name: 'MeetingCalendar', component: page },
+			{ path: '/agenda', name: 'LongTermAgenda', component: page },
+		],
+	}))
+}
 // Vue 3's replacement for Vue.prototype.
 app.config.globalProperties.t = t
 app.config.globalProperties.n = n

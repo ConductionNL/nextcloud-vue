@@ -69,6 +69,17 @@
 										</template>
 										{{ entry.label }}
 									</NcActionLink>
+									<NcActionLink
+										v-else-if="entry.link"
+										:href="entry.link.href"
+										:closeAfterClick="true"
+										:data-testid="`cn-index-header-menu-${entry.key}`"
+										@click="onHeaderMenuLinkClick(entry, $event)">
+										<template v-if="entry.icon" #icon>
+											<CnIcon :name="entry.icon" :size="20" />
+										</template>
+										{{ entry.label }}
+									</NcActionLink>
 									<NcActionButton
 										v-else
 										:disabled="entry.disabled"
@@ -1064,13 +1075,13 @@ import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
-import { routeHref } from '../../utils/actionLink.js'
+import { followItemActionLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
 import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
-import { openRowTarget } from '../../utils/linkNavigation.js'
+import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
@@ -6887,6 +6898,10 @@ export default {
 				label: entry.label ? this.cnTranslate(entry.label) : '',
 				icon: entry.icon && typeof entry.icon === 'string' && !entry.icon.startsWith('icon-') ? entry.icon : '',
 				href: typeof entry.href === 'string' && entry.href !== '' ? entry.href : '',
+				// A `handler: "navigate"` entry whose route resolves carries `to`
+				// (resolveHeaderHandler drops its handler): the menu draws it as
+				// an in-app link, as the actions bar does, so it navigates.
+				link: !entry.href && entry.to && !entry.disabled ? resolveItemActionLink({ to: entry.to }, null, this.$router) : null,
 				disabled: Boolean(entry.disabled),
 				run: () => this.onHeaderAction({ action: entry.id, id: entry.id }),
 			})
@@ -6989,6 +7004,24 @@ export default {
 				out.push(entry)
 			}
 			return out
+		},
+
+		/**
+		 * An in-app link of the header's Actions menu was clicked: a plain click
+		 * goes through the router (a modified click is left to the browser),
+		 * and the entry is reported as a header action, as the actions bar does.
+		 *
+		 * @spec openspec/changes/screens-index-header-actions-menu/specs/index-header/spec.md#requirement-the-header-actions-menu-lists-what-its-items-name
+		 * @param {{key: string, link: object}} entry The menu entry.
+		 * @param {MouseEvent} event The click.
+		 * @return {void}
+		 */
+		onHeaderMenuLinkClick(entry, event) {
+			if (isModifiedClick(event)) {
+				return
+			}
+			followItemActionLink(event, entry.link, this.$router)
+			this.$emit('header-action', { action: entry.key, id: entry.key })
 		},
 
 		/**
