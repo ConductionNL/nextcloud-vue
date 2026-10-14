@@ -212,7 +212,9 @@ export default {
 		/**
 		 * The list config: `{ register, schema, filter?, sort?, limit?, extend?,
 		 * presentation?, title?, meta?, text?, label?, pill?, trailing?, icon?,
-		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText? }`.
+		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
+		 * valueLabels? }`. `valueLabels` maps a field's stored values to the labels
+		 * the templates show.
 		 *
 		 * @type {object}
 		 */
@@ -441,7 +443,40 @@ export default {
 		 * @return {string} The text, '' when a token is empty.
 		 */
 		fill(template, row) {
-			return typeof template === 'string' && template !== '' ? fillTemplate(this.translate(template), row, new Date(), this.templateContext) : ''
+			return typeof template === 'string' && template !== '' ? fillTemplate(this.translate(template), this.labelledRow(row), new Date(), this.templateContext) : ''
+		},
+
+		/**
+		 * The row as the templates read it: a field named in `valueLabels`
+		 * (`{ channel: { phone: "Phone", telefoon: "Phone" } }`) shows the
+		 * translated label of its stored value, so "{channel}" reads "Telefoon"
+		 * for both spellings the data holds. A value without a label stays as
+		 * stored. The pill, the badges and the sort read the stored value.
+		 *
+		 * @param {object} row The row.
+		 * @return {object} The row, or a shallow copy with labelled fields.
+		 * @spec openspec/changes/screens-record-list-value-labels/specs/record-list-value-labels/spec.md#requirement-a-record-list-template-can-show-a-label-for-a-stored-value
+		 */
+		labelledRow(row) {
+			const map = this.content?.valueLabels
+			if (!row || typeof row !== 'object' || !map || typeof map !== 'object') {
+				return row
+			}
+			let out = row
+			for (const [field, labels] of Object.entries(map)) {
+				const raw = row[field]
+				if (!labels || typeof labels !== 'object' || (typeof raw !== 'string' && typeof raw !== 'number')) {
+					continue
+				}
+				const label = labels[String(raw)]
+				if (typeof label === 'string' && label !== '') {
+					if (out === row) {
+						out = { ...row }
+					}
+					out[field] = this.translate(label)
+				}
+			}
+			return out
 		},
 
 		/**

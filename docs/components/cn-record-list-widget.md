@@ -84,6 +84,10 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 
 `emptyText` on one line when the list is empty; one quiet line (`errorText`, else "This list could not be loaded.") when the read fails, never both. The error goes to the console.
 
+### A label for a stored value
+
+`valueLabels` maps a field's stored values to labels the templates show: `"valueLabels": { "channel": { "phone": "Phone", "telefoon": "Phone", "email": "Email" } }` makes `"{channel}"` read the translated label ("Telefoon" for both spellings). A value the map does not name is shown as stored. The pill, the badges and the sort keep the stored value.
+
 ## Props
 
 | Prop | Type | Default | Description |
