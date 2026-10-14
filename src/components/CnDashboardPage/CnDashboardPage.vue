@@ -4578,6 +4578,15 @@ export default {
 			// because the dispatcher only forwards `content` — honour it with a
 			// one-time deprecation warning so those cards render while authors
 			// migrate the key under `content`.
+			// Grid layout (`layout: "grid"`): stat tiles in columns.
+			const stats = content.stats !== undefined ? content.stats : props.stats
+			if (Array.isArray(stats)) {
+				out.stats = stats
+			}
+			const columns = content.columns !== undefined ? content.columns : props.columns
+			if (columns !== undefined) {
+				out.columns = Number(columns)
+			}
 			const contentEntries = content.entries !== undefined ? content.entries : props.entries
 			if (contentEntries !== undefined) {
 				out.entries = contentEntries

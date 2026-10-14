@@ -87,8 +87,12 @@
 										:closeAfterClick="true"
 										:data-testid="`cn-index-header-menu-${entry.key}`"
 										@click="entry.run()">
-										<template v-if="entry.icon" #icon>
-											<CnIcon :name="entry.icon" :size="20" />
+										<!-- A built-in ships its own icon (`iconComponent`), so it
+										     never falls back to the "?" when the app has not
+										     registered that icon name. -->
+										<template v-if="entry.iconComponent || entry.icon" #icon>
+											<component :is="entry.iconComponent" v-if="entry.iconComponent" :size="20" />
+											<CnIcon v-else :name="entry.icon" :size="20" />
 										</template>
 										{{ entry.label }}
 									</NcActionButton>
@@ -1060,6 +1064,8 @@ import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Export from 'vue-material-design-icons/Export.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import ImportIcon from 'vue-material-design-icons/Import.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
@@ -6890,7 +6896,7 @@ export default {
 		 * @spec openspec/changes/screens-index-header-actions-menu/specs/index-header/spec.md#requirement-the-header-actions-menu-lists-what-its-items-name
 		 * @spec openspec/changes/screens-index-header-menu-headings/specs/index-header/spec.md#requirement-the-header-actions-menu-can-draw-group-headings-and-separators
 		 * @param {{items?: Array<(string|{heading: string})>|null, format?: string}} button The resolved header button.
-		 * @return {Array<{key: string, label: string, kind?: ('heading'|'separator'), icon?: string, href?: string, disabled?: boolean, title?: string, run?: Function}>}
+		 * @return {Array<{key: string, label: string, kind?: ('heading'|'separator'), icon?: string, href?: string, disabled?: boolean, title?: string, iconComponent?: object, run?: Function}>}
 		 */
 		headerMenuEntries(button) {
 			const fromAction = (entry) => ({
@@ -6908,8 +6914,8 @@ export default {
 			const names = button && Array.isArray(button.items) ? button.items : ['header-actions']
 			const noSelection = this.internalSelectedIds.length < 1
 			const builtIns = {
-				import: () => ({ key: 'import', label: t('nextcloud-vue', 'Import'), icon: 'Import', run: () => { this.showImportDialog = true } }),
-				export: () => ({ key: 'export', label: t('nextcloud-vue', 'Export'), icon: 'Export', run: () => this.onHeaderButton({ action: 'export', format: button.format }) }),
+				import: () => ({ key: 'import', label: t('nextcloud-vue', 'Import'), icon: 'Import', iconComponent: ImportIcon, run: () => { this.showImportDialog = true } }),
+				export: () => ({ key: 'export', label: t('nextcloud-vue', 'Export'), icon: 'Export', iconComponent: Export, run: () => this.onHeaderButton({ action: 'export', format: button.format }) }),
 				refresh: () => ({ key: 'refresh', label: t('nextcloud-vue', 'Refresh'), icon: 'Refresh', run: () => this.onRefreshEvent() }),
 				'copy-selected': () => ({
 					key: 'copy-selected',
@@ -6924,6 +6930,7 @@ export default {
 					key: 'delete-selected',
 					label: t('nextcloud-vue', 'Delete selected'),
 					icon: 'TrashCanOutline',
+					iconComponent: TrashCanOutline,
 					disabled: noSelection,
 					title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to delete') : '',
 					run: () => { this.showMassDeleteDialog = true },
