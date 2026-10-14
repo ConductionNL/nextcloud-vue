@@ -32,6 +32,7 @@ import { NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
 import { objectUrlOf, writeFields } from '../../utils/objectWrite.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
+import { switchIsOn, switchStoredValue } from '../../utils/switchValues.js'
 
 /**
  * CnSwitchRowsWidget — the `switch-rows` widget: a card of switches, each with
@@ -54,7 +55,8 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `rows` (required) — `[{ key, label, hint?, invert? }]`; `key` is a boolean field, a top-level name or a dot-path. `invert` shows the switch on when the field is false (a stored `disabled` read as "enabled").
+		 * - `rows` (required) — `[{ key, label, hint?, invert?, values? }]`; `key` is a boolean field, a top-level name or a dot-path. `invert` shows the switch on when the field is false (a stored `disabled` read as "enabled"). `values: { on, off }` reads and writes those values instead of true/false (an app config flag stored as `"1"`/`"0"`).
+		 * - `values` — `{ on, off }` for every row that declares none.
 		 * - `save` — `{ url, method?, payload? }`, write through an app endpoint (tokens `{value}`, `{field}`, `{changes}`, `{object.<path>}`).
 		 * - `readOnly`.
 		 *
@@ -137,11 +139,22 @@ export default {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
 		},
 
+		/**
+		 * A row's value map: its own `values`, else the widget's.
+		 *
+		 * @spec openspec/changes/screens-switch-value-map/specs/switch-rows/spec.md#requirement-a-switch-can-read-and-write-a-value-map
+		 * @param {object} row The row.
+		 * @return {object|undefined} The declared `values`.
+		 */
+		valuesOf(row) {
+			return row.values !== undefined ? row.values : this.content.values
+		},
+
 		/** Read every switch off the object. */
 		adopt() {
 			const values = {}
 			for (const row of this.rows) {
-				const stored = readPath(this.objectData || {}, row.key) === true
+				const stored = switchIsOn(readPath(this.objectData || {}, row.key), this.valuesOf(row))
 				values[row.key] = row.invert ? !stored : stored
 			}
 			this.saved = values
@@ -165,10 +178,11 @@ export default {
 			this.busy = row.key
 			this.values = { ...this.values, [row.key]: on }
 			const stored = row.invert ? !on : on
+			const values = this.valuesOf(row)
 			try {
-				const data = await writeFields(this.objectUrl, { [row.key]: stored }, { save: this.content.save, object: this.objectData })
+				const data = await writeFields(this.objectUrl, { [row.key]: switchStoredValue(stored, values) }, { save: this.content.save, object: this.objectData })
 				const answered = readPath(data, row.key)
-				const written = answered !== undefined ? answered === true : stored
+				const written = answered !== undefined ? switchIsOn(answered, values) : stored
 				const shown = row.invert ? !written : written
 				this.saved = { ...this.saved, [row.key]: shown }
 				this.values = { ...this.values, [row.key]: shown }

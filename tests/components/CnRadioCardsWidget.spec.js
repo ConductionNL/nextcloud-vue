@@ -136,4 +136,21 @@ describe('CnRadioCardsWidget', () => {
 		expect(mockPatch).not.toHaveBeenCalled()
 		expect(put).toHaveBeenCalledWith('/index.php/apps/x/api/p-1/signup', { signup: 'anyone' })
 	})
+
+	test('variant list draws one column with the list class and keeps choosing and saving', async () => {
+		const wrapper = make({ content: { ...CONTENT, variant: 'list', columns: 3 } })
+		expect(wrapper.find('[data-testid="cn-radio-cards"]').classes()).toContain('cn-radio-cards--list')
+		expect(wrapper.find('.cn-radio-cards__grid').classes()).toContain('cn-radio-cards__grid--1')
+		expect(wrapper.find('[data-testid="cn-radio-cards-option-approval"]').text()).toContain('Everyone signs up, an administrator approves.')
+		mockPatch.mockResolvedValueOnce({ data: { ...OBJECT, signup: 'anyone' } })
+		await input(wrapper, 'anyone').setValue(true)
+		await flush()
+		expect(mockPatch).toHaveBeenCalledWith(OBJECT_URL, { signup: 'anyone' })
+	})
+
+	test('the default variant is cards', () => {
+		const wrapper = make()
+		expect(wrapper.find('[data-testid="cn-radio-cards"]').classes()).not.toContain('cn-radio-cards--list')
+		expect(wrapper.find('.cn-radio-cards__grid').classes()).toContain('cn-radio-cards__grid--2')
+	})
 })

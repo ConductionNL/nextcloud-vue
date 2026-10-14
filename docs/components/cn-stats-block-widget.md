@@ -93,6 +93,30 @@ Drop a `countLabel` that spelled the currency (`"EUR"`): the formatted value
 carries the symbol. The single-KPI mode takes the same shape as its `format`
 prop.
 
+## Stat tiles in a grid (`layout: "grid"`, `stats`, `columns`)
+
+One card with several figures of any kind a `stat` widget computes: each entry of `stats` is a stat tile's
+`content` (`label`, `caption`, `format`, `source` with `ratio`, `elapsed`, `computed`, `weighted` or `endpoint`), drawn
+in `columns` columns (default 2, 1 to 4), in one card. The card's title is the widget wrapper's: set `showTitle: true`
+on the widget. The board's "Je week tot nu toe" card:
+
+```json
+{
+  "id": "my-week",
+  "type": "stats-block",
+  "title": "Your week so far",
+  "showTitle": true,
+  "content": {
+    "layout": "grid",
+    "columns": 2,
+    "stats": [
+      { "label": "Answered", "caption": "this week", "source": { "register": "pipelinq", "schema": "ticket", "metric": "count", "filter": { "assignee": "@me", "status": "resolved", "resolvedAt[gte]": "@today-7d" } } },
+      { "label": "Average answer time", "format": { "style": "decimal", "decimals": 1, "suffix": " days" }, "source": { "kind": "elapsed", "register": "pipelinq", "schema": "ticket", "from": "occurredAt", "to": "resolvedAt" } }
+    ]
+  }
+}
+```
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -109,6 +133,8 @@ prop.
 | `filled` | `boolean` | `false` | Draw each tile's own grey box. Off by default — the widget renders inside a `CnWidgetWrapper` that already draws a card. |
 | `route` | `object\|null` | `null` | Vue-router location; when set, the inner card becomes a `<router-link>` (single-KPI mode). |
 | `iconClass` | `string` | `''` | Optional NC core icon class (`icon-link`, `icon-mail`, …) applied to the wrapping `<div>`. |
+| `stats` | `array` | `[]` | The tiles of `layout: "grid"`: each a stat tile's `content`, any source kind. See [Stat tiles in a grid](#stat-tiles-in-a-grid-layout-grid-stats-columns). |
+| `columns` | `number` | `2` | Columns of `layout: "grid"` (1 to 4). |
 
 ## Refresh wiring
 

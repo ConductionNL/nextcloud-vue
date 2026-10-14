@@ -1,0 +1,117 @@
+/*
+ * The reports page under the board look (screens-reports-page-board-look,
+ * board DcRapportages): a 28px title over a muted lead, one section per
+ * category headed at 18px, and two-up cards with an icon tile. Scoped under
+ * `.cn-look-board` with the page guard, so an app without the look renders as
+ * before.
+ */
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: var(--cn-board-section-gap);
+	padding: var(--cn-board-content-padding);
+	max-width: var(--cn-board-content-max-width);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__header {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 4px 0 8px;
+}
+
+/* The 56px inset clears the navigation toggle only while the navigation is
+   closed, as on the other board pages. */
+.cn-look-board:has(.app-navigation--closed) .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__header {
+	padding-inline-start: 56px;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__title {
+	margin: 0;
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__description {
+	margin: 0;
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__section {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	/* A host's own `section` rule (a width cap, a margin) does not reach it. */
+	max-width: none;
+	margin: 0;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__section-title {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__grid {
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 14px;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card {
+	box-sizing: border-box;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 14px;
+	padding: 18px 20px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card:hover,
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card:focus-visible {
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-icon {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	border-radius: 10px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-text {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-title {
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-description {
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--color-text-maxcontrast);
+}
+
+/* The widgets under the cards sit in the page's own padding: the dashboard
+   inside draws no second frame. */
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__widgets {
+	margin-top: 0;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-dashboard-page {
+	padding: 0;
+}
