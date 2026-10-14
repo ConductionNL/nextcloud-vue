@@ -312,6 +312,12 @@ export default {
 		/** The tab list's name under the board look, provided by CnDetailPage (`config.tabsLabel`). */
 		cnDetailTabsLabel: { default: null },
 		/**
+		 * The records the detail page's `visibilityContext` names, keyed
+		 * by name (a case's case type), provided by CnDetailPage. A tab's
+		 * `visibleWhen` reads them as `@context.<name>`. Null on any other page.
+		 */
+		cnDetailVisibilityRows: { default: null },
+		/**
 		 * The host's translate (CnAppRoot provides `cnTranslate`), so a tab
 		 * label written in the manifest reads in the user's language.
 		 */
@@ -475,6 +481,29 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * What a tab's `visibleWhen` reads: the record, with the records the
+		 * detail page's `visibilityContext` names under `@context.<name>`. Null while
+		 * the record, or one of those records, is not there yet.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/detail-widgets-visible-when/specs/detail-widgets-visible-when/spec.md#requirement-a-detail-page-can-load-records-a-condition-names
+		 */
+		conditionData() {
+			if (!this.objectData) {
+				return null
+			}
+			const holder = this.cnDetailVisibilityRows
+			if (!holder) {
+				return this.objectData
+			}
+			const rows = holder.value
+			if (!rows) {
+				return null
+			}
+			return { ...this.objectData, '@context': rows }
+		},
+
 		/**
 		 * The open panel's own menu items, or an empty list.
 		 *
@@ -859,10 +888,11 @@ export default {
 				return 'visible'
 			}
 			if (isLocallyDecidableVisibleWhen(cond)) {
-				if (!this.objectData) {
+				const data = this.conditionData
+				if (!data) {
 					return 'pending'
 				}
-				return evaluateVisibleWhenLocal(cond, this.objectData) ? 'visible' : 'hidden'
+				return evaluateVisibleWhenLocal(cond, data) ? 'visible' : 'hidden'
 			}
 			const answer = this.sourceVisibility[index]
 			if (answer === undefined) {
@@ -883,7 +913,7 @@ export default {
 		async refreshSourceVisibility() {
 			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
 			const seq = ++this.visibilitySeq
-			const ctx = { objectId: this.objectId, object: this.objectData || undefined }
+			const ctx = { objectId: this.objectId, object: this.conditionData || this.objectData || undefined }
 			await Promise.all(tabs.map(async (tab, index) => {
 				const cond = tab && typeof tab === 'object' ? tab.visibleWhen : null
 				if (!cond || isLocallyDecidableVisibleWhen(cond)) {
