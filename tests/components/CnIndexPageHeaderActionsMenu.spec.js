@@ -33,7 +33,7 @@ function mountPage(extra = {}) {
 				CnSavedViewsControl: true,
 				CnBuildiqEditButton: true,
 				NcActions: { props: ['menuName'], template: '<div class="actions-menu" :data-name="menuName"><slot /></div>' },
-				NcActionButton: { props: ['disabled'], emits: ['click'], template: '<button class="entry" :disabled="disabled" @click="$emit(\'click\')"><slot /></button>' },
+				NcActionButton: { props: ['disabled'], emits: ['click'], template: '<button class="entry" :disabled="disabled" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>' },
 				NcActionLink: { props: ['href', 'target'], emits: ['click'], template: '<a class="entry" :href="href" :target="target" @click="$emit(\'click\', $event)"><slot /></a>' },
 				CnMassImportDialog: { template: '<div class="import-dialog" />' },
 				CnMassCopyDialog: { template: '<div class="copy-dialog" />' },
@@ -123,5 +123,13 @@ describe('CnIndexPage: the header Actions menu', () => {
 		await link.trigger('click')
 		expect(router.push).toHaveBeenCalledWith({ name: 'Decisions' })
 		expect(w.emitted('header-action')).toEqual([[{ action: 'goto-decisions', id: 'goto-decisions' }]])
+	})
+
+	it('ships the icons of its own built-ins, so an app that registered none draws no "?"', () => {
+		const w = mountPage({ headerButtons: [ADD, { action: 'actions-menu', items: ['import', 'export', 'delete-selected'] }] })
+		expect(w.find('[data-testid="cn-index-header-menu-import"] .import-icon').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-index-header-menu-export"] .export-icon').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-index-header-menu-delete-selected"] .trash-can-outline-icon').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-index-header-menu-import"] cn-icon-stub').exists()).toBe(false)
 	})
 })
