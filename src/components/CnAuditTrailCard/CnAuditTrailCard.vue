@@ -154,7 +154,7 @@ export default {
 			if (!this.register || !this.schema || !this.objectId) {
 				return ''
 			}
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trail?${params.toString()}`
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails?${params.toString()}`
 		},
 	},
 

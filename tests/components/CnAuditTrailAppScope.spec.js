@@ -58,6 +58,6 @@ describe('CnAuditTrailCard — app scope', () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ results: [] }) })
 		mount(CnAuditTrailCard, { propsData: { register: 'dossiq', schema: 'case', objectId: 'o-1' } })
 		await flush()
-		expect(global.fetch.mock.calls[0][0]).toContain('/objects/dossiq/case/o-1/audit-trail?')
+		expect(global.fetch.mock.calls[0][0]).toContain('/objects/dossiq/case/o-1/audit-trails?')
 	})
 })

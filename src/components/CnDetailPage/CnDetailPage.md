@@ -446,6 +446,8 @@ When the schema-driven fetch answers 404 the page shows a not-found state whose 
 
 `headerCard` (default `false`) draws the header as a bordered card. `headerWidget` (default `''`) names a widget in `widgets` to render inside the header under the title, without a card of its own and out of the body grid: the stages bars of the board's case card.
 
+`visibilityContext` (default `{}`) names records the page reads beside the loaded one, `{ <name>: { field, register, schema } }`. A grid widget's `visibleWhen` is read against the record, and against those records as `@context.<name>.<path>`, so a case page can show a widget for some case types only (`{ "field": "@context.caseType.category", "op": "in", "value": ["Sociaal domein"] }`). A widget without `visibleWhen` shows as before; a conditional one stays out of the grid until the record and the named records have loaded.
+
 `showWidgetActions` (Boolean, default `true`): `false` (manifest `config.showWidgetActions: false`) drops the overflow Actions menu from the cards of the body grid and the side column, unless a widget definition sets `showActions: true`.
 
 ### Favourite and follow
