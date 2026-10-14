@@ -17,10 +17,30 @@
 <template>
 	<div
 		class="cn-stats-block-widget"
-		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries && !isRows, 'cn-stats-block-widget--rows': isRows }]">
+		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries && !isRows && !isGrid, 'cn-stats-block-widget--rows': isRows, 'cn-stats-block-widget--grid': isGrid }]">
+		<!-- Grid layout: a title and the `stats` (each a stat tile's content,
+		     so every source kind a stat takes: ratio, elapsed, computed...) in
+		     `columns` columns, inside this one card (the board's "Je week tot
+		     nu toe" card). -->
+		<template v-if="isGrid">
+			<h2 v-if="title" class="cn-stats-block-widget__rows-title" data-testid="cn-stats-block-grid-title">
+				{{ tl(title) }}
+			</h2>
+			<div
+				class="cn-stats-block-widget__grid"
+				:style="{ '--cn-stats-block-columns': gridColumns }"
+				data-testid="cn-stats-block-grid">
+				<CnStatWidget
+					v-for="(stat, index) in stats"
+					:key="stat.id || index"
+					class="cn-stats-block-widget__grid-stat"
+					:content="stat"
+					data-testid="cn-stats-block-grid-stat" />
+			</div>
+		</template>
 		<!-- Rows layout: a title and one label-left, number-right row per entry
 		     (the board's "Mijn Zuiddrecht nu" card). -->
-		<template v-if="isRows">
+		<template v-else-if="isRows">
 			<h2 v-if="title" class="cn-stats-block-widget__rows-title" data-testid="cn-stats-block-rows-title">
 				{{ tl(title) }}
 			</h2>
@@ -101,6 +121,7 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
+import CnStatWidget from '../CnStatWidget/CnStatWidget.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { formatMetricValue, normalizeMetricFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
@@ -180,7 +201,7 @@ const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
 export default {
 	name: 'CnStatsBlockWidget',
 
-	components: { CnStatsBlock },
+	components: { CnStatsBlock, CnStatWidget },
 
 	inject: {
 		/**
@@ -239,6 +260,31 @@ export default {
 		entries: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The tiles of the grid layout (`layout: "grid"`): each is a stat
+		 * tile's `content` (`label`, `caption`, `format`, `source` with any
+		 * kind a `type: "stat"` widget takes: aggregate, `ratio`, `elapsed`,
+		 * `computed`, `weighted`, `endpoint`). They share this one card under
+		 * its title. Used instead of `dataSource` / `entries`.
+		 *
+		 * @type {Array<object>}
+		 * @spec openspec/changes/screens-stats-block-grid/specs/stats-block-grid/spec.md#requirement-a-stats-block-can-hold-stat-tiles-in-a-grid
+		 */
+		stats: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Columns of the grid layout (1 to 4, default 2).
+		 *
+		 * @spec openspec/changes/screens-stats-block-grid/specs/stats-block-grid/spec.md#requirement-a-stats-block-can-hold-stat-tiles-in-a-grid
+		 */
+		columns: {
+			type: Number,
+			default: 2,
 		},
 
 		/**
@@ -398,6 +444,28 @@ export default {
 		 */
 		isRows() {
 			return this.layout === 'rows'
+		},
+
+		/**
+		 * Whether the widget draws its `stats` as tiles in a grid
+		 * (`layout: "grid"` with at least one stat).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-stats-block-grid/specs/stats-block-grid/spec.md#requirement-a-stats-block-can-hold-stat-tiles-in-a-grid
+		 */
+		isGrid() {
+			return this.layout === 'grid' && Array.isArray(this.stats) && this.stats.length > 0
+		},
+
+		/**
+		 * The grid's column count, clamped to 1-4.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/screens-stats-block-grid/specs/stats-block-grid/spec.md#requirement-a-stats-block-can-hold-stat-tiles-in-a-grid
+		 */
+		gridColumns() {
+			const n = Math.floor(Number(this.columns))
+			return Number.isFinite(n) ? Math.min(4, Math.max(1, n)) : 2
 		},
 
 		/**
@@ -617,7 +685,8 @@ export default {
 		// the cross-prop rule lives here (and, for manifests, in
 		// validateManifestV2's post-schema check).
 		const hasDataSource = !!this.dataSource
-		if (hasDataSource === this.hasEntries) {
+		// A grid of stat tiles carries its sources in `stats`.
+		if (!this.isGrid && hasDataSource === this.hasEntries) {
 			// eslint-disable-next-line no-console
 			console.error('[CnStatsBlockWidget] Exactly one of `dataSource` / `entries` must be provided.')
 		}
@@ -888,6 +957,25 @@ export default {
 	font-size: 15px;
 	font-weight: 600;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-stats-block-widget--grid {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: var(--cn-widget-board-inset, 16px 20px 20px);
+}
+
+.cn-stats-block-widget__grid {
+	display: grid;
+	grid-template-columns: repeat(var(--cn-stats-block-columns, 2), minmax(0, 1fr));
+	gap: 16px 20px;
+}
+
+/* A tile in the grid is a part of the card, not a card: no box, no inset. */
+.cn-stats-block-widget__grid-stat {
+	padding: 0;
+	min-width: 0;
 }
 
 .cn-stats-block-widget__rows {
