@@ -4587,6 +4587,11 @@ export default {
 			if (columns !== undefined) {
 				out.columns = Number(columns)
 			}
+			// `tiles: "box"`: each grid tile on a surface of its own.
+			const tiles = content.tiles !== undefined ? content.tiles : props.tiles
+			if (typeof tiles === 'string') {
+				out.tiles = tiles
+			}
 			const contentEntries = content.entries !== undefined ? content.entries : props.entries
 			if (contentEntries !== undefined) {
 				out.entries = contentEntries
