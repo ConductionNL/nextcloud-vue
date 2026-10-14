@@ -48,10 +48,10 @@ describe('CnStatsBlockWidget — layout grid', () => {
 		errorSpy.mockRestore()
 	})
 
-	it('draws the title and one stat tile per entry of `stats`, in one card', async () => {
+	it('draws one stat tile per entry of `stats` in one card, the title left to the card', async () => {
 		const wrapper = mountGrid()
 		await flushPromises()
-		expect(wrapper.find('[data-testid="cn-stats-block-grid-title"]').text()).toBe('Je week tot nu toe')
+		expect(wrapper.find('h2').exists()).toBe(false)
 		const tiles = wrapper.findAll('[data-testid="cn-stats-block-grid-stat"]')
 		expect(tiles).toHaveLength(3)
 		expect(tiles[0].text()).toContain('Beantwoord')

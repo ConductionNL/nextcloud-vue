@@ -18,14 +18,13 @@
 	<div
 		class="cn-stats-block-widget"
 		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries && !isRows && !isGrid, 'cn-stats-block-widget--rows': isRows, 'cn-stats-block-widget--grid': isGrid }]">
-		<!-- Grid layout: a title and the `stats` (each a stat tile's content,
-		     so every source kind a stat takes: ratio, elapsed, computed...) in
-		     `columns` columns, inside this one card (the board's "Je week tot
-		     nu toe" card). -->
+		<!-- Grid layout: the `stats` (each a stat tile's content, so every
+		     source kind a stat takes: ratio, elapsed, computed...) in `columns`
+		     columns, inside this one card (the board's "Je week tot nu toe"
+		     card). The card's title is the widget wrapper's, as on every other
+		     card (`showTitle: true` on the widget): a heading drawn here took
+		     the page's h2 size under a theme. -->
 		<template v-if="isGrid">
-			<h2 v-if="title" class="cn-stats-block-widget__rows-title" data-testid="cn-stats-block-grid-title">
-				{{ tl(title) }}
-			</h2>
 			<div
 				class="cn-stats-block-widget__grid"
 				:style="{ '--cn-stats-block-columns': gridColumns }"
@@ -266,8 +265,9 @@ export default {
 		 * The tiles of the grid layout (`layout: "grid"`): each is a stat
 		 * tile's `content` (`label`, `caption`, `format`, `source` with any
 		 * kind a `type: "stat"` widget takes: aggregate, `ratio`, `elapsed`,
-		 * `computed`, `weighted`, `endpoint`). They share this one card under
-		 * its title. Used instead of `dataSource` / `entries`.
+		 * `computed`, `weighted`, `endpoint`). They share this one card; its
+		 * title is the widget wrapper's (`showTitle: true` on the widget).
+		 * Used instead of `dataSource` / `entries`.
 		 *
 		 * @type {Array<object>}
 		 * @spec openspec/changes/screens-stats-block-grid/specs/stats-block-grid/spec.md#requirement-a-stats-block-can-hold-stat-tiles-in-a-grid
@@ -960,10 +960,7 @@ export default {
 }
 
 .cn-stats-block-widget--grid {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	padding: var(--cn-widget-board-inset, 16px 20px 20px);
+	padding: 4px 24px 20px;
 }
 
 .cn-stats-block-widget__grid {

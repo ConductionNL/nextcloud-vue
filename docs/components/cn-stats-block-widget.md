@@ -97,13 +97,15 @@ prop.
 
 One card with several figures of any kind a `stat` widget computes: each entry of `stats` is a stat tile's
 `content` (`label`, `caption`, `format`, `source` with `ratio`, `elapsed`, `computed`, `weighted` or `endpoint`), drawn
-under the card's title in `columns` columns (default 2, 1 to 4). The board's "Je week tot nu toe" card:
+in `columns` columns (default 2, 1 to 4), in one card. The card's title is the widget wrapper's: set `showTitle: true`
+on the widget. The board's "Je week tot nu toe" card:
 
 ```json
 {
   "id": "my-week",
   "type": "stats-block",
   "title": "Your week so far",
+  "showTitle": true,
   "content": {
     "layout": "grid",
     "columns": 2,
