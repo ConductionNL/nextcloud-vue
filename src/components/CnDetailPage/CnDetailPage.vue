@@ -3102,11 +3102,17 @@ export default {
 		 * because a keyboard user who cannot see the page needs to know what
 		 * they are being offered before they take it.
 		 *
+		 * One library string with a placeholder, not "Skip to" from the host's
+		 * catalogue glued to the label: no app carried that fragment, so every
+		 * Dutch reader got "Skip to In behandeling nemen" (Zuiddrecht live
+		 * round 3), and a fragment cannot be put in Dutch word order anyway.
+		 *
 		 * @return {string} The link text.
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 * @spec openspec/changes/detail-page-strings-dutch/specs/detail-page-strings-dutch/spec.md#requirement-the-detail-page-speaks-the-readers-language
 		 */
 		skipLinkLabel() {
-			return `${this.effectiveTranslate('Skip to')} ${this.effectivePrimaryLabel}`
+			return t('nextcloud-vue', 'Skip to {action}', { action: this.effectivePrimaryLabel })
 		},
 
 		// ── The action model (detail-action-model-and-case-surfaces) ────

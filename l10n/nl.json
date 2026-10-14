@@ -1547,7 +1547,8 @@
     "This answer was refused.": "Dit antwoord is geweigerd.",
     "No value ({count})": "Geen waarde ({count})",
     "{start} to {end}": "{start} tot {end} uur",
-    "Breadcrumb": "Kruimelpad"
+    "Breadcrumb": "Kruimelpad",
+    "Skip to {action}": "Ga naar {action}"
   },
   "plurals": {
     "{count} selected": [
