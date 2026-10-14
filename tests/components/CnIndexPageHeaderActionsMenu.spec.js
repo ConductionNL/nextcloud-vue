@@ -103,4 +103,12 @@ describe('CnIndexPage: the header Actions menu', () => {
 		expect(link.element.tagName).toBe('A')
 		expect(link.attributes('href')).toBe('https://manual.example/meetings')
 	})
+
+	it('ships the icons of its own built-ins, so an app that registered none draws no "?"', () => {
+		const w = mountPage({ headerButtons: [ADD, { action: 'actions-menu', items: ['import', 'export', 'delete-selected'] }] })
+		expect(w.find('[data-testid="cn-index-header-menu-import"] .import-icon').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-index-header-menu-export"] .export-icon').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-index-header-menu-delete-selected"] .trash-can-outline-icon').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-index-header-menu-import"] cn-icon-stub').exists()).toBe(false)
+	})
 })
