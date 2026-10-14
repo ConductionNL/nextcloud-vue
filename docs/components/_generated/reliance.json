@@ -871,7 +871,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 178,
+			"transitive": 179,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2552,7 +2552,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 197,
+			"transitive": 198,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",

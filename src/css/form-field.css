@@ -183,3 +183,17 @@
 .cn-look-board .cn-form-page__footer .cn-form-page__primary {
 	margin-inline-start: auto;
 }
+
+/* A Nextcloud text area or text field with its label inside the field hides
+   its placeholder until the field takes focus, so the label and the
+   placeholder are never drawn over each other. A theme that forces every
+   placeholder visible (thematiq's nldesign system sets
+   `::placeholder { opacity: 1 !important }`) drew both: the dossiq DqTaak
+   notes field read "Een notitie toevoegen" over "Wat heb je gevonden, wie heb
+   je gebeld?". Under the board look the placeholder stays hidden at rest, as
+   Nextcloud intends; a field with its label outside keeps its placeholder.
+   @spec openspec/changes/board-field-label-over-placeholder/specs/form-field-board-look/spec.md#requirement-a-field-label-and-its-placeholder-are-never-drawn-over-each-other */
+.cn-look-board .textarea__input:not(:focus, .textarea__input--label-outside)::placeholder,
+.cn-look-board .input-field:not(.input-field--label-outside) .input-field__input:not(:focus)::placeholder {
+	opacity: 0 !important;
+}

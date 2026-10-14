@@ -56,6 +56,7 @@ export const SENTINEL_RESOLVERS = Object.freeze({
 	answer: 'resolveAssignValue (utils/formAssign.js)',
 	row: 'CnFieldListWidget (rowActions request)',
 	subject: 'CnBannerWidget (action route)',
+	context: 'detailWidgetVisible (utils/detailWidgetVisibility.js)',
 })
 
 /**
