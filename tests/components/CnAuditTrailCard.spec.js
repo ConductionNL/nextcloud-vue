@@ -84,4 +84,20 @@ describe('CnAuditTrailCard', () => {
 		expect(wrapper.text()).toContain('uid')
 		wrapper.unmount()
 	})
+
+	// OpenRegister routes the per-object trail as `audit-trails` (plural,
+	// `auditTrail#objects`). The singular path matched no route and the card
+	// read a 404 as "No audit entries yet" on every record.
+	it('reads the per-object trail from the plural audit-trails route', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnAuditTrailCard, {
+			propsData: { register: 'r1', schema: 's1', objectId: 'o1', maxDisplay: 7 },
+		})
+		await flushPromises()
+		const url = String(global.fetch.mock.calls[0][0])
+		const path = url.split('?')[0]
+		expect(path.endsWith('/apps/openregister/api/objects/r1/s1/o1/audit-trails')).toBe(true)
+		expect(url).toContain('limit=7')
+		wrapper.unmount()
+	})
 })
