@@ -465,7 +465,12 @@
 	display: none;
 }
 
+/* NcSettingsSection draws its name `display: inline-flex; justify-content:
+   center`; in the card's flex column the name spans the card, so the title
+   sat centred. The board's card titles start at the left edge. */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__name {
+	justify-content: flex-start;
+	text-align: start;
 	margin: 0;
 	font-size: 19px;
 	font-weight: 700;
