@@ -511,7 +511,7 @@ export default {
 		 * @return {string} The formatted string.
 		 */
 		formatNumber(value) {
-			return formatMetricValue(value, this.resolvedFormat, unwrapAppConfig(this.cnAppConfig))
+			return formatMetricValue(value, this.resolvedFormat, unwrapAppConfig(this.cnAppConfig), null, this.effectiveTranslate)
 		},
 
 		/**
