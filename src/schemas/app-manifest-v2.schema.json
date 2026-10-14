@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.93.0",
+	"version": "2.94.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -150,6 +150,7 @@
 							"title": { "type": "string", "description": "i18n key / text for the tour name (restart menu)." },
 							"trigger": { "type": "string", "enum": ["first-visit", "version-bump", "empty-index", "manual"], "default": "manual", "description": "When the tour auto-starts." },
 							"minAppVersion": { "type": "string", "description": "Semver; the tour is inert below this app version." },
+							"startOn": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true, "description": "Route names the tour may auto-start on. A user who first lands anywhere else, such as on a case opened from a link, does not get the tour there: it waits until they reach one of these routes. Without it a tour whose first step is centered starts wherever the user lands. Has no effect on a tour started by hand." },
 							"steps": {
 								"type": "array",
 								"description": "Ordered steps.",
