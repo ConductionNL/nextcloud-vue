@@ -47,8 +47,19 @@
 								     actions when it names none): a header action, a built-in by
 								     name, or a link (an entry with `href`, the documentation). -->
 								<template v-for="entry in headerMenuEntries(button)" :key="entry.key">
+									<!-- A group heading and a separator (`{ heading }` and
+									     `separator` in items), as the board's "Ga naar" and
+									     "Selectie" groups. -->
+									<NcActionCaption
+										v-if="entry.kind === 'heading'"
+										class="cn-index-header-menu__heading"
+										:name="entry.label"
+										:data-testid="`cn-index-header-menu-${entry.key}`" />
+									<NcActionSeparator
+										v-else-if="entry.kind === 'separator'"
+										:data-testid="`cn-index-header-menu-${entry.key}`" />
 									<NcActionLink
-										v-if="entry.href"
+										v-else-if="entry.href"
 										:href="entry.href"
 										target="_blank"
 										rel="noopener noreferrer"
@@ -1043,7 +1054,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -1369,6 +1380,7 @@ export default {
 		NcActionLink,
 		NcActionButton,
 		NcActionCaption,
+		NcActionSeparator,
 		NcActionCheckbox,
 		NcButton,
 		AlertCircleOutline,
@@ -1648,9 +1660,11 @@ export default {
 		 * actions, or what its `items` name (`header-actions`, a header action
 		 * id, `import`, `export`, `refresh`, `copy-selected`, `delete-selected`,
 		 * `documentation`), so the entries the bar's menu loses have a place.
+		 * `items` can group them: `{ heading }` draws a group heading (an i18n
+		 * key) and `separator` a rule, each only when an entry follows.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
-		 * @type {Array<{label?: string, action: string, variant?: ('primary'|'secondary'), icon?: string, format?: ('csv'|'excel'), id?: string, items?: string[]}>}
+		 * @type {Array<{label?: string, action: string, variant?: ('primary'|'secondary'), icon?: string, format?: ('csv'|'excel'), id?: string, items?: Array<(string|{heading: string})>}>}
 		 */
 		headerButtons: {
 			type: Array,
@@ -5577,7 +5591,10 @@ export default {
 						variant: button.variant === 'primary' ? 'primary' : 'secondary',
 						icon,
 						format: button.format === 'excel' ? 'excel' : 'csv',
-						items: Array.isArray(button.items) ? button.items.filter((item) => typeof item === 'string' && item !== '') : null,
+						items: Array.isArray(button.items)
+							? button.items.filter((item) => (typeof item === 'string' && item !== '')
+								|| (item && typeof item === 'object' && typeof item.heading === 'string' && item.heading !== ''))
+							: null,
 					}
 				})
 				.filter((button) => button.label !== '')
@@ -6872,11 +6889,14 @@ export default {
 		 * `import`, `export`, `refresh`, `copy-selected`, `delete-selected`
 		 * (disabled until a row is selected) and `documentation` (a link to
 		 * `documentationUrl`, left out when the page has none). An unknown name
-		 * is left out.
+		 * is left out. `{ heading }` and `separator` group the entries: an
+		 * entry of `kind` `heading` or `separator`, drawn only when an entry
+		 * follows it.
 		 *
 		 * @spec openspec/changes/screens-index-header-actions-menu/specs/index-header/spec.md#requirement-the-header-actions-menu-lists-what-its-items-name
-		 * @param {{items?: string[]|null, format?: string}} button The resolved header button.
-		 * @return {Array<{key: string, label: string, icon: string, href?: string, disabled?: boolean, title?: string, iconComponent?: object, run?: Function}>}
+		 * @spec openspec/changes/screens-index-header-menu-headings/specs/index-header/spec.md#requirement-the-header-actions-menu-can-draw-group-headings-and-separators
+		 * @param {{items?: Array<(string|{heading: string})>|null, format?: string}} button The resolved header button.
+		 * @return {Array<{key: string, label: string, kind?: ('heading'|'separator'), icon?: string, href?: string, disabled?: boolean, title?: string, iconComponent?: object, run?: Function}>}
 		 */
 		headerMenuEntries(button) {
 			const fromAction = (entry) => ({
@@ -6928,8 +6948,17 @@ export default {
 					entries.push(entry)
 				}
 			}
+			// A group heading (`{ heading }`) or a `separator` is kept as a mark
+			// and only drawn when an entry follows it (see groupMenuEntries).
+			let mark = 0
 			for (const name of names) {
-				if (name === 'header-actions') {
+				if (name && typeof name === 'object') {
+					mark += 1
+					entries.push({ key: `__heading-${mark}`, kind: 'heading', label: this.cnTranslate(name.heading) })
+				} else if (name === 'separator') {
+					mark += 1
+					entries.push({ key: `__separator-${mark}`, kind: 'separator', label: '' })
+				} else if (name === 'header-actions') {
 					this.mergedHeaderActions.forEach((entry) => push(fromAction(entry)))
 				} else if (Object.hasOwn(builtIns, name)) {
 					push(builtIns[name]())
@@ -6940,7 +6969,48 @@ export default {
 					}
 				}
 			}
-			return entries
+			return this.groupMenuEntries(entries)
+		},
+
+		/**
+		 * Tidy the marks of the header's Actions menu: a heading or separator
+		 * with no entry after it (before the next mark or the end) is dropped,
+		 * a separator never opens the menu, two separators in a row are one,
+		 * and a heading followed by a separator before any entry is dropped. So a group whose entries are all left out (no documentation
+		 * URL, an unknown id) leaves no empty heading or double rule behind,
+		 * and a menu of marks only has no entries and is not drawn.
+		 *
+		 * @spec openspec/changes/screens-index-header-menu-headings/specs/index-header/spec.md#requirement-the-header-actions-menu-can-draw-group-headings-and-separators
+		 * @param {Array<{key: string, kind?: string}>} entries The entries with their marks, in order.
+		 * @return {Array<{key: string, kind?: string}>} The entries to draw.
+		 */
+		groupMenuEntries(entries) {
+			const out = []
+			let separator = null
+			let heading = null
+			for (const entry of entries) {
+				if (entry.kind === 'separator') {
+					// A rule ends the group before it: a heading not yet followed
+					// by an entry is dropped with it.
+					separator = entry
+					heading = null
+					continue
+				}
+				if (entry.kind === 'heading') {
+					heading = entry
+					continue
+				}
+				if (separator && out.length > 0) {
+					out.push(separator)
+				}
+				if (heading) {
+					out.push(heading)
+				}
+				separator = null
+				heading = null
+				out.push(entry)
+			}
+			return out
 		},
 
 		/**

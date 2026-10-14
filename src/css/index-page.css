@@ -10,6 +10,17 @@
 	padding: calc(5 * var(--default-grid-baseline));
 }
 
+/* A group heading in the header's Actions menu (`{ heading }` in items), as
+   the board's "Ga naar" and "Selectie": 12px bold capitals, muted. The menu
+   is a popover outside the page, so the class is not under the look class. */
+.cn-index-header-menu__heading {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--color-text-maxcontrast);
+}
+
 /* The board's header buttons (`headerButtons`) at the end of the title row,
    centred on the title and its count line. They wrap under the title on a
    narrow page. */
