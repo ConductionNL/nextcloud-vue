@@ -465,7 +465,12 @@
 	display: none;
 }
 
+/* NcSettingsSection draws its name `display: inline-flex; justify-content:
+   center`; in the card's flex column the name spans the card, so the title
+   sat centred. The board's card titles start at the left edge. */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__name {
+	justify-content: flex-start;
+	text-align: start;
 	margin: 0;
 	font-size: 19px;
 	font-weight: 700;
@@ -665,6 +670,21 @@
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__aside {
 	margin-inline-start: auto;
+}
+
+/* The title and meta take the room the pill and the date leave, and a long
+   title wraps inside it: the pill and the date stay on the title line, as the
+   board draws them. They drop under the text only when the card is too narrow
+   to hold 240px of text beside them (PqMijnWerk). */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__main {
+	flex: 1 1 240px;
+}
+
+/* ---- Saved views on a dashboard card (PqMijnWerk) ------------------------ */
+/* The card body is flush, so the list and its empty line carry the card's
+   inset themselves, the same 24px at the sides as a record list. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-saved-views-widget {
+	padding: 4px 24px 20px;
 }
 
 /* The board draws no chevron after the pill and date. */

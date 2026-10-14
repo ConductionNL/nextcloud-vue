@@ -40,6 +40,13 @@ describe('look-board.css: admin settings', () => {
 		expect(rulesFor('.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *) .settings-section__name')).toMatch(/max-width: none/)
 	})
 
+	it('starts the card title at the left edge at 19px, not centred as NcSettingsSection draws it', () => {
+		const rule = rulesFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__name')
+		expect(rule).toMatch(/justify-content: flex-start/)
+		expect(rule).toMatch(/text-align: start/)
+		expect(rule).toMatch(/font-size: 19px/)
+	})
+
 	it('draws the path line muted at 15px', () => {
 		const rule = rulesFor('.cn-look-board .cn-admin-settings-shell__crumbs:not(.cn-look-nextcloud *)')
 		expect(rule).toMatch(/font-size: 15px/)
