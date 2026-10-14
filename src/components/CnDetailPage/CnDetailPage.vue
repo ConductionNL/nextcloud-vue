@@ -1253,6 +1253,7 @@ import {
 	stageEntry,
 	stageOf,
 } from '../../utils/detailActionModel.js'
+import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
@@ -1260,6 +1261,7 @@ import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { slotRenders } from '../../utils/slotContent.js'
+import { evaluateVisibleWhen, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -1512,8 +1514,8 @@ export default {
 
 	/**
 	 * Offer the board look's tab list name to the tabs widget below this page
-	 * (`config.tabsLabel`, default "<type> parts"). A getter object, so the
-	 * widget reads it live.
+	 * (`config.tabsLabel`, default "<type> parts"), and the records
+	 * `visibilityContext` names. Getter objects, so the widget reads them live.
 	 *
 	 * @return {object} The provided values.
 	 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-folder-tabs-take-the-board-strip
@@ -1521,6 +1523,7 @@ export default {
 	provide() {
 		const isBoard = computed(() => this.isBoard)
 		const tabsLabel = computed(() => this.resolvedTabsLabel)
+		const visibilityRows = computed(() => (this.visibilityRowsPending ? null : this.visibilityRows))
 		return {
 			// The page's own look reaches the tabs, the cards and the activity
 			// below it, also when it came from the `look` prop and not the app.
@@ -1528,6 +1531,15 @@ export default {
 			cnDetailTabsLabel: {
 				get value() {
 					return tabsLabel.value
+				},
+			},
+
+			// The records `visibilityContext` names, keyed `@context.<name>`, so a tab's
+			// `visibleWhen` reads the case type as a grid widget's does. Null
+			// while they are on their way.
+			cnDetailVisibilityRows: {
+				get value() {
+					return visibilityRows.value
 				},
 			},
 		}
@@ -2573,6 +2585,25 @@ export default {
 		},
 
 		/**
+		 * Records the page reads beside the loaded one, so a `visibleWhen`
+		 * can ask about them (manifest `config.visibilityContext`). Each entry
+		 * is `{ <name>: { field, register, schema } }`: `field` is the
+		 * property of the loaded record holding the other record's id, and a
+		 * condition reads that record as `@context.<name>.<path>`. A case page that
+		 * declares `{ caseType: { field: "caseType", register: "dossiq",
+		 * schema: "caseType" } }` can show a widget for some case types only
+		 * with `{ field: "@context.caseType.category", op: "in", value: [...] }`.
+		 * A record that cannot be read is absent, so its condition fails safe.
+		 * Empty (the default) reads nothing extra.
+		 *
+		 * @spec openspec/changes/detail-widgets-visible-when/specs/detail-widgets-visible-when/spec.md#requirement-a-detail-page-can-load-records-a-condition-names
+		 */
+		visibilityContext: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * Whether the current user administers this instance. Shows the
 		 * `adminOnly` header actions. `null` (the default) reads it from
 		 * `getCurrentUser()`. Visibility only, never an authorization
@@ -2799,6 +2830,19 @@ export default {
 
 	data() {
 		return {
+			/**
+			 * The records `visibilityContext` names, keyed `@context.<name>`: the row,
+			 * `null` when it could not be read, absent while it is on its way.
+			 */
+			visibilityRows: {},
+			/** The `visibilityRefsKey` the rows in `visibilityRows` were read for. */
+			visibilityRowsFor: '',
+			/** Sequence of the last `visibilityContext` read, so a late answer for another record is dropped. */
+			visibilityRowsSeq: 0,
+			/** The answers of endpoint and source `visibleWhen` conditions on grid widgets, by widget id. */
+			widgetConditionAnswers: {},
+			/** Sequence of the last remote condition round. */
+			widgetConditionSeq: 0,
 			/** The counts of the header's count pills (`countFrom`), by pill key (`type`, `status`). */
 			pillCounts: {},
 			/** Sequence of the last pill count round, so a late answer does not overwrite a newer one. */
@@ -3905,6 +3949,68 @@ export default {
 		},
 
 		/**
+		 * The records `visibilityContext` names for the loaded record.
+		 *
+		 * @return {Array<{key: string, register: string, schema: string, id: string}>}
+		 * @spec openspec/changes/detail-widgets-visible-when/specs/detail-widgets-visible-when/spec.md#requirement-a-detail-page-can-load-records-a-condition-names
+		 */
+		visibilityRefs() {
+			return visibilityContextRefs(this.visibilityContext, this.resolvedObject)
+		},
+
+		/**
+		 * Whether a record `visibilityContext` names is still on its way.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-widgets-visible-when/specs/detail-widgets-visible-when/spec.md#requirement-a-detail-page-can-load-records-a-condition-names
+		 */
+		visibilityRowsPending() {
+			return this.visibilityRefs.length > 0 && this.visibilityRowsFor !== this.visibilityRefsKey
+		},
+
+		/**
+		 * The named references as one key, so another record (or another case
+		 * type on the same record) reads them again.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/detail-widgets-visible-when/specs/detail-widgets-visible-when/spec.md#requirement-a-detail-page-can-load-records-a-condition-names
+		 */
+		visibilityRefsKey() {
+			return JSON.stringify(this.visibilityRefs)
+		},
+
+		/**
+		 * What a grid widget's `visibleWhen` reads: the record, with the
+		 * `visibilityContext` records under `@context.<name>`. Null until the record loads.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/detail-widgets-visible-when/specs/detail-widgets-visible-when/spec.md#requirement-a-detail-grid-widget-shows-only-while-its-visiblewhen-holds-for-the-record
+		 */
+		widgetVisibilityData() {
+			return widgetConditionData(this.resolvedObject, this.visibilityRows)
+		},
+
+		/**
+		 * The grid widgets whose `visibleWhen` needs a request (endpoint or
+		 * source), with what they ask, as one key: a change re-asks them.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/detail-widgets-visible-when/specs/detail-widgets-visible-when/spec.md#requirement-a-detail-grid-widget-shows-only-while-its-visiblewhen-holds-for-the-record
+		 */
+		remoteWidgetConditionsKey() {
+			if (!this.widgetVisibilityData || this.visibilityRowsPending) {
+				return ''
+			}
+			const defs = [...(this.bodyGridWidgets || []), ...((this.activeView && this.activeView.widgets) || [])]
+			const remote = defs.filter((def) => def && def.visibleWhen && typeof def.visibleWhen === 'object'
+				&& !isLocallyDecidableVisibleWhen(def.visibleWhen))
+			if (remote.length === 0) {
+				return ''
+			}
+			return JSON.stringify([String(this.objectId || ''), remote.map((def) => [def.id, def.visibleWhen])])
+		},
+
+		/**
 		 * The `@self` block of the resolved object (interaction markers live here).
 		 *
 		 * @return {object}
@@ -4436,6 +4542,22 @@ export default {
 	},
 
 	watch: {
+		// The records a condition names are read again for another record.
+		visibilityRefsKey: {
+			immediate: true,
+			handler() {
+				this.refreshVisibilityRows()
+			},
+		},
+
+		// Endpoint and source conditions on grid widgets are asked once per record.
+		remoteWidgetConditionsKey: {
+			immediate: true,
+			handler() {
+				this.refreshWidgetConditions()
+			},
+		},
+
 		// The header's count pills count again for another record or other lists.
 		pillCountKey: {
 			immediate: true,
@@ -5675,6 +5797,62 @@ export default {
 		},
 
 		/**
+		 * Read the records `visibilityContext` names for the loaded record. A
+		 * late answer for a record the page has left is dropped.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/detail-widgets-visible-when/specs/detail-widgets-visible-when/spec.md#requirement-a-detail-page-can-load-records-a-condition-names
+		 */
+		async refreshVisibilityRows() {
+			const key = this.visibilityRefsKey
+			const refs = this.visibilityRefs
+			const seq = ++this.visibilityRowsSeq
+			if (refs.length === 0) {
+				// Write only on a change, so a page without `visibilityContext`
+				// never touches the state its layout could read.
+				if (Object.keys(this.visibilityRows).length > 0) {
+					this.visibilityRows = {}
+				}
+				if (this.visibilityRowsFor !== key) {
+					this.visibilityRowsFor = key
+				}
+				return
+			}
+			if (!this._visibilityRowCache) {
+				this._visibilityRowCache = new Map()
+			}
+			const rows = await fetchVisibilityRows(refs, this._visibilityRowCache)
+			if (seq !== this.visibilityRowsSeq) {
+				return
+			}
+			this.visibilityRows = rows
+			this.visibilityRowsFor = key
+		},
+
+		/**
+		 * Ask the endpoint and source `visibleWhen` conditions of the grid
+		 * widgets, once per record. Each is fail-safe: an error hides the widget.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/detail-widgets-visible-when/specs/detail-widgets-visible-when/spec.md#requirement-a-detail-grid-widget-shows-only-while-its-visiblewhen-holds-for-the-record
+		 */
+		async refreshWidgetConditions() {
+			const seq = ++this.widgetConditionSeq
+			if (this.remoteWidgetConditionsKey === '') {
+				return
+			}
+			const [, entries] = JSON.parse(this.remoteWidgetConditionsKey)
+			const ctx = { objectId: this.objectId, object: this.widgetVisibilityData || undefined }
+			const answers = {}
+			await Promise.all(entries.map(async ([id, cond]) => {
+				answers[id] = await evaluateVisibleWhen(cond, ctx)
+			}))
+			if (seq === this.widgetConditionSeq) {
+				this.widgetConditionAnswers = answers
+			}
+		},
+
+		/**
 		 * Drop the items that draw nothing, then close the rows they freed —
 		 * `float: true` leaves the item below pinned under a gap nobody owns.
 		 * Skipped when nothing was dropped, so an authored gap survives.
@@ -5696,7 +5874,10 @@ export default {
 		 * Whether a layout item has anything to draw, so a grid cell is worth
 		 * spending on it.
 		 *
-		 * TWO widget types are judged, and no others.
+		 * A widget whose definition carries `visibleWhen` draws only while the
+		 * condition holds for the record (see `detailWidgetVisible`).
+		 *
+		 * Beyond that, TWO widget types are judged, and no others.
 		 *
 		 * `integration`, in the case where nothing can ever appear: a leaf from
 		 * another app that is not registered, with no `requiredApp` to fall back
@@ -5742,6 +5923,18 @@ export default {
 			const widget = this.findWidget(item)
 			if (!widget) {
 				return true
+			}
+			// The widget's own `visibleWhen`, read against the record and the
+			// records `visibilityContext` names (a case's case type). Without
+			// one the widget shows, as it always did, and the layout takes no
+			// dependency on the record: a page without conditions re-lays out
+			// exactly as often as before.
+			if (widget.visibleWhen !== undefined && widget.visibleWhen !== null
+				&& !detailWidgetVisible(widget, this.widgetVisibilityData, {
+					pending: this.visibilityRowsPending,
+					answers: this.widgetConditionAnswers,
+				})) {
+				return false
 			}
 			// The board look shows the activity as the History tab. When a tabs
 			// widget already holds it, it is not also a body section.
