@@ -31,7 +31,7 @@ function mountPage(extra = {}) {
 				CnSavedViewsControl: true,
 				CnBuildiqEditButton: true,
 				NcActions: { props: ['menuName'], template: '<div class="actions-menu" :data-name="menuName"><slot /></div>' },
-				NcActionButton: { props: ['disabled'], emits: ['click'], template: '<button class="entry" :disabled="disabled" @click="$emit(\'click\')"><slot /></button>' },
+				NcActionButton: { props: ['disabled'], emits: ['click'], template: '<button class="entry" :disabled="disabled" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>' },
 				NcActionLink: { props: ['href', 'target'], template: '<a class="entry" :href="href" :target="target"><slot /></a>' },
 				CnMassImportDialog: { template: '<div class="import-dialog" />' },
 				CnMassCopyDialog: { template: '<div class="copy-dialog" />' },
