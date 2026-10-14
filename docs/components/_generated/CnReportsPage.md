@@ -29,6 +29,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name            | Payload | Description |
-| --------------- | ------- | ----------- |
-| `header-action` | —       |             |
+| Name            | Payload                        | Description                                                                                                    |
+| --------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `header-action` | `{action: string, id: string}` | A header button was clicked (`headerButtons`), after its `headerActions` entry ran; not for `handler: "none"`. |

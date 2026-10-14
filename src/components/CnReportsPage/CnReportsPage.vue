@@ -714,6 +714,13 @@ export default {
 					resolved({ actionId: id })
 				}
 			}
+			/**
+			 * A header button was clicked (`headerButtons`), after its
+			 * `headerActions` entry ran; not for `handler: "none"`.
+			 *
+			 * @event header-action
+			 * @property {{action: string, id: string}} payload The id of the `headerActions` entry the button names, as `action` and `id`.
+			 */
 			this.$emit('header-action', { action: id, id })
 		},
 
