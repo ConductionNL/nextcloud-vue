@@ -46,6 +46,21 @@ describe('manifest walkthrough validation', () => {
 		expect(valid).toBe(true)
 	})
 
+	// @spec openspec/changes/a-tour-starts-on-the-pages-it-names/specs/walkthrough/spec.md
+	it('accepts startOn as a list of route names, and refuses an empty one', () => {
+		const named = JSON.parse(JSON.stringify(validBlock))
+		named.tours[0].startOn = ['Home']
+		expect(validateManifest(manifestWithWalkthrough(named)).valid).toBe(true)
+
+		const empty = JSON.parse(JSON.stringify(validBlock))
+		empty.tours[0].startOn = []
+		expect(validateManifest(manifestWithWalkthrough(empty)).valid).toBe(false)
+
+		const blank = JSON.parse(JSON.stringify(validBlock))
+		blank.tours[0].startOn = ['']
+		expect(validateManifest(manifestWithWalkthrough(blank)).valid).toBe(false)
+	})
+
 	it('rejects an unknown target.kind', () => {
 		const bad = JSON.parse(JSON.stringify(validBlock))
 		bad.tours[0].steps[0].target.kind = 'magic'

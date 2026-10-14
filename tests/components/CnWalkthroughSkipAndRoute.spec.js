@@ -141,3 +141,68 @@ describe('CnWalkthrough — a centered first step does not gate on a route', () 
 		expect(w.vm._pendingAutoTour).toBeTruthy()
 	})
 })
+
+/**
+ * A tour that names where it starts (`startOn`) opens only there.
+ *
+ * Measured 13 October on dossiq: a staff user's first visit was a link to a
+ * Woo request, and the centered "Welcome to Dossiq" card opened over the case
+ * they came for. A centered first step is not route-gated (see above), so the
+ * app needs a way to say where its tour starts.
+ *
+ * @spec openspec/changes/a-tour-starts-on-the-pages-it-names/specs/walkthrough/spec.md
+ */
+function startOnManifest(startOn) {
+	return { version: '1.0.0', walkthrough: { enabled: true, version: 1, tours: [{ id: 'getting-started', trigger: 'first-visit', startOn, steps: centeredSteps }] } }
+}
+
+describe('CnWalkthrough — a tour starts on the pages it names', () => {
+	beforeEach(() => __resetWalkthroughCacheForTests())
+
+	it('waits on a deep link, then opens when the user reaches a named route', async () => {
+		const router = fakeRouter()
+		const w = mount(CnWalkthrough, {
+			propsData: { appId: 'start-on-app', manifest: startOnManifest(['Dashboard']) },
+			mocks: { $router: router, $route: { name: 'CaseDetail', params: { id: 'woo-1' } } },
+		})
+		await w.vm.$nextTick()
+		expect(w.vm.active).toBe(false)
+		expect(w.vm._pendingAutoTour).toBeTruthy()
+
+		fakeRouter._cb({ name: 'CaseDetail', params: { id: 'woo-2' } })
+		await w.vm.$nextTick()
+		expect(w.vm.active).toBe(false)
+
+		fakeRouter._cb({ name: 'Dashboard', params: {} })
+		await w.vm.$nextTick()
+		expect(w.vm.active).toBe(true)
+		expect(w.vm.step.id).toBe('welcome')
+	})
+
+	it('opens at once on a named route', async () => {
+		const w = mount(CnWalkthrough, {
+			propsData: { appId: 'start-on-app-2', manifest: startOnManifest(['Dashboard', 'Cases']) },
+			mocks: { $router: fakeRouter(), $route: { name: 'Cases', params: {} } },
+		})
+		await w.vm.$nextTick()
+		expect(w.vm.active).toBe(true)
+	})
+
+	it('CONTROL: without startOn the same centered tour still opens on the deep link', async () => {
+		const w = mount(CnWalkthrough, {
+			propsData: { appId: 'start-on-control', manifest: centeredManifest() },
+			mocks: { $router: fakeRouter(), $route: { name: 'CaseDetail', params: { id: 'woo-1' } } },
+		})
+		await w.vm.$nextTick()
+		expect(w.vm.active).toBe(true)
+	})
+
+	it('a tour started by hand ignores startOn', async () => {
+		const w = mount(CnWalkthrough, {
+			propsData: { appId: 'start-on-forced', manifest: startOnManifest(['Dashboard']), tourId: 'getting-started' },
+			mocks: { $router: fakeRouter(), $route: { name: 'CaseDetail', params: { id: 'woo-1' } } },
+		})
+		await w.vm.$nextTick()
+		expect(w.vm.active).toBe(true)
+	})
+})
