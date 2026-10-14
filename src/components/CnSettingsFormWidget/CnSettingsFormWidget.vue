@@ -147,6 +147,7 @@ import { changedFields, objectUrlOf, writeFields } from '../../utils/objectWrite
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
+import { switchIsOn, switchStoredValue } from '../../utils/switchValues.js'
 
 // The native file-picker modal ships its chrome styles here; without this the
 // spawned picker renders unstyled. Rules are scoped to the picker/dialog classes.
@@ -180,7 +181,7 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file'|'chips'|'reference', register?, schema?, labelField?, valueTemplate?, filter?, limit?, emptyLabel?, free?, freeLabel?, freePlaceholder?, freePattern?, freePatternMessage?, default?, minItems?, required?, minItemsMessage?, lowercase?, addLabel?, confirmLabel?, removeLabel?, picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a field of the object, a top-level name or a dot-path. A `reference` field's `filter` values may be `@objectId` and `@object.<field>` (the record being edited).
+		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file'|'chips'|'reference', register?, schema?, labelField?, valueTemplate?, filter?, limit?, emptyLabel?, free?, freeLabel?, freePlaceholder?, freePattern?, freePatternMessage?, default?, minItems?, required?, minItemsMessage?, values?: { on, off }, lowercase?, addLabel?, confirmLabel?, removeLabel?, picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a field of the object, a top-level name or a dot-path. A `reference` field's `filter` values may be `@objectId` and `@object.<field>` (the record being edited). A `switch` field's `values: { on, off }` reads and writes those values instead of true/false.
 		 * - `save` — `{ url, method?, payload? }`, write through an app endpoint (tokens `{value}`, `{field}`, `{changes}`, `{object.<path>}`).
 		 * - `columns` — 1 or 2 (default 2).
 		 * - `saveLabel`, `savedText`, `readOnly`.
@@ -481,7 +482,7 @@ export default {
 		stored(field) {
 			const value = readPath(this.objectData || {}, field.key)
 			if (field.type === 'switch') {
-				return value === true
+				return switchIsOn(value, field.values)
 			}
 			if (field.type === 'chips') {
 				return Array.isArray(value) ? value.map((item) => String(item)) : []
@@ -641,6 +642,12 @@ export default {
 				}
 			}
 			const patch = changedFields(compare, next)
+			// A switch with a value map (`values: { on, off }`) writes those values.
+			for (const field of this.fields) {
+				if (field.type === 'switch' && Object.hasOwn(patch, field.key)) {
+					patch[field.key] = switchStoredValue(patch[field.key], field.values)
+				}
+			}
 			this.saving = true
 			try {
 				if (Object.keys(patch).length > 0) {
@@ -652,7 +659,7 @@ export default {
 						const field = this.fields.find((candidate) => candidate.key === key)
 						const answered = readPath(data, key)
 						const written = answered !== undefined ? answered : patch[key]
-						baseline[key] = field.type === 'switch' ? written === true : (written === null ? (field.type === 'chips' ? [] : '') : written)
+						baseline[key] = field.type === 'switch' ? switchIsOn(written, field.values) : (written === null ? (field.type === 'chips' ? [] : '') : written)
 						form[key] = baseline[key]
 						loaded[key] = baseline[key]
 					}
