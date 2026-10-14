@@ -32,7 +32,7 @@
   Spec: hydra openspec/architecture/adr-112-reports-are-one-page.md (ConductionNL/hydra#640).
 -->
 <template>
-	<div class="cn-reports-page">
+	<div class="cn-reports-page" :class="{ 'cn-reports-page--board': isBoard }">
 		<div class="cn-reports-page__header">
 			<h2 class="cn-reports-page__title">
 				{{ resolvedTitle }}
@@ -42,7 +42,44 @@
 			</p>
 		</div>
 
-		<div v-if="categoryOptions.length > 1" class="cn-reports-page__filter">
+		<!-- The board look (board DcRapportages): one section per category,
+		     headed by its label, instead of the category filter; each card
+		     draws its icon in a tile. -->
+		<template v-if="isBoard">
+			<p v-if="resolvedCards.length === 0"
+				class="cn-reports-page__empty"
+				data-testid="cn-reports-empty">
+				{{ resolvedEmptyLabel }}
+			</p>
+			<section v-for="section in boardSections"
+				:key="section.key"
+				class="cn-reports-page__section"
+				data-testid="cn-reports-section">
+				<h3 v-if="section.label" class="cn-reports-page__section-title">
+					{{ section.label }}
+				</h3>
+				<ul class="cn-reports-page__grid" data-testid="cn-reports-grid">
+					<li v-for="card in section.cards" :key="card.id" class="cn-reports-page__cell">
+						<a class="cn-reports-page__card"
+							data-testid="cn-report-card"
+							:href="hrefFor(card)"
+							@click="open(card, $event)">
+							<span v-if="card.icon" class="cn-reports-page__card-icon" aria-hidden="true">
+								<CnIcon :name="card.icon" :size="22" />
+							</span>
+							<span class="cn-reports-page__card-text">
+								<span class="cn-reports-page__card-title">{{ card.label }}</span>
+								<span v-if="card.description" class="cn-reports-page__card-description">
+									{{ card.description }}
+								</span>
+							</span>
+						</a>
+					</li>
+				</ul>
+			</section>
+		</template>
+
+		<div v-if="!isBoard && categoryOptions.length > 1" class="cn-reports-page__filter">
 			<label class="cn-reports-page__filter-label" :for="filterId">
 				{{ resolvedCategoryLabel }}
 			</label>
@@ -58,13 +95,13 @@
 			</select>
 		</div>
 
-		<p v-if="visibleCards.length === 0"
+		<p v-if="!isBoard && visibleCards.length === 0"
 			class="cn-reports-page__empty"
 			data-testid="cn-reports-empty">
 			{{ resolvedEmptyLabel }}
 		</p>
 
-		<ul v-else class="cn-reports-page__grid" data-testid="cn-reports-grid">
+		<ul v-else-if="!isBoard" class="cn-reports-page__grid" data-testid="cn-reports-grid">
 			<li v-for="card in visibleCards" :key="card.id" class="cn-reports-page__cell">
 				<a class="cn-reports-page__card"
 					data-testid="cn-report-card"
@@ -98,6 +135,8 @@
  */
 import { translate as t } from '@nextcloud/l10n'
 import { defineAsyncComponent } from 'vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
+import { useLook } from '../../composables/useLook.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 
 export default {
@@ -107,6 +146,7 @@ export default {
 		// Loaded only for a page that declares widgets: a cards-only reports
 		// page does not pull the dashboard in.
 		CnDashboardPage: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue').then((m) => m.default)),
+		CnIcon,
 	},
 
 	inject: {
@@ -229,6 +269,17 @@ export default {
 		},
 
 		/**
+		 * The look to draw in: `board` or `nextcloud`. Absent: the look
+		 * CnAppRoot provides (`cnLook`), else `nextcloud`.
+		 *
+		 * @type {string|null}
+		 */
+		look: {
+			type: String,
+			default: null,
+		},
+
+		/**
 		 * Translate function. Falls back to injected `cnTranslate`.
 		 *
 		 * @type {((key: string) => string)|null}
@@ -237,6 +288,11 @@ export default {
 			type: Function,
 			default: null,
 		},
+	},
+
+	setup(props) {
+		const { isBoard } = useLook(props)
+		return { isBoard }
 	},
 
 	data() {
@@ -383,6 +439,30 @@ export default {
 				.forEach((key) => options.push({ value: key, label: this.tr(declared[key]) }))
 
 			return options
+		},
+
+		/**
+		 * The board look's sections: the cards without a category first, under
+		 * no heading, then one section per declared category that holds a
+		 * card, in the declared order, headed by its label.
+		 *
+		 * @spec openspec/changes/screens-reports-page-board-look/specs/reports-page/spec.md#requirement-the-reports-page-takes-the-board-look
+		 * @return {Array<{key: string, label: string, cards: Array<object>}>} The sections.
+		 */
+		boardSections() {
+			const declared = this.config.categories || {}
+			const sections = []
+			const loose = this.resolvedCards.filter((card) => !card.category || !Object.hasOwn(declared, card.category))
+			if (loose.length > 0) {
+				sections.push({ key: '__none', label: '', cards: loose })
+			}
+			for (const key of Object.keys(declared)) {
+				const cards = this.resolvedCards.filter((card) => card.category === key)
+				if (cards.length > 0) {
+					sections.push({ key, label: this.tr(declared[key]), cards })
+				}
+			}
+			return sections
 		},
 
 		/**

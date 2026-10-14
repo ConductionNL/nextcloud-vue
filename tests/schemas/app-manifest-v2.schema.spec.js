@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.92.0', () => {
+	it('the manifest schema version reads 2.93.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1374,7 +1374,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.90.0 adds headerButtons[].items on the actions-menu button (screens-index-header-actions-menu).
 		// 2.91.0 adds viewSwitchLinks on an index page (screens-view-switch-links).
 		// 2.92.0 adds filterStrip on an index page (screens-filter-strip).
-		expect(schema.version).toBe('2.92.0')
+		// 2.93.0 adds { heading } and "separator" entries to headerButtons[].items (screens-index-header-menu-headings).
+		expect(schema.version).toBe('2.93.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2086,5 +2087,13 @@ describe('app-manifest-v2 — the header Actions menu names its entries (screens
 	it('rejects an empty list and a non-string entry', () => {
 		expect(validateManifestV2(manifest({ action: 'actions-menu', items: [] })).valid).toBe(false)
 		expect(validateManifestV2(manifest({ action: 'actions-menu', items: [1] })).valid).toBe(false)
+	})
+
+	it('accepts group headings and repeated separators (2.93.0), and refuses a heading without text or with another key', () => {
+		const items = [{ heading: 'Go to' }, 'calendar', 'separator', 'import', 'separator', { heading: 'Selection' }, 'copy-selected']
+		expect(validateManifestV2(manifest({ action: 'actions-menu', items })).valid).toBe(true)
+		expect(validateManifestV2(manifest({ action: 'actions-menu', items: [{ heading: '' }, 'import'] })).valid).toBe(false)
+		expect(validateManifestV2(manifest({ action: 'actions-menu', items: [{ heading: 'Go to', icon: 'Map' }, 'import'] })).valid).toBe(false)
+		expect(validateManifestV2(manifest({ action: 'actions-menu', items: [{}] })).valid).toBe(false)
 	})
 })

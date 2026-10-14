@@ -3348,9 +3348,12 @@
 		},
 		"CnStatsBlockWidget": {
 			"direct": 1,
-			"transitive": 5,
-			"tier": "medium",
-			"via": [],
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnIndexPage",
+				"CnStatWidget"
+			],
 			"page": "cn-stats-block-widget"
 		},
 		"CnStatsBlockWidgetForm": {

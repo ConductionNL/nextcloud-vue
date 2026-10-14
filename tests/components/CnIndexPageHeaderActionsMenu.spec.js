@@ -12,6 +12,8 @@
 import { mount } from '@vue/test-utils'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 
+const props = ({ $router: _router, ...rest }) => rest
+
 function mountPage(extra = {}) {
 	return mount(CnIndexPage, {
 		propsData: {
@@ -21,18 +23,18 @@ function mountPage(extra = {}) {
 			pagination: { page: 1, pages: 1, total: 2, limit: 20 },
 			showTitle: true,
 			selectable: true,
-			...extra,
+			...props(extra),
 		},
 		global: {
 			provide: { cnLook: 'board' },
-			mocks: { $router: { push: jest.fn() }, $route: { query: {}, name: 'Meetings' } },
+			mocks: { $router: extra.$router || { push: jest.fn() }, $route: { query: {}, name: 'Meetings' } },
 			stubs: {
 				CnActionsBar: { name: 'CnActionsBar', props: ['showActionsMenu'], template: '<div class="bar" :data-menu="String(showActionsMenu)" />' },
 				CnSavedViewsControl: true,
 				CnBuildiqEditButton: true,
 				NcActions: { props: ['menuName'], template: '<div class="actions-menu" :data-name="menuName"><slot /></div>' },
-				NcActionButton: { props: ['disabled'], emits: ['click'], template: '<button class="entry" :disabled="disabled" @click="$emit(\'click\')"><slot /></button>' },
-				NcActionLink: { props: ['href', 'target'], template: '<a class="entry" :href="href" :target="target"><slot /></a>' },
+				NcActionButton: { props: ['disabled'], emits: ['click'], template: '<button class="entry" :disabled="disabled" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>' },
+				NcActionLink: { props: ['href', 'target'], emits: ['click'], template: '<a class="entry" :href="href" :target="target" @click="$emit(\'click\', $event)"><slot /></a>' },
 				CnMassImportDialog: { template: '<div class="import-dialog" />' },
 				CnMassCopyDialog: { template: '<div class="copy-dialog" />' },
 				CnMassDeleteDialog: { template: '<div class="delete-dialog" />' },
@@ -102,5 +104,32 @@ describe('CnIndexPage: the header Actions menu', () => {
 		const link = w.find('[data-testid="cn-index-header-menu-manual"]')
 		expect(link.element.tagName).toBe('A')
 		expect(link.attributes('href')).toBe('https://manual.example/meetings')
+	})
+
+	it('draws a navigate header action as an in-app link that goes through the router', async () => {
+		const router = {
+			push: jest.fn(() => Promise.resolve()),
+			resolve: jest.fn((to) => ({ href: `/apps/x/${to.name}` })),
+		}
+		const w = mountPage({
+			$router: router,
+			headerButtons: [ADD, { action: 'actions-menu', items: ['goto-decisions'] }],
+			headerActions: [{ id: 'goto-decisions', label: 'Go to decisions', handler: 'navigate', route: 'Decisions' }],
+		})
+		const link = w.find('[data-testid="cn-index-header-menu-goto-decisions"]')
+		expect(link.element.tagName).toBe('A')
+		expect(link.attributes('href')).toBe('/apps/x/Decisions')
+		expect(link.attributes('target')).toBeUndefined()
+		await link.trigger('click')
+		expect(router.push).toHaveBeenCalledWith({ name: 'Decisions' })
+		expect(w.emitted('header-action')).toEqual([[{ action: 'goto-decisions', id: 'goto-decisions' }]])
+	})
+
+	it('ships the icons of its own built-ins, so an app that registered none draws no "?"', () => {
+		const w = mountPage({ headerButtons: [ADD, { action: 'actions-menu', items: ['import', 'export', 'delete-selected'] }] })
+		expect(w.find('[data-testid="cn-index-header-menu-import"] .import-icon').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-index-header-menu-export"] .export-icon').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-index-header-menu-delete-selected"] .trash-can-outline-icon').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-index-header-menu-import"] cn-icon-stub').exists()).toBe(false)
 	})
 })

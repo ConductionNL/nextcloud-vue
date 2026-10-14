@@ -171,6 +171,15 @@ describe('CnSettingsFormWidget', () => {
 		expect(mockPatch).not.toHaveBeenCalled()
 	})
 
+	test('a chips field shows its hint once, and a text field keeps the form\'s hint', () => {
+		const content = { fields: [{ key: 'slug', label: 'Address', hint: 'Lowercase only.' }, { key: 'locales', label: 'Languages', type: 'chips', hint: 'The languages the portal offers.', options: ['nl', 'en'] }] }
+		const wrapper = make({ content, objectData: { ...OBJECT, locales: ['nl'] } })
+		const chips = wrapper.find('[data-testid="cn-settings-form-field-locales"]')
+		expect(chips.findAll('p').filter((p) => p.text() === 'The languages the portal offers.')).toHaveLength(1)
+		expect(chips.find('.cn-settings-form__hint').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-settings-form-field-slug"] .cn-settings-form__hint').text()).toBe('Lowercase only.')
+	})
+
 	test('a chips field is part of the one Save and its changed-fields diff', async () => {
 		const content = { fields: [{ key: 'title', label: 'Name' }, { key: 'locales', label: 'Languages', type: 'chips', default: ['nl'], minItems: 1, options: ['nl', 'en'] }] }
 		const wrapper = make({ content, objectData: { id: 'p-1', title: 'Z' } })

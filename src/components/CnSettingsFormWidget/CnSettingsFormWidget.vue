@@ -52,18 +52,33 @@
 							{{ field.clearLabel }}
 						</NcButton>
 					</div>
-					<select
-						v-else-if="field.type === 'reference'"
-						:id="inputId(field)"
-						v-model="form[field.key]"
-						class="cn-settings-form__control"
-						:disabled="field.readOnly"
-						:aria-busy="referenceState[field.key] === 'loading' ? 'true' : null"
-						:data-testid="`cn-settings-form-reference-${field.key}`">
-						<option v-for="option in referenceChoices(field)" :key="option.value" :value="option.value">
-							{{ option.label }}
-						</option>
-					</select>
+					<div v-else-if="field.type === 'reference'" class="cn-settings-form__reference">
+						<select
+							:id="inputId(field)"
+							v-model="form[field.key]"
+							class="cn-settings-form__control"
+							:disabled="field.readOnly"
+							:aria-busy="referenceState[field.key] === 'loading' ? 'true' : null"
+							:data-testid="`cn-settings-form-reference-${field.key}`">
+							<option v-for="option in referenceChoices(field)" :key="option.value" :value="option.value">
+								{{ option.label }}
+							</option>
+						</select>
+						<!-- `free`: a typed value (a URL) besides picking an object. -->
+						<template v-if="field.free && !field.readOnly">
+							<label class="cn-settings-form__sublabel" :for="`${inputId(field)}-free`">{{ field.freeLabel }}</label>
+							<input
+								:id="`${inputId(field)}-free`"
+								class="cn-settings-form__control"
+								type="text"
+								inputmode="url"
+								:value="freeValue(field)"
+								:placeholder="field.freePlaceholder"
+								:aria-invalid="errors[field.key] ? 'true' : null"
+								:data-testid="`cn-settings-form-reference-free-${field.key}`"
+								@input="form[field.key] = $event.target.value.trim()">
+						</template>
+					</div>
 					<select
 						v-else-if="field.type === 'select'"
 						:id="inputId(field)"
@@ -97,7 +112,8 @@
 				<p v-if="errors[field.key]" class="cn-settings-form__error" role="alert">
 					{{ errors[field.key] }}
 				</p>
-				<p v-else-if="field.hint" class="cn-settings-form__hint">
+				<!-- A chips field prints its own hint (it gets it in chipsContent). -->
+				<p v-else-if="field.hint && field.type !== 'chips'" class="cn-settings-form__hint">
 					{{ field.hint }}
 				</p>
 			</div>
@@ -129,7 +145,9 @@ import { fillTemplate } from '../../utils/fillTemplate.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { changedFields, objectUrlOf, writeFields } from '../../utils/objectWrite.js'
 import { readPath } from '../../utils/readPath.js'
+import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
+import { switchIsOn, switchStoredValue } from '../../utils/switchValues.js'
 
 // The native file-picker modal ships its chrome styles here; without this the
 // spawned picker renders unstyled. Rules are scoped to the picker/dialog classes.
@@ -163,7 +181,7 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file'|'chips'|'reference', register?, schema?, labelField?, valueTemplate?, filter?, limit?, emptyLabel?, default?, minItems?, required?, minItemsMessage?, lowercase?, addLabel?, confirmLabel?, removeLabel?, picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a field of the object, a top-level name or a dot-path.
+		 * - `fields` (required) — `[{ key, label, type?: 'text'|'textarea'|'select'|'switch'|'number'|'file'|'chips'|'reference', register?, schema?, labelField?, valueTemplate?, filter?, limit?, emptyLabel?, free?, freeLabel?, freePlaceholder?, freePattern?, freePatternMessage?, default?, minItems?, required?, minItemsMessage?, values?: { on, off }, lowercase?, addLabel?, confirmLabel?, removeLabel?, picker?: { title?, mimeTypes?, startAt?, valueTemplate? }, chooseLabel?, clearLabel?, hint?, placeholder?, options?: [{ value, label }], required?, pattern?, patternMessage?, min?, max?, rows?, wide?, readOnly? }]`; `key` is a field of the object, a top-level name or a dot-path. A `reference` field's `filter` values may be `@objectId` and `@object.<field>` (the record being edited). A `switch` field's `values: { on, off }` reads and writes those values instead of true/false.
 		 * - `save` — `{ url, method?, payload? }`, write through an app endpoint (tokens `{value}`, `{field}`, `{changes}`, `{object.<path>}`).
 		 * - `columns` — 1 or 2 (default 2).
 		 * - `saveLabel`, `savedText`, `readOnly`.
@@ -212,6 +230,9 @@ export default {
 			// `reference` fields: the objects to choose from and the read's state (`loading`, `ready`, `error`), by field key.
 			referenceOptions: {},
 			referenceState: {},
+			// The query each `reference` field was last read with, by field key, so a
+			// new object re-reads only the fields whose filter changes with it.
+			referenceQuery: {},
 			errors: {},
 			saving: false,
 			notice: '',
@@ -236,6 +257,9 @@ export default {
 					hint: this.tr(field.hint || ''),
 					placeholder: this.tr(field.placeholder || ''),
 					chooseLabel: this.tr(field.chooseLabel || 'Choose a file'),
+					free: field.type === 'reference' && field.free === true,
+					freeLabel: this.tr(field.freeLabel || 'Or type a value'),
+					freePlaceholder: this.tr(field.freePlaceholder || ''),
 					clearLabel: this.tr(field.clearLabel || 'Remove'),
 					rows: field.rows || 3,
 					wide: field.wide === true || field.type === 'textarea',
@@ -269,6 +293,7 @@ export default {
 	watch: {
 		objectData() {
 			this.adopt()
+			this.loadReferences()
 		},
 	},
 
@@ -284,7 +309,14 @@ export default {
 		 * parameters, at most `limit`, 100 by default). A failed read leaves the
 		 * field with its stored value only, and says so in the hint's place.
 		 *
+		 * `filter` values may be `@objectId` and `@object.<field>`: the record
+		 * the form edits, so a list can be narrowed to it (the logos of this
+		 * portal). Until the record has that value the field is not read; it is
+		 * read again when the record changes the resolved query, never twice
+		 * for the same query.
+		 *
 		 * @spec openspec/changes/screens-settings-form-reference/specs/settings-form/spec.md#requirement-a-settings-form-field-can-pick-an-object
+		 * @spec openspec/changes/screens-settings-form-reference-object-filter/specs/settings-form/spec.md#requirement-a-reference-fields-filter-can-name-the-record-being-edited
 		 * @return {Promise<void>}
 		 */
 		async loadReferences() {
@@ -292,13 +324,35 @@ export default {
 			if (fields.length === 0) {
 				return
 			}
+			const ctx = { objectId: this.objectId || (this.objectData && this.objectData.id) || undefined, object: this.objectData || undefined }
+			const pending = []
+			for (const field of fields) {
+				const filter = resolveFilterTokens(field.filter && typeof field.filter === 'object' ? field.filter : {}, ctx)
+				if (hasUnresolvedTokens(filter)) {
+					// The record has no value for the token yet: nothing to read.
+					continue
+				}
+				const params = { ...filter, _limit: Number(field.limit) > 0 ? Number(field.limit) : 100 }
+				const query = JSON.stringify(params)
+				if (this.referenceQuery[field.key] === query) {
+					continue
+				}
+				this.referenceQuery = { ...this.referenceQuery, [field.key]: query }
+				pending.push({ field, params, query })
+			}
+			if (pending.length === 0) {
+				return
+			}
 			const { default: axios } = await import('@nextcloud/axios')
-			await Promise.all(fields.map(async (field) => {
+			await Promise.all(pending.map(async ({ field, params, query }) => {
 				this.referenceState = { ...this.referenceState, [field.key]: 'loading' }
 				try {
 					const url = `/apps/openregister/api/objects/${encodeURIComponent(field.register)}/${encodeURIComponent(field.schema)}`
-					const params = { ...(field.filter && typeof field.filter === 'object' ? field.filter : {}), _limit: Number(field.limit) > 0 ? Number(field.limit) : 100 }
 					const { data } = await axios.get(prefixUrl(url), { params })
+					if (this.referenceQuery[field.key] !== query) {
+						// A newer record asked for another list meanwhile.
+						return
+					}
 					const rows = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : [])
 					const options = []
 					for (const row of rows) {
@@ -338,6 +392,24 @@ export default {
 				choices.push({ value: current, label: current })
 			}
 			return [...choices, ...options]
+		},
+
+		/**
+		 * The typed value of a `reference` field with `free`: the value the form
+		 * holds when it is not one of the objects to pick, else empty (picking
+		 * an object clears the typed value).
+		 *
+		 * @spec openspec/changes/screens-settings-form-reference-free-value/specs/settings-form/spec.md#requirement-a-reference-field-can-also-take-a-typed-value
+		 * @param {object} field The field.
+		 * @return {string}
+		 */
+		freeValue(field) {
+			const current = this.form[field.key]
+			if (typeof current !== 'string' || current === '') {
+				return ''
+			}
+			const options = this.referenceOptions[field.key] || []
+			return options.some((option) => option.value === current) ? '' : current
 		},
 
 		tr(text) {
@@ -410,7 +482,7 @@ export default {
 		stored(field) {
 			const value = readPath(this.objectData || {}, field.key)
 			if (field.type === 'switch') {
-				return value === true
+				return switchIsOn(value, field.values)
 			}
 			if (field.type === 'chips') {
 				return Array.isArray(value) ? value.map((item) => String(item)) : []
@@ -534,6 +606,9 @@ export default {
 					if (Number.isNaN(value) || (field.min !== undefined && value < field.min) || (field.max !== undefined && value > field.max)) {
 						errors[field.key] = this.tr('This number is not valid.')
 					}
+				} else if (field.free && field.freePattern && this.freeValue(field) !== '' && !new RegExp(field.freePattern).test(String(value))) {
+					// A typed value (not one of the objects) answers to `freePattern`.
+					errors[field.key] = this.tr(field.freePatternMessage || 'This value is not valid.')
 				} else if (field.pattern && !new RegExp(field.pattern).test(String(value))) {
 					errors[field.key] = this.tr(field.patternMessage || 'This value is not valid.')
 				}
@@ -567,6 +642,12 @@ export default {
 				}
 			}
 			const patch = changedFields(compare, next)
+			// A switch with a value map (`values: { on, off }`) writes those values.
+			for (const field of this.fields) {
+				if (field.type === 'switch' && Object.hasOwn(patch, field.key)) {
+					patch[field.key] = switchStoredValue(patch[field.key], field.values)
+				}
+			}
 			this.saving = true
 			try {
 				if (Object.keys(patch).length > 0) {
@@ -578,7 +659,7 @@ export default {
 						const field = this.fields.find((candidate) => candidate.key === key)
 						const answered = readPath(data, key)
 						const written = answered !== undefined ? answered : patch[key]
-						baseline[key] = field.type === 'switch' ? written === true : (written === null ? (field.type === 'chips' ? [] : '') : written)
+						baseline[key] = field.type === 'switch' ? switchIsOn(written, field.values) : (written === null ? (field.type === 'chips' ? [] : '') : written)
 						form[key] = baseline[key]
 						loaded[key] = baseline[key]
 					}
@@ -637,6 +718,17 @@ export default {
 	font-size: 13px;
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+.cn-settings-form__reference {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cn-settings-form__sublabel {
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-settings-form__control {
