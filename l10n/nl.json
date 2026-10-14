@@ -1547,7 +1547,27 @@
     "This answer was refused.": "Dit antwoord is geweigerd.",
     "No value ({count})": "Geen waarde ({count})",
     "{start} to {end}": "{start} tot {end} uur",
-    "Breadcrumb": "Kruimelpad"
+    "Breadcrumb": "Kruimelpad",
+    "Cannot move: this record has no id, so the move would create a duplicate instead of updating it.": "Verplaatsen kan niet: dit record heeft geen id, dus de verplaatsing zou een kopie maken in plaats van het record bij te werken.",
+    "Could not check whether this stage can be reached": "Kon niet controleren of deze fase bereikbaar is",
+    "Could not check which stages can be reached": "Kon niet controleren welke fases bereikbaar zijn",
+    "Could not load the stages": "De fases konden niet worden geladen",
+    "Just a moment, the last move is still running": "Een moment, de vorige verplaatsing loopt nog",
+    "Loading stages": "Fases laden",
+    "Move to {stage}": "Naar {stage} verplaatsen",
+    "Moved to {stage}": "Verplaatst naar {stage}",
+    "No stages to show": "Geen fases om te tonen",
+    "Not reachable from the current stage": "Niet bereikbaar vanuit de huidige fase",
+    "Stages": "Fases",
+    "The move could not be made": "De verplaatsing is niet gelukt",
+    "The record is not loaded yet": "Het record is nog niet geladen",
+    "The stages cannot be read for this record yet": "De fases van dit record zijn nog niet te lezen",
+    "This move is not possible right now": "Deze verplaatsing kan nu niet",
+    "This stage cannot be chosen right now": "Deze fase kan nu niet worden gekozen",
+    "Are you sure you want to \"{action}\"?": "Weet je zeker dat je \"{action}\" wilt uitvoeren?",
+    "Moved to {state}": "Verplaatst naar {state}",
+    "Moved {title} to {state}": "{title} verplaatst naar {state}",
+    "Transition failed": "De overgang is mislukt"
   },
   "plurals": {
     "{count} selected": [
