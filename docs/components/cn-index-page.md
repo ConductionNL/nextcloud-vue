@@ -180,6 +180,13 @@ read-only rather than broken. A move emits `board-move` and refreshes the list,
 because a transition may have changed more than the status and a board that
 only moved the card would disagree with the table beside it.
 
+**A board shows every matching row.** A page that fetches its own list asks
+for 500 rows in board view instead of the table's page, and gives the table its
+page size back when the reader leaves the board. When more rows match, the
+footer reads "Showing 500 of 612" with a "Load more" button that adds the next
+batch after the rows already on the board. A host-fed board still gets
+`page-changed` and pages as before.
+
 **A filter set on one mode does not follow you to another.** The two views are
 asked different questions: a board is "show me the work in flight", a table is
 "find me this case". Carrying the board's filter into the table is how somebody
@@ -193,6 +200,91 @@ look at the answer.
 and no lifecycle cannot be refused at validation time, because the stages live
 in the register schema and the manifest does not contain it. `CnBoardView` says
 so on screen instead of drawing empty columns.
+
+### Columns from a referenced field
+
+A case's `status` is often not an enum. It is a reference to a statusType row,
+and every case type has its own rows. `columnFields` lets the board take its
+columns from those rows (since manifest schema 2.97.0):
+
+```json
+"board": {
+  "statusField": "status",
+  "wrap": true,
+  "columnLimit": 3,
+  "columnSwitchLabel": "Kolommen",
+  "hint": "Een kolom per waarde van de eigenschap. Sleep een kaart om de status te wijzigen.",
+  "moveHandler": "caseStatusMove",
+  "moveTargetsHandler": "caseStatusTargets",
+  "narrow": {
+    "field": "caseType",
+    "label": "Zaaktype",
+    "allLabel": "Alle zaaktypen",
+    "source": { "schema": "caseType", "labelField": "title" }
+  },
+  "columnFields": [
+    {
+      "field": "status",
+      "label": "status",
+      "source": {
+        "schema": "statusType",
+        "labelField": "name",
+        "orderField": "order",
+        "colorField": "colour",
+        "mergeBy": "name",
+        "filter": { "isFinal": false },
+        "narrowBy": { "field": "caseType", "rowField": "caseType" }
+      }
+    },
+    { "field": "caseType", "label": "type", "source": { "schema": "caseType", "labelField": "title" }, "readOnly": true },
+    { "field": "assignee", "label": "behandelaar", "kind": "values", "emptyLabel": "Niemand" }
+  ]
+}
+```
+
+- **The columns are the referenced rows.** The page fetches them once per field
+  (`source.register` and `source.schema`, by default the page's register and the
+  property's `$ref`). An empty stage is still a column to drop a card into.
+- **`orderField`** orders them. **`mergeBy`** makes one column of rows with the
+  same name, so "In behandeling" of every case type is one column.
+- **`narrowBy`** links a referenced row to its parent. While the page filters on
+  `narrowBy.rowField` with one value, the columns are that parent's rows only.
+- **`narrow`** draws that filter as a select after the search ("Zaaktype:"). It
+  sets the page filter, so the cards and the active filter chips follow.
+- **Two or more `columnFields`** draw a "Columns:" switch after the search. The
+  entry on `statusField` is the default.
+- **`kind: "values"`** is for a field that references no schema, such as a
+  Nextcloud user id. Its columns are the values present on the rows, then one
+  column for no value.
+- **`hint`** is one sentence after the controls, in the secondary colour.
+- **`card.formatters`** shows a card field through a formatter from the app's
+  `cnFormatters` registry, the one a table column names in `formatter`:
+  `{ "caseType": "caseTypeName" }` makes the pill read "Woo-verzoek".
+- **`wrap`** puts the columns on more rows instead of one row that scrolls.
+
+**A drop writes the reference.** On a merged column the page writes the row of
+the card's own parent; a column the parent has no row for refuses the drop. With
+`moveHandler` (a name in the app's registry) the handler makes the move. It gets
+`{ card, toKey, field, value, target }` and returns a promise; a rejection shows
+its message as the refusal. That is how a case status goes through the app's
+transition. Without a handler the field is written with a PATCH. `readOnly: true`
+gives no move at all. A board without `columnFields` keeps reading the schema
+and the `runTransition` prop, as before.
+
+**`moveTargetsHandler`** answers where one card may go: it gets
+`{ card, field }` and returns the referenced ids the card can reach. The board
+fades the other columns during a drag, marks them "not allowed" in the card
+menu, and refuses a drop on them.
+
+**Opening the board from the menu.** An index page opens in the mode
+`?_view=<mode>` names, when it offers that mode, and follows the address when it
+changes. The key starts with `_` like `_search`, so it is never read as a list
+filter. A menu entry with `"query": { "_view": "board" }` opens the list as its
+board, without a second index page on the same schema.
+
+With `selectable` the board's cards carry a checkbox, so the bulk band works on
+the board as on the table. The column switch emits `board-column-field-change`
+with the field name.
 
 ## Saved views: the tree, the labels and what a view is called
 

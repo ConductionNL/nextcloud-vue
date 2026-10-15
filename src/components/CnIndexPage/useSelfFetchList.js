@@ -27,6 +27,15 @@ function resolveInitialQuickFilterIndex(quickFilters) {
  * @return {object} The merged filter (scalar when a key has one value, array when many).
  */
 /**
+ * Rows one board fetch asks for. A board shows every matching row at once,
+ * so it loads far more than a table page (OpenRegister serves up to 1000);
+ * past this the board offers "Load more".
+ *
+ * @type {number}
+ */
+export const BOARD_PAGE_SIZE = 500
+
+/**
  * The sort a quick filter sets while it is active (`sort: { key, order }`, or a
  * list of those for a multi-column order), as sort keys, or null when it sets
  * none.
@@ -236,7 +245,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		defaultSortKeys: initialSortKeys,
 		defaultActiveFilters: initialActiveFilters,
 		defaultSearchTerm: initialSearchTerm,
-		defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
+		defaultPageSize: props.viewMode === 'board' ? BOARD_PAGE_SIZE : ((props.pagination && props.pagination.limit) || undefined),
 		defaultVisibleColumns: configuredColumnKeys.length ? configuredColumnKeys : null,
 		// `pages[].config.extend` → OpenRegister's repeated `_extend[]`. A
 		// getter so a reactive change re-scopes the next fetch, matching how

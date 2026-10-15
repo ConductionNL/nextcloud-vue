@@ -707,6 +707,8 @@ const baseActions = {
 	 * @param {object} [params] Query parameters (_limit, _page, _search, _order, filters)
 	 * @param {object} [options] Call options
 	 * @param {{error?: object|null}} [options.outcome] Opt-in sink for THIS call's own result: `error` is set to the error it records on `errors[type]`, or `null` on success. Unlike `errors[type]`, which every call for the type shares, a later call cannot overwrite it.
+	 * @param {boolean} [options.append] Add the fetched page after the rows already stored instead of replacing them. Dropped when the stored rows are no longer the page before it, or when `options.isCurrent()` returns false (the query changed meanwhile).
+	 * @param {() => boolean} [options.isCurrent] With `append`: asked once the page arrives; false drops it.
 	 * @return {Promise<Array>} The fetched collection (also stored in state)
 	 */
 	async fetchCollection(type, params = {}, options = {}) {
@@ -750,14 +752,26 @@ const baseActions = {
 
 			const data = await response.json()
 			const results = data.results || data
+			const append = options?.append === true
 
-			this.collections = { ...this.collections, [type]: results }
+			const stale = append && (
+				Number(this.pagination[type]?.page || 1) !== Number(params._page || 1) - 1
+				|| (typeof options.isCurrent === 'function' && !options.isCurrent())
+			)
+			if (stale) {
+				return []
+			}
+
+			this.collections = {
+				...this.collections,
+				[type]: append ? [...(this.collections[type] || []), ...results] : results,
+			}
 			// Why a personal lens came back empty, if it says (openregister#4514).
 			this.lenses = { ...this.lenses, [type]: readLensReports(data) }
 			this.pagination = {
 				...this.pagination,
 				[type]: {
-					total: data.total || results.length,
+					total: data.total || (append ? this.collections[type].length : results.length),
 					page: data.page || 1,
 					pages: data.pages || 1,
 					limit: params._limit || 20,
