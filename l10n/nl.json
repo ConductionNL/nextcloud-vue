@@ -1582,7 +1582,8 @@
     "Moved to {state}": "Verplaatst naar {state}",
     "Moved {title} to {state}": "{title} verplaatst naar {state}",
     "Transition failed": "De overgang is mislukt",
-    "Closed": "Afgesloten"
+    "Closed": "Afgesloten",
+    "Skip to {action}": "Ga naar {action}"
   },
   "plurals": {
     "{count} selected": [
