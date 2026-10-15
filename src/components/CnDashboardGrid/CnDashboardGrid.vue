@@ -632,6 +632,13 @@ export default {
 			)
 		},
 
+		/**
+		 * Build the GridStack grid on the rendered items, install the growth
+		 * wrapper (`keepOrderOnGrowth`) and listen for its changes.
+		 *
+		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
+		 * @return {void}
+		 */
 		initGrid() {
 			if (this.cellHeightCssVar && typeof document !== 'undefined' && document.documentElement) {
 				document.documentElement.style.setProperty(this.cellHeightCssVar, `${this.cellHeight}px`)
