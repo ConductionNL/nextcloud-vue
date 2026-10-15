@@ -145,6 +145,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnFlowTasksPanel from './CnFlowTasksPanel.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 export default {
 	name: 'CnTasksTab',
@@ -471,7 +472,7 @@ export default {
 				return ''
 			}
 			try {
-				return new Date(dateStr).toLocaleDateString(undefined, {
+				return new Date(dateStr).toLocaleDateString(userLocale(), {
 					day: 'numeric',
 					month: 'short',
 				})

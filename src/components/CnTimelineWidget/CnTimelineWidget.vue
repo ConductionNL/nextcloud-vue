@@ -54,6 +54,7 @@
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { auditEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnTimelineWidget — an object's dated events in time order (`timeline`
@@ -296,7 +297,7 @@ export default {
 			try {
 				return new Intl.DateTimeFormat(locale, options).format(event.at)
 			} catch {
-				return event.at.toLocaleString()
+				return event.at.toLocaleString(userLocale())
 			}
 		},
 

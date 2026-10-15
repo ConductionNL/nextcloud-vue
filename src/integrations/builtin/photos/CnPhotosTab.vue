@@ -154,6 +154,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPhotoAlbumCreate from '../../../components/CnPhotoAlbumCreate/CnPhotoAlbumCreate.vue'
 import CnPhotoAlbumPicker from '../../../components/CnPhotoAlbumPicker/CnPhotoAlbumPicker.vue'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 /**
  * CnPhotosTab — bespoke album grid for the `photos` integration.
@@ -317,7 +318,7 @@ export default {
 				if (Number.isNaN(d.getTime())) {
 					return String(value)
 				}
-				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
+				return d.toLocaleDateString(userLocale(), { dateStyle: 'medium' })
 			} catch {
 				return String(value)
 			}

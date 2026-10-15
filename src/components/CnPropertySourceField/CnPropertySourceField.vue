@@ -45,6 +45,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcSelect, NcTextField } from '@nextcloud/vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 const BASE = '/apps/integriq/api/property-sources'
 
@@ -207,7 +208,7 @@ export default {
 	methods: {
 		formatTime(iso) {
 			const d = new Date(iso)
-			return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString()
+			return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString(userLocale())
 		},
 
 		url(path) {

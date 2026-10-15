@@ -72,6 +72,7 @@ import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { fileContentUrl, previewKindOf } from '../../composables/useFileOpener.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { parseDelimited } from '../../utils/parseDelimited.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnFilePreview — an in-page preview of a data file the Nextcloud Viewer does
@@ -203,7 +204,7 @@ export default {
 			if (estimate > shown) {
 				return t('nextcloud-vue', 'Showing the first {shown} of about {total} rows', {
 					shown,
-					total: estimate.toLocaleString(),
+					total: estimate.toLocaleString(userLocale()),
 				})
 			}
 			return t('nextcloud-vue', 'Showing the first {shown} rows', { shown })

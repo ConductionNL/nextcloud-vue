@@ -112,6 +112,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 export default {
 	name: 'CnCollectivePagePicker',
@@ -267,7 +268,7 @@ export default {
 			if (Number.isNaN(d.getTime())) {
 				return ''
 			}
-			return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
+			return d.toLocaleDateString(userLocale(), { dateStyle: 'medium' })
 		},
 
 		confirm() {

@@ -130,6 +130,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { userLocale } from '../../utils/userLocale.js'
 
 const VIEW_MODES = ['month', 'week', 'agenda']
 const DEFAULT_DAYS_AHEAD = 14
@@ -604,7 +605,7 @@ export default {
 		 * @return {string} the header label.
 		 */
 		formatDayHeader(date) {
-			const month = date.toLocaleString(undefined, { month: 'short' })
+			const month = date.toLocaleString(userLocale(), { month: 'short' })
 			return `${this.weekdayHeaders[date.getDay()]} ${date.getDate()} ${month}`
 		},
 

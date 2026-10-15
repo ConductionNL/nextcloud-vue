@@ -291,6 +291,14 @@
 									<CnGroupNameCell :gid="gid" />
 								</template>
 							</span>
+							<!-- A Nextcloud user (or list): the display name, the
+							     uid while it loads or when it cannot be found. -->
+							<span
+								v-else-if="isUserPicker(field) && userIdsOf(field).length"
+								class="cn-object-data-widget__users"
+								:title="userIdsOf(field).join(', ')">
+								{{ userIdsOf(field).map((uid) => personLabel(field, uid)).join(', ') }}
+							</span>
 							<img v-else-if="isImageField(field) && rawOf(field)"
 								:src="rawOf(field)"
 								:alt="field.label"
@@ -1132,12 +1140,14 @@ export default {
 				}
 				// Resolve relation display names whenever the object changes.
 				this.resolveRelations()
+				this.resolveUserNames()
 			},
 		},
 
 		schema: {
 			handler() {
 				this.resolveRelations()
+				this.resolveUserNames()
 			},
 		},
 
@@ -1161,6 +1171,7 @@ export default {
 
 	mounted() {
 		this.resolveRelations()
+		this.resolveUserNames()
 		this.publishPanelActions()
 		this.observeCell()
 		this.scheduleFit()
@@ -2187,6 +2198,31 @@ export default {
 			const raw = this.rawOf(field)
 			const list = Array.isArray(raw) ? raw : [raw]
 			return list.filter((v) => typeof v === 'string' && v !== '')
+		},
+
+		/**
+		 * The uids a user field holds, for the display mode. The same list
+		 * shape a group field holds.
+		 *
+		 * @spec openspec/changes/a-user-field-reads-its-display-name/specs/data-display/spec.md#requirement-a-user-field-shows-the-users-display-name
+		 * @param {object} field Field descriptor.
+		 * @return {string[]}
+		 */
+		userIdsOf(field) {
+			return this.groupIdsOf(field)
+		},
+
+		/**
+		 * Look up the display names of every user field's value, so the read
+		 * mode shows "Thomas Kuiper" rather than `thomas.kuiper`. Each uid is
+		 * asked once per widget.
+		 *
+		 * @spec openspec/changes/a-user-field-reads-its-display-name/specs/data-display/spec.md#requirement-a-user-field-shows-the-users-display-name
+		 * @return {Promise<void>}
+		 */
+		async resolveUserNames() {
+			const fields = (this.resolvedFields || []).filter((field) => this.isUserPicker(field))
+			await Promise.all(fields.map((field) => this.resolvePersonLabels(field, this.rawOf(field))))
 		},
 
 		/**

@@ -83,6 +83,7 @@
 </template>
 
 <script>
+import { userLocale } from '../../utils/userLocale.js'
 /**
  * CnDataMatrix — Inline-edit data grid for matrix-shaped data
  * (rows × columns). Each cell is click-to-edit; commits emit
@@ -239,7 +240,7 @@ export default {
 				if (!Number.isFinite(n)) {
 					return value
 				}
-				return n.toLocaleString()
+				return n.toLocaleString(userLocale())
 			}
 			return value
 		},

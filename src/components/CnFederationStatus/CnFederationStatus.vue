@@ -81,6 +81,8 @@
 </template>
 
 <script>
+import { userLocale } from '../../utils/userLocale.js'
+
 // The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
 // here as well as from css/index.css so the tokens resolve even when the
 // consuming app pulls in components individually.
@@ -242,7 +244,7 @@ export default {
 				if (Number.isNaN(d.getTime())) {
 					return iso
 				}
-				return d.toLocaleString()
+				return d.toLocaleString(userLocale())
 			} catch {
 				return iso
 			}

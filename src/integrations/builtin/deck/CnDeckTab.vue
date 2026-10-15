@@ -168,6 +168,7 @@ import CnDeckCardCreate from '../../../components/CnDeckCardCreate/CnDeckCardCre
 import CnDeckCardPicker from '../../../components/CnDeckCardPicker/CnDeckCardPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 /** Maximum assignee avatars shown before collapsing the rest into a +N overflow badge. */
 const MAX_VISIBLE_ASSIGNEES = 3
@@ -427,7 +428,7 @@ export default {
 			if (Number.isNaN(date.getTime())) {
 				return ''
 			}
-			return date.toLocaleDateString(undefined, { dateStyle: 'medium' })
+			return date.toLocaleDateString(userLocale(), { dateStyle: 'medium' })
 		},
 
 		/**

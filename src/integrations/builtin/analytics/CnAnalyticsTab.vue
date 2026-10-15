@@ -177,6 +177,7 @@ import CnAnalyticsReportCreate from '../../../components/CnAnalyticsReportCreate
 import CnAnalyticsReportPicker from '../../../components/CnAnalyticsReportPicker/CnAnalyticsReportPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 /**
  * CnAnalyticsTab — bespoke dataset list for the `analytics` integration.
@@ -394,7 +395,7 @@ export default {
 			const num = Number(raw)
 			if (Number.isFinite(num) && String(raw).trim() !== '') {
 				try {
-					return num.toLocaleString()
+					return num.toLocaleString(userLocale())
 				} catch {
 					return String(num)
 				}
@@ -436,7 +437,7 @@ export default {
 				if (Number.isNaN(d.getTime())) {
 					return String(value)
 				}
-				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
+				return d.toLocaleDateString(userLocale(), { dateStyle: 'medium' })
 			} catch {
 				return String(value)
 			}

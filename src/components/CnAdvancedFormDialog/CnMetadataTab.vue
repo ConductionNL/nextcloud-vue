@@ -30,6 +30,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { userLocale } from '../../utils/userLocale.js'
 
 export default {
 	name: 'CnMetadataTab',
@@ -62,13 +63,13 @@ export default {
 		metadataCreated() {
 			const o = this.item?.['@self']
 			const v = o?.created
-			return v ? new Date(v).toLocaleString() : '—'
+			return v ? new Date(v).toLocaleString(userLocale()) : '—'
 		},
 
 		metadataUpdated() {
 			const o = this.item?.['@self']
 			const v = o?.updated
-			return v ? new Date(v).toLocaleString() : '—'
+			return v ? new Date(v).toLocaleString(userLocale()) : '—'
 		},
 
 		defaultRows() {

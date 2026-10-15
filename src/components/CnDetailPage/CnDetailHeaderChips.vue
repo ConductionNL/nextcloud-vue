@@ -58,6 +58,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { isEmptyChipValue, isPastDate, normalizeHeaderFields, pickRefLabel, variantForColor } from '../../utils/headerFieldChips.js'
 import { schemaRefSlug } from '../../utils/schemaRefSlug.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 const DAY_MS = 86400000
 
@@ -239,7 +240,7 @@ export default {
 			try {
 				return new Intl.RelativeTimeFormat(this.locale(), { numeric: 'auto' }).format(days, 'day')
 			} catch {
-				return new Date(time).toLocaleDateString()
+				return new Date(time).toLocaleDateString(userLocale())
 			}
 		},
 
