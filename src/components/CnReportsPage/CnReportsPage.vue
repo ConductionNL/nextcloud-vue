@@ -34,7 +34,31 @@
 <template>
 	<div class="cn-reports-page" :class="{ 'cn-reports-page--board': isBoard }">
 		<div class="cn-reports-page__header">
-			<h2 class="cn-reports-page__title">
+			<!-- The header buttons (`headerButtons`) beside the title, as the
+			     board's "Downloaden" and the buildiq square (board DcRapportages).
+			     Without them, and outside the board look, the title stands alone
+			     as before. -->
+			<div v-if="headerButtonsRow.length > 0" class="cn-reports-page__heading-row">
+				<h2 class="cn-reports-page__title">
+					{{ resolvedTitle }}
+				</h2>
+				<div class="cn-reports-page__header-buttons" data-testid="cn-reports-header-buttons">
+					<template v-for="button in headerButtonsRow" :key="button.key">
+						<CnBuildiqEditButton v-if="button.action === '__buildiq'" />
+						<NcButton
+							v-else
+							:variant="button.variant"
+							:data-testid="`cn-reports-header-button-${button.key}`"
+							@click="onHeaderButton(button)">
+							<template v-if="button.icon" #icon>
+								<CnIcon :name="button.icon" :size="20" />
+							</template>
+							{{ button.label }}
+						</NcButton>
+					</template>
+				</div>
+			</div>
+			<h2 v-else class="cn-reports-page__title">
 				{{ resolvedTitle }}
 			</h2>
 			<p v-if="resolvedDescription" class="cn-reports-page__description">
@@ -134,9 +158,12 @@
  * The Reports page: one surface listing an app's reports as cards.
  */
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton } from '@nextcloud/vue'
 import { defineAsyncComponent } from 'vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { useLook } from '../../composables/useLook.js'
+import { resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 
 export default {
@@ -146,10 +173,18 @@ export default {
 		// Loaded only for a page that declares widgets: a cards-only reports
 		// page does not pull the dashboard in.
 		CnDashboardPage: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue').then((m) => m.default)),
+		CnBuildiqEditButton,
 		CnIcon,
+		NcButton,
 	},
 
 	inject: {
+		/**
+		 * The v2 registry and the legacy customComponents map, provided by
+		 * CnAppRoot: a header action's named handler resolves against them.
+		 */
+		cnRegistry: { default: () => ({}) },
+		cnCustomComponents: { default: () => ({}) },
 		/**
 		 * The consuming app's translate function, provided by CnAppRoot.
 		 * Defaults to identity so the page still renders outside one.
@@ -269,6 +304,38 @@ export default {
 		},
 
 		/**
+		 * Buttons beside the title (`config.headerButtons`), as the board's
+		 * "Downloaden". Each is `{ label, action, variant?, icon?, id? }`:
+		 * `action` is the id of a `headerActions` entry, which says what the
+		 * click does. Under the board look the buildiq square sits between the
+		 * secondary buttons and the primary one. Empty (the default) changes
+		 * nothing.
+		 *
+		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @type {Array<{label: string, action: string, variant?: ('primary'|'secondary'), icon?: string, id?: string}>|null}
+		 */
+		headerButtons: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * The page's header actions (`config.headerActions`), in the shape of
+		 * an index page's: a header button names one by id. `handler` is a
+		 * function, `navigate` (with `route`, and `params`), `emit`, `none`,
+		 * or a registry name; `type: "navigate"` with a `target` URL opens
+		 * that URL in a new tab. Every click also emits `header-action`
+		 * `{ action, id }`, except for `handler: "none"`.
+		 *
+		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @type {Array<object>|null}
+		 */
+		headerActions: {
+			type: Array,
+			default: null,
+		},
+
+		/**
 		 * The look to draw in: `board` or `nextcloud`. Absent: the look
 		 * CnAppRoot provides (`cnLook`), else `nextcloud`.
 		 *
@@ -289,6 +356,8 @@ export default {
 			default: null,
 		},
 	},
+
+	emits: ['header-action'],
 
 	setup(props) {
 		const { isBoard } = useLook(props)
@@ -339,6 +408,8 @@ export default {
 				'emptyLabel',
 				'widgets',
 				'layout',
+				'headerButtons',
+				'headerActions',
 			]) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
@@ -376,6 +447,51 @@ export default {
 				y += 4
 				return placement
 			})
+		},
+
+		/**
+		 * The declared header buttons that have a label and an action,
+		 * translated, each with a stable key and a variant.
+		 *
+		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string}>} The buttons.
+		 */
+		resolvedHeaderButtons() {
+			const declared = Array.isArray(this.config.headerButtons) ? this.config.headerButtons : []
+			return declared
+				.filter((button) => button && typeof button === 'object'
+					&& typeof button.action === 'string' && button.action !== ''
+					&& typeof button.label === 'string' && button.label !== '')
+				.map((button) => ({
+					key: String(button.id || button.action),
+					label: this.tr(button.label),
+					action: button.action,
+					variant: button.variant === 'primary' ? 'primary' : 'secondary',
+					icon: typeof button.icon === 'string' ? button.icon : '',
+				}))
+		},
+
+		/**
+		 * The header row in the order it renders. Without the board look:
+		 * the declared buttons in the declared order. Under the board look:
+		 * the secondary buttons, the buildiq square, then the primary ones,
+		 * as the board draws "Downloaden" and the square. No declared button
+		 * leaves the header as it was, without the square.
+		 *
+		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @return {Array<object>} The buttons; the square is `{ key: '__buildiq', action: '__buildiq' }`.
+		 */
+		headerButtonsRow() {
+			const buttons = this.resolvedHeaderButtons
+			if (buttons.length === 0 || !this.isBoard) {
+				return buttons
+			}
+			const square = { key: '__buildiq', action: '__buildiq', variant: 'secondary', label: '', icon: '' }
+			return [
+				...buttons.filter((button) => button.variant !== 'primary'),
+				square,
+				...buttons.filter((button) => button.variant === 'primary'),
+			]
 		},
 
 		/**
@@ -568,6 +684,47 @@ export default {
 		},
 
 		/**
+		 * A header button was clicked: run the `headerActions` entry it names
+		 * and emit `header-action`, as an index page's header button does.
+		 *
+		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @param {{action: string}} button The resolved button.
+		 * @return {void}
+		 */
+		onHeaderButton(button) {
+			const id = button.action
+			const actions = Array.isArray(this.config.headerActions) ? this.config.headerActions : []
+			const entry = actions.find((action) => action && action.id === id) || null
+			const handler = entry ? entry.handler : undefined
+			if (handler === 'none') {
+				return
+			}
+			if (typeof handler === 'function') {
+				handler({ actionId: id })
+			} else if (handler === 'navigate' && entry.route) {
+				const params = (entry.params && typeof entry.params === 'object') ? entry.params : null
+				if (this.$router && typeof this.$router.push === 'function') {
+					this.$router.push(params ? { name: entry.route, params } : { name: entry.route })
+				}
+			} else if (entry && entry.type === 'navigate' && typeof entry.target === 'string' && entry.target !== '') {
+				window.open(entry.target, '_blank', 'noopener,noreferrer')
+			} else if (typeof handler === 'string' && handler !== 'emit') {
+				const resolved = resolveRegisteredHandler(handler, this.cnRegistry, this.cnCustomComponents)
+				if (typeof resolved === 'function') {
+					resolved({ actionId: id })
+				}
+			}
+			/**
+			 * A header button was clicked (`headerButtons`), after its
+			 * `headerActions` entry ran; not for `handler: "none"`.
+			 *
+			 * @event header-action
+			 * @property {{action: string, id: string}} payload The id of the `headerActions` entry the button names, as `action` and `id`.
+			 */
+			this.$emit('header-action', { action: id, id })
+		},
+
+		/**
 		 * Navigate by route NAME on a plain click; a modified or middle click
 		 * is left to the browser so it can open the card's href elsewhere.
 		 *
@@ -596,6 +753,27 @@ export default {
 
 .cn-reports-page__title {
 	margin: 0 0 4px;
+}
+
+.cn-reports-page__heading-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px 24px;
+}
+
+.cn-reports-page__heading-row .cn-reports-page__title {
+	flex: 1 1 320px;
+	min-width: 0;
+}
+
+.cn-reports-page__header-buttons {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
 }
 
 .cn-reports-page__description {
