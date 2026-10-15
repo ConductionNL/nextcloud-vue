@@ -145,6 +145,7 @@ import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
 import { parseDateValue } from '../../utils/dateVariant.js'
+import { formatMoney, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 
@@ -246,6 +247,8 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		cnObjectContext: { default: null },
 		cnWorkspaceContext: { default: null },
+		/** The page's app config; its `currency` is the reporting currency a money value falls back to. */
+		cnAppConfig: { default: null },
 		/** Pre-bound action dispatcher of CnPageRenderer, for `action` / `headerAction`. */
 		cnDispatchAction: { default: null },
 	},
@@ -260,7 +263,7 @@ export default {
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
-		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year) or `list` (an array joined by ", ", each item read at `itemPath`).
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object.
 		 * - `link` — `{ label, route? | href? }` at the foot.
@@ -900,7 +903,7 @@ export default {
 		 */
 		valueOf(record, field) {
 			const raw = readPath(record, field.path)
-			return this.format(raw, field)
+			return this.format(raw, field, record)
 		},
 
 		/**
@@ -919,7 +922,7 @@ export default {
 					if (!spec.path && typeof spec.text === 'string') {
 						return this.tr(spec.text)
 					}
-					const value = this.format(readPath(record, spec.path), spec)
+					const value = this.format(readPath(record, spec.path), spec, record)
 					if (value === '') {
 						return ''
 					}
@@ -933,10 +936,12 @@ export default {
 		 * Format a raw value.
 		 *
 		 * @param {unknown} raw The value.
-		 * @param {object} spec `{ format?, map?, itemPath? }`.
+		 * @param {object} spec `{ format?, map?, itemPath?, currency?, currencyField?, decimals? }`.
+		 * @param {object|null} [record] The object shown, which `currencyField` reads.
 		 * @return {string} The text, '' when empty.
+		 * @spec openspec/changes/facts-currency-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-money-amount
 		 */
-		format(raw, spec) {
+		format(raw, spec, record = null) {
 			if (raw === null || raw === undefined || raw === '') {
 				return ''
 			}
@@ -960,6 +965,14 @@ export default {
 				return format === 'date-long'
 					? formatBoardDate(date, new Date(date.getFullYear() + 1, 0, 1))
 					: formatBoardDate(date)
+			}
+			if (format === 'currency') {
+				const money = formatMoney(raw, { currency: spec.currency, currencyField: spec.currencyField, decimals: spec.decimals }, record, unwrapAppConfig(this.cnAppConfig))
+				if (money !== '') {
+					return money
+				}
+				// Not a number: shown as written, never as "[object Object]".
+				return typeof raw === 'object' ? '' : String(raw)
 			}
 			if (typeof raw === 'object') {
 				const label = raw.title || raw.name || raw.label || raw.displayName
