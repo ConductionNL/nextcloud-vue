@@ -941,11 +941,14 @@ export default {
 			const from = tab && typeof tab === 'object' ? tab.countFrom : null
 			let source = null
 			if (from === 'widget') {
-				// A stack counts its first widget that has a list.
+				// A stack counts its first widget that has a list: flat
+				// (`content.register`) or a dashboard table's `content.source`.
 				const lists = this.tabWidgetIds(tab)
 					.map((id) => this.availableWidgets.find((w) => w && w.id === id))
-					.filter((w) => w && w.content && typeof w.content === 'object' && w.content.register && w.content.schema)
-				source = lists.length ? lists[0].content : null
+					.map((w) => (w && w.content && typeof w.content === 'object' ? w.content : null))
+					.map((content) => (content && content.source && typeof content.source === 'object' && content.source.register ? content.source : content))
+					.filter((content) => content && content.register && content.schema)
+				source = lists.length ? lists[0] : null
 			} else if (from && typeof from === 'object') {
 				source = from
 			}
