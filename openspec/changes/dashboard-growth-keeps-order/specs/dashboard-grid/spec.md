@@ -14,7 +14,7 @@ A size-to-content card that grows pushes the cards under it down in their order.
 
 ### Requirement: A growing cell keeps the order of the cards under it
 
-When a size-to-content cell grows, every card that the growth would overlap SHALL move down by the growth, and so SHALL every card that such a move would overlap, before the cell grows. Cards beside the cell SHALL keep their place. The order of the cards from top to bottom SHALL stay as authored, whether the grid packs (`float: false`) or not. This SHALL hold for a cell that grows while the grid is built and for one that grows later. The grid SHALL render its items top to bottom, then left to right. A cell that shrinks SHALL behave as before.
+When a size-to-content cell grows after the grid is built, every card that the growth would overlap SHALL move down by the growth, and so SHALL every card that such a move would overlap, before the cell grows. Cards beside the cell SHALL keep their place. The order of the cards from top to bottom SHALL stay as authored, whether the grid packs (`float: false`) or not. This order SHALL hold for a cell that grows while the grid is built and for one that grows later; while the grid is built it SHALL be kept by rendering, and so adding, the items top to bottom, then left to right. A cell that shrinks SHALL behave as before.
 
 #### Scenario: pipelinq's simple dashboard at 1100 wide
 

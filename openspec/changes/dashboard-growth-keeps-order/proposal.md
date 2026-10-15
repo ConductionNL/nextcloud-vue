@@ -16,5 +16,5 @@ Two causes, two fixes:
 ## Scope
 
 - `src/utils/gridStack.js`: `planGrowth(nodes, node, h)`, the moves, bottom-most first.
-- `src/components/CnDashboardGrid/CnDashboardGrid.vue`: `itemsInRowOrder`, and `keepOrderOnGrowth` wraps the grid's `resizeToContent`, which is the path GridStack's own load and resize checks use and the path the content observer uses. `contentRows` measures the way GridStack does.
+- `src/components/CnDashboardGrid/CnDashboardGrid.vue`: `itemsInRowOrder`, and `keepOrderOnGrowth` wraps the grid's `resizeToContent`, which is the path GridStack's own resize checks and the content observer use once the grid is built. It is installed after `GridStack.init` has measured the cells on load, so the order on load comes from `itemsInRowOrder`. `contentRows` measures the way GridStack does.
 - No schema change and no manifest change.
