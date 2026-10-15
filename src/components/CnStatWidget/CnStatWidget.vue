@@ -165,7 +165,7 @@ import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { aggFilterParam } from '../../utils/fetchAggregate.js'
 import { fetchListTotal, needsListEndpoint } from '../../utils/fetchFilterCounts.js'
-import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { formatMetricValue, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 import { evaluateVisibleWhenLocal, readVisibleWhenPath } from '../../utils/visibleWhen.js'
@@ -517,7 +517,7 @@ export default {
 		 * counted between LOCAL CALENDAR DAYS, not as elapsed milliseconds, so
 		 * the time of day on a deadline never moves the answer.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, captionSource?: {register?: string, schema?: string, metric?: string, field?: string, filter?: object, via?: string, zeroText?: string}, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, captionSource?: {kind?: 'ratio', register?: string, schema?: string, metric?: string, field?: string, filter?: object, via?: string, zeroText?: string, numerator?: {metric?: string, field?: string, filter?: object, via?: string}, denominator?: {metric?: string, field?: string, filter?: object, via?: string}, decimals?: number}, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -609,6 +609,9 @@ export default {
 			value: null,
 			// The caption's own count (`content.captionSource`), null until read.
 			captionValue: null,
+			// The parts of a ratio caption (`captionSource.kind: "ratio"`): the
+			// numerator read (null: the tile's own value) and the denominator.
+			captionRatioParts: null,
 			loading: false,
 			error: '',
 		}
@@ -684,8 +687,9 @@ export default {
 			// nothing to say while it is not read, and at zero the `zeroText`
 			// (or nothing) instead of "0 waiting".
 			const counted = this.hasCaptionSource
-			if (counted && !(Number(this.captionValue) > 0)) {
-				const zero = this.captionValue !== null && this.content.captionSource.zeroText
+			const count = this.captionCount
+			if (counted && !(Number(count) > 0)) {
+				const zero = count !== null && this.content.captionSource.zeroText
 				return typeof zero === 'string' && zero !== '' ? this.effectiveTranslate(zero) : ''
 			}
 			const translated = this.effectiveTranslate(caption)
@@ -694,9 +698,10 @@ export default {
 			}
 			const payload = this.endpointMode ? this.epData : null
 			return translated.replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
-				// `{count}` is the caption's own count.
-				if (path === 'count' && counted) {
-					return String(this.captionValue)
+				// `{count}` is the caption's own count; `{ratio}` the same
+				// for a ratio caption, as a percentage.
+				if ((path === 'count' || (path === 'ratio' && this.isCaptionRatio)) && counted) {
+					return this.isCaptionRatio ? this.formatCaptionRatio(count) : String(count)
 				}
 				// `{value}` is the tile's own number, so a caption can read
 				// "{value} due today" on a register-counted tile that has no
@@ -707,6 +712,42 @@ export default {
 				const v = getByPath(payload, path)
 				return (v === undefined || v === null) ? '' : String(v)
 			}).replace(/\s{2,}/g, ' ').trim()
+		},
+
+		/**
+		 * Whether the caption is a share (`captionSource.kind: "ratio"`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/stat-caption-ratio/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-show-a-share
+		 */
+		isCaptionRatio() {
+			const own = this.content.captionSource
+			return !!own && typeof own === 'object' && own.kind === 'ratio'
+		},
+
+		/**
+		 * The caption's own number: its count, or for a ratio caption the
+		 * numerator (the tile's own value when it names none) over the
+		 * denominator, times 100. Null while unread, and for a zero or failed
+		 * denominator.
+		 *
+		 * @return {number|null}
+		 * @spec openspec/changes/stat-caption-ratio/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-show-a-share
+		 */
+		captionCount() {
+			if (!this.isCaptionRatio) {
+				return this.captionValue
+			}
+			const parts = this.captionRatioParts
+			if (!parts) {
+				return null
+			}
+			const num = parts.num === null ? this.displayValue : parts.num
+			const den = Number(parts.den)
+			if (num === null || num === undefined || num === '' || !Number.isFinite(Number(num)) || !Number.isFinite(den) || den === 0) {
+				return null
+			}
+			return (Number(num) / den) * 100
 		},
 
 		/**
@@ -737,7 +778,7 @@ export default {
 				return null
 			}
 			// A caption with its own count is coloured by that count.
-			const current = this.hasCaptionSource ? this.captionValue : this.displayValue
+			const current = this.hasCaptionSource ? this.captionCount : this.displayValue
 			if (current === null || current === undefined) {
 				return null
 			}
@@ -1843,7 +1884,9 @@ export default {
 		/**
 		 * Read the caption's own count (`content.captionSource`:
 		 * `{ register?, schema?, metric?, field?, filter?, via?, zeroText? }`,
-		 * register and schema default to the tile's source). A failed read
+		 * register and schema default to the tile's source). With `kind:
+		 * "ratio"` it reads the `denominator` part, and the `numerator` part
+		 * when one is named, as the tile's `ratio` source does. A failed read
 		 * leaves the caption out; it never shows a zero it did not count.
 		 *
 		 * @spec openspec/changes/screens-stat-caption-source/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-carry-its-own-count
@@ -1852,6 +1895,7 @@ export default {
 		async fetchCaptionValue() {
 			if (!this.hasCaptionSource) {
 				this.captionValue = null
+				this.captionRatioParts = null
 				return
 			}
 			const own = this.content.captionSource
@@ -1862,11 +1906,35 @@ export default {
 					import('@nextcloud/axios'),
 					import('@nextcloud/router'),
 				])
+				if (own.kind === 'ratio') {
+					// The parts of the tile's own `ratio` source: each names its
+					// metric, field, filter and `via`.
+					const part = (p) => this.fetchAggregate(axios, generateUrl, source, (p && p.metric) || own.metric, (p && p.field) || own.field, (p && p.filter) || {}, (p && p.via) || own.via)
+					const num = own.numerator ? await part(own.numerator) : null
+					const den = await part(own.denominator)
+					this.captionRatioParts = { num: num === undefined ? null : num, den }
+					return
+				}
 				const found = await this.fetchAggregate(axios, generateUrl, source, own.metric, own.field, own.filter || {}, own.via)
 				this.captionValue = found === null || found === undefined || Number.isNaN(Number(found)) ? null : Number(found)
 			} catch {
 				this.captionValue = null
+				this.captionRatioParts = null
 			}
+		},
+
+		/**
+		 * A ratio caption's share as the reader's number, with
+		 * `captionSource.decimals` fraction digits (0 by default).
+		 *
+		 * @param {number} share The percentage.
+		 * @return {string}
+		 * @spec openspec/changes/stat-caption-ratio/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-show-a-share
+		 */
+		formatCaptionRatio(share) {
+			const raw = Number(this.content.captionSource && this.content.captionSource.decimals)
+			const digits = Number.isInteger(raw) && raw >= 0 && raw <= 4 ? raw : 0
+			return new Intl.NumberFormat(metricLocale(), { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(share)
 		},
 
 		/**
