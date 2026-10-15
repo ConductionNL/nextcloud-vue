@@ -87,6 +87,7 @@ With `title`, `description`, `docUrl`, `cardTitle`, `loading`, and `labels`:
 | `title` | String | `'Version information'` | Section heading (passed to the wrapping CnSettingsSection) |
 | `description` | String | `'Information about the current application installation'` | Section sub-heading |
 | `docUrl` | String | `''` | Documentation URL — shows an info icon link next to the section title |
+| `wide` | Boolean | `true` | Under the board look the card spans the whole settings grid, as the boards draw it. `false` keeps it one card in the grid. No effect without the board look. |
 | `cardTitle` | String | `'Application information'` | Heading inside the gray version card |
 | `loading` | Boolean | `false` | Show a loading spinner and hide the card content while data is fetching |
 | `labels` | Object | `{ appName, version, configuredVersion }` | Custom labels for the standard row headings (for i18n) |
