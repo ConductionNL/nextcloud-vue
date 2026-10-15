@@ -4,7 +4,7 @@
 		:description="description"
 		:docUrl="docUrl"
 		:loading="registersLoading"
-		loadingMessage="Loading registers..."
+		:loadingMessage="t('nextcloud-vue', 'Loading registers…')"
 		:error="!!registersError"
 		:errorMessage="registersError || ''"
 		:onRetry="loadRegisters">
@@ -19,7 +19,7 @@
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSave v-else :size="20" />
 				</template>
-				{{ saving ? 'Saving...' : saveButtonText }}
+				{{ saving ? t('nextcloud-vue', 'Saving…') : saveButtonText }}
 			</NcButton>
 			<NcButton
 				v-if="showReimportButton"
@@ -30,7 +30,7 @@
 					<NcLoadingIcon v-if="reimporting" :size="20" />
 					<Refresh v-else :size="20" />
 				</template>
-				{{ reimporting ? 'Importing...' : reimportButtonText }}
+				{{ reimporting ? t('nextcloud-vue', 'Importing…') : reimportButtonText }}
 			</NcButton>
 			<slot name="actions" />
 		</template>
@@ -79,8 +79,8 @@
 				<div v-if="selectedRegister(groupIdx)" class="cn-register-mapping__type-list">
 					<!-- Header row -->
 					<div class="cn-register-mapping__type-list-header">
-						<span>Name</span>
-						<span>Schema</span>
+						<span>{{ t('nextcloud-vue', 'Object type') }}</span>
+						<span>{{ labels.schema }}</span>
 						<span />
 						<span />
 					</div>
@@ -326,7 +326,7 @@ export default {
 		/** Register options for NcSelect */
 		registerSelectOptions() {
 			return this.registers.map((r) => ({
-				label: r.title || r.slug || `Register ${r.id}`,
+				label: r.title || r.slug || t('nextcloud-vue', 'Register {id}', { id: r.id }),
 				value: String(r.id),
 			}))
 		},
@@ -353,6 +353,8 @@ export default {
 	},
 
 	methods: {
+		t,
+
 		/**
 		 * Get the config key for a group's register.
 		 *
@@ -437,7 +439,7 @@ export default {
 				return selected.label
 			}
 			const value = this.schemaValue(groupIdx, type)
-			return value ? `Schema ${value}` : ''
+			return value ? t('nextcloud-vue', 'Schema {id}', { id: value }) : ''
 		},
 
 		/**
@@ -453,7 +455,7 @@ export default {
 			}
 			const schemas = this.schemasByRegister[reg.value] || []
 			return schemas.map((s) => ({
-				label: s.title || s.slug || `Schema ${s.id}`,
+				label: s.title || s.slug || t('nextcloud-vue', 'Schema {id}', { id: s.id }),
 				value: String(s.id),
 			}))
 		},
@@ -591,7 +593,7 @@ export default {
 				})
 
 				if (!response.ok) {
-					this.registersError = `Failed to fetch registers: ${response.statusText}`
+					this.registersError = t('nextcloud-vue', 'The registers could not be loaded: {reason}', { reason: response.statusText || response.status })
 					return
 				}
 
@@ -612,7 +614,7 @@ export default {
 					}
 				}
 			} catch (error) {
-				this.registersError = error.message || 'Network error fetching registers'
+				this.registersError = error.message || t('nextcloud-vue', 'The registers could not be loaded: {reason}', { reason: t('nextcloud-vue', 'no connection') })
 			} finally {
 				this.registersLoading = false
 			}

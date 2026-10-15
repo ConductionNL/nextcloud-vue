@@ -32,7 +32,7 @@ Displays application version information in admin settings pages. Shows the app 
 | `updating` | Boolean | `false` | Whether an update is currently in progress (shows a loading indicator on the button) |
 | `additionalItems` | Array | `[]` | Extra key-value items: `[{ label, value, statusClass? }]` |
 | `loading` | Boolean | `false` | Loading state |
-| `labels` | Object | `{ appName: 'Application Name', version: 'Version', configuredVersion: 'Configured Version' }` | Override the standard row labels |
+| `labels` | Object | `{}` | Override the standard row labels (`appName`, `version`, `configuredVersion`). A label left out keeps the translated default ("Application name", "Version", "Configured version"; in Dutch "Naam van de app", "Versie", "Ingestelde versie"). |
 
 ## Events
 

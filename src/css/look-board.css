@@ -500,12 +500,43 @@
 	color: var(--color-text-maxcontrast);
 }
 
-/* Section actions sit at the end of the title row. */
+/* Section actions sit at the end of the title row. The row is a grid, so a
+   long title wraps beside the buttons instead of running under them, and in a
+   narrow card the buttons drop under the title and description. */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions) {
+	/* `!important`: the card rules above set `display: flex` at higher specificity for a section in a wrapping element. */
+	display: grid !important;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: start;
+	column-gap: 16px;
+	container-type: inline-size;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions) > * {
+	grid-column: 1 / -1;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions) > .settings-section__name {
+	grid-row: 1;
+	grid-column: 1;
+}
+
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) > .cn-settings-section__actions {
-	position: absolute;
-	inset-block-start: 22px;
-	inset-inline-end: 24px;
+	grid-row: 1;
+	grid-column: 2;
+	position: static;
+	flex-wrap: wrap;
+	justify-self: end;
 	float: none;
+}
+
+@container (max-width: 520px) {
+	.cn-look-board .settings-section:not(.cn-look-nextcloud *) > .cn-settings-section__actions {
+		grid-row: auto;
+		grid-column: 1 / -1;
+		justify-self: start;
+		justify-content: flex-start;
+	}
 }
 
 /* An admin settings card as the board draws it (PtBeheerinstellingen,
@@ -540,16 +571,6 @@
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .notecard,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .notecard {
 	margin-block: 0;
-}
-
-.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section > .cn-settings-section__actions,
-.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .cn-settings-section__actions,
-.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .cn-settings-section__actions,
-.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .cn-settings-section__actions,
-.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .cn-settings-section__actions,
-.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .cn-settings-section__actions {
-	inset-block-start: 20px;
-	inset-inline-end: 22px;
 }
 
 .cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *),
