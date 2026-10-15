@@ -361,6 +361,17 @@
 			</button>
 		</div>
 
+		<!-- Header actions of `type: "open-form"` or `"open-modal"`: this
+		     instance draws nothing and owns the create dialog, as on a detail
+		     page, so a header button or menu entry naming one opens it. -->
+		<CnActionButtons
+			v-if="dialogHeaderActions.length > 0"
+			:actions="dialogHeaderActions"
+			display="menu"
+			data-testid="cn-index-header-dialog-actions"
+			@entries="dialogHeaderRuns = $event"
+			@created="onHeaderActionCreated" />
+
 		<!-- Quick edit: a few fields of one row, over the list, with the list
 		     keeping its place. -->
 		<CnQuickEditDialog
@@ -1104,6 +1115,7 @@ import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState,
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnBoardView } from '../CnBoardView/index.js'
@@ -1394,6 +1406,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		CnPageHeader,
 		CnQuickFilterBar,
+		CnActionButtons,
 		CnActionsBar,
 		DotsHorizontal,
 		CnIcon,
@@ -3446,6 +3459,8 @@ export default {
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/** The menu entries CnActionButtons reports for the dialog header actions, each with its `run()`. */
+			dialogHeaderRuns: [],
 			/** The visible calendar window `{ rangeStart, rangeEnd }` (ISO dates), or null outside calendar mode. */
 			calendarRange: null,
 			/** The page size to restore when leaving calendar mode. */
@@ -3670,6 +3685,24 @@ export default {
 		 *
 		 * @return {Array<object>}
 		 */
+		/**
+		 * The header actions that open a dialog: `type: "open-form"` (the
+		 * schema-driven create form, as the navigation's primary action opens
+		 * it) or `type: "open-modal"`, without a `handler` of their own.
+		 * Reserved ids are left out, as in `mergedHeaderActions`.
+		 *
+		 * @spec openspec/changes/index-header-open-form/specs/index-header/spec.md#requirement-an-index-header-action-can-open-the-create-form
+		 * @return {Array<object>}
+		 */
+		dialogHeaderActions() {
+			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
+			return (this.headerActions || []).filter((entry) => entry
+				&& typeof entry.id === 'string'
+				&& !reserved.has(entry.id)
+				&& (entry.handler === undefined || entry.handler === null || entry.handler === '')
+				&& (entry.type === 'open-form' || entry.type === 'open-modal'))
+		},
+
 		mergedHeaderActions() {
 			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
 			const merged = []
@@ -7070,11 +7103,27 @@ export default {
 			const entry = this.mergedHeaderActions.find((e) => e.id === id)
 			if (entry && typeof entry.handler === 'function') {
 				entry.handler()
+			} else {
+				const dialogRun = this.dialogHeaderRuns.find((e) => e.id === id)
+				if (dialogRun && typeof dialogRun.run === 'function') {
+					dialogRun.run()
+				}
 			}
 			if (entry && entry._dispatchSuppress) {
 				return
 			}
 			this.$emit('header-action', { action: id, id })
+		},
+
+		/**
+		 * An `open-form` header action saved a record: the list reloads so the
+		 * new row shows.
+		 *
+		 * @spec openspec/changes/index-header-open-form/specs/index-header/spec.md#requirement-an-index-header-action-can-open-the-create-form
+		 * @return {void}
+		 */
+		onHeaderActionCreated() {
+			this.onRefreshEvent()
 		},
 
 		pushAiContext() {
