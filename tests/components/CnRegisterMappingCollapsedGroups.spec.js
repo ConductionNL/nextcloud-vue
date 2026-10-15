@@ -69,6 +69,15 @@ describe('CnRegisterMapping collapsed groups', () => {
 		expect(shown(bodies(wrapper)[0])).toBe(true)
 	})
 
+	/**
+	 * @spec openspec/changes/stat-value-fits/specs/register-mapping/spec.md#requirement-the-register-select-has-one-label
+	 */
+	it('labels the register select once, through NcSelect', async () => {
+		const wrapper = await make({ groups: [GROUPS[0]] })
+		expect(wrapper.find('label.cn-register-mapping__label').exists()).toBe(false)
+		expect(wrapper.find('.cn-register-mapping__register-select nc-select-stub').attributes('inputlabel')).toBe('Register')
+	})
+
 	it('collapseGroups forces either way', async () => {
 		expect(toggles(await make({ collapseGroups: false }))).toHaveLength(0)
 		const single = await make({ groups: [GROUPS[0]], collapseGroups: true })

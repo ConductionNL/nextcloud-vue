@@ -82,7 +82,7 @@
 				</span>
 			</div>
 
-			<div class="cn-kpi-card__value-row cn-stat-widget__value-row">
+			<div ref="valueRow" class="cn-kpi-card__value-row cn-stat-widget__value-row">
 				<NcLoadingIcon v-if="displayLoading" :size="22" />
 				<span v-else-if="displayError" class="cn-stat-widget__error" :title="displayError">—</span>
 				<template v-else>
@@ -96,6 +96,7 @@
 						:variant="badgeVariant" />
 					<span
 						v-else
+						ref="value"
 						class="cn-kpi-card__value cn-stat-widget__value"
 						:data-testid="isCountdown ? 'cn-stat-widget-countdown' : null"
 						:class="{ 'cn-kpi-card__value--text': isTextValue || shownValueIsText }"
@@ -222,6 +223,9 @@ const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
 
 /** Milliseconds in a day, used only between two UTC-normalised midnights. */
 const DAY_MS = 86400000
+
+/** The smallest size `fitValue` steps a number down to, in px; below it the number wraps. */
+const MIN_FIT_FONT_SIZE = 14
 
 /**
  * The local calendar day a value names, as a UTC midnight timestamp.
@@ -592,6 +596,9 @@ export default {
 
 	data() {
 		return {
+			// The value's font size while the number would not fit its row at
+			// its own size; null when it fits.
+			fitFontSize: null,
 			// Resolved display label for an `objectField` that holds a reference
 			// uuid. Null until resolved, and null forever when it cannot be.
 			referenceLabel: null,
@@ -1488,7 +1495,16 @@ export default {
 		/** Inline style for the value text (variant rule wins over valueColor). */
 		valueStyle() {
 			const color = this.variantColor || this.content.valueColor
-			return color ? { color } : {}
+			const style = color ? { color } : {}
+			if (this.fitFontSize !== null) {
+				style.fontSize = `${this.fitFontSize}px`
+				// At the smallest size a number that still does not fit wraps rather than clips.
+				if (this.fitFontSize <= MIN_FIT_FONT_SIZE) {
+					style.whiteSpace = 'normal'
+					style.overflowWrap = 'anywhere'
+				}
+			}
+			return style
 		},
 
 		/**
@@ -1597,6 +1613,10 @@ export default {
 			this.fetchValue()
 		},
 
+		shownValue() {
+			this.$nextTick(() => this.fitValue())
+		},
+
 		objectFieldRaw: {
 			immediate: true,
 			handler() {
@@ -1617,13 +1637,50 @@ export default {
 			payload?.waitUntil?.(done)
 		}
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+		if (typeof ResizeObserver === 'function' && this.$refs.valueRow) {
+			this._fitObserver = new ResizeObserver(() => this.fitValue())
+			this._fitObserver.observe(this.$refs.valueRow)
+		}
+		this.$nextTick(() => this.fitValue())
 	},
 
 	beforeUnmount() {
 		unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+		this._fitObserver?.disconnect()
 	},
 
 	methods: {
+		/**
+		 * Step the number's font down until it fits its row, instead of the
+		 * card clipping it ("€ 1.012.4" in a narrow tile). A value that fits
+		 * keeps its own size; text values wrap and clamp on their own.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/stat-value-fits/specs/stat-tile-board-look/spec.md#requirement-a-stat-value-shrinks-instead-of-clipping
+		 */
+		fitValue() {
+			const row = this.$refs.valueRow
+			const el = this.$refs.value
+			if (!row || !el || el.classList.contains('cn-kpi-card__value--text') || typeof getComputedStyle !== 'function') {
+				this.fitFontSize = null
+				return
+			}
+			const applied = el.style.fontSize
+			const whiteSpace = el.style.whiteSpace
+			el.style.fontSize = ''
+			el.style.whiteSpace = ''
+			const natural = parseFloat(getComputedStyle(el).fontSize)
+			const overflow = row.scrollWidth - row.clientWidth
+			const width = el.offsetWidth
+			el.style.fontSize = applied
+			el.style.whiteSpace = whiteSpace
+			if (!(overflow > 0.5) || !(width > 0) || !(natural > 0)) {
+				this.fitFontSize = null
+				return
+			}
+			this.fitFontSize = Math.max(MIN_FIT_FONT_SIZE, Math.floor(natural * ((width - overflow) / width) * 10) / 10)
+		},
+
 		/**
 		 * Resolve an `objectField` that holds a reference uuid to the referenced
 		 * object's label, through the shared object store (per-schema caching and
