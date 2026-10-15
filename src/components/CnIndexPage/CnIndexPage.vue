@@ -2323,10 +2323,14 @@ export default {
 			default: () => [],
 		},
 
-		/** Text shown when no items found */
+		/**
+		 * Text shown when no items found. The default is the library's own
+		 * string, so it reads in the user's language; a page's own text goes
+		 * through the app's translate function.
+		 */
 		emptyText: {
 			type: String,
-			default: 'No items found',
+			default: () => t('nextcloud-vue', 'No items found'),
 		},
 
 		/**
