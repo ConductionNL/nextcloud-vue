@@ -230,6 +230,7 @@ The day count is taken when the tile renders. A tile left open across midnight k
 ## Notes
 
 - **An unresolvable reference shows the raw uuid, not a blank.** A blank KPI says nothing at all, so an id the store cannot resolve stays visible, the same way `CnFkResolveCell` behaves.
+- **A number never clips.** When the value is wider than its tile (a currency total in a 162px tile), its font steps down until it fits, re-measured whenever the value or the tile's width changes, never under 14px; at 14px a number that still does not fit wraps. A value that fits keeps its own size, and a text value keeps its own wrap and clamp.
 - **A countdown reads calendar days, so the answer never depends on the time of day somebody typed.** The reasoning, and the UTC-midnight parse it avoids, are in the `calendarDay` docblock in `CnStatWidget.vue`.
 
 
@@ -259,6 +260,17 @@ A caption can count something else than the tile does: "3" open requests with "1
   "caption": "{count} waiting for more than 5 days",
   "captionSource": { "filter": { "state": "pending", "escalated": true } },
   "captionVariantWhen": [{ "op": "gte", "value": 1, "variant": "error" }] }
+```
+
+### A share (`captionSource.kind: "ratio"`)
+
+With `kind: "ratio"` the caption is a share: the `numerator` over the `denominator`, times 100. Each part is `{ metric?, field?, filter?, via? }`, as in the tile's own `ratio` source. Without a `numerator` the tile's own value is the numerator. `{ratio}` (and `{count}`) in the caption is the share, with `decimals` fraction digits (0 by default) in the reader's locale. A zero or unread denominator leaves the caption out.
+
+```json
+{ "label": "1 to 30 days", "layout": "stacked",
+  "source": { "register": "shillinq", "schema": "ARInvoice", "metric": "sum", "field": "grossAmount", "filter": { "dueDate": { "gte": "@today-30d", "lt": "@today" } } },
+  "caption": "{ratio}% of open",
+  "captionSource": { "kind": "ratio", "denominator": { "metric": "sum", "field": "grossAmount", "filter": { "lifecycleState": ["issued", "overdue", "disputed"] } } } }
 ```
 
 ## The stacked tile (`layout: "stacked"`)

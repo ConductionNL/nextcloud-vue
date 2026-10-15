@@ -137,7 +137,10 @@ export function mergeMenuItems(target, incoming) {
 			target.push(copy)
 			return
 		}
-		for (const key of ['label', 'icon', 'route', 'order', 'section', 'featureFlag', 'permission', 'visibleIf', 'href', 'action']) {
+		// `query` and `params` belong to `route`: an entry that takes its route
+		// from here without them opens the list unfiltered (a "board" entry to
+		// `Cases` with `{ _view: 'board' }` opened the table).
+		for (const key of ['label', 'icon', 'route', 'query', 'params', 'order', 'section', 'featureFlag', 'permission', 'visibleIf', 'href', 'action']) {
 			if (existing[key] === undefined && item[key] !== undefined) {
 				existing[key] = item[key]
 			}

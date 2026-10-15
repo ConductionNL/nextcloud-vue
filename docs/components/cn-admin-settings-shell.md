@@ -58,7 +58,10 @@ With a real up-to-date check (when the backend reports a configured version):
 | `docUrl` | String | `''` | Documentation URL (renders the info icon next to the title) |
 | `breadcrumbs` | Array | `[]` | Board look: the path under the title, in place of the description, as `[{ label, href? }]`. The last crumb is the current page. |
 | `breadcrumbNote` | String | `''` | Board look: a note after the path, behind a dot ("geldt voor de hele organisatie"). |
+| `tabs` | Array | `[]` | A tab strip under the header, as `[{ id, label, count? }]`. Each tab's panel is the `tab-<id>` slot; the version card, the credential broker and the default slot show on the first tab only. See [Tabs](#tabs). |
+| `tabQueryKey` | String | `'tab'` | The query parameter that holds the open tab's `id`. |
 | `showVersionCard` | Boolean | `true` | Whether to render the version card |
+| `versionCardWide` | Boolean | `true` | Under the board look the version card spans the whole settings grid. `false` keeps it one card in the grid. |
 | `versionCardPosition` | String | `'start'` | Where the version card and the organisation credential broker sit: `start`, above the app's sections, or `end`, after them (a board that starts with the app's own card, such as DcBeheer). The sections move in the markup, so the keyboard order follows. |
 | `showOrganisationCredentials` | Boolean | `false` | Render the organisation credential broker (`CnCredentials scope="organisation"`) on this admin page. Opt-in — only an app that actually brokers org-wide secrets should surface it. This is the broker's home since ADR-079 Step 2: it previously lived in a generic `manifest.adminSettings[]` modal on `CnAppRoot`, gated on app ownership, which no app ever declared — so it was unreachable everywhere. Here the access decision is Nextcloud's, made server-side for `/settings/admin/<app>`. |
 | `appCredentials` | Array | `[]` | The app's manifest `credentials[]` declarations, forwarded to the broker to drive its informational "apps requesting credentials" list. Only read when `showOrganisationCredentials` is true. |
@@ -81,6 +84,7 @@ With a real up-to-date check (when the backend reports a configured version):
 | `update` | — | The version card's update button was clicked |
 | `reimported` | `object` | Configuration was re-imported successfully (AppHost response payload) |
 | `reimport-error` | `Error` | Configuration re-import failed |
+| `tab-change` | `string` | The reader opened another tab; the payload is its `id` |
 
 ## First-time setup actions (ADR-042)
 
@@ -98,10 +102,41 @@ Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
 
 | Slot | Description |
 |------|-------------|
-| default | The app's own settings sections, rendered below the version card |
+| default | The app's own settings sections, rendered below the version card (with `tabs`: on the first tab) |
+| `tab-<id>` | The panel of the tab with that `id` in `tabs` |
 | `actions` | Extra action buttons next to the update / re-import buttons |
 | `footer` | Replaces the default support / SLA footer |
 | `version-items` | Extra key/value rows inside the version card details |
+
+## Tabs
+
+With `tabs` the shell draws a tab strip right under the header, as the admin
+boards ShInstellingen and LpBeheerAlgemeen do. The shell's own content (the
+version card, the credential broker and the default slot) belongs to the first
+tab; every other tab shows its `tab-<id>` slot.
+
+```vue
+<CnAdminSettingsShell
+  app-id="shillinq"
+  app-name="Shillinq"
+  look="board"
+  :tabs="[
+    { id: 'algemeen', label: 'Algemeen' },
+    { id: 'velden', label: 'Verplichte velden', count: 12 },
+    { id: 'koppelingen', label: 'Koppelingen', count: 5 },
+  ]">
+  <GeneralSettings />
+  <template #tab-velden><RequiredFields /></template>
+  <template #tab-koppelingen><Integrations /></template>
+</CnAdminSettingsShell>
+```
+
+The open tab is in the address (`/settings/admin/shillinq?tab=velden`), so a
+link opens it and a reload keeps it. Picking a tab replaces the address entry
+rather than adding one, so Back still leaves the page. The strip is a WAI-ARIA
+tab list: Tab reaches the open tab, the arrow keys, Home and End move between
+tabs. Under the board look the strip draws folder tabs, and a panel's sections
+are cards on the same two-column grid as the shell's own.
 
 ## Board look
 

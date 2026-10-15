@@ -292,6 +292,26 @@ export function useListView(objectTypeOrOptions, options) {
 	}
 
 	/**
+	 * Add the next page after the rows already loaded, for a view that shows
+	 * every row at once (the board). Does nothing on the last page. A refresh
+	 * started while the page is in flight drops it.
+	 *
+	 * @return {Promise<void>}
+	 */
+	async function loadMore() {
+		const current = pagination.value
+		const next = Number(current.page || 1) + 1
+		if (next > Number(current.pages || 1)) {
+			return
+		}
+		const seq = refreshSeq
+		await objectStore.fetchCollection(getType(), buildParams(next), {
+			append: true,
+			isCurrent: () => seq === refreshSeq,
+		})
+	}
+
+	/**
 	 * Handle page-size change. Resets to page 1.
 	 *
 	 * @param {number} size New page size
@@ -402,6 +422,7 @@ export function useListView(objectTypeOrOptions, options) {
 		onPageSizeChange,
 		// Explicit fetch
 		refresh,
+		loadMore,
 		// The query the list sends (search, sort, facet filters, fixed filters),
 		// built from the current state, for an export that must follow the list.
 		buildParams,

@@ -104,6 +104,19 @@
 	margin-top: 0;
 }
 
+/* The board view's footer: how many rows it holds of how many match, and
+   "Load more" while the list is not complete. */
+.cn-index-page__board-load {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 16px;
+	padding: 12px 16px;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
 /* Table view owns both scroll axes. With the page column scrolling instead, the
    table's horizontal scrollbar sat at the bottom of the (taller-than-viewport)
    table, so it only appeared after scrolling down, and the pagination was
@@ -368,4 +381,40 @@
 .cn-index-page__filter-strip-pill:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
+}
+
+/*
+ * screens-board-reference-columns: the board view's controls after the
+ * search (board DqWerkbord): "Case type:" and "Columns:" as a 600 label and a
+ * 36px select, then the hint in the secondary text colour.
+ */
+.cn-index-page__board-control {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-index-page__board-select {
+	height: 36px;
+	min-height: 36px;
+	margin: 0;
+	padding: 0 10px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 8px;
+	background-color: var(--color-main-background);
+	color: var(--color-main-text);
+	font: inherit;
+	font-weight: 400;
+}
+
+.cn-index-page__board-select--strong {
+	font-weight: 500;
+}
+
+.cn-index-page__board-hint {
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
 }

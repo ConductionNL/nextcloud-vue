@@ -24,6 +24,7 @@ Displays application version information in admin settings pages. Shows the app 
 | `title` | String | `'Version information'` | Section title |
 | `description` | String | `'Information about the current application installation'` | Section description |
 | `docUrl` | String | `''` | Documentation URL — shows an info icon link next to the title |
+| `wide` | Boolean | `true` | Under the board look the card spans the whole settings grid, as the boards draw it. `false` keeps it one card in the grid. No effect without the board look. |
 | `cardTitle` | String | `'Application information'` | Heading shown inside the card |
 | `configuredVersion` | String | `''` | Configured version string (for apps that track configuration versions separately). When non-empty, an extra row is shown. |
 | `isUpToDate` | Boolean | `true` | Whether the configured version matches the installed version. Controls the status indicator color. |
@@ -31,7 +32,7 @@ Displays application version information in admin settings pages. Shows the app 
 | `updating` | Boolean | `false` | Whether an update is currently in progress (shows a loading indicator on the button) |
 | `additionalItems` | Array | `[]` | Extra key-value items: `[{ label, value, statusClass? }]` |
 | `loading` | Boolean | `false` | Loading state |
-| `labels` | Object | `{ appName: 'Application Name', version: 'Version', configuredVersion: 'Configured Version' }` | Override the standard row labels |
+| `labels` | Object | `{}` | Override the standard row labels (`appName`, `version`, `configuredVersion`). A label left out keeps the translated default ("Application name", "Version", "Configured version"; in Dutch "Naam van de app", "Versie", "Ingestelde versie"). |
 
 ## Events
 

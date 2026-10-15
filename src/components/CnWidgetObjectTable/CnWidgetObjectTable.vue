@@ -88,6 +88,7 @@ import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatch
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { fieldsFromSchema } from '../../utils/schema.js'
 import { compareVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
@@ -230,6 +231,12 @@ export default {
 		 * Column definitions. Forwarded to CnDataTable — bare string keys OR
 		 * the object form (`{ key, label, sortable, width, cellClass,
 		 * formatter, widget, format, aggregate }`) both pass straight through.
+		 *
+		 * A column that holds a reference shows the referenced object's label
+		 * with `labelField` (the property to show) and/or `resolve`
+		 * (`{ register, schema, labelField? }`, where the reference points).
+		 * Without `resolve` the target is read off the source schema's `$ref`
+		 * for that property. Such a column renders as an `fkResolve` cell.
 		 *
 		 * @type {Array<object|string>}
 		 */
@@ -469,6 +476,8 @@ export default {
 			confirmAction: null,
 			/** @type {object|null} The row the pending confirm-gated action targets. */
 			confirmRow: null,
+			/** Where each label column's references point, read off the source schema, by column key. */
+			refTargets: {},
 		}
 	},
 
@@ -639,6 +648,57 @@ export default {
 		},
 
 		/**
+		 * Columns that ask for the label of the object they reference
+		 * (`labelField` or `resolve`) and draw no cell widget of their own.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/dashboard-table-reference-labels/specs/dashboard-page/spec.md#requirement-a-dashboard-table-shows-a-referenced-objects-label
+		 */
+		refLabelColumns() {
+			return (this.columns || []).filter((col) => col && typeof col === 'object' && !col.widget
+				&& ((typeof col.labelField === 'string' && col.labelField !== '') || (col.resolve && typeof col.resolve === 'object')))
+		},
+
+		/**
+		 * The columns handed to CnDataTable: a label column whose target is
+		 * known renders as an `fkResolve` cell; every other column as given.
+		 *
+		 * @return {Array<object|string>}
+		 * @spec openspec/changes/dashboard-table-reference-labels/specs/dashboard-page/spec.md#requirement-a-dashboard-table-shows-a-referenced-objects-label
+		 */
+		renderedColumns() {
+			if (this.refLabelColumns.length === 0) {
+				return this.columns
+			}
+			return this.columns.map((col) => {
+				if (!this.refLabelColumns.includes(col)) {
+					return col
+				}
+				const target = this.refTargetOf(col)
+				if (!target) {
+					return col
+				}
+				const labelField = (col.resolve && typeof col.resolve.labelField === 'string' && col.resolve.labelField) || col.labelField || 'name'
+				return { ...col, widget: 'fkResolve', widgetProps: { ...(col.widgetProps || {}), register: target.register, schema: target.schema, labelField } }
+			})
+		},
+
+		/**
+		 * The label columns whose target has to be read off the source schema.
+		 *
+		 * @return {string[]} Their keys.
+		 */
+		schemaRefKeys() {
+			return this.refLabelColumns.filter((col) => !this.explicitTarget(col)).map((col) => col.key)
+		},
+
+		/** @return {string} The label columns to look up and the source schema, to read again when either changes. */
+		refTargetsKey() {
+			const src = this.source || {}
+			return `${src.register || ''}/${src.schema || ''}:${this.schemaRefKeys.join('|')}`
+		},
+
+		/**
 		 * `$props` minus the chrome props (`title`, `documentationUrl`,
 		 * `widgetId`, `hideWrapper`) and the widget-only props (`source`,
 		 * `endpointSource`, `actions`, `rowRoute`), so they are consumed here
@@ -668,6 +728,9 @@ export default {
 			// forwarded to CnDataTable as a compiled `(row) => class` function.
 			if (this.compiledRowClass) {
 				inner.rowClass = this.compiledRowClass
+			}
+			if (this.refLabelColumns.length > 0) {
+				inner.columns = this.renderedColumns
 			}
 			if (this.selfFetchActive) {
 				inner.register = this.source.register
@@ -804,6 +867,16 @@ export default {
 		},
 	},
 
+	watch: {
+		refTargetsKey() {
+			this.loadRefTargets()
+		},
+	},
+
+	mounted() {
+		this.loadRefTargets()
+	},
+
 	methods: {
 		/**
 		 * Entry point for every declarative action trigger (row menu or
@@ -912,6 +985,68 @@ export default {
 			if (this.selfFetchActive && table && typeof table.fetchData === 'function') {
 				table.fetchData()
 			}
+		},
+
+		/**
+		 * Where a label column's references point when the column says so
+		 * itself (`resolve.register` and `resolve.schema`).
+		 *
+		 * @param {object} col The column.
+		 * @return {{register: string, schema: string}|null}
+		 */
+		explicitTarget(col) {
+			const r = col && col.resolve
+			if (r && typeof r === 'object' && typeof r.register === 'string' && r.register !== '' && typeof r.schema === 'string' && r.schema !== '') {
+				return { register: r.register, schema: r.schema }
+			}
+			return null
+		},
+
+		/**
+		 * Where a label column's references point: the column's `resolve`, else
+		 * the source schema's `$ref` for the property, else null (the column
+		 * then shows the raw value).
+		 *
+		 * @param {object} col The column.
+		 * @return {{register: string, schema: string}|null}
+		 */
+		refTargetOf(col) {
+			return this.explicitTarget(col) || this.refTargets[col.key] || null
+		},
+
+		/**
+		 * Read the source schema once and note, for each label column without a
+		 * `resolve`, the register and schema its property's `$ref` names. A
+		 * failed or missing schema leaves those columns showing raw values.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dashboard-table-reference-labels/specs/dashboard-page/spec.md#requirement-a-dashboard-table-shows-a-referenced-objects-label
+		 */
+		async loadRefTargets() {
+			const keys = this.schemaRefKeys
+			const src = this.source
+			if (keys.length === 0 || !src || typeof src.register !== 'string' || src.register === '' || src.register.startsWith('@') || typeof src.schema !== 'string' || src.schema === '') {
+				return
+			}
+			const store = this.getObjectStore()
+			if (!store || typeof store.fetchSchema !== 'function') {
+				return
+			}
+			const type = resolveObjectOpType(store, { register: src.register, schema: src.schema }, { exactSchema: true })
+			const schema = await store.fetchSchema(type).catch(() => null)
+			if (!schema || typeof schema !== 'object') {
+				return
+			}
+			const fields = fieldsFromSchema(schema, { includeReadOnly: true })
+			const found = {}
+			for (const key of keys) {
+				const field = fields.find((f) => f.key === key)
+				const ref = field && field.reference
+				if (ref && ref.schema !== undefined && ref.schema !== null) {
+					found[key] = { register: ref.register || src.register, schema: String(ref.schema) }
+				}
+			}
+			this.refTargets = { ...this.refTargets, ...found }
 		},
 
 		/**

@@ -79,6 +79,13 @@ import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
  *   the keys of the rows that are in it; the switch is on when the row's key is
  *   in the list, or NOT in it with `bind.invert` (a list of hidden items shown
  *   as "visible" switches).
+ * - `bind.mode: 'each'` — every row IS an object (read by `source`, its key the
+ *   object id); the switch is that object's own boolean field (`bind.field`)
+ *   and a toggle PATCHes that object (`bind.register` / `bind.schema`, else the
+ *   surface's). No current object is needed, so it serves a settings page.
+ * - `bind.mode: 'map'` — a config map holds a boolean per row key: read from
+ *   `bind.url` (at `bind.path`) and written through `save`, or one object field
+ *   of the current object (`bind.field`) written by its dot-path.
  *
  * A toggle saves at once with ONE PATCH of that field; a refused PATCH puts the
  * switch back and shows the server's words.
@@ -98,7 +105,7 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `bind` — `{ mode: 'flag' }` (default) or `{ mode: 'list', field, invert? }`.
+		 * - `bind` — `{ mode: 'flag' }` (default), `{ mode: 'list', field, invert? }`, `{ mode: 'each', field, register?, schema?, invert? }` or `{ mode: 'map', url?, path?, field?, invert? }`.
 		 * - `rows` — static rows `[{ key, label, hint?, field?, ...extra }]`.
 		 * - `source` — `{ url, path?, key, label, hint? }`: rows read from an endpoint (tokens `@objectId`, `@object.<field>`), in addition to `rows`.
 		 * - `columns` — extra columns `[{ header, path, map? }]` read off each row.
@@ -149,13 +156,33 @@ export default {
 			notice: '',
 			/** Per row, how often a refused toggle forced the switch to be drawn again from the stored value. */
 			undone: {},
+			/** `each` and `map`: the value written per row key. */
+			rowSaved: {},
+			/** `map` with `bind.url`: the map as read. */
+			map: null,
 		}
 	},
 
 	computed: {
+		/**
+		 * How a switch is stored.
+		 *
+		 * @return {object} The normalised `bind`.
+		 * @spec openspec/changes/toggle-table-objects-and-map/specs/toggle-table/spec.md#requirement-a-toggle-table-can-switch-objects-or-a-config-map
+		 */
 		bind() {
 			const bind = this.content.bind || {}
-			return bind.mode === 'list' ? { mode: 'list', field: bind.field, invert: bind.invert === true } : { mode: 'flag' }
+			const invert = bind.invert === true
+			if (bind.mode === 'list') {
+				return { mode: 'list', field: bind.field, invert }
+			}
+			if (bind.mode === 'each') {
+				return { mode: 'each', field: bind.field || '', invert, register: bind.register || this.register, schema: bind.schema || this.schema }
+			}
+			if (bind.mode === 'map') {
+				return { mode: 'map', field: bind.field || '', url: bind.url || '', path: bind.path || '', invert }
+			}
+			return { mode: 'flag' }
 		},
 
 		/** The drawn rows: configured first, then sourced, each with a key, title and hint. */
@@ -200,12 +227,15 @@ export default {
 	watch: {
 		objectData() {
 			this.saved = {}
+			this.rowSaved = {}
 			this.loadSource()
+			this.loadMap()
 		},
 	},
 
 	created() {
 		this.loadSource()
+		this.loadMap()
 	},
 
 	methods: {
@@ -233,12 +263,102 @@ export default {
 		 * @return {boolean}
 		 */
 		isOn(row) {
+			if (this.bind.mode === 'each' || this.bind.mode === 'map') {
+				const on = this.rowValue(row) === true
+				return this.bind.invert ? !on : on
+			}
 			if (this.bind.mode === 'list') {
 				const list = this.stored(this.bind.field)
 				const inList = Array.isArray(list) && list.map(String).includes(row.key)
 				return this.bind.invert ? !inList : inList
 			}
 			return row.field ? this.stored(row.field) === true : false
+		},
+
+		/**
+		 * `each` and `map`: the stored value of a row's switch, as last written,
+		 * else read off the row's object or the map.
+		 *
+		 * @param {object} row The row.
+		 * @return {unknown}
+		 * @spec openspec/changes/toggle-table-objects-and-map/specs/toggle-table/spec.md#requirement-a-toggle-table-can-switch-objects-or-a-config-map
+		 */
+		rowValue(row) {
+			if (Object.hasOwn(this.rowSaved, row.key)) {
+				return this.rowSaved[row.key]
+			}
+			if (this.bind.mode === 'each') {
+				return this.bind.field ? readPath(row.item || row, this.bind.field) : undefined
+			}
+			const map = this.bind.url ? this.map : (this.bind.field ? this.stored(this.bind.field) : null)
+			return map && typeof map === 'object' ? map[row.key] : undefined
+		},
+
+		/**
+		 * Resolve `@objectId` and `@object.<path>` in a url.
+		 *
+		 * @param {string} url The url.
+		 * @return {string}
+		 */
+		fillUrl(url) {
+			const object = this.objectData || {}
+			return String(url)
+				.replace(/@objectId/g, () => encodeURIComponent(String(this.objectId || object.id || '')))
+				.replace(/@object\.([\w.@]+)/g, (m, path) => encodeURIComponent(String(readPath(object, path) ?? '')))
+		},
+
+		/**
+		 * `map` with `bind.url`: read the map.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/toggle-table-objects-and-map/specs/toggle-table/spec.md#requirement-a-toggle-table-can-switch-objects-or-a-config-map
+		 */
+		async loadMap() {
+			if (this.bind.mode !== 'map' || !this.bind.url) {
+				return
+			}
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const { data } = await axios.get(prefixUrl(this.fillUrl(this.bind.url)))
+				const map = this.bind.path ? readPath(data, this.bind.path) : data
+				this.map = map && typeof map === 'object' ? map : {}
+			} catch (e) {
+				this.notice = serverErrorMessage(e)
+			}
+		},
+
+		/**
+		 * `each` and `map`: write one row's switch.
+		 *
+		 * @param {object} row The row.
+		 * @param {boolean} value The value to store.
+		 * @return {Promise<unknown>} The value the server holds now.
+		 * @spec openspec/changes/toggle-table-objects-and-map/specs/toggle-table/spec.md#requirement-a-toggle-table-can-switch-objects-or-a-config-map
+		 */
+		async writeRow(row, value) {
+			const save = this.content.save
+			const hasSave = Boolean(save && save.url)
+			if (this.bind.mode === 'each') {
+				const url = objectUrlOf(this.bind.register, this.bind.schema, row.key)
+				if ((!url && !hasSave) || !this.bind.field) {
+					throw new Error(this.tr('This switch cannot be saved here.'))
+				}
+				const data = await writeFields(url, { [this.bind.field]: value }, { save, object: row.item || row })
+				const answered = hasSave ? undefined : readPath(data, this.bind.field)
+				return answered !== undefined ? answered : value
+			}
+			if (this.bind.url) {
+				if (!hasSave) {
+					throw new Error(this.tr('This switch cannot be saved here.'))
+				}
+				await writeFields('', { [row.key]: value }, { save, object: this.objectData })
+				return value
+			}
+			if ((!this.objectUrl && !hasSave) || !this.bind.field) {
+				throw new Error(this.tr('This switch cannot be saved here.'))
+			}
+			await writeFields(this.objectUrl, { [`${this.bind.field}.${row.key}`]: value }, { save, object: this.objectData })
+			return value
 		},
 
 		/**
@@ -265,10 +385,7 @@ export default {
 			if (!source || !source.url || !source.key) {
 				return
 			}
-			const object = this.objectData || {}
-			const url = String(source.url)
-				.replace(/@objectId/g, () => encodeURIComponent(String(this.objectId || object.id || '')))
-				.replace(/@object\.([\w.@]+)/g, (m, path) => encodeURIComponent(String(readPath(object, path) ?? '')))
+			const url = this.fillUrl(source.url)
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
 				const { data } = await axios.get(prefixUrl(url))
@@ -277,6 +394,7 @@ export default {
 					.filter((item) => item && readPath(item, source.key) !== undefined)
 					.map((item) => ({
 						...item,
+						item,
 						key: String(readPath(item, source.key)),
 						title: String(readPath(item, source.label || source.key) ?? readPath(item, source.key)),
 						hint: source.hint ? String(readPath(item, source.hint) ?? '') : '',
@@ -295,6 +413,21 @@ export default {
 		 * @spec openspec/changes/abstract-toggle-table/specs/toggle-table/spec.md#requirement-a-toggle-saves-one-field
 		 */
 		async toggle(row, on) {
+			if (this.bind.mode === 'each' || this.bind.mode === 'map') {
+				this.notice = ''
+				this.busy = row.key
+				try {
+					const written = await this.writeRow(row, this.bind.invert ? !on : on)
+					this.rowSaved = { ...this.rowSaved, [row.key]: written }
+					this.$emit('saved', { field: this.bind.mode === 'each' ? this.bind.field : row.key, key: row.key, value: written })
+				} catch (e) {
+					this.notice = serverErrorMessage(e)
+					this.undone = { ...this.undone, [row.key]: (this.undone[row.key] || 0) + 1 }
+				} finally {
+					this.busy = ''
+				}
+				return
+			}
 			const field = this.bind.mode === 'list' ? this.bind.field : row.field
 			if ((!this.objectUrl && !(this.content.save && this.content.save.url)) || !field) {
 				this.notice = this.tr('This switch cannot be saved here.')
@@ -317,7 +450,7 @@ export default {
 				this.saved = { ...this.saved, [field]: written }
 				/**
 				 * @event saved A switch was written.
-				 * @type {{field: string, value: unknown}}
+				 * @type {{field: string, key?: string, value: unknown}} `key` is the row, in the `each` and `map` modes.
 				 */
 				this.$emit('saved', { field, value: written })
 			} catch (e) {

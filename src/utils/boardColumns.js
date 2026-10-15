@@ -128,6 +128,10 @@ function labelFor(field, value) {
  * @param {string} options.statusField - The property name on a row.
  * @param {string} [options.offBoardLabel] - What to call the off-board column.
  * @param {string} [options.colorField] - The key on a state that holds its dot colour.
+ * @param {?((row: object) => string)} [options.keyOf] - The column a row
+ *   belongs in, for a field whose raw value is not the column key (a
+ *   reference whose rows are merged by name). Absent, the row's
+ *   `statusField` value is the key.
  *
  * @return {{columns: Array<object>, usable: boolean}} The columns, each
  *   `{ key, label, cards, count }`, and whether the field could back a board.
@@ -138,6 +142,7 @@ export function buildBoardColumns({
 	statusField = '',
 	offBoardLabel = 'Elsewhere',
 	colorField = '',
+	keyOf = null,
 } = {}) {
 	const { stages, usable } = stagesOf(field, colorField)
 	if (usable === false) {
@@ -156,7 +161,9 @@ export function buildBoardColumns({
 
 	const offBoard = { key: OFF_BOARD_KEY, label: offBoardLabel, cards: [], count: 0 }
 	for (const row of rows) {
-		const value = String(row?.[statusField] ?? '')
+		const value = typeof keyOf === 'function'
+			? String(keyOf(row) ?? '')
+			: String(row?.[statusField] ?? '')
 		const column = byKey.get(value) || offBoard
 		column.cards.push(row)
 		column.count += 1

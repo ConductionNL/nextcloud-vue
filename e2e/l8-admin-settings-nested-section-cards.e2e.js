@@ -24,11 +24,11 @@ test('wrapped sections are cards side by side', async ({ page }) => {
 	// Side by side in the grid.
 	expect(Math.round(left.y)).toBe(Math.round(right.y))
 	expect(right.x).toBeGreaterThan(left.x + left.width)
-	// Drawn as a card: a border and the padding of the board card.
+	// Drawn as a card: a border and the padding of the board's admin settings card.
 	const style = await organisation.evaluate((el) => {
 		const cs = getComputedStyle(el)
 		return { border: cs.borderTopWidth, padding: cs.paddingTop }
 	})
 	expect(style.border).toBe('1px')
-	expect(style.padding).toBe('22px')
+	expect(style.padding).toBe('20px')
 })

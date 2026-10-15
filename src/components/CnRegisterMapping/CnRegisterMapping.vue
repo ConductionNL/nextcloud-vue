@@ -4,7 +4,7 @@
 		:description="description"
 		:docUrl="docUrl"
 		:loading="registersLoading"
-		loadingMessage="Loading registers..."
+		:loadingMessage="t('nextcloud-vue', 'Loading registers…')"
 		:error="!!registersError"
 		:errorMessage="registersError || ''"
 		:onRetry="loadRegisters">
@@ -19,7 +19,7 @@
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSave v-else :size="20" />
 				</template>
-				{{ saving ? 'Saving...' : saveButtonText }}
+				{{ saving ? t('nextcloud-vue', 'Saving…') : saveButtonText }}
 			</NcButton>
 			<NcButton
 				v-if="showReimportButton"
@@ -30,7 +30,7 @@
 					<NcLoadingIcon v-if="reimporting" :size="20" />
 					<Refresh v-else :size="20" />
 				</template>
-				{{ reimporting ? 'Importing...' : reimportButtonText }}
+				{{ reimporting ? t('nextcloud-vue', 'Importing…') : reimportButtonText }}
 			</NcButton>
 			<slot name="actions" />
 		</template>
@@ -40,9 +40,39 @@
 			<div
 				v-for="(group, groupIdx) in groups"
 				:key="groupIdx"
-				class="cn-register-mapping__group">
-				<!-- Group header -->
-				<slot name="group-header"
+				class="cn-register-mapping__group"
+				:class="{ 'cn-register-mapping__group--collapsed': !isGroupOpen(groupIdx) }"
+				data-testid="cn-register-mapping-group">
+				<!-- Group header. With collapsible groups a heading holds the button
+				     that opens and closes the group (the WAI-ARIA accordion); the
+				     count stays visible while it is closed. -->
+				<h4 v-if="groupsCollapsible" class="cn-register-mapping__group-heading">
+					<button
+						type="button"
+						class="cn-register-mapping__group-toggle"
+						:aria-expanded="String(isGroupOpen(groupIdx))"
+						:aria-controls="groupBodyId(groupIdx)"
+						data-testid="cn-register-mapping-group-toggle"
+						@click="toggleGroup(groupIdx)">
+						<span class="cn-register-mapping__group-chevron" aria-hidden="true">
+							<ChevronUp v-if="isGroupOpen(groupIdx)" :size="20" />
+							<ChevronDown v-else :size="20" />
+						</span>
+						<slot name="group-header"
+							:group="group"
+							:configuredCount="configuredCount(groupIdx)"
+							:totalCount="group.types.length">
+							<span class="cn-register-mapping__group-header">
+								<span class="cn-register-mapping__group-title">{{ group.name }}</span>
+								<span class="cn-register-mapping__group-status" data-testid="cn-register-mapping-group-count">
+									{{ configuredCount(groupIdx) }}/{{ group.types.length }} {{ labels.partiallyConfigured }}
+								</span>
+							</span>
+						</slot>
+					</button>
+				</h4>
+				<slot v-else
+					name="group-header"
 					:group="group"
 					:configuredCount="configuredCount(groupIdx)"
 					:totalCount="group.types.length">
@@ -56,90 +86,95 @@
 					</div>
 				</slot>
 
-				<!-- Group description -->
-				<p v-if="group.description" class="cn-register-mapping__group-description">
-					{{ group.description }}
-				</p>
+				<div
+					v-show="isGroupOpen(groupIdx)"
+					:id="groupBodyId(groupIdx)"
+					class="cn-register-mapping__group-body"
+					data-testid="cn-register-mapping-group-body">
+					<!-- Group description -->
+					<p v-if="group.description" class="cn-register-mapping__group-description">
+						{{ group.description }}
+					</p>
 
-				<!-- Register selector -->
-				<div class="cn-register-mapping__register-select">
-					<label class="cn-register-mapping__label">{{ labels.register }}</label>
-					<NcSelect
-						:modelValue="selectedRegister(groupIdx)"
-						:options="registerSelectOptions"
-						:placeholder="labels.selectRegister"
-						:inputLabel="labels.register"
-						:loading="registersLoading"
-						label="label"
-						trackBy="value"
-						@update:modelValue="handleRegisterChange(groupIdx, $event)" />
-				</div>
-
-				<!-- Type list -->
-				<div v-if="selectedRegister(groupIdx)" class="cn-register-mapping__type-list">
-					<!-- Header row -->
-					<div class="cn-register-mapping__type-list-header">
-						<span>Name</span>
-						<span>Schema</span>
-						<span />
-						<span />
+					<!-- Register selector -->
+					<div class="cn-register-mapping__register-select">
+						<NcSelect
+							:modelValue="selectedRegister(groupIdx)"
+							:options="registerSelectOptions"
+							:placeholder="labels.selectRegister"
+							:inputLabel="labels.register"
+							:loading="registersLoading"
+							label="label"
+							trackBy="value"
+							@update:modelValue="handleRegisterChange(groupIdx, $event)" />
 					</div>
 
-					<!-- Type rows -->
-					<template v-for="type in group.types" :key="type.slug + '-row'">
-						<div
-							class="cn-register-mapping__type-row"
-							:class="{ 'cn-register-mapping__type-row--expanded': isExpanded(groupIdx, type.slug) }"
-							@click="toggleExpand(groupIdx, type.slug)">
-							<span class="cn-register-mapping__type-name">{{ type.label }}</span>
-							<span class="cn-register-mapping__type-schema">
-								{{ schemaLabel(groupIdx, type) || labels.notConfigured }}
-							</span>
-							<span class="cn-register-mapping__type-status">
-								<span
-									class="cn-register-mapping__status-dot"
-									:class="schemaValue(groupIdx, type)
-										? 'cn-register-mapping__status-dot--configured'
-										: 'cn-register-mapping__status-dot--unconfigured'" />
-							</span>
-							<span class="cn-register-mapping__type-chevron">
-								<ChevronUp v-if="isExpanded(groupIdx, type.slug)" :size="20" />
-								<ChevronDown v-else :size="20" />
-							</span>
+					<!-- Type list -->
+					<div v-if="selectedRegister(groupIdx)" class="cn-register-mapping__type-list">
+						<!-- Header row -->
+						<div class="cn-register-mapping__type-list-header">
+							<span>{{ t('nextcloud-vue', 'Object type') }}</span>
+							<span>{{ labels.schema }}</span>
+							<span />
+							<span />
 						</div>
 
-						<!-- Expanded detail -->
-						<transition name="slide">
+						<!-- Type rows -->
+						<template v-for="type in group.types" :key="type.slug + '-row'">
 							<div
-								v-if="isExpanded(groupIdx, type.slug)"
-								class="cn-register-mapping__type-detail">
-								<p v-if="type.description" class="cn-register-mapping__type-description">
-									{{ type.description }}
-								</p>
-								<NcSelect
-									:modelValue="selectedSchema(groupIdx, type)"
-									:options="schemaSelectOptions(groupIdx)"
-									:placeholder="labels.selectSchema"
-									:inputLabel="labels.schema"
-									label="label"
-									trackBy="value"
-									@update:modelValue="handleSchemaChange(groupIdx, type, $event)" />
+								class="cn-register-mapping__type-row"
+								:class="{ 'cn-register-mapping__type-row--expanded': isExpanded(groupIdx, type.slug) }"
+								@click="toggleExpand(groupIdx, type.slug)">
+								<span class="cn-register-mapping__type-name">{{ type.label }}</span>
+								<span class="cn-register-mapping__type-schema">
+									{{ schemaLabel(groupIdx, type) || labels.notConfigured }}
+								</span>
+								<span class="cn-register-mapping__type-status">
+									<span
+										class="cn-register-mapping__status-dot"
+										:class="schemaValue(groupIdx, type)
+											? 'cn-register-mapping__status-dot--configured'
+											: 'cn-register-mapping__status-dot--unconfigured'" />
+								</span>
+								<span class="cn-register-mapping__type-chevron">
+									<ChevronUp v-if="isExpanded(groupIdx, type.slug)" :size="20" />
+									<ChevronDown v-else :size="20" />
+								</span>
 							</div>
-						</transition>
-					</template>
+
+							<!-- Expanded detail -->
+							<transition name="slide">
+								<div
+									v-if="isExpanded(groupIdx, type.slug)"
+									class="cn-register-mapping__type-detail">
+									<p v-if="type.description" class="cn-register-mapping__type-description">
+										{{ type.description }}
+									</p>
+									<NcSelect
+										:modelValue="selectedSchema(groupIdx, type)"
+										:options="schemaSelectOptions(groupIdx)"
+										:placeholder="labels.selectSchema"
+										:inputLabel="labels.schema"
+										label="label"
+										trackBy="value"
+										@update:modelValue="handleSchemaChange(groupIdx, type, $event)" />
+								</div>
+							</transition>
+						</template>
+					</div>
+
+					<!-- No register selected -->
+					<NcNoteCard v-else-if="!registersLoading" type="info">
+						{{ labels.selectRegister }}
+					</NcNoteCard>
+
+					<!-- No schemas available -->
+					<NcNoteCard
+						v-if="selectedRegister(groupIdx) && schemaSelectOptions(groupIdx).length === 0 && !registersLoading"
+						variant="warning">
+						{{ labels.noSchemas }}
+					</NcNoteCard>
 				</div>
-
-				<!-- No register selected -->
-				<NcNoteCard v-else-if="!registersLoading" type="info">
-					{{ labels.selectRegister }}
-				</NcNoteCard>
-
-				<!-- No schemas available -->
-				<NcNoteCard
-					v-if="selectedRegister(groupIdx) && schemaSelectOptions(groupIdx).length === 0 && !registersLoading"
-					variant="warning">
-					{{ labels.noSchemas }}
-				</NcNoteCard>
 			</div>
 		</div>
 
@@ -159,6 +194,8 @@ import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import { buildHeaders, prefixUrl } from '../../utils/headers.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
+
+let mappingCount = 0
 
 /**
  * CnRegisterMapping - OpenRegister register/schema configuration component.
@@ -284,6 +321,20 @@ export default {
 			default: () => t('nextcloud-vue', 'Re-import configuration'),
 		},
 
+		/**
+		 * Draw each group as a header that opens and closes it, showing its
+		 * configured count while closed. The groups start closed. `null` (the
+		 * default) collapses them when there is more than one group, so a page
+		 * with several registers is not one long card.
+		 *
+		 * @type {boolean|null}
+		 * @spec openspec/changes/register-mapping-collapsed-groups/specs/register-mapping/spec.md#requirement-register-groups-start-closed-with-their-count
+		 */
+		collapseGroups: {
+			type: Boolean,
+			default: null,
+		},
+
 		/** Auto-match schema titles to type slugs on register change */
 		autoMatch: {
 			type: Boolean,
@@ -319,6 +370,9 @@ export default {
 			// Local state
 			localConfig: {},
 			expandedRows: {},
+			// The groups opened by the reader, by index.
+			openGroups: {},
+			uid: ++mappingCount,
 		}
 	},
 
@@ -326,9 +380,19 @@ export default {
 		/** Register options for NcSelect */
 		registerSelectOptions() {
 			return this.registers.map((r) => ({
-				label: r.title || r.slug || `Register ${r.id}`,
+				label: r.title || r.slug || t('nextcloud-vue', 'Register {id}', { id: r.id }),
 				value: String(r.id),
 			}))
+		},
+
+		/**
+		 * Whether the groups open and close.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/register-mapping-collapsed-groups/specs/register-mapping/spec.md#requirement-register-groups-start-closed-with-their-count
+		 */
+		groupsCollapsible() {
+			return this.collapseGroups === null ? this.groups.length > 1 : this.collapseGroups
 		},
 
 		/** Whether local config differs from prop */
@@ -353,6 +417,39 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Whether a group's body shows.
+		 *
+		 * @param {number} groupIdx Group index
+		 * @return {boolean}
+		 */
+		isGroupOpen(groupIdx) {
+			return !this.groupsCollapsible || this.openGroups[groupIdx] === true
+		},
+
+		/**
+		 * Open a closed group, or close an open one.
+		 *
+		 * @param {number} groupIdx Group index
+		 * @return {void}
+		 * @spec openspec/changes/register-mapping-collapsed-groups/specs/register-mapping/spec.md#requirement-register-groups-start-closed-with-their-count
+		 */
+		toggleGroup(groupIdx) {
+			this.openGroups = { ...this.openGroups, [groupIdx]: !this.isGroupOpen(groupIdx) }
+		},
+
+		/**
+		 * The id of a group's body, for the header's `aria-controls`.
+		 *
+		 * @param {number} groupIdx Group index
+		 * @return {string}
+		 */
+		groupBodyId(groupIdx) {
+			return `cn-register-mapping-${this.uid}-group-${groupIdx}`
+		},
+
 		/**
 		 * Get the config key for a group's register.
 		 *
@@ -437,7 +534,7 @@ export default {
 				return selected.label
 			}
 			const value = this.schemaValue(groupIdx, type)
-			return value ? `Schema ${value}` : ''
+			return value ? t('nextcloud-vue', 'Schema {id}', { id: value }) : ''
 		},
 
 		/**
@@ -453,7 +550,7 @@ export default {
 			}
 			const schemas = this.schemasByRegister[reg.value] || []
 			return schemas.map((s) => ({
-				label: s.title || s.slug || `Schema ${s.id}`,
+				label: s.title || s.slug || t('nextcloud-vue', 'Schema {id}', { id: s.id }),
 				value: String(s.id),
 			}))
 		},
@@ -591,7 +688,7 @@ export default {
 				})
 
 				if (!response.ok) {
-					this.registersError = `Failed to fetch registers: ${response.statusText}`
+					this.registersError = t('nextcloud-vue', 'The registers could not be loaded: {reason}', { reason: response.statusText || response.status })
 					return
 				}
 
@@ -612,7 +709,7 @@ export default {
 					}
 				}
 			} catch (error) {
-				this.registersError = error.message || 'Network error fetching registers'
+				this.registersError = error.message || t('nextcloud-vue', 'The registers could not be loaded: {reason}', { reason: t('nextcloud-vue', 'no connection') })
 			} finally {
 				this.registersLoading = false
 			}
@@ -671,6 +768,52 @@ export default {
 	margin-bottom: 12px;
 }
 
+.cn-register-mapping__group-heading {
+	margin: 0 0 12px;
+	font: inherit;
+}
+
+.cn-register-mapping__group--collapsed .cn-register-mapping__group-heading {
+	margin-bottom: 0;
+}
+
+.cn-register-mapping__group-toggle {
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	min-height: 44px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-register-mapping__group-toggle:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+	border-radius: var(--border-radius);
+}
+
+.cn-register-mapping__group-chevron {
+	display: inline-flex;
+	flex: none;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-register-mapping__group-toggle .cn-register-mapping__group-header {
+	flex: 1 1 auto;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	min-width: 0;
+	margin-bottom: 0;
+}
+
 .cn-register-mapping__group-title {
 	font-size: 16px;
 	font-weight: 600;
@@ -687,14 +830,6 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 	margin: 0 0 12px 0;
-}
-
-.cn-register-mapping__label {
-	display: block;
-	font-weight: 500;
-	font-size: 13px;
-	color: var(--color-text-maxcontrast);
-	margin-bottom: 4px;
 }
 
 .cn-register-mapping__register-select {

@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.96.0', () => {
+	it('the manifest schema version reads 2.99.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1378,7 +1378,10 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.94.0 adds startOn on a walkthrough tour (a-tour-starts-on-the-pages-it-names).
 		// 2.95.0 adds config.visibilityContext and the @context token (detail-widgets-visible-when).
 		// 2.96.0 adds headerButtons on a reports page (screens-reports-header-buttons).
-		expect(schema.version).toBe('2.96.0')
+		// 2.97.0 adds board columnFields, narrow, moveHandler, moveTargetsHandler, columnSwitchLabel, hint and wrap (screens-board-reference-columns).
+		// 2.98.0 lets config.titleField name the record on a detail page (detail-title-field).
+		// 2.99.0 lets config.countSubtitle take a singular and a plural form (index-count-plural).
+		expect(schema.version).toBe('2.99.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2112,5 +2115,67 @@ describe('app-manifest-v2: header buttons on a reports page (screens-reports-hea
 		expect(validateManifestV2(reports({ headerActions, headerButtons: [{ label: 'Download', action: 'download', icon: 'Download' }] })).valid).toBe(true)
 		expect(validateManifestV2(reports({ headerActions, headerButtons: [{ label: 'Download' }] })).valid).toBe(false)
 		expect(validateManifestV2(reports({ headerActions, headerButtons: [{ label: 'Download', action: 'download', colour: 'red' }] })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: board columns from a referenced field (screens-board-reference-columns, 2.97.0)', () => {
+	const index = (board) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 'case', viewModes: ['table', 'board'], board } }],
+	})
+
+	it('accepts columnFields with a reference source, a values field, a narrow select and the move handlers', () => {
+		const board = {
+			statusField: 'status',
+			wrap: true,
+			card: { title: 'title', pill: 'caseType', formatters: { caseType: 'caseTypeName' } },
+			hint: 'One column per value.',
+			columnSwitchLabel: 'Columns',
+			moveHandler: 'caseStatusMove',
+			moveTargetsHandler: 'caseStatusTargets',
+			narrow: { field: 'caseType', label: 'Case type', allLabel: 'All case types', source: { schema: 'caseType', labelField: 'title' } },
+			columnFields: [
+				{ field: 'status', label: 'status', source: { schema: 'statusType', labelField: 'name', orderField: 'order', colorField: 'colour', mergeBy: 'name', filter: { isFinal: false }, narrowBy: { field: 'caseType', rowField: 'caseType' } } },
+				{ field: 'caseType', label: 'type', source: { schema: 'caseType', labelField: 'title' }, readOnly: true },
+				{ field: 'assignee', label: 'assignee', kind: 'values', emptyLabel: 'Nobody' },
+			],
+		}
+		expect(validateManifestV2(index(board)).valid).toBe(true)
+	})
+
+	it('refuses a column field without a field, an unknown kind, a narrowBy without rowField and an unknown key', () => {
+		expect(validateManifestV2(index({ statusField: 'status', columnFields: [{ label: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ statusField: 'status', columnFields: [{ field: 'a', kind: 'users' }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ statusField: 'status', columnFields: [{ field: 'a', source: { narrowBy: { field: 'caseType' } } }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ statusField: 'status', columnFields: [{ field: 'a', colour: 'red' }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ statusField: 'status', narrow: { label: 'x' } })).valid).toBe(false)
+		expect(validateManifestV2(index({ statusField: 'status', card: { formatters: { caseType: 7 } } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: titleField on a detail page (detail-title-field, 2.98.0)', () => {
+	const detail = (config) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Invoice', route: '/invoices/:id', type: 'detail', title: 'Invoice', config: { register: 'r', schema: 's', ...config } }],
+	})
+
+	it('accepts a field path, and refuses one that is not a string', () => {
+		expect(validateManifestV2(detail({ titleField: 'number' })).valid).toBe(true)
+		expect(validateManifestV2(detail({ titleField: 'customer.ref' })).valid).toBe(true)
+		expect(validateManifestV2(detail({ titleField: 3 })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: a plural countSubtitle (index-count-plural, 2.99.0)', () => {
+	const index = (config) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Invoices', route: '/invoices', type: 'index', title: 'Invoices', config: { register: 'r', schema: 's', ...config } }],
+	})
+
+	it('accepts a string or a singular and plural, and refuses an incomplete or unknown form', () => {
+		expect(validateManifestV2(index({ countSubtitle: '{total} invoices' })).valid).toBe(true)
+		expect(validateManifestV2(index({ countSubtitle: { singular: '{total} invoice', plural: '{total} invoices' } })).valid).toBe(true)
+		expect(validateManifestV2(index({ countSubtitle: { singular: '{total} invoice' } })).valid).toBe(false)
+		expect(validateManifestV2(index({ countSubtitle: { singular: '{total} invoice', plural: '{total} invoices', few: 'x' } })).valid).toBe(false)
 	})
 })
