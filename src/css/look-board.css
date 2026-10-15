@@ -422,6 +422,7 @@
    `.cn-look-board.cn-admin-settings-shell` is a shell told `look: "board"`
    itself, on an admin page no CnAppRoot wraps. */
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials),
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials),
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials) {
 	grid-column: 1 / -1;
@@ -429,6 +430,7 @@
 
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *),
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *),
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
@@ -440,14 +442,17 @@
    Settings.vue) takes no box of its own: its sections are grid items and
    cards, as if the shell held them directly. Only an element whose own
    children are sections; anything else keeps spanning the grid. */
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section),
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section),
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) {
 	display: contents;
 }
 
-/* The card: a section of the shell (also one inside a wrapping element), or a CnSettingsCard of the page. */
+/* The card: a section of the shell or of one of its tab panels (also one inside a wrapping element), or a CnSettingsCard of the page. */
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
 .cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) > .cn-settings-card {
@@ -510,29 +515,37 @@
    so it pulls itself back up to 4px under the title. The gap spaces the
    content, so a note card adds no margin of its own (NcNoteCard draws 16px
    above and below). A CnSettingsPage card keeps 22px 24px. */
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section {
 	padding: 20px 22px;
 }
 
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section > .settings-section__desc,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .settings-section__desc,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .settings-section__desc,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc {
 	margin-top: -10px;
 }
 
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section > .notecard,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .notecard,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .notecard,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .notecard,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .notecard,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .notecard {
 	margin-block: 0;
 }
 
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section > .cn-settings-section__actions,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .cn-settings-section__actions,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .cn-settings-section__actions,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .cn-settings-section__actions,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .cn-settings-section__actions,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .cn-settings-section__actions {
 	inset-block-start: 20px;

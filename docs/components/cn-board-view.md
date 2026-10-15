@@ -157,6 +157,12 @@ emits `select` with the selected row keys, and the index page feeds them into
 the same selection the table holds, so the bulk band and its actions work on
 the board too.
 
+Under the board look the checkbox stays out of sight until it is wanted: it
+shows on the card under the pointer, on a card holding keyboard focus, and on
+every card once anything is selected. It keeps its place in the tab order, and
+on a touch screen it always shows. The card title keeps the main text colour
+without an underline, even under a theme that styles every link.
+
 ## Swimlanes
 
 `swimlaneField` groups the same cards into rows while the columns stay the
