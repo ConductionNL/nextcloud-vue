@@ -52,7 +52,15 @@
 					v-else-if="iconClass"
 					:class="iconClass"
 					class="cn-widget-wrapper__icon" />
-				<h3 :id="titleId" class="cn-widget-wrapper__title">
+				<!-- An eyebrow (`eyebrow`) is a muted line above the title:
+				     "Saldo per week" above "Prognose 13 weken". -->
+				<div v-if="resolvedEyebrow" class="cn-widget-wrapper__title-stack">
+					<span class="cn-widget-wrapper__eyebrow" data-testid="cn-widget-wrapper-eyebrow">{{ resolvedEyebrow }}</span>
+					<h3 :id="titleId" class="cn-widget-wrapper__title">
+						{{ resolvedTitle }}
+					</h3>
+				</div>
+				<h3 v-else :id="titleId" class="cn-widget-wrapper__title">
 					{{ resolvedTitle }}
 				</h3>
 				<!-- @slot title-meta Rendered inside the header's left group,
@@ -232,6 +240,15 @@ export default {
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Widget'),
+		},
+
+		/**
+		 * A short muted line above the title ("Saldo per week" above
+		 * "Prognose 13 weken"), through the host translate. Empty draws none.
+		 */
+		eyebrow: {
+			type: String,
+			default: '',
 		},
 
 		/** Whether to show the header with title */
@@ -718,6 +735,16 @@ export default {
 		},
 
 		/**
+		 * The eyebrow through the host translate, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/widget-title-eyebrow/specs/dashboard-page/spec.md#requirement-a-widget-card-can-carry-a-line-above-its-title
+		 */
+		resolvedEyebrow() {
+			return this.eyebrow ? this.effectiveTranslate(this.eyebrow) : ''
+		},
+
+		/**
 		 * The RENDERED widget title — `displayTitle` run through the host
 		 * translate function. Kept separate from `displayTitle` on purpose:
 		 * `resolvedWidgetId` slugifies the raw title, so identifiers (DOM
@@ -1150,6 +1177,22 @@ export default {
 	height: 24px;
 	flex-shrink: 0;
 	color: var(--cn-widget-icon-color, var(--color-primary-element));
+}
+
+.cn-widget-wrapper__title-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-widget-wrapper__eyebrow {
+	font-size: 13px;
+	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .cn-widget-wrapper__title {
