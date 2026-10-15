@@ -339,16 +339,30 @@
 									{{ stringifyCell(v) }}
 								</span>
 							</div>
-							<!-- Single plain OBJECT → key: value definition list. -->
+							<!-- Single plain OBJECT → key: value definition list; a
+							     nested plain object (e.g. a per-language map) gets
+							     its own list one level down. -->
 							<dl
 								v-else-if="fieldValueKind(field) === 'object'"
 								class="cn-object-data-widget__deflist">
 								<template v-for="(pair, pi) in objectEntries(rawOf(field))" :key="pi">
 									<dt>
-										{{ pair[0] }}
+										{{ nestedLabel(field, [pair[0]]) }}
 									</dt>
 									<dd>
-										{{ stringifyCell(pair[1]) }}
+										<dl
+											v-if="isPlainObject(pair[1])"
+											class="cn-object-data-widget__deflist cn-object-data-widget__deflist--nested">
+											<template v-for="(sub, si) in objectEntries(pair[1])" :key="si">
+												<dt>
+													{{ nestedLabel(field, [pair[0], sub[0]]) }}
+												</dt>
+												<dd>
+													<span class="cn-object-data-widget__deflist-text">{{ stringifyNested(sub[1]) }}</span>
+												</dd>
+											</template>
+										</dl>
+										<span v-else class="cn-object-data-widget__deflist-text">{{ stringifyNested(pair[1]) }}</span>
 									</dd>
 								</template>
 							</dl>
@@ -413,6 +427,7 @@ import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
 import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
+import { humaniseKey } from '../../utils/humaniseKey.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
@@ -422,6 +437,9 @@ import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../u
 import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+
+// Widgets whose value the inline text fallback would corrupt.
+const STRUCTURED_WIDGETS = ['json', 'code', 'file', 'sub-objects', 'child-records']
 
 /**
  * CnObjectDataWidget — Schema-driven editable data grid widget.
@@ -1364,6 +1382,57 @@ export default {
 		},
 
 		/**
+		 * Whether a value is a plain object (not an array, not null).
+		 *
+		 * @param {unknown} v The value.
+		 * @return {boolean} True for a plain object.
+		 */
+		isPlainObject(v) {
+			return v !== null && typeof v === 'object' && !Array.isArray(v)
+		},
+
+		/**
+		 * Label for a key inside an object value: the sub-schema's `title`
+		 * (translated) when the schema describes it, else the key, made
+		 * readable when it is identifier-shaped (`shortDescription` → "Short
+		 * description"; `nl` stays `nl`).
+		 *
+		 * @param {object} field Resolved field definition.
+		 * @param {string[]} path Keys from the field's value down to this entry.
+		 * @return {string} The label.
+		 */
+		nestedLabel(field, path) {
+			let prop = ((this.schema && this.schema.properties) || {})[field.key]
+			for (const key of path) {
+				if (!this.isPlainObject(prop)) {
+					prop = null
+					break
+				}
+				prop = (prop.properties && prop.properties[key])
+					|| (this.isPlainObject(prop.additionalProperties) ? prop.additionalProperties : null)
+			}
+			if (prop && typeof prop.title === 'string' && prop.title) {
+				return this.cnTranslate(prop.title)
+			}
+			const key = String(path[path.length - 1])
+			return /[A-Z_-]/.test(key) ? humaniseKey(key) : key
+		},
+
+		/**
+		 * Stringify a value inside a definition list: a list of scalars reads
+		 * as a comma-separated line, anything else as `stringifyCell`.
+		 *
+		 * @param {unknown} v The value.
+		 * @return {string} The display string.
+		 */
+		stringifyNested(v) {
+			if (Array.isArray(v) && v.length && v.every((item) => item === null || typeof item !== 'object')) {
+				return v.map((item) => this.stringifyCell(item)).join(', ')
+			}
+			return this.stringifyCell(v)
+		},
+
+		/**
 		 * Stringify a scalar cell value; a nested object/array collapses to
 		 * compact JSON (never "[object Object]").
 		 *
@@ -1691,12 +1760,48 @@ export default {
 		},
 
 		/**
+		 * Whether a field's value cannot be edited inline: a structured widget
+		 * (json, code, file, sub-objects, child-records), or a plain-object /
+		 * list-of-objects value that is not a relation. Scalar widgets without
+		 * a dedicated editor (duration, language, …) keep the text fallback.
+		 *
+		 * @param {object} field Resolved field definition.
+		 * @return {boolean} True when only the form dialog can edit it.
+		 */
+		hasNoInlineEditor(field) {
+			if (STRUCTURED_WIDGETS.includes(field.widget)) {
+				return true
+			}
+			const prop = ((this.schema && this.schema.properties) || {})[field.key]
+			if (this.isRelationField(prop)) {
+				return false
+			}
+			// A list of objects by schema, also while empty (it resolves to `tags`).
+			if (prop && prop.type === 'array' && prop.items && prop.items.type === 'object') {
+				return true
+			}
+			// Classify the raw value itself: fieldValueKind reports a formatter
+			// field as 'scalar' whatever it holds.
+			const raw = this.rawOf(field)
+			if (Array.isArray(raw)) {
+				return raw.some((v) => this.isPlainObject(v))
+			}
+			return this.isPlainObject(raw)
+		},
+
+		/**
 		 * Check if a field is editable.
 		 *
 		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		isEditable(field) {
 			if (!this.editable) {
+				return false
+			}
+			// No inline editor exists for structured values: the text fallback
+			// would commit "[object Object]". Those edit through the form dialog,
+			// unless the consumer supplies its own `field-<key>` editor slot.
+			if (!this.$slots['field-' + field.key] && this.hasNoInlineEditor(field)) {
 				return false
 			}
 			// Per-field override takes priority
@@ -2437,6 +2542,17 @@ export default {
 .cn-object-data-widget__deflist dd {
 	margin: 0;
 	overflow-wrap: anywhere;
+}
+
+/* A long description keeps its own paragraphs. Set on an inline span with no
+   surrounding template whitespace, so only the value's own line breaks show. */
+.cn-object-data-widget__deflist-text {
+	white-space: pre-wrap;
+}
+
+.cn-object-data-widget__deflist--nested {
+	padding-inline-start: 8px;
+	border-inline-start: 2px solid var(--color-border);
 }
 
 /* Responsive: collapse to single column on narrow widths */
