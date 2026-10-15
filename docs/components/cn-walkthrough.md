@@ -65,6 +65,18 @@ dismissed) the tour mounts and a qualifying tour starts, or resumes where it was
 }
 ```
 
+## Where a tour starts
+
+An auto-start tour whose first step spotlights a page or nav item opens only on that route. A tour whose first step is centered spotlights nothing, so it opens wherever the user lands.
+
+`startOn` names the routes a tour may auto-start on, whatever its first step looks like:
+
+```jsonc
+{ "id": "getting-started", "trigger": "first-visit", "startOn": ["Dashboard"], "steps": [ ... ] }
+```
+
+A user whose first visit is a link to a detail page does not get the tour there. It waits until they reach a named route. A tour started by hand (`tourId`, or the restart menu) ignores `startOn`.
+
 ## Completion persistence
 
 `walkthrough.completionConfigKey` names a **per-user preference** holding the last

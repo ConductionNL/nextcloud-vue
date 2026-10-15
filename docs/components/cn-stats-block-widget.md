@@ -117,6 +117,15 @@ on the widget. The board's "Je week tot nu toe" card:
 }
 ```
 
+By default the tiles are parts of the card, without a box of their own. Set `"tiles": "box"` to draw each tile on a
+grey ground with a 10px radius and 14px 16px padding, 12px apart, as board DcRapportages draws "Vergaderingen en
+efficiëntie":
+
+```json
+{ "id": "efficiency", "type": "stats-block", "title": "Meetings and efficiency", "showTitle": true,
+  "content": { "layout": "grid", "columns": 4, "tiles": "box", "stats": [ ... ] } }
+```
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -135,6 +144,7 @@ on the widget. The board's "Je week tot nu toe" card:
 | `iconClass` | `string` | `''` | Optional NC core icon class (`icon-link`, `icon-mail`, …) applied to the wrapping `<div>`. |
 | `stats` | `array` | `[]` | The tiles of `layout: "grid"`: each a stat tile's `content`, any source kind. See [Stat tiles in a grid](#stat-tiles-in-a-grid-layout-grid-stats-columns). |
 | `columns` | `number` | `2` | Columns of `layout: "grid"` (1 to 4). |
+| `tiles` | `string` | `null` | `"box"`: each tile of `layout: "grid"` on a surface of its own (grey ground, 10px radius, 14px 16px padding). Empty: the tiles are parts of the card, without a box. |
 
 ## Refresh wiring
 

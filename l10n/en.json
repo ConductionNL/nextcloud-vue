@@ -1,5 +1,16 @@
 {
   "translations": {
+    "Channel": "Channel",
+    "Outcome": "Outcome",
+    "Chat": "Chat",
+    "Counter": "Counter",
+    "Social media": "Social media",
+    "Letter": "Letter",
+    "Save contact moment": "Save contact moment",
+    "Saving…": "Saving…",
+    "Subject is required": "Subject is required",
+    "Cannot save right now": "Cannot save right now",
+    "Failed to save interaction": "Failed to save interaction",
     "You cannot see these files": "You cannot see these files",
     "Delete {name}? This cannot be undone here.": "Delete {name}? This cannot be undone here.",
     "Linked items": "Linked items",
@@ -326,6 +337,9 @@
     "Constant": "Constant",
     "Copy": "Copy",
     "Copied": "Copied",
+    "Copy the name": "Copy the name",
+    "Copy the value": "Copy the value",
+    "Copying did not work. Select the text and copy it yourself.": "Copying did not work. Select the text and copy it yourself.",
     "Show": "Show",
     "Copy {label}": "Copy {label}",
     "Show {label}": "Show {label}",
@@ -1403,7 +1417,8 @@
     "This answer was refused.": "This answer was refused.",
     "No value ({count})": "No value ({count})",
     "{start} to {end}": "{start} to {end}",
-    "Breadcrumb": "Breadcrumb"
+    "Breadcrumb": "Breadcrumb",
+    "Moving to {stage}": "Moving to {stage}"
   },
   "plurals": {
     "{count} selected": [

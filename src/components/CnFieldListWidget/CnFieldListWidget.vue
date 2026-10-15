@@ -112,6 +112,14 @@
 				:data-testid="`cn-field-list-band-${row.key}`">
 				<span class="cn-field-list-widget__band-text">{{ row.detail }}</span>
 				<NcButton
+					v-for="copy in row.copies"
+					:key="`copy-${copy.path}`"
+					variant="tertiary"
+					:data-testid="`cn-field-list-copy-${copy.path}-${row.key}`"
+					@click="copyValue(copy)">
+					{{ copy.label }}
+				</NcButton>
+				<NcButton
 					v-for="action in row.bandActions"
 					:key="action.id"
 					variant="secondary"
@@ -162,6 +170,16 @@
 				<p v-if="row.detail" class="cn-field-list-widget__detail">
 					{{ row.detail }}
 				</p>
+				<div v-if="row.detail && row.copies.length > 0" class="cn-field-list-widget__copies">
+					<NcButton
+						v-for="copy in row.copies"
+						:key="`copy-${copy.path}`"
+						variant="tertiary"
+						:data-testid="`cn-field-list-copy-${copy.path}-${row.key}`"
+						@click="copyValue(copy)">
+						{{ copy.label }}
+					</NcButton>
+				</div>
 			</li>
 		</ul>
 
@@ -211,6 +229,7 @@
 			</NcButton>
 		</form>
 
+		<span class="cn-field-list-widget__sr" aria-live="polite" data-testid="cn-field-list-copied">{{ copied }}</span>
 		<NcNoteCard v-if="notice" :type="noticeType" data-testid="cn-field-list-notice">
 			{{ notice }}
 		</NcNoteCard>
@@ -260,7 +279,7 @@ export default {
 		 *
 		 * - `field` (required) — the object field holding the array.
 		 * - `key` — the item field that identifies an entry (default: the item itself for strings).
-		 * - `row` — `{ title, titleFallback?, avatar?, meta?: [paths|{ path, map?, format? }], pill?: { path, map?, variantMap? }, aside?: { path, format?, prefix?, fallback? }, detail?: { template, when? } }`.
+		 * - `row` — `{ title, titleFallback?, avatar?, meta?: [paths|{ path, map?, format? }], pill?: { path, map?, variantMap? }, aside?: { path, format?, prefix?, fallback? }, detail?: { template, when?, copy?: [{ path, label }] } }`. `detail.copy` puts a copy button beside the detail line for each named value of the row (an empty value gets none), such as a DNS record's name and value.
 		 * - `add` — `{ label?, fields: [{ key, label, type?: 'text'|'select', options?, required?, pattern?, patternMessage? }], unique?, defaults? }`.
 		 * - `remove` — `{ label? }`; omitted = no remove.
 		 * - `rowActions` — `[{ id, label, when?, placement?: 'band', request: { method?, url, payload? } }]`; tokens `@object.<field>`, `@objectId`, `@row.<field>`.
@@ -316,6 +335,8 @@ export default {
 			busy: '',
 			notice: '',
 			noticeType: 'error',
+			// What the last copy button put on the clipboard, said to a screen reader.
+			copied: '',
 		}
 	},
 
@@ -358,6 +379,7 @@ export default {
 					pill: this.pillOf(entry, spec.pill),
 					aside: spec.aside ? this.asideOf(entry, spec.aside) : '',
 					detail: spec.detail && this.matches(entry, spec.detail.when) ? this.fill(spec.detail.template, entry) : '',
+					copies: spec.detail && this.matches(entry, spec.detail.when) ? this.copiesOf(entry, spec.detail.copy) : [],
 					actions: this.actionsFor(entry),
 					cells: this.isTable ? this.cellsOf(entry) : [],
 				}
@@ -818,6 +840,40 @@ export default {
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/abstract-field-list/specs/field-list/spec.md#requirement-a-field-list-row-can-run-a-configured-request
 		 */
+		/**
+		 * The copy buttons of a row's detail line: one per named value that is not empty.
+		 *
+		 * @param {object} entry The entry.
+		 * @param {Array<{path: string, label?: string}>|undefined} declared The `detail.copy` list.
+		 * @return {Array<{path: string, label: string, value: string}>}
+		 */
+		copiesOf(entry, declared) {
+			return (Array.isArray(declared) ? declared : [])
+				.filter((copy) => copy && typeof copy.path === 'string' && copy.path !== '')
+				.map((copy) => ({
+					path: copy.path,
+					label: this.tr(copy.label || 'Copy'),
+					value: String(readPath(entry, copy.path) ?? ''),
+				}))
+				.filter((copy) => copy.value !== '')
+		},
+
+		/**
+		 * Put one value on the clipboard and say so; a browser that refuses says that instead.
+		 *
+		 * @param {{label: string, value: string}} copy The copy button.
+		 * @return {Promise<void>}
+		 */
+		async copyValue(copy) {
+			this.copied = ''
+			try {
+				await navigator.clipboard.writeText(copy.value)
+				this.copied = `${this.tr('Copied')}: ${copy.label}`
+			} catch {
+				this.notify(this.tr('Copying did not work. Select the text and copy it yourself.'))
+			}
+		},
+
 		async runAction(action, row) {
 			this.busy = row.key
 			this.notice = ''
@@ -912,6 +968,12 @@ export default {
 
 .cn-field-list-widget__meta,
 .cn-field-list-widget__aside,
+.cn-field-list-widget__copies {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
 .cn-field-list-widget__detail {
 	font-size: 13px;
 }

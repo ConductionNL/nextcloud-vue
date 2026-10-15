@@ -683,11 +683,27 @@ export default {
 		 * deferred tour) go through here — so a centered step cannot be
 		 * swallowed by either.
 		 *
+		 * A tour that declares `startOn` opens only on one of those route
+		 * names, whatever its first step looks like.
+		 *
 		 * @param {object} tour The tour definition.
 		 * @param {string} [routeName] The current route name.
 		 * @return {boolean} True when the tour may open on this route.
+		 * @spec openspec/changes/a-tour-starts-on-the-pages-it-names/specs/walkthrough/spec.md
 		 */
 		routeMatchesTour(tour, routeName) {
+			// A tour that names where it starts (`startOn`) opens only there.
+			// It wins over the centered-step rule below: a welcome card floats
+			// in the middle of the screen, but a user who opens a case from a
+			// mail link lands on that case, and the card then blocks the page
+			// they came for. Measured 13 October on dossiq: a staff user's first
+			// visit was a deep link to a Woo request, and "Welcome to Dossiq"
+			// opened over it. The tour waits in `_pendingAutoTour` and opens when
+			// the user reaches a named route.
+			const startOn = Array.isArray(tour && tour.startOn) ? tour.startOn.map(String) : []
+			if (startOn.length > 0) {
+				return !!routeName && startOn.includes(String(routeName))
+			}
 			const page = this.firstStepPage(tour)
 			if (!page) {
 				return true
