@@ -60,7 +60,7 @@ must be checked; whitespace does not count).
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `transition` | `Object` | — (required) | The transition being applied: `{ action, label, inputs: [{ field, required }] }`. `label` doubles as dialog title + confirm label. |
+| `transition` | `Object` | — (required) | The transition being applied: `{ action, label, inputs: [{ field, required, label?, options? }] }`. `label` doubles as dialog title + confirm label. |
 | `schema` | `Object \| null` | `null` | The object's JSON Schema (with `properties`) used to resolve labels/widgets. Optional — undeclared fields render as plain text inputs. |
 
 ## Events
@@ -69,6 +69,28 @@ must be checked; whitespace does not count).
 |-------|---------|-------------|
 | `confirm` | `{ <field>: <value>, ... }` | The user confirmed with all required inputs filled. Payload holds **exactly** the declared input keys; the parent POSTs `{ action, data }`. |
 | `close` | — | Cancel / dialog dismissed. No `confirm` was or will be emitted. |
+
+## Inputs that offer choices
+
+An input may say how it is asked for, which matters when the choices depend on
+the record rather than on its schema (the results a case may close with, say):
+
+| Key | Description |
+|-----|-------------|
+| `label` | The words beside the field, over the schema property's `title`. |
+| `options` | `[{ value, label }]`. The input becomes an `NcSelect` that shows each `label` and sends the chosen `value`. |
+
+An option without a value is dropped, one without a label shows its value, and
+an input whose `options` hold nothing usable renders from the schema as before.
+OpenRegister's `/available-actions` publishes both keys when a transition or a
+lifecycle provider declares them.
+
+```js
+{ field: 'resultTypeId', required: true, label: 'Result', options: [
+  { value: '3f2a…', label: 'Granted' },
+  { value: '9c1d…', label: 'Refused' },
+] }
+```
 
 ## Reference inputs and object inputs
 
