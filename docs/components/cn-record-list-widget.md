@@ -35,6 +35,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 | Key | Meaning |
 |-----|---------|
 | `register`, `schema` | The list to read. Without both the widget sends nothing. |
+| `endpointSource` | Read the rows from an app endpoint instead: `{ url, method?, params?, responsePath? }`, the shape the object table and the stat tile take. The payload at `responsePath` is the array of rows; a payload that is not an array is an empty list. `register`, `schema`, `filter` and `sort` are then not used. |
 | `filter` | Field filters, with the `@objectId`, `@object.<field>` and `@workspace.<key>` tokens. While a required token has no value the widget sends nothing. An operator is an object: `{ "status": { "ne": "closed" } }`. |
 | `sort` | `{ field, dir }`, sent as `_order[field]`. |
 | `limit` | How many rows to fetch and draw. Default 5. |
