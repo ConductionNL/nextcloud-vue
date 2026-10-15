@@ -2114,3 +2114,16 @@ describe('app-manifest-v2: header buttons on a reports page (screens-reports-hea
 		expect(validateManifestV2(reports({ headerActions, headerButtons: [{ label: 'Download', action: 'download', colour: 'red' }] })).valid).toBe(false)
 	})
 })
+
+describe('app-manifest-v2: titleField on a detail page (detail-title-field, 2.98.0)', () => {
+	const detail = (config) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Invoice', route: '/invoices/:id', type: 'detail', title: 'Invoice', config: { register: 'r', schema: 's', ...config } }],
+	})
+
+	it('accepts a field path, and refuses one that is not a string', () => {
+		expect(validateManifestV2(detail({ titleField: 'number' })).valid).toBe(true)
+		expect(validateManifestV2(detail({ titleField: 'customer.ref' })).valid).toBe(true)
+		expect(validateManifestV2(detail({ titleField: 3 })).valid).toBe(false)
+	})
+})
