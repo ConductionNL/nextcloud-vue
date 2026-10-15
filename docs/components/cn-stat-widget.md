@@ -261,6 +261,17 @@ A caption can count something else than the tile does: "3" open requests with "1
   "captionVariantWhen": [{ "op": "gte", "value": 1, "variant": "error" }] }
 ```
 
+### A share (`captionSource.kind: "ratio"`)
+
+With `kind: "ratio"` the caption is a share: the `numerator` over the `denominator`, times 100. Each part is `{ metric?, field?, filter?, via? }`, as in the tile's own `ratio` source. Without a `numerator` the tile's own value is the numerator. `{ratio}` (and `{count}`) in the caption is the share, with `decimals` fraction digits (0 by default) in the reader's locale. A zero or unread denominator leaves the caption out.
+
+```json
+{ "label": "1 to 30 days", "layout": "stacked",
+  "source": { "register": "shillinq", "schema": "ARInvoice", "metric": "sum", "field": "grossAmount", "filter": { "dueDate": { "gte": "@today-30d", "lt": "@today" } } },
+  "caption": "{ratio}% of open",
+  "captionSource": { "kind": "ratio", "denominator": { "metric": "sum", "field": "grossAmount", "filter": { "lifecycleState": ["issued", "overdue", "disputed"] } } } }
+```
+
 ## The stacked tile (`layout: "stacked"`)
 
 `content.layout: "stacked"` is the board's KPI tile: no icon circle, the label as plain 14px muted text, the value at 34px/700 in the text colour, and the caption on a line of its own under the value. A linked stacked tile is not underlined. Theme hooks: `--cn-kpi-stacked-padding` (10px 6px, which adds up with a dashboard cell's 8px 14px to 18px 20px), `--cn-kpi-stacked-gap`, `--cn-kpi-stacked-title-size`, `--cn-kpi-stacked-title-weight`, `--cn-kpi-stacked-value-size`, `--cn-kpi-stacked-value-color`.
