@@ -1584,7 +1584,25 @@
     "Transition failed": "De overgang is mislukt",
     "Closed": "Afgesloten",
     "Skip to {action}": "Ga naar {action}",
-    "Moving to {stage}": "Bezig met verplaatsen naar {stage}"
+    "Moving to {stage}": "Bezig met verplaatsen naar {stage}",
+    "Due {date}": "Termijn {date}",
+    "Overdue {date}": "Over tijd sinds {date}",
+    "Elsewhere": "Elders",
+    "Move to": "Verplaatsen naar",
+    "Nothing here": "Niets in deze kolom",
+    "Open in new tab": "Openen in nieuw tabblad",
+    "Show {count} more": "Toon {count} meer",
+    "Somebody else moved this card. It is shown where it is now.": "Iemand anders heeft deze kaart al verplaatst. Je ziet hem nu op zijn nieuwe plek.",
+    "That move was refused.": "Die verplaatsing is geweigerd.",
+    "This list has no status field with stages, so it cannot be shown as a board.": "Deze lijst heeft geen statusveld met fases, dus er is geen bord van te maken.",
+    "not allowed": "niet toegestaan",
+    "on this page": "op deze pagina",
+    "{count} on this page": "{count} op deze pagina",
+    "{name} cannot move to {column}.": "{name} kan niet naar {column}.",
+    "{name}, in {column}": "{name}, in {column}",
+    "This card cannot move to that column.": "Deze kaart kan niet naar die kolom.",
+    "Nobody": "Niemand",
+    "{label}:": "{label}:"
   },
   "plurals": {
     "{count} selected": [

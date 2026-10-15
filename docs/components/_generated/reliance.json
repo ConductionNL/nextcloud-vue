@@ -1305,7 +1305,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 184,
+			"transitive": 185,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1586,7 +1586,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 181,
+			"transitive": 182,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -2552,7 +2552,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 198,
+			"transitive": 199,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",

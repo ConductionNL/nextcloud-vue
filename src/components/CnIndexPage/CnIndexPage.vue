@@ -207,7 +207,53 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['after-search'] || searchInFiles" #after-search>
+			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown" #after-search>
+				<!-- Board view controls, after the search (screens-board-reference-columns):
+				     the narrowing select ("Case type:"), the column switch ("Columns:
+				     status | type | assignee") and the board's hint sentence. -->
+				<template v-if="boardControlsShown">
+					<label
+						v-if="boardNarrow"
+						class="cn-index-page__board-control"
+						data-testid="cn-board-narrow">
+						<span class="cn-index-page__board-control-label">{{ boardNarrowLabel }}</span>
+						<select
+							class="cn-index-page__board-select"
+							data-testid="cn-board-narrow-select"
+							:value="boardNarrowValue"
+							@change="onBoardNarrowChange($event.target.value)">
+							<option value="">{{ boardNarrowAllLabel }}</option>
+							<option
+								v-for="option in boardNarrowOptions"
+								:key="`narrow-${option.value}`"
+								:value="option.value">
+								{{ option.label }}
+							</option>
+						</select>
+					</label>
+					<label
+						v-if="boardColumnFields.length > 1"
+						class="cn-index-page__board-control"
+						data-testid="cn-board-column-switch">
+						<span class="cn-index-page__board-control-label">{{ boardColumnSwitchLabel }}</span>
+						<select
+							class="cn-index-page__board-select cn-index-page__board-select--strong"
+							data-testid="cn-board-column-switch-select"
+							:value="boardColumnField"
+							@change="onBoardColumnFieldChange($event.target.value)">
+							<option
+								v-for="entry in boardColumnFields"
+								:key="`colfield-${entry.field}`"
+								:value="entry.field">
+								{{ cnTranslate(entry.label) }}
+							</option>
+						</select>
+					</label>
+					<span
+						v-if="board.hint"
+						class="cn-index-page__board-hint"
+						data-testid="cn-board-hint">{{ cnTranslate(board.hint) }}</span>
+				</template>
 				<NcCheckboxRadioSwitch
 					v-if="searchInFiles"
 					:modelValue="contentSearch"
@@ -786,8 +832,13 @@
 				<CnBoardView
 					v-else-if="currentViewMode === 'board'"
 					:rows="displayObjects"
-					:statusFieldSchema="boardStatusFieldSchema"
-					:statusField="board.statusField || 'status'"
+					:statusFieldSchema="boardFieldSchema"
+					:statusField="boardColumnField"
+					:columnKeyOf="boardColumnKeyOf"
+					:wrapColumns="board.wrap === true"
+					:selectable="selectable"
+					:selectedIds="internalSelectedIds"
+					:allowedMoves="boardAllowedMoves"
 					:cardFields="board.cardFields || []"
 					:swimlaneField="board.swimlaneField || ''"
 					:dueRule="board.dueRule || null"
@@ -797,8 +848,9 @@
 					:sumFormat="boardSumFormat"
 					:columnLimit="board.columnLimit || 0"
 					:rowKey="rowKey"
-					:runTransition="runTransition"
+					:runTransition="boardRunTransition"
 					:paged="isPaged"
+					@select="onSelect"
 					@loadMore="onBoardLoadMore"
 					@cardClick="onRowClick"
 					@cardAuxClick="onRowAuxClick"
@@ -1083,6 +1135,16 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { followItemActionLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
 import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import {
+	buildReferenceStages,
+	buildValueStages,
+	columnFieldsOf,
+	columnKeyOfRow,
+	fetchReferenceObjects,
+	referenceTargetOf,
+	refIdOf,
+	resolveDropValue,
+} from '../../utils/boardReferenceColumns.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
@@ -1092,6 +1154,7 @@ import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab,
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
+import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
@@ -3335,6 +3398,7 @@ export default {
 		'add',
 		'apply-view',
 		'board-move',
+		'board-column-field-change',
 		'bulk-action',
 		'clear-filters',
 		'columns-change',
@@ -3446,6 +3510,12 @@ export default {
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/** The column field the reader picked in the board's column switch; '' = the default. */
+			boardColumnFieldChoice: '',
+			/** The rows a reference column field is built from, by field. */
+			boardRefs: {},
+			/** The options of the board's narrowing select (`board.narrow`). */
+			boardNarrowOptions: [],
 			/** The visible calendar window `{ rangeStart, rangeEnd }` (ISO dates), or null outside calendar mode. */
 			calendarRange: null,
 			/** The page size to restore when leaving calendar mode. */
@@ -4020,6 +4090,241 @@ export default {
 				}
 				return true
 			})
+		},
+
+		/**
+		 * The column fields the board offers (`board.columnFields`), for the
+		 * column switch (screens-board-reference-columns).
+		 *
+		 * @return {Array<object>} The normalised fields; empty for a board on `statusField` only.
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-board-can-switch-the-field-its-columns-come-from
+		 */
+		boardColumnFields() {
+			return columnFieldsOf(this.board)
+		},
+
+		/**
+		 * The column field in use: the reader's pick, else the one on
+		 * `statusField`, else the first. Null on a board without `columnFields`.
+		 *
+		 * @return {object|null} The normalised column field.
+		 */
+		boardActiveColumnField() {
+			const fields = this.boardColumnFields
+			if (fields.length === 0) {
+				return null
+			}
+			return fields.find((entry) => entry.field === this.boardColumnFieldChoice)
+				|| fields.find((entry) => entry.field === this.board?.statusField)
+				|| fields[0]
+		},
+
+		/** @return {string} The row field the columns come from. */
+		boardColumnField() {
+			return this.boardActiveColumnField?.field || this.board?.statusField || 'status'
+		},
+
+		/**
+		 * The parent the board is narrowed to: the single value of the page
+		 * filter on the reference's `narrowBy.rowField`, '' when none or several.
+		 *
+		 * @return {string} The parent id.
+		 */
+		boardNarrowValue() {
+			const field = this.board?.narrow?.field || this.boardActiveColumnField?.source?.narrowBy?.rowField
+			if (!field) {
+				return ''
+			}
+			const current = this.effectiveActiveFilters?.[field]
+			const values = Array.isArray(current) ? current : (current === undefined || current === null || current === '' ? [] : [current])
+			return values.length === 1 ? refIdOf(values[0]) : ''
+		},
+
+		/**
+		 * The stages of a reference or values column field, or null for a
+		 * field the schema's enum or lifecycle states back.
+		 *
+		 * @return {object|null} `{ states, keyByValue, refsByKey }`.
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-columns-can-be-the-rows-a-field-references
+		 */
+		boardStages() {
+			const active = this.boardActiveColumnField
+			if (!active) {
+				return null
+			}
+			if (active.kind === 'values') {
+				return buildValueStages({
+					rows: this.displayObjects,
+					field: active.field,
+					valueLabels: active.valueLabels,
+					emptyLabel: active.emptyLabel ? this.cnTranslate(active.emptyLabel) : t('nextcloud-vue', 'Nobody'),
+				})
+			}
+			if (active.kind !== 'reference') {
+				return null
+			}
+			const source = active.source || {}
+			const narrowBy = source.narrowBy && typeof source.narrowBy === 'object' ? source.narrowBy : null
+			return buildReferenceStages({
+				refs: this.boardRefs[active.field] || [],
+				labelField: source.labelField || '',
+				orderField: source.orderField || '',
+				colorField: source.colorField || '',
+				mergeBy: source.mergeBy || '',
+				narrowBy,
+				narrowValue: narrowBy ? this.boardNarrowValue : '',
+			})
+		},
+
+		/**
+		 * The field schema the board reads its columns from: the stages of a
+		 * reference or values field as lifecycle `states`, else the schema's
+		 * own property.
+		 *
+		 * @return {?object} The field schema, or null.
+		 */
+		boardFieldSchema() {
+			if (this.boardStages) {
+				return { states: this.boardStages.states }
+			}
+			const field = this.boardColumnField
+			return this.effectiveSchema?.properties?.[field] || null
+		},
+
+		/**
+		 * The column a card sits in, for a reference or values field.
+		 *
+		 * @return {((row: object) => string)|null} The mapper, or null.
+		 */
+		boardColumnKeyOf() {
+			const stages = this.boardStages
+			if (!stages) {
+				return null
+			}
+			const field = this.boardColumnField
+			return (row) => columnKeyOfRow(row, field, stages.keyByValue)
+		},
+
+		/**
+		 * The move the board runs on a drop or a menu pick.
+		 *
+		 * A named handler (`moveHandler`, from the app's registry) gets
+		 * `{ card, toKey, field, value, target }` and owns the write; the
+		 * status of a case goes through the app's transition this way. A
+		 * reference or values field without one has its value written on the
+		 * row (PATCH). `readOnly` gives no move. A board on `statusField` with
+		 * neither keeps the `runTransition` prop.
+		 *
+		 * @return {((move: {card: object, toKey: string}) => Promise<object>)|null} The move, or null for a read-only board.
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-drop-writes-the-reference
+		 */
+		boardRunTransition() {
+			const active = this.boardActiveColumnField
+			if (active?.readOnly) {
+				return null
+			}
+			const onStatusField = !active || active.field === this.board?.statusField
+			const name = active?.moveHandler || (onStatusField ? (this.board?.moveHandler || '') : '')
+			const handler = name ? resolveRegisteredHandler(name, this.effectiveRegistry, this.resolvedCustomComponents) : null
+			if (name && typeof handler !== 'function') {
+				return null
+			}
+			const stages = this.boardStages
+			if (!handler && !stages) {
+				return this.runTransition
+			}
+			const field = this.boardColumnField
+			const kind = active?.kind || 'schema'
+			const narrowBy = active?.source?.narrowBy || null
+			return async ({ card, toKey }) => {
+				const drop = stages
+					? resolveDropValue({ card, toKey, kind, refsByKey: stages.refsByKey, narrowBy })
+					: { value: toKey, target: null }
+				if (drop === null) {
+					throw new Error(t('nextcloud-vue', 'This card cannot move to that column.'))
+				}
+				if (handler) {
+					return handler({ card, toKey, field, value: drop.value, target: drop.target })
+				}
+				const id = card?.id ?? card?.['@self']?.id ?? card?.[this.rowKey]
+				const url = objectUrlOf(this.register, this.exportSchemaSlug, id)
+				if (url === '') {
+					throw new Error(t('nextcloud-vue', 'This card cannot move to that column.'))
+				}
+				return patchObject(url, { [field]: drop.value })
+			}
+		},
+
+		/**
+		 * Where a card may go, from the app's `moveTargetsHandler`: it gets
+		 * `{ card, field }` and answers the values (referenced ids) the card
+		 * can reach; the board maps them to its columns.
+		 *
+		 * @return {((card: object) => Promise<Array<string>|null>)|null} The question, or null.
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-board-shows-where-a-card-can-go
+		 */
+		boardAllowedMoves() {
+			const active = this.boardActiveColumnField
+			const onStatusField = !active || active.field === this.board?.statusField
+			const name = active?.moveTargetsHandler || (onStatusField ? (this.board?.moveTargetsHandler || '') : '')
+			const handler = name ? resolveRegisteredHandler(name, this.effectiveRegistry, this.resolvedCustomComponents) : null
+			if (typeof handler !== 'function' || this.boardRunTransition === null) {
+				return null
+			}
+			const field = this.boardColumnField
+			const stages = this.boardStages
+			return async (card) => {
+				const values = await handler({ card, field })
+				if (!Array.isArray(values)) {
+					return null
+				}
+				return values.map((value) => {
+					const id = refIdOf(value)
+					return stages && stages.keyByValue.has(id) ? stages.keyByValue.get(id) : id
+				})
+			}
+		},
+
+		/** @return {object|null} The board's narrowing select (`board.narrow`). */
+		boardNarrow() {
+			const narrow = this.board?.narrow
+			return narrow && typeof narrow === 'object' && typeof narrow.field === 'string' && narrow.field !== '' ? narrow : null
+		},
+
+		/** @return {string} The narrowing select's label, with its colon. */
+		boardNarrowLabel() {
+			const narrow = this.boardNarrow || {}
+			const prop = (this.effectiveSchema?.properties || {})[narrow.field] || {}
+			return t('nextcloud-vue', '{label}:', { label: this.cnTranslate(narrow.label || prop.title || narrow.field || '') })
+		},
+
+		/** @return {string} The narrowing select's "all" option. */
+		boardNarrowAllLabel() {
+			return this.boardNarrow?.allLabel ? this.cnTranslate(this.boardNarrow.allLabel) : t('nextcloud-vue', 'All')
+		},
+
+		/** @return {string} The column switch's label, with its colon. */
+		boardColumnSwitchLabel() {
+			const label = this.board?.columnSwitchLabel ? this.cnTranslate(this.board.columnSwitchLabel) : t('nextcloud-vue', 'Columns')
+			return t('nextcloud-vue', '{label}:', { label })
+		},
+
+		/** @return {boolean} Whether the board view draws its controls row. */
+		boardControlsShown() {
+			return this.currentViewMode === 'board'
+				&& (this.boardColumnFields.length > 1 || this.boardNarrow !== null || Boolean(this.board?.hint))
+		},
+
+		/**
+		 * What the board needs fetched, as one key the watcher reacts to.
+		 *
+		 * @return {string} The key, '' outside the board view.
+		 */
+		boardFetchKey() {
+			if (this.currentViewMode !== 'board') {
+				return ''
+			}
+			return [this.boardColumnField, this.boardActiveColumnField?.kind || '', this.effectiveSchema ? 1 : 0, this.boardNarrow ? this.boardNarrow.field : ''].join('|')
 		},
 
 		/**
@@ -6045,6 +6350,15 @@ export default {
 	},
 
 	watch: {
+		boardFetchKey: {
+			immediate: true,
+			handler(key) {
+				if (key !== '') {
+					this.loadBoardSources()
+				}
+			},
+		},
+
 		effectiveObjects: {
 			immediate: true,
 			handler(rows) {
@@ -7290,6 +7604,72 @@ export default {
 			this.list.refresh(1)
 			this.persistViewStateToRoute(this.currentViewState())
 			this.$emit('clear-filters')
+		},
+
+		/**
+		 * Fetch what the board view needs: the rows of a reference column
+		 * field (once per field) and the narrowing select's options.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-columns-can-be-the-rows-a-field-references
+		 */
+		async loadBoardSources() {
+			const active = this.boardActiveColumnField
+			if (active && active.kind === 'reference' && !Object.hasOwn(this.boardRefs, active.field)) {
+				const property = this.effectiveSchema?.properties?.[active.field] || null
+				const target = referenceTargetOf(active.source, { register: this.register, property })
+				if (target.register && target.schema) {
+					let rows
+					try {
+						rows = await fetchReferenceObjects({ ...target, filter: active.source?.filter || {} })
+					} catch {
+						rows = []
+					}
+					this.boardRefs = { ...this.boardRefs, [active.field]: rows }
+				}
+			}
+			const narrow = this.boardNarrow
+			if (narrow && this.boardNarrowOptions.length === 0) {
+				const property = this.effectiveSchema?.properties?.[narrow.field] || null
+				const target = referenceTargetOf(narrow.source || {}, { register: this.register, property })
+				let rows
+				try {
+					rows = await fetchReferenceObjects({ ...target, filter: narrow.source?.filter || {} })
+				} catch {
+					rows = []
+				}
+				const labelField = narrow.source?.labelField || 'title'
+				this.boardNarrowOptions = rows
+					.map((row) => ({ value: refIdOf(row), label: String(row?.[labelField] ?? row?.name ?? row?.title ?? refIdOf(row)) }))
+					.filter((option) => option.value !== '')
+					.sort((a, b) => a.label.localeCompare(b.label))
+			}
+		},
+
+		/**
+		 * The column switch changed.
+		 *
+		 * @param {string} field The column field picked.
+		 * @return {void}
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-board-can-switch-the-field-its-columns-come-from
+		 */
+		onBoardColumnFieldChange(field) {
+			this.boardColumnFieldChoice = field
+			/**
+			 * @event board-column-field-change The board's column switch picked another field. Payload: the field name.
+			 */
+			this.$emit('board-column-field-change', field)
+		},
+
+		/**
+		 * The narrowing select changed: it sets the page filter on its field,
+		 * so the cards narrow with the columns and the active filter shows.
+		 *
+		 * @param {string} value The parent id, '' for all.
+		 * @return {void}
+		 */
+		onBoardNarrowChange(value) {
+			this.onFilterEvent({ key: this.boardNarrow.field, values: value === '' ? [] : [value] })
 		},
 
 		/**

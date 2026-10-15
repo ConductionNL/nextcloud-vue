@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-board-view"
-		:class="{ 'cn-board-view--board': isBoardLook }"
+		:class="{ 'cn-board-view--board': isBoardLook, 'cn-board-view--wrap': wrapColumns }"
 		data-testid="cn-board-view">
 		<p v-if="!usable" class="cn-board-view__unusable" data-testid="cn-board-unusable">
 			{{ unusableText }}
@@ -36,9 +36,11 @@
 					v-for="column in lane.columns"
 					:key="`col-${lane.key}-${column.key}`"
 					class="cn-board-view__column"
+					:class="{ 'cn-board-view__column--unreachable': isUnreachable(column) }"
 					role="listitem"
 					data-testid="cn-board-column"
 					:data-column="column.key"
+					:data-unreachable="isUnreachable(column) ? 'true' : null"
 					@dragover.prevent
 					@drop="onDrop(column, $event)">
 					<!-- Board look: a dot, the label and a white count badge, with an
@@ -116,11 +118,21 @@
 							:data-card-id="cardKey(card)"
 							:draggable="canMove"
 							@dragstart="onDragStart(card, column, $event)"
+							@dragend="onDragEnd"
 							@keydown="onCardKeydown(card, column, lane, $event)">
 							<!-- Board look: title link, sub line, pill, footer, and a
 							     menu button instead of the Move to select. -->
 							<template v-if="isBoardLook">
 								<div class="cn-board-view__card-head">
+									<input
+										v-if="selectable"
+										type="checkbox"
+										class="cn-board-view__select"
+										data-testid="cn-board-card-select"
+										:data-card-id="cardKey(card)"
+										:checked="isSelected(card)"
+										:aria-label="selectLabel(card)"
+										@change="toggleSelected(card)">
 									<a
 										href="#"
 										class="cn-board-view__card-title"
@@ -164,8 +176,14 @@
 													class="cn-board-view__menu-item"
 													data-testid="cn-board-menu-move"
 													:data-target="target.key"
-													@click="onMenuMove(card, column, target)">
+													:aria-disabled="isMoveAllowed(card, target) ? null : 'true'"
+													:class="{ 'cn-board-view__menu-item--blocked': !isMoveAllowed(card, target) }"
+													@click="isMoveAllowed(card, target) && onMenuMove(card, column, target)">
 													{{ target.label }}
+													<span
+														v-if="!isMoveAllowed(card, target)"
+														class="cn-board-view__menu-note"
+														data-testid="cn-board-menu-blocked">{{ notAllowedLabel }}</span>
 												</button>
 											</div>
 											<button
@@ -216,6 +234,16 @@
 								</span>
 							</template>
 							<template v-else>
+								<label v-if="selectable" class="cn-board-view__select-label">
+									<input
+										type="checkbox"
+										class="cn-board-view__select"
+										data-testid="cn-board-card-select"
+										:data-card-id="cardKey(card)"
+										:checked="isSelected(card)"
+										:aria-label="selectLabel(card)"
+										@change="toggleSelected(card)">
+								</label>
 								<span
 									v-if="dueLabel(card)"
 									class="cn-board-view__due"
@@ -494,9 +522,72 @@ export default {
 			type: Number,
 			default: 0,
 		},
+
+		/**
+		 * The column a row belongs in, for a status whose raw value is not
+		 * the column key: a reference whose rows are merged by name
+		 * (screens-board-reference-columns). Absent, the row's `statusField`
+		 * value is the key.
+		 *
+		 * @type {((row: object) => string)|null}
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-columns-can-be-the-rows-a-field-references
+		 */
+		columnKeyOf: {
+			type: Function,
+			default: null,
+		},
+
+		/**
+		 * Wrap the columns onto more rows, as many to a row as fit at 240px,
+		 * instead of one row that scrolls sideways (manifest
+		 * `config.board.wrap`). For a board with more stages than fit.
+		 *
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-wide-board-can-wrap-its-columns
+		 */
+		wrapColumns: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Offer a checkbox on every card, so cards can be selected for the
+		 * list's bulk actions (the same selection the table holds).
+		 *
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-cards-can-be-selected-for-bulk-actions
+		 */
+		selectable: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The selected cards, by row key.
+		 *
+		 * @type {Array<string|number>}
+		 */
+		selectedIds: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The columns one card may move to, asked when its menu opens or its
+		 * drag starts: `(card) => Promise<Array<string>|null>`, column keys,
+		 * `null` for every column. A column the card cannot reach is greyed
+		 * during the drag and marked "not allowed" in the menu, and a drop on
+		 * it is refused without asking the host. Absent, every column is
+		 * offered and the host's move decides.
+		 *
+		 * @type {((card: object) => Promise<Array<string>|null>)|null}
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-board-shows-where-a-card-can-go
+		 */
+		allowedMoves: {
+			type: Function,
+			default: null,
+		},
 	},
 
-	emits: ['card-click', 'card-aux-click', 'moved', 'refused', 'stale', 'load-more'],
+	emits: ['card-click', 'card-aux-click', 'moved', 'refused', 'stale', 'load-more', 'select'],
 
 	data() {
 		return {
@@ -512,6 +603,10 @@ export default {
 			expanded: [],
 			/** The card whose menu is open (board look), by card key. */
 			openMenuKey: null,
+			/** Column keys each card may move to (`allowedMoves`), by card key; absent = not asked yet. */
+			allowedByCard: {},
+			/** The column keys the dragged card may reach, or null for all. */
+			dragAllowed: null,
 		}
 	},
 
@@ -529,6 +624,7 @@ export default {
 				statusField: this.statusField,
 				offBoardLabel: t('nextcloud-vue', 'Elsewhere'),
 				colorField: this.colorField,
+				keyOf: this.columnKeyOf,
 			})
 		},
 
@@ -557,6 +653,16 @@ export default {
 				owner: (given && given.owner) || '',
 				pillColors: (given && given.pillColors) || {},
 			}
+		},
+
+		/** @return {string} The note on a menu target the card cannot reach. */
+		notAllowedLabel() {
+			return t('nextcloud-vue', 'not allowed')
+		},
+
+		/** @return {Array<string>} The selected row keys as strings. */
+		selectedKeys() {
+			return (Array.isArray(this.selectedIds) ? this.selectedIds : []).map(String)
 		},
 
 		/** @return {string} The Open in new tab menu item. */
@@ -616,6 +722,97 @@ export default {
 		t,
 
 		preventMiddleClickAutoscroll,
+
+		/**
+		 * Whether a card is selected.
+		 *
+		 * @param {object} card The card.
+		 * @return {boolean} True when selected.
+		 */
+		isSelected(card) {
+			return this.selectedKeys.includes(this.cardKey(card))
+		},
+
+		/**
+		 * The checkbox's accessible name.
+		 *
+		 * @param {object} card The card.
+		 * @return {string} "Select <name>".
+		 */
+		selectLabel(card) {
+			const name = this.roleText(card, this.roles.title) || this.cardKey(card)
+			return t('nextcloud-vue', 'Select {name}', { name })
+		},
+
+		/**
+		 * Select a card, or unselect it.
+		 *
+		 * @param {object} card The card.
+		 * @return {void}
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-cards-can-be-selected-for-bulk-actions
+		 */
+		toggleSelected(card) {
+			const key = this.cardKey(card)
+			const next = this.isSelected(card)
+				? this.selectedIds.filter((id) => String(id) !== key)
+				: [...this.selectedIds, card?.[this.rowKey]]
+			/**
+			 * @event select Emitted when a card's checkbox changes. Payload: the selected row keys.
+			 */
+			this.$emit('select', next)
+		},
+
+		/**
+		 * Ask the host where one card may go (`allowedMoves`), once per card.
+		 *
+		 * @param {object} card The card.
+		 * @return {Promise<Array<string>|null>} The column keys, or null for all.
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-board-shows-where-a-card-can-go
+		 */
+		async loadAllowed(card) {
+			if (typeof this.allowedMoves !== 'function') {
+				return null
+			}
+			const key = this.cardKey(card)
+			if (Object.hasOwn(this.allowedByCard, key)) {
+				return this.allowedByCard[key]
+			}
+			let allowed
+			try {
+				const answer = await this.allowedMoves(card)
+				allowed = Array.isArray(answer) ? answer.map(String) : null
+			} catch {
+				// Unknown is not "nowhere": the host's move stays the authority.
+				allowed = null
+			}
+			this.allowedByCard = { ...this.allowedByCard, [key]: allowed }
+			return allowed
+		},
+
+		/**
+		 * Whether a card may move to a column, as far as the board knows.
+		 *
+		 * @param {object} card The card.
+		 * @param {object} target The column.
+		 * @return {boolean} False only when the host said it cannot.
+		 */
+		isMoveAllowed(card, target) {
+			const allowed = this.allowedByCard[this.cardKey(card)]
+			return !Array.isArray(allowed) || allowed.includes(String(target.key))
+		},
+
+		/**
+		 * Whether a column is out of reach for the card being dragged.
+		 *
+		 * @param {object} column The column.
+		 * @return {boolean} True while a drag is on and the card cannot go there.
+		 */
+		isUnreachable(column) {
+			return this.dragging !== null
+				&& Array.isArray(this.dragAllowed)
+				&& column.key !== this.dragging.fromKey
+				&& !this.dragAllowed.includes(String(column.key))
+		},
 
 		/**
 		 * A card's due state under `dueRule`.
@@ -879,6 +1076,7 @@ export default {
 			const key = this.cardKey(card)
 			this.openMenuKey = this.openMenuKey === key ? null : key
 			if (this.openMenuKey !== null) {
+				this.loadAllowed(card)
 				this.focusMenuItem(card, 0)
 			}
 		},
@@ -967,6 +1165,7 @@ export default {
 				event.preventDefault()
 				if (!this.isMenuOpen(card)) {
 					this.openMenuKey = this.cardKey(card)
+					this.loadAllowed(card)
 					this.focusMenuItem(card, 0)
 				}
 			}
@@ -1113,8 +1312,27 @@ export default {
 		 */
 		onDragStart(card, column, event) {
 			this.dragging = { card, fromKey: column.key }
+			this.dragAllowed = null
 			// Firefox drops a drag that carries no data.
 			event?.dataTransfer?.setData?.('text/plain', this.cardKey(card))
+			if (typeof this.allowedMoves === 'function') {
+				this.loadAllowed(card).then((allowed) => {
+					if (this.dragging && this.dragging.card === card) {
+						this.dragAllowed = allowed
+					}
+				})
+			}
+		},
+
+		/**
+		 * The drag ended (dropped anywhere, or cancelled): no column stays
+		 * greyed. A drop on a column has already run by now.
+		 *
+		 * @return {void}
+		 */
+		onDragEnd() {
+			this.dragging = null
+			this.dragAllowed = null
 		},
 
 		/**
@@ -1129,6 +1347,13 @@ export default {
 			}
 			const { card, fromKey } = this.dragging
 			this.dragging = null
+			this.dragAllowed = null
+			if (column.key !== fromKey && !this.isMoveAllowed(card, column)) {
+				const name = this.roleText(card, this.roles.title) || this.cardKey(card)
+				this.refusal = t('nextcloud-vue', '{name} cannot move to {column}.', { name, column: column.label })
+				this.$emit('refused', { card, message: this.refusal })
+				return
+			}
 			await this.move(card, fromKey, column.key)
 		},
 
