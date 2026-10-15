@@ -250,6 +250,9 @@ columns from those rows (since manifest schema 2.97.0):
   Nextcloud user id. Its columns are the values present on the rows, then one
   column for no value.
 - **`hint`** is one sentence after the controls, in the secondary colour.
+- **`card.formatters`** shows a card field through a formatter from the app's
+  `cnFormatters` registry, the one a table column names in `formatter`:
+  `{ "caseType": "caseTypeName" }` makes the pill read "Woo-verzoek".
 - **`wrap`** puts the columns on more rows instead of one row that scrolls.
 
 **A drop writes the reference.** On a merged column the page writes the row of

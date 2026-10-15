@@ -2126,6 +2126,7 @@ describe('app-manifest-v2: board columns from a referenced field (screens-board-
 		const board = {
 			statusField: 'status',
 			wrap: true,
+			card: { title: 'title', pill: 'caseType', formatters: { caseType: 'caseTypeName' } },
 			hint: 'One column per value.',
 			columnSwitchLabel: 'Columns',
 			moveHandler: 'caseStatusMove',
@@ -2146,5 +2147,6 @@ describe('app-manifest-v2: board columns from a referenced field (screens-board-
 		expect(validateManifestV2(index({ statusField: 'status', columnFields: [{ field: 'a', source: { narrowBy: { field: 'caseType' } } }] })).valid).toBe(false)
 		expect(validateManifestV2(index({ statusField: 'status', columnFields: [{ field: 'a', colour: 'red' }] })).valid).toBe(false)
 		expect(validateManifestV2(index({ statusField: 'status', narrow: { label: 'x' } })).valid).toBe(false)
+		expect(validateManifestV2(index({ statusField: 'status', card: { formatters: { caseType: 7 } } })).valid).toBe(false)
 	})
 })

@@ -382,6 +382,12 @@ export default {
 		 * draws the screens' board anatomy (screens-kanban-parity).
 		 */
 		cnLook: { default: 'nextcloud' },
+		/**
+		 * The app's cell-formatter registry, provided by CnAppRoot. A card
+		 * role named in `cardRoles.formatters` shows its value through it, as
+		 * the table's cells do (screens-board-reference-columns).
+		 */
+		cnFormatters: { default: () => ({}) },
 	},
 
 	props: {
@@ -652,6 +658,7 @@ export default {
 				due: (given && given.due) || '',
 				owner: (given && given.owner) || '',
 				pillColors: (given && given.pillColors) || {},
+				formatters: (given && given.formatters && typeof given.formatters === 'object') ? given.formatters : {},
 			}
 		},
 
@@ -855,9 +862,33 @@ export default {
 			const fields = Array.isArray(role) ? role : [role]
 			return fields
 				.filter((field) => typeof field === 'string' && field !== '')
-				.map((field) => this.textOf(readPath(card, field)))
+				.map((field) => this.fieldText(card, field))
 				.filter((value) => value !== '')
 				.join(' \u00b7 ')
+		},
+
+		/**
+		 * One card field as text: through the formatter `cardRoles.formatters`
+		 * names for it, else the value itself.
+		 *
+		 * @param {object} card The card's row.
+		 * @param {string} field The dot-path.
+		 * @return {string} The text.
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-card-field-can-show-through-a-formatter
+		 */
+		fieldText(card, field) {
+			const raw = readPath(card, field)
+			const id = this.roles.formatters[field]
+			const fn = id && this.cnFormatters ? this.cnFormatters[id] : null
+			if (typeof fn === 'function') {
+				try {
+					const out = fn(raw, card, null)
+					return out === null || out === undefined ? '' : String(out).trim()
+				} catch {
+					return this.textOf(raw)
+				}
+			}
+			return this.textOf(raw)
 		},
 
 		/**
@@ -884,7 +915,7 @@ export default {
 		 * @return {string} A CnStatusBadge variant.
 		 */
 		pillVariant(card) {
-			const raw = this.textOf(readPath(card, this.roles.pill))
+			const raw = this.fieldText(card, this.roles.pill)
 			const variant = this.roles.pillColors[raw] ?? this.roles.pillColors[raw.toLowerCase()]
 			return isBadgeVariant(variant) ? variant : 'default'
 		},
@@ -924,7 +955,7 @@ export default {
 		 * @return {string} The name, '' when there is none.
 		 */
 		ownerName(card) {
-			return this.roles.owner === '' ? '' : this.textOf(readPath(card, this.roles.owner))
+			return this.roles.owner === '' ? '' : this.fieldText(card, this.roles.owner)
 		},
 
 		/**

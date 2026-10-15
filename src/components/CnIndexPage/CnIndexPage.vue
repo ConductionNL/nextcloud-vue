@@ -6350,6 +6350,10 @@ export default {
 	},
 
 	watch: {
+		'$route.query.view': function() {
+			this.applyViewModeFromRoute()
+		},
+
 		boardFetchKey: {
 			immediate: true,
 			handler(key) {
@@ -6602,6 +6606,7 @@ export default {
 	},
 
 	created() {
+		this.applyViewModeFromRoute()
 		this.pushAiContext()
 		if (this.allowSavedViews) {
 			this.fetchSavedViews()
@@ -9015,6 +9020,21 @@ export default {
 		onViewModeChange(mode) {
 			this.currentViewMode = mode
 			this.$emit('view-mode-change', mode)
+		},
+
+		/**
+		 * Open in the mode the address names (`?view=board`), when the page
+		 * offers it. A menu entry's `query` can so open a list as its board,
+		 * on the one page that lists the schema (screens-board-reference-columns).
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-address-can-open-a-list-in-a-view-mode
+		 */
+		applyViewModeFromRoute() {
+			const wanted = this.$route?.query?.view
+			if (typeof wanted === 'string' && wanted !== this.currentViewMode && this.effectiveToggleModes.includes(wanted)) {
+				this.currentViewMode = wanted
+			}
 		},
 
 		/**

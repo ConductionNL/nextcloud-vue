@@ -79,7 +79,7 @@ calls the suggestion `nested-interactive` when you try it.
 | `reread` | `Function` | `null` | `(card) => Promise<object>`, to check the card has not moved under the dragger. |
 | `paged` | `Boolean` | `false` | Whether the counts are of one page. |
 | `dueRule` | `Object` | `null` | Marks late cards: `{ field, soonDays? }`. See below. |
-| `cardRoles` | `Object` | `null` | Board look: the card's roles `{ title, sub, pill, due, owner, pillColors? }` (`config.board.card`). |
+| `cardRoles` | `Object` | `null` | Board look: the card's roles `{ title, sub, pill, due, owner, pillColors?, formatters? }` (`config.board.card`). `formatters` maps a role's field to a formatter id in the app's `cnFormatters` registry, so a reference reads as its name. |
 | `colorField` | `String` | `''` | Board look: the state key holding a column's dot colour. |
 | `sumField` | `String` | `''` | Board look: a numeric field summed under each column heading. |
 | `sumFormat` | `Object` | `null` | Board look: metric format of the sum. |

@@ -208,6 +208,23 @@ describe('CnIndexPage board: columns from a referenced field', () => {
 		w.unmount()
 	})
 
+	it('opens in the mode ?view= names when the page offers it, and ignores one it does not', async () => {
+		const mountWith = (query) => mount(CnIndexPage, {
+			propsData: { title: 'Zaken', schema: SCHEMA, objects: ROWS, viewModes: ['table', 'board'], board: { statusField: 'status' } },
+			global: {
+				provide: { cnLook: 'board' },
+				mocks: { $router: { push: jest.fn() }, $route: { query, params: {}, name: 'Cases' } },
+				stubs: { CnDataTable: true, CnCardGrid: true, CnPagination: true, CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true, CnSavedViewsControl: true, CnBuildiqEditButton: true, CnBoardView: true },
+			},
+		})
+		const board = mountWith({ view: 'board' })
+		expect(board.vm.currentViewMode).toBe('board')
+		board.unmount()
+		const map = mountWith({ view: 'map' })
+		expect(map.vm.currentViewMode).toBe('table')
+		map.unmount()
+	})
+
 	it('selecting a card on the board feeds the page selection', async () => {
 		const w = await mountPage({ selectable: true })
 		await w.find('[data-testid="cn-board-card-select"][data-card-id="c2"]').setValue(true)
@@ -260,6 +277,22 @@ describe('CnBoardView: where a card can go', () => {
 		expect(w.findAll('[data-testid="cn-board-menu-blocked"]')).toHaveLength(0)
 		await w.find('[data-testid="cn-board-card"]').trigger('dragstart')
 		expect(w.findAll('[data-unreachable]')).toHaveLength(0)
+		w.unmount()
+	})
+
+	it('shows a card field through the formatter card.formatters names, and the raw value without one', () => {
+		const w = mount(CnBoardView, {
+			attachTo: document.body,
+			props: {
+				rows: [{ id: 1, status: 'a', title: 'One', caseType: 'woo', assignee: 'pieter' }],
+				statusFieldSchema: FIELD,
+				statusField: 'status',
+				cardRoles: { title: 'title', pill: 'caseType', owner: 'assignee', formatters: { caseType: 'caseTypeName' } },
+			},
+			global: { provide: { cnLook: 'board', cnFormatters: { caseTypeName: (value) => (value === 'woo' ? 'Woo-verzoek' : value) } } },
+		})
+		expect(w.find('[data-testid="cn-board-card-pill"]').text()).toBe('Woo-verzoek')
+		expect(w.find('[data-testid="cn-board-card-owner"]').attributes('aria-label')).toBe('pieter')
 		w.unmount()
 	})
 

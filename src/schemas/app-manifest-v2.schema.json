@@ -1116,7 +1116,12 @@
 							"additionalProperties": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] }
 						},
 						"due": { "type": "string", "description": "The date field of the footer's due text, marked by `dueRule`." },
-						"owner": { "type": "string", "description": "The field of the owner shown as an avatar (initials) at the footer's end." }
+						"owner": { "type": "string", "description": "The field of the owner shown as an avatar (initials) at the footer's end." },
+						"formatters": {
+							"type": "object",
+							"description": "screens-board-reference-columns (2.97.0): a card field (one of the role fields above) to the id of a formatter in the app's `cnFormatters` registry, the one table columns name in `formatter`. The card shows the formatted text, so a reference reads as its name (`{ \"caseType\": \"caseTypeName\" }`).",
+							"additionalProperties": { "type": "string", "minLength": 1 }
+						}
 					}
 				},
 				"colorField": {

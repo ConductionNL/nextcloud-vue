@@ -86,3 +86,25 @@ With `wrap` the columns SHALL wrap onto more rows, as many to a row as fit at 24
 
 - **WHEN** a board has more columns than fit
 - **THEN** they continue on the next row and nothing scrolls sideways
+
+### Requirement: A card field can show through a formatter
+
+`card.formatters` SHALL map a card role's field to a formatter id in the app's `cnFormatters` registry. The card SHALL
+show that field's value through the formatter, as a table cell with that `formatter` does.
+
+#### Scenario: The case type pill
+
+- **GIVEN** `card.pill` is `caseType` and `card.formatters.caseType` is `caseTypeName`
+- **THEN** the pill reads "Woo-verzoek", not the case type's id
+
+### Requirement: The address can open a list in a view mode
+
+An index page SHALL open in the view mode `?view=<mode>` names when the page offers that mode, and SHALL switch when
+the address changes to another offered mode. A mode the page does not offer SHALL be ignored. A menu entry's `query`
+can so open the one list of a schema as its board, without a second index page.
+
+#### Scenario: The Werkbord entry
+
+- **GIVEN** a menu entry to the Cases page with `query: { "view": "board" }`
+- **WHEN** the person opens it
+- **THEN** Cases opens in its board view

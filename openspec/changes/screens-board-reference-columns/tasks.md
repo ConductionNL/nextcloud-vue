@@ -33,7 +33,19 @@
 - [x] Implement: `selectable` / `selectedIds` / `select`, `wrap`
 - [x] Test: component spec and e2e as above
 
-### Task 7: Schema
+### Task 7: A card field through a formatter
+- **spec_ref**: `openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-card-field-can-show-through-a-formatter`
+- **files**: `src/components/CnBoardView/CnBoardView.vue`
+- [x] Implement: `card.formatters`, `cnFormatters` inject
+- [x] Test: `tests/components/CnIndexPageBoardReferenceColumns.spec.js`
+
+### Task 8: The address opens a view mode
+- **spec_ref**: `openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-address-can-open-a-list-in-a-view-mode`
+- **files**: `src/components/CnIndexPage/CnIndexPage.vue`
+- [x] Implement: `?view=<mode>` on load and on change, offered modes only
+- [x] Test: `tests/components/CnIndexPageBoardReferenceColumns.spec.js`
+
+### Task 9: Schema
 - **files**: `src/schemas/app-manifest-v2.schema.json`, `tests/schemas/app-manifest-v2.schema.spec.js`
 - [x] Implement: boardView keys, `config.board` typed on index pages, version 2.97.0, hash
 - [x] Test: `tests/schemas/app-manifest-v2.schema.spec.js`
