@@ -42,7 +42,7 @@
 ### Task 8: The address opens a view mode
 - **spec_ref**: `openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-address-can-open-a-list-in-a-view-mode`
 - **files**: `src/components/CnIndexPage/CnIndexPage.vue`
-- [x] Implement: `?view=<mode>` on load and on change, offered modes only
+- [x] Implement: `?_view=<mode>` on load and on change, offered modes only
 - [x] Test: `tests/components/CnIndexPageBoardReferenceColumns.spec.js`
 
 ### Task 9: Schema

@@ -208,7 +208,7 @@ describe('CnIndexPage board: columns from a referenced field', () => {
 		w.unmount()
 	})
 
-	it('opens in the mode ?view= names when the page offers it, and ignores one it does not', async () => {
+	it('opens in the mode ?_view= names when the page offers it, and ignores one it does not', async () => {
 		const mountWith = (query) => mount(CnIndexPage, {
 			propsData: { title: 'Zaken', schema: SCHEMA, objects: ROWS, viewModes: ['table', 'board'], board: { statusField: 'status' } },
 			global: {
@@ -217,10 +217,10 @@ describe('CnIndexPage board: columns from a referenced field', () => {
 				stubs: { CnDataTable: true, CnCardGrid: true, CnPagination: true, CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true, CnSavedViewsControl: true, CnBuildiqEditButton: true, CnBoardView: true },
 			},
 		})
-		const board = mountWith({ view: 'board' })
+		const board = mountWith({ _view: 'board' })
 		expect(board.vm.currentViewMode).toBe('board')
 		board.unmount()
-		const map = mountWith({ view: 'map' })
+		const map = mountWith({ _view: 'map' })
 		expect(map.vm.currentViewMode).toBe('table')
 		map.unmount()
 	})

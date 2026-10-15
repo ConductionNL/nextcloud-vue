@@ -269,6 +269,12 @@ and the `runTransition` prop, as before.
 fades the other columns during a drag, marks them "not allowed" in the card
 menu, and refuses a drop on them.
 
+**Opening the board from the menu.** An index page opens in the mode
+`?_view=<mode>` names, when it offers that mode, and follows the address when it
+changes. The key starts with `_` like `_search`, so it is never read as a list
+filter. A menu entry with `"query": { "_view": "board" }` opens the list as its
+board, without a second index page on the same schema.
+
 With `selectable` the board's cards carry a checkbox, so the bulk band works on
 the board as on the table. The column switch emits `board-column-field-change`
 with the field name.

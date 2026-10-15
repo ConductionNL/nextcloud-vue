@@ -99,12 +99,12 @@ show that field's value through the formatter, as a table cell with that `format
 
 ### Requirement: The address can open a list in a view mode
 
-An index page SHALL open in the view mode `?view=<mode>` names when the page offers that mode, and SHALL switch when
-the address changes to another offered mode. A mode the page does not offer SHALL be ignored. A menu entry's `query`
+An index page SHALL open in the view mode `?_view=<mode>` names when the page offers that mode, and SHALL switch when
+the address changes to another offered mode. A mode the page does not offer SHALL be ignored. The key SHALL never be read as a list filter. A menu entry's `query`
 can so open the one list of a schema as its board, without a second index page.
 
 #### Scenario: The Werkbord entry
 
-- **GIVEN** a menu entry to the Cases page with `query: { "view": "board" }`
+- **GIVEN** a menu entry to the Cases page with `query: { "_view": "board" }`
 - **WHEN** the person opens it
 - **THEN** Cases opens in its board view
