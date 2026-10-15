@@ -1305,9 +1305,10 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 185,
+			"transitive": 186,
 			"tier": "heavy",
 			"via": [
+				"CnActionButtons",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -1586,9 +1587,10 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 182,
+			"transitive": 183,
 			"tier": "heavy",
 			"via": [
+				"CnActionButtons",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
