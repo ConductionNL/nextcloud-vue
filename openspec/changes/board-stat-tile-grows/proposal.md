@@ -12,5 +12,5 @@ Under the board look a stacked tile now takes at least the cell's height (`min-h
 
 ## Scope
 
-- `src/css/kpi-card.css`: `.cn-kpi-card--board.cn-kpi-card--stacked`. Other tiles are unchanged.
+- `src/css/kpi-card.css`: `.cn-kpi-card--board.cn-kpi-card--stacked`. The selector also matches `CnStatsBlock` with `layout: stacked` under the board look, which emits the same two classes. Other tiles are unchanged.
 - No component or schema change.

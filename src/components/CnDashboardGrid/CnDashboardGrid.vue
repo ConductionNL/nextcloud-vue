@@ -346,14 +346,15 @@ export default {
 		 * it grew it skipped past the stat tiles AND the lists and landed at
 		 * the bottom. Added top to bottom, every card lands under the one
 		 * above it. It is also the order a screen reader and the Tab key
-		 * follow.
+		 * follow. An item without a row or column sorts after the items
+		 * that have one, in the layout's order.
 		 *
 		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
 		 * @return {Array<object>} The items in row order.
 		 */
 		itemsInRowOrder() {
 			const items = Array.isArray(this.layout) ? [...this.layout] : []
-			const at = (value) => (Number.isFinite(value) ? value : 0)
+			const at = (value) => (Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER)
 			return items.sort((a, b) => (at(a.gridY) - at(b.gridY)) || (at(a.gridX) - at(b.gridX)))
 		},
 
@@ -632,6 +633,13 @@ export default {
 			)
 		},
 
+		/**
+		 * Build the GridStack grid on the rendered items, install the growth
+		 * wrapper (`keepOrderOnGrowth`) and listen for its changes.
+		 *
+		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
+		 * @return {void}
+		 */
 		initGrid() {
 			if (this.cellHeightCssVar && typeof document !== 'undefined' && document.documentElement) {
 				document.documentElement.style.setProperty(this.cellHeightCssVar, `${this.cellHeight}px`)
@@ -665,12 +673,15 @@ export default {
 		 * their order. GridStack resolves that collision itself, but not in
 		 * order: when pipelinq's banner grew from two rows to three, the
 		 * full-width card under the stat tiles landed below the lists, also
-		 * with `float: false`. Every grow, whether GridStack measures it on
-		 * load and resize or this grid's content observer asks for it, now
-		 * first moves the cards the growth reaches down by the growth
-		 * (`planGrowth`), bottom-most first, and only then grows the cell, so
-		 * GridStack has no collision left to resolve. A cell that shrinks is
-		 * left to GridStack as before.
+		 * with `float: false`. Every grow after the grid is built, whether
+		 * GridStack measures it on resize or this grid's content observer asks
+		 * for it, now first moves the cards the growth reaches down by the
+		 * growth (`planGrowth`), bottom-most first, and only then grows the
+		 * cell, so GridStack has no collision left to resolve. The wrapper is
+		 * installed after `GridStack.init` has already measured the cells on
+		 * load; the order on load comes from adding the items in row order
+		 * (`itemsInRowOrder`). A cell that shrinks is left to GridStack as
+		 * before.
 		 *
 		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
 		 * @return {void}
