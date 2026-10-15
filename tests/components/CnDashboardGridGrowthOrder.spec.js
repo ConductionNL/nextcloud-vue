@@ -80,4 +80,15 @@ describe('CnDashboardGrid: items in row order', () => {
 		const wrapper = mount(CnDashboardGrid, { propsData: { layout } })
 		expect(wrapper.findAll('.grid-stack-item').map((w) => w.attributes('gs-id'))).toEqual(['greeting', 'banner', 'focus', 'list', 'side'])
 	})
+
+	it('renders an item without a row or column after the positioned ones, in the layout\'s order', () => {
+		const layout = [
+			{ id: 'a', gridWidth: 4, gridHeight: 2 },
+			{ id: 'b', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2 },
+			{ id: 'c', gridY: 2, gridWidth: 4, gridHeight: 2 },
+			{ id: 'd', gridWidth: 4, gridHeight: 2 },
+		]
+		const wrapper = mount(CnDashboardGrid, { propsData: { layout } })
+		expect(wrapper.findAll('.grid-stack-item').map((w) => w.attributes('gs-id'))).toEqual(['b', 'c', 'a', 'd'])
+	})
 })

@@ -346,14 +346,15 @@ export default {
 		 * it grew it skipped past the stat tiles AND the lists and landed at
 		 * the bottom. Added top to bottom, every card lands under the one
 		 * above it. It is also the order a screen reader and the Tab key
-		 * follow.
+		 * follow. An item without a row or column sorts after the items
+		 * that have one, in the layout's order.
 		 *
 		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
 		 * @return {Array<object>} The items in row order.
 		 */
 		itemsInRowOrder() {
 			const items = Array.isArray(this.layout) ? [...this.layout] : []
-			const at = (value) => (Number.isFinite(value) ? value : 0)
+			const at = (value) => (Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER)
 			return items.sort((a, b) => (at(a.gridY) - at(b.gridY)) || (at(a.gridX) - at(b.gridX)))
 		},
 
