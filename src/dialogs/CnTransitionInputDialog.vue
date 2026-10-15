@@ -30,8 +30,18 @@
 				class="cn-transition-input__field"
 				:class="{ 'cn-transition-input__field--refused': isRefused(field.key) }"
 				:data-testid="`cn-transition-input-${field.key}`">
+				<!-- An input that declares its choices is picked from them. -->
+				<NcSelect v-if="field.widget === 'select'"
+					:modelValue="selectedOption(field)"
+					:options="field.options"
+					label="label"
+					:inputLabel="requiredLabel(field)"
+					:clearable="!field.required"
+					:data-testid="`cn-transition-input-select-${field.key}`"
+					@update:modelValue="setValue(field.key, $event && $event.value !== undefined ? $event.value : '')" />
+
 				<!-- An input that points at another record is picked, never typed. -->
-				<div v-if="field.widget === 'reference'" class="cn-transition-input__reference">
+				<div v-else-if="field.widget === 'reference'" class="cn-transition-input__reference">
 					<label class="cn-transition-input__label">{{ requiredLabel(field) }}</label>
 					<CnResourceSelect
 						:register="field.referenceRegister"
@@ -149,7 +159,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcTextArea, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import CnDialog from '../components/CnDialog/CnDialog.vue'
 import CnResourceSelect from '../components/CnResourceSelect/CnResourceSelect.vue'
 import { dialogBoardMixin } from '../mixins/dialogBoard.js'
@@ -172,7 +182,13 @@ import { fieldsFromSchema } from '../utils/schema.js'
  * from the property `title`, booleans render as a switch, numbers as a number
  * field, and long text (`maxLength > 255` or a `textarea`/`markdown` format)
  * as a textarea. Anything else — including a field the schema does not
- * declare — falls back to a plain labelled text input. Deliberately minimal:
+ * declare — falls back to a plain labelled text input.
+ *
+ * An input may also say how it is asked for, which matters when the choices
+ * depend on the record rather than on its schema: `label` names the field,
+ * and `options: [{ value, label }]` turns it into a picker that shows each
+ * `label` and sends the chosen `value`. An input that declares neither is
+ * rendered from the schema as before. Deliberately minimal:
  * text, textarea, number and checkbox cover transition inputs; this is not a
  * form engine (use `CnFormDialog` for full object forms).
  *
@@ -198,6 +214,7 @@ export default {
 		NcTextField,
 		NcTextArea,
 		NcCheckboxRadioSwitch,
+		NcSelect,
 	},
 
 	mixins: [dialogBoardMixin],
@@ -208,7 +225,11 @@ export default {
 		 * `x-openregister-lifecycle.transitions.<action>.inputs` (server-derived
 		 * or config-declared); `label` doubles as dialog title + confirm label.
 		 *
-		 * @type {{action?: string, label?: string, inputs?: Array<{field: string, required?: boolean}>}}
+		 * An input may carry a `label` for its field and `options` to pick
+		 * from, each `{ value, label }`; the picker shows the label and sends
+		 * the value.
+		 *
+		 * @type {{action?: string, label?: string, inputs?: Array<{field: string, required?: boolean, label?: string, options?: Array<{value: string, label?: string}>}>}}
 		 */
 		transition: {
 			type: Object,
@@ -305,6 +326,8 @@ export default {
 					required: input.required === true,
 					picker: input.picker && typeof input.picker === 'object' ? input.picker : null,
 					fields: Array.isArray(input.fields) ? input.fields.filter((f) => typeof f === 'string') : null,
+					label: typeof input.label === 'string' && input.label.trim() !== '' ? input.label.trim() : null,
+					options: this.declaredOptions(input.options),
 				}))
 		},
 
@@ -314,26 +337,40 @@ export default {
 		 * widget from the type/format); the widget is then clamped to the minimal
 		 * set this dialog renders (text / textarea / number / checkbox). Fields
 		 * the schema does not declare fall back to a plain text input.
+		 *
+		 * An input that declares `options` is a picker whatever the schema
+		 * says, because its choices are the ones this transition offers on
+		 * this record. A declared `label` names the field over the schema's.
 		 */
 		fields() {
 			const keys = this.inputs.map((input) => input.field)
 			const resolved = fieldsFromSchema(this.schema, { include: keys, includeReadOnly: true })
 			return this.inputs.map((input) => {
 				const field = resolved.find((f) => f.key === input.field)
+				if (input.options) {
+					return {
+						key: input.field,
+						label: input.label || (field && field.label) || input.field,
+						description: (field && field.description) || '',
+						widget: 'select',
+						options: input.options,
+						required: input.required,
+					}
+				}
 				const prop = (this.schema && this.schema.properties && this.schema.properties[input.field]) || null
 				if (prop && prop.type === 'object' && prop.properties && typeof prop.properties === 'object') {
 					return this.objectField(input, prop)
 				}
 				if (!field) {
-					return { key: input.field, label: input.field, description: '', widget: 'text', required: input.required }
+					return { key: input.field, label: input.label || input.field, description: '', widget: 'text', required: input.required }
 				}
 				if (field.reference && field.reference.multiple !== true) {
 					const register = field.reference.register || this.register
 					if (register !== '') {
-						return { ...field, widget: 'reference', referenceRegister: register, picker: input.picker, required: input.required }
+						return { ...field, label: input.label || field.label, widget: 'reference', referenceRegister: register, picker: input.picker, required: input.required }
 					}
 				}
-				return { ...field, widget: this.clampWidget(field.widget), required: input.required }
+				return { ...field, label: input.label || field.label, widget: this.clampWidget(field.widget), required: input.required }
 			})
 		},
 
@@ -445,6 +482,40 @@ export default {
 					required: (input.fields ? required.includes(sub.key) : sub.required === true) || (input.required && only),
 				})),
 			}
+		},
+
+		/**
+		 * The choices an input declares, as `[{ value, label }]`, or null when
+		 * it declares none. An option without a value is dropped, because it
+		 * cannot be sent; one without a label shows its value.
+		 *
+		 * @param {unknown} options The input's declared `options`.
+		 * @return {Array<{value: string, label: string}>|null}
+		 */
+		declaredOptions(options) {
+			if (!Array.isArray(options)) {
+				return null
+			}
+			const usable = options
+				.filter((option) => option && typeof option === 'object'
+					&& (typeof option.value === 'string' || typeof option.value === 'number')
+					&& String(option.value).trim() !== '')
+				.map((option) => ({
+					value: String(option.value),
+					label: typeof option.label === 'string' && option.label.trim() !== '' ? option.label.trim() : String(option.value),
+				}))
+			return usable.length > 0 ? usable : null
+		},
+
+		/**
+		 * The option a picker field currently holds, or null.
+		 *
+		 * @param {object} field The select field descriptor.
+		 * @return {{value: string, label: string}|null}
+		 */
+		selectedOption(field) {
+			const value = this.values[field.key]
+			return field.options.find((option) => option.value === String(value ?? '')) || null
 		},
 
 		/**
