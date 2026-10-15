@@ -37,6 +37,7 @@
 }
 
 .cn-form-widget__textarea {
+	box-sizing: border-box;
 	width: 100%;
 	min-height: 80px;
 	padding: 8px;
@@ -57,4 +58,14 @@
 .cn-form-widget__error {
 	color: var(--color-error);
 	margin: 0;
+}
+
+/* A select takes its field's width, however narrow the card. NcSelect is at
+   least 260px wide on its own, so in pipelinq's 234px "Nieuw contactmoment"
+   card at 1100 wide the channel and client selects ran 40px past the card's
+   edge. The client picker (CnResourceSelect) is an NcSelect too.
+   @spec openspec/changes/interaction-form-fits-and-reads-dutch/specs/interaction-form-widget/spec.md#requirement-the-interaction-form-fits-its-card-and-reads-in-the-readers-language */
+.cn-form-widget .v-select.select {
+	min-width: 0;
+	width: 100%;
 }
