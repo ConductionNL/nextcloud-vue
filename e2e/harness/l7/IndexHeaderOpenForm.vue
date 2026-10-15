@@ -44,6 +44,7 @@ export default {
 			headerActions: [
 				{ id: 'new-invoice', label: 'Nieuwe factuur', type: 'open-form', register: 'shillinq', schema: 'invoice', formTitle: 'Nieuwe factuur' },
 			],
+
 			headerButtons: [
 				{ action: 'new-invoice', variant: 'primary', label: 'Nieuwe factuur', icon: 'Plus' },
 			],
