@@ -33,7 +33,7 @@ function mountFacts(fields, provide = {}) {
 	})
 }
 
-const text = (w, index = 0) => w.findAll('.cn-facts-widget__row').at(index).find('dd').text().replace(/[  ]/g, ' ')
+const text = (w, index = 0) => w.findAll('.cn-facts-widget__row').at(index).find('dd').text().replace(/[\u00a0\u202f]/g, ' ')
 
 describe('CnFactsWidget: a currency entry', () => {
 	it('shows the amount as money, in EUR by default', () => {
@@ -66,7 +66,7 @@ describe('CnFactsWidget: a currency entry', () => {
 
 	it('formats a currency part of a line', () => {
 		const w = mountFacts([{ as: 'line', parts: ['number', { path: 'total', format: 'currency' }] }])
-		const line = w.text().replace(/[  ]/g, ' ')
+		const line = w.text().replace(/[\u00a0\u202f]/g, ' ')
 		expect(line).toContain('F-2026-0001 · ')
 		expect(line).toMatch(/€\s?1[.,\s]?234[.,]50|1[.,\s]?234[.,]50\s?€/)
 	})

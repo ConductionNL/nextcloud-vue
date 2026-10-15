@@ -13,7 +13,7 @@ test('invoice amounts in a facts card read as money', async ({ page }) => {
 	await page.goto('/?l7=facts-currency', { waitUntil: 'domcontentloaded', timeout: 90_000 })
 	const rows = page.locator('[data-testid="facts-currency"] .cn-facts-widget__row dd')
 	await rows.first().waitFor({ state: 'visible', timeout: 60_000 })
-	const values = (await rows.allInnerTexts()).map((v) => v.replace(/[  ]/g, ' ').trim())
+	const values = (await rows.allInnerTexts()).map((v) => v.replace(/[\u00a0\u202f]/g, ' ').trim())
 	expect(values).toHaveLength(3)
 	expect(values[0]).toContain('€')
 	expect(values[0]).toMatch(/1[.,\s]?234[.,]50/)
