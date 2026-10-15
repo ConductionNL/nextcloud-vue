@@ -5,7 +5,7 @@
 		:docUrl="docUrl"
 		:loading="loading"
 		:wide="isBoard && wide"
-		loadingMessage="Loading version information...">
+		:loadingMessage="t('nextcloud-vue', 'Loading version information…')">
 		<!-- Actions slot (top right). Under the board look the same buttons sit
 		     in the footer row of the card instead. -->
 		<template v-if="!isBoard" #actions>
@@ -35,19 +35,19 @@
 				<div class="cn-version-info__details">
 					<!-- Application Name -->
 					<div class="cn-version-info__item">
-						<span class="cn-version-info__label">{{ labels.appName }}:</span>
+						<span class="cn-version-info__label">{{ fieldLabels.appName }}:</span>
 						<span class="cn-version-info__value">{{ appName }}</span>
 					</div>
 
 					<!-- Version -->
 					<div class="cn-version-info__item">
-						<span class="cn-version-info__label">{{ labels.version }}:</span>
+						<span class="cn-version-info__label">{{ fieldLabels.version }}:</span>
 						<span class="cn-version-info__value">{{ appVersion }}</span>
 					</div>
 
 					<!-- Configured Version (if provided) -->
 					<div v-if="configuredVersion" class="cn-version-info__item">
-						<span class="cn-version-info__label">{{ labels.configuredVersion }}:</span>
+						<span class="cn-version-info__label">{{ fieldLabels.configuredVersion }}:</span>
 						<span class="cn-version-info__value">{{ configuredVersion }}</span>
 					</div>
 
@@ -245,14 +245,13 @@ export default {
 			default: false,
 		},
 
-		/** Custom labels for the standard fields */
+		/**
+		 * Custom labels for the standard fields, `{ appName?, version?, configuredVersion? }`.
+		 * A label left out keeps the translated default.
+		 */
 		labels: {
 			type: Object,
-			default: () => ({
-				appName: 'Application Name',
-				version: 'Version',
-				configuredVersion: 'Configured Version',
-			}),
+			default: () => ({}),
 		},
 	},
 
@@ -264,6 +263,21 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The field labels: the app's, else the library's in the reader's language.
+		 *
+		 * @return {{appName: string, version: string, configuredVersion: string}}
+		 * @spec openspec/changes/version-card-dutch-and-header/specs/settings-board-look/spec.md#requirement-the-admin-chrome-reads-in-the-readers-language
+		 */
+		fieldLabels() {
+			return {
+				appName: t('nextcloud-vue', 'Application name'),
+				version: t('nextcloud-vue', 'Version'),
+				configuredVersion: t('nextcloud-vue', 'Configured version'),
+				...(this.labels || {}),
+			}
+		},
+
 		/** @return {string} Button type based on update status */
 		updateButtonType() {
 			if (this.isUpToDate) {
@@ -280,16 +294,18 @@ export default {
 		/** @return {string} Update button label text */
 		updateButtonText() {
 			if (this.updating) {
-				return 'Updating...'
+				return t('nextcloud-vue', 'Updating…')
 			}
 			if (this.isUpToDate) {
-				return 'Up to date'
+				return t('nextcloud-vue', 'Up to date')
 			}
-			return 'Update'
+			return t('nextcloud-vue', 'Update')
 		},
 	},
 
 	methods: {
+		t,
+
 		handleUpdateClick() {
 			if (!this.updateButtonDisabled) {
 				this.$emit('update')

@@ -90,7 +90,7 @@ With `title`, `description`, `docUrl`, `cardTitle`, `loading`, and `labels`:
 | `wide` | Boolean | `true` | Under the board look the card spans the whole settings grid, as the boards draw it. `false` keeps it one card in the grid. No effect without the board look. |
 | `cardTitle` | String | `'Application information'` | Heading inside the gray version card |
 | `loading` | Boolean | `false` | Show a loading spinner and hide the card content while data is fetching |
-| `labels` | Object | `{ appName, version, configuredVersion }` | Custom labels for the standard row headings (for i18n) |
+| `labels` | Object | `{}` | Custom labels for the standard row headings (`appName`, `version`, `configuredVersion`); a label left out keeps the translated default |
 
 
 `look` is documented in the prop table of the component reference (board look, screens-chrome-parity).

@@ -57,8 +57,21 @@ describe('look-board.css: admin settings', () => {
 			expect(rulesFor(section)).toMatch(/padding: 20px 22px/)
 			expect(rulesFor(`${section} > .settings-section__desc`)).toMatch(/margin-top: -10px/)
 			expect(rulesFor(`${section} > .notecard`)).toMatch(/margin-block: 0/)
-			expect(rulesFor(`${section} > .cn-settings-section__actions`)).toMatch(/inset-block-start: 20px/)
 		}
+	})
+
+	/**
+	 * @spec openspec/changes/version-card-dutch-and-header/specs/settings-board-look/spec.md#requirement-no-header-button-covers-a-card-title
+	 */
+	it('puts header actions in a grid row beside the title, not absolutely over it', () => {
+		const section = '.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions)'
+		expect(rulesFor(section)).toMatch(/display: grid !important/)
+		expect(rulesFor(section)).toMatch(/grid-template-columns: minmax\(0, 1fr\) auto/)
+		expect(rulesFor(`${section} > .settings-section__name`)).toMatch(/grid-column: 1;/)
+		const actions = rulesFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) > .cn-settings-section__actions')
+		expect(actions).toMatch(/position: static/)
+		expect(actions).toMatch(/grid-column: 2/)
+		expect(css).not.toMatch(/cn-settings-section__actions[^{]*\{[^}]*position: absolute/)
 	})
 
 	it('makes sections inside a wrapping element grid items and cards', () => {
