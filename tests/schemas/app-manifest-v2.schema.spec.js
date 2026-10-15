@@ -2114,3 +2114,17 @@ describe('app-manifest-v2: header buttons on a reports page (screens-reports-hea
 		expect(validateManifestV2(reports({ headerActions, headerButtons: [{ label: 'Download', action: 'download', colour: 'red' }] })).valid).toBe(false)
 	})
 })
+
+describe('app-manifest-v2: a plural countSubtitle (index-count-plural, 2.99.0)', () => {
+	const index = (config) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Invoices', route: '/invoices', type: 'index', title: 'Invoices', config: { register: 'r', schema: 's', ...config } }],
+	})
+
+	it('accepts a string or a singular and plural, and refuses an incomplete or unknown form', () => {
+		expect(validateManifestV2(index({ countSubtitle: '{total} invoices' })).valid).toBe(true)
+		expect(validateManifestV2(index({ countSubtitle: { singular: '{total} invoice', plural: '{total} invoices' } })).valid).toBe(true)
+		expect(validateManifestV2(index({ countSubtitle: { singular: '{total} invoice' } })).valid).toBe(false)
+		expect(validateManifestV2(index({ countSubtitle: { singular: '{total} invoice', plural: '{total} invoices', few: 'x' } })).valid).toBe(false)
+	})
+})

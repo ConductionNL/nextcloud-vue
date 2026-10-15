@@ -1069,7 +1069,7 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `countSubtitle` | `String` | `''` | A description with `{total}` replaced by the collection's total: `"{total} open cases"` reads "48 open cases". Shown in place of `description` once a total is known; before that `description` shows. Goes through the host translate function. Manifest: `config.countSubtitle`, beside `config.showTitle: true`. |
+| `countSubtitle` | `String` or `Object` | `''` | A description with `{total}` replaced by the collection's total: `"{total} open cases"` reads "48 open cases". Shown in place of `description` once a total is known; before that `description` shows. Goes through the host translate function. `{ "singular": "{total} invoice", "plural": "{total} invoices" }` picks the form by the total through the app's plural translation (`translatePlural` with the app id CnAppRoot provides), so a list of one reads "1 invoice". Manifest: `config.countSubtitle`, beside `config.showTitle: true`. |
 
 ## The board header: `showTitleIcon`, `showCount`, `headerButtons`
 
