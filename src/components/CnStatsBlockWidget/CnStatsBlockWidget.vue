@@ -17,7 +17,7 @@
 <template>
 	<div
 		class="cn-stats-block-widget"
-		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries && !isRows && !isGrid, 'cn-stats-block-widget--rows': isRows, 'cn-stats-block-widget--grid': isGrid }]">
+		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries && !isRows && !isGrid, 'cn-stats-block-widget--rows': isRows, 'cn-stats-block-widget--grid': isGrid, 'cn-stats-block-widget--tiles-box': isGrid && tiles === 'box' }]">
 		<!-- Grid layout: the `stats` (each a stat tile's content, so every
 		     source kind a stat takes: ratio, elapsed, computed...) in `columns`
 		     columns, inside this one card (the board's "Je week tot nu toe"
@@ -286,6 +286,21 @@ export default {
 		columns: {
 			type: Number,
 			default: 2,
+		},
+
+		/**
+		 * How the grid layout draws its tiles: `'box'` gives each tile a
+		 * surface of its own (a grey ground, 10px radius, 14px 16px padding),
+		 * as board DcRapportages draws its efficiency figures. Empty (the
+		 * default) keeps the tiles as parts of the one card, without a box
+		 * (board PqMijnWerk "Je week tot nu toe").
+		 *
+		 * @type {'box'|null}
+		 * @spec openspec/changes/screens-stats-block-tile-box/specs/stats-block-grid/spec.md#requirement-a-stats-block-grid-can-box-its-tiles
+		 */
+		tiles: {
+			type: String,
+			default: null,
 		},
 
 		/**
@@ -566,7 +581,7 @@ export default {
 			if (!fmt || this.loading) {
 				return null
 			}
-			return formatMetricValue(this.resolvedCount, fmt, this.configCtx, this.pageObject)
+			return formatMetricValue(this.resolvedCount, fmt, this.configCtx, this.pageObject, this.tl)
 		},
 
 		/**
@@ -598,7 +613,7 @@ export default {
 					return {
 						// The value as the entry's `format` says, money in the
 						// currency the entry names; null keeps the plain count.
-						formatted: fmt && resolved ? formatMetricValue(raw, fmt, this.configCtx, this.pageObject) : null,
+						formatted: fmt && resolved ? formatMetricValue(raw, fmt, this.configCtx, this.pageObject, this.tl) : null,
 						entry: entry || {},
 						key: `${(entry && entry.register) || ''}/${(entry && entry.schema) || ''}/${i}`,
 						count: resolved ? raw : 0,
@@ -961,7 +976,10 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
+/* `width: 100%` plus this padding overflowed the card by 48px: the last
+   column ran past the card's right edge (visible once the tiles have a box). */
 .cn-stats-block-widget--grid {
+	box-sizing: border-box;
 	padding: 4px 24px 20px;
 }
 
@@ -975,6 +993,19 @@ export default {
 .cn-stats-block-widget__grid-stat {
 	padding: 0;
 	min-width: 0;
+}
+
+/* `tiles: "box"`: each tile on a grey ground of its own (board DcRapportages,
+   "Vergaderingen en efficiëntie"), 12px apart. */
+.cn-stats-block-widget--tiles-box .cn-stats-block-widget__grid {
+	gap: 12px;
+}
+
+.cn-stats-block-widget--tiles-box .cn-stats-block-widget__grid-stat {
+	box-sizing: border-box;
+	padding: 14px 16px;
+	border-radius: 10px;
+	background: var(--color-background-hover);
 }
 
 .cn-stats-block-widget__rows {

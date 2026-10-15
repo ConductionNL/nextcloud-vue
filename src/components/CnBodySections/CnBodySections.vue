@@ -82,6 +82,8 @@ export default {
 		cnRegistry: { default: () => ({}) },
 		/** Legacy custom-component map provided by CnAppRoot. */
 		cnCustomComponents: { default: () => ({}) },
+		/** The host's translate function for manifest-authored strings, provided by CnAppRoot. */
+		cnTranslate: { default: null },
 	},
 
 	props: {
@@ -201,7 +203,7 @@ export default {
 				return {
 					id,
 					name,
-					title: (section && section.title) || '',
+					title: this.translateTitle((section && section.title) || ''),
 					card: !!(section && section.card),
 					colSpan: section && section.colSpan,
 					placement: section && section.placement,
@@ -213,6 +215,25 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A manifest-authored section title in the reader's language.
+		 *
+		 * The title is written in the manifest, so it belongs to the host
+		 * app's catalogue, the same as every other manifest title the detail
+		 * page shows. A section heading printed raw read "Asked about" to a
+		 * Dutch handler on a pipelinq ticket (Zuiddrecht live round 3).
+		 *
+		 * @param {string} title The title as written in the manifest.
+		 * @return {string} The translated title, or '' when there is none.
+		 * @spec openspec/changes/detail-page-strings-dutch/specs/detail-page-strings-dutch/spec.md#requirement-the-detail-page-speaks-the-readers-language
+		 */
+		translateTitle(title) {
+			if (title === '' || typeof this.cnTranslate !== 'function') {
+				return title
+			}
+			return this.cnTranslate(title)
+		},
+
 		/**
 		 * Resolve a section's host-app component by registry name. Precedence
 		 * matches CnPageRenderer.resolveCustomComponent: the v2 `cnRegistry`

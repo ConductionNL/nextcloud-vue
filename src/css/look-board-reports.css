@@ -115,3 +115,61 @@
 .cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-dashboard-page {
 	padding: 0;
 }
+
+/* The widget area draws no panel of its own (board DcRapportages: the
+   highlighted report's card sits straight on the page ground). A theme's
+   catch-all for anything named like a widget (nldesign's element overrides:
+   `[class*="widget"]:not([class*="widget__"]):not(#header *)`, an id
+   specificity no class rule outranks) painted `__widgets` white, hence the
+   `!important`. */
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__widgets {
+	background: transparent !important;
+}
+
+/* The grid insets every card by its 12px margin (CnDashboardPage's default
+   `gridMargin`); the page padding already places the area, so the card's
+   edges line up with the report cards above it. */
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__widgets .cn-dashboard-grid {
+	width: calc(100% + 24px);
+	margin: -12px;
+}
+
+/* A report card is a link, but its title and description read as text, as on
+   the board: no underline, whatever a theme does to links. */
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card,
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card * {
+	text-decoration: none !important;
+}
+
+/* The header buttons beside the title (screens-reports-header-buttons, board
+   DcRapportages "Downloaden"): the board's 40px button with a grey border on
+   the main background, the primary one in the primary fill, as on the index
+   header. `!important` holds them under a theme that restyles every button
+   (nldesign). The buildiq square keeps its own rule. */
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__header-buttons > .button-vue--secondary {
+	height: var(--cn-board-control-height) !important;
+	min-height: var(--cn-board-control-height) !important;
+	padding: 0 14px !important;
+	border: 1px solid var(--color-border-dark) !important;
+	border-radius: var(--cn-board-control-radius) !important;
+	background: var(--color-main-background) !important;
+	color: var(--color-main-text) !important;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__header-buttons > .button-vue--secondary:hover {
+	background: var(--color-background-hover) !important;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__header-buttons > .button-vue--primary {
+	height: var(--cn-board-control-height) !important;
+	min-height: var(--cn-board-control-height) !important;
+	padding: 0 16px !important;
+	border: 0 !important;
+	border-radius: var(--cn-board-control-radius) !important;
+	background: var(--color-primary-element) !important;
+	color: var(--color-primary-element-text) !important;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__header-buttons > .button-vue--primary:hover {
+	background: var(--color-primary-element-hover) !important;
+}

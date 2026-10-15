@@ -38,11 +38,11 @@
 				:tabindex="itemTabindex"
 				:gs-id="item.id"
 				:gs-x="item.gridX"
-				:gs-y="item.gridY"
+				:gs-y="scaledRow(item.gridY)"
 				:gs-w="item.gridWidth"
-				:gs-h="item.gridHeight"
+				:gs-h="scaledRow(item.gridHeight)"
 				:gs-min-w="minWidth"
-				:gs-min-h="minHeight"
+				:gs-min-h="minRows(item)"
 				:gs-size-to-content="sizeToContentAttr(item)"
 				@keydown="onItemKeydown($event, item)">
 				<div class="grid-stack-item-content">
@@ -98,6 +98,24 @@ let domIdCounter = 0
  * visually attached to the widget instead of straddling its border.
  */
 const MENU_ANCHOR_OFFSET = 8
+
+/**
+ * How many GridStack rows a layout row is drawn as on a grid with
+ * size-to-content cells (`wantsRowSplit`): 80px rows become 10px rows.
+ */
+const ROW_SPLIT = 8
+
+/**
+ * Whether a layout holds a size-to-content cell (`sizeToContent` true or a
+ * positive row maximum).
+ *
+ * @param {Array<object>} layout The layout items.
+ * @return {boolean} True when one does.
+ */
+function hasFitCell(layout) {
+	return Array.isArray(layout) && layout.some((item) => item
+		&& (item.sizeToContent === true || (Number.isFinite(item.sizeToContent) && item.sizeToContent > 0)))
+}
 
 /**
  * CnDashboardGrid — Low-level grid layout engine powered by GridStack.
@@ -304,10 +322,38 @@ export default {
 			 * on that.
 			 */
 			reflowed: false,
+			/**
+			 * How many GridStack rows one layout row is drawn as: 1, or
+			 * ROW_SPLIT while `wantsRowSplit` holds. Set before the first render,
+			 * since GridStack reads the items' places from their attributes,
+			 * and again when the grid is rebuilt.
+			 */
+			rowSplit: (!this.editable && !this.float && hasFitCell(this.layout)) ? ROW_SPLIT : 1,
 		}
 	},
 
 	computed: {
+		/**
+		 * Whether the grid draws each layout row as ROW_SPLIT finer rows. A
+		 * size-to-content cell can only be a whole number of rows tall, so on
+		 * 80px rows it kept up to a row of empty space under its content and
+		 * a packing grid (`float: false`) could not close it (pipelinq and
+		 * dossiq Mijn werk, decidiq Mijn acties). Split into 10px rows the
+		 * cell ends within 10px of its content and the widgets below move up.
+		 *
+		 * Only in view mode, only on a packing grid with a size-to-content
+		 * cell: every other grid is built exactly as before. Item positions
+		 * and sizes scale with the rows, so every widget keeps its pixel
+		 * place and size until a cell shrinks; the layout itself, what edit
+		 * mode shows and what `layout-change` reports, stays in layout rows.
+		 *
+		 * @spec openspec/changes/dashboard-fit-cells-close-up/specs/dashboard-grid/spec.md#requirement-a-size-to-content-cell-ends-at-its-content
+		 * @return {boolean} True to split the rows.
+		 */
+		wantsRowSplit() {
+			return !this.editable && !this.float && hasFitCell(this.layout)
+		},
+
 		/**
 		 * @return {boolean} Whether the keyboard lane is live — items are
 		 *   focusable and the arrow keys reposition. Requires the opt-in prop,
@@ -374,6 +420,12 @@ export default {
 			this.syncInteractivity()
 		},
 
+		wantsRowSplit(wants) {
+			if (this.grid && (wants ? ROW_SPLIT : 1) !== this.rowSplit) {
+				this.rebuildGrid()
+			}
+		},
+
 		layout: {
 			deep: true,
 			handler(newLayout) {
@@ -433,9 +485,73 @@ export default {
 			}
 			// A number is GridStack's "size to content, but never taller than N rows" (a maximum).
 			if (Number.isFinite(v) && v > 0) {
-				return String(v)
+				return String(v * this.rowSplit)
 			}
 			return undefined
+		},
+
+		/**
+		 * A layout row coordinate or height in GridStack rows (`rowSplit`).
+		 *
+		 * @spec openspec/changes/dashboard-fit-cells-close-up/specs/dashboard-grid/spec.md#requirement-a-size-to-content-cell-ends-at-its-content
+		 * @param {number|undefined} value The value in layout rows.
+		 * @return {number|undefined} The value in grid rows, or undefined when none is set.
+		 */
+		scaledRow(value) {
+			return Number.isFinite(value) ? value * this.rowSplit : undefined
+		},
+
+		/**
+		 * The smallest height an item may take, in grid rows: `minHeight`
+		 * layout rows, except for a size-to-content cell on split rows, which
+		 * may shrink to its content down to one grid row. The minimum is for
+		 * resizing by hand, and that only happens on whole rows in edit mode.
+		 *
+		 * @spec openspec/changes/dashboard-fit-cells-close-up/specs/dashboard-grid/spec.md#requirement-a-size-to-content-cell-ends-at-its-content
+		 * @param {object} item The layout item.
+		 * @return {number} The minimum height in grid rows.
+		 */
+		minRows(item) {
+			if (this.rowSplit !== 1 && this.sizeToContentAttr(item) !== undefined) {
+				return 1
+			}
+			return this.minHeight * this.rowSplit
+		},
+
+		/**
+		 * Build the grid again with the row split `wantsRowSplit` asks for, as
+		 * edit mode turns on or off: the items go back to their layout places in
+		 * the new rows, and the size-to-content cells are measured again.
+		 *
+		 * @spec openspec/changes/dashboard-fit-cells-close-up/specs/dashboard-grid/spec.md#requirement-a-size-to-content-cell-ends-at-its-content
+		 * @return {void}
+		 */
+		rebuildGrid() {
+			this.disconnectContentObserver()
+			this.grid.destroy(false)
+			this.grid = null
+			this.rowSplit = this.wantsRowSplit ? ROW_SPLIT : 1
+			this.$nextTick(() => {
+				if (!this.$refs.gridContainer) {
+					return
+				}
+				// GridStack wrote its own places onto the items; put the layout's back.
+				for (const item of this.layout) {
+					const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
+					if (!el) {
+						continue
+					}
+					for (const [name, value] of [['gs-y', this.scaledRow(item.gridY)], ['gs-h', this.scaledRow(item.gridHeight)], ['gs-min-h', this.minRows(item)], ['gs-size-to-content', this.sizeToContentAttr(item)]]) {
+						if (value === undefined) {
+							el.removeAttribute(name)
+						} else {
+							el.setAttribute(name, String(value))
+						}
+					}
+				}
+				this.initGrid()
+				this.observeContentSizes()
+			})
 		},
 
 		/**
@@ -499,7 +615,7 @@ export default {
 			const el = this.$refs.gridContainer.querySelector('.grid-stack')
 			this.grid = GridStack.init({
 				column: this.columns,
-				cellHeight: this.cellHeight,
+				cellHeight: this.cellHeight / this.rowSplit,
 				margin: this.margin,
 				float: this.float,
 				animate: true,
@@ -584,6 +700,12 @@ export default {
 			// widening back does not undo. A move made while reflowed is the same
 			// rescaled geometry, so it is dropped for the same reason.
 			if (this.isReflowed()) {
+				return
+			}
+			// A grid on split rows is a view-mode grid: what changes in it is
+			// packing and size-to-content measuring, never a user's
+			// arrangement, and it is not reported as one.
+			if (this.rowSplit !== 1) {
 				return
 			}
 			if (!items || items.length === 0) {
@@ -986,7 +1108,7 @@ export default {
 						// grid's own position back, which matches and does
 						// nothing here.
 						const x = item.gridX ?? node.x
-						const y = item.gridY ?? node.y
+						const y = Number.isFinite(item.gridY) ? item.gridY * this.rowSplit : node.y
 						if (x !== node.x || y !== node.y) {
 							// The layout said where it goes; GridStack's `change`
 							// for it is not a user's arrangement and is not

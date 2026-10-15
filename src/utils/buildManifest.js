@@ -195,6 +195,7 @@ export function applyMenuRelocations(menu, relocations) {
 	if (!relocations || typeof relocations !== 'object') {
 		return menu
 	}
+	const heldEntries = captionsHoldingEntries(menu)
 	for (let pass = 0; pass < 5; pass++) {
 		const moves = []
 		for (let i = menu.length - 1; i >= 0; i--) {
@@ -240,9 +241,42 @@ export function applyMenuRelocations(menu, relocations) {
 			}
 		})
 	}
-	// Drop empty group shells left behind by relocations.
-	return menu.filter((m) => m.route || m.href || m.action
+	// Drop empty group shells left behind by relocations. A caption (a
+	// section heading) has no route and no children and is kept, unless the
+	// relocations emptied it: every entry under it moved away.
+	const kept = menu.filter((m) => m.type === 'caption' || m.route || m.href || m.action
 		|| (Array.isArray(m.children) && m.children.length > 0))
+	const holdingNow = captionsHoldingEntries(kept)
+	return kept.filter((m) => m.type !== 'caption' || !heldEntries.has(m) || holdingNow.has(m))
+}
+
+/**
+ * The captions (`type: "caption"`) that have at least one entry under them:
+ * a non-caption entry of the same section before the next caption.
+ *
+ * @param {Array<object>} menu The top-level menu.
+ * @return {Set<object>} The captions holding an entry.
+ */
+function captionsHoldingEntries(menu) {
+	const holding = new Set()
+	menu.forEach((entry, index) => {
+		if (entry.type !== 'caption') {
+			return
+		}
+		const section = entry.section ?? 'main'
+		for (let i = index + 1; i < menu.length; i++) {
+			const next = menu[i]
+			if ((next.section ?? 'main') !== section) {
+				continue
+			}
+			if (next.type === 'caption') {
+				break
+			}
+			holding.add(entry)
+			break
+		}
+	})
+	return holding
 }
 
 /**

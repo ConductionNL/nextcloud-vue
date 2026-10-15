@@ -654,6 +654,26 @@ With `config.userLayout: true` the header shows **Arrange view** next to the vie
 
 Blocks such as favourites, follow and attention are placed with the layout you already have: a `layout` entry's `gridY` puts one under the tabs, and `sideColumn` takes its widget id.
 
+## Widgets per record: visibleWhen and visibilityContext
+
+A widget in `widgets` that carries `visibleWhen` is drawn only while the condition holds for the loaded record. It is the same grammar as everywhere else (`field`, `op`, `value`, `all`, `any`, `endpoint`, `source`). A widget without `visibleWhen` renders as before. While the record loads, a conditional widget stays out of the grid, so it never shows and then vanishes. In edit mode every widget stays visible.
+
+`visibilityContext` (manifest `config.visibilityContext`) names records the page reads beside the loaded one. Each entry is `{ field, register, schema }`, where `field` is the property holding the other record's id. A condition reads that record as `@context.<name>.<path>`, in the grid and in a tabs widget's tab conditions. A record that cannot be read is absent, so its condition fails safe.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `visibilityContext` | `Object` | `{}` | `{ <name>: { field, register, schema } }`: the records conditions read as `@context.<name>`. |
+
+```json
+"config": {
+  "visibilityContext": { "caseType": { "field": "caseType", "register": "dossiq", "schema": "caseType" } },
+  "widgets": [
+    { "id": "family-plan", "type": "family-plan", "title": "Family plan",
+      "visibleWhen": { "field": "@context.caseType.category", "op": "in", "value": ["Sociaal domein"] } }
+  ]
+}
+```
+
 ## Breadcrumb current field and separator, widget actions (zuiddrecht-pixel-gaps-3)
 
 - `config.breadcrumb.currentField` (a dotted field path, e.g. `identifier`) makes the current crumb that field's value instead of the display name; an empty value falls back to the display name. `config.breadcrumb.separator` draws that text (e.g. `/`) between the crumbs instead of the chevron.

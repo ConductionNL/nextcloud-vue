@@ -211,6 +211,46 @@ describe('CnFieldListWidget', () => {
 		expect(w.find('[data-testid="cn-field-list-notice"]').attributes('data-type')).toBe('info')
 	})
 
+	it('copy buttons beside a detail line put that value on the clipboard and say so', async () => {
+		mockGet.mockResolvedValue({ data: { results: [{ hostname: 'nieuw.zuiddrecht.nl', name: '_portaliq', value: 'abc' }] } })
+		const writeText = jest.fn().mockResolvedValue(undefined)
+		Object.defineProperty(globalThis.navigator, 'clipboard', { value: { writeText }, configurable: true })
+		const content = {
+			field: 'domains',
+			key: 'hostname',
+			row: {
+				title: 'hostname',
+				detail: {
+					template: 'Publish this TXT record: {name} = {value}',
+					when: { verified: false },
+					copy: [{ path: 'name', label: 'Copy the name' }, { path: 'value', label: 'Copy the value' }, { path: 'missing', label: 'Never' }, { label: 'No path' }],
+				},
+			},
+			rowSource: { url: '/apps/portaliq/api/cms/domains?portal=@object.slug', path: 'results', key: 'hostname' },
+		}
+		const dutch = (key) => ({ 'Copy the name': 'Naam kopiëren', Copied: 'Gekopieerd' }[key] || key)
+		const w = mountList(content, portal, dutch)
+		await flush()
+		await w.vm.$nextTick()
+
+		const pending = w.find('[data-testid="cn-field-list-row-nieuw.zuiddrecht.nl"]')
+		const buttons = pending.findAll('.cn-field-list-widget__copies button')
+		expect(buttons.map((b) => b.text())).toEqual(['Naam kopiëren', 'Copy the value'])
+		expect(w.find('[data-testid="cn-field-list-row-zuiddrecht.nl"] .cn-field-list-widget__copies').exists()).toBe(false)
+		expect(pending.find('.cn-field-list-widget__detail').text()).toBe('Publish this TXT record: _portaliq = abc')
+
+		await w.find('[data-testid="cn-field-list-copy-value-nieuw.zuiddrecht.nl"]').trigger('click')
+		await flush()
+		expect(writeText).toHaveBeenCalledWith('abc')
+		expect(w.find('[data-testid="cn-field-list-copied"]').text()).toBe('Gekopieerd: Copy the value')
+
+		writeText.mockRejectedValue(new Error('denied'))
+		await w.find('[data-testid="cn-field-list-copy-name-nieuw.zuiddrecht.nl"]').trigger('click')
+		await flush()
+		expect(w.find('[data-testid="cn-field-list-copied"]').text()).toBe('')
+		expect(w.find('[data-testid="cn-field-list-notice"]').text()).toBe('Copying did not work. Select the text and copy it yourself.')
+	})
+
 	it('hides every control when read-only', () => {
 		const w = mountList({ ...EDITORS, readOnly: true })
 		expect(w.find('[data-testid="cn-field-list-add"]').exists()).toBe(false)
