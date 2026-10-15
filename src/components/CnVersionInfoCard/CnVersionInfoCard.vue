@@ -4,6 +4,7 @@
 		:description="description"
 		:docUrl="docUrl"
 		:loading="loading"
+		:wide="isBoard && wide"
 		loadingMessage="Loading version information...">
 		<!-- Actions slot (top right). Under the board look the same buttons sit
 		     in the footer row of the card instead. -->
@@ -155,6 +156,18 @@ export default {
 		look: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Under the board look the card spans the whole settings grid, as the
+		 * boards draw the version card. Set to `false` to keep it one card in
+		 * the grid. Without the board look it has no effect.
+		 *
+		 * @spec openspec/changes/board-version-card-full-width/specs/settings-board-look/spec.md#requirement-the-board-version-card-spans-the-settings-grid
+		 */
+		wide: {
+			type: Boolean,
+			default: true,
 		},
 
 		/** Section title */

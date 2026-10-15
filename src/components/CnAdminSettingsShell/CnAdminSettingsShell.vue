@@ -72,6 +72,7 @@
 			:updating="updating"
 			:title="versionTitle"
 			:description="resolvedVersionDescription"
+			:wide="versionCardWide"
 			@update="onUpdate">
 			<template #actions>
 				<!-- Canonical "Re-import configuration" action (POST /apps/<appId>/api/settings/load) -->
@@ -359,6 +360,17 @@ export default {
 
 		/** Whether to render the version card. */
 		showVersionCard: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Under the board look the version card spans the whole settings grid.
+		 * Set to `false` to keep it one card in the grid.
+		 *
+		 * @spec openspec/changes/board-version-card-full-width/specs/settings-board-look/spec.md#requirement-the-board-version-card-spans-the-settings-grid
+		 */
+		versionCardWide: {
 			type: Boolean,
 			default: true,
 		},

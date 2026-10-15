@@ -97,3 +97,34 @@ describe('CnVersionInfoCard: the board facts and footer', () => {
 		expect(w.find('.reimport').exists()).toBe(true)
 	})
 })
+
+/**
+ * @spec openspec/changes/board-version-card-full-width/specs/settings-board-look/spec.md#requirement-the-board-version-card-spans-the-settings-grid
+ */
+describe('CnVersionInfoCard: spans the settings grid under the board look', () => {
+	const props = { appName: 'Larpinq', appVersion: '1.2.0', isUpToDate: true }
+
+	it('is a wide section under the board look', () => {
+		const w = mount(CnVersionInfoCard, { propsData: { ...props, look: 'board' } })
+		expect(w.find('[data-testid="cn-settings-section"]').classes()).toContain('cn-settings-section--wide')
+	})
+
+	it('stays one card in the grid when told wide false', () => {
+		const w = mount(CnVersionInfoCard, { propsData: { ...props, look: 'board', wide: false } })
+		expect(w.find('[data-testid="cn-settings-section"]').classes()).not.toContain('cn-settings-section--wide')
+	})
+
+	it('is not wide without the board look', () => {
+		const w = mount(CnVersionInfoCard, { propsData: props })
+		expect(w.find('[data-testid="cn-settings-section"]').classes()).not.toContain('cn-settings-section--wide')
+	})
+
+	it('follows the shell: wide by default, one card with versionCardWide false', () => {
+		const shell = (extra) => mount(CnAdminSettingsShell, {
+			propsData: { appId: 'larpinq', appName: 'Larpinq', ...extra },
+			global: { provide: { cnLook: 'board' }, stubs: { CnBuildiqEditButton: Square } },
+		})
+		expect(shell({}).findComponent(CnVersionInfoCard).find('[data-testid="cn-settings-section"]').classes()).toContain('cn-settings-section--wide')
+		expect(shell({ versionCardWide: false }).findComponent(CnVersionInfoCard).find('[data-testid="cn-settings-section"]').classes()).not.toContain('cn-settings-section--wide')
+	})
+})
