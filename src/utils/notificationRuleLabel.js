@@ -28,6 +28,8 @@
  * @spec openspec/changes/notification-rule-labels-and-runtime-version/specs/notification-preferences/spec.md
  */
 
+import { humaniseKey } from './humaniseKey.js'
+
 /**
  * Pick the string for the current language out of a string or per-locale map.
  *
@@ -54,34 +56,14 @@ export function resolveLocalised(value, language = 'en') {
 }
 
 /**
- * Make a rule key readable: split camelCase, snake_case and kebab-case into
- * words, keep acronyms, and capitalise only the first word.
- *
- * `caseAssigned` → "Case assigned", `object_created` → "Object created",
- * `newBRPRecord` → "New BRP record".
+ * Make a rule key readable (`caseAssigned` → "Case assigned"); see `humaniseKey`.
  *
  * @param {string} key The rule key.
  * @return {string} A readable sentence-case label, or the key when it has no words.
+ * @spec openspec/changes/notification-rule-labels-and-runtime-version/specs/notification-preferences/spec.md#requirement-a-notification-rule-reads-as-a-label
  */
 export function humaniseRuleKey(key) {
-	const words = String(key || '')
-		.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-		.replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-		.split(/[\s_\-.]+/)
-		.filter(Boolean)
-	if (words.length === 0) {
-		return String(key || '')
-	}
-	return words
-		.map((word, index) => {
-			const isAcronym = word.length > 1 && word === word.toUpperCase() && /[A-Z]/.test(word)
-			if (isAcronym) {
-				return word
-			}
-			const lower = word.toLowerCase()
-			return index === 0 ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower
-		})
-		.join(' ')
+	return humaniseKey(key)
 }
 
 /**

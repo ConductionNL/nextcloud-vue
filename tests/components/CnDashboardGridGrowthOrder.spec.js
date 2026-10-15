@@ -34,8 +34,7 @@ function setup(contentHeight) {
 	grid.getCellHeight = () => 80
 	grid.batchUpdate = jest.fn((flag = true) => calls.push(flag ? 'batch' : 'commit'))
 	grid.update = jest.fn((target, patch) => calls.push(`${target.getAttribute('gs-id')}->${patch.y}`))
-	grid.resizeToContent = jest.fn(() => calls.push('grow'))
-	wrapper.vm.keepOrderOnGrowth()
+	grid._resizeToContent.mockImplementation(() => calls.push('grow'))
 	const cell = el('banner')
 	cell.gridstackNode = grid.engine.nodes[0]
 	Object.defineProperty(cell, 'clientHeight', { value: 160 })
@@ -52,6 +51,14 @@ describe('CnDashboardGrid: a growing cell keeps the order under it', () => {
 		const { grid, calls, cell } = setup(200)
 		grid.resizeToContent(cell)
 		expect(calls).toEqual(['batch', 'list->5', 'focus->3', 'grow', 'commit'])
+	})
+
+	it('moves the cards inside a batch GridStack already runs, without opening or committing one', () => {
+		const { grid, calls, cell } = setup(200)
+		grid.engine.batchMode = true
+		grid.resizeToContent(cell)
+		expect(grid.batchUpdate).not.toHaveBeenCalled()
+		expect(calls).toEqual(['list->5', 'focus->3', 'grow'])
 	})
 
 	it('leaves a cell that keeps its height to GridStack', () => {
@@ -72,5 +79,16 @@ describe('CnDashboardGrid: items in row order', () => {
 		]
 		const wrapper = mount(CnDashboardGrid, { propsData: { layout } })
 		expect(wrapper.findAll('.grid-stack-item').map((w) => w.attributes('gs-id'))).toEqual(['greeting', 'banner', 'focus', 'list', 'side'])
+	})
+
+	it('renders an item without a row or column after the positioned ones, in the layout\'s order', () => {
+		const layout = [
+			{ id: 'a', gridWidth: 4, gridHeight: 2 },
+			{ id: 'b', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2 },
+			{ id: 'c', gridY: 2, gridWidth: 4, gridHeight: 2 },
+			{ id: 'd', gridWidth: 4, gridHeight: 2 },
+		]
+		const wrapper = mount(CnDashboardGrid, { propsData: { layout } })
+		expect(wrapper.findAll('.grid-stack-item').map((w) => w.attributes('gs-id'))).toEqual(['b', 'c', 'a', 'd'])
 	})
 })

@@ -1,6 +1,6 @@
 # humaniseRuleKey
 
-Turns a notification rule key into readable sentence-case words, so a person never reads the raw identifier. Splits camelCase, snake_case and kebab-case, keeps acronyms, and capitalises only the first word. It is the last fallback of [`notificationRuleLabel`](./notification-rule-label.md).
+Turns a notification rule key into readable sentence-case words, so a person never reads the raw identifier. Splits camelCase, snake_case and kebab-case, keeps acronyms, and capitalises only the first word. It is the last fallback of [`notificationRuleLabel`](./notification-rule-label.md), and delegates to the generic [`humaniseKey`](./humanise-key.md).
 
 ```js
 import { humaniseRuleKey } from '@conduction/nextcloud-vue'

@@ -2,6 +2,8 @@
 
 Schema-driven editable data grid widget. Displays object properties in a CSS grid, supports inline editing (click-to-edit with all widget types), dirty tracking, and saves via objectStore.
 
+A plain-object value shows as a definition list, with one nested list for an object inside it (a per-language map such as `{ nl: { shortDescription, longDescription } }` reads per language, with nested keys labelled by their sub-schema `title` or made readable: "Short description"). Structured values have no inline editor: a field with a `json`, `code`, `file`, `sub-objects` or `child-records` widget, or holding an object or a list of objects that is not a relation, edits through the Edit form unless a `field-<key>` slot supplies an editor.
+
 ## Usage
 
 ```vue
