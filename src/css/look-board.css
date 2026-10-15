@@ -483,7 +483,7 @@
 	justify-content: flex-start;
 	text-align: start;
 	margin: 0;
-	font-size: 19px;
+	font-size: 17px;
 	font-weight: 700;
 	line-height: 1.3;
 }
@@ -491,7 +491,7 @@
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__desc {
 	margin: 4px 0 0;
 	font-size: 14px;
-	line-height: 1.45;
+	line-height: 1.5;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -501,6 +501,42 @@
 	inset-block-start: 22px;
 	inset-inline-end: 24px;
 	float: none;
+}
+
+/* An admin settings card as the board draws it (PtBeheerinstellingen,
+   KqBeheerAlgemeen, HuInstellingen): 20px 22px padding, and the title and
+   description one group, 4px apart, spaced from the rest of the card by the
+   card's 14px gap. The description is a sibling of the title in that column,
+   so it pulls itself back up to 4px under the title. The gap spaces the
+   content, so a note card adds no margin of its own (NcNoteCard draws 16px
+   above and below). A CnSettingsPage card keeps 22px 24px. */
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section {
+	padding: 20px 22px;
+}
+
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .settings-section__desc,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .settings-section__desc,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc {
+	margin-top: -10px;
+}
+
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .notecard,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .notecard,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .notecard,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .notecard {
+	margin-block: 0;
+}
+
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .cn-settings-section__actions,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .cn-settings-section__actions,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .cn-settings-section__actions,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .cn-settings-section__actions {
+	inset-block-start: 20px;
+	inset-inline-end: 22px;
 }
 
 .cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *),
