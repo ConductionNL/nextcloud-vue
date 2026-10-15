@@ -177,7 +177,7 @@ import { loadState } from '@nextcloud/initial-state'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
-import { computed } from 'vue'
+import { computed, provide } from 'vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
@@ -498,10 +498,13 @@ export default {
 	setup(props) {
 		// The app's own `environment` setting, else the active organisation's.
 		const { environment: environmentName } = useEnvironment({ environment: () => props.environment })
-		const { isBoard } = useLook(props)
+		const { look, isBoard } = useLook(props)
 		// A shell told `look: "board"` itself draws the board look also on an
 		// admin page that no CnAppRoot wraps, as Nextcloud's settings pages are.
 		const ownLookClass = computed(() => (normalizeLook(props.look) === 'board' ? 'cn-look-board' : ''))
+		// Everything inside the shell, its own version card and the app's
+		// sections alike, follows the shell's look without the app providing it.
+		provide('cnLook', look)
 		return { environmentName, isBoard, ownLookClass }
 	},
 
