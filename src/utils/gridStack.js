@@ -53,3 +53,42 @@ export function readGridGeometry(items) {
 	}
 	return map
 }
+
+/**
+ * Where the items under a growing cell go so they keep their order: every item
+ * the growth would overlap moves down by the growth, and so does every item
+ * that move would overlap in turn. Items beside the cell stay put.
+ *
+ * GridStack resolves the same collision itself, but not in order: when
+ * pipelinq's size-to-content banner grew from two rows to three, the
+ * full-width card under the stat tiles landed below the lists.
+ *
+ * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
+ * @param {Array<{x: number, y: number, w: number, h: number}>} nodes The grid's items (the growing one among them).
+ * @param {{x: number, y: number, w: number, h: number}} node The growing item.
+ * @param {number} h Its new height, in grid rows.
+ * @return {Array<{node: object, y: number}>} The items to move and their new row, bottom-most first.
+ */
+export function planGrowth(nodes, node, h) {
+	const delta = h - node.h
+	if (!(delta > 0)) {
+		return []
+	}
+	const moved = new Map()
+	const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+	const queue = [{ x: node.x, y: node.y, w: node.w, h }]
+	while (queue.length > 0) {
+		const rect = queue.shift()
+		for (const other of nodes) {
+			if (other === node || moved.has(other) || !overlaps(rect, other)) {
+				continue
+			}
+			const next = { x: other.x, y: other.y + delta, w: other.w, h: other.h }
+			moved.set(other, next.y)
+			queue.push(next)
+		}
+	}
+	return [...moved.entries()]
+		.map(([item, y]) => ({ node: item, y }))
+		.sort((a, b) => b.y - a.y)
+}
