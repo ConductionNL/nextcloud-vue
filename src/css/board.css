@@ -96,19 +96,24 @@
 	gap: 8px;
 }
 
-.cn-board-view.cn-board-view--board .cn-board-view__card-title {
+/* The title is a link drawn as a heading (board DqWerkbord): main text, no
+   underline. `!important` because a theme's `a { color; text-decoration }`
+   carries it (thematiq), and a bare `a` with `!important` beats any class. */
+.cn-board-view.cn-board-view--board .cn-board-view__card-title,
+.cn-board-view.cn-board-view--board .cn-board-view__card-title:visited {
 	flex: 1 1 auto;
 	min-width: 0;
 	font-size: 15px;
 	font-weight: 700;
 	line-height: 1.3;
-	color: var(--color-main-text);
-	text-decoration: none;
+	color: var(--color-main-text) !important;
+	text-decoration: none !important;
 	overflow-wrap: anywhere;
 }
 
 .cn-board-view.cn-board-view--board .cn-board-view__card-title:hover {
-	text-decoration: underline;
+	color: var(--color-main-text) !important;
+	text-decoration: underline !important;
 }
 
 .cn-board-view.cn-board-view--board .cn-board-view__card-title:focus-visible {
@@ -297,6 +302,18 @@
 	margin: 2px 0 0;
 	accent-color: var(--color-primary-element);
 	cursor: pointer;
+}
+
+/* Board look: the board draws no checkbox. It shows on a hovered card, on a
+   card holding focus (so Tab still reaches it), once anything is selected, and
+   always where there is no hover. Collapsed rather than hidden, so it stays in
+   the tab order. */
+@media (hover: hover) {
+	.cn-board-view.cn-board-view--board:not(.cn-board-view--selecting) .cn-board-view__card:not(:hover, :focus-within) .cn-board-view__select {
+		width: 0;
+		margin-inline-end: -8px;
+		opacity: 0;
+	}
 }
 
 /* A menu target the card cannot reach: still listed, greyed, with its note. */
