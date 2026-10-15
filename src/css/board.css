@@ -267,3 +267,47 @@
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
 }
+
+/*
+ * screens-board-reference-columns: a wide board wraps its columns onto more
+ * rows (`config.board.wrap`), as many to a row as fit at 240px, instead of
+ * one row that scrolls sideways.
+ */
+.cn-board-view.cn-board-view--wrap .cn-board-view__columns {
+	display: grid;
+	grid-auto-flow: row;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	overflow-x: visible;
+}
+
+.cn-board-view.cn-board-view--wrap:not(.cn-board-view--board) .cn-board-view__columns {
+	gap: 12px;
+}
+
+/* A column the dragged card cannot reach fades; the label stays readable. */
+.cn-board-view .cn-board-view__column--unreachable {
+	opacity: 0.45;
+}
+
+/* The selection checkbox: in the board look's card head, before the title. */
+.cn-board-view .cn-board-view__select {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	margin: 2px 0 0;
+	accent-color: var(--color-primary-element);
+	cursor: pointer;
+}
+
+/* A menu target the card cannot reach: still listed, greyed, with its note. */
+.cn-board-view.cn-board-view--board .cn-board-view__menu-item.cn-board-view__menu-item--blocked {
+	color: var(--color-text-maxcontrast);
+	cursor: not-allowed;
+}
+
+.cn-board-view .cn-board-view__menu-note {
+	margin-inline-start: auto;
+	padding-inline-start: 12px;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+}
