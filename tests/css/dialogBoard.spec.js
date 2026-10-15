@@ -32,6 +32,12 @@ describe('dialog.css', () => {
 		}
 	})
 
+	// NcButton's `.button-vue[data-v-…]` (two parts) can load after the
+	// library sheet in a spawned dialog; the rule needs three parts to win.
+	it('hides NcModal\'s own close button above NcButton\'s display rule', () => {
+		expect(css).toMatch(/\.modal-mask\.cn-dialog-board \.modal-container__close\s*\{\s*display:\s*none;/)
+	})
+
 	it('draws the frame: radius 12, shadow 0 12px 40px at 28%, backdrop at 45%', () => {
 		expect(css).toMatch(/border-radius:\s*var\(--cn-board-card-radius,\s*12px\)/)
 		expect(css).toMatch(/box-shadow:\s*0 12px 40px color-mix\(in srgb, var\(--color-main-text\) 28%, transparent\)/)
