@@ -63,7 +63,7 @@ type Field = {
 }
 
 type WidgetRef = {
-  type: string                   // 'version-info' | 'register-mapping' | 'component' | <registry-name>
+  type: string                   // 'version-info' | 'register-mapping' | 'toggle-table' | 'component' | <registry-name>
   componentName?: string         // required when type === 'component' — registry name to resolve
   props?: object                 // v-bind to the resolved widget
 }
@@ -84,6 +84,7 @@ type Tab = {
 |---------------|-----------|--------------|
 | `version-info` | [`CnVersionInfoCard`](./cn-version-info-card.md) | `appName` (required), `appVersion` (required), `configuredVersion?`, `isUpToDate?`, `showUpdateButton?`, `additionalItems?`, `labels?` |
 | `register-mapping` | [`CnRegisterMapping`](./cn-register-mapping.md) | `name`, `groups` (required, non-empty), `configuration?`, `showSaveButton?`, `showReimportButton?`, `autoMatch?` |
+| `toggle-table` | [`CnToggleTableWidget`](./cn-toggle-table-widget.md) | `content` (required): rows with a switch, e.g. one per object with `bind.mode: "each"` ("Verplichte velden") or a config map with `bind.mode: "map"` |
 | `component` | (discriminator) | `componentName` (required, non-empty) — looks up the named entry in `customComponents`. `props` are forwarded as `v-bind` to the resolved component. The recommended way to host a consumer Vue component as a widget body. |
 
 Consumer-provided widget types may also still be referenced via the legacy `widget.type === <registry-name>` fallback (kept for back-compat with `manifest-settings-rich-sections` consumers). Migrate to the explicit `{ type: "component", componentName }` shape — it makes the manifest self-describing and forward-safe against future built-in widget names. Unknown types are skipped with a `console.warn`; the rest of the page keeps rendering.
@@ -284,7 +285,7 @@ The two shapes are XOR — pick one per page. A page mixing them is rejected by 
 - **Field-level validation is not enforced FE-side**. The PUT body is sent as-is; the consumer's settings controller is the source of truth. This mirrors how Nextcloud's `IAppConfig` already works.
 - **No inter-field dependencies / conditional visibility**. If you need "field X is only shown when field Y is true", use a `#field-<key>` slot to wrap a custom widget that reads `formData` from its parent.
 - **A section MUST declare exactly one body kind** (fields | component | widgets). The manifest validator rejects sections that mix two or more, or that declare none. Use multiple sections for stacked widget + flat-field layouts.
-- **Built-in widget types are reserved**. Consumers cannot shadow `version-info` / `register-mapping` via customComponents — built-ins always win on collision. To replace one of these entirely, use the `component: <registry-name>` body kind instead.
+- **Built-in widget types are reserved**. Consumers cannot shadow `version-info` / `register-mapping` / `toggle-table` via customComponents — built-ins always win on collision. To replace one of these entirely, use the `component: <registry-name>` body kind instead.
 - **Widget-internal slot overrides aren't piped through the manifest**. CnVersionInfoCard exposes `#footer`, `#extra-cards`, etc., but `widgets[]` doesn't yet carry per-widget slot maps. Consumers needing those slots should drop down to `component: <registry-name>` and write a tiny wrapper component that fills them.
 - **Tabs are XOR with flat sections at the page level**. The validator rejects manifests that declare both `sections` and `tabs` on the same `type:"settings"` page. Use a single "General" tab containing your top-level section if you need a mix of flat content + tab-grouped content.
 - **Tab IDs MUST be unique within a page**. The validator emits a duplicate-id error pointing at the second occurrence so you can fix the manifest fast.

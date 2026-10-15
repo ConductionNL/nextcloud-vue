@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-board-view"
-		:class="{ 'cn-board-view--board': isBoardLook, 'cn-board-view--wrap': wrapColumns }"
+		:class="{ 'cn-board-view--board': isBoardLook, 'cn-board-view--wrap': wrapColumns, 'cn-board-view--selecting': selectedKeys.length > 0 }"
 		data-testid="cn-board-view">
 		<p v-if="!usable" class="cn-board-view__unusable" data-testid="cn-board-unusable">
 			{{ unusableText }}
