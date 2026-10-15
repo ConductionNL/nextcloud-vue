@@ -14,6 +14,7 @@
 		@closing="$emit('close')">
 		<div
 			class="cn-transition-input"
+			:aria-busy="busy ? 'true' : null"
 			data-testid="cn-modal"
 			data-testid-modal="cn-transition-input-dialog">
 			<!-- A refusal keeps this dialog open with what was typed still in
@@ -128,11 +129,18 @@
 				@click="$emit('close')">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
+			<!-- Busy while the parent's POST runs: a transition can take
+			     seconds, and a confirm button that only greys out reads as one
+			     that did nothing. -->
 			<NcButton
 				variant="primary"
 				:disabled="!canConfirm"
+				:aria-busy="busy ? 'true' : null"
 				data-testid="cn-transition-input-confirm"
 				@click="onConfirm">
+				<template v-if="busy" #icon>
+					<NcLoadingIcon :size="20" data-testid="cn-transition-input-busy" />
+				</template>
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
@@ -141,7 +149,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcTextArea, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcTextArea, NcTextField } from '@nextcloud/vue'
 import CnDialog from '../components/CnDialog/CnDialog.vue'
 import CnResourceSelect from '../components/CnResourceSelect/CnResourceSelect.vue'
 import { dialogBoardMixin } from '../mixins/dialogBoard.js'
@@ -186,6 +194,7 @@ export default {
 		CnResourceSelect,
 		CnDialog,
 		NcButton,
+		NcLoadingIcon,
 		NcTextField,
 		NcTextArea,
 		NcCheckboxRadioSwitch,
