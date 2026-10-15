@@ -725,7 +725,9 @@ export default {
 			if (this.widget && this.widget.type === 'files' && !(this.cnRegistry && this.cnRegistry.files) && this.register && this.schema) {
 				return CnObjectFilesWidget
 			}
-			return resolveRegistryRenderer(this.widget, this.cnRegistry)
+			// Inside a dashboard's tabs the dashboard's resolution holds.
+			const onDashboard = this.surface === 'app-dashboard' || this.surface === 'user-dashboard'
+			return resolveRegistryRenderer(this.widget, this.cnRegistry, { typeAsWritten: onDashboard })
 		},
 
 		/**
