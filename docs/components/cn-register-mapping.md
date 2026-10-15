@@ -32,6 +32,7 @@ OpenRegister register/schema configuration panel. Lets admin users map app objec
 | `reimporting` | Boolean | `false` | Whether a reimport is in progress |
 | `saveButtonText` | String | `'Save configuration'` | Save button label |
 | `reimportButtonText` | String | `'Re-import configuration'` | Re-import button label |
+| `collapseGroups` | Boolean | `null` | Each group is a heading button that opens and closes it, with its configured count shown while closed; the groups start closed. `null` does this when there is more than one group; `true` or `false` forces it. |
 | `autoMatch` | Boolean | `true` | When a register is selected, automatically match schema titles to object type slugs |
 | `labels` | Object | `{ register, schema, configured, notConfigured, noSchemas, selectRegister, selectSchema, allConfigured, partiallyConfigured }` | Override UI strings (all default to translated English) |
 
