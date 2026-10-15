@@ -1,3 +1,4 @@
+import { register } from '@nextcloud/l10n'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -10,7 +11,6 @@
  * @spec openspec/changes/index-count-plural/specs/index-header/spec.md#requirement-the-count-line-takes-a-singular-and-a-plural-form
  */
 import { mount } from '@vue/test-utils'
-import { register } from '@nextcloud/l10n'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 
 const FORMS = { singular: '{total} invoice', plural: '{total} invoices' }

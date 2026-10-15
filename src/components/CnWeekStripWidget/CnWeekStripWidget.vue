@@ -89,7 +89,8 @@ const DEFAULT_LIMIT = 100
  *
  * It renders the five working days by default (`days: 7` adds the weekend),
  * highlights today, marks items that are late, and says so when a day has
- * nothing. On a narrow screen the strip scrolls sideways.
+ * nothing. On a narrow screen the strip scrolls sideways; under the board
+ * look (`.cn-look-board`) the days wrap into rows instead.
  *
  * Items come from an OpenRegister source (one request for the whole week) or
  * from static `items`. Resolved by its registry type key `week-strip`.

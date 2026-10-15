@@ -25,4 +25,11 @@ Under the board look a week strip SHALL NOT scroll sideways. Its days SHALL be a
 #### Scenario: A wide card
 
 - **GIVEN** the same strip in a 700px card
+- **WHEN** it is shown
 - **THEN** each day is 132px wide, as before
+
+#### Scenario: Without the board look
+
+- **GIVEN** the same strip in a 494px card without the board look
+- **WHEN** it is shown
+- **THEN** the strip scrolls sideways, as before
