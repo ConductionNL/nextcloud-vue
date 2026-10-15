@@ -59,8 +59,15 @@
 						class="cn-stages-widget__bar-label"
 						:title="stage.hint || stage.label"
 						:aria-disabled="stage.disabled && stage.clickable ? 'true' : null"
+						:aria-busy="movingTo === stage.id ? 'true' : null"
 						:data-testid="`cn-stages-widget-stage-${stage.id}`"
 						@click="onBarClick(stage)">
+						<NcLoadingIcon
+							v-if="movingTo === stage.id"
+							class="cn-stages-widget__moving"
+							:size="16"
+							:name="movingMessage"
+							data-testid="cn-stages-widget-moving" />
 						{{ stage.label }}<span v-if="stage.state === 'current'" class="cn-stages-widget__sr-only"> ({{ tr('current step') }})</span>
 					</component>
 					<span v-if="stage.date" class="cn-stages-widget__bar-date">{{ stage.date }}</span>
@@ -83,7 +90,19 @@
 				@stageClick="onStageClick"
 				@stageBlocked="onStageBlocked">
 				<template #label="{ stage }">
-					<span class="cn-timeline-stages__label" :data-testid="`cn-stages-widget-stage-${stage.id}`">
+					<span
+						class="cn-timeline-stages__label"
+						:aria-busy="movingTo === stage.id ? 'true' : null"
+						:data-testid="`cn-stages-widget-stage-${stage.id}`">
+						<!-- The move in flight. A transition can take seconds, and
+						     a strip that shows nothing until it returns reads as
+						     one that never moved. -->
+						<NcLoadingIcon
+							v-if="movingTo === stage.id"
+							class="cn-stages-widget__moving"
+							:size="16"
+							:name="movingMessage"
+							data-testid="cn-stages-widget-moving" />
 						{{ stage.label }}
 					</span>
 					<span v-if="stage.subtitle" class="cn-timeline-stages__subtitle">
@@ -156,8 +175,11 @@
 			v-if="pendingAction"
 			:transition="pendingAction"
 			:schema="schema"
+			:error="inputError"
+			:fieldErrors="inputFieldErrors"
+			:busy="busy"
 			@confirm="onInputConfirm"
-			@close="pendingAction = null" />
+			@close="closeInputDialog" />
 	</div>
 </template>
 
@@ -177,6 +199,7 @@ import {
 	performTransition,
 	readAvailableActions,
 	transitionError,
+	transitionFieldErrors,
 } from '../../composables/useLifecycleTransitions.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
@@ -534,6 +557,17 @@ export default {
 			pendingAction: null,
 			/** @type {boolean} Whether a move is running. */
 			busy: false,
+			/**
+			 * @type {string} The stage a running move leads to, or ''. Drives
+			 * the loading indicator on that one stage.
+			 */
+			movingTo: '',
+			/** @type {string} A refusal shown inside the open input dialog. */
+			inputError: '',
+			/** @type {string[]} The input keys that refusal named. */
+			inputFieldErrors: [],
+			/** @type {string[]} The input keys the last refused move named. */
+			lastFieldErrors: [],
 			/** @type {string} Why the last move failed, or ''. */
 			moveError: '',
 			/**
@@ -764,6 +798,20 @@ export default {
 		 */
 		canMove() {
 			return this.interactive && !this.busy
+		},
+
+		/**
+		 * What the stage a move is running to says while it runs: the
+		 * loading indicator's name and the live region's sentence.
+		 *
+		 * @return {string} The sentence, or '' when nothing is moving.
+		 */
+		movingMessage() {
+			if (!this.movingTo) {
+				return ''
+			}
+			const stage = this.stages.find((s) => s.id === this.movingTo)
+			return this.tr('Moving to {stage}', { stage: stage ? stage.label : this.movingTo })
 		},
 
 		/**
@@ -1225,13 +1273,44 @@ export default {
 		 * @param {object} data The collected input values.
 		 * @return {void}
 		 */
-		onInputConfirm(data) {
+		async onInputConfirm(data) {
 			const pending = this.pendingAction
-			this.pendingAction = null
 			if (!pending || !pending.__request) {
+				this.closeInputDialog()
 				return
 			}
-			this.performMove(pending.__request, data)
+			this.inputError = ''
+			this.inputFieldErrors = []
+			// THE DIALOG STAYS OPEN WHILE THE MOVE RUNS, with its confirm
+			// button busy. Closing it first left the person looking at an
+			// unchanged strip for as long as the transition took, which on a
+			// live case was long enough to reload the page thinking it had
+			// not been sent.
+			const moved = await this.performMove(pending.__request, data)
+			if (this.pendingAction !== pending) {
+				// Closed while the move ran; nothing left to update.
+				return
+			}
+			if (moved) {
+				this.closeInputDialog()
+				return
+			}
+			// Refused. The sentence goes into the dialog the person is looking
+			// at, with what they typed still in it.
+			this.inputError = this.moveError
+			this.inputFieldErrors = this.lastFieldErrors
+			this.moveError = ''
+		},
+
+		/**
+		 * Close the input dialog and forget the refusal it was showing.
+		 *
+		 * @return {void}
+		 */
+		closeInputDialog() {
+			this.pendingAction = null
+			this.inputError = ''
+			this.inputFieldErrors = []
 		},
 
 		/**
@@ -1239,11 +1318,17 @@ export default {
 		 *
 		 * @param {{stage: {id: string, label: string}, action: string}} request The move.
 		 * @param {object} [data] The collected transition inputs, when any.
-		 * @return {Promise<void>}
+		 * @return {Promise<boolean>} Whether the move was made.
 		 */
 		async performMove(request, data) {
 			this.busy = true
+			this.movingTo = request.stage.id
 			this.moveError = ''
+			this.lastFieldErrors = []
+			// Said as the move starts, not only when it lands: a screen reader
+			// user otherwise hears nothing for as long as the server takes.
+			this.statusMessage = this.movingMessage
+			let moved = false
 			try {
 				if (this.lifecycleMode) {
 					await performTransition(this.recordId, request.action, data)
@@ -1270,11 +1355,16 @@ export default {
 				if (this.lifecycleMode) {
 					await this.loadActions()
 				}
+				moved = true
 			} catch (error) {
 				this.moveError = transitionError(error, this.tr('The move could not be made'))
+				this.lastFieldErrors = transitionFieldErrors(error)
+				this.statusMessage = this.moveError
 			} finally {
 				this.busy = false
+				this.movingTo = ''
 			}
+			return moved
 		},
 
 		/**
@@ -1499,6 +1589,13 @@ export default {
 	display: flex;
 	justify-content: center;
 	padding: 8px 0;
+}
+
+/* The stage a running move leads to: a small spinner before its label. */
+.cn-stages-widget__moving {
+	display: inline-flex;
+	vertical-align: middle;
+	margin-inline-end: 4px;
 }
 
 .cn-stages-widget__notice {

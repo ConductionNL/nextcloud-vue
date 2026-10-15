@@ -1406,7 +1406,8 @@
     "This answer was refused.": "This answer was refused.",
     "No value ({count})": "No value ({count})",
     "{start} to {end}": "{start} to {end}",
-    "Breadcrumb": "Breadcrumb"
+    "Breadcrumb": "Breadcrumb",
+    "Moving to {stage}": "Moving to {stage}"
   },
   "plurals": {
     "{count} selected": [
