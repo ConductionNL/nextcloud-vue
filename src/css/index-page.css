@@ -104,6 +104,19 @@
 	margin-top: 0;
 }
 
+/* The board view's footer: how many rows it holds of how many match, and
+   "Load more" while the list is not complete. */
+.cn-index-page__board-load {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 16px;
+	padding: 12px 16px;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
 /* Table view owns both scroll axes. With the page column scrolling instead, the
    table's horizontal scrollbar sat at the bottom of the (taller-than-viewport)
    table, so it only appeared after scrolling down, and the pagination was

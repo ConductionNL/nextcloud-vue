@@ -180,6 +180,13 @@ read-only rather than broken. A move emits `board-move` and refreshes the list,
 because a transition may have changed more than the status and a board that
 only moved the card would disagree with the table beside it.
 
+**A board shows every matching row.** A page that fetches its own list asks
+for 500 rows in board view instead of the table's page, and gives the table its
+page size back when the reader leaves the board. When more rows match, the
+footer reads "Showing 500 of 612" with a "Load more" button that adds the next
+batch after the rows already on the board. A host-fed board still gets
+`page-changed` and pages as before.
+
 **A filter set on one mode does not follow you to another.** The two views are
 asked different questions: a board is "show me the work in flight", a table is
 "find me this case". Carrying the board's filter into the table is how somebody
