@@ -32,3 +32,26 @@ describe('CnBodySections card', () => {
 		expect(w.find('[data-section-id="a"]').classes()).not.toContain('cn-body-sections__section--card')
 	})
 })
+
+describe('CnBodySections title', () => {
+	// @spec openspec/changes/detail-page-strings-dutch/specs/detail-page-strings-dutch/spec.md#requirement-the-detail-page-speaks-the-readers-language
+	it('runs a manifest-authored title through the host translate function', () => {
+		const w = mount(CnBodySections, {
+			props: { sections: [{ id: 'asked', component: 'Section', title: 'Asked about' }] },
+			global: {
+				provide: {
+					cnRegistry: { Section: { kind: 'section', component: Section } },
+					cnTranslate: (key) => (key === 'Asked about' ? 'Vraag over' : key),
+				},
+			},
+		})
+
+		expect(w.find('[data-testid="cn-body-section-title-asked"]').text()).toBe('Vraag over')
+	})
+
+	it('prints the title as written when no host translate function is provided', () => {
+		const w = mountSections([{ id: 'asked', component: 'Section', title: 'Asked about' }])
+
+		expect(w.find('[data-testid="cn-body-section-title-asked"]').text()).toBe('Asked about')
+	})
+})

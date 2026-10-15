@@ -1,5 +1,16 @@
 {
   "translations": {
+    "Channel": "Kanaal",
+    "Outcome": "Uitkomst",
+    "Chat": "Chat",
+    "Counter": "Balie",
+    "Social media": "Sociale media",
+    "Letter": "Brief",
+    "Save contact moment": "Contactmoment opslaan",
+    "Saving…": "Opslaan…",
+    "Subject is required": "Onderwerp is verplicht",
+    "Cannot save right now": "Opslaan kan nu niet",
+    "Failed to save interaction": "Het contactmoment is niet opgeslagen",
     "You cannot see these files": "Je kunt deze bestanden niet zien",
     "Delete {name}? This cannot be undone here.": "{name} verwijderen? Dit kun je hier niet ongedaan maken.",
     "Linked items": "Gekoppelde items",
@@ -1571,7 +1582,9 @@
     "Moved to {state}": "Verplaatst naar {state}",
     "Moved {title} to {state}": "{title} verplaatst naar {state}",
     "Transition failed": "De overgang is mislukt",
-    "Closed": "Afgesloten"
+    "Closed": "Afgesloten",
+    "Skip to {action}": "Ga naar {action}",
+    "Moving to {stage}": "Bezig met verplaatsen naar {stage}"
   },
   "plurals": {
     "{count} selected": [

@@ -242,4 +242,22 @@ describe('CnTransitionInputDialog — a refusal, shown where the typing is', () 
 		await wrapper.setProps({ busy: false })
 		expect(wrapper.vm.canConfirm).toBe(true)
 	})
+
+	it('shows a loading indicator on the confirm button while the parent posts', async () => {
+		const wrapper = mount(CnTransitionInputDialog, {
+			propsData: {
+				transition: makeTransition([{ field: 'notify', required: false }]),
+				schema: SCHEMA,
+				busy: true,
+			},
+		})
+
+		const confirm = wrapper.find('[data-testid="cn-transition-input-confirm"]')
+		expect(confirm.attributes('aria-busy')).toBe('true')
+		expect(wrapper.find('[data-testid="cn-transition-input-busy"]').exists()).toBe(true)
+
+		await wrapper.setProps({ busy: false })
+		expect(wrapper.find('[data-testid="cn-transition-input-confirm"]').attributes('aria-busy')).toBeUndefined()
+		expect(wrapper.find('[data-testid="cn-transition-input-busy"]').exists()).toBe(false)
+	})
 })
