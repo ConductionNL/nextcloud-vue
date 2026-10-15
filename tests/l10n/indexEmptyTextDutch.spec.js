@@ -38,14 +38,22 @@ const stubs = {
 	NcEmptyContent: { name: 'NcEmptyContent', props: ['name'], template: '<div class="empty-stub">{{ name }}</div>' },
 }
 
-const mountIndex = (propsData = {}) => mount(CnIndexPage, {
-	propsData: { title: 'Items', objects: [], ...propsData },
-	stubs,
-	mocks: {
-		$route: { params: {}, query: {}, name: 'items' },
-		$router: { push: jest.fn(), replace: jest.fn() },
-	},
-})
+/**
+ * Mount an empty index page.
+ *
+ * @param {object} [propsData] Extra props.
+ * @return {object} The wrapper.
+ */
+function mountIndex(propsData = {}) {
+	return mount(CnIndexPage, {
+		propsData: { title: 'Items', objects: [], ...propsData },
+		stubs,
+		mocks: {
+			$route: { params: {}, query: {}, name: 'items' },
+			$router: { push: jest.fn(), replace: jest.fn() },
+		},
+	})
+}
 
 describe('CnIndexPage empty state in Dutch', () => {
 	afterEach(() => {
