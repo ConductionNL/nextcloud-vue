@@ -28,12 +28,12 @@
 
 		<div class="grid-stack">
 			<div
-				v-for="(item, index) in layout"
+				v-for="item in itemsInRowOrder"
 				:key="resolveItemKey(item)"
 				class="grid-stack-item"
 				:class="{ 'cn-dashboard-grid__item--fit': sizeToContentAttr(item) !== undefined }"
 				role="group"
-				:aria-label="resolveItemLabel(item, index)"
+				:aria-label="resolveItemLabel(item, layout.indexOf(item))"
 				:aria-describedby="itemDescribedBy"
 				:tabindex="itemTabindex"
 				:gs-id="item.id"
@@ -71,6 +71,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { GridStack } from 'gridstack'
+import { planGrowth } from '../../utils/gridStack.js'
 // `gridstack` is a peerDependency (see package.json), not bundled — this
 // component's JS and the consumer's GridStack stylesheet MUST come from the
 // exact same installed copy, because GridStack's JS writes layout state
@@ -333,6 +334,30 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The layout's items top to bottom, then left to right: the order the
+		 * items are in the page, so GridStack places them in that order.
+		 *
+		 * GridStack sizes a size-to-content cell while it adds the items, one
+		 * at a time, and an item it adds onto a cell that has already grown
+		 * moves itself below whatever it then collides with. In the layout's
+		 * own order a card declared after the lists (pipelinq's full-width
+		 * "client in focus" card) was added last, so when the banner above
+		 * it grew it skipped past the stat tiles AND the lists and landed at
+		 * the bottom. Added top to bottom, every card lands under the one
+		 * above it. It is also the order a screen reader and the Tab key
+		 * follow. An item without a row or column sorts after the items
+		 * that have one, in the layout's order.
+		 *
+		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
+		 * @return {Array<object>} The items in row order.
+		 */
+		itemsInRowOrder() {
+			const items = Array.isArray(this.layout) ? [...this.layout] : []
+			const at = (value) => (Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER)
+			return items.sort((a, b) => (at(a.gridY) - at(b.gridY)) || (at(a.gridX) - at(b.gridX)))
+		},
+
 		/**
 		 * Whether the grid draws each layout row as ROW_SPLIT finer rows. A
 		 * size-to-content cell can only be a whole number of rows tall, so on
@@ -608,6 +633,13 @@ export default {
 			)
 		},
 
+		/**
+		 * Build the GridStack grid on the rendered items, install the growth
+		 * wrapper (`keepOrderOnGrowth`) and listen for its changes.
+		 *
+		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
+		 * @return {void}
+		 */
 		initGrid() {
 			if (this.cellHeightCssVar && typeof document !== 'undefined' && document.documentElement) {
 				document.documentElement.style.setProperty(this.cellHeightCssVar, `${this.cellHeight}px`)
@@ -624,6 +656,7 @@ export default {
 				removable: false,
 				...(this.columnOpts ? { columnOpts: this.columnOpts } : {}),
 			}, el)
+			this.keepOrderOnGrowth()
 
 			this.grid.on('change', (_event, items) => {
 				this.handleGridChange(items)
@@ -633,6 +666,87 @@ export default {
 			// it, so the handles have to be judged here and not only on a later
 			// change.
 			this.syncInteractivity()
+		},
+
+		/**
+		 * Let a size-to-content cell that grows push the cards under it down in
+		 * their order. GridStack resolves that collision itself, but not in
+		 * order: when pipelinq's banner grew from two rows to three, the
+		 * full-width card under the stat tiles landed below the lists, also
+		 * with `float: false`. Every grow after the grid is built, whether
+		 * GridStack measures it on resize or this grid's content observer asks
+		 * for it, now first moves the cards the growth reaches down by the
+		 * growth (`planGrowth`), bottom-most first, and only then grows the
+		 * cell, so GridStack has no collision left to resolve. The wrapper is
+		 * installed after `GridStack.init` has already measured the cells on
+		 * load; the order on load comes from adding the items in row order
+		 * (`itemsInRowOrder`). A cell that shrinks is left to GridStack as
+		 * before.
+		 *
+		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
+		 * @return {void}
+		 */
+		keepOrderOnGrowth() {
+			const grid = this.grid
+			if (!grid || typeof grid.resizeToContent !== 'function' || typeof grid.update !== 'function') {
+				return
+			}
+			const resize = grid.resizeToContent.bind(grid)
+			grid.resizeToContent = (el) => {
+				const node = el && el.gridstackNode
+				const nodes = grid.engine && Array.isArray(grid.engine.nodes) ? grid.engine.nodes : null
+				const rows = node && nodes ? this.contentRows(el, node) : null
+				const plan = rows ? planGrowth(nodes, node, rows) : []
+				if (plan.length === 0) {
+					resize(el)
+					return
+				}
+				// Inside a batch the moves are not packed until the cell has grown.
+				const batching = Boolean(grid.engine.batchMode)
+				if (!batching) {
+					grid.batchUpdate()
+				}
+				for (const step of plan) {
+					grid.update(step.node.el, { y: step.y })
+				}
+				resize(el)
+				if (!batching) {
+					grid.batchUpdate(false)
+				}
+			}
+		},
+
+		/**
+		 * The rows a size-to-content cell needs for its content, measured the
+		 * way GridStack's `resizeToContent` measures it (the content's first
+		 * child, plus the cell's own padding), within its size-to-content row
+		 * maximum and its minimum and maximum height.
+		 *
+		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
+		 * @param {HTMLElement} el The cell.
+		 * @param {object} node Its GridStack node.
+		 * @return {number|null} The rows, or null when it cannot be measured.
+		 */
+		contentRows(el, node) {
+			const cell = this.grid.getCellHeight(true)
+			const item = el.querySelector('.grid-stack-item-content')
+			const child = item && item.firstElementChild
+			if (!el.clientHeight || !cell || !child || !Number.isFinite(node.h)) {
+				return null
+			}
+			const padding = el.clientHeight - item.clientHeight
+			const itemHeight = node.h * cell - padding
+			const wanted = child.getBoundingClientRect().height || itemHeight
+			let rows = Math.ceil((node.h * cell + wanted - itemHeight) / cell)
+			if (Number.isInteger(node.sizeToContent) && rows > node.sizeToContent) {
+				rows = node.sizeToContent
+			}
+			if (node.minH && rows < node.minH) {
+				rows = node.minH
+			} else if (node.maxH && rows > node.maxH) {
+				rows = node.maxH
+			}
+			return rows
 		},
 
 		/**
