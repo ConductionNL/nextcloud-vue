@@ -444,6 +444,19 @@ a.cn-kpi-card--stacked:focus-visible {
 	color: var(--color-main-text);
 }
 
+/* A board tile whose label wraps grows into its cell instead of clipping its
+   own last line. dossiq's "Afgehandeld deze maand" at 1100 wide held 129px of
+   content in a 114px tile and lost its caption's bottom. The tile still fills
+   a cell it fits (`min-height: 100%`), so every tile that fits keeps its
+   size; one that does not takes the height of its content, and the card-fit
+   cell's `safe center` keeps its top in view.
+   @spec openspec/changes/board-stat-tile-grows/specs/stat-tile-board-look/spec.md#requirement-a-board-stat-tile-shows-all-its-lines */
+.cn-kpi-card--board.cn-kpi-card--stacked {
+	flex: 0 0 auto;
+	height: auto;
+	min-height: 100%;
+}
+
 .cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__caption-line,
 .cn-kpi-card--board.cn-kpi-card--stacked .cn-stats-block__count-label {
 	font-size: 13px;
