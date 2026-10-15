@@ -1567,7 +1567,8 @@
     "Are you sure you want to \"{action}\"?": "Weet je zeker dat je \"{action}\" wilt uitvoeren?",
     "Moved to {state}": "Verplaatst naar {state}",
     "Moved {title} to {state}": "{title} verplaatst naar {state}",
-    "Transition failed": "De overgang is mislukt"
+    "Transition failed": "De overgang is mislukt",
+    "Closed": "Afgesloten"
   },
   "plurals": {
     "{count} selected": [

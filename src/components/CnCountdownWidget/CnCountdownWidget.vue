@@ -69,6 +69,18 @@ const VARIANT_COLORS = Object.freeze({
  * negative number: "-3 days left" is a puzzle, and an overdue case is the one
  * state a handler must not have to decode.
  *
+ * ## A settled record
+ *
+ * `settledField` names a property on the record that is truthy once the work
+ * the date belongs to is done, such as a case in its final status. A settled
+ * record reads `settledLabel` (default "Closed") in no threshold colour, never
+ * "overdue": a closed case missed nothing that can still be acted on, and a red
+ * count of days on it sends a handler after a case that needs nobody.
+ *
+ * ```js
+ * content: { field: 'deadline', settledField: 'isFinalStatus', settledLabel: 'Handled' }
+ * ```
+ *
  * ## An unset date
  *
  * Renders a dash and no threshold colour. A case with no deadline is not urgent
@@ -91,8 +103,10 @@ export default {
 		 * - `icon` — MDI icon name.
 		 * - `thresholds` — `{ warn, danger }` in days remaining.
 		 * - `showDate` — render the absolute date underneath (default true).
+		 * - `settledField` — property on the record that is truthy once the work is done; the tile then reads `settledLabel` and never counts overdue.
+		 * - `settledLabel` — the headline of a settled record, run through the host's translate function (default "Closed").
 		 *
-		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean }}
+		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean, settledField?: string, settledLabel?: string }}
 		 */
 		content: {
 			type: Object,
@@ -115,6 +129,7 @@ export default {
 		return {
 			cnObjectContextInjected: inject('cnObjectContext', null),
 			cnDetailObjectContextInjected: inject('cnDetailObjectContext', null),
+			cnTranslate: inject('cnTranslate', null),
 		}
 	},
 
@@ -166,17 +181,44 @@ export default {
 			return Math.round((startOfDay(this.targetDate) - startOfDay(new Date())) / MS_PER_DAY)
 		},
 
-		/** @return {boolean} true once the date has passed. */
+		/**
+		 * Whether the record says its work is done (`settledField` is truthy).
+		 *
+		 * @return {boolean} True for a settled record.
+		 * @spec openspec/changes/countdown-settled-record/specs/countdown-settled-record/spec.md#requirement-a-settled-record-never-reads-as-overdue
+		 */
+		isSettled() {
+			const field = this.content?.settledField
+			if (!this.record || !field) {
+				return false
+			}
+			return Boolean(getByPath(this.record, field))
+		},
+
+		/**
+		 * Whether the date has passed on a record still open.
+		 *
+		 * @return {boolean} True when overdue.
+		 * @spec openspec/changes/countdown-settled-record/specs/countdown-settled-record/spec.md#requirement-a-settled-record-never-reads-as-overdue
+		 */
 		isOverdue() {
-			return this.daysRemaining !== null && this.daysRemaining < 0
+			return !this.isSettled && this.daysRemaining !== null && this.daysRemaining < 0
 		},
 
 		/**
 		 * The headline: the remaining time in words.
 		 *
 		 * @return {string} The headline text.
+		 * @spec openspec/changes/countdown-settled-record/specs/countdown-settled-record/spec.md#requirement-a-settled-record-never-reads-as-overdue
 		 */
 		headline() {
+			if (this.isSettled) {
+				const label = this.content?.settledLabel
+				if (label) {
+					return typeof this.cnTranslate === 'function' ? this.cnTranslate(label) : label
+				}
+				return t('nextcloud-vue', 'Closed')
+			}
 			const days = this.daysRemaining
 			if (days === null) {
 				return '—'
@@ -213,10 +255,11 @@ export default {
 		 * The threshold band this date falls in.
 		 *
 		 * @return {string} One of default / success / warning / error.
+		 * @spec openspec/changes/countdown-settled-record/specs/countdown-settled-record/spec.md#requirement-a-settled-record-never-reads-as-overdue
 		 */
 		variant() {
 			const days = this.daysRemaining
-			if (days === null) {
+			if (days === null || this.isSettled) {
 				return 'default'
 			}
 			if (days < 0) {
