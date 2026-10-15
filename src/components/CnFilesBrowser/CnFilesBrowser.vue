@@ -110,7 +110,7 @@
 					<template #icon>
 						<CnIcon :name="action.icon || 'Plus'" :size="20" />
 					</template>
-					{{ action.label }}
+					{{ hostLabel(action) }}
 				</NcActionButton>
 			</NcActions>
 			<!-- A plain upload as its own button, when the host names it
@@ -193,7 +193,7 @@
 				<template #icon>
 					<CnIcon :name="action.icon || 'CheckboxMultipleMarkedOutline'" :size="20" />
 				</template>
-				{{ action.label }}
+				{{ hostLabel(action) }}
 			</NcButton>
 			<NcButton variant="tertiary"
 				data-testid="cn-files-browser-bulk-clear"
@@ -366,7 +366,7 @@
 										<template #icon>
 											<CnIcon :name="action.icon || 'FileDocumentEditOutline'" :size="20" />
 										</template>
-										{{ action.label }}
+										{{ hostLabel(action) }}
 									</NcActionButton>
 								</template>
 								<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && hostActionsFor(node).length > 0)" />
@@ -583,8 +583,6 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
-import { FileType, formatFileSize, getFileActions, getNewFileMenuEntries, sortNodes, View } from '@nextcloud/files'
-import { getClient, getDefaultPropfind, getRemoteURL, getRootPath, resultToNode } from '@nextcloud/files/dav'
 /**
  * CnFilesBrowser — a folder of Nextcloud files, on any page, built from the
  * Files app's own primitives rather than a copy of its screen.
@@ -623,6 +621,9 @@ import { getClient, getDefaultPropfind, getRemoteURL, getRootPath, resultToNode 
  * copy read `window._nc_fileactions`, which the server's plugins never write,
  * and saw nothing while the page held thirty actions.
  */
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { FileType, formatFileSize, getFileActions, getNewFileMenuEntries, sortNodes, View } from '@nextcloud/files'
+import { getClient, getDefaultPropfind, getRemoteURL, getRootPath, resultToNode } from '@nextcloud/files/dav'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcBreadcrumb, NcBreadcrumbs, NcButton, NcDateTime, NcDialog, NcIconSvgWrapper, NcLoadingIcon, NcProgressBar, NcTextField } from '@nextcloud/vue'
@@ -660,6 +661,12 @@ let uploadSeq = 0
 /** A folder glyph, the icon the Files app's View constructor requires. */
 const VIEW_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>'
 
+// Event-bus channels that mean the open folder may have changed: the page's
+// Refresh signal, and the node events the Files app's actions and uploader emit.
+const FOLDER_CHANGED_CHANNELS = ['cn:page:refresh', 'files:node:created', 'files:node:deleted', 'files:node:updated', 'files:node:moved']
+
+const FOLDER_CHANGED_DEBOUNCE_MS = 300
+
 export default {
 	name: 'CnFilesBrowser',
 
@@ -696,6 +703,10 @@ export default {
 		// The page's pre-bound action runner (CnPageRenderer provides it);
 		// absent outside a page tree, in which case the bare dispatcher runs.
 		cnDispatchAction: { default: null },
+		// The host app's translate function (CnAppRoot provides it). A row
+		// action or column the manifest declares is authored in English as
+		// the catalogue key, and read through this in the user's language.
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -1356,6 +1367,19 @@ export default {
 	mounted() {
 		this.loadColumnChoice()
 		this.refresh()
+		// Another surface on the page changed the folder: the page's Refresh,
+		// a dialog that filed a document, or a Files action whose work ends
+		// after its own call returned (the delete confirmation, an upload).
+		for (const channel of FOLDER_CHANGED_CHANNELS) {
+			subscribe(channel, this.onFolderChanged)
+		}
+	},
+
+	beforeUnmount() {
+		for (const channel of FOLDER_CHANGED_CHANNELS) {
+			unsubscribe(channel, this.onFolderChanged)
+		}
+		clearTimeout(this._folderChangedTimer)
 	},
 
 	methods: {
@@ -1643,6 +1667,30 @@ export default {
 		 * @param {object} node The node.
 		 * @return {string} The label.
 		 */
+		/**
+		 * A host action's label in the user's language.
+		 *
+		 * @spec openspec/changes/files-browser-hears-the-page/specs/files-browser/spec.md#requirement-a-declared-row-action-reads-in-the-users-language
+		 * @param {object} action The manifest-declared action.
+		 * @return {string} The label.
+		 */
+		hostLabel(action) {
+			return this.cnTranslate(String(action?.label ?? ''))
+		},
+
+		/**
+		 * Re-read the folder once after a burst of change signals. One upload
+		 * of ten files answers ten `files:node:created`, and one PROPFIND
+		 * covers them all.
+		 *
+		 * @spec openspec/changes/files-browser-hears-the-page/specs/files-browser/spec.md#requirement-the-files-browser-re-reads-when-the-page-says-files-changed
+		 * @return {void}
+		 */
+		onFolderChanged() {
+			clearTimeout(this._folderChangedTimer)
+			this._folderChangedTimer = setTimeout(() => this.refresh(), FOLDER_CHANGED_DEBOUNCE_MS)
+		},
+
 		labelOf(action, node) {
 			try {
 				return action.displayName(this.contextFor(node))
@@ -2034,7 +2082,7 @@ export default {
 		 */
 		columnLabel(column) {
 			if (column && typeof column.label === 'string' && column.label !== '') {
-				return column.label
+				return this.cnTranslate(column.label)
 			}
 			return this.builtInColumnLabels[column && column.key] || (column && column.key) || ''
 		},
