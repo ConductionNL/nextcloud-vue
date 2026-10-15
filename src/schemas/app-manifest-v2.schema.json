@@ -4177,8 +4177,19 @@
 							"description": "type='index': show the page header (icon, title, description) inline. Default false: the title renders visually hidden and the sidebar names the page. Maps to CnIndexPage `showTitle`."
 						},
 						"countSubtitle": {
-							"type": "string",
-							"description": "type='index': an i18n key for the description line with `{total}` replaced by the collection's total, e.g. \"{total} open cases\" (zuiddrecht-pixel-gaps). Shown in place of `description` once a total is known. Maps to CnIndexPage `countSubtitle`."
+							"anyOf": [
+								{ "type": "string" },
+								{
+									"type": "object",
+									"additionalProperties": false,
+									"required": ["singular", "plural"],
+									"properties": {
+										"singular": { "type": "string", "minLength": 1, "description": "i18n key of the line for a total of one, e.g. \"{total} invoice\"." },
+										"plural": { "type": "string", "minLength": 1, "description": "i18n key of the line for any other total, e.g. \"{total} invoices\"." }
+									}
+								}
+							],
+							"description": "type='index': an i18n key for the description line with `{total}` replaced by the collection's total, e.g. \"{total} open cases\" (zuiddrecht-pixel-gaps). Shown in place of `description` once a total is known. `{ singular, plural }` picks the form by the total through the app's plural translation (`translatePlural`), so \"1 factuur\" and \"12 facturen\" each read right (index-count-plural). Maps to CnIndexPage `countSubtitle`."
 						},
 						"showTitleIcon": {
 							"type": "boolean",

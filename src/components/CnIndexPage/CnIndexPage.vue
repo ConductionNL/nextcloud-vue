@@ -1053,7 +1053,7 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1440,6 +1440,8 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/** The app id CnAppRoot provides, for the plural form of `countSubtitle`. */
+		cnAppId: { default: '' },
 		/**
 		 * The app manifest, provided by CnAppRoot. A column with `labelField`
 		 * and `link: true` finds the referenced schema's detail page here.
@@ -1526,10 +1528,17 @@ export default {
 		 * shows. Manifest key `config.countSubtitle`. Goes through the host
 		 * translate function.
 		 *
+		 * `{ singular, plural }` picks the form by the total ("1 invoice",
+		 * "12 invoices") through the app's plural translation
+		 * (`translatePlural` with the app id CnAppRoot provides), so a
+		 * language with other plural rules gets its own forms.
+		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-index-page-title-is-a-manifest-key
+		 * @spec openspec/changes/index-count-plural/specs/index-header/spec.md#requirement-the-count-line-takes-a-singular-and-a-plural-form
+		 * @type {string|{singular: string, plural: string}}
 		 */
 		countSubtitle: {
-			type: String,
+			type: [String, Object],
 			default: '',
 		},
 
@@ -5873,13 +5882,15 @@ export default {
 				if (!this.countText && !this.countSubtitle) {
 					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
 				}
-				const template = this.countText || this.countSubtitle
-				return this.cnTranslate(template)
-					.replace('{shown}', String(shown))
-					.replace('{total}', String(total))
+				if (this.countText) {
+					return this.cnTranslate(this.countText)
+						.replace('{shown}', String(shown))
+						.replace('{total}', String(total))
+				}
+				return this.countLine(this.countSubtitle, total, shown)
 			}
 			if (this.countSubtitle && typeof total === 'number' && total >= 0) {
-				return this.cnTranslate(this.countSubtitle).replace('{total}', String(total))
+				return this.countLine(this.countSubtitle, total, null)
 			}
 			return this.description
 		},
@@ -7075,6 +7086,38 @@ export default {
 				return
 			}
 			this.$emit('header-action', { action: id, id })
+		},
+
+		/**
+		 * The `countSubtitle` line for a total. A string goes through the host
+		 * translate; `{ singular, plural }` takes the form for the total
+		 * through the app's plural translation, or by `total === 1` when no app
+		 * id is provided. `{total}` (and `{shown}` when given) are filled in.
+		 *
+		 * @spec openspec/changes/index-count-plural/specs/index-header/spec.md#requirement-the-count-line-takes-a-singular-and-a-plural-form
+		 * @param {string|{singular: string, plural: string}} subtitle The declared line.
+		 * @param {number} total The collection's total.
+		 * @param {number|null} shown The rows on this page, or null to leave `{shown}` alone.
+		 * @return {string} The line, '' for a declaration without both forms.
+		 */
+		countLine(subtitle, total, shown) {
+			const fill = (text) => {
+				const out = String(text).replace('{total}', String(total))
+				return shown === null ? out : out.replace('{shown}', String(shown))
+			}
+			if (typeof subtitle === 'string') {
+				return fill(this.cnTranslate(subtitle))
+			}
+			const singular = subtitle && typeof subtitle.singular === 'string' ? subtitle.singular : ''
+			const plural = subtitle && typeof subtitle.plural === 'string' ? subtitle.plural : ''
+			if (singular === '' || plural === '') {
+				return ''
+			}
+			if (typeof this.cnAppId === 'string' && this.cnAppId !== '') {
+				const vars = shown === null ? { total } : { total, shown }
+				return n(this.cnAppId, singular, plural, total, vars)
+			}
+			return fill(this.cnTranslate(total === 1 ? singular : plural))
 		},
 
 		pushAiContext() {
