@@ -183,7 +183,7 @@ export default {
 		/** Channel options `{ value, label }`. */
 		channelOptions() {
 			return Array.isArray(this.content.channels) && this.content.channels.length > 0
-				? this.content.channels
+				? this.content.channels.map((channel) => ({ ...channel, label: this.copy(channel && channel.label) }))
 				: [
 						{ value: 'telefoon', label: t('nextcloud-vue', 'Phone') },
 						{ value: 'email', label: t('nextcloud-vue', 'Email') },
@@ -204,10 +204,11 @@ export default {
 			const prop = properties[this.content.outcomeField || 'outcome']
 			if (prop && Array.isArray(prop.enum) && prop.enum.length > 0) {
 				const labels = prop['x-enum-labels'] || prop.enumLabels || {}
-				const tr = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
-				return prop.enum.map((value) => ({ value, label: tr(labels[value] || String(value)) }))
+				return prop.enum.map((value) => ({ value, label: this.copy(labels[value] || String(value)) }))
 			}
-			return Array.isArray(this.content.outcomes) ? this.content.outcomes : []
+			return Array.isArray(this.content.outcomes)
+				? this.content.outcomes.map((outcome) => ({ ...outcome, label: this.copy(outcome && outcome.label) }))
+				: []
 		},
 
 		/**
@@ -280,8 +281,7 @@ export default {
 		// `content.submitLabel` names what the form creates, e.g. "Save contact moment".
 		registerLabel() {
 			if (this.content.submitLabel) {
-				const tr = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
-				return tr(this.content.submitLabel)
+				return this.copy(this.content.submitLabel)
 			}
 			return t('nextcloud-vue', 'Register')
 		},
@@ -359,6 +359,29 @@ export default {
 		},
 
 		/** The default channel value (first configured channel, else `telefoon`). */
+		/**
+		 * A label the manifest supplies (a channel, an outcome, the submit
+		 * label), translated: the app's own translation first, since the words
+		 * are the app's, then the library's catalogue, then the text as
+		 * written. Before, a channel label was shown as written and the submit
+		 * label only reached the app's translate, so pipelinq showed "Phone"
+		 * and "Save contact moment" in English to a Dutch reader.
+		 *
+		 * @spec openspec/changes/interaction-form-fits-and-reads-dutch/specs/interaction-form-widget/spec.md#requirement-the-interaction-form-fits-its-card-and-reads-in-the-readers-language
+		 * @param {string} key The label as the manifest writes it.
+		 * @return {string} The translated label.
+		 */
+		copy(key) {
+			if (typeof key !== 'string' || key === '') {
+				return key
+			}
+			const host = typeof this.cnTranslate === 'function' ? this.cnTranslate(key) : key
+			if (typeof host === 'string' && host !== '' && host !== key) {
+				return host
+			}
+			return t('nextcloud-vue', key)
+		},
+
 		firstChannel() {
 			const ch = (this.content && this.content.channels) || []
 			return (Array.isArray(ch) && ch.length > 0 && ch[0].value) || 'telefoon'
