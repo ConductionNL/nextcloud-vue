@@ -420,7 +420,7 @@
 						:is="registryRenderer(item)"
 						:widgetId="item.widgetId"
 						:content="registryWidgetBindings(item)"
-						v-bind="registryWidgetBindings(item)"
+						v-bind="{ ...registryWidgetBindings(item), ...containerBindings(item) }"
 						@header="onWidgetHeader(item, $event)" />
 				</CnWidgetWrapper>
 				<CnWidgetWrapper
@@ -873,7 +873,7 @@
 							:is="registryRenderer(item)"
 							:widgetId="item.widgetId"
 							:content="registryWidgetBindings(item)"
-							v-bind="registryWidgetBindings(item)"
+							v-bind="{ ...registryWidgetBindings(item), ...containerBindings(item) }"
 							@header="onWidgetHeader(item, $event)" />
 					</CnWidgetWrapper>
 				</template>
@@ -3628,6 +3628,35 @@ export default {
 			}
 			const outcome = this.widgetConditionOutcome[item.widgetId]
 			return outcome ? { ...content, conditionOutcome: outcome } : content
+		},
+
+		/**
+		 * What a container widget (registry `container`, such as `tabs`) needs
+		 * beside its content: the page's widget definitions, so its tabs find
+		 * the widgets they name, and the consumer registry for custom child
+		 * types. Empty for every other widget, so a leaf gets no extra
+		 * attributes on its root.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {object} The extra bindings.
+		 * @spec openspec/changes/dashboard-tabs-children/specs/dashboard-page/spec.md#requirement-a-tabs-widget-on-a-dashboard-renders-the-widgets-its-tabs-name
+		 */
+		containerBindings(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			if (!def || !def.type) {
+				return {}
+			}
+			const entry = getWidgetTypeEntry(def.type) || getWidgetTypeEntry(canonicalWidgetType(def.type))
+			if (!entry || entry.container !== true) {
+				return {}
+			}
+			const own = Array.isArray(this.widgets) ? this.widgets.filter(Boolean) : []
+			const fromView = this.activeView && Array.isArray(this.activeView.widgets) ? this.activeView.widgets.filter(Boolean) : []
+			return {
+				availableWidgets: [...own, ...fromView],
+				cnRegistry: this.cnRegistry || {},
+				surface: this.surface,
+			}
 		},
 
 		/**

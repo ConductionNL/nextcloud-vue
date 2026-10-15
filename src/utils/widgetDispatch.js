@@ -141,11 +141,17 @@ export function isCardWidgetDef(def) {
  * other, and the surface rendered nothing while saying nothing about why. On
  * hrmq that was 101 of 236 detail widgets.
  *
+ * With `typeAsWritten`, a type registered in its own right wins over its
+ * alias, as on CnDashboardPage: there `object-table` is the host adapter that
+ * reads `content.source`, not the `table` widget its alias names. A detail
+ * page keeps the alias first, as its manifests were written against it.
+ *
  * @param {object} def The widget definition.
  * @param {object} [cnRegistry] The consumer's component registry, if any.
+ * @param {{typeAsWritten?: boolean}} [options] Resolution options.
  * @return {object|null} The renderer component, or null.
  */
-export function resolveRegistryRenderer(def, cnRegistry = {}) {
+export function resolveRegistryRenderer(def, cnRegistry = {}, options = {}) {
 	if (!def || !def.type || def.type === 'integration' || def.type === 'data') {
 		return null
 	}
@@ -155,7 +161,7 @@ export function resolveRegistryRenderer(def, cnRegistry = {}) {
 	if (consumer) {
 		return consumer.component ?? consumer
 	}
-	const entry = getWidgetTypeEntry(canonicalWidgetType(def.type))
+	const entry = (options.typeAsWritten === true && getWidgetTypeEntry(def.type)) || getWidgetTypeEntry(canonicalWidgetType(def.type))
 	if (entry && entry.renderer) {
 		return entry.renderer
 	}
