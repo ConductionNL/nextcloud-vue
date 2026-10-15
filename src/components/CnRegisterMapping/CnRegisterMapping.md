@@ -111,6 +111,10 @@ export default {
 </script>
 ```
 
+## Several groups
+
+With more than one group each group starts closed: its heading is a button that shows the group name and how many of its types are configured ("2/8 configured"), and opens the register select and type list on a click or Enter. A page with several registers is a short card until the administrator opens the group they need.
+
 ## Additional props
 
 | Prop | Type | Default | Description |
@@ -122,5 +126,6 @@ export default {
 | `reimporting` | Boolean | `false` | Disables the reimport button and shows a spinner while reimport is in progress |
 | `saveButtonText` | String | `'Save configuration'` | Label for the save button |
 | `reimportButtonText` | String | `'Re-import configuration'` | Label for the reimport button |
+| `collapseGroups` | Boolean | `null` | Draw each group as a heading button that opens and closes it, with its configured count shown while closed; the groups start closed. `null` does this when there is more than one group, `true` or `false` forces it |
 | `autoMatch` | Boolean | `true` | Automatically match schema titles to type slugs when a register is selected |
 | `labels` | Object | *(see below)* | UI label overrides for all user-visible strings (register, schema, notConfigured, noSchemas, selectRegister, selectSchema, allConfigured, partiallyConfigured) |
