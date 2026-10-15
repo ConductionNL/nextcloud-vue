@@ -1022,9 +1022,27 @@
 					{{ t('nextcloud-vue', 'File matches are limited to the best 50.') }}
 				</p>
 
+				<!-- The board view's footer: it holds every row it loaded, so it
+				     counts them and offers the next batch instead of pages. -->
+				<div
+					v-if="boardLoadsAll && boardLoadCounts.total > 0"
+					class="cn-index-page__board-load"
+					data-testid="cn-index-board-load">
+					<span class="cn-index-page__board-load-count" data-testid="cn-index-board-load-count">
+						{{ t('nextcloud-vue', 'Showing {count} of {total}', { count: boardLoadCounts.shown, total: boardLoadCounts.total }) }}
+					</span>
+					<NcButton
+						v-if="isPaged"
+						:disabled="effectiveLoading"
+						data-testid="cn-index-board-load-more"
+						@click="onBoardLoadMore">
+						{{ t('nextcloud-vue', 'Load more') }}
+					</NcButton>
+				</div>
+
 				<!-- Pagination -->
 				<CnPagination
-					v-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
+					v-else-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
 					:variant="isBoardLook ? 'board' : ''"
 					:footerNote="footerNote ? cnTranslate(footerNote) : footerNote"
 					:currentPage="effectivePagination.page || 1"
@@ -1215,7 +1233,7 @@ import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './pe
 import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
-import { useSelfFetchList } from './useSelfFetchList.js'
+import { BOARD_PAGE_SIZE, useSelfFetchList } from './useSelfFetchList.js'
 
 /** Rows fetched for one month in calendar mode. */
 const CALENDAR_PAGE_SIZE = 200
@@ -3539,6 +3557,9 @@ export default {
 			calendarRange: null,
 			/** The page size to restore when leaving calendar mode. */
 			calendarPrevPageSize: null,
+			// The table's page size while the board view holds the list at
+			// BOARD_PAGE_SIZE; restored on leaving the board.
+			boardPrevPageSize: this.viewMode === 'board' ? ((this.pagination && this.pagination.limit) || 20) : null,
 			/** Resolved labels of reference columns: `{ [columnKey]: { [id]: label|null } }`. */
 			refLabels: {},
 			/** Count per tab-strip index, for the entries that asked for one; null = none. */
@@ -4410,7 +4431,34 @@ export default {
 		 * @return {boolean} True when there is more than this page.
 		 */
 		isPaged() {
+			if (this.boardLoadsAll) {
+				const loaded = this.effectivePagination || {}
+				return Number(loaded.page || 1) < Number(loaded.pages || 1)
+			}
 			return Number(this.pagination?.pages || 1) > 1
+		},
+
+		/**
+		 * Whether the board view gathers every row itself: in self-fetch mode
+		 * it adds page after page (`list.loadMore`) instead of paging, and
+		 * draws its own footer in place of the pagination.
+		 *
+		 * @return {boolean} True for a self-fetching page in board view.
+		 * @spec openspec/changes/board-loads-every-row/specs/board-view/spec.md#requirement-the-index-board-shows-every-matching-row
+		 */
+		boardLoadsAll() {
+			return this.currentViewMode === 'board' && this.isSelfFetchMode && !this.isNamedSource && typeof this.list.loadMore === 'function'
+		},
+
+		/**
+		 * The rows the board holds against the rows that match, for the
+		 * board's footer.
+		 *
+		 * @return {{shown: number, total: number}} The counts.
+		 */
+		boardLoadCounts() {
+			const shown = this.effectiveObjects.length
+			return { shown, total: Math.max(shown, Number(this.effectivePagination?.total || 0)) }
 		},
 
 		/**
@@ -6473,22 +6521,33 @@ export default {
 		// Entering calendar mode fetches one page sized to the month; leaving
 		// removes the month range and restores the page size, so the table is
 		// never left narrowed.
+		// The board does the same at BOARD_PAGE_SIZE, so it shows every row
+		// rather than the table's first page.
 		currentViewMode(mode, previous) {
 			if (!this.isSelfFetchMode) {
 				return
 			}
-			if (mode === 'calendar') {
-				this.calendarPrevPageSize = this.list.pageSize.value
-				if (typeof this.list.onPageSizeChange === 'function') {
-					this.list.onPageSizeChange(CALENDAR_PAGE_SIZE)
-				}
-			} else if (previous === 'calendar') {
+			let listSize = this.list.pageSize.value
+			if (previous === 'calendar') {
 				this.calendarRange = null
-				const restore = this.calendarPrevPageSize || 20
+				listSize = this.calendarPrevPageSize || 20
 				this.calendarPrevPageSize = null
-				if (typeof this.list.onPageSizeChange === 'function') {
-					this.list.onPageSizeChange(restore)
-				}
+			} else if (previous === 'board') {
+				listSize = this.boardPrevPageSize || 20
+				this.boardPrevPageSize = null
+			}
+			let size = null
+			if (mode === 'calendar') {
+				this.calendarPrevPageSize = listSize
+				size = CALENDAR_PAGE_SIZE
+			} else if (mode === 'board') {
+				this.boardPrevPageSize = listSize
+				size = BOARD_PAGE_SIZE
+			} else if (previous === 'calendar' || previous === 'board') {
+				size = listSize
+			}
+			if (size !== null && typeof this.list.onPageSizeChange === 'function') {
+				this.list.onPageSizeChange(size)
 			}
 		},
 
@@ -7737,6 +7796,10 @@ export default {
 		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-a-long-column-is-cut-with-a-show-more-button
 		 */
 		onBoardLoadMore() {
+			if (this.boardLoadsAll) {
+				this.list.loadMore()
+				return
+			}
 			const page = Number(this.pagination?.page || 1)
 			if (page < Number(this.pagination?.pages || 1)) {
 				this.onPageEvent(page + 1)

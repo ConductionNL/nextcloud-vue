@@ -80,6 +80,7 @@ setup() {
 | `onPageChange(page)` | Function | Calls `refresh(page)` |
 | `onPageSizeChange(size)` | Function | Updates page size and calls `refresh(1)` |
 | `refresh(page?)` | Function | Builds params and calls `objectStore.fetchCollection` |
+| `loadMore()` | Function | Adds the next page after the loaded rows (`fetchCollection` with `append`) |
 
 ### Lifecycle behaviour
 

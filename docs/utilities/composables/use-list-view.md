@@ -65,6 +65,7 @@ Event handlers (all trigger a re-fetch, most reset to page 1):
 - `onPageChange(page)` — Refresh at `page`.
 - `onPageSizeChange(size)` — Updates `pageSize`, refresh page 1.
 - `refresh(page = 1)` — Explicit re-fetch using current state.
+- `loadMore()` — Adds the next page after the rows already loaded (the board view uses it to show every row). Does nothing on the last page; a refresh started meanwhile drops the page.
 
 ### Request params
 

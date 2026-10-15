@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.97.0', () => {
+	it('the manifest schema version reads 2.98.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1379,7 +1379,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.95.0 adds config.visibilityContext and the @context token (detail-widgets-visible-when).
 		// 2.96.0 adds headerButtons on a reports page (screens-reports-header-buttons).
 		// 2.97.0 adds board columnFields, narrow, moveHandler, moveTargetsHandler, columnSwitchLabel, hint and wrap (screens-board-reference-columns).
-		expect(schema.version).toBe('2.97.0')
+		// 2.98.0 lets config.titleField name the record on a detail page (detail-title-field).
+		expect(schema.version).toBe('2.98.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2148,5 +2149,18 @@ describe('app-manifest-v2: board columns from a referenced field (screens-board-
 		expect(validateManifestV2(index({ statusField: 'status', columnFields: [{ field: 'a', colour: 'red' }] })).valid).toBe(false)
 		expect(validateManifestV2(index({ statusField: 'status', narrow: { label: 'x' } })).valid).toBe(false)
 		expect(validateManifestV2(index({ statusField: 'status', card: { formatters: { caseType: 7 } } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: titleField on a detail page (detail-title-field, 2.98.0)', () => {
+	const detail = (config) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Invoice', route: '/invoices/:id', type: 'detail', title: 'Invoice', config: { register: 'r', schema: 's', ...config } }],
+	})
+
+	it('accepts a field path, and refuses one that is not a string', () => {
+		expect(validateManifestV2(detail({ titleField: 'number' })).valid).toBe(true)
+		expect(validateManifestV2(detail({ titleField: 'customer.ref' })).valid).toBe(true)
+		expect(validateManifestV2(detail({ titleField: 3 })).valid).toBe(false)
 	})
 })
