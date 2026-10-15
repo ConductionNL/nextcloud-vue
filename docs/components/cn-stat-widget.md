@@ -230,6 +230,7 @@ The day count is taken when the tile renders. A tile left open across midnight k
 ## Notes
 
 - **An unresolvable reference shows the raw uuid, not a blank.** A blank KPI says nothing at all, so an id the store cannot resolve stays visible, the same way `CnFkResolveCell` behaves.
+- **A number never clips.** When the value is wider than its tile (a currency total in a 162px tile), its font steps down until it fits, re-measured whenever the value or the tile's width changes, never under 14px; at 14px a number that still does not fit wraps. A value that fits keeps its own size, and a text value keeps its own wrap and clamp.
 - **A countdown reads calendar days, so the answer never depends on the time of day somebody typed.** The reasoning, and the UTC-midnight parse it avoids, are in the `calendarDay` docblock in `CnStatWidget.vue`.
 
 

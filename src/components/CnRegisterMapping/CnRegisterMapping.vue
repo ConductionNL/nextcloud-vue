@@ -98,7 +98,6 @@
 
 					<!-- Register selector -->
 					<div class="cn-register-mapping__register-select">
-						<label class="cn-register-mapping__label">{{ labels.register }}</label>
 						<NcSelect
 							:modelValue="selectedRegister(groupIdx)"
 							:options="registerSelectOptions"
@@ -831,14 +830,6 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 	margin: 0 0 12px 0;
-}
-
-.cn-register-mapping__label {
-	display: block;
-	font-weight: 500;
-	font-size: 13px;
-	color: var(--color-text-maxcontrast);
-	margin-bottom: 4px;
 }
 
 .cn-register-mapping__register-select {
