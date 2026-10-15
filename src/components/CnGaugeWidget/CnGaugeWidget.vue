@@ -280,7 +280,7 @@ export default {
 		 * @return {string} The formatted string.
 		 */
 		formatNumber(value) {
-			return formatMetricValue(value, this.resolvedFormat, this.configCtx)
+			return formatMetricValue(value, this.resolvedFormat, this.configCtx, null, this.effectiveTranslate)
 		},
 
 		/**

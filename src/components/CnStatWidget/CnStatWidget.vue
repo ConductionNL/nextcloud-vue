@@ -1460,7 +1460,7 @@ export default {
 		 * @return {string}
 		 */
 		formattedValue() {
-			return formatMetricValue(this.displayValue, this.content.format, this.configCtx, this.objectCtx?.object || null)
+			return formatMetricValue(this.displayValue, this.content.format, this.configCtx, this.objectCtx?.object || null, this.effectiveTranslate)
 		},
 
 		/**

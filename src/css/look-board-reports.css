@@ -140,3 +140,36 @@
 .cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card * {
 	text-decoration: none !important;
 }
+
+/* The header buttons beside the title (screens-reports-header-buttons, board
+   DcRapportages "Downloaden"): the board's 40px button with a grey border on
+   the main background, the primary one in the primary fill, as on the index
+   header. `!important` holds them under a theme that restyles every button
+   (nldesign). The buildiq square keeps its own rule. */
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__header-buttons > .button-vue--secondary {
+	height: var(--cn-board-control-height) !important;
+	min-height: var(--cn-board-control-height) !important;
+	padding: 0 14px !important;
+	border: 1px solid var(--color-border-dark) !important;
+	border-radius: var(--cn-board-control-radius) !important;
+	background: var(--color-main-background) !important;
+	color: var(--color-main-text) !important;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__header-buttons > .button-vue--secondary:hover {
+	background: var(--color-background-hover) !important;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__header-buttons > .button-vue--primary {
+	height: var(--cn-board-control-height) !important;
+	min-height: var(--cn-board-control-height) !important;
+	padding: 0 16px !important;
+	border: 0 !important;
+	border-radius: var(--cn-board-control-radius) !important;
+	background: var(--color-primary-element) !important;
+	color: var(--color-primary-element-text) !important;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__header-buttons > .button-vue--primary:hover {
+	background: var(--color-primary-element-hover) !important;
+}

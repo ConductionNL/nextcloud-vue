@@ -418,6 +418,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
 import { schemaRefSlug } from '../../utils/schemaRefSlug.js'
 import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
+import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
@@ -939,13 +940,18 @@ export default {
 				gridRow: (this.resolvedOverrides[field.key] && this.resolvedOverrides[field.key].gridRow) || 1,
 			}))
 
+			// Per-field condition: `overrides[key].visibleWhen` shows a field only
+			// for the objects it belongs to, such as a person's preferred name on
+			// a client that can also be an organisation.
+			const shown = withSpans.filter((field) => this.isVisibleByCondition(field))
+
 			if (!this.hideEmpty) {
-				return withSpans
+				return shown
 			}
 
 			// Keep a field the user is currently editing or has pending changes for,
 			// otherwise it would vanish mid-edit the moment its value is cleared.
-			return withSpans.filter((field) => field.key === this.editingField
+			return shown.filter((field) => field.key === this.editingField
 				|| field.key in this.dirtyFields
 				|| !this.isEmptyValue((this.objectData || {})[field.key]))
 		},
@@ -1707,6 +1713,29 @@ export default {
 			}
 			// Schema readOnly
 			return !field.readOnly
+		},
+
+		/**
+		 * Evaluate a field's `visibleWhen` override against the object.
+		 *
+		 * The rule is the shared visibility predicate in its LOCAL mode
+		 * (`{ field, op, value }`, `all` / `any`, `appInstalled`), evaluated by
+		 * `evaluateVisibleWhenLocal` against the object with its unsaved
+		 * changes, so a field appears or goes the moment the field it depends
+		 * on changes. A rule that needs a request (`endpoint`, `source`) cannot
+		 * be decided here and is ignored: the field shows, as it did before
+		 * the rule existed.
+		 *
+		 * @param {object} field - Resolved field definition.
+		 * @return {boolean} True when the field is shown.
+		 */
+		isVisibleByCondition(field) {
+			const override = this.resolvedOverrides[field.key]
+			const rule = override ? override.visibleWhen : undefined
+			if (rule === undefined || rule === null || !isLocallyDecidableVisibleWhen(rule)) {
+				return true
+			}
+			return evaluateVisibleWhenLocal(rule, { ...(this.objectData || {}), ...this.dirtyFields })
 		},
 
 		/**
