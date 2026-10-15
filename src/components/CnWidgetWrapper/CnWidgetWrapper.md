@@ -12,6 +12,16 @@ Basic — widget card with title and content:
 </div>
 ```
 
+With an `eyebrow`, a short muted line above the title:
+
+```vue
+<div style="width: 320px; height: 160px; position: relative; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+  <CnWidgetWrapper title="Forecast 13 weeks" eyebrow="Balance per week" :show-title="true">
+    <p style="margin: 0; padding: 0 16px;">Week 41</p>
+  </CnWidgetWrapper>
+</div>
+```
+
 With footer buttons:
 
 ```vue

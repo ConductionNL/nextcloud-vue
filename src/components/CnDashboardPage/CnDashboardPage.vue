@@ -395,6 +395,7 @@
 					<CnStatsBlockWidget
 						v-bind="getStatsBlockProps(item)"
 						:title="getWidgetTitle(item)"
+						:eyebrow="getWidgetEyebrow(item)"
 						:data-source="getWidgetDataSource(item)" />
 				</CnWidgetWrapper>
 				<CnWidgetWrapper
@@ -433,6 +434,7 @@
 				<CnWidgetWrapper
 					v-else
 					:title="getWidgetTitle(item)"
+					:eyebrow="getWidgetEyebrow(item)"
 					:showTitle="false"
 					:showRefresh="false">
 					<div class="cn-dashboard-page__unknown">
@@ -494,6 +496,7 @@
 				<CnWidgetWrapper
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
+					:eyebrow="getWidgetEyebrow(item)"
 					:showTitle="widgetShowTitle(item)">
 					<!-- Compact on purpose: a two-row tile is about 150px, less
 					     a title row. NcEmptyContent's 64px icon, 20px name,
@@ -532,6 +535,7 @@
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
+						:eyebrow="getWidgetEyebrow(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -613,6 +617,7 @@
 						:widgetId="item.widgetId"
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
+						:eyebrow="getWidgetEyebrow(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -691,6 +696,7 @@
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
+						:eyebrow="getWidgetEyebrow(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -718,6 +724,7 @@
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
+						:eyebrow="getWidgetEyebrow(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -757,6 +764,7 @@
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
+						:eyebrow="getWidgetEyebrow(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -782,6 +790,7 @@
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
+						:eyebrow="getWidgetEyebrow(item)"
 						:showTitle="widgetShowTitle(item)"
 						:showActions="widgetShowActions(item)"
 						:showRefresh="getWidgetShowRefresh(item)"
@@ -882,6 +891,7 @@
 				<CnWidgetWrapper
 					v-else
 					:title="getWidgetTitle(item)"
+					:eyebrow="getWidgetEyebrow(item)"
 					:showTitle="widgetShowTitle(item)"
 					:showRefresh="false">
 					<div class="cn-dashboard-page__unknown">
@@ -2944,6 +2954,7 @@ export default {
 			return {
 				widgetId: item.widgetId,
 				title: this.getWidgetTitle(item),
+				eyebrow: this.getWidgetEyebrow(item),
 				showTitle: this.widgetShowTitle(item),
 				showActions: this.widgetShowActions(item),
 				showRefresh: this.getWidgetShowRefresh(item),
@@ -4029,6 +4040,21 @@ export default {
 		onWidgetConfigDelete(_w) {
 			this.removeWidget({ widgetId: this.configWidgetId })
 			this.showWidgetConfig = false
+		},
+
+		/**
+		 * The line above a widget's title (`eyebrow` on the widget
+		 * definition: "Saldo per week" above "Prognose 13 weken"), through the
+		 * host translate, or '' for none.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string}
+		 * @spec openspec/changes/widget-title-eyebrow/specs/dashboard-page/spec.md#requirement-a-widget-card-can-carry-a-line-above-its-title
+		 */
+		getWidgetEyebrow(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const eyebrow = def && typeof def.eyebrow === 'string' ? def.eyebrow : ''
+			return eyebrow ? this.effectiveTranslate(eyebrow) : ''
 		},
 
 		/**
