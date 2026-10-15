@@ -148,6 +148,8 @@ test('a column the card cannot reach reads "not allowed" in its menu, and a drop
 
 test('a card checkbox selects it for the bulk band', async ({ page }) => {
 	await open(page)
+	// The board look shows a card's checkbox on hover, focus or an existing selection.
+	await page.locator('[data-testid="cn-board-card"][data-card-id="c2"]').hover()
 	await page.locator('[data-testid="cn-board-card-select"][data-card-id="c2"]').check()
 	await expect(page.locator('[data-testid="cn-board-card-select"][data-card-id="c2"]')).toBeChecked()
 })
