@@ -6,7 +6,7 @@ The current week as day columns, with the dated items listed under each day. Use
 - Today's column is highlighted and carries a "today" badge.
 - An item that is late gets a marked edge and the word "Late".
 - A day without items shows `emptyText`.
-- On a narrow screen the strip scrolls sideways. The scroll area takes keyboard focus.
+- On a narrow screen the strip scrolls sideways. The scroll area takes keyboard focus. Under the board look (`.cn-look-board`) the days wrap into rows of days at least 120px wide instead, and do not scroll.
 
 Items come from an OpenRegister source or from static `items`. A source costs one request for the whole week.
 
@@ -79,7 +79,7 @@ With static items:
 - The days are an ordered list. Today's column has `aria-current="date"`.
 - Each item with a route is a link, reachable with Tab.
 - A late item says "Late" in text. The coloured edge only adds emphasis.
-- The scroll area is a labelled region with `tabindex="0"`, so the arrow keys scroll it.
+- The scroll area is a labelled region with `tabindex="0"`, so the arrow keys scroll it. Under the board look the days wrap and there is nothing to scroll.
 
 ## `content.inset`
 
