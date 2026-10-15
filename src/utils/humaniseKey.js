@@ -14,6 +14,7 @@
  *
  * @param {string} key The key.
  * @return {string} A readable sentence-case label, or the key when it has no words.
+ * @spec openspec/changes/data-widget-nested-objects/specs/data-widget-nested-objects/spec.md#requirement-a-nested-object-reads-as-a-list-per-key
  */
 export function humaniseKey(key) {
 	const words = String(key || '')

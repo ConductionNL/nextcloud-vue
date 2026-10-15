@@ -1400,6 +1400,7 @@ export default {
 		 * @param {object} field Resolved field definition.
 		 * @param {string[]} path Keys from the field's value down to this entry.
 		 * @return {string} The label.
+		 * @spec openspec/changes/data-widget-nested-objects/specs/data-widget-nested-objects/spec.md#requirement-a-nested-object-reads-as-a-list-per-key
 		 */
 		nestedLabel(field, path) {
 			let prop = ((this.schema && this.schema.properties) || {})[field.key]
@@ -1424,6 +1425,7 @@ export default {
 		 *
 		 * @param {unknown} v The value.
 		 * @return {string} The display string.
+		 * @spec openspec/changes/data-widget-nested-objects/specs/data-widget-nested-objects/spec.md#requirement-a-nested-object-reads-as-a-list-per-key
 		 */
 		stringifyNested(v) {
 			if (Array.isArray(v) && v.length && v.every((item) => item === null || typeof item !== 'object')) {
@@ -1767,6 +1769,7 @@ export default {
 		 *
 		 * @param {object} field Resolved field definition.
 		 * @return {boolean} True when only the form dialog can edit it.
+		 * @spec openspec/changes/data-widget-nested-objects/specs/data-widget-nested-objects/spec.md#requirement-a-structured-value-is-never-edited-inline
 		 */
 		hasNoInlineEditor(field) {
 			if (STRUCTURED_WIDGETS.includes(field.widget)) {
@@ -1793,6 +1796,7 @@ export default {
 		 * Check if a field is editable.
 		 *
 		 * @param {object} field - Resolved field definition from resolvedFields
+		 * @spec openspec/changes/data-widget-nested-objects/specs/data-widget-nested-objects/spec.md#requirement-a-structured-value-is-never-edited-inline
 		 */
 		isEditable(field) {
 			if (!this.editable) {

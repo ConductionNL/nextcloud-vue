@@ -60,6 +60,7 @@ export function resolveLocalised(value, language = 'en') {
  *
  * @param {string} key The rule key.
  * @return {string} A readable sentence-case label, or the key when it has no words.
+ * @spec openspec/changes/notification-rule-labels-and-runtime-version/specs/notification-preferences/spec.md#requirement-a-notification-rule-reads-as-a-label
  */
 export function humaniseRuleKey(key) {
 	return humaniseKey(key)
