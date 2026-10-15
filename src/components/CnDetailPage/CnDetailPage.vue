@@ -2664,6 +2664,19 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * The record field the header names the record by (manifest
+		 * `config.titleField`, a dotted path such as `number`), as an invoice
+		 * page names the invoice number. An empty value falls back to the
+		 * display name. Empty (the default) changes nothing.
+		 *
+		 * @spec openspec/changes/detail-title-field/specs/detail-page/spec.md#requirement-a-detail-page-can-name-the-record-by-a-field
+		 */
+		titleField: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: [
@@ -4102,10 +4115,10 @@ export default {
 		},
 
 		/**
-		 * The resolved record's human display name, drawn from the loaded
-		 * object via the same fallback chain the relation resolver uses:
-		 * `@self.name` → `name` / `title` / `displayName` → `firstName
-		 * lastName`. Empty string while the object is still loading or when no
+		 * The resolved record's human display name: the `titleField` value
+		 * when the page names one and it is filled, else the same fallback
+		 * chain the relation resolver uses: `@self.name` → `name` / `title` /
+		 * `displayName` → `firstName lastName`. Empty string while the object is still loading or when no
 		 * name-like field exists (a raw id is never used as a name — ADR-062).
 		 *
 		 * @return {string}
@@ -4114,6 +4127,12 @@ export default {
 			const obj = this.resolvedObject
 			if (!obj || typeof obj !== 'object') {
 				return ''
+			}
+			if (this.titleField) {
+				const named = stageOf(obj, this.titleField)
+				if (named !== '') {
+					return named
+				}
 			}
 			const self = obj['@self'] || {}
 			const id = this.objectId !== null && this.objectId !== undefined ? String(this.objectId) : ''

@@ -3533,7 +3533,7 @@
 						},
 						"titleField": {
 							"type": "string",
-							"description": "type='wiki': property on the article object holding the page title. Defaults to 'title'. Maps to CnWikiPage `titleField` prop."
+							"description": "type='wiki': property on the article object holding the page title. Defaults to 'title'. Maps to CnWikiPage `titleField` prop. type='detail' (detail-title-field): the record field (a dotted path, for example `number`) the header names the record by, as an invoice page names the invoice number instead of the schema title; an empty value falls back to the display name, and the breadcrumb's current crumb and the type eyebrow follow. Maps to CnDetailPage `titleField`."
 						},
 						"idParam": {
 							"type": "string",
