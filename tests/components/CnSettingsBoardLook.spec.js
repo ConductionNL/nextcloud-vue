@@ -128,7 +128,10 @@ describe('CnAdminSettingsShell: hands its look to what it holds', () => {
 		const w = mountShell()
 		expect(w.findComponent(CnVersionInfoCard).find('.cn-version-info').classes()).not.toContain('cn-version-info--board')
 		expect(mountShell({}, { default: Probe }).find('.probe').text()).toBe('nextcloud')
+	})
+})
 
+/**
  * @spec openspec/changes/board-version-card-full-width/specs/settings-board-look/spec.md#requirement-the-board-version-card-spans-the-settings-grid
  */
 describe('CnVersionInfoCard: spans the settings grid under the board look', () => {
