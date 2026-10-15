@@ -3231,7 +3231,7 @@
 		},
 		"CnSettingsPage": {
 			"direct": 0,
-			"transitive": 20,
+			"transitive": 21,
 			"tier": "heavy",
 			"via": [
 				"CnBuildiqEditButton",
