@@ -4239,6 +4239,7 @@
 								"properties": {
 									"id": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_-]+$", "description": "The view id, written to the address as `?view=<id>`." },
 									"label": { "type": "string", "minLength": 1, "description": "The option label and the region's accessible name (through the app's translations)." },
+									"title": { "type": "string", "minLength": 1, "description": "type='dashboard': the page title while this view is open, e.g. \"My team\" (through the app's translations; view-title, __VER__). Without it the page keeps its own title." },
 									"icon": { "type": "string", "minLength": 1, "description": "Optional MDI icon name, reserved for an icon-bearing switch." },
 									"emptyText": { "type": "string", "minLength": 1, "description": "The sentence shown when the view has nothing to draw." },
 									"widgets": { "type": "array", "description": "The view's widget definitions, the same shape as the page's `widgets`.", "items": { "type": "object", "additionalProperties": true } },
