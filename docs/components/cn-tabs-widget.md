@@ -147,6 +147,20 @@ An id that names no widget is skipped. Without `label` the tab takes the first
 widget's title. `countFrom: "widget"` counts the first widget of the stack that
 has a list. A `widgetId` tab renders as before.
 
+A widget in a stack follows the page controls. On a dashboard, a widget whose
+`visibleWhen` is a workspace condition (`{ "workspace": "<key>", "op", "value" }`)
+draws only while the condition holds, the same rule a dashboard widget follows.
+So chips at the top of a tab can switch the lists below them:
+
+```json
+{ "widgetIds": ["round-chips", "round-all", "round-paused"], "label": "Reminder runs", "countFrom": "widget" }
+```
+
+with `"visibleWhen": { "workspace": "round", "value": "paused" }` on
+`round-paused`. Off a dashboard there is no workspace, and every widget of the
+stack draws. The tab count still reads the first widget of the stack that has
+a list, whichever one is showing.
+
 ## Props
 
 | Prop | Type | Default | Description |
