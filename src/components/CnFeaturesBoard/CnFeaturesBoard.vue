@@ -50,7 +50,7 @@
 							target="_blank">
 							{{ action.label }}
 						</NcActionLink>
-						<NcActionButton @click="$emit('support')">
+						<NcActionButton @click="onSupport">
 							{{ t('nextcloud-vue', 'Support this app') }}
 						</NcActionButton>
 					</NcActions>
@@ -99,7 +99,7 @@
 					target="_blank">
 					{{ action.label }}
 				</NcActionLink>
-				<NcActionButton @click="$emit('support')">
+				<NcActionButton @click="onSupport">
 					{{ t('nextcloud-vue', 'Support this app') }}
 				</NcActionButton>
 			</NcActions>
@@ -590,6 +590,14 @@ export default {
 				return safeHref(feature.docsUrl)
 			}
 			return this.documentationUrl ? safeHref(this.documentationUrl) : ''
+		},
+
+		/** Ask the host to open the support dialog. */
+		onSupport() {
+			/**
+			 * @event support Emitted when the reader picks "Support this app" in the Actions menu.
+			 */
+			this.$emit('support')
 		},
 
 		/** Fetch the forge issues for the Next card. */

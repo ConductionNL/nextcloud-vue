@@ -34,6 +34,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name      | Payload | Description |
-| --------- | ------- | ----------- |
-| `support` | —       |             |
+| Name      | Payload | Description                                                           |
+| --------- | ------- | --------------------------------------------------------------------- |
+| `support` | —       | Emitted when the reader picks "Support this app" in the Actions menu. |
