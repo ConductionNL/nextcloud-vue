@@ -169,6 +169,7 @@ import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { extractMentionedGroupIds, extractMentionedIds } from '../../utils/mentions.js'
 import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 export default {
 	name: 'CnNotesTab',
@@ -595,7 +596,7 @@ export default {
 				return ''
 			}
 			try {
-				return new Date(dateStr).toLocaleString(undefined, {
+				return new Date(dateStr).toLocaleString(userLocale(), {
 					year: 'numeric',
 					month: 'short',
 					day: 'numeric',

@@ -240,6 +240,7 @@ import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnC
 import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 const MAX_AVATARS = 3
 
@@ -524,7 +525,7 @@ export default {
 			if (!d) {
 				return '—'
 			}
-			return d.toLocaleDateString(undefined, { month: 'short' })
+			return d.toLocaleDateString(userLocale(), { month: 'short' })
 		},
 
 		dayOf(ev) {
@@ -541,16 +542,16 @@ export default {
 				return ev.dtstart ? String(ev.dtstart) : t('nextcloud-vue', 'Time not set')
 			}
 			const end = this.parseDate(ev.dtend)
-			const dateLabel = start.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+			const dateLabel = start.toLocaleDateString(userLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
 			const timeOpts = { hour: '2-digit', minute: '2-digit' }
-			const startTime = start.toLocaleTimeString(undefined, timeOpts)
+			const startTime = start.toLocaleTimeString(userLocale(), timeOpts)
 			if (end) {
 				const sameDay = start.toDateString() === end.toDateString()
-				const endTime = end.toLocaleTimeString(undefined, timeOpts)
+				const endTime = end.toLocaleTimeString(userLocale(), timeOpts)
 				if (sameDay) {
 					return `${dateLabel} · ${startTime} – ${endTime}`
 				}
-				const endDateLabel = end.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+				const endDateLabel = end.toLocaleDateString(userLocale(), { day: 'numeric', month: 'short' })
 				return `${dateLabel} ${startTime} – ${endDateLabel} ${endTime}`
 			}
 			return `${dateLabel} · ${startTime}`

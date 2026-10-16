@@ -49,6 +49,7 @@ import { markRaw } from 'vue'
 import History from 'vue-material-design-icons/History.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnAuditTrailCard — compact audit-trail widget rendered by the
@@ -214,7 +215,7 @@ export default {
 			if (Number.isNaN(d.getTime()) === true) {
 				return String(raw)
 			}
-			return d.toLocaleString()
+			return d.toLocaleString(userLocale())
 		},
 	},
 }

@@ -57,11 +57,11 @@
 				</div>
 				<div v-if="schemaItem.created" class="cn-schema-form__detail-item">
 					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Created:') }}</span>
-					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.created).toLocaleString() }}</span>
+					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.created).toLocaleString(userLocale()) }}</span>
 				</div>
 				<div v-if="schemaItem.updated" class="cn-schema-form__detail-item">
 					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Updated:') }}</span>
-					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.updated).toLocaleString() }}</span>
+					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.updated).toLocaleString(userLocale()) }}</span>
 				</div>
 				<div class="cn-schema-form__detail-item">
 					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Version:') }}</span>
@@ -204,6 +204,7 @@ import CnSchemaConfigurationTab from './CnSchemaConfigurationTab.vue'
 import CnSchemaPropertiesTab from './CnSchemaPropertiesTab.vue'
 import CnSchemaSecurityTab from './CnSchemaSecurityTab.vue'
 import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnSchemaFormDialog — Generic JSON Schema editor dialog.
@@ -552,6 +553,7 @@ export default {
 
 	methods: {
 		t,
+		userLocale,
 		findSchemaBySlug(schemaSlug) {
 			if (!schemaSlug) {
 				return undefined

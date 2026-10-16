@@ -319,6 +319,7 @@ import Timeline from 'vue-material-design-icons/Timeline.vue'
 import CnVisibilityChip from '../../../components/CnVisibilityChip/CnVisibilityChip.vue'
 import { normalizeLook } from '../../../composables/useLook.js'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 import { ACTIVITY_FEED_KINDS, exportBody, feedPath, feedQuery, isReadRow, parseFeed } from './activityFeedWire.js'
 
 const DEFAULT_PAGE_SIZE = 25
@@ -643,7 +644,7 @@ export default {
 				return t('nextcloud-vue', 'Yesterday')
 			}
 			try {
-				return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+				return date.toLocaleDateString(userLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
 			} catch {
 				return date.toISOString().split('T')[0]
 			}
@@ -655,7 +656,7 @@ export default {
 				return ''
 			}
 			try {
-				return ts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+				return ts.toLocaleTimeString(userLocale(), { hour: '2-digit', minute: '2-digit' })
 			} catch {
 				return ts.toISOString().split('T')[1].slice(0, 5)
 			}
@@ -703,7 +704,7 @@ export default {
 			let when = ''
 			if (ts !== null) {
 				try {
-					when = ts.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+					when = ts.toLocaleString(userLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 				} catch {
 					when = ts.toISOString().replace('T', ' ').slice(0, 16)
 				}

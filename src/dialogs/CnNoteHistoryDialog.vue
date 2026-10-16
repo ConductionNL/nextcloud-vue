@@ -78,6 +78,7 @@ import HistoryIcon from 'vue-material-design-icons/History.vue'
 import CnDialog from '../components/CnDialog/CnDialog.vue'
 import { dialogBoardMixin } from '../mixins/dialogBoard.js'
 import { buildHeaders, prefixUrl } from '../utils/index.js'
+import { userLocale } from '../utils/userLocale.js'
 
 export default {
 	name: 'CnNoteHistoryDialog',
@@ -193,7 +194,7 @@ export default {
 				return ''
 			}
 			try {
-				return new Date(dateStr).toLocaleString(undefined, {
+				return new Date(dateStr).toLocaleString(userLocale(), {
 					year: 'numeric',
 					month: 'short',
 					day: 'numeric',

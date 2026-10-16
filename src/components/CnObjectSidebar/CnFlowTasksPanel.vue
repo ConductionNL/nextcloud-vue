@@ -118,6 +118,7 @@ import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useTaskInboxStore } from '../../composables/useTaskInboxStore.js'
 import { searchGroupSharees } from '../../utils/searchGroupSharees.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /** The verbs this panel has a control for, in the order a row shows them. */
 const VERBS = ['claim', 'unclaim', 'reassign', 'complete', 'cancel']
@@ -239,7 +240,7 @@ export default {
 				return label
 			}
 			const d = new Date(task.dueAt)
-			const date = Number.isNaN(d.getTime()) ? String(task.dueAt) : d.toLocaleDateString()
+			const date = Number.isNaN(d.getTime()) ? String(task.dueAt) : d.toLocaleDateString(userLocale())
 			return this.isOverdue(task) ? t('nextcloud-vue', 'Overdue: {date}', { date }) : date
 		},
 

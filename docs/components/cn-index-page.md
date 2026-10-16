@@ -232,6 +232,7 @@ columns from those rows (since manifest schema 2.97.0):
         "orderField": "order",
         "colorField": "colour",
         "mergeBy": "name",
+        "capacityField": "capacity",
         "filter": { "isFinal": false },
         "narrowBy": { "field": "caseType", "rowField": "caseType" }
       }
@@ -247,6 +248,11 @@ columns from those rows (since manifest schema 2.97.0):
   property's `$ref`). An empty stage is still a column to drop a card into.
 - **`orderField`** orders them. **`mergeBy`** makes one column of rows with the
   same name, so "In behandeling" of every case type is one column.
+- **`capacityField`** names the referenced row's limit. The header reads
+  "count / capacity" and is drawn full at the limit, and a move into a full
+  column is refused with "In behandeling is full: 4 of 4." before anything is
+  written (the server still guards). A merged column shows no limit, since each
+  row has its own, but a move into the row that is full is still refused.
 - **`narrowBy`** links a referenced row to its parent. While the page filters on
   `narrowBy.rowField` with one value, the columns are that parent's rows only.
 - **`narrow`** draws that filter as a select after the search ("Zaaktype:"). It
@@ -274,7 +280,11 @@ and the `runTransition` prop, as before.
 **`moveTargetsHandler`** answers where one card may go: it gets
 `{ card, field }` and returns the referenced ids the card can reach. The board
 fades the other columns during a drag, marks them "not allowed" in the card
-menu, and refuses a drop on them.
+menu, and refuses a drop on them. An entry can also be an object
+`{ key, allowed, reason }` (key: the referenced id). With `allowed: false` the
+column is offered but blocked: the card menu shows it disabled with the reason
+under its name, during a drag the column shows the reason under its header, and
+a drop there is refused with the reason. Plain ids and objects can be mixed.
 
 **Opening the board from the menu.** An index page opens in the mode
 `?_view=<mode>` names, when it offers that mode, and follows the address when it

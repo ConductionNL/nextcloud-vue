@@ -28,6 +28,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnTranslatedBadge — surfaces OR's `_translationMeta.translatedFrom`
@@ -173,7 +174,7 @@ export default {
 			try {
 				const d = new Date(this.translatedAt)
 				if (!Number.isNaN(d.getTime())) {
-					return t('nextcloud-vue', 'Translated at {when}', { when: d.toLocaleString() })
+					return t('nextcloud-vue', 'Translated at {when}', { when: d.toLocaleString(userLocale()) })
 				}
 			} catch {
 				// fall through to raw ISO

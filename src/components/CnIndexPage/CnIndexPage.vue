@@ -1170,6 +1170,7 @@ import {
 	columnFieldsOf,
 	columnKeyOfRow,
 	fetchReferenceObjects,
+	fullTargetOf,
 	referenceTargetOf,
 	refIdOf,
 	resolveDropValue,
@@ -4240,6 +4241,7 @@ export default {
 				mergeBy: source.mergeBy || '',
 				narrowBy,
 				narrowValue: narrowBy ? this.boardNarrowValue : '',
+				capacityField: source.capacityField || '',
 			})
 		},
 
@@ -4282,6 +4284,10 @@ export default {
 		 * row (PATCH). `readOnly` gives no move. A board on `statusField` with
 		 * neither keeps the `runTransition` prop.
 		 *
+		 * With `source.capacityField`, a drop that would fill the referenced
+		 * row past its limit is refused before the handler or the PATCH runs.
+		 * The server still guards; this only spares the round trip.
+		 *
 		 * @return {((move: {card: object, toKey: string}) => Promise<object>)|null} The move, or null for a read-only board.
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-drop-writes-the-reference
 		 */
@@ -4303,12 +4309,20 @@ export default {
 			const field = this.boardColumnField
 			const kind = active?.kind || 'schema'
 			const narrowBy = active?.source?.narrowBy || null
+			const capacityField = active?.source?.capacityField || ''
 			return async ({ card, toKey }) => {
 				const drop = stages
 					? resolveDropValue({ card, toKey, kind, refsByKey: stages.refsByKey, narrowBy })
 					: { value: toKey, target: null }
 				if (drop === null) {
 					throw new Error(t('nextcloud-vue', 'This card cannot move to that column.'))
+				}
+				const full = capacityField && drop.target
+					? fullTargetOf({ target: drop.target, card, rows: this.displayObjects, field, capacityField, rowKey: this.rowKey })
+					: null
+				if (full) {
+					const column = stages.states.find((state) => state.key === String(toKey))?.label || String(toKey)
+					throw new Error(t('nextcloud-vue', '{column} is full: {count} of {capacity}.', { column, count: full.count, capacity: full.capacity }))
 				}
 				if (handler) {
 					return handler({ card, toKey, field, value: drop.value, target: drop.target })
@@ -4325,9 +4339,12 @@ export default {
 		/**
 		 * Where a card may go, from the app's `moveTargetsHandler`: it gets
 		 * `{ card, field }` and answers the values (referenced ids) the card
-		 * can reach; the board maps them to its columns.
+		 * can reach; the board maps them to its columns. An entry may also be
+		 * `{ key, allowed, reason }`: a target that is offered but blocked,
+		 * with the sentence that says why.
 		 *
-		 * @return {((card: object) => Promise<Array<string>|null>)|null} The question, or null.
+		 * @return {((card: object) => Promise<Array<string|{key: string, allowed: boolean, reason: string}>|null>)|null} The question, or null.
+		 * @spec openspec/changes/board-move-block-reasons/specs/board-view/spec.md#requirement-a-move-target-can-be-blocked-with-a-reason
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-board-shows-where-a-card-can-go
 		 */
 		boardAllowedMoves() {
@@ -4345,9 +4362,16 @@ export default {
 				if (!Array.isArray(values)) {
 					return null
 				}
+				const columnOf = (id) => (stages && stages.keyByValue.has(id) ? stages.keyByValue.get(id) : id)
 				return values.map((value) => {
-					const id = refIdOf(value)
-					return stages && stages.keyByValue.has(id) ? stages.keyByValue.get(id) : id
+					if (value && typeof value === 'object' && Object.hasOwn(value, 'key')) {
+						return {
+							key: columnOf(refIdOf(value.key)),
+							allowed: value.allowed !== false,
+							reason: typeof value.reason === 'string' ? value.reason : '',
+						}
+					}
+					return columnOf(refIdOf(value))
 				})
 			}
 		},

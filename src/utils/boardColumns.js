@@ -55,10 +55,26 @@ export function stagesOf(field, colorField = '') {
 					label: String(entry?.label ?? entry?.title ?? entry?.key ?? entry?.value ?? ''),
 					hidden: entry?.hidden === true,
 					color: colorOf(field, entry, colorField),
+					capacity: capacityValue(entry?.capacity),
 				}))
 		.filter((stage) => stage.key !== '')
 
 	return { stages, usable: stages.length > 0 }
+}
+
+/**
+ * A column limit as a usable number.
+ *
+ * @param {unknown} value - The declared limit.
+ * @return {number|null} The limit, or null when there is none (not a number above 0).
+ * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
+ */
+export function capacityValue(value) {
+	if (value === null || value === undefined || value === '') {
+		return null
+	}
+	const n = Number(value)
+	return Number.isFinite(n) && n > 0 ? n : null
 }
 
 /**
@@ -154,6 +170,7 @@ export function buildBoardColumns({
 		key: stage.key,
 		label: stage.label,
 		color: stage.color,
+		capacity: stage.capacity ?? null,
 		cards: [],
 		count: 0,
 	}))
@@ -176,4 +193,36 @@ export function buildBoardColumns({
 	}
 
 	return { columns, usable: true }
+}
+
+/**
+ * Where a card may move, from what `allowedMoves` answered: plain column keys
+ * and `{ key, allowed, reason }` entries. A key any entry allows is allowed;
+ * a blocked key keeps the first reason given for it.
+ *
+ * @param {unknown} answer The answer.
+ * @return {{keys: Array<string>, reasons: object}|null} The allowed keys and the reasons by key, or null for everywhere.
+ * @spec openspec/changes/board-move-block-reasons/specs/board-view/spec.md#requirement-a-move-target-can-be-blocked-with-a-reason
+ */
+export function normalizeAllowed(answer) {
+	if (!Array.isArray(answer)) {
+		return null
+	}
+	const keys = []
+	const reasons = {}
+	for (const entry of answer) {
+		if (entry && typeof entry === 'object') {
+			const key = String(entry.key ?? '')
+			if (entry.allowed === false) {
+				if (!reasons[key] && typeof entry.reason === 'string' && entry.reason.trim() !== '') {
+					reasons[key] = entry.reason.trim()
+				}
+			} else {
+				keys.push(key)
+			}
+		} else if (entry !== null && entry !== undefined) {
+			keys.push(String(entry))
+		}
+	}
+	return { keys, reasons }
 }
