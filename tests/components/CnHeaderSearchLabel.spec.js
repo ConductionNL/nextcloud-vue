@@ -11,7 +11,7 @@ import { mount } from '@vue/test-utils'
 import CnAppRoot from '../../src/components/CnAppRoot/CnAppRoot.vue'
 import CnHeaderSearchLabel from '../../src/components/CnHeaderSearchLabel/CnHeaderSearchLabel.vue'
 
-const NC_LINE = 'Search apps, files, tags, messages …'
+const NC_LINE = 'Search apps, files, tags, messages …'
 
 /** Nextcloud's header with its resting search field, as Nextcloud 34 draws it. */
 function addHeader() {
