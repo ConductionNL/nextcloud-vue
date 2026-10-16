@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.99.0', () => {
+	it('the manifest schema version reads 2.100.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1381,7 +1381,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.97.0 adds board columnFields, narrow, moveHandler, moveTargetsHandler, columnSwitchLabel, hint and wrap (screens-board-reference-columns).
 		// 2.98.0 lets config.titleField name the record on a detail page (detail-title-field).
 		// 2.99.0 lets config.countSubtitle take a singular and a plural form (index-count-plural).
-		expect(schema.version).toBe('2.99.0')
+		// 2.100.0 adds columnFields[].source.capacityField on a board (board-column-capacity).
+		expect(schema.version).toBe('2.100.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2177,5 +2178,18 @@ describe('app-manifest-v2: a plural countSubtitle (index-count-plural, 2.99.0)',
 		expect(validateManifestV2(index({ countSubtitle: { singular: '{total} invoice', plural: '{total} invoices' } })).valid).toBe(true)
 		expect(validateManifestV2(index({ countSubtitle: { singular: '{total} invoice' } })).valid).toBe(false)
 		expect(validateManifestV2(index({ countSubtitle: { singular: '{total} invoice', plural: '{total} invoices', few: 'x' } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: a board column capacity (board-column-capacity, 2.100.0)', () => {
+	const index = (source) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', board: { statusField: 'status', columnFields: [{ field: 'status', source }] } } }],
+	})
+
+	it('accepts source.capacityField as a field name and refuses an empty or non-string one', () => {
+		expect(validateManifestV2(index({ schema: 'statusType', capacityField: 'capacity' })).valid).toBe(true)
+		expect(validateManifestV2(index({ schema: 'statusType', capacityField: '' })).valid).toBe(false)
+		expect(validateManifestV2(index({ schema: 'statusType', capacityField: 4 })).valid).toBe(false)
 	})
 })

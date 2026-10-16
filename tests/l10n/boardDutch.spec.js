@@ -30,5 +30,7 @@ describe('board strings in Dutch', () => {
 		expect(t('nextcloud-vue', 'Nobody')).toBe('Niemand')
 		expect(t('nextcloud-vue', '{label}:', { label: 'Kolommen' })).toBe('Kolommen:')
 		expect(t('nextcloud-vue', '{name} cannot move to {column}.', { name: 'Parkeren', column: 'Besluit' })).toBe('Parkeren kan niet naar Besluit.')
+		expect(t('nextcloud-vue', 'full')).toBe('vol')
+		expect(t('nextcloud-vue', '{column} is full: {count} of {capacity}.', { column: 'In behandeling', count: 4, capacity: 4 })).toBe('In behandeling is vol: 4 van 4.')
 	})
 })

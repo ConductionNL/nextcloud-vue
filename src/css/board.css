@@ -61,6 +61,12 @@
 	font-weight: 400;
 }
 
+/* A column at its limit: the count in the error colour; "full" is said in words too. */
+.cn-board-view.cn-board-view--board .cn-board-view__badge.cn-board-view__badge--full {
+	color: var(--color-error-text, var(--color-error));
+	font-weight: 600;
+}
+
 .cn-board-view.cn-board-view--board .cn-board-view__sum {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);

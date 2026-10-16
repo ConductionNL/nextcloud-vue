@@ -55,10 +55,26 @@ export function stagesOf(field, colorField = '') {
 					label: String(entry?.label ?? entry?.title ?? entry?.key ?? entry?.value ?? ''),
 					hidden: entry?.hidden === true,
 					color: colorOf(field, entry, colorField),
+					capacity: capacityValue(entry?.capacity),
 				}))
 		.filter((stage) => stage.key !== '')
 
 	return { stages, usable: stages.length > 0 }
+}
+
+/**
+ * A column limit as a usable number.
+ *
+ * @param {unknown} value - The declared limit.
+ * @return {number|null} The limit, or null when there is none (not a number above 0).
+ * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
+ */
+export function capacityValue(value) {
+	if (value === null || value === undefined || value === '') {
+		return null
+	}
+	const n = Number(value)
+	return Number.isFinite(n) && n > 0 ? n : null
 }
 
 /**
@@ -154,6 +170,7 @@ export function buildBoardColumns({
 		key: stage.key,
 		label: stage.label,
 		color: stage.color,
+		capacity: stage.capacity ?? null,
 		cards: [],
 		count: 0,
 	}))
