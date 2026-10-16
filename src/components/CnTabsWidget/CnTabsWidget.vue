@@ -187,7 +187,7 @@ import { resolveTabCount } from '../../utils/detailActionModel.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
-import { evaluateVisibleWhen, evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition } from '../../utils/visibleWhen.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
@@ -331,6 +331,13 @@ export default {
 		 * `visibleWhen` reads them as `@context.<name>`. Null on any other page.
 		 */
 		cnDetailVisibilityRows: { default: null },
+		/**
+		 * The page's workspace bag (CnDashboardPage provides it), which a
+		 * page control such as a chips filter writes. A widget in a stack is
+		 * left out while its workspace `visibleWhen` does not hold. Null off a
+		 * dashboard.
+		 */
+		cnWorkspaceContext: { default: null },
 		/**
 		 * The host's translate (CnAppRoot provides `cnTranslate`), so a tab
 		 * label written in the manifest reads in the user's language.
@@ -588,7 +595,8 @@ export default {
 				// widget is skipped. The first that resolves is the panel's.
 				const ids = this.tabWidgetIds(tab)
 				const widgets = ids.length > 1
-					? ids.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null).filter(Boolean)
+					? ids.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null)
+							.filter((w) => w && !this.hiddenByWorkspace(w))
 					: []
 				const widget = ids.length > 1
 					? (widgets[0] || null)
@@ -837,6 +845,29 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a page control hides a widget of a stack right now: its
+		 * `visibleWhen` (on the widget, its content or its props) is a
+		 * workspace condition that does not hold. Off a dashboard there is no
+		 * workspace, and nothing is hidden. Other conditions are not looked at
+		 * here.
+		 *
+		 * @param {object} widget The widget definition.
+		 * @return {boolean} True when the widget must not draw.
+		 * @spec openspec/changes/tabs-stack-follows-page-controls/specs/tabs-widget/spec.md#requirement-a-widget-in-a-tab-stack-follows-the-page-controls
+		 */
+		hiddenByWorkspace(widget) {
+			const cond = widget.visibleWhen || widget.content?.visibleWhen || widget.props?.visibleWhen || null
+			if (!isWorkspaceCondition(cond)) {
+				return false
+			}
+			const bag = this.cnWorkspaceContext
+			if (!bag || typeof bag !== 'object') {
+				return false
+			}
+			return !evaluateWorkspaceCondition(cond, 'value' in bag ? bag.value : bag)
+		},
+
 		/**
 		 * The grid a stack lays its widgets out in, as one column span (of 12)
 		 * per widget in order, or null for the plain vertical stack. A tab says
