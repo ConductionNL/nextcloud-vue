@@ -1473,7 +1473,27 @@
     "Link related object": "Link related object",
     "{type} parts": "{type} parts",
     "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.": "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.",
-    "Save failed": "Save failed"
+    "Save failed": "Save failed",
+    "Modules": "Modules",
+    "In the menu": "In the menu",
+    "Off": "Off",
+    "Pages": "Pages",
+    "Open {module}": "Open {module}",
+    "{list} and {last}": "{list} and {last}",
+    "%n page: {pages}": [
+      "%n page: {pages}",
+      "%n pages: {pages}"
+    ],
+    "%n page, including {pages}": [
+      "%n page, including {pages}",
+      "%n pages, including {pages}"
+    ],
+    "{on} of %n is in the menu": [
+      "{on} of %n is in the menu",
+      "{on} of %n are in the menu"
+    ],
+    "Put it in the menu:": "Put it in the menu:",
+    "Admin settings": "Admin settings"
   },
   "plurals": {
     "{count} selected": [
