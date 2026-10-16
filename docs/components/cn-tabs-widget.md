@@ -28,6 +28,23 @@ The strip renders the items. It does not rebuild them. Each one carries a callba
 
 A widget that keeps its own header publishes nothing, which is every surface except a tab panel. The channel itself is an internal module, `src/utils/panelActions.js`, and it documents the shape a widget publishes.
 
+## Without the Actions menu
+
+The strip draws one Actions menu beside the tabs. A page that draws none, as the boards do, turns it off on the tabs widget's content:
+
+```json
+{
+  "id": "receivables-tabs",
+  "type": "tabs",
+  "content": {
+    "showActions": false,
+    "tabs": [{ "widgetId": "open-invoices", "label": "Open balance" }]
+  }
+}
+```
+
+The whole menu goes, including the items an open panel lends it (a data widget's Metadata and Edit). Without the key the menu stays as it is.
+
 ## Usage
 
 Reference it from a manifest placement. `label` and `icon` are optional and fall back to the child widget's own title and icon, so the common case is a list of `widgetId`s:
@@ -47,23 +64,6 @@ Reference it from a manifest placement. `label` and `icon` are optional and fall
   }
 }
 ```
-
-### Without the Actions menu
-
-The strip draws one Actions menu beside the tabs. A page that draws none, as the boards do, turns it off on the tabs widget's content:
-
-```json
-{
-  "id": "receivables-tabs",
-  "type": "tabs",
-  "content": {
-    "showActions": false,
-    "tabs": [{ "widgetId": "open-invoices", "label": "Open balance" }]
-  }
-}
-```
-
-The whole menu goes, including the items an open panel lends it (a data widget's Metadata and Edit). Without the key the menu stays as it is.
 
 ### Counts, and tabs under More
 
