@@ -660,3 +660,11 @@
 .cn-look-board:has(.cn-detail-page) > .app-sidebar__toggle {
 	display: none;
 }
+
+/* Below 768px the header is a column (detail-page.css), where the 320px basis
+   above would be a 320px HEIGHT: the title sat in a band of white on a phone. */
+@media (max-width: 768px) {
+	.cn-look-board .cn-detail-page__header--board > :first-child {
+		flex: none;
+	}
+}
