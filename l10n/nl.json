@@ -1680,7 +1680,8 @@
       "{on} van %n staat in het menu",
       "{on} van %n staan in het menu"
     ],
-    "Put it in the menu:": "In het menu zetten:"
+    "Put it in the menu:": "In het menu zetten:",
+    "Nothing to act on.": "Er is niets om dit op uit te voeren."
   },
   "plurals": {
     "{count} selected": [

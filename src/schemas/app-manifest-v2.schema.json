@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.108.0",
+	"version": "2.122.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2874,6 +2874,19 @@
 				"description": {
 					"type": "string",
 					"description": "export only: pre-translated description shown above the export launcher's pickers."
+				},
+				"resolve": {
+					"type": "object",
+					"required": ["register", "schema"],
+					"additionalProperties": false,
+					"description": "api-call / navigate: look up a record before the action renders and again before it runs (the first OpenRegister object of register/schema matching filter; filter values take the action token grammar, e.g. @objectId). Its fields are @resolved.<path> in url, target and payload. Without a match the action is disabled with `reason` as its title, or hidden with unresolved: hide.",
+					"properties": {
+						"register": { "type": "string", "minLength": 1 },
+						"schema": { "type": "string", "minLength": 1 },
+						"filter": { "type": "object", "additionalProperties": true, "description": "Equality filters, e.g. { \"programme\": \"@objectId\", \"status\": \"open\" }." },
+						"unresolved": { "type": "string", "enum": ["disable", "hide"], "default": "disable" },
+						"reason": { "type": "string", "description": "i18n key / why the action cannot run without a record (its title, and the error when it is pressed anyway)." }
+					}
 				},
 				"url": {
 					"type": "string",

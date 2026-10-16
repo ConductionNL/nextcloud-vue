@@ -65,7 +65,8 @@
 				v-else
 				:key="entry.id"
 				:variant="entry.variant || 'secondary'"
-				:disabled="Boolean(actionPending[entry.id])"
+				:disabled="isBlocked(entry)"
+				:title="unresolved[entry.id] || null"
 				:data-testid="`cn-action-${entry.id}`"
 				@click="onActionClick(entry)">
 				<template v-if="entry.icon" #icon>
@@ -103,7 +104,8 @@
 					<NcActionButton
 						v-else
 						:key="child.id"
-						:disabled="Boolean(actionPending[child.id])"
+						:disabled="isBlocked(child)"
+						:title="unresolved[child.id] || null"
 						:data-testid="`cn-action-${child.id}`"
 						@click="onActionClick(child)">
 						<template v-if="child.icon" #icon>
@@ -140,7 +142,8 @@
 				<NcActionButton
 					v-else
 					:key="entry.id"
-					:disabled="Boolean(actionPending[entry.id])"
+					:disabled="isBlocked(entry)"
+					:title="unresolved[entry.id] || null"
 					:data-testid="`cn-action-${entry.id}`"
 					@click="onActionClick(entry)">
 					<template v-if="entry.icon" #icon>
@@ -218,6 +221,7 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnRunNodeDialog from '../../dialogs/CnRunNodeDialog.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
+import { actionNeedsResolve, resolveActionRecord } from '../../utils/actionResolve.js'
 import { actionLink, buildOnSuccessRoute, dispatchAction, interpolateActionTarget, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { usesArrayValues, valueArrayFor, valueRecordsFor } from '../../utils/dynamicProperties.js'
@@ -418,6 +422,10 @@ export default {
 		return {
 			/** Evaluated visibleWhen outcome per action id (true when no predicate). */
 			visibility: {},
+			// Action id to the reason it cannot run: its `resolve` block found no record.
+			unresolved: {},
+			// Action id to the record its `resolve` block found, for its link.
+			resolvedRecords: {},
 			/** Current boolean state per toggle action id. */
 			toggleState: {},
 			/** In-flight flag per toggle action id (disables the button). */
@@ -692,12 +700,8 @@ export default {
 				}
 			}
 			for (const action of flat) {
-				if (!action.visibleWhen) {
-					this.visibility[action.id] = true
-					continue
-				}
-				const ok = await evaluateVisibleWhen(action.visibleWhen, this.tokenCtx)
-				this.visibility[action.id] = ok
+				const ok = action.visibleWhen ? await evaluateVisibleWhen(action.visibleWhen, this.tokenCtx) : true
+				this.visibility[action.id] = ok && await this.resolveFor(action)
 			}
 		},
 
@@ -779,11 +783,17 @@ export default {
 			if (a.href || (a.type !== 'navigate' && a.type !== 'open-page')) {
 				return a
 			}
+			// A link to a looked-up record waits for the record; until then (or
+			// without one) it stays a button, which the dispatcher resolves.
+			if (actionNeedsResolve(a) && !this.resolvedRecords[a.id]) {
+				return a
+			}
 			let entry = a
 			if (a.type === 'navigate') {
 				// Interpolated BEFORE the external test and before it becomes an
 				// href, so the anchor carries the record's id rather than the token.
-				const target = interpolateActionTarget(a.target, this.tokenCtx)
+				const ctx = actionNeedsResolve(a) ? { ...this.tokenCtx, resolved: this.resolvedRecords[a.id] } : this.tokenCtx
+				const target = interpolateActionTarget(a.target, ctx)
 				if (isExternalActionTarget(target)) {
 					return { ...a, href: target, target: '_blank' }
 				}
@@ -959,6 +969,44 @@ export default {
 		 */
 		tr(value) {
 			return value ? this.effectiveTranslate(value) : value
+		},
+
+		/**
+		 * Look up the record of an action with a `resolve` block. Without one
+		 * the action is hidden (`resolve.unresolved: "hide"`) or disabled with
+		 * `resolve.reason` as its title.
+		 *
+		 * @param {object} action The action.
+		 * @return {Promise<boolean>} False when the action should be hidden.
+		 * @spec openspec/changes/screens-action-resolve/specs/manifest-actions/spec.md#requirement-an-action-can-name-a-looked-up-record
+		 */
+		async resolveFor(action) {
+			if (!actionNeedsResolve(action)) {
+				return true
+			}
+			const record = await resolveActionRecord(action.resolve, this.tokenCtx)
+			if (record) {
+				delete this.unresolved[action.id]
+				this.resolvedRecords[action.id] = record
+				return true
+			}
+			delete this.resolvedRecords[action.id]
+			if (action.resolve.unresolved === 'hide') {
+				return false
+			}
+			this.unresolved[action.id] = this.tr(action.resolve.reason) || t('nextcloud-vue', 'Nothing to act on.')
+			return true
+		},
+
+		/**
+		 * Whether an action button cannot be pressed: it is running, or its
+		 * `resolve` block found no record.
+		 *
+		 * @param {object} action The action.
+		 * @return {boolean} True when disabled.
+		 */
+		isBlocked(action) {
+			return Boolean(this.actionPending[action.id]) || Boolean(this.unresolved[action.id])
 		},
 
 		/**

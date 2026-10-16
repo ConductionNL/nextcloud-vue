@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.108.0', () => {
+	it('the manifest schema version reads 2.122.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1385,7 +1385,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.101.0 adds columnFields[].source.neutralColor on a board (board-neutral-column-colour).
 		// 2.102.0 adds columnFields[].source.colorMap on a board (board-column-colour-map).
 		// 2.108.0 adds config.modules, modulesTitle and footnote on a links page (screens-links-module-cards).
-		expect(schema.version).toBe('2.108.0')
+		// 2.122.0 adds action.resolve, a looked-up record for an api-call or navigate action (screens-action-resolve).
+		expect(schema.version).toBe('2.122.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2249,5 +2250,28 @@ describe('app-manifest-v2: module cards on a links page (screens-links-module-ca
 		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales', label: 'Sales', colour: 'red' }] })).valid).toBe(false)
 		expect(validateManifestV2(linksPage({ groupStyle: 'tiles' })).valid).toBe(false)
 		expect(validateManifestV2(linksPage({ modules: [{ id: 'pos', label: 'Till', enable: { route: '/admin' } }] })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: an action that looks a record up (screens-action-resolve, 2.122.0)', () => {
+	const withAction = (action) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Project', route: '/projects/:id', type: 'detail', title: 'Project', config: { register: 'pipelinq', schema: 'project' }, actions: [action] }],
+	})
+
+	it('accepts resolve on an api-call', () => {
+		const action = {
+			id: 'close-cycle',
+			label: 'Close cycle',
+			type: 'api-call',
+			url: '/apps/pipelinq/api/cycles/@resolved.id/close',
+			resolve: { register: 'pipelinq', schema: 'cycle', filter: { programme: '@objectId', status: 'open' }, unresolved: 'disable', reason: 'No open cycle' },
+		}
+		expect(validateManifestV2(withAction(action)).valid).toBe(true)
+	})
+
+	it('refuses a resolve without a schema or with an unknown key', () => {
+		expect(validateManifestV2(withAction({ id: 'a', label: 'A', type: 'api-call', url: '/x', resolve: { register: 'r' } })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ id: 'a', label: 'A', type: 'api-call', url: '/x', resolve: { register: 'r', schema: 's', pick: 'last' } })).valid).toBe(false)
 	})
 })

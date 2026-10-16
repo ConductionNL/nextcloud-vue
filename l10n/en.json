@@ -1494,7 +1494,8 @@
       "{on} of %n are in the menu"
     ],
     "Put it in the menu:": "Put it in the menu:",
-    "Admin settings": "Admin settings"
+    "Admin settings": "Admin settings",
+    "Nothing to act on.": "Nothing to act on."
   },
   "plurals": {
     "{count} selected": [

@@ -51,6 +51,8 @@ import { translate as t } from '@nextcloud/l10n'
 import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
 import { routeHref } from './actionLink.js'
+import { actionNeedsResolve, resolveActionRecord } from './actionResolve.js'
+import { readPath } from './readPath.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -341,7 +343,11 @@ function interpolateActionString(str, ctx) {
 	if (typeof str !== 'string') {
 		return str
 	}
-	const braced = str.replace(/\{objectId\}/g, () => {
+	const withResolved = str.replace(/@resolved\.([A-Za-z0-9_.]+)/g, (_, path) => {
+		const v = ctx.resolved ? readPath(ctx.resolved, path) : undefined
+		return (v === undefined || v === null || typeof v === 'object') ? '' : String(v)
+	})
+	const braced = withResolved.replace(/\{objectId\}/g, () => {
 		const id = ctx.objectId
 		return (id === undefined || id === null) ? '' : String(id)
 	})
@@ -365,7 +371,7 @@ export function interpolateActionTarget(target, ctx) {
 }
 
 // The tokens interpolateActionString resolves; a bare `@` or `{` is not one.
-const ACTION_TARGET_TOKEN = /@(?:objectId|object\.|page\.|workspace\.|config\.|range\.)|\{objectId\}/
+const ACTION_TARGET_TOKEN = /@(?:objectId|object\.|page\.|workspace\.|config\.|range\.|resolved\.)|\{objectId\}/
 
 /**
  * Whether an action target carries a token that interpolation would resolve,
@@ -810,11 +816,40 @@ export async function postRunNode(action, context, config = {}) {
  *   a promise of `{ ok, data?, error? }` (toasts + refresh already handled). All other types
  *   return undefined.
  */
+/**
+ * Run an action with a `resolve` block: look its record up, then dispatch it
+ * with the record as `@resolved` in its token context. Without a record the
+ * action does not run and the reader is told why (`resolve.reason`).
+ *
+ * @param {object} action The action.
+ * @param {object} context The dispatch context.
+ * @return {Promise<unknown>} What the dispatch returns, or `{ ok: false }` without a record.
+ * @spec openspec/changes/screens-action-resolve/specs/manifest-actions/spec.md#requirement-an-action-can-name-a-looked-up-record
+ */
+async function dispatchResolved(action, context) {
+	const tokenCtx = context.tokenCtx || {}
+	const record = await resolveActionRecord(action.resolve, tokenCtx)
+	if (!record) {
+		const dialogs = await import('@nextcloud/dialogs')
+		if (typeof dialogs.showError === 'function') {
+			dialogs.showError(translateMessage(action.resolve.reason, context) || t('nextcloud-vue', 'Nothing to act on.'))
+		}
+		return { ok: false, error: new Error('resolve found no record') }
+	}
+	return dispatchAction(action, { ...context, resolvedRecord: record, tokenCtx: { ...tokenCtx, resolved: record } })
+}
+
 export function dispatchAction(action, context = {}) {
 	if (!action || typeof action !== 'object') {
 		// eslint-disable-next-line no-console
 		console.warn('[dispatchAction] Received invalid action:', action)
 		return
+	}
+
+	// An action with a `resolve` block looks its record up first, every time
+	// it runs, so it never acts on a record that closed since the page drew.
+	if (actionNeedsResolve(action) && !context.resolvedRecord) {
+		return dispatchResolved(action, context)
 	}
 
 	// Missing type is treated as "handler" for v1 backward compatibility

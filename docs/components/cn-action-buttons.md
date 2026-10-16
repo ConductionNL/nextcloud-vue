@@ -148,6 +148,20 @@ only resolves one level deep. The object context comes from either
 `cnDetailObjectContext` holder, so a detail action resolves against the
 current record without extra wiring.
 
+### Acting on a looked-up record (`resolve`)
+
+An `api-call` or `navigate` action can act on a record it looks up first, such as a programme's open cycle (board PqProject, "Close cycle"). `resolve` names the register, schema and filter (filter values take the token grammar, so `@objectId` is the page's record); the first match is `@resolved.<field>` in `url`, `target` and `payload`. Schema 2.122.0.
+
+```json
+{ "id": "close-cycle", "label": "Close cycle", "type": "api-call", "confirm": true,
+  "url": "/apps/pipelinq/api/cycles/@resolved.id/close",
+  "resolve": { "register": "pipelinq", "schema": "cycle",
+    "filter": { "programme": "@objectId", "status": "open" },
+    "unresolved": "disable", "reason": "There is no open cycle" } }
+```
+
+The record is looked up when the actions render and again when the action runs, so it never acts on a record that changed in between. Without a match the button is disabled with `reason` as its title (`unresolved: "hide"` hides it instead), and a dispatch that finds nothing shows `reason` as an error and does not call.
+
 ## Props
 
 | Prop | Type | Default | Description |

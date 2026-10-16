@@ -37,6 +37,7 @@
  *  - `@object.<field>`    → a field off the current detail-page object (needs `ctx`)
  *  - `@workspace.<key>`   → a value off the page-level workspace context (needs `ctx.workspace`)
  *  - `@config.<key>`      → a value off the page-level app config (needs `ctx.config`)
+ *  - `@resolved.<path>`  → a field off the record an action's `resolve` block looked up (needs `ctx.resolved`)
  *
  * `@objectId` / `@object.<field>` are OBJECT-CONTEXT tokens: they resolve only
  * when a `ctx` `{ objectId, object }` is supplied (a detail page provides it via
@@ -66,6 +67,7 @@
  */
 
 import { getCurrentUser } from '@nextcloud/auth'
+import { readPath } from './readPath.js'
 import { TODAY_DELTA_RE } from './sentinelTokens.js'
 // userGroupsPeek, not widgetVisibility: that one imports @nextcloud/axios, and
 // this resolver runs on public pages and in node (see userGroupsPeek.js).
@@ -137,6 +139,10 @@ export function resolveFilterValue(v, ctx) {
 			return ctx.object[field]
 		}
 		return v
+	}
+	if (v.startsWith('@resolved.')) {
+		const value = ctx && ctx.resolved ? readPath(ctx.resolved, v.slice('@resolved.'.length)) : undefined
+		return value !== undefined && value !== null ? value : v
 	}
 	if (v.startsWith('@workspace.')) {
 		// A trailing `?` marks the token OPTIONAL: when unset the caller drops the

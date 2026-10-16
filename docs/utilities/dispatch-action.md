@@ -409,3 +409,7 @@ switch.
 
 - REQ-MVR-011 (manifest-v2-renderer) — unified actions dispatcher
 - ADR-036 Decision 7 — action dispatch vocabulary
+
+## Looked-up records (`resolve`)
+
+An `api-call` or `navigate` action with a `resolve` block (`{ register, schema, filter, unresolved?, reason? }`) looks up the first matching OpenRegister object before it runs and reads it as `@resolved.<field>` in `url`, `target` and `payload`. Without a match it does not run and shows `reason` as an error. See [CnActionButtons](../components/cn-action-buttons.md#acting-on-a-looked-up-record-resolve).
