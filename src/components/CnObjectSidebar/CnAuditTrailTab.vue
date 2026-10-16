@@ -146,6 +146,7 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { useRestoreVersion } from '../../composables/useRestoreVersion.js'
 import { buildHeaders } from '../../utils/index.js'
 import { isLockedByCurrentUser, isObjectLocked, lockHolder } from '../../utils/objectLock.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 export default {
 	name: 'CnAuditTrailTab',
@@ -426,7 +427,7 @@ export default {
 				return ''
 			}
 			try {
-				return new Date(dateStr).toLocaleString(undefined, {
+				return new Date(dateStr).toLocaleString(userLocale(), {
 					year: 'numeric',
 					month: 'short',
 					day: 'numeric',

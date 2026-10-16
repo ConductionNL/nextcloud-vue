@@ -175,6 +175,7 @@ import CnCospendCreate from '../../../components/CnCospendCreate/CnCospendCreate
 import CnCospendPicker from '../../../components/CnCospendPicker/CnCospendPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 /**
  * CnCospendTab — bespoke sidebar tab for the `cospend` integration.
@@ -495,7 +496,7 @@ export default {
 			if (Number.isNaN(date.getTime())) {
 				return ''
 			}
-			return date.toLocaleDateString(undefined, { dateStyle: 'medium' })
+			return date.toLocaleDateString(userLocale(), { dateStyle: 'medium' })
 		},
 
 		/**

@@ -68,6 +68,7 @@ import { markRaw } from 'vue'
 import Email from 'vue-material-design-icons/Email.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 /**
  * CnEmailCard — compact widget for the `email` integration leaf.
@@ -279,7 +280,7 @@ export default {
 			if (Number.isNaN(d.getTime()) === true) {
 				return String(raw)
 			}
-			return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+			return d.toLocaleDateString(userLocale(), { year: 'numeric', month: 'short', day: 'numeric' })
 		},
 
 		// Thread deep-link into NC Mail; undefined when the row lacks ids.

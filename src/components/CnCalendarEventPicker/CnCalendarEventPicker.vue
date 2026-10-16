@@ -120,6 +120,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnCalendarEventPicker — 2-step calendar/event picker modal for the
@@ -307,7 +308,7 @@ export default {
 				if (Number.isNaN(d.getTime())) {
 					return String(ev.dtstart)
 				}
-				return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+				return d.toLocaleString(userLocale(), { dateStyle: 'medium', timeStyle: 'short' })
 			} catch {
 				return String(ev.dtstart)
 			}

@@ -95,6 +95,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnObjectCalendar — plots objects on a month calendar by a date property.
@@ -210,7 +211,7 @@ export default {
 
 	computed: {
 		monthLabel() {
-			return this.internalDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+			return this.internalDate.toLocaleDateString(userLocale(), { month: 'long', year: 'numeric' })
 		},
 
 		prevMonthLabel() {
@@ -460,7 +461,7 @@ export default {
 		 * @return {string}
 		 */
 		dayLabel(day) {
-			const date = this.parseDate(day.iso).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+			const date = this.parseDate(day.iso).toLocaleDateString(userLocale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 			return day.objects.length === 0 ? date : `${date}, ${t('nextcloud-vue', '{count} records', { count: day.objects.length })}`
 		},
 

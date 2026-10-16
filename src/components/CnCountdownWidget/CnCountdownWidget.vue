@@ -29,6 +29,7 @@ import { inject } from 'vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { getByPath } from '../../composables/useEndpointSource.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
@@ -248,7 +249,7 @@ export default {
 			if (!this.targetDate || this.content?.showDate === false) {
 				return ''
 			}
-			return this.targetDate.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+			return this.targetDate.toLocaleDateString(userLocale(), { day: 'numeric', month: 'long', year: 'numeric' })
 		},
 
 		/**

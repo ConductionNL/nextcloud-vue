@@ -618,6 +618,7 @@ const baseActions = {
 	 * Fetch the schema definition for a registered type.
 	 * Uses cache — only fetches once per type per session.
 	 *
+	 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-schema-title-falls-back-to-its-written-form
 	 * @param {string} type The registered type slug
 	 * @return {Promise<object|null>} The schema object or null on error
 	 */
@@ -638,8 +639,12 @@ const baseActions = {
 			const registerScope = config.register
 				? `?register=${encodeURIComponent(config.register)}`
 				: ''
-			const response = await trackedFetch(
-				prefixUrl(`/apps/openregister/api/schemas/${config.schema}${registerScope}`),
+			// Through the schema fallback like every objects-API call: a type
+			// resolveObjectOpType registered from a title (`APInvoice` ->
+			// `ap-invoice`) retries once with the title as written on a 404.
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => prefixUrl(`/apps/openregister/api/schemas/${schema ?? config.schema}${registerScope}`),
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
 

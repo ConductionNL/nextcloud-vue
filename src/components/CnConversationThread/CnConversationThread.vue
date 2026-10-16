@@ -86,6 +86,7 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import { prefixUrl } from '../../utils/headers.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 let conversationThreadUid = 0
 
@@ -299,7 +300,7 @@ export default {
 			if (!looksLikeDate || Number.isNaN(date.getTime())) {
 				return { label: String(value), datetime: '' }
 			}
-			const label = date.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+			const label = date.toLocaleString(userLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 			return { label, datetime: date.toISOString() }
 		},
 

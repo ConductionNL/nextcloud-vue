@@ -86,6 +86,7 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import ClipboardCheckOutline from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 import Sync from 'vue-material-design-icons/Sync.vue'
 import CnOfflineQueue from '../../../components/CnOfflineQueue/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 import { syncIndicator } from '../../offline/fieldCollectionHelpers.js'
 import {
 	countPending,
@@ -186,7 +187,7 @@ export default {
 				return ''
 			}
 			const moment = new Date(syncedAt)
-			return Number.isNaN(moment.getTime()) ? '' : moment.toLocaleString()
+			return Number.isNaN(moment.getTime()) ? '' : moment.toLocaleString(userLocale())
 		},
 
 		/**

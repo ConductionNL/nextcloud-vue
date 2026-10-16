@@ -36,11 +36,12 @@
 					v-for="column in lane.columns"
 					:key="`col-${lane.key}-${column.key}`"
 					class="cn-board-view__column"
-					:class="{ 'cn-board-view__column--unreachable': isUnreachable(column) }"
+					:class="{ 'cn-board-view__column--unreachable': isUnreachable(column), 'cn-board-view__column--full': isFull(column), 'cn-board-view__column--reason': dragReason(column) !== '' }"
 					role="listitem"
 					data-testid="cn-board-column"
 					:data-column="column.key"
 					:data-unreachable="isUnreachable(column) ? 'true' : null"
+					:data-full="isFull(column) ? 'true' : null"
 					@dragover.prevent
 					@drop="onDrop(column, $event)">
 					<!-- Board look: a dot, the label and a white count badge, with an
@@ -53,8 +54,11 @@
 								:style="{ background: dotColor(column) }"
 								aria-hidden="true" />
 							<span class="cn-board-view__column-title">{{ column.label }}</span>
-							<span class="cn-board-view__badge" data-testid="cn-board-count">
-								{{ column.count }}<span v-if="paged" class="hidden-visually"> {{ t('nextcloud-vue', 'on this page') }}</span>
+							<span
+								class="cn-board-view__badge"
+								:class="{ 'cn-board-view__badge--full': isFull(column) }"
+								data-testid="cn-board-count">
+								{{ capacityOf(column) === null ? column.count : capacityText(column) }}<span v-if="paged" class="hidden-visually"> {{ t('nextcloud-vue', 'on this page') }}</span><span v-if="isFull(column)" class="hidden-visually">{{ ' ' + t('nextcloud-vue', 'full') }}</span>
 							</span>
 						</h2>
 						<span
@@ -66,10 +70,20 @@
 					</div>
 					<h3 v-else class="cn-board-view__column-header">
 						{{ column.label }}
-						<span class="cn-board-view__count" data-testid="cn-board-count">
-							{{ countLabel(column) }}
+						<span
+							class="cn-board-view__count"
+							:class="{ 'cn-board-view__count--full': isFull(column) }"
+							data-testid="cn-board-count">
+							{{ countLabel(column) }}<span v-if="isFull(column)" class="hidden-visually">{{ ' ' + t('nextcloud-vue', 'full') }}</span>
 						</span>
 					</h3>
+
+					<p
+						v-if="dragReason(column) !== ''"
+						class="cn-board-view__column-reason"
+						data-testid="cn-board-column-reason">
+						{{ dragReason(column) }}
+					</p>
 
 					<!--
 						A list of its own, so a reader is told how many cards
@@ -176,14 +190,18 @@
 													class="cn-board-view__menu-item"
 													data-testid="cn-board-menu-move"
 													:data-target="target.key"
-													:aria-disabled="isMoveAllowed(card, target) ? null : 'true'"
-													:class="{ 'cn-board-view__menu-item--blocked': !isMoveAllowed(card, target) }"
-													@click="isMoveAllowed(card, target) && onMenuMove(card, column, target)">
+													:aria-disabled="canMoveTo(card, target) ? null : 'true'"
+													:class="{ 'cn-board-view__menu-item--blocked': !canMoveTo(card, target), 'cn-board-view__menu-item--reason': blockReason(card, target) !== '' }"
+													@click="canMoveTo(card, target) && onMenuMove(card, column, target)">
 													{{ target.label }}
 													<span
-														v-if="!isMoveAllowed(card, target)"
+														v-if="!canMoveTo(card, target) && blockedNote(card, target) !== ''"
 														class="cn-board-view__menu-note"
-														data-testid="cn-board-menu-blocked">{{ notAllowedLabel }}</span>
+														data-testid="cn-board-menu-blocked">{{ blockedNote(card, target) }}</span>
+													<span
+														v-if="blockReason(card, target) !== ''"
+														class="cn-board-view__menu-reason"
+														data-testid="cn-board-menu-reason">{{ blockReason(card, target) }}</span>
 												</button>
 											</div>
 											<button
@@ -337,13 +355,14 @@ import { translate as t } from '@nextcloud/l10n'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
-import { buildBoardColumns, resolveStageColor } from '../../utils/boardColumns.js'
+import { buildBoardColumns, normalizeAllowed, resolveStageColor } from '../../utils/boardColumns.js'
 import { buildSwimlanes } from '../../utils/boardSwimlanes.js'
 import { DROP_OUTCOMES, runBoardDrop } from '../../utils/boardTransition.js'
 import { daysUntil, dueStateForRow } from '../../utils/dueRule.js'
 import { formatMetricValue } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 import '../../css/board.css'
 
@@ -584,7 +603,13 @@ export default {
 		 * it is refused without asking the host. Absent, every column is
 		 * offered and the host's move decides.
 		 *
-		 * @type {((card: object) => Promise<Array<string>|null>)|null}
+		 * An entry may also be `{ key, allowed, reason }`. With `allowed:
+		 * false` the column is blocked: the menu shows the reason under its
+		 * name, the column shows it under its header during a drag, and a
+		 * drop there is refused with it.
+		 *
+		 * @type {((card: object) => Promise<Array<string|{key: string, allowed?: boolean, reason?: string}>|null>)|null}
+		 * @spec openspec/changes/board-move-block-reasons/specs/board-view/spec.md#requirement-a-move-target-can-be-blocked-with-a-reason
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-board-shows-where-a-card-can-go
 		 */
 		allowedMoves: {
@@ -609,9 +634,9 @@ export default {
 			expanded: [],
 			/** The card whose menu is open (board look), by card key. */
 			openMenuKey: null,
-			/** Column keys each card may move to (`allowedMoves`), by card key; absent = not asked yet. */
+			/** Where each card may move (`allowedMoves`), as `{ keys, reasons }` by card key; null = everywhere, absent = not asked yet. */
 			allowedByCard: {},
-			/** The column keys the dragged card may reach, or null for all. */
+			/** Where the dragged card may move, as `{ keys, reasons }`, or null for everywhere. */
 			dragAllowed: null,
 		}
 	},
@@ -665,6 +690,21 @@ export default {
 		/** @return {string} The note on a menu target the card cannot reach. */
 		notAllowedLabel() {
 			return t('nextcloud-vue', 'not allowed')
+		},
+
+		/** @return {string} The note on a menu target that is full. */
+		fullLabel() {
+			return t('nextcloud-vue', 'full')
+		},
+
+		/**
+		 * Every column's total over all lanes, by key: what a limit is
+		 * measured against, since a swimlane holds only part of a column.
+		 *
+		 * @return {Map<string, number>} The totals.
+		 */
+		columnTotals() {
+			return new Map(this.board.columns.map((column) => [String(column.key), column.count]))
 		},
 
 		/** @return {Array<string>} The selected row keys as strings. */
@@ -773,7 +813,7 @@ export default {
 		 * Ask the host where one card may go (`allowedMoves`), once per card.
 		 *
 		 * @param {object} card The card.
-		 * @return {Promise<Array<string>|null>} The column keys, or null for all.
+		 * @return {Promise<{keys: Array<string>, reasons: object}|null>} Where it may go, or null for everywhere.
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-board-shows-where-a-card-can-go
 		 */
 		async loadAllowed(card) {
@@ -786,8 +826,7 @@ export default {
 			}
 			let allowed
 			try {
-				const answer = await this.allowedMoves(card)
-				allowed = Array.isArray(answer) ? answer.map(String) : null
+				allowed = normalizeAllowed(await this.allowedMoves(card))
 			} catch {
 				// Unknown is not "nowhere": the host's move stays the authority.
 				allowed = null
@@ -805,7 +844,116 @@ export default {
 		 */
 		isMoveAllowed(card, target) {
 			const allowed = this.allowedByCard[this.cardKey(card)]
-			return !Array.isArray(allowed) || allowed.includes(String(target.key))
+			return !allowed || allowed.keys.includes(String(target.key))
+		},
+
+		/**
+		 * Why the host blocked a card's move to a column, when it said.
+		 *
+		 * @param {object} card The card.
+		 * @param {object} target The column.
+		 * @return {string} The reason, '' when the move is allowed or no reason was given.
+		 * @spec openspec/changes/board-move-block-reasons/specs/board-view/spec.md#requirement-a-move-target-can-be-blocked-with-a-reason
+		 */
+		blockReason(card, target) {
+			const allowed = this.allowedByCard[this.cardKey(card)]
+			if (!allowed || this.isMoveAllowed(card, target)) {
+				return ''
+			}
+			return allowed.reasons[String(target.key)] || ''
+		},
+
+		/**
+		 * The note beside a menu target the card cannot move to.
+		 *
+		 * @param {object} card The card.
+		 * @param {object} target The column.
+		 * @return {string} "full" or "not allowed"; '' when a reason is shown instead.
+		 */
+		blockedNote(card, target) {
+			if (this.blockReason(card, target) !== '') {
+				return ''
+			}
+			return this.isMoveAllowed(card, target) && this.isFull(target) ? this.fullLabel : this.notAllowedLabel
+		},
+
+		/**
+		 * Why the dragged card cannot land on a column, shown under its header.
+		 *
+		 * @param {object} column The column.
+		 * @return {string} The host's reason while a drag is on, else ''.
+		 * @spec openspec/changes/board-move-block-reasons/specs/board-view/spec.md#requirement-a-move-target-can-be-blocked-with-a-reason
+		 */
+		dragReason(column) {
+			if (this.dragging === null || !this.dragAllowed || column.key === this.dragging.fromKey) {
+				return ''
+			}
+			const key = String(column.key)
+			return this.dragAllowed.keys.includes(key) ? '' : (this.dragAllowed.reasons[key] || '')
+		},
+
+		/**
+		 * A column's limit.
+		 *
+		 * @param {object} column The column.
+		 * @return {number|null} The limit, or null when it has none.
+		 * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
+		 */
+		capacityOf(column) {
+			const capacity = Number(column?.capacity)
+			return Number.isFinite(capacity) && capacity > 0 ? capacity : null
+		},
+
+		/**
+		 * Whether a column holds as many cards as its limit, or more.
+		 *
+		 * @param {object} column The column.
+		 * @return {boolean} True when full; false without a limit.
+		 * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
+		 */
+		isFull(column) {
+			const capacity = this.capacityOf(column)
+			return capacity !== null && (this.columnTotals.get(String(column.key)) ?? column.count) >= capacity
+		},
+
+		/**
+		 * "count / capacity" for a column with a limit.
+		 *
+		 * @param {object} column The column.
+		 * @return {string} The text.
+		 */
+		capacityText(column) {
+			return t('nextcloud-vue', '{count} / {capacity}', {
+				count: this.columnTotals.get(String(column.key)) ?? column.count,
+				capacity: this.capacityOf(column),
+			})
+		},
+
+		/**
+		 * Whether a card may move to a column: the host allows it and the
+		 * column is not full.
+		 *
+		 * @param {object} card The card.
+		 * @param {object} target The column.
+		 * @return {boolean} True when the move may be asked for.
+		 * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-drop-into-a-full-column-is-refused
+		 */
+		canMoveTo(card, target) {
+			return this.isMoveAllowed(card, target) && !this.isFull(target)
+		},
+
+		/**
+		 * The sentence a drop into a full column is refused with.
+		 *
+		 * @param {object} column The column.
+		 * @return {string} The sentence.
+		 */
+		fullRefusal(column) {
+			return t('nextcloud-vue', '{column} is full: {count} of {capacity}.', {
+				column: column.label,
+				count: this.columnTotals.get(String(column.key)) ?? column.count,
+				capacity: this.capacityOf(column),
+			})
 		},
 
 		/**
@@ -815,10 +963,11 @@ export default {
 		 * @return {boolean} True while a drag is on and the card cannot go there.
 		 */
 		isUnreachable(column) {
-			return this.dragging !== null
-				&& Array.isArray(this.dragAllowed)
-				&& column.key !== this.dragging.fromKey
-				&& !this.dragAllowed.includes(String(column.key))
+			if (this.dragging === null || column.key === this.dragging.fromKey) {
+				return false
+			}
+			return this.isFull(column)
+				|| (this.dragAllowed !== null && !this.dragAllowed.keys.includes(String(column.key)))
 		},
 
 		/**
@@ -942,7 +1091,7 @@ export default {
 			const date = new Date(value)
 			const shown = Number.isNaN(date.getTime())
 				? String(value)
-				: date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+				: date.toLocaleDateString(userLocale(), { day: 'numeric', month: 'short' })
 			return days < 0
 				? t('nextcloud-vue', 'Overdue {date}', { date: shown })
 				: t('nextcloud-vue', 'Due {date}', { date: shown })
@@ -1292,6 +1441,9 @@ export default {
 		 * @return {string} The count.
 		 */
 		countLabel(column) {
+			if (this.capacityOf(column) !== null) {
+				return this.capacityText(column)
+			}
 			return this.paged
 				? t('nextcloud-vue', '{count} on this page', { count: column.count })
 				: String(column.count)
@@ -1381,7 +1533,8 @@ export default {
 			this.dragAllowed = null
 			if (column.key !== fromKey && !this.isMoveAllowed(card, column)) {
 				const name = this.roleText(card, this.roles.title) || this.cardKey(card)
-				this.refusal = t('nextcloud-vue', '{name} cannot move to {column}.', { name, column: column.label })
+				this.refusal = this.blockReason(card, column)
+					|| t('nextcloud-vue', '{name} cannot move to {column}.', { name, column: column.label })
 				this.$emit('refused', { card, message: this.refusal })
 				return
 			}
@@ -1410,6 +1563,13 @@ export default {
 		 */
 		async move(card, fromKey, toKey) {
 			this.refusal = ''
+
+			const target = this.board.columns.find((column) => String(column.key) === String(toKey))
+			if (target && String(toKey) !== String(fromKey) && this.isFull(target)) {
+				this.refusal = this.fullRefusal(target)
+				this.$emit('refused', { card, message: this.refusal })
+				return
+			}
 
 			const result = await runBoardDrop({
 				card,
@@ -1550,5 +1710,10 @@ export default {
 
 .cn-board-view__refusal {
 	color: var(--color-error);
+}
+
+.cn-board-view__count--full {
+	color: var(--color-error-text, var(--color-error));
+	font-weight: 600;
 }
 </style>

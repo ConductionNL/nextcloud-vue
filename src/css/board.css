@@ -61,6 +61,12 @@
 	font-weight: 400;
 }
 
+/* A column at its limit: the count in the error colour; "full" is said in words too. */
+.cn-board-view.cn-board-view--board .cn-board-view__badge.cn-board-view__badge--full {
+	color: var(--color-error-text, var(--color-error));
+	font-weight: 600;
+}
+
 .cn-board-view.cn-board-view--board .cn-board-view__sum {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
@@ -327,4 +333,38 @@
 	padding-inline-start: 12px;
 	font-size: 12px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* A blocked target with the host's reason: the reason on its own line under the name. */
+.cn-board-view.cn-board-view--board .cn-board-view__menu-item.cn-board-view__menu-item--reason {
+	flex-wrap: wrap;
+	max-width: 320px;
+	padding-block: 6px;
+}
+
+.cn-board-view .cn-board-view__menu-reason {
+	flex-basis: 100%;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--color-text-maxcontrast);
+}
+
+/* While a card is dragged: why it cannot land in this column, under the header.
+   The rest of the column fades; the reason stays at full contrast. */
+.cn-board-view .cn-board-view__column-reason {
+	margin: 0 0 8px;
+	padding: 6px 8px;
+	border-radius: var(--border-radius);
+	background-color: var(--color-main-background);
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--color-main-text);
+}
+
+.cn-board-view .cn-board-view__column--unreachable.cn-board-view__column--reason {
+	opacity: 1;
+}
+
+.cn-board-view .cn-board-view__column--reason > :not(.cn-board-view__column-reason) {
+	opacity: 0.45;
 }

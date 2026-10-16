@@ -984,6 +984,7 @@ import { pageViews } from '../../mixins/pageViews.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
+import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
@@ -2873,7 +2874,7 @@ export default {
 				if (!d) {
 					return ''
 				}
-				return d.toLocaleDateString(undefined, {
+				return d.toLocaleDateString(userLocale(), {
 					day: 'numeric',
 					month: 'short',
 					...(needsYear ? { year: 'numeric' } : {}),

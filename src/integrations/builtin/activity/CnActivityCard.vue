@@ -112,6 +112,7 @@ import Timeline from 'vue-material-design-icons/Timeline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import CnVisibilityChip from '../../../components/CnVisibilityChip/CnVisibilityChip.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 4
@@ -297,7 +298,7 @@ export default {
 				return t('nextcloud-vue', 'Yesterday')
 			}
 			try {
-				return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+				return date.toLocaleDateString(userLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
 			} catch {
 				return date.toISOString().split('T')[0]
 			}
@@ -309,7 +310,7 @@ export default {
 				return ''
 			}
 			try {
-				return ts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+				return ts.toLocaleTimeString(userLocale(), { hour: '2-digit', minute: '2-digit' })
 			} catch {
 				return ts.toISOString().split('T')[1].slice(0, 5)
 			}

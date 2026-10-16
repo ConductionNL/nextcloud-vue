@@ -27,6 +27,7 @@
  * Pure apart from `fetchReferenceObjects`: no store, no Vue.
  */
 
+import { capacityValue } from './boardColumns.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 import { readPath } from './readPath.js'
 import { schemaRefSlug } from './schemaRefSlug.js'
@@ -124,7 +125,9 @@ export function referenceTargetOf(source, { register = '', property = null } = {
  * @param {string} [options.mergeBy] The row field whose equal values make one column.
  * @param {{field: string, rowField: string}|null} [options.narrowBy] The parent link.
  * @param {string} [options.narrowValue] The parent the board is narrowed to, '' for all.
- * @return {{states: Array<{key: string, label: string, color: string}>, keyByValue: Map<string, string>, refsByKey: Map<string, Array<object>>}} The stages.
+ * @param {string} [options.capacityField] The numeric row field that holds a column's limit.
+ *   A column merged from two or more rows shows none: each row has its own limit.
+ * @return {{states: Array<{key: string, label: string, color: string, capacity?: (number|null)}>, keyByValue: Map<string, string>, refsByKey: Map<string, Array<object>>}} The stages.
  * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-columns-can-be-the-rows-a-field-references
  */
 export function buildReferenceStages({
@@ -135,6 +138,7 @@ export function buildReferenceStages({
 	mergeBy = '',
 	narrowBy = null,
 	narrowValue = '',
+	capacityField = '',
 } = {}) {
 	const list = (Array.isArray(refs) ? refs : []).filter((ref) => ref && typeof ref === 'object' && refIdOf(ref) !== '')
 	const narrowed = narrowBy && narrowBy.field && narrowValue !== ''
@@ -161,11 +165,59 @@ export function buildReferenceStages({
 		if (!refsByKey.has(key)) {
 			refsByKey.set(key, [])
 			const color = colorField ? readPath(ref, colorField) : ref.color
-			states.push({ key, label, color: typeof color === 'string' ? color : '' })
+			const state = { key, label, color: typeof color === 'string' ? color : '' }
+			if (capacityField) {
+				state.capacity = capacityOfRef(ref, capacityField)
+			}
+			states.push(state)
 		}
 		refsByKey.get(key).push(ref)
 	}
+	for (const state of states) {
+		if (capacityField && refsByKey.get(state.key).length > 1) {
+			state.capacity = null
+		}
+	}
 	return { states, keyByValue, refsByKey }
+}
+
+/**
+ * The limit one referenced row declares.
+ *
+ * @param {object} ref The referenced row.
+ * @param {string} capacityField The row field that holds the limit.
+ * @return {number|null} The limit, or null when it has none.
+ * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
+ */
+export function capacityOfRef(ref, capacityField) {
+	return capacityField ? capacityValue(readPath(ref, capacityField)) : null
+}
+
+/**
+ * Whether a drop fills a referenced row past its limit: the cards that
+ * already carry that row, counted against the row's own limit. Counted per
+ * row, not per column, so a column merged from several rows still refuses
+ * the one that is full.
+ *
+ * @param {object} options The call.
+ * @param {object} options.target The referenced row the drop would write.
+ * @param {object} options.card The card being moved.
+ * @param {Array<object>} options.rows The cards the board holds.
+ * @param {string} options.field The row field the columns come from.
+ * @param {string} options.capacityField The referenced row's limit field.
+ * @param {string} [options.rowKey] The row key, so the moving card is not counted.
+ * @return {{count: number, capacity: number}|null} The count and limit when full, else null.
+ * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-drop-into-a-full-column-is-refused
+ */
+export function fullTargetOf({ target, card, rows = [], field, capacityField, rowKey = 'id' } = {}) {
+	const capacity = capacityOfRef(target, capacityField)
+	if (capacity === null) {
+		return null
+	}
+	const id = refIdOf(target)
+	const self = String(card?.[rowKey] ?? '')
+	const count = (Array.isArray(rows) ? rows : []).filter((row) => String(row?.[rowKey] ?? '') !== self && refIdOf(readPath(row, field)) === id).length
+	return count >= capacity ? { count, capacity } : null
 }
 
 /**

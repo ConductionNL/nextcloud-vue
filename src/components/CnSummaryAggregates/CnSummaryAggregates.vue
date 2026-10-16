@@ -21,6 +21,7 @@
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnSummaryAggregates — declarative count/sum/avg stat chips for a
@@ -150,7 +151,7 @@ export default {
 				return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(num)
 			}
 			if (typeof raw === 'number') {
-				return raw.toLocaleString()
+				return raw.toLocaleString(userLocale())
 			}
 			return raw
 		},
