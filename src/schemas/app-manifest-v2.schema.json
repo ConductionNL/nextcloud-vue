@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.102.0",
+	"version": "2.119.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4228,6 +4228,11 @@
 							"items": { "type": "string" },
 							"default": [],
 							"description": "type='dashboard': widget ids drawn as a KPI row above the grid, in the listed order, in an auto-fit grid (`repeat(auto-fit, minmax(200px, 1fr))`, gap 16). The named widgets are not GridStack items, so they do not reflow with the grid and are not part of the emitted layout; an id that names no widget is skipped with a development warning (screens-dashboard-parity). Maps to CnDashboardPage `kpiRow`. `dateRange.control` also accepts \"segmented\": the presets as one compact segmented group under the header."
+						},
+						"layoutPanel": {
+							"type": "boolean",
+							"default": false,
+							"description": "type='dashboard': an \"Arrange page\" header button that opens a side panel where the user shows, hides and reorders the page's sections, with \"Back to default\" and \"Save layout\" (dashboard-layout-panel, 2.119.0). Stored per user in the app's preferences, as `userLayout`, which this turns on. Maps to CnDashboardPage `layoutPanel`."
 						},
 						"greeting": {
 							"oneOf": [

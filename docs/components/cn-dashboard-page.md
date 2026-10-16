@@ -626,3 +626,18 @@ In the board look the page view switch (`views`) sits on the same row, left of t
 ## On a phone
 
 Under the board look, below 640px, the grid reflows to one column in reading order (top to bottom, then left to right) and the page does not scroll sideways. A widget that grows when its content wraps, such as a bar of chips, sets `sizeToContent: true` in its layout item. The compact chips wrap and are 44px high, the bar's switch and select are 44px, and record-list rows, KPI tiles and the widget Actions button are at least 44px. Without the board look the grid keeps its fixed columns.
+
+## Arrange the page in a side panel (`layoutPanel`)
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `layoutPanel` | `Boolean` | `false` | Manifest `config.layoutPanel: true` (schema 2.119.0). Adds an "Arrange page" button to the header that opens a side panel, "Arrange this page", listing the grid's sections in reading order. Each has a checkbox to show or hide it and a handle to drag it into another place (or move it with the arrow keys). "Save layout" stores the result per user and "Back to default" returns to the manifest layout. Turns `userLayout` on. |
+
+The board PqMijnWerkIndelen draws this. The sections swap places: the first section in the new order takes the place
+(column, row, width) of the first section in the old order, and so on, each keeping its own height, so the page keeps
+its shape. A hidden section stays in the user's record with `hidden: true` and is not drawn; the KPI row is not listed.
+The panel sits at the right edge under the Nextcloud header, over the page, and takes the full width on a phone.
+
+```json
+{ "id": "MyWork", "type": "dashboard", "config": { "layoutPanel": true, "kpiRow": ["my-lens"] } }
+```

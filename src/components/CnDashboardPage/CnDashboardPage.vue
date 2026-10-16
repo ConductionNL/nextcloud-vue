@@ -65,6 +65,21 @@
 					<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
 					<slot name="actions" />
 				</template>
+				<!-- `layoutPanel`: opens the side panel where the user shows,
+				     hides and reorders the page's sections. -->
+				<NcButton
+					v-if="layoutPanel"
+					ref="layoutPanelButton"
+					variant="secondary"
+					:aria-pressed="layoutPanelOpen ? 'true' : 'false'"
+					:aria-expanded="layoutPanelOpen ? 'true' : 'false'"
+					data-testid="cn-dashboard-page-layout-panel-button"
+					@click="setLayoutPanel(!layoutPanelOpen)">
+					<template #icon>
+						<ViewDashboardEditOutline :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Arrange page') }}
+				</NcButton>
 				<NcButton
 					v-if="allowEdit"
 					:variant="isEditing ? 'primary' : 'secondary'"
@@ -138,6 +153,16 @@
 				</template>
 			</div>
 		</div>
+
+		<!-- The layout panel (`layoutPanel`): a side panel at the right
+		     edge, over the page, that lists the grid's sections. -->
+		<CnDashboardLayoutPanel
+			v-if="layoutPanel && layoutPanelOpen"
+			class="cn-dashboard-page__layout-panel"
+			:items="layoutPanelItems"
+			@close="setLayoutPanel(false)"
+			@reset="resetLayout"
+			@save="saveLayoutPanel" />
 
 		<!-- The switch row (screens-dashboard-greeting-header): in the board
 		     look the page's view switch sits under the header, left, and the
@@ -962,12 +987,14 @@ import Cog from 'vue-material-design-icons/Cog.vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Restore from 'vue-material-design-icons/Restore.vue'
+import ViewDashboardEditOutline from 'vue-material-design-icons/ViewDashboardEditOutline.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
+import CnDashboardLayoutPanel from '../CnDashboardLayoutPanel/CnDashboardLayoutPanel.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow, translatePresetLabel } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
@@ -1128,8 +1155,10 @@ export default {
 		Cog,
 		CalendarRange,
 		ViewDashboardOutline,
+		ViewDashboardEditOutline,
 		Download,
 		CnDashboardGrid,
+		CnDashboardLayoutPanel,
 		CnWidgetWrapper,
 		CnWidgetRenderer,
 		CnTileWidget,
@@ -1749,6 +1778,20 @@ export default {
 		},
 
 		/**
+		 * A "Arrange page" header button that opens a side panel where the
+		 * user shows, hides and reorders the page's sections (manifest
+		 * `config.layoutPanel: true`, board PqMijnWerkIndelen). The result
+		 * is stored per user as with `userLayout`, which this turns on.
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel/specs/dashboard-page/spec.md#requirement-a-user-arranges-the-page-in-a-side-panel
+		 * @type {boolean}
+		 */
+		layoutPanel: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * The Nextcloud app id the user layout is stored under.
 		 *
 		 * Required for `userLayout` to do anything: a preference has to be
@@ -1891,6 +1934,8 @@ export default {
 			 * @type {Array<object>|null}
 			 */
 			userLayoutItems: null,
+			/** Whether the layout panel (`layoutPanel`) is open. */
+			layoutPanelOpen: false,
 			/** Whether a stored record has been asked for yet. */
 			userLayoutLoaded: false,
 			/** Whether this edit session changed anything worth saving. */
@@ -2165,15 +2210,45 @@ export default {
 		 * @return {Array<object>} The layout.
 		 */
 		renderedLayout() {
-			const base = (this.userLayout && Array.isArray(this.userLayoutItems))
+			const base = (this.keepsUserLayout && Array.isArray(this.userLayoutItems))
 				? this.userLayoutItems
 				: this.layout
-			// The KPI row is not part of the grid.
-			if (Array.isArray(this.kpiRow) && this.kpiRow.length > 0 && Array.isArray(base)) {
-				return base.filter((item) => !this.kpiRow.includes(item.widgetId))
+			if (!Array.isArray(base)) {
+				return base
+			}
+			// The KPI row is not part of the grid, and a widget the user hid
+			// is not drawn.
+			const kpi = Array.isArray(this.kpiRow) ? this.kpiRow : []
+			if (kpi.length === 0 && !base.some((item) => item && item.hidden === true)) {
+				return base
 			}
 
-			return base
+			return base.filter((item) => !kpi.includes(item.widgetId) && item.hidden !== true)
+		},
+
+		/**
+		 * Whether the page keeps a per-user layout: `userLayout`, or the
+		 * layout panel, which stores what the user arranges.
+		 *
+		 * @return {boolean}
+		 */
+		keepsUserLayout() {
+			return this.userLayout || this.layoutPanel
+		},
+
+		/**
+		 * The sections the layout panel lists: the grid's widgets in reading
+		 * order (top to bottom, then left to right), hidden ones included,
+		 * the KPI row left out.
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel/specs/dashboard-page/spec.md#requirement-a-user-arranges-the-page-in-a-side-panel
+		 * @return {Array<{id: string, label: string, hidden: boolean}>}
+		 */
+		layoutPanelItems() {
+			const kpi = Array.isArray(this.kpiRow) ? this.kpiRow : []
+			return this.panelBaseLayout()
+				.filter((item) => item && !kpi.includes(item.widgetId))
+				.map((item) => ({ id: String(item.widgetId), label: this.getWidgetTitle(item) || String(item.widgetId), hidden: item.hidden === true }))
 		},
 
 		/**
@@ -3278,7 +3353,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async loadUserLayout() {
-			if (!this.userLayout || !this.appId) {
+			if (!this.keepsUserLayout || !this.appId) {
 				return
 			}
 
@@ -3301,7 +3376,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async saveUserLayout() {
-			if (!this.userLayout || !this.appId || !this.userLayoutDirty) {
+			if (!this.keepsUserLayout || !this.appId || !this.userLayoutDirty) {
 				return
 			}
 
@@ -3331,12 +3406,79 @@ export default {
 		},
 
 		/**
+		 * The page's own grid in reading order: the user's arrangement when
+		 * there is one, else the manifest layout.
+		 *
+		 * @return {Array<object>}
+		 */
+		panelBaseLayout() {
+			const base = Array.isArray(this.userLayoutItems) ? this.userLayoutItems : mergeUserLayout(this.layout, null)
+			return [...base].sort((a, b) => ((a.gridY || 0) - (b.gridY || 0)) || ((a.gridX || 0) - (b.gridX || 0)))
+		},
+
+		/**
+		 * Open or close the layout panel; closing returns focus to its button.
+		 *
+		 * @param {boolean} open Whether the panel opens.
+		 */
+		setLayoutPanel(open) {
+			this.layoutPanelOpen = open
+			if (!open) {
+				this.$nextTick(() => {
+					const button = this.$refs.layoutPanelButton
+					const el = button && (button.$el || button)
+					if (el && typeof el.focus === 'function') {
+						el.focus()
+					}
+				})
+			}
+		},
+
+		/**
+		 * Store what the user arranged in the layout panel. The sections
+		 * swap places: the n-th section in the new order takes the place
+		 * (column, row, width) of the n-th section in the old one, keeping
+		 * its own height, so the page keeps its shape.
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel/specs/dashboard-page/spec.md#requirement-a-user-arranges-the-page-in-a-side-panel
+		 * @param {Array<{id: string, hidden: boolean}>} entries The sections in their new order.
+		 * @return {Promise<void>}
+		 */
+		async saveLayoutPanel(entries) {
+			const kpi = Array.isArray(this.kpiRow) ? this.kpiRow : []
+			const all = this.panelBaseLayout()
+			const sections = all.filter((item) => !kpi.includes(item.widgetId))
+			const slots = sections.map((item) => ({ gridX: item.gridX, gridY: item.gridY, gridWidth: item.gridWidth }))
+			const byId = new Map(sections.map((item) => [String(item.widgetId), item]))
+			const ordered = (Array.isArray(entries) ? entries : []).filter((entry) => byId.has(String(entry.id)))
+			const arranged = ordered.map((entry, index) => {
+				const item = { ...byId.get(String(entry.id)), ...slots[index] }
+				if (entry.hidden === true) {
+					item.hidden = true
+				} else {
+					delete item.hidden
+				}
+				return item
+			})
+			const placed = new Set(ordered.map((entry) => String(entry.id)))
+			const rest = all.filter((item) => !placed.has(String(item.widgetId)))
+			this.userLayoutItems = [...arranged, ...rest]
+			this.userLayoutDirty = true
+			await this.saveUserLayout()
+			/**
+			 * @event layout-change Emitted with the user's arranged layout after a change.
+			 */
+			this.$emit('layout-change', this.userLayoutItems)
+			this.setLayoutPanel(false)
+		},
+
+		/**
 		 * Drop this user's arrangement and return to the manifest.
 		 *
 		 * @return {Promise<void>}
 		 */
 		async resetUserLayout() {
-			if (!this.userLayout || !this.appId) {
+			if (!this.keepsUserLayout || !this.appId) {
 				return
 			}
 
@@ -3390,7 +3532,7 @@ export default {
 			// write below is for the admin editor, which edits the page for
 			// everybody; doing it for a user rearranging their own dashboard
 			// would rewrite the page for everyone who opens it after them.
-			if (this.userLayout && Array.isArray(this.userLayoutItems)) {
+			if (this.keepsUserLayout && Array.isArray(this.userLayoutItems)) {
 				this.userLayoutDirty = true
 				this.userLayoutItems = this.userLayoutItems.map((item) => {
 					const u = (Array.isArray(updated) ? updated : []).find((candidate) => String(candidate.id) === String(item.id)
@@ -4816,6 +4958,19 @@ export default {
 	margin: 4px 0 0;
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* The layout panel: a side panel at the right edge, under the Nextcloud
+   header, over the page; full width on a phone. */
+.cn-dashboard-page__layout-panel {
+	position: fixed;
+	z-index: 1000;
+	top: calc(var(--header-height, 50px) + 12px);
+	inset-inline-end: 12px;
+	width: min(360px, calc(100vw - 24px));
+	max-height: calc(100vh - var(--header-height, 50px) - 24px);
+	overflow-y: auto;
+	box-sizing: border-box;
 }
 
 /* Board look (screens-dashboard-parity): h1 28/700, a 15px grey subtitle 6px

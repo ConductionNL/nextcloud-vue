@@ -1660,7 +1660,17 @@
     "Link related object": "Gerelateerd object koppelen",
     "{type} parts": "Onderdelen van {type}",
     "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.": "Opslaan kan niet: dit record heeft geen id, dus de wijziging zou een kopie maken in plaats van het record bij te werken.",
-    "Save failed": "Opslaan is mislukt"
+    "Save failed": "Opslaan is mislukt",
+    "Arrange page": "Pagina indelen",
+    "Arrange this page": "Deze pagina indelen",
+    "Choose which parts you see and drag them into your own order. Only you see this layout.": "Kies welke onderdelen je ziet en sleep ze in je eigen volgorde. Alleen jij ziet deze indeling.",
+    "Shown": "Zichtbaar",
+    "Hidden": "Verborgen",
+    "Back to default": "Terug naar standaard",
+    "Save layout": "Indeling opslaan",
+    "Move {name}": "{name} verplaatsen",
+    "Use the arrow keys to move this part up or down.": "Gebruik de pijltjestoetsen om dit onderdeel omhoog of omlaag te zetten.",
+    "{name} moved to position {position} of {total}": "{name} staat nu op plaats {position} van {total}"
   },
   "plurals": {
     "{count} selected": [
