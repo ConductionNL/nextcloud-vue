@@ -421,7 +421,7 @@
 						:is="registryRenderer(item)"
 						:widgetId="item.widgetId"
 						:content="registryWidgetBindings(item)"
-						v-bind="{ ...registryWidgetBindings(item), ...containerBindings(item) }"
+						v-bind="{ ...registryWidgetProps(item), ...containerBindings(item) }"
 						@header="onWidgetHeader(item, $event)" />
 				</CnWidgetWrapper>
 				<CnWidgetWrapper
@@ -882,7 +882,7 @@
 							:is="registryRenderer(item)"
 							:widgetId="item.widgetId"
 							:content="registryWidgetBindings(item)"
-							v-bind="{ ...registryWidgetBindings(item), ...containerBindings(item), ...cellChromeBindings(item) }"
+							v-bind="{ ...registryWidgetProps(item), ...containerBindings(item), ...cellChromeBindings(item) }"
 							@header="onWidgetHeader(item, $event)" />
 					</CnWidgetWrapper>
 				</template>
@@ -984,6 +984,7 @@ import { pageViews } from '../../mixins/pageViews.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
+import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
@@ -3640,6 +3641,23 @@ export default {
 			}
 			const outcome = this.widgetConditionOutcome[item.widgetId]
 			return outcome ? { ...content, conditionOutcome: outcome } : content
+		},
+
+		/**
+		 * The content keys a registry widget receives as props: only the ones
+		 * its renderer declares. An undeclared key would otherwise fall through
+		 * as an attribute onto the renderer's root component and could override
+		 * a value the widget computes for it. The whole content still arrives
+		 * as `content`. A renderer that forwards its own attributes
+		 * (`inheritAttrs: false`) keeps receiving every key.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {object} The bindings the renderer declares.
+		 * @spec openspec/changes/dashboard-declared-widget-props/specs/dashboard-page/spec.md#requirement-a-dashboard-widget-receives-only-the-content-keys-it-declares
+		 */
+		registryWidgetProps(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return pickDeclaredProps(this.registryRenderer(item), this.registryWidgetBindings(item), def?.type || item.widgetId)
 		},
 
 		/**
