@@ -344,6 +344,7 @@ import { daysUntil, dueStateForRow } from '../../utils/dueRule.js'
 import { formatMetricValue } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 import '../../css/board.css'
 
@@ -942,7 +943,7 @@ export default {
 			const date = new Date(value)
 			const shown = Number.isNaN(date.getTime())
 				? String(value)
-				: date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+				: date.toLocaleDateString(userLocale(), { day: 'numeric', month: 'short' })
 			return days < 0
 				? t('nextcloud-vue', 'Overdue {date}', { date: shown })
 				: t('nextcloud-vue', 'Due {date}', { date: shown })

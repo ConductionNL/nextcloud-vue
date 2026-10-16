@@ -88,6 +88,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 // The canonical KPI look, shared with CnStatWidget. Imported here so the
 // card is styled even when the consuming app has not pulled in the
@@ -372,7 +373,7 @@ export default {
 		},
 
 		formattedCount() {
-			return this.count.toLocaleString()
+			return this.count.toLocaleString(userLocale())
 		},
 
 		/**

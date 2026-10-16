@@ -132,6 +132,7 @@ import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { foldAuditTrailEntries } from '../../utils/auditTrailDiff.js'
 import { computeObjectDiff } from '../../utils/computeObjectDiff.js'
 import { buildHeaders } from '../../utils/index.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * A single row rendered in the top-level diff table.
@@ -472,7 +473,7 @@ export default {
 			if (Number.isNaN(d.getTime()) === true) {
 				return String(raw)
 			}
-			return d.toLocaleString()
+			return d.toLocaleString(userLocale())
 		},
 	},
 }

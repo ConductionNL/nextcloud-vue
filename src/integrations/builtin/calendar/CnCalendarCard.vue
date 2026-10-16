@@ -107,6 +107,7 @@ import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 /**
  * CnCalendarCard — surface-aware compact widget for the calendar
@@ -323,7 +324,7 @@ export default {
 				const opts = this.surface === 'single-entity'
 					? { dateStyle: 'medium' }
 					: { dateStyle: 'medium', timeStyle: 'short' }
-				return d.toLocaleString(undefined, opts)
+				return d.toLocaleString(userLocale(), opts)
 			} catch {
 				return String(value)
 			}

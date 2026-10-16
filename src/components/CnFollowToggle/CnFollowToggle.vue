@@ -108,6 +108,7 @@ import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { listWatchers, setWatcher, setWatching } from '../../utils/recordInteractions.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnFollowToggle — the one Follow control of a record: a Follow toggle bound to
@@ -298,7 +299,7 @@ export default {
 			const d = new Date(created)
 			return Number.isNaN(d.getTime())
 				? ''
-				: t('nextcloud-vue', 'Since {date}', { date: d.toLocaleDateString() })
+				: t('nextcloud-vue', 'Since {date}', { date: d.toLocaleDateString(userLocale()) })
 		},
 
 		removeFollowerLabel(watcher) {

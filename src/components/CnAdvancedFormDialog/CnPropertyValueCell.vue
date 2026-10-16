@@ -186,6 +186,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import { formatValue, validateValue } from '../../utils/schema.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 const SUPPORTED_WIDGETS = ['text', 'number', 'boolean', 'datetime', 'textarea', 'array', 'select', 'object', 'objectArray', 'color']
 
@@ -729,19 +730,19 @@ export default {
 			// Same local-midnight parse as datetimeValue to avoid UTC-shift in display.
 			if (fmt === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
 				const [year, month, day] = v.split('-').map(Number)
-				return new Date(year, month - 1, day).toLocaleDateString()
+				return new Date(year, month - 1, day).toLocaleDateString(userLocale())
 			}
 			const d = new Date(v)
 			if (Number.isNaN(d.getTime())) {
 				return String(v)
 			}
 			if (fmt === 'date') {
-				return d.toLocaleDateString()
+				return d.toLocaleDateString(userLocale())
 			}
 			if (fmt === 'time') {
-				return d.toLocaleTimeString()
+				return d.toLocaleTimeString(userLocale())
 			}
-			return d.toLocaleString()
+			return d.toLocaleString(userLocale())
 		},
 	},
 

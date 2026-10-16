@@ -78,6 +78,7 @@ import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
@@ -1636,16 +1637,16 @@ export default {
 			const year = d.getFullYear() === thisYear ? {} : { year: 'numeric' }
 			switch (String(interval || '').toLowerCase()) {
 				case 'minute':
-					return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+					return d.toLocaleString(userLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 				case 'hour':
-					return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
+					return d.toLocaleString(userLocale(), { month: 'short', day: 'numeric', hour: '2-digit' })
 				case 'day':
 				case 'week':
-					return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...year })
+					return d.toLocaleDateString(userLocale(), { day: 'numeric', month: 'short', ...year })
 				case 'year':
-					return d.toLocaleDateString(undefined, { year: 'numeric' })
+					return d.toLocaleDateString(userLocale(), { year: 'numeric' })
 				default:
-					return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+					return d.toLocaleDateString(userLocale(), { month: 'short', year: '2-digit' })
 			}
 		},
 

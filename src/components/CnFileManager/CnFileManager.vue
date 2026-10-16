@@ -80,6 +80,7 @@
 </template>
 
 <script>
+import { userLocale } from '../../utils/userLocale.js'
 /**
  * CnFileManager — File list widget with drag-drop upload, per-file
  * actions, and a click-emit for preview / detail.
@@ -223,7 +224,7 @@ export default {
 				if (Number.isNaN(d.getTime())) {
 					return iso
 				}
-				return d.toLocaleString()
+				return d.toLocaleString(userLocale())
 			} catch {
 				return iso
 			}

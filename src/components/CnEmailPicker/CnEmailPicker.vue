@@ -171,6 +171,7 @@ import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextFi
 import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 export default {
 	name: 'CnEmailPicker',
@@ -404,7 +405,7 @@ export default {
 			if (Number.isNaN(d.getTime())) {
 				return String(raw)
 			}
-			return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+			return d.toLocaleDateString(userLocale(), { year: 'numeric', month: 'short', day: 'numeric' })
 		},
 	},
 }

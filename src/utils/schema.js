@@ -7,6 +7,7 @@
  */
 
 import { schemaRefSlug } from './schemaRefSlug.js'
+import { userLocale } from './userLocale.js'
 
 /**
  * Default column widths per property type/format.
@@ -159,7 +160,7 @@ export function formatValue(value, property = {}, options = {}) {
 		if (Number.isNaN(num)) {
 			return String(value)
 		}
-		return num.toLocaleString()
+		return num.toLocaleString(userLocale())
 	}
 
 	// Array
@@ -213,17 +214,17 @@ export function formatValue(value, property = {}, options = {}) {
 				return str
 			}
 			if (format === 'date') {
-				return date.toLocaleDateString(undefined, {
+				return date.toLocaleDateString(userLocale(), {
 					day: '2-digit',
 					month: '2-digit',
 					year: 'numeric',
 				})
 			}
-			return date.toLocaleDateString(undefined, {
+			return date.toLocaleDateString(userLocale(), {
 				day: '2-digit',
 				month: '2-digit',
 				year: 'numeric',
-			}) + ', ' + date.toLocaleTimeString(undefined, {
+			}) + ', ' + date.toLocaleTimeString(userLocale(), {
 				hour: '2-digit',
 				minute: '2-digit',
 				second: '2-digit',

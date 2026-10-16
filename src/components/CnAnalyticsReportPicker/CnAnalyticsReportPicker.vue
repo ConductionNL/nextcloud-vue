@@ -101,6 +101,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import ChartBar from 'vue-material-design-icons/ChartBar.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 export default {
 	name: 'CnAnalyticsReportPicker',
@@ -247,7 +248,7 @@ export default {
 				if (Number.isNaN(d.getTime())) {
 					return ''
 				}
-				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
+				return d.toLocaleDateString(userLocale(), { dateStyle: 'medium' })
 			} catch {
 				return ''
 			}

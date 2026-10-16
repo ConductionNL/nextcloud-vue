@@ -164,6 +164,7 @@ import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import ClipboardCheckOutline from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import CnOfflineQueue from '../../../components/CnOfflineQueue/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 import { buildChecklistSubmission } from '../../offline/checklistSubmission.js'
 import { checklistProgress, classifyGps, normaliseChecklistTemplate, syncIndicator, validateChecklistAnswers } from '../../offline/fieldCollectionHelpers.js'
 import {
@@ -379,7 +380,7 @@ export default {
 			if (!iso) {
 				return ''
 			}
-			return new Date(iso).toLocaleString()
+			return new Date(iso).toLocaleString(userLocale())
 		},
 
 		errorFor(questionId) {
