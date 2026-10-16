@@ -130,6 +130,7 @@
 							:widget="child"
 							chrome="card"
 							:showCardTitle="true"
+							:showHeaderLink="true"
 							:showActions="false"
 							:availableWidgets="availableWidgets"
 							:objectId="objectId"

@@ -92,6 +92,7 @@ The widget is not mounted while a prop written as a token has no value: the reco
 | `hideEmpty` | `Boolean` | `false` | Hide empty properties in the `data` widget. |
 | `availableWidgets` | `Array` | `[]` | Every widget definition on the surface. Only a container type receives it; a leaf widget has no business knowing what else is on the page. |
 | `showCardTitle` | `Boolean` | `null` | Whether a card widget draws the wrapper header. Null means decide from the definition. |
+| `showHeaderLink` | `Boolean` | `false` | Whether a card draws its widget's manifest `headerLink` (on the definition, or `content.headerLink` / `viewAllRoute`) in its header when the renderer reports none. CnTabsWidget sets it on the cards after the first in a stack. |
 | `cnRegistry` | `Object` | `{}` | The consumer's component registry, consulted before the built-in catalog so a custom type overrides a built-in. |
 
 ## Events
