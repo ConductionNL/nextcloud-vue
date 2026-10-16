@@ -34,7 +34,7 @@
 					:is="entry.renderer"
 					:widgetId="entry.id"
 					:content="entry.content"
-					v-bind="entry.content" />
+					v-bind="declaredContent(entry)" />
 			</CnWidgetWrapper>
 		</div>
 	</component>
@@ -43,6 +43,7 @@
 <script>
 import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
+import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
@@ -89,7 +90,7 @@ export default {
 		 * The renderable entries, in the listed order.
 		 *
 		 * @spec openspec/changes/screens-index-stat-row/specs/index-page/spec.md#requirement-an-index-page-can-draw-a-stat-row-above-the-list
-		 * @return {Array<{id: string, title: string, content: object, headerLink: (object|null), renderer: object}>}
+		 * @return {Array<{id: string, type: string, title: string, content: object, headerLink: (object|null), renderer: object}>}
 		 */
 		entries() {
 			const list = Array.isArray(this.widgets) ? this.widgets : []
@@ -109,6 +110,7 @@ export default {
 				const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
 				out.push({
 					id: def.id,
+					type: def.type,
 					title: typeof def.title === 'string' && def.title !== '' ? translate(def.title) : '',
 					content: (def.content && typeof def.content === 'object') ? def.content : {},
 					headerLink: (def.headerLink && typeof def.headerLink === 'object') ? def.headerLink : null,
@@ -120,6 +122,19 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The content keys an entry's renderer declares as props. An undeclared
+		 * key would fall through onto the renderer's root; the whole content
+		 * still arrives as `content`.
+		 *
+		 * @param {{ renderer: object, content: object, type?: string, id: string }} entry A resolved entry.
+		 * @return {object} The declared content keys.
+		 * @spec openspec/changes/declared-props-detail-index-sidebar/specs/widget-hosts/spec.md#requirement-a-widget-host-passes-only-the-keys-a-widget-declares
+		 */
+		declaredContent(entry) {
+			return pickDeclaredProps(entry.renderer, entry.content, entry.type || entry.id)
+		},
+
 		/**
 		 * Resolve a widget type: the consumer registry, then the dashboard
 		 * catalog (the type as written, then its alias), then the built-ins.

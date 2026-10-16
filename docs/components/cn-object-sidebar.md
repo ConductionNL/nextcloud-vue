@@ -187,6 +187,10 @@ For widgets that resolve `@objectId` / `@object.<field>` tokens through injectio
 
 Apps satisfied with the default tab set make NO changes — leave `tabs` unset and the hard-coded built-in tabs render exactly as today, including the `#tab-files` / `#tab-notes` / `#tab-tags` / `#tab-tasks` / `#tab-audit-trail` / `#extra-tabs` slot overrides. The `tabs` prop is purely additive.
 
+### Widget props
+
+A `widgets[]` tab entry `{ type, props }` gets the shared object context (`objectId`, `objectType`, `register`, `schema`, `apiBase`, `objectData`) and, of its own `props`, only the ones its component declares; those win over the shared context. A prop the component does not declare is left out, with a development warning, so it cannot land on the component's root. A component with `inheritAttrs: false` keeps every prop.
+
 ## Live updates (collaborative editing)
 
 `CnObjectSidebar` auto-subscribes to live updates for the active object when both `objectStore` and (`objectType` + `objectId`) are provided. This wires [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) into the sidebar lifecycle so the cached object stays fresh as remote users edit, and downstream tabs (`CnObjectDataWidget`, `CnAuditTrailTab`, etc.) re-render reactively without polling.
