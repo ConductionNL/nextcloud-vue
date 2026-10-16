@@ -499,6 +499,7 @@
     "NC Activity is currently unavailable.": "NC Activity is currently unavailable.",
     "Could not load activity.": "Could not load activity.",
     "Today": "Today",
+    "Today, {date}": "Today, {date}",
     "Last 8 hours": "Last 8 hours",
     "Last 24 hours": "Last 24 hours",
     "Last 7 days": "Last 7 days",
