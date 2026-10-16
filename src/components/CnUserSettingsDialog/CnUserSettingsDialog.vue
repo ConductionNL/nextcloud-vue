@@ -209,6 +209,9 @@ export default {
 
 		/** Close the dialog. */
 		close() {
+			/**
+			 * @event update:open Emitted with `false` when the dialog closes (Close button, close icon, Escape).
+			 */
 			this.$emit('update:open', false)
 		},
 	},

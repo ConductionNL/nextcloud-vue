@@ -18,9 +18,10 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name          | Payload | Description |
-| ------------- | ------- | ----------- |
-| `update:open` | —       |             |
+| Name                                                                                          | Payload | Description |
+| --------------------------------------------------------------------------------------------- | ------- | ----------- |
+| `update:open`                                                                                 | —       |             |
+| `update:open Emitted with `false` when the dialog closes (Close button, close icon, Escape).` | —       |             |
 
 ### Slots
 
