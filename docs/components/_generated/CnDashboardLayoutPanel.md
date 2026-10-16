@@ -14,8 +14,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name    | Payload | Description |
-| ------- | ------- | ----------- |
-| `close` | —       |             |
-| `reset` | —       |             |
-| `save`  | —       |             |
+| Name    | Payload | Description                                                                                 |
+| ------- | ------- | ------------------------------------------------------------------------------------------- |
+| `close` | —       | Emitted by the close button and Escape.                                                     |
+| `reset` | —       | Emitted by "Back to default".                                                               |
+| `save`  | —       | Emitted by "Save layout" with the entries in their new order, each `{ id, label, hidden }`. |

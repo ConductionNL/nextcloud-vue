@@ -7,7 +7,7 @@
 		class="cn-dashboard-layout-panel"
 		:aria-labelledby="headingId"
 		data-testid="cn-dashboard-layout-panel"
-		@keydown.esc.stop="$emit('close')">
+		@keydown.esc.stop="close">
 		<div class="cn-dashboard-layout-panel__head">
 			<h2 :id="headingId"
 				ref="heading"
@@ -19,7 +19,7 @@
 				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Close')"
 				data-testid="cn-dashboard-layout-panel-close"
-				@click="$emit('close')">
+				@click="close">
 				<template #icon>
 					<Close :size="20" />
 				</template>
@@ -72,7 +72,7 @@
 			{{ announcement }}
 		</p>
 		<div class="cn-dashboard-layout-panel__actions">
-			<NcButton variant="tertiary" data-testid="cn-dashboard-layout-panel-reset" @click="$emit('reset')">
+			<NcButton variant="tertiary" data-testid="cn-dashboard-layout-panel-reset" @click="reset">
 				{{ t('nextcloud-vue', 'Back to default') }}
 			</NcButton>
 			<NcButton variant="primary" data-testid="cn-dashboard-layout-panel-save" @click="save">
@@ -198,7 +198,26 @@ export default {
 
 		/** Hand the arranged sections back. */
 		save() {
+			/**
+			 * @event save Emitted by "Save layout" with the entries in their new order, each `{ id, label, hidden }`.
+			 */
 			this.$emit('save', this.draft.map((entry) => ({ ...entry })))
+		},
+
+		/** Ask to close the panel. */
+		close() {
+			/**
+			 * @event close Emitted by the close button and Escape.
+			 */
+			this.$emit('close')
+		},
+
+		/** Ask for the default layout. */
+		reset() {
+			/**
+			 * @event reset Emitted by "Back to default".
+			 */
+			this.$emit('reset')
 		},
 	},
 }
