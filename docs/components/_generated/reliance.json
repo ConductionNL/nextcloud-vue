@@ -2102,6 +2102,13 @@
 			"via": [],
 			"page": "cn-menu-widget-form"
 		},
+		"CnModuleCard": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnNavCardGrid": {
 			"direct": 1,
 			"transitive": 1,

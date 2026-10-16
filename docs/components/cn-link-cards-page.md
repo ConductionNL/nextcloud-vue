@@ -50,6 +50,36 @@ A card has a `route` or an `href`, never both. The manifest validator refuses a 
 
 A `route` is resolved through the router, so the link is right with and without `/index.php` in the address. A card whose route does not resolve is left out.
 
+## Modules
+
+`config.modules` draws module cards above the link cards (board PqModules): per module an icon, the title, a badge that says whether it is in the menu, a description, a line naming its pages ("4 pages: ...", or "15 pages, including ..." from the pages marked `highlight`), the pages as links, and a button: Open for a module in the menu, Turn on for one that is off. A count ("3 of 6 are in the menu") sits beside the heading and `footnote` under the cards. Schema 2.108.0.
+
+```json
+"config": {
+  "modulesTitle": "Modules",
+  "footnote": "Een beheerder zet een module aan in de beheerinstellingen.",
+  "modules": [
+    { "id": "sales", "label": "Verkoop", "icon": "CashMultiple", "description": "Leads, prospects en deals.",
+      "enabled": true,
+      "pages": [{ "label": "Leads", "route": "Leads" }, { "label": "Pijplijn", "route": "Pipeline" }] },
+    { "id": "pos", "label": "Kassa", "icon": "CashRegister", "enabledIf": { "menuModules.pos": true },
+      "pages": [{ "label": "Kassabon", "route": "PosReceipt" }],
+      "enable": { "route": "/admin", "permission": "admin" } }
+  ],
+  "cards": [ ... ]
+}
+```
+
+| Module key | Description |
+|---|---|
+| `id`, `label` | Required. `label` and `description` are translated. |
+| `enabled` | Whether the module is in the menu. The app decides; a runtime manifest can set it. |
+| `enabledIf` | A `visibleIf` condition against `runtime`, read when `enabled` is not a boolean. |
+| `route` | Where Open goes. Defaults to the first page. |
+| `pages` | `[{ label, route \| href, highlight? }]`. A page whose route does not resolve is left out. |
+| `enable` | `{ label?, route \| href, permission?, visibleIf? }`: where Turn on goes. Give it a `permission` so only admins see it; without a passing target a module that is off has no button. |
+| `permission`, `visibleIf` | Hide the whole module, as on a card. |
+
 ## Used by hand
 
 ```vue

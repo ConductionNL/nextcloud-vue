@@ -1,0 +1,35 @@
+# link-cards-page Delta: screens-links-module-cards
+
+**Status**: proposed
+**Scope**: nextcloud-vue
+**OpenSpec changes**:
+
+- [screens-links-module-cards](../../)
+
+## Purpose
+
+Module cards on a links page, from configuration.
+
+## ADDED Requirements
+
+### Requirement: A links page can show modules
+
+A `type: "links"` page with `config.modules` SHALL draw one module card per module the reader may see (its
+`permission` and `visibleIf` pass), above the link cards, under a heading (`modulesTitle`, default "Modules") with the
+count of modules in the menu out of all shown. A module SHALL read as in the menu when `enabled` is true, else when its
+`enabledIf` condition passes against `runtime`. A card SHALL name its pages, every page for four or fewer, else the
+pages marked `highlight` (or the first three) after the total, link each page, and offer Open (to `route`, else the
+first page) for a module in the menu or Turn on (to `enable`, only when its `permission` and `visibleIf` pass) for one
+that is off. `footnote` SHALL render under the cards.
+
+#### Scenario: A module that is off, for a reader who is not an admin
+
+- GIVEN a module with `enabled: false` and `enable: { route, permission: "admin" }`
+- WHEN a reader without the admin permission opens the page
+- THEN the card reads "Off" and has no Turn on button
+
+#### Scenario: The count
+
+- GIVEN four visible modules, three of them in the menu
+- WHEN the page renders
+- THEN the heading reads "3 of 4 are in the menu"
