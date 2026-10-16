@@ -28,3 +28,9 @@ Every select of a form widget, including the client picker, SHALL take the width
 - **GIVEN** an app that translates "Phone" as "Bellen"
 - **WHEN** the channel select is shown
 - **THEN** it reads "Bellen"
+
+#### Scenario: The submit label on a dashboard
+
+- **GIVEN** the widget on a dashboard page, which binds the widget's `content` keys as attributes, with submit label `Save contact moment` and an app that translates it as "Contactmoment opslaan"
+- **WHEN** the form is shown
+- **THEN** the submit button reads "Contactmoment opslaan", not the text as written
