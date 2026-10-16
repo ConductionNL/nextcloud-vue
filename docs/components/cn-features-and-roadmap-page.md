@@ -118,7 +118,7 @@ skills and support links sit in an Actions menu.
 
 A feature takes `{ slug, title, summary, status, category, expected, docsUrl }`, plus `title_<lang>` and
 `summary_<lang>` for other languages (`title_nl` for a Dutch reader). `status` is `available` (also `stable`, `done`),
-`beta`, `in_progress` or `planned`; a feature without one is available. `expected` ("Q4 2026") follows the status in
+`beta`, `in_progress` or `planned` (also `soon`); a feature without one is available. `expected` ("Q4 2026") follows the status in
 the badge. "Learn more" goes to `docsUrl` when it is a web address, else to `documentationUrl`.
 
 | `config.board` key | Default | Description |

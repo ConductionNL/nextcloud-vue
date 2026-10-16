@@ -16,7 +16,7 @@ The Features and roadmap page in the board look, configured into the PqRoadmap o
 
 A feature's `status` SHALL read as available (`available`, `stable`, `done`, `released`, `shipped`), beta (`beta`,
 `preview`), in progress (`in_progress`, `in-progress`, `building`, `development`) or planned (`planned`, `roadmap`,
-`proposed`). A feature without a status, or with an unknown one, SHALL read as available.
+`proposed`, `soon`). A feature without a status, or with an unknown one, SHALL read as available.
 
 #### Scenario: Pipelinq's stable reads as available
 

@@ -17,6 +17,7 @@ describe('featureCatalog', () => {
 		expect(featureStatus('Beta')).toBe('beta')
 		expect(featureStatus('in-progress')).toBe('in_progress')
 		expect(featureStatus('planned')).toBe('planned')
+		expect(featureStatus('soon')).toBe('planned')
 		expect(featureStatus(undefined)).toBe('available')
 		expect(featureStatus('unheard of')).toBe('available')
 	})

@@ -38,6 +38,7 @@ const STATUS_ALIASES = Object.freeze({
 	planned: 'planned',
 	roadmap: 'planned',
 	proposed: 'planned',
+	soon: 'planned',
 })
 
 /**
