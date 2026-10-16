@@ -28,6 +28,23 @@ The strip renders the items. It does not rebuild them. Each one carries a callba
 
 A widget that keeps its own header publishes nothing, which is every surface except a tab panel. The channel itself is an internal module, `src/utils/panelActions.js`, and it documents the shape a widget publishes.
 
+## Without the Actions menu
+
+The strip draws one Actions menu beside the tabs. A page that draws none, as the boards do, turns it off on the tabs widget's content:
+
+```json
+{
+  "id": "receivables-tabs",
+  "type": "tabs",
+  "content": {
+    "showActions": false,
+    "tabs": [{ "widgetId": "open-invoices", "label": "Open balance" }]
+  }
+}
+```
+
+The whole menu goes, including the items an open panel lends it (a data widget's Metadata and Edit). Without the key the menu stays as it is.
+
 ## Usage
 
 Reference it from a manifest placement. `label` and `icon` are optional and fall back to the child widget's own title and icon, so the common case is a list of `widgetId`s:
@@ -47,6 +64,20 @@ Reference it from a manifest placement. `label` and `icon` are optional and fall
   }
 }
 ```
+
+### The open panel's header link
+
+A widget that declares `headerLink` keeps it inside a tab. A panel draws no card header, so the strip draws the open tab's link beside it, before the Actions menu, and switches it with the tab. A tab whose widget declares none shows no link. The link is read from `headerLink` on the widget definition, else from its content (`content.headerLink`, or `viewAllRoute`). For a stack, the first widget's link counts.
+
+```json
+{
+  "id": "open-invoices",
+  "type": "object-table",
+  "headerLink": { "label": "All sales invoices", "route": "AccountsReceivable" }
+}
+```
+
+A `route` is a router link (with optional `params` and `query`), an `href` a plain anchor, and the label goes through the app's translations. Nothing changes on the tabs widget itself.
 
 ### Counts, and tabs under More
 
@@ -132,6 +163,7 @@ has a list. A `widgetId` tab renders as before.
 | `surface` | `String` | `'detail-page'` | Rendering surface forwarded to integration children (AD-19). |
 | `integrationContext` | `Object` | `null` | Object context forwarded to integration children. |
 | `cnRegistry` | `Object` | `{}` | The consumer's component registry, for custom child widget types. |
+| `showActions` | `Boolean` | `true` | `false` drops the strip's Actions menu, the open panel's own items included. From a manifest: `content.showActions`. |
 | `showRefresh` | `Boolean` | `true` | Show Refresh in the hoisted Actions menu. |
 | `showRequestFeature` | `Boolean` | `true` | Show Request a feature in the hoisted Actions menu. |
 | `showDocumentation` | `Boolean` | `true` | Show Documentation in the hoisted Actions menu. |

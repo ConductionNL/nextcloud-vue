@@ -15,7 +15,19 @@
 			     is showing. This is the point of the component: six tabbed
 			     widgets used to mean six card headers stacked down the page. -->
 			<template #nav-end>
+				<!-- The open panel's header link ("All sales invoices"): a panel
+				     draws no card header, so the link its widget declares is
+				     drawn here, and changes with the tab. -->
+				<component
+					:is="activeHeaderLinkTarget.tag"
+					v-if="activeHeaderLinkTarget.tag"
+					class="cn-tabs-widget__header-link"
+					data-testid="cn-tabs-widget-header-link"
+					v-bind="activeHeaderLinkTarget.attrs">
+					{{ cnTranslate(activeHeaderLink.label) }}
+				</component>
 				<CnActionsMenu
+					v-if="showActions"
 					:showRefresh="showRefresh"
 					:showRequestFeature="showRequestFeature"
 					:showDocumentation="showDocumentation"
@@ -169,6 +181,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import CnTabs from '../CnTabs/CnTabs.vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { headerLinkTarget, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
@@ -430,6 +443,18 @@ export default {
 			default: () => ({}),
 		},
 
+		/**
+		 * Whether the strip draws its Actions menu at all. `false` drops the
+		 * whole menu, the open panel's own items included, for a board that
+		 * draws none. Manifest: `content.showActions` on the tabs widget.
+		 *
+		 * @spec openspec/changes/tabs-widget-actions-off/specs/tabs-widget-actions-off/spec.md#requirement-a-manifest-can-turn-off-the-tab-strips-actions-menu
+		 */
+		showActions: {
+			type: Boolean,
+			default: true,
+		},
+
 		/** Show the Refresh entry in the hoisted Actions menu. */
 		showRefresh: {
 			type: Boolean,
@@ -652,6 +677,29 @@ export default {
 		 */
 		activeWidgetId() {
 			return this.activeTab?.widgetId || ''
+		},
+
+		/**
+		 * The header link the open tab's widget declares (`headerLink` on the
+		 * definition, or in its content), or null. For a stack, the first
+		 * widget's.
+		 *
+		 * @spec openspec/changes/tabs-widget-header-link/specs/tabs-widget-header-link/spec.md#requirement-the-tab-strip-draws-the-open-panels-header-link
+		 * @return {object|null}
+		 */
+		activeHeaderLink() {
+			return widgetHeaderLink(this.activeTab?.widget)
+		},
+
+		/**
+		 * How to draw the open panel's header link: a router link for a
+		 * route, an anchor for an href, nothing otherwise.
+		 *
+		 * @spec openspec/changes/tabs-widget-header-link/specs/tabs-widget-header-link/spec.md#requirement-the-tab-strip-draws-the-open-panels-header-link
+		 * @return {{tag: string, attrs: object}}
+		 */
+		activeHeaderLinkTarget() {
+			return headerLinkTarget(this.activeHeaderLink, Boolean(this.$router))
 		},
 
 		/**
@@ -1229,6 +1277,29 @@ export default {
    bottom and made the panel scroll. It bleeds exactly the panel's padding. */
 .cn-tabs-widget__tabs :deep(.cn-tabs__content > .cn-tab > .cn-detail-widget-host--bare .cn-object-list-widget__add) {
 	margin: auto -12px -12px;
+}
+
+/* The open panel's header link, beside the strip. Same look and theme hooks
+   as a card header link (CnWidgetWrapper). */
+.cn-tabs-widget__header-link {
+	align-self: center;
+	padding: 0 calc(1 * var(--default-grid-baseline));
+	color: var(--color-primary-element);
+	font-size: var(--cn-widget-header-link-size, 14px);
+	font-weight: var(--cn-widget-header-link-weight, 600);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.cn-tabs-widget__header-link:hover,
+.cn-tabs-widget__header-link:focus-visible {
+	text-decoration: underline;
+}
+
+.cn-tabs-widget__header-link:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+	border-radius: var(--border-radius-small, 4px);
 }
 
 .cn-tabs-widget__title {

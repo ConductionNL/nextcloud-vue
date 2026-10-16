@@ -147,6 +147,20 @@ if (typeof window !== 'undefined' && /[?&]l7=header-menu-/.test(window.location.
 		],
 	}))
 }
+// The tabs widget's header link (?l7=l18-tabs-...): the link is a router link
+// and the claim is that clicking it routes, so it needs the real router.
+if (typeof window !== 'undefined' && /[?&]l7=l18-tabs-/.test(window.location.search)) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const page = { render: () => null }
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: [
+			{ path: '/', name: 'Receivables', component: page },
+			{ path: '/receivables', name: 'AccountsReceivable', component: page },
+			{ path: '/payment-requests', name: 'PaymentRequests', component: page },
+		],
+	}))
+}
 // Vue 3's replacement for Vue.prototype.
 app.config.globalProperties.t = t
 app.config.globalProperties.n = n
