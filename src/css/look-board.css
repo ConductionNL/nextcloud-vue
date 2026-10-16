@@ -591,6 +591,39 @@
 	max-width: none;
 }
 
+/* A Nextcloud text field or text area in a board settings card has its label
+   above the control (14px/600), as the boards draw it (PqBeheer Leadbeheer,
+   PqBeheerKassa Btw), instead of floating inside the border. The label stays
+   the field's own `<label for>`; it moves out of the control and the field
+   makes room for it. With the label outside, the placeholder shows at rest.
+   @spec openspec/changes/settings-section-board-fields/specs/settings-board-look/spec.md#requirement-a-settings-card-labels-its-text-fields-above-the-control */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label),
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea:has(.textarea__label) {
+	margin-block-start: 26px;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__input + .input-field__label,
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input + .textarea__label {
+	inset-block-start: auto;
+	inset-block-end: calc(100% + 4px);
+	inset-inline: 0 auto;
+	max-width: 100%;
+	margin: 0;
+	padding: 0;
+	background: none;
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 20px;
+	pointer-events: auto;
+	transition: none;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label) .input-field__input:not(:focus)::placeholder,
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input:not(:focus, .textarea__input--label-outside)::placeholder {
+	opacity: 1 !important;
+}
+
 /* The section footer is the save row: the hairline replaces its own rule. */
 .cn-look-board .settings-section .cn-settings-section__footer {
 	margin: 0;
