@@ -32,11 +32,13 @@ function mountChart(props, extra = {}) {
 	})
 }
 
-const rowsOf = (w) => w.findAll('[data-testid="cn-chart-widget-bar-row"]').map((row) => ({
-	label: row.find('.cn-chart-widget__bar-label').text(),
-	value: row.find('.cn-chart-widget__bar-value').text(),
-	width: row.find('.cn-chart-widget__bar-fill').attributes('style'),
-}))
+function rowsOf(w) {
+	return w.findAll('[data-testid="cn-chart-widget-bar-row"]').map((row) => ({
+		label: row.find('.cn-chart-widget__bar-label').text(),
+		value: row.find('.cn-chart-widget__bar-value').text(),
+		width: row.find('.cn-chart-widget__bar-fill').attributes('style'),
+	}))
+}
 
 describe('CnChartWidget bar-list', () => {
 	it('draws a row per category with a track at its share of the largest value', () => {
