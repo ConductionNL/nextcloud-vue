@@ -14,6 +14,39 @@
 			{{ emptyText }}
 		</NcNoteCard>
 
+		<!-- Rows: one full-width option per row, the input on the left and the
+		     title over a muted description, no card chrome. -->
+		<div v-else-if="layout === 'rows'" class="cn-choice-cards__rows" data-testid="cn-choice-cards-rows">
+			<div
+				v-for="option in normalizedOptions"
+				:key="String(option.value)"
+				class="cn-choice-cards__cell">
+				<label
+					class="cn-choice-cards__row"
+					:class="{ 'cn-choice-cards__row--selected': isSelected(option), 'cn-choice-cards__row--disabled': disabled }">
+					<input
+						class="cn-choice-cards__row-input"
+						:type="multiple ? 'checkbox' : 'radio'"
+						:name="groupName"
+						:value="String(option.value)"
+						:checked="isSelected(option)"
+						:disabled="disabled"
+						@change="onToggle(option)">
+					<CnIcon v-if="option.icon"
+						:name="option.icon"
+						:size="20"
+						class="cn-choice-cards__row-icon" />
+					<span class="cn-choice-cards__row-text">
+						<span class="cn-choice-cards__row-title">{{ option.label }}</span>
+						<span v-if="option.description" class="cn-choice-cards__row-description">{{ option.description }}</span>
+					</span>
+				</label>
+				<div v-if="$slots['option-actions']" class="cn-choice-cards__actions">
+					<slot name="option-actions" :option="option" :selected="isSelected(option)" />
+				</div>
+			</div>
+		</div>
+
 		<div v-else class="cn-choice-cards__grid" :style="gridStyle">
 			<!-- One cell per option: the card's label, and below it whatever the
 			     `#option-actions` slot adds. The slot sits OUTSIDE the label on
@@ -154,6 +187,17 @@ export default {
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Nothing to choose from here.'),
+		},
+
+		/**
+		 * `cards`: a grid of cards with stats and tags. `rows`: one option per
+		 * row, full width, the input on the left and the title over a muted
+		 * description; with `multiple` and one option it is a checkbox card.
+		 */
+		layout: {
+			type: String,
+			default: 'cards',
+			validator: (value) => ['cards', 'rows'].includes(value),
 		},
 
 		/** Lines of description shown before clamping. */
@@ -367,5 +411,72 @@ export default {
 
 .cn-choice-cards__input:disabled + :deep(.cn-card) {
 	opacity: 0.6;
+}
+
+.cn-choice-cards__rows {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.cn-choice-cards__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 14px 16px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-main-background);
+	cursor: pointer;
+}
+
+.cn-choice-cards__row:hover {
+	border-color: var(--color-border-dark);
+}
+
+.cn-choice-cards__row--selected,
+.cn-choice-cards__row--selected:hover {
+	border-color: var(--color-primary-element);
+	/* The second pixel of the 2px selected border, without moving the content. */
+	box-shadow: inset 0 0 0 1px var(--color-primary-element);
+	background: var(--color-primary-element-light);
+}
+
+.cn-choice-cards__row--disabled {
+	cursor: default;
+	opacity: 0.6;
+}
+
+.cn-choice-cards__row:has(.cn-choice-cards__row-input:focus-visible) {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-choice-cards__row-input {
+	flex: none;
+	margin: 2px 0 0;
+	accent-color: var(--color-primary-element);
+	cursor: inherit;
+}
+
+.cn-choice-cards__row-icon {
+	flex: none;
+}
+
+.cn-choice-cards__row-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-choice-cards__row-title {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-choice-cards__row-description {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 </style>
