@@ -1493,7 +1493,10 @@
       "{on} of %n are in the menu"
     ],
     "Put it in the menu:": "Put it in the menu:",
-    "Admin settings": "Admin settings"
+    "Admin settings": "Admin settings",
+    "For administrators": "For administrators",
+    "Administrators only": "Administrators only",
+    "Open admin settings": "Open admin settings"
   },
   "plurals": {
     "{count} selected": [

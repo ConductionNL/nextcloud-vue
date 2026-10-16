@@ -45,6 +45,8 @@ An app may have several `links` pages. That is the difference with `reports`, wh
 | `href` | An external URL. Opens in a new tab. |
 | `visibleIf` | The same condition a menu entry takes: `appInstalled`, and dot-path checks against `manifest.runtime`. |
 | `permission` | A permission the user must hold. Same rule as the menu: an empty permissions list allows. |
+| `note` | A chip under the description: a string, a `{ text, tone?, counts?, when?, textOne? }`, or a list of those. See below. |
+| `action` | `user-settings`: the card opens the app's user settings modal instead of a page. Left out where `CnAppRoot` provides no such modal. |
 
 A card has a `route` or an `href`, never both. The manifest validator refuses a card with neither.
 
@@ -84,6 +86,38 @@ A `route` is resolved through the router, so the link is right with and without 
 
 `config.groupStyle: "list"` draws each group as one card with the caption as its title and a row per link: an icon chip, the label over its description, and a chevron (an external-link icon for an `href`). The PqModules board draws "Ook in Pipelinq" and "Meer" this way under the modules. The default, `cards`, is the grid above. Schema 2.108.0.
 
+## Notes on a card
+
+A note says something about what the card opens, in a tone: `neutral` (default), `success`, `warning`, `error` or `info`.
+
+```json
+{ "id": "Flows", "label": "Flows", "route": "Flows",
+  "note": { "text": "{active} active, {paused} paused", "tone": "success",
+    "counts": {
+      "active": { "register": "pipelinq", "schema": "flow", "filter": { "status": "active" } },
+      "paused": { "register": "pipelinq", "schema": "flow", "filter": { "status": "paused" } } } } }
+```
+
+Each count is one `_limit=1` list request; `{name}` in the text is replaced by it. A list of notes shows the first that applies, and a note with `when` applies only while that count is above 0. `textOne` is used when that count (or the first) is 1:
+
+```json
+"note": [
+  { "text": "{errors} connections have an error", "textOne": "{errors} connection has an error", "tone": "error", "when": "errors",
+    "counts": { "errors": { "register": "integriq", "schema": "app_connection", "filter": { "app": "pipelinq", "status": "error" } } } },
+  "Telephony, social networks and bulk mail"
+]
+```
+
+A note whose counts are loading or failed is not shown. Every card ends in a chevron, or in an external-link icon when it opens a URL.
+
+## Only for administrators
+
+`config.adminPanel` draws a panel under the cards that only administrators see: an "Administrators only" pill, `text`, and a link (`href`, or `route`; label `linkLabel`, default "Open admin settings"). `component` names a custom component drawn beside it, such as a read-only view of the app's menu. The `#admin` slot adds more. The panel is a convenience: the settings it links to check the user themselves.
+
+```json
+"adminPanel": { "text": "The menu choice applies to everyone.", "href": "/settings/admin/pipelinq", "component": "MenuStructureSummary" }
+```
+
 ## Used by hand
 
 ```vue
@@ -102,6 +136,7 @@ A `route` is resolved through the router, so the link is right with and without 
 | `title` | String | `null` | The heading. |
 | `description` | String | `null` | The lead paragraph. |
 | `emptyLabel` | String | `null` | Text shown when no card is visible. Defaults to "Nothing to open here." |
+| `adminPanel` | Object | `null` | The panel under the cards for administrators: `{ text, href, route, linkLabel, component }`. |
 | `translate` | Function | `null` | Translate function. Falls back to the one `CnAppRoot` provides. |
 | `page` | Object | `{}` | The whole manifest page, for a host that mounts the component itself. The props above win. |
 

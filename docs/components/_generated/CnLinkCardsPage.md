@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 4 files reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -19,5 +19,12 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `groupStyle`   | `string`                              |          | `null`  | `cards` (default): a grid of link cards per group. `list`: one card per group with a row per link.                                                                                                                                                                   |
 | `modulesTitle` | `string`                              |          | `null`  | Heading of the modules section. Defaults to "Modules".                                                                                                                                                                                                               |
 | `footnote`     | `string`                              |          | `null`  | A note under the module cards.                                                                                                                                                                                                                                       |
+| `adminPanel`   | `union`                               |          | `null`  | A panel under the cards that only administrators see: `{ text?, href?, route?, linkLabel?, component? }`. `component` names a custom component drawn beside it (a form the app owns).                                                                                |
 | `emptyLabel`   | `string`                              |          | `null`  | Text shown when no card is visible.                                                                                                                                                                                                                                  |
 | `translate`    | `((key: string) => string)&#124;null` |          | `null`  | Translate function. Falls back to the injected `cnTranslate`.                                                                                                                                                                                                        |
+
+### Slots
+
+| Name    | Bindings | Description                                                                   |
+| ------- | -------- | ----------------------------------------------------------------------------- |
+| `admin` | —        | admin More content in the panel under the cards that only administrators see. |

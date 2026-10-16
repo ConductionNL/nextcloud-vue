@@ -1679,7 +1679,10 @@
       "{on} van %n staat in het menu",
       "{on} van %n staan in het menu"
     ],
-    "Put it in the menu:": "In het menu zetten:"
+    "Put it in the menu:": "In het menu zetten:",
+    "For administrators": "Voor beheerders",
+    "Administrators only": "Alleen beheerders",
+    "Open admin settings": "Beheerinstellingen openen"
   },
   "plurals": {
     "{count} selected": [
