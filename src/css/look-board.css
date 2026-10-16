@@ -832,3 +832,22 @@
 .cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__head {
 	flex-wrap: wrap;
 }
+
+/* ---- A card of boxed stat tiles (DcRapportages "Vergaderingen en efficiëntie") -- */
+/* The board draws this card 22px from its edge on every side but the bottom
+   (20px), the header 14px above the tiles, and no rule under the header. The
+   card-fit cell padding (8px 14px) plus the grid's own 24px came to 38px at
+   the sides, with the wrapper's divider under the title.
+   @spec openspec/changes/stats-box-card-inset/specs/stats-box-card-inset/spec.md#requirement-a-card-of-boxed-stat-tiles-keeps-the-boards-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-stats-block-widget--tiles-box) .cn-widget-wrapper__header {
+	padding: 20px 22px 0;
+	border-bottom: none;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-stats-block-widget--tiles-box) .cn-widget-wrapper__content {
+	padding: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stats-block-widget--tiles-box {
+	padding: 14px 22px 20px;
+}
