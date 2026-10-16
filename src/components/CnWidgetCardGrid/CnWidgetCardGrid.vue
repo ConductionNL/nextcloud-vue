@@ -15,8 +15,9 @@
 		:widgetId="widgetId"
 		:documentationUrl="documentationUrl"
 		:refreshing="epLoading"
+		:chromeless="chromeless"
 		flush>
-		<div class="cn-widget-card-grid">
+		<div class="cn-widget-card-grid" :class="{ 'cn-widget-card-grid--in-cell': chromeless }">
 			<CnObjectCard
 				v-for="(item, index) in cards"
 				:key="item.id || index"
@@ -74,6 +75,16 @@ export default {
 		widgetId: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Draw no frame, title or Actions menu of its own: the surface around
+		 * the grid already drew the card (a dashboard cell). The cards then
+		 * take the cell's inset.
+		 */
+		chromeless: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Array of object records to render as cards. */
@@ -137,5 +148,13 @@ export default {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 	gap: calc(2 * var(--default-grid-baseline, 4px));
+}
+
+/* In a dashboard cell that draws the titled card, the cards keep an inset
+   from its edge; in a borderless cell they stand flush.
+   @spec openspec/changes/card-grid-dashboard-frame/specs/card-grid-dashboard-frame/spec.md#requirement-a-card-grid-on-a-dashboard-draws-no-frame-of-its-own */
+.cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-card-grid--in-cell {
+	box-sizing: border-box;
+	padding: 16px;
 }
 </style>

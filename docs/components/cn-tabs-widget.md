@@ -67,7 +67,7 @@ Reference it from a manifest placement. `label` and `icon` are optional and fall
 
 ### The open panel's header link
 
-A widget that declares `headerLink` keeps it inside a tab. A panel draws no card header, so the strip draws the open tab's link beside it, before the Actions menu, and switches it with the tab. A tab whose widget declares none shows no link. The link is read from `headerLink` on the widget definition, else from its content (`content.headerLink`, or `viewAllRoute`). For a stack, the first widget's link counts.
+A widget that declares `headerLink` keeps it inside a tab. A panel draws no card header, so the strip draws the open tab's link beside it, before the Actions menu, and switches it with the tab. A tab whose widget declares none shows no link. The link is read from `headerLink` on the widget definition, else from its content (`content.headerLink`, or `viewAllRoute`). For a stack, the first widget's link counts; each card below it draws its own link in its card header.
 
 ```json
 {

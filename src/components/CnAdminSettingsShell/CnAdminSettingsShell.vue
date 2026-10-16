@@ -64,6 +64,7 @@
 			v-if="tabItems.length > 0"
 			class="cn-admin-settings-shell__tabs"
 			:look="isBoard ? 'board' : 'nextcloud'"
+			:variant="tabsVariant"
 			:ariaLabel="resolvedTitle"
 			data-testid="cn-admin-settings-tabs"
 			@update:activeIndex="onTabIndex">
@@ -212,6 +213,7 @@ import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import { useEnvironment } from '../../composables/useEnvironment.js'
 import { normalizeLook, useLook } from '../../composables/useLook.js'
+import { ensureTranslations } from '../../l10n/index.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { CnTab, CnTabs } from '../CnTabs/index.js'
@@ -440,6 +442,20 @@ export default {
 			default: 'tab',
 		},
 
+		/**
+		 * How the `tabs` strip is drawn, as CnTabs' `variant`: `line`, the
+		 * folder tabs (the default), or `underline`, plain labels on a rule
+		 * with the open one underlined (board LpBeheerAlgemeen).
+		 *
+		 * @type {'line'|'underline'}
+		 * @spec openspec/changes/admin-settings-underline-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-an-underline-tab-strip
+		 */
+		tabsVariant: {
+			type: String,
+			default: 'line',
+			validator: (value) => ['line', 'underline'].includes(value),
+		},
+
 		/** Whether to render the version card. */
 		showVersionCard: {
 			type: Boolean,
@@ -578,6 +594,9 @@ export default {
 	emits: ['update', 'reimported', 'reimport-error', 'tab-change'],
 
 	setup(props) {
+		// An admin page can be an entry with no other library surface: its
+		// chrome reads in the user's language without the app registering.
+		ensureTranslations()
 		// The app's own `environment` setting, else the active organisation's.
 		const { environment: environmentName } = useEnvironment({ environment: () => props.environment })
 		const { look, isBoard } = useLook(props)

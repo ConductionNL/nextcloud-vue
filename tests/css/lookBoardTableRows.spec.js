@@ -32,7 +32,10 @@ function rulesEndingWith(needle) {
 describe('look-board-index.css: table rows', () => {
 	it('keeps the secondary line out of the title underline', () => {
 		const body = rulesEndingWith('.cn-table-container--board .cn-data-table td.cn-table-col--title .cn-table-cell__secondary')
-		expect(body).toMatch(/display:\s*inline-block/)
+		// A float: the underline does not reach it, and it clears a title the
+		// app draws inline through `#column-title` in the nowrap cell.
+		expect(body).toMatch(/float:\s*inline-start/)
+		expect(body).toMatch(/clear:\s*both/)
 		expect(body).toMatch(/width:\s*100%/)
 	})
 

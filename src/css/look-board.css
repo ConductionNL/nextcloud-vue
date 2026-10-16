@@ -773,6 +773,35 @@
 	flex: 1 1 240px;
 }
 
+/* A card grid in a dashboard card: the cards keep the record list's 24px
+   side inset, 16px apart, as the board spaces its cards.
+   @spec openspec/changes/card-grid-dashboard-frame/specs/card-grid-dashboard-frame/spec.md#requirement-a-card-grid-on-a-dashboard-draws-no-frame-of-its-own */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-card-grid--in-cell {
+	gap: 16px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-card-grid--in-cell {
+	padding: 16px 24px 20px;
+}
+
+/* A record list drawn as cards (ShBank's bank accounts) keeps the rows' 24px
+   side inset inside a card, with room above the first card. In a borderless
+   cell the cards stand on the page ground, flush with the grid, as the board
+   draws them. A card is a link only by its hover: no underline on any text run.
+   @spec openspec/changes/record-list-cards/specs/record-list-cards/spec.md#requirement-a-record-list-can-draw-its-rows-as-cards */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--cards {
+	padding: 16px 24px 20px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper--borderless .cn-record-list--cards {
+	padding: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__card,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__card * {
+	text-decoration: none !important;
+}
+
 /* ---- Saved views on a dashboard card (PqMijnWerk) ------------------------ */
 /* The card body is flush, so the list and its empty line carry the card's
    inset themselves, the same 24px at the sides as a record list. */
@@ -802,4 +831,23 @@
 
 .cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__head {
 	flex-wrap: wrap;
+}
+
+/* ---- A card of boxed stat tiles (DcRapportages "Vergaderingen en efficiëntie") -- */
+/* The board draws this card 22px from its edge on every side but the bottom
+   (20px), the header 14px above the tiles, and no rule under the header. The
+   card-fit cell padding (8px 14px) plus the grid's own 24px came to 38px at
+   the sides, with the wrapper's divider under the title.
+   @spec openspec/changes/stats-box-card-inset/specs/stats-box-card-inset/spec.md#requirement-a-card-of-boxed-stat-tiles-keeps-the-boards-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-stats-block-widget--tiles-box) .cn-widget-wrapper__header {
+	padding: 20px 22px 0;
+	border-bottom: none;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-stats-block-widget--tiles-box) .cn-widget-wrapper__content {
+	padding: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stats-block-widget--tiles-box {
+	padding: 14px 22px 20px;
 }

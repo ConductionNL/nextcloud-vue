@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-tabs" :class="[{ 'cn-tabs--card': card, 'cn-tabs--segmented': variant === 'segmented', 'cn-tabs--board': boardStrip }, boardClass]">
+	<div class="cn-tabs" :class="[{ 'cn-tabs--card': card, 'cn-tabs--segmented': variant === 'segmented', 'cn-tabs--underline': variant === 'underline', 'cn-tabs--board': boardStrip }, boardClass]">
 		<div class="cn-tabs__bar">
 			<div
 				class="cn-tabs__strip"
@@ -225,17 +225,20 @@ export default defineComponent({
 		},
 
 		/**
-		 * How the strip is drawn: `line` (the default: tabs joined to the
-		 * panel below) or `segmented` (a compact pill switch, for a view
-		 * switch such as "My work / My team"). Roles and keyboard behaviour
-		 * are the same in both.
+		 * How the strip is drawn: `line` (the default: folder tabs joined to
+		 * the panel below), `segmented` (a compact pill switch, for a view
+		 * switch such as "My work / My team") or `underline` (plain labels on
+		 * a rule, the open one underlined; board LpBeheerAlgemeen). An
+		 * `underline` strip wraps instead of scrolling. Roles and keyboard
+		 * behaviour are the same in all three.
 		 *
-		 * @type {'line'|'segmented'}
+		 * @type {'line'|'segmented'|'underline'}
+		 * @spec openspec/changes/admin-settings-underline-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-an-underline-tab-strip
 		 */
 		variant: {
 			type: String,
 			default: 'line',
-			validator: (v) => ['line', 'segmented'].includes(v),
+			validator: (v) => ['line', 'segmented', 'underline'].includes(v),
 		},
 
 		/**
@@ -897,5 +900,55 @@ export default defineComponent({
 	box-shadow: 0 1px 2px var(--color-box-shadow);
 	font-weight: 600;
 	padding-top: 6px;
+}
+
+/* Underline variant (board LpBeheerAlgemeen): plain labels on the bar's rule,
+   the open one carried by a 3px primary underline that sits on that rule. The
+   strip wraps onto a second row rather than scrolling. */
+.cn-tabs--underline .cn-tabs__nav {
+	flex-wrap: wrap;
+	overflow: visible;
+}
+
+.cn-tabs--underline .cn-tabs__nav-item {
+	background-color: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	border-radius: 0;
+	color: var(--cn-board-text-soft, var(--color-main-text));
+	font-size: 14px;
+	font-weight: 500;
+	gap: 8px;
+	min-height: 44px;
+	padding: 0 9px;
+}
+
+.cn-tabs--underline .cn-tabs__nav-item:hover,
+.cn-tabs--underline .cn-tabs__nav-item:focus-visible {
+	background-color: transparent;
+	border-bottom-color: var(--color-border-dark);
+	color: var(--color-main-text);
+}
+
+.cn-tabs--underline .cn-tabs__nav-item[disabled]:hover {
+	background-color: transparent;
+	border-bottom-color: transparent;
+}
+
+.cn-tabs--underline .cn-tabs__nav-item--active,
+.cn-tabs--underline .cn-tabs__nav-item--active:hover,
+.cn-tabs--underline .cn-tabs__nav-item--active:focus-visible {
+	border-bottom: 3px solid var(--color-primary-element);
+	color: var(--color-main-text);
+	font-weight: 700;
+	padding-top: 0;
+}
+
+.cn-tabs--underline .cn-tabs__count {
+	margin-inline-start: 0;
+}
+
+.cn-tabs--underline .cn-tabs__content {
+	padding-top: 20px;
 }
 </style>

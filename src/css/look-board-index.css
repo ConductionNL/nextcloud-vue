@@ -578,12 +578,16 @@
 
 /* Only the title is underlined (DqZaken). An underline set on the cell
    reaches every in-flow child whatever its own text-decoration, so the
-   secondary lines become inline blocks on a line of their own: an atomic
-   inline box is the one thing the underline does not reach. */
+   secondary lines float, full width, each on a line of their own: the
+   underline does not reach a float, and a float clears the title also when
+   the app draws the title inline through its `#column-title` slot in this
+   nowrap cell, where an inline block stayed on the title's line.
+   @spec openspec/changes/board-title-secondary-own-line/specs/board-title-secondary-own-line/spec.md#requirement-the-title-columns-secondary-line-sits-under-the-title */
 .cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title .cn-table-cell__secondary {
-	display: inline-block;
+	float: inline-start;
+	clear: both;
+	box-sizing: border-box;
 	width: 100%;
-	vertical-align: top;
 }
 
 /* `rowTitle: "plain"` (PqTickets, OcPublicaties): the title is bold text in

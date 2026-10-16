@@ -882,7 +882,7 @@
 							:is="registryRenderer(item)"
 							:widgetId="item.widgetId"
 							:content="registryWidgetBindings(item)"
-							v-bind="{ ...registryWidgetBindings(item), ...containerBindings(item) }"
+							v-bind="{ ...registryWidgetBindings(item), ...containerBindings(item), ...cellChromeBindings(item) }"
 							@header="onWidgetHeader(item, $event)" />
 					</CnWidgetWrapper>
 				</template>
@@ -3669,6 +3669,20 @@ export default {
 				cnRegistry: this.cnRegistry || {},
 				surface: this.surface,
 			}
+		},
+
+		/**
+		 * What a widget that draws its own card needs inside a dashboard cell,
+		 * which already draws the titled card: the built-in `card-grid` gets
+		 * `chromeless`, so it adds no second frame, title or Actions menu.
+		 * Empty for every other widget.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {object} The extra bindings.
+		 * @spec openspec/changes/card-grid-dashboard-frame/specs/card-grid-dashboard-frame/spec.md#requirement-a-card-grid-on-a-dashboard-draws-no-frame-of-its-own
+		 */
+		cellChromeBindings(item) {
+			return this.registryRenderer(item) === BUILT_IN_WIDGETS['card-grid'] ? { chromeless: true } : {}
 		},
 
 		/**

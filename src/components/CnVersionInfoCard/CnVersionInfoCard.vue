@@ -94,6 +94,7 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Update from 'vue-material-design-icons/Update.vue'
 import { useLook } from '../../composables/useLook.js'
+import { ensureTranslations } from '../../l10n/index.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 
 /**
@@ -258,6 +259,9 @@ export default {
 	emits: ['update'],
 
 	setup(props) {
+		// An admin page can be an entry with no other library surface: its
+		// chrome reads in the user's language without the app registering.
+		ensureTranslations()
 		const { isBoard } = useLook(props)
 		return { isBoard }
 	},
