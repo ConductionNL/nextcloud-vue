@@ -53,3 +53,40 @@ pass it on.
 - **GIVEN** contacts the reader never opened (`@self.unread: true`) on a board-look page without the Unread lens
 - **WHEN** the table renders
 - **THEN** no row is bold and no unread dot is drawn
+
+### Requirement: A single page still draws its pager
+
+Under the board look the table footer SHALL draw the page links on a single
+page too: the current "1" and an inert "Next" (`aria-disabled`, no page
+change), as the boards draw it. With more pages the footer SHALL read as
+before.
+
+#### Scenario: Eighteen contacts
+
+- **GIVEN** a board-look list with 18 records on one page
+- **WHEN** the footer renders
+- **THEN** it reads "18 of 18" at the start and "1", "Next" (inert) at the end
+
+### Requirement: No sidebar toggle on the primary button
+
+Under the board look Nextcloud's own sidebar toggle (`.app-sidebar__toggle`)
+SHALL NOT be drawn on a page that holds an index page: it sits over the
+content's top-right corner, which is the primary header button. The Filter
+button opens the sidebar.
+
+#### Scenario: PqContacten with a sidebar
+
+- **GIVEN** a board-look contacts page with a closed sidebar
+- **WHEN** the header renders
+- **THEN** no dark square sits on "New contact"
+
+### Requirement: The header funnel has the board's size
+
+Under the board look a column header's filter button SHALL be 22px square and
+sit 4px after the sort chevron, with its 14px muted icon.
+
+#### Scenario: PqContacten with header filters on
+
+- **GIVEN** a board-look table with header filters
+- **WHEN** a header renders
+- **THEN** the funnel is a 22px button 4px after the chevron

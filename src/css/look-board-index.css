@@ -542,6 +542,15 @@
 	max-width: calc(100% - 26px);
 }
 
+/* The board's funnel: a 22px button 4px after the sort chevron. */
+.cn-look-board .cn-table-container--board .cn-data-table th .cn-table-header__filter {
+	width: 22px;
+	min-width: 22px;
+	height: 22px;
+	min-height: 22px;
+	margin-inline-start: 4px;
+}
+
 /* The selection column: 18px checkboxes, 28px of content after 16px of padding.
    The box model is set with `!important` and the widths include the padding:
    Nextcloud's server.css sets `box-sizing: border-box` on everything under
@@ -745,6 +754,14 @@
 
 .cn-look-board .cn-pagination--board .cn-pagination__board-link--wide {
 	padding: 0 12px;
+}
+
+/* The inert Next of a single page: a faint outline, muted text. */
+.cn-look-board .cn-pagination--board .cn-pagination__board-link--disabled {
+	display: inline-flex;
+	align-items: center;
+	color: var(--color-text-maxcontrast);
+	cursor: default;
 }
 
 .cn-look-board .cn-pagination--board .cn-pagination__board-link--current {
@@ -1027,4 +1044,12 @@
 	margin-inline-start: auto;
 	padding: 0 12px;
 	border-radius: 8px;
+}
+
+/* The sidebar's own open toggle (NcAppSidebar's `.app-sidebar__toggle`, drawn
+   when the sidebar is closed) sits over the content's top-right corner, which
+   on an index page is the primary header button: a stray dark square on
+   "New contact". The board draws none; the Filter button opens the sidebar. */
+.cn-look-board:has(.cn-index-page) > .app-sidebar__toggle {
+	display: none;
 }

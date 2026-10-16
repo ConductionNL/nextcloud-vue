@@ -27,3 +27,27 @@
   - `showUnread: false` draws unread rows plainly; board look passes it only with the Unread lens
 - [x] Implement
 - [x] Test
+
+### Task 4: The single-page pager
+- **spec_ref**: `openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-a-single-page-still-draws-its-pager`
+- **files**: `src/components/CnPagination/CnPagination.vue`, `src/css/look-board-index.css`, `tests/components/CnPaginationBoard.spec.js`
+- **acceptance_criteria**:
+  - One page draws "1" and an inert Next
+- [x] Implement
+- [x] Test
+
+### Task 5: No sidebar toggle on the primary button
+- **spec_ref**: `openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-no-sidebar-toggle-on-the-primary-button`
+- **files**: `src/css/look-board-index.css`, `tests/css/lookBoardSidebarToggle.spec.js`
+- **acceptance_criteria**:
+  - `.app-sidebar__toggle` hidden on a board page holding an index page
+- [x] Implement
+- [x] Test
+
+### Task 6: The header funnel
+- **spec_ref**: `openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-the-header-funnel-has-the-boards-size`
+- **files**: `src/css/look-board-index.css`, `tests/components/CnIndexPageBoardListGaps.spec.js`
+- **acceptance_criteria**:
+  - 22px funnel, 4px after the chevron
+- [x] Implement
+- [x] Test

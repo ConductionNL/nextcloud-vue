@@ -114,3 +114,17 @@ describe('CnDataTable: showUnread', () => {
 		expect(w.find('[data-testid="cn-unread-marker"]').exists()).toBe(false)
 	})
 })
+
+describe('board look: the header funnel', () => {
+	const fs = require('fs')
+	const path = require('path')
+	const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+
+	it('draws the funnel as the board\'s 22px button 4px after the chevron', () => {
+		const match = css.match(/\.cn-look-board \.cn-table-container--board \.cn-data-table th \.cn-table-header__filter\s*\{([^}]*)\}/)
+		expect(match).not.toBeNull()
+		expect(match[1]).toMatch(/width:\s*22px/)
+		expect(match[1]).toMatch(/height:\s*22px/)
+		expect(match[1]).toMatch(/margin-inline-start:\s*4px/)
+	})
+})

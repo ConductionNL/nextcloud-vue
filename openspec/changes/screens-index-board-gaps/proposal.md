@@ -18,6 +18,13 @@ look, that page still differs in ways no manifest can fix:
   ones only when the manifest listed them in `viewSwitch`.
 - OpenRegister marks every record the reader never opened as unread, so a
   fresh contact list read entirely in bold. No list board draws unread rows.
+- A list on one page drew no page links; 80 boards draw "1" and an inert
+  "Next" there.
+- Nextcloud's own sidebar toggle sat on the primary header button as a dark
+  square.
+- The header funnel was 24px with a 2px gap; the boards draw 22px, 4px after
+  the chevron. (pipelinq turns header filters off in its simple profile; that
+  is the app's switch, not this change.)
 
 ## Reference screens
 
