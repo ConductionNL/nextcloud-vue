@@ -429,7 +429,7 @@ export default {
 		 * @type {{title?: string, text?: string}|boolean|null}
 		 */
 		sideNote: {
-			type: [Object, Boolean],
+			type: [Boolean, Object],
 			default: null,
 		},
 

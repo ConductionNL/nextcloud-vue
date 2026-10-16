@@ -14,8 +14,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import fs from 'fs'
 import path from 'path'
-import nl from '../../l10n/nl.json'
 import en from '../../l10n/en.json'
+import nl from '../../l10n/nl.json'
 import { registerTranslations } from '../../src/l10n/index.js'
 
 const source = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'components', 'CnReportsPage', 'CnReportsPage.vue'), 'utf8')

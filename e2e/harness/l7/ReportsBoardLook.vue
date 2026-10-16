@@ -57,6 +57,7 @@ export default {
 						{ id: 'campaign', label: 'Campagnerapport', description: 'Wat een campagne bereikte, wat ze opleverde en wat ze kostte.', category: 'marketing', icon: 'Bullhorn', route: 'Campaign' },
 						{ id: 'weekly', label: 'Weekoverzicht', description: 'Wat vorige week bewoog, wat je kunt proberen, en drie ideeën voor onderwerpen.', category: 'marketing', icon: 'CalendarWeek', route: 'Weekly' },
 					],
+
 					sideNote: { title: 'Mis je een rapportage?', text: 'Bouw er zelf een in Nextcloud Analytics met Nieuw analyserapport, of vraag een beheerder een rapportage aan de app toe te voegen.' },
 					footnote: 'This page comes from the library (nextcloud-vue) and looks the same in every app; only the content is the app\'s own.',
 				},
