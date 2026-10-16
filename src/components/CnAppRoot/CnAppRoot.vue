@@ -740,6 +740,7 @@ import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { createManifestTranslate } from '../../utils/manifestTranslate.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
+import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
@@ -3221,6 +3222,7 @@ export default {
 		// write lands; this warns the user while there are unsaved/in-flight
 		// changes. Registered before the early-return so it always installs.
 		window.addEventListener('beforeunload', this.onBeforeUnload)
+		window.addEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
 
 		// Opt-out fast-path: empty `requiresApps` already initialised
 		// `capabilitiesLoading` to `false` in data(); skip the check.
@@ -3266,6 +3268,7 @@ export default {
 			this.removeDiagnostics = null
 		}
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
+		window.removeEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
 		this.cnScopedTheme.teardown(this.appId)
 		// Scope the side effect to the shell's lifetime. Layers already written
 		// stay on screen (see `uninstallModalStack`), so a dialog outliving the
@@ -4112,13 +4115,17 @@ export default {
 		 * response `total` written to `cnMenuItemCounts[item.id]`. The
 		 * request goes straight through axios rather than the object store,
 		 * so the index page's whole-schema total in the store is left alone.
-		 * Failures leave the badge unrendered.
+		 * Failures leave the badge unrendered. Given a changed register and
+		 * schema, only the entries counting that list are read again.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-menu-entry-counts-a-filtered-list
+		 * @param {{register?: string|null, schema?: string|null}|null} [changed] The list that changed; null reads every count.
 		 * @return {void}
 		 * @private
 		 */
-		_hydrateMenuItemCounts() {
+		_hydrateMenuItemCounts(changed = null) {
+			const register = changed?.register ?? null
+			const schema = changed?.schema ?? null
 			const collect = (items) => {
 				const out = []
 				for (const item of items ?? []) {
@@ -4133,8 +4140,25 @@ export default {
 				return out
 			}
 			for (const item of collect(this.manifest?.menu)) {
-				this._fetchMenuItemCount(item)
+				if ((register === null || item.count.register === register) && (schema === null || item.count.schema === schema)) {
+					this._fetchMenuItemCount(item)
+				}
 			}
+		},
+
+		/**
+		 * Objects changed outside the list showing them (`cn:objects-changed`,
+		 * see `dispatchObjectsChanged`): read the filtered menu counts of that
+		 * register and schema again, so a badge follows a claim, a close or a
+		 * bulk action instead of keeping the number it had at mount. A signal
+		 * without a register or schema reads every filtered count again.
+		 *
+		 * @spec openspec/changes/menu-counts-follow-changed-objects/specs/layout-components/spec.md#requirement-a-filtered-menu-count-follows-changed-objects
+		 * @param {CustomEvent} event The signal, with `detail: { register, schema, id }`.
+		 * @return {void}
+		 */
+		onObjectsChanged(event) {
+			this._hydrateMenuItemCounts(event?.detail ?? null)
 		},
 
 		/**
