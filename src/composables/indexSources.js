@@ -11,6 +11,7 @@ import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
 import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
+import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
 import { useFlowStore } from './useFlowStore.js'
 import { useTaskInboxStore } from './useTaskInboxStore.js'
 
@@ -58,33 +59,6 @@ export function startOfWeek(now = new Date()) {
 	start.setDate(start.getDate() - offset)
 	return start.toISOString()
 }
-
-/**
- * The run statuses a flow list distinguishes, as label and pill colour.
- *
- * The engine's own vocabulary (`FlowRun::STATUS_*`). A status the engine
- * adds later falls through to its raw value with the neutral colour rather
- * than disappearing.
- *
- * @return {Record<string, {label: string, variant: string}>} By engine status.
- */
-export function flowRunStatuses() {
-	return {
-		completed: { label: t('nextcloud-vue', 'Finished'), variant: 'success' },
-		failed: { label: t('nextcloud-vue', 'Failed'), variant: 'error' },
-		dead_letter: { label: t('nextcloud-vue', 'Failed'), variant: 'error' },
-		stopped: { label: t('nextcloud-vue', 'Stopped early'), variant: 'warning' },
-		queued: { label: t('nextcloud-vue', 'Queued'), variant: 'info' },
-		running: { label: t('nextcloud-vue', 'Running'), variant: 'info' },
-		suspended: { label: t('nextcloud-vue', 'Waiting'), variant: 'info' },
-		awaiting_consent: { label: t('nextcloud-vue', 'Awaiting consent'), variant: 'warning' },
-	}
-}
-
-/**
- * The engine statuses a "with errors" filter counts as an error.
- */
-const FLOW_RUN_ERROR_STATUSES = ['failed', 'dead_letter']
 
 /**
  * How a flow starts, as a label, a muted second line and an icon.
@@ -638,6 +612,8 @@ function tasksSource() {
  *
  * @type {Record<string, () => object>}
  */
+export { flowRunStatuses }
+
 export const indexSources = {
 	flows: flowsSource,
 	flowRuns: flowRunsSource,
