@@ -194,3 +194,35 @@ export function buildBoardColumns({
 
 	return { columns, usable: true }
 }
+
+/**
+ * Where a card may move, from what `allowedMoves` answered: plain column keys
+ * and `{ key, allowed, reason }` entries. A key any entry allows is allowed;
+ * a blocked key keeps the first reason given for it.
+ *
+ * @param {unknown} answer The answer.
+ * @return {{keys: Array<string>, reasons: object}|null} The allowed keys and the reasons by key, or null for everywhere.
+ * @spec openspec/changes/board-move-block-reasons/specs/board-view/spec.md#requirement-a-move-target-can-be-blocked-with-a-reason
+ */
+export function normalizeAllowed(answer) {
+	if (!Array.isArray(answer)) {
+		return null
+	}
+	const keys = []
+	const reasons = {}
+	for (const entry of answer) {
+		if (entry && typeof entry === 'object') {
+			const key = String(entry.key ?? '')
+			if (entry.allowed === false) {
+				if (!reasons[key] && typeof entry.reason === 'string' && entry.reason.trim() !== '') {
+					reasons[key] = entry.reason.trim()
+				}
+			} else {
+				keys.push(key)
+			}
+		} else if (entry !== null && entry !== undefined) {
+			keys.push(String(entry))
+		}
+	}
+	return { keys, reasons }
+}
