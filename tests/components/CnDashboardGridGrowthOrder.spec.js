@@ -10,6 +10,7 @@
  * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
  */
 import { mount } from '@vue/test-utils'
+import { toRaw } from 'vue'
 import CnDashboardGrid from '../../src/components/CnDashboardGrid/CnDashboardGrid.vue'
 
 /**
@@ -36,7 +37,8 @@ function setup(contentHeight) {
 	grid.update = jest.fn((target, patch) => calls.push(`${target.getAttribute('gs-id')}->${patch.y}`))
 	grid._resizeToContent.mockImplementation(() => calls.push('grow'))
 	const cell = el('banner')
-	cell.gridstackNode = grid.engine.nodes[0]
+	// GridStack sets the plain node on the element, not Vue's proxy of it.
+	cell.gridstackNode = toRaw(grid.engine.nodes[0])
 	Object.defineProperty(cell, 'clientHeight', { value: 160 })
 	const content = cell.querySelector('.grid-stack-item-content')
 	Object.defineProperty(content, 'clientHeight', { value: 136 })
@@ -59,6 +61,34 @@ describe('CnDashboardGrid: a growing cell keeps the order under it', () => {
 		grid.resizeToContent(cell)
 		expect(grid.batchUpdate).not.toHaveBeenCalled()
 		expect(calls).toEqual(['list->5', 'focus->3', 'grow'])
+	})
+
+	it('does not move the growing cell itself, which GridStack would measure again without end', () => {
+		const { grid, calls, cell } = setup(200)
+		grid.update.mockImplementation((target, patch) => {
+			calls.push(`${target.getAttribute('gs-id')}->${patch.y}`)
+			if (calls.length > 50) {
+				throw new Error('runaway')
+			}
+			grid.resizeToContent(target)
+		})
+		grid.resizeToContent(cell)
+		expect(calls).not.toContain('banner->4')
+		expect(calls[0]).toBe('batch')
+		expect(calls[calls.length - 1]).toBe('commit')
+		expect(calls.filter((c) => c === 'grow').length).toBeLessThan(5)
+	})
+
+	it('hands a cell it is already growing straight to GridStack', () => {
+		const { grid, calls, cell } = setup(200)
+		grid._resizeToContent.mockImplementation(() => {
+			calls.push('grow')
+			if (calls.length < 50) {
+				grid.resizeToContent(cell)
+			}
+		})
+		grid.resizeToContent(cell)
+		expect(calls.filter((c) => c === 'batch')).toHaveLength(1)
 	})
 
 	it('leaves a cell that keeps its height to GridStack', () => {

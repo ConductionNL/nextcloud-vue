@@ -45,6 +45,19 @@ describe('planGrowth', () => {
 		expect(plan.map((p) => [p.node.id, p.y])).toEqual([['under', 3]])
 	})
 
+	it('never moves the growing cell itself when the nodes hold another reference to it', () => {
+		const el = {}
+		const banner = { ...n('banner', 0, 0, 12, 2), el }
+		const nodes = [{ ...banner }, { ...n('under', 0, 2, 12, 2), el: {} }]
+		const plan = planGrowth(nodes, banner, 4)
+		expect(plan.map((p) => [p.node.id, p.y])).toEqual([['under', 4]])
+	})
+
+	it('plans nothing for a lone cell that grows', () => {
+		const el = {}
+		expect(planGrowth([{ ...n('tabs', 0, 0, 12, 2), el }], { ...n('tabs', 0, 0, 12, 2), el }, 12)).toEqual([])
+	})
+
 	it('plans nothing for a cell that keeps or loses height', () => {
 		const nodes = layout()
 		const banner = nodes.find((x) => x.id === 'banner')
