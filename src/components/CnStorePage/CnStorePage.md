@@ -9,9 +9,12 @@
 | `canInstall` | Boolean | `null` | Whether the app lets this viewer install; `null` falls back to administrators |
 | `canPublish` | Boolean | `null` | Whether the app lets this viewer publish; `null` falls back to administrators |
 | `publishRoute` | String, Object | `null` | Where Publish leads; without it there is no Publish button |
+| `kindChips` | Array | `[]` | Board look: the kind chips, as ids or `{ value, label }`; empty offers one per kind |
+| `updatesNote` | String | `''` | Board look: a sentence after the update count in the Updates card |
+| `footnote` | String | `''` | Board look: a line under the page |
 
 See the component source for the title and description props.
 
 ## Board look: the store item fields (contract)
 
-Under the board look a catalogue card reads these optional fields of each store item: `installed` (boolean, shows the "Installed" pill), `updateAvailable` (boolean, shows "Update"), `openUrl` (string, where the Open action of an installed item goes) and `icon` (a registered icon name for the 40px chip, a package icon otherwise), besides `title`, `typeName` or `kind`, `publisher`, `description` and `version`.
+Under the board look a catalogue card reads these optional fields of each store item: `installed` (boolean, shows the "Installed" pill), `updateAvailable` (boolean, shows "Update"), `installedVersion` and `latestVersion` (strings, the version line of an update), `openUrl` (string, where the Open action of an installed item goes) and `icon` (a registered icon name for the 40px chip, a package icon otherwise), besides `title`, `typeName` or `kind`, `publisher`, `description` and `version`.

@@ -1660,7 +1660,18 @@
     "Link related object": "Gerelateerd object koppelen",
     "{type} parts": "Onderdelen van {type}",
     "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.": "Opslaan kan niet: dit record heeft geen id, dus de wijziging zou een kopie maken in plaats van het record bij te werken.",
-    "Save failed": "Opslaan is mislukt"
+    "Save failed": "Opslaan is mislukt",
+    "Updates available": "Updates beschikbaar",
+    "About this store": "Over deze store",
+    "Installed from this store": "Geïnstalleerd uit deze store",
+    "Nothing from this store is installed yet.": "Uit deze store is nog niets geïnstalleerd.",
+    "Updates": "Updates",
+    "Last checked today at {time}": "Laatst gecontroleerd vandaag om {time}",
+    "Everything is up to date.": "Alles is bijgewerkt.",
+    "Check now": "Nu controleren",
+    "{items} ship with the app. They show here when no registry is connected.": "{items} komen mee met de app. Ze staan hier als er geen registry is gekoppeld.",
+    "Only administrators install. An administrator connects the registry under Administration settings.": "Alleen beheerders installeren. Een beheerder koppelt de registry onder Beheerinstellingen.",
+    "Version {version}, {latest} is out": "Versie {version}, {latest} is uit"
   },
   "plurals": {
     "{count} selected": [
@@ -1742,6 +1753,10 @@
     "{count} more filter": [
       "Nog {count} filter",
       "Nog {count} filters"
+    ],
+    "%n update is ready.": [
+      "%n update staat klaar.",
+      "%n updates staan klaar."
     ]
   }
 }

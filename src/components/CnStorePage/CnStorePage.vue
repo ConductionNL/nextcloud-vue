@@ -47,26 +47,71 @@
   may carry the word Store at all.
 -->
 <template>
-	<div class="cn-store-page" data-testid="store-page">
+	<div class="cn-store-page" :class="{ 'cn-store-page--board': isBoardLook }" data-testid="store-page">
 		<div class="cn-store-page__header">
 			<div class="cn-store-page__heading">
 				<h2 class="cn-store-page__title" :lang="langOf(resolvedTitle)">
 					{{ shown(resolvedTitle) }}
 				</h2>
-				<NcButton
-					v-if="showPublish"
-					variant="secondary"
-					data-testid="store-publish"
-					:to="publishTarget">
-					{{ t('nextcloud-vue', 'Publish') }}
-				</NcButton>
+				<div v-if="showPublish" class="cn-store-page__header-buttons">
+					<CnBuildiqEditButton v-if="isBoardLook" />
+					<NcButton
+						:variant="isBoardLook ? 'primary' : 'secondary'"
+						data-testid="store-publish"
+						:to="publishTarget">
+						<template v-if="isBoardLook" #icon>
+							<Upload :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Publish') }}
+					</NcButton>
+				</div>
 			</div>
 			<p v-if="resolvedDescription" class="cn-store-page__intro" :lang="langOf(resolvedDescription)">
 				{{ shown(resolvedDescription) }}
 			</p>
 		</div>
 
-		<div class="cn-store-page__controls">
+		<!-- The board look (board PqStore): chips for all, installed, updates
+		     and the app's kind chips, each with a count, and the search on the
+		     right. The chips filter the loaded cards; the search asks the
+		     registry. -->
+		<div v-if="isBoardLook" class="cn-store-page__controls cn-store-page__controls--board">
+			<div
+				class="cn-store-page__chips"
+				role="group"
+				:aria-label="t('nextcloud-vue', 'Show')"
+				data-testid="store-chips">
+				<button
+					v-for="chip in boardChips"
+					:key="chip.value"
+					type="button"
+					class="cn-store-page__chip"
+					:class="{ 'cn-store-page__chip--active': chip.value === boardFilter }"
+					:aria-pressed="chip.value === boardFilter ? 'true' : 'false'"
+					:data-testid="`store-chip-${chip.value}`"
+					@click="boardFilter = chip.value">
+					{{ chip.label }}
+					<span class="cn-store-page__chip-count">{{ chip.count }}</span>
+				</button>
+			</div>
+			<form class="cn-store-page__search" role="search" @submit.prevent="search">
+				<label :for="searchId" class="cn-store-page__search-label">
+					{{ t('nextcloud-vue', 'Search the store') }}
+				</label>
+				<Magnify :size="18" class="cn-store-page__search-icon" />
+				<input
+					:id="searchId"
+					v-model="query"
+					type="search"
+					class="cn-store-page__search-input"
+					:placeholder="t('nextcloud-vue', 'Search the store')"
+					:disabled="offline"
+					data-testid="store-search"
+					@input="onSearchInput">
+			</form>
+		</div>
+
+		<div v-else class="cn-store-page__controls">
 			<NcTextField
 				v-model="query"
 				:label="t('nextcloud-vue', 'Search the store')"
@@ -90,6 +135,8 @@
 			</div>
 		</div>
 
+		<div class="cn-store-page__body">
+		<div class="cn-store-page__main">
 		<NcLoadingIcon v-if="loading" :size="44" class="cn-store-page__loading" />
 
 		<NcNoteCard
@@ -107,19 +154,18 @@
 		</NcNoteCard>
 
 		<NcEmptyContent
-			v-else-if="cards.length === 0"
+			v-else-if="shownCards.length === 0"
 			:name="t('nextcloud-vue', 'Nothing matches that search')"
 			:description="
 				t('nextcloud-vue', 'Try a different term, or clear the kind filter.')
 			" />
 
 		<ul
-			v-if="!loading && cards.length > 0"
+			v-if="!loading && shownCards.length > 0"
 			class="cn-store-page__grid"
-			:style="gridStyle"
 			data-testid="store-results">
 			<li
-				v-for="card in cards"
+				v-for="card in shownCards"
 				:key="card.slug"
 				class="cn-store-page__card"
 				:class="{ 'cn-store-page__card--board': isBoardLook }">
@@ -142,26 +188,26 @@
 							<p v-if="cardKindLine(card)" class="cn-store-page__card-kind" data-testid="store-card-kind">
 								{{ cardKindLine(card) }}
 							</p>
+							<span
+								class="cn-store-page__card-state"
+								:class="`cn-store-page__card-state--${cardState(card) || 'available'}`"
+								data-testid="store-card-state">
+								{{ stateLabel(cardState(card)) }}
+							</span>
 						</div>
-						<span
-							v-if="cardState(card)"
-							class="cn-store-page__card-state"
-							:class="`cn-store-page__card-state--${cardState(card)}`"
-							data-testid="store-card-state">
-							{{ cardState(card) === 'update' ? t('nextcloud-vue', 'Update') : t('nextcloud-vue', 'Installed') }}
-						</span>
 					</div>
 					<p class="cn-store-page__card-description">
 						{{ card.description }}
 					</p>
 					<div class="cn-store-page__card-footer" data-testid="store-card-footer">
-						<span v-if="card.version" class="cn-store-page__card-version">
-							{{ t('nextcloud-vue', 'Version {version}', { version: card.version }) }}
+						<span v-if="versionLine(card)" class="cn-store-page__card-version">
+							{{ versionLine(card) }}
 						</span>
 						<NcButton
 							v-if="cardAction(card)"
-							variant="secondary"
+							:variant="cardAction(card).id === 'open' ? 'secondary' : 'tertiary'"
 							class="cn-store-page__card-action"
+							:class="`cn-store-page__card-action--${cardAction(card).id}`"
 							data-testid="store-card-action"
 							:href="cardAction(card).href"
 							:disabled="installing === card.slug"
@@ -211,7 +257,7 @@
 			<h3 class="cn-store-page__builtin-title">
 				{{ builtInHeading }}
 			</h3>
-			<ul class="cn-store-page__grid" :style="gridStyle" data-testid="store-builtin">
+			<ul class="cn-store-page__grid" data-testid="store-builtin">
 				<li
 					v-for="item in visibleBuiltIn"
 					:key="item.slug"
@@ -232,13 +278,87 @@
 			data-testid="store-install-report">
 			{{ report.message }}
 		</NcNoteCard>
+		</div>
+
+		<!-- The board look's side column (board PqStore): what is installed
+		     from this store, the update check, and what ships with the app. -->
+		<aside
+			v-if="isBoardLook"
+			class="cn-store-page__aside"
+			:aria-label="t('nextcloud-vue', 'About this store')"
+			data-testid="store-aside">
+			<section class="cn-store-page__aside-card" data-testid="store-aside-installed">
+				<h3 class="cn-store-page__aside-title">
+					{{ t('nextcloud-vue', 'Installed from this store') }}
+				</h3>
+				<ul v-if="installedCards.length > 0" class="cn-store-page__aside-list">
+					<li v-for="card in installedCards" :key="card.slug" class="cn-store-page__aside-row">
+						<span class="cn-store-page__aside-name">{{ card.title || card.slug }}</span>
+						<span v-if="card.installedVersion || card.version" class="cn-store-page__aside-version">
+							{{ card.installedVersion || card.version }}
+						</span>
+						<span
+							v-if="card.updateAvailable === true"
+							class="cn-store-page__card-state cn-store-page__card-state--update">
+							{{ t('nextcloud-vue', 'Update') }}
+						</span>
+					</li>
+				</ul>
+				<p v-else class="cn-store-page__aside-muted">
+					{{ t('nextcloud-vue', 'Nothing from this store is installed yet.') }}
+				</p>
+			</section>
+			<section class="cn-store-page__aside-card" data-testid="store-aside-updates">
+				<h3 class="cn-store-page__aside-title">
+					{{ t('nextcloud-vue', 'Updates') }}
+				</h3>
+				<p v-if="checkedAt" class="cn-store-page__aside-text cn-store-page__aside-checked">
+					<ClockOutline :size="16" />
+					{{ t('nextcloud-vue', 'Last checked today at {time}', { time: checkedAt }) }}
+				</p>
+				<p class="cn-store-page__aside-text" data-testid="store-updates-summary">
+					{{ updatesSummary }}
+				</p>
+				<NcButton
+					variant="secondary"
+					class="cn-store-page__check"
+					data-testid="store-check-updates"
+					:disabled="loading || offline"
+					@click="search">
+					<template #icon>
+						<Refresh :size="18" />
+					</template>
+					{{ t('nextcloud-vue', 'Check now') }}
+				</NcButton>
+			</section>
+			<section
+				v-if="effectiveBuiltIn.length > 0"
+				class="cn-store-page__aside-card"
+				data-testid="store-aside-builtin">
+				<h3 class="cn-store-page__aside-title">
+					{{ builtInHeading }}
+				</h3>
+				<p class="cn-store-page__aside-text">
+					{{ builtInSummary }}
+				</p>
+				<p v-if="canInstall === null" class="cn-store-page__aside-muted">
+					{{ t('nextcloud-vue', 'Only administrators install. An administrator connects the registry under Administration settings.') }}
+				</p>
+			</section>
+		</aside>
+		</div>
+
+		<p v-if="isBoardLook && resolvedFootnote" class="cn-store-page__footnote" data-testid="store-footnote">
+			<InformationOutline :size="16" class="cn-store-page__footnote-icon" />
+			{{ resolvedFootnote }}
+		</p>
 	</div>
 </template>
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { t } from '@nextcloud/l10n'
+import { n, t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import {
 	NcButton,
@@ -247,9 +367,15 @@ import {
 	NcNoteCard,
 	NcTextField,
 } from '@nextcloud/vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
 import PackageVariantClosed from 'vue-material-design-icons/PackageVariantClosed.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -269,8 +395,14 @@ export default {
 	name: 'CnStorePage',
 
 	components: {
+		ClockOutline,
+		CnBuildiqEditButton,
 		CnIcon,
+		InformationOutline,
+		Magnify,
 		PackageVariantClosed,
+		Refresh,
+		Upload,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -404,6 +536,45 @@ export default {
 			type: [String, Object],
 			default: '',
 		},
+
+		/**
+		 * The kind chips under the board look, after All, Installed and
+		 * Updates available: kind ids, or `{ value, label }` to name a chip
+		 * ("Connectors" for `adapter`). A chip shows only while a loaded card
+		 * has its kind. Empty (the default): one chip per kind the store
+		 * offers.
+		 *
+		 * @spec openspec/changes/screens-store-page-pq-board/specs/store-page/spec.md#requirement-the-store-page-draws-board-pqstore
+		 * @type {Array<string|{value: string, label: string}>}
+		 */
+		kindChips: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * A sentence after the update count in the side column's Updates
+		 * card under the board look, such as what an update keeps.
+		 *
+		 * @spec openspec/changes/screens-store-page-pq-board/specs/store-page/spec.md#requirement-the-store-page-draws-board-pqstore
+		 * @type {string}
+		 */
+		updatesNote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A line under the page, drawn under the board look with an info
+		 * icon. Empty (the default) draws none.
+		 *
+		 * @spec openspec/changes/screens-store-page-pq-board/specs/store-page/spec.md#requirement-the-store-page-draws-board-pqstore
+		 * @type {string}
+		 */
+		footnote: {
+			type: String,
+			default: '',
+		},
 	},
 
 	data() {
@@ -424,6 +595,10 @@ export default {
 			// manifest block. Null until the first response, so "not asked
 			// yet" stays distinguishable from "the app declares none".
 			servedBuiltIn: null,
+			// The board look's chip: all, installed, updates or kind:<id>.
+			boardFilter: 'all',
+			// When the registry last answered, as the reader's local time.
+			checkedAt: '',
 		}
 	},
 
@@ -438,21 +613,95 @@ export default {
 		},
 
 		/**
-		 * The board track for the cards: `minmax(var(--cn-card-grid-min,
-		 * 260px), 1fr)` and `var(--cn-card-grid-gap, 16px)`. Empty without
-		 * the look.
+		 * The cards the page draws: under the board look, those the active
+		 * chip admits; otherwise every loaded card.
 		 *
-		 * @spec openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-the-card-grid-takes-the-board-track
-		 * @return {object}
+		 * @spec openspec/changes/screens-store-page-pq-board/specs/store-page/spec.md#requirement-the-store-page-draws-board-pqstore
+		 * @return {Array<object>} The cards.
 		 */
-		gridStyle() {
+		shownCards() {
 			if (!this.isBoardLook) {
-				return {}
+				return this.cards
 			}
-			return {
-				gridTemplateColumns: 'repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))',
-				gap: 'var(--cn-card-grid-gap, 16px)',
-			}
+			return this.cards.filter((card) => this.chipAdmits(this.boardFilter, card))
+		},
+
+		/**
+		 * The board look's chips with their counts: All, Installed, Updates
+		 * available, then each kind chip that has a card.
+		 *
+		 * @spec openspec/changes/screens-store-page-pq-board/specs/store-page/spec.md#requirement-the-store-page-draws-board-pqstore
+		 * @return {Array<{value: string, label: string, count: number}>} The chips.
+		 */
+		boardChips() {
+			const count = (value) => this.cards.filter((card) => this.chipAdmits(value, card)).length
+			const declared = this.kindChips.length > 0 ? this.kindChips : this.effectiveKinds
+			const kinds = declared
+				.map((entry) => (typeof entry === 'string'
+					? { value: entry, label: this.kindLabel(entry) }
+					: { value: String(entry?.value ?? ''), label: this.shown(String(entry?.label ?? '')) || this.kindLabel(String(entry?.value ?? '')) }))
+				.filter((entry) => entry.value !== '')
+				.map((entry) => ({ value: `kind:${entry.value}`, label: entry.label, count: count(`kind:${entry.value}`) }))
+				.filter((chip) => chip.count > 0)
+			return [
+				{ value: 'all', label: t('nextcloud-vue', 'All'), count: this.cards.length },
+				{ value: 'installed', label: t('nextcloud-vue', 'Installed'), count: count('installed') },
+				{ value: 'updates', label: t('nextcloud-vue', 'Updates available'), count: count('updates') },
+				...kinds,
+			]
+		},
+
+		/**
+		 * The loaded cards that are installed, for the side column.
+		 *
+		 * @return {Array<object>} The installed cards.
+		 */
+		installedCards() {
+			return this.cards.filter((card) => card.installed === true || card.updateAvailable === true)
+		},
+
+		/**
+		 * The Updates card's sentence: how many updates are ready, then the
+		 * app's `updatesNote`.
+		 *
+		 * @spec openspec/changes/screens-store-page-pq-board/specs/store-page/spec.md#requirement-the-store-page-draws-board-pqstore
+		 * @return {string} The sentence.
+		 */
+		updatesSummary() {
+			const updates = this.cards.filter((card) => card.updateAvailable === true).length
+			const head = updates === 0
+				? t('nextcloud-vue', 'Everything is up to date.')
+				: n('nextcloud-vue', '%n update is ready.', '%n updates are ready.', updates)
+			const note = this.shown(this.updatesNote)
+			return note ? `${head} ${note}` : head
+		},
+
+		/**
+		 * The side column's line on what ships with the app.
+		 *
+		 * @return {string} The line.
+		 */
+		builtInSummary() {
+			const titles = this.effectiveBuiltIn.map((item) => this.shown(item.title || item.slug)).filter(Boolean)
+			return t('nextcloud-vue', '{items} ship with the app. They show here when no registry is connected.', { items: titles.join(', ') })
+		},
+
+		/**
+		 * The footnote, in the user's language.
+		 *
+		 * @return {string} The footnote, or ''.
+		 */
+		resolvedFootnote() {
+			return this.shown(this.footnote || this.page?.config?.footnote || '')
+		},
+
+		/**
+		 * A stable id for the board search field's label.
+		 *
+		 * @return {string} The id.
+		 */
+		searchId() {
+			return `cn-store-search-${this.resolvedApp || 'page'}`
 		},
 
 		/**
@@ -667,7 +916,7 @@ export default {
 		 */
 		builtInHeading() {
 			return this.resolvedApp
-				? t('nextcloud-vue', 'Included with {app}', { app: this.resolvedApp })
+				? t('nextcloud-vue', 'Included with {app}', { app: this.resolvedApp.charAt(0).toUpperCase() + this.resolvedApp.slice(1) })
 				: t('nextcloud-vue', 'Included with this app')
 		},
 
@@ -719,6 +968,59 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a board chip admits a card.
+		 *
+		 * @param {string} value The chip: all, installed, updates or kind:<id>.
+		 * @param {object} card The card.
+		 * @return {boolean} True when the card shows under the chip.
+		 */
+		chipAdmits(value, card) {
+			if (value === 'installed') {
+				return card.installed === true || card.updateAvailable === true
+			}
+			if (value === 'updates') {
+				return card.updateAvailable === true
+			}
+			if (value.startsWith('kind:')) {
+				return card.kind === value.slice(5)
+			}
+			return true
+		},
+
+		/**
+		 * The label of a catalogue card's state pill.
+		 *
+		 * @param {('installed'|'update'|'')} state The state.
+		 * @return {string} The label.
+		 */
+		stateLabel(state) {
+			if (state === 'update') {
+				return t('nextcloud-vue', 'Update')
+			}
+			return state === 'installed' ? t('nextcloud-vue', 'Installed') : t('nextcloud-vue', 'Available')
+		},
+
+		/**
+		 * The version line of a catalogue card: the installed version, and
+		 * the newer one when an update is out.
+		 *
+		 * @spec openspec/changes/screens-store-page-pq-board/specs/store-page/spec.md#requirement-the-store-page-draws-board-pqstore
+		 * @param {object} card The card.
+		 * @return {string} The line, or ''.
+		 */
+		versionLine(card) {
+			const current = card.installedVersion || card.version
+			if (!current) {
+				return ''
+			}
+			const latest = card.latestVersion
+			if (card.updateAvailable === true && latest && latest !== current) {
+				return t('nextcloud-vue', 'Version {version}, {latest} is out', { version: current, latest })
+			}
+			return t('nextcloud-vue', 'Version {version}', { version: current })
+		},
+
 		/**
 		 * The "<kind> · <publisher>" line of a catalogue card.
 		 *
@@ -877,7 +1179,9 @@ export default {
 				if (this.query) {
 					params.set('q', this.query)
 				}
-				if (this.kind) {
+				// Under the board look the chips filter the loaded cards, so
+				// the registry is asked for every kind.
+				if (this.kind && !this.isBoardLook) {
 					params.set('kind', this.kind)
 				}
 
@@ -900,6 +1204,9 @@ export default {
 				// answers, so an app's own items survive a registry that is
 				// down — which is exactly when they are all there is to show.
 				this.servedBuiltIn = Array.isArray(body.builtIn) ? body.builtIn : null
+				if (this.outcome === 'ok') {
+					this.checkedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+				}
 			} catch {
 				this.outcome = 'store_unreachable'
 				this.cards = []

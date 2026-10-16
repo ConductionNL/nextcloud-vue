@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.102.0",
+	"version": "2.110.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4409,6 +4409,28 @@
 									"headerLink": { "type": "object" }
 								}
 							}
+						},
+						"kindChips": {
+							"type": "array",
+							"description": "type='store' (screens-store-page-pq-board, 2.110.0): the kind chips under the board look, after All, Installed and Updates available, as board PqStore draws \"Connectors\". Each entry is a kind id or `{ value, label }` (label an i18n key / text). A chip shows only while a loaded card has its kind. Absent: one chip per kind the store offers. Maps to CnStorePage `kindChips`.",
+							"items": {
+								"oneOf": [
+									{ "type": "string", "minLength": 1 },
+									{
+										"type": "object",
+										"required": ["value"],
+										"additionalProperties": false,
+										"properties": {
+											"value": { "type": "string", "minLength": 1 },
+											"label": { "type": "string" }
+										}
+									}
+								]
+							}
+						},
+						"updatesNote": {
+							"type": "string",
+							"description": "type='store' (screens-store-page-pq-board, 2.110.0): a sentence after the update count in the side column's Updates card under the board look, such as what an update keeps. i18n key / text. A store page also takes `footnote`, a line under the page, drawn under the board look. Maps to CnStorePage `updatesNote` and `footnote`."
 						},
 						"headerButtons": {
 							"type": "array",

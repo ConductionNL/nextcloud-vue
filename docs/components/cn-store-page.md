@@ -93,8 +93,34 @@ redirect refusal and the registry token stay on the server.
 
 ## Board look
 
-Under the board look the catalogue cards lay out on the same 260px track and take the screens' shape: a 40px icon chip (`card.icon`, else a package), the title, "&lt;kind&gt; · &lt;publisher&gt;", a state pill ("Installed" when `card.installed`, "Update" when `card.updateAvailable`), the description, and a footer with the version and one named action: Open (`card.openUrl`), Install or Update. Install and Update stay hidden when the viewer may not install.
+Under the board look (board PqStore) the page draws:
+
+- the title with Publish as the primary button beside the buildiq square (when Publish shows);
+- chips with their counts: All, Installed, Updates available, then the kind chips, with the search on the right. The
+  chips filter the loaded cards; the search asks the registry. `kindChips` names the kind chips, as ids or
+  `{ value, label }` ("Connectors" for `adapter`); without it there is one chip per kind the store offers. A kind chip
+  shows only while a loaded card has its kind;
+- three cards a row (two, then one, as the column narrows): a 40px icon chip (`card.icon`, else a package), the title,
+  "&lt;kind&gt; · &lt;publisher&gt;", a state pill ("Installed", "Update" or "Available"), the description, and a footer
+  with the version ("Version 2.0.1, 2.1.0 is out" for an update) and one action: Open (`card.openUrl`), Install or
+  Update. Install and Update stay hidden when the viewer may not install;
+- a side column of at most 300px: what is installed from this store, an Updates card (when the registry last answered,
+  how many updates are ready followed by `updatesNote`, and "Check now"), and the items that ship with the app;
+- the `footnote`, when declared, under the page with an info icon.
+
+```json
+"config": {
+  "app": "pipelinq",
+  "publishRoute": "StorePublish",
+  "kindChips": [{ "value": "adapter", "label": "Connectors" }],
+  "updatesNote": "An update keeps your own changes to stages and queues.",
+  "footnote": "Items come from the registry your administrator connected."
+}
+```
 
 ### Store item fields the board look reads (contract)
 
-`installed` (boolean, "Installed" pill), `updateAvailable` (boolean, "Update" pill and action), `openUrl` (string, target of Open for an installed item) and `icon` (registered icon name for the icon chip; a package icon without it).
+`installed` (boolean, "Installed" pill), `updateAvailable` (boolean, "Update" pill and action), `installedVersion` and
+`latestVersion` (strings: the version line reads "Version {installedVersion}, {latestVersion} is out" for an update;
+`version` stands in for `installedVersion`), `openUrl` (string, target of Open for an installed item) and `icon`
+(registered icon name for the icon chip; a package icon without it).

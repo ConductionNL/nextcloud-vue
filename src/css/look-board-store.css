@@ -1,0 +1,323 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * The store page under the board look (board PqStore): a 28px title with the
+ * Publish button, chips with counts and the search on one row, three cards a
+ * row beside a 300px side column, and a footnote. The catalogue card itself
+ * is drawn by the store rules in look-board-index.css. Scoped under
+ * `.cn-look-board` with the page guard, so an app without the look renders as
+ * before.
+ */
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) {
+	display: flex;
+	flex-direction: column;
+	gap: var(--cn-board-section-gap);
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__heading {
+	align-items: flex-start;
+	gap: 12px 24px;
+	margin: 0;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__title {
+	flex: 1 1 320px;
+	min-width: 0;
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__intro {
+	margin: 6px 0 0;
+	font-size: 15px;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__header-buttons {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__header-buttons > .button-vue--primary {
+	height: var(--cn-board-control-height) !important;
+	min-height: var(--cn-board-control-height) !important;
+	padding: 0 16px !important;
+	border: 0 !important;
+	border-radius: var(--cn-board-control-radius) !important;
+	background: var(--color-primary-element) !important;
+	color: var(--color-primary-element-text) !important;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__controls--board {
+	align-items: center;
+	gap: 12px 16px;
+	margin: 0;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__chips {
+	display: flex;
+	flex: 1 1 auto;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 36px;
+	min-height: 36px;
+	margin: 0;
+	padding: 0 14px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: 18px;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__chip:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__chip--active,
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__chip--active:hover {
+	border-color: var(--color-main-text);
+	background: var(--color-main-text);
+	color: var(--color-main-background);
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__chip-count {
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__chip--active .cn-store-page__chip-count {
+	color: inherit;
+	opacity: 0.8;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__search {
+	position: relative;
+	flex: 0 1 300px;
+	margin: 0;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__search-label {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__search-icon {
+	position: absolute;
+	top: 11px;
+	left: 12px;
+	color: var(--color-text-maxcontrast);
+	pointer-events: none;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__search-input {
+	box-sizing: border-box;
+	width: 100%;
+	height: var(--cn-board-control-height);
+	margin: 0;
+	padding: 0 12px 0 38px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+}
+
+/* The cards and a 300px side column beside them, which drops under the
+   cards on a narrow screen. */
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__body {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 20px;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__main {
+	display: flex;
+	flex: 999 1 560px;
+	flex-direction: column;
+	gap: 16px;
+	min-width: 0;
+	container-type: inline-size;
+}
+
+/* Three cards a row, two then one as the column narrows. */
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__grid {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+	align-items: stretch;
+	margin: 0;
+}
+
+@container (max-width: 720px) {
+	.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@container (max-width: 460px) {
+	.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__card-state {
+	align-self: flex-start;
+	white-space: nowrap;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__card-state--available {
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+/* Install and Update are tinted pills; Open is the bordered button. */
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__card-action.button-vue {
+	min-height: 34px;
+	height: 34px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__card-action--install.button-vue,
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__card-action--update.button-vue {
+	padding: 0 14px;
+	border: 0;
+	border-radius: 17px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__card-action--open.button-vue {
+	border: 1px solid var(--color-border-dark);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside {
+	display: flex;
+	flex: 1 1 260px;
+	flex-direction: column;
+	gap: 16px;
+	min-width: 0;
+	max-width: 300px;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside-card {
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin: 0;
+	padding: 18px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside-title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside-list {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 0;
+	border-top: 1px solid var(--color-border);
+	font-size: 14px;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside-name {
+	flex: 1;
+	min-width: 0;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside-version {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside .cn-store-page__card-state {
+	flex: none;
+	padding: 2px 10px;
+	border-radius: 12px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside .cn-store-page__card-state--update {
+	background: var(--color-warning-light, var(--color-background-dark));
+	color: var(--color-warning-text, var(--color-main-text));
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside-text {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.45;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside-checked {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__aside-muted {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.45;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__check.button-vue {
+	height: 36px;
+	min-height: 36px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__footnote {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin: 4px 0 0;
+	padding-top: 16px;
+	border-top: 1px solid var(--color-border);
+	font-size: 13px;
+	line-height: 1.45;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__footnote-icon {
+	flex: none;
+}

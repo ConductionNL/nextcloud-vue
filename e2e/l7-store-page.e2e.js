@@ -26,8 +26,9 @@ test('the description is translated and no kind is shown by its id', async ({ pa
 	await expect(host.locator('.cn-store-page__intro')).toHaveText('Sjablonen en koppelingen voor je startpagina.')
 	await expect(host.locator('.cn-store-page__title')).toHaveText('Winkel')
 
-	const chips = await host.locator('[data-testid^="store-kind-"]').allInnerTexts()
-	expect(chips.map((text) => text.trim())).toEqual(['All kinds', 'App template', 'Adapter', 'Source template', 'Configuration template', 'Agent template'])
+	// Under the board look the kind chips are the board's chips, one per kind a card has.
+	const chips = await host.locator('[data-testid="store-chips"] button').allInnerTexts()
+	expect(chips.map((text) => text.replace(/\s+/g, ' ').trim())).toEqual(['All 1', 'Installed 0', 'Updates available 0', 'App template 1'])
 	await expect(host.locator('[data-testid="store-card-kind"]').first()).toHaveText('App template · Conduction')
 	await expect(host).not.toContainText('app-template')
 	await expect(host).not.toContainText('source-template')

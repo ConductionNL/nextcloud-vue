@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.102.0', () => {
+	it('the manifest schema version reads 2.110.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1384,7 +1384,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.100.0 adds columnFields[].source.capacityField on a board (board-column-capacity).
 		// 2.101.0 adds columnFields[].source.neutralColor on a board (board-neutral-column-colour).
 		// 2.102.0 adds columnFields[].source.colorMap on a board (board-column-colour-map).
-		expect(schema.version).toBe('2.102.0')
+		// 2.110.0 adds kindChips and updatesNote on a store page (screens-store-page-pq-board).
+		expect(schema.version).toBe('2.110.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2220,5 +2221,18 @@ describe('app-manifest-v2: a board column colour map (board-column-colour-map, 2
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: { orange: '' } })).valid).toBe(false)
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: { orange: 3 } })).valid).toBe(false)
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: 'orange' })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: kind chips and updates note on a store page (screens-store-page-pq-board, 2.110.0)', () => {
+	const store = (config) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Store', route: '/store', type: 'store', title: 'Store', config: { app: 'pipelinq', ...config } }],
+	})
+
+	it('accepts kind chips as ids or { value, label } and an updates note, and refuses a chip without a value', () => {
+		expect(validateManifestV2(store({ kindChips: ['adapter', { value: 'pipeline', label: 'Pipelines' }], updatesNote: 'An update keeps your changes.' })).valid).toBe(true)
+		expect(validateManifestV2(store({ kindChips: [{ label: 'Connectors' }] })).valid).toBe(false)
+		expect(validateManifestV2(store({ updatesNote: 3 })).valid).toBe(false)
 	})
 })

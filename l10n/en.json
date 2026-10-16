@@ -1473,7 +1473,18 @@
     "Link related object": "Link related object",
     "{type} parts": "{type} parts",
     "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.": "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.",
-    "Save failed": "Save failed"
+    "Save failed": "Save failed",
+    "Updates available": "Updates available",
+    "About this store": "About this store",
+    "Installed from this store": "Installed from this store",
+    "Nothing from this store is installed yet.": "Nothing from this store is installed yet.",
+    "Updates": "Updates",
+    "Last checked today at {time}": "Last checked today at {time}",
+    "Everything is up to date.": "Everything is up to date.",
+    "Check now": "Check now",
+    "{items} ship with the app. They show here when no registry is connected.": "{items} ship with the app. They show here when no registry is connected.",
+    "Only administrators install. An administrator connects the registry under Administration settings.": "Only administrators install. An administrator connects the registry under Administration settings.",
+    "Version {version}, {latest} is out": "Version {version}, {latest} is out"
   },
   "plurals": {
     "{count} selected": [
@@ -1555,6 +1566,10 @@
     "{count} more filter": [
       "{count} more filter",
       "{count} more filters"
+    ],
+    "%n update is ready.": [
+      "%n update is ready.",
+      "%n updates are ready."
     ]
   }
 }
