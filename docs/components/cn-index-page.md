@@ -280,7 +280,11 @@ and the `runTransition` prop, as before.
 **`moveTargetsHandler`** answers where one card may go: it gets
 `{ card, field }` and returns the referenced ids the card can reach. The board
 fades the other columns during a drag, marks them "not allowed" in the card
-menu, and refuses a drop on them.
+menu, and refuses a drop on them. An entry can also be an object
+`{ key, allowed, reason }` (key: the referenced id). With `allowed: false` the
+column is offered but blocked: the card menu shows it disabled with the reason
+under its name, during a drag the column shows the reason under its header, and
+a drop there is refused with the reason. Plain ids and objects can be mixed.
 
 **Opening the board from the menu.** An index page opens in the mode
 `?_view=<mode>` names, when it offers that mode, and follows the address when it
