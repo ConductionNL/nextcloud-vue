@@ -404,6 +404,7 @@ import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
@@ -561,8 +562,8 @@ export default {
 		 *
 		 * `secondary` draws a second, muted line under the cell's value: a field
 		 * key (`"number"`), a template with `{field}` placeholders
-		 * (`"{number} · {requester}"`, dotted paths allowed), or a function of
-		 * the row. Empty fields leave their placeholder blank; a line that
+		 * (`"{number} · {requester}"`, dotted paths allowed; `{startAt|weekday}`
+		 * formats through `fillTemplate`), or a function of the row. Empty fields leave their placeholder blank; a line that
 		 * resolves to nothing is not drawn.
 		 *
 		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, secondary: (string|((row: object) => string))}|string>}
@@ -1769,8 +1770,10 @@ export default {
 		/**
 		 * The secondary line of a cell, from `col.secondary`: a function is
 		 * called with the row; a string with `{field}` placeholders is a
-		 * template filled from the row (dotted paths allowed); any other
-		 * string is a field key. Returns '' when there is nothing to draw.
+		 * template filled from the row (dotted paths allowed), where a
+		 * `{field|format}` token is formatted by `fillTemplate` ("{startAt|weekday}"
+		 * reads "wo 7 okt"); any other string is a field key. Returns '' when
+		 * there is nothing to draw.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-table-column-carries-a-secondary-line
 		 * @param {object} row The row.
@@ -1787,7 +1790,9 @@ export default {
 				return ''
 			}
 			if (spec.includes('{')) {
-				const filled = fillSecondaryTemplate(spec, (key) => this.secondaryFieldText(row, key))
+				const filled = fillSecondaryTemplate(spec, (key) => (key.includes('|')
+					? fillTemplate(`{${key}}`, row)
+					: this.secondaryFieldText(row, key)))
 				// A template whose every field is empty leaves only separators:
 				// nothing worth a line.
 				return /[\p{L}\p{N}]/u.test(filled) ? filled.trim() : ''
