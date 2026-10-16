@@ -620,7 +620,7 @@
 }
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label) .input-field__input:not(:focus)::placeholder,
-.cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input:not(:focus, .textarea__input--label-outside)::placeholder {
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input:not(:focus):not(.textarea__input--label-outside)::placeholder {
 	opacity: 1 !important;
 }
 
