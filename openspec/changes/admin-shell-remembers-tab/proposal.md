@@ -10,3 +10,6 @@ shell keeps the open tab in the address only.
 
 `tabStorageKey` on CnAdminSettingsShell: with a key, the shell stores each tab the reader opens and opens on the stored
 one when the address names no tab. The address still wins. Empty (the default) remembers nothing, so no app changes.
+
+A shell that opens on a tab other than the first (named in the address, or remembered) emits `tab-change` once on mount,
+so an app whose breadcrumb or title follows the tab is right from the first paint.

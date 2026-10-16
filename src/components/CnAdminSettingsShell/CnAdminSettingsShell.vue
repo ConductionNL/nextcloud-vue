@@ -823,6 +823,19 @@ export default {
 		},
 	},
 
+	/**
+	 * A page that opens on a tab other than the first (named in the address,
+	 * or remembered) tells the app once, as a click would, so a breadcrumb or
+	 * title that follows the tab is right from the first paint.
+	 *
+	 * @spec openspec/changes/admin-shell-remembers-tab/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-remember-the-last-tab
+	 */
+	mounted() {
+		if (this.tabItems.length > 0 && this.activeTabId !== this.tabItems[0].id) {
+			this.$emit('tab-change', this.activeTabId)
+		}
+	},
+
 	methods: {
 		/**
 		 * A tab was picked in the strip: remember it, put it in the address

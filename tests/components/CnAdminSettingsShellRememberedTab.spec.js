@@ -78,6 +78,17 @@ describe('CnAdminSettingsShell remembers the last tab', () => {
 		expect(openTab(wrapper)).toContain('Koppelingen')
 	})
 
+	it('tells the app which tab it opened on, once, when that is not the first', async () => {
+		window.localStorage.setItem(KEY, 'velden')
+		const wrapper = await mountShell({ tabStorageKey: KEY })
+		expect(wrapper.emitted('tab-change')).toEqual([['velden']])
+	})
+
+	it('emits nothing on load when it opens on the first tab', async () => {
+		const wrapper = await mountShell({ tabStorageKey: KEY })
+		expect(wrapper.emitted('tab-change')).toBeUndefined()
+	})
+
 	it('remembers nothing without a key', async () => {
 		window.localStorage.setItem(KEY, 'velden')
 		const wrapper = await mountShell()

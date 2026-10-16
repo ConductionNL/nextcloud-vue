@@ -16,7 +16,8 @@ An admin page with tabs can open on the tab the administrator used last.
 
 With `tabStorageKey`, CnAdminSettingsShell SHALL store the id of each tab the reader opens under that key, and SHALL open
 on the stored tab when the address names no tab. A tab named in the address SHALL win. Without `tabStorageKey` the
-shell SHALL store and read nothing.
+shell SHALL store and read nothing. A shell that opens on a tab other than the first SHALL emit `tab-change` with
+that tab's id once when it mounts.
 
 #### Scenario: Back on the admin page
 
