@@ -16,6 +16,7 @@
 			     widgets used to mean six card headers stacked down the page. -->
 			<template #nav-end>
 				<CnActionsMenu
+					v-if="showActions"
 					:showRefresh="showRefresh"
 					:showRequestFeature="showRequestFeature"
 					:showDocumentation="showDocumentation"
@@ -428,6 +429,18 @@ export default {
 		cnRegistry: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * Whether the strip draws its Actions menu at all. `false` drops the
+		 * whole menu, the open panel's own items included, for a board that
+		 * draws none. Manifest: `content.showActions` on the tabs widget.
+		 *
+		 * @spec openspec/changes/tabs-widget-actions-off/specs/tabs-widget-actions-off/spec.md#requirement-a-manifest-can-turn-off-the-tab-strips-actions-menu
+		 */
+		showActions: {
+			type: Boolean,
+			default: true,
 		},
 
 		/** Show the Refresh entry in the hoisted Actions menu. */

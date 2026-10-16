@@ -48,6 +48,23 @@ Reference it from a manifest placement. `label` and `icon` are optional and fall
 }
 ```
 
+### Without the Actions menu
+
+The strip draws one Actions menu beside the tabs. A page that draws none, as the boards do, turns it off on the tabs widget's content:
+
+```json
+{
+  "id": "receivables-tabs",
+  "type": "tabs",
+  "content": {
+    "showActions": false,
+    "tabs": [{ "widgetId": "open-invoices", "label": "Open balance" }]
+  }
+}
+```
+
+The whole menu goes, including the items an open panel lends it (a data widget's Metadata and Edit). Without the key the menu stays as it is.
+
 ### Counts, and tabs under More
 
 A tab can show a count, and a strip can keep to a few tabs and put the rest under a "More" menu:
@@ -132,6 +149,7 @@ has a list. A `widgetId` tab renders as before.
 | `surface` | `String` | `'detail-page'` | Rendering surface forwarded to integration children (AD-19). |
 | `integrationContext` | `Object` | `null` | Object context forwarded to integration children. |
 | `cnRegistry` | `Object` | `{}` | The consumer's component registry, for custom child widget types. |
+| `showActions` | `Boolean` | `true` | `false` drops the strip's Actions menu, the open panel's own items included. From a manifest: `content.showActions`. |
 | `showRefresh` | `Boolean` | `true` | Show Refresh in the hoisted Actions menu. |
 | `showRequestFeature` | `Boolean` | `true` | Show Request a feature in the hoisted Actions menu. |
 | `showDocumentation` | `Boolean` | `true` | Show Documentation in the hoisted Actions menu. |
