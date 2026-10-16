@@ -4243,6 +4243,7 @@ export default {
 				narrowValue: narrowBy ? this.boardNarrowValue : '',
 				capacityField: source.capacityField || '',
 				neutralColor: typeof source.neutralColor === 'string' ? source.neutralColor : '',
+				colorMap: source.colorMap && typeof source.colorMap === 'object' ? source.colorMap : null,
 			})
 		},
 
