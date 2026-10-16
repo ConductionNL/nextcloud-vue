@@ -80,6 +80,10 @@ A `route` is resolved through the router, so the link is right with and without 
 | `enable` | `{ label?, route \| href, permission?, visibleIf? }`: where Turn on goes. Give it a `permission` so only admins see it; without a passing target a module that is off has no button. |
 | `permission`, `visibleIf` | Hide the whole module, as on a card. |
 
+## Groups as list cards
+
+`config.groupStyle: "list"` draws each group as one card with the caption as its title and a row per link: an icon chip, the label over its description, and a chevron (an external-link icon for an `href`). The PqModules board draws "Ook in Pipelinq" and "Meer" this way under the modules. The default, `cards`, is the grid above. Schema 2.108.0.
+
 ## Used by hand
 
 ```vue

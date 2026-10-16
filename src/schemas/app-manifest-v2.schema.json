@@ -4806,7 +4806,8 @@
 									"cards": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/linkCard" } },
 									"modules": { "type": "array", "items": { "$ref": "#/$defs/linkModule" }, "description": "Module cards drawn above the link cards (board PqModules): per module an icon, title, in-the-menu/off badge, description, its pages and an Open or Turn on button." },
 									"modulesTitle": { "type": "string", "description": "i18n key / heading of the modules section. Defaults to 'Modules'." },
-									"footnote": { "type": "string", "description": "i18n key / a note under the module cards." }
+									"footnote": { "type": "string", "description": "i18n key / a note under the module cards." },
+									"groupStyle": { "type": "string", "enum": ["cards", "list"], "default": "cards", "description": "cards: a grid of link cards per group. list: one card per group with a row per link (icon, label, description, chevron or external-link icon)." }
 								}
 							}
 						},

@@ -2238,6 +2238,7 @@ describe('app-manifest-v2: module cards on a links page (screens-links-module-ca
 				{ id: 'sales', label: 'Sales', icon: 'CashMultiple', enabled: true, pages: [{ label: 'Leads', route: 'Leads', highlight: true }] },
 				{ id: 'pos', label: 'Till', enabledIf: { 'config.modules': { contains: 'pos' } }, pages: [], enable: { route: '/admin', permission: 'admin' } },
 			],
+			groupStyle: 'list',
 		}))
 		expect(result.valid).toBe(true)
 	})
@@ -2246,5 +2247,6 @@ describe('app-manifest-v2: module cards on a links page (screens-links-module-ca
 		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales' }] })).valid).toBe(false)
 		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales', label: 'Sales', pages: [{ label: 'Leads' }] }] })).valid).toBe(false)
 		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales', label: 'Sales', colour: 'red' }] })).valid).toBe(false)
+		expect(validateManifestV2(linksPage({ groupStyle: 'tiles' })).valid).toBe(false)
 	})
 })

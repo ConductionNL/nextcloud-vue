@@ -51,6 +51,7 @@
 			v-for="group in groups"
 			:key="group.key"
 			class="cn-link-cards-page__group"
+			:class="{ 'cn-link-cards-page__group--list': isListStyle }"
 			:aria-labelledby="group.label ? group.headingId : null"
 			:aria-label="group.label ? null : resolvedTitle || null"
 			data-testid="cn-link-cards-group"
@@ -61,7 +62,38 @@
 				class="cn-link-cards-page__caption">
 				{{ group.label }}
 			</h3>
-			<ul class="cn-link-cards-page__grid">
+			<!-- groupStyle "list": the group is one card of rows, each an icon
+			     chip, the label over its description, and a trailing chevron
+			     (an external-link icon for a URL). -->
+			<ul v-if="isListStyle" class="cn-link-cards-page__list">
+				<li v-for="card in group.cards" :key="card.id">
+					<a
+						class="cn-link-cards-page__row"
+						data-testid="cn-link-card"
+						:data-card-id="card.id"
+						:href="card.url"
+						:target="card.external ? '_blank' : null"
+						:rel="card.external ? 'noopener noreferrer' : null"
+						:aria-describedby="card.description ? card.descriptionId : null"
+						@click="open(card, $event)">
+						<span v-if="card.icon" class="cn-link-cards-page__row-icon" aria-hidden="true">
+							<CnIcon :name="card.icon" :size="20" />
+						</span>
+						<span class="cn-link-cards-page__row-body">
+							<span class="cn-link-cards-page__row-label">{{ card.label }}</span>
+							<span
+								v-if="card.description"
+								:id="card.descriptionId"
+								class="cn-link-cards-page__row-description">
+								{{ card.description }}
+							</span>
+						</span>
+						<OpenInNew v-if="trailingOf(card) === 'external'" :size="18" class="cn-link-cards-page__row-trailing" />
+						<ChevronRight v-else :size="20" class="cn-link-cards-page__row-trailing" />
+					</a>
+				</li>
+			</ul>
+			<ul v-else class="cn-link-cards-page__grid">
 				<li v-for="card in group.cards" :key="card.id" class="cn-link-cards-page__cell">
 					<!-- A real <a href>, so the card can be middle-clicked, copied
 					     and announced as a link. A plain click on an in-app card
@@ -99,7 +131,9 @@
 
 <script>
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import CnModuleCard from '../CnModuleCard/CnModuleCard.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
@@ -135,7 +169,7 @@ let linkCardsPageUid = 0
 export default {
 	name: 'CnLinkCardsPage',
 
-	components: { CnIcon, CnModuleCard, InformationOutline },
+	components: { ChevronRight, CnIcon, CnModuleCard, InformationOutline, OpenInNew },
 
 	inject: {
 		/** The app's translate function, provided by CnAppRoot. Identity outside one. */
@@ -199,6 +233,12 @@ export default {
 			default: null,
 		},
 
+		/** `cards` (default): a grid of link cards per group. `list`: one card per group with a row per link. */
+		groupStyle: {
+			type: String,
+			default: null,
+		},
+
 		/** Heading of the modules section. Defaults to "Modules". */
 		modulesTitle: {
 			type: String,
@@ -245,7 +285,7 @@ export default {
 		config() {
 			const fromPage = (this.page && this.page.config) || {}
 			const fromProps = {}
-			for (const key of ['cards', 'categories', 'description', 'title', 'emptyLabel', 'modules', 'modulesTitle', 'footnote']) {
+			for (const key of ['cards', 'categories', 'description', 'title', 'emptyLabel', 'modules', 'modulesTitle', 'footnote', 'groupStyle']) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
 				}
@@ -356,6 +396,16 @@ export default {
 		},
 
 		/**
+		 * Whether the groups are drawn as list cards (`config.groupStyle: "list"`).
+		 *
+		 * @return {boolean} True for list cards.
+		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-group-can-be-a-list-card
+		 */
+		isListStyle() {
+			return this.config.groupStyle === 'list'
+		},
+
+		/**
 		 * The modules heading, translated.
 		 *
 		 * @return {string} The heading.
@@ -424,6 +474,21 @@ export default {
 		 * @return {boolean} True when the module is in the menu.
 		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-links-page-can-show-modules
 		 */
+		/**
+		 * The icon at the end of a list row: an external-link icon for a URL,
+		 * a chevron for a page in the app. A resolved `trailing` wins.
+		 *
+		 * @param {object} card The resolved card.
+		 * @return {string} `external` or `chevron`.
+		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-group-can-be-a-list-card
+		 */
+		trailingOf(card) {
+			if (card.trailing === 'external' || card.trailing === 'chevron') {
+				return card.trailing
+			}
+			return card.external ? 'external' : 'chevron'
+		},
+
 		moduleEnabled(module, runtime) {
 			if (typeof module.enabled === 'boolean') {
 				return module.enabled
@@ -657,6 +722,84 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
 	line-height: 1.4;
+}
+
+.cn-link-cards-page__group--list {
+	padding: 20px 22px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-container-large, 12px);
+	background: var(--color-main-background);
+	gap: 6px;
+}
+
+.cn-link-cards-page__group--list .cn-link-cards-page__caption {
+	margin: 0 0 8px;
+	color: var(--color-main-text);
+	font-size: 17px;
+	font-weight: 700;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+.cn-link-cards-page__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-link-cards-page__row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 0;
+	border-top: 1px solid var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.cn-link-cards-page__row,
+.cn-link-cards-page__row:hover,
+.cn-link-cards-page__row:focus,
+.cn-link-cards-page__row:active {
+	text-decoration: none !important;
+}
+
+.cn-link-cards-page__row:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-link-cards-page__row-icon {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--color-background-dark);
+}
+
+.cn-link-cards-page__row-body {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-link-cards-page__row-label {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-link-cards-page__row-description {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-link-cards-page__row-trailing {
+	flex: none;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-link-cards-page__modules {

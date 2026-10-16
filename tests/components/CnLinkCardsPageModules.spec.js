@@ -34,7 +34,7 @@ function mountPage(config = {}, { permissions = ['admin'], runtime = { menu: { l
 		propsData: { cards: [{ id: 'Tasks', label: 'Tasks', route: 'Tasks' }], modules, footnote: 'An admin turns a module on.', ...config },
 		provide: { cnPermissions: permissions, cnManifest: { runtime } },
 		mocks: { $router: router },
-		stubs: { CnIcon: true, InformationOutline: true, ChevronRight: true },
+		stubs: { CnIcon: true, InformationOutline: true, ChevronRight: { template: '<i class="chevron" />' }, OpenInNew: { template: '<i class="external" />' } },
 	})
 }
 
@@ -84,5 +84,39 @@ describe('CnLinkCardsPage modules', () => {
 		const wrapper = mountPage({ modules: [] })
 		expect(wrapper.find('[data-testid="cn-link-cards-modules"]').exists()).toBe(false)
 		expect(wrapper.findAll('[data-testid="cn-link-card"]')).toHaveLength(1)
+	})
+})
+
+describe('CnLinkCardsPage groupStyle list', () => {
+	const listConfig = {
+		modules: [],
+		groupStyle: 'list',
+		categories: { also: 'Also in Pipelinq', more: 'More' },
+		cards: [
+			{ id: 'Tasks', label: 'Tasks', description: 'Every task.', icon: 'CheckboxMarkedOutline', category: 'also', route: 'Tasks' },
+			{ id: 'Docs', label: 'Documentation', category: 'more', href: 'https://pipelinq.conduction.nl' },
+		],
+	}
+
+	it('draws each group as one card of rows with a chevron or an external icon', () => {
+		const wrapper = mountPage(listConfig)
+		const groups = wrapper.findAll('[data-testid="cn-link-cards-group"]')
+		expect(groups.map((group) => group.classes())).toEqual([
+			expect.arrayContaining(['cn-link-cards-page__group--list']),
+			expect.arrayContaining(['cn-link-cards-page__group--list']),
+		])
+		const rows = wrapper.findAll('.cn-link-cards-page__row')
+		expect(rows).toHaveLength(2)
+		expect(rows[0].find('.cn-link-cards-page__row-label').text()).toBe('Tasks')
+		expect(rows[0].find('.chevron').exists()).toBe(true)
+		expect(rows[1].find('.external').exists()).toBe(true)
+		expect(rows[1].attributes('target')).toBe('_blank')
+		expect(wrapper.find('.cn-link-cards-page__grid').exists()).toBe(false)
+	})
+
+	it('keeps the card grid by default', () => {
+		const wrapper = mountPage({ ...listConfig, groupStyle: undefined })
+		expect(wrapper.find('.cn-link-cards-page__row').exists()).toBe(false)
+		expect(wrapper.findAll('.cn-link-cards-page__grid')).toHaveLength(2)
 	})
 })

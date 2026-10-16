@@ -33,3 +33,14 @@ that is off. `footnote` SHALL render under the cards.
 - GIVEN four visible modules, three of them in the menu
 - WHEN the page renders
 - THEN the heading reads "3 of 4 are in the menu"
+
+### Requirement: A group can be a list card
+
+With `config.groupStyle: "list"` a links page SHALL draw each group as one card, its caption as the card title, with a
+row per link (icon, label, description) ending in a chevron, or an external-link icon for an `href` link.
+
+#### Scenario: An external link
+
+- GIVEN groupStyle list and a card with an `href`
+- WHEN the page renders
+- THEN its row ends in the external-link icon and opens in a new tab
