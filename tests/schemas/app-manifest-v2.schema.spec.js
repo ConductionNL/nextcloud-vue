@@ -1384,6 +1384,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.100.0 adds columnFields[].source.capacityField on a board (board-column-capacity).
 		// 2.101.0 adds columnFields[].source.neutralColor on a board (board-neutral-column-colour).
 		// 2.102.0 adds columnFields[].source.colorMap on a board (board-column-colour-map).
+		// 2.108.0 adds config.modules, modulesTitle and footnote on a links page (screens-links-module-cards).
 		// 2.115.0 lets config.greeting lead with a label or the date alone (dashboard-greeting-label).
 		expect(schema.version).toBe('2.115.0')
 	})
@@ -2221,6 +2222,34 @@ describe('app-manifest-v2: a board column colour map (board-column-colour-map, 2
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: { orange: '' } })).valid).toBe(false)
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: { orange: 3 } })).valid).toBe(false)
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: 'orange' })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: module cards on a links page (screens-links-module-cards, 2.108.0)', () => {
+	const linksPage = (config) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Modules', route: '/modules', type: 'links', title: 'Modules', config: { cards: [{ id: 'Tasks', label: 'Tasks', route: 'Tasks' }], ...config } }],
+	})
+
+	it('accepts modules with pages, a state and an admin-settings link', () => {
+		const result = validateManifestV2(linksPage({
+			modulesTitle: 'Modules',
+			footnote: 'An admin turns a module on.',
+			modules: [
+				{ id: 'sales', label: 'Sales', icon: 'CashMultiple', enabled: true, pages: [{ label: 'Leads', route: 'Leads', highlight: true }] },
+				{ id: 'pos', label: 'Till', enabledIf: { 'config.modules': { contains: 'pos' } }, pages: [], settings: { route: '/admin', prefix: 'In het menu zetten:', permission: 'admin' } },
+			],
+			groupStyle: 'list',
+		}))
+		expect(result.valid).toBe(true)
+	})
+
+	it('refuses a module without a label, a page without a target and an unknown key', () => {
+		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales' }] })).valid).toBe(false)
+		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales', label: 'Sales', pages: [{ label: 'Leads' }] }] })).valid).toBe(false)
+		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales', label: 'Sales', colour: 'red' }] })).valid).toBe(false)
+		expect(validateManifestV2(linksPage({ groupStyle: 'tiles' })).valid).toBe(false)
+		expect(validateManifestV2(linksPage({ modules: [{ id: 'pos', label: 'Till', enable: { route: '/admin' } }] })).valid).toBe(false)
 	})
 })
 
