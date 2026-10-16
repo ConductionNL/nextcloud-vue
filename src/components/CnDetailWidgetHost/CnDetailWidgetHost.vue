@@ -178,7 +178,7 @@
 			:showActions="actionsShown || catalogAddEnabled"
 			:showRefresh="false"
 			:showRequestFeature="false"
-			:headerLink="rendererHeader.link"
+			:headerLink="cardHeaderLink"
 			class="cn-detail-page__catalog-card">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
@@ -231,6 +231,7 @@
 			:showActions="false"
 			:showRefresh="false"
 			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
 			class="cn-detail-page__card-fit">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
@@ -274,6 +275,7 @@ import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWi
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
@@ -523,6 +525,20 @@ export default {
 		},
 
 		/**
+		 * Whether a card draws the manifest `headerLink` of its widget (on the
+		 * definition, or `content.headerLink` / `viewAllRoute`) in its header
+		 * when the renderer reports none. Off by default: a tab panel's link
+		 * is drawn beside the tab strip. CnTabsWidget turns it on for the
+		 * cards after the first in a stack, whose links had no place.
+		 *
+		 * @spec openspec/changes/stack-card-header-link/specs/stack-card-header-link/spec.md#requirement-a-stacked-card-draws-its-own-header-link
+		 */
+		showHeaderLink: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Whether a widget on a card keeps its overflow Actions menu when its
 		 * definition does not say (`showActions`). `false` (CnDetailPage
 		 * `showWidgetActions: false`) drops it from the record's data cards; a
@@ -608,6 +624,17 @@ export default {
 		 */
 		resolvedTitle() {
 			return this.isBare ? undefined : widgetTitleOf(this.widget)
+		},
+
+		/**
+		 * The card header's link: the one the renderer reports, else, with
+		 * `showHeaderLink`, the one the manifest declares for the widget.
+		 *
+		 * @spec openspec/changes/stack-card-header-link/specs/stack-card-header-link/spec.md#requirement-a-stacked-card-draws-its-own-header-link
+		 * @return {object|null} `{ label, route?, params?, query?, href? }` or null.
+		 */
+		cardHeaderLink() {
+			return this.rendererHeader.link || (this.showHeaderLink ? widgetHeaderLink(this.widget) : null)
 		},
 
 		/**
