@@ -773,6 +773,17 @@
 	flex: 1 1 240px;
 }
 
+/* A card grid in a dashboard card: the cards keep the record list's 24px
+   side inset, 16px apart, as the board spaces its cards.
+   @spec openspec/changes/card-grid-dashboard-frame/specs/card-grid-dashboard-frame/spec.md#requirement-a-card-grid-on-a-dashboard-draws-no-frame-of-its-own */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-card-grid--in-cell {
+	gap: 16px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-card-grid--in-cell {
+	padding: 16px 24px 20px;
+}
+
 /* A record list drawn as cards (ShBank's bank accounts) keeps the rows' 24px
    side inset inside a card, with room above the first card. In a borderless
    cell the cards stand on the page ground, flush with the grid, as the board
