@@ -47,6 +47,7 @@ Without `objects`, the cards can come from an app endpoint:
 | `title` | `String` | Widget title shown in the chrome header (default `'Items'`). |
 | `documentation-url` | `String` | Documentation link for the overflow Actions menu (default `''`). |
 | `widget-id` | `String` | Stable id forwarded to the widget chrome (default `''`). |
+| `chromeless` | `Boolean` | Draw no frame, title or Actions menu of its own, because the surface around it already draws the card. CnDashboardPage sets it for a `card-grid` in a cell (default `false`). |
 
 (Forwarded to `CnObjectCard` per item — see its docs for the per-card surface.)
 
