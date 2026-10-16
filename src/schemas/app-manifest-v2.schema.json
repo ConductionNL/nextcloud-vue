@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.102.0",
+	"version": "2.115.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4232,10 +4232,16 @@
 						"greeting": {
 							"oneOf": [
 								{ "type": "boolean" },
-								{ "type": "string", "enum": ["first", "full"] }
+								{ "type": "string", "enum": ["first", "full", "date"] },
+								{
+									"type": "object",
+									"required": ["label"],
+									"additionalProperties": false,
+									"properties": { "label": { "type": "string", "minLength": 1, "description": "i18n key drawn where the greeting would be." } }
+								}
 							],
 							"default": false,
-							"description": "type='dashboard': greet the reader in the header subtitle. `true` or \"first\" writes \"Good afternoon, Pieter · Monday 5 October 2026\", \"full\" uses the whole display name; the page `description` follows after another middle dot (screens-dashboard-greeting-header). Maps to CnDashboardPage `greeting`."
+							"description": "type='dashboard': greet the reader in the header subtitle. `true` or \"first\" writes \"Good afternoon, Pieter · Monday 5 October 2026\", \"full\" uses the whole display name; the page `description` follows after another middle dot (screens-dashboard-greeting-header). Since 2.115.0 \"date\" leads with the date alone (\"Tuesday 7 October 2026 · ...\") and `{ \"label\": \"Customer contact\" }` puts the translated label where the greeting would be (dashboard-greeting-label). Maps to CnDashboardPage `greeting`."
 						},
 						"viewLinks": {
 							"type": "array",

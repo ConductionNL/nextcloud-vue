@@ -613,7 +613,7 @@ The KPI tile in this look is described in the CnStatWidget docs.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `greeting` | `Boolean \| String` | `false` | `true` or `"first"` (manifest `config.greeting`) writes the header subtitle as "Good afternoon, Pieter · Monday 5 October 2026", followed by the description after another middle dot. `"full"` uses the whole display name. |
+| `greeting` | `Boolean \| String \| Object` | `false` | `true` or `"first"` (manifest `config.greeting`) writes the header subtitle as "Good afternoon, Pieter · Monday 5 October 2026", followed by the description after another middle dot. `"full"` uses the whole display name. `"date"` leads with the date alone, capitalised ("Tuesday 7 October 2026 · ..."), and `{ "label": "Customer contact" }` puts the translated label where the greeting would be ("Customer contact · Wednesday 7 October 2026 · ..."), since manifest schema 2.115.0. |
 | `viewLinks` | `Array` | `[]` | Small pills on a row under the header (manifest `config.viewLinks`): each `{ label, icon?, route?, href? }`, `route` a route name or a location. The label is an i18n key. An entry without a label or a target is skipped. |
 | `showActionsMenu` | `Boolean` | `true` | `false` removes the page Actions menu from the header. |
 
