@@ -3767,6 +3767,13 @@
 			"via": [],
 			"page": "cn-user-action-menu"
 		},
+		"CnUserSettingsDialog": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnVersionHistory": {
 			"direct": 3,
 			"transitive": 6,
