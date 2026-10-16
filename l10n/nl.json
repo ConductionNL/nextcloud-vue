@@ -1660,7 +1660,12 @@
     "Link related object": "Gerelateerd object koppelen",
     "{type} parts": "Onderdelen van {type}",
     "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.": "Opslaan kan niet: dit record heeft geen id, dus de wijziging zou een kopie maken in plaats van het record bij te werken.",
-    "Save failed": "Opslaan is mislukt"
+    "Save failed": "Opslaan is mislukt",
+    "Change the schema for {type}": "Schema wijzigen voor {type}",
+    "Show all types": "Alle soorten tonen",
+    "All types set up": "Alle soorten ingesteld",
+    "Set up": "Ingesteld",
+    "{configured} of {total} set up": "{configured} van {total} ingesteld"
   },
   "plurals": {
     "{count} selected": [
@@ -1742,6 +1747,18 @@
     "{count} more filter": [
       "Nog {count} filter",
       "Nog {count} filters"
+    ],
+    "%n type": [
+      "%n soort",
+      "%n soorten"
+    ],
+    "And %n more type in this group, set up.": [
+      "En nog %n soort in deze groep, ingesteld.",
+      "En nog %n soorten in deze groep, allemaal ingesteld."
+    ],
+    "And %n more type in this group.": [
+      "En nog %n soort in deze groep.",
+      "En nog %n soorten in deze groep."
     ]
   }
 }
