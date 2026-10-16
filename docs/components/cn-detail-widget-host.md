@@ -18,6 +18,10 @@ The pure decisions live in `utils/widgetDispatch.js`, which both surfaces import
 
 `chrome="bare"` is a tab panel. The strip already shows the title and draws the card, so a second title inside the panel reads as a heading nested in its own heading. Bare mode drops the wrapper and, for an integration leaf, renders the provider's `tab` (its bare content) rather than its `widget` (which draws its own card). That pairing is not new: `CnIntegrationWidget` already does exactly this inside its own panels.
 
+## How `content` reaches a catalog widget
+
+A catalog widget gets its whole `content` as the `content` prop and, beside the object context, only the content keys it declares as props, as on a dashboard. A key it does not declare can never land on its root component. A widget with `inheritAttrs: false` keeps every key.
+
 ## What bare mode deliberately does not strip
 
 The `data` widget keeps its chrome in both modes. `CnWidgetWrapper` renders its actions inside the header, and `CnObjectDataWidget` puts its **Save** button there, so suppressing the header to remove a duplicate title would also remove the only way to commit an inline edit. A silently unsaveable form is worse than a doubled title.

@@ -229,6 +229,7 @@ import CnTagsTab from './CnTagsTab.vue'
 import CnTasksTab from './CnTasksTab.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
@@ -965,9 +966,11 @@ export default {
 		 * widgets get the shared coordinate context plus the loaded object
 		 * (`objectData`); the prop-driven `data` built-in also gets the schema
 		 * OBJECT bound to its `schema` prop (the other tabs use the `schema`
-		 * slug string, so the override is scoped to `type: 'data'`). A widget's
-		 * own `props` win on overlap.
+		 * slug string, so the override is scoped to `type: 'data'`). Of a
+		 * widget's own `props`, the ones its component declares win on overlap;
+		 * an undeclared one would only fall through onto the component's root.
 		 *
+		 * @spec openspec/changes/declared-props-detail-index-sidebar/specs/widget-hosts/spec.md#requirement-a-widget-host-passes-only-the-keys-a-widget-declares
 		 * @param {{ type: string, props?: object }} w Widget spec
 		 * @return {object} Props to v-bind onto the resolved widget component
 		 */
@@ -980,7 +983,7 @@ export default {
 				// a String `schema`.
 				bindings.schema = this.objectSchema
 			}
-			return { ...bindings, ...(w.props || {}) }
+			return { ...bindings, ...pickDeclaredProps(this.resolveWidgetComponent(w.type), w.props || {}, w.type || '') }
 		},
 
 		/**
