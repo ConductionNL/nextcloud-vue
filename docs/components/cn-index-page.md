@@ -1256,7 +1256,7 @@ When a click on a row navigates to the record's detail page, the built-in View i
 | `statRow` | `Array` | `[]` | KPI tiles above the list (manifest `config.statRow`): widget definitions `{ id, type, title?, content }`, usually `type: "stat"`, drawn between the header and the toolbar in an auto-fit row (each tile at least 200px), in the listed order. |
 | `sidePanel` | `Array` | `[]` | Cards beside the list (manifest `config.sidePanel`): widget definitions `{ id, type, title?, content, headerLink? }` in a 300px column right of the toolbar and the list. Below 1024px the column sits above the toolbar. |
 
-Types resolve like dashboard widgets: the app's widget registry first, then the dashboard catalog (`stat`, `table`, `people`, `stats-block` and the rest). An entry without an id, or with a type nothing resolves, is skipped with a development warning.
+Types resolve like dashboard widgets: the app's widget registry first, then the dashboard catalog (`stat`, `table`, `people`, `stats-block` and the rest). An entry without an id, or with a type nothing resolves, is skipped with a development warning. As on a dashboard, a widget gets its whole `content` as the `content` prop and, of the individual keys, only the ones it declares as props.
 
 ```json
 {
