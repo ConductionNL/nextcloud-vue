@@ -9,7 +9,7 @@ import { fillTemplate, firstFilled, formatBoardDateTime } from '../../src/utils/
 jest.mock('@nextcloud/l10n', () => ({
 	getLanguage: () => 'nl',
 	getCanonicalLocale: () => 'nl-NL',
-	translate: (_app, s) => s,
+	translate: (_app, s, vars) => s.replace(/\{(\w+)\}/g, (match, key) => (vars && key in vars ? String(vars[key]) : match)),
 }))
 
 const NOW = new Date('2026-10-11T12:00:00')
@@ -28,6 +28,23 @@ describe('fillTemplate', () => {
 	it('formats a moment with its time', () => {
 		expect(fillTemplate('{startTime|datetime}', row, NOW)).toBe('4 okt, 10:52')
 		expect(formatBoardDateTime('nope', NOW)).toBe('')
+	})
+
+	it('writes a date with its short weekday', () => {
+		expect(fillTemplate('{d|weekday}', { d: '2026-10-05T08:45:00' }, NOW)).toBe('ma 5 okt')
+		expect(fillTemplate('{d|weekday}', { d: '2024-10-07T08:45:00' }, NOW)).toBe('ma 7 okt 2024')
+		expect(fillTemplate('{d|weekday}', { d: 'nope' }, NOW)).toBe('')
+	})
+
+	it('puts "Today" before today\'s weekday date only when asked', () => {
+		expect(fillTemplate('{d|weekday:today}', { d: '2026-10-11T08:45:00' }, NOW)).toBe('Today, zo 11 okt')
+		expect(fillTemplate('{d|weekday}', { d: '2026-10-11T08:45:00' }, NOW)).toBe('zo 11 okt')
+		expect(fillTemplate('{d|weekday:today}', { d: '2026-10-12T08:45:00' }, NOW)).toBe('ma 12 okt')
+	})
+
+	it('writes the time of day', () => {
+		expect(fillTemplate('{a|time} tot {b|time}', { a: '2026-10-05T08:45:00', b: '2026-10-05T09:00:00' }, NOW)).toBe('08:45 tot 09:00')
+		expect(fillTemplate('{a|time}', { a: '' }, NOW)).toBe('')
 	})
 
 	it('empties the whole template when a token has no value', () => {

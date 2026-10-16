@@ -499,6 +499,7 @@
     "NC Activity is currently unavailable.": "NC Activity is currently unavailable.",
     "Could not load activity.": "Could not load activity.",
     "Today": "Today",
+    "Today, {date}": "Today, {date}",
     "Last 8 hours": "Last 8 hours",
     "Last 24 hours": "Last 24 hours",
     "Last 7 days": "Last 7 days",
@@ -1483,7 +1484,27 @@
     "All categories": "All categories",
     "Category": "Category",
     "Reports": "Reports",
-    "No reports in this category.": "No reports in this category."
+    "No reports in this category.": "No reports in this category.",
+    "Modules": "Modules",
+    "In the menu": "In the menu",
+    "Off": "Off",
+    "Pages": "Pages",
+    "Open {module}": "Open {module}",
+    "{list} and {last}": "{list} and {last}",
+    "%n page: {pages}": [
+      "%n page: {pages}",
+      "%n pages: {pages}"
+    ],
+    "%n page, including {pages}": [
+      "%n page, including {pages}",
+      "%n pages, including {pages}"
+    ],
+    "{on} of %n is in the menu": [
+      "{on} of %n is in the menu",
+      "{on} of %n are in the menu"
+    ],
+    "Put it in the menu:": "Put it in the menu:",
+    "Admin settings": "Admin settings"
   },
   "plurals": {
     "{count} selected": [

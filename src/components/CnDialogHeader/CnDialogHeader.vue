@@ -45,7 +45,7 @@ import { NcButton } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 
 /**
- * CnDialogHeader (internal) - the board dialog header: eyebrow, 20px title,
+ * CnDialogHeader - the board dialog header: eyebrow, 20px title,
  * subtitle and a round 36px close button.
  *
  * The close button emits `close` and is disabled while `noClose` is set, so a
