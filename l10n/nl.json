@@ -1661,6 +1661,25 @@
     "{type} parts": "Onderdelen van {type}",
     "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.": "Opslaan kan niet: dit record heeft geen id, dus de wijziging zou een kopie maken in plaats van het record bij te werken.",
     "Save failed": "Opslaan is mislukt",
+    "Modules": "Modules",
+    "In the menu": "In het menu",
+    "Off": "Uit",
+    "Pages": "Pagina's",
+    "Open {module}": "{module} openen",
+    "{list} and {last}": "{list} en {last}",
+    "%n page: {pages}": [
+      "%n pagina: {pages}",
+      "%n pagina's: {pages}"
+    ],
+    "%n page, including {pages}": [
+      "%n pagina, waaronder {pages}",
+      "%n pagina's, waaronder {pages}"
+    ],
+    "{on} of %n is in the menu": [
+      "{on} van %n staat in het menu",
+      "{on} van %n staan in het menu"
+    ],
+    "Put it in the menu:": "In het menu zetten:",
     "Arrange page": "Pagina indelen",
     "Arrange this page": "Deze pagina indelen",
     "Choose which parts you see and drag them into your own order. Only you see this layout.": "Kies welke onderdelen je ziet en sleep ze in je eigen volgorde. Alleen jij ziet deze indeling.",
