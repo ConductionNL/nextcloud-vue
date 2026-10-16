@@ -60,6 +60,7 @@ With a real up-to-date check (when the backend reports a configured version):
 | `breadcrumbNote` | String | `''` | Board look: a note after the path, behind a dot ("geldt voor de hele organisatie"). |
 | `tabs` | Array | `[]` | A tab strip under the header, as `[{ id, label, count? }]`. Each tab's panel is the `tab-<id>` slot; the version card, the credential broker and the default slot show on the first tab only. See [Tabs](#tabs). |
 | `tabQueryKey` | String | `'tab'` | The query parameter that holds the open tab's `id`. |
+| `tabStorageKey` | String | `''` | A browser storage key under which the shell remembers the last opened tab, so the page opens on it again when the address names no tab. The address still wins. Empty remembers nothing. |
 | `tabsVariant` | `'line' \| 'underline'` | `'line'` | How the `tabs` strip is drawn: `line`, the folder tabs, or `underline`, plain labels on a rule with the open one underlined in the primary colour (board LpBeheerAlgemeen). Passed to CnTabs as its `variant`. |
 | `showVersionCard` | Boolean | `true` | Whether to render the version card |
 | `versionCardWide` | Boolean | `true` | Under the board look the version card spans the whole settings grid. `false` keeps it one card in the grid. |

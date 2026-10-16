@@ -233,6 +233,43 @@ function readTabFromAddress(key) {
 }
 
 /**
+ * The tab remembered under a storage key, or '' without a key, a value or
+ * usable storage (a private window can refuse it).
+ *
+ * @param {string} key The storage key.
+ * @return {string} The remembered tab id.
+ */
+function readStoredTab(key) {
+	if (!key) {
+		return ''
+	}
+	try {
+		return window.localStorage.getItem(key) || ''
+	} catch {
+		return ''
+	}
+}
+
+/**
+ * Remember the open tab under a storage key; nothing without a key or
+ * usable storage.
+ *
+ * @param {string} key The storage key.
+ * @param {string} id The tab's id.
+ * @return {void}
+ */
+function storeTab(key, id) {
+	if (!key) {
+		return
+	}
+	try {
+		window.localStorage.setItem(key, id)
+	} catch {
+		// Storage refused (private window): the address still holds the tab.
+	}
+}
+
+/**
  * Put the open tab in the address without a new history entry.
  *
  * @param {string} key The query parameter.
@@ -443,6 +480,18 @@ export default {
 		},
 
 		/**
+		 * A browser storage key under which the shell remembers the last
+		 * opened tab, so the page opens on it again when the address names no
+		 * tab. Empty (the default) remembers nothing. The address still wins.
+		 *
+		 * @spec openspec/changes/admin-shell-remembers-tab/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-remember-the-last-tab
+		 */
+		tabStorageKey: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * How the `tabs` strip is drawn, as CnTabs' `variant`: `line`, the
 		 * folder tabs (the default), or `underline`, plain labels on a rule
 		 * with the open one underlined (board LpBeheerAlgemeen).
@@ -614,7 +663,7 @@ export default {
 			reimporting: false,
 			setupWizardOpen: false,
 			// The open tab's id; empty until a tab is picked or the address names one.
-			chosenTabId: readTabFromAddress(this.tabQueryKey),
+			chosenTabId: readTabFromAddress(this.tabQueryKey) || readStoredTab(this.tabStorageKey),
 		}
 	},
 
@@ -790,6 +839,7 @@ export default {
 			}
 			this.chosenTabId = tab.id
 			writeTabToAddress(this.tabQueryKey, tab.id)
+			storeTab(this.tabStorageKey, tab.id)
 			/**
 			 * @event tab-change Emitted when the reader opens another tab. Payload: its `id`.
 			 */
