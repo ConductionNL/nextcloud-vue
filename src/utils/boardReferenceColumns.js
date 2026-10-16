@@ -127,6 +127,11 @@ export function referenceTargetOf(source, { register = '', property = null } = {
  * @param {string} [options.narrowValue] The parent the board is narrowed to, '' for all.
  * @param {string} [options.capacityField] The numeric row field that holds a column's limit.
  *   A column merged from two or more rows shows none: each row has its own limit.
+ * @param {string} [options.neutralColor] The colour a row holds when nobody chose one. A merged
+ *   column then takes its first row colour that is not this one, and this one only when no row
+ *   has another. Compared as written: "Grey" is not "grey", and a hex value is not a name.
+ * @param {object} [options.colorMap] A stored colour to the CSS colour a column is drawn in,
+ *   applied after the merge. A colour it does not map is kept as stored.
  * @return {{states: Array<{key: string, label: string, color: string, capacity?: (number|null)}>, keyByValue: Map<string, string>, refsByKey: Map<string, Array<object>>}} The stages.
  * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-columns-can-be-the-rows-a-field-references
  */
@@ -139,6 +144,8 @@ export function buildReferenceStages({
 	narrowBy = null,
 	narrowValue = '',
 	capacityField = '',
+	neutralColor = '',
+	colorMap = null,
 } = {}) {
 	const list = (Array.isArray(refs) ? refs : []).filter((ref) => ref && typeof ref === 'object' && refIdOf(ref) !== '')
 	const narrowed = narrowBy && narrowBy.field && narrowValue !== ''
@@ -164,8 +171,7 @@ export function buildReferenceStages({
 		keyByValue.set(id, key)
 		if (!refsByKey.has(key)) {
 			refsByKey.set(key, [])
-			const color = colorField ? readPath(ref, colorField) : ref.color
-			const state = { key, label, color: typeof color === 'string' ? color : '' }
+			const state = { key, label, color: colorOfRef(ref, colorField) }
 			if (capacityField) {
 				state.capacity = capacityOfRef(ref, capacityField)
 			}
@@ -174,11 +180,64 @@ export function buildReferenceStages({
 		refsByKey.get(key).push(ref)
 	}
 	for (const state of states) {
-		if (capacityField && refsByKey.get(state.key).length > 1) {
+		const rows = refsByKey.get(state.key)
+		if (capacityField && rows.length > 1) {
 			state.capacity = null
 		}
+		if (neutralColor && rows.length > 1) {
+			state.color = mergedColumnColor(rows.map((ref) => colorOfRef(ref, colorField)), neutralColor, state.color)
+		}
+		state.color = mappedColor(state.color, colorMap)
 	}
 	return { states, keyByValue, refsByKey }
+}
+
+/**
+ * The colour one referenced row carries.
+ *
+ * @param {object} ref The referenced row.
+ * @param {string} colorField The row field that holds the colour, '' for `color`.
+ * @return {string} The colour, '' when it has none.
+ */
+function colorOfRef(ref, colorField) {
+	const color = colorField ? readPath(ref, colorField) : ref.color
+	return typeof color === 'string' ? color : ''
+}
+
+/**
+ * The colour a column merged from several rows takes when a neutral colour
+ * is declared: the first chosen colour, so a row stored with the default
+ * never outranks one somebody picked, whatever order the rows come in.
+ *
+ * @param {Array<string>} colors The rows' colours, in column order.
+ * @param {string} neutralColor The colour a row holds when nobody chose one.
+ * @param {string} fallback The colour when no row has a chosen or neutral one.
+ * @return {string} The column's colour.
+ * @spec openspec/changes/board-neutral-column-colour/specs/board-view/spec.md#requirement-a-merged-column-prefers-a-chosen-colour
+ */
+export function mergedColumnColor(colors, neutralColor, fallback = '') {
+	const chosen = colors.find((color) => color !== '' && color !== neutralColor)
+	if (chosen !== undefined) {
+		return chosen
+	}
+	return colors.includes(neutralColor) ? neutralColor : fallback
+}
+
+/**
+ * The CSS colour a stored colour maps to, so a palette name such as
+ * "orange" or "grey-light" can draw a theme token.
+ *
+ * @param {string} color The stored colour.
+ * @param {object|null} colorMap A stored colour to a CSS colour.
+ * @return {string} The mapped colour, else the stored one.
+ * @spec openspec/changes/board-column-colour-map/specs/board-view/spec.md#requirement-a-column-colour-can-be-mapped-to-a-css-colour
+ */
+export function mappedColor(color, colorMap) {
+	if (!colorMap || typeof colorMap !== 'object' || color === '' || !Object.hasOwn(colorMap, color)) {
+		return color
+	}
+	const mapped = colorMap[color]
+	return typeof mapped === 'string' && mapped !== '' ? mapped : color
 }
 
 /**
