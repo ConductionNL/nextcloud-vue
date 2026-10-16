@@ -14,4 +14,4 @@ again before it runs, and its fields are `@resolved.<field>` in the url, target 
 ## Scope
 
 `utils/actionResolve.js` (over `fetchReferenceObjects` and `resolveFilterTokens`, no new fetcher), the dispatcher,
-the `@resolved` token in the filter grammar, CnActionButtons, `$defs/action.resolve` (schema 2.122.0), docs, tests.
+the `@resolved` token in the filter grammar, CnActionButtons, `$defs/action.resolve` (schema 2.112.0), docs, tests.

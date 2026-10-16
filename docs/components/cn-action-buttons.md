@@ -150,7 +150,7 @@ current record without extra wiring.
 
 ### Acting on a looked-up record (`resolve`)
 
-An `api-call` or `navigate` action can act on a record it looks up first, such as a programme's open cycle (board PqProject, "Close cycle"). `resolve` names the register, schema and filter (filter values take the token grammar, so `@objectId` is the page's record); the first match is `@resolved.<field>` in `url`, `target` and `payload`. Schema 2.122.0.
+An `api-call` or `navigate` action can act on a record it looks up first, such as a programme's open cycle (board PqProject, "Close cycle"). `resolve` names the register, schema and filter (filter values take the token grammar, so `@objectId` is the page's record); the first match is `@resolved.<field>` in `url`, `target` and `payload`. Schema 2.112.0.
 
 ```json
 { "id": "close-cycle", "label": "Close cycle", "type": "api-call", "confirm": true,
