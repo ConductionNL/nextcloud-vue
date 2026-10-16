@@ -60,6 +60,7 @@ With a real up-to-date check (when the backend reports a configured version):
 | `breadcrumbNote` | String | `''` | Board look: a note after the path, behind a dot ("geldt voor de hele organisatie"). |
 | `tabs` | Array | `[]` | A tab strip under the header, as `[{ id, label, count? }]`. Each tab's panel is the `tab-<id>` slot; the version card, the credential broker and the default slot show on the first tab only. See [Tabs](#tabs). |
 | `tabQueryKey` | String | `'tab'` | The query parameter that holds the open tab's `id`. |
+| `tabsVariant` | `'line' \| 'underline'` | `'line'` | How the `tabs` strip is drawn: `line`, the folder tabs, or `underline`, plain labels on a rule with the open one underlined in the primary colour (board LpBeheerAlgemeen). Passed to CnTabs as its `variant`. |
 | `showVersionCard` | Boolean | `true` | Whether to render the version card |
 | `versionCardWide` | Boolean | `true` | Under the board look the version card spans the whole settings grid. `false` keeps it one card in the grid. |
 | `versionCardPosition` | String | `'start'` | Where the version card and the organisation credential broker sit: `start`, above the app's sections, or `end`, after them (a board that starts with the app's own card, such as DcBeheer). The sections move in the markup, so the keyboard order follows. |
@@ -141,3 +142,7 @@ are cards on the same two-column grid as the shell's own.
 ## Board look
 
 Under the board look the title is an h1 of 28px with the description under it, a labelled "Documentation" button (when `docUrl` is set) sits before the buildiq square, no documentation icon is drawn, and the sections lay out as cards in a two-column grid as wide as the content area. The `look` prop overrides the `cnLook` that `CnAppRoot` provides. A shell given `look="board"` itself carries the board class, so an admin page that no `CnAppRoot` wraps (Nextcloud mounts admin settings on their own) still takes the board look. With `breadcrumbs`, the path line ("Beheerinstellingen / Launchpad / Algemeen · geldt voor de hele organisatie") replaces the description. A `wide` section spans the grid and is not capped at NcSettingsSection's 900px.
+
+## Translations
+
+The shell and its version card register the library's translation catalogue for the user's language when the page has not done so yet. An admin page is its own webpack entry, and its chrome reads in the user's language even when that entry never calls `registerTranslations()`. Calling it in the entry as well does no harm.

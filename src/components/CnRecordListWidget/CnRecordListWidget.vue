@@ -114,6 +114,43 @@
 						aria-hidden="true" />
 				</component>
 
+				<!-- cards: a framed card per row, the icon and title with the pill
+				     beside them, the meta line, and `trailing` as the large figure. -->
+				<component
+					:is="item.tag"
+					v-else-if="presentation === 'cards'"
+					class="cn-record-list__card"
+					:class="{ 'cn-record-list__card--link': item.tag !== 'div' }"
+					v-bind="item.attrs"
+					data-testid="cn-record-list-card">
+					<span class="cn-record-list__card-head">
+						<span class="cn-record-list__card-title">
+							<CnIcon
+								v-if="cardIcons"
+								class="cn-record-list__card-icon"
+								:name="item.icon"
+								:size="18" />
+							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
+						</span>
+						<span v-if="item.pill || item.badges.length > 0" class="cn-record-list__card-pills">
+							<CnStatusBadge
+								v-if="item.pill"
+								:label="item.pill.label"
+								:variant="item.pill.variant"
+								size="small" />
+							<CnStatusBadge
+								v-for="badge in item.badges"
+								:key="badge.key"
+								:label="badge.label"
+								:variant="badge.variant"
+								size="small"
+								:data-testid="`cn-record-list-badge-${badge.kind}`" />
+						</span>
+					</span>
+					<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
+					<span v-if="item.trailing" class="cn-record-list__card-value" data-testid="cn-record-list-card-value">{{ item.trailing }}</span>
+				</component>
+
 				<!-- feed: a round icon, a meta line and the text. -->
 				<div v-else-if="presentation === 'feed'" class="cn-record-list__feed-row">
 					<span class="cn-record-list__feed-icon" aria-hidden="true">
@@ -159,7 +196,7 @@ import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
-const PRESENTATIONS = ['rows', 'feed', 'inline']
+const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards']
 
 /**
  * Unwrap a value that may be a ref.
@@ -186,7 +223,8 @@ function unwrap(value) {
  * payload, after `responsePath`, is the array of rows, as on the object table); `avatar` puts a circle with the initials of a name
  * template before the title; what differs is the drawing: `presentation` is `rows`, `feed`
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
- * `"Termijn {deadline|date}"`).
+ * `"Termijn {deadline|date}"`). `cards` draws a framed card per row in a
+ * grid, with `trailing` as the large figure (board ShBank's accounts).
  *
  * A content-only catalog type: on a card surface the detail host or the
  * dashboard page draws the titled card. The widget emits `header` with `{ link, note }` (the
@@ -277,10 +315,22 @@ export default {
 	},
 
 	computed: {
-		/** @return {string} `rows`, `feed` or `inline`. */
+		/** @return {string} `rows`, `feed`, `inline` or `cards`. */
 		presentation() {
 			const value = this.content?.presentation
 			return PRESENTATIONS.includes(value) ? value : 'rows'
+		},
+
+		/**
+		 * Whether a `cards` card leads its title with an icon: only when the
+		 * list declares `icon`, so a card without one has no placeholder.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-cards/specs/record-list-cards/spec.md#requirement-a-record-list-can-draw-its-rows-as-cards
+		 */
+		cardIcons() {
+			const icon = this.content?.icon
+			return (typeof icon === 'string' && icon !== '') || (Boolean(icon) && typeof icon === 'object')
 		},
 
 		/** @return {object} The token context: record, id and workspace. */
@@ -1152,6 +1202,67 @@ export default {
 .cn-record-list__chevron {
 	color: var(--color-text-maxcontrast);
 	flex: none;
+}
+
+/* cards (board ShBank): a grid of framed cards, 240px at the least. */
+.cn-record-list--cards .cn-record-list__list {
+	align-items: start;
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.cn-record-list__card {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: 12px;
+	box-sizing: border-box;
+	color: var(--color-main-text);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 16px 18px;
+	text-decoration: none;
+}
+
+.cn-record-list__card--link:hover,
+.cn-record-list__card--link:focus-visible {
+	border-color: var(--color-border-dark, var(--color-border));
+}
+
+.cn-record-list__card--link:hover .cn-record-list__title,
+.cn-record-list__card--link:focus-visible .cn-record-list__title {
+	text-decoration: underline;
+}
+
+.cn-record-list__card-head {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	justify-content: space-between;
+}
+
+.cn-record-list__card-title {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	min-width: 0;
+}
+
+.cn-record-list__card-icon {
+	color: var(--color-primary-element);
+	flex: none;
+}
+
+.cn-record-list__card-pills {
+	display: flex;
+	flex: none;
+	gap: 6px;
+}
+
+.cn-record-list__card-value {
+	font-size: 24px;
+	font-weight: 700;
 }
 
 /* feed */
