@@ -126,6 +126,20 @@ A list can follow the page's controls (a `workspace-filter` select and switch). 
 
 `due` draws a date field as text with a tone: `{ "field": "deadline", "todayLabel": "Vandaag", "overdueLabel": { "one": "{count} dag te laat", "other": "{count} dagen te laat" }, "emptyText": "Geen deadline" }`. A date before today reads the overdue label in the danger colour, today reads `todayLabel` (default "Due today"), a day to come reads "tomorrow" or the short date, and an empty field reads `emptyText` in the muted colour, or nothing without one. The texts go through the host's translate. The same keys work on a `date` column as `widgetProps.due`.
 
+## A bar under each row
+
+`bar` draws a thin track under each row of the `rows` presentation. With `valueField` alone the track is filled to the row's share of the largest row (board DqTeamwachtrij "Team vandaag": cases per colleague). With `maxField` it is filled to the row's value against its own maximum, and `overVariant: "error"` draws it in the error colour once the value is past that maximum (board PqWachtrij "Team vandaag": open tickets against `maxConcurrent`). The track is a `meter` named after the row's title.
+
+```json
+{
+  "avatar": "{displayName}",
+  "title": "{displayName}",
+  "meta": "{availability}",
+  "trailing": "{open} open",
+  "bar": { "valueField": "open", "maxField": "maxConcurrent", "overVariant": "error" }
+}
+```
+
 ## Money
 
 `{amount|currency}` writes an amount as money, `{amount|currency:USD}` in the named currency, and `{amount|currency:price.code}` in the currency the row holds at that field. A row without a code, and the bare `{amount|currency}`, take the app's reporting currency (`currency` in the app config) and euros without one. The number follows the user's language ("€ 12.000,00" for Dutch). A row without an amount empties the template, as for every token.
