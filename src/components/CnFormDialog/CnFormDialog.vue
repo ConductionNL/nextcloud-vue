@@ -91,586 +91,594 @@
 				     only match on the label TEXT — which is the thing under test
 				     the moment labels are translated, so the assertion passes by
 				     construction in whichever language it was written in. -->
-				<div
-					v-for="field in visibleFields"
-					:key="field.key"
-					:data-cn-field="field.key"
-					class="cn-form-dialog__field"
-					:class="{
-						'cn-form-dialog__field--wide': fieldSpansBothColumns(field),
-						'cn-form-field--half': isBoardLook && field.width === 'half',
-						'cn-form-field--invalid': isBoardLook && !!errors[field.key],
-					}">
-					<!-- Board look: the label sits above the control, the error between
-					     them; the control and the hint keep their place below. -->
-					<CnFormField
-						v-if="showsOuterLabel(field)"
-						:controlId="'cn-form-' + field.key"
-						:text="field.label"
-						:optional="!field.required"
-						:optionalLabel="optionalLabel"
-						:error="errors[field.key] || ''"
-						:errorId="errorIdFor(field)" />
-					<!-- @slot field-{key} Replace one auto-generated field with your own control. -->
-					<!-- @binding {object} field The field definition. -->
-					<!-- @binding {*} value The field's current value. -->
-					<!-- @binding {string} error The field's validation error, if any. -->
-					<!-- @binding {Function} update-field Write the value: `updateField(key, value)`. -->
-					<slot
-						v-if="$slots['field-' + field.key]"
-						:name="'field-' + field.key"
-						:field="field"
-						:value="formData[field.key]"
-						:error="errors[field.key]"
-						:updateField="updateField" />
-
-					<!-- referenceType (AD-18): render the integration's
-					     single-entity widget instead of a plain input. -->
-					<component
-						:is="resolveReferenceWidget(field)"
-						v-else-if="resolveReferenceWidget(field)"
-						v-bind="referenceWidgetProps(field)"
-						@input="value => updateField(field.key, value)" />
-
-					<!-- referenceSemanticType (ADR-048): a field that declares a
-					     canonical semantic-type URI whose provider schema is NOT
-					     installed renders DISABLED with a mouse-over tooltip. When
-					     a provider IS installed the field is transformed upstream
-					     (applySemanticResolution → a `$ref` reference) so it flows
-					     through the normal select branch below; only the
-					     unresolved/loading case lands here. -->
+				<template v-for="field in visibleFields" :key="field.key">
+					<!-- A field whose `section` differs from the one before it opens a
+					     new group under that heading, across both columns. -->
+					<h3
+						v-if="sectionStarts[field.key]"
+						class="cn-form-dialog__section"
+						data-testid="cn-form-dialog-section">
+						{{ sectionStarts[field.key] }}
+					</h3>
 					<div
-						v-else-if="field.referenceSemanticType && !isSemanticResolved(field)"
-						class="cn-form-dialog__semantic-unresolved"
-						:title="semanticUnavailableText(field)">
-						<NcTextField
-							:id="fieldControlId(field)"
-							:label="fieldLabelText(field)"
-							:labelOutside="isBoardLook"
-							v-bind="fieldAria(field)"
-							:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
-							:helperText="isSemanticLoading(field) ? '' : semanticUnavailableText(field)"
-							:disabled="true"
-							:loading="isSemanticLoading(field)"
-							:placeholder="field.description" />
-					</div>
+						:data-cn-field="field.key"
+						class="cn-form-dialog__field"
+						:class="{
+							'cn-form-dialog__field--wide': fieldSpansBothColumns(field),
+							'cn-form-field--half': isBoardLook && field.width === 'half',
+							'cn-form-field--invalid': isBoardLook && !!errors[field.key],
+						}">
+						<!-- Board look: the label sits above the control, the error between
+						     them; the control and the hint keep their place below. -->
+						<CnFormField
+							v-if="showsOuterLabel(field)"
+							:controlId="'cn-form-' + field.key"
+							:text="field.label"
+							:optional="!field.required"
+							:optionalLabel="optionalLabel"
+							:error="errors[field.key] || ''"
+							:errorId="errorIdFor(field)" />
+						<!-- @slot field-{key} Replace one auto-generated field with your own control. -->
+						<!-- @binding {object} field The field definition. -->
+						<!-- @binding {*} value The field's current value. -->
+						<!-- @binding {string} error The field's validation error, if any. -->
+						<!-- @binding {Function} update-field Write the value: `updateField(key, value)`. -->
+						<slot
+							v-if="$slots['field-' + field.key]"
+							:name="'field-' + field.key"
+							:field="field"
+							:value="formData[field.key]"
+							:error="errors[field.key]"
+							:updateField="updateField" />
 
-					<!-- Concept-scheme choice whose options could not be loaded: the
-					     plain text input it had before, with a line saying so. -->
-					<div
-						v-else-if="field.codeList && codedFailed[field.key]"
-						class="cn-form-dialog__coded-fallback">
-						<NcTextField
-							:id="fieldControlId(field)"
-							:label="fieldLabelText(field)"
-							:labelOutside="isBoardLook"
-							v-bind="fieldAria(field)"
-							:modelValue="codedFallbackText(field)"
-							:disabled="field.readOnly"
-							:helperText="t('nextcloud-vue', 'The list of choices could not be loaded. Enter the value by hand.')"
-							@update:modelValue="onCodedFallbackInput(field, $event)" />
-					</div>
+						<!-- referenceType (AD-18): render the integration's
+						     single-entity widget instead of a plain input. -->
+						<component
+							:is="resolveReferenceWidget(field)"
+							v-else-if="resolveReferenceWidget(field)"
+							v-bind="referenceWidgetProps(field)"
+							@input="value => updateField(field.key, value)" />
 
-					<!-- Auto-generated field -->
-					<template v-else>
-						<!-- Text / Email / URL. The helper line lives outside the
-						     input (rather than on `helper-text`) so an over-long
-						     description can hang its info popover off it. -->
-						<template v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
+						<!-- referenceSemanticType (ADR-048): a field that declares a
+						     canonical semantic-type URI whose provider schema is NOT
+						     installed renders DISABLED with a mouse-over tooltip. When
+						     a provider IS installed the field is transformed upstream
+						     (applySemanticResolution → a `$ref` reference) so it flows
+						     through the normal select branch below; only the
+						     unresolved/loading case lands here. -->
+						<div
+							v-else-if="field.referenceSemanticType && !isSemanticResolved(field)"
+							class="cn-form-dialog__semantic-unresolved"
+							:title="semanticUnavailableText(field)">
 							<NcTextField
 								:id="fieldControlId(field)"
 								:label="fieldLabelText(field)"
 								:labelOutside="isBoardLook"
 								v-bind="fieldAria(field)"
 								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
-								:error="!!errors[field.key]"
-								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
-								:disabled="field.readOnly"
-								:placeholder="fieldPlaceholder(field)"
-								@update:modelValue="value => updateField(field.key, value)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</template>
+								:helperText="isSemanticLoading(field) ? '' : semanticUnavailableText(field)"
+								:disabled="true"
+								:loading="isSemanticLoading(field)"
+								:placeholder="field.description" />
+						</div>
 
-						<!-- Number -->
-						<template v-else-if="field.widget === 'number'">
+						<!-- Concept-scheme choice whose options could not be loaded: the
+						     plain text input it had before, with a line saying so. -->
+						<div
+							v-else-if="field.codeList && codedFailed[field.key]"
+							class="cn-form-dialog__coded-fallback">
 							<NcTextField
 								:id="fieldControlId(field)"
 								:label="fieldLabelText(field)"
 								:labelOutside="isBoardLook"
 								v-bind="fieldAria(field)"
-								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
-								:error="!!errors[field.key]"
-								type="number"
+								:modelValue="codedFallbackText(field)"
 								:disabled="field.readOnly"
-								:placeholder="fieldPlaceholder(field)"
-								@update:modelValue="value => updateField(field.key, value !== '' ? Number(value) : null)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</template>
-
-						<!-- Textarea -->
-						<div v-else-if="field.widget === 'textarea'" class="cn-form-dialog__textarea-wrapper">
-							<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ requiredSuffix(field) }}
-							</label>
-							<textarea
-								:id="'cn-form-' + field.key"
-								class="cn-form-dialog__textarea"
-								v-bind="fieldAria(field)"
-								:value="formData[field.key] || ''"
-								:disabled="field.readOnly"
-								:placeholder="fieldPlaceholder(field)"
-								rows="4"
-								@input="updateField(field.key, $event.target.value)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
+								:helperText="t('nextcloud-vue', 'The list of choices could not be loaded. Enter the value by hand.')"
+								@update:modelValue="onCodedFallbackInput(field, $event)" />
 						</div>
 
-						<!-- Object reference with inline create (`x-allow-create`):
-						     a select-OR-create picker over the referenced schema.
-						     Checked before the plain select branch so create-enabled
-						     references get CnResourceSelect; plain references keep the
-						     read-only NcSelect below. -->
-						<div
-							v-else-if="(isReferenceField(field) || isReferenceArrayField(field)) && field.allowCreate"
-							class="cn-form-dialog__select-wrapper">
-							<CnResourceSelect
-								:inputId="'cn-form-' + field.key"
-								:inputLabel="fieldLabelText(field)"
-								:labelOutside="isBoardLook"
-								:register="referenceRegister(field)"
-								:schema="String(field.reference.schema)"
-								:labelField="referenceLabelField(field)"
-								:multiple="!!field.reference.multiple"
-								:modelValue="referenceModelValue(field)"
-								:clearable="!field.required || !!field.reference.multiple"
-								:disabled="field.readOnly"
-								:preload="true"
-								:createHandler="term => openNestedCreate(field, term)"
-								@update:modelValue="value => onReferenceSelected(field, value)"
-								@create="obj => onReferenceCreated(field, obj)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- Enum toggle (`widget: "switch"` on a 2-value enum):
-						     renders a switch mapping off→enum[0], on→last enum value. -->
-						<div v-else-if="field.widget === 'switch'" class="cn-form-dialog__switch-wrapper">
-							<NcCheckboxRadioSwitch
-								:modelValue="isSwitchOn(field)"
-								:disabled="field.readOnly"
-								type="switch"
-								@update:modelValue="value => updateField(field.key, switchValueFor(field, value))">
-								{{ field.label }}{{ requiredSuffix(field) }}
-							</NcCheckboxRadioSwitch>
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- Select (enum / $ref object reference / single Nextcloud user, supports async function).
-						     A single Nextcloud-user field (`widget: "user"`) renders here too:
-						     `:user-select="isUserField(field)"` flips this NcSelect into NC's native
-						     user picker, and the async load/search/select machinery (getEffective*,
-						     onAsyncSearch) resolves real users — mirroring how `user-multiselect`
-						     shares the multiselect branch below. -->
-						<div v-else-if="field.widget === 'select' || field.widget === 'user' || field.widget === 'group'" class="cn-form-dialog__select-wrapper">
-							<!-- A `widget: "user"` field renders NcSelectUsers, everything
-							     else NcSelect. It used to be one NcSelect with
-							     `:user-select="isUserField(field)"`, and @nextcloud/vue 9
-							     REMOVED that prop, so a user field had silently become a
-							     plain select. NcSelectUsers wraps NcSelect and merges the
-							     rest of these bindings through, so the async load, search
-							     and select machinery is unchanged either way. -->
-							<component
-								:is="isUserField(field) ? 'NcSelectUsers' : 'NcSelect'"
-								v-cn-select-aria="fieldAria(field)"
-								:inputId="'cn-form-' + field.key"
-								:inputLabel="fieldLabelText(field)"
-								:labelOutside="isBoardLook"
-								:options="getEffectiveOptions(field)"
-								:modelValue="getEffectiveSelectedOption(field)"
-								:clearable="!field.required"
-								:disabled="field.readOnly"
-								:loading="isFieldLoading(field)"
-								:filterable="!isAsyncEnum(field)"
-								@update:modelValue="onEffectiveSelectChange(field, $event)"
-								@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
-								<template
-									v-if="$slots['field-' + field.key + '-option']"
-									#option="optionProps">
-									<!-- @slot field-{key}-option Render one dropdown option for a select, multiselect or tags field. -->
-									<!-- @binding {object} option The option being rendered (`{ id, label }`). -->
-									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
-								</template>
-								<!-- NcSelect's own option splits a label in two spans
-								     (NcEllipsisedOption, keeping its last characters
-								     visible), and in a narrow dropdown the halves broke
-								     onto two lines mid-word: "Agricu lture". A plain
-								     label wraps at spaces only. NcSelectUsers keeps its
-								     avatar rendering. -->
-								<template
-									v-else-if="!isUserField(field)"
-									#option="optionProps">
-									<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
-								</template>
-								<template
-									v-if="$slots['field-' + field.key + '-selected-option']"
-									#selected-option="optionProps">
-									<!-- @slot field-{key}-selected-option Render the chosen option of a select, multiselect or tags field. -->
-									<!-- @binding {object} option The selected option (`{ id, label }`). -->
-									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
-								</template>
-							</component>
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- Multiselect (array enum items / $ref array / Nextcloud users, supports async function) -->
-						<div v-else-if="field.widget === 'multiselect' || field.widget === 'user-multiselect' || field.widget === 'group-multiselect'" class="cn-form-dialog__select-wrapper">
-							<NcSelect
-								v-cn-select-aria="fieldAria(field)"
-								:inputId="'cn-form-' + field.key"
-								:inputLabel="fieldLabelText(field)"
-								:labelOutside="isBoardLook"
-								:options="getEffectiveArrayOptions(field)"
-								:modelValue="getEffectiveSelectedArrayOptions(field)"
-								:multiple="true"
-								:keepOpen="true"
-								:clearable="true"
-								:disabled="field.readOnly"
-								:loading="isFieldLoading(field)"
-								:filterable="!isAsyncItemsEnum(field)"
-								@update:modelValue="onEffectiveMultiSelectChange(field, $event)"
-								@search="isAsyncItemsEnum(field) ? onAsyncSearch(field, $event) : undefined">
-								<template
-									v-if="$slots['field-' + field.key + '-option']"
-									#option="optionProps">
-									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
-								</template>
-								<template v-else #option="optionProps">
-									<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
-								</template>
-								<template
-									v-if="$slots['field-' + field.key + '-selected-option']"
-									#selected-option="optionProps">
-									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
-								</template>
-								<template v-else #selected-option="optionProps">
-									<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
-								</template>
-							</NcSelect>
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- Tags (array, freeform, supports async suggestions) -->
-						<div v-else-if="field.widget === 'tags'" class="cn-form-dialog__select-wrapper">
-							<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
-							<NcSelect
-								v-cn-select-aria="fieldAria(field)"
-								:inputId="'cn-form-' + field.key"
-								:inputLabel="fieldLabelText(field)"
-								:labelOutside="isBoardLook"
-								:modelValue="formData[field.key] || []"
-								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
-								:multiple="true"
-								:keepOpen="true"
-								:taggable="true"
-								:clearable="true"
-								:disabled="field.readOnly"
-								:loading="isFieldLoading(field)"
-								:filterable="!isFieldAsync(field)"
-								@update:modelValue="updateField(field.key, $event)"
-								@search="isFieldAsync(field) ? onAsyncSearch(field, $event) : undefined">
-								<template
-									v-if="$slots['field-' + field.key + '-option']"
-									#option="optionProps">
-									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
-								</template>
-								<template v-else #option="optionProps">
-									<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
-								</template>
-								<template
-									v-if="$slots['field-' + field.key + '-selected-option']"
-									#selected-option="optionProps">
-									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
-								</template>
-								<template v-else #selected-option="optionProps">
-									<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
-								</template>
-							</NcSelect>
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- Checkbox / Switch (boolean) -->
-						<div v-else-if="field.widget === 'checkbox'" class="cn-form-dialog__switch-wrapper">
-							<NcCheckboxRadioSwitch
-								:modelValue="!!formData[field.key]"
-								:disabled="field.readOnly"
-								type="switch"
-								@update:modelValue="value => updateField(field.key, value)">
-								{{ field.label }}{{ requiredSuffix(field) }}
-							</NcCheckboxRadioSwitch>
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- Date / Datetime (NcTextField's type validator rejects
-						     'date'/'datetime-local', so use NcDateTimePickerNative) -->
-						<div
-							v-else-if="field.widget === 'date' || field.widget === 'datetime'"
-							class="cn-form-dialog__select-wrapper">
-							<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ requiredSuffix(field) }}
-							</label>
-							<NcDateTimePickerNative
-								:id="'cn-form-' + field.key"
-								:type="field.widget === 'datetime' ? 'datetime-local' : 'date'"
-								:label="field.label"
-								:hideLabel="true"
-								:modelValue="dateValueFor(field)"
-								:disabled="field.readOnly"
-								@update:modelValue="date => onDateFieldInput(field, date)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- JSON (type: 'object'|'array'|... with widget: 'json'): parses on input, stores parsed value in formData -->
-						<div v-else-if="field.widget === 'json'" class="cn-form-dialog__json-wrapper">
-							<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ requiredSuffix(field) }}
-							</label>
-							<CnJsonViewer
-								:value="jsonStringFor(field)"
-								language="json"
-								:readOnly="field.readOnly"
-								:errorText="jsonErrors[field.key] || ''"
-								@update:value="value => onJsonFieldInput(field, value)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- Code (freeform editor, stored as raw string; optional `field.language` chooses highlighting) -->
-						<div v-else-if="field.widget === 'code'" class="cn-form-dialog__json-wrapper">
-							<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ requiredSuffix(field) }}
-							</label>
-							<CnJsonViewer
-								:value="formData[field.key] != null ? String(formData[field.key]) : ''"
-								:language="field.language || 'auto'"
-								:readOnly="field.readOnly"
-								@update:value="value => updateField(field.key, value)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- File (widget: 'file'): one file or several, small ones inline, big ones uploaded after save, optional camera. -->
-						<div v-else-if="field.widget === 'file'" class="cn-form-dialog__file-wrapper">
-							<CnFileField
-								:modelValue="formData[field.key]"
-								:label="fieldLabelText(field)"
-								:accept="field.file ? field.file.accept : ''"
-								:multiple="!!(field.file && field.file.multiple)"
-								:capture="field.file ? field.file.capture : ''"
-								v-bind="fileLimits(field)"
-								:disabled="field.readOnly"
-								:helperText="errors[field.key] || ''"
-								@update:modelValue="value => updateField(field.key, value)" />
-							<CnFieldHelper
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label" />
-						</div>
-
-						<!-- Duration (widget: 'duration'): number + unit over an ISO 8601 string. -->
-						<div v-else-if="field.widget === 'duration'" class="cn-form-dialog__duration-wrapper">
-							<CnDurationField
-								:modelValue="formData[field.key] != null ? String(formData[field.key]) : null"
-								:inputLabel="fieldLabelText(field)"
-								:disabled="field.readOnly"
-								:error="!!errors[field.key]"
-								@update:modelValue="value => updateField(field.key, value)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- Child records (widget: 'child-records'): another schema's records as an editable table, saved after the parent. -->
-						<div v-else-if="field.widget === 'child-records' && field.childRecords" class="cn-form-dialog__child-records-wrapper">
-							<CnChildRecordsField
-								:modelValue="Array.isArray(formData[field.key]) ? formData[field.key] : []"
-								:config="field.childRecords"
-								:register="register"
-								:parentId="item ? (item.id || item.uuid || '') : ''"
-								:inputLabel="fieldLabelText(field)"
-								:disabled="field.readOnly"
-								:error="errors[field.key] || ''"
-								@update:modelValue="value => updateField(field.key, value)"
-								@loaded="rows => { childOriginals[field.key] = rows }"
-								@validity="problems => { childProblems[field.key] = problems }" />
-							<CnFieldHelper
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label" />
-						</div>
-
-						<!-- Sub-objects (widget: 'sub-objects'): an array of objects as an editable table. -->
-						<div v-else-if="field.widget === 'sub-objects' && field.items" class="cn-form-dialog__sub-objects-wrapper">
-							<CnSubObjectsField
-								:modelValue="Array.isArray(formData[field.key]) ? formData[field.key] : []"
-								:items="field.items"
-								:inputLabel="fieldLabelText(field)"
-								:disabled="field.readOnly"
-								:error="errors[field.key] || ''"
-								@update:modelValue="value => updateField(field.key, value)" />
-							<CnFieldHelper
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label" />
-						</div>
-
-						<!-- Registry type-ahead (widget: 'property-source'): CnPropertySourceField;
-						     a pick can fill empty sibling fields from config.fill. -->
-						<div v-else-if="field.widget === 'property-source' && field.propertySource" class="cn-form-dialog__property-source-wrapper">
-							<CnPropertySourceField
-								:provider="field.propertySource.provider"
-								:mode="field.propertySource.mode"
-								:inputId="'cn-form-' + field.key"
-								:inputLabel="fieldLabelText(field)"
-								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
-								:disabled="field.readOnly"
-								:error="!!errors[field.key]"
-								@update:modelValue="value => updateField(field.key, value)"
-								@resolved="payload => onPropertySourceResolved(field, payload)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- Icon (widget: 'icon'): renders CnIconBrowser, forwarding the field's icon config.
-						     `searchable` is gone — the browser always searches. -->
-						<div v-else-if="field.widget === 'icon'" class="cn-form-dialog__icon-wrapper">
-							<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ requiredSuffix(field) }}
-							</label>
-							<CnIconBrowser
-								:value="formData[field.key] != null ? String(formData[field.key]) : null"
-								:sources="field.iconSources || ['mdi']"
-								:catalogues="field.catalogues || {}"
-								:allowCustomSvg="!!field.allowCustomSvg"
-								:clearable="!field.required"
-								@input="value => updateField(field.key, value)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
-						</div>
-
-						<!-- Fallback: text input -->
+						<!-- Auto-generated field -->
 						<template v-else>
-							<NcTextField
-								:id="fieldControlId(field)"
-								:label="fieldLabelText(field)"
-								:labelOutside="isBoardLook"
-								v-bind="fieldAria(field)"
-								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
-								:error="!!errors[field.key]"
-								:disabled="field.readOnly"
-								:placeholder="fieldPlaceholder(field)"
-								@update:modelValue="value => updateField(field.key, value)" />
-							<CnFieldHelper
-								:id="helpId(field)"
-								:text="field.description"
-								:more="field.descriptionLong"
-								:help="field.help"
-								:label="field.label"
-								:error="helperError(field)" />
+							<!-- Text / Email / URL. The helper line lives outside the
+							     input (rather than on `helper-text`) so an over-long
+							     description can hang its info popover off it. -->
+							<template v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
+								<NcTextField
+									:id="fieldControlId(field)"
+									:label="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									v-bind="fieldAria(field)"
+									:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
+									:error="!!errors[field.key]"
+									:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
+									:disabled="field.readOnly"
+									:placeholder="fieldPlaceholder(field)"
+									@update:modelValue="value => updateField(field.key, value)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</template>
+
+							<!-- Number -->
+							<template v-else-if="field.widget === 'number'">
+								<NcTextField
+									:id="fieldControlId(field)"
+									:label="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									v-bind="fieldAria(field)"
+									:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
+									:error="!!errors[field.key]"
+									type="number"
+									:disabled="field.readOnly"
+									:placeholder="fieldPlaceholder(field)"
+									@update:modelValue="value => updateField(field.key, value !== '' ? Number(value) : null)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</template>
+
+							<!-- Textarea -->
+							<div v-else-if="field.widget === 'textarea'" class="cn-form-dialog__textarea-wrapper">
+								<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+									{{ field.label }}{{ requiredSuffix(field) }}
+								</label>
+								<textarea
+									:id="'cn-form-' + field.key"
+									class="cn-form-dialog__textarea"
+									v-bind="fieldAria(field)"
+									:value="formData[field.key] || ''"
+									:disabled="field.readOnly"
+									:placeholder="fieldPlaceholder(field)"
+									rows="4"
+									@input="updateField(field.key, $event.target.value)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Object reference with inline create (`x-allow-create`):
+							     a select-OR-create picker over the referenced schema.
+							     Checked before the plain select branch so create-enabled
+							     references get CnResourceSelect; plain references keep the
+							     read-only NcSelect below. -->
+							<div
+								v-else-if="(isReferenceField(field) || isReferenceArrayField(field)) && field.allowCreate"
+								class="cn-form-dialog__select-wrapper">
+								<CnResourceSelect
+									:inputId="'cn-form-' + field.key"
+									:inputLabel="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									:register="referenceRegister(field)"
+									:schema="String(field.reference.schema)"
+									:labelField="referenceLabelField(field)"
+									:multiple="!!field.reference.multiple"
+									:modelValue="referenceModelValue(field)"
+									:clearable="!field.required || !!field.reference.multiple"
+									:disabled="field.readOnly"
+									:preload="true"
+									:createHandler="term => openNestedCreate(field, term)"
+									@update:modelValue="value => onReferenceSelected(field, value)"
+									@create="obj => onReferenceCreated(field, obj)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Enum toggle (`widget: "switch"` on a 2-value enum):
+							     renders a switch mapping off→enum[0], on→last enum value. -->
+							<div v-else-if="field.widget === 'switch'" class="cn-form-dialog__switch-wrapper">
+								<NcCheckboxRadioSwitch
+									:modelValue="isSwitchOn(field)"
+									:disabled="field.readOnly"
+									type="switch"
+									@update:modelValue="value => updateField(field.key, switchValueFor(field, value))">
+									{{ field.label }}{{ requiredSuffix(field) }}
+								</NcCheckboxRadioSwitch>
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Select (enum / $ref object reference / single Nextcloud user, supports async function).
+							     A single Nextcloud-user field (`widget: "user"`) renders here too:
+							     `:user-select="isUserField(field)"` flips this NcSelect into NC's native
+							     user picker, and the async load/search/select machinery (getEffective*,
+							     onAsyncSearch) resolves real users — mirroring how `user-multiselect`
+							     shares the multiselect branch below. -->
+							<div v-else-if="field.widget === 'select' || field.widget === 'user' || field.widget === 'group'" class="cn-form-dialog__select-wrapper">
+								<!-- A `widget: "user"` field renders NcSelectUsers, everything
+								     else NcSelect. It used to be one NcSelect with
+								     `:user-select="isUserField(field)"`, and @nextcloud/vue 9
+								     REMOVED that prop, so a user field had silently become a
+								     plain select. NcSelectUsers wraps NcSelect and merges the
+								     rest of these bindings through, so the async load, search
+								     and select machinery is unchanged either way. -->
+								<component
+									:is="isUserField(field) ? 'NcSelectUsers' : 'NcSelect'"
+									v-cn-select-aria="fieldAria(field)"
+									:inputId="'cn-form-' + field.key"
+									:inputLabel="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									:options="getEffectiveOptions(field)"
+									:modelValue="getEffectiveSelectedOption(field)"
+									:clearable="!field.required"
+									:disabled="field.readOnly"
+									:loading="isFieldLoading(field)"
+									:filterable="!isAsyncEnum(field)"
+									@update:modelValue="onEffectiveSelectChange(field, $event)"
+									@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
+									<template
+										v-if="$slots['field-' + field.key + '-option']"
+										#option="optionProps">
+										<!-- @slot field-{key}-option Render one dropdown option for a select, multiselect or tags field. -->
+										<!-- @binding {object} option The option being rendered (`{ id, label }`). -->
+										<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
+									</template>
+									<!-- NcSelect's own option splits a label in two spans
+									     (NcEllipsisedOption, keeping its last characters
+									     visible), and in a narrow dropdown the halves broke
+									     onto two lines mid-word: "Agricu lture". A plain
+									     label wraps at spaces only. NcSelectUsers keeps its
+									     avatar rendering. -->
+									<template
+										v-else-if="!isUserField(field)"
+										#option="optionProps">
+										<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
+									</template>
+									<template
+										v-if="$slots['field-' + field.key + '-selected-option']"
+										#selected-option="optionProps">
+										<!-- @slot field-{key}-selected-option Render the chosen option of a select, multiselect or tags field. -->
+										<!-- @binding {object} option The selected option (`{ id, label }`). -->
+										<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
+									</template>
+								</component>
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Multiselect (array enum items / $ref array / Nextcloud users, supports async function) -->
+							<div v-else-if="field.widget === 'multiselect' || field.widget === 'user-multiselect' || field.widget === 'group-multiselect'" class="cn-form-dialog__select-wrapper">
+								<NcSelect
+									v-cn-select-aria="fieldAria(field)"
+									:inputId="'cn-form-' + field.key"
+									:inputLabel="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									:options="getEffectiveArrayOptions(field)"
+									:modelValue="getEffectiveSelectedArrayOptions(field)"
+									:multiple="true"
+									:keepOpen="true"
+									:clearable="true"
+									:disabled="field.readOnly"
+									:loading="isFieldLoading(field)"
+									:filterable="!isAsyncItemsEnum(field)"
+									@update:modelValue="onEffectiveMultiSelectChange(field, $event)"
+									@search="isAsyncItemsEnum(field) ? onAsyncSearch(field, $event) : undefined">
+									<template
+										v-if="$slots['field-' + field.key + '-option']"
+										#option="optionProps">
+										<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
+									</template>
+									<template v-else #option="optionProps">
+										<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
+									</template>
+									<template
+										v-if="$slots['field-' + field.key + '-selected-option']"
+										#selected-option="optionProps">
+										<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
+									</template>
+									<template v-else #selected-option="optionProps">
+										<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
+									</template>
+								</NcSelect>
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Tags (array, freeform, supports async suggestions) -->
+							<div v-else-if="field.widget === 'tags'" class="cn-form-dialog__select-wrapper">
+								<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
+								<NcSelect
+									v-cn-select-aria="fieldAria(field)"
+									:inputId="'cn-form-' + field.key"
+									:inputLabel="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									:modelValue="formData[field.key] || []"
+									:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
+									:multiple="true"
+									:keepOpen="true"
+									:taggable="true"
+									:clearable="true"
+									:disabled="field.readOnly"
+									:loading="isFieldLoading(field)"
+									:filterable="!isFieldAsync(field)"
+									@update:modelValue="updateField(field.key, $event)"
+									@search="isFieldAsync(field) ? onAsyncSearch(field, $event) : undefined">
+									<template
+										v-if="$slots['field-' + field.key + '-option']"
+										#option="optionProps">
+										<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
+									</template>
+									<template v-else #option="optionProps">
+										<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
+									</template>
+									<template
+										v-if="$slots['field-' + field.key + '-selected-option']"
+										#selected-option="optionProps">
+										<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
+									</template>
+									<template v-else #selected-option="optionProps">
+										<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
+									</template>
+								</NcSelect>
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Checkbox / Switch (boolean) -->
+							<div v-else-if="field.widget === 'checkbox'" class="cn-form-dialog__switch-wrapper">
+								<NcCheckboxRadioSwitch
+									:modelValue="!!formData[field.key]"
+									:disabled="field.readOnly"
+									type="switch"
+									@update:modelValue="value => updateField(field.key, value)">
+									{{ field.label }}{{ requiredSuffix(field) }}
+								</NcCheckboxRadioSwitch>
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Date / Datetime (NcTextField's type validator rejects
+							     'date'/'datetime-local', so use NcDateTimePickerNative) -->
+							<div
+								v-else-if="field.widget === 'date' || field.widget === 'datetime'"
+								class="cn-form-dialog__select-wrapper">
+								<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+									{{ field.label }}{{ requiredSuffix(field) }}
+								</label>
+								<NcDateTimePickerNative
+									:id="'cn-form-' + field.key"
+									:type="field.widget === 'datetime' ? 'datetime-local' : 'date'"
+									:label="field.label"
+									:hideLabel="true"
+									:modelValue="dateValueFor(field)"
+									:disabled="field.readOnly"
+									@update:modelValue="date => onDateFieldInput(field, date)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- JSON (type: 'object'|'array'|... with widget: 'json'): parses on input, stores parsed value in formData -->
+							<div v-else-if="field.widget === 'json'" class="cn-form-dialog__json-wrapper">
+								<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+									{{ field.label }}{{ requiredSuffix(field) }}
+								</label>
+								<CnJsonViewer
+									:value="jsonStringFor(field)"
+									language="json"
+									:readOnly="field.readOnly"
+									:errorText="jsonErrors[field.key] || ''"
+									@update:value="value => onJsonFieldInput(field, value)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Code (freeform editor, stored as raw string; optional `field.language` chooses highlighting) -->
+							<div v-else-if="field.widget === 'code'" class="cn-form-dialog__json-wrapper">
+								<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+									{{ field.label }}{{ requiredSuffix(field) }}
+								</label>
+								<CnJsonViewer
+									:value="formData[field.key] != null ? String(formData[field.key]) : ''"
+									:language="field.language || 'auto'"
+									:readOnly="field.readOnly"
+									@update:value="value => updateField(field.key, value)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- File (widget: 'file'): one file or several, small ones inline, big ones uploaded after save, optional camera. -->
+							<div v-else-if="field.widget === 'file'" class="cn-form-dialog__file-wrapper">
+								<CnFileField
+									:modelValue="formData[field.key]"
+									:label="fieldLabelText(field)"
+									:accept="field.file ? field.file.accept : ''"
+									:multiple="!!(field.file && field.file.multiple)"
+									:capture="field.file ? field.file.capture : ''"
+									v-bind="fileLimits(field)"
+									:disabled="field.readOnly"
+									:helperText="errors[field.key] || ''"
+									@update:modelValue="value => updateField(field.key, value)" />
+								<CnFieldHelper
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label" />
+							</div>
+
+							<!-- Duration (widget: 'duration'): number + unit over an ISO 8601 string. -->
+							<div v-else-if="field.widget === 'duration'" class="cn-form-dialog__duration-wrapper">
+								<CnDurationField
+									:modelValue="formData[field.key] != null ? String(formData[field.key]) : null"
+									:inputLabel="fieldLabelText(field)"
+									:disabled="field.readOnly"
+									:error="!!errors[field.key]"
+									@update:modelValue="value => updateField(field.key, value)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Child records (widget: 'child-records'): another schema's records as an editable table, saved after the parent. -->
+							<div v-else-if="field.widget === 'child-records' && field.childRecords" class="cn-form-dialog__child-records-wrapper">
+								<CnChildRecordsField
+									:modelValue="Array.isArray(formData[field.key]) ? formData[field.key] : []"
+									:config="field.childRecords"
+									:register="register"
+									:parentId="item ? (item.id || item.uuid || '') : ''"
+									:inputLabel="fieldLabelText(field)"
+									:disabled="field.readOnly"
+									:error="errors[field.key] || ''"
+									@update:modelValue="value => updateField(field.key, value)"
+									@loaded="rows => { childOriginals[field.key] = rows }"
+									@validity="problems => { childProblems[field.key] = problems }" />
+								<CnFieldHelper
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label" />
+							</div>
+
+							<!-- Sub-objects (widget: 'sub-objects'): an array of objects as an editable table. -->
+							<div v-else-if="field.widget === 'sub-objects' && field.items" class="cn-form-dialog__sub-objects-wrapper">
+								<CnSubObjectsField
+									:modelValue="Array.isArray(formData[field.key]) ? formData[field.key] : []"
+									:items="field.items"
+									:inputLabel="fieldLabelText(field)"
+									:disabled="field.readOnly"
+									:error="errors[field.key] || ''"
+									@update:modelValue="value => updateField(field.key, value)" />
+								<CnFieldHelper
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label" />
+							</div>
+
+							<!-- Registry type-ahead (widget: 'property-source'): CnPropertySourceField;
+							     a pick can fill empty sibling fields from config.fill. -->
+							<div v-else-if="field.widget === 'property-source' && field.propertySource" class="cn-form-dialog__property-source-wrapper">
+								<CnPropertySourceField
+									:provider="field.propertySource.provider"
+									:mode="field.propertySource.mode"
+									:inputId="'cn-form-' + field.key"
+									:inputLabel="fieldLabelText(field)"
+									:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
+									:disabled="field.readOnly"
+									:error="!!errors[field.key]"
+									@update:modelValue="value => updateField(field.key, value)"
+									@resolved="payload => onPropertySourceResolved(field, payload)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Icon (widget: 'icon'): renders CnIconBrowser, forwarding the field's icon config.
+							     `searchable` is gone — the browser always searches. -->
+							<div v-else-if="field.widget === 'icon'" class="cn-form-dialog__icon-wrapper">
+								<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+									{{ field.label }}{{ requiredSuffix(field) }}
+								</label>
+								<CnIconBrowser
+									:value="formData[field.key] != null ? String(formData[field.key]) : null"
+									:sources="field.iconSources || ['mdi']"
+									:catalogues="field.catalogues || {}"
+									:allowCustomSvg="!!field.allowCustomSvg"
+									:clearable="!field.required"
+									@input="value => updateField(field.key, value)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- Fallback: text input -->
+							<template v-else>
+								<NcTextField
+									:id="fieldControlId(field)"
+									:label="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									v-bind="fieldAria(field)"
+									:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
+									:error="!!errors[field.key]"
+									:disabled="field.readOnly"
+									:placeholder="fieldPlaceholder(field)"
+									@update:modelValue="value => updateField(field.key, value)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</template>
+							<small
+								v-if="assignedFrom[field.key]"
+								class="cn-form-dialog__assigned"
+								aria-live="polite"
+								data-testid="cn-form-dialog-assigned">
+								{{ t('nextcloud-vue', 'Filled in from {field}', { field: assignedFrom[field.key] }) }}
+							</small>
 						</template>
-						<small
-							v-if="assignedFrom[field.key]"
-							class="cn-form-dialog__assigned"
-							aria-live="polite"
-							data-testid="cn-form-dialog-assigned">
-							{{ t('nextcloud-vue', 'Filled in from {field}', { field: assignedFrom[field.key] }) }}
-						</small>
-					</template>
-				</div>
+					</div>
+				</template>
 
 				<!-- The extra questions a chosen case type / product line asks
 				     are fetched, so say they are coming. Silence here reads as
@@ -758,6 +766,11 @@
 				@click="executeConfirm">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
+					<CnIcon
+						v-else-if="confirmIcon"
+						:name="confirmIcon"
+						:size="20"
+						data-testid="cn-form-dialog-confirm-icon" />
 					<Plus v-else-if="isCreateMode" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
 				</template>
@@ -781,6 +794,7 @@ import CnDurationField from '../CnDurationField/CnDurationField.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import CnFileField from '../CnFileField/CnFileField.vue'
 import CnFormField from '../CnFormField/CnFormField.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
@@ -1023,6 +1037,7 @@ export default {
 		CnSubObjectsField,
 		CnChildRecordsField,
 		CnDialog,
+		CnIcon,
 		CnFormField,
 		NcButton,
 		NcNoteCard,
@@ -1299,6 +1314,12 @@ export default {
 
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name on the Confirm button (`SwapHorizontal`, `Archive`, `Send`, `Gavel`). Defaults to Plus when creating, else a save icon. */
+		confirmIcon: {
 			type: String,
 			default: '',
 		},
@@ -1733,6 +1754,27 @@ export default {
 				.map((field) => this.applySemanticResolution(field))
 				.map((field) => this.degradeUnresolvableReference(field))
 				.map((field) => this.applyCodePicker(field))
+		},
+
+		/**
+		 * The section headings, keyed by the field that opens each: a field
+		 * whose `section` (set through `fieldOverrides`) differs from the
+		 * visible field before it starts a group. Sections follow the field
+		 * order; the heading goes through the app's translate function.
+		 *
+		 * @return {Object<string, string>} Field key to heading.
+		 */
+		sectionStarts() {
+			const starts = {}
+			let current = ''
+			for (const field of this.visibleFields) {
+				const section = typeof field.section === 'string' ? field.section : ''
+				if (section !== '' && section !== current) {
+					starts[field.key] = typeof this.cnTranslate === 'function' ? this.cnTranslate(section) : section
+				}
+				current = section
+			}
+			return starts
 		},
 
 		/**
@@ -4932,6 +4974,21 @@ export default {
    from pushing its column past its share: a grid item's default `auto`
    minimum is its content, so without it one long option label widens the
    whole column and the two stop being equal. */
+.cn-form-dialog__section {
+	margin: 12px 0 0;
+	padding-top: 12px;
+	border-top: 1px solid var(--color-border);
+	font-size: 15px;
+	font-weight: 700;
+}
+
+/* The first heading opens the form: no rule above it. */
+.cn-form-dialog__form .cn-form-dialog__section:first-of-type {
+	margin-top: 0;
+	padding-top: 0;
+	border-top: 0;
+}
+
 .cn-form-dialog__form--two-column {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
