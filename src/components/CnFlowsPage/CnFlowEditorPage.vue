@@ -1,7 +1,20 @@
 <!-- SPDX-License-Identifier: EUPL-1.2 -->
 <!-- Copyright (C) 2026 Conduction B.V. -->
 <template>
-	<CnFlowDetail :id="flowId"
+	<CnFlowBoard v-if="isBoard"
+		:id="flowId"
+		:app="app"
+		:run="runUuid"
+		:detailRoute="detailRoute"
+		:listLabel="listLabel ? cnTranslate(listLabel) : ''"
+		:palette="palette"
+		:paletteFootnote="paletteFootnote ? cnTranslate(paletteFootnote) : ''"
+		:notice="notice ? cnTranslate(notice) : ''"
+		:pill="pill ? cnTranslate(pill) : ''"
+		@save="onSave"
+		@run="onRun" />
+	<CnFlowDetail v-else
+		:id="flowId"
 		:app="app"
 		:run="runUuid"
 		@save="onSave"
@@ -9,8 +22,10 @@
 </template>
 
 <script>
-import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+import { useLook } from '../../composables/useLook.js'
+import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
+import CnFlowBoard from './CnFlowBoard.vue'
 
 /**
  * The flow canvas — manifest page type `flow-detail`.
@@ -32,7 +47,11 @@ import { useFlowStore } from '../../composables/useFlowStore.js'
 export default {
 	name: 'CnFlowEditorPage',
 
-	components: { CnFlowDetail },
+	components: { CnFlowBoard, CnFlowDetail },
+
+	inject: {
+		cnTranslate: { default: () => (key) => key },
+	},
 
 	props: {
 		/**
@@ -73,15 +92,76 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Draw this page in the `board` look (or `nextcloud`) whatever the app
+		 * does. Empty follows the app's look. Manifest key `config.look`.
+		 */
+		// eslint-disable-next-line vue/no-unused-properties -- read through useLook(props) in setup
+		look: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: where steps come from. `picker` (default) keeps "Add a
+		 * step" in the canvas toolbar; `column` draws the palette as a card
+		 * beside the canvas, grouped by the app that provides each step.
+		 * Manifest key `config.palette`.
+		 */
+		palette: {
+			type: String,
+			default: 'picker',
+		},
+
+		/**
+		 * Board look: a line under the palette card. Manifest key
+		 * `config.paletteFootnote`, translated with the app's catalogue.
+		 */
+		paletteFootnote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: an info notice under the path. Manifest key
+		 * `config.notice`, translated with the app's catalogue.
+		 */
+		notice: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the pill beside the flow's name ("Case type flow").
+		 * Empty shows the lifecycle for a draft or retired flow. Manifest key
+		 * `config.pill`.
+		 */
+		pill: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the list's name at the start of the path ("Settings /
+		 * Flows"). Empty reads "Flows". Manifest key `config.listLabel`.
+		 */
+		listLabel: {
+			type: String,
+			default: '',
+		},
 	},
 
 	/**
-	 * Share the one flow store with the toolbar's save/run handlers.
+	 * Share the one flow store with the toolbar's save/run handlers, and
+	 * resolve the look (`look` is read here, through `useLook`).
 	 *
+	 * @param {object} props The component props.
 	 * @return {object} The setup bindings.
 	 */
-	setup() {
-		return { store: useFlowStore() }
+	setup(props) {
+		const { isBoard } = useLook(props)
+		return { store: useFlowStore(), isBoard }
 	},
 
 	computed: {
