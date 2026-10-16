@@ -128,3 +128,15 @@ describe('board look: the header funnel', () => {
 		expect(match[1]).toMatch(/margin-inline-start:\s*4px/)
 	})
 })
+
+describe('board look: the table header row', () => {
+	const fs = require('fs')
+	const path = require('path')
+	const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+
+	it('is near-white, a token over a light mix, not the hover grey', () => {
+		const match = css.match(/\.cn-look-board \.cn-table-container--board \.cn-data-table th\s*\{([^}]*)\}/)
+		expect(match).not.toBeNull()
+		expect(match[1]).toMatch(/background:\s*var\(--cn-board-table-head-bg,\s*color-mix\(/)
+	})
+})

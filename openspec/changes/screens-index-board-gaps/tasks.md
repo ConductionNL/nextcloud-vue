@@ -75,3 +75,11 @@
   - Tabs with `showCount` on the tasks source show the inbox totals
 - [x] Implement
 - [x] Test
+
+### Task 10: The near-white header row
+- **spec_ref**: `openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-the-table-header-row-is-near-white`
+- **files**: `src/css/look-board-index.css`, `tests/components/CnIndexPageBoardListGaps.spec.js`
+- **acceptance_criteria**:
+  - The header row uses `--cn-board-table-head-bg` over a light mix
+- [x] Implement
+- [x] Test

@@ -128,3 +128,15 @@ endpoint's total. A source without `count` shows no numbers.
 - **GIVEN** `entitySource: "tasks"` and tabs with `showCount: true`
 - **WHEN** the page renders
 - **THEN** each tab shows its inbox total
+
+### Requirement: The table header row is near-white
+
+Under the board look the table's header row SHALL draw on a near-white ground
+(the boards' #fafbfc), themeable through `--cn-board-table-head-bg`, not on
+the hover grey.
+
+#### Scenario: Any list board
+
+- **GIVEN** a board-look table
+- **WHEN** it renders
+- **THEN** its header row is near-white
