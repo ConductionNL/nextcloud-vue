@@ -4321,10 +4321,16 @@
 						"greeting": {
 							"oneOf": [
 								{ "type": "boolean" },
-								{ "type": "string", "enum": ["first", "full"] }
+								{ "type": "string", "enum": ["first", "full", "date"] },
+								{
+									"type": "object",
+									"required": ["label"],
+									"additionalProperties": false,
+									"properties": { "label": { "type": "string", "minLength": 1, "description": "i18n key drawn where the greeting would be." } }
+								}
 							],
 							"default": false,
-							"description": "type='dashboard': greet the reader in the header subtitle. `true` or \"first\" writes \"Good afternoon, Pieter · Monday 5 October 2026\", \"full\" uses the whole display name; the page `description` follows after another middle dot (screens-dashboard-greeting-header). Maps to CnDashboardPage `greeting`."
+							"description": "type='dashboard': greet the reader in the header subtitle. `true` or \"first\" writes \"Good afternoon, Pieter · Monday 5 October 2026\", \"full\" uses the whole display name; the page `description` follows after another middle dot (screens-dashboard-greeting-header). Since 2.111.0 \"date\" leads with the date alone (\"Tuesday 7 October 2026 · ...\") and `{ \"label\": \"Customer contact\" }` puts the translated label where the greeting would be (dashboard-greeting-label). Maps to CnDashboardPage `greeting`."
 						},
 						"viewLinks": {
 							"type": "array",
