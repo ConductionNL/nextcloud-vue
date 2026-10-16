@@ -169,6 +169,7 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `''` | Confirm button label. Defaults to `'Create'` or `'Save'` depending on mode. |
+| `confirmIcon` | `''` | MDI icon name on the Confirm button (`SwapHorizontal`, `Archive`, `Send`, `Gavel`). Defaults to Plus when creating, else a save icon. |
 | `feedback` | `true` | Toast the write: "Saved {title}" on success, the server's message on failure. `false` suppresses the toasts only. |
 | `confirmDisabled` | `false` | Keep the Confirm button disabled regardless of the form state. |
 

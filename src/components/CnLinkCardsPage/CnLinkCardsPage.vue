@@ -14,8 +14,34 @@
 			</p>
 		</div>
 
+		<section
+			v-if="visibleModules.length > 0"
+			class="cn-link-cards-page__modules"
+			:aria-labelledby="`cn-link-cards-modules-${uid}`"
+			data-testid="cn-link-cards-modules">
+			<div class="cn-link-cards-page__modules-head">
+				<h3 :id="`cn-link-cards-modules-${uid}`" class="cn-link-cards-page__modules-title">
+					{{ resolvedModulesTitle }}
+				</h3>
+				<span class="cn-link-cards-page__modules-count" data-testid="cn-link-cards-modules-count">
+					{{ modulesCount }}
+				</span>
+			</div>
+			<div class="cn-link-cards-page__modules-grid">
+				<CnModuleCard
+					v-for="module in visibleModules"
+					:key="module.id"
+					:module="module"
+					:headingId="`cn-link-cards-module-${uid}-${module.key}`" />
+			</div>
+			<p v-if="resolvedFootnote" class="cn-link-cards-page__modules-note" data-testid="cn-link-cards-modules-note">
+				<InformationOutline :size="18" class="cn-link-cards-page__modules-note-icon" />
+				<span>{{ resolvedFootnote }}</span>
+			</p>
+		</section>
+
 		<p
-			v-if="groups.length === 0"
+			v-if="groups.length === 0 && visibleModules.length === 0"
 			class="cn-link-cards-page__empty"
 			data-testid="cn-link-cards-empty">
 			{{ resolvedEmptyLabel }}
@@ -25,6 +51,7 @@
 			v-for="group in groups"
 			:key="group.key"
 			class="cn-link-cards-page__group"
+			:class="{ 'cn-link-cards-page__group--list': isListStyle }"
 			:aria-labelledby="group.label ? group.headingId : null"
 			:aria-label="group.label ? null : resolvedTitle || null"
 			data-testid="cn-link-cards-group"
@@ -35,7 +62,38 @@
 				class="cn-link-cards-page__caption">
 				{{ group.label }}
 			</h3>
-			<ul class="cn-link-cards-page__grid">
+			<!-- groupStyle "list": the group is one card of rows, each an icon
+			     chip, the label over its description, and a trailing chevron
+			     (an external-link icon for a URL). -->
+			<ul v-if="isListStyle" class="cn-link-cards-page__list">
+				<li v-for="card in group.cards" :key="card.id">
+					<a
+						class="cn-link-cards-page__row"
+						data-testid="cn-link-card"
+						:data-card-id="card.id"
+						:href="card.url"
+						:target="card.external ? '_blank' : null"
+						:rel="card.external ? 'noopener noreferrer' : null"
+						:aria-describedby="card.description ? card.descriptionId : null"
+						@click="open(card, $event)">
+						<span v-if="card.icon" class="cn-link-cards-page__row-icon" aria-hidden="true">
+							<CnIcon :name="card.icon" :size="20" />
+						</span>
+						<span class="cn-link-cards-page__row-body">
+							<span class="cn-link-cards-page__row-label">{{ card.label }}</span>
+							<span
+								v-if="card.description"
+								:id="card.descriptionId"
+								class="cn-link-cards-page__row-description">
+								{{ card.description }}
+							</span>
+						</span>
+						<OpenInNew v-if="trailingOf(card) === 'external'" :size="18" class="cn-link-cards-page__row-trailing" />
+						<ChevronRight v-else :size="20" class="cn-link-cards-page__row-trailing" />
+					</a>
+				</li>
+			</ul>
+			<ul v-else class="cn-link-cards-page__grid">
 				<li v-for="card in group.cards" :key="card.id" class="cn-link-cards-page__cell">
 					<!-- A real <a href>, so the card can be middle-clicked, copied
 					     and announced as a link. A plain click on an in-app card
@@ -72,7 +130,11 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import CnModuleCard from '../CnModuleCard/CnModuleCard.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
@@ -107,7 +169,7 @@ let linkCardsPageUid = 0
 export default {
 	name: 'CnLinkCardsPage',
 
-	components: { CnIcon },
+	components: { ChevronRight, CnIcon, CnModuleCard, InformationOutline, OpenInNew },
 
 	inject: {
 		/** The app's translate function, provided by CnAppRoot. Identity outside one. */
@@ -158,6 +220,37 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * The modules: `{ id, label, description?, icon?, enabled?, enabledIf?,
+		 * route?, pages: [{ label, route, highlight? }], settings?: { label?, prefix?,
+		 * route?, href?, permission?, visibleIf? }, permission?, visibleIf? }`.
+		 * Drawn as module cards above the link cards.
+		 *
+		 * @type {Array<object>|null}
+		 */
+		modules: {
+			type: Array,
+			default: null,
+		},
+
+		/** `cards` (default): a grid of link cards per group. `list`: one card per group with a row per link. */
+		groupStyle: {
+			type: String,
+			default: null,
+		},
+
+		/** Heading of the modules section. Defaults to "Modules". */
+		modulesTitle: {
+			type: String,
+			default: null,
+		},
+
+		/** A note under the module cards. */
+		footnote: {
+			type: String,
+			default: null,
+		},
+
 		/** Text shown when no card is visible. */
 		emptyLabel: {
 			type: String,
@@ -192,7 +285,7 @@ export default {
 		config() {
 			const fromPage = (this.page && this.page.config) || {}
 			const fromProps = {}
-			for (const key of ['cards', 'categories', 'description', 'title', 'emptyLabel']) {
+			for (const key of ['cards', 'categories', 'description', 'title', 'emptyLabel', 'modules', 'modulesTitle', 'footnote', 'groupStyle']) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
 				}
@@ -262,6 +355,90 @@ export default {
 		},
 
 		/**
+		 * The modules a reader may see, with text translated and links
+		 * resolved. `enabled` is the declared boolean, or the result of
+		 * `enabledIf` (a visibleIf condition against `runtime`). A page that
+		 * resolves to nothing is dropped; the admin-settings link only shows when
+		 * its own `permission` and `visibleIf` pass.
+		 *
+		 * @return {Array<object>} The modules.
+		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-links-page-can-show-modules
+		 */
+		visibleModules() {
+			const declared = Array.isArray(this.config.modules) ? this.config.modules : []
+			const runtime = this.cnManifest?.runtime ?? null
+			return declared
+				.filter((module) => module && module.id && module.label)
+				.filter((module) => this.passesPermission(module) && this.passesVisibleIf(module, runtime))
+				.map((module) => {
+					const pages = (Array.isArray(module.pages) ? module.pages : [])
+						.filter((page) => page && page.label)
+						.map((page, index) => ({ key: String(index), label: this.tr(page.label), highlight: page.highlight === true, ...this.targetOf(page) }))
+						.filter((page) => page.url !== '')
+					const own = this.targetOf(module)
+					const open = own.url !== '' ? own : (pages[0] || null)
+					const settingsDeclared = module.settings && typeof module.settings === 'object' ? module.settings : null
+					const settingsTarget = settingsDeclared && this.passesPermission(settingsDeclared) && this.passesVisibleIf(settingsDeclared, runtime)
+						? this.targetOf(settingsDeclared)
+						: null
+					return {
+						id: String(module.id),
+						key: String(module.id).replace(/[^A-Za-z0-9_-]/g, '-'),
+						label: this.tr(module.label),
+						description: this.tr(module.description || ''),
+						icon: module.icon || '',
+						enabled: this.moduleEnabled(module, runtime),
+						pages,
+						open,
+						settings: settingsTarget && settingsTarget.url !== ''
+							? { ...settingsTarget, label: this.tr(settingsDeclared.label || ''), prefix: this.tr(settingsDeclared.prefix || '') }
+							: null,
+					}
+				})
+		},
+
+		/**
+		 * Whether the groups are drawn as list cards (`config.groupStyle: "list"`).
+		 *
+		 * @return {boolean} True for list cards.
+		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-group-can-be-a-list-card
+		 */
+		isListStyle() {
+			return this.config.groupStyle === 'list'
+		},
+
+		/**
+		 * The modules heading, translated.
+		 *
+		 * @return {string} The heading.
+		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-links-page-can-show-modules
+		 */
+		resolvedModulesTitle() {
+			return this.config.modulesTitle ? this.tr(this.config.modulesTitle) : t('nextcloud-vue', 'Modules')
+		},
+
+		/**
+		 * "3 of 6 are in the menu".
+		 *
+		 * @return {string} The count.
+		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-links-page-can-show-modules
+		 */
+		modulesCount() {
+			const on = this.visibleModules.filter((module) => module.enabled).length
+			return n('nextcloud-vue', '{on} of %n is in the menu', '{on} of %n are in the menu', this.visibleModules.length, { on })
+		},
+
+		/**
+		 * The note under the module cards, translated.
+		 *
+		 * @return {string} The note, or ''.
+		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-links-page-can-show-modules
+		 */
+		resolvedFootnote() {
+			return this.tr(this.config.footnote || '')
+		},
+
+		/**
 		 * The groups to draw: ungrouped cards first under no caption, then
 		 * one group per category in declaration order. A group without a
 		 * visible card is left out.
@@ -290,6 +467,40 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a module is in the menu: its `enabled` boolean, else its
+		 * `enabledIf` condition evaluated as a `visibleIf`, else false.
+		 *
+		 * @param {object} module The declared module.
+		 * @param {object|null} runtime `manifest.runtime`, or null.
+		 * @return {boolean} True when the module is in the menu.
+		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-links-page-can-show-modules
+		 */
+		/**
+		 * The icon at the end of a list row: an external-link icon for a URL,
+		 * a chevron for a page in the app. A resolved `trailing` wins.
+		 *
+		 * @param {object} card The resolved card.
+		 * @return {string} `external` or `chevron`.
+		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-group-can-be-a-list-card
+		 */
+		trailingOf(card) {
+			if (card.trailing === 'external' || card.trailing === 'chevron') {
+				return card.trailing
+			}
+			return card.external ? 'external' : 'chevron'
+		},
+
+		moduleEnabled(module, runtime) {
+			if (typeof module.enabled === 'boolean') {
+				return module.enabled
+			}
+			if (module.enabledIf && typeof module.enabledIf === 'object') {
+				return this.passesVisibleIf({ visibleIf: module.enabledIf }, runtime)
+			}
+			return false
+		},
+
 		/**
 		 * Translate a manifest string through the app's translate function.
 		 *
@@ -513,5 +724,127 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
 	line-height: 1.4;
+}
+
+.cn-link-cards-page__group--list {
+	padding: 20px 22px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-container-large, 12px);
+	background: var(--color-main-background);
+	gap: 6px;
+}
+
+.cn-link-cards-page__group--list .cn-link-cards-page__caption {
+	margin: 0 0 8px;
+	color: var(--color-main-text);
+	font-size: 17px;
+	font-weight: 700;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+.cn-link-cards-page__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-link-cards-page__row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 0;
+	border-top: 1px solid var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.cn-link-cards-page__row,
+.cn-link-cards-page__row:hover,
+.cn-link-cards-page__row:focus,
+.cn-link-cards-page__row:active {
+	text-decoration: none !important;
+}
+
+.cn-link-cards-page__row:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-link-cards-page__row-icon {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--color-background-dark);
+}
+
+.cn-link-cards-page__row-body {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-link-cards-page__row-label {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-link-cards-page__row-description {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-link-cards-page__row-trailing {
+	flex: none;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-link-cards-page__modules {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.cn-link-cards-page__modules-head {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.cn-link-cards-page__modules-title {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 700;
+}
+
+.cn-link-cards-page__modules-count {
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-link-cards-page__modules-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 16px;
+}
+
+.cn-link-cards-page__modules-note {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin: 0;
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-link-cards-page__modules-note-icon {
+	flex: none;
 }
 </style>

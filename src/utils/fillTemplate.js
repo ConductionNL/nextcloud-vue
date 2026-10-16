@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 // SPDX-License-Identifier: EUPL-1.2
 
-import { boardDateLocale, formatBoardDate, formatRelativeDate } from './boardDate.js'
+import { boardDateLocale, formatBoardDate, formatBoardWeekday, formatRelativeDate, formatTimeOfDay } from './boardDate.js'
 import { parseDateValue } from './dateVariant.js'
 import { formatMoney } from './formatMetric.js'
 import { readPath } from './readPath.js'
@@ -36,7 +36,7 @@ export function formatBoardDateTime(value, now = new Date()) {
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime`, `relative`, `relativetime`, `days` or '' (as is).
+ * @param {string} format `date`, `datetime`, `weekday`, `time`, `relative`, `relativetime`, `days` or '' (as is).
  * @param {Date} now The reference moment.
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
@@ -52,6 +52,13 @@ function formatValue(value, format, now, arg = '', object = null, config = null)
 	}
 	if (format === 'datetime') {
 		return formatBoardDateTime(value, now)
+	}
+	if (format === 'weekday') {
+		return formatBoardWeekday(value, now, { today: arg === 'today' })
+	}
+	if (format === 'time') {
+		const date = parseDateValue(value)
+		return date === null ? '' : formatTimeOfDay(date)
 	}
 	if (format === 'currency') {
 		// `{amount|currency:EUR}` names the code, `{amount|currency:price.code}`
@@ -79,7 +86,9 @@ function formatValue(value, format, now, arg = '', object = null, config = null)
  * `"Termijn {deadline|date}"` from an object.
  *
  * Every `{path}` token is a dot path into the object; `{path|date}` and
- * `{path|datetime}` format it as the boards write dates, `{path|currency}`,
+ * `{path|datetime}` format it as the boards write dates, `{path|weekday}` adds
+ * the short weekday ("wo 7 okt"; `{path|weekday:today}` reads "Vandaag, wo 7 okt"
+ * for today), `{path|time}` is the time of day ("08:45"), `{path|currency}`,
  * `{path|currency:EUR}` and `{path|currency:field}` write an amount in a
  * currency (a code, or the row field that holds it; without either, or when
  * the row field is empty, the app's reporting currency), `{path|relative}` and

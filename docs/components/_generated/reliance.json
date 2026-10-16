@@ -1023,14 +1023,14 @@
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
-			"page": null
+			"page": "cn-dialog"
 		},
 		"CnDialogHeader": {
 			"direct": 0,
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
-			"page": null
+			"page": "cn-dialog-header"
 		},
 		"CnDividerWidget": {
 			"direct": 0,
@@ -2128,6 +2128,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-menu-widget-form"
+		},
+		"CnModuleCard": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
 		},
 		"CnNavCardGrid": {
 			"direct": 1,
