@@ -58,6 +58,7 @@ export const defaultPageTypes = {
 	roadmap: defineAsyncComponent(() => import('../CnFeaturesAndRoadmapPage/CnFeaturesAndRoadmapPage.vue').then((m) => m.default)),
 	reports: defineAsyncComponent(() => import('../CnReportsPage/CnReportsPage.vue').then((m) => m.default)),
 	links: defineAsyncComponent(() => import('../CnLinkCardsPage/CnLinkCardsPage.vue').then((m) => m.default)),
+	connections: defineAsyncComponent(() => import('../CnConnectionRegistry/CnConnectionRegistry.vue').then((m) => m.default)),
 	store: defineAsyncComponent(() => import('../CnStorePage/CnStorePage.vue').then((m) => m.default)),
 	search: defineAsyncComponent(() => import('../CnSearchPage/CnSearchPage.vue').then((m) => m.default)),
 	wiki: defineAsyncComponent(() => import('../CnWikiPage/CnWikiPage.vue').then((m) => m.default)),

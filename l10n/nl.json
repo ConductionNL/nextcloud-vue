@@ -1680,7 +1680,31 @@
       "{on} van %n staat in het menu",
       "{on} van %n staan in het menu"
     ],
-    "Put it in the menu:": "In het menu zetten:"
+    "Put it in the menu:": "In het menu zetten:",
+    "Filter connections": "Koppelingen filteren",
+    "This app declares no connections.": "Deze app geeft geen koppelingen aan.",
+    "No connection matches this filter.": "Geen koppeling past bij dit filter.",
+    "No settings screen yet": "Nog geen instellingenscherm",
+    "About these connections": "Over deze koppelingen",
+    "Needs attention": "Vraagt aandacht",
+    "Nothing needs attention.": "Niets vraagt aandacht.",
+    "Checked by integriq": "Gecontroleerd door integriq",
+    "integriq tests every connection and sets its status. This app only declares which connections it uses.": "integriq test elke koppeling en zet de status. Deze app geeft alleen aan welke koppelingen hij gebruikt.",
+    "Open integriq": "integriq openen",
+    "Add a connection": "Koppeling toevoegen",
+    "A connection the app does not declare cannot be checked, so new connections are added in integriq.": "Een koppeling die de app niet aangeeft, kan niet worden gecontroleerd. Nieuwe koppelingen voeg je daarom toe in integriq.",
+    "Add integration": "Integratie toevoegen",
+    "All connections": "Alle koppelingen",
+    "Set up": "Ingesteld",
+    "Not checked yet": "Nog niet gecontroleerd",
+    "Last check {time}": "Laatste controle {time}",
+    "checked {time}": "gecontroleerd {time}",
+    "never checked": "nooit gecontroleerd",
+    "Set up {name}": "{name} instellen",
+    "Open settings for {name}": "Instellingen openen voor {name}",
+    "The connections could not be loaded: {reason}": "De koppelingen konden niet worden geladen: {reason}",
+    "{shown} of {total} connections that {app} declares, checked by integriq": "{shown} van {total} koppelingen die {app} aangeeft, gecontroleerd door integriq",
+    "{shown} of {total} connections, checked by integriq": "{shown} van {total} koppelingen, gecontroleerd door integriq"
   },
   "plurals": {
     "{count} selected": [

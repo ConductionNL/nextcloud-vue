@@ -373,7 +373,7 @@ export { CnBrandStripe, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidg
 // here resolves to `undefined` in a host that mounts it by hand, and renders
 // nothing without an error. tests/packaging/page-types-are-exported.spec.js
 // keeps the two lists together.
-export { CnFormPage, CnLinkCardsPage, CnMapPage, CnReportsPage, CnStorePage, CnWikiPage } from './components/index.js'
+export { CnConnectionRegistry, CnFormPage, CnLinkCardsPage, CnMapPage, CnReportsPage, CnStorePage, CnWikiPage } from './components/index.js'
 
 // AI Chat Companion component family
 export {
