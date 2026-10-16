@@ -69,9 +69,7 @@
  *
  * Spec: features-roadmap-component — Requirement "RoadmapTab".
  */
-import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
@@ -79,6 +77,7 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
 import CnRoadmapItem from '../CnRoadmapItem/CnRoadmapItem.vue'
+import { fetchRoadmapIssues, sortByReactions } from '../../utils/roadmapIssues.js'
 
 export default {
 	name: 'CnRoadmapTab',
@@ -124,7 +123,7 @@ export default {
 
 	computed: {
 		sortedItems() {
-			return [...this.items].sort((a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0))
+			return sortByReactions(this.items)
 		},
 
 		disabledLabel() {
@@ -175,31 +174,10 @@ export default {
 			this.loading = true
 			this.degraded = null
 			this.items = []
-			try {
-				const url = generateUrl('/apps/openregister/api/github/issues')
-				const response = await axios.get(url, {
-					params: {
-						repo: this.repo,
-						labels: 'enhancement,feature',
-					},
-				})
-				const data = response.data || {}
-				if (data.hint === 'github_pat_not_configured') {
-					this.degraded = 'pat_not_configured'
-				} else if (Array.isArray(data.items)) {
-					this.items = data.items
-				}
-			} catch (e) {
-				const status = e?.response?.status
-				const code = e?.response?.data?.error
-				if (status === 429 || code === 'github_rate_limited' || code === 'rate_limited') {
-					this.degraded = 'rate_limited'
-				} else {
-					this.degraded = 'error'
-				}
-			} finally {
-				this.loading = false
-			}
+			const { items, degraded } = await fetchRoadmapIssues(this.repo)
+			this.items = items
+			this.degraded = degraded
+			this.loading = false
 		},
 	},
 }

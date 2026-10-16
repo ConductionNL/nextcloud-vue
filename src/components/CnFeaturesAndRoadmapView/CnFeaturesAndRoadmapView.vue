@@ -7,6 +7,19 @@
 				</template>
 			</NcEmptyContent>
 		</div>
+		<CnFeaturesBoard
+			v-else-if="isBoardLook"
+			:features="features"
+			:categories="categories"
+			:repo="repo"
+			:title="title"
+			:appVersion="appVersion"
+			:documentationUrl="resolvedDocumentationUrl"
+			:suggestUrl="resolvedSuggestUrl"
+			:openbuiltUrl="resolvedOpenbuiltUrl"
+			:llmSkillsUrl="resolvedLlmSkillsUrl"
+			v-bind="boardOptions"
+			@support="openSupportDialog" />
 		<template v-else>
 			<header class="cn-features-and-roadmap-view__header">
 				<h2 class="cn-features-and-roadmap-view__title">
@@ -57,19 +70,18 @@
 					:comparison="capabilityComparison" />
 				<CnRoadmapTab v-else :repo="repo" />
 			</main>
-
-			<CnSupportDialog
-				v-if="showSupportDialog"
-				:appName="resolvedAppName"
-				:appSlug="resolvedAppSlug"
-				:appStoreUrl="resolvedAppStoreUrl"
-				:featureRequestUrl="resolvedFeatureRequestUrl"
-				:donateUrl="donateUrl"
-				:supportUrl="supportUrl"
-				:founderName="founderName"
-				:founderTitle="founderTitle"
-				@close="showSupportDialog = false" />
 		</template>
+		<CnSupportDialog
+			v-if="showSupportDialog && !disabled"
+			:appName="resolvedAppName"
+			:appSlug="resolvedAppSlug"
+			:appStoreUrl="resolvedAppStoreUrl"
+			:featureRequestUrl="resolvedFeatureRequestUrl"
+			:donateUrl="donateUrl"
+			:supportUrl="supportUrl"
+			:founderName="founderName"
+			:founderTitle="founderTitle"
+			@close="showSupportDialog = false" />
 	</div>
 </template>
 
@@ -111,9 +123,11 @@ import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
 import TableSearch from 'vue-material-design-icons/TableSearch.vue'
 import CnCapabilityTable from '../CnCapabilityTable/CnCapabilityTable.vue'
 import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
+import CnFeaturesBoard from '../CnFeaturesBoard/CnFeaturesBoard.vue'
 import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { warnCapabilityComparisonDeprecated } from '../../utils/capabilityComparison.js'
 import { buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
 
@@ -137,6 +151,7 @@ export default {
 		RoadVariant,
 		TableSearch,
 		CnCapabilityTable,
+		CnFeaturesBoard,
 		CnFeaturesTab,
 		CnRoadmapTab,
 		CnSupportDialog,
@@ -158,6 +173,8 @@ export default {
 		 * unmount. Same holder CnIndexPage uses.
 		 */
 		cnIndexSidebarConfig: { default: () => ({ value: null }) },
+		/** The app's look, provided by CnAppRoot (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -190,6 +207,46 @@ export default {
 		features: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Feature category key to caption, in the order the board look shows
+		 * the groups. A feature names its group with `category`.
+		 *
+		 * @type {object}
+		 */
+		categories: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Board look options, passed to CnFeaturesBoard: `layout` (`cards` or
+		 * `rows`), `tabs`, `filter` (`chips` or `segmented`), `statusLabels`,
+		 * `next`, `issueLabels`, `subtitle`, `notice`, `documentationButton`
+		 * and `suggestButton`. Ignored in the default look.
+		 *
+		 * @type {object}
+		 */
+		board: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Page title in the board look. Empty reads "Features and roadmap".
+		 */
+		title: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The app version, for `{appVersion}` in the board look's subtitle.
+		 */
+		appVersion: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -388,6 +445,32 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the page is drawn in the board look.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The board options CnFeaturesBoard declares, so an unknown key in the
+		 * manifest never lands on its root element as an attribute.
+		 *
+		 * @return {object}
+		 */
+		boardOptions() {
+			const keys = ['layout', 'tabs', 'filter', 'statusLabels', 'next', 'issueLabels', 'subtitle', 'notice', 'documentationButton', 'suggestButton']
+			const options = {}
+			for (const key of keys) {
+				if (this.board && this.board[key] !== undefined && this.board[key] !== null) {
+					options[key] = this.board[key]
+				}
+			}
+			return options
+		},
+
+		/**
 		 * The stops the header toggle cycles through. Without a capability
 		 * comparison this is the two-stop list every consumer has today, and
 		 * the toggle behaves exactly as it did.
@@ -580,7 +663,9 @@ export default {
 			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) {
 				return
 			}
-			if (this.disabled) {
+			// The board look has no right-hand column: its links sit in the
+			// board's Actions menu.
+			if (this.disabled || this.isBoardLook) {
 				this.cnIndexSidebarConfig.value = null
 				return
 			}

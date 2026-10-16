@@ -60,6 +60,17 @@
 			:style="contentStyle">
 			{{ placeholderText }}
 		</span>
+		<a
+			v-if="link"
+			class="cn-text-widget__link"
+			data-testid="cn-text-widget-link"
+			:href="link.url"
+			:target="link.external ? '_blank' : null"
+			:rel="link.external ? 'noopener noreferrer' : null"
+			@click="openLink">
+			{{ link.label }}
+			<ChevronRight :size="16" />
+		</a>
 	</div>
 </template>
 
@@ -67,6 +78,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { isPlaceholderCell } from '../../utils/textTable.js'
 
 // Per-module `Marked` instance so configuration is scoped here and does NOT
@@ -120,13 +133,23 @@ function ensureDomPurifyHook() {
 export default {
 	name: 'CnTextWidget',
 
+	components: { ChevronRight },
+
+	inject: {
+		/** The app's translate function, provided by CnAppRoot. Identity outside one. */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/**
 		 * Persisted widget content blob: `{text, fontSize, color,
-		 * backgroundColor, textAlign, contentMode, tableMode, tableData}`.
+		 * backgroundColor, textAlign, contentMode, tableMode, tableData, link}`.
 		 * All keys are optional; missing keys collapse to documented defaults.
+		 * `text` and `link.label` go through the app's translate function.
+		 * `link` is `{label, route}` (a page id, or a path starting with `/`) or
+		 * `{label, href}` (an external URL), drawn under the text.
 		 *
-		 * @type {{text: string, fontSize: string, color: string, backgroundColor: string, textAlign: string, contentMode: string, tableMode: boolean, tableData: object}}
+		 * @type {{text: string, fontSize: string, color: string, backgroundColor: string, textAlign: string, contentMode: string, tableMode: boolean, tableData: object, link: {label: string, route: string, href: string}}}
 		 */
 		content: {
 			type: Object,
@@ -135,9 +158,34 @@ export default {
 	},
 
 	computed: {
-		/** The author text, or '' when absent / non-string. */
+		/** The author text through the app's translate function, or '' when absent / non-string. */
 		text() {
-			return typeof this.content?.text === 'string' ? this.content.text : ''
+			return typeof this.content?.text === 'string' ? this.tr(this.content.text) : ''
+		},
+
+		/**
+		 * The link under the text, from `content.link`: `{ label, route }`
+		 * (a page id, or a router path when it starts with `/`) or
+		 * `{ label, href }` (an external URL, opened in a new tab). The label
+		 * goes through the app's translate function. Null without a label or
+		 * a target.
+		 *
+		 * @return {{label: string, url: string, location: (object|null), external: boolean}|null} The link.
+		 */
+		link() {
+			const link = this.content?.link
+			if (!link || typeof link !== 'object' || typeof link.label !== 'string' || link.label === '') {
+				return null
+			}
+			if (typeof link.route === 'string' && link.route !== '') {
+				const location = link.route.startsWith('/') ? { path: link.route } : { name: link.route }
+				const url = resolveHref(location, this.$router)
+				return url ? { label: this.tr(link.label), url, location, external: false } : null
+			}
+			if (typeof link.href === 'string' && link.href !== '') {
+				return { label: this.tr(link.label), url: link.href, location: null, external: true }
+			}
+			return null
 		},
 
 		/** Whether the text has any non-whitespace content. */
@@ -253,6 +301,7 @@ export default {
 				'justify-content': 'center',
 				overflow: 'auto',
 				'background-color': this.backgroundColor,
+				...(this.link ? { 'flex-direction': 'column', gap: '8px', 'align-items': 'flex-start' } : {}),
 			}
 		},
 
@@ -287,6 +336,27 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A manifest string through the app's translate function.
+		 *
+		 * @param {string} text The string.
+		 * @return {string} The translated string.
+		 */
+		tr(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * Route a plain click on an in-app link, so the page does not reload.
+		 *
+		 * @param {MouseEvent} event The click.
+		 */
+		openLink(event) {
+			if (this.link && !this.link.external) {
+				followLinkClick(event, this.link.location, this.$router)
+			}
+		},
+
 		/**
 		 * Run cell text through DOMPurify so the table-mode render path has
 		 * the same XSS-stripping guarantees as the text-mode path.
@@ -517,5 +587,20 @@ export default {
 .cn-text-widget__cell-placeholder {
 	color: var(--color-text-maxcontrast);
 	font-style: italic;
+}
+
+.cn-text-widget__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-primary-element);
+	text-decoration: none;
+}
+
+.cn-text-widget__link:hover,
+.cn-text-widget__link:focus-visible {
+	text-decoration: underline;
 }
 </style>
