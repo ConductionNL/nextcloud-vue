@@ -191,6 +191,38 @@ endpointSource: {
 
 Pie-family charts (`pie` / `donut` / `radialBar`) flatten the FIRST mapped series into the flat value array ApexCharts expects. `params` re-resolve + the chart refetches when the dashboard date range changes (the page publishes `dateFrom` / `dateTo` / `datePreset` into the workspace context).
 
+## Bar list and matrix
+
+Two chart kinds are drawn as plain rows instead of an ApexCharts canvas, as the boards draw them.
+
+`chartKind: "bar-list"` draws one row per category: the label, a track filled to the value's share of `barMax` (default the largest value), and the value at the end (boards DqDashboard "Zaken per status", DqTermijnen "Op tijd beslist per zaaktype"). When the `dataSource` declares a `drilldown`, each row is a button that opens the drilldown route. `footnote` adds a line under the rows.
+
+```json
+{
+  "type": "chart",
+  "props": {
+    "chartKind": "bar-list",
+    "barMax": 100,
+    "valueFormat": "percent",
+    "footnote": "Klik een balk om de zaken te zien",
+    "endpointSource": { "url": "/apps/dossiq/api/analytics/on-time", "responsePath": "rows", "labelsPath": "caseType", "series": [{ "name": "Op tijd", "path": "percentage" }] }
+  }
+}
+```
+
+`chartKind: "matrix"` draws one row per series and one column per category, each cell tinted in four steps by its share of the largest value (board DqProcesanalyse "Dagen per fase"). An endpoint with one row per series names them with `rowsPath`, `rowLabelPath` (default `label`) and `rowValuesPath` (default `values`); the columns come from `labelsPath`. `valueFormat: { "name": "number", "suffix": " d" }` reads "9 d".
+
+```json
+{
+  "type": "chart",
+  "props": {
+    "chartKind": "matrix",
+    "valueFormat": { "name": "number", "suffix": " d" },
+    "endpointSource": { "url": "/apps/dossiq/api/analytics/phase-days", "labelsPath": "phases", "rowsPath": "rows", "rowLabelPath": "caseType", "rowValuesPath": "days" }
+  }
+}
+```
+
 ## `views` — in-widget display switcher (Wave 3, #91)
 
 An optional `views` array renders a compact pill row above the chart that toggles which named series / value format render — pure display, no series arithmetic (the €/% and hours/% toggles from the Wave-4 evaluation):
