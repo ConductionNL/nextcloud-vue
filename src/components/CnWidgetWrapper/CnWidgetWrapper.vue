@@ -176,6 +176,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { headerLinkTarget } from '../../utils/contentHeaderLink.js'
 import { slotRenders } from '../../utils/slotContent.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
@@ -686,17 +687,7 @@ export default {
 		 * @return {string}
 		 */
 		headerLinkTag() {
-			const link = this.headerLink
-			if (!link || typeof link.label !== 'string' || link.label === '') {
-				return ''
-			}
-			if (link.route && this.$router) {
-				return 'router-link'
-			}
-			if (typeof link.href === 'string' && link.href !== '') {
-				return 'a'
-			}
-			return ''
+			return headerLinkTarget(this.headerLink, Boolean(this.$router)).tag
 		},
 
 		/**
@@ -706,21 +697,7 @@ export default {
 		 * @return {object}
 		 */
 		headerLinkAttrs() {
-			const link = this.headerLink || {}
-			if (this.headerLinkTag === 'router-link') {
-				const to = { name: link.route }
-				if (link.params && typeof link.params === 'object') {
-					to.params = link.params
-				}
-				if (link.query && typeof link.query === 'object') {
-					to.query = link.query
-				}
-				return { to }
-			}
-			if (this.headerLinkTag === 'a') {
-				return { href: link.href }
-			}
-			return {}
+			return headerLinkTarget(this.headerLink, Boolean(this.$router)).attrs
 		},
 
 		/**
