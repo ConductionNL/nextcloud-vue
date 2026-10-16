@@ -115,6 +115,8 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 |------|------|---------|-------------|
 | `title` | String | `''` | Page title |
 | `description` | String | `''` | Description shown below the title |
+| `breadcrumb` | Object \| Array | `null` | A breadcrumb under the title (manifest `config.breadcrumb`): one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list; the title follows as the current crumb. Drawn as the detail header's breadcrumb row. |
+| `headerMeta` | String | `''` | A note after the breadcrumb and a middle dot (manifest `config.headerMeta`). |
 | `widgets` | Array | `[]` | Widget definition objects (see Widget definition below) |
 | `layout` | Array | `[]` | Grid placement objects (see Layout item below) |
 | `loading` | Boolean | `false` | Show loading spinner instead of the grid |

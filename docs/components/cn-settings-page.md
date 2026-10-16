@@ -22,6 +22,8 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 |------|------|---------|-------------|
 | `title` | String | `'Settings'` | Page title |
 | `description` | String | `''` | Subtitle shown under the title when `showTitle` is set |
+| `breadcrumb` | Object \| Array | `null` | A breadcrumb under the title (manifest `config.breadcrumb`): one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list; the title follows as the current crumb. Drawn as the detail header's breadcrumb row. |
+| `headerMeta` | String | `''` | A note after the breadcrumb and a middle dot (manifest `config.headerMeta`). |
 | `showTitle` | Boolean | `false` | Whether to render the inline `CnPageHeader` |
 | `icon` | String | `''` | MDI icon name |
 | `sections` | Array | `[]` | Section definitions for the flat shape (see schema below). Mutually exclusive with `tabs`. |
