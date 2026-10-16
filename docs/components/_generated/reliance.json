@@ -649,6 +649,13 @@
 			"via": [],
 			"page": "cn-dashboard-grid"
 		},
+		"CnDashboardLayoutPanel": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnDashboardPage": {
 			"direct": 4,
 			"transitive": 175,
