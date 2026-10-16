@@ -30,6 +30,11 @@ export const QUERY_PRESET_KEYS = Object.freeze([
 	'footerNote',
 	'defaultSort',
 	'viewSwitch',
+	'addLabel',
+	'headerButtons',
+	'breadcrumb',
+	'headerMeta',
+	'afterList',
 ])
 
 /**
