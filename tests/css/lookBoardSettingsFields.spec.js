@@ -1,3 +1,4 @@
+const { mount } = require('@vue/test-utils')
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -12,7 +13,6 @@
  */
 const fs = require('fs')
 const path = require('path')
-const { mount } = require('@vue/test-utils')
 const CnSettingsSection = require('../../src/components/CnSettingsSection/CnSettingsSection.vue').default
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
