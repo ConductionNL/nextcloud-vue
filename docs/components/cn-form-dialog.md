@@ -374,6 +374,23 @@ This reuses the same `register` fetch machinery as `$ref`, targeting the provide
 
 The `fieldOverrides` prop accepts an object keyed by field name. Each override is merged onto the auto-generated field definition, so any field property can be changed.
 
+### `section`
+
+`section` groups fields under a heading (board PqTicketBewerken). A field whose `section` differs from the visible field before it opens a new group with that heading, across both columns; the heading goes through the app's translate function. Sections follow the field order, so set `order` to keep each section's fields together:
+
+```js
+fieldOverrides: {
+  title: { section: 'The ticket', order: 1 },
+  description: { section: 'The ticket', order: 2 },
+  assignee: { section: 'People', order: 3 },
+  requester: { section: 'People', order: 4 },
+  dueDate: { section: 'Dates and links', order: 5 },
+  visibleToClient: { section: 'Visible to the client', order: 6 },
+}
+```
+
+A form without `section` keys renders as before.
+
 ### `enumLabels`
 
 For `select` fields backed by an `enum`, the dropdown displays raw enum values by default. Use `enumLabels` to provide human-readable labels:
