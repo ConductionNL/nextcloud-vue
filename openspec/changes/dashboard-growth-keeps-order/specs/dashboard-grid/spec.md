@@ -22,3 +22,10 @@ When a size-to-content cell grows after the grid is built, every card that the g
 - **WHEN** the banner's text wraps and the banner grows from two rows to three
 - **THEN** the tiles, the full-width card and the lists each move down one row
 - **AND** the full-width card stays above the lists
+
+#### Scenario: portaliq's portal page, one cell that grows alone
+
+- **GIVEN** a grid with one full-width size-to-content cell that holds the page's tab strip
+- **WHEN** the cell's content arrives after the grid is built and the cell grows
+- **THEN** the cell grows in place on its own row and is never moved by its own growth
+- **AND** the page raises no error and the tab strip shows

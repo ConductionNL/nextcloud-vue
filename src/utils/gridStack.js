@@ -64,8 +64,11 @@ export function readGridGeometry(items) {
  * full-width card under the stat tiles landed below the lists.
  *
  * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
- * @param {Array<{x: number, y: number, w: number, h: number}>} nodes The grid's items (the growing one among them).
- * @param {{x: number, y: number, w: number, h: number}} node The growing item.
+ * The growing item is never among the items it moves, also when `nodes`
+ * holds another reference to it (a proxy of the same node, matched by `el`).
+ *
+ * @param {Array<{x: number, y: number, w: number, h: number, el: (HTMLElement|undefined)}>} nodes The grid's items (the growing one among them).
+ * @param {{x: number, y: number, w: number, h: number, el: (HTMLElement|undefined)}} node The growing item.
  * @param {number} h Its new height, in grid rows.
  * @return {Array<{node: object, y: number}>} The items to move and their new row, bottom-most first.
  */
@@ -80,7 +83,8 @@ export function planGrowth(nodes, node, h) {
 	while (queue.length > 0) {
 		const rect = queue.shift()
 		for (const other of nodes) {
-			if (other === node || moved.has(other) || !overlaps(rect, other)) {
+			const self = other === node || (node.el && other.el === node.el)
+			if (self || moved.has(other) || !overlaps(rect, other)) {
 				continue
 			}
 			const next = { x: other.x, y: other.y + delta, w: other.w, h: other.h }
