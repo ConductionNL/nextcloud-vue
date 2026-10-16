@@ -3556,6 +3556,8 @@ export default {
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/** Whether `?_view=` names a mode the page did not offer yet, to open once it does. */
+			routeViewPending: false,
 			/** The column field the reader picked in the board's column switch; '' = the default. */
 			boardColumnFieldChoice: '',
 			/** The rows a reference column field is built from, by field. */
@@ -4162,6 +4164,17 @@ export default {
 				}
 				return true
 			})
+		},
+
+		/**
+		 * The modes `?_view=` can open: the toggle's modes plus the map when
+		 * the page offers it.
+		 *
+		 * @return {Array<string>} The modes.
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-the-address-opens-a-view-mode-that-arrives-later
+		 */
+		routeViewModes() {
+			return [...this.effectiveToggleModes, ...(this.showMapSegment ? ['map'] : [])]
 		},
 
 		/**
@@ -6496,6 +6509,12 @@ export default {
 			this.applyViewModeFromRoute()
 		},
 
+		routeViewModes() {
+			if (this.routeViewPending) {
+				this.applyViewModeFromRoute()
+			}
+		},
+
 		boardFetchKey: {
 			immediate: true,
 			handler(key) {
@@ -6928,6 +6947,10 @@ export default {
 		 */
 		async loadFilterCounts() {
 			const requestKey = this.countRequestKey
+			if (this.isNamedSource) {
+				await this.loadNamedSourceCounts(requestKey)
+				return
+			}
 			const schema = this.exportSchemaSlug
 			if (requestKey === '' || !this.register || !schema) {
 				this.tabCounts = null
@@ -6957,6 +6980,46 @@ export default {
 			}
 			this.tabCounts = tabCounts
 			this.savedViewCounts = viewCounts
+		},
+
+		/**
+		 * The quick-filter counts of a named source (`entitySource`): each tab
+		 * that asks is counted by the source's own `count(config)`, with the
+		 * tab's filter over `sourceConfig`. A source without `count` shows
+		 * none; a failed count leaves that tab without a number.
+		 *
+		 * @param {string} requestKey The `countRequestKey` this load answers.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-a-named-source-counts-its-quick-filters
+		 */
+		async loadNamedSourceCounts(requestKey) {
+			const count = this.namedSource ? this.namedSource.count : null
+			if (requestKey === '' || typeof count !== 'function') {
+				this.tabCounts = null
+				this.savedViewCounts = null
+				return
+			}
+			const params = (this.$route && this.$route.params) || {}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const tabCounts = {}
+			await Promise.all(this.countEntries
+				.filter((entry) => entry.key.startsWith('tab:'))
+				.map(async (entry) => {
+					const config = resolveFilterMap({ ...(this.sourceConfig || {}), ...(entry.filter || {}) }, params, ctx)
+					try {
+						const total = await count(config)
+						if (Number.isFinite(total)) {
+							tabCounts[Number(entry.key.slice(4))] = total
+						}
+					} catch {
+						// No number for this tab.
+					}
+				}))
+			if (requestKey !== this.countRequestKey) {
+				return
+			}
+			this.tabCounts = tabCounts
+			this.savedViewCounts = null
 		},
 
 		// ── Split view (case-page-and-list-as-a-place) ──────────────────
@@ -9223,6 +9286,7 @@ export default {
 		 * @param {string} mode 'table' or 'cards'
 		 */
 		onViewModeChange(mode) {
+			this.routeViewPending = false
 			this.currentViewMode = mode
 			this.$emit('view-mode-change', mode)
 		},
@@ -9232,16 +9296,26 @@ export default {
 		 * offers it. The key starts with `_`, like `_search` and `_page`, so it
 		 * is never read as a list filter. A menu entry's `query` can so open a
 		 * list as its board, on the one page that lists the schema
-		 * (screens-board-reference-columns).
+		 * (screens-board-reference-columns). A mode the page offers only later
+		 * (the map, once rows with a geometry are in) opens when it arrives,
+		 * unless the reader picked a view first.
 		 *
 		 * @return {void}
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-address-can-open-a-list-in-a-view-mode
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-the-address-opens-a-view-mode-that-arrives-later
 		 */
 		applyViewModeFromRoute() {
 			const wanted = this.$route?.query?._view
-			if (typeof wanted === 'string' && wanted !== this.currentViewMode && this.effectiveToggleModes.includes(wanted)) {
-				this.currentViewMode = wanted
+			if (typeof wanted !== 'string' || wanted === '' || wanted === this.currentViewMode) {
+				this.routeViewPending = false
+				return
 			}
+			if (this.routeViewModes.includes(wanted)) {
+				this.currentViewMode = wanted
+				this.routeViewPending = false
+				return
+			}
+			this.routeViewPending = true
 		},
 
 		/**

@@ -90,3 +90,41 @@ sit 4px after the sort chevron, with its 14px muted icon.
 - **GIVEN** a board-look table with header filters
 - **WHEN** a header renders
 - **THEN** the funnel is a 22px button 4px after the chevron
+
+### Requirement: The address opens a view mode that arrives later
+
+An index page SHALL open the mode `?_view=` names, the map included, when the
+page offers it. When the page offers that mode only later (the map, once rows
+with a geometry are in), it SHALL open then, unless the reader picked a view
+first.
+
+#### Scenario: DqZakenKaart
+
+- **GIVEN** `/cases?_view=map` on a page whose map segment appears after the rows load
+- **WHEN** the map segment appears
+- **THEN** the page shows the map
+
+### Requirement: A column can carry the row link
+
+CnDataTable SHALL take `link: true` on a column: that column, not the first,
+names the row. It carries the row link, the title look and the unread, lock
+and indicator marks. Without the flag the first column does, as before.
+
+#### Scenario: DqTeamwachtrij
+
+- **GIVEN** columns waiting time, then case title with `link: true`
+- **WHEN** the table renders
+- **THEN** the case title is the row's link and title, the waiting time an ordinary cell
+
+### Requirement: A named source counts its quick filters
+
+A named source (`entitySource`) MAY offer `count(config)`. A quick-filter tab
+with `showCount` on such a page SHALL show the number it answers for the tab's
+filter over `sourceConfig`. The `tasks` source SHALL count through the inbox
+endpoint's total. A source without `count` shows no numbers.
+
+#### Scenario: DqTaken
+
+- **GIVEN** `entitySource: "tasks"` and tabs with `showCount: true`
+- **WHEN** the page renders
+- **THEN** each tab shows its inbox total

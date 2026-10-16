@@ -51,3 +51,27 @@
   - 22px funnel, 4px after the chevron
 - [x] Implement
 - [x] Test
+
+### Task 7: `?_view=` for a mode that arrives later
+- **spec_ref**: `openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-the-address-opens-a-view-mode-that-arrives-later`
+- **files**: `src/components/CnIndexPage/CnIndexPage.vue`, `tests/components/CnIndexPageDossiqListGaps.spec.js`
+- **acceptance_criteria**:
+  - `_view=map` opens the map when it appears; a reader's own pick wins
+- [x] Implement
+- [x] Test
+
+### Task 8: A link column
+- **spec_ref**: `openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-a-column-can-carry-the-row-link`
+- **files**: `src/components/CnDataTable/CnDataTable.vue`, `tests/components/CnIndexPageDossiqListGaps.spec.js`
+- **acceptance_criteria**:
+  - `link: true` moves the row link, title look and marks to that column
+- [x] Implement
+- [x] Test
+
+### Task 9: Named-source quick-filter counts
+- **spec_ref**: `openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-a-named-source-counts-its-quick-filters`
+- **files**: `src/components/CnIndexPage/CnIndexPage.vue`, `src/composables/indexSources.js`, `tests/components/CnIndexPageDossiqListGaps.spec.js`
+- **acceptance_criteria**:
+  - Tabs with `showCount` on the tasks source show the inbox totals
+- [x] Implement
+- [x] Test
