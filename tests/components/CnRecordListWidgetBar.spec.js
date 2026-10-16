@@ -36,11 +36,13 @@ function mountList(content) {
 	})
 }
 
-const barsOf = (w) => w.findAll('[data-testid="cn-record-list-bar"]').map((bar) => ({
-	width: bar.find('.cn-record-list__bar-fill').attributes('style'),
-	over: bar.classes().includes('cn-record-list__bar--over'),
-	max: bar.attributes('aria-valuemax'),
-}))
+function barsOf(w) {
+	return w.findAll('[data-testid="cn-record-list-bar"]').map((bar) => ({
+		width: bar.find('.cn-record-list__bar-fill').attributes('style'),
+		over: bar.classes().includes('cn-record-list__bar--over'),
+		max: bar.attributes('aria-valuemax'),
+	}))
+}
 
 beforeEach(() => {
 	axios.get.mockReset()
