@@ -4242,6 +4242,7 @@ export default {
 				narrowBy,
 				narrowValue: narrowBy ? this.boardNarrowValue : '',
 				capacityField: source.capacityField || '',
+				neutralColor: typeof source.neutralColor === 'string' ? source.neutralColor : '',
 			})
 		},
 

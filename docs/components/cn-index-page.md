@@ -233,6 +233,7 @@ columns from those rows (since manifest schema 2.97.0):
         "colorField": "colour",
         "mergeBy": "name",
         "capacityField": "capacity",
+        "neutralColor": "grey",
         "filter": { "isFinal": false },
         "narrowBy": { "field": "caseType", "rowField": "caseType" }
       }
@@ -253,6 +254,13 @@ columns from those rows (since manifest schema 2.97.0):
   column is refused with "In behandeling is full: 4 of 4." before anything is
   written (the server still guards). A merged column shows no limit, since each
   row has its own, but a move into the row that is full is still refused.
+- **`neutralColor`** names the colour a row holds when nobody chose one (a
+  schema that stores "grey" by default). A merged column then takes the first
+  row colour that is not this one, so a grey row listed first no longer draws
+  "In behandeling" grey when another case type made it orange. Every row grey,
+  the column is grey. Colours are compared as written: "Grey" is not "grey",
+  and a hex value is not a name. Unset, a merged column takes its first row's
+  colour (since manifest schema 2.101.0).
 - **`narrowBy`** links a referenced row to its parent. While the page filters on
   `narrowBy.rowField` with one value, the columns are that parent's rows only.
 - **`narrow`** draws that filter as a select after the search ("Zaaktype:"). It
