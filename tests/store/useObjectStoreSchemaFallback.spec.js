@@ -82,6 +82,42 @@ describe('useObjectStore: schema fallback on 404', () => {
 		expect(store.errors[type]).not.toBeNull()
 	})
 
+	it('fetches the schema of an open-form title through the fallback and keeps it', async () => {
+		// shillinq's `APInvoice` is registered under its title, not `ap-invoice`.
+		const type = resolveObjectOpType(store, { register: 'shillinq', schema: 'APInvoice' })
+		expect(type).toBe('shillinq/ap-invoice')
+		global.fetch
+			.mockResolvedValueOnce(notFound())
+			.mockResolvedValueOnce(ok({ slug: 'APInvoice', properties: {} }))
+		const schema = await store.fetchSchema(type)
+		expect(schema).toEqual({ slug: 'APInvoice', properties: {} })
+		expect(global.fetch.mock.calls.map((c) => c[0])).toEqual([
+			expect.stringContaining('/schemas/ap-invoice?register=shillinq'),
+			expect.stringContaining('/schemas/APInvoice?register=shillinq'),
+		])
+		expect(store.objectTypeRegistry[type].schema).toBe('APInvoice')
+
+		global.fetch.mockResolvedValueOnce(ok({ id: 'i1' }))
+		await store.saveObject(type, { number: 'F-1' })
+		expect(global.fetch.mock.calls[2][0]).toContain('/shillinq/APInvoice')
+	})
+
+	it('makes one schema request when the kebab form answers', async () => {
+		const type = resolveObjectOpType(store, { register: 'learniq', schema: 'ReportPeriod' })
+		global.fetch.mockResolvedValue(ok({ slug: 'report-period' }))
+		await store.fetchSchema(type)
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		expect(global.fetch.mock.calls[0][0]).toContain('/schemas/report-period')
+	})
+
+	it('returns null for a schema neither form finds', async () => {
+		const type = resolveObjectOpType(store, { register: 'shillinq', schema: 'NoSuchThing' })
+		global.fetch.mockResolvedValue(notFound())
+		await expect(store.fetchSchema(type)).resolves.toBeNull()
+		expect(global.fetch).toHaveBeenCalledTimes(2)
+		expect(store.objectTypeRegistry[type].schema).toBe('no-such-thing')
+	})
+
 	it('does not retry a type registered without a fallback', async () => {
 		store.registerObjectType('case', 'Case', 'dossiq')
 		global.fetch.mockResolvedValue(notFound())
