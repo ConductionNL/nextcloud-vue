@@ -17,7 +17,9 @@ The countdown widget can draw the term card of board DqZaak.
 CnCountdownWidget SHALL take `daysLabel` `{ one, other }` with `{count}` as the headline while days remain, `caption`
 as the line under it with `{date}` and `{count}` filled, `startField` to draw a bar of the share of the term that has
 passed, and `action` to draw one button that dispatches that manifest action with the record's tokens resolved. In the
-board look it SHALL draw no icon circle. Without these keys the widget SHALL read as before.
+board look it SHALL draw no icon circle. While the date is unset it SHALL read `emptyLabel` as the headline and
+`emptyCaption` under it with `{date}` from `emptyDateField`. `facts` `[{ label, field }]` SHALL draw label and value
+rows, leaving out a row without a value. Without these keys the widget SHALL read as before.
 
 #### Scenario: Board DqZaak "Termijn"
 
