@@ -39,15 +39,31 @@ A card names a route by name. A card without a route or a label is left out. Wit
 
 ### The board look
 
-Under `look: "board"` (board DcRapportages) the page draws a 28px title over a muted lead, one section per category
-headed by its label (cards without a category first, under no heading) instead of the category filter, and two-up cards
-with the card's `icon` in a 44px tile, its title at 17px and its description at 14px. The Nextcloud look is unchanged.
+Under `look: "board"` (board PqReports) the page draws a 28px title over a muted lead, then:
+
+- category chips with their card counts, after an "All categories" chip; a chip narrows the sections to its category;
+- one section per category under a small uppercase caption (cards without a category first, under no caption);
+- three cards a row (two, then one, as the column narrows), each with the card's `icon` in a 40px tile (a chart icon
+  when it names none), its title, its category, its description, and a footer with the card's `note` ("Opens its own
+  page" when absent) and an Open link;
+- a side column of at most 300px: the categories with their counts, and a note card;
+- the `footnote`, when declared, under the page with an info icon.
+
+```json
+"config": {
+  "sideNote": { "title": "Missing a report?", "text": "Build one in Nextcloud Analytics, or ask an administrator." },
+  "footnote": "Figures are refreshed every night."
+}
+```
+
+`sideNote` is `{ title, text }`; a missing part takes the library's own copy, and `false` draws no note card. The
+Nextcloud look is unchanged.
 
 ### Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `cards` | Array | `null` | The report cards: `{ id, label, description?, category?, icon?, route }`. `icon` is drawn in a tile under the board look. |
+| `cards` | Array | `null` | The report cards: `{ id, label, description?, category?, icon?, note?, route }`. `icon` and `note` are drawn under the board look. |
 | `categories` | Object | `null` | Category key to label. |
 | `title` | String | `null` | The heading. Defaults to "Reports". |
 | `description` | String | `null` | The lead paragraph. |
@@ -58,6 +74,8 @@ with the card's `icon` in a 44px tile, its title at 17px and its description at 
 | `layout` | Array | `null` | Grid placement of `widgets`: `{ id, widgetId, gridX, gridY, gridWidth, gridHeight }`. |
 | `headerButtons` | Array | `null` | Buttons beside the title: `{ label, action, variant?, icon?, id? }`, `action` naming a `headerActions` entry. |
 | `headerActions` | Array | `null` | The actions a header button names, in the index page's header action shape. |
+| `footnote` | String | `null` | A line under the page, drawn under the board look. |
+| `sideNote` | Object, Boolean | `null` | The side column's note card under the board look: `{ title, text }`, or `false` for none. |
 | `look` | String | `null` | `board` or `nextcloud`. Absent: the look `CnAppRoot` provides. |
 | `translate` | Function | `null` | Translate function. Falls back to the one `CnAppRoot` provides. |
 | `page` | Object | `{}` | The whole manifest page, for a host that mounts the component itself. The props above win. |

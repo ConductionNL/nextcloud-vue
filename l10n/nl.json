@@ -1660,7 +1660,17 @@
     "Link related object": "Gerelateerd object koppelen",
     "{type} parts": "Onderdelen van {type}",
     "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.": "Opslaan kan niet: dit record heeft geen id, dus de wijziging zou een kopie maken in plaats van het record bij te werken.",
-    "Save failed": "Opslaan is mislukt"
+    "Save failed": "Opslaan is mislukt",
+    "Open {report}": "{report} openen",
+    "About these reports": "Over deze rapportages",
+    "Categories": "Categorieën",
+    "Missing a report?": "Mis je een rapportage?",
+    "Ask an administrator to add a report to the app.": "Vraag een beheerder een rapportage aan de app toe te voegen.",
+    "Opens its own page": "Opent een eigen pagina",
+    "All categories": "Alle categorieën",
+    "Category": "Categorie",
+    "Reports": "Rapportages",
+    "No reports in this category.": "Geen rapportages in deze categorie."
   },
   "plurals": {
     "{count} selected": [

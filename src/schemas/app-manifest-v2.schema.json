@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.102.0",
+	"version": "2.109.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4409,6 +4409,24 @@
 									"headerLink": { "type": "object" }
 								}
 							}
+						},
+						"footnote": {
+							"type": "string",
+							"description": "type='reports' (screens-reports-page-pq-board, 2.109.0): a line under the page, drawn under the board look with an info icon, as board PqReports ends. i18n key / text. Absent draws none. Maps to CnReportsPage `footnote`. A report card there may also carry `note`, the line in its footer (default \"Opens its own page\")."
+						},
+						"sideNote": {
+							"description": "type='reports' (screens-reports-page-pq-board, 2.109.0): the note card in the side column under the board look, as board PqReports draws \"Missing a report?\". `{ title, text }` (i18n keys / text); a missing part takes the library's own copy. `false` draws no note card. Maps to CnReportsPage `sideNote`.",
+							"oneOf": [
+								{ "type": "boolean", "const": false },
+								{
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"title": { "type": "string" },
+										"text": { "type": "string" }
+									}
+								}
+							]
 						},
 						"headerButtons": {
 							"type": "array",

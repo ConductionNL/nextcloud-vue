@@ -1,7 +1,8 @@
 /*
- * The reports page under the board look (screens-reports-page-board-look,
- * board DcRapportages): a 28px title over a muted lead, one section per
- * category headed at 18px, and two-up cards with an icon tile. Scoped under
+ * The reports page under the board look (board PqReports): a 28px title over
+ * a muted lead, category chips, one section per category under an uppercase
+ * caption, three-up cards with an icon tile and an Open button, a 300px side
+ * column and a footnote. Scoped under
  * `.cn-look-board` with the page guard, so an app without the look renders as
  * before.
  */
@@ -36,45 +37,147 @@
 
 .cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__description {
 	margin: 0;
-	font-size: 14px;
+	font-size: 15px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* The category chips above the sections (board PqReports): pill buttons with
+   a count, the active one filled in the main text colour. */
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 36px;
+	min-height: 36px;
+	margin: 0;
+	padding: 0 14px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: 18px;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__chip:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__chip--active,
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__chip--active:hover {
+	border-color: var(--color-main-text);
+	background: var(--color-main-text);
+	color: var(--color-main-background);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__chip-count {
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__chip--active .cn-reports-page__chip-count {
+	color: inherit;
+	opacity: 0.8;
+}
+
+/* The sections and a 300px side column beside them, which drops under the
+   sections on a narrow screen. */
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__body {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 20px;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__main {
+	display: flex;
+	flex: 999 1 560px;
+	flex-direction: column;
+	gap: 24px;
+	min-width: 0;
+	container-type: inline-size;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__aside {
+	display: flex;
+	flex: 1 1 260px;
+	flex-direction: column;
+	gap: 16px;
+	min-width: 0;
+	max-width: 300px;
 }
 
 .cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__section {
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
+	gap: 10px;
 	/* A host's own `section` rule (a width cap, a margin) does not reach it. */
 	max-width: none;
 	margin: 0;
+	scroll-margin-top: 16px;
 }
 
+/* A section is captioned small and uppercase, in the muted colour. */
 .cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__section-title {
 	margin: 0;
-	font-size: 18px;
+	font-size: 13px;
 	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--color-text-maxcontrast);
 }
 
+/* Three cards a row, two then one as the column narrows. */
 .cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__grid {
-	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-	gap: 14px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+	align-items: stretch;
 }
 
-.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card {
+@container (max-width: 720px) {
+	.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@container (max-width: 460px) {
+	.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card,
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__aside-card {
 	box-sizing: border-box;
-	flex-direction: row;
-	align-items: flex-start;
-	gap: 14px;
-	padding: 18px 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	height: 100%;
+	padding: 18px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--cn-board-card-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 }
 
-.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card:hover,
-.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card:focus-visible {
-	background: var(--color-background-hover);
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__aside-card {
+	gap: 12px;
+	height: auto;
+	margin: 0;
+	max-width: none;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
 }
 
 .cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-icon {
@@ -82,8 +185,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 44px;
-	height: 44px;
+	width: 40px;
+	height: 40px;
 	border-radius: 10px;
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
@@ -91,19 +194,122 @@
 
 .cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-text {
 	display: flex;
+	flex: 1;
 	flex-direction: column;
+	align-items: flex-start;
 	gap: 4px;
+	min-width: 0;
 }
 
 .cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-category,
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-note,
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__aside-count {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-description {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	min-height: 34px;
+	margin-top: auto;
+	padding-top: 10px;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-note {
+	flex: 1 1 auto;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-open {
+	display: inline-flex;
+	align-items: center;
+	height: 34px;
+	padding: 0 12px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: none !important;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-open:hover,
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-open:focus-visible {
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__aside-title {
+	margin: 0;
 	font-size: 17px;
 	font-weight: 700;
 }
 
-.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card-description {
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__aside-list {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__aside-list > li {
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__aside-link {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 0;
 	font-size: 14px;
-	line-height: 1.5;
+	color: var(--color-main-text);
+	text-decoration: none !important;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__aside-label {
+	flex: 1;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__aside-text {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.45;
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__footnote {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin: 4px 0 0;
+	padding-top: 16px;
+	border-top: 1px solid var(--color-border);
+	font-size: 13px;
+	line-height: 1.45;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__footnote-icon {
+	flex: none;
 }
 
 /* The widgets under the cards sit in the page's own padding: the dashboard
@@ -134,12 +340,6 @@
 	margin: -12px;
 }
 
-/* A report card is a link, but its title and description read as text, as on
-   the board: no underline, whatever a theme does to links. */
-.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card,
-.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__card * {
-	text-decoration: none !important;
-}
 
 /* The header buttons beside the title (screens-reports-header-buttons, board
    DcRapportages "Downloaden"): the board's 40px button with a grey border on
