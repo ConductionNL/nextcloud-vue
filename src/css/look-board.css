@@ -773,6 +773,24 @@
 	flex: 1 1 240px;
 }
 
+/* A record list drawn as cards (ShBank's bank accounts) keeps the rows' 24px
+   side inset inside a card, with room above the first card. In a borderless
+   cell the cards stand on the page ground, flush with the grid, as the board
+   draws them. A card is a link only by its hover: no underline on any text run.
+   @spec openspec/changes/record-list-cards/specs/record-list-cards/spec.md#requirement-a-record-list-can-draw-its-rows-as-cards */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--cards {
+	padding: 16px 24px 20px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper--borderless .cn-record-list--cards {
+	padding: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__card,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__card * {
+	text-decoration: none !important;
+}
+
 /* ---- Saved views on a dashboard card (PqMijnWerk) ------------------------ */
 /* The card body is flush, so the list and its empty line carry the card's
    inset themselves, the same 24px at the sides as a record list. */
