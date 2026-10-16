@@ -422,6 +422,7 @@
    `.cn-look-board.cn-admin-settings-shell` is a shell told `look: "board"`
    itself, on an admin page no CnAppRoot wraps. */
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials),
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials),
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-credentials) {
 	grid-column: 1 / -1;
@@ -429,6 +430,7 @@
 
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *),
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *),
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
@@ -440,14 +442,17 @@
    Settings.vue) takes no box of its own: its sections are grid items and
    cards, as if the shell held them directly. Only an element whose own
    children are sections; anything else keeps spanning the grid. */
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section),
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section),
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) {
 	display: contents;
 }
 
-/* The card: a section of the shell (also one inside a wrapping element), or a CnSettingsCard of the page. */
+/* The card: a section of the shell or of one of its tab panels (also one inside a wrapping element), or a CnSettingsCard of the page. */
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
 .cn-look-board .cn-settings-page__sections:not(.cn-look-nextcloud *) > .cn-settings-card {
@@ -483,7 +488,7 @@
 	justify-content: flex-start;
 	text-align: start;
 	margin: 0;
-	font-size: 19px;
+	font-size: 17px;
 	font-weight: 700;
 	line-height: 1.3;
 }
@@ -491,16 +496,81 @@
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__desc {
 	margin: 4px 0 0;
 	font-size: 14px;
-	line-height: 1.45;
+	line-height: 1.5;
 	color: var(--color-text-maxcontrast);
 }
 
-/* Section actions sit at the end of the title row. */
+/* Section actions sit at the end of the title row. The row is a grid, so a
+   long title wraps beside the buttons instead of running under them, and in a
+   narrow card the buttons drop under the title and description. */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions) {
+	/* `!important`: the card rules above set `display: flex` at higher specificity for a section in a wrapping element. */
+	display: grid !important;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: start;
+	column-gap: 16px;
+	container-type: inline-size;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions) > * {
+	grid-column: 1 / -1;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions) > .settings-section__name {
+	grid-row: 1;
+	grid-column: 1;
+}
+
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) > .cn-settings-section__actions {
-	position: absolute;
-	inset-block-start: 22px;
-	inset-inline-end: 24px;
+	grid-row: 1;
+	grid-column: 2;
+	position: static;
+	flex-wrap: wrap;
+	justify-self: end;
 	float: none;
+}
+
+@container (max-width: 520px) {
+	.cn-look-board .settings-section:not(.cn-look-nextcloud *) > .cn-settings-section__actions {
+		grid-row: auto;
+		grid-column: 1 / -1;
+		justify-self: start;
+		justify-content: flex-start;
+	}
+}
+
+/* An admin settings card as the board draws it (PtBeheerinstellingen,
+   KqBeheerAlgemeen, HuInstellingen): 20px 22px padding, and the title and
+   description one group, 4px apart, spaced from the rest of the card by the
+   card's 14px gap. The description is a sibling of the title in that column,
+   so it pulls itself back up to 4px under the title. The gap spaces the
+   content, so a note card adds no margin of its own (NcNoteCard draws 16px
+   above and below). A CnSettingsPage card keeps 22px 24px. */
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section {
+	padding: 20px 22px;
+}
+
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section > .settings-section__desc,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .settings-section__desc,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .settings-section__desc,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc {
+	margin-top: -10px;
+}
+
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section > .notecard,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .notecard,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section > .notecard,
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .notecard,
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .notecard,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .notecard {
+	margin-block: 0;
 }
 
 .cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *),
@@ -713,4 +783,23 @@
 /* The board draws no chevron after the pill and date. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__chevron {
 	display: none;
+}
+
+/* ---- Week strip (DqMijnWerk "Termijnen deze week") ---------------------- */
+/* The days wrap inside the card instead of scrolling sideways: a row holds
+   as many days of at least 120px as the card fits, and the rest go to the
+   next row (dossiq at 1100 wide held 680px of days in a 494px card and
+   scrolled; now three days and two). 120px keeps a case title's words whole;
+   five 88px days fitted one row but broke "Bezwaar" mid-word. A card wide
+   enough for the week draws it as before, one row of equal columns. The
+   day's head wraps its "today" badge under the label when the day is
+   narrow.
+   @spec openspec/changes/board-week-strip-fits/specs/week-strip-board-look/spec.md#requirement-a-board-week-strip-fits-its-card */
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__days {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+	min-width: 0;
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__head {
+	flex-wrap: wrap;
 }

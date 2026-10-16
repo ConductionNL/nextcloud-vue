@@ -56,14 +56,38 @@
 			</div>
 		</div>
 
+		<!-- `tabs`: a strip under the header (boards ShInstellingen,
+		     LpBeheerAlgemeen). Each tab's panel holds the `tab-<id>` slot; the
+		     version card, the credential broker and the default slot below
+		     belong to the first tab and show only while it is open. -->
+		<CnTabs
+			v-if="tabItems.length > 0"
+			class="cn-admin-settings-shell__tabs"
+			:look="isBoard ? 'board' : 'nextcloud'"
+			:ariaLabel="resolvedTitle"
+			data-testid="cn-admin-settings-tabs"
+			@update:activeIndex="onTabIndex">
+			<CnTab
+				v-for="tab in tabItems"
+				:key="tab.id"
+				:title="tab.label"
+				:count="tab.count"
+				:active="tab.id === activeTabId">
+				<div class="cn-admin-settings-shell__panel" :data-tab="tab.id">
+					<!-- @slot tab-<id> The panel of the tab with that `id` in `tabs`. -->
+					<slot :name="`tab-${tab.id}`" />
+				</div>
+			</CnTab>
+		</CnTabs>
+
 		<!-- `versionCardPosition: "end"`: the app's sections come first, and the
 		     version card and the credential broker follow them (board DcBeheer
 		     starts with the app's own card). The same slot, rendered once. -->
-		<slot v-if="versionCardAtEnd" />
+		<slot v-if="versionCardAtEnd && onFirstTab" />
 
 		<!-- Version information card (version, up-to-date check, re-import, support footer) -->
 		<CnVersionInfoCard
-			v-if="showVersionCard"
+			v-if="showVersionCard && onFirstTab"
 			:appName="appName"
 			:appVersion="resolvedVersion"
 			:configuredVersion="resolvedConfiguredVersion"
@@ -72,6 +96,7 @@
 			:updating="updating"
 			:title="versionTitle"
 			:description="resolvedVersionDescription"
+			:wide="versionCardWide"
 			@update="onUpdate">
 			<template #actions>
 				<!-- Canonical "Re-import configuration" action (POST /apps/<appId>/api/settings/load) -->
@@ -149,15 +174,15 @@
 			informational "apps requesting credentials" list inside.
 		-->
 		<CnCredentials
-			v-if="showOrganisationCredentials"
+			v-if="showOrganisationCredentials && onFirstTab"
 			scope="organisation"
 			:appId="appId"
 			:appName="appName"
 			:appCredentials="appCredentials"
 			data-testid="cn-admin-organisation-credentials" />
 
-		<!-- @slot default The app's own settings sections, rendered below the version card, or above it with `versionCardPosition: "end"`. -->
-		<slot v-if="!versionCardAtEnd" />
+		<!-- @slot default The app's own settings sections, rendered below the version card, or above it with `versionCardPosition: "end"`. With `tabs`, only while the first tab is open. -->
+		<slot v-if="!versionCardAtEnd && onFirstTab" />
 
 		<!-- First-time setup wizard, opened from the admin page (ADR-042). -->
 		<CnSetupWizard
@@ -176,7 +201,7 @@ import { loadState } from '@nextcloud/initial-state'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
-import { computed } from 'vue'
+import { computed, provide } from 'vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
@@ -189,7 +214,37 @@ import { useEnvironment } from '../../composables/useEnvironment.js'
 import { normalizeLook, useLook } from '../../composables/useLook.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { CnTab, CnTabs } from '../CnTabs/index.js'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
+
+/**
+ * The tab the address names.
+ *
+ * @param {string} key The query parameter.
+ * @return {string} Its value, or ''.
+ */
+function readTabFromAddress(key) {
+	if (typeof window === 'undefined' || !key) {
+		return ''
+	}
+	return new URLSearchParams(window.location.search).get(key) || ''
+}
+
+/**
+ * Put the open tab in the address without a new history entry.
+ *
+ * @param {string} key The query parameter.
+ * @param {string} id The tab's id.
+ * @return {void}
+ */
+function writeTabToAddress(key, id) {
+	if (typeof window === 'undefined' || !key || !window.history?.replaceState) {
+		return
+	}
+	const url = new URL(window.location.href)
+	url.searchParams.set(key, id)
+	window.history.replaceState(window.history.state, '', url.toString())
+}
 
 /**
  * CnAdminSettingsShell — the canonical chrome for a Conduction app's Nextcloud
@@ -235,6 +290,8 @@ export default {
 		CnCredentials,
 		CnVersionInfoCard,
 		CnSetupWizard,
+		CnTab,
+		CnTabs,
 		NcButton,
 		NcLoadingIcon,
 		Refresh,
@@ -357,8 +414,45 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * A tab strip under the header, as `[{ id, label, count? }]`. Each
+		 * tab's panel is the `tab-<id>` slot; the version card, the credential
+		 * broker and the default slot show only on the first tab. The open tab
+		 * is in the address (`?<tabQueryKey>=<id>`), so a link opens it and a
+		 * reload keeps it. The strip is keyboard operable (arrow keys, Home,
+		 * End). Empty draws no strip.
+		 *
+		 * @type {Array<{id: string, label: string, count?: number}>}
+		 * @spec openspec/changes/admin-settings-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-a-tab-strip
+		 */
+		tabs: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The query parameter that holds the open tab's `id`.
+		 *
+		 * @spec openspec/changes/admin-settings-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-a-tab-strip
+		 */
+		tabQueryKey: {
+			type: String,
+			default: 'tab',
+		},
+
 		/** Whether to render the version card. */
 		showVersionCard: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Under the board look the version card spans the whole settings grid.
+		 * Set to `false` to keep it one card in the grid.
+		 *
+		 * @spec openspec/changes/board-version-card-full-width/specs/settings-board-look/spec.md#requirement-the-board-version-card-spans-the-settings-grid
+		 */
+		versionCardWide: {
 			type: Boolean,
 			default: true,
 		},
@@ -481,15 +575,18 @@ export default {
 		},
 	},
 
-	emits: ['update', 'reimported', 'reimport-error'],
+	emits: ['update', 'reimported', 'reimport-error', 'tab-change'],
 
 	setup(props) {
 		// The app's own `environment` setting, else the active organisation's.
 		const { environment: environmentName } = useEnvironment({ environment: () => props.environment })
-		const { isBoard } = useLook(props)
+		const { look, isBoard } = useLook(props)
 		// A shell told `look: "board"` itself draws the board look also on an
 		// admin page that no CnAppRoot wraps, as Nextcloud's settings pages are.
 		const ownLookClass = computed(() => (normalizeLook(props.look) === 'board' ? 'cn-look-board' : ''))
+		// Everything inside the shell, its own version card and the app's
+		// sections alike, follows the shell's look without the app providing it.
+		provide('cnLook', look)
 		return { environmentName, isBoard, ownLookClass }
 	},
 
@@ -497,10 +594,44 @@ export default {
 		return {
 			reimporting: false,
 			setupWizardOpen: false,
+			// The open tab's id; empty until a tab is picked or the address names one.
+			chosenTabId: readTabFromAddress(this.tabQueryKey),
 		}
 	},
 
 	computed: {
+		/**
+		 * The tabs that have an id and a label.
+		 *
+		 * @return {Array<{id: string, label: string, count: number|null}>}
+		 * @spec openspec/changes/admin-settings-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-a-tab-strip
+		 */
+		tabItems() {
+			return (Array.isArray(this.tabs) ? this.tabs : [])
+				.filter((tab) => tab && typeof tab.id === 'string' && tab.id !== '' && typeof tab.label === 'string' && tab.label !== '')
+				.map((tab) => ({ id: tab.id, label: tab.label, count: tab.count ?? null }))
+		},
+
+		/**
+		 * The open tab: the one picked or named in the address, else the first.
+		 *
+		 * @return {string} Its id, or '' without tabs.
+		 */
+		activeTabId() {
+			const ids = this.tabItems.map((tab) => tab.id)
+			return ids.includes(this.chosenTabId) ? this.chosenTabId : (ids[0] || '')
+		},
+
+		/**
+		 * Whether the shell's own content shows: always without tabs, else on
+		 * the first tab.
+		 *
+		 * @return {boolean}
+		 */
+		onFirstTab() {
+			return this.tabItems.length === 0 || this.activeTabId === this.tabItems[0].id
+		},
+
 		/**
 		 * Whether the app's sections come before the version card.
 		 *
@@ -625,6 +756,27 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A tab was picked in the strip: remember it, put it in the address
+		 * (replacing the entry, so Back leaves the page) and tell the app.
+		 *
+		 * @param {number} index The picked tab's index.
+		 * @return {void}
+		 * @spec openspec/changes/admin-settings-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-a-tab-strip
+		 */
+		onTabIndex(index) {
+			const tab = this.tabItems[index]
+			if (!tab || tab.id === this.chosenTabId) {
+				return
+			}
+			this.chosenTabId = tab.id
+			writeTabToAddress(this.tabQueryKey, tab.id)
+			/**
+			 * @event tab-change Emitted when the reader opens another tab. Payload: its `id`.
+			 */
+			this.$emit('tab-change', tab.id)
+		},
+
 		/** Forward the version card's update-button click to the parent. */
 		onUpdate() {
 			/**

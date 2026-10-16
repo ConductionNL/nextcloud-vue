@@ -303,6 +303,7 @@ import {
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
+import CnToggleTableWidget from '../CnToggleTableWidget/CnToggleTableWidget.vue'
 import CnVersionInfoCard from '../CnVersionInfoCard/CnVersionInfoCard.vue'
 import { useLook } from '../../composables/useLook.js'
 import { prefixUrl } from '../../utils/headers.js'
@@ -340,6 +341,8 @@ const COMPONENT_DISCRIMINATOR = Symbol('cn-settings-component-widget')
 const BUILTIN_SETTINGS_WIDGETS = Object.freeze({
 	'version-info': CnVersionInfoCard,
 	'register-mapping': CnRegisterMapping,
+	// Rows with a switch: objects (`bind.mode: 'each'`) or a config map (`'map'`).
+	'toggle-table': CnToggleTableWidget,
 	component: COMPONENT_DISCRIMINATOR,
 })
 
@@ -367,7 +370,8 @@ const BUILTIN_SETTINGS_WIDGETS = Object.freeze({
  *  - `widgets[]`   — ordered list of widgets. Each entry has a `type`
  *    string and optional `props`. Built-in widget types resolve
  *    first (`version-info` → `CnVersionInfoCard`, `register-mapping`
- *    → `CnRegisterMapping`); unknown types fall back to the
+ *    → `CnRegisterMapping`, `toggle-table` → `CnToggleTableWidget`);
+ *    unknown types fall back to the
  *    `customComponents` registry.
  *
  * Widget events (e.g. CnRegisterMapping's `@save`, CnVersionInfoCard's

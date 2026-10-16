@@ -35,8 +35,10 @@
 }
 
 /* The header is ours: NcModal's own close button and NcDialog's heading give
-   way (the heading stays as the accessible name, visually hidden). */
-.cn-dialog-board .modal-container__close {
+   way (the heading stays as the accessible name, visually hidden). The mask
+   class raises the rule above NcButton's `.button-vue[data-v-…]`, whose
+   stylesheet a spawned dialog can load after this one. */
+.modal-mask.cn-dialog-board .modal-container__close {
 	display: none;
 }
 

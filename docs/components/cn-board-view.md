@@ -79,11 +79,16 @@ calls the suggestion `nested-interactive` when you try it.
 | `reread` | `Function` | `null` | `(card) => Promise<object>`, to check the card has not moved under the dragger. |
 | `paged` | `Boolean` | `false` | Whether the counts are of one page. |
 | `dueRule` | `Object` | `null` | Marks late cards: `{ field, soonDays? }`. See below. |
-| `cardRoles` | `Object` | `null` | Board look: the card's roles `{ title, sub, pill, due, owner, pillColors? }` (`config.board.card`). |
+| `cardRoles` | `Object` | `null` | Board look: the card's roles `{ title, sub, pill, due, owner, pillColors?, formatters? }` (`config.board.card`). `formatters` maps a role's field to a formatter id in the app's `cnFormatters` registry, so a reference reads as its name. |
 | `colorField` | `String` | `''` | Board look: the state key holding a column's dot colour. |
 | `sumField` | `String` | `''` | Board look: a numeric field summed under each column heading. |
 | `sumFormat` | `Object` | `null` | Board look: metric format of the sum. |
 | `columnLimit` | `Number` | `0` | Cards drawn per column before "Show N more"; 0 draws all. |
+| `columnKeyOf` | `Function` | `null` | `(row) => string`: the column a row sits in, for a status whose raw value is not the column key (a reference whose rows are merged by name). Absent, the row's `statusField` value is the key. |
+| `wrapColumns` | `Boolean` | `false` | Wrap the columns onto more rows, as many to a row as fit at 240px, instead of one row that scrolls sideways (`config.board.wrap`). |
+| `selectable` | `Boolean` | `false` | A checkbox on every card, for the list's bulk actions. |
+| `selectedIds` | `Array` | `[]` | The selected cards, by row key. |
+| `allowedMoves` | `Function` | `null` | `(card) => Promise<Array<string>\|null>`: the column keys a card can reach, `null` for all. See below. |
 
 ## Late cards
 
@@ -130,6 +135,33 @@ Without a `dueRule` the cards render as before.
 | `moved` | `{ card, toKey }` | A card moved through the transition. |
 | `refused` | `{ card, message }` | The transition refused, with the guard's words. |
 | `stale` | `{ card }` | The card had already moved; the payload is it as it now is. |
+| `select` | `Array` | A card's checkbox changed. The payload is the selected row keys. |
+
+## Where a card can go
+
+With `allowedMoves` the board asks the host where one card may go, once per
+card: when its menu opens and when its drag starts. The answer is a list of
+column keys.
+
+- During a drag, the columns the card cannot reach fade.
+- In the card menu they stay listed, greyed, with the note "not allowed".
+- A drop on one is refused on the board, without a call to `runTransition`.
+
+Without `allowedMoves` every column is offered and the host's move decides, as
+before. A failed answer counts as "every column": the move stays the authority.
+
+## Selecting cards
+
+With `selectable` every card carries a checkbox before its title. The board
+emits `select` with the selected row keys, and the index page feeds them into
+the same selection the table holds, so the bulk band and its actions work on
+the board too.
+
+Under the board look the checkbox stays out of sight until it is wanted: it
+shows on the card under the pointer, on a card holding keyboard focus, and on
+every card once anything is selected. It keeps its place in the tab order, and
+on a touch screen it always shows. The card title keeps the main text colour
+without an underline, even under a theme that styles every link.
 
 ## Swimlanes
 

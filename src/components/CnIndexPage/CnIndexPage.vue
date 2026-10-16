@@ -207,7 +207,53 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['after-search'] || searchInFiles" #after-search>
+			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown" #after-search>
+				<!-- Board view controls, after the search (screens-board-reference-columns):
+				     the narrowing select ("Case type:"), the column switch ("Columns:
+				     status | type | assignee") and the board's hint sentence. -->
+				<template v-if="boardControlsShown">
+					<label
+						v-if="boardNarrow"
+						class="cn-index-page__board-control"
+						data-testid="cn-board-narrow">
+						<span class="cn-index-page__board-control-label">{{ boardNarrowLabel }}</span>
+						<select
+							class="cn-index-page__board-select"
+							data-testid="cn-board-narrow-select"
+							:value="boardNarrowValue"
+							@change="onBoardNarrowChange($event.target.value)">
+							<option value="">{{ boardNarrowAllLabel }}</option>
+							<option
+								v-for="option in boardNarrowOptions"
+								:key="`narrow-${option.value}`"
+								:value="option.value">
+								{{ option.label }}
+							</option>
+						</select>
+					</label>
+					<label
+						v-if="boardColumnFields.length > 1"
+						class="cn-index-page__board-control"
+						data-testid="cn-board-column-switch">
+						<span class="cn-index-page__board-control-label">{{ boardColumnSwitchLabel }}</span>
+						<select
+							class="cn-index-page__board-select cn-index-page__board-select--strong"
+							data-testid="cn-board-column-switch-select"
+							:value="boardColumnField"
+							@change="onBoardColumnFieldChange($event.target.value)">
+							<option
+								v-for="entry in boardColumnFields"
+								:key="`colfield-${entry.field}`"
+								:value="entry.field">
+								{{ cnTranslate(entry.label) }}
+							</option>
+						</select>
+					</label>
+					<span
+						v-if="board.hint"
+						class="cn-index-page__board-hint"
+						data-testid="cn-board-hint">{{ cnTranslate(board.hint) }}</span>
+				</template>
 				<NcCheckboxRadioSwitch
 					v-if="searchInFiles"
 					:modelValue="contentSearch"
@@ -360,6 +406,17 @@
 				<span>{{ entry.label }}</span> <span v-if="entry.count !== null" class="cn-index-page__filter-strip-count">{{ entry.count }}</span>
 			</button>
 		</div>
+
+		<!-- Header actions of `type: "open-form"` or `"open-modal"`: this
+		     instance draws nothing and owns the create dialog, as on a detail
+		     page, so a header button or menu entry naming one opens it. -->
+		<CnActionButtons
+			v-if="dialogHeaderActions.length > 0"
+			:actions="dialogHeaderActions"
+			display="menu"
+			data-testid="cn-index-header-dialog-actions"
+			@entries="dialogHeaderRuns = $event"
+			@created="onHeaderActionCreated" />
 
 		<!-- Quick edit: a few fields of one row, over the list, with the list
 		     keeping its place. -->
@@ -786,8 +843,13 @@
 				<CnBoardView
 					v-else-if="currentViewMode === 'board'"
 					:rows="displayObjects"
-					:statusFieldSchema="boardStatusFieldSchema"
-					:statusField="board.statusField || 'status'"
+					:statusFieldSchema="boardFieldSchema"
+					:statusField="boardColumnField"
+					:columnKeyOf="boardColumnKeyOf"
+					:wrapColumns="board.wrap === true"
+					:selectable="selectable"
+					:selectedIds="internalSelectedIds"
+					:allowedMoves="boardAllowedMoves"
 					:cardFields="board.cardFields || []"
 					:swimlaneField="board.swimlaneField || ''"
 					:dueRule="board.dueRule || null"
@@ -797,8 +859,9 @@
 					:sumFormat="boardSumFormat"
 					:columnLimit="board.columnLimit || 0"
 					:rowKey="rowKey"
-					:runTransition="runTransition"
+					:runTransition="boardRunTransition"
 					:paged="isPaged"
+					@select="onSelect"
 					@loadMore="onBoardLoadMore"
 					@cardClick="onRowClick"
 					@cardAuxClick="onRowAuxClick"
@@ -959,9 +1022,27 @@
 					{{ t('nextcloud-vue', 'File matches are limited to the best 50.') }}
 				</p>
 
+				<!-- The board view's footer: it holds every row it loaded, so it
+				     counts them and offers the next batch instead of pages. -->
+				<div
+					v-if="boardLoadsAll && boardLoadCounts.total > 0"
+					class="cn-index-page__board-load"
+					data-testid="cn-index-board-load">
+					<span class="cn-index-page__board-load-count" data-testid="cn-index-board-load-count">
+						{{ t('nextcloud-vue', 'Showing {count} of {total}', { count: boardLoadCounts.shown, total: boardLoadCounts.total }) }}
+					</span>
+					<NcButton
+						v-if="isPaged"
+						:disabled="effectiveLoading"
+						data-testid="cn-index-board-load-more"
+						@click="onBoardLoadMore">
+						{{ t('nextcloud-vue', 'Load more') }}
+					</NcButton>
+				</div>
+
 				<!-- Pagination -->
 				<CnPagination
-					v-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
+					v-else-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
 					:variant="isBoardLook ? 'board' : ''"
 					:footerNote="footerNote ? cnTranslate(footerNote) : footerNote"
 					:currentPage="effectivePagination.page || 1"
@@ -1053,7 +1134,7 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1083,6 +1164,16 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { followItemActionLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
 import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import {
+	buildReferenceStages,
+	buildValueStages,
+	columnFieldsOf,
+	columnKeyOfRow,
+	fetchReferenceObjects,
+	referenceTargetOf,
+	refIdOf,
+	resolveDropValue,
+} from '../../utils/boardReferenceColumns.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
@@ -1092,6 +1183,7 @@ import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab,
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
+import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
@@ -1104,6 +1196,7 @@ import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState,
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnBoardView } from '../CnBoardView/index.js'
@@ -1140,7 +1233,7 @@ import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './pe
 import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
-import { useSelfFetchList } from './useSelfFetchList.js'
+import { BOARD_PAGE_SIZE, useSelfFetchList } from './useSelfFetchList.js'
 
 /** Rows fetched for one month in calendar mode. */
 const CALENDAR_PAGE_SIZE = 200
@@ -1394,6 +1487,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		CnPageHeader,
 		CnQuickFilterBar,
+		CnActionButtons,
 		CnActionsBar,
 		DotsHorizontal,
 		CnIcon,
@@ -1440,6 +1534,8 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/** The app id CnAppRoot provides, for the plural form of `countSubtitle`. */
+		cnAppId: { default: '' },
 		/**
 		 * The app manifest, provided by CnAppRoot. A column with `labelField`
 		 * and `link: true` finds the referenced schema's detail page here.
@@ -1526,10 +1622,17 @@ export default {
 		 * shows. Manifest key `config.countSubtitle`. Goes through the host
 		 * translate function.
 		 *
+		 * `{ singular, plural }` picks the form by the total ("1 invoice",
+		 * "12 invoices") through the app's plural translation
+		 * (`translatePlural` with the app id CnAppRoot provides), so a
+		 * language with other plural rules gets its own forms.
+		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-index-page-title-is-a-manifest-key
+		 * @spec openspec/changes/index-count-plural/specs/index-header/spec.md#requirement-the-count-line-takes-a-singular-and-a-plural-form
+		 * @type {string|{singular: string, plural: string}}
 		 */
 		countSubtitle: {
-			type: String,
+			type: [String, Object],
 			default: '',
 		},
 
@@ -2310,10 +2413,14 @@ export default {
 			default: () => [],
 		},
 
-		/** Text shown when no items found */
+		/**
+		 * Text shown when no items found. The default is the library's own
+		 * string, so it reads in the user's language; a page's own text goes
+		 * through the app's translate function.
+		 */
 		emptyText: {
 			type: String,
-			default: 'No items found',
+			default: () => t('nextcloud-vue', 'No items found'),
 		},
 
 		/**
@@ -3335,6 +3442,7 @@ export default {
 		'add',
 		'apply-view',
 		'board-move',
+		'board-column-field-change',
 		'bulk-action',
 		'clear-filters',
 		'columns-change',
@@ -3446,10 +3554,21 @@ export default {
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/** The column field the reader picked in the board's column switch; '' = the default. */
+			boardColumnFieldChoice: '',
+			/** The rows a reference column field is built from, by field. */
+			boardRefs: {},
+			/** The options of the board's narrowing select (`board.narrow`). */
+			boardNarrowOptions: [],
+			/** The menu entries CnActionButtons reports for the dialog header actions, each with its `run()`. */
+			dialogHeaderRuns: [],
 			/** The visible calendar window `{ rangeStart, rangeEnd }` (ISO dates), or null outside calendar mode. */
 			calendarRange: null,
 			/** The page size to restore when leaving calendar mode. */
 			calendarPrevPageSize: null,
+			// The table's page size while the board view holds the list at
+			// BOARD_PAGE_SIZE; restored on leaving the board.
+			boardPrevPageSize: this.viewMode === 'board' ? ((this.pagination && this.pagination.limit) || 20) : null,
 			/** Resolved labels of reference columns: `{ [columnKey]: { [id]: label|null } }`. */
 			refLabels: {},
 			/** Count per tab-strip index, for the entries that asked for one; null = none. */
@@ -3670,6 +3789,24 @@ export default {
 		 *
 		 * @return {Array<object>}
 		 */
+		/**
+		 * The header actions that open a dialog: `type: "open-form"` (the
+		 * schema-driven create form, as the navigation's primary action opens
+		 * it) or `type: "open-modal"`, without a `handler` of their own.
+		 * Reserved ids are left out, as in `mergedHeaderActions`.
+		 *
+		 * @spec openspec/changes/index-header-open-form/specs/index-header/spec.md#requirement-an-index-header-action-can-open-the-create-form
+		 * @return {Array<object>}
+		 */
+		dialogHeaderActions() {
+			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
+			return (this.headerActions || []).filter((entry) => entry
+				&& typeof entry.id === 'string'
+				&& !reserved.has(entry.id)
+				&& (entry.handler === undefined || entry.handler === null || entry.handler === '')
+				&& (entry.type === 'open-form' || entry.type === 'open-modal'))
+		},
+
 		mergedHeaderActions() {
 			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
 			const merged = []
@@ -4023,6 +4160,241 @@ export default {
 		},
 
 		/**
+		 * The column fields the board offers (`board.columnFields`), for the
+		 * column switch (screens-board-reference-columns).
+		 *
+		 * @return {Array<object>} The normalised fields; empty for a board on `statusField` only.
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-board-can-switch-the-field-its-columns-come-from
+		 */
+		boardColumnFields() {
+			return columnFieldsOf(this.board)
+		},
+
+		/**
+		 * The column field in use: the reader's pick, else the one on
+		 * `statusField`, else the first. Null on a board without `columnFields`.
+		 *
+		 * @return {object|null} The normalised column field.
+		 */
+		boardActiveColumnField() {
+			const fields = this.boardColumnFields
+			if (fields.length === 0) {
+				return null
+			}
+			return fields.find((entry) => entry.field === this.boardColumnFieldChoice)
+				|| fields.find((entry) => entry.field === this.board?.statusField)
+				|| fields[0]
+		},
+
+		/** @return {string} The row field the columns come from. */
+		boardColumnField() {
+			return this.boardActiveColumnField?.field || this.board?.statusField || 'status'
+		},
+
+		/**
+		 * The parent the board is narrowed to: the single value of the page
+		 * filter on the reference's `narrowBy.rowField`, '' when none or several.
+		 *
+		 * @return {string} The parent id.
+		 */
+		boardNarrowValue() {
+			const field = this.board?.narrow?.field || this.boardActiveColumnField?.source?.narrowBy?.rowField
+			if (!field) {
+				return ''
+			}
+			const current = this.effectiveActiveFilters?.[field]
+			const values = Array.isArray(current) ? current : (current === undefined || current === null || current === '' ? [] : [current])
+			return values.length === 1 ? refIdOf(values[0]) : ''
+		},
+
+		/**
+		 * The stages of a reference or values column field, or null for a
+		 * field the schema's enum or lifecycle states back.
+		 *
+		 * @return {object|null} `{ states, keyByValue, refsByKey }`.
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-columns-can-be-the-rows-a-field-references
+		 */
+		boardStages() {
+			const active = this.boardActiveColumnField
+			if (!active) {
+				return null
+			}
+			if (active.kind === 'values') {
+				return buildValueStages({
+					rows: this.displayObjects,
+					field: active.field,
+					valueLabels: active.valueLabels,
+					emptyLabel: active.emptyLabel ? this.cnTranslate(active.emptyLabel) : t('nextcloud-vue', 'Nobody'),
+				})
+			}
+			if (active.kind !== 'reference') {
+				return null
+			}
+			const source = active.source || {}
+			const narrowBy = source.narrowBy && typeof source.narrowBy === 'object' ? source.narrowBy : null
+			return buildReferenceStages({
+				refs: this.boardRefs[active.field] || [],
+				labelField: source.labelField || '',
+				orderField: source.orderField || '',
+				colorField: source.colorField || '',
+				mergeBy: source.mergeBy || '',
+				narrowBy,
+				narrowValue: narrowBy ? this.boardNarrowValue : '',
+			})
+		},
+
+		/**
+		 * The field schema the board reads its columns from: the stages of a
+		 * reference or values field as lifecycle `states`, else the schema's
+		 * own property.
+		 *
+		 * @return {?object} The field schema, or null.
+		 */
+		boardFieldSchema() {
+			if (this.boardStages) {
+				return { states: this.boardStages.states }
+			}
+			const field = this.boardColumnField
+			return this.effectiveSchema?.properties?.[field] || null
+		},
+
+		/**
+		 * The column a card sits in, for a reference or values field.
+		 *
+		 * @return {((row: object) => string)|null} The mapper, or null.
+		 */
+		boardColumnKeyOf() {
+			const stages = this.boardStages
+			if (!stages) {
+				return null
+			}
+			const field = this.boardColumnField
+			return (row) => columnKeyOfRow(row, field, stages.keyByValue)
+		},
+
+		/**
+		 * The move the board runs on a drop or a menu pick.
+		 *
+		 * A named handler (`moveHandler`, from the app's registry) gets
+		 * `{ card, toKey, field, value, target }` and owns the write; the
+		 * status of a case goes through the app's transition this way. A
+		 * reference or values field without one has its value written on the
+		 * row (PATCH). `readOnly` gives no move. A board on `statusField` with
+		 * neither keeps the `runTransition` prop.
+		 *
+		 * @return {((move: {card: object, toKey: string}) => Promise<object>)|null} The move, or null for a read-only board.
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-drop-writes-the-reference
+		 */
+		boardRunTransition() {
+			const active = this.boardActiveColumnField
+			if (active?.readOnly) {
+				return null
+			}
+			const onStatusField = !active || active.field === this.board?.statusField
+			const name = active?.moveHandler || (onStatusField ? (this.board?.moveHandler || '') : '')
+			const handler = name ? resolveRegisteredHandler(name, this.effectiveRegistry, this.resolvedCustomComponents) : null
+			if (name && typeof handler !== 'function') {
+				return null
+			}
+			const stages = this.boardStages
+			if (!handler && !stages) {
+				return this.runTransition
+			}
+			const field = this.boardColumnField
+			const kind = active?.kind || 'schema'
+			const narrowBy = active?.source?.narrowBy || null
+			return async ({ card, toKey }) => {
+				const drop = stages
+					? resolveDropValue({ card, toKey, kind, refsByKey: stages.refsByKey, narrowBy })
+					: { value: toKey, target: null }
+				if (drop === null) {
+					throw new Error(t('nextcloud-vue', 'This card cannot move to that column.'))
+				}
+				if (handler) {
+					return handler({ card, toKey, field, value: drop.value, target: drop.target })
+				}
+				const id = card?.id ?? card?.['@self']?.id ?? card?.[this.rowKey]
+				const url = objectUrlOf(this.register, this.exportSchemaSlug, id)
+				if (url === '') {
+					throw new Error(t('nextcloud-vue', 'This card cannot move to that column.'))
+				}
+				return patchObject(url, { [field]: drop.value })
+			}
+		},
+
+		/**
+		 * Where a card may go, from the app's `moveTargetsHandler`: it gets
+		 * `{ card, field }` and answers the values (referenced ids) the card
+		 * can reach; the board maps them to its columns.
+		 *
+		 * @return {((card: object) => Promise<Array<string>|null>)|null} The question, or null.
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-board-shows-where-a-card-can-go
+		 */
+		boardAllowedMoves() {
+			const active = this.boardActiveColumnField
+			const onStatusField = !active || active.field === this.board?.statusField
+			const name = active?.moveTargetsHandler || (onStatusField ? (this.board?.moveTargetsHandler || '') : '')
+			const handler = name ? resolveRegisteredHandler(name, this.effectiveRegistry, this.resolvedCustomComponents) : null
+			if (typeof handler !== 'function' || this.boardRunTransition === null) {
+				return null
+			}
+			const field = this.boardColumnField
+			const stages = this.boardStages
+			return async (card) => {
+				const values = await handler({ card, field })
+				if (!Array.isArray(values)) {
+					return null
+				}
+				return values.map((value) => {
+					const id = refIdOf(value)
+					return stages && stages.keyByValue.has(id) ? stages.keyByValue.get(id) : id
+				})
+			}
+		},
+
+		/** @return {object|null} The board's narrowing select (`board.narrow`). */
+		boardNarrow() {
+			const narrow = this.board?.narrow
+			return narrow && typeof narrow === 'object' && typeof narrow.field === 'string' && narrow.field !== '' ? narrow : null
+		},
+
+		/** @return {string} The narrowing select's label, with its colon. */
+		boardNarrowLabel() {
+			const narrow = this.boardNarrow || {}
+			const prop = (this.effectiveSchema?.properties || {})[narrow.field] || {}
+			return t('nextcloud-vue', '{label}:', { label: this.cnTranslate(narrow.label || prop.title || narrow.field || '') })
+		},
+
+		/** @return {string} The narrowing select's "all" option. */
+		boardNarrowAllLabel() {
+			return this.boardNarrow?.allLabel ? this.cnTranslate(this.boardNarrow.allLabel) : t('nextcloud-vue', 'All')
+		},
+
+		/** @return {string} The column switch's label, with its colon. */
+		boardColumnSwitchLabel() {
+			const label = this.board?.columnSwitchLabel ? this.cnTranslate(this.board.columnSwitchLabel) : t('nextcloud-vue', 'Columns')
+			return t('nextcloud-vue', '{label}:', { label })
+		},
+
+		/** @return {boolean} Whether the board view draws its controls row. */
+		boardControlsShown() {
+			return this.currentViewMode === 'board'
+				&& (this.boardColumnFields.length > 1 || this.boardNarrow !== null || Boolean(this.board?.hint))
+		},
+
+		/**
+		 * What the board needs fetched, as one key the watcher reacts to.
+		 *
+		 * @return {string} The key, '' outside the board view.
+		 */
+		boardFetchKey() {
+			if (this.currentViewMode !== 'board') {
+				return ''
+			}
+			return [this.boardColumnField, this.boardActiveColumnField?.kind || '', this.effectiveSchema ? 1 : 0, this.boardNarrow ? this.boardNarrow.field : ''].join('|')
+		},
+
+		/**
 		 * The status field's schema, for the board's columns.
 		 *
 		 * Read from the schema this page already holds rather than fetched: the
@@ -4068,7 +4440,34 @@ export default {
 		 * @return {boolean} True when there is more than this page.
 		 */
 		isPaged() {
+			if (this.boardLoadsAll) {
+				const loaded = this.effectivePagination || {}
+				return Number(loaded.page || 1) < Number(loaded.pages || 1)
+			}
 			return Number(this.pagination?.pages || 1) > 1
+		},
+
+		/**
+		 * Whether the board view gathers every row itself: in self-fetch mode
+		 * it adds page after page (`list.loadMore`) instead of paging, and
+		 * draws its own footer in place of the pagination.
+		 *
+		 * @return {boolean} True for a self-fetching page in board view.
+		 * @spec openspec/changes/board-loads-every-row/specs/board-view/spec.md#requirement-the-index-board-shows-every-matching-row
+		 */
+		boardLoadsAll() {
+			return this.currentViewMode === 'board' && this.isSelfFetchMode && !this.isNamedSource && typeof this.list.loadMore === 'function'
+		},
+
+		/**
+		 * The rows the board holds against the rows that match, for the
+		 * board's footer.
+		 *
+		 * @return {{shown: number, total: number}} The counts.
+		 */
+		boardLoadCounts() {
+			const shown = this.effectiveObjects.length
+			return { shown, total: Math.max(shown, Number(this.effectivePagination?.total || 0)) }
 		},
 
 		/**
@@ -5873,13 +6272,15 @@ export default {
 				if (!this.countText && !this.countSubtitle) {
 					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
 				}
-				const template = this.countText || this.countSubtitle
-				return this.cnTranslate(template)
-					.replace('{shown}', String(shown))
-					.replace('{total}', String(total))
+				if (this.countText) {
+					return this.cnTranslate(this.countText)
+						.replace('{shown}', String(shown))
+						.replace('{total}', String(total))
+				}
+				return this.countLine(this.countSubtitle, total, shown)
 			}
 			if (this.countSubtitle && typeof total === 'number' && total >= 0) {
-				return this.cnTranslate(this.countSubtitle).replace('{total}', String(total))
+				return this.countLine(this.countSubtitle, total, null)
 			}
 			return this.description
 		},
@@ -6045,6 +6446,19 @@ export default {
 	},
 
 	watch: {
+		'$route.query._view': function() {
+			this.applyViewModeFromRoute()
+		},
+
+		boardFetchKey: {
+			immediate: true,
+			handler(key) {
+				if (key !== '') {
+					this.loadBoardSources()
+				}
+			},
+		},
+
 		effectiveObjects: {
 			immediate: true,
 			handler(rows) {
@@ -6118,22 +6532,33 @@ export default {
 		// Entering calendar mode fetches one page sized to the month; leaving
 		// removes the month range and restores the page size, so the table is
 		// never left narrowed.
+		// The board does the same at BOARD_PAGE_SIZE, so it shows every row
+		// rather than the table's first page.
 		currentViewMode(mode, previous) {
 			if (!this.isSelfFetchMode) {
 				return
 			}
-			if (mode === 'calendar') {
-				this.calendarPrevPageSize = this.list.pageSize.value
-				if (typeof this.list.onPageSizeChange === 'function') {
-					this.list.onPageSizeChange(CALENDAR_PAGE_SIZE)
-				}
-			} else if (previous === 'calendar') {
+			let listSize = this.list.pageSize.value
+			if (previous === 'calendar') {
 				this.calendarRange = null
-				const restore = this.calendarPrevPageSize || 20
+				listSize = this.calendarPrevPageSize || 20
 				this.calendarPrevPageSize = null
-				if (typeof this.list.onPageSizeChange === 'function') {
-					this.list.onPageSizeChange(restore)
-				}
+			} else if (previous === 'board') {
+				listSize = this.boardPrevPageSize || 20
+				this.boardPrevPageSize = null
+			}
+			let size = null
+			if (mode === 'calendar') {
+				this.calendarPrevPageSize = listSize
+				size = CALENDAR_PAGE_SIZE
+			} else if (mode === 'board') {
+				this.boardPrevPageSize = listSize
+				size = BOARD_PAGE_SIZE
+			} else if (previous === 'calendar' || previous === 'board') {
+				size = listSize
+			}
+			if (size !== null && typeof this.list.onPageSizeChange === 'function') {
+				this.list.onPageSizeChange(size)
 			}
 		},
 
@@ -6288,6 +6713,7 @@ export default {
 	},
 
 	created() {
+		this.applyViewModeFromRoute()
 		this.pushAiContext()
 		if (this.allowSavedViews) {
 			this.fetchSavedViews()
@@ -7070,11 +7496,59 @@ export default {
 			const entry = this.mergedHeaderActions.find((e) => e.id === id)
 			if (entry && typeof entry.handler === 'function') {
 				entry.handler()
+			} else {
+				const dialogRun = this.dialogHeaderRuns.find((e) => e.id === id)
+				if (dialogRun && typeof dialogRun.run === 'function') {
+					dialogRun.run()
+				}
 			}
 			if (entry && entry._dispatchSuppress) {
 				return
 			}
 			this.$emit('header-action', { action: id, id })
+		},
+
+		/**
+		 * The `countSubtitle` line for a total. A string goes through the host
+		 * translate; `{ singular, plural }` takes the form for the total
+		 * through the app's plural translation, or by `total === 1` when no app
+		 * id is provided. `{total}` (and `{shown}` when given) are filled in.
+		 *
+		 * @spec openspec/changes/index-count-plural/specs/index-header/spec.md#requirement-the-count-line-takes-a-singular-and-a-plural-form
+		 * @param {string|{singular: string, plural: string}} subtitle The declared line.
+		 * @param {number} total The collection's total.
+		 * @param {number|null} shown The rows on this page, or null to leave `{shown}` alone.
+		 * @return {string} The line, '' for a declaration without both forms.
+		 */
+		countLine(subtitle, total, shown) {
+			const fill = (text) => {
+				const out = String(text).replace('{total}', String(total))
+				return shown === null ? out : out.replace('{shown}', String(shown))
+			}
+			if (typeof subtitle === 'string') {
+				return fill(this.cnTranslate(subtitle))
+			}
+			const singular = subtitle && typeof subtitle.singular === 'string' ? subtitle.singular : ''
+			const plural = subtitle && typeof subtitle.plural === 'string' ? subtitle.plural : ''
+			if (singular === '' || plural === '') {
+				return ''
+			}
+			if (typeof this.cnAppId === 'string' && this.cnAppId !== '') {
+				const vars = shown === null ? { total } : { total, shown }
+				return n(this.cnAppId, singular, plural, total, vars)
+			}
+			return fill(this.cnTranslate(total === 1 ? singular : plural))
+		},
+
+		/**
+		 * An `open-form` header action saved a record: the list reloads so the
+		 * new row shows.
+		 *
+		 * @spec openspec/changes/index-header-open-form/specs/index-header/spec.md#requirement-an-index-header-action-can-open-the-create-form
+		 * @return {void}
+		 */
+		onHeaderActionCreated() {
+			this.onRefreshEvent()
 		},
 
 		pushAiContext() {
@@ -7293,12 +7767,82 @@ export default {
 		},
 
 		/**
+		 * Fetch what the board view needs: the rows of a reference column
+		 * field (once per field) and the narrowing select's options.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-columns-can-be-the-rows-a-field-references
+		 */
+		async loadBoardSources() {
+			const active = this.boardActiveColumnField
+			if (active && active.kind === 'reference' && !Object.hasOwn(this.boardRefs, active.field)) {
+				const property = this.effectiveSchema?.properties?.[active.field] || null
+				const target = referenceTargetOf(active.source, { register: this.register, property })
+				if (target.register && target.schema) {
+					let rows
+					try {
+						rows = await fetchReferenceObjects({ ...target, filter: active.source?.filter || {} })
+					} catch {
+						rows = []
+					}
+					this.boardRefs = { ...this.boardRefs, [active.field]: rows }
+				}
+			}
+			const narrow = this.boardNarrow
+			if (narrow && this.boardNarrowOptions.length === 0) {
+				const property = this.effectiveSchema?.properties?.[narrow.field] || null
+				const target = referenceTargetOf(narrow.source || {}, { register: this.register, property })
+				let rows
+				try {
+					rows = await fetchReferenceObjects({ ...target, filter: narrow.source?.filter || {} })
+				} catch {
+					rows = []
+				}
+				const labelField = narrow.source?.labelField || 'title'
+				this.boardNarrowOptions = rows
+					.map((row) => ({ value: refIdOf(row), label: String(row?.[labelField] ?? row?.name ?? row?.title ?? refIdOf(row)) }))
+					.filter((option) => option.value !== '')
+					.sort((a, b) => a.label.localeCompare(b.label))
+			}
+		},
+
+		/**
+		 * The column switch changed.
+		 *
+		 * @param {string} field The column field picked.
+		 * @return {void}
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-board-can-switch-the-field-its-columns-come-from
+		 */
+		onBoardColumnFieldChange(field) {
+			this.boardColumnFieldChoice = field
+			/**
+			 * @event board-column-field-change The board's column switch picked another field. Payload: the field name.
+			 */
+			this.$emit('board-column-field-change', field)
+		},
+
+		/**
+		 * The narrowing select changed: it sets the page filter on its field,
+		 * so the cards narrow with the columns and the active filter shows.
+		 *
+		 * @param {string} value The parent id, '' for all.
+		 * @return {void}
+		 */
+		onBoardNarrowChange(value) {
+			this.onFilterEvent({ key: this.boardNarrow.field, values: value === '' ? [] : [value] })
+		},
+
+		/**
 		 * A paged board's "Show N more": ask for the next page.
 		 *
 		 * @return {void}
 		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-a-long-column-is-cut-with-a-show-more-button
 		 */
 		onBoardLoadMore() {
+			if (this.boardLoadsAll) {
+				this.list.loadMore()
+				return
+			}
 			const page = Number(this.pagination?.page || 1)
 			if (page < Number(this.pagination?.pages || 1)) {
 				this.onPageEvent(page + 1)
@@ -8635,6 +9179,23 @@ export default {
 		onViewModeChange(mode) {
 			this.currentViewMode = mode
 			this.$emit('view-mode-change', mode)
+		},
+
+		/**
+		 * Open in the mode the address names (`?_view=board`), when the page
+		 * offers it. The key starts with `_`, like `_search` and `_page`, so it
+		 * is never read as a list filter. A menu entry's `query` can so open a
+		 * list as its board, on the one page that lists the schema
+		 * (screens-board-reference-columns).
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-address-can-open-a-list-in-a-view-mode
+		 */
+		applyViewModeFromRoute() {
+			const wanted = this.$route?.query?._view
+			if (typeof wanted === 'string' && wanted !== this.currentViewMode && this.effectiveToggleModes.includes(wanted)) {
+				this.currentViewMode = wanted
+			}
 		},
 
 		/**

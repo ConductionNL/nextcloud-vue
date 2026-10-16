@@ -32,11 +32,18 @@ Referenced via `widgetKey: "card-grid"`:
 Each item in `objects` is rendered as a `CnObjectCard`, laid out in
 a responsive flex grid inside the widget's cell.
 
+Without `objects`, the cards can come from an app endpoint:
+
+```json
+{ "props": { "endpointSource": { "url": "/apps/shillinq/api/v1/cash-position", "responsePath": "accounts" } } }
+```
+
 ## Props
 
 | Prop | Type | Description |
 | --- | --- | --- |
 | `objects` | `Array` | Object records to render as cards. |
+| `endpoint-source` | `Object` | Read the objects from an app endpoint: `{ url, method?, params?, responsePath? }`, the shape the object table takes. The payload at `responsePath` is the array of objects. Ignored while `objects` holds any (default `null`). |
 | `title` | `String` | Widget title shown in the chrome header (default `'Items'`). |
 | `documentation-url` | `String` | Documentation link for the overflow Actions menu (default `''`). |
 | `widget-id` | `String` | Stable id forwarded to the widget chrome (default `''`). |

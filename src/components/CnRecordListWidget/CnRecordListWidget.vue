@@ -141,9 +141,11 @@
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import { inject, ref } from 'vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { actionLink, dispatchAction, interpolateActionTarget } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays } from '../../utils/boardDate.js'
@@ -180,7 +182,8 @@ function unwrap(value) {
  * objects filtered on a reference to this record. The source keys are those of
  * `object-list` (`register`, `schema`, `filter` with the `@objectId` /
  * `@object.<field>` / `@workspace.<key>` tokens, `sort`, `limit`, `extend`,
- * `rowRoute`, `pageControls`); `avatar` puts a circle with the initials of a name
+ * `rowRoute`, `pageControls`), or `endpointSource` (an app endpoint whose
+ * payload, after `responsePath`, is the array of rows, as on the object table); `avatar` puts a circle with the initials of a name
  * template before the title; what differs is the drawing: `presentation` is `rows`, `feed`
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`).
@@ -213,7 +216,9 @@ export default {
 		 * The list config: `{ register, schema, filter?, sort?, limit?, extend?,
 		 * presentation?, title?, meta?, text?, label?, pill?, trailing?, icon?,
 		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
-		 * valueLabels? }`. `valueLabels` maps a field's stored values to the labels
+		 * valueLabels?, endpointSource? }`. `endpointSource` (`{ url, method?,
+		 * params?, responsePath? }`) reads the rows from an app endpoint instead
+		 * of `register` / `schema`. `valueLabels` maps a field's stored values to the labels
 		 * the templates show.
 		 *
 		 * @type {object}
@@ -237,6 +242,28 @@ export default {
 	},
 
 	emits: ['header'],
+
+	setup(props) {
+		const objectCtxRaw = inject('cnObjectContext', null)
+		const workspaceRaw = inject('cnWorkspaceContext', null)
+		const appConfigRaw = inject('cnAppConfig', ref({}))
+		const { data, loading, error } = useEndpointSource(
+			() => props.content?.endpointSource || null,
+			{
+				ctx: () => {
+					const injected = unwrap(objectCtxRaw) || {}
+					return {
+						...injected,
+						objectId: props.objectId ?? injected.objectId ?? props.objectData?.id ?? null,
+						object: props.objectData || injected.object || null,
+						workspace: unwrap(workspaceRaw) || {},
+						config: unwrapAppConfig(appConfigRaw) || {},
+					}
+				},
+			},
+		)
+		return { epData: data, epLoading: loading, epError: error }
+	},
 
 	data() {
 		return {
@@ -292,6 +319,22 @@ export default {
 		 */
 		templateContext() {
 			return { config: unwrapAppConfig(this.cnAppConfig) }
+		},
+
+		/**
+		 * Whether the rows come from `endpointSource` rather than OpenRegister.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/endpoint-source-card-grid-record-list/specs/dashboard-page/spec.md#requirement-a-record-list-and-a-card-grid-can-read-an-endpoint
+		 */
+		endpointActive() {
+			const source = this.content?.endpointSource
+			return Boolean(source && typeof source === 'object' && source.url)
+		},
+
+		/** @return {string} The endpoint read's state, to copy into the list when it changes. */
+		endpointKey() {
+			return this.endpointActive ? JSON.stringify([this.epData, this.epLoading, this.epError]) : ''
 		},
 
 		/** @return {number} The fetch cap. */
@@ -396,6 +439,10 @@ export default {
 
 	watch: {
 		requestKey() {
+			this.fetchRows()
+		},
+
+		endpointKey() {
 			this.fetchRows()
 		},
 	},
@@ -855,6 +902,23 @@ export default {
 		},
 
 		/**
+		 * Copy the endpoint read into the list: its payload must be an array of
+		 * rows (anything else is an empty list), and a failed read is an error.
+		 *
+		 * @spec openspec/changes/endpoint-source-card-grid-record-list/specs/dashboard-page/spec.md#requirement-a-record-list-and-a-card-grid-can-read-an-endpoint
+		 */
+		takeEndpointRows() {
+			this.rows = Array.isArray(this.epData) ? this.epData : []
+			this.total = this.rows.length
+			this.loading = this.epLoading === true
+			this.error = Boolean(this.epError)
+			this.lenses = {}
+			if (!this.loading) {
+				this.emitHeader()
+			}
+		},
+
+		/**
 		 * Fetch the list. Sends nothing while a required token is unresolved
 		 * or the source is incomplete.
 		 *
@@ -862,6 +926,10 @@ export default {
 		 */
 		async fetchRows() {
 			const c = this.content || {}
+			if (this.endpointActive) {
+				this.takeEndpointRows()
+				return
+			}
 			if (!c.register || !c.schema || this.waiting) {
 				this.rows = []
 				this.total = 0
