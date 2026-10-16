@@ -4,6 +4,7 @@
 -->
 <template>
 	<CnFormWidgetBase
+		v-bind="rootAttrs"
 		blockClass="cn-interaction-form-widget"
 		:fields="formFields"
 		:model="form"
@@ -51,6 +52,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import { camelize } from 'vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import CnFormWidgetBase from '../CnFormWidgetBase/CnFormWidgetBase.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
@@ -125,6 +127,11 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 	},
 
+	// A dashboard binds the widget's `content` keys as attributes too. Falling
+	// through, `submitLabel` would reach CnFormWidgetBase and win over the
+	// translated label the widget passes, so attributes go through rootAttrs.
+	inheritAttrs: false,
+
 	props: {
 		/**
 		 * Persisted configuration blob (see component description for the shape).
@@ -160,6 +167,19 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The attributes for the root form: everything the widget was given,
+		 * minus the names CnFormWidgetBase takes as props, which the widget
+		 * sets itself.
+		 *
+		 * @spec openspec/changes/interaction-form-fits-and-reads-dutch/specs/interaction-form-widget/spec.md#requirement-the-interaction-form-fits-its-card-and-reads-in-the-readers-language
+		 * @return {object} The attributes to bind.
+		 */
+		rootAttrs() {
+			const own = new Set(Object.keys(CnFormWidgetBase.props || {}))
+			return Object.fromEntries(Object.entries(this.$attrs).filter(([key]) => !own.has(camelize(key))))
+		},
+
 		register() {
 			return this.content.register || 'pipelinq'
 		},

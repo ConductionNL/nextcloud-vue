@@ -19,6 +19,7 @@ jest.mock('@nextcloud/auth', () => ({ getCurrentUser: jest.fn(() => ({ uid: 'pie
 
 const axios = require('@nextcloud/axios').default
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
+const { dispatchObjectsChanged } = require('../../src/utils/objectSignals.js')
 
 const flush = () => new Promise((resolve) => setTimeout(resolve))
 
@@ -68,6 +69,41 @@ describe('CnAppRoot — filtered menu-entry counts', () => {
 		expect(calls[0][1]).toEqual({ params: { _limit: 1, assignee: 'pieter' } })
 		expect(wrapper.vm.cnMenuItemCounts).toEqual({ mine: 6, queue: 3 })
 		expect(wrapper.vm.cnMenuCounts).toEqual({})
+	})
+
+	it('reads the counts of a changed list again, and only those', async () => {
+		// Rehearsal R3: the Team queue badge kept 2 after a claim until reload.
+		let queued = 2
+		axios.get.mockImplementation(async (url) => ({ data: { total: String(url).includes('/dossiq/case') ? queued : 9, results: [] } }))
+		const wrapper = mountRoot([
+			{ id: 'queue', label: 'Queue', route: 'Cases', count: { register: 'dossiq', schema: 'case', filter: { assignee: 'IS NULL' } } },
+			{ id: 'tasks', label: 'Tasks', route: 'Cases', count: { register: 'dossiq', schema: 'task' } },
+		])
+		await flush()
+		expect(wrapper.vm.cnMenuItemCounts).toEqual({ queue: 2, tasks: 9 })
+		axios.get.mockClear()
+
+		queued = 1
+		dispatchObjectsChanged({ register: 'dossiq', schema: 'case', id: 'case-1' })
+		await flush()
+
+		const calls = axios.get.mock.calls.filter(([url]) => String(url).includes('/api/objects/'))
+		expect(calls).toHaveLength(1)
+		expect(calls[0][0]).toContain('/dossiq/case')
+		expect(wrapper.vm.cnMenuItemCounts).toEqual({ queue: 1, tasks: 9 })
+	})
+
+	it('stops listening once unmounted', async () => {
+		axios.get.mockResolvedValue({ data: { total: 2, results: [] } })
+		const wrapper = mountRoot([{ id: 'queue', label: 'Queue', route: 'Cases', count: { register: 'dossiq', schema: 'case' } }])
+		await flush()
+		wrapper.destroy ? wrapper.destroy() : wrapper.unmount()
+		axios.get.mockClear()
+
+		dispatchObjectsChanged({ register: 'dossiq', schema: 'case' })
+		await flush()
+
+		expect(axios.get).not.toHaveBeenCalled()
 	})
 
 	it('leaves the badge unrendered when the request fails', async () => {
