@@ -4,8 +4,10 @@
 -->
 
 <template>
-	<div class="cn-kpi-card cn-countdown-widget" :class="`cn-countdown-widget--${variant}`">
-		<div class="cn-kpi-card__icon cn-countdown-widget__icon" :style="iconCircleStyle">
+	<div
+		class="cn-kpi-card cn-countdown-widget"
+		:class="[`cn-countdown-widget--${variant}`, { 'cn-kpi-card--board cn-countdown-widget--board': isBoardLook }]">
+		<div v-if="!isBoardLook" class="cn-kpi-card__icon cn-countdown-widget__icon" :style="iconCircleStyle">
 			<CnWidgetIcon :name="resolvedIcon" :size="24" />
 		</div>
 
@@ -16,9 +18,28 @@
 			<div class="cn-kpi-card__value cn-countdown-widget__value" :style="{ color: valueColor }">
 				{{ headline }}
 			</div>
-			<div v-if="subLabel" class="cn-countdown-widget__sub">
+			<div v-if="subLabel" class="cn-countdown-widget__sub" data-testid="cn-countdown-sub">
 				{{ subLabel }}
 			</div>
+			<span
+				v-if="progress !== null"
+				class="cn-countdown-widget__progress"
+				role="meter"
+				:aria-label="progressLabel"
+				:aria-valuenow="Math.round(progress)"
+				aria-valuemin="0"
+				aria-valuemax="100"
+				data-testid="cn-countdown-progress">
+				<span class="cn-countdown-widget__progress-fill" :style="{ width: `${progress}%` }" />
+			</span>
+			<button
+				v-if="actionLabel"
+				type="button"
+				class="cn-countdown-widget__action"
+				data-testid="cn-countdown-action"
+				@click="runAction">
+				{{ actionLabel }}
+			</button>
 		</div>
 	</div>
 </template>
@@ -28,7 +49,10 @@ import { translate as t } from '@nextcloud/l10n'
 import { inject } from 'vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { getByPath } from '../../composables/useEndpointSource.js'
+import { normalizeLook } from '../../composables/useLook.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -106,8 +130,12 @@ export default {
 		 * - `showDate` — render the absolute date underneath (default true).
 		 * - `settledField` — property on the record that is truthy once the work is done; the tile then reads `settledLabel` and never counts overdue.
 		 * - `settledLabel` — the headline of a settled record, run through the host's translate function (default "Closed").
+		 * - `daysLabel` — `{ one, other }` with `{count}`, the headline while days remain ("27 dagen").
+		 * - `caption` — the line under the headline instead of the date, with `{date}` (the long date) and `{count}` (days left).
+		 * - `startField` — property holding the start of the term; a bar then shows how much of it has passed.
+		 * - `action` — one manifest action under the card (`{ label, type, ... }`, the headerActions shape).
 		 *
-		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean, settledField?: string, settledLabel?: string }}
+		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean, settledField?: string, settledLabel?: string, daysLabel?: {one?: string, other?: string}, caption?: string, startField?: string, action?: object }}
 		 */
 		content: {
 			type: Object,
@@ -131,6 +159,8 @@ export default {
 			cnObjectContextInjected: inject('cnObjectContext', null),
 			cnDetailObjectContextInjected: inject('cnDetailObjectContext', null),
 			cnTranslate: inject('cnTranslate', null),
+			cnLook: inject('cnLook', 'nextcloud'),
+			cnDispatchAction: inject('cnDispatchAction', null),
 		}
 	},
 
@@ -233,10 +263,67 @@ export default {
 			if (days === 0) {
 				return t('nextcloud-vue', 'Due today')
 			}
+			const labels = this.content?.daysLabel
+			if (labels && typeof labels === 'object' && (labels.one || labels.other)) {
+				const template = this.translate((days === 1 ? labels.one : labels.other) || labels.other || labels.one)
+				return template.replace(/\{count\}/g, String(days))
+			}
 			if (days === 1) {
 				return t('nextcloud-vue', '1 day left')
 			}
 			return t('nextcloud-vue', '{count} days left', { count: days })
+		},
+
+		/**
+		 * Whether the app takes the board look: no icon circle.
+		 *
+		 * @return {boolean} True in the board look.
+		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * How much of the term has passed, from `startField` to the date, in
+		 * percent (0 to 100), or null without a usable start.
+		 *
+		 * @return {number|null} The share passed.
+		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
+		 */
+		progress() {
+			const field = this.content?.startField
+			if (!field || !this.record || !this.targetDate || this.isSettled) {
+				return null
+			}
+			const raw = getByPath(this.record, field)
+			const start = raw === null || raw === undefined || raw === '' ? null : new Date(raw)
+			if (!start || Number.isNaN(start.getTime())) {
+				return null
+			}
+			const span = this.targetDate.getTime() - start.getTime()
+			if (span <= 0) {
+				return null
+			}
+			return Math.min(100, Math.max(0, ((Date.now() - start.getTime()) / span) * 100))
+		},
+
+		/** @return {string} The accessible name of the progress bar. */
+		progressLabel() {
+			return t('nextcloud-vue', 'Time passed')
+		},
+
+		/**
+		 * The label of `content.action`, translated, or ''.
+		 *
+		 * @return {string} The label.
+		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
+		 */
+		actionLabel() {
+			const action = this.content?.action
+			return action && typeof action === 'object' && typeof action.label === 'string' && action.label !== ''
+				? this.translate(action.label)
+				: ''
 		},
 
 		/**
@@ -249,7 +336,12 @@ export default {
 			if (!this.targetDate || this.content?.showDate === false) {
 				return ''
 			}
-			return this.targetDate.toLocaleDateString(userLocale(), { day: 'numeric', month: 'long', year: 'numeric' })
+			const date = this.targetDate.toLocaleDateString(userLocale(), { day: 'numeric', month: 'long', year: 'numeric' })
+			const caption = this.content?.caption
+			if (typeof caption === 'string' && caption !== '') {
+				return this.translate(caption).replace(/\{date\}/g, date).replace(/\{count\}/g, String(this.daysRemaining ?? ''))
+			}
+			return date
 		},
 
 		/**
@@ -278,6 +370,9 @@ export default {
 
 		/** @return {string} The value colour for the current band. */
 		valueColor() {
+			if (this.isBoardLook && this.variant === 'default') {
+				return 'var(--color-main-text)'
+			}
 			return VARIANT_COLORS[this.variant] || VARIANT_COLORS.default
 		},
 
@@ -296,12 +391,77 @@ export default {
 			return { color: this.valueColor }
 		},
 	},
+
+	methods: {
+		/**
+		 * The host's translate, or the text unchanged.
+		 *
+		 * @param {string} text The text.
+		 * @return {string} The translation.
+		 */
+		translate(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * Dispatch `content.action` with the record's tokens resolved, through
+		 * the page's dispatcher when there is one.
+		 *
+		 * @return {unknown}
+		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
+		 */
+		runAction() {
+			const action = this.content?.action
+			if (!action || typeof action !== 'object') {
+				return undefined
+			}
+			const ctx = resolveObjectTokenContext(this.cnObjectContextInjected, this.cnDetailObjectContextInjected) || {}
+			const tokenCtx = { ...ctx, object: this.record || ctx.object || null, objectId: this.record?.id ?? ctx.objectId ?? null }
+			const resolved = resolveDeepTokens(action, tokenCtx)
+			if (typeof this.cnDispatchAction === 'function') {
+				return this.cnDispatchAction(resolved)
+			}
+			return dispatchAction(resolved, { router: this.$router || null, tokenCtx })
+		},
+	},
 }
 </script>
 
 <style scoped>
 .cn-countdown-widget__value {
 	white-space: nowrap;
+}
+
+.cn-countdown-widget__progress {
+	background: var(--color-border);
+	border-radius: 3px;
+	display: block;
+	height: 6px;
+	margin-block-start: 10px;
+	overflow: hidden;
+}
+
+.cn-countdown-widget__progress-fill {
+	background: var(--color-primary-element);
+	display: block;
+	height: 100%;
+}
+
+.cn-countdown-widget__action {
+	align-self: flex-start;
+	background: var(--color-background-dark);
+	border: 0;
+	border-radius: var(--border-radius-pill, 17px);
+	color: var(--color-main-text);
+	font-weight: 600;
+	margin-block-start: 10px;
+	min-height: 34px;
+	padding: 0 12px;
+}
+
+.cn-countdown-widget__action:hover,
+.cn-countdown-widget__action:focus-visible {
+	background: var(--color-background-hover);
 }
 
 .cn-countdown-widget__sub {
