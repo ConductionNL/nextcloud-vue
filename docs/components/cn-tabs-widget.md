@@ -48,6 +48,20 @@ Reference it from a manifest placement. `label` and `icon` are optional and fall
 }
 ```
 
+### The open panel's header link
+
+A widget that declares `headerLink` keeps it inside a tab. A panel draws no card header, so the strip draws the open tab's link beside it, before the Actions menu, and switches it with the tab. A tab whose widget declares none shows no link. The link is read from `headerLink` on the widget definition, else from its content (`content.headerLink`, or `viewAllRoute`). For a stack, the first widget's link counts.
+
+```json
+{
+  "id": "open-invoices",
+  "type": "object-table",
+  "headerLink": { "label": "All sales invoices", "route": "AccountsReceivable" }
+}
+```
+
+A `route` is a router link (with optional `params` and `query`), an `href` a plain anchor, and the label goes through the app's translations. Nothing changes on the tabs widget itself.
+
 ### Counts, and tabs under More
 
 A tab can show a count, and a strip can keep to a few tabs and put the rest under a "More" menu:

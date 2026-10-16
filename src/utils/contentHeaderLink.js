@@ -46,3 +46,50 @@ export function contentHeaderLink(content) {
 	}
 	return link
 }
+
+/**
+ * The header link a widget DEFINITION declares: `headerLink` on the
+ * definition itself, else what its content asks for (see contentHeaderLink).
+ *
+ * @param {object|null|undefined} widget A widget definition.
+ * @return {{label: string, route?: string, params?: object, query?: object, href?: string}|null}
+ */
+export function widgetHeaderLink(widget) {
+	if (!widget || typeof widget !== 'object') {
+		return null
+	}
+	const declared = widget.headerLink
+	if (declared && typeof declared === 'object' && typeof declared.label === 'string' && declared.label !== '') {
+		return declared
+	}
+	return contentHeaderLink(widget.content)
+}
+
+/**
+ * How to draw a header link: the tag and its attributes. A `route` is a
+ * `router-link` (only when a router is mounted), an `href` a plain anchor.
+ * An empty tag means there is nothing usable to draw.
+ *
+ * @param {object|null|undefined} link A link `{ label, route?, params?, query?, href? }`.
+ * @param {boolean} hasRouter Whether a router is mounted.
+ * @return {{tag: string, attrs: object}}
+ */
+export function headerLinkTarget(link, hasRouter) {
+	if (!link || typeof link.label !== 'string' || link.label === '') {
+		return { tag: '', attrs: {} }
+	}
+	if (link.route && hasRouter) {
+		const to = { name: link.route }
+		if (link.params && typeof link.params === 'object') {
+			to.params = link.params
+		}
+		if (link.query && typeof link.query === 'object') {
+			to.query = link.query
+		}
+		return { tag: 'router-link', attrs: { to } }
+	}
+	if (typeof link.href === 'string' && link.href !== '') {
+		return { tag: 'a', attrs: { href: link.href } }
+	}
+	return { tag: '', attrs: {} }
+}
