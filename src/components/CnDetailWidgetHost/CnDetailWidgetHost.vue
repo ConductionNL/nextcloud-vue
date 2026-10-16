@@ -236,7 +236,7 @@
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
-			<component :is="renderer" :content="content" v-bind="content" />
+			<component :is="renderer" :content="content" v-bind="declaredContent" />
 		</CnWidgetWrapper>
 
 		<!-- Every other content-driven catalog widget, and every bare-mode
@@ -276,6 +276,7 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { widgetHeaderLink } from '../../utils/contentHeaderLink.js'
+import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
@@ -997,7 +998,20 @@ export default {
 			if (title) {
 				base.title = title
 			}
-			return { ...base, ...this.content }
+			return { ...base, ...this.declaredContent }
+		},
+
+		/**
+		 * The content keys the renderer declares as props. An undeclared key
+		 * would fall through as an attribute onto the renderer's root and could
+		 * override a value the widget computes there; the whole content still
+		 * arrives as `content`.
+		 *
+		 * @return {object} The declared content keys.
+		 * @spec openspec/changes/declared-props-detail-index-sidebar/specs/widget-hosts/spec.md#requirement-a-widget-host-passes-only-the-keys-a-widget-declares
+		 */
+		declaredContent() {
+			return pickDeclaredProps(this.renderer, this.content, this.widget?.type || '')
 		},
 
 		/**
