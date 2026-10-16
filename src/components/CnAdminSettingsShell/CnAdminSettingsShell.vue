@@ -213,6 +213,7 @@ import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import { useEnvironment } from '../../composables/useEnvironment.js'
 import { normalizeLook, useLook } from '../../composables/useLook.js'
+import { ensureTranslations } from '../../l10n/index.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { CnTab, CnTabs } from '../CnTabs/index.js'
@@ -593,6 +594,9 @@ export default {
 	emits: ['update', 'reimported', 'reimport-error', 'tab-change'],
 
 	setup(props) {
+		// An admin page can be an entry with no other library surface: its
+		// chrome reads in the user's language without the app registering.
+		ensureTranslations()
 		// The app's own `environment` setting, else the active organisation's.
 		const { environment: environmentName } = useEnvironment({ environment: () => props.environment })
 		const { look, isBoard } = useLook(props)
