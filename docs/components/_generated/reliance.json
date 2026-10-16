@@ -2781,7 +2781,7 @@
 			"page": "cn-reference-preview"
 		},
 		"CnRegisterMapping": {
-			"direct": 3,
+			"direct": 4,
 			"transitive": 1,
 			"tier": "medium",
 			"via": [],
