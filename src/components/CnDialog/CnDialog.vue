@@ -32,7 +32,7 @@ import { useLook } from '../../composables/useLook.js'
 import { resolveDialogWidth } from '../../utils/dialogWidths.js'
 
 /**
- * CnDialog (internal) - the one place where a `Cn*` dialog turns into the
+ * CnDialog - the one place where a `Cn*` dialog turns into the
  * board dialog (screens-dialog-parity).
  *
  * In the Nextcloud look it is `NcDialog` with the caller's `size`, unchanged.

@@ -1023,14 +1023,14 @@
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
-			"page": null
+			"page": "cn-dialog"
 		},
 		"CnDialogHeader": {
 			"direct": 0,
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
-			"page": null
+			"page": "cn-dialog-header"
 		},
 		"CnDividerWidget": {
 			"direct": 0,
