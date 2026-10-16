@@ -71,6 +71,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { GridStack } from 'gridstack'
+import { toRaw } from 'vue'
 import { planGrowth } from '../../utils/gridStack.js'
 // `gridstack` is a peerDependency (see package.json), not bundled — this
 // component's JS and the consumer's GridStack stylesheet MUST come from the
@@ -683,16 +684,27 @@ export default {
 		 * (`itemsInRowOrder`). A cell that shrinks is left to GridStack as
 		 * before.
 		 *
+		 * The grid is read raw: through Vue's proxy `engine.nodes` holds proxies
+		 * while `el.gridstackNode` is the plain node, so the growing cell would
+		 * not be recognised among the nodes and would be moved down by its own
+		 * growth. Moving a cell makes GridStack measure it again, so a cell the
+		 * wrapper is already growing goes straight to GridStack.
+		 *
 		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
 		 * @return {void}
 		 */
 		keepOrderOnGrowth() {
-			const grid = this.grid
+			const grid = toRaw(this.grid)
 			if (!grid || typeof grid.resizeToContent !== 'function' || typeof grid.update !== 'function') {
 				return
 			}
 			const resize = grid.resizeToContent.bind(grid)
+			const growing = new Set()
 			grid.resizeToContent = (el) => {
+				if (growing.has(el)) {
+					resize(el)
+					return
+				}
 				const node = el && el.gridstackNode
 				const nodes = grid.engine && Array.isArray(grid.engine.nodes) ? grid.engine.nodes : null
 				const rows = node && nodes ? this.contentRows(el, node) : null
@@ -703,15 +715,20 @@ export default {
 				}
 				// Inside a batch the moves are not packed until the cell has grown.
 				const batching = Boolean(grid.engine.batchMode)
-				if (!batching) {
-					grid.batchUpdate()
-				}
-				for (const step of plan) {
-					grid.update(step.node.el, { y: step.y })
-				}
-				resize(el)
-				if (!batching) {
-					grid.batchUpdate(false)
+				growing.add(el)
+				try {
+					if (!batching) {
+						grid.batchUpdate()
+					}
+					for (const step of plan) {
+						grid.update(step.node.el, { y: step.y })
+					}
+					resize(el)
+					if (!batching) {
+						grid.batchUpdate(false)
+					}
+				} finally {
+					growing.delete(el)
 				}
 			}
 		},
