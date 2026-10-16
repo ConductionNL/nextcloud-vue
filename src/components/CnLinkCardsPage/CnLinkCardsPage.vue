@@ -222,7 +222,7 @@ export default {
 
 		/**
 		 * The modules: `{ id, label, description?, icon?, enabled?, enabledIf?,
-		 * route?, pages: [{ label, route, highlight? }], enable?: { label?,
+		 * route?, pages: [{ label, route, highlight? }], settings?: { label?, prefix?,
 		 * route?, href?, permission?, visibleIf? }, permission?, visibleIf? }`.
 		 * Drawn as module cards above the link cards.
 		 *
@@ -358,7 +358,7 @@ export default {
 		 * The modules a reader may see, with text translated and links
 		 * resolved. `enabled` is the declared boolean, or the result of
 		 * `enabledIf` (a visibleIf condition against `runtime`). A page that
-		 * resolves to nothing is dropped; the Turn on target only shows when
+		 * resolves to nothing is dropped; the admin-settings link only shows when
 		 * its own `permission` and `visibleIf` pass.
 		 *
 		 * @return {Array<object>} The modules.
@@ -377,9 +377,9 @@ export default {
 						.filter((page) => page.url !== '')
 					const own = this.targetOf(module)
 					const open = own.url !== '' ? own : (pages[0] || null)
-					const enableDeclared = module.enable && typeof module.enable === 'object' ? module.enable : null
-					const enableTarget = enableDeclared && this.passesPermission(enableDeclared) && this.passesVisibleIf(enableDeclared, runtime)
-						? this.targetOf(enableDeclared)
+					const settingsDeclared = module.settings && typeof module.settings === 'object' ? module.settings : null
+					const settingsTarget = settingsDeclared && this.passesPermission(settingsDeclared) && this.passesVisibleIf(settingsDeclared, runtime)
+						? this.targetOf(settingsDeclared)
 						: null
 					return {
 						id: String(module.id),
@@ -390,7 +390,9 @@ export default {
 						enabled: this.moduleEnabled(module, runtime),
 						pages,
 						open,
-						enable: enableTarget && enableTarget.url !== '' ? { ...enableTarget, label: this.tr(enableDeclared.label || '') } : null,
+						settings: settingsTarget && settingsTarget.url !== ''
+							? { ...settingsTarget, label: this.tr(settingsDeclared.label || ''), prefix: this.tr(settingsDeclared.prefix || '') }
+							: null,
 					}
 				})
 		},

@@ -8,7 +8,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name        | Type     | Required | Default | Description                                                                                                                                                                                           |
-| ----------- | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `module`    | `object` | ✓        | —       | The resolved module: `{ id, label, description, icon, enabled, pages: [{ key, label, url, location, highlight }], open: { url, location }\|null, enable: { url, location, external, label }\|null }`. |
-| `headingId` | `string` | ✓        | —       | Id of the card's heading, unique on the page.                                                                                                                                                         |
+| Name        | Type     | Required | Default | Description                                                                                                                                                                                                     |
+| ----------- | -------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `module`    | `object` | ✓        | —       | The resolved module: `{ id, label, description, icon, enabled, pages: [{ key, label, url, location, highlight }], open: { url, location }\|null, settings: { url, location, external, label, prefix }\|null }`. |
+| `headingId` | `string` | ✓        | —       | Id of the card's heading, unique on the page.                                                                                                                                                                   |

@@ -2230,13 +2230,13 @@ describe('app-manifest-v2: module cards on a links page (screens-links-module-ca
 		pages: [{ id: 'Modules', route: '/modules', type: 'links', title: 'Modules', config: { cards: [{ id: 'Tasks', label: 'Tasks', route: 'Tasks' }], ...config } }],
 	})
 
-	it('accepts modules with pages, a state and a Turn on target', () => {
+	it('accepts modules with pages, a state and an admin-settings link', () => {
 		const result = validateManifestV2(linksPage({
 			modulesTitle: 'Modules',
 			footnote: 'An admin turns a module on.',
 			modules: [
 				{ id: 'sales', label: 'Sales', icon: 'CashMultiple', enabled: true, pages: [{ label: 'Leads', route: 'Leads', highlight: true }] },
-				{ id: 'pos', label: 'Till', enabledIf: { 'config.modules': { contains: 'pos' } }, pages: [], enable: { route: '/admin', permission: 'admin' } },
+				{ id: 'pos', label: 'Till', enabledIf: { 'config.modules': { contains: 'pos' } }, pages: [], settings: { route: '/admin', prefix: 'In het menu zetten:', permission: 'admin' } },
 			],
 			groupStyle: 'list',
 		}))
@@ -2248,5 +2248,6 @@ describe('app-manifest-v2: module cards on a links page (screens-links-module-ca
 		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales', label: 'Sales', pages: [{ label: 'Leads' }] }] })).valid).toBe(false)
 		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales', label: 'Sales', colour: 'red' }] })).valid).toBe(false)
 		expect(validateManifestV2(linksPage({ groupStyle: 'tiles' })).valid).toBe(false)
+		expect(validateManifestV2(linksPage({ modules: [{ id: 'pos', label: 'Till', enable: { route: '/admin' } }] })).valid).toBe(false)
 	})
 })

@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * Module cards on a `type: "links"` page (board PqModules): per module its
- * state, pages and an Open or Turn on button, a count beside the heading and
+ * state, pages, an Open button and for a module that is off a link to the
+ * admin settings, a count beside the heading and
  * a note under the cards.
  *
  * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-links-page-can-show-modules
@@ -24,7 +25,7 @@ const MARKETING_PAGES = ['Segments', 'Templates', 'Articles', 'Lists', 'Blasts',
 const modules = [
 	{ id: 'sales', label: 'Sales', icon: 'CashMultiple', description: 'Leads and deals.', enabled: true, pages: [{ label: 'Leads', route: 'Leads' }, { label: 'Pipeline', route: 'Pipeline' }] },
 	{ id: 'marketing', label: 'Marketing', enabled: true, pages: MARKETING_PAGES },
-	{ id: 'pos', label: 'Till', enabled: false, pages: [{ label: 'Receipt', route: 'Receipt' }], enable: { route: '/admin/modules', permission: 'admin' } },
+	{ id: 'pos', label: 'Till', enabled: false, pages: [{ label: 'Receipt', route: 'Receipt' }], settings: { route: '/admin/modules', permission: 'admin' } },
 	{ id: 'loyalty', label: 'Loyalty', enabledIf: { 'menu.loyalty': true }, pages: [{ label: 'Report', route: 'LoyaltyReport' }] },
 	{ id: 'hidden', label: 'Hidden', enabled: true, permission: 'never' },
 ]
@@ -65,14 +66,17 @@ describe('CnLinkCardsPage modules', () => {
 		expect(router.push).toHaveBeenCalledWith({ name: 'Leads' })
 	})
 
-	it('offers Turn on for a module that is off, only to who may turn it on', () => {
-		const enable = cards(mountPage())[2].find('[data-testid="cn-module-card-enable"]')
-		expect(enable.text()).toBe('Turn on')
-		expect(enable.attributes('href')).toBe('/apps/pipelinq/admin/modules')
+	it('opens every module, and links a module that is off to the admin settings for who may see them', () => {
+		const till = cards(mountPage())[2]
+		expect(till.find('[data-testid="cn-module-card-open"]').attributes('href')).toBe('/apps/pipelinq/receipt')
+		const settings = till.find('[data-testid="cn-module-card-settings"]')
+		expect(settings.text()).toBe('Put it in the menu: Admin settings')
+		expect(settings.find('a').attributes('href')).toBe('/apps/pipelinq/admin/modules')
+		expect(cards(mountPage())[0].find('[data-testid="cn-module-card-settings"]').exists()).toBe(false)
 		const asUser = cards(mountPage({}, { permissions: ['read'] }))
 		expect(asUser.map((card) => card.attributes('data-module-id'))).not.toContain('hidden')
-		expect(asUser[2].find('[data-testid="cn-module-card-enable"]').exists()).toBe(false)
-		expect(asUser[2].find('[data-testid="cn-module-card-open"]').exists()).toBe(false)
+		expect(asUser[2].find('[data-testid="cn-module-card-settings"]').exists()).toBe(false)
+		expect(asUser[2].find('[data-testid="cn-module-card-open"]').exists()).toBe(true)
 	})
 
 	it('reads enabledIf against runtime', () => {

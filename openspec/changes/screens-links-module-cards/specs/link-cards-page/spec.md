@@ -19,14 +19,14 @@ A `type: "links"` page with `config.modules` SHALL draw one module card per modu
 count of modules in the menu out of all shown. A module SHALL read as in the menu when `enabled` is true, else when its
 `enabledIf` condition passes against `runtime`. A card SHALL name its pages, every page for four or fewer, else the
 pages marked `highlight` (or the first three) after the total, link each page, and offer Open (to `route`, else the
-first page) for a module in the menu or Turn on (to `enable`, only when its `permission` and `visibleIf` pass) for one
-that is off. `footnote` SHALL render under the cards.
+first page). A module that is off SHALL also show a link to `settings` (the admin settings), only when its `permission`
+and `visibleIf` pass; the page SHALL never turn a module on itself. `footnote` SHALL render under the cards.
 
 #### Scenario: A module that is off, for a reader who is not an admin
 
-- GIVEN a module with `enabled: false` and `enable: { route, permission: "admin" }`
+- GIVEN a module with `enabled: false` and `settings: { route, permission: "admin" }`
 - WHEN a reader without the admin permission opens the page
-- THEN the card reads "Off" and has no Turn on button
+- THEN the card reads "Off", has an Open button and no admin-settings link
 
 #### Scenario: The count
 

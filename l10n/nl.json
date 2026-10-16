@@ -1666,8 +1666,6 @@
     "Off": "Uit",
     "Pages": "Pagina's",
     "Open {module}": "{module} openen",
-    "Turn on {module}": "{module} aanzetten",
-    "Turn on": "Aanzetten",
     "{list} and {last}": "{list} en {last}",
     "%n page: {pages}": [
       "%n pagina: {pages}",
@@ -1680,7 +1678,8 @@
     "{on} of %n is in the menu": [
       "{on} van %n staat in het menu",
       "{on} van %n staan in het menu"
-    ]
+    ],
+    "Put it in the menu:": "In het menu zetten:"
   },
   "plurals": {
     "{count} selected": [

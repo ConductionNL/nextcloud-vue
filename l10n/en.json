@@ -1479,8 +1479,6 @@
     "Off": "Off",
     "Pages": "Pages",
     "Open {module}": "Open {module}",
-    "Turn on {module}": "Turn on {module}",
-    "Turn on": "Turn on",
     "{list} and {last}": "{list} and {last}",
     "%n page: {pages}": [
       "%n page: {pages}",
@@ -1493,7 +1491,9 @@
     "{on} of %n is in the menu": [
       "{on} of %n is in the menu",
       "{on} of %n are in the menu"
-    ]
+    ],
+    "Put it in the menu:": "Put it in the menu:",
+    "Admin settings": "Admin settings"
   },
   "plurals": {
     "{count} selected": [

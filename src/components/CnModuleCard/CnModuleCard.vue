@@ -9,7 +9,11 @@
 		data-testid="cn-module-card"
 		:data-module-id="module.id">
 		<div class="cn-module-card__head">
-			<span v-if="module.icon" class="cn-module-card__icon" aria-hidden="true">
+			<span
+				v-if="module.icon"
+				class="cn-module-card__icon"
+				:class="{ 'cn-module-card__icon--off': !module.enabled }"
+				aria-hidden="true">
 				<CnIcon :name="module.icon" :size="22" />
 			</span>
 			<h3 :id="headingId" class="cn-module-card__title">
@@ -35,9 +39,9 @@
 				</li>
 			</ul>
 		</template>
-		<div v-if="module.enabled ? module.open : module.enable" class="cn-module-card__footer">
+		<div v-if="module.open || (!module.enabled && module.settings)" class="cn-module-card__footer">
 			<a
-				v-if="module.enabled"
+				v-if="module.open"
 				class="cn-module-card__open"
 				:href="module.open.url"
 				:aria-label="t('nextcloud-vue', 'Open {module}', { module: module.label })"
@@ -46,17 +50,14 @@
 				{{ t('nextcloud-vue', 'Open') }}
 				<ChevronRight :size="18" />
 			</a>
-			<a
-				v-else
-				class="cn-module-card__enable"
-				:href="module.enable.url"
-				:target="module.enable.external ? '_blank' : null"
-				:rel="module.enable.external ? 'noopener noreferrer' : null"
-				:aria-label="t('nextcloud-vue', 'Turn on {module}', { module: module.label })"
-				data-testid="cn-module-card-enable"
-				@click="follow(module.enable, $event)">
-				{{ module.enable.label || t('nextcloud-vue', 'Turn on') }}
-			</a>
+			<span v-if="!module.enabled && module.settings" class="cn-module-card__settings" data-testid="cn-module-card-settings">
+				{{ module.settings.prefix || t('nextcloud-vue', 'Put it in the menu:') }}
+				<a
+					:href="module.settings.url"
+					:target="module.settings.external ? '_blank' : null"
+					:rel="module.settings.external ? 'noopener noreferrer' : null"
+					@click="follow(module.settings, $event)">{{ module.settings.label || t('nextcloud-vue', 'Admin settings') }}</a>
+			</span>
 		</div>
 	</article>
 </template>
@@ -74,8 +75,8 @@ const LISTED_PAGES = 4
 /**
  * CnModuleCard - one module on a `type: "links"` page (board PqModules): an
  * icon, the title and a state badge (in the menu, or off), a description,
- * the module's pages as a line and as links, and an Open button for a module
- * in the menu or a Turn on button for one that is off.
+ * the module's pages as a line and as links, an Open button, and for a
+ * module that is off a link to where an admin puts it in the menu.
  *
  * Rendered by CnLinkCardsPage for each entry of `config.modules`; the page
  * resolves the links and the text before handing the module over.
@@ -91,7 +92,7 @@ export default {
 		/**
 		 * The resolved module: `{ id, label, description, icon, enabled,
 		 * pages: [{ key, label, url, location, highlight }], open: { url,
-		 * location }|null, enable: { url, location, external, label }|null }`.
+		 * location }|null, settings: { url, location, external, label, prefix }|null }`.
 		 */
 		module: {
 			type: Object,
@@ -211,12 +212,15 @@ export default {
 }
 
 .cn-module-card__footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 14px;
 	margin-top: auto;
 	padding-top: 4px;
 }
 
-.cn-module-card__open,
-.cn-module-card__enable {
+.cn-module-card__open {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -235,15 +239,18 @@ export default {
 	color: var(--color-main-text);
 }
 
-.cn-module-card__enable {
-	border: 0;
-	border-radius: 18px;
-	background: var(--color-primary-element-light);
-	color: var(--color-primary-element-light-text, var(--color-primary-element));
+.cn-module-card__icon--off {
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.cn-module-card__settings {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-module-card__open:focus-visible,
-.cn-module-card__enable:focus-visible,
+.cn-module-card__settings a:focus-visible,
 .cn-module-card__page:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
