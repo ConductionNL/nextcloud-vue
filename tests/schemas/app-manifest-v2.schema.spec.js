@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.102.0', () => {
+	it('the manifest schema version reads 2.106.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1384,7 +1384,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.100.0 adds columnFields[].source.capacityField on a board (board-column-capacity).
 		// 2.101.0 adds columnFields[].source.neutralColor on a board (board-neutral-column-colour).
 		// 2.102.0 adds columnFields[].source.colorMap on a board (board-column-colour-map).
-		expect(schema.version).toBe('2.102.0')
+		// 2.106.0 adds chart barMax, footnote, valueFormat 'number' with suffix and endpointSource rowsPath (chart-bar-list-and-matrix).
+		expect(schema.version).toBe('2.106.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {

@@ -1042,6 +1042,9 @@ const CHART_PROP_KEYS = [
 	// separately via the template's :data-source binding (getWidgetDataSource),
 	// so the Wave-3 aggregate/drilldown inside it already flow through.
 	'endpointSource',
+	// `bar-list` / `matrix` presentation keys.
+	'barMax',
+	'footnote',
 ]
 
 /**
