@@ -89,6 +89,40 @@ export function formatBoardDate(value, now = new Date(), locale = boardDateLocal
 }
 
 /**
+ * A date with its short weekday, the way an agenda writes it: "wo 7 okt", or
+ * "wo 14 feb 2024" outside the current year. With `today` set, today's date
+ * reads "Vandaag, wo 7 okt".
+ *
+ * @param {unknown} value A Date, a timestamp or an ISO string.
+ * @param {Date} [now] The reference moment (defaults to the current time).
+ * @param {object} [options] Options.
+ * @param {boolean} [options.today] Put "Today, " before today's date.
+ * @param {string} [options.locale] BCP 47 tag (defaults to `boardDateLocale()`).
+ * @return {string} The date, or '' when the value is not a date.
+ * @spec openspec/changes/screens-cell-date-parity/specs/cell-date-age/spec.md#requirement-a-board-date-cell-reads-day-and-short-month-in-the-user-language
+ */
+export function formatBoardWeekday(value, now = new Date(), options = {}) {
+	const date = parseDateValue(value)
+	if (date === null) {
+		return ''
+	}
+	const parts = { weekday: 'short', day: 'numeric', month: 'short' }
+	if (date.getFullYear() !== now.getFullYear()) {
+		parts.year = 'numeric'
+	}
+	let text
+	try {
+		text = new Intl.DateTimeFormat(options.locale || boardDateLocale(), parts).format(date)
+	} catch {
+		text = new Intl.DateTimeFormat(undefined, parts).format(date)
+	}
+	if (options.today === true && ageInDays(date, now) === 0) {
+		return t('nextcloud-vue', 'Today, {date}', { date: text })
+	}
+	return text
+}
+
+/**
  * Whole calendar days from the date until `now` (0 today, 1 yesterday), or
  * null when the value is not a date. A future date gives a negative number.
  *

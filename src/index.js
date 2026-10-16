@@ -99,6 +99,8 @@ export {
 	CnDetailGrid,
 	CnDetailPage,
 	CnDetailWidgetHost,
+	CnDialog,
+	CnDialogHeader,
 	CnDividerWidget,
 	CnDividerWidgetForm,
 	CnDocumentReviewList,
