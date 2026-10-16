@@ -65,7 +65,7 @@ describe('CnReportsPage: the board look', () => {
 
 	it('draws the fallback icon for a card without one, and a card\'s own note', () => {
 		const w = mountPage('board', { ...CONFIG, cards: [...CONFIG.cards, { id: 'n', label: 'Nightly', route: 'Nightly', note: 'Refreshed nightly' }] })
-		const decisions = w.findAll('[data-testid="cn-report-card"]').find((c) => c.text().includes('Decisions'))
+		const decisions = w.findAll('[data-testid="cn-report-card"]').find((c) => c.find('.cn-reports-page__card-title').text() === 'Decisions')
 		expect(decisions.find('.cn-reports-page__card-icon').exists()).toBe(true)
 		expect(decisions.find('.cn-reports-page__card-icon .icon-stub').exists()).toBe(false)
 		const nightly = w.findAll('[data-testid="cn-report-card"]').find((c) => c.text().includes('Nightly'))
@@ -87,7 +87,7 @@ describe('CnReportsPage: the board look', () => {
 	it('draws a side column listing the categories with counts and the default note', async () => {
 		const w = mountPage('board')
 		const rows = w.findAll('[data-testid="cn-reports-aside-categories"] a')
-		expect(rows.map((r) => r.text().replace(/\s+/g, ' '))).toEqual(['Decisions and votes 2', 'Meetings and people 1'])
+		expect(rows.map((r) => [r.find('.cn-reports-page__aside-label').text(), r.find('.cn-reports-page__aside-count').text()])).toEqual([['Decisions and votes', '2'], ['Meetings and people', '1']])
 		expect(rows[0].attributes('href')).toBe('#cn-reports-Reports-decisions')
 		expect(w.find('[data-testid="cn-reports-side-note"] h3').text()).toBe('Missing a report?')
 		await rows[1].trigger('click')
