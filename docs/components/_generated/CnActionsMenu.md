@@ -41,7 +41,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Slots
 
-| Name            | Bindings | Description                                         |
-| --------------- | -------- | --------------------------------------------------- |
-| `primary-items` | —        | primary-items The surface's OWN actions — a page's  |
-| `action-items`  | —        | action-items Additional NcActionButton-family items |
+| Name            | Bindings | Description                                                                                                                                                                               |
+| --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lead-items`    | —        | lead-items Items rendered at the very top of the menu, above Refresh: the tabs a board strip lists here instead of drawing them (CnTabsWidget). The caller owns any separator after them. |
+| `primary-items` | —        | primary-items The surface's OWN actions — a page's                                                                                                                                        |
+| `action-items`  | —        | action-items Additional NcActionButton-family items                                                                                                                                       |
