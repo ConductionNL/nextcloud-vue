@@ -27,7 +27,7 @@
  */
 export type TPageType =
 	| 'index' | 'detail' | 'dashboard' | 'logs' | 'settings' | 'chat'
-	| 'files' | 'form' | 'map' | 'roadmap' | 'reports' | 'links' | 'store' | 'search' | 'wiki'
+	| 'files' | 'form' | 'map' | 'roadmap' | 'reports' | 'links' | 'connections' | 'store' | 'search' | 'wiki'
 	| 'flow'
 	/** @deprecated `flows` predates named index sources — use `index` with `config.source: 'flows'`. */
 	| 'flows'

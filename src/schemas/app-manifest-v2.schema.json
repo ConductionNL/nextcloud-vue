@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.108.0",
+	"version": "2.113.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3483,8 +3483,8 @@
 				"type": {
 					"type": "string",
 					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "map", "roadmap", "reports",
-						"links", "store", "search", "wiki", "flow", "flows", "flow-detail", "custom"],
-					"description": "Page type. Closed enum of 18 supported types. 'links' mounts CnLinkCardsPage: a page of link cards grouped under captions, declared with config.categories + config.cards ($defs/linkCard). Use it for the pages a short menu leaves out; unlike 'reports' an app may have several. 'flow' opens ONE flow in the editor; the flow LIST is an ordinary 'index' with config.entitySource='flows'. 'flows' and 'flow-detail' are DEPRECATED aliases kept for migration — 'flows' predates named index sources and 'flow-detail' is the old name for 'flow'. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'wiki' mounts CnWikiPage (manifest-declared markdown article + optional sidebar tree; MUST declare config.register + config.schema). 'flow' and the deprecated 'flow-detail' both mount CnFlowEditorPage (the shared node/edge canvas) and take config.app to scope to the owning app. A flow lives in OpenRegister's native flow store rather than a register/schema pair, so a single flow cannot be a 'detail' page — but the LIST is a plain 'index' once a named entitySource supplies it, which is why 'flows' is deprecated (ADR-110 Decision 4). 'custom' requires a _note field explaining why a standard type was not feasible."
+						"links", "connections", "store", "search", "wiki", "flow", "flows", "flow-detail", "custom"],
+					"description": "Page type. Closed enum of the supported types. 'connections' mounts CnConnectionRegistry: the connections one app declares, as integriq checked them (2.113.0). 'links' mounts CnLinkCardsPage: a page of link cards grouped under captions, declared with config.categories + config.cards ($defs/linkCard). Use it for the pages a short menu leaves out; unlike 'reports' an app may have several. 'flow' opens ONE flow in the editor; the flow LIST is an ordinary 'index' with config.entitySource='flows'. 'flows' and 'flow-detail' are DEPRECATED aliases kept for migration — 'flows' predates named index sources and 'flow-detail' is the old name for 'flow'. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'wiki' mounts CnWikiPage (manifest-declared markdown article + optional sidebar tree; MUST declare config.register + config.schema). 'flow' and the deprecated 'flow-detail' both mount CnFlowEditorPage (the shared node/edge canvas) and take config.app to scope to the owning app. A flow lives in OpenRegister's native flow store rather than a register/schema pair, so a single flow cannot be a 'detail' page — but the LIST is a plain 'index' once a named entitySource supplies it, which is why 'flows' is deprecated (ADR-110 Decision 4). 'custom' requires a _note field explaining why a standard type was not feasible."
 				},
 				"title": {
 					"type": "string",
@@ -4790,6 +4790,27 @@
 							}
 						},
 						"required": ["config"]
+					}
+				},
+				{
+					"description": "type='connections' (CnConnectionRegistry, connection-registry-page 2.113.0) lists the connections one app declares, as integriq checked them (register `integriq`, schema `app_connection`), as status cards with status chips, a text filter and three aside cards. `app` filters the list to that app; without it the page reads `?app=` from the route.",
+					"if": { "properties": { "type": { "const": "connections" } }, "required": ["type"] },
+					"then": {
+						"properties": {
+							"config": {
+								"type": "object",
+								"properties": {
+									"app": { "type": "string", "minLength": 1, "description": "The app whose connections are listed (the stored `app` field). Set it, so the page opened without the menu's `?app=` query still lists this app's connections only." },
+									"appName": { "type": "string", "minLength": 1, "description": "i18n key / the app's name in the line under the heading (\"10 of 10 connections that Pipelinq declares\")." },
+									"footnote": { "type": "string", "description": "i18n key / a muted line under the page." },
+									"register": { "type": "string", "minLength": 1, "description": "The register holding the connections. Default `integriq`." },
+									"schema": { "type": "string", "minLength": 1, "description": "The connection schema. Default `app_connection`." },
+									"addUrl": { "type": "string", "minLength": 1, "description": "Target of the primary header button (an app-absolute path or a URL), e.g. integriq's connection page. No button without it." },
+									"addLabel": { "type": "string", "minLength": 1, "description": "i18n key / text of the primary header button. Default \"Add integration\"." },
+									"integriqUrl": { "type": "string", "description": "Target of the \"Open integriq\" link in the aside. Default `/apps/integriq`; empty hides the link." }
+								}
+							}
+						}
 					}
 				},
 				{

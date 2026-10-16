@@ -1493,7 +1493,31 @@
       "{on} of %n are in the menu"
     ],
     "Put it in the menu:": "Put it in the menu:",
-    "Admin settings": "Admin settings"
+    "Admin settings": "Admin settings",
+    "Filter connections": "Filter connections",
+    "This app declares no connections.": "This app declares no connections.",
+    "No connection matches this filter.": "No connection matches this filter.",
+    "No settings screen yet": "No settings screen yet",
+    "About these connections": "About these connections",
+    "Needs attention": "Needs attention",
+    "Nothing needs attention.": "Nothing needs attention.",
+    "Checked by integriq": "Checked by integriq",
+    "integriq tests every connection and sets its status. This app only declares which connections it uses.": "integriq tests every connection and sets its status. This app only declares which connections it uses.",
+    "Open integriq": "Open integriq",
+    "Add a connection": "Add a connection",
+    "A connection the app does not declare cannot be checked, so new connections are added in integriq.": "A connection the app does not declare cannot be checked, so new connections are added in integriq.",
+    "Add integration": "Add integration",
+    "All connections": "All connections",
+    "Set up": "Set up",
+    "Not checked yet": "Not checked yet",
+    "Last check {time}": "Last check {time}",
+    "checked {time}": "checked {time}",
+    "never checked": "never checked",
+    "Set up {name}": "Set up {name}",
+    "Open settings for {name}": "Open settings for {name}",
+    "The connections could not be loaded: {reason}": "The connections could not be loaded: {reason}",
+    "{shown} of {total} connections that {app} declares, checked by integriq": "{shown} of {total} connections that {app} declares, checked by integriq",
+    "{shown} of {total} connections, checked by integriq": "{shown} of {total} connections, checked by integriq"
   },
   "plurals": {
     "{count} selected": [
