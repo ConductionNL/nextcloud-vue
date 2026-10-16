@@ -44,6 +44,8 @@ Four optional keys draw the "Termijn" card of board DqZaak:
 - `startField` names the start of the term; a thin bar then shows how much of it has passed.
 - `action` puts one manifest action under the card, in the `headerActions` shape. It runs through the page's dispatcher, with `@objectId` and `@object.<field>` resolved.
 
+While the date is unset, `emptyLabel` is the headline ("Niet ingesteld") and `emptyCaption` the line under it, with `{date}` read from `emptyDateField` (board PqTicket: "Verzoeken worden binnen 2 werkdagen beantwoord: {date}."). `facts` (`[{ label, field }]`) adds label and value rows under the caption, leaving out a row without a value. `action.variant: "primary"` draws the button in the primary tint.
+
 In the board look the card draws no icon circle and the headline takes the text colour until a threshold applies.
 
 ```json

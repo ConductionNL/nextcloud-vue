@@ -32,3 +32,10 @@ board look it SHALL draw no icon circle. Without these keys the widget SHALL rea
 - **GIVEN** `action: { label: "Termijn opschorten", type: "handler", handler: "suspendTerm", args: ["@objectId"] }`
 - **WHEN** the user presses "Termijn opschorten"
 - **THEN** the page dispatcher receives the action with the case id in its args
+
+#### Scenario: Board PqTicket "Termijn" without a term
+
+- **GIVEN** a ticket without a deadline, `emptyLabel` "Niet ingesteld", `emptyCaption` with `{date}` from `emptyDateField`,
+  `facts` Prioriteit and Behandelaar, and an action with `variant: "primary"`
+- **THEN** the card reads "Niet ingesteld", the caption with the expected date, the two fact rows and a primary pill
+  button

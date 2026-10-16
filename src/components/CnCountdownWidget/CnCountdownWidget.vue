@@ -21,6 +21,12 @@
 			<div v-if="subLabel" class="cn-countdown-widget__sub" data-testid="cn-countdown-sub">
 				{{ subLabel }}
 			</div>
+			<dl v-if="facts.length" class="cn-countdown-widget__facts" data-testid="cn-countdown-facts">
+				<template v-for="fact in facts" :key="fact.label">
+					<dt>{{ fact.label }}</dt>
+					<dd>{{ fact.value }}</dd>
+				</template>
+			</dl>
 			<span
 				v-if="progress !== null"
 				class="cn-countdown-widget__progress"
@@ -36,6 +42,7 @@
 				v-if="actionLabel"
 				type="button"
 				class="cn-countdown-widget__action"
+				:class="{ 'cn-countdown-widget__action--primary': content.action && content.action.variant === 'primary' }"
 				data-testid="cn-countdown-action"
 				@click="runAction">
 				{{ actionLabel }}
@@ -133,9 +140,12 @@ export default {
 		 * - `daysLabel` — `{ one, other }` with `{count}`, the headline while days remain ("27 dagen").
 		 * - `caption` — the line under the headline instead of the date, with `{date}` (the long date) and `{count}` (days left).
 		 * - `startField` — property holding the start of the term; a bar then shows how much of it has passed.
-		 * - `action` — one manifest action under the card (`{ label, type, ... }`, the headerActions shape).
+		 * - `action` — one manifest action under the card (`{ label, type, variant?, ... }`, the headerActions shape; `variant: "primary"` draws it in the primary tint).
+		 * - `emptyLabel` — the headline while the date is unset (default a dash).
+		 * - `emptyCaption` — the line under it while the date is unset, with `{date}` read from `emptyDateField`.
+		 * - `facts` — `[{ label, field }]` rows under the caption.
 		 *
-		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean, settledField?: string, settledLabel?: string, daysLabel?: {one?: string, other?: string}, caption?: string, startField?: string, action?: object }}
+		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean, settledField?: string, settledLabel?: string, daysLabel?: {one?: string, other?: string}, caption?: string, startField?: string, action?: object, emptyLabel?: string, emptyCaption?: string, emptyDateField?: string, facts?: Array<{label: string, field: string}> }}
 		 */
 		content: {
 			type: Object,
@@ -252,7 +262,7 @@ export default {
 			}
 			const days = this.daysRemaining
 			if (days === null) {
-				return '—'
+				return this.content?.emptyLabel ? this.translate(this.content.emptyLabel) : '—'
 			}
 			if (days < 0) {
 				const overdue = Math.abs(days)
@@ -308,6 +318,24 @@ export default {
 			return Math.min(100, Math.max(0, ((Date.now() - start.getTime()) / span) * 100))
 		},
 
+		/**
+		 * The `facts` rows under the caption (`[{ label, field }]`), with
+		 * their values read off the record; a row without a value is left out.
+		 *
+		 * @return {Array<{label: string, value: string}>} The rows.
+		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
+		 */
+		facts() {
+			const rows = Array.isArray(this.content?.facts) ? this.content.facts : []
+			return rows
+				.filter((row) => row && typeof row.label === 'string' && typeof row.field === 'string')
+				.map((row) => {
+					const value = this.record ? getByPath(this.record, row.field) : null
+					return { label: this.translate(row.label), value: value === null || value === undefined ? '' : this.translate(String(value)) }
+				})
+				.filter((row) => row.value !== '')
+		},
+
 		/** @return {string} The accessible name of the progress bar. */
 		progressLabel() {
 			return t('nextcloud-vue', 'Time passed')
@@ -333,6 +361,12 @@ export default {
 		 * @return {string} The formatted date, or ''.
 		 */
 		subLabel() {
+			if (!this.targetDate && typeof this.content?.emptyCaption === 'string' && this.content.emptyCaption !== '') {
+				const raw = this.content.emptyDateField && this.record ? getByPath(this.record, this.content.emptyDateField) : null
+				const when = raw ? new Date(raw) : null
+				const date = when && !Number.isNaN(when.getTime()) ? when.toLocaleDateString(userLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+				return this.translate(this.content.emptyCaption).replace(/\{date\}/g, date)
+			}
 			if (!this.targetDate || this.content?.showDate === false) {
 				return ''
 			}
@@ -457,6 +491,26 @@ export default {
 	margin-block-start: 10px;
 	min-height: 34px;
 	padding: 0 12px;
+}
+
+.cn-countdown-widget__action--primary {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-countdown-widget__facts {
+	display: grid;
+	gap: 8px 16px;
+	grid-template-columns: max-content 1fr;
+	margin: 10px 0 0;
+}
+
+.cn-countdown-widget__facts dt {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-countdown-widget__facts dd {
+	margin: 0;
 }
 
 .cn-countdown-widget__action:hover,

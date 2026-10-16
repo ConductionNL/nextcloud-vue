@@ -65,4 +65,19 @@ describe('CnCountdownWidget board term card', () => {
 		expect(w.find('[data-testid="cn-countdown-progress"]').exists()).toBe(false)
 		expect(w.find('[data-testid="cn-countdown-action"]').exists()).toBe(false)
 	})
+
+	it('reads PqTicket\'s unset term: emptyLabel, emptyCaption with its own date, facts and a primary pill', () => {
+		const w = mountTile({
+			field: 'deadline',
+			emptyLabel: 'Niet ingesteld',
+			emptyCaption: 'Verzoeken worden binnen 2 werkdagen beantwoord: {date}.',
+			emptyDateField: 'expectedBy',
+			facts: [{ label: 'Prioriteit', field: 'priority' }, { label: 'Behandelaar', field: 'assigneeName' }, { label: 'Team', field: 'team' }],
+			action: { label: 'Termijn instellen', type: 'handler', handler: 'setTerm', variant: 'primary' },
+		}, { id: 't1', deadline: null, expectedBy: daysFromToday(2), priority: 'Normaal', assigneeName: 'Pieter Jansen' }, { cnLook: 'board' })
+		expect(w.find('.cn-countdown-widget__value').text()).toBe('Niet ingesteld')
+		expect(w.find('[data-testid="cn-countdown-sub"]').text()).toMatch(/^Verzoeken worden binnen 2 werkdagen beantwoord: \S+ \S+ \d{4}\.$/)
+		expect(w.findAll('[data-testid="cn-countdown-facts"] dt').map((d) => d.text())).toEqual(['Prioriteit', 'Behandelaar'])
+		expect(w.find('[data-testid="cn-countdown-action"]').classes()).toContain('cn-countdown-widget__action--primary')
+	})
 })
