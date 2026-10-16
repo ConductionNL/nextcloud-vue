@@ -2595,7 +2595,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 200,
+			"transitive": 201,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
