@@ -16,4 +16,7 @@ draw a breadcrumb and a note under the page title: "Instellingen / Zaaktypen · 
 - CnIndexPage, CnDashboardPage and CnSettingsPage take `breadcrumb` and `headerMeta` from manifest config. On an index
   page `{total}` and `{shown}` in the meta are the list's counts.
 - Without either key nothing changes.
+- A dashboard widget card can carry `subtitle`, a muted line under its title (CnWidgetWrapper `subtitle`), and a
+  dashboard's segmented period group can sit at the end of the description line (`dateRange.placement:
+  "description"`), for the boards DqTermijnen, DqProcesanalyse and DqDoorlooptijd.
 - Manifest schema: `config.breadcrumb` also accepts a list, and both keys are described for these page types.

@@ -35,3 +35,25 @@ the meta SHALL be the list's counts. Without a breadcrumb and a meta the header 
 
 - **GIVEN** a page without `breadcrumb` and `headerMeta`
 - **THEN** its header is unchanged
+
+### Requirement: A dashboard widget card can carry a line under its title
+
+A dashboard widget definition's `subtitle` SHALL be drawn as a muted line under the card's title, through the host
+translate function. CnWidgetWrapper SHALL take it as its `subtitle` prop. Without it the card is unchanged.
+
+#### Scenario: A chart card with a subtitle
+
+- **GIVEN** a widget titled "Op tijd beslist per zaaktype" with `subtitle: "Dit kwartaal, beslist binnen de termijn"`
+- **THEN** the card shows the subtitle under the title
+
+### Requirement: A dashboard can show its period on the description line
+
+With `dateRange.control: "segmented"` and `dateRange.placement: "description"`, CnDashboardPage SHALL draw the segmented
+period group at the end of the description line, after a middle dot, instead of in a row of its own. A date range with
+a custom preset SHALL keep its row of its own. Without `placement` nothing changes.
+
+#### Scenario: Week 41 · alle teams · the period
+
+- **GIVEN** a dashboard with the description "Week 41 · alle teams" and a segmented date range placed on the description
+- **THEN** the description line reads "Week 41 · alle teams ·" followed by the period group
+- **AND** no separate period row is drawn

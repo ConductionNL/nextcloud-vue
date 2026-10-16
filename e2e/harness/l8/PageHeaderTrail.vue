@@ -17,8 +17,10 @@
 		<div data-testid="trail-dashboard">
 			<CnDashboardPage
 				title="Afdelingen"
-				:widgets="[]"
-				:layout="[]"
+				description="Week 41 · alle teams"
+				:dateRange="dateRange"
+				:widgets="widgets"
+				:layout="layout"
 				:breadcrumb="[{ label: 'Beheer', href: '#beheer' }, { label: 'Organisatie', href: '#organisatie' }]"
 				headerMeta="Geldt voor de hele organisatie" />
 		</div>
@@ -38,6 +40,14 @@ export default {
 
 	provide() {
 		return { cnLook: 'board' }
+	},
+
+	data() {
+		return {
+			dateRange: { enabled: true, control: 'segmented', placement: 'description', presets: [{ id: 'week', label: 'Deze week', days: 7 }, { id: 'quarter', label: 'Dit kwartaal', days: 90 }, { id: 'year', label: 'Dit jaar', days: 365 }] },
+			widgets: [{ id: 'w', type: 'text', title: 'Op tijd beslist per zaaktype', subtitle: 'Dit kwartaal, beslist binnen de termijn', content: { text: 'Woo-verzoek 88 %' } }],
+			layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 2 }],
+		}
 	},
 }
 </script>

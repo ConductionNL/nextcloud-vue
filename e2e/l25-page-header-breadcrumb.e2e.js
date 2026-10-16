@@ -12,7 +12,7 @@
 
 import { expect, test } from '@playwright/test'
 
-test.describe.configure({ mode: 'serial', timeout: 120_000 })
+test.describe.configure({ timeout: 120_000 })
 
 /**
  * @param {import('@playwright/test').Locator} trail The trail row.
@@ -42,4 +42,19 @@ test('a page header and a dashboard draw the breadcrumb and the meta on one line
 	await expect(dash.getByRole('link', { name: 'Organisatie' })).toBeVisible()
 	await expect(dash.locator('.cn-detail-page__header-meta')).toHaveText('Geldt voor de hele organisatie')
 	await expectOneLine(dash)
+})
+
+test('a dashboard puts its period on the description line and a card subtitle under its title', async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 900 })
+	await page.goto('/?l8=page-header-trail', { waitUntil: 'domcontentloaded', timeout: 90_000 })
+	const dash = page.locator('[data-testid="trail-dashboard"]')
+	const line = dash.locator('[data-testid="cn-dashboard-page-subtitle"]')
+	await expect(line).toContainText('Week 41 · alle teams', { timeout: 90_000 })
+	const group = line.locator('[data-testid="cn-dashboard-page-date-segmented"]')
+	await expect(group).toBeVisible()
+	const text = await line.locator('span').first().boundingBox()
+	const box = await group.boundingBox()
+	expect(Math.abs((text.y + text.height / 2) - (box.y + box.height / 2))).toBeLessThan(8)
+	expect(box.x).toBeGreaterThan(text.x + text.width)
+	await expect(dash.locator('[data-testid="cn-widget-wrapper-subtitle"]')).toHaveText('Dit kwartaal, beslist binnen de termijn')
 })

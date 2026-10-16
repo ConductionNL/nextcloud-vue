@@ -113,3 +113,44 @@ describe('pages forward config.breadcrumb and config.headerMeta', () => {
 		expect(w.find('[data-testid="cn-header-trail"]').exists()).toBe(false)
 	})
 })
+
+describe('dashboard widget subtitle and period on the description line', () => {
+	const dashGlobal = { ...global, stubs: { ...global.stubs, CnDashboardGrid: { props: ['layout'], template: '<div><template v-for="item in layout" :key="item.id"><slot name="widget" :item="item" /></template></div>' } } }
+
+	it('draws a widget subtitle under the card title', () => {
+		const w = mount(CnDashboardPage, {
+			props: {
+				widgets: [{ id: 'w', type: 'text', title: 'Op tijd beslist per zaaktype', subtitle: 'Dit kwartaal', content: { text: 'x' } }],
+				layout: [{ id: 1, widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 2 }],
+			},
+			global: dashGlobal,
+		})
+		expect(w.find('[data-testid="cn-widget-wrapper-subtitle"]').text()).toBe('Dit kwartaal')
+	})
+
+	it('puts the segmented period at the end of the description line', () => {
+		const w = mount(CnDashboardPage, {
+			props: {
+				title: 'Termijnbewaking',
+				description: 'Week 41 · alle teams',
+				widgets: [],
+				layout: [],
+				dateRange: { enabled: true, control: 'segmented', placement: 'description', presets: [{ id: 'week', label: 'Deze week', days: 7 }, { id: 'quarter', label: 'Dit kwartaal', days: 90 }, { id: 'year', label: 'Dit jaar', days: 365 }] },
+			},
+			global: dashGlobal,
+		})
+		const line = w.find('[data-testid="cn-dashboard-page-subtitle"]')
+		expect(line.text()).toContain('Week 41 · alle teams')
+		expect(line.find('[data-testid="cn-dashboard-page-date-segmented"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-dashboard-page-date-range"]').exists()).toBe(false)
+	})
+
+	it('keeps the period in its own row without a placement', () => {
+		const w = mount(CnDashboardPage, {
+			props: { title: 'T', description: 'D', widgets: [], layout: [], dateRange: { enabled: true, control: 'segmented', presets: [{ id: 'week', label: 'Deze week', days: 7 }, { id: 'quarter', label: 'Dit kwartaal', days: 90 }, { id: 'year', label: 'Dit jaar', days: 365 }] } },
+			global: dashGlobal,
+		})
+		expect(w.find('[data-testid="cn-dashboard-page-date-range"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-dashboard-page-subtitle"] [data-testid="cn-dashboard-page-date-segmented"]').exists()).toBe(false)
+	})
+})
