@@ -22,6 +22,12 @@ Top-level dashboard page component — the dashboard equivalent of `CnIndexPage`
 
 The dispatcher resolves widgets in that order. The custom-slot branch beats the chart branch so apps that need bespoke apexcharts behaviour outside the manifest contract can fall back to `#widget-{id}` without losing the rest of the manifest.
 
+### How `content` reaches a registry widget
+
+A widget resolved through the registry (`cnRegistry`, the dashboard catalog or a built-in) gets its whole `content` as the `content` prop. Of the individual content keys, it gets only the ones its renderer declares as props, so a key the widget does not know can never land on its root component and override what the widget computes there. A widget that declares neither the key nor `content` would not see it at all, so outside production the page warns once per widget type and key in that case.
+
+A renderer with `inheritAttrs: false` forwards its attributes itself and keeps receiving every key. For a custom widget, read the configuration from `content`, or declare a key as a prop to receive it directly.
+
 ### Chart widget
 
 ```js

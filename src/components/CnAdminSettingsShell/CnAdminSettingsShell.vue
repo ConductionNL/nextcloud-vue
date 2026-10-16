@@ -76,7 +76,7 @@
 				:active="tab.id === activeTabId">
 				<div class="cn-admin-settings-shell__panel" :data-tab="tab.id">
 					<!-- @slot tab-<id> The panel of the tab with that `id` in `tabs`. -->
-					<slot :name="`tab-${tab.id}`" />
+					<slot v-if="!lazyTabs || tab.id === activeTabId" :name="`tab-${tab.id}`" />
 				</div>
 			</CnTab>
 		</CnTabs>
@@ -489,6 +489,19 @@ export default {
 		tabStorageKey: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Mount a tab's `tab-<id>` slot only while that tab is open, and
+		 * unmount it when another tab opens, so each visit mounts it afresh
+		 * and the page does not load every tab at once. Off (the default),
+		 * every panel stays mounted and only the open one shows.
+		 *
+		 * @spec openspec/changes/admin-settings-lazy-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-mount-only-the-open-tab
+		 */
+		lazyTabs: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
