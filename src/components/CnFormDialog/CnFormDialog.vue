@@ -758,6 +758,11 @@
 				@click="executeConfirm">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
+					<CnIcon
+						v-else-if="confirmIcon"
+						:name="confirmIcon"
+						:size="20"
+						data-testid="cn-form-dialog-confirm-icon" />
 					<Plus v-else-if="isCreateMode" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
 				</template>
@@ -781,6 +786,7 @@ import CnDurationField from '../CnDurationField/CnDurationField.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import CnFileField from '../CnFileField/CnFileField.vue'
 import CnFormField from '../CnFormField/CnFormField.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
@@ -1023,6 +1029,7 @@ export default {
 		CnSubObjectsField,
 		CnChildRecordsField,
 		CnDialog,
+		CnIcon,
 		CnFormField,
 		NcButton,
 		NcNoteCard,
@@ -1299,6 +1306,12 @@ export default {
 
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name on the Confirm button (`SwapHorizontal`, `Archive`, `Send`, `Gavel`). Defaults to Plus when creating, else a save icon. */
+		confirmIcon: {
 			type: String,
 			default: '',
 		},
