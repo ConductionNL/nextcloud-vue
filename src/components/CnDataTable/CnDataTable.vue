@@ -776,6 +776,17 @@ export default {
 		},
 
 		/**
+		 * Draw an unread record (`@self.unread`) in bold with the unread dot.
+		 * Off, every row reads alike whatever its read state.
+		 *
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-unread-rows-are-marked-only-where-the-reader-asked-for-them
+		 */
+		showUnread: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * How the board look draws the title column: `link` (the default) is
 		 * the 15px weight 600 underlined title of the DqZaken board; `plain` is
 		 * the 15px bold title without an underline and a 13px muted secondary
@@ -1398,13 +1409,14 @@ export default {
 
 		/**
 		 * Whether a row's record changed since the user last looked
-		 * (`@self.unread`). A row without the marker renders as it always did.
+		 * (`@self.unread`), when `showUnread` is on. A row without the marker
+		 * renders as it always did.
 		 *
 		 * @param {object} row The row.
 		 * @return {boolean} True when the row is unread.
 		 */
 		isUnreadRow(row) {
-			return !!(row && row['@self'] && row['@self'].unread === true)
+			return this.showUnread && !!(row && row['@self'] && row['@self'].unread === true)
 		},
 
 		/**

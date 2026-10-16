@@ -20,8 +20,9 @@ page cannot open SHALL render as a segment in the fixed order table, cards,
 board, map, disabled, faded, with the mode's label as its accessible name and
 the tooltip "<label>: not available on this list", and SHALL NOT emit a view
 change when clicked. A listed mode the page can open SHALL render as an
-ordinary segment, once. Without the key, or without the board look, the
-switch SHALL render as before.
+ordinary segment, once. Without the board look the switch SHALL render as
+before; without the key the board look draws all four
+(screens-index-board-gaps).
 
 #### Scenario: PqTickets without a board or map config
 

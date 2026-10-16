@@ -734,6 +734,7 @@
 					:columnOverrides="columnOverrides"
 					:rowClass="rowClass"
 					:rowTitle="rowTitle"
+					:showUnread="showUnreadRows"
 					:filterable="tableHeaderFilters"
 					:activeFilters="effectiveActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
@@ -2232,7 +2233,7 @@ export default {
 		 * can open is an ordinary segment; one it cannot (no board columns, no
 		 * map configured) is drawn disabled, named "<mode>: not available on
 		 * this list". Fed from `pages[].config.viewSwitch`. Ignored without the
-		 * board look, and absent the switch is as before.
+		 * board look; absent, the board look draws all four.
 		 *
 		 * @type {Array<'table' | 'cards' | 'board' | 'map'>}
 		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
@@ -4118,11 +4119,14 @@ export default {
 		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
 		 */
 		viewSwitchDisabledModes() {
-			if (!this.isBoardLook || !Array.isArray(this.viewSwitch)) {
+			if (!this.isBoardLook) {
 				return []
 			}
+			// The index boards draw all four segments, so the board look does
+			// too unless the manifest names its own list.
+			const listed = Array.isArray(this.viewSwitch) ? this.viewSwitch : ['table', 'cards', 'board', 'map']
 			const offered = [...this.effectiveToggleModes, ...(this.showMapSegment ? ['map'] : [])]
-			return this.viewSwitch.filter((mode) => ['table', 'cards', 'board', 'map'].includes(mode) && !offered.includes(mode))
+			return listed.filter((mode) => ['table', 'cards', 'board', 'map'].includes(mode) && !offered.includes(mode))
 		},
 
 		/**
@@ -5380,6 +5384,21 @@ export default {
 			return this.isSelfFetchMode ? this.list.pagination.value : this.pagination
 		},
 
+		/**
+		 * Whether the table marks unread rows. The boards draw every row alike,
+		 * so under the board look only a page that offers the Unread lens
+		 * (`personalLenses`) marks them; the Nextcloud look always does.
+		 *
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-unread-rows-are-marked-only-where-the-reader-asked-for-them
+		 * @return {boolean} True when unread rows read in bold with the dot.
+		 */
+		showUnreadRows() {
+			if (!this.isBoardLook) {
+				return true
+			}
+			return Array.isArray(this.personalLenses) && this.personalLenses.includes('unread')
+		},
+
 		/** Resolved schema OBJECT (for column generation / icons / labels). */
 		/**
 		 * Whether the table shows its header filters. A self-fetching page
@@ -6002,8 +6021,9 @@ export default {
 					}
 					// The board's header: Export reads "Download" with its icon and
 					// the Actions menu reads "Actions", without the manifest saying so.
-					if (this.isBoardLook && label === '' && button.action === 'export') {
-						label = t('nextcloud-vue', 'Download')
+					// A labelled Export keeps the icon too, unless it names its own.
+					if (this.isBoardLook && button.action === 'export') {
+						label = label || t('nextcloud-vue', 'Download')
 						icon = icon || 'Download'
 					}
 					if (label === '' && button.action === 'actions-menu') {
