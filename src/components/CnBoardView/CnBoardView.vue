@@ -36,11 +36,12 @@
 					v-for="column in lane.columns"
 					:key="`col-${lane.key}-${column.key}`"
 					class="cn-board-view__column"
-					:class="{ 'cn-board-view__column--unreachable': isUnreachable(column) }"
+					:class="{ 'cn-board-view__column--unreachable': isUnreachable(column), 'cn-board-view__column--full': isFull(column) }"
 					role="listitem"
 					data-testid="cn-board-column"
 					:data-column="column.key"
 					:data-unreachable="isUnreachable(column) ? 'true' : null"
+					:data-full="isFull(column) ? 'true' : null"
 					@dragover.prevent
 					@drop="onDrop(column, $event)">
 					<!-- Board look: a dot, the label and a white count badge, with an
@@ -53,8 +54,11 @@
 								:style="{ background: dotColor(column) }"
 								aria-hidden="true" />
 							<span class="cn-board-view__column-title">{{ column.label }}</span>
-							<span class="cn-board-view__badge" data-testid="cn-board-count">
-								{{ column.count }}<span v-if="paged" class="hidden-visually"> {{ t('nextcloud-vue', 'on this page') }}</span>
+							<span
+								class="cn-board-view__badge"
+								:class="{ 'cn-board-view__badge--full': isFull(column) }"
+								data-testid="cn-board-count">
+								{{ capacityOf(column) === null ? column.count : capacityText(column) }}<span v-if="paged" class="hidden-visually"> {{ t('nextcloud-vue', 'on this page') }}</span><span v-if="isFull(column)" class="hidden-visually">{{ ' ' + t('nextcloud-vue', 'full') }}</span>
 							</span>
 						</h2>
 						<span
@@ -66,8 +70,11 @@
 					</div>
 					<h3 v-else class="cn-board-view__column-header">
 						{{ column.label }}
-						<span class="cn-board-view__count" data-testid="cn-board-count">
-							{{ countLabel(column) }}
+						<span
+							class="cn-board-view__count"
+							:class="{ 'cn-board-view__count--full': isFull(column) }"
+							data-testid="cn-board-count">
+							{{ countLabel(column) }}<span v-if="isFull(column)" class="hidden-visually">{{ ' ' + t('nextcloud-vue', 'full') }}</span>
 						</span>
 					</h3>
 
@@ -176,14 +183,14 @@
 													class="cn-board-view__menu-item"
 													data-testid="cn-board-menu-move"
 													:data-target="target.key"
-													:aria-disabled="isMoveAllowed(card, target) ? null : 'true'"
-													:class="{ 'cn-board-view__menu-item--blocked': !isMoveAllowed(card, target) }"
-													@click="isMoveAllowed(card, target) && onMenuMove(card, column, target)">
+													:aria-disabled="canMoveTo(card, target) ? null : 'true'"
+													:class="{ 'cn-board-view__menu-item--blocked': !canMoveTo(card, target) }"
+													@click="canMoveTo(card, target) && onMenuMove(card, column, target)">
 													{{ target.label }}
 													<span
-														v-if="!isMoveAllowed(card, target)"
+														v-if="!canMoveTo(card, target)"
 														class="cn-board-view__menu-note"
-														data-testid="cn-board-menu-blocked">{{ notAllowedLabel }}</span>
+														data-testid="cn-board-menu-blocked">{{ isFull(target) ? fullLabel : notAllowedLabel }}</span>
 												</button>
 											</div>
 											<button
@@ -668,6 +675,21 @@ export default {
 			return t('nextcloud-vue', 'not allowed')
 		},
 
+		/** @return {string} The note on a menu target that is full. */
+		fullLabel() {
+			return t('nextcloud-vue', 'full')
+		},
+
+		/**
+		 * Every column's total over all lanes, by key: what a limit is
+		 * measured against, since a swimlane holds only part of a column.
+		 *
+		 * @return {Map<string, number>} The totals.
+		 */
+		columnTotals() {
+			return new Map(this.board.columns.map((column) => [String(column.key), column.count]))
+		},
+
 		/** @return {Array<string>} The selected row keys as strings. */
 		selectedKeys() {
 			return (Array.isArray(this.selectedIds) ? this.selectedIds : []).map(String)
@@ -810,16 +832,81 @@ export default {
 		},
 
 		/**
+		 * A column's limit.
+		 *
+		 * @param {object} column The column.
+		 * @return {number|null} The limit, or null when it has none.
+		 * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
+		 */
+		capacityOf(column) {
+			const capacity = Number(column?.capacity)
+			return Number.isFinite(capacity) && capacity > 0 ? capacity : null
+		},
+
+		/**
+		 * Whether a column holds as many cards as its limit, or more.
+		 *
+		 * @param {object} column The column.
+		 * @return {boolean} True when full; false without a limit.
+		 * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
+		 */
+		isFull(column) {
+			const capacity = this.capacityOf(column)
+			return capacity !== null && (this.columnTotals.get(String(column.key)) ?? column.count) >= capacity
+		},
+
+		/**
+		 * "count / capacity" for a column with a limit.
+		 *
+		 * @param {object} column The column.
+		 * @return {string} The text.
+		 */
+		capacityText(column) {
+			return t('nextcloud-vue', '{count} / {capacity}', {
+				count: this.columnTotals.get(String(column.key)) ?? column.count,
+				capacity: this.capacityOf(column),
+			})
+		},
+
+		/**
+		 * Whether a card may move to a column: the host allows it and the
+		 * column is not full.
+		 *
+		 * @param {object} card The card.
+		 * @param {object} target The column.
+		 * @return {boolean} True when the move may be asked for.
+		 * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-drop-into-a-full-column-is-refused
+		 */
+		canMoveTo(card, target) {
+			return this.isMoveAllowed(card, target) && !this.isFull(target)
+		},
+
+		/**
+		 * The sentence a drop into a full column is refused with.
+		 *
+		 * @param {object} column The column.
+		 * @return {string} The sentence.
+		 */
+		fullRefusal(column) {
+			return t('nextcloud-vue', '{column} is full: {count} of {capacity}.', {
+				column: column.label,
+				count: this.columnTotals.get(String(column.key)) ?? column.count,
+				capacity: this.capacityOf(column),
+			})
+		},
+
+		/**
 		 * Whether a column is out of reach for the card being dragged.
 		 *
 		 * @param {object} column The column.
 		 * @return {boolean} True while a drag is on and the card cannot go there.
 		 */
 		isUnreachable(column) {
-			return this.dragging !== null
-				&& Array.isArray(this.dragAllowed)
-				&& column.key !== this.dragging.fromKey
-				&& !this.dragAllowed.includes(String(column.key))
+			if (this.dragging === null || column.key === this.dragging.fromKey) {
+				return false
+			}
+			return this.isFull(column)
+				|| (Array.isArray(this.dragAllowed) && !this.dragAllowed.includes(String(column.key)))
 		},
 
 		/**
@@ -1293,6 +1380,9 @@ export default {
 		 * @return {string} The count.
 		 */
 		countLabel(column) {
+			if (this.capacityOf(column) !== null) {
+				return this.capacityText(column)
+			}
 			return this.paged
 				? t('nextcloud-vue', '{count} on this page', { count: column.count })
 				: String(column.count)
@@ -1411,6 +1501,13 @@ export default {
 		 */
 		async move(card, fromKey, toKey) {
 			this.refusal = ''
+
+			const target = this.board.columns.find((column) => String(column.key) === String(toKey))
+			if (target && String(toKey) !== String(fromKey) && this.isFull(target)) {
+				this.refusal = this.fullRefusal(target)
+				this.$emit('refused', { card, message: this.refusal })
+				return
+			}
 
 			const result = await runBoardDrop({
 				card,
@@ -1551,5 +1648,10 @@ export default {
 
 .cn-board-view__refusal {
 	color: var(--color-error);
+}
+
+.cn-board-view__count--full {
+	color: var(--color-error-text, var(--color-error));
+	font-weight: 600;
 }
 </style>
