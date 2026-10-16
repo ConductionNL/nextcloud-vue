@@ -1473,7 +1473,11 @@
     "Link related object": "Link related object",
     "{type} parts": "{type} parts",
     "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.": "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.",
-    "Save failed": "Save failed"
+    "Save failed": "Save failed",
+    "Your account": "Your account",
+    "Only for you. Colleagues keep their own settings.": "Only for you. Colleagues keep their own settings.",
+    "Sections of the settings": "Sections of the settings",
+    "Changes are saved straight away": "Changes are saved straight away"
   },
   "plurals": {
     "{count} selected": [
