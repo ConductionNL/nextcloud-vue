@@ -1660,7 +1660,26 @@
     "Link related object": "Gerelateerd object koppelen",
     "{type} parts": "Onderdelen van {type}",
     "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.": "Opslaan kan niet: dit record heeft geen id, dus de wijziging zou een kopie maken in plaats van het record bij te werken.",
-    "Save failed": "Opslaan is mislukt"
+    "Save failed": "Opslaan is mislukt",
+    "Support this app": "Steun deze app",
+    "No features with this status": "Geen functies met deze status",
+    "Learn more about {title}": "Lees meer over {title}",
+    "Learn more": "Lees meer",
+    "Next on the roadmap": "Hierna op de roadmap",
+    "Coming next": "Hierna",
+    "The most requested items from the issue tracker.": "De meest gevraagde items uit de issuetracker.",
+    "Opened {date}": "Geopend {date}",
+    "See the whole roadmap": "Bekijk de hele roadmap",
+    "Features and roadmap": "Functies en roadmap",
+    "Beta": "Beta",
+    "Planned": "Gepland",
+    "{status}, {expected}": "{status}, {expected}",
+    "Build on this app": "Bouw verder op deze app",
+    "AI skills": "AI-vaardigheden",
+    "%n feature": [
+      "%n functie",
+      "%n functies"
+    ]
   },
   "plurals": {
     "{count} selected": [
