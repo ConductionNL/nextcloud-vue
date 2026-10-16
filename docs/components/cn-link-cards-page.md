@@ -50,6 +50,40 @@ A card has a `route` or an `href`, never both. The manifest validator refuses a 
 
 A `route` is resolved through the router, so the link is right with and without `/index.php` in the address. A card whose route does not resolve is left out.
 
+## Modules
+
+`config.modules` draws module cards above the link cards (board PqModules): per module an icon, the title, a badge that says whether it is in the menu, a description, a line naming its pages ("4 pages: ...", or "15 pages, including ..." from the pages marked `highlight`), the pages as links, an Open button, and for a module that is off a line linking to where an admin puts it in the menu ("In het menu zetten: Beheerinstellingen"). A module is never turned on from this page. A count ("3 of 6 are in the menu") sits beside the heading and `footnote` under the cards. Schema 2.108.0.
+
+```json
+"config": {
+  "modulesTitle": "Modules",
+  "footnote": "Een beheerder zet een module aan in de beheerinstellingen.",
+  "modules": [
+    { "id": "sales", "label": "Verkoop", "icon": "CashMultiple", "description": "Leads, prospects en deals.",
+      "enabled": true,
+      "pages": [{ "label": "Leads", "route": "Leads" }, { "label": "Pijplijn", "route": "Pipeline" }] },
+    { "id": "pos", "label": "Kassa", "icon": "CashRegister", "enabledIf": { "menuModules.pos": true },
+      "pages": [{ "label": "Kassabon", "route": "PosReceipt" }],
+      "settings": { "href": "/settings/admin/pipelinq", "permission": "admin" } }
+  ],
+  "cards": [ ... ]
+}
+```
+
+| Module key | Description |
+|---|---|
+| `id`, `label` | Required. `label` and `description` are translated. |
+| `enabled` | Whether the module is in the menu. The app decides; a runtime manifest can set it. |
+| `enabledIf` | A `visibleIf` condition against `runtime`, read when `enabled` is not a boolean. |
+| `route` | Where Open goes. Defaults to the first page. |
+| `pages` | `[{ label, route \| href, highlight? }]`. A page whose route does not resolve is left out. |
+| `settings` | `{ label?, prefix?, route \| href, permission?, visibleIf? }`: shown on a module that is off as "{prefix} {label}" (default "Put it in the menu: Admin settings"). Give it a `permission` so only admins see it. |
+| `permission`, `visibleIf` | Hide the whole module, as on a card. |
+
+## Groups as list cards
+
+`config.groupStyle: "list"` draws each group as one card with the caption as its title and a row per link: an icon chip, the label over its description, and a chevron (an external-link icon for an `href`). The PqModules board draws "Ook in Pipelinq" and "Meer" this way under the modules. The default, `cards`, is the grid above. Schema 2.108.0.
+
 ## Used by hand
 
 ```vue
