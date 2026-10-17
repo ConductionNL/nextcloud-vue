@@ -1394,6 +1394,13 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(schema.version).toBe('2.121.0')
 	})
 
+	it('accepts nav.searchPlaceholder as a non-empty string', () => {
+		const withLine = (searchPlaceholder) => ({ ...MINIMAL_V2, nav: { searchPlaceholder } })
+		expect(validateManifestV2(withLine('Search cases, documents or contacts')).valid).toBe(true)
+		expect(validateManifestV2(withLine('')).valid).toBe(false)
+		expect(validateManifestV2(withLine(3)).valid).toBe(false)
+	})
+
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
 		const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'queue', route: '/queue', type: 'index', title: 'Queue', config: { register: 'r', schema: 's', ...config } }] })
 		expect(validateManifestV2(page({ statRow: [{ id: 'a', type: 'stat', content: { label: 'Open' } }], sidePanel: [{ id: 't', type: 'TeamToday', title: 'Team today', headerLink: { label: 'All', href: '#' } }] })).valid).toBe(true)

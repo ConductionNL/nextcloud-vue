@@ -1171,6 +1171,8 @@
     "Due tomorrow": "Morgen",
     "Due in {days} days": "Over {days} dagen",
     "Available": "Beschikbaar",
+    "{value} of {limit}": "{value} van {limit}",
+    "{value} of {limit}, over the limit": "{value} van {limit}, boven de limiet",
     "Ready to claim": "Klaar om op te pakken",
     "In progress": "In behandeling",
     "Completed": "Afgerond",
@@ -1620,7 +1622,7 @@
     "Importing…": "Importeren…",
     "Information about the current {app} installation": "Informatie over de huidige {app}-installatie",
     "Re-import failed": "Opnieuw importeren is mislukt",
-    "Run setup wizard": "Installatiehulp starten",
+    "Run setup wizard": "Installatiewizard starten",
     "Support": "Ondersteuning",
     "{app} Settings": "{app}-instellingen",
     "Loading registers…": "Registers laden…",
@@ -1767,7 +1769,10 @@
     "{ms} ms": "{ms} ms",
     "{m} min {s} s": "{m} min {s} s",
     "{ran} of {total} run": "{ran} van {total} uitgevoerd",
-    "{s} s": "{s} s"
+    "{s} s": "{s} s",
+    "About this {app} installation.": "Over deze {app}-installatie.",
+    "{version}, up to date": "{version}, bijgewerkt",
+    "for an SLA": "voor een SLA"
   },
   "plurals": {
     "{count} selected": [
