@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.115.0",
+	"version": "NEWVER",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -592,7 +592,7 @@
 		"folderSidebarScope": {
 			"type": "object",
 			"additionalProperties": true,
-			"description": "One folder in `config.folderSidebar.folders[]`, which doubles as a SCOPE: the three optional list-layout keys below let one index page show each folder the way that folder needs. Every other key (id, name, icon, ...) stays free-form, so an existing folder list validates unchanged. The page's `config.columns` still decides which columns this page HAS; a scope only decides which of them are shown, in what order, sorted by what and searched over what. A scope naming a column the page does not declare is refused by validateManifestV2, not silently rendered.",
+			"description": "One folder in `config.folderSidebar.folders[]`, which doubles as a SCOPE: the three optional list-layout keys below let one index page show each folder the way that folder needs. Every other key (id, name, icon, ...) stays free-form, so an existing folder list validates unchanged. A scope (or the `x-index` block of the row a register-derived folder comes from) may also carry the presentation keys a query preset sets, under the same names: title, quickFilters, cardFields, countText, searchPlaceholder, footerNote, viewSwitch, addLabel, headerButtons, breadcrumb, headerMeta and afterList (index-scope-presentation); a scope's value wins over a preset's. The page's `config.columns` still decides which columns this page HAS; a scope only decides which of them are shown, in what order, sorted by what and searched over what. A scope naming a column the page does not declare is refused by validateManifestV2, not silently rendered.",
 			"properties": {
 				"columns": {
 					"type": "array",
@@ -4401,7 +4401,12 @@
 									"searchPlaceholder": { "type": "string", "minLength": 1, "description": "The search placeholder while the preset applies." },
 									"footerNote": { "type": "string", "minLength": 1, "description": "The footer note while the preset applies." },
 									"defaultSort": { "type": "array", "description": "The default sort while the preset applies; same shape as config.defaultSort." },
-									"viewSwitch": { "type": "array", "items": { "type": "string", "enum": ["table", "cards", "board", "map"] }, "description": "The drawn view segments while the preset applies." }
+									"viewSwitch": { "type": "array", "items": { "type": "string", "enum": ["table", "cards", "board", "map"] }, "description": "The drawn view segments while the preset applies." },
+									"addLabel": { "type": "string", "minLength": 1, "description": "The add button label while the preset applies (index-scope-presentation)." },
+									"headerButtons": { "type": "array", "description": "The header buttons while the preset applies; same shape as config.headerButtons (index-scope-presentation)." },
+									"breadcrumb": { "description": "The breadcrumb while the preset applies; same shape as config.breadcrumb (index-scope-presentation).", "anyOf": [{ "$ref": "#/$defs/breadcrumbCrumb" }, { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/breadcrumbCrumb" } }] },
+									"headerMeta": { "type": "string", "minLength": 1, "description": "The note after the breadcrumb while the preset applies (index-scope-presentation)." },
+									"afterList": { "type": "array", "description": "The cards after the list while the preset applies; same shape as config.afterList (index-scope-presentation).", "items": { "type": "object", "required": ["id", "type"], "properties": { "id": { "type": "string", "minLength": 1 }, "type": { "type": "string", "minLength": 1 }, "title": { "type": "string" }, "subtitle": { "type": "string" }, "content": { "type": "object" }, "headerLink": { "type": "object" } } } }
 								}
 							}
 						},
@@ -4452,6 +4457,7 @@
 							"description": "type='index': the property keys the cards view shows as the facts list of each card, in order; defaults to the first four list columns under the board look (screens-card-parity). Maps to CnIndexPage `cardFields`.",
 							"items": { "type": "string", "minLength": 1 }
 						},
+						"afterList": { "type": "array", "description": "type='index': cards after the list, stacked full width in the listed order, the counterpart of statRow above it (index-scope-presentation). Each entry is a widget definition resolved like statRow's. A query preset or a folder scope can set its own. Maps to CnIndexPage `afterList`.", "items": { "type": "object", "required": ["id", "type"], "properties": { "id": { "type": "string", "minLength": 1 }, "type": { "type": "string", "minLength": 1 }, "title": { "type": "string" }, "subtitle": { "type": "string" }, "content": { "type": "object" }, "headerLink": { "type": "object" } } } },
 						"statRow": {
 							"type": "array",
 							"default": [],

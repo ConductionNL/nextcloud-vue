@@ -2280,3 +2280,26 @@ describe('app-manifest-v2: a dashboard greeting label (dashboard-greeting-label,
 		expect(validateManifestV2(page({ greeting: { label: 'Customer contact', icon: 'x' } })).valid).toBe(false)
 	})
 })
+
+describe('app-manifest-v2 — preset and scope presentation (index-scope-presentation)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', ...config } }] })
+
+	it('accepts the new preset keys and a page afterList', () => {
+		expect(validateManifestV2(page({
+			afterList: [{ id: 'per-subject', type: 'chart', title: 'Per subject', content: {} }],
+			queryPresets: [{
+				match: { caseType: 'uuid' },
+				addLabel: 'Register complaint',
+				headerButtons: [{ action: 'add' }],
+				breadcrumb: { label: 'All cases', route: 'Cases' },
+				headerMeta: 'Awb chapter 9',
+				afterList: [{ id: 'chart', type: 'chart' }],
+			}],
+		})).valid).toBe(true)
+	})
+
+	it('refuses an afterList entry without a type and an unknown preset key', () => {
+		expect(validateManifestV2(page({ afterList: [{ id: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(page({ queryPresets: [{ match: { a: 'b' }, colour: 'red' }] })).valid).toBe(false)
+	})
+})
