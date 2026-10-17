@@ -244,9 +244,14 @@
 	color: var(--color-main-text);
 }
 
-.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active,
-.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active .app-navigation-entry-link {
+/* The wash sits on the entry only, so a theme that tints the entry (thematiq's
+   accent wash on DqZijbalk) is not painted over by the link. */
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active {
 	background: var(--color-primary-element-light);
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active .app-navigation-entry-link {
+	background: transparent;
 	color: var(--color-primary-element-light-text);
 	font-weight: 600;
 }
@@ -290,9 +295,11 @@
 	font-weight: 700;
 }
 
+/* White on the error colour: --color-error-text is the error colour for text on
+   a light ground (#8A0000 under thematiq), not the text on an error pill. */
 .cn-look-board .cn-app-nav__count--attention {
 	background: var(--color-error);
-	color: var(--color-error-text, var(--color-primary-element-text));
+	color: var(--color-primary-element-text);
 }
 
 /* The footer: Help, then Advanced, whatever the declared order. */

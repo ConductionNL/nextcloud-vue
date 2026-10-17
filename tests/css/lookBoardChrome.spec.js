@@ -152,6 +152,19 @@ describe('look-board.css: the navigation', () => {
 		expect(rulesFor('.cn-app-nav__count--attention')).toContain('var(--color-error)')
 	})
 
+	it('writes the attention count in white, not in the error text colour', () => {
+		const attention = rulesFor('.cn-app-nav__count--attention')
+		expect(attention).toContain('color: var(--color-primary-element-text)')
+		expect(attention).not.toContain('--color-error-text')
+	})
+
+	it('puts the active wash on the entry and keeps the link transparent, so a theme wash shows', () => {
+		expect(rulesFor('.app-navigation-entry.active {')).toContain('background: var(--color-primary-element-light)')
+		const link = rulesFor('.app-navigation-entry.active .app-navigation-entry-link')
+		expect(link).toContain('background: transparent')
+		expect(link).not.toContain('--color-primary-element-light)')
+	})
+
 	it('orders Help before Advanced and pushes the card down', () => {
 		expect(rulesFor('.cn-app-nav__footer-list')).toContain('order: 1')
 		expect(rulesFor('[data-testid="cn-nav-settings"]')).toContain('order: 2')
