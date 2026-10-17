@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.115.0",
+	"version": "NEWVER",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1291,6 +1291,7 @@
 						"filter": { "type": "object", "additionalProperties": true }
 					}
 				},
+				"resolve": { "type": "object", "additionalProperties": false, "required": ["register", "schema"], "description": "detail-pill-resolve: the field holds the id of a record of this register and schema; the pill shows that record's `labelField` (else its title or name) and keys `colorMap` by it. The raw value shows while the lookup runs and when it finds nothing.", "properties": { "register": { "type": "string", "minLength": 1 }, "schema": { "type": "string", "minLength": 1 }, "labelField": { "type": "string", "minLength": 1 } } },
 				"countLabel": {
 					"type": "object",
 					"additionalProperties": false,

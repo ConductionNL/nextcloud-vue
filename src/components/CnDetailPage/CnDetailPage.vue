@@ -1236,6 +1236,7 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
@@ -2862,6 +2863,10 @@ export default {
 			pillCounts: {},
 			/** Sequence of the last pill count round, so a late answer does not overwrite a newer one. */
 			pillCountSeq: 0,
+			/** The labels of the records pills with `resolve` point at, by pill key. */
+			pillRefLabels: {},
+			/** Sequence of the last pill label lookup, so a late answer for another record is dropped. */
+			pillRefSeq: 0,
 			/** `register/schema/id` the read-state call was last made for, so it is sent once per load. */
 			readStateSentFor: '',
 			/** Whether the user is arranging the chosen view (`userLayout`). */
@@ -3383,7 +3388,16 @@ export default {
 					const pill = pillCountSource(config)
 						? resolveCountPill(config, this.pillCounts[key], (text) => this.effectiveTranslate(text))
 						: resolvePill(config, this.resolvedObject)
-					return pill ? { ...pill, key, label: this.effectiveTranslate(pill.label) } : null
+					if (!pill) {
+						return null
+					}
+					// `resolve`: the referenced record's label replaces the id, and
+					// keys the colour too ("Woo-verzoek", not a uuid).
+					const resolved = this.pillRefLabels[key]
+					if (typeof resolved === 'string' && resolved !== '') {
+						return { ...pill, key, label: this.effectiveTranslate(resolved), colorKey: resolved }
+					}
+					return { ...pill, key, label: this.effectiveTranslate(pill.label) }
 				})
 				.filter(Boolean)
 		},
@@ -3395,6 +3409,34 @@ export default {
 		 * @return {string} The key.
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count
 		 */
+		/**
+		 * What the resolved pills depend on, as one key: a change looks again.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/detail-pill-resolve/specs/detail-page/spec.md#requirement-a-header-pill-can-show-a-referenced-record-s-label
+		 */
+		pillResolveKey() {
+			return JSON.stringify(this.pillResolveTargets)
+		},
+
+		/**
+		 * The pills with `resolve: { register, schema, labelField? }` and the
+		 * id each one shows: `[key, register, schema, labelField, id]`. Empty
+		 * while the field is empty.
+		 *
+		 * @return {Array<Array<string>>}
+		 * @spec openspec/changes/detail-pill-resolve/specs/detail-page/spec.md#requirement-a-header-pill-can-show-a-referenced-record-s-label
+		 */
+		pillResolveTargets() {
+			return [['type', this.typePill], ['status', this.statusPill]]
+				.filter(([, config]) => config && config.resolve && config.resolve.register && config.resolve.schema && typeof config.field === 'string')
+				.map(([key, config]) => {
+					const pill = resolvePill({ field: config.field }, this.resolvedObject)
+					return pill ? [key, config.resolve.register, config.resolve.schema, config.resolve.labelField || '', pill.colorKey] : null
+				})
+				.filter(Boolean)
+		},
+
 		pillCountKey() {
 			return JSON.stringify([this.objectId, pillCountSource(this.typePill), pillCountSource(this.statusPill)])
 		},
@@ -4585,6 +4627,14 @@ export default {
 			},
 		},
 
+		// A pill with `resolve` looks its record up again for another value.
+		pillResolveKey: {
+			immediate: true,
+			handler() {
+				this.refreshPillRefLabels()
+			},
+		},
+
 		// The header's count pills count again for another record or other lists.
 		pillCountKey: {
 			immediate: true,
@@ -5018,6 +5068,42 @@ export default {
 				await done
 			} finally {
 				this.internalRefreshing = false
+			}
+		},
+
+		/**
+		 * Look up the records the `resolve` pills point at, through the same
+		 * reference-label resolver the index tables use. A failed lookup keeps
+		 * the raw value.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/detail-pill-resolve/specs/detail-page/spec.md#requirement-a-header-pill-can-show-a-referenced-record-s-label
+		 */
+		async refreshPillRefLabels() {
+			const targets = this.pillResolveTargets
+			const seq = ++this.pillRefSeq
+			if (targets.length === 0) {
+				this.pillRefLabels = {}
+				return
+			}
+			if (!this._pillRefResolver) {
+				this._pillRefResolver = createRefLabelResolver(() => {
+					try {
+						return this.objectStore || useObjectStore()
+					} catch {
+						return null
+					}
+				})
+			}
+			const labels = {}
+			await Promise.all(targets.map(async ([key, register, schema, labelField, id]) => {
+				const found = await this._pillRefResolver.resolve(register, schema, [id], labelField).catch(() => ({}))
+				if (found && typeof found[id] === 'string') {
+					labels[key] = found[id]
+				}
+			}))
+			if (seq === this.pillRefSeq) {
+				this.pillRefLabels = labels
 			}
 		},
 

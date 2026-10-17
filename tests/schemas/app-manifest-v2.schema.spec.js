@@ -2280,3 +2280,16 @@ describe('app-manifest-v2: a dashboard greeting label (dashboard-greeting-label,
 		expect(validateManifestV2(page({ greeting: { label: 'Customer contact', icon: 'x' } })).valid).toBe(false)
 	})
 })
+
+describe('app-manifest-v2 — headerPill resolve (detail-pill-resolve)', () => {
+	const page = (typePill) => ({ ...MINIMAL_V2, pages: [{ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', typePill } }] })
+
+	it('accepts a pill that resolves its field', () => {
+		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq', schema: 'caseType', labelField: 'title' } })).valid).toBe(true)
+	})
+
+	it('refuses a resolve without a schema or with an unknown key', () => {
+		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq' } })).valid).toBe(false)
+		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq', schema: 'caseType', colour: 'red' } })).valid).toBe(false)
+	})
+})
