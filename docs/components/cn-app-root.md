@@ -374,7 +374,7 @@ They are off by default because they stacked: an app declaring four optional lea
 
 Under the board look (`look: "board"` or manifest `look`) the user settings open in the board dialog (board
 PqPersoonlijk) instead of `NcAppSettingsDialog`: an eyebrow, the title and a subtitle, a 200px navigation listing every
-section with its icon, the sections, and a footer "Changes are saved straight away · <app>" with Close. The sections
+section with its icon, the sections, and a footer "Changes are saved straight away · Pipelinq" (the app's name) with Close. The sections
 stay the app's: every `NcAppSettingsSection` in `#user-settings-sections` registers itself with the board dialog as it
 does with `NcAppSettingsDialog`, so give each one an `#icon` slot to show an icon in the navigation. The library's own
 sections carry one. The Nextcloud look is unchanged.
