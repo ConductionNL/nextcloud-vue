@@ -153,6 +153,28 @@
 	border-radius: var(--cn-board-control-radius);
 }
 
+/* ---- The Actions menu trigger (CnActionsMenu) ---------------------------- */
+/* A menu asked for as `secondary` ("Meer" in a detail header, "Acties" at the
+   end of a tab strip) is the board's neutral control: the main background, a
+   grey border, the main text at 600 (DqZaak), not Nextcloud's primary tint.
+   NcActions marks a secondary menu `action-item--secondary` on its root and
+   keeps a class given to it off, so the rule reads that marker. The label
+   hands its ink to --nldesign-color-on-surface for a theme that forces the
+   body ink onto every span (thematiq). */
+.cn-look-board .action-item.action-item--secondary .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .action-item.action-item--secondary .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *):hover {
+	background: var(--color-background-hover);
+}
+
 /* ---- The navigation ---------------------------------------------------- */
 .cn-look-board .app-navigation[data-testid="cn-nav"] {
 	--app-navigation-padding: 0px;
