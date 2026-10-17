@@ -1600,7 +1600,12 @@
     "{field} must be at least {min}.": "{field} must be at least {min}.",
     "{field} must be at most {max}.": "{field} must be at most {max}.",
     "Check the marked fields.": "Check the marked fields.",
-    "The settings could not be saved: {reason}": "The settings could not be saved: {reason}"
+    "The settings could not be saved: {reason}": "The settings could not be saved: {reason}",
+    "This value could not be loaded: {reason}": "This value could not be loaded: {reason}",
+    "{fields}: {reason}": "{fields}: {reason}",
+    "Current {name}": "Current {name}",
+    "Upload {name}": "Upload {name}",
+    "The image could not be uploaded: {reason}": "The image could not be uploaded: {reason}"
   },
   "plurals": {
     "{count} selected": [

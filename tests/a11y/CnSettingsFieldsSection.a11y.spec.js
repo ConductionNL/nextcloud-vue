@@ -30,6 +30,7 @@ const FIELDS = [
 	{ key: 'retries', label: 'Retries', type: 'number', min: 0, max: 5 },
 	{ key: 'enabled', label: 'Enabled', type: 'switch' },
 	{ key: 'notes', label: 'Notes', type: 'textarea', wide: true },
+	{ key: 'logo', label: 'Logo', type: 'image', initials: 'Example Org', uploadUrl: '/apps/theming/ajax/uploadImage', uploadParams: { key: 'logo' } },
 ]
 
 /**

@@ -26,9 +26,10 @@
 					:class="{ 'cn-settings-fields__field--wide': field.wide }"
 					:field="field"
 					:modelValue="form[field.key]"
-					:error="errors[field.key] || ''"
+					:error="errors[field.key] || unreadable[field.key] || ''"
 					:hint="field.hint"
-					@update:modelValue="setValue(field, $event)" />
+					@update:modelValue="setValue(field, $event)"
+					@uploaded="onUploaded(field, $event)" />
 			</div>
 
 			<NcNoteCard v-if="notice"
@@ -66,6 +67,16 @@ import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 import { CnSettingsField } from '../CnSettingsField/index.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
+
+/**
+ * Up to two initials of a name, for an image field without an image.
+ *
+ * @param {unknown} name The name.
+ * @return {string}
+ */
+function initialsOf(name) {
+	return String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0].toUpperCase()).join('')
+}
 
 /**
  * CnSettingsFieldsSection - a settings section declared as fields: it reads
@@ -134,11 +145,18 @@ export default {
 		/**
 		 * The fields: `[{ key, label, type?, hint?, placeholder?, required?,
 		 * pattern?, patternMessage?, min?, max?, rows?, options?, optionsUrl?,
-		 * optionsPath?, optionLabel?, optionValue?, default?, readOnly?, wide? }]`.
-		 * `type` is `text` (default), `textarea`, `number`, `switch`, `select`
-		 * or `secret`. `key` names the setting; a dotted key reads a nested
-		 * value and is written as written. Labels, hints, placeholders and
-		 * messages go through the app's translate function.
+		 * optionsPath?, optionLabel?, optionValue?, default?, readOnly?, wide?,
+		 * url?, valuePath?, saveUrl?, saveMethod?, saveKey?, uploadUrl?,
+		 * uploadField?, uploadParams?, uploadValuePath?, initials?, initialsFrom? }]`.
+		 * `type` is `text` (default), `textarea`, `number`, `switch`, `select`,
+		 * `secret` or `image`. `key` names the setting; a dotted key reads a
+		 * nested value and is written as written. A field with its own `url`
+		 * is read there (at `valuePath`, default its key) and saved to its
+		 * `saveUrl` (default that `url`) with `saveMethod` (default POST) under
+		 * `saveKey` (default its key), so one section can hold the settings of
+		 * several apps. An `image` uploads at once to `uploadUrl`. Labels,
+		 * hints, placeholders and messages go through the app's translate
+		 * function.
 		 *
 		 * @type {Array<object>}
 		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-a-section-declared-as-fields-reads-and-saves-the-apps-settings
@@ -200,6 +218,8 @@ export default {
 			form: {},
 			baseline: {},
 			storedSecrets: {},
+			// Field key to the message of a read target that failed.
+			unreadable: {},
 			errors: {},
 			loading: true,
 			loadError: '',
@@ -238,6 +258,8 @@ export default {
 					hint: this.tr(field.hint || ''),
 					placeholder: this.tr(field.placeholder || ''),
 					secretSet: field.type === 'secret' ? !!this.storedSecrets[field.key] : undefined,
+					initials: field.type === 'image' ? initialsOf(field.initialsFrom ? this.form[field.initialsFrom] : field.initials) : undefined,
+					readOnly: field.readOnly || !!this.unreadable[field.key],
 				}))
 		},
 
@@ -248,7 +270,7 @@ export default {
 		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-one-save-per-section-with-a-dirty-state
 		 */
 		dirty() {
-			return this.resolvedFields.some((field) => !this.same(this.form[field.key], this.baseline[field.key]))
+			return this.resolvedFields.some((field) => field.type !== 'image' && !this.same(this.form[field.key], this.baseline[field.key]))
 		},
 
 		/** @return {string} The Save button's label. */
@@ -311,19 +333,37 @@ export default {
 			this.loading = true
 			this.loadError = ''
 			try {
-				let values = {}
-				if (this.readTarget) {
-					const response = await axios.get(prefixUrl(this.readTarget))
-					const data = response?.data ?? {}
-					values = (this.valuesPath ? readPath(data, this.valuesPath) : data) || {}
+				// One GET per distinct read target; the section's own target must
+				// answer, a field's own target may fail on its own.
+				const targets = [...new Set(this.fields
+					.filter((field) => field && field.key)
+					.map((field) => this.readUrlOf(field))
+					.filter(Boolean))]
+				const answers = {}
+				const failures = {}
+				await Promise.all(targets.map(async (target) => {
+					try {
+						const response = await axios.get(prefixUrl(target))
+						answers[target] = response?.data ?? {}
+					} catch (error) {
+						failures[target] = error
+					}
+				}))
+				if (this.readTarget && failures[this.readTarget]) {
+					throw failures[this.readTarget]
 				}
 				const form = {}
 				const stored = {}
+				const unreadable = {}
 				for (const field of this.fields || []) {
 					if (!field || !field.key) {
 						continue
 					}
-					const raw = Object.hasOwn(values, field.key) ? values[field.key] : readPath(values, field.key)
+					const target = this.readUrlOf(field)
+					if (target && failures[target]) {
+						unreadable[field.key] = t('nextcloud-vue', 'This value could not be loaded: {reason}', { reason: serverErrorMessage(failures[target]) })
+					}
+					const raw = this.readValue(field, target ? answers[target] : null)
 					if (field.type === 'secret') {
 						stored[field.key] = raw !== null && raw !== undefined && raw !== '' && raw !== false
 						form[field.key] = ''
@@ -334,12 +374,43 @@ export default {
 				this.form = form
 				this.baseline = { ...form }
 				this.storedSecrets = stored
+				this.unreadable = unreadable
 				this.errors = {}
 			} catch (error) {
 				this.loadError = t('nextcloud-vue', 'The settings could not be loaded: {reason}', { reason: serverErrorMessage(error) })
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * Where a field is read: its own `url`, else the section's.
+		 *
+		 * @param {object} field The field.
+		 * @return {string}
+		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-a-field-can-read-and-save-elsewhere
+		 */
+		readUrlOf(field) {
+			return field.url || this.readTarget
+		},
+
+		/**
+		 * A field's value in its read answer: at its `valuePath` (a field with its
+		 * own `url`), else at the section's `valuesPath`, then its `key`.
+		 *
+		 * @param {object} field The field.
+		 * @param {object|null} data The answer of the field's read target.
+		 * @return {unknown}
+		 */
+		readValue(field, data) {
+			if (!data || typeof data !== 'object') {
+				return undefined
+			}
+			if (field.url) {
+				return readPath(data, field.valuePath || field.key)
+			}
+			const values = (this.valuesPath ? readPath(data, this.valuesPath) : data) || {}
+			return Object.hasOwn(values, field.key) ? values[field.key] : readPath(values, field.key)
 		},
 
 		/**
@@ -353,7 +424,7 @@ export default {
 			for (const field of this.resolvedFields) {
 				const value = this.form[field.key]
 				const empty = value === null || value === undefined || value === ''
-				if (field.type === 'switch') {
+				if (field.type === 'switch' || field.type === 'image' || this.unreadable[field.key]) {
 					continue
 				}
 				if (field.required && empty && !(field.type === 'secret' && field.secretSet)) {
@@ -403,43 +474,93 @@ export default {
 				})
 				return
 			}
-			const payload = {}
+			// The changed fields, one request per save target, each carrying its
+			// own fields under their `saveKey`. A secret goes only when typed; an
+			// image is uploaded on its own; a field that could not be read is left out.
+			const groups = new Map()
 			for (const field of this.resolvedFields) {
 				const value = this.form[field.key]
+				if (field.type === 'image' || this.unreadable[field.key] || this.same(value, this.baseline[field.key])) {
+					continue
+				}
 				if (field.type === 'secret' && (value === '' || value === null || value === undefined)) {
 					continue
 				}
-				payload[field.key] = value
+				const url = field.saveUrl || (field.url ? field.url : this.writeTarget)
+				const method = String(field.saveMethod || (field.saveUrl || field.url ? 'POST' : this.saveMethod)).toLowerCase()
+				const id = `${method} ${url}`
+				if (!groups.has(id)) {
+					groups.set(id, { url, method, fields: [], data: {} })
+				}
+				const group = groups.get(id)
+				group.fields.push(field)
+				group.data[field.saveKey || field.key] = value
 			}
 			this.saving = true
 			this.notice = null
-			try {
-				await axios.request({ url: prefixUrl(this.writeTarget), method: this.saveMethod.toLowerCase(), data: payload })
-				const stored = { ...this.storedSecrets }
-				const form = { ...this.form }
-				for (const field of this.resolvedFields) {
-					if (field.type === 'secret' && form[field.key] !== '') {
-						stored[field.key] = true
-						form[field.key] = ''
-					}
+			const failed = []
+			const sent = {}
+			for (const group of groups.values()) {
+				try {
+					await axios.request({ url: prefixUrl(group.url), method: group.method, data: group.data })
+					Object.assign(sent, group.data)
+					this.acceptSaved(group.fields)
+				} catch (error) {
+					failed.push({ group, error })
 				}
-				this.storedSecrets = stored
-				this.form = form
-				this.baseline = { ...form }
+			}
+			this.saving = false
+			if (failed.length === 0) {
 				this.notice = { type: 'success', text: t('nextcloud-vue', 'Saved.') }
 				/**
-				 * @event saved The section saved. Payload: what was sent.
+				 * @event saved The section saved. Payload: what was sent, by save key.
 				 */
-				this.$emit('saved', payload)
-			} catch (error) {
-				this.notice = { type: 'error', text: t('nextcloud-vue', 'The settings could not be saved: {reason}', { reason: serverErrorMessage(error) }) }
-				/**
-				 * @event save-error The save failed. Payload: the error.
-				 */
-				this.$emit('save-error', error)
-			} finally {
-				this.saving = false
+				this.$emit('saved', sent)
+				return
 			}
+			const reasons = failed.map(({ group, error }) => (groups.size > 1
+				? t('nextcloud-vue', '{fields}: {reason}', { fields: group.fields.map((field) => field.label).join(', '), reason: serverErrorMessage(error) })
+				: serverErrorMessage(error)))
+			this.notice = { type: 'error', text: t('nextcloud-vue', 'The settings could not be saved: {reason}', { reason: reasons.join('; ') }) }
+			/**
+			 * @event save-error A save request failed. Payload: the first error.
+			 */
+			this.$emit('save-error', failed[0].error)
+		},
+
+		/**
+		 * Take saved fields as the new baseline; a saved secret reads as stored.
+		 *
+		 * @param {Array<object>} fields The fields that saved.
+		 * @return {void}
+		 */
+		acceptSaved(fields) {
+			const form = { ...this.form }
+			const baseline = { ...this.baseline }
+			const stored = { ...this.storedSecrets }
+			for (const field of fields) {
+				if (field.type === 'secret') {
+					stored[field.key] = true
+					form[field.key] = ''
+				}
+				baseline[field.key] = form[field.key]
+			}
+			this.form = form
+			this.baseline = baseline
+			this.storedSecrets = stored
+		},
+
+		/**
+		 * An image field uploaded a file: its new value is the baseline too.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} value The new image url.
+		 * @return {void}
+		 */
+		onUploaded(field, value) {
+			this.form = { ...this.form, [field.key]: value }
+			this.baseline = { ...this.baseline, [field.key]: value }
+			this.notice = { type: 'success', text: t('nextcloud-vue', 'Saved.') }
 		},
 	},
 }

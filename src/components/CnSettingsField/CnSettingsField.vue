@@ -14,6 +14,39 @@
 			@update:modelValue="emitValue($event)">
 			{{ label }}
 		</NcCheckboxRadioSwitch>
+		<div v-else-if="kind === 'image'"
+			class="cn-settings-field__image"
+			role="group"
+			:aria-labelledby="`${inputId}-label`">
+			<span :id="`${inputId}-label`" class="cn-settings-field__image-label">{{ label }}</span>
+			<div class="cn-settings-field__image-row">
+				<span class="cn-settings-field__image-tile" :data-testid="`cn-settings-field-image-${field.key}`">
+					<img v-if="stringValue" :src="stringValue" :alt="t('nextcloud-vue', 'Current {name}', { name: label })">
+					<span v-else class="cn-settings-field__image-initials" aria-hidden="true">{{ field.initials || '' }}</span>
+				</span>
+				<input
+					:id="inputId"
+					ref="file"
+					class="hidden-visually"
+					type="file"
+					:accept="field.accept || 'image/*'"
+					tabindex="-1"
+					:aria-labelledby="`${inputId}-label`"
+					:aria-describedby="describedBy"
+					@change="upload($event.target.files && $event.target.files[0])">
+				<NcButton
+					v-if="!field.readOnly && field.uploadUrl"
+					:disabled="uploading"
+					:aria-describedby="describedBy"
+					:data-testid="`cn-settings-field-upload-${field.key}`"
+					@click="$refs.file && $refs.file.click()">
+					<template v-if="uploading" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ field.uploadLabel || t('nextcloud-vue', 'Upload {name}', { name: label }) }}
+				</NcButton>
+			</div>
+		</div>
 		<NcSelect
 			v-else-if="kind === 'select'"
 			:inputId="inputId"
@@ -73,11 +106,11 @@
 			:error="!!error"
 			:aria-describedby="describedBy"
 			@update:modelValue="emitValue($event)" />
-		<p v-if="error"
+		<p v-if="shownError"
 			:id="`${inputId}-error`"
 			class="cn-settings-field__error"
 			:data-testid="`cn-settings-field-error-${field.key}`">
-			{{ error }}
+			{{ shownError }}
 		</p>
 		<p v-else-if="hint" :id="`${inputId}-hint`" class="cn-settings-field__hint">
 			{{ hint }}
@@ -86,10 +119,12 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
-import { NcCheckboxRadioSwitch, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import { buildHeaders, prefixUrl } from '../../utils/headers.js'
 import { readPath } from '../../utils/readPath.js'
+import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 
 let fieldUid = 0
 
@@ -105,7 +140,9 @@ const KIND_ALIASES = { enum: 'select', string: 'text' }
  * `select` (`enum`) with static `options` or options read from `optionsUrl`,
  * `password` (a masked input that shows its value back) and `secret`
  * (replace-only: the input stays empty, and with `secretSet` says a value is
- * stored; the host sends it only when something is typed).
+ * stored; the host sends it only when something is typed), and `image` (a
+ * preview tile, the initials without an image, and an upload button that
+ * posts the file to `uploadUrl` at once and emits `uploaded`).
  *
  * ```vue
  * <CnSettingsField
@@ -116,7 +153,7 @@ const KIND_ALIASES = { enum: 'select', string: 'text' }
 export default {
 	name: 'CnSettingsField',
 
-	components: { NcCheckboxRadioSwitch, NcSelect, NcTextArea, NcTextField },
+	components: { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextArea, NcTextField },
 
 	props: {
 		/**
@@ -153,7 +190,7 @@ export default {
 		},
 	},
 
-	emits: ['update:modelValue'],
+	emits: ['update:modelValue', 'uploaded'],
 
 	data() {
 		fieldUid += 1
@@ -161,6 +198,8 @@ export default {
 			uid: fieldUid,
 			fetchedOptions: null,
 			optionsLoading: false,
+			uploading: false,
+			uploadError: '',
 		}
 	},
 
@@ -181,9 +220,14 @@ export default {
 			return `cn-settings-field-${this.uid}-${String(this.field.key).replace(/[^A-Za-z0-9_-]/g, '-')}`
 		},
 
+		/** @return {string} The message shown under the control: an upload failure, else `error`. */
+		shownError() {
+			return this.uploadError || this.error
+		},
+
 		/** @return {string|null} The id of the error or hint the control is described by. */
 		describedBy() {
-			if (this.error) {
+			if (this.shownError) {
 				return `${this.inputId}-error`
 			}
 			return this.hint ? `${this.inputId}-hint` : null
@@ -233,6 +277,47 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Upload a chosen image to `uploadUrl` as multipart form data (the
+		 * file under `uploadField`, default `image`, plus `uploadParams`), then
+		 * take the new image url from the answer at `uploadValuePath` (or a
+		 * cache-busted `previewUrl`).
+		 *
+		 * @param {File|undefined} file The chosen file.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-an-image-field-uploads-at-once
+		 */
+		async upload(file) {
+			if (!file || !this.field.uploadUrl) {
+				return
+			}
+			const form = new FormData()
+			for (const [name, value] of Object.entries(this.field.uploadParams || {})) {
+				form.append(name, value)
+			}
+			form.append(this.field.uploadField || 'image', file)
+			this.uploading = true
+			this.uploadError = ''
+			try {
+				const response = await axios.post(prefixUrl(this.field.uploadUrl), form)
+				const fromAnswer = this.field.uploadValuePath ? readPath(response?.data, this.field.uploadValuePath) : ''
+				const next = fromAnswer || (this.field.previewUrl ? `${prefixUrl(this.field.previewUrl)}${this.field.previewUrl.includes('?') ? '&' : '?'}v=${Date.now()}` : '')
+				/**
+				 * @event uploaded An image was uploaded. Payload: its new url.
+				 */
+				this.$emit('uploaded', next)
+			} catch (error) {
+				this.uploadError = t('nextcloud-vue', 'The image could not be uploaded: {reason}', { reason: serverErrorMessage(error) })
+			} finally {
+				this.uploading = false
+				if (this.$refs.file) {
+					this.$refs.file.value = ''
+				}
+			}
+		},
+
 		/**
 		 * Report a new value.
 		 *
@@ -311,6 +396,47 @@ export default {
 	margin: 0;
 	font-size: 13px;
 	line-height: 1.4;
+}
+
+.cn-settings-field__image {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cn-settings-field__image-label {
+	font-weight: 600;
+}
+
+.cn-settings-field__image-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+}
+
+.cn-settings-field__image-tile {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 64px;
+	height: 64px;
+	overflow: hidden;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	background: var(--color-primary-element-light);
+}
+
+.cn-settings-field__image-tile img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+}
+
+.cn-settings-field__image-initials {
+	font-size: 20px;
+	font-weight: 700;
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
 }
 
 .cn-settings-field__hint {

@@ -1786,7 +1786,12 @@
     "{field} must be at least {min}.": "{field} moet minstens {min} zijn.",
     "{field} must be at most {max}.": "{field} mag hoogstens {max} zijn.",
     "Check the marked fields.": "Controleer de gemarkeerde velden.",
-    "The settings could not be saved: {reason}": "De instellingen konden niet worden opgeslagen: {reason}"
+    "The settings could not be saved: {reason}": "De instellingen konden niet worden opgeslagen: {reason}",
+    "This value could not be loaded: {reason}": "Deze waarde kon niet worden geladen: {reason}",
+    "{fields}: {reason}": "{fields}: {reason}",
+    "Current {name}": "Huidige {name}",
+    "Upload {name}": "{name} uploaden",
+    "The image could not be uploaded: {reason}": "De afbeelding kon niet worden geüpload: {reason}"
   },
   "plurals": {
     "{count} selected": [

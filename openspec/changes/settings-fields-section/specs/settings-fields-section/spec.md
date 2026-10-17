@@ -23,12 +23,12 @@ An admin section that is a form over the app's settings is declared, not written
 
 ### Requirement: One save per section with a dirty state
 
-The section SHALL have one Save button, enabled only while a field differs from what was loaded or last saved, with "Unsaved changes" beside it. Save SHALL send every field of the section in one request (`saveMethod`, default `PUT`, to `saveUrl`, default `url`), then say "Saved." as a status message, or why it did not save as an alert, and emit `saved` or `save-error`.
+The section SHALL have one Save button, enabled only while a field differs from what was loaded or last saved, with "Unsaved changes" beside it. Save SHALL send the changed fields, one request per save target carrying that target's fields (fields without their own target to `saveUrl`, default `url`, with `saveMethod`, default `PUT`), then say "Saved." as a status message, or why a target did not save as an alert (naming its fields when there are several targets), and emit `saved` or `save-error`. A target that failed SHALL keep its fields unsaved.
 
 #### Scenario: Changing the address
 
 - **WHEN** the administrator changes the address and presses Save
-- **THEN** one PUT carries the section's fields and the section reads "Saved."
+- **THEN** one PUT carries the address and the section reads "Saved."
 
 ### Requirement: A failing field says why
 
@@ -48,3 +48,22 @@ A `secret` field SHALL never show the stored value. When the settings hold one, 
 
 - **WHEN** the administrator types a new key and saves
 - **THEN** the key is sent once and the input is empty and says it is stored
+
+### Requirement: A field can read and save elsewhere
+
+A field with its own `url` SHALL be read from that endpoint, at its `valuePath` (default its key), and saved to its `saveUrl` (default that `url`) with `saveMethod` (default `POST`) under `saveKey` (default its key). Each distinct read target SHALL be read once. When a field's own target cannot be read, the field SHALL say so and be left out of the save, and the rest of the section SHALL work.
+
+#### Scenario: A brand card over two apps
+
+- **GIVEN** the organisation name read from and saved to the theming app, and the app name from the app's own settings
+- **WHEN** both change and Save is pressed
+- **THEN** one request goes to the theming app with `{ name }` and one to the app with `{ appName }`
+
+### Requirement: An image field uploads at once
+
+An `image` field SHALL show the image at its value's url, or up to two initials (`initials`, or the value of the `initialsFrom` field) when there is none, labelled by its label. Its button SHALL upload a chosen file at once as multipart form data to `uploadUrl` (the file under `uploadField`, default `image`, plus `uploadParams`), take the new url from the answer at `uploadValuePath` (or `previewUrl` with a cache buster), and show it. An image SHALL not be part of Save, and an upload failure SHALL say why under the field.
+
+#### Scenario: Another logo
+
+- **WHEN** the administrator uploads a logo
+- **THEN** it is posted with `key=logo` and the tile shows the new logo

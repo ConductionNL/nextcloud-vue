@@ -19,6 +19,7 @@ One settings field: the control for its type with its label, and under it an err
 | `boolean` | NcCheckboxRadioSwitch as a checkbox |
 | `switch` | NcCheckboxRadioSwitch as a switch |
 | `select`, `enum` | NcSelect with `inputLabel`; static `options`, or `optionsUrl` with `optionsPath`, `optionLabel` and `optionValue` |
+| `image` | A preview tile (the image at the value's url, else `initials`) and a button that uploads a file to `uploadUrl` at once (`uploadField`, `uploadParams`, `uploadValuePath`, `previewUrl`), emitting `uploaded` |
 
 ## Props
 
@@ -34,3 +35,4 @@ One settings field: the control for its type with its label, and under it an err
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `update:modelValue` | value | The value changed. |
+| `uploaded` | `string` | An image was uploaded; the payload is its new url. |

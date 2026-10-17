@@ -93,7 +93,7 @@ describe('CnSettingsFieldsSection', () => {
 		expect(wrapper.find('[data-testid="cn-settings-fields-dirty"]').text()).toBe('Unsaved changes')
 	})
 
-	it('saves the section in one PUT, leaving out an untouched secret', async () => {
+	it('saves the changed fields in one PUT, leaving out an untouched secret', async () => {
 		const wrapper = await mountSection()
 		await input(wrapper, 'baseUrl').setValue('https://api2.example.org')
 		await wrapper.find('form').trigger('submit')
@@ -102,7 +102,7 @@ describe('CnSettingsFieldsSection', () => {
 		const call = axios.request.mock.calls[0][0]
 		expect(call.method).toBe('put')
 		expect(call.url).toContain('/apps/myapp/api/settings')
-		expect(call.data).toEqual({ baseUrl: 'https://api2.example.org', mode: 'live', retries: 3, enabled: true, notes: '' })
+		expect(call.data).toEqual({ baseUrl: 'https://api2.example.org' })
 		expect(wrapper.find('[data-testid="cn-settings-fields-notice"]').text()).toBe('Saved.')
 		expect(wrapper.find('[data-testid="cn-settings-fields-notice"]').attributes('data-type')).toBe('success')
 		expect(save(wrapper).attributes('disabled')).toBeDefined()
@@ -147,6 +147,87 @@ describe('CnSettingsFieldsSection', () => {
 		expect(notice.attributes('data-type')).toBe('error')
 		expect(notice.text()).toContain('Database is read-only')
 		expect(wrapper.emitted('save-error')).toHaveLength(1)
+	})
+})
+
+describe('CnSettingsFieldsSection with fields of several apps', () => {
+	const MIXED = [
+		{ key: 'orgName', label: 'Organisation name', url: '/apps/theming-app/settings/theming', valuePath: 'name', saveKey: 'name' },
+		{ key: 'appName', label: 'App name for staff' },
+		{ key: 'theme', label: 'Theme', type: 'select', url: '/apps/theming-app/settings/theming', valuePath: 'tokenSet', saveUrl: '/apps/theming-app/settings/tokenset', saveKey: 'tokenSet', options: ['default', 'municipality'] },
+		{ key: 'logo', label: 'Logo', type: 'image', url: '/apps/theming-app/settings/theming', valuePath: 'logoUrl', initialsFrom: 'orgName', uploadUrl: '/apps/theming/ajax/uploadImage', uploadParams: { key: 'logo' }, uploadField: 'image', uploadValuePath: 'data.url' },
+	]
+
+	beforeEach(() => {
+		axios.get.mockReset()
+		axios.request.mockReset()
+		axios.post = jest.fn()
+		axios.get.mockImplementation((url) => Promise.resolve({ data: url.includes('theming-app') ? { name: 'Zuiddrecht', tokenSet: 'default', logoUrl: '' } : { appName: 'Dossiq' } }))
+		axios.request.mockResolvedValue({ data: {} })
+	})
+
+	it('reads each field from its own target, once per target', async () => {
+		const wrapper = await mountSection({ fields: MIXED })
+		expect(axios.get).toHaveBeenCalledTimes(2)
+		expect(input(wrapper, 'orgName').element.value).toBe('Zuiddrecht')
+		expect(input(wrapper, 'appName').element.value).toBe('Dossiq')
+		expect(wrapper.find('[data-testid="cn-settings-field-theme"] .select').attributes('data-value')).toBe('default')
+		expect(wrapper.find('[data-testid="cn-settings-field-image-logo"]').text()).toBe('Z')
+	})
+
+	it('saves one request per target with that target\'s changed fields under their save keys', async () => {
+		const wrapper = await mountSection({ fields: MIXED })
+		await input(wrapper, 'orgName').setValue('Gemeente Zuiddrecht')
+		await input(wrapper, 'appName').setValue('Zaken')
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+		const calls = axios.request.mock.calls.map(([call]) => call)
+		expect(calls).toHaveLength(2)
+		expect(calls.find((call) => call.url.includes('/apps/theming-app/settings/theming'))).toMatchObject({ method: 'post', data: { name: 'Gemeente Zuiddrecht' } })
+		expect(calls.find((call) => call.url.includes('/apps/myapp/api/settings'))).toMatchObject({ method: 'put', data: { appName: 'Zaken' } })
+		expect(calls.some((call) => call.url.includes('tokenset'))).toBe(false)
+		expect(wrapper.find('[data-testid="cn-settings-field-image-logo"]').text()).toBe('GZ')
+	})
+
+	it('names the fields of a target that failed and keeps them unsaved', async () => {
+		axios.request.mockImplementation((call) => (call.url.includes('theming-app') ? Promise.reject({ response: { status: 403, data: { message: 'Admins only' } } }) : Promise.resolve({ data: {} })))
+		const wrapper = await mountSection({ fields: MIXED })
+		await input(wrapper, 'orgName').setValue('X')
+		await input(wrapper, 'appName').setValue('Y')
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+		const notice = wrapper.find('[data-testid="cn-settings-fields-notice"]')
+		expect(notice.attributes('data-type')).toBe('error')
+		expect(notice.text()).toContain('Organisation name: Admins only')
+		expect(wrapper.find('[data-testid="cn-settings-fields-dirty"]').exists()).toBe(true)
+		axios.request.mockClear()
+		axios.request.mockResolvedValue({ data: {} })
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+		expect(axios.request.mock.calls.map(([call]) => call.data)).toEqual([{ name: 'X' }])
+	})
+
+	it('leaves a field whose target could not be read out, and says so', async () => {
+		axios.get.mockImplementation((url) => (url.includes('theming-app') ? Promise.reject({ response: { status: 404, data: { message: 'Not installed' } } }) : Promise.resolve({ data: { appName: 'Dossiq' } })))
+		const wrapper = await mountSection({ fields: MIXED })
+		expect(wrapper.find('[data-testid="cn-settings-field-error-orgName"]').text()).toContain('Not installed')
+		expect(input(wrapper, 'appName').element.value).toBe('Dossiq')
+	})
+
+	it('uploads an image at once and shows the new one', async () => {
+		axios.post.mockResolvedValue({ data: { data: { url: '/apps/theming/image/logo?v=2' } } })
+		const wrapper = await mountSection({ fields: MIXED })
+		const file = new File(['x'], 'logo.png', { type: 'image/png' })
+		const fileInput = wrapper.find('[data-testid="cn-settings-field-logo"] input[type="file"]')
+		Object.defineProperty(fileInput.element, 'files', { value: [file] })
+		await fileInput.trigger('change')
+		await flushPromises()
+		const [url, body] = axios.post.mock.calls[0]
+		expect(url).toContain('/apps/theming/ajax/uploadImage')
+		expect(body.get('key')).toBe('logo')
+		expect(body.get('image')).toBe(file)
+		expect(wrapper.find('[data-testid="cn-settings-field-image-logo"] img').attributes('src')).toBe('/apps/theming/image/logo?v=2')
+		expect(wrapper.find('[data-testid="cn-settings-fields-dirty"]').exists()).toBe(false)
 	})
 })
 

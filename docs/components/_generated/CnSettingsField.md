@@ -17,7 +17,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                           | Payload | Description |
-| -------------------------------------------------------------- | ------- | ----------- |
-| `update:modelValue`                                            | —       |             |
-| `update:modelValue The value changed. Payload: the new value.` | —       |             |
+| Name                                                           | Payload | Description                                  |
+| -------------------------------------------------------------- | ------- | -------------------------------------------- |
+| `update:modelValue`                                            | —       |                                              |
+| `uploaded`                                                     | —       | An image was uploaded. Payload: its new url. |
+| `update:modelValue The value changed. Payload: the new value.` | —       |                                              |
