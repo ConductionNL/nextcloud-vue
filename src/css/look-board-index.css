@@ -184,10 +184,15 @@
 	outline-offset: 2px;
 }
 
+/* The selected chip is light on dark, so it hands its ink to
+   --nldesign-color-on-surface: thematiq forces the body ink onto every span
+   with `!important` and reads it from that property, which left the label
+   dark on dark. */
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected,
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected:hover,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active:hover {
+	--nldesign-color-on-surface: var(--color-main-background);
 	border-color: transparent;
 	background: var(--color-main-text);
 	color: var(--color-main-background);
@@ -209,6 +214,7 @@
 
 .cn-look-board .cn-saved-views__chip--selected .cn-saved-views__chip-count,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active .cn-quick-filter-bar__count {
+	--nldesign-color-on-surface: var(--color-primary-element-text);
 	background: var(--cn-board-text-soft);
 	color: var(--color-primary-element-text);
 }
