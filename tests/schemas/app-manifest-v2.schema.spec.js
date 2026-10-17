@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.111.0', () => {
+	it('the manifest schema version reads 2.117.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1386,7 +1386,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.102.0 adds columnFields[].source.colorMap on a board (board-column-colour-map).
 		// 2.108.0 adds config.modules, modulesTitle and footnote on a links page (screens-links-module-cards).
 		// 2.111.0 lets config.greeting lead with a label or the date alone (dashboard-greeting-label).
-		expect(schema.version).toBe('2.111.0')
+		// 2.117.0 adds config.layoutPanel on a dashboard (dashboard-layout-panel).
+		expect(schema.version).toBe('2.117.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2262,5 +2263,15 @@ describe('app-manifest-v2: a dashboard greeting label (dashboard-greeting-label,
 		expect(validateManifestV2(page({ greeting: { label: '' } })).valid).toBe(false)
 		expect(validateManifestV2(page({ greeting: {} })).valid).toBe(false)
 		expect(validateManifestV2(page({ greeting: { label: 'Customer contact', icon: 'x' } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: the dashboard layout panel (dashboard-layout-panel, 2.117.0)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'mywork', route: '/', type: 'dashboard', title: 'My work', config }] })
+
+	it('declares config.layoutPanel as a boolean', () => {
+		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
+		expect(schema.$defs.page.properties.config.properties.layoutPanel.type).toBe('boolean')
+		expect(validateManifestV2(page({ layoutPanel: true, userLayout: true })).valid).toBe(true)
 	})
 })

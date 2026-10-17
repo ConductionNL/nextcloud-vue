@@ -1513,7 +1513,17 @@
     "%n feature": [
       "%n feature",
       "%n features"
-    ]
+    ],
+    "Arrange page": "Arrange page",
+    "Arrange this page": "Arrange this page",
+    "Choose which parts you see and drag them into your own order. Only you see this layout.": "Choose which parts you see and drag them into your own order. Only you see this layout.",
+    "Shown": "Shown",
+    "Hidden": "Hidden",
+    "Back to default": "Back to default",
+    "Save layout": "Save layout",
+    "Move {name}": "Move {name}",
+    "Use the arrow keys to move this part up or down.": "Use the arrow keys to move this part up or down.",
+    "{name} moved to position {position} of {total}": "{name} moved to position {position} of {total}"
   },
   "plurals": {
     "{count} selected": [
