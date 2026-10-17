@@ -61,3 +61,19 @@
 	white-space: nowrap;
 	border: 0;
 }
+
+/* The breadcrumb and meta line under the title (CnHeaderTrail). In the board
+   look it takes the detail header row's styles; here it only lays the crumbs,
+   the dot and the note out on one line. */
+.cn-header-trail {
+	align-items: center;
+	color: var(--color-text-maxcontrast);
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--default-grid-baseline);
+	margin-bottom: var(--default-grid-baseline);
+}
+
+.cn-header-trail .cn-detail-page__breadcrumbs {
+	margin-bottom: 0;
+}

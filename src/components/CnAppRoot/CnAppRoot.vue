@@ -552,10 +552,9 @@
 			    integrations section are drawn, unless `userSettingsSections`
 			    names more.
 			-->
-			<NcAppSettingsDialog
-				:open="userSettingsOpen"
-				:showNavigation="true"
-				:name="resolvedUserSettingsTitle"
+			<component
+				:is="resolvedLook === 'board' ? 'CnUserSettingsDialog' : 'NcAppSettingsDialog'"
+				v-bind="userSettingsDialogProps"
 				@update:open="userSettingsOpen = $event">
 				<template v-for="section in userSettingsSectionOrder()" :key="section">
 					<template v-if="section === 'app'">
@@ -575,6 +574,9 @@
 					<NcAppSettingsSection v-else-if="section === 'credentials' && userSettingsOpen"
 						id="credentials"
 						:name="libraryCopy('Credentials')">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<KeyOutline :size="18" />
+						</template>
 						<CnCredentials
 							scope="personal"
 							:appId="appId"
@@ -589,6 +591,9 @@
 					<NcAppSettingsSection v-else-if="section === 'walkthrough' && walkthroughEnabled"
 						id="cn-walkthrough"
 						:name="restartWalkthroughSectionName">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<Play :size="18" />
+						</template>
 						<p class="cn-app-root__walkthrough-hint">
 							{{ restartWalkthroughHint }}
 						</p>
@@ -630,6 +635,9 @@
 					<NcAppSettingsSection v-else-if="section === 'integrations' && userSettingsOpen && integrationEntries.length"
 						id="cn-integrations"
 						:name="translate('Integrations')">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<OpenInNew :size="18" />
+						</template>
 						<p class="cn-app-root__integrations-hint">
 							{{ libraryCopy('These open in another app.') }}
 						</p>
@@ -655,7 +663,7 @@
 						</ul>
 					</NcAppSettingsSection>
 				</template>
-			</NcAppSettingsDialog>
+			</component>
 
 			<!--
 			  ADR-079 Step 2: the generic admin-settings modal has been REMOVED.
@@ -695,6 +703,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
+import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Play from 'vue-material-design-icons/Play.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
@@ -712,6 +721,7 @@ import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
+import CnUserSettingsDialog from '../CnUserSettingsDialog/CnUserSettingsDialog.vue'
 import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
@@ -822,6 +832,7 @@ export default {
 		NcLoadingIcon,
 		NcNoteCard,
 		DatabaseSearchOutline,
+		KeyOutline,
 		OpenInNew,
 		Play,
 		Restart,
@@ -836,6 +847,7 @@ export default {
 		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
+		CnUserSettingsDialog,
 		CnCredentials,
 		CnTenantBadge,
 	},
@@ -1648,6 +1660,29 @@ export default {
 		 * @type {string}
 		 */
 		userSettingsTitle: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the line above the user-settings title. Empty uses
+		 * the library's "Your account".
+		 *
+		 * @type {string}
+		 */
+		userSettingsEyebrow: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the sentence under the user-settings title. Empty
+		 * uses the library's "Only for you. Colleagues keep their own
+		 * settings."
+		 *
+		 * @type {string}
+		 */
+		userSettingsSubtitle: {
 			type: String,
 			default: '',
 		},
@@ -3083,6 +3118,32 @@ export default {
 
 		resolvedUserSettingsTitle() {
 			return this.userSettingsTitle || this.libraryCopy('User settings')
+		},
+
+		/**
+		 * The props of the user-settings dialog: `NcAppSettingsDialog`'s, or
+		 * under the board look CnUserSettingsDialog's (eyebrow, subtitle and
+		 * the app's name for the footer note).
+		 *
+		 * @spec openspec/changes/user-settings-board-dialog/specs/user-settings-board-dialog/spec.md#requirement-the-user-settings-dialog-takes-the-board-look
+		 * @return {object}
+		 */
+		userSettingsDialogProps() {
+			if (this.resolvedLook !== 'board') {
+				return { open: this.userSettingsOpen, showNavigation: true, name: this.resolvedUserSettingsTitle }
+			}
+			const props = {
+				open: this.userSettingsOpen,
+				title: this.resolvedUserSettingsTitle,
+				appName: this.appDisplayName || (this.manifest && this.manifest.name) || this.appId || '',
+			}
+			if (this.userSettingsEyebrow) {
+				props.eyebrow = this.translate(this.userSettingsEyebrow)
+			}
+			if (this.userSettingsSubtitle) {
+				props.subtitle = this.translate(this.userSettingsSubtitle)
+			}
+			return props
 		},
 
 		/**

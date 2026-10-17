@@ -54,11 +54,14 @@
 					class="cn-widget-wrapper__icon" />
 				<!-- An eyebrow (`eyebrow`) is a muted line above the title:
 				     "Saldo per week" above "Prognose 13 weken". -->
-				<div v-if="resolvedEyebrow" class="cn-widget-wrapper__title-stack">
-					<span class="cn-widget-wrapper__eyebrow" data-testid="cn-widget-wrapper-eyebrow">{{ resolvedEyebrow }}</span>
+				<!-- A subtitle (`subtitle`) is a muted line under the title:
+				     "Dit kwartaal, beslist binnen de termijn". -->
+				<div v-if="resolvedEyebrow || resolvedSubtitle" class="cn-widget-wrapper__title-stack">
+					<span v-if="resolvedEyebrow" class="cn-widget-wrapper__eyebrow" data-testid="cn-widget-wrapper-eyebrow">{{ resolvedEyebrow }}</span>
 					<h3 :id="titleId" class="cn-widget-wrapper__title">
 						{{ resolvedTitle }}
 					</h3>
+					<span v-if="resolvedSubtitle" class="cn-widget-wrapper__subtitle" data-testid="cn-widget-wrapper-subtitle">{{ resolvedSubtitle }}</span>
 				</div>
 				<h3 v-else :id="titleId" class="cn-widget-wrapper__title">
 					{{ resolvedTitle }}
@@ -225,6 +228,18 @@ export default {
 		CnActionsMenu,
 	},
 
+	provide() {
+		return {
+			/**
+			 * Whether this card draws a title row, so a widget inside it can
+			 * leave out a heading of its own (nc-widget-header).
+			 *
+			 * @return {boolean}
+			 */
+			cnWidgetTitled: () => this.titleVisible && Boolean(this.displayTitle),
+		}
+	},
+
 	inject: {
 		/**
 		 * Host translate function provided by CnAppRoot as
@@ -248,6 +263,17 @@ export default {
 		 * "Prognose 13 weken"), through the host translate. Empty draws none.
 		 */
 		eyebrow: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A muted line under the title, such as the period a chart covers.
+		 * Run through the host translate function. Empty draws none.
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-dashboard-widget-card-can-carry-a-line-under-its-title
+		 */
+		subtitle: {
 			type: String,
 			default: '',
 		},
@@ -722,6 +748,15 @@ export default {
 		},
 
 		/**
+		 * The subtitle run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedSubtitle() {
+			return this.subtitle ? this.effectiveTranslate(this.subtitle) : ''
+		},
+
+		/**
 		 * The RENDERED widget title — `displayTitle` run through the host
 		 * translate function. Kept separate from `displayTitle` on purpose:
 		 * `resolvedWidgetId` slugifies the raw title, so identifiers (DOM
@@ -1161,6 +1196,12 @@ export default {
 	flex-direction: column;
 	gap: 2px;
 	min-width: 0;
+}
+
+.cn-widget-wrapper__subtitle {
+	font-size: 13px;
+	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-widget-wrapper__eyebrow {

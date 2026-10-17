@@ -32,6 +32,8 @@
 			<template #icon>
 				<DotsHorizontal :size="20" />
 			</template>
+			<!-- @slot lead-items Items rendered at the very top of the menu, above Refresh: the tabs a board strip lists here instead of drawing them (CnTabsWidget). The caller owns any separator after them. -->
+			<slot name="lead-items" />
 			<!-- Stays open while refreshing; onRefreshClick closes the menu once the refresh settles. -->
 			<NcActionButton
 				v-if="showRefresh"
@@ -569,7 +571,7 @@ export default {
 			if (this.showRequestFeature) {
 				return true
 			}
-			if (this.hasPrimaryItems || this.$slots['primary-items']) {
+			if (this.hasPrimaryItems || this.$slots['primary-items'] || this.$slots['lead-items']) {
 				return true
 			}
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
