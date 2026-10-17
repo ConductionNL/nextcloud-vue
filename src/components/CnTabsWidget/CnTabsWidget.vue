@@ -200,6 +200,7 @@ import CnTabs from '../CnTabs/CnTabs.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { headerLinkTarget, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
+import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
@@ -635,7 +636,7 @@ export default {
 				const ids = this.tabWidgetIds(tab)
 				const widgets = ids.length > 1
 					? ids.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null)
-							.filter((w) => w && !this.hiddenByWorkspace(w))
+							.filter((w) => w && !this.hiddenByWorkspace(w) && !this.hiddenByRecord(w))
 					: []
 				const widget = ids.length > 1
 					? (widgets[0] || null)
@@ -905,6 +906,26 @@ export default {
 				return false
 			}
 			return !evaluateWorkspaceCondition(cond, 'value' in bag ? bag.value : bag)
+		},
+
+		/**
+		 * Whether the record hides a widget of a stack on a detail page: its
+		 * own `visibleWhen` reads a field of the record or of a record the
+		 * page's `visibilityContext` names (`@context.<name>`), and does not
+		 * hold, as a grid widget's would not. Hidden while those records
+		 * load. Off a detail page (no record), and for a condition that needs
+		 * a request, nothing is hidden here.
+		 *
+		 * @param {object} widget The widget definition.
+		 * @return {boolean} True when the widget must not draw.
+		 * @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition
+		 */
+		hiddenByRecord(widget) {
+			const cond = widget.visibleWhen
+			if (!this.objectData || !cond || typeof cond !== 'object' || isWorkspaceCondition(cond) || !isLocallyDecidableVisibleWhen(cond)) {
+				return false
+			}
+			return !detailWidgetVisible(widget, this.conditionData)
 		},
 
 		/**

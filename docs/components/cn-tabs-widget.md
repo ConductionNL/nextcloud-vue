@@ -161,6 +161,18 @@ with `"visibleWhen": { "workspace": "round", "value": "paused" }` on
 stack draws. The tab count still reads the first widget of the stack that has
 a list, whichever one is showing.
 
+On a detail page a widget in a stack also follows its own `visibleWhen` against
+the record, the way a grid widget does: a field of the record, or of a record
+the page's `visibilityContext` names (`@context.<name>`). It is hidden while
+those records load. So a contact-moment card shows only on interaction tickets:
+
+```json
+{ "id": "ticket-interaction", "type": "custom", "visibleWhen": { "field": "kind", "op": "eq", "value": "interaction" } }
+```
+
+A condition that needs a request (`source` or `endpoint`) is not evaluated on a
+stack child; the widget draws.
+
 ## Props
 
 | Prop | Type | Default | Description |
