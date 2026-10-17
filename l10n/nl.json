@@ -1879,7 +1879,22 @@
     "Setup complete.": "Instellen is klaar.",
     "Select \"{step}\" first.": "Kies eerst \"{step}\".",
     "Please make a selection to continue.": "Maak een keuze om verder te gaan.",
-    "Please run this step before continuing.": "Voer deze stap uit voor je verdergaat."
+    "Please run this step before continuing.": "Voer deze stap uit voor je verdergaat.",
+    "Stored. Type a new value to replace it.": "Opgeslagen. Typ een nieuwe waarde om die te vervangen.",
+    "Unsaved changes": "Niet-opgeslagen wijzigingen",
+    "The settings could not be loaded: {reason}": "De instellingen konden niet worden geladen: {reason}",
+    "{field} is required.": "{field} is verplicht.",
+    "{field} is not in the right form.": "{field} heeft niet de juiste vorm.",
+    "{field} must be a number.": "{field} moet een getal zijn.",
+    "{field} must be at least {min}.": "{field} moet minstens {min} zijn.",
+    "{field} must be at most {max}.": "{field} mag hoogstens {max} zijn.",
+    "Check the marked fields.": "Controleer de gemarkeerde velden.",
+    "The settings could not be saved: {reason}": "De instellingen konden niet worden opgeslagen: {reason}",
+    "This value could not be loaded: {reason}": "Deze waarde kon niet worden geladen: {reason}",
+    "{fields}: {reason}": "{fields}: {reason}",
+    "Current {name}": "Huidige {name}",
+    "Upload {name}": "{name} uploaden",
+    "The image could not be uploaded: {reason}": "De afbeelding kon niet worden geüpload: {reason}"
   },
   "plurals": {
     "{count} selected": [

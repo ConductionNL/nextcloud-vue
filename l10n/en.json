@@ -1679,7 +1679,22 @@
     "Setup complete.": "Setup complete.",
     "Select \"{step}\" first.": "Select \"{step}\" first.",
     "Please make a selection to continue.": "Please make a selection to continue.",
-    "Please run this step before continuing.": "Please run this step before continuing."
+    "Please run this step before continuing.": "Please run this step before continuing.",
+    "Stored. Type a new value to replace it.": "Stored. Type a new value to replace it.",
+    "Unsaved changes": "Unsaved changes",
+    "The settings could not be loaded: {reason}": "The settings could not be loaded: {reason}",
+    "{field} is required.": "{field} is required.",
+    "{field} is not in the right form.": "{field} is not in the right form.",
+    "{field} must be a number.": "{field} must be a number.",
+    "{field} must be at least {min}.": "{field} must be at least {min}.",
+    "{field} must be at most {max}.": "{field} must be at most {max}.",
+    "Check the marked fields.": "Check the marked fields.",
+    "The settings could not be saved: {reason}": "The settings could not be saved: {reason}",
+    "This value could not be loaded: {reason}": "This value could not be loaded: {reason}",
+    "{fields}: {reason}": "{fields}: {reason}",
+    "Current {name}": "Current {name}",
+    "Upload {name}": "Upload {name}",
+    "The image could not be uploaded: {reason}": "The image could not be uploaded: {reason}"
   },
   "plurals": {
     "{count} selected": [
