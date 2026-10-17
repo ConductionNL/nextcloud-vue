@@ -1700,6 +1700,10 @@
       "%n functie",
       "%n functies"
     ],
+    "Your account": "Uw account",
+    "Only for you. Colleagues keep their own settings.": "Alleen voor jou. Collega's houden hun eigen instellingen.",
+    "Sections of the settings": "Onderdelen van de instellingen",
+    "Changes are saved straight away": "Wijzigingen worden meteen bewaard",
     "Change the schema for {type}": "Schema wijzigen voor {type}",
     "Show all types": "Alle soorten tonen",
     "All types set up": "Alle soorten ingesteld",
