@@ -33,8 +33,8 @@
 			<div class="cn-version-info__card">
 				<h4>{{ cardTitle }}</h4>
 				<div class="cn-version-info__details">
-					<!-- Application Name -->
-					<div class="cn-version-info__item">
+					<!-- Application Name (the board card names the app in its description) -->
+					<div v-if="!isBoard" class="cn-version-info__item">
 						<span class="cn-version-info__label">{{ fieldLabels.appName }}:</span>
 						<span class="cn-version-info__value">{{ appName }}</span>
 					</div>
@@ -46,10 +46,11 @@
 					</div>
 
 					<!-- Configured version: when provided, and always in the board look,
-					     which draws the row ("Unknown" until the app reports it). -->
+					     which draws the row ("Unknown" until the app reports it) with the
+					     up-to-date state inline ("0.4.47, bijgewerkt"). -->
 					<div v-if="configuredVersion || isBoard" class="cn-version-info__item" data-testid="cn-version-info-configured">
 						<span class="cn-version-info__label">{{ fieldLabels.configuredVersion }}:</span>
-						<span class="cn-version-info__value">{{ configuredVersion || t('nextcloud-vue', 'Unknown') }}</span>
+						<span class="cn-version-info__value">{{ isBoard ? boardConfiguredText : configuredVersion }}</span>
 					</div>
 
 					<!-- Additional items -->
@@ -62,10 +63,10 @@
 					<slot name="additional-items" />
 				</div>
 
-				<!-- The state, then the actions (re-import), after a hairline. -->
+				<!-- The board card's buttons: update (only while one is due), then the actions. -->
 				<div v-if="isBoard" class="cn-version-info__footer-row" data-testid="cn-version-info-footer-row">
 					<NcButton
-						v-if="showUpdateButton"
+						v-if="showUpdateButton && (!isUpToDate || updating)"
 						:type="updateButtonType"
 						:disabled="updateButtonDisabled"
 						@click="handleUpdateClick">
@@ -281,6 +282,20 @@ export default {
 				configuredVersion: t('nextcloud-vue', 'Configured version'),
 				...(this.labels || {}),
 			}
+		},
+
+		/**
+		 * The board card's configured version line: the version ("Unknown"
+		 * without one), and ", up to date" when the app tracks updates and is.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		boardConfiguredText() {
+			const version = this.configuredVersion || t('nextcloud-vue', 'Unknown')
+			return this.showUpdateButton && this.isUpToDate && !this.updating
+				? t('nextcloud-vue', '{version}, up to date', { version })
+				: version
 		},
 
 		/** @return {string} Button type based on update status */

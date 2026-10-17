@@ -1620,7 +1620,7 @@
     "Importing…": "Importeren…",
     "Information about the current {app} installation": "Informatie over de huidige {app}-installatie",
     "Re-import failed": "Opnieuw importeren is mislukt",
-    "Run setup wizard": "Installatiehulp starten",
+    "Run setup wizard": "Installatiewizard starten",
     "Support": "Ondersteuning",
     "{app} Settings": "{app}-instellingen",
     "Loading registers…": "Registers laden…",
@@ -1703,7 +1703,10 @@
     "Your account": "Uw account",
     "Only for you. Colleagues keep their own settings.": "Alleen voor jou. Collega's houden hun eigen instellingen.",
     "Sections of the settings": "Onderdelen van de instellingen",
-    "Changes are saved straight away": "Wijzigingen worden meteen bewaard"
+    "Changes are saved straight away": "Wijzigingen worden meteen bewaard",
+    "About this {app} installation.": "Over deze {app}-installatie.",
+    "{version}, up to date": "{version}, bijgewerkt",
+    "for an SLA": "voor een SLA"
   },
   "plurals": {
     "{count} selected": [

@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-admin-settings-shell" :class="ownLookClass">
+	<div class="cn-admin-settings-shell" :class="[ownLookClass, sectionColumns ? `cn-admin-settings-shell--columns-${sectionColumns}` : '']">
 		<!-- Names a development, test or acceptance environment; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner v-if="environmentName" :environment="environmentName" />
 
@@ -103,7 +103,7 @@
 				<!-- Canonical "Re-import configuration" action (POST /apps/<appId>/api/settings/load) -->
 				<NcButton
 					v-if="showReimport"
-					variant="primary"
+					:variant="isBoard ? 'secondary' : 'primary'"
 					:disabled="reimporting"
 					@click="reimport">
 					<template #icon>
@@ -139,7 +139,7 @@
 			<template #footer>
 				<!-- @slot footer Replaces the default support/SLA footer inside the version card. -->
 				<slot name="footer">
-					<div v-if="showSupport && !supportAtEnd" class="cn-support-info">
+					<div v-if="showSupport && !supportAtEnd && !isBoard" class="cn-support-info">
 						<h4>{{ supportTitle }}</h4>
 						<p>
 							{{ supportLine }}
@@ -154,6 +154,13 @@
 			</template>
 
 			<template #additional-items>
+				<!-- The board card: support as one fact row, the SLA address on the same line. -->
+				<div v-if="isBoard && showSupport && !supportAtEnd && !$slots.footer" class="cn-version-info__item" data-testid="cn-admin-settings-support-row">
+					<span class="cn-version-info__label">{{ supportTitle }}:</span>
+					<span class="cn-version-info__value">
+						<a :href="`mailto:${supportEmail}`">{{ supportEmail }}</a><template v-if="slaEmail">, {{ slaInline }} <a :href="`mailto:${slaEmail}`">{{ slaEmail }}</a></template>
+					</span>
+				</div>
 				<!-- @slot version-items Extra key/value rows appended inside the version card details. -->
 				<slot name="version-items" />
 			</template>
@@ -569,6 +576,19 @@ export default {
 			validator: (value) => ['start', 'end'].includes(value),
 		},
 
+		/**
+		 * Board look: how many columns the section cards take, `1` or `2`.
+		 * Empty (the default) fits as many 420px columns as the width allows.
+		 *
+		 * @type {1|2|null}
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-admin-page-can-fix-its-columns
+		 */
+		sectionColumns: {
+			type: Number,
+			default: null,
+			validator: (value) => value === null || [1, 2].includes(value),
+		},
+
 		/** Version card heading. */
 		versionTitle: {
 			type: String,
@@ -825,7 +845,12 @@ export default {
 
 		/** @return {string} Version card description. */
 		resolvedVersionDescription() {
-			return this.versionDescription || t('nextcloud-vue', 'Information about the current {app} installation', { app: this.appName })
+			if (this.versionDescription) {
+				return this.versionDescription
+			}
+			return this.isBoard
+				? t('nextcloud-vue', 'About this {app} installation.', { app: this.appName })
+				: t('nextcloud-vue', 'Information about the current {app} installation', { app: this.appName })
 		},
 
 		/** @return {string} Re-import endpoint. */
@@ -851,6 +876,11 @@ export default {
 		/** @return {string} Support footer line. */
 		supportLine() {
 			return t('nextcloud-vue', 'For support, contact us at')
+		},
+
+		/** @return {string} The words before the SLA address in the board card's support row. */
+		slaInline() {
+			return t('nextcloud-vue', 'for an SLA')
 		},
 
 		/** @return {string} SLA footer line. */

@@ -1517,7 +1517,10 @@
     "Your account": "Your account",
     "Only for you. Colleagues keep their own settings.": "Only for you. Colleagues keep their own settings.",
     "Sections of the settings": "Sections of the settings",
-    "Changes are saved straight away": "Changes are saved straight away"
+    "Changes are saved straight away": "Changes are saved straight away",
+    "About this {app} installation.": "About this {app} installation.",
+    "{version}, up to date": "{version}, up to date",
+    "for an SLA": "for an SLA"
   },
   "plurals": {
     "{count} selected": [
