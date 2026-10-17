@@ -1590,7 +1590,17 @@
     "About {name}": "About {name}",
     "Sent message": "Sent message",
     "Received message": "Received message",
-    "Loading messages…": "Loading messages…"
+    "Loading messages…": "Loading messages…",
+    "Stored. Type a new value to replace it.": "Stored. Type a new value to replace it.",
+    "Unsaved changes": "Unsaved changes",
+    "The settings could not be loaded: {reason}": "The settings could not be loaded: {reason}",
+    "{field} is required.": "{field} is required.",
+    "{field} is not in the right form.": "{field} is not in the right form.",
+    "{field} must be a number.": "{field} must be a number.",
+    "{field} must be at least {min}.": "{field} must be at least {min}.",
+    "{field} must be at most {max}.": "{field} must be at most {max}.",
+    "Check the marked fields.": "Check the marked fields.",
+    "The settings could not be saved: {reason}": "The settings could not be saved: {reason}"
   },
   "plurals": {
     "{count} selected": [

@@ -1776,7 +1776,17 @@
     "About {name}": "Over {name}",
     "Sent message": "Verstuurd bericht",
     "Received message": "Ontvangen bericht",
-    "Loading messages…": "Berichten laden…"
+    "Loading messages…": "Berichten laden…",
+    "Stored. Type a new value to replace it.": "Opgeslagen. Typ een nieuwe waarde om die te vervangen.",
+    "Unsaved changes": "Niet-opgeslagen wijzigingen",
+    "The settings could not be loaded: {reason}": "De instellingen konden niet worden geladen: {reason}",
+    "{field} is required.": "{field} is verplicht.",
+    "{field} is not in the right form.": "{field} heeft niet de juiste vorm.",
+    "{field} must be a number.": "{field} moet een getal zijn.",
+    "{field} must be at least {min}.": "{field} moet minstens {min} zijn.",
+    "{field} must be at most {max}.": "{field} mag hoogstens {max} zijn.",
+    "Check the marked fields.": "Controleer de gemarkeerde velden.",
+    "The settings could not be saved: {reason}": "De instellingen konden niet worden opgeslagen: {reason}"
   },
   "plurals": {
     "{count} selected": [

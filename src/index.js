@@ -278,6 +278,8 @@ export {
 	CnSearchPage,
 	CnSectionsWidget,
 	CnSettingsCard,
+	CnSettingsField,
+	CnSettingsFieldsSection,
 	CnSettingsFormWidget,
 	CnSettingsPage,
 	CnSettingsSection,

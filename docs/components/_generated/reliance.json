@@ -3372,6 +3372,20 @@
 			"via": [],
 			"page": "cn-settings-card"
 		},
+		"CnSettingsField": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-settings-field"
+		},
+		"CnSettingsFieldsSection": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-settings-fields-section"
+		},
 		"CnSettingsFormWidget": {
 			"direct": 1,
 			"transitive": 8,
