@@ -11,3 +11,8 @@
 - **files**: `src/components/CnChartWidget/CnChartWidget.vue`, `src/schemas/app-manifest-v2.schema.json`
 - [x] Implement: `matrix` type, endpointSource `rowsPath`
 - [x] Test: `tests/components/CnChartWidgetBarListMatrix.spec.js`
+
+### Task 3: Board dashboard card heads draw no divider
+- **spec_ref**: `openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-board-dashboard-card-heads-draw-no-divider`
+- **files**: `src/css/look-board.css`
+- [x] Implement: no header rule on board dashboard cards

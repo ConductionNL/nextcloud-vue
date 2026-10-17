@@ -1045,6 +1045,7 @@ const CHART_PROP_KEYS = [
 	// `bar-list` / `matrix` presentation keys.
 	'barMax',
 	'footnote',
+	'highlight',
 ]
 
 /**

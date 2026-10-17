@@ -125,3 +125,27 @@ describe('CnChartWidget matrix', () => {
 		expect(w.findAll('[data-testid="cn-chart-widget-matrix-cell"]').map((c) => c.text())).toEqual(['2', '9', '3', '14'])
 	})
 })
+
+describe('CnChartWidget matrix of text cells', () => {
+	it('tints text cells through colorMap and outlines the record\'s cell', () => {
+		const w = mount(CnChartWidget, {
+			props: {
+				type: 'matrix',
+				categories: ['A: minor', 'B: moderate', 'C: severe'],
+				series: [
+					{ key: '1', name: 'Behaviour 1', data: ['Talk', 'Talk', 'Warning'] },
+					{ key: '2', name: 'Behaviour 2', data: ['Talk', 'Warning', 'Order'] },
+				],
+				colorMap: { Talk: 'success', Warning: 'warning', Order: 'error' },
+				highlight: { row: '@object.behaviour', column: '@object.consequence', columnKeys: ['A', 'B', 'C'] },
+			},
+			global: { provide: { cnWorkspaceContext: {}, cnObjectContext: { objectId: 'h1', object: { behaviour: 2, consequence: 'C' } } } },
+		})
+		const cells = w.findAll('[data-testid="cn-chart-widget-matrix-cell"]')
+		expect(cells.map((c) => c.text())).toEqual(['Talk', 'Talk', 'Warning', 'Talk', 'Warning', 'Order'])
+		expect(cells[0].classes()).toContain('cn-chart-widget__matrix-cell--success')
+		expect(cells[5].classes()).toContain('cn-chart-widget__matrix-cell--error')
+		expect(cells.filter((c) => c.attributes('aria-current') === 'true').map((c) => c.text())).toEqual(['Order'])
+		expect(cells[5].classes()).toContain('cn-chart-widget__matrix-cell--current')
+	})
+})

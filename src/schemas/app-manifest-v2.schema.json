@@ -2145,6 +2145,17 @@
 									"emptyLabel": { "type": "string", "description": "Empty-state message rendered instead of the chart when the resolved series contain no data points." },
 									"barMax": { "type": "number", "exclusiveMinimum": 0, "description": "chartKind 'bar-list': the value a full track stands for (100 for percentages). Omitted = the largest value." },
 									"footnote": { "type": "string", "description": "chartKind 'bar-list' or 'matrix': a line under the rows, through the host's translate." },
+									"highlight": {
+										"type": "object",
+										"additionalProperties": false,
+										"required": ["row", "column"],
+										"description": "chartKind 'matrix': the cell to outline, usually the record's on a detail page. `row` matches a series key, name or 1-based position; `column` an entry of columnKeys, a category label or a 1-based position. Both take tokens such as '@object.behaviour'.",
+										"properties": {
+											"row": { "type": ["string", "number"] },
+											"column": { "type": ["string", "number"] },
+											"columnKeys": { "type": "array", "items": { "type": ["string", "number"] } }
+										}
+									},
 									"endpointSource": {
 										"$ref": "#/$defs/chartEndpointSource",
 										"description": "Wave 2 (#91): endpoint-bound series/labels — the shared endpoint transport plus the labelsPath / series[] {name, path} response mapping. Exactly one of dataSource | endpointSource (post-schema check)."

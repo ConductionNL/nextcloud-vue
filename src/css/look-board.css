@@ -833,6 +833,13 @@
 	flex-wrap: wrap;
 }
 
+/* ---- Dashboard card heads (DqDashboard) ---------------------------------- */
+/* The board draws no rule under a dashboard card's title.
+   @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-board-dashboard-card-heads-draw-no-divider */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__header {
+	border-bottom: none;
+}
+
 /* ---- A card of boxed stat tiles (DcRapportages "Vergaderingen en efficiëntie") -- */
 /* The board draws this card 22px from its edge on every side but the bottom
    (20px), the header 14px above the tiles, and no rule under the header. The

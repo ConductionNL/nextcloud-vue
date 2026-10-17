@@ -35,9 +35,27 @@ that navigates as a bar click does. A `footnote` SHALL render under the rows.
 CnChartWidget SHALL take type `matrix`. It SHALL draw a table with one row per series and one column per category, each
 cell showing its value through `valueFormat` and tinted in four steps by its share of the largest value. An
 `endpointSource` with `rowsPath` SHALL map one series per row (`rowLabelPath`, default `label`; `rowValuesPath`,
-default `values`), the columns from `labelsPath`.
+default `values`), the columns from `labelsPath`. A text cell SHALL show its text, tinted through `colorMap` (`success`,
+`warning`, `error`, `danger` or a CSS colour). `highlight` `{ row, column, columnKeys? }`, with tokens resolved against the
+record, SHALL outline the matching cell and mark it `aria-current`.
 
 #### Scenario: Board DqProcesanalyse "Dagen per fase"
 
 - **GIVEN** a matrix with case types as rows, phases as columns and `valueFormat: { name: "number", suffix: " d" }`
 - **THEN** each cell reads its days ("9 d") and the largest value takes the darkest tint
+
+#### Scenario: Board DqHandhaving enforcement matrix on a detail page
+
+- **GIVEN** a text matrix with `colorMap` tones and `highlight: { row: "@object.behaviour", column: "@object.consequence" }`
+- **AND** a record with behaviour 2 and consequence C
+- **THEN** each cell is tinted by its measure and the cell in row 2, column C is outlined
+
+### Requirement: Board dashboard card heads draw no divider
+
+In the board look a dashboard card's header SHALL draw no rule under its title.
+
+#### Scenario: Board DqDashboard
+
+- **GIVEN** a dashboard in the board look
+- **THEN** no card draws a line between its title and its content
+

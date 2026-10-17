@@ -223,6 +223,23 @@ Two chart kinds are drawn as plain rows instead of an ApexCharts canvas, as the 
 }
 ```
 
+A `matrix` can hold text cells: a static `series` whose data are strings, tinted through `colorMap` (`success`, `warning`, `error`, `danger` or a CSS colour). `highlight: { row, column, columnKeys? }` outlines one cell, usually the record's on a detail page: `row` matches a series `key`, its name or its 1-based position; `column` an entry of `columnKeys`, a category label or a 1-based position. Both take tokens (board DqHandhaving, the enforcement matrix):
+
+```json
+{
+  "chartKind": "matrix",
+  "categories": ["Gevolg A: gering", "Gevolg B: matig", "Gevolg C: ernstig", "Gevolg D: zeer ernstig"],
+  "series": [
+    { "key": "1", "name": "Gedrag 1: welwillend", "data": ["Gesprek", "Gesprek", "Waarschuwing", "Last onder dwangsom"] },
+    { "key": "2", "name": "Gedrag 2: onwetend", "data": ["Gesprek", "Waarschuwing", "Last onder dwangsom", "Last onder dwangsom"] }
+  ],
+  "colorMap": { "Gesprek": "success", "Waarschuwing": "warning", "Last onder dwangsom": "error", "Bestuursdwang en aangifte": "danger" },
+  "highlight": { "row": "@object.behaviour", "column": "@object.consequence", "columnKeys": ["A", "B", "C", "D"] }
+}
+```
+
+In the board look a dashboard card head draws no rule under its title.
+
 ## `views` — in-widget display switcher (Wave 3, #91)
 
 An optional `views` array renders a compact pill row above the chart that toggles which named series / value format render — pure display, no series arithmetic (the €/% and hours/% toggles from the Wave-4 evaluation):

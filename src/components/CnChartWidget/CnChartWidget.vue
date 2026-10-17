@@ -71,7 +71,8 @@
 			</p>
 		</div>
 		<!-- `matrix`: one row per series, one column per category, each cell
-		     tinted by its value's share of the largest value. -->
+		     tinted by its value's share of the largest value, or by `colorMap`
+		     for text cells. -->
 		<div v-else-if="type === 'matrix'" class="cn-chart-widget__html" data-testid="cn-chart-widget-matrix">
 			<div
 				role="table"
@@ -97,7 +98,9 @@
 						:key="column"
 						role="cell"
 						class="cn-chart-widget__matrix-cell"
-						:class="`cn-chart-widget__matrix-cell--${cell.level}`"
+						:class="[`cn-chart-widget__matrix-cell--${cell.level}`, { 'cn-chart-widget__matrix-cell--current': cell.current }]"
+						:style="cell.color ? { background: cell.color } : null"
+						:aria-current="cell.current ? 'true' : null"
 						data-testid="cn-chart-widget-matrix-cell">{{ cell.text }}</span>
 				</div>
 			</div>
@@ -224,6 +227,9 @@ const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
  */
 const OTHER_BUCKET_KEY = '__other__'
 
+/** Matrix text-cell tones a `colorMap` may name, as tint classes. */
+const TONE_LEVELS = Object.freeze({ success: 'success', warning: 'warning', error: 'error', danger: 'danger' })
+
 /**
  * CnChartWidget — Chart component for dashboard widgets.
  *
@@ -257,6 +263,57 @@ const OTHER_BUCKET_KEY = '__other__'
  * widget in `pages[].config.widgets[]` instead. See CnDashboardPage's
  * leading docblock for the manifest example.
  */
+/**
+ * A value formatter for a `valueFormat`: 'currency' | 'currency-compact' |
+ * 'percent' | 'number', or the object form `{ name, currency?,
+ * decimals?, suffix? }`. Non-numeric values pass through. Null for no format.
+ *
+ * @param {string|object|null} vf The value format.
+ * @return {((value: unknown) => unknown)|null} The formatter.
+ */
+function formatterFor(vf) {
+	if (!vf) {
+		return null
+	}
+	const name = typeof vf === 'string' ? vf : vf.name
+	const currency = safeCurrencyCode(typeof vf === 'object' ? vf.currency : undefined)
+	const decimals = (typeof vf === 'object' && Number.isFinite(vf.decimals)) ? vf.decimals : null
+	const suffix = typeof vf === 'object' && typeof vf.suffix === 'string' ? vf.suffix : ''
+	const numeric = (v, fmt) => {
+		const num = Number(v)
+		return Number.isFinite(num) ? fmt(num) : v
+	}
+	if (name === 'currency') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency,
+			minimumFractionDigits: decimals ?? 0,
+			maximumFractionDigits: decimals ?? 0,
+		}).format(num))
+	}
+	if (name === 'currency-compact') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency,
+			notation: 'compact',
+			maximumFractionDigits: decimals ?? 1,
+		}).format(num))
+	}
+	if (name === 'number') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			minimumFractionDigits: decimals ?? 0,
+			maximumFractionDigits: decimals ?? 0,
+		}).format(num) + suffix)
+	}
+	if (name === 'percent') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			minimumFractionDigits: decimals ?? 0,
+			maximumFractionDigits: decimals ?? 0,
+		}).format(num) + '%')
+	}
+	return null
+}
+
 export default {
 	name: 'CnChartWidget',
 
@@ -317,6 +374,18 @@ export default {
 		footnote: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * The `matrix` cell to outline, usually the record's on a detail page:
+		 * `{ row, column, columnKeys? }`, where `row` and `column` take tokens
+		 * such as `@object.behaviour`.
+		 *
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		highlight: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -1177,47 +1246,7 @@ export default {
 		 * @return {((value: unknown) => string)|null}
 		 */
 		valueFormatterFn() {
-			const vf = (this.activeView && this.activeView.valueFormat) || this.valueFormat
-			if (!vf) {
-				return null
-			}
-			const name = typeof vf === 'string' ? vf : vf.name
-			const currency = safeCurrencyCode(typeof vf === 'object' ? vf.currency : undefined)
-			const decimals = (typeof vf === 'object' && Number.isFinite(vf.decimals)) ? vf.decimals : null
-			const numeric = (v, fmt) => {
-				const num = Number(v)
-				return Number.isFinite(num) ? fmt(num) : v
-			}
-			if (name === 'currency') {
-				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
-					style: 'currency',
-					currency,
-					minimumFractionDigits: decimals ?? 0,
-					maximumFractionDigits: decimals ?? 0,
-				}).format(num))
-			}
-			if (name === 'currency-compact') {
-				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
-					style: 'currency',
-					currency,
-					notation: 'compact',
-					maximumFractionDigits: decimals ?? 1,
-				}).format(num))
-			}
-			if (name === 'number') {
-				const suffix = typeof vf === 'object' && typeof vf.suffix === 'string' ? vf.suffix : ''
-				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
-					minimumFractionDigits: decimals ?? 0,
-					maximumFractionDigits: decimals ?? 0,
-				}).format(num) + suffix)
-			}
-			if (name === 'percent') {
-				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
-					minimumFractionDigits: decimals ?? 0,
-					maximumFractionDigits: decimals ?? 0,
-				}).format(num) + '%')
-			}
-			return null
+			return formatterFor((this.activeView && this.activeView.valueFormat) || this.valueFormat)
 		},
 
 		/**
@@ -1320,8 +1349,8 @@ export default {
 		 */
 		matrix() {
 			const columns = (Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []).map((c) => String(c))
-			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries.filter((s) => s && typeof s === 'object') : []
-			const max = Math.max(0, ...series.flatMap((s) => (Array.isArray(s.data) ? s.data.map((v) => Number(v) || 0) : [])))
+			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries.filter((entry) => entry && typeof entry === 'object') : []
+			const max = Math.max(0, ...series.flatMap((entry) => (Array.isArray(entry.data) ? entry.data.map((v) => Number(v) || 0) : [])))
 			const levelOf = (value) => {
 				const share = max > 0 ? value / max : 0
 				if (share >= 0.9) {
@@ -1332,19 +1361,60 @@ export default {
 				}
 				return share >= 0.25 ? 2 : 1
 			}
+			const map = this.effectiveColorMap || {}
+			const current = this.matrixHighlight
 			return {
 				columns,
-				rows: series.map((s) => ({
-					label: String(s.name ?? ''),
-					cells: columns.map((_column, index) => {
-						const raw = Array.isArray(s.data) ? s.data[index] : undefined
+				rows: series.map((entry, rowIndex) => ({
+					label: String(entry.name ?? ''),
+					cells: columns.map((column, index) => {
+						const raw = Array.isArray(entry.data) ? entry.data[index] : undefined
+						const isCurrent = current !== null && current.row === rowIndex && current.column === index
+						if (typeof raw === 'string') {
+							const tone = map[raw]
+							const level = TONE_LEVELS[tone] ?? 0
+							return { text: this.hostTranslate(raw), level: level || 'tone', color: level ? '' : (tone || ''), current: isCurrent }
+						}
 						const value = Number(raw)
 						return Number.isFinite(value) && raw !== null && raw !== undefined
-							? { text: this.formatPlain(value), level: levelOf(value) }
-							: { text: '', level: 0 }
+							? { text: this.formatPlain(value), level: levelOf(value), color: '', current: isCurrent }
+							: { text: '', level: 0, color: '', current: isCurrent }
 					}),
 				})),
 			}
+		},
+
+		/**
+		 * The matrix cell of the record (`highlight: { row, column }`, tokens
+		 * such as `@object.behaviour` resolved), as row and column indexes. A
+		 * row matches its series `key`, its name or its 1-based position; a
+		 * column its entry in `highlight.columnKeys`, its label or its
+		 * 1-based position. Null when either does not match.
+		 *
+		 * @return {{row: number, column: number}|null} The cell.
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		matrixHighlight() {
+			const def = this.highlight
+			if (!def || typeof def !== 'object') {
+				return null
+			}
+			const resolved = resolveFilterTokens({ row: def.row, column: def.column }, this.chartTokenCtx())
+			const want = (v) => (v === null || v === undefined || v === '' ? null : String(v))
+			const row = want(resolved.row)
+			const column = want(resolved.column)
+			if (row === null || column === null) {
+				return null
+			}
+			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries : []
+			const rowIndex = series.findIndex((entry, i) => entry && (String(entry.key ?? '') === row || String(entry.name ?? '') === row || String(i + 1) === row))
+			const columns = Array.isArray(this.resolvedCategories) ? this.resolvedCategories.map((c) => String(c)) : []
+			const keys = Array.isArray(def.columnKeys) ? def.columnKeys.map((k) => String(k)) : []
+			let columnIndex = keys.indexOf(column)
+			if (columnIndex < 0) {
+				columnIndex = columns.findIndex((c, i) => c === column || String(i + 1) === column)
+			}
+			return rowIndex >= 0 && columnIndex >= 0 ? { row: rowIndex, column: columnIndex } : null
 		},
 
 		/** @return {string} The matrix table's accessible name. */
@@ -2538,6 +2608,28 @@ export default {
 	border-radius: 6px;
 	padding: 10px;
 	text-align: center;
+}
+
+.cn-chart-widget__matrix-cell--success {
+	background: var(--color-success-light, color-mix(in srgb, var(--color-success) 15%, var(--color-main-background)));
+}
+
+.cn-chart-widget__matrix-cell--warning {
+	background: var(--color-warning-light, color-mix(in srgb, var(--color-warning) 15%, var(--color-main-background)));
+}
+
+.cn-chart-widget__matrix-cell--error {
+	background: var(--color-error-light, color-mix(in srgb, var(--color-error) 12%, var(--color-main-background)));
+}
+
+.cn-chart-widget__matrix-cell--danger {
+	background: color-mix(in srgb, var(--color-error) 25%, var(--color-main-background));
+}
+
+.cn-chart-widget__matrix-cell--current {
+	font-weight: 700;
+	outline: 3px solid var(--color-primary-element);
+	outline-offset: -3px;
 }
 
 .cn-chart-widget__matrix-cell--1 {
