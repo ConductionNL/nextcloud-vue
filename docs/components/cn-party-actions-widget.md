@@ -45,3 +45,10 @@ type (`navigate`, `open-form`, `open-modal`, `handler`, `api-call`, ...). On a d
 resolve against the record. The quick buttons are 36px, 44px on a phone.
 
 The widget draws its own band, so place it without a card title.
+
+## Props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `content` | `Object` | `{}` | The configuration above. |
+| `objectData` | `Object` | `null` | The page object, passed by the detail page host; indicators read it. |
