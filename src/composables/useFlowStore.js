@@ -2368,6 +2368,23 @@ export const useFlowStore = defineStore('cnFlow', {
 			return saved
 		},
 
+		/**
+		 * Start a finished run again, as `POST /api/flow-runs/{uuid}/retry`.
+		 *
+		 * @param {string} uuid The run to retry.
+		 * @return {Promise<object|null>} The new run, or null without a uuid.
+		 */
+		async retryRun(uuid) {
+			if (!uuid) {
+				return null
+			}
+			const response = await axios.post(generateUrl(`/apps/openregister/api/flow-runs/${encodeURIComponent(uuid)}/retry`))
+			if (this.flow.id) {
+				await this.loadRuns(this.flow.id)
+			}
+			return response.data || null
+		},
+
 		async loadRuns(flowId) {
 			try {
 				const response = await axios.get(generateUrl('/apps/openregister/api/flow-runs'), {
