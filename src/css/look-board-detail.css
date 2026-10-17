@@ -152,6 +152,32 @@
 	margin-top: 16px;
 }
 
+/* ---- The stages bars (CnStagesWidget `variant: "bars"`) ---------------- */
+/* DqZaak's "Voortgang": the bars sit flush with the content edge (the
+   widget's 4px pad is room for the 32px circles, which the bars variant does
+   not draw), the label 8px under its bar and the date 8px under the label at
+   the normal line height, open steps muted and the done and current ones in
+   the main text. Each hands its ink to --nldesign-color-on-surface, which a
+   theme that forces the body ink onto every span (thematiq) reads instead. */
+.cn-look-board .cn-stages-widget:has(> .cn-stages-widget__bars):not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
+.cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-label:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	line-height: normal;
+}
+
+.cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-step--done .cn-stages-widget__bar-label:not(.cn-look-nextcloud *),
+.cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-step--current .cn-stages-widget__bar-label:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+}
+
+.cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-date:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	line-height: normal;
+}
+
 /* ---- The body and the side column ------------------------------------- */
 
 .cn-look-board.cn-detail-page--with-side {
