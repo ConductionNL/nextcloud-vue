@@ -630,7 +630,7 @@ Under the board look, below 640px, the grid reflows to one column in reading ord
 ## A title per view (`views[].title`)
 
 A view can carry a `title`: while that view is open, the page heading reads it instead of the page's own title
-(board DqMijnTeam: "Mijn werk" becomes "Mijn team"). It goes through the app's translate. A view without one keeps the
+(board DqMijnTeam: "Mijn werk" becomes "Mijn team"; manifest schema 2.119.0). It goes through the app's translate. A view without one keeps the
 page title.
 
 ```json

@@ -9,4 +9,4 @@ A dashboard's title stayed the page's whatever view was open.
 
 - `views[].title`: the page title while that view is open, through the app's translations.
 - A view without one keeps the page title.
-- Manifest schema bump (number from main at merge time).
+- Manifest schema 2.119.0.
