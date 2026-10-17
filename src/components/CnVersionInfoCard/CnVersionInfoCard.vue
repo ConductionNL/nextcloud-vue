@@ -70,7 +70,7 @@
 					:class="{ 'cn-version-info__footer-row--divided': actionsDivider }"
 					data-testid="cn-version-info-footer-row">
 					<NcButton
-						v-if="showUpdateButton && (!isUpToDate || updating)"
+						v-if="showUpdateButton && (!inlineUpToDate || !isUpToDate || updating)"
 						:type="updateButtonType"
 						:disabled="updateButtonDisabled"
 						@click="handleUpdateClick">
@@ -241,6 +241,19 @@ export default {
 			default: true,
 		},
 
+		/**
+		 * Board look: read the up-to-date state in the configured version row
+		 * ("0.4.47, bijgewerkt", dossiq's boards) instead of a disabled "Up to
+		 * date" button among the buttons (PqBeheer). The update button still
+		 * shows while an update is due.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		inlineUpToDate: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Whether the app configuration is up to date */
 		isUpToDate: {
 			type: Boolean,
@@ -312,14 +325,15 @@ export default {
 
 		/**
 		 * The board card's configured version line: the version ("Unknown"
-		 * without one), and ", up to date" when the app tracks updates and is.
+		 * without one), and with `inlineUpToDate` ", up to date" when the app
+		 * tracks updates and is.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
 		 */
 		boardConfiguredText() {
 			const version = this.configuredVersion || t('nextcloud-vue', 'Unknown')
-			return this.showUpdateButton && this.isUpToDate && !this.updating
+			return this.inlineUpToDate && this.showUpdateButton && this.isUpToDate && !this.updating
 				? t('nextcloud-vue', '{version}, up to date', { version })
 				: version
 		},

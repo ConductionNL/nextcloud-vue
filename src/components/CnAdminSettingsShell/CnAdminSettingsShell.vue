@@ -100,6 +100,7 @@
 			:wide="versionCardWide"
 			:showAppName="showAppName"
 			:actionsDivider="actionsDivider"
+			:inlineUpToDate="inlineUpToDate"
 			@update="onUpdate">
 			<template #actions>
 				<!-- Canonical "Re-import configuration" action (POST /apps/<appId>/api/settings/load) -->
@@ -611,6 +612,18 @@ export default {
 		actionsDivider: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Board look: the version card reads the up-to-date state in its
+		 * configured version row instead of a disabled button. Dossiq's boards
+		 * pass true.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		inlineUpToDate: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Version card heading. */

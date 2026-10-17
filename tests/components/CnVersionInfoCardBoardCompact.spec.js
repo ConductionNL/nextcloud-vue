@@ -70,7 +70,7 @@ function shell(props = {}) {
 
 describe('CnVersionInfoCard board look', () => {
 	it('drops the application name row on request and reads the up-to-date state inline', () => {
-		const wrapper = card({ showUpdateButton: true, isUpToDate: true, showAppName: false })
+		const wrapper = card({ showUpdateButton: true, isUpToDate: true, showAppName: false, inlineUpToDate: true })
 		const labels = wrapper.findAll('.cn-version-info__label').map((l) => l.text())
 		expect(labels).toEqual(['Version:', 'Configured version:'])
 		expect(wrapper.find('[data-testid="cn-version-info-configured"]').text()).toContain('0.4.47, up to date')
@@ -78,7 +78,7 @@ describe('CnVersionInfoCard board look', () => {
 	})
 
 	it('keeps the update button while an update is due', () => {
-		const wrapper = card({ showUpdateButton: true, isUpToDate: false })
+		const wrapper = card({ showUpdateButton: true, isUpToDate: false, inlineUpToDate: true })
 		expect(wrapper.find('[data-testid="cn-version-info-configured"]').text()).not.toContain('up to date')
 		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').text()).toContain('Update')
 	})
@@ -106,6 +106,12 @@ describe('CnVersionInfoCard board props showAppName and actionsDivider', () => {
 		expect(card({ look: 'nextcloud', showAppName: false }).find('[data-testid="cn-version-info-app-name"]').exists()).toBe(true)
 	})
 
+	it('keeps PqBeheer\'s disabled "Up to date" button unless inlineUpToDate', () => {
+		const wrapper = card({ showUpdateButton: true, isUpToDate: true })
+		expect(wrapper.find('[data-testid="cn-version-info-configured"]').text()).not.toContain('up to date')
+		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').text()).toContain('Up to date')
+	})
+
 	it('passes both through from the shell', () => {
 		const wrapper = shell({ showAppName: false, actionsDivider: false })
 		expect(wrapper.find('[data-testid="cn-version-info-app-name"]').exists()).toBe(false)
@@ -129,8 +135,8 @@ describe('CnAdminSettingsShell board version card', () => {
 		expect(wrapper.find('.cn-support-info').exists()).toBe(false)
 	})
 
-	it('draws re-import and the setup wizard as secondary buttons', () => {
-		const wrapper = shell()
+	it('draws re-import and the setup wizard as secondary buttons on dossiq\'s card', () => {
+		const wrapper = shell({ inlineUpToDate: true })
 		// NcButton is stubbed globally (tests/setup.js) as a div that keeps its props as attributes.
 		const buttons = wrapper.findAll('[data-testid="cn-version-info-footer-row"] .NcButton')
 		expect(buttons.map((b) => b.text())).toEqual(['Re-import configuration', 'Run setup wizard'])
