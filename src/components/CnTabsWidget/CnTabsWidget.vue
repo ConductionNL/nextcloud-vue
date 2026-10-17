@@ -9,6 +9,7 @@
 			:aria-label="stripLabel"
 			:moreLabel="moreLabel"
 			:variant="stripVariant"
+			:overflowInNavEnd="isBoard"
 			class="cn-tabs-widget__tabs"
 			@update:activeIndex="onTabChange">
 			<!-- One Actions menu for the whole widget, bound to whichever child
@@ -27,10 +28,11 @@
 					{{ cnTranslate(activeHeaderLink.label) }}
 				</component>
 				<CnActionsMenu
-					v-if="showActions"
-					:showRefresh="showRefresh"
-					:showRequestFeature="showRequestFeature"
-					:showDocumentation="showDocumentation"
+					v-if="showActions || menuTabs.length"
+					:showRefresh="showActions && showRefresh"
+					:showRequestFeature="showActions && showRequestFeature"
+					:showDocumentation="showActions && showDocumentation"
+					:showReportBug="showActions"
 					:documentationUrl="documentationUrl"
 					:widgetId="activeWidgetId"
 					:title="activeTitle"
@@ -38,6 +40,20 @@
 					:surface="`widget:${activeWidgetId}`"
 					refreshChannel="cn:widget:refresh"
 					testidBase="cn-tabs-widget">
+					<!-- Board look: the tabs that are not in the strip, at the
+					     top of the menu, in place of a "More" button. -->
+					<template v-if="menuTabs.length" #lead-items>
+						<NcActionButton
+							v-for="entry in menuTabs"
+							:key="entry.key"
+							:disabled="entry.pending || null"
+							:closeAfterClick="true"
+							data-testid="cn-tabs-widget-menu-tab"
+							@click="openMenuTab(entry)">
+							{{ menuTabLabel(entry) }}
+						</NcActionButton>
+						<NcActionSeparator v-if="showActions" />
+					</template>
 					<!-- The open panel's own items, below the built-in trio.
 					     A panel draws no header, so these would otherwise have
 					     nowhere to go: the data widget's Metadata and full edit
@@ -51,7 +67,7 @@
 					     tab mounted, so several panels publish at once and an
 					     unfiltered list would offer actions for a sheet nobody
 					     is looking at. -->
-					<template v-if="activePanelActions.length" #action-items>
+					<template v-if="showActions && activePanelActions.length" #action-items>
 						<NcActionButton
 							v-for="action in activePanelActions"
 							:key="action.key"
@@ -175,7 +191,7 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionSeparator, NcLoadingIcon } from '@nextcloud/vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
@@ -251,6 +267,7 @@ export default {
 		CnTab,
 		CnTabs,
 		NcActionButton,
+		NcActionSeparator,
 		CnEmptyContent,
 		NcLoadingIcon,
 	},
@@ -364,7 +381,8 @@ export default {
 		 * `layout: [{ widgetId, gridWidth }]` sets a width (of 12) per widget, as
 		 * the page grid does. Widgets wrap onto the next row.
 		 *
-		 * `maxVisibleTabs` caps the strip: later tabs go under "More".
+		 * `maxVisibleTabs` caps the strip: later tabs go under "More" (in the
+		 * board look: into the Actions menu, with History kept in the strip).
 		 * `hideEmpty: true` moves a tab whose count is 0 there too.
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
@@ -553,15 +571,33 @@ export default {
 		},
 
 		/**
+		 * The tabs the board look lists at the top of the Actions menu: the
+		 * overflow tabs, less the one that is open (it is in the strip).
+		 * Empty outside the board look, where CnTabs draws "More".
+		 *
+		 * @return {object[]} Resolved tabs, in strip order.
+		 * @spec openspec/changes/board-tabs-overflow-in-actions/specs/board-tabs-overflow-in-actions/spec.md#requirement-board-tabs-list-their-overflow-in-the-actions-menu
+		 */
+		menuTabs() {
+			if (!this.isBoard) {
+				return []
+			}
+			return this.resolvedTabs.filter((entry, index) => entry.overflow && index !== this.activeIndex)
+		},
+
+		/**
 		 * The configured tabs, each paired with the widget definition it names.
 		 *
 		 * A tab goes under the strip's "More" menu when it says `overflow`, when
 		 * `content.hideEmpty` is set and its count is 0, or when
 		 * `content.maxVisibleTabs` places are already taken. `count` is a
-		 * literal, or read off the record through `countField`.
+		 * literal, or read off the record through `countField`. In the board
+		 * look those tabs are listed in the Actions menu instead, and the
+		 * activity (History) tab always stays in the strip.
 		 *
 		 * @return {object[]} `{ key, widgetId, label, icon, widget, count, overflow }` per tab.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 * @spec openspec/changes/board-tabs-overflow-in-actions/specs/board-tabs-overflow-in-actions/spec.md#requirement-board-tabs-list-their-overflow-in-the-actions-menu
 		 */
 		resolvedTabs() {
 			const authored = Array.isArray(this.content?.tabs) ? this.content.tabs : []
@@ -580,9 +616,12 @@ export default {
 			const originalIndex = ordered.map(({ index }) => index)
 			const max = Number(this.content?.maxVisibleTabs)
 			const hideEmpty = this.content?.hideEmpty === true
+			// The board keeps its History tab in the strip, so it holds one of
+			// the `maxVisibleTabs` places from the start.
+			const pinActivity = this.isBoard && tabs.some((tab, position) => isActivityTab(tab) && this.tabVisibility(tab, originalIndex[position]) !== 'hidden')
 			// How many tabs have taken a place in the strip so far. A tab that
 			// is already going under "More" does not use one up.
-			let placed = 0
+			let placed = pinActivity ? 1 : 0
 			const resolved = []
 			tabs.forEach((tab, position) => {
 				const index = originalIndex[position]
@@ -605,9 +644,9 @@ export default {
 				const declared = resolveTabCount(typeof tab === 'object' ? tab : null, this.objectData)
 				const counted = this.widgetCounts[index]
 				const count = declared === null && typeof counted === 'number' ? counted : declared
-				// The board strip has no "More": every tab is in the strip.
-				let overflow = !this.isBoard && ((tab && tab.overflow === true) || (hideEmpty && count === 0))
-				if (!overflow && !this.isBoard) {
+				const pinned = pinActivity && isActivityTab(tab)
+				let overflow = !pinned && ((tab && tab.overflow === true) || (hideEmpty && count === 0))
+				if (!overflow && !pinned) {
 					if (Number.isFinite(max) && max > 0 && placed >= max) {
 						overflow = true
 					} else {
@@ -1137,6 +1176,39 @@ export default {
 			if (typeof index === 'number' && index >= 0) {
 				this.activeIndex = index
 			}
+		},
+
+		/**
+		 * Open a tab picked from the Actions menu, then move focus to it in
+		 * the strip, so a keyboard user lands on the tab they chose.
+		 *
+		 * @param {object} entry The resolved tab.
+		 * @return {void}
+		 * @spec openspec/changes/board-tabs-overflow-in-actions/specs/board-tabs-overflow-in-actions/spec.md#requirement-board-tabs-list-their-overflow-in-the-actions-menu
+		 */
+		openMenuTab(entry) {
+			const index = this.resolvedTabs.indexOf(entry)
+			if (index < 0) {
+				return
+			}
+			this.activeIndex = index
+			this.$nextTick(() => {
+				const button = this.$el?.querySelector?.('[role="tab"][aria-selected="true"]')
+				if (button && typeof button.focus === 'function') {
+					button.focus()
+				}
+			})
+		},
+
+		/**
+		 * A menu tab's text: its label, and its count when it has one.
+		 *
+		 * @param {object} entry The resolved tab.
+		 * @return {string} The menu label.
+		 */
+		menuTabLabel(entry) {
+			const hasCount = entry.count !== null && entry.count !== undefined && entry.count !== ''
+			return hasCount ? `${entry.label} (${entry.count})` : entry.label
 		},
 
 		/**

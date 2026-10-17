@@ -258,7 +258,7 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, text?, title?, subtitle?, initialsPath?, tone? }`.
+		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, text?, title?, subtitle?, initialsPath?, tone? }`.
 		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`) or `pill`.
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
@@ -266,7 +266,7 @@ export default {
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
-		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object.
+		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `link` — `{ label, route? | href? }` at the foot.
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row).
@@ -382,8 +382,8 @@ export default {
 		 * @return {Array<object>}
 		 */
 		blocks() {
-			const record = this.record
-			if (!record) {
+			const sourceRecord = this.record
+			if (!sourceRecord) {
 				return []
 			}
 			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
@@ -393,6 +393,8 @@ export default {
 				if (!field || typeof field !== 'object') {
 					return
 				}
+				// `from: "object"` reads the page's own object while the card shows a `source`.
+				const record = field.from === 'object' && this.objectData ? this.objectData : sourceRecord
 				const kind = this.kindOf(field)
 				const key = String(field.key || field.path || `${kind}-${index}`).replace(/[^\w-]/g, '-')
 				const value = this.entryValue(record, field, kind)
