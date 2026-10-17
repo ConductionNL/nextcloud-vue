@@ -115,6 +115,8 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 |------|------|---------|-------------|
 | `title` | String | `''` | Page title |
 | `description` | String | `''` | Description shown below the title |
+| `breadcrumb` | Object \| Array | `null` | A breadcrumb under the title (manifest `config.breadcrumb`): one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list; the title follows as the current crumb. Drawn as the detail header's breadcrumb row. |
+| `headerMeta` | String | `''` | A note after the breadcrumb and a middle dot (manifest `config.headerMeta`). |
 | `widgets` | Array | `[]` | Widget definition objects (see Widget definition below) |
 | `layout` | Array | `[]` | Grid placement objects (see Layout item below) |
 | `loading` | Boolean | `false` | Show loading spinner instead of the grid |
@@ -209,6 +211,7 @@ When the `dateRange` prop is set with `enabled: true`, the dashboard renders a [
 | ------------ | -------------- | -------------------------------------------------------------------------- |
 | `enabled`    | Boolean        | When `true`, renders the picker row. When `false` / omitted, no row appears. |
 | `control`    | String (opt.)  | Header control style: `'picker'` (default — `CnDateRangePicker`: a preset select + two date inputs) or `'pills'` (a compact segmented toggle-button row). |
+| `placement`  | String (opt.)  | `'description'` puts the `segmented` period group at the end of the description line, after a middle dot ("Week 41 · alle teams · [Deze week \| Dit kwartaal]"), instead of in a row of its own. Ignored with a custom range, which keeps its row. |
 | `default`    | Object (opt.)  | Initial `{ from, to, preset? }` when no persisted state is found.          |
 | `persistKey` | String (opt.)  | When set, the chosen range is persisted to `localStorage[persistKey]`.     |
 | `presets`    | Array (opt.)   | Override the preset list. See [`DEFAULT_DATE_RANGE_PRESETS`](../utilities/default-date-range-presets.md). A preset with no numeric `days` / `hours` (other than the manual `custom` entry) — e.g. `{ id: 'all', label: 'All', days: null }` — or one with `clear: true` is an "All" / clear option that removes the window. |
@@ -590,6 +593,11 @@ below changes.
   becomes the last segment and opens the from/to popover. It runs the same
   range change as a pill (persistence, `date-range-change`,
   `cnDashboardDateRange`).
+  With `dateRange.placement: "description"` the group ends the description
+  line instead ("Week 41 · alle teams · [Deze week | Dit kwartaal | Dit jaar]").
+- **Widget subtitle.** A widget definition's `subtitle` is a muted line under
+  the card's title ("Dit kwartaal, beslist binnen de termijn"), the
+  counterpart of `eyebrow` above it.
 - **KPI row.** `config.kpiRow` lists widget ids that render above the grid, in
   that order, in a `CnKpiGrid` with `columns="auto"`
   (`repeat(auto-fit, minmax(200px, 1fr))`, gap 16). They are not GridStack

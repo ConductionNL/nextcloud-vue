@@ -139,7 +139,7 @@
 			<template #footer>
 				<!-- @slot footer Replaces the default support/SLA footer inside the version card. -->
 				<slot name="footer">
-					<div v-if="showSupport" class="cn-support-info">
+					<div v-if="showSupport && !supportAtEnd" class="cn-support-info">
 						<h4>{{ supportTitle }}</h4>
 						<p>
 							{{ supportLine }}
@@ -185,6 +185,24 @@
 		<!-- @slot default The app's own settings sections, rendered below the version card, or above it with `versionCardPosition: "end"`. With `tabs`, only while the first tab is open. -->
 		<slot v-if="!versionCardAtEnd && onFirstTab" />
 
+		<!-- `supportPosition: "end"`: the support lines as their own wide card,
+		     last on the page (board PqBeheer), not in the version card. -->
+		<CnSettingsSection
+			v-if="showSupport && supportAtEnd && onFirstTab"
+			class="cn-admin-settings-shell__support"
+			:name="supportTitle"
+			:wide="true"
+			data-testid="cn-admin-settings-support">
+			<p class="cn-admin-settings-shell__support-line">
+				{{ supportLine }}
+				<a :href="`mailto:${supportEmail}`">{{ supportEmail }}</a>
+			</p>
+			<p v-if="slaEmail" class="cn-admin-settings-shell__support-line">
+				{{ slaLine }}
+				<a :href="`mailto:${slaEmail}`">{{ slaEmail }}</a>
+			</p>
+		</CnSettingsSection>
+
 		<!-- First-time setup wizard, opened from the admin page (ADR-042). -->
 		<CnSetupWizard
 			v-if="showSetup && setupWizardOpen"
@@ -216,6 +234,7 @@ import { normalizeLook, useLook } from '../../composables/useLook.js'
 import { ensureTranslations } from '../../l10n/index.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { CnSettingsSection } from '../CnSettingsSection/index.js'
 import { CnTab, CnTabs } from '../CnTabs/index.js'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 
@@ -327,6 +346,7 @@ export default {
 		BookOpenVariant,
 		NcSettingsSection,
 		CnCredentials,
+		CnSettingsSection,
 		CnVersionInfoCard,
 		CnSetupWizard,
 		CnTab,
@@ -616,6 +636,19 @@ export default {
 			default: true,
 		},
 
+		/**
+		 * Where the support lines go: `card`, in the version card's footer (the
+		 * default), or `end`, as their own wide card after everything else on
+		 * the first tab (board PqBeheer).
+		 *
+		 * @spec openspec/changes/admin-shell-support-end/specs/settings-board-look/spec.md#requirement-support-can-be-its-own-card-at-the-end
+		 */
+		supportPosition: {
+			type: String,
+			default: 'card',
+			validator: (value) => ['card', 'end'].includes(value),
+		},
+
 		/** Support contact email. */
 		supportEmail: {
 			type: String,
@@ -721,6 +754,11 @@ export default {
 		 */
 		versionCardAtEnd() {
 			return this.versionCardPosition === 'end'
+		},
+
+		/** @return {boolean} Whether the support lines are their own card at the end. */
+		supportAtEnd() {
+			return this.supportPosition === 'end'
 		},
 
 		/**

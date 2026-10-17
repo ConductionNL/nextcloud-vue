@@ -34,7 +34,29 @@
 					<!-- @slot title-meta Content on the title's row, right of the title (e.g. a page-wide picker). Fill it from a manifest with `page.slots: { "title-meta": "<RegistryName>" }`. -->
 					<slot name="title-meta" />
 				</div>
-				<p v-if="subtitleText" class="cn-dashboard-page__description" data-testid="cn-dashboard-page-subtitle">
+				<CnHeaderTrail
+					:breadcrumb="breadcrumb"
+					:current="title ? resolvedTitle : ''"
+					:meta="headerMeta ? effectiveTranslate(headerMeta) : ''" />
+				<!-- `dateRange.placement: "description"`: the segmented period
+				     group ends the description line ("Week 41 · alle teams ·
+				     [Deze week | Dit kwartaal | Dit jaar]"). -->
+				<div
+					v-if="datePeriodInDescription"
+					class="cn-dashboard-page__description cn-dashboard-page__description--with-period"
+					data-testid="cn-dashboard-page-subtitle">
+					<span v-if="subtitleText">{{ subtitleText }}</span>
+					<span v-if="subtitleText" aria-hidden="true">&middot;</span>
+					<CnSegmentedControl
+						size="compact"
+						mode="toggle"
+						:options="segmentedOptions"
+						:modelValue="segmentedValue"
+						:ariaLabel="datePeriodLabel"
+						data-testid="cn-dashboard-page-date-segmented"
+						@update:modelValue="onSegmentPick" />
+				</div>
+				<p v-else-if="subtitleText" class="cn-dashboard-page__description" data-testid="cn-dashboard-page-subtitle">
 					{{ subtitleText }}
 				</p>
 			</div>
@@ -185,7 +207,7 @@
 		     handling, persistence, and event emission lives in
 		     `onDateRangeChange`. -->
 		<div
-			v-if="showHeaderDateRange"
+			v-if="showHeaderDateRange && !datePeriodInDescription"
 			class="cn-dashboard-page__date-range"
 			:class="{
 				'cn-dashboard-page__date-range--pills': dateRangeControl === 'pills',
@@ -436,6 +458,7 @@
 					v-else
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="false"
 					:showRefresh="false">
 					<div class="cn-dashboard-page__unknown">
@@ -498,6 +521,7 @@
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="widgetShowTitle(item)">
 					<!-- Compact on purpose: a two-row tile is about 150px, less
 					     a title row. NcEmptyContent's 64px icon, 20px name,
@@ -537,6 +561,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -619,6 +644,7 @@
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -698,6 +724,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -726,6 +753,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -766,6 +794,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -792,6 +821,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:showTitle="widgetShowTitle(item)"
 						:showActions="widgetShowActions(item)"
 						:showRefresh="getWidgetShowRefresh(item)"
@@ -893,6 +923,7 @@
 					v-else
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="widgetShowTitle(item)"
 					:showRefresh="false">
 					<div class="cn-dashboard-page__unknown">
@@ -972,6 +1003,7 @@ import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow, translatePresetLabel } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
+import CnHeaderTrail from '../CnPageHeader/CnHeaderTrail.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
@@ -1115,6 +1147,7 @@ export default {
 	name: 'CnDashboardPage',
 
 	components: {
+		CnHeaderTrail,
 		NcActions,
 		NcActionButton,
 		NcActionInput,
@@ -1210,6 +1243,30 @@ export default {
 	props: {
 		/** Page title */
 		title: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A breadcrumb under the title (manifest `config.breadcrumb`): one
+		 * crumb `{ label, route?, params?, href?, icon?, separator? }` or a
+		 * list; the title follows as the current crumb. Drawn as the detail
+		 * header's breadcrumb row. Null (the default) draws none.
+		 *
+		 * @type {object|Array<object>|null}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		breadcrumb: {
+			type: [Object, Array],
+			default: null,
+		},
+
+		/**
+		 * A note after the breadcrumb and a middle dot (manifest `config.headerMeta`).
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		headerMeta: {
 			type: String,
 			default: '',
 		},
@@ -2268,6 +2325,20 @@ export default {
 		},
 
 		/**
+		 * Whether the segmented period group sits at the end of the
+		 * description line (`dateRange.placement: "description"`) instead of
+		 * in a row of its own. Only for the segmented control without a
+		 * custom range, whose from/to popover keeps the row of its own.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-dashboard-can-show-its-period-on-the-description-line
+		 */
+		datePeriodInDescription() {
+			return this.showHeaderDateRange && this.dateRangeControl === 'segmented'
+				&& this.dateRange.placement === 'description' && !this.hasCustomPreset
+		},
+
+		/**
 		 * The preset list passed to the picker. Falls back to the
 		 * `DEFAULT_DATE_RANGE_PRESETS` constant when the consumer
 		 * doesn't supply one.
@@ -2978,6 +3049,7 @@ export default {
 				widgetId: item.widgetId,
 				title: this.getWidgetTitle(item),
 				eyebrow: this.getWidgetEyebrow(item),
+				subtitle: this.getWidgetSubtitle(item),
 				showTitle: this.widgetShowTitle(item),
 				showActions: this.widgetShowActions(item),
 				showRefresh: this.getWidgetShowRefresh(item),
@@ -4097,6 +4169,20 @@ export default {
 		},
 
 		/**
+		 * The line under a widget's title (`subtitle` on the widget
+		 * definition), translated; empty when it carries none.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-dashboard-widget-card-can-carry-a-line-under-its-title
+		 */
+		getWidgetSubtitle(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const subtitle = def && typeof def.subtitle === 'string' ? def.subtitle : ''
+			return subtitle ? this.effectiveTranslate(subtitle) : ''
+		},
+
+		/**
 		 * The line above a widget's title (`eyebrow` on the widget
 		 * definition: "Saldo per week" above "Prognose 13 weken"), through the
 		 * host translate, or '' for none.
@@ -4907,6 +4993,14 @@ export default {
 /* The period group, in a row of its own between the header and the KPI row. */
 .cn-dashboard-page__date-range--segmented {
 	margin-bottom: 16px;
+}
+
+/* The period group at the end of the description line. */
+.cn-dashboard-page__description--with-period {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .cn-dashboard-page__date-segmented {

@@ -52,6 +52,7 @@ The `data-testid`s are derived from `testidBase`: `<base>-actions` (container), 
 
 | Slot | Description |
 |------|-------------|
+| `lead-items` | Items at the very top of the menu, above Refresh. `CnTabsWidget` lists a board strip's overflow tabs here. The caller owns any separator after them. |
 | `action-items` | Additional `NcActionButton`-family items appended inside the overflow menu, after the built-in Refresh / Documentation / Request-a-feature group. |
 
 ### Labels & state props

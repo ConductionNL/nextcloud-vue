@@ -177,3 +177,11 @@ Request a feature / Report a bug / Documentation render on every widget; the sha
 ### A text link in the header (`headerLink`)
 
 `headerLink` (`{ label, route?, params?, query?, href? }`) draws one text link in the header before the overflow menu, such as "All deadlines".
+
+Subtitle: `subtitle` is a muted line under the title, the counterpart of `eyebrow` above it:
+
+```vue
+<CnWidgetWrapper title="Op tijd beslist per zaaktype" subtitle="Dit kwartaal, beslist binnen de termijn">
+  <p>…</p>
+</CnWidgetWrapper>
+```
