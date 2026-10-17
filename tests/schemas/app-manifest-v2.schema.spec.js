@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.120.0', () => {
+	it('the manifest schema version reads 2.121.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1390,7 +1390,15 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.118.0 adds nav.searchPlaceholder (screens-board-top-bar-search).
 		// 2.119.0 adds views[].title on a dashboard (view-title).
 		// 2.120.0 adds chart barMax, footnote, highlight, valueFormat 'number' with suffix and endpointSource rowsPath (chart-bar-list-and-matrix).
-		expect(schema.version).toBe('2.120.0')
+		// 2.121.0 lets a query preset or a folder scope set addLabel, headerButtons, breadcrumb, headerMeta and afterList, adds config.afterList, and lets config.entitySource name the flowRuns, endpoint, search and users sources with a described sourceConfig (index-scope-presentation).
+		expect(schema.version).toBe('2.121.0')
+	})
+
+	it('accepts nav.searchPlaceholder as a non-empty string', () => {
+		const withLine = (searchPlaceholder) => ({ ...MINIMAL_V2, nav: { searchPlaceholder } })
+		expect(validateManifestV2(withLine('Search cases, documents or contacts')).valid).toBe(true)
+		expect(validateManifestV2(withLine('')).valid).toBe(false)
+		expect(validateManifestV2(withLine(3)).valid).toBe(false)
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2284,11 +2292,49 @@ describe('app-manifest-v2: a dashboard greeting label (dashboard-greeting-label,
 	})
 })
 
+describe('app-manifest-v2 — preset and scope presentation (index-scope-presentation)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', ...config } }] })
+
+	it('accepts the new preset keys and a page afterList', () => {
+		expect(validateManifestV2(page({
+			afterList: [{ id: 'per-subject', type: 'chart', title: 'Per subject', content: {} }],
+			queryPresets: [{
+				match: { caseType: 'uuid' },
+				addLabel: 'Register complaint',
+				headerButtons: [{ action: 'add' }],
+				breadcrumb: { label: 'All cases', route: 'Cases' },
+				headerMeta: 'Awb chapter 9',
+				afterList: [{ id: 'chart', type: 'chart' }],
+			}],
+		})).valid).toBe(true)
+	})
+
+	it('refuses an afterList entry without a type and an unknown preset key', () => {
+		expect(validateManifestV2(page({ afterList: [{ id: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(page({ queryPresets: [{ match: { a: 'b' }, colour: 'red' }] })).valid).toBe(false)
+	})
+})
+
 describe('app-manifest-v2: a view title (view-title, 2.119.0)', () => {
 	const page = (views) => ({ ...MINIMAL_V2, pages: [{ id: 'mywork', route: '/', type: 'dashboard', title: 'My work', config: { views } }] })
 
 	it('accepts a view title and refuses an empty one', () => {
 		expect(validateManifestV2(page([{ id: 'mine', label: 'My work' }, { id: 'team', label: 'My team', title: 'My team' }])).valid).toBe(true)
 		expect(validateManifestV2(page([{ id: 'team', label: 'My team', title: '' }])).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — named index sources (index-scope-presentation)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config }] })
+
+	it.each(['flows', 'flowRuns', 'tasks', 'endpoint', 'search', 'users'])('accepts entitySource "%s"', (name) => {
+		expect(validateManifestV2(page({ entitySource: name })).valid).toBe(true)
+	})
+
+	it('accepts the endpoint and search sourceConfig shapes and refuses an unknown source', () => {
+		expect(validateManifestV2(page({ entitySource: 'endpoint', sourceConfig: { url: '/apps/dossiq/api/postvak', rowsPath: 'results', channel: 'email' } })).valid).toBe(true)
+		expect(validateManifestV2(page({ entitySource: 'search', sourceConfig: { termQuery: 'q', kinds: [{ id: 'cases', label: 'Zaken', register: 'dossiq', schema: 'case' }, { id: 'documents', label: 'Documenten', files: true }] } })).valid).toBe(true)
+		expect(validateManifestV2(page({ entitySource: 'nope' })).valid).toBe(false)
+		expect(validateManifestV2(page({ entitySource: 'endpoint', sourceConfig: { url: '' } })).valid).toBe(false)
 	})
 })

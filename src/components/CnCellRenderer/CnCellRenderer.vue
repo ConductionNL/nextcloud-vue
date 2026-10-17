@@ -24,6 +24,24 @@
 			</span>
 		</template>
 
+		<!-- Built-in "actions" widget: row actions as inline buttons ("Aan zaak
+		     koppelen", "Nieuwe zaak"). The page resolves the buttons
+		     (widgetProps.items) and runs a click (widgetProps.run). -->
+		<template v-else-if="widget === 'actions'">
+			<span class="cn-cell-renderer__actions" data-testid="cn-cell-actions">
+				<NcButton
+					v-for="item in actionItems"
+					:key="item.key"
+					:variant="item.variant"
+					size="small"
+					:disabled="item.disabled"
+					:data-testid="`cn-cell-action-${item.key}`"
+					@click.stop="runAction(item)">
+					{{ item.label }}
+				</NcButton>
+			</span>
+		</template>
+
 		<!-- Built-in "badge" widget: renders the value as a status pill. An enum
 		     value shows its label (x-enum-labels, translated) unless a formatter
 		     shapes it; the colour stays keyed on the raw value. -->
@@ -350,7 +368,7 @@
 
 <script>
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
-import { NcAvatar, NcCheckboxRadioSwitch, NcDateTime } from '@nextcloud/vue'
+import { NcAvatar, NcButton, NcCheckboxRadioSwitch, NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
@@ -398,6 +416,7 @@ export default {
 		CnGroupNameCell,
 		CheckBold,
 		NcAvatar,
+		NcButton,
 		NcDateTime,
 	},
 
@@ -586,6 +605,24 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The `actions` widget's buttons for this row: the page's resolved
+		 * `widgetProps.items` (a list, or a function of the row returning
+		 * one), each `{ key, label, variant?, disabled? }`.
+		 *
+		 * @return {Array<{key: string, label: string, variant: string, disabled: boolean}>}
+		 * @spec openspec/changes/table-actions-column/specs/index-page/spec.md#requirement-a-column-can-show-row-actions-as-buttons
+		 */
+		actionItems() {
+			const raw = typeof this.widgetProps?.items === 'function' ? this.widgetProps.items(this.row) : this.widgetProps?.items
+			const items = Array.isArray(raw) ? raw : []
+			return items.map((item) => ({
+				...item,
+				variant: item.variant || 'secondary',
+				disabled: item.disabled === true,
+			}))
+		},
+
 		/**
 		 * Whether the "switch" widget is on: the pending state while a toggle
 		 * is in flight, else `widgetProps.checked(row)`, else the value.
@@ -1420,6 +1457,19 @@ export default {
 
 	methods: {
 		/**
+		 * Run an `actions` widget button for this row through the page.
+		 *
+		 * @param {{key: string}} item The button.
+		 * @return {void}
+		 * @spec openspec/changes/table-actions-column/specs/index-page/spec.md#requirement-a-column-can-show-row-actions-as-buttons
+		 */
+		runAction(item) {
+			if (typeof this.widgetProps?.run === 'function') {
+				this.widgetProps.run(item.key, this.row)
+			}
+		},
+
+		/**
 		 * The "switch" widget was flipped: show the new state and hand it to
 		 * `widgetProps.onToggle(row, on)`. A rejection puts the switch back.
 		 *
@@ -1555,6 +1605,12 @@ export default {
 </script>
 
 <style scoped>
+.cn-cell-renderer__actions {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 .cn-cell-renderer__icon-label {
 	display: inline-flex;
 	align-items: center;

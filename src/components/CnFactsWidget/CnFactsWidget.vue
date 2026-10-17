@@ -101,6 +101,28 @@
 						<span v-if="block.subtitle" class="cn-facts-widget__lead-subtitle">{{ block.subtitle }}</span>
 					</span>
 				</div>
+				<div
+					v-else-if="block.kind === 'meter'"
+					class="cn-facts-widget__meter"
+					:class="{ 'cn-facts-widget__meter--over': block.over }"
+					:data-testid="`cn-fact-${block.key}`">
+					<div class="cn-facts-widget__meter-head">
+						<span class="cn-facts-widget__meter-label">{{ block.label }}</span>
+						<span class="cn-facts-widget__meter-value">{{ block.value }}</span>
+					</div>
+					<div
+						v-if="block.limit !== null"
+						class="cn-facts-widget__meter-track"
+						role="meter"
+						:aria-label="block.label"
+						:aria-valuenow="block.amount"
+						aria-valuemin="0"
+						:aria-valuemax="block.limit"
+						:aria-valuetext="block.value"
+						:data-testid="`cn-fact-${block.key}-bar`">
+						<span class="cn-facts-widget__meter-bar" :style="{ width: `${block.percent}%` }" />
+					</div>
+				</div>
 				<div v-else-if="block.kind === 'pill'">
 					<CnStatusBadge
 						:label="block.value"
@@ -133,6 +155,7 @@
 
 <script>
 import { emit } from '@nextcloud/event-bus'
+import { formatFileSize } from '@nextcloud/files'
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -152,7 +175,7 @@ import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveF
 import { userDisplayName } from '../../utils/userDisplayName.js'
 
 /** Kinds of entry a `fields[]` item can be. A labelled item without `as` is a row. */
-const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text'])
+const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text', 'meter'])
 
 /**
  * The label resolver every facts widget on the page shares, made on first use
@@ -260,13 +283,14 @@ export default {
 		 * The widget configuration.
 		 *
 		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, text?, title?, subtitle?, initialsPath?, tone? }`.
-		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`) or `pill`.
+		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`.
+		 *   A `meter` shows the amount at `path` against the limit at `limitPath` (or a constant `limit`) as "12 of 50" with a bar; past the limit the bar turns red and the text says "over the limit"; without a positive limit it shows the amount and no bar.
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
-		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `link` — `{ label, route? | href? }` at the foot.
@@ -420,6 +444,9 @@ export default {
 					block.initials = block.icon ? '' : this.initialsOf(readPath(record, field.initialsPath))
 					block.tone = ['success', 'info', 'warning', 'error'].includes(field.tone) ? field.tone : 'neutral'
 				}
+				if (kind === 'meter') {
+					Object.assign(block, this.meterOf(record, field))
+				}
 				if (kind === 'title' && field.route) {
 					block.to = this.resolveRoute(field.route, record)
 				}
@@ -544,6 +571,42 @@ export default {
 				return field.as
 			}
 			return field.label || field.icon ? 'row' : 'line'
+		},
+
+		/**
+		 * A meter entry's parts: the amount at `path` against the limit at
+		 * `limitPath` (or a constant `limit`), both formatted with the entry's
+		 * `format`. Without a positive numeric limit there is no bar, only the
+		 * amount. Past the limit the text says so, so the state never rests on
+		 * the bar's colour alone.
+		 *
+		 * @param {object} record The object.
+		 * @param {object} field The entry.
+		 * @return {{label: string, value: string, amount: number|null, limit: number|null, percent: number, over: boolean}}
+		 * @spec openspec/changes/facts-meter-row/specs/facts-meter-row/spec.md#requirement-a-facts-entry-can-be-a-meter
+		 */
+		meterOf(record, field) {
+			const amount = Number(readPath(record, field.path))
+			const rawLimit = typeof field.limitPath === 'string' && field.limitPath !== '' ? readPath(record, field.limitPath) : field.limit
+			const limit = rawLimit === null || rawLimit === undefined || rawLimit === '' ? NaN : Number(rawLimit)
+			const label = this.tr(field.label || '')
+			const value = this.valueOf(record, field)
+			if (!Number.isFinite(amount) || !Number.isFinite(limit) || limit <= 0) {
+				return { label, value, amount: Number.isFinite(amount) ? amount : null, limit: null, percent: 0, over: false }
+			}
+			const over = amount > limit
+			const limitText = this.format(limit, field, record)
+			return {
+				label,
+				value: over
+					? t('nextcloud-vue', '{value} of {limit}, over the limit', { value, limit: limitText })
+					: t('nextcloud-vue', '{value} of {limit}', { value, limit: limitText }),
+
+				amount,
+				limit,
+				percent: Math.max(0, Math.min(100, (amount / limit) * 100)),
+				over,
+			}
 		},
 
 		/**
@@ -988,6 +1051,10 @@ export default {
 					? formatBoardDate(date, new Date(date.getFullYear() + 1, 0, 1))
 					: formatBoardDate(date)
 			}
+			if (format === 'bytes') {
+				const bytes = Number(raw)
+				return Number.isFinite(bytes) && bytes >= 0 ? formatFileSize(bytes) : ''
+			}
 			if (format === 'user') {
 				return userDisplayName(raw)
 			}
@@ -1123,6 +1190,50 @@ export default {
 .cn-facts-widget__line {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-facts-widget__meter {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 14px;
+}
+
+.cn-facts-widget__meter-head {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.cn-facts-widget__meter-label {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-facts-widget__meter-value {
+	font-weight: 500;
+	text-align: end;
+}
+
+.cn-facts-widget__meter-track {
+	height: 6px;
+	border-radius: 3px;
+	background: var(--color-background-darker);
+	overflow: hidden;
+}
+
+.cn-facts-widget__meter-bar {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--color-primary-element);
+}
+
+.cn-facts-widget__meter--over .cn-facts-widget__meter-value {
+	color: var(--color-error-text);
+}
+
+.cn-facts-widget__meter--over .cn-facts-widget__meter-bar {
+	background: var(--color-error);
 }
 
 .cn-facts-widget__muted {

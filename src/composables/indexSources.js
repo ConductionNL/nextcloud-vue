@@ -4,7 +4,7 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
+import { generateOcsUrl, generateUrl } from '@nextcloud/router'
 import { reactive } from 'vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
@@ -12,6 +12,7 @@ import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
 import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
+import { readPath } from '../utils/readPath.js'
 import { useFlowStore } from './useFlowStore.js'
 import { useTaskInboxStore } from './useTaskInboxStore.js'
 
@@ -715,6 +716,182 @@ function endpointSource() {
 }
 
 /**
+ * Fill `{field}` placeholders in a link template from a row.
+ *
+ * @param {string} template A path such as `/apps/dossiq/cases/{id}`.
+ * @param {object} row The row.
+ * @return {string} The path.
+ */
+function fillRowTemplate(template, row) {
+	return String(template).replace(/\{([\w.@]+)\}/g, (match, path) => {
+		const value = readPath(row, path)
+		return value === undefined || value === null ? '' : encodeURIComponent(String(value))
+	})
+}
+
+/**
+ * The search source: one search term over several OpenRegister schemas and
+ * the reader's files (`entitySource: "search"`), with a quick filter per kind
+ * and its count (DqZoekresultaten).
+ *
+ * `sourceConfig.kinds` lists what is searched:
+ * `{ id, label, register, schema, titleField?, subtitleField?, statusField?, href?, limit? }`
+ * for objects (OpenRegister's `_search`, so the reader sees what they may
+ * read), or `{ id, label, files: true, limit? }` for the reader's files
+ * (Nextcloud's unified search). The term is `sourceConfig.term`, else the
+ * address's `?q=` (or `sourceConfig.termQuery`). A kind that fails shows no
+ * rows and no count; the others still answer.
+ *
+ * @param {object} [config] The page's source config.
+ * @return {object} The source adapter.
+ * @spec openspec/changes/index-search-source/specs/index-page/spec.md#requirement-an-index-page-can-search-several-schemas-and-files
+ */
+function searchSource(config = {}) {
+	const kinds = (Array.isArray(config && config.kinds) ? config.kinds : [])
+		.filter((kind) => kind && typeof kind.id === 'string' && kind.id !== '' && (kind.files === true || (kind.register && kind.schema)))
+	const state = reactive({ rows: [], totals: {}, loading: false, kind: 'all', term: '' })
+	let seq = 0
+
+	const searchObjects = async (axios, kind, term) => {
+		const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: kind.register, schema: kind.schema })
+		const res = await axios.get(url, { params: { _search: term, _limit: kind.limit || 20 } })
+		const body = (res && res.data) || {}
+		const results = Array.isArray(body.results) ? body.results : (Array.isArray(body) ? body : [])
+		return {
+			total: typeof body.total === 'number' ? body.total : results.length,
+			rows: results.map((object) => {
+				const id = object.id || object.uuid || (object['@self'] && object['@self'].id)
+				return {
+					id: `${kind.id}:${id}`,
+					kind: kind.id,
+					kindLabel: kind.label,
+					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
+					subtitle: kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : '',
+					status: kind.statusField ? String(readPath(object, kind.statusField) ?? '') : '',
+					href: kind.href ? generateUrl(fillRowTemplate(kind.href, { ...object, id })) : '',
+					object,
+				}
+			}),
+		}
+	}
+
+	const searchFiles = async (axios, kind, term) => {
+		const res = await axios.get(generateOcsUrl('search/providers/files/search'), {
+			params: { term, limit: kind.limit || 20, format: 'json' },
+			headers: { 'OCS-APIRequest': 'true' },
+		})
+		const entries = (res && res.data && res.data.ocs && res.data.ocs.data && res.data.ocs.data.entries) || []
+		return {
+			total: entries.length,
+			rows: entries.map((entry, index) => ({
+				id: `${kind.id}:${entry.resourceUrl || index}`,
+				kind: kind.id,
+				kindLabel: kind.label,
+				title: entry.title || '',
+				subtitle: entry.subline || '',
+				status: '',
+				href: entry.resourceUrl || '',
+			})),
+		}
+	}
+
+	return {
+		/**
+		 * Run the search over every kind, in parallel.
+		 *
+		 * @param {object} cfg The page's source config with the active tab's `kind` merged in.
+		 * @return {Promise<void>} Resolves when every kind answered or failed.
+		 */
+		load: async (cfg) => {
+			state.kind = cfg && typeof cfg.kind === 'string' ? cfg.kind : 'all'
+			const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+			const term = String((cfg && cfg.term) || (query && query.get((cfg && cfg.termQuery) || 'q')) || '').trim()
+			const mine = ++seq
+			state.term = term
+			if (term === '' || kinds.length === 0) {
+				state.rows = []
+				state.totals = {}
+				return
+			}
+			state.loading = true
+			const { default: axios } = await import('@nextcloud/axios')
+			const answers = await Promise.all(kinds.map((kind) => (kind.files === true ? searchFiles(axios, kind, term) : searchObjects(axios, kind, term)).catch(() => null)))
+			if (mine !== seq) {
+				return
+			}
+			const totals = {}
+			const rows = []
+			answers.forEach((answer, index) => {
+				if (answer) {
+					totals[kinds[index].id] = answer.total
+					rows.push(...answer.rows)
+				}
+			})
+			state.totals = totals
+			state.rows = rows
+			state.loading = false
+		},
+
+		/**
+		 * @return {Array<object>} The results of the active kind, or all of them.
+		 */
+		rows: () => (state.kind === 'all' ? state.rows : state.rows.filter((row) => row.kind === state.kind)),
+
+		/**
+		 * @return {boolean} Whether a search is in flight.
+		 */
+		loading: () => state.loading,
+
+		columns: [
+			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle' },
+			{ key: 'kindLabel', label: t('nextcloud-vue', 'Kind') },
+			{ key: 'status', label: t('nextcloud-vue', 'Status') },
+		],
+
+		quickFilters: kinds.length > 0
+			? [
+					{ label: t('nextcloud-vue', 'All'), filter: { kind: 'all' }, default: true },
+					...kinds.map((kind) => ({ label: kind.label || kind.id, filter: { kind: kind.id } })),
+				]
+			: null,
+
+		/**
+		 * The number on each kind's quick filter: the total each search
+		 * reported, and their sum on All.
+		 *
+		 * @return {Record<number, number>} The counts by tab index.
+		 */
+		tabCounts: () => {
+			const counts = { 0: Object.values(state.totals).reduce((sum, value) => sum + value, 0) }
+			kinds.forEach((kind, index) => {
+				if (typeof state.totals[kind.id] === 'number') {
+					counts[index + 1] = state.totals[kind.id]
+				}
+			})
+			return counts
+		},
+
+		/**
+		 * Open a result where it lives.
+		 *
+		 * @param {object} row The clicked row.
+		 * @return {void}
+		 */
+		openRow: (row) => {
+			if (row && row.href) {
+				window.location.assign(row.href)
+			}
+		},
+
+		/**
+		 * @param {object} row A row.
+		 * @return {string|null} The URL the row opens, for a new tab.
+		 */
+		rowTarget: (row) => (row && row.href) || null,
+	}
+}
+
+/**
  * The registered sources, by the name a manifest uses.
  *
  * @type {Record<string, () => object>}
@@ -726,6 +903,7 @@ export const indexSources = {
 	flowRuns: flowRunsSource,
 	tasks: tasksSource,
 	endpoint: endpointSource,
+	search: searchSource,
 }
 
 /**
@@ -738,10 +916,11 @@ export const indexSources = {
  * indistinguishable from a source that genuinely has no rows.
  *
  * @param {string} name The source name from `config.source`.
+ * @param {object} [config] The page's source config, for a source that builds its tabs from it.
  *
  * @return {object|null} The adapter, or null when the name is not registered.
  */
-export function resolveIndexSource(name) {
+export function resolveIndexSource(name, config) {
 	const key = String(name || '')
 	if (!key) {
 		return null
@@ -754,5 +933,5 @@ export function resolveIndexSource(name) {
 		return null
 	}
 
-	return factory()
+	return factory(config || {})
 }

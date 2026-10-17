@@ -144,7 +144,8 @@ export function attributePropertiesFor(columns) {
 }
 
 /**
- * The value one column shows for one node.
+ * The value one column shows for one node. A `row` column's key may be a
+ * dotted path into the host's record.
  *
  * @param {object} column A resolved column.
  * @param {object} node The node.
@@ -169,7 +170,12 @@ export function fileColumnValue(column, node, rowData = null) {
 			return undefined
 		}
 		const entry = byId[node.fileid] ?? byId[String(node.fileid)]
-		return entry ? entry[column.key] : undefined
+		if (!entry) {
+			return undefined
+		}
+		// A key the record holds as written wins; otherwise a dotted key reads
+		// a nested field (`scanVerdict.state`, `integrity.value`).
+		return Object.hasOwn(entry, column.key) ? entry[column.key] : atPath(entry, column.key)
 	}
 	return atPath(node, column.nodeKey || column.key)
 }

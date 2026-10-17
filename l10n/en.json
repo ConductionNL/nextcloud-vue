@@ -1145,6 +1145,8 @@
     "Due tomorrow": "Due tomorrow",
     "Due in {days} days": "Due in {days} days",
     "Available": "Available",
+    "{value} of {limit}": "{value} of {limit}",
+    "{value} of {limit}, over the limit": "{value} of {limit}, over the limit",
     "Ready to claim": "Ready to claim",
     "In progress": "In progress",
     "Completed": "Completed",
@@ -1584,7 +1586,11 @@
     "{s} s": "{s} s",
     "About this {app} installation.": "About this {app} installation.",
     "{version}, up to date": "{version}, up to date",
-    "for an SLA": "for an SLA"
+    "for an SLA": "for an SLA",
+    "About {name}": "About {name}",
+    "Sent message": "Sent message",
+    "Received message": "Received message",
+    "Loading messages…": "Loading messages…"
   },
   "plurals": {
     "{count} selected": [
