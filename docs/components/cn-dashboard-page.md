@@ -613,7 +613,7 @@ The KPI tile in this look is described in the CnStatWidget docs.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `greeting` | `Boolean \| String` | `false` | `true` or `"first"` (manifest `config.greeting`) writes the header subtitle as "Good afternoon, Pieter · Monday 5 October 2026", followed by the description after another middle dot. `"full"` uses the whole display name. |
+| `greeting` | `Boolean \| String \| Object` | `false` | `true` or `"first"` (manifest `config.greeting`) writes the header subtitle as "Good afternoon, Pieter · Monday 5 October 2026", followed by the description after another middle dot. `"full"` uses the whole display name. `"date"` leads with the date alone, capitalised ("Tuesday 7 October 2026 · ..."), and `{ "label": "Customer contact" }` puts the translated label where the greeting would be ("Customer contact · Wednesday 7 October 2026 · ..."), since manifest schema 2.111.0. |
 | `viewLinks` | `Array` | `[]` | Small pills on a row under the header (manifest `config.viewLinks`): each `{ label, icon?, route?, href? }`, `route` a route name or a location. The label is an i18n key. An entry without a label or a target is skipped. |
 | `showActionsMenu` | `Boolean` | `true` | `false` removes the page Actions menu from the header. |
 
@@ -631,7 +631,7 @@ Under the board look, below 640px, the grid reflows to one column in reading ord
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `layoutPanel` | `Boolean` | `false` | Manifest `config.layoutPanel: true` (schema 2.119.0). Adds an "Arrange page" button to the header that opens a side panel, "Arrange this page", listing the grid's sections in reading order. Each has a checkbox to show or hide it and a handle to drag it into another place (or move it with the arrow keys). "Save layout" stores the result per user and "Back to default" returns to the manifest layout. Turns `userLayout` on. |
+| `layoutPanel` | `Boolean` | `false` | Manifest `config.layoutPanel: true` (schema 2.117.0). Adds an "Arrange page" button to the header that opens a side panel, "Arrange this page", listing the grid's sections in reading order. Each has a checkbox to show or hide it and a handle to drag it into another place (or move it with the arrow keys). "Save layout" stores the result per user and "Back to default" returns to the manifest layout. Turns `userLayout` on. |
 
 The board PqMijnWerkIndelen draws this. The sections swap places: the first section in the new order takes the place
 (column, row, width) of the first section in the old order, and so on, each keeping its own height, so the page keeps

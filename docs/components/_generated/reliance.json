@@ -1127,9 +1127,15 @@
 		},
 		"CnFeaturesAndRoadmapPage": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
+			"transitive": 21,
+			"tier": "heavy",
 			"via": [
+				"CnBuildiqEditButton",
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnFlowDetail",
+				"CnGraphCanvas",
+				"CnIndexPage",
 				"CnRoadmapTab"
 			],
 			"page": "cn-features-and-roadmap-page"
@@ -1143,12 +1149,33 @@
 		},
 		"CnFeaturesAndRoadmapView": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
+			"transitive": 21,
+			"tier": "heavy",
 			"via": [
+				"CnBuildiqEditButton",
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnFlowDetail",
+				"CnGraphCanvas",
+				"CnIndexPage",
 				"CnRoadmapTab"
 			],
 			"page": "cn-features-and-roadmap-view"
+		},
+		"CnFeaturesBoard": {
+			"direct": 0,
+			"transitive": 21,
+			"tier": "heavy",
+			"via": [
+				"CnBuildiqEditButton",
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnFlowDetail",
+				"CnGraphCanvas",
+				"CnIndexPage",
+				"CnRoadmapTab"
+			],
+			"page": null
 		},
 		"CnFeaturesTab": {
 			"direct": 0,
@@ -2568,7 +2595,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 199,
+			"transitive": 200,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3034,8 +3061,8 @@
 			"page": "cn-roadmap-item"
 		},
 		"CnRoadmapTab": {
-			"direct": 2,
-			"transitive": 0,
+			"direct": 1,
+			"transitive": 1,
 			"tier": "light",
 			"via": [],
 			"page": "cn-roadmap-tab"

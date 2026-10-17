@@ -12,6 +12,6 @@ user could not hide a section.
 - `config.layoutPanel`: the header button and the side panel (new CnDashboardLayoutPanel).
 - The per-user record keeps `hidden: true` for a hidden section; the page does not draw it.
 - Saving swaps the sections' places so the page keeps its shape.
-- Manifest schema 2.119.0.
+- Manifest schema 2.117.0.
 
 A page without the key renders as before.
