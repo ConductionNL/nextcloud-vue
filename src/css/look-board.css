@@ -175,6 +175,12 @@
 	background: var(--color-background-hover);
 }
 
+/* A trailing chevron ("Meer ⌄") follows the label, 6px after it. */
+.cn-look-board .action-item.action-item--secondary .action-item__menutoggle:has(.chevron-down-icon) .button-vue__wrapper:not(.cn-look-nextcloud *) {
+	flex-direction: row-reverse;
+	gap: 6px;
+}
+
 /* ---- The navigation ---------------------------------------------------- */
 .cn-look-board .app-navigation[data-testid="cn-nav"] {
 	--app-navigation-padding: 0px;

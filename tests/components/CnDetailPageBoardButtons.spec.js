@@ -83,6 +83,10 @@ describe('CnDetailPage: the board header buttons', () => {
 		expect(menu.props('variant')).toBe('secondary')
 	})
 
+	it('draws the menu with a trailing chevron, as DqZaak\'s "Meer"', async () => {
+		expect((await mountPage()).findComponent(CnActionsMenu).props('trailingChevron')).toBe(true)
+	})
+
 	it('keeps a label the manifest names for the menu', async () => {
 		const menu = (await mountPage({ actionsMenu: { label: 'Meer' } })).findComponent(CnActionsMenu)
 		expect(menu.props('actionsMenuLabel')).toBe('Meer')
@@ -110,5 +114,6 @@ describe('CnDetailPage: the board header buttons', () => {
 		const menu = (await mountPage({}, null)).findComponent(CnActionsMenu)
 		expect(menu.props('actionsMenuLabel')).toBe('Actions')
 		expect(menu.props('variant')).toBe('')
+		expect(menu.props('trailingChevron')).toBe(false)
 	})
 })

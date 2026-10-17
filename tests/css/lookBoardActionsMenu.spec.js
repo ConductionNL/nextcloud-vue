@@ -45,4 +45,8 @@ describe('look-board.css: the secondary Actions menu trigger', () => {
 	it('hands the label its ink under a theme that forces the body ink', () => {
 		expect(rulesFor(trigger)).toContain('--nldesign-color-on-surface: var(--color-main-text)')
 	})
+
+	it('puts a trailing chevron after the label', () => {
+		expect(rulesFor('.cn-look-board .action-item.action-item--secondary .action-item__menutoggle:has(.chevron-down-icon) .button-vue__wrapper:not(.cn-look-nextcloud *)')).toContain('flex-direction: row-reverse')
+	})
 })
