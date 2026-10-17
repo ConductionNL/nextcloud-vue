@@ -1776,7 +1776,22 @@
     "About {name}": "Over {name}",
     "Sent message": "Verstuurd bericht",
     "Received message": "Ontvangen bericht",
-    "Loading messages…": "Berichten laden…"
+    "Loading messages…": "Berichten laden…",
+    "Previous month": "Vorige maand",
+    "Next month": "Volgende maand",
+    "Add day": "Dag toevoegen",
+    "No working calendar found.": "Geen werkkalender gevonden.",
+    "Holidays could not be read. Only the days added by hand are shown.": "De feestdagen konden niet worden gelezen. Alleen de met de hand toegevoegde dagen staan erin.",
+    "The working calendar could not be loaded.": "De werkkalender kon niet worden geladen.",
+    "{date}, closed: {name}": "{date}, gesloten: {name}",
+    "{date}, closed": "{date}, gesloten",
+    "{date}, working day": "{date}, werkdag",
+    "{date}, not a working day": "{date}, geen werkdag",
+    "Day added by hand": "Met de hand toegevoegde dag",
+    "Day added.": "Dag toegevoegd.",
+    "Only an administrator can change the working calendar.": "Alleen een beheerder kan de werkkalender wijzigen.",
+    "The day could not be added. Try again.": "De dag kon niet worden toegevoegd. Probeer het opnieuw.",
+    "Loading …": "Laden …"
   },
   "plurals": {
     "{count} selected": [

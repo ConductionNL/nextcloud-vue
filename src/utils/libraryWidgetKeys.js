@@ -151,6 +151,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'toggle-table',
 	'video',
 	'week-strip',
+	'working-calendar',
 	'workspace-filter',
 ])
 
