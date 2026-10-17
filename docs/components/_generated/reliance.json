@@ -602,9 +602,11 @@
 		},
 		"CnCountdownWidget": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 4,
+			"tier": "medium",
+			"via": [
+				"CnIndexPage"
+			],
 			"page": "cn-countdown-widget"
 		},
 		"CnCountdownWidgetForm": {
@@ -651,7 +653,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 175,
+			"transitive": 176,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1332,7 +1334,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 186,
+			"transitive": 187,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1614,7 +1616,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 183,
+			"transitive": 184,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2941,7 +2943,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 176,
+			"transitive": 177,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3530,7 +3532,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 0,
-			"transitive": 127,
+			"transitive": 128,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3794,6 +3796,13 @@
 			"via": [],
 			"page": "cn-user-action-menu"
 		},
+		"CnUserSettingsDialog": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnVersionHistory": {
 			"direct": 3,
 			"transitive": 6,
@@ -3895,7 +3904,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 165,
+			"transitive": 166,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",

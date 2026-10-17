@@ -5247,6 +5247,21 @@ export default {
 	.cn-dashboard-page--board .cn-dashboard-page__kpi-cell {
 		min-height: 44px;
 	}
+
+	/* The widget Actions menu shows its icon only, so the card title keeps
+	   the room; the name stays for assistive tech. */
+	.cn-dashboard-page--board :deep(.cn-widget-wrapper__actions .action-item__menutoggle) {
+		min-width: 44px;
+	}
+
+	.cn-dashboard-page--board :deep(.cn-widget-wrapper__actions .action-item__menutoggle .button-vue__text) {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
 }
 
 /* What a registry widget reports for its card header (`header` event): the

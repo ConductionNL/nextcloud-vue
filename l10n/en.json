@@ -1513,7 +1513,11 @@
     "%n feature": [
       "%n feature",
       "%n features"
-    ]
+    ],
+    "Your account": "Your account",
+    "Only for you. Colleagues keep their own settings.": "Only for you. Colleagues keep their own settings.",
+    "Sections of the settings": "Sections of the settings",
+    "Changes are saved straight away": "Changes are saved straight away"
   },
   "plurals": {
     "{count} selected": [
