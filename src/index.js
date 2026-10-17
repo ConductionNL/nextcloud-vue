@@ -99,6 +99,7 @@ export {
 	CnDetailGrid,
 	CnDetailPage,
 	CnDetailWidgetHost,
+	CnDeviceFramesWidget,
 	CnDialog,
 	CnDialogHeader,
 	CnDividerWidget,

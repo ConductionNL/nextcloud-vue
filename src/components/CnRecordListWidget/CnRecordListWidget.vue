@@ -169,6 +169,20 @@
 						{{ item.title }}
 					</component>
 				</div>
+				<!-- `bar`: a thin track under the row, filled to the row's value
+				     against its own maximum or against the largest row. -->
+				<span
+					v-if="presentation === 'rows' && item.bar"
+					class="cn-record-list__bar"
+					:class="{ 'cn-record-list__bar--over': item.bar.over }"
+					role="meter"
+					:aria-label="item.title || null"
+					:aria-valuenow="item.bar.value"
+					aria-valuemin="0"
+					:aria-valuemax="item.bar.max"
+					data-testid="cn-record-list-bar">
+					<span class="cn-record-list__bar-fill" :style="{ width: `${item.bar.share}%` }" />
+				</span>
 			</li>
 		</ul>
 	</div>
@@ -254,7 +268,11 @@ export default {
 		 * The list config: `{ register, schema, filter?, sort?, limit?, extend?,
 		 * presentation?, title?, meta?, text?, label?, pill?, trailing?, icon?,
 		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
-		 * valueLabels?, endpointSource? }`. `endpointSource` (`{ url, method?,
+		 * valueLabels?, endpointSource?, bar? }`. `bar` (`{ valueField, maxField?,
+		 * overVariant? }`) draws a thin track under each row: filled to
+		 * `valueField` against `maxField` (drawn in the error colour past it
+		 * with `overVariant: "error"`), or without `maxField` against the
+		 * largest row. `endpointSource` (`{ url, method?,
 		 * params?, responsePath? }`) reads the rows from an app endpoint instead
 		 * of `register` / `schema`. `valueLabels` maps a field's stored values to the labels
 		 * the templates show.
@@ -402,6 +420,7 @@ export default {
 		/** @return {Array<object>} The rows ready to draw. */
 		items() {
 			const c = this.content || {}
+			const barScale = this.barScale
 			return this.rows.slice(0, this.limit).map((row, index) => {
 				const link = this.rowLink(row)
 				return {
@@ -420,8 +439,24 @@ export default {
 					badges: this.badgesOf(row),
 					due: this.dueOf(row),
 					icon: this.iconOf(row),
+					bar: this.barOf(row, barScale),
 				}
 			})
+		},
+
+		/**
+		 * The largest `bar.valueField` over the rows shown, the scale of a
+		 * `bar` without `maxField`. 0 without a `bar`.
+		 *
+		 * @return {number} The largest value.
+		 * @spec openspec/changes/record-list-row-bar/specs/record-list-row-bar/spec.md#requirement-a-record-list-row-can-carry-a-bar
+		 */
+		barScale() {
+			const field = this.content?.bar?.valueField
+			if (!field) {
+				return 0
+			}
+			return Math.max(0, ...this.rows.slice(0, this.limit).map((row) => Number(readPath(row, field)) || 0))
 		},
 
 		/** @return {object|null} The header link with `{total}` filled and tokens resolved. */
@@ -516,6 +551,32 @@ export default {
 		 */
 		translate(text) {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * A row's `bar`: its value, the maximum it is measured against (the
+		 * row's `maxField`, else the largest row), the filled share and
+		 * whether it is over that maximum. Null without `bar` or a value.
+		 *
+		 * @param {object} row The row.
+		 * @param {number} scale The largest value over the rows shown.
+		 * @return {{value: number, max: number, share: number, over: boolean}|null} The bar.
+		 * @spec openspec/changes/record-list-row-bar/specs/record-list-row-bar/spec.md#requirement-a-record-list-row-can-carry-a-bar
+		 */
+		barOf(row, scale) {
+			const bar = this.content?.bar
+			if (!bar || typeof bar !== 'object' || !bar.valueField) {
+				return null
+			}
+			const value = Number(readPath(row, bar.valueField))
+			if (!Number.isFinite(value)) {
+				return null
+			}
+			const ownMax = bar.maxField ? Number(readPath(row, bar.maxField)) : NaN
+			const max = bar.maxField ? (Number.isFinite(ownMax) && ownMax > 0 ? ownMax : 0) : scale
+			const share = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0
+			const over = Boolean(bar.maxField) && bar.overVariant === 'error' && max > 0 && value > max
+			return { value, max, share, over }
 		},
 
 		/**
@@ -1073,6 +1134,25 @@ export default {
 /* rows */
 .cn-record-list--rows .cn-record-list__item + .cn-record-list__item {
 	border-top: 1px solid var(--color-border);
+}
+
+.cn-record-list__bar {
+	background: var(--color-border);
+	border-radius: 3px;
+	display: block;
+	height: 6px;
+	margin: -6px 0 12px;
+	overflow: hidden;
+}
+
+.cn-record-list__bar-fill {
+	background: var(--color-primary-element);
+	display: block;
+	height: 100%;
+}
+
+.cn-record-list__bar--over .cn-record-list__bar-fill {
+	background: var(--color-error);
 }
 
 .cn-record-list__row {
