@@ -185,13 +185,13 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
-import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
-import { formatRelativeDate } from '../../utils/boardDate.js'
-import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, formatFlowDuration } from '../../utils/flowRunLog.js'
 import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
 import CnFlowRunSummary from '../CnFlowDetail/CnFlowRunSummary.vue'
 import CnFlowSidebar from '../CnFlowDetail/CnFlowSidebar.vue'
 import CnFlowStepLog from '../CnFlowDetail/CnFlowStepLog.vue'
+import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
+import { formatRelativeDate } from '../../utils/boardDate.js'
+import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, formatFlowDuration } from '../../utils/flowRunLog.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
@@ -460,9 +460,13 @@ export default {
 		 */
 		hrefOf(path) {
 			if (this.$router && typeof this.$router.resolve === 'function') {
-				const resolved = this.$router.resolve(path)
-				if (resolved && resolved.href) {
-					return resolved.href
+				try {
+					const resolved = this.$router.resolve(path)
+					if (resolved && resolved.href) {
+						return resolved.href
+					}
+				} catch {
+					// A path the router does not know stays a plain path.
 				}
 			}
 			return path

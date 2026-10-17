@@ -22,10 +22,10 @@
 </template>
 
 <script>
-import { useFlowStore } from '../../composables/useFlowStore.js'
-import { useLook } from '../../composables/useLook.js'
 import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
 import CnFlowBoard from './CnFlowBoard.vue'
+import { useFlowStore } from '../../composables/useFlowStore.js'
+import { useLook } from '../../composables/useLook.js'
 
 /**
  * The flow canvas — manifest page type `flow-detail`.
@@ -97,7 +97,6 @@ export default {
 		 * Draw this page in the `board` look (or `nextcloud`) whatever the app
 		 * does. Empty follows the app's look. Manifest key `config.look`.
 		 */
-		// eslint-disable-next-line vue/no-unused-properties -- read through useLook(props) in setup
 		look: {
 			type: String,
 			default: '',

@@ -29,7 +29,6 @@ const { flowRunDurationMs, flowRunLogLines, flowRunName, flowRunSteps, flowStepL
 const CnFlowRunSummary = require('../../src/components/CnFlowDetail/CnFlowRunSummary.vue').default
 const CnFlowStepLog = require('../../src/components/CnFlowDetail/CnFlowStepLog.vue').default
 const CnFlowBoard = require('../../src/components/CnFlowsPage/CnFlowBoard.vue').default
-const { useFlowStore } = require('../../src/composables/useFlowStore.js')
 
 const RUN = {
 	uuid: 'run-1',
@@ -107,7 +106,7 @@ describe('CnFlowRunSummary', () => {
 
 		await w.find('[data-testid="flow-run-retry"]').trigger('click')
 		await w.find('[data-testid="flow-run-back"]').trigger('click')
-		expect(w.emitted('retry')[0][0]).toBe(RUN)
+		expect(w.emitted('retry')[0][0]).toEqual(RUN)
 		expect(w.emitted('back')).toHaveLength(1)
 	})
 
@@ -134,11 +133,26 @@ describe('CnFlowStepLog', () => {
 describe('CnFlowBoard', () => {
 	const stubs = { CnFlowDetail: true, CnFlowSidebar: true, NcNoteCard: { template: '<div class="note"><slot /></div>' } }
 
-	it('draws the header, the path and the validity bar, and keeps Save out of the canvas toolbar', () => {
-		const store = useFlowStore()
-		store.flow = { ...store.flow, id: 'f1', name: 'Confirm receipt', trigger: 'manual', version: 4, nodes: [{ id: 'a', type: 'openregister.trigger-manual' }] }
+	/**
+	 * Mount the board and seed the store the COMPONENT holds: tests/setup.js
+	 * installs a global pinia, so a store made out here is another instance.
+	 *
+	 * @param {object} props The board props.
+	 * @param {object} state Store fields to set.
+	 * @param {object} [mocks] Global mocks.
+	 * @return {Promise<object>} The wrapper.
+	 */
+	async function mountBoard(props, state, mocks = {}) {
+		const w = mount(CnFlowBoard, { props, global: { stubs, mocks } })
+		Object.assign(w.vm.store, state)
+		await w.vm.$nextTick()
+		return w
+	}
 
-		const w = mount(CnFlowBoard, { props: { id: 'f1', notice: 'This flow is the way the case type works.' }, global: { stubs } })
+	it('draws the header, the path and the validity bar, and keeps Save out of the canvas toolbar', async () => {
+		const w = await mountBoard({ id: 'f1', notice: 'This flow is the way the case type works.' }, {
+			flow: { id: 'f1', name: 'Confirm receipt', trigger: 'manual', version: 4, enabled: true, nodes: [{ id: 'a', type: 'openregister.trigger-manual' }], edges: [] },
+		})
 
 		expect(w.find('[data-testid="flow-board-title"]').text()).toBe('Confirm receipt')
 		expect(w.find('[data-testid="flow-board-path"]').text()).toContain('Run by hand · 1 step · version 4')
@@ -146,36 +160,33 @@ describe('CnFlowBoard', () => {
 		expect(w.find('.note').text()).toContain('the way the case type works')
 		expect(w.find('[data-testid="flow-board-run"]').exists()).toBe(true)
 		const canvas = w.findComponent({ name: 'CnFlowDetail' })
-		expect(canvas.attributes('toolbaractions')).toBe('false')
+		expect(canvas.props('toolbarActions')).toBe(false)
 	})
 
-	it('says the flow is valid once the engine said so', () => {
-		const store = useFlowStore()
-		store.checkResult = { valid: true, blocking: [], warnings: [] }
-		const w = mount(CnFlowBoard, { props: { id: 'f1' }, global: { stubs } })
+	it('says the flow is valid once the engine said so', async () => {
+		const w = await mountBoard({ id: 'f1' }, { checkResult: { valid: true, blocking: [], warnings: [] } })
 		expect(w.find('[data-testid="flow-board-validity"]').text()).toBe('The flow is valid.')
 	})
 
-	it('groups the palette by the app that provides each step', () => {
-		const store = useFlowStore()
-		store.nodeCatalog = [{ id: 'dossiq.set-status', displayName: 'Set status' }, { id: 'integriq.call', displayName: 'External call' }, { id: 'dossiq.ask', displayName: 'Ask a person' }]
-		const w = mount(CnFlowBoard, { props: { id: 'f1', palette: 'column', paletteFootnote: 'Only what a case can do itself.' }, global: { stubs } })
+	it('groups the palette by the app that provides each step', async () => {
+		const w = await mountBoard({ id: 'f1', palette: 'column', paletteFootnote: 'Only what a case can do itself.' }, {
+			nodeCatalog: [{ id: 'dossiq.set-status', displayName: 'Set status' }, { id: 'integriq.call', displayName: 'External call' }, { id: 'dossiq.ask', displayName: 'Ask a person' }],
+		})
 
 		expect(w.vm.paletteGroups.map((group) => [group.app, group.entries.length])).toEqual([['dossiq', 2], ['integriq', 1]])
 		expect(w.find('[data-testid="flow-board-palette"]').text()).toContain('Only what a case can do itself.')
-		expect(w.findComponent({ name: 'CnFlowDetail' }).attributes('addstep')).toBe('false')
+		expect(w.findComponent({ name: 'CnFlowDetail' }).props('addStep')).toBe(false)
 	})
 
 	it('shows a run with its card and both log tabs, and retries into the new run', async () => {
 		mockPost.mockResolvedValue({ data: { uuid: 'run-2' } })
-		const store = useFlowStore()
-		store.flow = { ...store.flow, id: 'f1', name: 'Confirm receipt' }
-		store.inspectedRunUuid = 'run-1'
-		store.runDetail = RUN
-		store.selectedNodeId = 'portal'
 		const push = jest.fn(() => Promise.resolve())
-
-		const w = mount(CnFlowBoard, { props: { id: 'f1', run: 'run-1' }, global: { stubs, mocks: { $router: { push, resolve: (to) => ({ href: `/app${to}` }) } } } })
+		const w = await mountBoard({ id: 'f1', run: 'run-1' }, {
+			flow: { id: 'f1', name: 'Confirm receipt', nodes: [], edges: [] },
+			inspectedRunUuid: 'run-1',
+			runDetail: RUN,
+			selectedNodeId: 'portal',
+		}, { $router: { push, resolve: (to) => ({ href: `/app${to}` }) } })
 
 		expect(w.find('[data-testid="flow-run-summary"]').exists()).toBe(true)
 		expect(w.find('[data-testid="flow-board-run-tab-step"]').text()).toContain('1')
@@ -186,5 +197,21 @@ describe('CnFlowBoard', () => {
 		await w.vm.onRetry()
 		expect(mockPost.mock.calls[0][0]).toContain('/api/flow-runs/run-1/retry')
 		expect(push).toHaveBeenCalledWith({ path: '/flows/f1', query: { run: 'run-2' } })
+	})
+})
+
+describe('CnFlowDetail toolbar props', () => {
+	const CnFlowDetail = require('../../src/components/CnFlowDetail/CnFlowDetail.vue').default
+
+	it('leaves Save, Run, Check and Add a step out when the host draws them', () => {
+		const stubs = { CnGraphCanvas: true, NcEmptyContent: true }
+		const full = mount(CnFlowDetail, { global: { stubs } })
+		expect(full.find('[data-testid="flow-save-button"]').exists()).toBe(true)
+		expect(full.find('[data-testid="flow-add-step"]').exists()).toBe(true)
+
+		const bare = mount(CnFlowDetail, { props: { toolbarActions: false, addStep: false }, global: { stubs } })
+		expect(bare.find('[data-testid="flow-save-button"]').exists()).toBe(false)
+		expect(bare.find('[data-testid="flow-run-button"]').exists()).toBe(false)
+		expect(bare.find('[data-testid="flow-add-step"]').exists()).toBe(false)
 	})
 })
