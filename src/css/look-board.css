@@ -792,7 +792,26 @@
    ground ("Verzoek", "Nieuw"); the default look keeps the brighter
    primary-element text. The other tones already match the board. */
 .cn-look-board .cn-status-badge--primary:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
-	color: var(--color-primary-element-light-text);
+	--cn-status-badge-ink: var(--color-primary-element-light-text);
+	color: var(--cn-status-badge-ink);
+}
+
+/* Every board pill is 13px at 600 on a 3px 10px pad with a 12px corner
+   (DqZaak's header pills, DqZaken's status column). */
+.cn-look-board .cn-status-badge:not(.cn-status-badge--small):not(.cn-look-nextcloud *) {
+	padding: 3px 10px;
+	border-radius: 12px;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+/* A pill paints its own pairing of ink and fill. A theme that forces the body
+   ink onto every span (thematiq's text rule, `!important` at id level) reads
+   that ink from --nldesign-color-on-surface when the surface sets it, so the
+   pill hands it its own ink: "In behandeling" stays purple on purple. */
+.cn-look-board .cn-status-badge:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--cn-status-badge-ink);
 }
 
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */

@@ -48,14 +48,14 @@ describe('pill tones', () => {
 		expect(badgeCss).toMatch(/--cn-status-purple-text:\s*#4a3f8f/)
 		expect(badgeCss).toMatch(/--cn-status-teal-bg:\s*#e3f1f3/)
 		expect(badgeCss).toMatch(/--cn-status-teal-text:\s*#1d5e66/)
-		expect(badgeCss).toMatch(/\.cn-status-badge--purple\s*\{[^}]*background-color:\s*var\(--cn-status-purple-bg\)[^}]*color:\s*var\(--cn-status-purple-text\)/)
-		expect(badgeCss).toMatch(/\.cn-status-badge--teal\s*\{[^}]*background-color:\s*var\(--cn-status-teal-bg\)[^}]*color:\s*var\(--cn-status-teal-text\)/)
+		expect(badgeCss).toMatch(/\.cn-status-badge--purple\s*\{[^}]*--cn-status-badge-ink:\s*var\(--cn-status-purple-text\)[^}]*background-color:\s*var\(--cn-status-purple-bg\)[^}]*color:\s*var\(--cn-status-badge-ink\)/)
+		expect(badgeCss).toMatch(/\.cn-status-badge--teal\s*\{[^}]*--cn-status-badge-ink:\s*var\(--cn-status-teal-text\)[^}]*background-color:\s*var\(--cn-status-teal-bg\)[^}]*color:\s*var\(--cn-status-badge-ink\)/)
 	})
 
 	it('sets a primary pill in the deep primary ink only under the board look', () => {
-		expect(boardCss).toMatch(/\.cn-look-board \.cn-status-badge--primary:not\(\.cn-status-badge--solid\):not\(\.cn-look-nextcloud \*\)\s*\{\s*color:\s*var\(--color-primary-element-light-text\);/)
+		expect(boardCss).toMatch(/\.cn-look-board \.cn-status-badge--primary:not\(\.cn-status-badge--solid\):not\(\.cn-look-nextcloud \*\)\s*\{\s*--cn-status-badge-ink:\s*var\(--color-primary-element-light-text\);\s*color:\s*var\(--cn-status-badge-ink\);/)
 		// The default look keeps its primary text.
-		expect(badgeCss).toMatch(/\.cn-status-badge--primary\s*\{[^}]*color:\s*var\(--color-primary-element\);/)
+		expect(badgeCss).toMatch(/\.cn-status-badge--primary\s*\{[^}]*--cn-status-badge-ink:\s*var\(--color-primary-element\);[^}]*color:\s*var\(--cn-status-badge-ink\);/)
 	})
 })
 
@@ -94,5 +94,34 @@ describe('a manifest column colours its enum pills', () => {
 	it('renders every pill in the default tone without a colour map, as before', () => {
 		expect(variants(mountTable([{ key: 'status', label: 'Status' }]))).toEqual(['default', 'default'])
 		expect(variants(mountTable([{ key: 'status', label: 'Status', colorMap: ['not', 'a', 'map'] }]))).toEqual(['default', 'default'])
+	})
+})
+
+describe('pill ink under a theme that forces the body ink', () => {
+	const ruleBody = (css, selector) => {
+		const at = css.indexOf(selector + ' {')
+		return at === -1 ? '' : css.slice(at, css.indexOf('}', at))
+	}
+
+	it('names its ink in --cn-status-badge-ink for every tone, plain and solid', () => {
+		for (const variant of BADGE_VARIANTS) {
+			expect(ruleBody(badgeCss, '.cn-status-badge--' + variant)).toMatch(/--cn-status-badge-ink:[^;]+;[\s\S]*color: var\(--cn-status-badge-ink\)/)
+			expect(ruleBody(badgeCss, '.cn-status-badge--solid.cn-status-badge--' + variant)).toMatch(/--cn-status-badge-ink:[^;]+;[\s\S]*color: var\(--cn-status-badge-ink\)/)
+		}
+	})
+
+	it('hands that ink to the theme\'s on-surface colour in the board look only', () => {
+		expect(boardCss).toMatch(/\.cn-look-board \.cn-status-badge:not\(\.cn-look-nextcloud \*\) \{\s*--nldesign-color-on-surface: var\(--cn-status-badge-ink\);/)
+		expect(badgeCss).not.toContain('--nldesign-color-on-surface')
+	})
+
+	it('draws the board pill: 13px at 600 on a 3px 10px pad with a 12px corner', () => {
+		const at = boardCss.indexOf('.cn-look-board .cn-status-badge:not(.cn-status-badge--small):not(.cn-look-nextcloud *) {')
+		expect(at).toBeGreaterThan(-1)
+		const rule = boardCss.slice(at, boardCss.indexOf('}', at))
+		expect(rule).toContain('padding: 3px 10px')
+		expect(rule).toContain('border-radius: 12px')
+		expect(rule).toContain('font-size: 13px')
+		expect(rule).toContain('font-weight: 600')
 	})
 })
