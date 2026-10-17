@@ -1690,7 +1690,26 @@
       "{on} van %n staat in het menu",
       "{on} van %n staan in het menu"
     ],
-    "Put it in the menu:": "In het menu zetten:"
+    "Put it in the menu:": "In het menu zetten:",
+    "Support this app": "Steun deze app",
+    "No features with this status": "Geen functies met deze status",
+    "Learn more about {title}": "Lees meer over {title}",
+    "Learn more": "Lees meer",
+    "Next on the roadmap": "Hierna op de roadmap",
+    "Coming next": "Hierna",
+    "The most requested items from the issue tracker.": "De meest gevraagde items uit de issuetracker.",
+    "Opened {date}": "Geopend {date}",
+    "See the whole roadmap": "Bekijk de hele roadmap",
+    "Features and roadmap": "Functies en roadmap",
+    "Beta": "Beta",
+    "Planned": "Gepland",
+    "{status}, {expected}": "{status}, {expected}",
+    "Build on this app": "Bouw verder op deze app",
+    "AI skills": "AI-vaardigheden",
+    "%n feature": [
+      "%n functie",
+      "%n functies"
+    ]
   },
   "plurals": {
     "{count} selected": [

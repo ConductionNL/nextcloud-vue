@@ -20,7 +20,7 @@ buttons, widgets under the cards, uncategorised cards first) stay as they were.
 - `src/components/CnReportsPage/CnReportsPage.vue`: the board template, `footnote` and `sideNote` props, chip counts,
   `visibleSections`, `cardNote`, `showSection`.
 - `src/css/look-board-reports.css`: the board PqReports rules.
-- Manifest schema 2.110.0: page `config.footnote` and `config.sideNote` (reports). A report card's `note` is read from the
+- Manifest schema 2.116.0: page `config.footnote` and `config.sideNote` (reports). A report card's `note` is read from the
   card; reports cards are not schema-validated.
 - `l10n/en.json`, `l10n/nl.json`: the page's copy, including "All categories" and "Category", which had no entry.
 - The Nextcloud look is unchanged.

@@ -1504,7 +1504,26 @@
       "{on} of %n are in the menu"
     ],
     "Put it in the menu:": "Put it in the menu:",
-    "Admin settings": "Admin settings"
+    "Admin settings": "Admin settings",
+    "Support this app": "Support this app",
+    "No features with this status": "No features with this status",
+    "Learn more about {title}": "Learn more about {title}",
+    "Learn more": "Learn more",
+    "Next on the roadmap": "Next on the roadmap",
+    "Coming next": "Coming next",
+    "The most requested items from the issue tracker.": "The most requested items from the issue tracker.",
+    "Opened {date}": "Opened {date}",
+    "See the whole roadmap": "See the whole roadmap",
+    "Features and roadmap": "Features and roadmap",
+    "Beta": "Beta",
+    "Planned": "Planned",
+    "{status}, {expected}": "{status}, {expected}",
+    "Build on this app": "Build on this app",
+    "AI skills": "AI skills",
+    "%n feature": [
+      "%n feature",
+      "%n features"
+    ]
   },
   "plurals": {
     "{count} selected": [
