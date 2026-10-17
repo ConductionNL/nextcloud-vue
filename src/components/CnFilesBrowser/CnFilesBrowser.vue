@@ -183,8 +183,8 @@
 			role="toolbar"
 			:aria-label="t('nextcloud-vue', 'Actions for the selected files')"
 			data-testid="cn-files-browser-bulk-bar">
-			<span class="cn-files-browser__bulk-count" aria-live="polite">
-				{{ t('nextcloud-vue', '{count} selected', { count: selectedIds.length }) }}
+			<span class="cn-files-browser__bulk-count" aria-live="polite" data-testid="cn-files-browser-bulk-count">
+				{{ selectionCountText }}
 			</span>
 			<NcButton v-for="action in bulkActions"
 				:key="action.id"
@@ -195,7 +195,8 @@
 				</template>
 				{{ hostLabel(action) }}
 			</NcButton>
-			<NcButton variant="tertiary"
+			<NcButton v-if="showClearSelection"
+				variant="tertiary"
 				data-testid="cn-files-browser-bulk-clear"
 				@click="clearSelection">
 				{{ t('nextcloud-vue', 'Clear selection') }}
@@ -233,269 +234,313 @@
 		     this page, offered under the same names and icons the Files app
 		     uses. What cannot run away from the Files page (the details
 		     sidebar) is left out, and Show in Files covers it. -->
-		<table v-else class="cn-files-browser__table" data-testid="cn-files-browser-table">
-			<thead>
-				<tr>
-					<th v-if="bulkEnabled" class="cn-files-browser__col-select" scope="col">
-						<input type="checkbox"
-							class="cn-files-browser__select"
-							:checked="allSelected"
-							:indeterminate.prop="someSelected && !allSelected"
-							:disabled="selectableIds.length === 0"
-							:aria-label="t('nextcloud-vue', 'Select all files')"
-							data-testid="cn-files-browser-select-all"
-							@change="toggleAll($event.target.checked)">
-					</th>
-					<th class="cn-files-browser__col-icon" scope="col">
-						<span class="hidden-visually">{{ t('nextcloud-vue', 'Type') }}</span>
-					</th>
-					<th v-for="column in renderedColumns"
-						:key="column.key"
-						scope="col"
-						:class="`cn-files-browser__col-${column.key}`"
-						:aria-sort="ariaSort(sortTokenOf(column))"
-						:data-testid="`cn-files-browser-header-${column.key}`">
-						<button v-if="column.sortable !== false"
-							type="button"
-							class="cn-files-browser__sort"
-							@click="sortBy(sortTokenOf(column))">
-							{{ columnLabel(column) }}
-							<component :is="sortIcon(sortTokenOf(column))" v-if="sortKey === sortTokenOf(column)" :size="16" />
-						</button>
-						<template v-else>
-							{{ columnLabel(column) }}
-						</template>
-					</th>
-					<th class="cn-files-browser__col-actions" scope="col">
-						<span class="hidden-visually">{{ t('nextcloud-vue', 'Actions') }}</span>
-					</th>
-				</tr>
-			</thead>
-			<tbody>
-				<!-- A heading row per group when the host groups on a column; the
-				     destructured entry is either a group or a node. -->
-				<template v-for="{ key, group, node } in displayRows" :key="key">
-					<tr v-if="group"
-						class="cn-files-browser__group"
-						data-testid="cn-files-browser-group">
-						<th :colspan="columnCount" scope="rowgroup" class="cn-files-browser__group-heading">
-							{{ group.label }}
-							<span class="cn-files-browser__group-count">{{ group.count }}</span>
+		<div v-else
+			class="cn-files-browser__body"
+			:class="{ 'cn-files-browser__body--with-side': sideNode !== null }">
+			<table class="cn-files-browser__table" data-testid="cn-files-browser-table">
+				<thead>
+					<tr>
+						<th v-if="bulkEnabled" class="cn-files-browser__col-select" scope="col">
+							<input type="checkbox"
+								class="cn-files-browser__select"
+								:checked="allSelected"
+								:indeterminate.prop="someSelected && !allSelected"
+								:disabled="selectableIds.length === 0"
+								:aria-label="t('nextcloud-vue', 'Select all files')"
+								data-testid="cn-files-browser-select-all"
+								@change="toggleAll($event.target.checked)">
+						</th>
+						<th class="cn-files-browser__col-icon" scope="col">
+							<span class="hidden-visually">{{ t('nextcloud-vue', 'Type') }}</span>
+						</th>
+						<th v-for="column in renderedColumns"
+							:key="column.key"
+							scope="col"
+							:class="`cn-files-browser__col-${column.key}`"
+							:aria-sort="ariaSort(sortTokenOf(column))"
+							:data-testid="`cn-files-browser-header-${column.key}`">
+							<button v-if="column.sortable !== false"
+								type="button"
+								class="cn-files-browser__sort"
+								@click="sortBy(sortTokenOf(column))">
+								{{ columnLabel(column) }}
+								<component :is="sortIcon(sortTokenOf(column))" v-if="sortKey === sortTokenOf(column)" :size="16" />
+							</button>
+							<template v-else>
+								{{ columnLabel(column) }}
+							</template>
+						</th>
+						<th class="cn-files-browser__col-actions" scope="col">
+							<span class="hidden-visually">{{ t('nextcloud-vue', 'Actions') }}</span>
 						</th>
 					</tr>
-					<tr
-						v-else
-						:key="key"
-						class="cn-files-browser__row"
-						:class="{ 'cn-files-browser__row--folder': isFolder(node) }"
-						data-testid="cn-files-browser-row"
-						:data-name="node.basename"
-						@click="onRowClick(node, $event)"
-						@mousedown="preventMiddleClickAutoscroll"
-						@auxclick="onRowAuxClick(node, $event)">
-						<td v-if="bulkEnabled"
-							class="cn-files-browser__col-select"
-							@click.stop
-							@auxclick.stop>
-							<input v-if="!isFolder(node)"
-								type="checkbox"
-								class="cn-files-browser__select"
-								:checked="isSelected(node)"
-								:aria-label="t('nextcloud-vue', 'Select {name}', { name: node.basename })"
-								data-testid="cn-files-browser-select"
-								@change="toggleSelected(node, $event.target.checked)">
-						</td>
-						<td class="cn-files-browser__col-icon">
-							<img
-								v-if="previewUrlFor(node)"
-								class="cn-files-browser__thumb"
-								:src="previewUrlFor(node)"
-								alt=""
-								loading="lazy"
-								@error="onPreviewError(node)">
-							<img
-								v-else-if="mimeIconFor(node)"
-								class="cn-files-browser__mime"
-								:src="mimeIconFor(node)"
-								alt="">
-							<FolderOutline v-else-if="isFolder(node)" :size="32" />
-							<FileOutline v-else :size="32" />
-						</td>
-						<td v-for="column in renderedColumns"
-							:key="column.key"
-							:class="`cn-files-browser__col-${column.key}`"
-							:data-testid="`cn-files-browser-cell-${column.key}`">
-							<span v-if="column.key === 'name'" class="cn-files-browser__name">{{ node.basename }}</span>
-							<template v-else-if="column.key === 'size'">
-								{{ isFolder(node) ? '' : formatSize(node.size) }}
-							</template>
-							<NcDateTime v-else-if="column.key === 'modified'" :timestamp="node.mtime" :ignoreSeconds="true" />
-							<!-- Everything the host declared renders through the same
+				</thead>
+				<tbody>
+					<!-- A heading row per group when the host groups on a column; the
+				     destructured entry is either a group or a node. -->
+					<template v-for="{ key, group, node } in displayRows" :key="key">
+						<tr v-if="group"
+							class="cn-files-browser__group"
+							data-testid="cn-files-browser-group">
+							<th :colspan="columnCount" scope="rowgroup" class="cn-files-browser__group-heading">
+								{{ group.label }}
+								<span class="cn-files-browser__group-count">{{ group.count }}</span>
+							</th>
+						</tr>
+						<tr
+							v-else
+							:key="key"
+							class="cn-files-browser__row"
+							:class="{ 'cn-files-browser__row--folder': isFolder(node) }"
+							data-testid="cn-files-browser-row"
+							:data-name="node.basename"
+							@click="onRowClick(node, $event)"
+							@mousedown="preventMiddleClickAutoscroll"
+							@auxclick="onRowAuxClick(node, $event)">
+							<td v-if="bulkEnabled"
+								class="cn-files-browser__col-select"
+								@click.stop
+								@auxclick.stop>
+								<input v-if="!isFolder(node)"
+									type="checkbox"
+									class="cn-files-browser__select"
+									:checked="isSelected(node)"
+									:aria-label="t('nextcloud-vue', 'Select {name}', { name: node.basename })"
+									data-testid="cn-files-browser-select"
+									@change="toggleSelected(node, $event.target.checked)">
+							</td>
+							<td class="cn-files-browser__col-icon">
+								<img
+									v-if="previewUrlFor(node)"
+									class="cn-files-browser__thumb"
+									:src="previewUrlFor(node)"
+									alt=""
+									loading="lazy"
+									@error="onPreviewError(node)">
+								<img
+									v-else-if="mimeIconFor(node)"
+									class="cn-files-browser__mime"
+									:src="mimeIconFor(node)"
+									alt="">
+								<FolderOutline v-else-if="isFolder(node)" :size="32" />
+								<FileOutline v-else :size="32" />
+							</td>
+							<td v-for="column in renderedColumns"
+								:key="column.key"
+								:class="`cn-files-browser__col-${column.key}`"
+								:data-testid="`cn-files-browser-cell-${column.key}`">
+								<span v-if="column.key === 'name'" class="cn-files-browser__name">{{ node.basename }}</span>
+								<template v-else-if="column.key === 'size'">
+									{{ isFolder(node) ? '' : formatSize(node.size) }}
+								</template>
+								<NcDateTime v-else-if="column.key === 'modified'" :timestamp="node.mtime" :ignoreSeconds="true" />
+								<!-- Everything the host declared renders through the same
 							     cell renderer the tables use, so a `formatter` means
 							     here what it means there. -->
-							<CnCellRenderer v-else
-								:value="cellValue(column, node)"
-								:formatter="column.formatter || null"
-								:formatterOptions="column.formatterOptions || null"
-								:widget="column.widget || null"
-								:row="node" />
-						</td>
-						<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
-							<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
-								<NcActionButton
-									v-for="action in actionsFor(node)"
-									:key="action.id"
-									:closeAfterClick="true"
-									:data-testid="`cn-files-browser-action-${action.id}`"
-									@click="run(action, node)">
-									<template #icon>
-										<NcIconSvgWrapper :svg="iconOf(action, node)" />
-									</template>
-									{{ labelOf(action, node) }}
-								</NcActionButton>
-								<!-- The host's own actions on a file (never on a folder): declared
+								<CnCellRenderer v-else
+									:class="column.widget !== 'badge' && toneOf(column, node) ? `cn-files-browser__tone cn-files-browser__tone--${toneOf(column, node)}` : null"
+									:value="cellValue(column, node)"
+									:formatter="column.formatter || null"
+									:formatterOptions="column.formatterOptions || null"
+									:widget="column.widget || null"
+									:widgetProps="cellWidgetProps(column, node)"
+									:row="node" />
+							</td>
+							<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
+								<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
+									<NcActionButton
+										v-for="action in actionsFor(node)"
+										:key="action.id"
+										:closeAfterClick="true"
+										:data-testid="`cn-files-browser-action-${action.id}`"
+										@click="run(action, node)">
+										<template #icon>
+											<NcIconSvgWrapper :svg="iconOf(action, node)" />
+										</template>
+										{{ labelOf(action, node) }}
+									</NcActionButton>
+									<!-- The host's own actions on a file (never on a folder): declared
 								     in its manifest, dispatched through the page's action runner
 								     with the node's file id, name and path merged in. -->
-								<template v-if="!isFolder(node)">
-									<NcActionButton
-										v-for="action in hostActionsFor(node)"
-										:key="`host-${action.id}`"
-										:closeAfterClick="true"
-										:data-testid="`cn-files-browser-host-action-${action.id}`"
-										@click="runHostAction(action, node)">
-										<template #icon>
-											<CnIcon :name="action.icon || 'FileDocumentEditOutline'" :size="20" />
-										</template>
-										{{ hostLabel(action) }}
-									</NcActionButton>
-								</template>
-								<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && hostActionsFor(node).length > 0)" />
-								<!-- The Files app's own rename is its list's inline input,
+									<template v-if="!isFolder(node)">
+										<NcActionButton
+											v-for="action in hostActionsFor(node)"
+											:key="`host-${action.id}`"
+											:closeAfterClick="true"
+											:data-testid="`cn-files-browser-host-action-${action.id}`"
+											@click="runHostAction(action, node)">
+											<template #icon>
+												<CnIcon :name="action.icon || 'FileDocumentEditOutline'" :size="20" />
+											</template>
+											{{ hostLabel(action) }}
+										</NcActionButton>
+									</template>
+									<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && hostActionsFor(node).length > 0)" />
+									<!-- The Files app's own rename is its list's inline input,
 								     which is not here; this one is a dialog over a DAV move. -->
-								<!-- With a `source`, the Files app's actions (which act over
+									<!-- With a `source`, the Files app's actions (which act over
 								     WebDAV) are not offered; download and delete go through
 								     the source instead. -->
+									<NcActionLink
+										v-if="source && sourceDownloadUrl(node)"
+										:href="sourceDownloadUrl(node)"
+										:download="node.basename"
+										:closeAfterClick="true"
+										data-testid="cn-files-browser-action-download">
+										<template #icon>
+											<Download :size="20" />
+										</template>
+										{{ downloadLabel }}
+									</NcActionLink>
+									<NcActionButton v-if="source && canChange"
+										:closeAfterClick="true"
+										data-testid="cn-files-browser-action-delete"
+										@click="askRemove(node)">
+										<template #icon>
+											<TrashCanOutline :size="20" />
+										</template>
+										{{ deleteLabel }}
+									</NcActionButton>
+									<NcActionButton v-if="canChange"
+										:closeAfterClick="true"
+										data-testid="cn-files-browser-action-rename"
+										@click="askRename(node)">
+										<template #icon>
+											<Pencil :size="20" />
+										</template>
+										{{ renameLabel }}
+									</NcActionButton>
+									<NcActionLink
+										v-if="node.fileid && !source"
+										:href="permalink(node)"
+										target="_blank"
+										:closeAfterClick="true">
+										<template #icon>
+											<OpenInNew :size="20" />
+										</template>
+										{{ showInFilesLabel }}
+									</NcActionLink>
+								</NcActions>
+							</td>
+						</tr>
+					</template>
+					<tr v-if="facetActive && filteredFiles.length === 0" class="cn-files-browser__no-match-row">
+						<td :colspan="columnCount" class="cn-files-browser__no-match" data-testid="cn-files-browser-no-match">
+							{{ t('nextcloud-vue', 'No files match the filter.') }}
+						</td>
+					</tr>
+					<!-- Rows that are not nodes of this folder: documents the host
+				     joined from elsewhere (another object's folder). Open and
+				     download only; nothing here can change the file. -->
+					<tr
+						v-for="item in linkedItems"
+						:key="`linked-${item.id}`"
+						class="cn-files-browser__row cn-files-browser__row--linked"
+						data-testid="cn-files-browser-linked-row"
+						:data-name="item.name"
+						@click="openLinked(item)"
+						@mousedown="preventMiddleClickAutoscroll"
+						@auxclick="onLinkedAuxClick(item, $event)">
+						<td v-if="bulkEnabled" class="cn-files-browser__col-select" />
+						<td class="cn-files-browser__col-icon">
+							<img
+								v-if="mimeIconFor({ mime: item.mime })"
+								class="cn-files-browser__mime"
+								:src="mimeIconFor({ mime: item.mime })"
+								alt="">
+							<FileOutline v-else :size="32" />
+						</td>
+						<!-- A linked item is not a node of this folder, so it can only
+					     answer for name, size and modified. It still walks the same
+					     column list, or a declared column set would shift every
+					     linked row one cell out of line with its header. -->
+						<td v-for="column in renderedColumns"
+							:key="column.key"
+							:class="`cn-files-browser__col-${column.key}`">
+							<template v-if="column.key === 'name'">
+								<span class="cn-files-browser__name">{{ item.name }}</span>
+								<span v-if="item.note" class="cn-files-browser__note">
+									<a
+										v-if="item.noteHref"
+										:href="item.noteHref"
+										class="cn-files-browser__note-link"
+										@click.stop>{{ item.note }}</a>
+									<template v-else>{{ item.note }}</template>
+								</span>
+							</template>
+							<template v-else-if="column.key === 'size'">
+								{{ item.size ? formatSize(item.size) : '' }}
+							</template>
+							<NcDateTime v-else-if="column.key === 'modified' && item.mtime" :timestamp="item.mtime" :ignoreSeconds="true" />
+						</td>
+						<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
+							<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
 								<NcActionLink
-									v-if="source && sourceDownloadUrl(node)"
-									:href="sourceDownloadUrl(node)"
-									:download="node.basename"
+									v-if="item.href"
+									:href="item.href"
+									target="_blank"
 									:closeAfterClick="true"
-									data-testid="cn-files-browser-action-download">
+									data-testid="cn-files-browser-linked-open">
+									<template #icon>
+										<OpenInNew :size="20" />
+									</template>
+									{{ openLinkedLabel }}
+								</NcActionLink>
+								<NcActionLink
+									v-if="item.downloadHref"
+									:href="item.downloadHref"
+									:download="item.name"
+									:closeAfterClick="true"
+									data-testid="cn-files-browser-linked-download">
 									<template #icon>
 										<Download :size="20" />
 									</template>
 									{{ downloadLabel }}
 								</NcActionLink>
-								<NcActionButton v-if="source && canChange"
-									:closeAfterClick="true"
-									data-testid="cn-files-browser-action-delete"
-									@click="askRemove(node)">
-									<template #icon>
-										<TrashCanOutline :size="20" />
-									</template>
-									{{ deleteLabel }}
-								</NcActionButton>
-								<NcActionButton v-if="canChange"
-									:closeAfterClick="true"
-									data-testid="cn-files-browser-action-rename"
-									@click="askRename(node)">
-									<template #icon>
-										<Pencil :size="20" />
-									</template>
-									{{ renameLabel }}
-								</NcActionButton>
-								<NcActionLink
-									v-if="node.fileid && !source"
-									:href="permalink(node)"
-									target="_blank"
-									:closeAfterClick="true">
-									<template #icon>
-										<OpenInNew :size="20" />
-									</template>
-									{{ showInFilesLabel }}
-								</NcActionLink>
 							</NcActions>
 						</td>
 					</tr>
-				</template>
-				<tr v-if="facetActive && filteredFiles.length === 0" class="cn-files-browser__no-match-row">
-					<td :colspan="columnCount" class="cn-files-browser__no-match" data-testid="cn-files-browser-no-match">
-						{{ t('nextcloud-vue', 'No files match the filter.') }}
-					</td>
-				</tr>
-				<!-- Rows that are not nodes of this folder: documents the host
-				     joined from elsewhere (another object's folder). Open and
-				     download only; nothing here can change the file. -->
-				<tr
-					v-for="item in linkedItems"
-					:key="`linked-${item.id}`"
-					class="cn-files-browser__row cn-files-browser__row--linked"
-					data-testid="cn-files-browser-linked-row"
-					:data-name="item.name"
-					@click="openLinked(item)"
-					@mousedown="preventMiddleClickAutoscroll"
-					@auxclick="onLinkedAuxClick(item, $event)">
-					<td v-if="bulkEnabled" class="cn-files-browser__col-select" />
-					<td class="cn-files-browser__col-icon">
-						<img
-							v-if="mimeIconFor({ mime: item.mime })"
-							class="cn-files-browser__mime"
-							:src="mimeIconFor({ mime: item.mime })"
-							alt="">
-						<FileOutline v-else :size="32" />
-					</td>
-					<!-- A linked item is not a node of this folder, so it can only
-					     answer for name, size and modified. It still walks the same
-					     column list, or a declared column set would shift every
-					     linked row one cell out of line with its header. -->
-					<td v-for="column in renderedColumns"
-						:key="column.key"
-						:class="`cn-files-browser__col-${column.key}`">
-						<template v-if="column.key === 'name'">
-							<span class="cn-files-browser__name">{{ item.name }}</span>
-							<span v-if="item.note" class="cn-files-browser__note">
-								<a
-									v-if="item.noteHref"
-									:href="item.noteHref"
-									class="cn-files-browser__note-link"
-									@click.stop>{{ item.note }}</a>
-								<template v-else>{{ item.note }}</template>
-							</span>
+				</tbody>
+			</table>
+
+			<!-- `sideCards`: cards about the last selected file, beside the list. -->
+			<aside v-if="sideNode !== null"
+				class="cn-files-browser__side"
+				:aria-label="t('nextcloud-vue', 'About {name}', { name: sideNode.basename })"
+				data-testid="cn-files-browser-side">
+				<section v-for="card in sideCardsFor(sideNode)"
+					:key="card.id"
+					class="cn-files-browser__side-card"
+					:data-testid="`cn-files-browser-side-card-${card.id}`">
+					<h3 class="cn-files-browser__side-title">
+						{{ card.title }}
+					</h3>
+					<dl v-if="card.fields.length > 0" class="cn-files-browser__side-facts">
+						<template v-for="field in card.fields" :key="field.key">
+							<dt>{{ field.label }}</dt>
+							<dd :class="field.tone ? `cn-files-browser__tone cn-files-browser__tone--${field.tone}` : ''">
+								<CnCellRenderer
+									:value="field.value"
+									:formatter="field.formatter || null"
+									:formatterOptions="field.formatterOptions || null"
+									:row="sideNode" />
+							</dd>
 						</template>
-						<template v-else-if="column.key === 'size'">
-							{{ item.size ? formatSize(item.size) : '' }}
-						</template>
-						<NcDateTime v-else-if="column.key === 'modified' && item.mtime" :timestamp="item.mtime" :ignoreSeconds="true" />
-					</td>
-					<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
-						<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
-							<NcActionLink
-								v-if="item.href"
-								:href="item.href"
-								target="_blank"
-								:closeAfterClick="true"
-								data-testid="cn-files-browser-linked-open">
-								<template #icon>
-									<OpenInNew :size="20" />
-								</template>
-								{{ openLinkedLabel }}
-							</NcActionLink>
-							<NcActionLink
-								v-if="item.downloadHref"
-								:href="item.downloadHref"
-								:download="item.name"
-								:closeAfterClick="true"
-								data-testid="cn-files-browser-linked-download">
-								<template #icon>
-									<Download :size="20" />
-								</template>
-								{{ downloadLabel }}
-							</NcActionLink>
-						</NcActions>
-					</td>
-				</tr>
-			</tbody>
-		</table>
+					</dl>
+					<div v-if="card.actions.length > 0" class="cn-files-browser__side-actions">
+						<NcButton v-for="action in card.actions"
+							:key="action.id"
+							:data-testid="`cn-files-browser-side-action-${action.id}`"
+							@click="runHostAction(action, sideNode)">
+							<template v-if="action.icon" #icon>
+								<CnIcon :name="action.icon" :size="20" />
+							</template>
+							{{ hostLabel(action) }}
+						</NcButton>
+					</div>
+				</section>
+			</aside>
+		</div>
 
 		<p v-if="dropHint && canChange && !loading && error === ''"
 			class="cn-files-browser__drop-hint"
@@ -981,6 +1026,46 @@ export default {
 		},
 
 		/**
+		 * The bulk bar's count, as a translatable template with `{count}`
+		 * ("{count} documents selected"); `selectionLabelOne` is used for one.
+		 * Empty reads "{count} selected".
+		 *
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-the-bulk-bar-names-what-is-selected
+		 */
+		selectionLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** The bulk bar's count for one selected file, e.g. "{count} document selected". */
+		selectionLabelOne: {
+			type: String,
+			default: '',
+		},
+
+		/** Whether the bulk bar ends in a "Clear selection" button. */
+		showClearSelection: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Cards beside the list about the last selected file:
+		 * `[{ id, title, fields: [{ key, label, source?, formatter?, formatterOptions?, colorMap?, colorKey? }], actions? }]`.
+		 * `title` may hold `{name}`, the file's name. A field reads `rowData`
+		 * (`source: 'row'`, the default) or the node (`source: 'node'`); a field
+		 * with no value is left out. `actions` are declared like `rowActions`
+		 * and run on that file. No side column while nothing is selected.
+		 *
+		 * @type {Array<{id: string, title: string, fields?: Array<object>, actions?: Array<object>}>}
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-cards-beside-the-list-describe-the-selected-file
+		 */
+		sideCards: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * The key of a declared column to group the files on: a heading row
 		 * per value, in the order each is first met, with its count. Files
 		 * with no value come last under `groupEmptyLabel`; folders stay above.
@@ -1212,6 +1297,36 @@ export default {
 		 *
 		 * @return {Array<object>} The file nodes.
 		 */
+		/**
+		 * The bulk bar's count text.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-the-bulk-bar-names-what-is-selected
+		 */
+		selectionCountText() {
+			const count = this.selectedIds.length
+			const template = count === 1 && this.selectionLabelOne ? this.selectionLabelOne : this.selectionLabel
+			if (template) {
+				return this.cnTranslate(template).replace(/\{count\}/g, String(count))
+			}
+			return t('nextcloud-vue', '{count} selected', { count })
+		},
+
+		/**
+		 * The file the side cards describe: the last one selected, or null
+		 * without side cards or a selection.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-cards-beside-the-list-describe-the-selected-file
+		 */
+		sideNode() {
+			if (!Array.isArray(this.sideCards) || this.sideCards.length === 0 || this.selectedIds.length === 0) {
+				return null
+			}
+			const id = this.selectedIds[this.selectedIds.length - 1]
+			return this.fileNodes.find((node) => String(node.fileid) === id) || null
+		},
+
 		fileNodes() {
 			return this.sorted.filter((node) => !this.isFolder(node))
 		},
@@ -2099,6 +2214,80 @@ export default {
 		},
 
 		/**
+		 * The tone a column or card field draws a value in: its `colorMap`
+		 * entry for the value (case-insensitive), read from the `colorKey` field
+		 * of the row when given, else from the value itself. '' without one.
+		 *
+		 * @param {object} column A resolved column or a side card field.
+		 * @param {object} node The node.
+		 * @return {string} A badge variant (`success`, `warning`, `error`, ...) or ''.
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-a-row-column-can-draw-its-values-in-tones
+		 */
+		toneOf(column, node) {
+			const map = column && column.colorMap
+			if (!map || typeof map !== 'object') {
+				return ''
+			}
+			const raw = column.colorKey
+				? fileColumnValue({ key: column.colorKey, source: 'row' }, node, this.resolvedRowData)
+				: this.cellValue(column, node)
+			if (raw === null || raw === undefined || typeof raw === 'object') {
+				return ''
+			}
+			const wanted = String(raw).toLowerCase()
+			const hit = Object.keys(map).find((key) => key.toLowerCase() === wanted)
+			return hit ? String(map[hit]) : ''
+		},
+
+		/**
+		 * The widget props a cell gets: the column's own, and for a `badge`
+		 * its tone as the variant.
+		 *
+		 * @param {object} column A resolved column.
+		 * @param {object} node The node.
+		 * @return {object|null}
+		 */
+		cellWidgetProps(column, node) {
+			if (column.widget !== 'badge') {
+				return column.widgetProps || null
+			}
+			const tone = this.toneOf(column, node)
+			return { ...(column.widgetProps || {}), ...(tone ? { variant: tone } : {}) }
+		},
+
+		/**
+		 * The side cards for a file, resolved: the title with `{name}` filled
+		 * in, the fields that have a value with their tone, and the actions.
+		 *
+		 * @param {object} node The node.
+		 * @return {Array<{id: string, title: string, fields: Array<object>, actions: Array<object>}>}
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-cards-beside-the-list-describe-the-selected-file
+		 */
+		sideCardsFor(node) {
+			return this.sideCards
+				.filter((card) => card && card.id)
+				.map((card) => ({
+					id: String(card.id),
+					title: this.cnTranslate(String(card.title || '')).replace(/\{name\}/g, node.basename),
+					fields: (Array.isArray(card.fields) ? card.fields : [])
+						.filter((field) => field && field.key)
+						.map((field) => {
+							const column = { ...field, source: field.source || 'row' }
+							return {
+								key: String(field.key),
+								label: this.cnTranslate(String(field.label || field.key)),
+								value: this.cellValue(column, node),
+								formatter: field.formatter,
+								formatterOptions: field.formatterOptions,
+								tone: this.toneOf(column, node),
+							}
+						})
+						.filter((field) => field.value !== null && field.value !== undefined && field.value !== ''),
+					actions: (Array.isArray(card.actions) ? card.actions : []).filter((action) => action && action.id),
+				}))
+		},
+
+		/**
 		 * Whether a user currently sees a column, for the chooser's ticks.
 		 *
 		 * @param {object} column A resolved column.
@@ -2575,6 +2764,89 @@ export default {
 
 .cn-files-browser__loading {
 	padding: 24px 0;
+}
+
+/* `sideCards`: the list and, while a file is selected, a column of cards. */
+.cn-files-browser__body--with-side {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+	align-items: start;
+	gap: 16px;
+}
+
+@media (max-width: 900px) {
+	.cn-files-browser__body--with-side {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.cn-files-browser__side {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.cn-files-browser__side-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 16px 18px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	background: var(--color-main-background);
+}
+
+.cn-files-browser__side-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+	overflow-wrap: anywhere;
+}
+
+.cn-files-browser__side-facts {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	gap: 6px 12px;
+	margin: 0;
+	font-size: 14px;
+}
+
+.cn-files-browser__side-facts dt {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-files-browser__side-facts dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+.cn-files-browser__side-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* A value drawn in a tone (`colorMap` on a column that is not a badge): the
+   text in the tone's colour, as the boards write a restricted level. */
+.cn-files-browser__tone {
+	font-weight: 600;
+}
+
+.cn-files-browser__tone--success {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-files-browser__tone--warning {
+	color: var(--color-warning-text, var(--color-warning));
+}
+
+.cn-files-browser__tone--error {
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-files-browser__tone--primary,
+.cn-files-browser__tone--info {
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
 }
 
 .cn-files-browser__table {

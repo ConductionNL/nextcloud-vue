@@ -125,11 +125,11 @@
 		<!-- Page tabs a named source declares (`pageTabs()`): sibling lists
 		     of the same thing, such as a flow list and its runs this week.
 		     Links, not tabs: each one is its own page. -->
-		<nav v-if="sourcePageTabs.length > 0"
+		<nav v-if="effectivePageTabs.length > 0"
 			class="cn-index-page__page-tabs"
 			:aria-label="title || t('nextcloud-vue', 'Pages')"
 			data-testid="cn-index-page-tabs">
-			<a v-for="tab in sourcePageTabs"
+			<a v-for="tab in effectivePageTabs"
 				:key="tab.id || tab.to"
 				class="cn-index-page__page-tab"
 				:class="{ 'cn-index-page__page-tab--active': isActivePageTab(tab) }"
@@ -1075,6 +1075,16 @@
 					class="cn-index-page__pagination"
 					@pageChanged="onPageEvent"
 					@pageSizeChanged="onPageSizeEvent" />
+
+				<!-- A notice under the list (`notice`): DqPrivacy's "Een
+				     AVG-verzoek is een zaak met ..." band. -->
+				<NcNoteCard
+					v-if="notice && notice.text"
+					class="cn-index-page__notice"
+					:type="noticeType"
+					data-testid="cn-index-page-notice">
+					{{ cnTranslate(notice.text) }}
+				</NcNoteCard>
 			</div>
 
 			<!-- The open record, beside the list on a wide screen and instead
@@ -1158,7 +1168,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -1200,7 +1210,7 @@ import {
 } from '../../utils/boardReferenceColumns.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
-import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
+import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
@@ -1490,6 +1500,7 @@ export default {
 
 	components: {
 		CnIndexPageWidgets,
+		NcNoteCard,
 		CnBuildiqEditButton,
 		CnFollowToggle,
 		NcLoadingIcon,
@@ -1656,6 +1667,35 @@ export default {
 		headerMeta: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Tabs to sibling pages above the toolbar (manifest `config.pageTabs`),
+		 * each `{ id?, label, route?, params?, query?, href?, countFrom?: {
+		 * register, schema, filter? } }`: DqPrivacy's "AVG-verzoeken |
+		 * Datalekken". The current page's tab is marked; `countFrom` adds the
+		 * count of that list. Wins over a named source's own page tabs.
+		 *
+		 * @type {Array<object>|null}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 */
+		pageTabs: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * A notice under the list (manifest `config.notice`): `{ text,
+		 * variant?: 'info' | 'success' | 'warning' }`, a band that explains
+		 * the list, such as who decides what. The text goes through the host
+		 * translate.
+		 *
+		 * @type {{text: string, variant?: string}|null}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-show-a-notice-under-its-list
+		 */
+		notice: {
+			type: Object,
+			default: null,
 		},
 
 		/** Optional description shown below the title */
@@ -3645,6 +3685,8 @@ export default {
 			tabCounts: null,
 			// The counts of the `filterStrip` pills, by pill key ('all', 'v0', ...).
 			filterStripCounts: null,
+			/** The `countFrom` counts of the manifest page tabs, by index. */
+			pageTabCounts: {},
 			/** The tabs `quickFiltersFrom` produced, or null before they load. */
 			generatedQuickFilters: null,
 			/** Count per saved-view id, for the views control; null = none. */
@@ -6045,6 +6087,51 @@ export default {
 		},
 
 		/**
+		 * The page tabs to draw: the manifest's `pageTabs`, each with its
+		 * `countFrom` count once known, else a named source's own.
+		 *
+		 * @return {Array<object>} The tabs, `{ id, label, to, count? }`.
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 */
+		/**
+		 * The notice band's NcNoteCard type: its `variant`, else info.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-show-a-notice-under-its-list
+		 */
+		noticeType() {
+			const variant = this.notice && this.notice.variant
+			return ['success', 'warning', 'error'].includes(variant) ? variant : 'info'
+		},
+
+		effectivePageTabs() {
+			if (!Array.isArray(this.pageTabs) || this.pageTabs.length === 0) {
+				return this.sourcePageTabs
+			}
+			return this.pageTabs
+				.filter((tab) => tab && typeof tab.label === 'string' && tab.label !== '' && (tab.route || tab.to || tab.href))
+				.map((tab, index) => {
+					const to = tab.route
+						? { name: tab.route, ...(tab.params ? { params: tab.params } : {}), ...(tab.query ? { query: tab.query } : {}) }
+						: (tab.to || tab.href)
+					const count = this.pageTabCounts[index]
+					return { id: tab.id || `page-tab-${index}`, label: this.cnTranslate(tab.label), to, ...(typeof count === 'number' ? { count } : {}) }
+				})
+		},
+
+		/**
+		 * What the page tab counts depend on, as one key.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 */
+		pageTabCountKey() {
+			const tabs = Array.isArray(this.pageTabs) ? this.pageTabs : []
+			const sources = tabs.map((tab) => (tab && tab.countFrom && tab.countFrom.register && tab.countFrom.schema ? tab.countFrom : null))
+			return sources.some(Boolean) ? JSON.stringify(sources) : ''
+		},
+
+		/**
 		 * The numbers on the quick filters: a named source counts its own
 		 * tabs (`tabCounts()`), a self-fetching page asks OpenRegister.
 		 *
@@ -6716,6 +6803,14 @@ export default {
 			},
 		},
 
+		pageTabCountKey: {
+			immediate: true,
+			/** @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs */
+			handler() {
+				this.loadPageTabCounts()
+			},
+		},
+
 		filterStripCountKey: {
 			immediate: true,
 			/** @spec openspec/changes/screens-filter-strip/specs/index-filter-strip/spec.md#requirement-an-index-page-can-draw-a-second-filter-strip */
@@ -7094,6 +7189,32 @@ export default {
 				{ label: from.allLabel || t('nextcloud-vue', 'All'), filter: {}, default: true, count: total },
 				...sorted.map((g) => ({ label: (labels && labels[g.key]) || g.key, filter: { [from.field]: g.key }, count: g.count })),
 			]
+		},
+
+		/**
+		 * Count the lists behind the manifest page tabs (`countFrom`), one list
+		 * request each. A failed count shows no number.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 */
+		async loadPageTabCounts() {
+			const key = this.pageTabCountKey
+			if (key === '') {
+				this.pageTabCounts = {}
+				return
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const counts = {}
+			await Promise.all(this.pageTabs.map(async (tab, index) => {
+				const from = tab && tab.countFrom
+				if (from && from.register && from.schema) {
+					counts[index] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
+				}
+			}))
+			if (key === this.pageTabCountKey) {
+				this.pageTabCounts = counts
+			}
 		},
 
 		/**
@@ -9425,6 +9546,9 @@ export default {
 		 * @return {boolean} True for the current page.
 		 */
 		isActivePageTab(tab) {
+			if (tab.to && typeof tab.to === 'object') {
+				return !!this.$route && tab.to.name !== undefined && this.$route.name === tab.to.name
+			}
 			const path = this.$route && this.$route.path
 			return !!path && String(path).replace(/\/+$/, '') === String(tab.to).replace(/\/+$/, '')
 		},
