@@ -1232,11 +1232,13 @@ import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
+import { resolveRecordSource } from '../../composables/indexSources.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
@@ -1907,6 +1909,23 @@ export default {
 		objectStore: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Name of a registered entity source that reads ONE record (manifest
+		 * `config.entitySource`), for a record that is not a register/schema
+		 * object. The same registry and the same name as `CnIndexPage`'s
+		 * `entitySource`: `organisations` shows the OpenRegister organisation
+		 * whose uuid is `objectId`. The record feeds the header, pills, facts,
+		 * widgets and the `@objectId` / `@object.*` tokens exactly as a fetched
+		 * object does. Wins over `register` + `schema`. Empty (the default)
+		 * leaves the page on its object store.
+		 *
+		 * @type {string}
+		 */
+		entitySource: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -2863,6 +2882,10 @@ export default {
 			pillCounts: {},
 			/** Sequence of the last pill count round, so a late answer does not overwrite a newer one. */
 			pillCountSeq: 0,
+			/** The labels of the records pills with `resolve` point at, by pill key. */
+			pillRefLabels: {},
+			/** Sequence of the last pill label lookup, so a late answer for another record is dropped. */
+			pillRefSeq: 0,
 			/** `register/schema/id` the read-state call was last made for, so it is sent once per load. */
 			readStateSentFor: '',
 			/** Whether the user is arranging the chosen view (`userLayout`). */
@@ -3384,7 +3407,16 @@ export default {
 					const pill = pillCountSource(config)
 						? resolveCountPill(config, this.pillCounts[key], (text) => this.effectiveTranslate(text))
 						: resolvePill(config, this.resolvedObject)
-					return pill ? { ...pill, key, label: this.effectiveTranslate(pill.label) } : null
+					if (!pill) {
+						return null
+					}
+					// `resolve`: the referenced record's label replaces the id, and
+					// keys the colour too ("Woo-verzoek", not a uuid).
+					const resolved = this.pillRefLabels[key]
+					if (typeof resolved === 'string' && resolved !== '') {
+						return { ...pill, key, label: this.effectiveTranslate(resolved), colorKey: resolved }
+					}
+					return { ...pill, key, label: this.effectiveTranslate(pill.label) }
 				})
 				.filter(Boolean)
 		},
@@ -3396,6 +3428,34 @@ export default {
 		 * @return {string} The key.
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count
 		 */
+		/**
+		 * What the resolved pills depend on, as one key: a change looks again.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/detail-pill-resolve/specs/detail-page/spec.md#requirement-a-header-pill-can-show-a-referenced-record-s-label
+		 */
+		pillResolveKey() {
+			return JSON.stringify(this.pillResolveTargets)
+		},
+
+		/**
+		 * The pills with `resolve: { register, schema, labelField? }` and the
+		 * id each one shows: `[key, register, schema, labelField, id]`. Empty
+		 * while the field is empty.
+		 *
+		 * @return {Array<Array<string>>}
+		 * @spec openspec/changes/detail-pill-resolve/specs/detail-page/spec.md#requirement-a-header-pill-can-show-a-referenced-record-s-label
+		 */
+		pillResolveTargets() {
+			return [['type', this.typePill], ['status', this.statusPill]]
+				.filter(([, config]) => config && config.resolve && config.resolve.register && config.resolve.schema && typeof config.field === 'string')
+				.map(([key, config]) => {
+					const pill = resolvePill({ field: config.field }, this.resolvedObject)
+					return pill ? [key, config.resolve.register, config.resolve.schema, config.resolve.labelField || '', pill.colorKey] : null
+				})
+				.filter(Boolean)
+		},
+
 		pillCountKey() {
 			return JSON.stringify([this.objectId, pillCountSource(this.typePill), pillCountSource(this.statusPill)])
 		},
@@ -3598,6 +3658,9 @@ export default {
 		 * @return {boolean}
 		 */
 		awaitingObject() {
+			if (this.hasRecordSourceFetch) {
+				return this.objectFetchPending && !this.currentObject
+			}
 			return this.hasSchemaDrivenFetch
 				&& this.objectFetchPending
 				&& typeof this.effectiveObjectStore?.fetchObject === 'function'
@@ -3671,7 +3734,45 @@ export default {
 		 * the fetch path entirely.
 		 */
 		hasSchemaDrivenFetch() {
-			return Boolean(this.register && this.schema && this.objectId)
+			return !this.entitySource && Boolean(this.register && this.schema && this.objectId)
+		},
+
+		/**
+		 * The record source named by `entitySource`, or null. An unknown name,
+		 * or a source that cannot read one record, is null with a warning.
+		 *
+		 * @return {object|null}
+		 */
+		recordSource() {
+			if (!this.entitySource) {
+				return null
+			}
+			try {
+				return resolveRecordSource(this.entitySource)
+			} catch (err) {
+				// eslint-disable-next-line no-console -- the console is the only channel a host app can read the detail on
+				console.warn('[CnDetailPage] the record source could not start; no record is shown.', err)
+				return null
+			}
+		},
+
+		/**
+		 * Whether the page reads its record through a record source.
+		 *
+		 * @return {boolean}
+		 */
+		hasRecordSourceFetch() {
+			return Boolean(this.recordSource && this.objectId)
+		},
+
+		/**
+		 * Whether the page reads its own record, from the object store or a
+		 * record source, so Refresh and `cn:page:refresh` have something to do.
+		 *
+		 * @return {boolean}
+		 */
+		selfFetchesRecord() {
+			return this.hasSchemaDrivenFetch || this.hasRecordSourceFetch
 		},
 
 		/**
@@ -3886,7 +3987,7 @@ export default {
 			}
 			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
 			// Vue keeps declared emits out of `$attrs`.
-			return Boolean(this.$.vnode.props?.onRefresh) || this.hasSchemaDrivenFetch
+			return Boolean(this.$.vnode.props?.onRefresh) || this.selfFetchesRecord
 		},
 
 		/**
@@ -3930,6 +4031,9 @@ export default {
 		 * @return {object|null}
 		 */
 		currentObject() {
+			if (this.recordSource) {
+				return this.objectId ? (this.recordSource.record(this.objectId) ?? null) : null
+			}
 			const store = this.effectiveObjectStore
 			if (!store) {
 				return null
@@ -4605,6 +4709,14 @@ export default {
 			},
 		},
 
+		// A pill with `resolve` looks its record up again for another value.
+		pillResolveKey: {
+			immediate: true,
+			handler() {
+				this.refreshPillRefLabels()
+			},
+		},
+
 		// The header's count pills count again for another record or other lists.
 		pillCountKey: {
 			immediate: true,
@@ -5028,7 +5140,7 @@ export default {
 			// Schema-driven (manifest) detail pages self-fetch — without this
 			// the Refresh action has no host listener to act on and does
 			// nothing. Re-fetch the object + schema and spin the action.
-			if (!this.hasSchemaDrivenFetch) {
+			if (!this.selfFetchesRecord) {
 				return
 			}
 			this.internalRefreshing = true
@@ -5038,6 +5150,42 @@ export default {
 				await done
 			} finally {
 				this.internalRefreshing = false
+			}
+		},
+
+		/**
+		 * Look up the records the `resolve` pills point at, through the same
+		 * reference-label resolver the index tables use. A failed lookup keeps
+		 * the raw value.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/detail-pill-resolve/specs/detail-page/spec.md#requirement-a-header-pill-can-show-a-referenced-record-s-label
+		 */
+		async refreshPillRefLabels() {
+			const targets = this.pillResolveTargets
+			const seq = ++this.pillRefSeq
+			if (targets.length === 0) {
+				this.pillRefLabels = {}
+				return
+			}
+			if (!this._pillRefResolver) {
+				this._pillRefResolver = createRefLabelResolver(() => {
+					try {
+						return this.objectStore || useObjectStore()
+					} catch {
+						return null
+					}
+				})
+			}
+			const labels = {}
+			await Promise.all(targets.map(async ([key, register, schema, labelField, id]) => {
+				const found = await this._pillRefResolver.resolve(register, schema, [id], labelField).catch(() => ({}))
+				if (found && typeof found[id] === 'string') {
+					labels[key] = found[id]
+				}
+			}))
+			if (seq === this.pillRefSeq) {
+				this.pillRefLabels = labels
 			}
 		},
 
@@ -5083,7 +5231,7 @@ export default {
 		 */
 		onPageRefreshBus(payload) {
 			this.refreshPillCounts()
-			if (!this.hasSchemaDrivenFetch) {
+			if (!this.selfFetchesRecord) {
 				return
 			}
 			if (this.internalRefreshing) {
@@ -5308,6 +5456,10 @@ export default {
 		},
 
 		async fetchObjectIfNeeded() {
+			if (this.recordSource) {
+				await this.fetchSourceRecord()
+				return
+			}
 			// Create archetype: no object to fetch, but the create form needs
 			// the schema — register the type and fetch its schema, then stop.
 			if (!this.hasSchemaDrivenFetch) {
@@ -5366,6 +5518,37 @@ export default {
 				if (fetchesObject && objectId === this.objectId) {
 					this.objectNotFound = !store.objects?.[type]?.[objectId]
 						&& store.getError?.(type)?.status === 404
+					this.objectFetchPending = false
+				}
+			}
+		},
+
+		/**
+		 * Read the record through the record source. A refusal (403) or a
+		 * missing record (404) shows the not-found state; which records the
+		 * viewer may read is the server's decision.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchSourceRecord() {
+			const source = this.recordSource
+			const objectId = this.objectId
+			if (!objectId) {
+				this.objectFetchPending = false
+				return
+			}
+			this.objectFetchPending = true
+			this.objectNotFound = false
+			try {
+				await source.loadRecord(String(objectId))
+			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
+				console.error('[CnDetailPage] record source fetch failed:', err)
+			} finally {
+				// A newer fetch for another id owns the flags now.
+				if (objectId === this.objectId) {
+					const status = typeof source.recordError === 'function' ? source.recordError(String(objectId)) : null
+					this.objectNotFound = !this.currentObject && (status === 403 || status === 404)
 					this.objectFetchPending = false
 				}
 			}

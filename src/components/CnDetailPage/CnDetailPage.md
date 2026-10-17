@@ -434,6 +434,54 @@ Four levels of action and the case surfaces around them. All opt in. See [the re
 
 `previousTo` and `nextTo` (default `null`) take `useListNavigation`'s `previousRoute` / `nextRoute` and turn the previous and next controls into real links, so they can be opened in a new tab. The link navigates by itself; `previous-record` / `next-record` are still emitted, with `{ event, to }`, and `goPrevious` / `goNext` do not push again when they receive that payload.
 
+## Records that are not objects (`config.entitySource`)
+
+A detail page reads its record from the object store through `register` +
+`schema`. A record that is not a register/schema object names a registered
+entity source instead, the same registry and the same name `CnIndexPage`
+lists it with. `organisations` reads the OpenRegister organisation whose uuid
+is the route's id (`GET /apps/openregister/api/organisations/{uuid}`):
+
+```json
+{
+  "id": "organisation-detail",
+  "route": "/organisations/:id",
+  "type": "detail",
+  "config": {
+    "entitySource": "organisations",
+    "statusPill": { "field": "status" },
+    "typePill": { "field": "type" },
+    "headerFields": [{ "key": "slug" }],
+    "layout": [{ "id": "1", "widgetId": "facts", "gridX": 0, "gridY": 0, "gridWidth": 6 }],
+    "widgets": [{
+      "id": "facts",
+      "type": "facts",
+      "title": "Details",
+      "content": { "fields": [
+        { "path": "slug", "label": "Slug" },
+        { "path": "created", "label": "Created", "format": "date" },
+        { "path": "contactEmail", "label": "Contact", "format": "email" },
+        { "path": "kvk", "label": "KvK" }
+      ] }
+    }]
+  }
+}
+```
+
+The record feeds everything a fetched object feeds: the title, the pills, the
+header fields, the widgets, and the `@objectId` / `@object.*` tokens. A tab
+that lists register objects belonging to the organisation filters on
+`@objectId`, e.g. `{ "type": "object-list", "content": { "register": "...",
+"schema": "...", "filter": { "tenantRef": "@objectId" } } }`. The record's
+`id` is its uuid, as an object's is.
+
+`entitySource` wins over `register` + `schema`. A name that is unknown, or a
+source that cannot read one record, shows no record and warns in the console.
+A refusal (403) or a missing record (404) shows the not-found state; which
+records the viewer may read is OpenRegister's decision. Refresh and
+`cn:page:refresh` re-read the record. There is no Edit: a record source has
+no schema form.
+
 ## Not found
 
 When the schema-driven fetch answers 404 the page shows a not-found state whose back button is a router link to `notFoundRoute` (default `null`, which means the app root `/`). `notFoundRouteLabel` names that page in the button's "Back to …" label.

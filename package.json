@@ -86,7 +86,7 @@
     "jsdoc-baselines:update": "node scripts/check-jsdoc.js --update",
     "lint": "eslint src/ eslint/ testing/ tests/ e2e/",
     "lint-fix": "npm run lint -- --fix",
-    "prepare": "husky || true",
+    "prepare": "husky || true; git config merge.l10n.name 'l10n catalogue key-wise merge' || true; git config merge.l10n.driver 'node scripts/merge-l10n.js %O %A %B %P' || true",
     "prepublishOnly": "npm run build",
     "smoke-baseline:update": "node scripts/update-smoke-baseline.js",
     "styleguide": "cd styleguide && npm run server",

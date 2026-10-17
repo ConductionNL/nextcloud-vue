@@ -1590,7 +1590,21 @@
     "About {name}": "About {name}",
     "Sent message": "Sent message",
     "Received message": "Received message",
-    "Loading messages…": "Loading messages…"
+    "Loading messages…": "Loading messages…",
+    "Move {item} up": "Move {item} up",
+    "Move {item} down": "Move {item} down",
+    "Remove {item}": "Remove {item}",
+    "Nothing added yet.": "Nothing added yet.",
+    "Ordered list": "Ordered list",
+    "{item} moved to position {position} of {total}": "{item} moved to position {position} of {total}",
+    "{item} removed": "{item} removed",
+    "{item} added": "{item} added",
+    "Organisations": "Organisations",
+    "Provisioning": "Provisioning",
+    "Suspended": "Suspended",
+    "Deprovisioning": "Deprovisioning",
+    "Archived": "Archived",
+    "Retained": "Retained"
   },
   "plurals": {
     "{count} selected": [

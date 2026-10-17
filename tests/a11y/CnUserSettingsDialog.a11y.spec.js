@@ -41,4 +41,20 @@ describe('CnUserSettingsDialog: accessibility', () => {
 		expect(nav.getAttribute('aria-label')).toBeTruthy()
 		await expectAccessible(nav)
 	})
+
+	it('has no WCAG 2.1 AA violations with one section shown and the other hidden', async () => {
+		wrapper = mountAttached(CnUserSettingsDialog, {
+			props: { open: true, title: 'User settings', appName: 'Dossiq' },
+			slots: {
+				default: () => [
+					h(NcAppSettingsSection, { id: 'menu', name: 'Case types in my menu', order: 1 }, { default: () => h('p', 'Your case types.') }),
+					h(NcAppSettingsSection, { id: 'notify', name: 'Notifications', order: 2 }, { default: () => h('p', 'What reaches you.') }),
+				],
+			},
+		})
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		await wrapper.vm.$nextTick()
+		expect(document.getElementById('settings-section_notify').hidden).toBe(true)
+		await expectAccessible(document.querySelector('.cn-user-settings-dialog__body'))
+	})
 })
