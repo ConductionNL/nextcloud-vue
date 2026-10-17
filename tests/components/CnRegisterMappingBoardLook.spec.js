@@ -84,6 +84,7 @@ describe('CnRegisterMapping board look', () => {
 		expect(rows[0].text()).toContain('Client')
 		expect(rows[0].find('.cn-register-mapping__board-check').exists()).toBe(true)
 		expect(wrapper.find('[data-testid="cn-register-mapping-group-toggle"]').exists()).toBe(false)
+		expect(group.find('.cn-register-mapping__register-select nc-select-stub').attributes('inputlabel')).toBe('Register')
 	})
 
 	it('counts the types below the row limit and lists them on request', async () => {

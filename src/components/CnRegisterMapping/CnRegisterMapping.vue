@@ -53,7 +53,7 @@
 				<p v-if="activeGroup.description" class="cn-register-mapping__group-description">
 					{{ activeGroup.description }}
 				</p>
-				<div class="cn-register-mapping__board-select">
+				<div class="cn-register-mapping__register-select cn-register-mapping__board-select">
 					<NcSelect
 						:modelValue="selectedRegister(activeGroupIdx)"
 						:options="registerSelectOptions"
@@ -1286,6 +1286,7 @@ export default {
 
 .cn-register-mapping__board-select {
 	max-width: 400px;
+	margin-bottom: 0;
 }
 
 .cn-register-mapping__board-table {
