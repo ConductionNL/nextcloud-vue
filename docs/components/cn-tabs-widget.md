@@ -161,6 +161,18 @@ with `"visibleWhen": { "workspace": "round", "value": "paused" }` on
 stack draws. The tab count still reads the first widget of the stack that has
 a list, whichever one is showing.
 
+On a detail page a widget in a stack also follows its own `visibleWhen` against
+the record, the way a grid widget does: a field of the record, or of a record
+the page's `visibilityContext` names (`@context.<name>`). It is hidden while
+those records load. So a contact-moment card shows only on interaction tickets:
+
+```json
+{ "id": "ticket-interaction", "type": "custom", "visibleWhen": { "field": "kind", "op": "eq", "value": "interaction" } }
+```
+
+A condition that needs a request (`source` or `endpoint`) is not evaluated on a
+stack child; the widget draws.
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -234,3 +246,22 @@ A tab entry can carry `visibleWhen`, the shared predicate every other surface us
 ## The board look
 
 In the board look the widget draws no tab icons and no "More" menu, draws its Actions button as a secondary button, and names the tab list from the page's `tabsLabel` (`content.ariaLabel` still wins). A tab holding the record's activity (an `audit-trail` or `timeline` widget, or the `activity` integration) is labelled "History" unless the tab sets a label, and is moved to the end of the strip whatever its place in `content.tabs`.
+
+### Overflow tabs in the Actions menu
+
+In the board look `overflow`, `maxVisibleTabs` and `hideEmpty` still decide which tabs leave the strip, but those tabs are listed at the top of the Actions menu beside the strip instead of under "More" (boards DqZaakMeer and DqZaakBesluiten). The History tab always stays in the strip and holds one of the `maxVisibleTabs` places. A tab picked from the menu opens, takes focus, and is drawn just before the last tab while it is open. With `showActions: false` the menu still renders while there are tabs to list, holding only those tabs.
+
+```json
+{
+  "maxVisibleTabs": 5,
+  "tabs": [
+    { "widgetId": "case-overview", "label": "Overview" },
+    { "widgetId": "case-files", "label": "Files" },
+    { "widgetId": "case-contact", "label": "Contact" },
+    { "widgetId": "case-tasks", "label": "Tasks" },
+    { "widgetId": "case-history", "label": "History" },
+    { "widgetId": "case-notes", "label": "Notes", "overflow": true },
+    { "widgetId": "case-decisions", "label": "Decisions", "overflow": true }
+  ]
+}
+```
