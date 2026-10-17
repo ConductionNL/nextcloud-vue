@@ -98,6 +98,8 @@
 			:title="versionTitle"
 			:description="resolvedVersionDescription"
 			:wide="versionCardWide"
+			:showAppName="showAppName"
+			:actionsDivider="actionsDivider"
 			@update="onUpdate">
 			<template #actions>
 				<!-- Canonical "Re-import configuration" action (POST /apps/<appId>/api/settings/load) -->
@@ -587,6 +589,28 @@ export default {
 			type: Number,
 			default: null,
 			validator: (value) => value === null || [1, 2].includes(value),
+		},
+
+		/**
+		 * Board look: the version card draws its "Application name" row.
+		 * Dossiq's boards pass false.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		showAppName: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Board look: the version card draws a rule above its buttons.
+		 * Dossiq's boards pass false.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		actionsDivider: {
+			type: Boolean,
+			default: true,
 		},
 
 		/** Version card heading. */

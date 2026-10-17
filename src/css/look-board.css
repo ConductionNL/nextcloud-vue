@@ -726,6 +726,13 @@
 	margin-top: 16px;
 }
 
+/* `actionsDivider` (the default; PqBeheer): a rule between the facts and the buttons. */
+.cn-look-board .cn-version-info--board .cn-version-info__footer-row--divided {
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
 /* An empty button row (nothing to update, re-import or set up) takes no room. */
 .cn-look-board .cn-version-info--board .cn-version-info__footer-row:empty {
 	display: none;

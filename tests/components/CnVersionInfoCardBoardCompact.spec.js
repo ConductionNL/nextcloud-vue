@@ -69,8 +69,8 @@ function shell(props = {}) {
 }
 
 describe('CnVersionInfoCard board look', () => {
-	it('drops the application name row and reads the up-to-date state inline', () => {
-		const wrapper = card({ showUpdateButton: true, isUpToDate: true })
+	it('drops the application name row on request and reads the up-to-date state inline', () => {
+		const wrapper = card({ showUpdateButton: true, isUpToDate: true, showAppName: false })
 		const labels = wrapper.findAll('.cn-version-info__label').map((l) => l.text())
 		expect(labels).toEqual(['Version:', 'Configured version:'])
 		expect(wrapper.find('[data-testid="cn-version-info-configured"]').text()).toContain('0.4.47, up to date')
@@ -86,6 +86,36 @@ describe('CnVersionInfoCard board look', () => {
 	it('keeps the default look as it was', () => {
 		const wrapper = card({ look: 'nextcloud', showUpdateButton: true })
 		expect(wrapper.findAll('.cn-version-info__label').map((l) => l.text())).toEqual(['Application name:', 'Version:', 'Configured version:'])
+	})
+})
+
+describe('CnVersionInfoCard board props showAppName and actionsDivider', () => {
+	it('draws the application name row and the rule above the buttons by default, as PqBeheer does', () => {
+		const wrapper = card()
+		expect(wrapper.find('[data-testid="cn-version-info-app-name"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').classes()).toContain('cn-version-info__footer-row--divided')
+	})
+
+	it('leaves both out for dossiq\'s boards', () => {
+		const wrapper = card({ showAppName: false, actionsDivider: false })
+		expect(wrapper.find('[data-testid="cn-version-info-app-name"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').classes()).not.toContain('cn-version-info__footer-row--divided')
+	})
+
+	it('keeps the application name row in the default look whatever showAppName says', () => {
+		expect(card({ look: 'nextcloud', showAppName: false }).find('[data-testid="cn-version-info-app-name"]').exists()).toBe(true)
+	})
+
+	it('passes both through from the shell', () => {
+		const wrapper = shell({ showAppName: false, actionsDivider: false })
+		expect(wrapper.find('[data-testid="cn-version-info-app-name"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').classes()).not.toContain('cn-version-info__footer-row--divided')
+		expect(shell().find('[data-testid="cn-version-info-app-name"]').exists()).toBe(true)
+	})
+
+	it('draws the rule only for the divided row', () => {
+		expect(rulesFor('.cn-look-board .cn-version-info--board .cn-version-info__footer-row--divided')).toMatch(/border-top: 1px solid var\(--cn-board-hairline\)/)
+		expect(rulesFor('.cn-look-board .cn-version-info--board .cn-version-info__footer-row')).not.toMatch(/border-top/)
 	})
 })
 

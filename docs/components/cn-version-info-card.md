@@ -27,6 +27,8 @@ Displays application version information in admin settings pages. Shows the app 
 | `wide` | Boolean | `true` | Under the board look the card spans the whole settings grid, as the boards draw it. `false` keeps it one card in the grid. No effect without the board look. |
 | `cardTitle` | String | `'Application information'` | Heading shown inside the card |
 | `configuredVersion` | String | `''` | Configured version string (for apps that track configuration versions separately). When non-empty, an extra row is shown; the board look always shows the row, reading "Unknown" until the app passes a value, with ", up to date" after it when `showUpdateButton` is on and `isUpToDate` holds. |
+| `showAppName` | Boolean | `true` | Board look: draw the "Application name" row. The default look always draws it. |
+| `actionsDivider` | Boolean | `true` | Board look: draw a rule between the facts and the buttons. |
 | `isUpToDate` | Boolean | `true` | Whether the configured version matches the installed version. Controls the status indicator color. |
 | `showUpdateButton` | Boolean | `false` | Whether to show an "Update" action button |
 | `updating` | Boolean | `false` | Whether an update is currently in progress (shows a loading indicator on the button) |
@@ -74,4 +76,4 @@ Under the board look (`look` prop or `cnLook`) the facts are a two-column list a
 
 ## Board look
 
-In the board look the card is compact (boards DqBeheerinstellingen, DqInstellingenAlgemeen): no "Application name" row (the description names the app), the configured version with the up-to-date state inline ("0.4.47, bijgewerkt") instead of a separate disabled button, and a row of buttons under the facts with no rule above it. The update button shows there only while an update is due. Inside `CnAdminSettingsShell` the support lines become one "Support" row, re-import is a secondary button, and the description reads "About this <App> installation."
+In the board look the card is compact (boards DqBeheerinstellingen, DqInstellingenAlgemeen): with `showAppName` false no "Application name" row (the description names the app), with `actionsDivider` false no rule above the buttons (both default to true, as PqBeheer draws them), the configured version with the up-to-date state inline ("0.4.47, bijgewerkt") instead of a separate disabled button, and a row of buttons under the facts with no rule above it. The update button shows there only while an update is due. Inside `CnAdminSettingsShell` the support lines become one "Support" row, re-import is a secondary button, and the description reads "About this <App> installation."

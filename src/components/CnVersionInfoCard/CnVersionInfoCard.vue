@@ -33,8 +33,8 @@
 			<div class="cn-version-info__card">
 				<h4>{{ cardTitle }}</h4>
 				<div class="cn-version-info__details">
-					<!-- Application Name (the board card names the app in its description) -->
-					<div v-if="!isBoard" class="cn-version-info__item">
+					<!-- Application Name (the board card can leave it to its description: `showAppName`) -->
+					<div v-if="!isBoard || showAppName" class="cn-version-info__item" data-testid="cn-version-info-app-name">
 						<span class="cn-version-info__label">{{ fieldLabels.appName }}:</span>
 						<span class="cn-version-info__value">{{ appName }}</span>
 					</div>
@@ -64,7 +64,11 @@
 				</div>
 
 				<!-- The board card's buttons: update (only while one is due), then the actions. -->
-				<div v-if="isBoard" class="cn-version-info__footer-row" data-testid="cn-version-info-footer-row">
+				<div
+					v-if="isBoard"
+					class="cn-version-info__footer-row"
+					:class="{ 'cn-version-info__footer-row--divided': actionsDivider }"
+					data-testid="cn-version-info-footer-row">
 					<NcButton
 						v-if="showUpdateButton && (!isUpToDate || updating)"
 						:type="updateButtonType"
@@ -213,6 +217,28 @@ export default {
 		configuredVersion: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: draw the "Application name" row (PqBeheer does,
+		 * dossiq's boards name the app in the description instead).
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		showAppName: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Board look: draw a rule between the facts and the buttons (PqBeheer
+		 * does, dossiq's boards do not).
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		actionsDivider: {
+			type: Boolean,
+			default: true,
 		},
 
 		/** Whether the app configuration is up to date */
