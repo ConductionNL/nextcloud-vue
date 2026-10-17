@@ -418,3 +418,55 @@
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
 }
+
+/* Page tabs a named source declares: sibling lists drawn as folder tabs
+   above the list, the current one joined to it. */
+.cn-index-page__page-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	border-bottom: 1px solid var(--color-border);
+	margin-bottom: calc(3 * var(--default-grid-baseline));
+}
+
+.cn-index-page__page-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 34px;
+	padding: 8px 12px;
+	margin-bottom: -1px;
+	border: 1px solid var(--color-border);
+	border-bottom: none;
+	border-radius: 8px 8px 0 0;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	text-decoration: none;
+}
+
+.cn-index-page__page-tab:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-index-page__page-tab:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-index-page__page-tab--active,
+.cn-index-page__page-tab--active:hover {
+	background: var(--color-main-background);
+	font-weight: 600;
+}
+
+.cn-index-page__page-tab-count {
+	min-width: 20px;
+	padding: 0 6px;
+	border-radius: 10px;
+	background: var(--color-background-darker);
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+	text-align: center;
+}
