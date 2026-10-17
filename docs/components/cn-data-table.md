@@ -216,6 +216,12 @@ The first column names the row: it carries the row link, the title look and the 
 { "key": "title", "label": "Case", "secondary": "{number} · {requester.name}" }
 ```
 
+A placeholder can carry a format, the same ones a widget row template takes: `{startAt|date}` reads "5 okt", `{startAt|weekday}` reads "ma 5 okt", `{startAt|weekday:today}` reads "Vandaag, ma 5 okt" on today's date, `{startAt|time}` reads "08.45", and `{amount|currency:EUR}` writes an amount. An agenda column reads "Intake" over "Vandaag, ma 5 okt, 08.45":
+
+```json
+{ "key": "subject", "label": "Appointment", "secondary": "{startAt|weekday:today}, {startAt|time}" }
+```
+
 Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.
 
 ## A system date as a column (`@self.created`)
