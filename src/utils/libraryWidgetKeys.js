@@ -126,6 +126,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'object-geo',
 	'object-list',
 	'object-table',
+	'party-actions',
 	'people',
 	'quicklinks',
 	'radio-cards',
