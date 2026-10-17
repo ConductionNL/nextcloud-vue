@@ -17,7 +17,13 @@
 			{{ title }}
 		</component>
 
-		<p v-if="rows.length === 0" class="cn-conversation-thread__empty" data-testid="cn-conversation-empty">
+		<p v-if="loading && rows.length === 0"
+			class="cn-conversation-thread__empty"
+			role="status"
+			data-testid="cn-conversation-loading">
+			{{ loadingText }}
+		</p>
+		<p v-else-if="rows.length === 0" class="cn-conversation-thread__empty" data-testid="cn-conversation-empty">
 			{{ emptyText }}
 		</p>
 
@@ -32,8 +38,10 @@
 				<span class="cn-conversation-thread__avatar" aria-hidden="true">{{ row.initials }}</span>
 				<div class="cn-conversation-thread__bubble">
 					<span class="cn-conversation-thread__meta">
+						<span class="hidden-visually">{{ row.directionLabel }}</span>
 						<span class="cn-conversation-thread__author">{{ row.author }}</span>
 						<time v-if="row.timeLabel" :datetime="row.datetime || null">{{ row.timeLabel }}</time>
+						<span v-if="row.channel" class="cn-conversation-thread__channel" data-testid="cn-conversation-channel">{{ row.channel }}</span>
 					</span>
 					<span class="cn-conversation-thread__text">{{ row.text }}</span>
 				</div>
@@ -123,9 +131,10 @@ export default {
 
 	props: {
 		/**
-		 * The messages, oldest first: `{ id?, author?, time?, text, side? }`.
+		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel? }`.
 		 * `side` is `us` or `them` (default `them`). `time` is an ISO
-		 * date, or any text to show as is.
+		 * date, or any text to show as is. `channel` is shown after the time
+		 * ("E-mail", "Phone note").
 		 */
 		messages: {
 			type: Array,
@@ -189,6 +198,12 @@ export default {
 			default: () => ({}),
 		},
 
+		/** Whether the messages are still loading; with none yet the thread says so. */
+		loading: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Shown when there are no messages yet. */
 		emptyText: {
 			type: String,
@@ -221,7 +236,7 @@ export default {
 		/**
 		 * The messages, with author, side, time and initials resolved.
 		 *
-		 * @return {Array<{key: string, author: string, initials: string, side: string, text: string, timeLabel: string, datetime: string}>} The rows.
+		 * @return {Array<{key: string, author: string, initials: string, side: string, text: string, timeLabel: string, datetime: string, channel: string, directionLabel: string}>} The rows.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-conversation-thread
 		 */
 		rows() {
@@ -241,6 +256,8 @@ export default {
 						text: message.text === undefined || message.text === null ? '' : String(message.text),
 						timeLabel: time.label,
 						datetime: time.datetime,
+						channel: typeof message.channel === 'string' ? message.channel : '',
+						directionLabel: side === 'us' ? t('nextcloud-vue', 'Sent message') : t('nextcloud-vue', 'Received message'),
 					}
 				})
 		},
@@ -263,6 +280,11 @@ export default {
 		 */
 		fallbackLabel() {
 			return t('nextcloud-vue', 'Conversation')
+		},
+
+		/** @return {string} What the thread says while its messages load. */
+		loadingText() {
+			return t('nextcloud-vue', 'Loading messages…')
 		},
 	},
 
@@ -454,5 +476,9 @@ export default {
 	flex-wrap: wrap;
 	gap: calc(2.5 * var(--default-grid-baseline));
 	justify-content: flex-end;
+}
+
+.cn-conversation-thread__channel {
+	color: var(--color-text-maxcontrast);
 }
 </style>

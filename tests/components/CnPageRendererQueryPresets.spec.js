@@ -66,7 +66,7 @@ describe('matchQueryPreset and applyQueryPreset', () => {
 
 	it('replaces only the allowed keys and drops queryPresets', () => {
 		const out = applyQueryPreset({ register: 'dossiq', schema: 'case', columns: ['a'], queryPresets: [WOO] }, { ...WOO, register: 'other' })
-		expect(out).toEqual({ register: 'dossiq', schema: 'case', columns: WOO.columns, quickFilters: WOO.quickFilters })
+		expect(out).toEqual({ register: 'dossiq', schema: 'case', columns: WOO.columns, quickFilters: WOO.quickFilters, fixedFilters: WOO.match })
 		expect(applyQueryPreset({ columns: ['a'], queryPresets: [] }, null)).toEqual({ columns: ['a'] })
 	})
 })

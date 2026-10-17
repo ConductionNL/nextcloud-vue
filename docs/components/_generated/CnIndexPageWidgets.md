@@ -5,4 +5,4 @@
 | Name      | Type     | Required | Default      | Description                                                                                                                           |
 | --------- | -------- | -------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `widgets` | `array`  |          | `[]`         | Widget definitions `{ id, type, title?, content?, headerLink? }`. An entry without an id or with a type no layer resolves is skipped. |
-| `variant` | `string` |          | `'stat-row'` | Where the widgets sit: `stat-row` above the list, `side-panel` beside it.                                                             |
+| `variant` | `string` |          | `'stat-row'` | Where the widgets sit: `stat-row` above the list, `side-panel` beside it, `after-list` under it.                                      |

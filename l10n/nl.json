@@ -1773,7 +1773,10 @@
     "About this {app} installation.": "Over deze {app}-installatie.",
     "{version}, up to date": "{version}, bijgewerkt",
     "for an SLA": "voor een SLA",
-    "About {name}": "Over {name}"
+    "About {name}": "Over {name}",
+    "Sent message": "Verstuurd bericht",
+    "Received message": "Ontvangen bericht",
+    "Loading messages…": "Berichten laden…"
   },
   "plurals": {
     "{count} selected": [

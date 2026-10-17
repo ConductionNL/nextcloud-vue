@@ -13,15 +13,15 @@
 		     region (WCAG 2.4.6 / 1.3.1). -->
 		<slot
 			name="header"
-			:title="title"
+			:title="presented('title')"
 			:description="headerDescription"
 			:icon="resolvedIcon"
 			:showTitle="showTitle">
 			<CnPageHeader
-				:title="title"
+				:title="presented('title')"
 				:description="headerDescription"
 				:icon="showTitleIcon && !isBoardLook ? resolvedIcon : ''"
-				:breadcrumb="breadcrumb"
+				:breadcrumb="presented('breadcrumb')"
 				:meta="headerMetaText"
 				:visuallyHidden="!showTitle">
 				<!-- The board's header buttons (`headerButtons`), beside the
@@ -193,7 +193,7 @@
 			:sortValue="sortSelectValue"
 			:showSearch="inlineSearch || isBoardLook"
 			:searchValue="effectiveSearchValue"
-			:searchPlaceholder="searchPlaceholder ? cnTranslate(searchPlaceholder) : searchPlaceholder"
+			:searchPlaceholder="presented('searchPlaceholder') ? cnTranslate(presented('searchPlaceholder')) : presented('searchPlaceholder')"
 			:showCountWithSearch="showCountWithSearch"
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"
@@ -1085,6 +1085,13 @@
 					data-testid="cn-index-page-notice">
 					{{ cnTranslate(notice.text) }}
 				</NcNoteCard>
+
+				<!-- Cards after the list (`afterList`), stacked in order (PqSocial). -->
+				<CnIndexPageWidgets
+					v-if="presentedAfterList.length > 0"
+					class="cn-index-page__after-list"
+					variant="after-list"
+					:widgets="presentedAfterList" />
 			</div>
 
 			<!-- The open record, beside the list on a wide screen and instead
@@ -1217,6 +1224,7 @@ import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
@@ -1229,7 +1237,7 @@ import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, pr
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
-import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
+import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -3086,6 +3094,33 @@ export default {
 		},
 
 		/**
+		 * Cards after the list (manifest `config.afterList`): dashboard widget
+		 * definitions `{ id, type, title?, content, headerLink? }` stacked
+		 * under the list in the listed order, the counterpart of `statRow`
+		 * above it. A query preset or a scope can set its own.
+		 *
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-an-index-page-can-draw-widgets-after-its-list
+		 * @type {Array<object>}
+		 */
+		afterList: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The route query pairs that chose this page's query preset, set by
+		 * CnPageRenderer. They scope the list, so they show no removable
+		 * active-filter chip.
+		 *
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-the-query-that-chose-a-preset-is-not-a-removable-filter
+		 * @type {object|null}
+		 */
+		fixedFilters: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Where a row carries the actions the server says this caller may run
 		 * on it: a dotted path, read off the rows the list already fetched, so
 		 * ninety rows cost one request rather than ninety.
@@ -3715,6 +3750,8 @@ export default {
 			 */
 			folderSidebarAllValues: [],
 			folderRegisterList: [],
+			/** The Nextcloud groups a `folderSidebar.source: 'groups'` pane lists. */
+			folderGroupList: [],
 			// `x-index` blocks read off the schema rows a `source: 'register'`
 			// folder list was built from, keyed by folder id. The layout a case
 			// type carries travels with the record rather than being restated
@@ -4236,7 +4273,8 @@ export default {
 			}
 			// The index boards draw all four segments, so the board look does
 			// too unless the manifest names its own list.
-			const listed = Array.isArray(this.viewSwitch) ? this.viewSwitch : ['table', 'cards', 'board', 'map']
+			const viewSwitch = this.presented('viewSwitch')
+			const listed = Array.isArray(viewSwitch) ? viewSwitch : ['table', 'cards', 'board', 'map']
 			const offered = [...this.effectiveToggleModes, ...(this.showMapSegment ? ['map'] : [])]
 			return listed.filter((mode) => ['table', 'cards', 'board', 'map'].includes(mode) && !offered.includes(mode))
 		},
@@ -4631,7 +4669,7 @@ export default {
 		 */
 		folderSidebarSource() {
 			const s = this.folderSidebar && this.folderSidebar.source
-			return (s === 'register' || !s) ? 'custom' : s
+			return (s === 'register' || s === 'groups' || !s) ? 'custom' : s
 		},
 
 		/**
@@ -4647,6 +4685,9 @@ export default {
 			}
 			if (this.folderSidebar.source === 'register') {
 				return this.folderRegisterList
+			}
+			if (this.folderSidebar.source === 'groups') {
+				return this.folderGroupList
 			}
 			return this.folderSidebar.folders || []
 		},
@@ -4705,6 +4746,58 @@ export default {
 				row: this.activeScopeRow,
 				pageColumns: this.declaredColumns,
 			})
+		},
+
+		/**
+		 * This page's own value of each presentation key, which a query preset
+		 * may have set: what `presented()` falls back to without a scope.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
+		 */
+		ownPresentation() {
+			return {
+				title: this.title,
+				quickFilters: this.quickFilters,
+				cardFields: this.cardFields,
+				countText: this.countText,
+				searchPlaceholder: this.searchPlaceholder,
+				footerNote: this.footerNote,
+				viewSwitch: this.viewSwitch,
+				addLabel: this.addLabel,
+				headerButtons: this.headerButtons,
+				breadcrumb: this.breadcrumb,
+				headerMeta: this.headerMeta,
+				afterList: this.afterList,
+			}
+		},
+
+		/**
+		 * The presentation the active scope declares (`title`, `countText`,
+		 * `quickFilters`, `addLabel`, `afterList` and the other query preset
+		 * keys), from its folder entry or its row's `x-index`. Empty without a
+		 * scope, so the page's own values stand.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
+		 */
+		activeScopePresentation() {
+			if (!this.folderSidebar) {
+				return {}
+			}
+			return resolveScopePresentation({ scope: this.activeScope, row: this.activeScopeRow })
+		},
+
+		/**
+		 * The widgets drawn after the list: the active scope's `afterList`,
+		 * else the page's.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-an-index-page-can-draw-widgets-after-its-list
+		 */
+		presentedAfterList() {
+			const list = this.presented('afterList')
+			return Array.isArray(list) ? list : []
 		},
 
 		/**
@@ -5166,8 +5259,9 @@ export default {
 		 * @return {?Array<string>}
 		 */
 		resolvedCardFields() {
-			if (Array.isArray(this.cardFields) && this.cardFields.length > 0) {
-				return this.cardFields
+			const cardFields = this.presented('cardFields')
+			if (Array.isArray(cardFields) && cardFields.length > 0) {
+				return cardFields
 			}
 			if (!this.isBoardLook) {
 				return null
@@ -5360,7 +5454,7 @@ export default {
 		 * @return {string} The id field key.
 		 */
 		folderPassthroughIdField() {
-			if (this.folderSidebar && this.folderSidebar.source === 'register') {
+			if (this.folderSidebar && (this.folderSidebar.source === 'register' || this.folderSidebar.source === 'groups')) {
 				return 'id'
 			}
 			return (this.folderSidebar && this.folderSidebar.idField) || 'id'
@@ -5370,7 +5464,7 @@ export default {
 		 * @return {string} The name field key for CnFolderSidebar's custom list.
 		 */
 		folderPassthroughNameField() {
-			if (this.folderSidebar && this.folderSidebar.source === 'register') {
+			if (this.folderSidebar && (this.folderSidebar.source === 'register' || this.folderSidebar.source === 'groups')) {
 				return 'name'
 			}
 			return (this.folderSidebar && this.folderSidebar.nameField) || 'name'
@@ -6152,11 +6246,15 @@ export default {
 		 * @return {string} The note, translated, or ''.
 		 */
 		effectiveFooterNote() {
-			if (this.footerNote) {
-				return this.cnTranslate(this.footerNote)
+			// The scope's note, else the page's (a preset may have set it),
+			// else the named source's.
+			const scoped = this.activeScopePresentation ? this.activeScopePresentation.footerNote : undefined
+			const footerNote = scoped !== undefined ? scoped : this.footerNote
+			if (footerNote) {
+				return this.cnTranslate(footerNote)
 			}
 			const source = this.isNamedSource ? this.namedSource : null
-			return (source && source.footerNote) || this.footerNote
+			return (source && source.footerNote) || footerNote
 		},
 
 		/**
@@ -6167,7 +6265,7 @@ export default {
 		 * @return {Array<object>|null} The tabs, or null when there are none.
 		 */
 		effectiveQuickFilters() {
-			const own = withPersonalLenses(this.quickFilters || this.generatedQuickFilters, this.personalLenses)
+			const own = withPersonalLenses(this.presented('quickFilters') || this.generatedQuickFilters, this.personalLenses)
 			if (own && own.length > 0) {
 				return own
 			}
@@ -6233,7 +6331,8 @@ export default {
 		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string}>}
 		 */
 		resolvedHeaderButtons() {
-			const declared = Array.isArray(this.headerButtons) ? this.headerButtons : []
+			const headerButtons = this.presented('headerButtons')
+			const declared = Array.isArray(headerButtons) ? headerButtons : []
 			return declared
 				.filter((button) => button && typeof button === 'object' && typeof button.action === 'string' && button.action !== '')
 				.map((button, index) => {
@@ -6358,6 +6457,7 @@ export default {
 			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
 				const values = (Array.isArray(raw) ? raw : [raw])
 					.filter((value) => value !== null && value !== undefined && value !== '')
+					.filter((value) => !this.isFixedFilter(key, value))
 					.map((value) => this.activeFilterValueLabel(key, value))
 				if (values.length === 0) {
 					continue
@@ -6541,11 +6641,12 @@ export default {
 		 * @return {string}
 		 */
 		headerMetaText() {
-			if (!this.headerMeta) {
+			const headerMeta = this.presented('headerMeta')
+			if (!headerMeta) {
 				return ''
 			}
 			const total = this.effectivePagination?.total
-			return this.cnTranslate(this.headerMeta)
+			return this.cnTranslate(headerMeta)
 				.replace('{shown}', String(this.effectiveObjects.length))
 				.replace('{total}', typeof total === 'number' ? String(total) : '')
 		},
@@ -6559,11 +6660,12 @@ export default {
 				// The default count line is the library's own string, so it
 				// reads "14 van 14" in Dutch; a page's own template goes
 				// through the app's label lookup.
-				if (!this.countText && !this.countSubtitle) {
+				const countText = this.presented('countText')
+				if (!countText && !this.countSubtitle) {
 					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
 				}
-				if (this.countText) {
-					return this.cnTranslate(this.countText)
+				if (countText) {
+					return this.cnTranslate(countText)
 						.replace('{shown}', String(shown))
 						.replace('{total}', String(total))
 				}
@@ -6577,8 +6679,10 @@ export default {
 
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
-			if (this.addLabel) {
-				return this.cnTranslate(this.addLabel)
+			const scoped = this.activeScopePresentation ? this.activeScopePresentation.addLabel : undefined
+			const addLabel = scoped !== undefined ? scoped : this.addLabel
+			if (addLabel) {
+				return this.cnTranslate(addLabel)
 			}
 			// A named source names its own create action. Without this the button
 			// falls back to a schema-derived noun, and a named source has no
@@ -7015,6 +7119,7 @@ export default {
 		this.maybeOpenCreateFromQuery()
 		if (this.folderSidebar) {
 			this.loadFolderRegister()
+			this.loadFolderGroups()
 			// Reflect a deep-link filter (e.g. ?caseType=<id>) as the active folder.
 			const key = this.folderSidebar.filterField || this.folderSidebar.field
 			const active = key && this.effectiveActiveFilters[key]
@@ -7078,6 +7183,36 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A presentation value: the active scope's when it declares the key,
+		 * else this page's own prop (which a query preset may have set).
+		 *
+		 * @param {string} key One of the query preset keys.
+		 * @return {unknown} The value.
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
+		 */
+		presented(key) {
+			const scoped = this.activeScopePresentation
+			return scoped[key] !== undefined ? scoped[key] : this.ownPresentation[key]
+		},
+
+		/**
+		 * Whether a filter value is one of the query pairs that chose the
+		 * preset, so it shows no removable chip.
+		 *
+		 * @param {string} key The filter key.
+		 * @param {unknown} value One filter value.
+		 * @return {boolean}
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-the-query-that-chose-a-preset-is-not-a-removable-filter
+		 */
+		isFixedFilter(key, value) {
+			const fixed = this.fixedFilters
+			if (!fixed || !Object.hasOwn(fixed, key)) {
+				return false
+			}
+			return String(fixed[key]) === String(value)
+		},
+
 		/**
 		 * The manifest page that shows one object of a schema, for a linked
 		 * label. Null without a manifest or a matching detail page.
@@ -8854,6 +8989,39 @@ export default {
 			}
 			if (typeof this.list.refresh === 'function') {
 				this.list.refresh(1)
+			}
+		},
+
+		/**
+		 * Load the Nextcloud groups for `folderSidebar.source: 'groups'`, each
+		 * with its member count. `folderSidebar.groups` (`[{ id, parent? }]`)
+		 * picks and orders them and nests a group under its `parent`; without
+		 * it every group shows, by name. A refused request lists none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
+		 */
+		async loadFolderGroups() {
+			const cfg = this.folderSidebar
+			if (!cfg || cfg.source !== 'groups') {
+				return
+			}
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const groups = await fetchGroups(axios, { search: cfg.search || '', limit: cfg.limit || 200 })
+				const declared = Array.isArray(cfg.groups) ? cfg.groups.filter((entry) => entry && entry.id) : null
+				if (!declared) {
+					this.folderGroupList = [...groups].sort((a, b) => a.name.localeCompare(b.name))
+					return
+				}
+				const byId = new Map(groups.map((group) => [group.id, group]))
+				this.folderGroupList = declared
+					.filter((entry) => byId.has(String(entry.id)))
+					.map((entry) => ({ ...byId.get(String(entry.id)), parentId: entry.parent ? String(entry.parent) : null }))
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.error('[CnIndexPage] failed to load the Nextcloud groups', e)
+				this.folderGroupList = []
 			}
 		},
 

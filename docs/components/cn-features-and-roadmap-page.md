@@ -104,7 +104,7 @@ the page just works.
 | `suggestUrl` | String | `''` | Optional override target for the "Suggest a feature" CTA; when empty the CTA opens the in-product modal. |
 | `documentationUrl` | String | `''` | Per-app documentation site URL surfaced in the docs info card. |
 | `capabilityComparison` | Object | `null` | Optional capability comparison document, forwarded to the view. Manifest config wins, then the `features_roadmap_capabilities` initial state, then null. |
-| `categories` | Object \| null | `null` | Feature category key to caption, the order of the groups in the board look. |
+| `categories` | Object \| null | `null` | Feature category key to caption (translated through the app's translate function), the order of the groups in the board look. |
 | `board` | Object \| null | `null` | Board look options, see below. Ignored in the default look. |
 | `title` | String | `''` | The page title, lifted from the manifest page's `title`. Shown in the board look. |
 | `appVersion` | String | `''` | The app version for `{appVersion}` in the board subtitle. Manifest config wins, then the `features_roadmap_app_version` initial state. |
@@ -131,6 +131,8 @@ the badge. "Learn more" goes to `docsUrl` when it is a web address, else to `doc
 | `issueLabels` | `{}` | Forge label to issue status (`in_progress`, `planned`) for the badges in the Coming next card. |
 | `subtitle` | `''` | Line under the title; `{count}` is the number of features, `{appVersion}` the app version. |
 | `notice` | `''` | Info notice under the groups. |
+| `noticeLink` | `null` | `{ text, href }`: the first occurrence of `text` (translated) in the notice becomes a link to `href`, opened in a new tab. Only `http(s)` and site-relative (`/...`) hrefs link; anything else, or no match, leaves the notice as plain text. |
+| `summaries` | `true` | In the `rows` layout, the summary line under each feature's title. `false` shows the title and status only (DqFunctionaliteiten). |
 | `documentationButton` | `false` | A Documentation button in the header. |
 | `suggestButton` | `true` | The feature request as the header's primary button; `false` moves it into the Actions menu. |
 
@@ -153,9 +155,10 @@ The DqFunctionaliteiten board:
     "documentationUrl": "https://dossiq.conduction.nl",
     "categories": { "cases": "Zaakbehandeling", "decisions": "Besluiten en termijnen", "roadmap": "Op de roadmap" },
     "board": { "layout": "rows", "tabs": false, "filter": "segmented", "next": 0,
-      "statusLabels": { "all": "Alles", "available": "Stabiel" },
+      "statusLabels": { "all": "Alles", "available": "Stabiel" }, "summaries": false,
       "subtitle": "versie {appVersion} · bijgewerkt bij elke release",
       "notice": "Hoe dossiq zich verhoudt tot andere zaaksystemen staat in de vergelijking op conduction.nl.",
+      "noticeLink": { "text": "conduction.nl", "href": "https://dossiq.conduction.nl/compare" },
       "documentationButton": true, "suggestButton": false } } }
 ```
 
