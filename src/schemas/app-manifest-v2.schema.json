@@ -2224,6 +2224,30 @@
 											"columnKeys": { "type": "array", "items": { "type": ["string", "number"] } }
 										}
 									},
+									"cellSource": {
+										"type": "object",
+										"additionalProperties": false,
+										"required": ["register", "schema", "rowField", "columnField", "valueField"],
+										"description": "chartKind 'matrix': read the cells from records that each hold one cell. The records are listed from register/schema with `filter` (tokens such as '@object.matrixVersion' resolved; the list waits while one is unresolved), then laid out by rowField / columnField with valueField as the cell. Labels come from rowLabels / columnLabels maps or rowLabelField / columnLabelField; order from rowOrder / columnOrder lists, else rowOrderField / columnOrderField, else natural order. valueLabels maps a stored value to the text shown; colorMap may key on either. Wins over series / categories.",
+										"properties": {
+											"register": { "type": "string" },
+											"schema": { "type": "string" },
+											"filter": { "type": "object", "additionalProperties": true },
+											"rowField": { "type": "string" },
+											"columnField": { "type": "string" },
+											"valueField": { "type": "string" },
+											"rowLabelField": { "type": "string" },
+											"columnLabelField": { "type": "string" },
+											"rowLabels": { "type": "object", "additionalProperties": { "type": "string" } },
+											"columnLabels": { "type": "object", "additionalProperties": { "type": "string" } },
+											"valueLabels": { "type": "object", "additionalProperties": { "type": "string" } },
+											"rowOrder": { "type": "array", "items": { "type": ["string", "number"] } },
+											"columnOrder": { "type": "array", "items": { "type": ["string", "number"] } },
+											"rowOrderField": { "type": "string" },
+											"columnOrderField": { "type": "string" },
+											"limit": { "type": "integer", "minimum": 1 }
+										}
+									},
 									"endpointSource": {
 										"$ref": "#/$defs/chartEndpointSource",
 										"description": "Wave 2 (#91): endpoint-bound series/labels — the shared endpoint transport plus the labelsPath / series[] {name, path} response mapping. Exactly one of dataSource | endpointSource (post-schema check)."

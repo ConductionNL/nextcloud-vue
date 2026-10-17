@@ -406,7 +406,7 @@
 		},
 		"CnChartWidget": {
 			"direct": 8,
-			"transitive": 8,
+			"transitive": 9,
 			"tier": "heavy",
 			"via": [
 				"CnIndexPage"
@@ -653,7 +653,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 176,
+			"transitive": 177,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -873,7 +873,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 179,
+			"transitive": 180,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2943,7 +2943,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 177,
+			"transitive": 178,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3904,7 +3904,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 166,
+			"transitive": 167,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
