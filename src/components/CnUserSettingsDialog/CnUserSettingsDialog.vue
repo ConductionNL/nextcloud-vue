@@ -110,8 +110,9 @@ const CnVNodes = {
 /**
  * CnUserSettingsDialog - the user settings dialog in the board look (board
  * PqPersoonlijk): eyebrow, title and subtitle, a left navigation listing the
- * sections with their icons, the sections themselves, and a footer with a
- * note that changes save straight away and a Close button.
+ * sections with their icons, the current section (the others stay mounted
+ * but hidden), and a footer with a note that changes save straight away and
+ * a Close button.
  *
  * The sections stay the app's: any `NcAppSettingsSection` in the default slot
  * registers itself with this dialog exactly as it does with
@@ -217,7 +218,12 @@ export default {
 				this.headingTargets = typeof document === 'undefined'
 					? []
 					: this.sections.filter((section) => section.icon && document.getElementById(`settings-section_${section.id}--label`)).map((section) => section.id)
+				this.showSelected()
 			})
+		},
+
+		selected() {
+			this.$nextTick(() => this.showSelected())
 		},
 	},
 
@@ -261,9 +267,31 @@ export default {
 		selectSection(id) {
 			this.picked = true
 			this.selected = id
-			const target = typeof document !== 'undefined' ? document.getElementById(`settings-section_${id}`) : null
-			if (target && typeof target.scrollIntoView === 'function') {
-				target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+			this.$nextTick(() => {
+				this.showSelected()
+				const heading = typeof document !== 'undefined' ? document.getElementById(`settings-section_${id}--label`) : null
+				if (heading) {
+					heading.setAttribute('tabindex', '-1')
+					heading.focus()
+				}
+			})
+		},
+
+		/**
+		 * Show the current section and hide the others. They stay mounted,
+		 * so what a reader typed in one survives a switch.
+		 *
+		 * @spec openspec/changes/user-settings-one-section/specs/user-settings-board-dialog/spec.md#requirement-the-board-user-settings-dialog-shows-one-section-at-a-time
+		 */
+		showSelected() {
+			if (typeof document === 'undefined') {
+				return
+			}
+			for (const section of this.sections) {
+				const el = document.getElementById(`settings-section_${section.id}`)
+				if (el) {
+					el.hidden = section.id !== this.selected
+				}
 			}
 		},
 
@@ -397,5 +425,10 @@ export default {
 	display: inline-flex;
 	order: -1;
 	color: var(--color-text-maxcontrast);
+}
+
+/* One section at a time: the others are mounted but hidden. */
+.cn-user-settings-dialog__sections :deep(.app-settings-section[hidden]) {
+	display: none;
 }
 </style>
