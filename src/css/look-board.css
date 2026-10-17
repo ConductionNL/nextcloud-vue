@@ -802,6 +802,68 @@
 	font-weight: 600;
 }
 
+/* ---- Label and value pairs (CnDetailGrid) -------------------------------- */
+/* The board draws pairs as plain text, not as grey cards with an accent bar:
+   the grid as a 13px muted label over a 15px value at weight 500 with a
+   hairline under each pair (DqZaak "Zaakgegevens"), the horizontal layout as
+   two columns of 14px text, the label column as wide as its longest label
+   (the side cards). Both at the board's line height, 1.2, not Nextcloud's 1.5:
+   a pair is 47px tall on the board. The muted label also hands its ink to
+   --nldesign-color-on-surface, which a theme that forces the body ink onto
+   every div (thematiq) reads. */
+.cn-look-board .cn-detail-grid.cn-detail-grid--grid:not(.cn-look-nextcloud *) {
+	gap: 12px 24px;
+	font-size: 15px;
+}
+
+.cn-look-board .cn-detail-grid.cn-detail-grid--horizontal:not(.cn-look-nextcloud *) {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 8px 16px;
+	font-size: 14px;
+}
+
+.cn-look-board .cn-detail-grid .cn-detail-grid__item:not(.cn-look-nextcloud *) {
+	gap: 3px;
+	padding: 0;
+	border-inline-start: none;
+	border-radius: 0;
+	background: none;
+}
+
+.cn-look-board .cn-detail-grid.cn-detail-grid--grid .cn-detail-grid__item:not(.cn-look-nextcloud *) {
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-detail-grid.cn-detail-grid--horizontal .cn-detail-grid__item:not(.cn-look-nextcloud *) {
+	display: contents;
+}
+
+.cn-look-board .cn-detail-grid .cn-detail-grid__label:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	min-width: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	font-weight: 400;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-grid.cn-detail-grid--horizontal .cn-detail-grid__label:not(.cn-look-nextcloud *) {
+	font-size: inherit;
+}
+
+.cn-look-board .cn-detail-grid .cn-detail-grid__value:not(.cn-look-nextcloud *) {
+	margin: 0;
+	font-size: inherit;
+	font-weight: 500;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-grid.cn-detail-grid--horizontal .cn-detail-grid__value:not(.cn-look-nextcloud *) {
+	font-weight: 400;
+}
+
 /* ---- Dashboard card titles --------------------------------------------- */
 /* A card's title on a dashboard (and on the widgets under a reports page) is
    the board's card h2: 17px weight 700 (boards PqMijnWerk, DcRapportages and
