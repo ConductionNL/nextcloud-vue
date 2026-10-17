@@ -60,6 +60,7 @@ With a real up-to-date check (when the backend reports a configured version):
 | `breadcrumbNote` | String | `''` | Board look: a note after the path, behind a dot ("geldt voor de hele organisatie"). |
 | `tabs` | Array | `[]` | A tab strip under the header, as `[{ id, label, count? }]`. Each tab's panel is the `tab-<id>` slot; the version card, the credential broker and the default slot show on the first tab only. See [Tabs](#tabs). |
 | `tabQueryKey` | String | `'tab'` | The query parameter that holds the open tab's `id`. |
+| `subTabQueryKey` | String | `'subtab'` | The query parameter that holds the open tab inside the open tab (`tabs[].tabs`). |
 | `tabStorageKey` | String | `''` | A browser storage key under which the shell remembers the last opened tab, so the page opens on it again when the address names no tab. The address still wins. Empty remembers nothing. |
 | `lazyTabs` | Boolean | `false` | Mount a tab's `tab-<id>` slot only while that tab is open, and unmount it when another tab opens. Off, every panel stays mounted and only the open one shows. See [Tabs](#tabs). |
 | `tabsVariant` | `'line' \| 'underline'` | `'line'` | How the `tabs` strip is drawn: `line`, the folder tabs, or `underline`, plain labels on a rule with the open one underlined in the primary colour (board LpBeheerAlgemeen). Passed to CnTabs as its `variant`. |
@@ -88,6 +89,7 @@ With a real up-to-date check (when the backend reports a configured version):
 | `reimported` | `object` | Configuration was re-imported successfully (AppHost response payload) |
 | `reimport-error` | `Error` | Configuration re-import failed |
 | `tab-change` | `string` | The reader opened another tab; the payload is its `id` |
+| `sub-tab-change` | `{ tab, subTab }` | The reader opened a tab inside a tab; the payload holds both ids |
 
 ## First-time setup actions (ADR-042)
 
@@ -107,6 +109,7 @@ Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
 |------|-------------|
 | default | The app's own settings sections, rendered below the version card (with `tabs`: on the first tab) |
 | `tab-<id>` | The panel of the tab with that `id` in `tabs` |
+| `tab-<id>-<subId>` | The panel of a tab inside the tab `id` (`tabs[].tabs`) |
 | `actions` | Extra action buttons next to the update / re-import buttons |
 | `footer` | Replaces the default support / SLA footer |
 | `version-items` | Extra key/value rows inside the version card details |
@@ -147,6 +150,17 @@ that fetches on `mounted()` fetches once, for all tabs, on page load. With
 unmounts it when another tab opens: each visit mounts the panel afresh, and the
 page loads one tab at a time. The panel element itself stays, so the strip and
 its keyboard behaviour are the same either way.
+
+A tab can hold its own strip, as PqBeheerPortaal draws "Portalen 3 | Auditlog 1284" inside a Klantportaal tab:
+
+```js
+tabs: [
+  { id: 'general', label: 'Algemeen' },
+  { id: 'portal', label: 'Klantportaal', tabs: [{ id: 'portals', label: 'Portalen', count: 3 }, { id: 'audit', label: 'Auditlog', count: 1284 }] },
+]
+```
+
+The inner strip sits in the tab's panel, under its `tab-portal` slot, and each inner panel is the `tab-portal-portals` / `tab-portal-audit` slot. The address keeps the open inner tab (`?subtab=audit`), and `lazyTabs` mounts only the open inner panel.
 
 ```vue
 <CnAdminSettingsShell app-id="launchpad" app-name="Launchpad" :tabs="tabs" lazy-tabs>

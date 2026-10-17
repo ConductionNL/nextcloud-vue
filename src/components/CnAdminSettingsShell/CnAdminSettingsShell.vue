@@ -77,6 +77,28 @@
 				<div class="cn-admin-settings-shell__panel" :data-tab="tab.id">
 					<!-- @slot tab-<id> The panel of the tab with that `id` in `tabs`. -->
 					<slot v-if="!lazyTabs || tab.id === activeTabId" :name="`tab-${tab.id}`" />
+					<!-- `tabs[].tabs`: a second strip inside the tab (board
+					     PqBeheerPortaal: Portalen 3 | Auditlog 1284). -->
+					<CnTabs
+						v-if="tab.tabs.length > 0 && (!lazyTabs || tab.id === activeTabId)"
+						class="cn-admin-settings-shell__subtabs"
+						:look="isBoard ? 'board' : 'nextcloud'"
+						:variant="tabsVariant"
+						:ariaLabel="tab.label"
+						:data-testid="`cn-admin-settings-subtabs-${tab.id}`"
+						@update:activeIndex="onSubTabIndex(tab, $event)">
+						<CnTab
+							v-for="sub in tab.tabs"
+							:key="sub.id"
+							:title="sub.label"
+							:count="sub.count"
+							:active="sub.id === activeSubTabId(tab)">
+							<div class="cn-admin-settings-shell__panel" :data-tab="`${tab.id}-${sub.id}`">
+								<!-- @slot tab-<id>-<subId> The panel of a tab inside the tab `id`. -->
+								<slot v-if="!lazyTabs || sub.id === activeSubTabId(tab)" :name="`tab-${tab.id}-${sub.id}`" />
+							</div>
+						</CnTab>
+					</CnTabs>
 				</div>
 			</CnTab>
 		</CnTabs>
@@ -461,7 +483,11 @@ export default {
 		 * reload keeps it. The strip is keyboard operable (arrow keys, Home,
 		 * End). Empty draws no strip.
 		 *
-		 * @type {Array<{id: string, label: string, count?: number}>}
+		 * A tab may hold its own strip, `tabs: [{ id, label, count? }]`, drawn
+		 * in its panel under the `tab-<id>` slot; each inner panel is the
+		 * `tab-<id>-<subId>` slot.
+		 *
+		 * @type {Array<{id: string, label: string, count?: number, tabs?: Array<{id: string, label: string, count?: number}>}>}
 		 * @spec openspec/changes/admin-settings-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-a-tab-strip
 		 */
 		tabs: {
@@ -477,6 +503,17 @@ export default {
 		tabQueryKey: {
 			type: String,
 			default: 'tab',
+		},
+
+		/**
+		 * The query parameter that holds the open tab inside the open tab
+		 * (`tabs[].tabs`).
+		 *
+		 * @spec openspec/changes/admin-shell-sub-tabs/specs/settings-board-look/spec.md#requirement-a-tab-can-hold-its-own-tab-strip
+		 */
+		subTabQueryKey: {
+			type: String,
+			default: 'subtab',
 		},
 
 		/**
@@ -653,7 +690,7 @@ export default {
 		},
 	},
 
-	emits: ['update', 'reimported', 'reimport-error', 'tab-change'],
+	emits: ['update', 'reimported', 'reimport-error', 'tab-change', 'sub-tab-change'],
 
 	setup(props) {
 		// An admin page can be an entry with no other library surface: its
@@ -677,6 +714,8 @@ export default {
 			setupWizardOpen: false,
 			// The open tab's id; empty until a tab is picked or the address names one.
 			chosenTabId: readTabFromAddress(this.tabQueryKey) || readStoredTab(this.tabStorageKey),
+			// The open tab inside each tab, by tab id; the address names the one of the open tab.
+			chosenSubTabs: this.initialSubTabs(),
 		}
 	},
 
@@ -690,7 +729,7 @@ export default {
 		tabItems() {
 			return (Array.isArray(this.tabs) ? this.tabs : [])
 				.filter((tab) => tab && typeof tab.id === 'string' && tab.id !== '' && typeof tab.label === 'string' && tab.label !== '')
-				.map((tab) => ({ id: tab.id, label: tab.label, count: tab.count ?? null }))
+				.map((tab) => ({ id: tab.id, label: tab.label, count: tab.count ?? null, tabs: this.subTabItems(tab) }))
 		},
 
 		/**
@@ -858,6 +897,65 @@ export default {
 		 * @return {void}
 		 * @spec openspec/changes/admin-settings-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-a-tab-strip
 		 */
+		/**
+		 * The open tab inside the tab the address names, read once from
+		 * `?<subTabQueryKey>=`.
+		 *
+		 * @return {Record<string, string>}
+		 */
+		initialSubTabs() {
+			const sub = readTabFromAddress(this.subTabQueryKey)
+			const tab = readTabFromAddress(this.tabQueryKey) || readStoredTab(this.tabStorageKey)
+			return sub && tab ? { [tab]: sub } : {}
+		},
+
+		/**
+		 * The valid tabs inside a tab, `[{ id, label, count }]`.
+		 *
+		 * @param {object} tab A declared tab.
+		 * @return {Array<{id: string, label: string, count: (number|null)}>}
+		 * @spec openspec/changes/admin-shell-sub-tabs/specs/settings-board-look/spec.md#requirement-a-tab-can-hold-its-own-tab-strip
+		 */
+		subTabItems(tab) {
+			return (Array.isArray(tab.tabs) ? tab.tabs : [])
+				.filter((sub) => sub && typeof sub.id === 'string' && sub.id !== '' && typeof sub.label === 'string' && sub.label !== '')
+				.map((sub) => ({ id: sub.id, label: sub.label, count: sub.count ?? null }))
+		},
+
+		/**
+		 * The open tab inside a tab: the one picked, or named in the address
+		 * while its tab is open, else the first.
+		 *
+		 * @param {object} tab A resolved tab.
+		 * @return {string}
+		 */
+		activeSubTabId(tab) {
+			const ids = tab.tabs.map((sub) => sub.id)
+			const chosen = this.chosenSubTabs[tab.id]
+			return ids.includes(chosen) ? chosen : (ids[0] || '')
+		},
+
+		/**
+		 * Open another tab inside a tab; the address keeps it (`?<subTabQueryKey>=<id>`).
+		 *
+		 * @param {object} tab The resolved tab.
+		 * @param {number} index The index of the tab opened inside it.
+		 * @return {void}
+		 * @spec openspec/changes/admin-shell-sub-tabs/specs/settings-board-look/spec.md#requirement-a-tab-can-hold-its-own-tab-strip
+		 */
+		onSubTabIndex(tab, index) {
+			const sub = tab.tabs[index]
+			if (!sub || sub.id === this.activeSubTabId(tab)) {
+				return
+			}
+			this.chosenSubTabs = { ...this.chosenSubTabs, [tab.id]: sub.id }
+			writeTabToAddress(this.subTabQueryKey, sub.id)
+			/**
+			 * @event sub-tab-change Emitted when the reader opens a tab inside a tab. Payload: `{ tab, subTab }` ids.
+			 */
+			this.$emit('sub-tab-change', { tab: tab.id, subTab: sub.id })
+		},
+
 		onTabIndex(index) {
 			const tab = this.tabItems[index]
 			if (!tab || tab.id === this.chosenTabId) {
