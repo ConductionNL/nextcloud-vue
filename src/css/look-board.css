@@ -374,6 +374,71 @@
 	font-weight: 600;
 }
 
+/* ---- Breadcrumbs (CnBreadcrumbs) ----------------------------------------- */
+/* The board draws a trail as a line of 14px text, 8px apart: the crumbs that
+   lead somewhere as underlined links in the primary colour, the current one
+   as plain muted text (DqZaak "Alle zaken / 2026-0082"). NcBreadcrumbs draws
+   each crumb as a 34px tertiary button. The doubled classes outrank its
+   scoped rules; the ink goes through --nldesign-color-on-surface as well, for
+   a theme that forces the body ink onto every link and span (thematiq). */
+.cn-look-board .cn-breadcrumbs.cn-breadcrumbs:not(.cn-look-nextcloud *) {
+	min-height: 0;
+	height: auto;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-breadcrumbs .breadcrumb__crumbs:not(.cn-look-nextcloud *) {
+	gap: 8px;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-look-board .cn-breadcrumbs .vue-crumb.vue-crumb:not(.cn-look-nextcloud *) {
+	gap: 8px;
+	min-width: 0;
+	min-height: 0;
+	height: auto;
+}
+
+.cn-look-board .cn-breadcrumbs .vue-crumb .button-vue.button-vue:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-primary-element);
+	min-width: 0;
+	min-height: 0;
+	height: auto;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--color-primary-element);
+	font-size: 14px;
+	font-weight: 400;
+	line-height: inherit;
+}
+
+.cn-look-board .cn-breadcrumbs .vue-crumb .button-vue.button-vue:not(.cn-look-nextcloud *) .button-vue__text {
+	padding: 0;
+	font-weight: inherit;
+	line-height: inherit;
+	text-decoration: underline;
+}
+
+.cn-look-board .cn-breadcrumbs .vue-crumb .button-vue.button-vue[aria-current='page']:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	color: var(--color-text-maxcontrast);
+	cursor: default;
+}
+
+.cn-look-board .cn-breadcrumbs .vue-crumb .button-vue.button-vue[aria-current='page']:not(.cn-look-nextcloud *) .button-vue__text {
+	text-decoration: none;
+}
+
+.cn-look-board .cn-breadcrumbs .vue-crumb__separator:not(.cn-look-nextcloud *) {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+}
+
 /* ---- Settings: header, cards in a grid, version card ------------------- */
 .cn-look-board .cn-admin-settings-shell__header:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page__header:not(.cn-look-nextcloud *) {
