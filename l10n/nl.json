@@ -1799,7 +1799,13 @@
     "Checklist finished.": "Checklist afgerond.",
     "Not applicable": "Niet van toepassing",
     "Answer with a photo.": "Beantwoord met een foto.",
-    "This answer needs a photo. Add one to go on.": "Bij dit antwoord hoort een foto. Voeg er een toe om verder te gaan."
+    "This answer needs a photo. Add one to go on.": "Bij dit antwoord hoort een foto. Voeg er een toe om verder te gaan.",
+    "Organisations": "Organisaties",
+    "Provisioning": "Wordt ingericht",
+    "Suspended": "Opgeschort",
+    "Deprovisioning": "Wordt opgeheven",
+    "Archived": "Gearchiveerd",
+    "Retained": "Bewaard"
   },
   "plurals": {
     "{count} selected": [
