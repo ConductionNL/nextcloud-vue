@@ -3785,7 +3785,7 @@
 		},
 		"CnTasksWidget": {
 			"direct": 2,
-			"transitive": 4,
+			"transitive": 6,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-tasks-widget"
