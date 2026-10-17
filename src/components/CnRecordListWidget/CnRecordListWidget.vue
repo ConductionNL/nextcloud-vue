@@ -114,20 +114,6 @@
 						aria-hidden="true" />
 				</component>
 
-				<!-- `bar`: a thin track under the row, filled to the row's value
-				     against its own maximum or against the largest row. -->
-				<span
-					v-if="presentation === 'rows' && item.bar"
-					class="cn-record-list__bar"
-					:class="{ 'cn-record-list__bar--over': item.bar.over }"
-					role="meter"
-					:aria-label="item.title || null"
-					:aria-valuenow="item.bar.value"
-					aria-valuemin="0"
-					:aria-valuemax="item.bar.max"
-					data-testid="cn-record-list-bar">
-					<span class="cn-record-list__bar-fill" :style="{ width: `${item.bar.share}%` }" />
-				</span>
 				<!-- cards: a framed card per row, the icon and title with the pill
 				     beside them, the meta line, and `trailing` as the large figure. -->
 				<component
@@ -183,6 +169,20 @@
 						{{ item.title }}
 					</component>
 				</div>
+				<!-- `bar`: a thin track under the row, filled to the row's value
+				     against its own maximum or against the largest row. -->
+				<span
+					v-if="presentation === 'rows' && item.bar"
+					class="cn-record-list__bar"
+					:class="{ 'cn-record-list__bar--over': item.bar.over }"
+					role="meter"
+					:aria-label="item.title || null"
+					:aria-valuenow="item.bar.value"
+					aria-valuemin="0"
+					:aria-valuemax="item.bar.max"
+					data-testid="cn-record-list-bar">
+					<span class="cn-record-list__bar-fill" :style="{ width: `${item.bar.share}%` }" />
+				</span>
 			</li>
 		</ul>
 	</div>

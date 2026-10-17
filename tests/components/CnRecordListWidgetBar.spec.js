@@ -59,6 +59,8 @@ describe('CnRecordListWidget bar', () => {
 		expect(bars[1].width).toContain('width: 100%')
 		expect(bars[2].width).toContain('width: 0%')
 		expect(bars.every((bar) => !bar.over && bar.max === '11')).toBe(true)
+		expect(w.findAll('.cn-record-list__inline-row')).toHaveLength(0)
+		expect(w.findAll('.cn-record-list__row')).toHaveLength(3)
 		expect(w.findAll('[data-testid="cn-record-list-avatar"]').map((a) => a.text())).toEqual(['PJ', 'FY', 'TM'])
 	})
 
