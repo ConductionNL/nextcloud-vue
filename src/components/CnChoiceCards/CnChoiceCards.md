@@ -61,3 +61,30 @@ four lines `description-lines` shows by default:
     ]" />
 </div>
 ```
+
+One option per row with `layout="rows"`, an option that cannot be picked yet
+(`disabled` with a `disabledReason`), and fields for the chosen option right
+under it through the `option-actions` slot (scope `{ option, selected }`):
+
+```vue
+<div style="max-width: 560px;">
+  <CnChoiceCards
+    label="Next step"
+    layout="rows"
+    :model-value="'decide'"
+    :options="[
+      { value: 'decide', label: 'Take a decision',
+        description: 'Record the decision and inform the applicant.' },
+      { value: 'advice', label: 'Ask for advice',
+        description: 'Send the case to the advisory committee.' },
+      { value: 'close', label: 'Close the case', disabled: true,
+        disabledReason: 'A decision has to be taken first.' },
+    ]">
+    <template #option-actions="{ option, selected }">
+      <p v-if="selected && option.value === 'decide'" style="margin: 0 0 0 32px;">Decision fields go here.</p>
+    </template>
+  </CnChoiceCards>
+</div>
+```
+
+`columns` fixes the card grid's column count; `:columns="1"` stacks the cards in one column.

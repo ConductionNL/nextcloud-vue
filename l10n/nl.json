@@ -521,6 +521,7 @@
     "NC Activity is currently unavailable.": "NC Activiteit is momenteel niet beschikbaar.",
     "Could not load activity.": "Kon activiteit niet laden.",
     "Today": "Vandaag",
+    "Today, {date}": "Vandaag, {date}",
     "Last 8 hours": "Laatste 8 uur",
     "Last 24 hours": "Laatste 24 uur",
     "Last 7 days": "Laatste 7 dagen",
@@ -1660,7 +1661,45 @@
     "Link related object": "Gerelateerd object koppelen",
     "{type} parts": "Onderdelen van {type}",
     "Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.": "Opslaan kan niet: dit record heeft geen id, dus de wijziging zou een kopie maken in plaats van het record bij te werken.",
-    "Save failed": "Opslaan is mislukt"
+    "Save failed": "Opslaan is mislukt",
+    "Modules": "Modules",
+    "In the menu": "In het menu",
+    "Off": "Uit",
+    "Pages": "Pagina's",
+    "Open {module}": "{module} openen",
+    "{list} and {last}": "{list} en {last}",
+    "%n page: {pages}": [
+      "%n pagina: {pages}",
+      "%n pagina's: {pages}"
+    ],
+    "%n page, including {pages}": [
+      "%n pagina, waaronder {pages}",
+      "%n pagina's, waaronder {pages}"
+    ],
+    "{on} of %n is in the menu": [
+      "{on} van %n staat in het menu",
+      "{on} van %n staan in het menu"
+    ],
+    "Put it in the menu:": "In het menu zetten:",
+    "Support this app": "Steun deze app",
+    "No features with this status": "Geen functies met deze status",
+    "Learn more about {title}": "Lees meer over {title}",
+    "Learn more": "Lees meer",
+    "Next on the roadmap": "Hierna op de roadmap",
+    "Coming next": "Hierna",
+    "The most requested items from the issue tracker.": "De meest gevraagde items uit de issuetracker.",
+    "Opened {date}": "Geopend {date}",
+    "See the whole roadmap": "Bekijk de hele roadmap",
+    "Features and roadmap": "Functies en roadmap",
+    "Beta": "Beta",
+    "Planned": "Gepland",
+    "{status}, {expected}": "{status}, {expected}",
+    "Build on this app": "Bouw verder op deze app",
+    "AI skills": "AI-vaardigheden",
+    "%n feature": [
+      "%n functie",
+      "%n functies"
+    ]
   },
   "plurals": {
     "{count} selected": [
