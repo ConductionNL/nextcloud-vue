@@ -18,6 +18,10 @@ The pure decisions live in `utils/widgetDispatch.js`, which both surfaces import
 
 `chrome="bare"` is a tab panel. The strip already shows the title and draws the card, so a second title inside the panel reads as a heading nested in its own heading. Bare mode drops the wrapper and, for an integration leaf, renders the provider's `tab` (its bare content) rather than its `widget` (which draws its own card). That pairing is not new: `CnIntegrationWidget` already does exactly this inside its own panels.
 
+## An app's own widget on a card surface
+
+In card chrome outside a body grid cell (the side column, a tab stack), a widget from the app's `cnRegistry` whose entry asks for it with `chrome: "card"` (`cnRegistry['case-map'] = { component, chrome: 'card' }`) is drawn in the same titled card a catalog widget gets: the definition's `title` and `icon`, no Actions menu. Without it the widget is drawn as is, which suits a widget that draws its own card. A body grid cell draws its own card, so CnDetailPage passes `inGridCell` and the widget stays bare there.
+
 ## How `content` reaches a catalog widget
 
 A catalog widget gets its whole `content` as the `content` prop and, beside the object context, only the content keys it declares as props, as on a dashboard. A key it does not declare can never land on its root component. A widget with `inheritAttrs: false` keeps every key.
