@@ -1617,6 +1617,13 @@
 			"via": [],
 			"page": "cn-guardian-home"
 		},
+		"CnHeaderSearchLabel": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnHeaderWidget": {
 			"direct": 0,
 			"transitive": 0,
