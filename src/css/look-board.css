@@ -681,7 +681,11 @@
 	font-weight: 700;
 }
 
-/* The version card: facts as a two-column list, then a footer row. */
+/* The version card: facts as a two-column list, then a footer row (PqBeheer).
+   With `compact` (boards DqBeheerinstellingen, DqInstellingenAlgemeen) the
+   facts are Versie, Ingestelde versie and Ondersteuning at 15px, and the
+   secondary buttons follow with no rule between.
+   @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact */
 .cn-look-board .cn-version-info--board .cn-version-info__card {
 	padding: 0;
 	margin: 0;
@@ -716,13 +720,65 @@
 	font-weight: 600;
 }
 
+/* `compact` (dossiq's boards): 15px facts, values at weight 500, wider gaps. */
+.cn-look-board .cn-version-info--compact .cn-version-info__details {
+	gap: 6px 24px;
+	font-size: 15px;
+}
+
+.cn-look-board .cn-version-info--compact .cn-version-info__label {
+	font-size: 15px;
+}
+
+.cn-look-board .cn-version-info--compact .cn-version-info__value {
+	font-size: 15px;
+	font-weight: 500;
+}
+
 .cn-look-board .cn-version-info--board .cn-version-info__footer-row {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 10px;
+	margin-top: 16px;
+}
+
+/* `actionsDivider` (the default; PqBeheer): a rule between the facts and the buttons. */
+.cn-look-board .cn-version-info--board .cn-version-info__footer-row--divided {
 	margin-top: 14px;
 	padding-top: 14px;
 	border-top: 1px solid var(--cn-board-hairline);
+}
+
+/* On the compact card an empty button row (nothing to update, re-import or set up) takes no room. */
+.cn-look-board .cn-version-info--compact .cn-version-info__footer-row:empty {
+	display: none;
+}
+
+/* `sectionColumns`: an admin page with a fixed number of card columns
+   (dossiq's boards draw one, launchpad's two). Two columns fold to one in a
+   narrow window.
+   @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-admin-page-can-fix-its-columns */
+.cn-look-board .cn-admin-settings-shell--columns-1:not(.cn-look-nextcloud *),
+.cn-look-board.cn-admin-settings-shell--columns-1:not(.cn-look-nextcloud *),
+.cn-look-board .cn-admin-settings-shell--columns-1 .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *),
+.cn-look-board.cn-admin-settings-shell--columns-1 .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.cn-look-board .cn-admin-settings-shell--columns-2:not(.cn-look-nextcloud *),
+.cn-look-board.cn-admin-settings-shell--columns-2:not(.cn-look-nextcloud *),
+.cn-look-board .cn-admin-settings-shell--columns-2 .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *),
+.cn-look-board.cn-admin-settings-shell--columns-2 .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+	.cn-look-board .cn-admin-settings-shell--columns-2:not(.cn-look-nextcloud *),
+	.cn-look-board.cn-admin-settings-shell--columns-2:not(.cn-look-nextcloud *),
+	.cn-look-board .cn-admin-settings-shell--columns-2 .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *),
+	.cn-look-board.cn-admin-settings-shell--columns-2 .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 
 .cn-look-board .cn-version-info--board .cn-version-info__footer-row .button-vue:disabled {
@@ -891,6 +947,14 @@
 
 .cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__head {
 	flex-wrap: wrap;
+}
+
+/* ---- Bar-list and matrix cards (DqDashboard) ----------------------------- */
+/* The board draws no rule under the title of a card holding a bar list or a
+   matrix. Other cards, plain stat tiles among them, keep theirs.
+   @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-board-bar-list-and-matrix-cards-draw-no-header-rule */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-chart-widget__html) .cn-widget-wrapper__header {
+	border-bottom: none;
 }
 
 /* ---- A card of boxed stat tiles (DcRapportages "Vergaderingen en efficiëntie") -- */

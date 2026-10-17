@@ -851,6 +851,7 @@
 							<CnDetailWidgetHost
 								:widget="findWidget(item)"
 								chrome="card"
+								inGridCell
 								:showCardTitle="showCardTitle(item)"
 								:showActions="effectiveShowWidgetActions"
 								:objectId="objectId"
