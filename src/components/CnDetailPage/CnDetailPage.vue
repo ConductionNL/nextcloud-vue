@@ -2631,8 +2631,10 @@ export default {
 		/**
 		 * The meta line on row 2 of the board look's header (manifest
 		 * `config.headerMeta`): a field template such as `"via {channel}"`.
-		 * Every `{path}` is read from the record; a line with an empty value
-		 * is dropped. Only the board look draws it.
+		 * Every `{path}` is read from the record (an enum field as its label);
+		 * `{path|format}` formats it (`weekday`, `longdate`, `time`, `user`,
+		 * `currency:EUR`, ...). An empty token drops itself and its separator;
+		 * a line with no value at all is dropped. Only the board look draws it.
 		 *
 		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
 		 */
@@ -2991,7 +2993,7 @@ export default {
 		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
 		 */
 		headerMetaText() {
-			return resolveHeaderMeta(this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '', this.resolvedObject)
+			return resolveHeaderMeta(this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '', this.resolvedObject, { schema: this.currentSchema, translate: this.effectiveTranslate })
 		},
 
 		/**

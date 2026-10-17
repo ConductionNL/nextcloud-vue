@@ -5,7 +5,7 @@
 
 <template>
 	<div class="cn-nc-widget-widget" :class="{ 'cn-nc-widget-widget--horizontal': displayMode === 'horizontal' }">
-		<header class="cn-nc-widget-widget__header">
+		<header v-if="showsHeader" class="cn-nc-widget-widget__header" data-testid="cn-nc-widget-header">
 			<img
 				v-if="widgetIconUrl"
 				class="cn-nc-widget-widget__header-icon"
@@ -130,9 +130,16 @@ function getDashboardGlobal() {
 export default {
 	name: 'CnNcWidgetWidget',
 
+	inject: {
+		/** Whether the hosting card draws a title row (CnWidgetWrapper). */
+		cnWidgetTitled: { default: null },
+	},
+
 	props: {
 		/**
-		 * Persisted widget content `{widgetId, displayMode, limit?, showAllUrl?, showAllLabel?}`.
+		 * Persisted widget content `{widgetId, displayMode, limit?, showAllUrl?, showAllLabel?, showHeader?}`.
+		 * `showHeader: false` drops the widget's own header (icon and title);
+		 * it is dropped too when the hosting card draws a title row.
 		 * `limit` is the most items shown (the list then comes from the items
 		 * API, so it fits its cell); `showAllUrl` / `showAllLabel` the link to
 		 * the rest (default the widget's own page and "Show all").
@@ -205,6 +212,20 @@ export default {
 				return dashboard.widgets[this.widgetId] || null
 			}
 			return null
+		},
+
+		/**
+		 * Whether the widget draws its own header: not with
+		 * `content.showHeader: false`, nor inside a card that draws a title.
+		 *
+		 * @spec openspec/changes/nc-widget-header/specs/nc-widget-header/spec.md#requirement-a-nextcloud-widget-draws-no-second-heading
+		 * @return {boolean}
+		 */
+		showsHeader() {
+			if (this.content && this.content.showHeader === false) {
+				return false
+			}
+			return !(typeof this.cnWidgetTitled === 'function' && this.cnWidgetTitled())
 		},
 
 		/**
