@@ -1254,15 +1254,34 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 
 When a click on a row navigates to the record's detail page, the built-in View is left out of that row's menu (and of the right-click menu): viewing is what the click does. The menu offers Edit (Dutch "Bewerken", pencil icon). A row whose `viewTo` answers `null`, or a page with no row-click target, keeps View. Actions the page declares itself are not touched. The rule applies in every look.
 
+## Presentation per scope
+
+A folder in `folderSidebar` (or the `x-index` block of the row a register-derived folder comes from) can carry the
+presentation keys a query preset sets, under the same names: `title`, `quickFilters`, `cardFields`, `countText`,
+`searchPlaceholder`, `footerNote`, `viewSwitch`, `addLabel`, `headerButtons`, `breadcrumb`, `headerMeta` and
+`afterList`. While the folder is selected its value replaces the page's, including a value a query preset set; a key it
+does not carry stays the page's. Its `columns`, `defaultSort` and `searchFields` keep working as before.
+
+```json
+"folders": [{
+  "id": "klacht", "name": "Klachten",
+  "title": "Klachten", "countText": "{total} klachten", "addLabel": "Klacht registreren",
+  "breadcrumb": { "label": "Alle zaken", "route": "Cases" },
+  "afterList": [{ "id": "per-onderwerp", "type": "chart", "title": "Klachten per onderwerp", "content": {} }]
+}]
+```
+
 ## Row actions as buttons (`widget: "actions"`)
 
 A column `{ key: "do", label: "Doen", widget: "actions", widgetProps: { actions: ["link-case", "new-case"] } }` shows the page's row actions with those ids (or labels) as buttons on every row, in that order, where the action is visible for the row (`visible`, a locally decidable `visibleWhen`). The first is a secondary button and the rest tertiary, unless the action sets `variant`. A click runs the action as its row menu entry does, emits `action`, and does not open the row. The column does not sort (DqPostvak).
 
-## Stat row and side panel (`statRow`, `sidePanel`)
+## Stat row, side panel and cards after the list (`statRow`, `sidePanel`, `afterList`)
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `statRow` | `Array` | `[]` | KPI tiles above the list (manifest `config.statRow`): widget definitions `{ id, type, title?, content }`, usually `type: "stat"`, drawn between the header and the toolbar in an auto-fit row (each tile at least 200px), in the listed order. |
+| `afterList` | `Array` | `[]` | Cards after the list (manifest `config.afterList`): widget definitions `{ id, type, title?, content, headerLink? }` stacked full width under the list, in the listed order. A query preset or a folder scope can set its own. |
+| `fixedFilters` | `Object` | `null` | The route query pairs that chose the page's query preset, set by CnPageRenderer. An active filter with one of these keys and values shows no removable chip. |
 | `sidePanel` | `Array` | `[]` | Cards beside the list (manifest `config.sidePanel`): widget definitions `{ id, type, title?, content, headerLink? }` in a 300px column right of the toolbar and the list. Below 1024px the column sits above the toolbar. |
 
 Types resolve like dashboard widgets: the app's widget registry first, then the dashboard catalog (`stat`, `table`, `people`, `stats-block` and the rest). An entry without an id, or with a type nothing resolves, is skipped with a development warning. As on a dashboard, a widget gets its whole `content` as the `content` prop and, of the individual keys, only the ones it declares as props.
