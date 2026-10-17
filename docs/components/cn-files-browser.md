@@ -259,6 +259,9 @@ and filters, because the host declared it.
   drawn in the tone's colour. `colorKey` names another row field to look the
   tone up by (a level code behind a readable text). Card fields take the same
   two keys.
+- A `row` key (of a column, a card field or `colorKey`) may be a dotted path
+  into the host's record, such as `scanVerdict.state` or `integrity.value`. A
+  key the record holds as written wins.
 
 ## Props
 

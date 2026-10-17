@@ -33,7 +33,7 @@ With `sideCards` and at least one selected file, the browser SHALL draw beside t
 
 ### Requirement: A row column can draw its values in tones
 
-A column or card field with `colorMap` SHALL look its value (or, with `colorKey`, that row field) up in the map, ignoring case. With `widget: "badge"` the cell SHALL be a pill in the found tone; otherwise the value SHALL be drawn in the tone's colour. A value with no entry SHALL render as before.
+A column or card field with `colorMap` SHALL look its value (or, with `colorKey`, that row field) up in the map, ignoring case. With `widget: "badge"` the cell SHALL be a pill in the found tone; otherwise the value SHALL be drawn in the tone's colour. A value with no entry SHALL render as before. A `row` key (of a column, a card field or `colorKey`) MAY be a dotted path into the host's record; a key the record holds as written SHALL win.
 
 #### Scenario: A scan verdict and a restricted level
 

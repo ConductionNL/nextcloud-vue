@@ -174,6 +174,25 @@ describe('CnFilesBrowser selection label, side cards and tones', () => {
 		wrapper.unmount()
 	})
 
+	it('reads dotted keys into the host\'s record, for columns, card fields and colorKey', async () => {
+		const nested = {
+			21: { scanVerdict: { state: 'clean' }, integrity: { algorithm: 'sha256', value: '9f2c…a41e' } },
+			22: { scanVerdict: { state: 'infected' }, integrity: { algorithm: 'sha256', value: '77aa…0b1c' } },
+			23: {},
+		}
+		const columns = ['name', { key: 'scanVerdict.state', label: 'Scan', source: 'row', widget: 'badge', colorMap: { clean: 'success', infected: 'error' } }]
+		const sideCards = [{ id: 'checksum', title: 'Checksum', fields: [{ key: 'integrity.value', label: 'SHA-256' }, { key: 'integrity.algorithm', label: 'Algorithm', colorKey: 'scanVerdict.state', colorMap: { infected: 'error' } }] }]
+		const wrapper = mountBrowser({ columns, rowData: nested, sideCards })
+		await flushPromises()
+		expect(cell(wrapper, 'request.pdf', 'scanVerdict.state').text()).toBe('clean')
+		expect(cell(wrapper, 'quote.pdf', 'scanVerdict.state').attributes('data-variant')).toBe('error')
+		await select(wrapper, 'quote.pdf')
+		const card = wrapper.find('[data-testid="cn-files-browser-side-card-checksum"]')
+		expect(card.findAll('dd').map((dd) => dd.text())).toEqual(['77aa…0b1c', 'sha256'])
+		expect(card.findAll('dd')[1].classes()).toContain('cn-files-browser__tone--error')
+		wrapper.unmount()
+	})
+
 	it('is forwarded by CnFilesTab', () => {
 		const props = CnFilesTab.props
 		for (const key of ['selectionLabel', 'selectionLabelOne', 'showClearSelection', 'sideCards']) {
