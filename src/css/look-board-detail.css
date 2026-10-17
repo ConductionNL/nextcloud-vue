@@ -211,6 +211,7 @@
    The open tab overlaps that top border by 1px (the nav's -1px margin) and
    paints over it, so it flows into the card as a folder tab. */
 .cn-look-board .cn-tabs--board .cn-tabs__bar {
+	align-items: flex-end;
 	border-bottom: none;
 	gap: 4px;
 	position: relative;
@@ -253,6 +254,9 @@
 	row-gap: 4px;
 }
 
+/* `margin: 0`: a tab is a <button>, and Nextcloud's core stylesheet gives
+   every `button:not(.button-vue)` `margin: 3px 3px 3px 0`, which put the strip
+   3px low and the tabs 7px apart instead of 4 (DqZaak "Zaakonderdelen"). */
 .cn-look-board .cn-tabs--board .cn-tabs__nav-item {
 	background-color: var(--color-background-dark);
 	border: 1px solid var(--color-border-dark);
@@ -260,6 +264,7 @@
 	border-radius: 8px 8px 0 0;
 	font-size: 14px;
 	font-weight: 400;
+	margin: 0;
 	min-height: 34px;
 	padding: 8px 12px;
 }
@@ -293,9 +298,12 @@
 	padding: 0 6px;
 }
 
-/* The Actions button at the end of the strip, level with the tabs. */
+/* The Actions button at the end of the strip: at the top, 8px in from the
+   end and 8px clear of the card, so the tabs, aligned to the bottom, sit 6px
+   lower than the button (DqZaak "Acties"). */
 .cn-look-board .cn-tabs--board .cn-tabs__nav-end {
 	align-self: flex-start;
+	margin: 0 8px 8px 0;
 }
 
 .cn-look-board .cn-tabs--board .cn-tabs__nav-end .button-vue {
