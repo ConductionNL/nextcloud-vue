@@ -225,6 +225,18 @@ export default {
 		CnActionsMenu,
 	},
 
+	provide() {
+		return {
+			/**
+			 * Whether this card draws a title row, so a widget inside it can
+			 * leave out a heading of its own (nc-widget-header).
+			 *
+			 * @return {boolean}
+			 */
+			cnWidgetTitled: () => this.titleVisible && Boolean(this.displayTitle),
+		}
+	},
+
 	inject: {
 		/**
 		 * Host translate function provided by CnAppRoot as
