@@ -191,6 +191,55 @@ endpointSource: {
 
 Pie-family charts (`pie` / `donut` / `radialBar`) flatten the FIRST mapped series into the flat value array ApexCharts expects. `params` re-resolve + the chart refetches when the dashboard date range changes (the page publishes `dateFrom` / `dateTo` / `datePreset` into the workspace context).
 
+## Bar list and matrix
+
+Two chart kinds are drawn as plain rows instead of an ApexCharts canvas, as the boards draw them.
+
+`chartKind: "bar-list"` draws one row per category: the label, a track filled to the value's share of `barMax` (default the largest value), and the value at the end (boards DqDashboard "Zaken per status", DqTermijnen "Op tijd beslist per zaaktype"). When the `dataSource` declares a `drilldown`, each row is a button that opens the drilldown route. `footnote` adds a line under the rows.
+
+```json
+{
+  "type": "chart",
+  "props": {
+    "chartKind": "bar-list",
+    "barMax": 100,
+    "valueFormat": "percent",
+    "footnote": "Klik een balk om de zaken te zien",
+    "endpointSource": { "url": "/apps/dossiq/api/analytics/on-time", "responsePath": "rows", "labelsPath": "caseType", "series": [{ "name": "Op tijd", "path": "percentage" }] }
+  }
+}
+```
+
+`chartKind: "matrix"` draws one row per series and one column per category, each cell tinted in four steps by its share of the largest value (board DqProcesanalyse "Dagen per fase"). An endpoint with one row per series names them with `rowsPath`, `rowLabelPath` (default `label`) and `rowValuesPath` (default `values`); the columns come from `labelsPath`. `valueFormat: { "name": "number", "suffix": " d" }` reads "9 d".
+
+```json
+{
+  "type": "chart",
+  "props": {
+    "chartKind": "matrix",
+    "valueFormat": { "name": "number", "suffix": " d" },
+    "endpointSource": { "url": "/apps/dossiq/api/analytics/phase-days", "labelsPath": "phases", "rowsPath": "rows", "rowLabelPath": "caseType", "rowValuesPath": "days" }
+  }
+}
+```
+
+A `matrix` can hold text cells: a static `series` whose data are strings, tinted through `colorMap` (`success`, `warning`, `error`, `danger` or a CSS colour). `highlight: { row, column, columnKeys? }` outlines one cell, usually the record's on a detail page: `row` matches a series `key`, its name or its 1-based position; `column` an entry of `columnKeys`, a category label or a 1-based position. Both take tokens (board DqHandhaving, the enforcement matrix):
+
+```json
+{
+  "chartKind": "matrix",
+  "categories": ["Gevolg A: gering", "Gevolg B: matig", "Gevolg C: ernstig", "Gevolg D: zeer ernstig"],
+  "series": [
+    { "key": "1", "name": "Gedrag 1: welwillend", "data": ["Gesprek", "Gesprek", "Waarschuwing", "Last onder dwangsom"] },
+    { "key": "2", "name": "Gedrag 2: onwetend", "data": ["Gesprek", "Waarschuwing", "Last onder dwangsom", "Last onder dwangsom"] }
+  ],
+  "colorMap": { "Gesprek": "success", "Waarschuwing": "warning", "Last onder dwangsom": "error", "Bestuursdwang en aangifte": "danger" },
+  "highlight": { "row": "@object.behaviour", "column": "@object.consequence", "columnKeys": ["A", "B", "C", "D"] }
+}
+```
+
+In the board look a dashboard card holding a bar list or a matrix draws no rule under its title; other cards keep theirs.
+
 ## `views` — in-widget display switcher (Wave 3, #91)
 
 An optional `views` array renders a compact pill row above the chart that toggles which named series / value format render — pure display, no series arithmetic (the €/% and hours/% toggles from the Wave-4 evaluation):
@@ -238,7 +287,7 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `type` | String | `'area'` | Chart type: `'area'`, `'line'`, `'bar'`, `'pie'`, `'donut'`, `'radialBar'` |
+| `type` | String | `'area'` | Chart type: `'area'`, `'line'`, `'bar'`, `'pie'`, `'donut'`, `'radialBar'`, `'bar-list'`, `'matrix'` |
 | `series` | Array | `[]` | Data series. Format: `[{ name, data[] }]` for cartesian charts; `number[]` for pie/donut |
 | `categories` | Array | `[]` | X-axis category labels (line, area, bar charts) |
 | `labels` | Array | `[]` | Segment labels (pie, donut charts) |
@@ -252,6 +301,9 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 | `dataSource` | Object | `null` | Optional OpenRegister GraphQL block — see [`dataSource`](#datasource--resolving-series--categories-from-openregister) above |
 | `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars). An explicit `options.plotOptions.bar.horizontal` still wins. |
 | `legendPosition` | String | `''` | Legend placement override: `top \| bottom \| left \| right`. Empty keeps the automatic placement (bottom for pie-family, top otherwise). |
+| `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
+| `footnote` | String | `''` | `bar-list` / `matrix`: a line under the rows, through the host's translate |
+| `highlight` | Object | `null` | `matrix`: the cell to outline, `{ row, column, columnKeys? }`, tokens such as `@object.behaviour` resolved |
 | `valueAxisBaseline` | String | `'auto'` | How the value axis picks its baseline — see [Value-axis baseline](#value-axis-baseline) below. `auto` anchors bar/area at zero and stops line charts over-zooming; `zero` always anchors at zero; `fit` restores plain ApexCharts autoscaling. |
 | `valueFormat` | String \| Object | `null` | Named value formatter applied to the VALUE axis labels AND the tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"` (compact notation, e.g. `€ 1,2K`), `"percent"`. Object form `{ name, currency?, decimals? }` overrides the ISO code (EUR default, guarded) and fraction digits. With `horizontal` bars the formatter moves to the x-axis (the value axis flips). |
 | `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie/donut/radialBar slices and bar categories (bars switch to `distributed` rendering so each category gets its colour). Unmapped categories keep the default palette colour. |
