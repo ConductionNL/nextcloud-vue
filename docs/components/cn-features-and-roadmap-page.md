@@ -131,6 +131,7 @@ the badge. "Learn more" goes to `docsUrl` when it is a web address, else to `doc
 | `issueLabels` | `{}` | Forge label to issue status (`in_progress`, `planned`) for the badges in the Coming next card. |
 | `subtitle` | `''` | Line under the title; `{count}` is the number of features, `{appVersion}` the app version. |
 | `notice` | `''` | Info notice under the groups. |
+| `noticeLink` | `null` | `{ text, href }`: the first occurrence of `text` (translated) in the notice becomes a link to `href`, opened in a new tab. Only `http(s)` and site-relative (`/...`) hrefs link; anything else, or no match, leaves the notice as plain text. |
 | `documentationButton` | `false` | A Documentation button in the header. |
 | `suggestButton` | `true` | The feature request as the header's primary button; `false` moves it into the Actions menu. |
 
@@ -156,6 +157,7 @@ The DqFunctionaliteiten board:
       "statusLabels": { "all": "Alles", "available": "Stabiel" },
       "subtitle": "versie {appVersion} · bijgewerkt bij elke release",
       "notice": "Hoe dossiq zich verhoudt tot andere zaaksystemen staat in de vergelijking op conduction.nl.",
+      "noticeLink": { "text": "conduction.nl", "href": "https://dossiq.conduction.nl/compare" },
       "documentationButton": true, "suggestButton": false } } }
 ```
 

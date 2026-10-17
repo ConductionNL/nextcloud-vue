@@ -271,7 +271,16 @@
 					type="info"
 					class="cn-features-board__notice"
 					data-testid="cn-features-board-notice">
-					{{ tr(notice) }}
+					<template v-if="noticeParts.link">
+						{{ noticeParts.before }}<a
+							:href="noticeParts.link.href"
+							target="_blank"
+							rel="noopener noreferrer"
+							data-testid="cn-features-board-notice-link">{{ noticeParts.link.text }}</a>{{ noticeParts.after }}
+					</template>
+					<template v-else>
+						{{ noticeParts.before }}
+					</template>
 				</NcNoteCard>
 			</template>
 		</div>
@@ -397,6 +406,8 @@ export default {
 		suggestUrl: { type: String, default: '' },
 		/** Show the feature-request form as the header's primary button; without it, it is an entry in the Actions menu. */
 		suggestButton: { type: Boolean, default: true },
+		/** A link inside the notice: `{ text, href }`; the first occurrence of `text` in the translated notice opens `href` in a new tab. Only http(s) and site-relative hrefs link. */
+		noticeLink: { type: Object, default: null },
 		/** Target of the OpenBuilt entry in the Actions menu. */
 		openbuiltUrl: { type: String, default: '' },
 		/** Target of the AI skills entry in the Actions menu. */
@@ -464,6 +475,27 @@ export default {
 
 		resolvedTitle() {
 			return this.title ? this.tr(this.title) : t('nextcloud-vue', 'Features and roadmap')
+		},
+
+		/**
+		 * The notice split around its link: the text before, the link and the
+		 * text after. Without a usable `noticeLink` (no match in the
+		 * translated notice, or an href that is not http(s) or site-relative)
+		 * `before` is the whole notice.
+		 *
+		 * @return {{before: string, link: ({text: string, href: string}|null), after: string}} The parts.
+		 */
+		noticeParts() {
+			const text = this.notice ? this.tr(this.notice) : ''
+			const link = this.noticeLink
+			const label = link && typeof link.text === 'string' ? this.tr(link.text) : ''
+			const href = link && typeof link.href === 'string' ? link.href.trim() : ''
+			const index = label ? text.indexOf(label) : -1
+			const allowed = (/^https?:\/\//i.test(href) || href.startsWith('/')) && safeHref(href) === href
+			if (index === -1 || !allowed) {
+				return { before: text, link: null, after: '' }
+			}
+			return { before: text.slice(0, index), link: { text: label, href }, after: text.slice(index + label.length) }
 		},
 
 		resolvedSubtitle() {
