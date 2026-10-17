@@ -21,6 +21,8 @@
 				:title="title"
 				:description="headerDescription"
 				:icon="showTitleIcon && !isBoardLook ? resolvedIcon : ''"
+				:breadcrumb="breadcrumb"
+				:meta="headerMetaText"
 				:visuallyHidden="!showTitle">
 				<!-- The board's header buttons (`headerButtons`), beside the
 				     title. Declaring them takes the Views and Actions menus
@@ -1607,6 +1609,31 @@ export default {
 		title: {
 			type: String,
 			required: true,
+		},
+
+		/**
+		 * A breadcrumb under the title (manifest `config.breadcrumb`): one
+		 * crumb `{ label, route?, params?, href?, icon?, separator? }` or a
+		 * list; the title follows as the current crumb. Drawn as the detail
+		 * header's breadcrumb row. Null (the default) draws none.
+		 *
+		 * @type {object|Array<object>|null}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		breadcrumb: {
+			type: [Object, Array],
+			default: null,
+		},
+
+		/**
+		 * A note after the breadcrumb and a middle dot (manifest `config.headerMeta`),
+		 * such as "{total} open": `{total}` and `{shown}` are the list's counts.
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		headerMeta: {
+			type: String,
+			default: '',
 		},
 
 		/** Optional description shown below the title */
@@ -6286,6 +6313,22 @@ export default {
 		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-the-count-reads-in-the-users-language
 		 * @return {string}
 		 */
+		/**
+		 * The header meta note with the list's counts filled in.
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 * @return {string}
+		 */
+		headerMetaText() {
+			if (!this.headerMeta) {
+				return ''
+			}
+			const total = this.effectivePagination?.total
+			return this.cnTranslate(this.headerMeta)
+				.replace('{shown}', String(this.effectiveObjects.length))
+				.replace('{total}', typeof total === 'number' ? String(total) : '')
+		},
+
 		headerDescription() {
 			const total = this.effectivePagination?.total
 			// Board look: the count line is a template over the rows on this page
