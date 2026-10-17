@@ -29,7 +29,11 @@
 		:llmSkillsUrl="resolvedLlmSkillsUrl"
 		:suggestUrl="resolvedSuggestUrl"
 		:documentationUrl="resolvedDocumentationUrl"
-		:capabilityComparison="resolvedCapabilityComparison" />
+		:capabilityComparison="resolvedCapabilityComparison"
+		:categories="categories || {}"
+		:board="board || {}"
+		:title="title"
+		:appVersion="resolvedAppVersion" />
 </template>
 
 <script>
@@ -189,6 +193,47 @@ export default {
 		},
 
 		/**
+		 * Feature category key to caption, for the board look's groups.
+		 * Manifest `config.categories`.
+		 *
+		 * @type {object|null}
+		 */
+		categories: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Board look options (`layout`, `tabs`, `filter`, `statusLabels`,
+		 * `next`, `issueLabels`, `subtitle`, `notice`, `documentationButton`,
+		 * `suggestButton`). Manifest `config.board`; see CnFeaturesBoard.
+		 *
+		 * @type {object|null}
+		 */
+		board: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Page title, lifted from the manifest page's `title`. Shown in the
+		 * board look.
+		 */
+		title: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The app version for the board look's subtitle. Manifest config >
+		 * initialState (`features_roadmap_app_version`) > ''.
+		 */
+		appVersion: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Override for the appId used to namespace loadState lookups.
 		 * Tests pass an explicit value; production reads it from the
 		 * `cnAiContext` inject populated by CnAppRoot.
@@ -281,6 +326,11 @@ export default {
 		resolvedSuggestUrl() {
 			return this.suggestUrl
 				|| readInitialState(this.effectiveAppId, 'features_roadmap_suggest_url', '')
+		},
+
+		resolvedAppVersion() {
+			return this.appVersion
+				|| readInitialState(this.effectiveAppId, 'features_roadmap_app_version', '')
 		},
 
 		resolvedDocumentationUrl() {

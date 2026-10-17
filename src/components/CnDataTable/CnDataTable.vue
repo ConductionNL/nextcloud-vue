@@ -404,7 +404,7 @@ import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
-import { fillTemplate } from '../../utils/fillTemplate.js'
+import { fillTemplate, joinTemplateParts } from '../../utils/fillTemplate.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
@@ -420,40 +420,6 @@ import { CnUnreadMarker } from '../CnUnreadMarker/index.js'
 // shared table stylesheet. Import it here so the table is styled even when the
 // consuming app does not pull in the library's global css/index.css.
 import '../../css/table.css'
-
-/**
- * Fill a `secondary` template such as `"{identifier} · {requester}"`.
- *
- * A field without a value takes its separator with it: the text between two
- * fields belongs to the field after it, so an empty requester leaves
- * "2026-0002", not "2026-0002 ·", and an empty first field does not leave a
- * leading separator either. Text before the first field and after the last
- * one is kept as written. A template whose fields all have values fills
- * exactly as before.
- *
- * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-empty-field-takes-its-separator-with-it
- * @param {string} template The template, with `{field}` placeholders.
- * @param {(key: string) => string} valueOf The text of a field ('' when empty).
- * @return {string} The filled template.
- */
-function fillSecondaryTemplate(template, valueOf) {
-	// split() with a capture group alternates literal, field, literal, …
-	const parts = template.split(/\{([^}]+)\}/)
-	const lead = parts[0]
-	const tail = parts[parts.length - 1]
-	let body = ''
-	for (let i = 1; i < parts.length; i += 2) {
-		const value = valueOf(parts[i].trim())
-		if (value === '') {
-			continue
-		}
-		// The literal before this field: the separator, unless nothing has
-		// been written yet (then there is nothing to separate from).
-		const separator = i === 1 ? '' : parts[i - 1]
-		body += (body === '' ? '' : separator) + value
-	}
-	return lead + body + tail
-}
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -1790,7 +1756,7 @@ export default {
 				return ''
 			}
 			if (spec.includes('{')) {
-				const filled = fillSecondaryTemplate(spec, (key) => (key.includes('|')
+				const filled = joinTemplateParts(spec, (key) => (key.includes('|')
 					? fillTemplate(`{${key}}`, row)
 					: this.secondaryFieldText(row, key)))
 				// A template whose every field is empty leaves only separators:
