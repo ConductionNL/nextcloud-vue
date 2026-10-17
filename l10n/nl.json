@@ -1620,7 +1620,7 @@
     "Importing…": "Importeren…",
     "Information about the current {app} installation": "Informatie over de huidige {app}-installatie",
     "Re-import failed": "Opnieuw importeren is mislukt",
-    "Run setup wizard": "Installatiehulp starten",
+    "Run setup wizard": "Installatiewizard starten",
     "Support": "Ondersteuning",
     "{app} Settings": "{app}-instellingen",
     "Loading registers…": "Registers laden…",
@@ -1768,6 +1768,9 @@
     "{m} min {s} s": "{m} min {s} s",
     "{ran} of {total} run": "{ran} van {total} uitgevoerd",
     "{s} s": "{s} s",
+    "About this {app} installation.": "Over deze {app}-installatie.",
+    "{version}, up to date": "{version}, bijgewerkt",
+    "for an SLA": "voor een SLA",
     "About {name}": "Over {name}"
   },
   "plurals": {
