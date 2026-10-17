@@ -1171,6 +1171,8 @@
     "Due tomorrow": "Morgen",
     "Due in {days} days": "Over {days} dagen",
     "Available": "Beschikbaar",
+    "{value} of {limit}": "{value} van {limit}",
+    "{value} of {limit}, over the limit": "{value} van {limit}, boven de limiet",
     "Ready to claim": "Klaar om op te pakken",
     "In progress": "In behandeling",
     "Completed": "Afgerond",
@@ -1771,6 +1773,7 @@
     "About this {app} installation.": "Over deze {app}-installatie.",
     "{version}, up to date": "{version}, bijgewerkt",
     "for an SLA": "voor een SLA",
+    "About {name}": "Over {name}",
     "Sent message": "Verstuurd bericht",
     "Received message": "Ontvangen bericht",
     "Loading messages…": "Berichten laden…"

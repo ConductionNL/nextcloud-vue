@@ -75,7 +75,7 @@ export function useNamedSource(props, options = {}) {
 		}
 	}
 
-	const source = resolveIndexSource(props.entitySource)
+	const source = resolveIndexSource(props.entitySource, props.sourceConfig)
 
 	// An unknown source name resolves to null and was already warned about.
 	// The page then behaves as an empty index rather than throwing.
