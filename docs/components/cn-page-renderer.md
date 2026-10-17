@@ -335,7 +335,11 @@ its own lenses, columns and copy without a second page:
 
 The first preset whose every `match` pair is in the route query replaces
 `title`, `quickFilters`, `columns`, `cardFields`, `countText`,
-`searchPlaceholder`, `footerNote`, `defaultSort` and `viewSwitch`. Other keys
+`searchPlaceholder`, `footerNote`, `defaultSort`, `viewSwitch`, `addLabel`,
+`headerButtons`, `breadcrumb`, `headerMeta` and `afterList`. Its `match` pairs
+reach the page as `fixedFilters`, so the query that chose the preset shows no
+removable filter chip. A folder scope on the page can carry the same keys, and
+its value wins over the preset's (see CnIndexPage). Other keys
 stay the page's own: a preset never changes the register, the schema or what
 the list may write. Switching preset remounts the list, so the active lens
 always belongs to the lenses on screen.

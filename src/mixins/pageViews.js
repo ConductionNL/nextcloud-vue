@@ -117,9 +117,10 @@ export const pageViews = {
 		 * control. Each is `{ id, label, icon?, widgets, layout, emptyText? }`:
 		 * `widgets` and `layout` have the same shape as the page's own. The
 		 * chosen view renders in a region below the page's own grid. Empty
-		 * (the default) draws no switch and no region.
+		 * (the default) draws no switch and no region. A view's `title` is
+		 * the page title while that view is open (on a dashboard).
 		 *
-		 * @type {Array<{id: string, label: string, icon?: string, widgets?: Array<object>, layout?: Array<object>, emptyText?: string}>}
+		 * @type {Array<{id: string, label: string, title?: string, icon?: string, widgets?: Array<object>, layout?: Array<object>, emptyText?: string}>}
 		 */
 		views: {
 			type: Array,
@@ -195,7 +196,7 @@ export const pageViews = {
 		 * The declared views in one shape, labels translated. Entries without
 		 * an id or a label are dropped, as are repeated ids.
 		 *
-		 * @return {Array<{id: string, label: string, icon: string, widgets: Array<object>, layout: Array<object>, emptyText: string}>}
+		 * @return {Array<{id: string, label: string, icon: string, widgets: Array<object>, layout: Array<object>, emptyText: string, title: string}>}
 		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
 		 */
 		normalizedViews() {
@@ -219,6 +220,7 @@ export const pageViews = {
 					widgets: Array.isArray(view.widgets) ? view.widgets : [],
 					layout: Array.isArray(view.layout) ? view.layout : [],
 					emptyText: typeof view.emptyText === 'string' && view.emptyText !== '' ? translate(view.emptyText) : '',
+					title: typeof view.title === 'string' && view.title !== '' ? translate(view.title) : '',
 				}))
 		},
 

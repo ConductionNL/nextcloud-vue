@@ -170,6 +170,9 @@ describe('the block stylesheet', () => {
 	const css = fs.readFileSync(path.join(__dirname, '../../src/components/CnBrandBar/CnBrandBar.vue'), 'utf8')
 	it('pins the board sizes', () => {
 		expect(css).toMatch(/--cn-board-brand-width, 237px/)
+		// The 237px is the brand link alone; the divider follows it, 12px on (dossiq/DqKop).
+		expect(css).toMatch(/\.cn-brand-bar__brand \{\n\tflex: none;\n\twidth: var\(--cn-board-brand-width, 237px\)/)
+		expect(css).not.toMatch(/\.cn-brand-bar \{[^}]*width:/)
 		expect(css).toMatch(/--cn-nav-emblem-size, 34px/)
 		expect(css).toMatch(/font-size: 13px/)
 		expect(css).toMatch(/font-size: 18px/)

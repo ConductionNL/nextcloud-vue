@@ -4,8 +4,15 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
+import { generateOcsUrl, generateUrl } from '@nextcloud/router'
+import { reactive } from 'vue'
+import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
+import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
+import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import { formatRelativeDate } from '../utils/boardDate.js'
+import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
+import { readPath } from '../utils/readPath.js'
 import { useFlowStore } from './useFlowStore.js'
 import { useTaskInboxStore } from './useTaskInboxStore.js'
 
@@ -39,37 +46,135 @@ import { useTaskInboxStore } from './useTaskInboxStore.js'
  */
 
 /**
+ * Monday 00:00 of the current week, local time, as ISO 8601.
+ *
+ * "This week" on a flow list is the calendar week a person plans in, not a
+ * rolling seven days: on a Monday morning it reads as a fresh count.
+ *
+ * @param {Date} [now] The reference moment.
+ * @return {string} The start of the week.
+ */
+export function startOfWeek(now = new Date()) {
+	const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+	const offset = (start.getDay() + 6) % 7
+	start.setDate(start.getDate() - offset)
+	return start.toISOString()
+}
+
+/**
+ * How a flow starts, as a label, a muted second line and an icon.
+ *
+ * `trigger` is a catalogue event id, `schedule` (with `cron`) or `manual`.
+ * An event id reads as its catalogue label when the catalogue knows it,
+ * else as the id, so a trigger the catalogue has not loaded yet still says
+ * something true.
+ *
+ * @param {object} flow The flow row.
+ * @param {Array<object>} catalog The event catalogue (`{id, label}`).
+ * @return {{label: string, detail: string, icon: object}} The trigger cell.
+ */
+export function flowTriggerCell(flow, catalog = []) {
+	const trigger = String(flow?.trigger || '')
+	if (trigger === 'schedule') {
+		return { label: t('nextcloud-vue', 'On a schedule'), detail: String(flow?.cron || ''), icon: CalendarClock }
+	}
+	if (trigger === '' || trigger === 'manual') {
+		return { label: t('nextcloud-vue', 'Run by hand'), detail: '', icon: HandBackRight }
+	}
+	const entry = (catalog || []).find((item) => item && item.id === trigger)
+	return {
+		label: (entry && entry.label) || trigger,
+		detail: String(flow?.triggerSchema || ''),
+		icon: LightningBolt,
+	}
+}
+
+/**
  * The flow source: OpenRegister's one native flow store.
+ *
+ * Rows carry the run figures a flow list shows beside each flow (how its
+ * last run ended, how often it ran this week), read in one request from
+ * the run summary rather than derived from a page of runs.
+ *
+ * The quick filters (All, Active, Paused, With errors) narrow the loaded
+ * list in place: every flow of the app is already loaded, so the counts on
+ * the tabs and the rows they show can never disagree.
  *
  * @return {object} The source adapter.
  */
 function flowsSource() {
 	const store = useFlowStore()
+	const view = reactive({ state: 'all', runsRoute: '/flow-runs', flowsRoute: '/flows' })
+	const statuses = flowRunStatuses()
+
+	/**
+	 * Every flow row with its display fields, before any tab narrows it.
+	 *
+	 * @return {Array<object>} The rows.
+	 */
+	const allRows = () => (store.flows || []).map((flow) => {
+		const id = flow.id || flow.uuid
+		const summary = (store.runSummary || {})[id] || {}
+		const lastRun = summary.lastRun || null
+		const lastStatus = lastRun ? statuses[lastRun.status] : null
+		const trigger = flowTriggerCell(flow, store.eventCatalog)
+		return {
+			...flow,
+			triggerLabel: trigger.label,
+			triggerDetail: trigger.detail,
+			triggerIcon: trigger.icon,
+			lastRunStatus: lastRun ? lastRun.status : '',
+			lastRunLabel: lastRun
+				? ((lastStatus && lastStatus.label) || String(lastRun.status || ''))
+				: t('nextcloud-vue', 'Not run yet'),
+			lastRunAt: lastRun ? formatRelativeDate(lastRun.created, { withTime: true }) : '',
+			lastRunFailed: !!lastRun && FLOW_RUN_ERROR_STATUSES.includes(lastRun.status),
+			runsThisWeek: Number(summary.runsSince) || 0,
+			// The switch reads `enabled`; the label is what a screen reader and
+			// an export see. A flow with no owner is enabled but cannot start,
+			// because a trigger has no acting user to run as.
+			statusLabel: flow.enabled === false
+				? t('nextcloud-vue', 'Paused')
+				: (flow.owner ? t('nextcloud-vue', 'Active') : t('nextcloud-vue', 'No owner')),
+		}
+	})
+
+	const lastRunColors = {}
+	Object.values(statuses).forEach((entry) => {
+		lastRunColors[entry.label] = entry.variant
+	})
+
+	const filters = {
+		all: () => true,
+		active: (row) => row.enabled !== false,
+		paused: (row) => row.enabled === false,
+		errors: (row) => row.lastRunFailed,
+	}
 
 	return {
 		store,
 
 		/**
-		 * Load the flows for the scoped app.
+		 * Load the flows for the scoped app, then their run summary.
 		 *
-		 * @param {object} config The page config.
+		 * @param {object} config The page config; `state` is the active tab
+		 *   (`all`, `active`, `paused`, `errors`), `runsRoute`/`flowsRoute`
+		 *   override where the page tabs lead.
 		 *
 		 * @return {Promise<void>} Resolves when loaded.
 		 */
-		load: (config) => store.load({ app: config?.app }),
+		load: async (config) => {
+			view.state = filters[config?.state] ? config.state : 'all'
+			view.runsRoute = config?.runsRoute || '/flow-runs'
+			view.flowsRoute = config?.flowsRoute || '/flows'
+			await store.load({ app: config?.app })
+			await store.loadRunSummary((store.flows || []).map((flow) => flow.id || flow.uuid), startOfWeek())
+		},
 
 		/**
-		 * @return {Array<object>} The rows, with the display status resolved.
+		 * @return {Array<object>} The rows of the active tab.
 		 */
-		rows: () => (store.flows || []).map((flow) => ({
-			...flow,
-			// Enabled and dispatchable are NOT the same thing: a trigger fires
-			// with no acting user, so a flow with no owner has no identity to
-			// run as and will not start however enabled it looks.
-			statusLabel: flow.enabled === false
-				? t('nextcloud-vue', 'Disabled')
-				: (flow.owner ? t('nextcloud-vue', 'Enabled') : t('nextcloud-vue', 'No owner')),
-		})),
+		rows: () => allRows().filter(filters[view.state] || filters.all),
 
 		/**
 		 * @return {boolean} Whether a load is in flight.
@@ -77,12 +182,71 @@ function flowsSource() {
 		loading: () => !!store.loading,
 
 		columns: [
-			{ key: 'name', label: t('nextcloud-vue', 'Name') },
-			{ key: 'description', label: t('nextcloud-vue', 'Description') },
-			{ key: 'trigger', label: t('nextcloud-vue', 'Trigger') },
-			{ key: 'cron', label: t('nextcloud-vue', 'Schedule') },
-			{ key: 'statusLabel', label: t('nextcloud-vue', 'Status') },
+			{ key: 'name', label: t('nextcloud-vue', 'Flow'), secondary: 'description' },
+			{
+				key: 'triggerLabel',
+				label: t('nextcloud-vue', 'Trigger'),
+				secondary: 'triggerDetail',
+				widget: 'iconLabel',
+				widgetProps: { icon: (row) => row.triggerIcon },
+			},
+			{
+				key: 'lastRunLabel',
+				label: t('nextcloud-vue', 'Last run'),
+				secondary: 'lastRunAt',
+				widget: 'badge',
+				widgetProps: { colorMap: lastRunColors },
+			},
+			{ key: 'runsThisWeek', label: t('nextcloud-vue', 'Runs this week'), class: 'cn-table-col--end' },
+			{
+				key: 'statusLabel',
+				label: t('nextcloud-vue', 'Status'),
+				widget: 'switch',
+				widgetProps: {
+					checked: (row) => row.enabled !== false,
+					onToggle: (row, enabled) => store.setEnabled(row.id || row.uuid, enabled),
+				},
+			},
 		],
+
+		quickFilters: [
+			{ label: t('nextcloud-vue', 'All'), filter: { state: 'all' }, default: true },
+			{ label: t('nextcloud-vue', 'Active'), filter: { state: 'active' } },
+			{ label: t('nextcloud-vue', 'Paused'), filter: { state: 'paused' } },
+			{ label: t('nextcloud-vue', 'With errors'), filter: { state: 'errors' } },
+		],
+
+		/**
+		 * The number on each quick filter, by tab index, from the loaded list.
+		 *
+		 * @return {Record<number, number>} The counts.
+		 */
+		tabCounts: () => {
+			const rows = allRows()
+			return {
+				0: rows.length,
+				1: rows.filter(filters.active).length,
+				2: rows.filter(filters.paused).length,
+				3: rows.filter(filters.errors).length,
+			}
+		},
+
+		/**
+		 * The page tabs above the list: the flows and this week's runs.
+		 *
+		 * @return {Array<{label: string, to: string, count: number}>} The tabs.
+		 */
+		pageTabs: () => [
+			{ id: 'flows', label: t('nextcloud-vue', 'Flows'), to: view.flowsRoute, count: (store.flows || []).length },
+			{
+				id: 'runs',
+				label: t('nextcloud-vue', 'Runs this week'),
+				to: view.runsRoute,
+				count: Object.values(store.runSummary || {}).reduce((sum, entry) => sum + (Number(entry?.runsSince) || 0), 0),
+			},
+		],
+
+		footerNote: t('nextcloud-vue', 'A paused flow keeps its steps and history. It starts again when you switch it on.'),
 
 		// ONE Edit, and it NAVIGATES. `action: 'open'` is the source-action
 		// grammar CnIndexPage resolves to "open this row where the source says
@@ -141,6 +305,101 @@ function flowsSource() {
 		addLabel: t('nextcloud-vue', 'New flow'),
 		description: t('nextcloud-vue', 'A flow runs a series of steps when something happens — an object changes, a schedule fires, or you run it yourself.'),
 		title: t('nextcloud-vue', 'Flows'),
+	}
+}
+
+/**
+ * The flow runs source: this week's runs of the app's flows, newest first.
+ *
+ * The second tab of a flow list. Reads the same run history the flow
+ * editor reads, narrowed on the server to the app's flows and the week, so
+ * the rows are the runs the flows tab counted. A row opens the run on its
+ * flow's canvas (`/flows/:flowId?run=:uuid`), where CnFlowDetail shows it.
+ *
+ * @return {object} The source adapter.
+ */
+function flowRunsSource() {
+	const store = useFlowStore()
+	const view = reactive({ runsRoute: '/flow-runs', flowsRoute: '/flows' })
+	const statuses = flowRunStatuses()
+	const statusColors = {}
+	Object.values(statuses).forEach((entry) => {
+		statusColors[entry.label] = entry.variant
+	})
+
+	/**
+	 * Where a run opens: its flow's canvas in run view.
+	 *
+	 * @param {object} row The run row.
+	 * @return {object|null} A router location, or null without ids.
+	 */
+	const runTarget = (row) => {
+		const flowId = row?.flowId
+		const uuid = row?.uuid
+		return flowId && uuid
+			? { path: `${view.flowsRoute}/${encodeURIComponent(flowId)}`, query: { run: String(uuid) } }
+			: null
+	}
+
+	return {
+		store,
+
+		/**
+		 * Load the app's flows, then their runs since the start of the week.
+		 *
+		 * @param {object} config The page config (`app`, `runsRoute`, `flowsRoute`).
+		 * @return {Promise<void>} Resolves when loaded.
+		 */
+		load: async (config) => {
+			view.runsRoute = config?.runsRoute || '/flow-runs'
+			view.flowsRoute = config?.flowsRoute || '/flows'
+			await store.load({ app: config?.app })
+			const ids = (store.flows || []).map((flow) => flow.id || flow.uuid)
+			const since = startOfWeek()
+			await Promise.all([store.loadRecentRuns(ids, since), store.loadRunSummary(ids, since)])
+		},
+
+		/**
+		 * @return {Array<object>} The runs, with flow name and status label.
+		 */
+		rows: () => {
+			const names = {}
+			;(store.flows || []).forEach((flow) => {
+				names[flow.id || flow.uuid] = flow.name
+			})
+			return (store.recentRuns || []).map((run) => ({
+				...run,
+				id: run.uuid,
+				flowName: names[run.flowId] || run.flowId,
+				statusLabel: (statuses[run.status] && statuses[run.status].label) || String(run.status || ''),
+				startedAt: formatRelativeDate(run.created, { withTime: true }),
+			}))
+		},
+
+		/**
+		 * @return {boolean} Whether a load is in flight.
+		 */
+		loading: () => !!store.loading || !!store.recentRunsLoading,
+
+		columns: [
+			{ key: 'flowName', label: t('nextcloud-vue', 'Flow'), secondary: 'error' },
+			{ key: 'statusLabel', label: t('nextcloud-vue', 'Status'), widget: 'badge', widgetProps: { colorMap: statusColors } },
+			{ key: 'startedAt', label: t('nextcloud-vue', 'Started') },
+			{ key: 'trigger', label: t('nextcloud-vue', 'Trigger') },
+		],
+
+		pageTabs: () => [
+			{ id: 'flows', label: t('nextcloud-vue', 'Flows'), to: view.flowsRoute, count: (store.flows || []).length },
+			{ id: 'runs', label: t('nextcloud-vue', 'Runs this week'), to: view.runsRoute, count: (store.recentRuns || []).length },
+		],
+
+		// A location, not a URL: the canvas is the consuming app's own page,
+		// so a plain click pushes on its router and a ctrl/cmd click resolves
+		// the same location into a new tab.
+		rowTarget: runTarget,
+		showAdd: false,
+		title: t('nextcloud-vue', 'Runs this week'),
+		description: t('nextcloud-vue', 'Every run of this app\'s flows since Monday, newest first.'),
 	}
 }
 
@@ -359,13 +618,292 @@ function tasksSource() {
 }
 
 /**
+ * Read a dotted path off a response body.
+ *
+ * @param {object} body The response body.
+ * @param {string} path A dotted path such as `data.items`.
+ * @return {unknown} The value, or undefined.
+ */
+function readRowsPath(body, path) {
+	return String(path).split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), body)
+}
+
+/**
+ * The endpoint source: rows from an app's own endpoint
+ * (`entitySource: "endpoint"`), for a list that is not OpenRegister objects,
+ * such as dossiq's postvak.
+ *
+ * `sourceConfig.url` is an app path (`/apps/dossiq/api/postvak`), resolved
+ * with `generateUrl` and fetched with the session, so the endpoint does its
+ * own authorization. `sourceConfig.rowsPath` names where the rows sit in the
+ * response (`results` by default; a bare array is taken as is). Every other
+ * key, the active tab's filter and the sidebar choices included, goes along
+ * as a query parameter. The manifest declares the columns.
+ *
+ * Without a `sourceConfig.url`, and when the page config itself arrived in
+ * its place (CnPageRenderer's fallback for a page that sets no
+ * `sourceConfig`, recognisable by its `entitySource` key), nothing is
+ * requested: page-config keys must never become query parameters. The list
+ * stays empty and one console error names the page.
+ *
+ * @return {object} The source adapter.
+ * @spec openspec/changes/index-endpoint-source/specs/index-page/spec.md#requirement-an-index-page-can-list-rows-from-an-app-endpoint
+ */
+function endpointSource() {
+	const state = reactive({ rows: [], loading: false })
+	let seq = 0
+	let warned = false
+
+	return {
+		/**
+		 * Fetch the rows.
+		 *
+		 * @param {object} config The page's source config with the tab filter merged in.
+		 * @return {Promise<void>} Resolves when loaded; a failed request leaves no rows and rethrows.
+		 */
+		load: async (config) => {
+			const { url, rowsPath, ...rest } = config || {}
+			const mine = ++seq
+			const pageConfig = Boolean(config && Object.hasOwn(config, 'entitySource'))
+			if (typeof url !== 'string' || url === '' || pageConfig) {
+				state.rows = []
+				if (!warned) {
+					warned = true
+					const page = (config && (config.title || config.id)) || 'an index page'
+					// eslint-disable-next-line no-console
+					console.error(`[CnIndexPage] entitySource "endpoint" on "${page}" needs an explicit sourceConfig with a url (an app path such as /apps/<app>/api/<path>); nothing is loaded.`)
+				}
+				return
+			}
+			const params = {}
+			for (const [key, value] of Object.entries(rest)) {
+				if (value === undefined || value === null || value === '') {
+					continue
+				}
+				params[key] = Array.isArray(value) ? value.join(',') : (typeof value === 'object' ? JSON.stringify(value) : value)
+			}
+			state.loading = true
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const res = await axios.get(generateUrl(url), { params })
+				const body = res ? res.data : null
+				const rows = Array.isArray(body) ? body : readRowsPath(body, rowsPath || 'results')
+				if (mine === seq) {
+					state.rows = Array.isArray(rows) ? rows : []
+				}
+			} catch (error) {
+				if (mine === seq) {
+					state.rows = []
+				}
+				throw error
+			} finally {
+				if (mine === seq) {
+					state.loading = false
+				}
+			}
+		},
+
+		/**
+		 * @return {Array<object>} The rows the endpoint returned.
+		 */
+		rows: () => state.rows,
+
+		/**
+		 * @return {boolean} Whether a load is in flight.
+		 */
+		loading: () => state.loading,
+	}
+}
+
+/**
+ * Fill `{field}` placeholders in a link template from a row.
+ *
+ * @param {string} template A path such as `/apps/dossiq/cases/{id}`.
+ * @param {object} row The row.
+ * @return {string} The path.
+ */
+function fillRowTemplate(template, row) {
+	return String(template).replace(/\{([\w.@]+)\}/g, (match, path) => {
+		const value = readPath(row, path)
+		return value === undefined || value === null ? '' : encodeURIComponent(String(value))
+	})
+}
+
+/**
+ * The search source: one search term over several OpenRegister schemas and
+ * the reader's files (`entitySource: "search"`), with a quick filter per kind
+ * and its count (DqZoekresultaten).
+ *
+ * `sourceConfig.kinds` lists what is searched:
+ * `{ id, label, register, schema, titleField?, subtitleField?, statusField?, href?, limit? }`
+ * for objects (OpenRegister's `_search`, so the reader sees what they may
+ * read), or `{ id, label, files: true, limit? }` for the reader's files
+ * (Nextcloud's unified search). The term is `sourceConfig.term`, else the
+ * address's `?q=` (or `sourceConfig.termQuery`). A kind that fails shows no
+ * rows and no count; the others still answer.
+ *
+ * @param {object} [config] The page's source config.
+ * @return {object} The source adapter.
+ * @spec openspec/changes/index-search-source/specs/index-page/spec.md#requirement-an-index-page-can-search-several-schemas-and-files
+ */
+function searchSource(config = {}) {
+	const kinds = (Array.isArray(config && config.kinds) ? config.kinds : [])
+		.filter((kind) => kind && typeof kind.id === 'string' && kind.id !== '' && (kind.files === true || (kind.register && kind.schema)))
+	const state = reactive({ rows: [], totals: {}, loading: false, kind: 'all', term: '' })
+	let seq = 0
+
+	const searchObjects = async (axios, kind, term) => {
+		const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: kind.register, schema: kind.schema })
+		const res = await axios.get(url, { params: { _search: term, _limit: kind.limit || 20 } })
+		const body = (res && res.data) || {}
+		const results = Array.isArray(body.results) ? body.results : (Array.isArray(body) ? body : [])
+		return {
+			total: typeof body.total === 'number' ? body.total : results.length,
+			rows: results.map((object) => {
+				const id = object.id || object.uuid || (object['@self'] && object['@self'].id)
+				return {
+					id: `${kind.id}:${id}`,
+					kind: kind.id,
+					kindLabel: kind.label,
+					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
+					subtitle: kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : '',
+					status: kind.statusField ? String(readPath(object, kind.statusField) ?? '') : '',
+					href: kind.href ? generateUrl(fillRowTemplate(kind.href, { ...object, id })) : '',
+					object,
+				}
+			}),
+		}
+	}
+
+	const searchFiles = async (axios, kind, term) => {
+		const res = await axios.get(generateOcsUrl('search/providers/files/search'), {
+			params: { term, limit: kind.limit || 20, format: 'json' },
+			headers: { 'OCS-APIRequest': 'true' },
+		})
+		const entries = (res && res.data && res.data.ocs && res.data.ocs.data && res.data.ocs.data.entries) || []
+		return {
+			total: entries.length,
+			rows: entries.map((entry, index) => ({
+				id: `${kind.id}:${entry.resourceUrl || index}`,
+				kind: kind.id,
+				kindLabel: kind.label,
+				title: entry.title || '',
+				subtitle: entry.subline || '',
+				status: '',
+				href: entry.resourceUrl || '',
+			})),
+		}
+	}
+
+	return {
+		/**
+		 * Run the search over every kind, in parallel.
+		 *
+		 * @param {object} cfg The page's source config with the active tab's `kind` merged in.
+		 * @return {Promise<void>} Resolves when every kind answered or failed.
+		 */
+		load: async (cfg) => {
+			state.kind = cfg && typeof cfg.kind === 'string' ? cfg.kind : 'all'
+			const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+			const term = String((cfg && cfg.term) || (query && query.get((cfg && cfg.termQuery) || 'q')) || '').trim()
+			const mine = ++seq
+			state.term = term
+			if (term === '' || kinds.length === 0) {
+				state.rows = []
+				state.totals = {}
+				return
+			}
+			state.loading = true
+			const { default: axios } = await import('@nextcloud/axios')
+			const answers = await Promise.all(kinds.map((kind) => (kind.files === true ? searchFiles(axios, kind, term) : searchObjects(axios, kind, term)).catch(() => null)))
+			if (mine !== seq) {
+				return
+			}
+			const totals = {}
+			const rows = []
+			answers.forEach((answer, index) => {
+				if (answer) {
+					totals[kinds[index].id] = answer.total
+					rows.push(...answer.rows)
+				}
+			})
+			state.totals = totals
+			state.rows = rows
+			state.loading = false
+		},
+
+		/**
+		 * @return {Array<object>} The results of the active kind, or all of them.
+		 */
+		rows: () => (state.kind === 'all' ? state.rows : state.rows.filter((row) => row.kind === state.kind)),
+
+		/**
+		 * @return {boolean} Whether a search is in flight.
+		 */
+		loading: () => state.loading,
+
+		columns: [
+			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle' },
+			{ key: 'kindLabel', label: t('nextcloud-vue', 'Kind') },
+			{ key: 'status', label: t('nextcloud-vue', 'Status') },
+		],
+
+		quickFilters: kinds.length > 0
+			? [
+					{ label: t('nextcloud-vue', 'All'), filter: { kind: 'all' }, default: true },
+					...kinds.map((kind) => ({ label: kind.label || kind.id, filter: { kind: kind.id } })),
+				]
+			: null,
+
+		/**
+		 * The number on each kind's quick filter: the total each search
+		 * reported, and their sum on All.
+		 *
+		 * @return {Record<number, number>} The counts by tab index.
+		 */
+		tabCounts: () => {
+			const counts = { 0: Object.values(state.totals).reduce((sum, value) => sum + value, 0) }
+			kinds.forEach((kind, index) => {
+				if (typeof state.totals[kind.id] === 'number') {
+					counts[index + 1] = state.totals[kind.id]
+				}
+			})
+			return counts
+		},
+
+		/**
+		 * Open a result where it lives.
+		 *
+		 * @param {object} row The clicked row.
+		 * @return {void}
+		 */
+		openRow: (row) => {
+			if (row && row.href) {
+				window.location.assign(row.href)
+			}
+		},
+
+		/**
+		 * @param {object} row A row.
+		 * @return {string|null} The URL the row opens, for a new tab.
+		 */
+		rowTarget: (row) => (row && row.href) || null,
+	}
+}
+
+/**
  * The registered sources, by the name a manifest uses.
  *
  * @type {Record<string, () => object>}
  */
+export { flowRunStatuses }
+
 export const indexSources = {
 	flows: flowsSource,
+	flowRuns: flowRunsSource,
 	tasks: tasksSource,
+	endpoint: endpointSource,
+	search: searchSource,
 }
 
 /**
@@ -378,10 +916,11 @@ export const indexSources = {
  * indistinguishable from a source that genuinely has no rows.
  *
  * @param {string} name The source name from `config.source`.
+ * @param {object} [config] The page's source config, for a source that builds its tabs from it.
  *
  * @return {object|null} The adapter, or null when the name is not registered.
  */
-export function resolveIndexSource(name) {
+export function resolveIndexSource(name, config) {
 	const key = String(name || '')
 	if (!key) {
 		return null
@@ -394,5 +933,5 @@ export function resolveIndexSource(name) {
 		return null
 	}
 
-	return factory()
+	return factory(config || {})
 }
