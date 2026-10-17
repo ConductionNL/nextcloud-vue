@@ -51,7 +51,7 @@ The **`"date"`** widget takes two more `widgetProps` keys: `showTime: true` adds
 
 `widgetProps: { relative: true }` makes the `"date"` widget say "today" and "yesterday" and, from the day before, the short date ("5 okt"); with `showTime: true` the time of day follows ("vandaag, 09.42", "gisteren, 23.12"). The full date and time is the tooltip. The record-list templates take the same through `{path|relative}` and `{path|relativetime}`. Without `relative` nothing changes.
 
-`widgetProps: { due: { emptyText: "Geen deadline" } }` reads the date as a due text: "N days overdue" in the error colour, "Due today", "tomorrow" or the short date, and `emptyText` for an empty cell. The keys are those of the record list's `due` (`todayLabel`, `overdueLabel`, `emptyText`).
+`widgetProps: { due: { emptyText: "Geen deadline" } }` reads the date as a due text: "N days overdue" in the error colour, "Due today", "tomorrow" or the short date, and `emptyText` for an empty cell. The keys are those of the record list's `due` (`todayLabel`, `overdueLabel`, `upcomingLabel`, `upcomingWeeksLabel`, `upcomingWeeksFrom`, `emptyText`).
 
 The monospace uuid style (`format: "uuid"`) applies only when the value is a uuid and nothing resolves it: a reference a formatter or a widget resolved to its name renders in the normal text style.
 | `user` | `true` when the cell value itself is the user id. |
