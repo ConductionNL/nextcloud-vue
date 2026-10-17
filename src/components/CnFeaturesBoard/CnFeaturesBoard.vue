@@ -195,7 +195,7 @@
 									data-testid="cn-features-board-feature">
 									<span class="cn-features-board__row-text">
 										<span class="cn-features-board__row-title">{{ feature.title }}</span>
-										<span v-if="feature.summary" class="cn-features-board__row-summary">{{ feature.summary }}</span>
+										<span v-if="summaries && feature.summary" class="cn-features-board__row-summary">{{ feature.summary }}</span>
 									</span>
 									<CnStatusBadge
 										:label="statusText(feature)"
@@ -271,7 +271,16 @@
 					type="info"
 					class="cn-features-board__notice"
 					data-testid="cn-features-board-notice">
-					{{ tr(notice) }}
+					<template v-if="noticeParts.link">
+						{{ noticeParts.before }}<a
+							:href="noticeParts.link.href"
+							target="_blank"
+							rel="noopener noreferrer"
+							data-testid="cn-features-board-notice-link">{{ noticeParts.link.text }}</a>{{ noticeParts.after }}
+					</template>
+					<template v-else>
+						{{ noticeParts.before }}
+					</template>
 				</NcNoteCard>
 			</template>
 		</div>
@@ -397,6 +406,10 @@ export default {
 		suggestUrl: { type: String, default: '' },
 		/** Show the feature-request form as the header's primary button; without it, it is an entry in the Actions menu. */
 		suggestButton: { type: Boolean, default: true },
+		/** In the `rows` layout, draw each feature's summary under its title; false shows the title and status only. */
+		summaries: { type: Boolean, default: true },
+		/** A link inside the notice: `{ text, href }`; the first occurrence of `text` in the translated notice opens `href` in a new tab. Only http(s) and site-relative hrefs link. */
+		noticeLink: { type: Object, default: null },
 		/** Target of the OpenBuilt entry in the Actions menu. */
 		openbuiltUrl: { type: String, default: '' },
 		/** Target of the AI skills entry in the Actions menu. */
@@ -421,8 +434,10 @@ export default {
 			return readerLanguage()
 		},
 
+		/** The groups, their captions through the app's translate function. */
 		groups() {
 			return groupFeatures(this.features, this.categories, this.language)
+				.map((group) => ({ ...group, label: group.label ? this.tr(group.label) : '' }))
 		},
 
 		allFeatures() {
@@ -464,6 +479,27 @@ export default {
 
 		resolvedTitle() {
 			return this.title ? this.tr(this.title) : t('nextcloud-vue', 'Features and roadmap')
+		},
+
+		/**
+		 * The notice split around its link: the text before, the link and the
+		 * text after. Without a usable `noticeLink` (no match in the
+		 * translated notice, or an href that is not http(s) or site-relative)
+		 * `before` is the whole notice.
+		 *
+		 * @return {{before: string, link: ({text: string, href: string}|null), after: string}} The parts.
+		 */
+		noticeParts() {
+			const text = this.notice ? this.tr(this.notice) : ''
+			const link = this.noticeLink
+			const label = link && typeof link.text === 'string' ? this.tr(link.text) : ''
+			const href = link && typeof link.href === 'string' ? link.href.trim() : ''
+			const index = label ? text.indexOf(label) : -1
+			const allowed = (/^https?:\/\//i.test(href) || href.startsWith('/')) && safeHref(href) === href
+			if (index === -1 || !allowed) {
+				return { before: text, link: null, after: '' }
+			}
+			return { before: text.slice(0, index), link: { text: label, href }, after: text.slice(index + label.length) }
 		},
 
 		resolvedSubtitle() {

@@ -21,7 +21,24 @@
 				class="cn-user-settings-dialog__nav"
 				:aria-label="navLabel"
 				data-testid="cn-user-settings-nav">
-				<ul>
+				<!-- `nextcloudLinks`: Nextcloud's own personal settings first, as
+				     links, then one entry for this app holding its sections. -->
+				<ul v-if="ncLinks.length > 0" class="cn-user-settings-dialog__nc-links" data-testid="cn-user-settings-nc-links">
+					<li v-for="link in ncLinks" :key="link.key">
+						<a :href="link.href" class="cn-user-settings-dialog__nav-link">
+							<span v-if="link.icon" class="cn-user-settings-dialog__nav-icon" aria-hidden="true">
+								<CnIcon :name="link.icon" :size="18" />
+							</span>
+							<span>{{ link.label }}</span>
+						</a>
+					</li>
+				</ul>
+				<p v-if="ncLinks.length > 0 && appName"
+					class="cn-user-settings-dialog__group"
+					data-testid="cn-user-settings-app-group">
+					{{ appName }}
+				</p>
+				<ul :class="{ 'cn-user-settings-dialog__group-sections': ncLinks.length > 0 }">
 					<li v-for="section in sections" :key="section.id">
 						<a
 							:href="`#settings-section_${section.id}`"
@@ -41,6 +58,14 @@
 			<div class="cn-user-settings-dialog__sections">
 				<!-- @slot default NcAppSettingsSection children; each registers itself in the navigation. -->
 				<slot />
+				<!-- A section's `#icon` also stands before its heading. -->
+				<template v-for="section in sections" :key="`heading-icon-${section.id}-${section.name}`">
+					<Teleport v-if="section.icon && headingTargets.includes(section.id)" :to="`#settings-section_${section.id}--label`">
+						<span class="cn-user-settings-dialog__heading-icon" aria-hidden="true" :data-testid="`cn-user-settings-heading-icon-${section.id}`">
+							<CnVNodes :vnodes="section.icon" />
+						</span>
+					</Teleport>
+				</template>
 			</div>
 		</div>
 		<template #actions>
@@ -56,9 +81,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
-import { markRaw } from 'vue'
+import { cloneVNode, markRaw, ref } from 'vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 
 /**
  * The key NcAppSettingsSection injects to register itself with its dialog
@@ -66,20 +93,26 @@ import CnDialog from '../CnDialog/CnDialog.vue'
  */
 const REGISTRATION_KEY = Symbol.for('NcAppSettingsDialog:registration')
 
+/** The key NcAppSettingsSection injects for the legacy design flag. */
+const LEGACY_DESIGN_KEY = Symbol.for('NcAppSettingsDialog:legacy')
+
 /** Renders a section's icon vnodes as they were registered. */
 const CnVNodes = {
 	name: 'CnVNodes',
 	props: { vnodes: { type: [Array, Object], default: null } },
 	render() {
-		return this.vnodes
+		// A section's icon is drawn twice (navigation and heading), so each draw gets its own copy.
+		const list = Array.isArray(this.vnodes) ? this.vnodes : [this.vnodes]
+		return list.map((vnode) => (vnode && typeof vnode === 'object' ? cloneVNode(vnode) : vnode))
 	},
 }
 
 /**
  * CnUserSettingsDialog - the user settings dialog in the board look (board
  * PqPersoonlijk): eyebrow, title and subtitle, a left navigation listing the
- * sections with their icons, the sections themselves, and a footer with a
- * note that changes save straight away and a Close button.
+ * sections with their icons, the current section (the others stay mounted
+ * but hidden), and a footer with a note that changes save straight away and
+ * a Close button.
  *
  * The sections stay the app's: any `NcAppSettingsSection` in the default slot
  * registers itself with this dialog exactly as it does with
@@ -93,7 +126,7 @@ const CnVNodes = {
 export default {
 	name: 'CnUserSettingsDialog',
 
-	components: { CnDialog, CnVNodes, NcButton },
+	components: { CnDialog, CnIcon, CnVNodes, NcButton },
 
 	provide() {
 		return {
@@ -101,6 +134,9 @@ export default {
 				registerSection: this.registerSection,
 				unregisterSection: this.unregisterSection,
 			},
+
+			// NcAppSettingsSection also asks its dialog whether to use the legacy design.
+			[LEGACY_DESIGN_KEY]: ref(false),
 		}
 	},
 
@@ -113,8 +149,15 @@ export default {
 		eyebrow: { type: String, default: () => t('nextcloud-vue', 'Your account') },
 		/** Sentence under the title. */
 		subtitle: { type: String, default: () => t('nextcloud-vue', 'Only for you. Colleagues keep their own settings.') },
-		/** The app's name, after the footer note. */
+		/** The app's name, after the footer note and as the navigation entry holding its sections. */
 		appName: { type: String, default: '' },
+		/**
+		 * Nextcloud's own personal settings, listed first in the navigation as
+		 * links: `[{ label, section? | href?, icon? }]`. `section` is a
+		 * personal settings section id (`/settings/user/<section>`). With any,
+		 * the app's sections sit under one entry named after the app.
+		 */
+		nextcloudLinks: { type: Array, default: () => [] },
 	},
 
 	emits: ['update:open'],
@@ -123,11 +166,30 @@ export default {
 		return {
 			sections: [],
 			selected: '',
+			/** Ids of the sections whose heading is in the page, for the heading icons. */
+			headingTargets: [],
 			picked: false,
 		}
 	},
 
 	computed: {
+		/**
+		 * The Nextcloud links with their URL.
+		 *
+		 * @spec openspec/changes/user-settings-nav-groups/specs/user-settings-board-dialog/spec.md#requirement-the-board-user-settings-navigation-can-list-nextclouds-own-sections-first
+		 * @return {Array<{key: string, label: string, href: string, icon: string}>}
+		 */
+		ncLinks() {
+			return (Array.isArray(this.nextcloudLinks) ? this.nextcloudLinks : [])
+				.filter((link) => link && typeof link === 'object' && typeof link.label === 'string' && link.label !== '' && (link.href || link.section))
+				.map((link, index) => ({
+					key: String(link.section || link.href || index),
+					label: link.label,
+					href: link.href || generateUrl('/settings/user/{section}', { section: String(link.section) }),
+					icon: typeof link.icon === 'string' ? link.icon : '',
+				}))
+		},
+
 		/** @return {object} The board's eyebrow: muted, in sentence case. */
 		eyebrowStyle() {
 			return { '--cn-dialog-eyebrow-transform': 'none', '--cn-dialog-eyebrow-color': 'var(--color-text-maxcontrast)' }
@@ -147,6 +209,21 @@ export default {
 		/** @return {string} The Close button label. */
 		closeLabel() {
 			return t('nextcloud-vue', 'Close')
+		},
+	},
+
+	watch: {
+		sections() {
+			this.$nextTick(() => {
+				this.headingTargets = typeof document === 'undefined'
+					? []
+					: this.sections.filter((section) => section.icon && document.getElementById(`settings-section_${section.id}--label`)).map((section) => section.id)
+				this.showSelected()
+			})
+		},
+
+		selected() {
+			this.$nextTick(() => this.showSelected())
 		},
 	},
 
@@ -190,9 +267,31 @@ export default {
 		selectSection(id) {
 			this.picked = true
 			this.selected = id
-			const target = typeof document !== 'undefined' ? document.getElementById(`settings-section_${id}`) : null
-			if (target && typeof target.scrollIntoView === 'function') {
-				target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+			this.$nextTick(() => {
+				this.showSelected()
+				const heading = typeof document !== 'undefined' ? document.getElementById(`settings-section_${id}--label`) : null
+				if (heading) {
+					heading.setAttribute('tabindex', '-1')
+					heading.focus()
+				}
+			})
+		},
+
+		/**
+		 * Show the current section and hide the others. They stay mounted,
+		 * so what a reader typed in one survives a switch.
+		 *
+		 * @spec openspec/changes/user-settings-one-section/specs/user-settings-board-dialog/spec.md#requirement-the-board-user-settings-dialog-shows-one-section-at-a-time
+		 */
+		showSelected() {
+			if (typeof document === 'undefined') {
+				return
+			}
+			for (const section of this.sections) {
+				const el = document.getElementById(`settings-section_${section.id}`)
+				if (el) {
+					el.hidden = section.id !== this.selected
+				}
 			}
 		},
 
@@ -294,6 +393,9 @@ export default {
 	margin: 0 0 12px;
 	font-size: 17px;
 	font-weight: 700;
+	display: flex;
+	align-items: center;
+	gap: 10px;
 }
 
 .cn-user-settings-dialog__note {
@@ -301,5 +403,32 @@ export default {
 	margin: 0;
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-user-settings-dialog__nc-links {
+	margin-bottom: 2px;
+}
+
+.cn-user-settings-dialog__group {
+	margin: 10px 0 2px;
+	padding: 0 12px;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-user-settings-dialog__group-sections {
+	padding-inline-start: 12px;
+}
+
+.cn-user-settings-dialog__heading-icon {
+	display: inline-flex;
+	order: -1;
+	color: var(--color-text-maxcontrast);
+}
+
+/* One section at a time: the others are mounted but hidden. */
+.cn-user-settings-dialog__sections :deep(.app-settings-section[hidden]) {
+	display: none;
 }
 </style>

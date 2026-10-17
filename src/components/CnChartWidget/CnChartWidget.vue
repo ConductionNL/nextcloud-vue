@@ -138,9 +138,11 @@ import { useDataSource } from '../../composables/useDataSource.js'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
+import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 
 /**
@@ -384,6 +386,26 @@ export default {
 		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
 		 */
 		highlight: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * `matrix`: read the cells from records that each hold one cell, in
+		 * a register: `{ register, schema, filter?, rowField, columnField,
+		 * valueField, rowLabelField?, columnLabelField?, rowLabels?,
+		 * columnLabels?, valueLabels?, rowOrder?, columnOrder?, rowOrderField?,
+		 * columnOrderField?, limit? }`. `filter` takes tokens such as
+		 * `@object.matrixVersion`; the list waits while one is unresolved.
+		 * With `cellsPath` the matrix sits inside ONE record instead: the
+		 * first record `filter` finds (else `fallbackFilter`), its array at
+		 * `cellsPath` narrowed by `cellFilter` (tokens allowed), the axis
+		 * order from `rowOrderPath` / `columnOrderPath` on that record.
+		 * Wins over `series` / `categories`.
+		 *
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
+		 */
+		cellSource: {
 			type: Object,
 			default: null,
 		},
@@ -800,6 +822,8 @@ export default {
 			// `drilldown` click navigates with the filterable value, not the
 			// display label.
 			aggregateData: null,
+			// The `cellSource` matrix, laid out (`{ series, categories, columnKeys }`), or null.
+			cellData: null,
 			// Active `views[]` switcher key (null = the first view). Local
 			// UI state only — never persisted.
 			activeViewKey: null,
@@ -900,6 +924,9 @@ export default {
 		 * and `labels`.
 		 */
 		resolvedSeries() {
+			if (this.cellData) {
+				return this.cellData.series
+			}
 			const ep = this.endpointChartData
 			if (ep) {
 				return ep.series
@@ -913,6 +940,9 @@ export default {
 		},
 
 		resolvedCategories() {
+			if (this.cellData) {
+				return this.cellData.categories
+			}
 			const ep = this.endpointChartData
 			if (ep) {
 				return ep.categories
@@ -926,6 +956,9 @@ export default {
 		},
 
 		resolvedLabels() {
+			if (this.cellData) {
+				return this.cellData.categories
+			}
 			const ep = this.endpointChartData
 			if (ep) {
 				return ep.labels
@@ -1317,6 +1350,30 @@ export default {
 		},
 
 		/**
+		 * The `cellSource` list as it would be asked, tokens resolved, or null
+		 * while there is none or a filter token is unresolved. Refetches when
+		 * it changes.
+		 *
+		 * @return {string|null} The key.
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
+		 */
+		cellSourceKey() {
+			const src = this.cellSource
+			if (!src || typeof src !== 'object' || !src.register || !src.schema || !src.rowField || !src.columnField || !src.valueField) {
+				return null
+			}
+			const ctx = this.chartTokenCtx()
+			const resolve = (value) => resolveFilterTokens(value && typeof value === 'object' ? value : {}, ctx)
+			const filter = resolve(src.filter)
+			const cellFilter = resolve(src.cellFilter)
+			if (hasUnresolvedTokens(filter) || hasUnresolvedTokens(cellFilter)) {
+				return null
+			}
+			const fallbackFilter = src.fallbackFilter ? resolve(src.fallbackFilter) : null
+			return JSON.stringify({ register: src.register, schema: src.schema, filter, fallbackFilter, cellFilter, limit: src.cellsPath ? 1 : (src.limit || 500) })
+		},
+
+		/**
 		 * The rows of a `bar-list`: the categories of the first displayed
 		 * series, each with its value's share of `barMax` (or the largest
 		 * value) and the formatted value.
@@ -1370,6 +1427,13 @@ export default {
 					cells: columns.map((column, index) => {
 						const raw = Array.isArray(entry.data) ? entry.data[index] : undefined
 						const isCurrent = current !== null && current.row === rowIndex && current.column === index
+						const valueLabels = this.cellSource && typeof this.cellSource.valueLabels === 'object' ? this.cellSource.valueLabels : null
+						if (valueLabels && raw !== null && raw !== undefined && typeof valueLabels[String(raw)] === 'string') {
+							const label = valueLabels[String(raw)]
+							const tone = map[String(raw)] || map[label]
+							const level = TONE_LEVELS[tone] ?? 0
+							return { text: this.hostTranslate(label), level: level || 'tone', color: level ? '' : (tone || ''), current: isCurrent }
+						}
 						if (typeof raw === 'string') {
 							const tone = map[raw]
 							const level = TONE_LEVELS[tone] ?? 0
@@ -1409,7 +1473,8 @@ export default {
 			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries : []
 			const rowIndex = series.findIndex((entry, i) => entry && (String(entry.key ?? '') === row || String(entry.name ?? '') === row || String(i + 1) === row))
 			const columns = Array.isArray(this.resolvedCategories) ? this.resolvedCategories.map((c) => String(c)) : []
-			const keys = Array.isArray(def.columnKeys) ? def.columnKeys.map((k) => String(k)) : []
+			const declared = Array.isArray(def.columnKeys) ? def.columnKeys : (this.cellData ? this.cellData.columnKeys : [])
+			const keys = declared.map((k) => String(k))
 			let columnIndex = keys.indexOf(column)
 			if (columnIndex < 0) {
 				columnIndex = columns.findIndex((c, i) => c === column || String(i + 1) === column)
@@ -1586,6 +1651,10 @@ export default {
 		aggregateKey() {
 			this.fetchAggregateSource()
 		},
+
+		cellSourceKey() {
+			this.fetchCells()
+		},
 	},
 
 	created() {
@@ -1597,6 +1666,7 @@ export default {
 		this.fetchGroupBy()
 		this.fetchTimeBucket()
 		this.fetchAggregateSource()
+		this.fetchCells()
 		// Subscribe to the widget Refresh bus (B3 event-bus opt-in mode)
 		// FIRST, before the ResizeObserver early-return — environments
 		// without ResizeObserver (jsdom) must still get the subscription.
@@ -1753,6 +1823,7 @@ export default {
 				this.fetchGroupBy(),
 				this.fetchTimeBucket(),
 				this.fetchAggregateSource(),
+				this.fetchCells(),
 			])
 		},
 
@@ -1971,6 +2042,39 @@ export default {
 					this.groupByData = null
 				}
 			}
+		},
+
+		/**
+		 * Read the `cellSource` records and lay them out as the matrix: one
+		 * record per cell, or with `cellsPath` the cells inside one record. A
+		 * failed read leaves the matrix empty rather than showing stale
+		 * cells; an answer to an older request is dropped.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-one-record
+		 */
+		async fetchCells() {
+			const key = this.cellSourceKey
+			if (key === null) {
+				this.cellData = null
+				return
+			}
+			const { register, schema, filter, fallbackFilter, cellFilter, limit } = JSON.parse(key)
+			this._cellRequest = key
+			let records = await fetchReferenceObjects({ register, schema, filter, limit }).catch(() => [])
+			if (this.cellSource.cellsPath && records.length === 0 && fallbackFilter) {
+				records = await fetchReferenceObjects({ register, schema, filter: fallbackFilter, limit }).catch(() => [])
+			}
+			if (this._cellRequest !== key) {
+				return
+			}
+			if (this.cellSource.cellsPath) {
+				const { cells, config } = cellsFromRecord(records[0] || null, this.cellSource, cellFilter)
+				this.cellData = pivotCells(cells, config)
+				return
+			}
+			this.cellData = pivotCells(records, this.cellSource)
 		},
 
 		/**
