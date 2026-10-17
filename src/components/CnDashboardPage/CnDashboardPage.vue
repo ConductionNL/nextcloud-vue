@@ -13,6 +13,7 @@
 	<div
 		class="cn-dashboard-page"
 		:class="{ 'cn-dashboard-page--board': isBoardLook }"
+		:style="{ '--cn-dashboard-grid-margin': `${gridMargin}px` }"
 		data-testid="cn-dashboard-page">
 		<!-- Header. `showHeader: false` drops the whole row (title, description,
 		     header actions, edit toggle) for a page that opens with its own
@@ -4911,6 +4912,15 @@ export default {
 /* The KPI row above the grid: tiles are cells of the auto-fit grid. */
 .cn-dashboard-page__kpi-row {
 	margin-bottom: var(--cn-board-section-gap, 16px);
+}
+
+/* Board look: GridStack insets every card by the grid margin on each side, so
+   the cards started a margin to the right of the KPI row and the header. The
+   grid reaches out by that margin, so the card edges line up with the page's
+   (dashboard-grid-flush). */
+.cn-dashboard-page--board :deep(.cn-dashboard-grid) {
+	width: auto;
+	margin-inline: calc(-1 * var(--cn-dashboard-grid-margin, 12px));
 }
 
 .cn-dashboard-page__kpi-cell {
