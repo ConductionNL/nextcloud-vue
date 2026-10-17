@@ -25,6 +25,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 |------|------|---------|-------------|
 | `title` | String | *(required)* | Page title |
 | `description` | String | `''` | Optional subtitle |
+| `pageTabs` | Array | `null` | Tabs to sibling pages above the toolbar (manifest `config.pageTabs`), each `{ id?, label, route?, params?, query?, href?, countFrom? }`; `countFrom: { register, schema, filter? }` adds that list's count. The current route's tab is marked, and a click follows the tab on the app's router. Wins over a named source's page tabs (DqPrivacy, DqContracten). |
+| `notice` | Object | `null` | A note card under the list (manifest `config.notice`): `{ text, variant? }` with variant `info` (default), `success` or `warning`; the text goes through the host translate. |
 | `breadcrumb` | Object \| Array | `null` | A breadcrumb under the title (manifest `config.breadcrumb`): one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list; the title follows as the current crumb. Drawn as the detail header's breadcrumb row. |
 | `headerMeta` | String | `''` | A note after the breadcrumb and a middle dot (manifest `config.headerMeta`); `{total}` and `{shown}` are the list's counts, e.g. `"{total} lopend"`. |
 | `showTitle` | Boolean | `false` | Show the page header (icon, title, description) inline above the table. When `false` (default), the title is shown in the sidebar header instead. |
