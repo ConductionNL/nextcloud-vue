@@ -296,7 +296,8 @@ export default {
 
 		/**
 		 * How much of the term has passed, from `startField` to the date, in
-		 * percent (0 to 100), or null without a usable start.
+		 * whole days and as a percentage (0 to 100), or null without a usable
+		 * start.
 		 *
 		 * @return {number|null} The share passed.
 		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
@@ -311,11 +312,12 @@ export default {
 			if (!start || Number.isNaN(start.getTime())) {
 				return null
 			}
-			const span = this.targetDate.getTime() - start.getTime()
+			const startOfDay = (d) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())
+			const span = startOfDay(this.targetDate) - startOfDay(start)
 			if (span <= 0) {
 				return null
 			}
-			return Math.min(100, Math.max(0, ((Date.now() - start.getTime()) / span) * 100))
+			return Math.min(100, Math.max(0, ((startOfDay(new Date()) - startOfDay(start)) / span) * 100))
 		},
 
 		/**
