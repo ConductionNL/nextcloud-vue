@@ -1699,7 +1699,11 @@
     "%n feature": [
       "%n functie",
       "%n functies"
-    ]
+    ],
+    "Your account": "Uw account",
+    "Only for you. Colleagues keep their own settings.": "Alleen voor jou. Collega's houden hun eigen instellingen.",
+    "Sections of the settings": "Onderdelen van de instellingen",
+    "Changes are saved straight away": "Wijzigingen worden meteen bewaard"
   },
   "plurals": {
     "{count} selected": [
