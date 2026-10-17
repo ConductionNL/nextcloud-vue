@@ -81,8 +81,8 @@ describe('CnIndexPage: config.viewSwitch', () => {
 		expect(w.find('.bar').attributes('data-disabled')).toBe('board')
 	})
 
-	it('disables nothing without the key or without the look', () => {
-		expect(mountPage().find('.bar').attributes('data-disabled')).toBe('')
+	it('draws the four board segments without the key, and none without the look', () => {
+		expect(mountPage().find('.bar').attributes('data-disabled')).toBe('board,map')
 		expect(mountPage({ viewSwitch: ['map'] }, 'nextcloud').find('.bar').attributes('data-disabled')).toBe('')
 	})
 

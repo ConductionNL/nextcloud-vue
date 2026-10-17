@@ -13,6 +13,12 @@
 			<h1 class="cn-page-header__title" data-testid="cn-page-title">
 				{{ resolvedTitle }}
 			</h1>
+			<CnHeaderTrail
+				v-if="!visuallyHidden"
+				:breadcrumb="breadcrumb"
+				:current="resolvedTitle"
+				:meta="resolvedMeta"
+				:translate="effectiveTranslate" />
 			<p v-if="description && !visuallyHidden" class="cn-page-header__description" data-testid="cn-page-description">
 				{{ resolvedDescription }}
 			</p>
@@ -22,6 +28,7 @@
 </template>
 
 <script>
+import CnHeaderTrail from './CnHeaderTrail.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -64,6 +71,7 @@ export default {
 	name: 'CnPageHeader',
 
 	components: {
+		CnHeaderTrail,
 		CnIcon,
 	},
 
@@ -86,6 +94,31 @@ export default {
 
 		/** Optional description shown below the title */
 		description: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A breadcrumb under the title: one crumb or a list, each
+		 * `{ label, route?, params?, href?, icon?, separator? }`. The title
+		 * follows as the current crumb. Drawn as the board look's detail
+		 * header row.
+		 *
+		 * @type {object|Array<object>|null}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		breadcrumb: {
+			type: [Object, Array],
+			default: null,
+		},
+
+		/**
+		 * A note after the breadcrumb and a middle dot, such as "12 open". Run
+		 * through the host translate function.
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		meta: {
 			type: String,
 			default: '',
 		},
@@ -152,6 +185,15 @@ export default {
 		 */
 		resolvedDescription() {
 			return this.description ? this.effectiveTranslate(this.description) : this.description
+		},
+
+		/**
+		 * The meta note run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedMeta() {
+			return this.meta ? this.effectiveTranslate(this.meta) : ''
 		},
 	},
 }

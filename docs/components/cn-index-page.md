@@ -25,6 +25,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 |------|------|---------|-------------|
 | `title` | String | *(required)* | Page title |
 | `description` | String | `''` | Optional subtitle |
+| `breadcrumb` | Object \| Array | `null` | A breadcrumb under the title (manifest `config.breadcrumb`): one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list; the title follows as the current crumb. Drawn as the detail header's breadcrumb row. |
+| `headerMeta` | String | `''` | A note after the breadcrumb and a middle dot (manifest `config.headerMeta`); `{total}` and `{shown}` are the list's counts, e.g. `"{total} lopend"`. |
 | `showTitle` | Boolean | `false` | Show the page header (icon, title, description) inline above the table. When `false` (default), the title is shown in the sidebar header instead. |
 | `icon` | String | `''` | MDI icon name for the page header. Defaults to `schema.icon` when a schema is provided. |
 | `cardAccent` | Function | `null` | `(object) => { variant, icon?, label? } \| null`: a status accent per card in the card view, a colored start border and icon (see CnObjectCard `accent`). |

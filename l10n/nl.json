@@ -1700,6 +1700,15 @@
       "%n functie",
       "%n functies"
     ],
+    "Your account": "Uw account",
+    "Only for you. Colleagues keep their own settings.": "Alleen voor jou. Collega's houden hun eigen instellingen.",
+    "Sections of the settings": "Onderdelen van de instellingen",
+    "Changes are saved straight away": "Wijzigingen worden meteen bewaard",
+    "Change the schema for {type}": "Schema wijzigen voor {type}",
+    "Show all types": "Alle soorten tonen",
+    "All types set up": "Alle soorten ingesteld",
+    "Set up": "Ingesteld",
+    "{configured} of {total} set up": "{configured} van {total} ingesteld",
     "Finished": "Afgerond",
     "Stopped early": "Vroegtijdig gestopt",
     "Queued": "In de wachtrij",
@@ -1840,6 +1849,18 @@
     "{count} more filter": [
       "Nog {count} filter",
       "Nog {count} filters"
+    ],
+    "%n type": [
+      "%n soort",
+      "%n soorten"
+    ],
+    "And %n more type in this group, set up.": [
+      "En nog %n soort in deze groep, ingesteld.",
+      "En nog %n soorten in deze groep, allemaal ingesteld."
+    ],
+    "And %n more type in this group.": [
+      "En nog %n soort in deze groep.",
+      "En nog %n soorten in deze groep."
     ]
   }
 }
