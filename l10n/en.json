@@ -1581,7 +1581,10 @@
     "{ms} ms": "{ms} ms",
     "{m} min {s} s": "{m} min {s} s",
     "{ran} of {total} run": "{ran} of {total} run",
-    "{s} s": "{s} s"
+    "{s} s": "{s} s",
+    "About this {app} installation.": "About this {app} installation.",
+    "{version}, up to date": "{version}, up to date",
+    "for an SLA": "for an SLA"
   },
   "plurals": {
     "{count} selected": [
