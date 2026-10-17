@@ -42,7 +42,64 @@
 		<div class="cn-related-objects-widget">
 			<!-- Tabbed self-fetch mode -->
 			<template v-if="useTabs">
-				<div v-if="tabStripVisible" class="cn-related-objects-widget__tabs" role="tablist">
+				<!-- `layout: "sections"` (board PqTicketGerelateerd): every group
+				     as a section of its own with a count chip and an optional link
+				     action; a configured section without items shows its sentence
+				     in a dashed box. -->
+				<template v-if="isSections">
+					<section v-for="section in boardSections"
+						:key="`section-${section.key}`"
+						class="cn-related-objects-widget__section"
+						:aria-labelledby="`${sectionIdBase}-${section.key}`"
+						:data-testid="`cn-related-section-${section.key}`">
+						<div class="cn-related-objects-widget__section-head">
+							<h3 :id="`${sectionIdBase}-${section.key}`" class="cn-related-objects-widget__section-title">
+								<CnIcon :name="section.icon" :size="18" class="cn-related-objects-widget__section-icon" />
+								{{ section.label }}
+								<span class="cn-related-objects-widget__count">{{ section.items.length }}</span>
+							</h3>
+							<CnActionButtons v-if="section.actions.length > 0"
+								class="cn-related-objects-widget__section-action"
+								:actions="section.actions" />
+						</div>
+						<ul v-if="section.items.length > 0" class="cn-related-objects-widget__section-rows">
+							<li v-for="(item, i) in section.items"
+								:key="`row-${section.key}-${item.id || i}`"
+								class="cn-related-objects-widget__section-row">
+								<span class="cn-related-objects-widget__section-tile" aria-hidden="true">
+									<CnIcon :name="section.icon" :size="18" />
+								</span>
+								<span class="cn-related-objects-widget__section-text">
+									<span class="cn-related-objects-widget__section-label">{{ item.label }}</span>
+									<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+								</span>
+								<a v-if="section.hrefs[i]"
+									class="cn-related-objects-widget__section-open"
+									:href="section.hrefs[i]"
+									target="_blank"
+									rel="noopener noreferrer"
+									:aria-label="openLabel(item.label)">
+									{{ t('nextcloud-vue', 'Open') }}
+									<ChevronRight :size="16" />
+								</a>
+								<button v-else
+									type="button"
+									class="cn-related-objects-widget__section-open"
+									:aria-label="openLabel(item.label)"
+									@click="onSelectGroupItem(section.group, item)">
+									{{ t('nextcloud-vue', 'Open') }}
+									<ChevronRight :size="16" />
+								</button>
+							</li>
+						</ul>
+						<p v-else-if="section.emptyText"
+							class="cn-related-objects-widget__section-empty"
+							data-testid="cn-related-section-empty">
+							{{ section.emptyText }}
+						</p>
+					</section>
+				</template>
+				<div v-if="!isSections && tabStripVisible" class="cn-related-objects-widget__tabs" role="tablist">
 					<button v-for="group in visibleGroups"
 						:key="`tab-${group.key}`"
 						type="button"
@@ -57,7 +114,7 @@
 					</button>
 				</div>
 
-				<section v-if="activeGroup" class="cn-related-objects-widget__panel" role="tabpanel">
+				<section v-if="!isSections && activeGroup" class="cn-related-objects-widget__panel" role="tabpanel">
 					<ul class="cn-related-objects-widget__list">
 						<li v-for="(item, i) in activeGroup.items"
 							:key="`item-${activeGroup.key}-${item.id || i}`">
@@ -108,7 +165,7 @@
 				<div v-if="loading && !visibleGroups.length" class="cn-related-objects-widget__empty">
 					{{ loadingLabel }}
 				</div>
-				<CnEmptyContent v-else-if="hasLoaded && !visibleGroups.length"
+				<CnEmptyContent v-else-if="hasLoaded && !visibleGroups.length && !(isSections && boardSections.length)"
 					class="cn-related-objects-widget__empty-state"
 					:name="resolvedEmptyLabel">
 					<template #icon>
@@ -304,6 +361,7 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { registerIntegrationIcons } from '../../integrations/icons.js'
 import { useObjectStore } from '../../store/index.js'
 import { buildHeaders } from '../../utils/headers.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
@@ -437,6 +495,7 @@ export default {
 		NcActionInput,
 		NcButton,
 		CnEmptyContent,
+		CnActionButtons,
 	},
 
 	inject: {
@@ -515,7 +574,27 @@ export default {
 		layout: {
 			type: String,
 			default: 'tabs',
-			validator: (value) => ['tabs', 'list'].includes(value),
+			validator: (value) => ['tabs', 'list', 'sections'].includes(value),
+		},
+
+		/**
+		 * `layout: "sections"`: the sections to draw, in order, each
+		 * `{ key, label, icon?, group, schema?, emptyText?, action? }`. `group`
+		 * names the group the rows come from (`objects`, `files`, `notes`, a
+		 * leaf group or a host `extraSections` key); `schema` keeps only the
+		 * related objects of that schema (its slug, id or title), so one
+		 * `objects` group splits into Appointments, Client and Case. A section
+		 * without rows shows `emptyText` in a dashed box; `action` is an action
+		 * descriptor (as in `headerActions`) drawn as a pill ("Link item").
+		 * Labels and texts go through the app's translate. Empty: every
+		 * non-empty group as a section.
+		 *
+		 * @spec openspec/changes/related-sections/specs/related-sections/spec.md#requirement-related-items-can-be-drawn-as-sections-per-kind
+		 * @type {Array<object>}
+		 */
+		sections: {
+			type: Array,
+			default: () => [],
 		},
 
 		/** Include `/contracts` relations in the Objects group (opt-in). */
@@ -774,7 +853,7 @@ export default {
 
 		/** True when the tabbed self-fetch path is usable. */
 		useTabs() {
-			return this.layout === 'tabs'
+			return (this.layout === 'tabs' || this.layout === 'sections')
 				&& Boolean(this.resolvedRegister && this.resolvedSchema && this.resolvedId)
 		},
 
@@ -873,6 +952,47 @@ export default {
 		/** Placeholder shown in the body while the first fetch is in flight. */
 		loadingLabel() {
 			return t('nextcloud-vue', 'Loading …')
+		},
+
+		/** @return {boolean} Whether the widget draws sections instead of tabs. */
+		isSections() {
+			return this.layout === 'sections'
+		},
+
+		/** @return {string} The id prefix of the section headings. */
+		sectionIdBase() {
+			return `cn-related-${this.widgetId || this.objectType || 'widget'}-${this.resolvedId || ''}`.replace(/[^\w-]/g, '-')
+		},
+
+		/**
+		 * The sections `layout: "sections"` draws: the configured `sections`,
+		 * each with its rows, links and action, or every visible group.
+		 *
+		 * @spec openspec/changes/related-sections/specs/related-sections/spec.md#requirement-related-items-can-be-drawn-as-sections-per-kind
+		 * @return {Array<{key: string, label: string, icon: string, group: object, items: Array<object>, hrefs: string[], emptyText: string, actions: Array<object>}>}
+		 */
+		boardSections() {
+			const tr = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			const all = [...this.groups, ...this.extraGroups]
+			const build = (group, items, extra = {}) => ({
+				key: extra.key || group.key,
+				label: extra.label ? tr(extra.label) : group.label,
+				icon: extra.icon || group.icon,
+				group,
+				items,
+				hrefs: (group.isExtra || group.key === 'objects') ? [] : items.map((item) => this.resolveItemHref(group.key, item.raw || {})),
+				emptyText: typeof extra.emptyText === 'string' && extra.emptyText !== '' ? tr(extra.emptyText) : '',
+				actions: extra.action && typeof extra.action === 'object' ? [{ id: `${extra.key}-action`, variant: 'secondary', ...extra.action, label: tr(extra.action.label || ''), inline: true }].filter((a) => a.label) : [],
+			})
+			const configured = (Array.isArray(this.sections) ? this.sections : []).filter((entry) => entry && entry.key && entry.label && entry.group)
+			if (configured.length === 0) {
+				return this.visibleGroups.map((group) => build(group, group.items))
+			}
+			return configured.map((entry) => {
+				const group = all.find((candidate) => candidate.key === entry.group) || { key: entry.group, label: entry.label, icon: 'LinkVariant', items: [] }
+				const items = entry.schema ? group.items.filter((item) => this.isOfSchema(item.raw, entry.schema)) : group.items
+				return build(group, items, entry)
+			})
 		},
 
 		/** The currently active group, defaulting to the first visible one. */
@@ -1193,6 +1313,34 @@ export default {
 			 * @type {object}
 			 */
 			this.$emit('select-file', raw)
+		},
+
+		/**
+		 * Whether a related object belongs to a schema, named by its slug,
+		 * id or title.
+		 *
+		 * @param {object} raw The related object.
+		 * @param {string} schema The schema to match.
+		 * @return {boolean}
+		 */
+		isOfSchema(raw, schema) {
+			const self = (raw && raw['@self']) || {}
+			const wanted = String(schema).toLowerCase()
+			const id = self.schema !== undefined ? self.schema : raw?.schema
+			const candidates = [id, self.schemaSlug, this.schemaName(id)]
+				.filter((value) => value !== undefined && value !== null && value !== '')
+				.map((value) => String(value).toLowerCase())
+			return candidates.includes(wanted)
+		},
+
+		/**
+		 * The accessible name of a row's Open link.
+		 *
+		 * @param {string} label The row label.
+		 * @return {string}
+		 */
+		openLabel(label) {
+			return t('nextcloud-vue', 'Open {item}', { item: label })
 		},
 
 		/**
@@ -2061,5 +2209,125 @@ export default {
 
 .cn-related-objects-widget__file-input {
 	display: none;
+}
+
+/* `layout: "sections"` (board PqTicketGerelateerd): one section per kind,
+   a hairline above each, a 34px pill for the link action, rows on a light
+   ground with a 34px icon tile, and a dashed box for an empty section. */
+.cn-related-objects-widget__section {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding-top: 16px;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-related-objects-widget__section + .cn-related-objects-widget__section {
+	margin-top: 18px;
+}
+
+.cn-related-objects-widget__section-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding-bottom: 6px;
+}
+
+.cn-related-objects-widget__section-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.cn-related-objects-widget__section-icon {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-related-objects-widget__section-action :deep(.button-vue) {
+	min-height: 34px;
+	height: 34px;
+	border: 0;
+	border-radius: 17px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 13px;
+}
+
+.cn-related-objects-widget__section-rows {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-related-objects-widget__section-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--color-background-hover);
+}
+
+.cn-related-objects-widget__section-tile {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.cn-related-objects-widget__section-text {
+	display: flex;
+	flex: 1 1 260px;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-related-objects-widget__section-label {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-related-objects-widget__section-open {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	min-height: 32px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-primary-element-text, var(--color-primary-element));
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-related-objects-widget__section-open:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-related-objects-widget__section-empty {
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px dashed var(--color-border-dark);
+	border-radius: var(--border-radius-element, 8px);
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
 }
 </style>

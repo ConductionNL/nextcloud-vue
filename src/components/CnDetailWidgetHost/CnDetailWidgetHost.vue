@@ -112,6 +112,8 @@
 			:schema="schema"
 			:store="store"
 			:includeGroups="content.groups || []"
+			:layout="content.layout === 'sections' ? 'sections' : 'tabs'"
+			:sections="Array.isArray(content.sections) ? content.sections : []"
 			:hideSingleTabTitle="content.hideSingleTabTitle !== false"
 			:showTotalCount="content.showTotalCount !== false"
 			@openIntegration="onOpenIntegration"

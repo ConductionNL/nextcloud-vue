@@ -86,3 +86,33 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `@add` | group key (string) | An Add-footer entry without a built-in flow was activated (e.g. `objects`, `mails`); the host routes it (open a link-object dialog, compose a mail, …) |
 | `@file-uploaded` | `File[]` | Files were uploaded to the object via the Add footer's built-in upload flow |
 | `@note-added` | note message (string) | A note was created on the object via the Add footer's built-in note flow |
+
+## Sections per kind (`layout: "sections"`)
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `sections` | `Array` | `[]` | With `layout: "sections"`: the sections to draw, in order. Each `{ key, label, icon?, group, schema?, emptyText?, action? }`. Empty: every non-empty group as a section. |
+
+The board PqTicketGerelateerd draws related items as one section per kind: Appointments, Client, Case and Documents,
+each with a count chip, a "Link item" pill and rows with an Open link; an empty section shows its sentence in a dashed
+box. `group` names the group the rows come from (`objects`, `files`, `notes`, a leaf group such as `calendar`, or a
+host `extraSections` key). `schema` keeps only the related objects of that schema (its slug, id or title), so the one
+`objects` group splits per kind. `action` is an action descriptor as in `headerActions`, drawn as a pill. Labels and
+texts go through the app's translate. On a detail page set it on the widget's content:
+
+```json
+{
+  "id": "ticket-related",
+  "type": "related",
+  "title": "Related",
+  "content": {
+    "layout": "sections",
+    "sections": [
+      { "key": "appointments", "label": "Appointments", "icon": "CalendarOutline", "group": "objects", "schema": "booking", "emptyText": "No appointments yet." },
+      { "key": "client", "label": "Client", "icon": "AccountOutline", "group": "objects", "schema": "client" },
+      { "key": "case", "label": "Case", "icon": "FolderOutline", "group": "objects", "schema": "case", "emptyText": "No case linked yet." },
+      { "key": "documents", "label": "Documents", "icon": "FileDocumentOutline", "group": "files", "emptyText": "No documents yet.", "action": { "label": "Link item", "icon": "Plus", "type": "open-modal", "target": "LinkFile" } }
+    ]
+  }
+}
+```
