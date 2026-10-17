@@ -16,6 +16,42 @@ import { CnConversationWidget } from '@conduction/nextcloud-vue'
 | `objectData` | `object` | `null` | The bound record. |
 | `objectId` | `string` \| `number` | `''` | The bound record's id, used in `endpoint`. |
 
+## Messages from a list, mapped parts, and a reply action
+
+The messages can also be the objects of a register list filtered on the record, as a case's conversation with the
+resident is (board DqZaak, Contact tab). `source` is `{ register, schema, filter?, limit? }`; its filter takes the
+record tokens a record-list takes (`"@objectId"`, `"@object.<field>"`), and a filter whose token does not resolve
+sends no request. While the list loads the thread says so; an empty list shows `emptyText`. The messages are shown
+oldest first by their time.
+
+| Key | Description |
+|---|---|
+| `bodyField` | Where a message keeps its text (alias of `textField`). |
+| `timestampField` | Where it keeps its time (alias of `timeField`). |
+| `senderField` | Where it keeps its sender (alias of `authorField`). |
+| `directionField` | Where it keeps its direction (alias of `sideField`); a message whose direction equals `outValue` (alias of `usValue`) is one the organisation sent. |
+| `channelField` | Where it keeps its channel; `channelMap` turns a stored value into a label (`{ "email": "E-mail" }`), translated. |
+| `replyAction` | An action descriptor run on Send instead of posting to `endpoint`; the app decides what sending means. It is dispatched with `args: [{ text, objectId }]` and `props.text` added, tokens resolved; afterwards the list is read again. |
+
+The texts (`title`, `replyLabel`, `placeholder`, `sendLabel`, `emptyText`) go through the app's translate.
+
+```json
+{
+  "id": "resident-thread",
+  "type": "conversation",
+  "content": {
+    "title": "Conversation with the resident",
+    "source": { "register": "zaken", "schema": "message", "filter": { "case": "@objectId" } },
+    "directionField": "direction", "outValue": "out",
+    "channelField": "channel", "channelMap": { "email": "E-mail", "berichtenbox": "Message box", "phone": "Phone note" },
+    "senderField": "sender", "timestampField": "sentAt", "bodyField": "body",
+    "emptyText": "No messages with the resident yet.",
+    "replyLabel": "Answer the resident",
+    "replyAction": { "type": "handler", "handler": "sendResidentMessage" }
+  }
+}
+```
+
 ## Reference (auto-generated)
 
 import GeneratedRef from './_generated/CnConversationWidget.md'
