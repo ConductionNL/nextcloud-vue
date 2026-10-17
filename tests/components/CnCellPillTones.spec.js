@@ -114,4 +114,14 @@ describe('pill ink under a theme that forces the body ink', () => {
 		expect(boardCss).toMatch(/\.cn-look-board \.cn-status-badge:not\(\.cn-look-nextcloud \*\) \{\s*--nldesign-color-on-surface: var\(--cn-status-badge-ink\);/)
 		expect(badgeCss).not.toContain('--nldesign-color-on-surface')
 	})
+
+	it('draws the board pill: 13px at 600 on a 3px 10px pad with a 12px corner', () => {
+		const at = boardCss.indexOf('.cn-look-board .cn-status-badge:not(.cn-status-badge--small):not(.cn-look-nextcloud *) {')
+		expect(at).toBeGreaterThan(-1)
+		const rule = boardCss.slice(at, boardCss.indexOf('}', at))
+		expect(rule).toContain('padding: 3px 10px')
+		expect(rule).toContain('border-radius: 12px')
+		expect(rule).toContain('font-size: 13px')
+		expect(rule).toContain('font-weight: 600')
+	})
 })
