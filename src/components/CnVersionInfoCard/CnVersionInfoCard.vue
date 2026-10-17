@@ -45,10 +45,11 @@
 						<span class="cn-version-info__value">{{ appVersion }}</span>
 					</div>
 
-					<!-- Configured Version (if provided) -->
-					<div v-if="configuredVersion" class="cn-version-info__item">
+					<!-- Configured version: when provided, and always in the board look,
+					     which draws the row ("Unknown" until the app reports it). -->
+					<div v-if="configuredVersion || isBoard" class="cn-version-info__item" data-testid="cn-version-info-configured">
 						<span class="cn-version-info__label">{{ fieldLabels.configuredVersion }}:</span>
-						<span class="cn-version-info__value">{{ configuredVersion }}</span>
+						<span class="cn-version-info__value">{{ configuredVersion || t('nextcloud-vue', 'Unknown') }}</span>
 					</div>
 
 					<!-- Additional items -->
