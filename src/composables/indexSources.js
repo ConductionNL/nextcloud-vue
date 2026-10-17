@@ -3,7 +3,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  */
 
-import { translate as t } from '@nextcloud/l10n'
+import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { reactive } from 'vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
@@ -12,6 +12,7 @@ import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
 import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
+import { fetchGroupMembers, fetchPresence, fetchStatuses } from '../utils/nextcloudDirectory.js'
 import { useFlowStore } from './useFlowStore.js'
 import { useTaskInboxStore } from './useTaskInboxStore.js'
 
@@ -617,6 +618,119 @@ function tasksSource() {
 }
 
 /**
+ * The users source: the members of a Nextcloud group, with their function,
+ * roles, e-mail and whether they are in today (`entitySource: "users"`,
+ * DqAfdelingen). Pair it with `folderSidebar: { source: 'groups',
+ * filterField: 'group' }`, which lists the groups as the folder tree; the
+ * selected group arrives as `group`. `sourceConfig.group` is the group shown
+ * before one is picked.
+ *
+ * Today is the dav app's out-of-office period when one runs now ("Absent
+ * until 14 Oct"), else the user status (present, away) and its message. The
+ * function is the profile `headline`, the roles the profile `role`, unless
+ * `sourceConfig.functionField` / `rolesField` name other user fields.
+ * Listing a group needs an admin or the group's sub-admin; a refused request
+ * leaves the list empty.
+ *
+ * @return {object} The source adapter.
+ * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
+ */
+function usersSource() {
+	const state = reactive({ rows: [], loading: false })
+	let seq = 0
+	const presenceLabels = {
+		present: t('nextcloud-vue', 'Present'),
+		away: t('nextcloud-vue', 'Away'),
+	}
+	const presenceColors = {
+		[presenceLabels.present]: 'success',
+		[presenceLabels.away]: 'info',
+	}
+
+	return {
+		/**
+		 * Load the group's members and their presence.
+		 *
+		 * @param {object} config The page's source config with the picked `group`.
+		 * @return {Promise<void>} Resolves when loaded.
+		 */
+		load: async (config) => {
+			const group = String((config && (config.group || config.defaultGroup)) || '')
+			const mine = ++seq
+			if (group === '') {
+				state.rows = []
+				return
+			}
+			state.loading = true
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const [members, statuses] = await Promise.all([fetchGroupMembers(axios, group), fetchStatuses(axios)])
+				const functionField = (config && config.functionField) || 'headline'
+				const rolesField = (config && config.rolesField) || 'role'
+				const rows = await Promise.all(members.map(async (user) => {
+					const presence = await fetchPresence(axios, user.id, statuses[user.id] || null)
+					let today = ''
+					if (presence.state === 'absent') {
+						const until = presence.until ? new Date(`${presence.until}T12:00:00`) : null
+						today = until
+							? t('nextcloud-vue', 'Absent until {date}', { date: until.toLocaleDateString(getCanonicalLocale() || undefined, { day: 'numeric', month: 'short' }) })
+							: t('nextcloud-vue', 'Absent')
+					} else if (presence.message) {
+						today = presence.message
+					} else if (presenceLabels[presence.state]) {
+						today = presenceLabels[presence.state]
+					}
+					return {
+						id: user.id,
+						displayname: user.displayname || user['display-name'] || user.id,
+						function: String(user[functionField] || ''),
+						roles: String(user[rolesField] || ''),
+						email: user.email || '',
+						today,
+						presence: presence.state,
+					}
+				}))
+				if (mine === seq) {
+					state.rows = rows.sort((a, b) => a.displayname.localeCompare(b.displayname))
+				}
+			} catch (error) {
+				if (mine === seq) {
+					state.rows = []
+				}
+				throw error
+			} finally {
+				if (mine === seq) {
+					state.loading = false
+				}
+			}
+		},
+
+		/**
+		 * @return {Array<object>} The members.
+		 */
+		rows: () => state.rows,
+
+		/**
+		 * @return {boolean} Whether a load is in flight.
+		 */
+		loading: () => state.loading,
+
+		columns: [
+			{ key: 'displayname', label: t('nextcloud-vue', 'Employee'), secondary: 'function' },
+			{ key: 'roles', label: t('nextcloud-vue', 'Roles') },
+			{ key: 'email', label: t('nextcloud-vue', 'E-mail') },
+			{ key: 'today', label: t('nextcloud-vue', 'Today'), widget: 'badge', widgetProps: { colorMap: presenceColors, variant: 'warning' } },
+		],
+
+		searchFields: {
+			group: { param: 'group', single: true },
+		},
+
+		showAdd: false,
+	}
+}
+
+/**
  * The registered sources, by the name a manifest uses.
  *
  * @type {Record<string, () => object>}
@@ -627,6 +741,7 @@ export const indexSources = {
 	flows: flowsSource,
 	flowRuns: flowRunsSource,
 	tasks: tasksSource,
+	users: usersSource,
 }
 
 /**
