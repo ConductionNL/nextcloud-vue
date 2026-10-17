@@ -1252,6 +1252,10 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 
 When a click on a row navigates to the record's detail page, the built-in View is left out of that row's menu (and of the right-click menu): viewing is what the click does. The menu offers Edit (Dutch "Bewerken", pencil icon). A row whose `viewTo` answers `null`, or a page with no row-click target, keeps View. Actions the page declares itself are not touched. The rule applies in every look.
 
+## Row actions as buttons (`widget: "actions"`)
+
+A column `{ key: "do", label: "Doen", widget: "actions", widgetProps: { actions: ["link-case", "new-case"] } }` shows the page's row actions with those ids (or labels) as buttons on every row, in that order, where the action is visible for the row (`visible`, a locally decidable `visibleWhen`). The first is a secondary button and the rest tertiary, unless the action sets `variant`. A click runs the action as its row menu entry does, emits `action`, and does not open the row. The column does not sort (DqPostvak).
+
 ## Stat row and side panel (`statRow`, `sidePanel`)
 
 | Prop | Type | Default | Description |
