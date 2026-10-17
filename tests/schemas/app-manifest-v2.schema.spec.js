@@ -1390,7 +1390,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.118.0 adds nav.searchPlaceholder (screens-board-top-bar-search).
 		// 2.119.0 adds views[].title on a dashboard (view-title).
 		// 2.120.0 adds chart barMax, footnote, highlight, valueFormat 'number' with suffix and endpointSource rowsPath (chart-bar-list-and-matrix).
-		// 2.121.0 lets a query preset or a folder scope set addLabel, headerButtons, breadcrumb, headerMeta and afterList, and adds config.afterList (index-scope-presentation).
+		// 2.121.0 lets a query preset or a folder scope set addLabel, headerButtons, breadcrumb, headerMeta and afterList, adds config.afterList, and lets config.entitySource name the flowRuns, endpoint, search and users sources with a described sourceConfig (index-scope-presentation).
 		expect(schema.version).toBe('2.121.0')
 	})
 
@@ -2321,5 +2321,20 @@ describe('app-manifest-v2: a view title (view-title, 2.119.0)', () => {
 	it('accepts a view title and refuses an empty one', () => {
 		expect(validateManifestV2(page([{ id: 'mine', label: 'My work' }, { id: 'team', label: 'My team', title: 'My team' }])).valid).toBe(true)
 		expect(validateManifestV2(page([{ id: 'team', label: 'My team', title: '' }])).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — named index sources (index-scope-presentation)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config }] })
+
+	it.each(['flows', 'flowRuns', 'tasks', 'endpoint', 'search', 'users'])('accepts entitySource "%s"', (name) => {
+		expect(validateManifestV2(page({ entitySource: name })).valid).toBe(true)
+	})
+
+	it('accepts the endpoint and search sourceConfig shapes and refuses an unknown source', () => {
+		expect(validateManifestV2(page({ entitySource: 'endpoint', sourceConfig: { url: '/apps/dossiq/api/postvak', rowsPath: 'results', channel: 'email' } })).valid).toBe(true)
+		expect(validateManifestV2(page({ entitySource: 'search', sourceConfig: { termQuery: 'q', kinds: [{ id: 'cases', label: 'Zaken', register: 'dossiq', schema: 'case' }, { id: 'documents', label: 'Documenten', files: true }] } })).valid).toBe(true)
+		expect(validateManifestV2(page({ entitySource: 'nope' })).valid).toBe(false)
+		expect(validateManifestV2(page({ entitySource: 'endpoint', sourceConfig: { url: '' } })).valid).toBe(false)
 	})
 })

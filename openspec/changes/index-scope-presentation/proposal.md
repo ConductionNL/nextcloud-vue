@@ -17,4 +17,7 @@ query that chose the preset showed as a removable filter chip ("Soort klant: org
 - An index page takes `afterList`: widget definitions drawn as cards after the list, in order, the counterpart of
   `statRow` above it (PqSocial).
 - The route query pairs that chose a preset are passed as `fixedFilters` and show no removable active-filter chip.
+- Schema: `config.entitySource` also accepts `flowRuns`, `endpoint`, `search` and `users` (the named sources the library
+  registers; the enum had only `flows` and `tasks`, so pages using the newer sources failed validation), and
+  `config.sourceConfig` is described (`url`, `rowsPath`, `kinds`, `term`, `termQuery`, `defaultGroup`; still open).
 - Without these keys nothing changes.
