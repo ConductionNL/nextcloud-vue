@@ -115,6 +115,14 @@ export default {
 
 With more than one group each group starts closed: its heading is a button that shows the group name and how many of its types are configured ("2/8 configured"), and opens the register select and type list on a click or Enter. A page with several registers is a short card until the administrator opens the group they need.
 
+## Board look
+
+In the board look (`look="board"`, or the `cnLook` that `CnAppRoot` or `CnAdminSettingsShell` provides) one group is open: its name, a status chip, the register select and a type/schema table with a check icon on each configured type. It lists `boardRowLimit` types and counts the rest in a line with a button that lists them all. The other groups are rows with their type count and a status chip; activating a row opens that group. The save button closes the section instead of sitting in its header.
+
+## Loading
+
+The register select lists every register without its schemas. Only the registers the configuration maps have their schemas fetched (`registers/{id}/schemas`), and a register chosen in the select is fetched when chosen.
+
 ## Additional props
 
 | Prop | Type | Default | Description |
@@ -127,5 +135,7 @@ With more than one group each group starts closed: its heading is a button that 
 | `saveButtonText` | String | `'Save configuration'` | Label for the save button |
 | `reimportButtonText` | String | `'Re-import configuration'` | Label for the reimport button |
 | `collapseGroups` | Boolean | `null` | Draw each group as a heading button that opens and closes it, with its configured count shown while closed; the groups start closed. `null` does this when there is more than one group, `true` or `false` forces it |
+| `look` | String | `''` | `board` or `nextcloud`; empty follows the provided `cnLook` |
+| `boardRowLimit` | Number | `4` | Board look: how many types the open group lists before the "show all" line; `0` lists every type |
 | `autoMatch` | Boolean | `true` | Automatically match schema titles to type slugs when a register is selected |
 | `labels` | Object | *(see below)* | UI label overrides for all user-visible strings (register, schema, notConfigured, noSchemas, selectRegister, selectSchema, allConfigured, partiallyConfigured) |
