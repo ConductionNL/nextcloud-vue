@@ -949,6 +949,14 @@
 	flex-wrap: wrap;
 }
 
+/* ---- Bar-list and matrix cards (DqDashboard) ----------------------------- */
+/* The board draws no rule under the title of a card holding a bar list or a
+   matrix. Other cards, plain stat tiles among them, keep theirs.
+   @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-board-bar-list-and-matrix-cards-draw-no-header-rule */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-chart-widget__html) .cn-widget-wrapper__header {
+	border-bottom: none;
+}
+
 /* ---- A card of boxed stat tiles (DcRapportages "Vergaderingen en efficiëntie") -- */
 /* The board draws this card 22px from its edge on every side but the bottom
    (20px), the header 14px above the tiles, and no rule under the header. The
