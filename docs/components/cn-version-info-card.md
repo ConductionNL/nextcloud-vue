@@ -29,6 +29,7 @@ Displays application version information in admin settings pages. Shows the app 
 | `configuredVersion` | String | `''` | Configured version string (for apps that track configuration versions separately). When non-empty, an extra row is shown; the board look always shows the row, reading "Unknown" until the app passes a value, with ", up to date" after it when `inlineUpToDate` and `showUpdateButton` are on and `isUpToDate` holds. |
 | `showAppName` | Boolean | `true` | Board look: draw the "Application name" row. The default look always draws it. |
 | `actionsDivider` | Boolean | `true` | Board look: draw a rule between the facts and the buttons. |
+| `compact` | Boolean | `false` | Board look: dossiq's compact card in one switch: no "Application name" row, no rule above the buttons, the up-to-date state inline and 15px facts. The default keeps PqBeheer's card. |
 | `inlineUpToDate` | Boolean | `false` | Board look: read the up-to-date state in the configured version row instead of a disabled "Up to date" button (dossiq's boards pass `true`). |
 | `isUpToDate` | Boolean | `true` | Whether the configured version matches the installed version. Controls the status indicator color. |
 | `showUpdateButton` | Boolean | `false` | Whether to show an "Update" action button |
@@ -75,6 +76,6 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 
 Under the board look (`look` prop or `cnLook`) the facts are a two-column list and the state button and the actions (re-import) move into a footer row after a hairline. The support footer follows the row.
 
-## Board look
+## Compact board card
 
-In the board look the card is compact (boards DqBeheerinstellingen, DqInstellingenAlgemeen): with `showAppName` false no "Application name" row (the description names the app), with `actionsDivider` false no rule above the buttons (both default to true, as PqBeheer draws them), with `inlineUpToDate` the up-to-date state inline in the configured version row ("0.4.47, bijgewerkt") instead of a separate disabled button (default false, as PqBeheer), and a row of buttons under the facts with no rule above it. The update button shows there only while an update is due. Inside `CnAdminSettingsShell` the support lines become one "Support" row, re-import is a secondary button, and the description reads "About this `{app}` installation."
+With `compact` (boards DqBeheerinstellingen, DqInstellingenAlgemeen) the board card has no "Application name" row (the description names the app), no rule above the buttons, the up-to-date state inline in the configured version row ("0.4.47, bijgewerkt") instead of a disabled button, and 15px facts; the update button shows only while an update is due. `showAppName`, `actionsDivider` and `inlineUpToDate` switch the first three one by one. Inside `CnAdminSettingsShell` with `compact` the support lines become one "Support" row, re-import is a secondary button, and the description reads "About this `{app}` installation." Without these props the board card is PqBeheer's, as before.

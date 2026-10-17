@@ -681,9 +681,10 @@
 	font-weight: 700;
 }
 
-/* The version card: facts as a two-column list (Versie, Ingestelde versie,
-   Ondersteuning), then a row of secondary buttons, no rule between (boards
-   DqBeheerinstellingen, DqInstellingenAlgemeen).
+/* The version card: facts as a two-column list, then a footer row (PqBeheer).
+   With `compact` (boards DqBeheerinstellingen, DqInstellingenAlgemeen) the
+   facts are Versie, Ingestelde versie and Ondersteuning at 15px, and the
+   secondary buttons follow with no rule between.
    @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact */
 .cn-look-board .cn-version-info--board .cn-version-info__card {
 	padding: 0;
@@ -699,8 +700,8 @@
 .cn-look-board .cn-version-info--board .cn-version-info__details {
 	display: grid;
 	grid-template-columns: max-content 1fr;
-	gap: 6px 24px;
-	font-size: 15px;
+	gap: 8px 16px;
+	font-size: 14px;
 }
 
 .cn-look-board .cn-version-info--board .cn-version-info__item {
@@ -708,13 +709,28 @@
 }
 
 .cn-look-board .cn-version-info--board .cn-version-info__label {
-	font-size: 15px;
+	font-size: 14px;
 	font-weight: 400;
 	color: var(--color-text-maxcontrast);
 }
 
 .cn-look-board .cn-version-info--board .cn-version-info__value {
 	font-family: inherit;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+/* `compact` (dossiq's boards): 15px facts, values at weight 500, wider gaps. */
+.cn-look-board .cn-version-info--compact .cn-version-info__details {
+	gap: 6px 24px;
+	font-size: 15px;
+}
+
+.cn-look-board .cn-version-info--compact .cn-version-info__label {
+	font-size: 15px;
+}
+
+.cn-look-board .cn-version-info--compact .cn-version-info__value {
 	font-size: 15px;
 	font-weight: 500;
 }
@@ -733,8 +749,8 @@
 	border-top: 1px solid var(--cn-board-hairline);
 }
 
-/* An empty button row (nothing to update, re-import or set up) takes no room. */
-.cn-look-board .cn-version-info--board .cn-version-info__footer-row:empty {
+/* On the compact card an empty button row (nothing to update, re-import or set up) takes no room. */
+.cn-look-board .cn-version-info--compact .cn-version-info__footer-row:empty {
 	display: none;
 }
 

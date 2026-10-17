@@ -101,12 +101,13 @@
 			:showAppName="showAppName"
 			:actionsDivider="actionsDivider"
 			:inlineUpToDate="inlineUpToDate"
+			:compact="compact"
 			@update="onUpdate">
 			<template #actions>
 				<!-- Canonical "Re-import configuration" action (POST /apps/<appId>/api/settings/load) -->
 				<NcButton
 					v-if="showReimport"
-					:variant="isBoard ? 'secondary' : 'primary'"
+					:variant="compactCard ? 'secondary' : 'primary'"
 					:disabled="reimporting"
 					@click="reimport">
 					<template #icon>
@@ -142,7 +143,7 @@
 			<template #footer>
 				<!-- @slot footer Replaces the default support/SLA footer inside the version card. -->
 				<slot name="footer">
-					<div v-if="showSupport && !supportAtEnd && !isBoard" class="cn-support-info">
+					<div v-if="showSupport && !supportAtEnd && !compactCard" class="cn-support-info">
 						<h4>{{ supportTitle }}</h4>
 						<p>
 							{{ supportLine }}
@@ -158,7 +159,7 @@
 
 			<template #additional-items>
 				<!-- The board card: support as one fact row, the SLA address on the same line. -->
-				<div v-if="isBoard && showSupport && !supportAtEnd && !$slots.footer" class="cn-version-info__item" data-testid="cn-admin-settings-support-row">
+				<div v-if="compactCard && showSupport && !supportAtEnd && !$slots.footer" class="cn-version-info__item" data-testid="cn-admin-settings-support-row">
 					<span class="cn-version-info__label">{{ supportTitle }}:</span>
 					<span class="cn-version-info__value">
 						<a :href="`mailto:${supportEmail}`">{{ supportEmail }}</a><template v-if="slaEmail">, {{ slaInline }} <a :href="`mailto:${slaEmail}`">{{ slaEmail }}</a></template>
@@ -626,6 +627,19 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Board look: the compact version card of dossiq's boards: "About this
+		 * <App> installation.", no application name row, the up-to-date state
+		 * inline, support as one row, secondary buttons, no rule above them.
+		 * The default keeps PqBeheer's card.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		compact: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Version card heading. */
 		versionTitle: {
 			type: String,
@@ -813,6 +827,11 @@ export default {
 			return this.versionCardPosition === 'end'
 		},
 
+		/** @return {boolean} Whether the version card is the compact board card. */
+		compactCard() {
+			return this.isBoard && this.compact
+		},
+
 		/** @return {boolean} Whether the support lines are their own card at the end. */
 		supportAtEnd() {
 			return this.supportPosition === 'end'
@@ -885,7 +904,7 @@ export default {
 			if (this.versionDescription) {
 				return this.versionDescription
 			}
-			return this.isBoard
+			return this.compactCard
 				? t('nextcloud-vue', 'About this {app} installation.', { app: this.appName })
 				: t('nextcloud-vue', 'Information about the current {app} installation', { app: this.appName })
 		},

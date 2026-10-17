@@ -28,13 +28,13 @@
 		</template>
 
 		<!-- Main content (only shown when not loading) -->
-		<div v-if="!loading" class="cn-version-info" :class="{ 'cn-version-info--board': isBoard }">
+		<div v-if="!loading" class="cn-version-info" :class="{ 'cn-version-info--board': isBoard, 'cn-version-info--compact': isBoard && compact }">
 			<!-- Version card with gray background -->
 			<div class="cn-version-info__card">
 				<h4>{{ cardTitle }}</h4>
 				<div class="cn-version-info__details">
 					<!-- Application Name (the board card can leave it to its description: `showAppName`) -->
-					<div v-if="!isBoard || showAppName" class="cn-version-info__item" data-testid="cn-version-info-app-name">
+					<div v-if="!isBoard || (showAppName && !compact)" class="cn-version-info__item" data-testid="cn-version-info-app-name">
 						<span class="cn-version-info__label">{{ fieldLabels.appName }}:</span>
 						<span class="cn-version-info__value">{{ appName }}</span>
 					</div>
@@ -67,10 +67,10 @@
 				<div
 					v-if="isBoard"
 					class="cn-version-info__footer-row"
-					:class="{ 'cn-version-info__footer-row--divided': actionsDivider }"
+					:class="{ 'cn-version-info__footer-row--divided': actionsDivider && !compact }"
 					data-testid="cn-version-info-footer-row">
 					<NcButton
-						v-if="showUpdateButton && (!inlineUpToDate || !isUpToDate || updating)"
+						v-if="showUpdateButton && (!upToDateInline || !isUpToDate || updating)"
 						:type="updateButtonType"
 						:disabled="updateButtonDisabled"
 						@click="handleUpdateClick">
@@ -254,6 +254,18 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Board look: the compact card of dossiq's boards in one switch: no
+		 * application name row, no rule above the buttons, the up-to-date
+		 * state inline, and 15px facts. The default keeps PqBeheer's card.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		compact: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Whether the app configuration is up to date */
 		isUpToDate: {
 			type: Boolean,
@@ -333,9 +345,14 @@ export default {
 		 */
 		boardConfiguredText() {
 			const version = this.configuredVersion || t('nextcloud-vue', 'Unknown')
-			return this.inlineUpToDate && this.showUpdateButton && this.isUpToDate && !this.updating
+			return this.upToDateInline && this.showUpdateButton && this.isUpToDate && !this.updating
 				? t('nextcloud-vue', '{version}, up to date', { version })
 				: version
+		},
+
+		/** @return {boolean} Whether the up-to-date state reads in the configured version row. */
+		upToDateInline() {
+			return this.inlineUpToDate || this.compact
 		},
 
 		/** @return {string} Button type based on update status */

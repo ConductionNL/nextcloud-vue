@@ -126,8 +126,30 @@ describe('CnVersionInfoCard board props showAppName and actionsDivider', () => {
 })
 
 describe('CnAdminSettingsShell board version card', () => {
+	it('keeps PqBeheer\'s card in the board look by default (the l15-admin-chrome-dutch contract)', () => {
+		const wrapper = shell({ showUpdateButton: true, isUpToDate: true })
+		expect(wrapper.findAll('.cn-version-info__label').map((l) => l.text())).toEqual(['Application name:', 'Version:', 'Configured version:'])
+		expect(wrapper.text()).toContain('Information about the current Dossiq installation')
+		expect(wrapper.find('.cn-support-info').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-admin-settings-support-row"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').text()).toContain('Up to date')
+		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').classes()).toContain('cn-version-info__footer-row--divided')
+		expect(wrapper.findAll('[data-testid="cn-version-info-footer-row"] .NcButton').find((b) => b.text() === 'Re-import configuration').attributes('variant')).toBe('primary')
+		expect(wrapper.find('.cn-version-info--compact').exists()).toBe(false)
+	})
+
+	it('draws dossiq\'s compact card with compact', () => {
+		const wrapper = shell({ compact: true, showUpdateButton: true, isUpToDate: true })
+		expect(wrapper.findAll('.cn-version-info__label').map((l) => l.text())).toEqual(['Version:', 'Configured version:', 'Support:'])
+		expect(wrapper.find('[data-testid="cn-version-info-configured"]').text()).toContain('0.4.47, up to date')
+		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').classes()).not.toContain('cn-version-info__footer-row--divided')
+		expect(wrapper.find('.cn-version-info--compact').exists()).toBe(true)
+		expect(rulesFor('.cn-look-board .cn-version-info--compact .cn-version-info__details')).toMatch(/font-size: 15px/)
+		expect(rulesFor('.cn-look-board .cn-version-info--board .cn-version-info__details')).toMatch(/font-size: 14px/)
+	})
+
 	it('says what the card is about in one line and puts support in one row', () => {
-		const wrapper = shell()
+		const wrapper = shell({ compact: true })
 		expect(wrapper.text()).toContain('About this Dossiq installation.')
 		const row = wrapper.find('[data-testid="cn-admin-settings-support-row"]')
 		expect(row.find('.cn-version-info__label').text()).toBe('Support:')
@@ -136,7 +158,7 @@ describe('CnAdminSettingsShell board version card', () => {
 	})
 
 	it('draws re-import and the setup wizard as secondary buttons on dossiq\'s card', () => {
-		const wrapper = shell({ inlineUpToDate: true })
+		const wrapper = shell({ compact: true })
 		// NcButton is stubbed globally (tests/setup.js) as a div that keeps its props as attributes.
 		const buttons = wrapper.findAll('[data-testid="cn-version-info-footer-row"] .NcButton')
 		expect(buttons.map((b) => b.text())).toEqual(['Re-import configuration', 'Run setup wizard'])
