@@ -962,9 +962,10 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 124,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
+				"CnActionButtons",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -2884,20 +2885,23 @@
 		},
 		"CnRelatedObjectsWidget": {
 			"direct": 7,
-			"transitive": 104,
+			"transitive": 112,
 			"tier": "heavy",
 			"via": [
+				"CnActionButtons",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
+				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
 				"CnEmailPicker",
@@ -2905,6 +2909,7 @@
 				"CnFilesCard",
 				"CnFkResolveCell",
 				"CnFlowOperationPicker",
+				"CnFormDialog",
 				"CnIndexPage",
 				"CnMapPoiPicker",
 				"CnNoteComposer",
@@ -2914,6 +2919,7 @@
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnResourceSelect",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTasksCard",
@@ -3183,9 +3189,10 @@
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 125,
+			"transitive": 126,
 			"tier": "heavy",
 			"via": [
+				"CnActionButtons",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -3530,9 +3537,10 @@
 		},
 		"CnTabsWidget": {
 			"direct": 0,
-			"transitive": 127,
+			"transitive": 128,
 			"tier": "heavy",
 			"via": [
+				"CnActionButtons",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -3895,9 +3903,10 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 165,
+			"transitive": 166,
 			"tier": "heavy",
 			"via": [
+				"CnActionButtons",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
