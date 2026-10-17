@@ -227,6 +227,9 @@
 	row-gap: 4px;
 }
 
+/* `margin: 0`: a tab is a <button>, and Nextcloud's core stylesheet gives
+   every `button:not(.button-vue)` `margin: 3px 3px 3px 0`, which put the strip
+   3px low and the tabs 7px apart instead of 4 (DqZaak "Zaakonderdelen"). */
 .cn-look-board .cn-tabs--board .cn-tabs__nav-item {
 	background-color: var(--color-background-dark);
 	border: 1px solid var(--color-border-dark);
@@ -234,6 +237,7 @@
 	border-radius: 8px 8px 0 0;
 	font-size: 14px;
 	font-weight: 400;
+	margin: 0;
 	min-height: 34px;
 	padding: 8px 12px;
 }
