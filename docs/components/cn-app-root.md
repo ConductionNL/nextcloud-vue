@@ -383,7 +383,7 @@ sections carry one. The Nextcloud look is unchanged.
 Nextcloud does not expose its personal settings sections to an app's page, so the board's list of Nextcloud's own
 settings (Persoonlijke info, Beveiliging, ..., Privacy) is configured with `userSettingsNextcloudLinks`. With it, the
 navigation lists those links first and then one entry named after the app, with the app's sections under it (board
-DqPersoonlijkeInstellingen). A section's `#icon` also stands before its heading in the board dialog.
+DqPersoonlijkeInstellingen). A section's `#icon` also stands before its heading in the board dialog. The board dialog shows one section at a time: picking a navigation entry shows that section and moves focus to its heading; the other sections stay mounted but hidden, so what was typed in them survives a switch.
 
 ```js
 const userSettingsNextcloudLinks = [
