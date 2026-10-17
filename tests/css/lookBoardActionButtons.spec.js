@@ -55,4 +55,11 @@ describe('look-board.css: CnActionButtons', () => {
 	it('covers the older secondary class too', () => {
 		expect(rulesFor('.cn-look-board .cn-action-buttons .button-vue--vue-secondary:not(.cn-look-nextcloud *)')).toContain('background: var(--color-main-background)')
 	})
+
+	it('puts the buttons 10px apart, each icon 16px with 8px to its label', () => {
+		expect(rulesFor('.cn-look-board .cn-action-buttons:not(.cn-look-nextcloud *)')).toContain('gap: 10px')
+		const icon = rulesFor('.cn-look-board .cn-action-buttons .button-vue .button-vue__icon:not(.cn-look-nextcloud *)')
+		expect(icon).toContain('width: 16px')
+		expect(icon).toContain('margin-inline-end: 8px')
+	})
 })

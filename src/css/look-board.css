@@ -161,6 +161,25 @@
 	font-weight: 600;
 }
 
+/* Buttons 10px apart, each icon 16px with 8px to its label (DqZaak's header,
+   DqZaken's "Downloaden"); NcButton draws a 20px icon in a 30px slot. */
+.cn-look-board .cn-action-buttons:not(.cn-look-nextcloud *) {
+	gap: 10px;
+}
+
+.cn-look-board .cn-action-buttons .button-vue .button-vue__icon:not(.cn-look-nextcloud *) {
+	width: 16px;
+	min-width: 16px;
+	height: 16px;
+	min-height: 16px;
+	margin-inline-end: 8px;
+}
+
+.cn-look-board .cn-action-buttons .button-vue .button-vue__icon:not(.cn-look-nextcloud *) svg {
+	width: 16px;
+	height: 16px;
+}
+
 .cn-look-board .cn-action-buttons .button-vue--secondary:not(.cn-look-nextcloud *):hover,
 .cn-look-board .cn-action-buttons .button-vue--vue-secondary:not(.cn-look-nextcloud *):hover {
 	background: var(--color-background-hover);
