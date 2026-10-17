@@ -48,7 +48,10 @@ import AlertOutline from 'vue-material-design-icons/AlertOutline.vue'
 import CheckCircleOutline from 'vue-material-design-icons/CheckCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
+import { readPath } from '../../utils/readPath.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 
@@ -90,6 +93,10 @@ const TONE_ICONS = Object.freeze({
  * }
  * ```
  *
+ * Indicators that are objects of their own (a warning recorded on a person)
+ * come from `indicatorSource`: one list request, `@objectId` in its filter,
+ * the label and tone read at `labelPath` / `tonePath` (through `toneMap`).
+ *
  * An indicator shows when its local `visibleWhen` holds against the page
  * object (no condition: always); its label goes through the app's translate
  * and then takes `{field}` tokens from the object. Without a shown indicator
@@ -113,7 +120,8 @@ export default {
 		/**
 		 * The widget configuration: `indicators` (`{ label, tone?, icon?, visibleWhen? }`,
 		 * tone `warning` | `error` | `info` | `success` | `neutral`), `emptyText`,
-		 * `emptyActions` and `actions` (action descriptors).
+		 * `emptyActions` and `actions` (action descriptors), and `indicatorSource`
+		 * for indicators kept as objects of their own (see `loadListed`).
 		 *
 		 * @type {{indicators?: Array<object>, emptyText?: string, emptyActions?: Array<object>, actions?: Array<object>}}
 		 */
@@ -127,9 +135,30 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/** The page object's id, for `@objectId` in `indicatorSource.filter`. */
+		objectId: {
+			type: [String, Number],
+			default: null,
+		},
+	},
+
+	data() {
+		return {
+			/** The indicators read from `indicatorSource`. */
+			listed: [],
+		}
 	},
 
 	computed: {
+		/** @return {string|number|null} The page object's id: the prop, else the record's. */
+		partyId() {
+			if (this.objectId !== null && this.objectId !== '') {
+				return this.objectId
+			}
+			return this.objectData && this.objectData.id !== undefined ? this.objectData.id : null
+		},
+
 		/**
 		 * The indicators whose condition holds, labels resolved.
 		 *
@@ -138,7 +167,7 @@ export default {
 		shownIndicators() {
 			const object = this.objectData || {}
 			const list = Array.isArray(this.content?.indicators) ? this.content.indicators : []
-			return list
+			return [...list, ...this.listed]
 				.filter((indicator) => indicator && typeof indicator === 'object' && typeof indicator.label === 'string' && indicator.label !== '')
 				.filter((indicator) => evaluateVisibleWhenLocal(indicator.visibleWhen ?? null, object))
 				.map((indicator, index) => {
@@ -171,7 +200,57 @@ export default {
 		},
 	},
 
+	watch: {
+		partyId: {
+			immediate: true,
+			handler() {
+				this.loadListed()
+			},
+		},
+	},
+
 	methods: {
+		/**
+		 * Read the indicators kept as objects of their own
+		 * (`indicatorSource`: `{ register, schema, filter?, extend?, labelPath, tonePath?, toneMap?, limit? }`),
+		 * e.g. pipelinq's partyIndicatorValue rows with `filter: { party: "@objectId" }`,
+		 * `extend: ["indicator"]`, `labelPath: "indicator.label"`, `tonePath: "indicator.severity"`.
+		 * A filter whose token does not resolve sends no request; a failed
+		 * request leaves the configured indicators only.
+		 *
+		 * @spec openspec/changes/party-actions-widget/specs/party-actions-widget/spec.md#requirement-a-party-page-draws-one-band-of-indicators-and-quick-actions
+		 * @return {Promise<void>}
+		 */
+		async loadListed() {
+			const source = this.content?.indicatorSource
+			if (!source || typeof source !== 'object' || !source.register || !source.schema || !source.labelPath) {
+				this.listed = []
+				return
+			}
+			const filter = resolveFilterTokens(source.filter || {}, { objectId: this.partyId, object: this.objectData || {} })
+			if (this.partyId === null || Object.values(filter).some((value) => value === undefined || value === null || (typeof value === 'string' && value.startsWith('@')))) {
+				this.listed = []
+				return
+			}
+			if (Array.isArray(source.extend) && source.extend.length > 0) {
+				filter._extend = source.extend.join(',')
+			}
+			let rows
+			try {
+				rows = await fetchReferenceObjects({ register: source.register, schema: source.schema, filter, limit: source.limit || 50 })
+			} catch {
+				this.listed = []
+				return
+			}
+			const toneMap = source.toneMap && typeof source.toneMap === 'object' ? source.toneMap : {}
+			this.listed = rows.map((row, index) => {
+				const raw = source.tonePath ? readPath(row, source.tonePath) : undefined
+				const tone = Object.hasOwn(toneMap, String(raw)) ? toneMap[String(raw)] : raw
+				const label = readPath(row, source.labelPath)
+				return { id: `source-${row?.id ?? index}`, label: typeof label === 'string' ? label : '', tone }
+			})
+		},
+
 		/**
 		 * Translate through the app's translate.
 		 *

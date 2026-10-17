@@ -80,3 +80,47 @@ describe('CnPartyActionsWidget', () => {
 		expect(quick[0].target).toBe('tel:@object.phone')
 	})
 })
+
+describe('CnPartyActionsWidget: indicators kept as objects', () => {
+	afterEach(() => {
+		delete global.fetch
+	})
+
+	it('lists the source rows for this party, label and tone read through the extend and the tone map', async () => {
+		global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ results: [
+			{ id: 'v1', indicator: { label: 'Interpreter needed', severity: 'low' } },
+			{ id: 'v2', indicator: { label: 'Aggression reported', severity: 'high' } },
+		] }) }))
+		const w = mount(CnPartyActionsWidget, {
+			props: {
+				objectId: 'p-1',
+				objectData: { id: 'p-1' },
+				content: {
+					emptyText: 'No warnings.',
+					indicatorSource: { register: 'pipelinq', schema: 'partyIndicatorValue', filter: { party: '@objectId' }, extend: ['indicator'], labelPath: 'indicator.label', tonePath: 'indicator.severity', toneMap: { high: 'error', low: 'info' } },
+				},
+			},
+			global: { provide: { cnTranslate: (key) => key }, stubs: { CnActionButtons: true } },
+		})
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		await w.vm.$nextTick()
+		const url = global.fetch.mock.calls[0][0]
+		expect(url).toContain('/apps/openregister/api/objects/pipelinq/partyIndicatorValue')
+		expect(url).toContain('party=p-1')
+		expect(decodeURIComponent(url)).toContain('_extend=indicator')
+		const shown = w.findAll('.cn-party-actions-widget__indicator')
+		expect(shown.map((li) => li.text())).toEqual(['Interpreter needed', 'Aggression reported'])
+		expect(shown[1].classes()).toContain('cn-party-actions-widget__indicator--error')
+		expect(w.find('[data-testid="cn-party-actions-empty"]').exists()).toBe(false)
+	})
+
+	it('sends no request without the party id', async () => {
+		global.fetch = jest.fn()
+		mount(CnPartyActionsWidget, {
+			props: { content: { indicatorSource: { register: 'r', schema: 's', filter: { party: '@objectId' }, labelPath: 'label' } } },
+			global: { stubs: { CnActionButtons: true } },
+		})
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		expect(global.fetch).not.toHaveBeenCalled()
+	})
+})
