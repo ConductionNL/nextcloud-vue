@@ -33,4 +33,10 @@ describe('look-board-index.css: the selected quick-filter chip keeps its ink', (
 		expect(ruleEndingWith('.cn-quick-filter-bar .cn-quick-filter-bar__tab--active .cn-quick-filter-bar__count'))
 			.toContain('--nldesign-color-on-surface: var(--color-primary-element-text)')
 	})
+
+	it('draws the count on the selected chip as a lighter bubble, not in the chip colour', () => {
+		const rule = ruleEndingWith('.cn-quick-filter-bar .cn-quick-filter-bar__tab--active .cn-quick-filter-bar__count')
+		expect(rule).toContain('background: color-mix(in srgb, var(--color-main-background) 15%, var(--color-main-text))')
+		expect(rule).not.toContain('background: var(--cn-board-text-soft)')
+	})
 })

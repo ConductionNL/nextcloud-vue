@@ -213,9 +213,12 @@
 }
 
 .cn-look-board .cn-saved-views__chip--selected .cn-saved-views__chip-count,
+/* On the selected chip the count is a lighter bubble on the dark chip
+   (DqZaken: #3d4047 on #1b1c1d); --cn-board-text-soft resolves to the main
+   text, the chip's own colour, which hid the bubble. */
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active .cn-quick-filter-bar__count {
 	--nldesign-color-on-surface: var(--color-primary-element-text);
-	background: var(--cn-board-text-soft);
+	background: color-mix(in srgb, var(--color-main-background) 15%, var(--color-main-text));
 	color: var(--color-primary-element-text);
 }
 
