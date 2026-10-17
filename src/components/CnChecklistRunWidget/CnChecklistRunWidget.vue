@@ -112,10 +112,14 @@
 				</p>
 			</fieldset>
 
-			<div v-if="photosEnabled && currentQuestion" class="cn-checklist-run__photos" data-testid="cn-checklist-run-photos">
-				<strong class="cn-checklist-run__photos-title">{{ photoTitle }}</strong>
-				<ul v-if="photoNames.length" class="cn-checklist-run__photo-list">
-					<li v-for="name in photoNames" :key="name" data-testid="cn-checklist-run-photo">
+			<div
+				v-for="question in photoQuestions"
+				:key="`photos-${question.id}`"
+				class="cn-checklist-run__photos"
+				data-testid="cn-checklist-run-photos">
+				<strong class="cn-checklist-run__photos-title">{{ photoTitle(question) }}</strong>
+				<ul v-if="photoNamesFor(question).length" class="cn-checklist-run__photo-list">
+					<li v-for="name in photoNamesFor(question)" :key="name" data-testid="cn-checklist-run-photo">
 						{{ name }}
 					</li>
 				</ul>
@@ -125,10 +129,19 @@
 						type="file"
 						accept="image/*"
 						capture="environment"
+						:aria-describedby="missingPhoto.includes(question.id) ? `${uid}-photo-${question.id}` : null"
 						data-testid="cn-checklist-run-photo-input"
-						@change="addPhotos">
-					{{ photoNames.length ? morePhotoLabel : addPhotoLabel }}
+						@change="addPhotos($event, question.id)">
+					{{ photoNamesFor(question).length || (storedPhotos[question.id] || []).length ? morePhotoLabel : addPhotoLabel }}
 				</label>
+				<p
+					v-if="missingPhoto.includes(question.id)"
+					:id="`${uid}-photo-${question.id}`"
+					class="cn-checklist-run__error"
+					role="alert"
+					data-testid="cn-checklist-run-missing-photo">
+					{{ missingPhotoLabel }}
+				</p>
 			</div>
 
 			<div class="cn-checklist-run__nav">
@@ -269,6 +282,12 @@ function idOf(object) {
  * record through the object API. Photos then go to the record's own files
  * (`recordPhotosField`) and their references into the answer.
  *
+ * A question can require a photo: `fields.photoRequired` names its rule,
+ * `photoRequiredValues` maps the stored values onto `never`, `always` or
+ * `{ whenAnswer }`, and the page holds until the photo is there. On a page
+ * with no bound record, `record: { register, schema, filter, sort }` picks
+ * the open record: the first match, under the reader's rights.
+ *
  * Question kinds: `yes_no`, `yes_no_na`, `choice` (the question's `options`,
  * a list of strings or `{ value, label }`), `number`, `photo` and `text`.
  * `typeMap` maps the app's type values onto them, `choiceValues` the stored
@@ -355,6 +374,10 @@ export default {
 			photos: {},
 			page: 0,
 			missing: [],
+			// Questions on this page that still need their photo.
+			missingPhoto: [],
+			// `content.record` with a filter: the record it picked, or null.
+			pickedRecord: null,
 			liveText: '',
 		}
 	},
@@ -366,8 +389,8 @@ export default {
 			const injected = unwrap(this.cnObjectContext) || {}
 			return {
 				...injected,
-				objectId: this.objectId || injected.objectId || this.objectData?.id || null,
-				object: this.objectData || injected.object || null,
+				objectId: (this.pickedRecord && idOf(this.pickedRecord)) || this.objectId || injected.objectId || this.objectData?.id || null,
+				object: this.pickedRecord || this.objectData || injected.object || null,
 				workspace: unwrap(this.cnWorkspaceContext) || {},
 			}
 		},
@@ -476,20 +499,62 @@ export default {
 			return this.currentQuestion?.group || ''
 		},
 
-		/** @return {string[]} The names of the photos held for the current question. */
-		photoNames() {
-			const id = this.currentQuestion?.id
-			return id ? (this.photos[id] || []).map((file) => file.name) : []
+		/**
+		 * The questions of this page that get a photo control: with a
+		 * `photoRequired` field, those whose rule is not never (and photo
+		 * questions); without one, the first question of the page.
+		 *
+		 * @return {object[]} The questions.
+		 * @spec openspec/changes/checklist-run-photo-rule/specs/checklist-run-photo-rule/spec.md#requirement-a-question-can-require-a-photo
+		 */
+		photoQuestions() {
+			if (!this.photosEnabled) {
+				return []
+			}
+			if (this.fields.photoRequired) {
+				return this.pageQuestions.filter((q) => q.kind === 'photo' || q.photoRule !== 'never')
+			}
+			const first = this.currentQuestion
+			const extra = this.pageQuestions.filter((q) => q.kind === 'photo' && q !== first)
+			return first ? [first, ...extra] : extra
 		},
 
-		/** @return {string} The photo card title. */
-		photoTitle() {
-			const n = this.page * this.pageSize + 1
-			return t('nextcloud-vue', 'Photo for question {n}', { n })
+		/**
+		 * `content.record` with a `filter`: the list to pick the open record
+		 * from (first match of `sort`), `'blocked'` while a token is
+		 * unresolved, or null without a filter.
+		 *
+		 * @return {object|string|null}
+		 * @spec openspec/changes/checklist-run-photo-rule/specs/checklist-run-photo-rule/spec.md#requirement-a-checklist-run-can-pick-its-record-by-filter
+		 */
+		recordPicker() {
+			const own = this.content?.record
+			if (!own || typeof own !== 'object' || !own.filter || typeof own.filter !== 'object') {
+				return null
+			}
+			const unwrap = (c) => (c && typeof c === 'object' && 'value' in c ? c.value : c)
+			const filter = resolveFilterTokens(own.filter, { objectId: this.objectId || null, object: this.objectData, workspace: unwrap(this.cnWorkspaceContext) || {} })
+			if (hasUnresolvedTokens(filter)) {
+				return 'blocked'
+			}
+			const sort = own.sort && typeof own.sort === 'object' && own.sort.field ? { [`_order[${own.sort.field}]`]: own.sort.dir === 'asc' ? 'asc' : 'desc' } : {}
+			return { register: slugOf(own.register), schema: slugOf(own.schema), filter: { ...filter, ...sort } }
+		},
+
+		/** @return {object|null} The record the run lives in: the picked one, else the bound one. */
+		openRecord() {
+			return this.recordPicker ? this.pickedRecord : this.tokenCtx.object
 		},
 
 		/** @return {string} The key of the source lists, to read them again when they change. */
 		sourceKey() {
+			const picker = this.recordPicker
+			if (picker === 'blocked') {
+				return ''
+			}
+			if (picker && typeof this.content?.questionsPath === 'string' && this.content.questionsPath !== '') {
+				return JSON.stringify({ pick: picker, path: this.content.questionsPath })
+			}
 			if (typeof this.content?.questionsPath === 'string' && this.content.questionsPath !== '') {
 				const object = this.tokenCtx.object
 				return object ? JSON.stringify({ path: this.content.questionsPath, id: idOf(object), at: object['@self']?.updated ?? null }) : ''
@@ -515,6 +580,7 @@ export default {
 		nextLabel: () => t('nextcloud-vue', 'Next'),
 		finishLabel: () => t('nextcloud-vue', 'Finish'),
 		addPhotoLabel: () => t('nextcloud-vue', 'Take or add a photo'),
+		missingPhotoLabel: () => t('nextcloud-vue', 'This answer needs a photo. Add one to go on.'),
 		photoOnlyLabel: () => t('nextcloud-vue', 'Answer with a photo.'),
 		morePhotoLabel: () => t('nextcloud-vue', 'Another photo'),
 
@@ -569,7 +635,7 @@ export default {
 		 */
 		isAnswered(question) {
 			if (question.kind === 'photo') {
-				return (this.storedPhotos[question.id] || []).length > 0 || (this.photos[question.id] || []).length > 0
+				return this.hasPhoto(question)
 			}
 			return this.hasValue(this.draft[question.id]?.value)
 		},
@@ -603,7 +669,76 @@ export default {
 				help: typeof help === 'string' && help !== '' ? this.translate(help) : '',
 				choices,
 				group,
+				photoRule: this.photoRuleOf(record),
 			}
+		},
+
+		/**
+		 * A question's photo rule, from its `photoRequired` field mapped
+		 * through `photoRequiredValues`: `'never'`, `'always'` or
+		 * `{ whenAnswer }` (a photo is needed when the answer is that value).
+		 *
+		 * @param {object} record The question record.
+		 * @return {('never'|'always'|{whenAnswer: string})} The rule.
+		 * @spec openspec/changes/checklist-run-photo-rule/specs/checklist-run-photo-rule/spec.md#requirement-a-question-can-require-a-photo
+		 */
+		photoRuleOf(record) {
+			const path = this.fields.photoRequired
+			if (!path) {
+				return 'never'
+			}
+			const raw = readPath(record, path)
+			const map = { true: 'always', false: 'never', always: 'always', never: 'never', ...(this.content?.photoRequiredValues || {}) }
+			const rule = raw === null || raw === undefined ? 'never' : map[String(raw)]
+			if (rule && typeof rule === 'object' && rule.whenAnswer !== undefined) {
+				return { whenAnswer: String(rule.whenAnswer) }
+			}
+			return rule === 'always' ? 'always' : 'never'
+		},
+
+		/**
+		 * Whether a question needs a photo with its current answer.
+		 *
+		 * @param {object} question The question.
+		 * @return {boolean} True when a photo is required now.
+		 */
+		needsPhoto(question) {
+			const rule = question.photoRule
+			if (rule === 'always') {
+				return true
+			}
+			return Boolean(rule && typeof rule === 'object' && String(this.draft[question.id]?.value ?? '') === rule.whenAnswer)
+		},
+
+		/**
+		 * Whether a question has a photo, stored or held.
+		 *
+		 * @param {object} question The question.
+		 * @return {boolean} True with at least one photo.
+		 */
+		hasPhoto(question) {
+			return (this.storedPhotos[question.id] || []).length > 0 || (this.photos[question.id] || []).length > 0
+		},
+
+		/**
+		 * The photo card title for a question: its position in the run.
+		 *
+		 * @param {object} question The question.
+		 * @return {string} The title.
+		 */
+		photoTitle(question) {
+			const n = this.questions.indexOf(question) + 1
+			return t('nextcloud-vue', 'Photo for question {n}', { n })
+		},
+
+		/**
+		 * The names of the photos held for a question.
+		 *
+		 * @param {object} question The question.
+		 * @return {string[]} The file names.
+		 */
+		photoNamesFor(question) {
+			return (this.photos[question.id] || []).map((file) => file.name)
 		},
 
 		/**
@@ -616,7 +751,7 @@ export default {
 		 */
 		questionsFromRecord() {
 			const c = this.content
-			const list = readPath(this.tokenCtx.object, c.questionsPath)
+			const list = readPath(this.openRecord, c.questionsPath)
 			const orderField = c.orderField === undefined ? 'order' : c.orderField
 			const top = byOrder(Array.isArray(list) ? list : [], orderField)
 			if (!c.itemsKey) {
@@ -659,8 +794,18 @@ export default {
 			this.loading = true
 			this.error = ''
 			try {
+				const picker = this.recordPicker
+				if (picker) {
+					const found = await fetchReferenceObjects({ register: picker.register, schema: picker.schema, filter: picker.filter, limit: 1 })
+					if (key !== this.sourceKey) {
+						return
+					}
+					this.pickedRecord = found[0] || null
+				}
 				let questions
-				if (this.content.questionsPath) {
+				if (picker && !this.pickedRecord) {
+					questions = []
+				} else if (this.content.questionsPath) {
 					questions = this.questionsFromRecord()
 				} else {
 					const q = this.content.questions
@@ -682,7 +827,7 @@ export default {
 					draft[question.id] = { value: '', note: '' }
 				}
 				if (this.inRecord) {
-					const entries = readPath(this.tokenCtx.object, this.content.answersPath)
+					const entries = readPath(this.openRecord, this.content.answersPath)
 					this.recordAnswers = Array.isArray(entries) ? entries : []
 					const key = this.content.answerKey || 'questionId'
 					for (const entry of this.recordAnswers) {
@@ -733,19 +878,21 @@ export default {
 		},
 
 		/**
-		 * Hold the photos picked for the current question until the page saves.
+		 * Hold the photos picked for a question until the page saves.
 		 *
 		 * @param {Event} event The file input's change event.
+		 * @param {string} [questionId] The question, else the first of the page.
 		 * @return {void}
 		 */
-		addPhotos(event) {
-			const id = this.currentQuestion?.id
+		addPhotos(event, questionId) {
+			const id = questionId || this.currentQuestion?.id
 			const files = Array.from(event?.target?.files || [])
 			if (!id || files.length === 0) {
 				return
 			}
 			this.photos = { ...this.photos, [id]: [...(this.photos[id] || []), ...files] }
 			this.dirty = { ...this.dirty, [id]: true }
+			this.missingPhoto = this.missingPhoto.filter((m) => m !== id)
 			if (event.target) {
 				event.target.value = ''
 			}
@@ -799,7 +946,7 @@ export default {
 		 */
 		async saveIntoRecord(changed) {
 			const { register, schema } = this.recordRef
-			const objectId = idOf(this.tokenCtx.object) || String(this.tokenCtx.objectId || '')
+			const objectId = idOf(this.openRecord) || String(this.openRecordId || '')
 			if (!register || !schema || !objectId) {
 				throw new Error('no record to write to')
 			}
@@ -807,7 +954,7 @@ export default {
 			const af = this.answerFields
 			const key = c.answerKey || 'questionId'
 			const refField = c.photoRefField || 'id'
-			let recordPhotos = Array.isArray(readPath(this.tokenCtx.object, c.recordPhotosField)) ? readPath(this.tokenCtx.object, c.recordPhotosField) : []
+			let recordPhotos = Array.isArray(readPath(this.openRecord, c.recordPhotosField)) ? readPath(this.openRecord, c.recordPhotosField) : []
 			const entries = [...this.recordAnswers]
 			for (const question of changed) {
 				const draft = this.draft[question.id]
@@ -922,7 +1069,8 @@ export default {
 		 */
 		async next() {
 			this.missing = this.unansweredRequired()
-			if (this.missing.length) {
+			this.missingPhoto = this.photosEnabled ? this.pageQuestions.filter((q) => this.needsPhoto(q) && !this.hasPhoto(q)).map((q) => q.id) : []
+			if (this.missing.length || this.missingPhoto.length) {
 				return
 			}
 			if (!(await this.savePage())) {
@@ -945,6 +1093,7 @@ export default {
 				return
 			}
 			this.missing = []
+			this.missingPhoto = []
 			this.goTo(this.page - 1)
 		},
 
