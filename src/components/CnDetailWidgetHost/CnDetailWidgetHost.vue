@@ -239,11 +239,11 @@
 			<component :is="renderer" :content="content" v-bind="declaredContent" />
 		</CnWidgetWrapper>
 
-		<!-- An app's own widget (consumer registry) on a card surface: the
-		     side column or a tab stack. It gets the same titled card a catalog
-		     widget gets, unless its registry entry says it draws its own
-		     (`selfChromed: true`). A body grid cell has its own card, so there
-		     it stays bare. -->
+		<!-- An app's own widget (consumer registry) on a card surface, the
+		     side column or a tab stack, whose registry entry asks for the
+		     titled card (`chrome: "card"`). Opt-in: many app widgets draw their
+		     own card. A body grid cell has its own card, so there it stays
+		     bare. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsConsumerWidget"
 			:title="widget.title || ''"
@@ -775,8 +775,9 @@ export default {
 
 		/**
 		 * Whether an app's own widget (from the consumer registry) gets the
-		 * titled card: on a card surface outside a body grid cell, unless its
-		 * registry entry says `selfChromed: true`.
+		 * titled card: on a card surface outside a body grid cell, when its
+		 * registry entry asks for it (`chrome: "card"`). Opt-in, because many
+		 * app widgets already draw their own card.
 		 *
 		 * @return {boolean}
 		 * @spec openspec/changes/detail-consumer-widget-card/specs/detail-page/spec.md#requirement-a-consumer-widget-on-a-card-surface-gets-the-titled-card
@@ -789,7 +790,7 @@ export default {
 			if (!entry) {
 				return false
 			}
-			return !(typeof entry === 'object' && entry.selfChromed === true)
+			return typeof entry === 'object' && entry.chrome === 'card'
 		},
 
 		/** @return {boolean} true when the registry entry declares `card`. */

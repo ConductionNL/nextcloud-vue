@@ -20,7 +20,7 @@ The pure decisions live in `utils/widgetDispatch.js`, which both surfaces import
 
 ## An app's own widget on a card surface
 
-In card chrome outside a body grid cell (the side column, a tab stack), a widget from the app's `cnRegistry` is drawn in the same titled card a catalog widget gets: the definition's `title` and `icon`, no Actions menu. A registry entry that draws its own card says `selfChromed: true` (`cnRegistry['case-map'] = { component, selfChromed: true }`) and is drawn as is. A body grid cell draws its own card, so CnDetailPage passes `inGridCell` and the widget stays bare there.
+In card chrome outside a body grid cell (the side column, a tab stack), a widget from the app's `cnRegistry` whose entry asks for it with `chrome: "card"` (`cnRegistry['case-map'] = { component, chrome: 'card' }`) is drawn in the same titled card a catalog widget gets: the definition's `title` and `icon`, no Actions menu. Without it the widget is drawn as is, which suits a widget that draws its own card. A body grid cell draws its own card, so CnDetailPage passes `inGridCell` and the widget stays bare there.
 
 ## How `content` reaches a catalog widget
 

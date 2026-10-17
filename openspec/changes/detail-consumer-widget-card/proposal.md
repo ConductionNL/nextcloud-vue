@@ -9,7 +9,10 @@ types got the titled card. An app's own widget, such as dossiq's location map, c
 ## What changes
 
 - CnDetailWidgetHost wraps an app's own widget (a `cnRegistry` entry) in the titled card on a card surface, like a
-  catalog widget: the widget definition's title and icon, no Actions menu.
-- A registry entry with `selfChromed: true` keeps drawing its own card.
+  catalog widget (the widget definition's title and icon, no Actions menu), when its registry entry asks for it with
+  `chrome: "card"`.
+- Opt-in: a fleet scan found 20 placements of app widgets on card surfaces (pipelinq 10, portaliq 10), most of them
+  drawing their own card (pipelinq's `sectionWidget(..., { card: true })`, portaliq's summary and KPI cards). Wrapping
+  by default would have doubled those cards. Without `chrome: "card"` nothing changes.
 - A body grid cell draws its own card, so CnDetailPage marks it (`inGridCell`) and an app's widget there stays bare, as
   before. Bare chrome (a single-tab panel) is unchanged.
