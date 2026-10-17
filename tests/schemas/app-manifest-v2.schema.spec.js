@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.115.0', () => {
+	it('the manifest schema version reads 2.125.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1388,7 +1388,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.111.0 lets config.greeting lead with a label or the date alone (dashboard-greeting-label).
 		// 2.115.0 lets config.breadcrumb take a list of crumbs, for index, dashboard and settings pages too (page-header-breadcrumb).
 		// 2.118.0 adds nav.searchPlaceholder (screens-board-top-bar-search).
-		expect(schema.version).toBe('2.118.0')
+		// 2.125.0 adds entitySource 'organisations', on index and detail pages (organisations-entity-source).
+		expect(schema.version).toBe('2.125.0')
 	})
 
 	it('accepts nav.searchPlaceholder as a non-empty string', () => {
