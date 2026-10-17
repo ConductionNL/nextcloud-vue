@@ -1387,6 +1387,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.108.0 adds config.modules, modulesTitle and footnote on a links page (screens-links-module-cards).
 		// 2.111.0 lets config.greeting lead with a label or the date alone (dashboard-greeting-label).
 		// 2.115.0 lets config.breadcrumb take a list of crumbs, for index, dashboard and settings pages too (page-header-breadcrumb).
+		// 2.118.0 adds nav.searchPlaceholder (screens-board-top-bar-search).
+		// 2.119.0 adds views[].title on a dashboard (view-title).
 		// 2.120.0 adds chart barMax, footnote, highlight, valueFormat 'number' with suffix and endpointSource rowsPath (chart-bar-list-and-matrix).
 		expect(schema.version).toBe('2.120.0')
 	})
@@ -2279,5 +2281,14 @@ describe('app-manifest-v2: a dashboard greeting label (dashboard-greeting-label,
 		expect(validateManifestV2(page({ greeting: { label: '' } })).valid).toBe(false)
 		expect(validateManifestV2(page({ greeting: {} })).valid).toBe(false)
 		expect(validateManifestV2(page({ greeting: { label: 'Customer contact', icon: 'x' } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: a view title (view-title, 2.119.0)', () => {
+	const page = (views) => ({ ...MINIMAL_V2, pages: [{ id: 'mywork', route: '/', type: 'dashboard', title: 'My work', config: { views } }] })
+
+	it('accepts a view title and refuses an empty one', () => {
+		expect(validateManifestV2(page([{ id: 'mine', label: 'My work' }, { id: 'team', label: 'My team', title: 'My team' }])).valid).toBe(true)
+		expect(validateManifestV2(page([{ id: 'team', label: 'My team', title: '' }])).valid).toBe(false)
 	})
 })
