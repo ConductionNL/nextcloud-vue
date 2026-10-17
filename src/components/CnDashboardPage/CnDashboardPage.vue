@@ -1079,6 +1079,7 @@ const CHART_PROP_KEYS = [
 	'barMax',
 	'footnote',
 	'highlight',
+	'cellSource',
 ]
 
 /**

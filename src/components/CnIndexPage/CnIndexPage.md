@@ -535,6 +535,34 @@ What the source brings, all overridable by the manifest:
 - Scope stays the endpoint's session decision. The loader drops any
   user-naming key, so a manifest cannot ask for someone else's inbox.
 
+### The `organisations` source: OpenRegister organisations
+
+`entitySource: "organisations"` lists the OpenRegister organisations the
+viewer belongs to, from `GET /apps/openregister/api/organisations`. An
+organisation is not a register/schema object, so self-fetch cannot reach it.
+
+```json
+{
+  "id": "organisations",
+  "route": "/organisations",
+  "type": "index",
+  "config": { "entitySource": "organisations", "rowRoute": "organisation-detail" }
+}
+```
+
+- Columns: name, status (a pill with the lifecycle state in words), type and
+  created. A manifest `columns` list still wins; every field of the
+  organisation can be a column (`slug`, `contactEmail`, `kvk`, ...).
+- A row's `id` is the organisation's uuid, so `rowRoute` pushes
+  `{ name: rowRoute, params: { id: <uuid> } }`.
+- No Add, Copy or Delete: creating an organisation is not this page's object
+  form, and OpenRegister has no delete for one.
+- Which organisations are listed is OpenRegister's decision from the
+  session. The endpoint takes no parameters, so no config key reaches it.
+
+The same name works on a `type: "detail"` page, which then shows ONE
+organisation (see CnDetailPage, "Records that are not objects").
+
 ### Search fields on a named source
 
 Available from the release that follows 3.2.0. An app on 3.2.0 or older ignores `sidebar.fields`, so bump the dependency before declaring them.
