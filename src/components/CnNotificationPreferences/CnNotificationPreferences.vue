@@ -1,5 +1,8 @@
 <template>
 	<NcAppSettingsSection id="notifications" :name="t('nextcloud-vue', 'Notifications')">
+		<template v-if="cnLook === 'board'" #icon>
+			<BellOutline :size="18" />
+		</template>
 		<NcLoadingIcon v-if="loading" :size="24" />
 
 		<NcEmptyContent v-else-if="error"
@@ -107,6 +110,8 @@ export default {
 		 * than an always-empty pane.
 		 */
 		cnAppId: { default: () => '' },
+		/** The app's look; `board` gives the section its navigation icon. */
+		cnLook: { default: 'nextcloud' },
 		/**
 		 * App-supplied labels for its notification rules, provided by the
 		 * CnAppRoot ancestor from its `notificationLabels` prop. Keyed
