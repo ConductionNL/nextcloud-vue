@@ -583,9 +583,11 @@
 		},
 		"CnConversationThread": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 5,
+			"tier": "medium",
+			"via": [
+				"CnIndexPage"
+			],
 			"page": "cn-conversation-thread"
 		},
 		"CnCopyDialog": {

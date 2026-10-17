@@ -49,3 +49,15 @@ Posting to an endpoint. The reply goes out as `{ message, ...payload }`. `title-
   </template>
 </CnConversationThread>
 ```
+
+While the messages load, `loading` makes the thread say so (in a status region) instead of showing the empty text. A
+message's `channel` is shown after its time:
+
+```vue
+<CnConversationThread
+  title="Contact"
+  :loading="false"
+  :messages="[
+    { id: 1, author: 'Sanne de Vries', time: '2026-10-04T10:52:00', side: 'them', channel: 'Message box', text: 'Thank you.' },
+  ]" />
+```
