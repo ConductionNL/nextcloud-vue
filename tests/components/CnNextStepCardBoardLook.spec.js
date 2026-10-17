@@ -59,4 +59,17 @@ describe('CnNextStepCard in the board look', () => {
 		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__item--done .cn-next-step-card__marker')).toMatch(/var\(--cn-board-success-tint\)[\s\S]*var\(--color-success-text\)/)
 		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__side .button-vue')).toMatch(/block-size: 44px[\s\S]*font-size: 15px[\s\S]*padding: 0 20px/)
 	})
+
+	it('sets the card at the normal line height, so a step row is the 20px marker', () => {
+		expect(rule('.cn-look-board .cn-next-step-card--board')).toContain('line-height: normal')
+		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__title.cn-next-step-card__title')).toContain('line-height: normal')
+		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__side .button-vue .button-vue__text.button-vue__text')).toContain('padding-inline: 0')
+	})
+
+	it('keeps the kicker tone and the muted steps under a theme that forces heading and body ink', () => {
+		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__title.cn-next-step-card__title')).toContain('color: var(--color-primary-element-light-text) !important')
+		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__after')).toBeTruthy()
+		expect(css).toMatch(/\.cn-next-step-card__item,\s*\.cn-look-board \.cn-next-step-card--board \.cn-next-step-card__hint,\s*\.cn-look-board \.cn-next-step-card--board \.cn-next-step-card__after \{\s*--nldesign-color-on-surface: var\(--color-text-maxcontrast\);/)
+		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__item--current')).toContain('--nldesign-color-on-surface: var(--color-main-text)')
+	})
 })
