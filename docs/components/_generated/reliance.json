@@ -1392,7 +1392,7 @@
 			"page": "cn-flow-step-outcomes"
 		},
 		"CnFlowsPage": {
-			"direct": 0,
+			"direct": 1,
 			"transitive": 187,
 			"tier": "heavy",
 			"via": [
@@ -1681,7 +1681,7 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 8,
+			"direct": 9,
 			"transitive": 184,
 			"tier": "heavy",
 			"via": [
@@ -2656,7 +2656,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 200,
+			"transitive": 201,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2693,6 +2693,7 @@
 				"CnFlowOperationPicker",
 				"CnFlowRunsWidget",
 				"CnFlowRunsWidgetForm",
+				"CnFlowsPage",
 				"CnFormDialog",
 				"CnGaugeWidgetForm",
 				"CnGraphCanvas",
@@ -3785,7 +3786,7 @@
 		},
 		"CnTasksWidget": {
 			"direct": 2,
-			"transitive": 4,
+			"transitive": 6,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-tasks-widget"

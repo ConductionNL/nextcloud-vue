@@ -172,6 +172,7 @@ import { parseDateValue } from '../../utils/dateVariant.js'
 import { formatMoney, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 
 /** Kinds of entry a `fields[]` item can be. A labelled item without `as` is a row. */
 const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text', 'meter'])
@@ -287,6 +288,7 @@ export default {
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
+		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
@@ -1022,6 +1024,7 @@ export default {
 		 * @param {object|null} [record] The object shown, which `currencyField` reads.
 		 * @return {string} The text, '' when empty.
 		 * @spec openspec/changes/facts-currency-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-money-amount
+		 * @spec openspec/changes/facts-user-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-user-by-name
 		 */
 		format(raw, spec, record = null) {
 			if (raw === null || raw === undefined || raw === '') {
@@ -1051,6 +1054,9 @@ export default {
 			if (format === 'bytes') {
 				const bytes = Number(raw)
 				return Number.isFinite(bytes) && bytes >= 0 ? formatFileSize(bytes) : ''
+			}
+			if (format === 'user') {
+				return userDisplayName(raw)
 			}
 			if (format === 'currency') {
 				const money = formatMoney(raw, { currency: spec.currency, currencyField: spec.currencyField, decimals: spec.decimals }, record, unwrapAppConfig(this.cnAppConfig))

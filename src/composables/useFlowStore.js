@@ -181,6 +181,15 @@ export const useFlowStore = defineStore('cnFlow', {
 		// types" on every fresh /flows/new while the request was mid-air.
 		catalogLoading: false,
 
+		// Per flow id: `{ lastRun, runsSince }` from `GET /api/flow-runs/summary`,
+		// the read behind a flow list's last-run and runs-this-week columns.
+		runSummary: {},
+		// The runs of every listed flow since `runSummarySince`, for a
+		// "runs this week" list. Separate from `runs`, which belongs to the
+		// flow open in the editor.
+		recentRuns: [],
+		recentRunsLoading: false,
+
 		// The runs of the flow being edited, and the per-node steps of the run
 		// currently being inspected.
 		runs: [],
@@ -2273,6 +2282,107 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.stopWatching()
 			this.replayUuid = this.inspectedRunUuid
 			this.replayToken += 1
+		},
+
+		/**
+		 * Load the last run and the runs-since count of each listed flow.
+		 *
+		 * One request for the whole list. A failure leaves the summary empty,
+		 * so the cells read "never run" rather than stale numbers.
+		 *
+		 * @param {Array<string>} flowIds The flows to summarise.
+		 * @param {string} since ISO 8601 moment the count starts at.
+		 * @return {Promise<void>}
+		 */
+		async loadRunSummary(flowIds, since) {
+			const ids = (flowIds || []).filter(Boolean)
+			if (ids.length === 0) {
+				this.runSummary = {}
+				return
+			}
+			try {
+				const response = await axios.get(generateUrl('/apps/openregister/api/flow-runs/summary'), {
+					params: { flowIds: ids.join(','), since },
+				})
+				this.runSummary = response.data?.results || {}
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('cn-flow: could not load the run summary', error)
+				this.runSummary = {}
+			}
+		},
+
+		/**
+		 * Load the runs of the given flows since a moment, newest first.
+		 *
+		 * @param {Array<string>} flowIds The flows whose runs to list.
+		 * @param {string} since ISO 8601 moment the list starts at.
+		 * @return {Promise<void>}
+		 */
+		async loadRecentRuns(flowIds, since) {
+			const ids = (flowIds || []).filter(Boolean)
+			if (ids.length === 0) {
+				this.recentRuns = []
+				return
+			}
+			this.recentRunsLoading = true
+			try {
+				const response = await axios.get(generateUrl('/apps/openregister/api/flow-runs'), {
+					params: { flowIds: ids.join(','), since, limit: 200 },
+				})
+				this.recentRuns = response.data?.results || []
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('cn-flow: could not load recent runs', error)
+				this.recentRuns = []
+			} finally {
+				this.recentRunsLoading = false
+			}
+		},
+
+		/**
+		 * Switch a stored flow on or off from a list, without opening it.
+		 *
+		 * Reads the stored flow and writes it back whole with only `enabled`
+		 * changed, the same round trip `duplicate()` makes: a partial body
+		 * would be read as a document without nodes. The list row is updated
+		 * in place from the answer, so the toggle does not reload the list.
+		 *
+		 * @param {string} id The flow id or uuid.
+		 * @param {boolean} enabled The new state.
+		 * @return {Promise<object>} The saved flow.
+		 */
+		async setEnabled(id, enabled) {
+			const current = await axios.get(generateUrl(`/apps/openregister/api/flows/${id}`))
+			const response = await axios.put(
+				generateUrl(`/apps/openregister/api/flows/${id}`),
+				{ ...(current.data || {}), enabled: enabled === true },
+			)
+			const saved = response.data || {}
+			const now = typeof saved.enabled === 'boolean' ? saved.enabled : enabled === true
+			this.flows = this.flows.map((flow) => (
+				String(flow.id) === String(id) || String(flow.uuid) === String(id)
+					? { ...flow, enabled: now }
+					: flow
+			))
+			return saved
+		},
+
+		/**
+		 * Start a finished run again, as `POST /api/flow-runs/{uuid}/retry`.
+		 *
+		 * @param {string} uuid The run to retry.
+		 * @return {Promise<object|null>} The new run, or null without a uuid.
+		 */
+		async retryRun(uuid) {
+			if (!uuid) {
+				return null
+			}
+			const response = await axios.post(generateUrl(`/apps/openregister/api/flow-runs/${encodeURIComponent(uuid)}/retry`))
+			if (this.flow.id) {
+				await this.loadRuns(this.flow.id)
+			}
+			return response.data || null
 		},
 
 		async loadRuns(flowId) {

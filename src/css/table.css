@@ -767,3 +767,8 @@
 .cn-data-table td.cn-table-col--pinned-last {
 	box-shadow: inset -1px 0 0 0 var(--color-border);
 }
+
+/* A column of numbers (`class: 'cn-table-col--end'`) aligns to the end, header included. */
+.cn-data-table .cn-table-col--end {
+	text-align: end;
+}
