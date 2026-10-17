@@ -21,7 +21,24 @@
 				class="cn-user-settings-dialog__nav"
 				:aria-label="navLabel"
 				data-testid="cn-user-settings-nav">
-				<ul>
+				<!-- `nextcloudLinks`: Nextcloud's own personal settings first, as
+				     links, then one entry for this app holding its sections. -->
+				<ul v-if="ncLinks.length > 0" class="cn-user-settings-dialog__nc-links" data-testid="cn-user-settings-nc-links">
+					<li v-for="link in ncLinks" :key="link.key">
+						<a :href="link.href" class="cn-user-settings-dialog__nav-link">
+							<span v-if="link.icon" class="cn-user-settings-dialog__nav-icon" aria-hidden="true">
+								<CnIcon :name="link.icon" :size="18" />
+							</span>
+							<span>{{ link.label }}</span>
+						</a>
+					</li>
+				</ul>
+				<p v-if="ncLinks.length > 0 && appName"
+					class="cn-user-settings-dialog__group"
+					data-testid="cn-user-settings-app-group">
+					{{ appName }}
+				</p>
+				<ul :class="{ 'cn-user-settings-dialog__group-sections': ncLinks.length > 0 }">
 					<li v-for="section in sections" :key="section.id">
 						<a
 							:href="`#settings-section_${section.id}`"
@@ -41,6 +58,14 @@
 			<div class="cn-user-settings-dialog__sections">
 				<!-- @slot default NcAppSettingsSection children; each registers itself in the navigation. -->
 				<slot />
+				<!-- A section's `#icon` also stands before its heading. -->
+				<template v-for="section in sections" :key="`heading-icon-${section.id}-${section.name}`">
+					<Teleport v-if="section.icon && headingTargets.includes(section.id)" :to="`#settings-section_${section.id}--label`">
+						<span class="cn-user-settings-dialog__heading-icon" aria-hidden="true" :data-testid="`cn-user-settings-heading-icon-${section.id}`">
+							<CnVNodes :vnodes="section.icon" />
+						</span>
+					</Teleport>
+				</template>
 			</div>
 		</div>
 		<template #actions>
@@ -56,9 +81,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
-import { markRaw } from 'vue'
+import { cloneVNode, markRaw } from 'vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 
 /**
  * The key NcAppSettingsSection injects to register itself with its dialog
@@ -71,7 +98,9 @@ const CnVNodes = {
 	name: 'CnVNodes',
 	props: { vnodes: { type: [Array, Object], default: null } },
 	render() {
-		return this.vnodes
+		// A section's icon is drawn twice (navigation and heading), so each draw gets its own copy.
+		const list = Array.isArray(this.vnodes) ? this.vnodes : [this.vnodes]
+		return list.map((vnode) => (vnode && typeof vnode === 'object' ? cloneVNode(vnode) : vnode))
 	},
 }
 
@@ -93,7 +122,7 @@ const CnVNodes = {
 export default {
 	name: 'CnUserSettingsDialog',
 
-	components: { CnDialog, CnVNodes, NcButton },
+	components: { CnDialog, CnIcon, CnVNodes, NcButton },
 
 	provide() {
 		return {
@@ -113,8 +142,15 @@ export default {
 		eyebrow: { type: String, default: () => t('nextcloud-vue', 'Your account') },
 		/** Sentence under the title. */
 		subtitle: { type: String, default: () => t('nextcloud-vue', 'Only for you. Colleagues keep their own settings.') },
-		/** The app's name, after the footer note. */
+		/** The app's name, after the footer note and as the navigation entry holding its sections. */
 		appName: { type: String, default: '' },
+		/**
+		 * Nextcloud's own personal settings, listed first in the navigation as
+		 * links: `[{ label, section? | href?, icon? }]`. `section` is a
+		 * personal settings section id (`/settings/user/<section>`). With any,
+		 * the app's sections sit under one entry named after the app.
+		 */
+		nextcloudLinks: { type: Array, default: () => [] },
 	},
 
 	emits: ['update:open'],
@@ -123,11 +159,30 @@ export default {
 		return {
 			sections: [],
 			selected: '',
+			/** Ids of the sections whose heading is in the page, for the heading icons. */
+			headingTargets: [],
 			picked: false,
 		}
 	},
 
 	computed: {
+		/**
+		 * The Nextcloud links with their URL.
+		 *
+		 * @spec openspec/changes/user-settings-nav-groups/specs/user-settings-board-dialog/spec.md#requirement-the-board-user-settings-navigation-can-list-nextclouds-own-sections-first
+		 * @return {Array<{key: string, label: string, href: string, icon: string}>}
+		 */
+		ncLinks() {
+			return (Array.isArray(this.nextcloudLinks) ? this.nextcloudLinks : [])
+				.filter((link) => link && typeof link === 'object' && typeof link.label === 'string' && link.label !== '' && (link.href || link.section))
+				.map((link, index) => ({
+					key: String(link.section || link.href || index),
+					label: link.label,
+					href: link.href || generateUrl('/settings/user/{section}', { section: String(link.section) }),
+					icon: typeof link.icon === 'string' ? link.icon : '',
+				}))
+		},
+
 		/** @return {object} The board's eyebrow: muted, in sentence case. */
 		eyebrowStyle() {
 			return { '--cn-dialog-eyebrow-transform': 'none', '--cn-dialog-eyebrow-color': 'var(--color-text-maxcontrast)' }
@@ -147,6 +202,16 @@ export default {
 		/** @return {string} The Close button label. */
 		closeLabel() {
 			return t('nextcloud-vue', 'Close')
+		},
+	},
+
+	watch: {
+		sections() {
+			this.$nextTick(() => {
+				this.headingTargets = typeof document === 'undefined'
+					? []
+					: this.sections.filter((section) => section.icon && document.getElementById(`settings-section_${section.id}--label`)).map((section) => section.id)
+			})
 		},
 	},
 
@@ -294,12 +359,37 @@ export default {
 	margin: 0 0 12px;
 	font-size: 17px;
 	font-weight: 700;
+	display: flex;
+	align-items: center;
+	gap: 10px;
 }
 
 .cn-user-settings-dialog__note {
 	flex: 1 1 auto;
 	margin: 0;
 	font-size: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-user-settings-dialog__nc-links {
+	margin-bottom: 2px;
+}
+
+.cn-user-settings-dialog__group {
+	margin: 10px 0 2px;
+	padding: 0 12px;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-user-settings-dialog__group-sections {
+	padding-inline-start: 12px;
+}
+
+.cn-user-settings-dialog__heading-icon {
+	display: inline-flex;
+	order: -1;
 	color: var(--color-text-maxcontrast);
 }
 </style>
