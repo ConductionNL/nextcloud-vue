@@ -198,6 +198,7 @@ export default {
 | `rowIndicatorCap` | Number | `3` | How many declared indicators render on the row before the rest move into the row menu, reachable as `indicatorsFor(row).overflow`. |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the header select-all checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `showUnread` | Boolean | `true` | Draw an unread record (`@self.unread`) in bold with the unread dot. Off, every row reads alike. CnIndexPage turns it off under the board look unless the page offers the Unread lens. |
 | `rowTitle` | String | `'link'` | Board look only: how the title column draws its title. `link` underlines the title (not its secondary line). `plain` draws it as 15px bold text without an underline over a 13px muted secondary line, as the PqTickets board does; the row stays clickable. The Nextcloud look ignores it. |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`) — for compact dashboard list widgets that want a plain bordered-row list without column labels |
 | `pinnedCount` | Number | `0` | How many data columns are pinned to the start of the table. They, and the selection and icon columns, stay in view when the table scrolls sideways |

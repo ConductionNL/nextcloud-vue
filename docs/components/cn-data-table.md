@@ -89,6 +89,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `scrollable` | Boolean | `false` | Enables horizontal scrolling for wide tables |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `showUnread` | Boolean | `true` | Draw an unread record (`@self.unread`) in bold with the unread dot. Off, every row reads alike. CnIndexPage turns it off under the board look unless the page offers the Unread lens. |
 | `rowTitle` | String | `'link'` | Board look only. `link` underlines the title column's title; `plain` draws it as 15px bold text without an underline over a 13px muted secondary line (the PqTickets board). The row stays clickable. |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`). Useful for compact dashboard list widgets that want a plain bordered-row list without column labels. |
 | `pinnedCount` | Number | `0` | How many data columns are pinned to the start of the table. They, and the selection and icon columns, stay in view when the table scrolls sideways. |
@@ -198,6 +199,14 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `#footer` slot (`{ total, shown }`) — supply a custom footer link (e.g. "+ New"
   or an always-shown "View all") with its own handler; works outside a
   vue-router context.
+
+## The column that names the row (`columns[].link`)
+
+The first column names the row: it carries the row link, the title look and the unread, lock and indicator marks. `link: true` on another column moves all of that there, for a table that leads with something else (the DqTeamwachtrij board puts the waiting time first and links the case title in the second column).
+
+```json
+"columns": [{ "key": "waiting", "label": "Wacht" }, { "key": "title", "label": "Zaak", "link": true }]
+```
 
 ## A second line in a cell (`columns[].secondary`)
 
