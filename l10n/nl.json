@@ -1772,7 +1772,8 @@
     "{s} s": "{s} s",
     "About this {app} installation.": "Over deze {app}-installatie.",
     "{version}, up to date": "{version}, bijgewerkt",
-    "for an SLA": "voor een SLA"
+    "for an SLA": "voor een SLA",
+    "About {name}": "Over {name}"
   },
   "plurals": {
     "{count} selected": [
