@@ -222,6 +222,44 @@ The values come from the same cells the table shows, so a `row` column needs
 its row data, and a column the user hid with the Columns chooser still groups
 and filters, because the host declared it.
 
+### Around the selection, and values in tones
+
+```json
+"props": {
+  "columns": ["name",
+    { "key": "scan", "label": "Scan", "source": "row", "widget": "badge",
+      "colorMap": { "clean": "success", "infected": "error" } },
+    { "key": "visibleTo", "label": "Visible to", "source": "row",
+      "colorKey": "level", "colorMap": { "restricted": "warning" } }],
+  "selectionLabel": "{count} documents selected",
+  "selectionLabelOne": "{count} document selected",
+  "showClearSelection": false,
+  "sideCards": [
+    { "id": "visibility", "title": "Who can see this: {name}",
+      "fields": [{ "key": "visibleTo", "label": "Visible to", "colorKey": "level", "colorMap": { "restricted": "warning" } },
+                 { "key": "reason", "label": "Reason" }],
+      "actions": [{ "id": "change", "label": "Change exception", "type": "open-modal", "target": "VisibilityDialog" }] },
+    { "id": "checksum", "title": "Checksum", "fields": [{ "key": "checksum", "label": "SHA-256" }] }
+  ]
+}
+```
+
+- `selectionLabel` (and `selectionLabelOne` for one file) words the bulk bar's
+  count, through the app's translate function, with `{count}` filled in.
+  `showClearSelection: false` leaves out Clear selection.
+- `sideCards` draws a column of cards beside the list about the last selected
+  file; there is no column while nothing is selected, and it folds under the
+  list in a narrow window. A card's `title` may hold `{name}`. A field reads the
+  host's row data (`source: "row"`, the default) or the node (`source: "node"`,
+  e.g. `basename`), takes a `formatter` like a column, and is left out when it
+  has no value. `actions` are declared like `rowActions` and run on that file.
+- A column's `colorMap` maps a value (case-insensitive) to a tone: `success`,
+  `warning`, `error`, `info`, `primary` or `default`. With `widget: "badge"`
+  the cell is a pill in that tone, as in the tables; without it the text is
+  drawn in the tone's colour. `colorKey` names another row field to look the
+  tone up by (a level code behind a readable text). Card fields take the same
+  two keys.
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -252,6 +290,10 @@ and filters, because the host declared it.
 | `preferenceApp` | `String` | `''` | The app id the Columns chooser stores this user's choice under. Unset means no chooser, and every declared column renders. |
 | `preferenceKey` | `String` | `'files-browser-columns'` | The key the choice is stored under, so two browsers in one app remember separately. |
 | `columnsLabel` | `String` | `'Columns'` | Label of the Columns chooser. |
+| `selectionLabel` | `String` | `''` | The bulk bar's count as a template with `{count}`, translated by the app ("{count} documents selected"). Empty reads "{count} selected". |
+| `selectionLabelOne` | `String` | `''` | The bulk bar's count for one file. |
+| `showClearSelection` | `Boolean` | `true` | Whether the bulk bar ends in Clear selection. |
+| `sideCards` | `Array` | `[]` | Cards beside the list about the last selected file: `{ id, title, fields, actions }`; see above. |
 | `bulkActions` | `Array` | `[]` | The host's actions on a selection of files, declared like `rowActions`. With at least one, files get a checkbox, the header a select-all, and a bar with these actions shows while files are selected. An `open-modal` action's props gain `files` and `fileIds`; a `handler` action's args gain the selected nodes. |
 | `groupBy` | `String` | `''` | The key of a declared column to group the files on, a heading per value with its count. Empty does not group. |
 | `groupEmptyLabel` | `String` | `'Other'` | The heading of the files with no value in the `groupBy` column. |

@@ -1543,7 +1543,8 @@
     "A paused flow keeps its steps and history. It starts again when you switch it on.": "A paused flow keeps its steps and history. It starts again when you switch it on.",
     "Started": "Started",
     "Every run of this app's flows since Monday, newest first.": "Every run of this app's flows since Monday, newest first.",
-    "New flow": "New flow"
+    "New flow": "New flow",
+    "About {name}": "About {name}"
   },
   "plurals": {
     "{count} selected": [

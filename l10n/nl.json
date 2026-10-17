@@ -1729,7 +1729,8 @@
     "A paused flow keeps its steps and history. It starts again when you switch it on.": "Een gepauzeerde flow houdt zijn stappen en geschiedenis. Hij start weer als je hem aanzet.",
     "Started": "Gestart",
     "Every run of this app's flows since Monday, newest first.": "Elke uitvoering van de flows van deze app sinds maandag, nieuwste eerst.",
-    "New flow": "Nieuwe flow"
+    "New flow": "Nieuwe flow",
+    "About {name}": "Over {name}"
   },
   "plurals": {
     "{count} selected": [
