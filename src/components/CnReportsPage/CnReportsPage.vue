@@ -66,41 +66,110 @@
 			</p>
 		</div>
 
-		<!-- The board look (board DcRapportages): one section per category,
-		     headed by its label, instead of the category filter; each card
-		     draws its icon in a tile. -->
+		<!-- The board look (board PqReports): category chips with counts, one
+		     section per category under a small caption, a three-column grid of
+		     cards with an Open button, a side column and a footnote. -->
 		<template v-if="isBoard">
-			<p v-if="resolvedCards.length === 0"
-				class="cn-reports-page__empty"
-				data-testid="cn-reports-empty">
-				{{ resolvedEmptyLabel }}
+			<div v-if="categoryOptions.length > 1"
+				class="cn-reports-page__chips"
+				role="group"
+				:aria-label="resolvedCategoryLabel"
+				data-testid="cn-reports-chips">
+				<button v-for="option in categoryOptions"
+					:key="option.value"
+					type="button"
+					class="cn-reports-page__chip"
+					:class="{ 'cn-reports-page__chip--active': option.value === activeCategory }"
+					:aria-pressed="option.value === activeCategory ? 'true' : 'false'"
+					:data-testid="`cn-reports-chip-${option.value}`"
+					@click="activeCategory = option.value">
+					{{ option.label }}
+					<span class="cn-reports-page__chip-count">{{ option.count }}</span>
+				</button>
+			</div>
+			<div class="cn-reports-page__body">
+				<div class="cn-reports-page__main">
+					<p v-if="resolvedCards.length === 0"
+						class="cn-reports-page__empty"
+						data-testid="cn-reports-empty">
+						{{ resolvedEmptyLabel }}
+					</p>
+					<section v-for="section in visibleSections"
+						:id="sectionId(section)"
+						:key="section.key"
+						class="cn-reports-page__section"
+						:aria-labelledby="section.label ? `${sectionId(section)}-title` : null"
+						data-testid="cn-reports-section">
+						<h3 v-if="section.label" :id="`${sectionId(section)}-title`" class="cn-reports-page__section-title">
+							{{ section.label }}
+						</h3>
+						<ul class="cn-reports-page__grid" data-testid="cn-reports-grid">
+							<li v-for="card in section.cards" :key="card.id" class="cn-reports-page__cell">
+								<article class="cn-reports-page__card" data-testid="cn-report-card">
+									<div class="cn-reports-page__card-head">
+										<span class="cn-reports-page__card-icon" aria-hidden="true">
+											<CnIcon v-if="card.icon" :name="card.icon" :size="22" />
+											<ChartBoxOutline v-else :size="22" />
+										</span>
+										<div class="cn-reports-page__card-text">
+											<h4 class="cn-reports-page__card-title">
+												{{ card.label }}
+											</h4>
+											<span v-if="categoryName(card)" class="cn-reports-page__card-category">
+												{{ categoryName(card) }}
+											</span>
+										</div>
+									</div>
+									<p v-if="card.description" class="cn-reports-page__card-description">
+										{{ card.description }}
+									</p>
+									<div class="cn-reports-page__card-footer">
+										<span class="cn-reports-page__card-note">{{ cardNote(card) }}</span>
+										<a class="cn-reports-page__card-open"
+											data-testid="cn-report-open"
+											:href="hrefFor(card)"
+											:aria-label="t('nextcloud-vue', 'Open {report}', { report: card.label })"
+											@click="open(card, $event)">
+											{{ t('nextcloud-vue', 'Open') }}
+										</a>
+									</div>
+								</article>
+							</li>
+						</ul>
+					</section>
+				</div>
+				<aside class="cn-reports-page__aside"
+					:aria-label="t('nextcloud-vue', 'About these reports')"
+					data-testid="cn-reports-aside">
+					<section v-if="boardSections.some((section) => section.label)" class="cn-reports-page__aside-card">
+						<h3 class="cn-reports-page__aside-title">
+							{{ t('nextcloud-vue', 'Categories') }}
+						</h3>
+						<ul class="cn-reports-page__aside-list" data-testid="cn-reports-aside-categories">
+							<li v-for="section in boardSections.filter((s) => s.label)" :key="section.key">
+								<a class="cn-reports-page__aside-link"
+									:href="`#${sectionId(section)}`"
+									@click.prevent="showSection(section)">
+									<span class="cn-reports-page__aside-label">{{ section.label }}</span>
+									<span class="cn-reports-page__aside-count">{{ section.cards.length }}</span>
+								</a>
+							</li>
+						</ul>
+					</section>
+					<section v-if="resolvedSideNote" class="cn-reports-page__aside-card" data-testid="cn-reports-side-note">
+						<h3 class="cn-reports-page__aside-title">
+							{{ resolvedSideNote.title }}
+						</h3>
+						<p class="cn-reports-page__aside-text">
+							{{ resolvedSideNote.text }}
+						</p>
+					</section>
+				</aside>
+			</div>
+			<p v-if="resolvedFootnote" class="cn-reports-page__footnote" data-testid="cn-reports-footnote">
+				<InformationOutline :size="16" class="cn-reports-page__footnote-icon" />
+				{{ resolvedFootnote }}
 			</p>
-			<section v-for="section in boardSections"
-				:key="section.key"
-				class="cn-reports-page__section"
-				data-testid="cn-reports-section">
-				<h3 v-if="section.label" class="cn-reports-page__section-title">
-					{{ section.label }}
-				</h3>
-				<ul class="cn-reports-page__grid" data-testid="cn-reports-grid">
-					<li v-for="card in section.cards" :key="card.id" class="cn-reports-page__cell">
-						<a class="cn-reports-page__card"
-							data-testid="cn-report-card"
-							:href="hrefFor(card)"
-							@click="open(card, $event)">
-							<span v-if="card.icon" class="cn-reports-page__card-icon" aria-hidden="true">
-								<CnIcon :name="card.icon" :size="22" />
-							</span>
-							<span class="cn-reports-page__card-text">
-								<span class="cn-reports-page__card-title">{{ card.label }}</span>
-								<span v-if="card.description" class="cn-reports-page__card-description">
-									{{ card.description }}
-								</span>
-							</span>
-						</a>
-					</li>
-				</ul>
-			</section>
 		</template>
 
 		<div v-if="!isBoard && categoryOptions.length > 1" class="cn-reports-page__filter">
@@ -160,6 +229,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import { defineAsyncComponent } from 'vue'
+import ChartBoxOutline from 'vue-material-design-icons/ChartBoxOutline.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { useLook } from '../../composables/useLook.js'
@@ -173,8 +244,10 @@ export default {
 		// Loaded only for a page that declares widgets: a cards-only reports
 		// page does not pull the dashboard in.
 		CnDashboardPage: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue').then((m) => m.default)),
+		ChartBoxOutline,
 		CnBuildiqEditButton,
 		CnIcon,
+		InformationOutline,
 		NcButton,
 	},
 
@@ -336,6 +409,31 @@ export default {
 		},
 
 		/**
+		 * A line under the page (`config.footnote`), drawn under the board
+		 * look with an info icon. Empty (the default) draws none.
+		 *
+		 * @spec openspec/changes/screens-reports-page-pq-board/specs/reports-page/spec.md#requirement-the-reports-page-draws-board-pqreports
+		 * @type {string|null}
+		 */
+		footnote: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * The note card in the side column under the board look
+		 * (`config.sideNote`): `{ title, text }`. Absent: the library's own
+		 * note on asking for a missing report. `false` draws no note card.
+		 *
+		 * @spec openspec/changes/screens-reports-page-pq-board/specs/reports-page/spec.md#requirement-the-reports-page-draws-board-pqreports
+		 * @type {{title?: string, text?: string}|boolean|null}
+		 */
+		sideNote: {
+			type: [Boolean, Object],
+			default: null,
+		},
+
+		/**
 		 * The look to draw in: `board` or `nextcloud`. Absent: the look
 		 * CnAppRoot provides (`cnLook`), else `nextcloud`.
 		 *
@@ -410,6 +508,8 @@ export default {
 				'layout',
 				'headerButtons',
 				'headerActions',
+				'footnote',
+				'sideNote',
 			]) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
@@ -547,12 +647,17 @@ export default {
 		 */
 		categoryOptions() {
 			const declared = this.config.categories || {}
-			const used = new Set(this.resolvedCards.map((card) => card.category).filter(Boolean))
-			const options = [{ value: 'all', label: this.allLabel }]
+			const counts = {}
+			this.resolvedCards.forEach((card) => {
+				if (card.category) {
+					counts[card.category] = (counts[card.category] || 0) + 1
+				}
+			})
+			const options = [{ value: 'all', label: this.allLabel, count: this.resolvedCards.length }]
 
 			Object.keys(declared)
-				.filter((key) => used.has(key))
-				.forEach((key) => options.push({ value: key, label: this.tr(declared[key]) }))
+				.filter((key) => counts[key] > 0)
+				.forEach((key) => options.push({ value: key, label: this.tr(declared[key]), count: counts[key] }))
 
 			return options
 		},
@@ -579,6 +684,49 @@ export default {
 				}
 			}
 			return sections
+		},
+
+		/**
+		 * The board look's sections the active category chip admits.
+		 *
+		 * @spec openspec/changes/screens-reports-page-pq-board/specs/reports-page/spec.md#requirement-the-reports-page-draws-board-pqreports
+		 * @return {Array<{key: string, label: string, cards: Array<object>}>} The sections.
+		 */
+		visibleSections() {
+			if (this.activeCategory === 'all') {
+				return this.boardSections
+			}
+
+			return this.boardSections.filter((section) => section.key === this.activeCategory)
+		},
+
+		/**
+		 * The side column's note card: the declared one, the library's own
+		 * when none is declared, or null when `sideNote` is `false`.
+		 *
+		 * @spec openspec/changes/screens-reports-page-pq-board/specs/reports-page/spec.md#requirement-the-reports-page-draws-board-pqreports
+		 * @return {{title: string, text: string}|null} The note.
+		 */
+		resolvedSideNote() {
+			const declared = this.config.sideNote
+			if (declared === false) {
+				return null
+			}
+			const note = (declared && typeof declared === 'object') ? declared : {}
+			return {
+				title: note.title ? this.tr(note.title) : t('nextcloud-vue', 'Missing a report?'),
+				text: note.text ? this.tr(note.text) : t('nextcloud-vue', 'Ask an administrator to add a report to the app.'),
+			}
+		},
+
+		/**
+		 * The footnote under the page, translated, or ''.
+		 *
+		 * @spec openspec/changes/screens-reports-page-pq-board/specs/reports-page/spec.md#requirement-the-reports-page-draws-board-pqreports
+		 * @return {string} The footnote.
+		 */
+		resolvedFootnote() {
+			return typeof this.config.footnote === 'string' ? this.tr(this.config.footnote) : ''
 		},
 
 		/**
@@ -632,6 +780,53 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * The line in a board card's footer: the card's own `note`, else
+		 * that it opens a page of its own.
+		 *
+		 * @spec openspec/changes/screens-reports-page-pq-board/specs/reports-page/spec.md#requirement-the-reports-page-draws-board-pqreports
+		 * @param {object} card The card.
+		 * @return {string} The note.
+		 */
+		cardNote(card) {
+			return typeof card.note === 'string' && card.note !== ''
+				? this.tr(card.note)
+				: t('nextcloud-vue', 'Opens its own page')
+		},
+
+		/**
+		 * The element id of a board section, which the side column links to.
+		 *
+		 * @param {{key: string}} section The section.
+		 * @return {string} The id.
+		 */
+		sectionId(section) {
+			const page = String((this.page && this.page.id) || 'page').replace(/[^\w-]/g, '-')
+			return `cn-reports-${page}-${String(section.key).replace(/[^\w-]/g, '-')}`
+		},
+
+		/**
+		 * A category in the side column was chosen: select its chip and
+		 * scroll its section into view.
+		 *
+		 * @spec openspec/changes/screens-reports-page-pq-board/specs/reports-page/spec.md#requirement-the-reports-page-draws-board-pqreports
+		 * @param {{key: string}} section The section.
+		 * @return {void}
+		 */
+		showSection(section) {
+			this.activeCategory = section.key
+			this.$nextTick(() => {
+				const el = this.$el && typeof this.$el.querySelector === 'function'
+					? this.$el.querySelector(`#${this.sectionId(section)}`)
+					: null
+				if (el && typeof el.scrollIntoView === 'function') {
+					el.scrollIntoView({ block: 'start' })
+				}
+			})
+		},
+
 		/**
 		 * Translate a manifest-declared string through the app's own
 		 * translate function.
