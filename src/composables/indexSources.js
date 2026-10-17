@@ -617,6 +617,104 @@ function tasksSource() {
 }
 
 /**
+ * Read a dotted path off a response body.
+ *
+ * @param {object} body The response body.
+ * @param {string} path A dotted path such as `data.items`.
+ * @return {unknown} The value, or undefined.
+ */
+function readRowsPath(body, path) {
+	return String(path).split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), body)
+}
+
+/**
+ * The endpoint source: rows from an app's own endpoint
+ * (`entitySource: "endpoint"`), for a list that is not OpenRegister objects,
+ * such as dossiq's postvak.
+ *
+ * `sourceConfig.url` is an app path (`/apps/dossiq/api/postvak`), resolved
+ * with `generateUrl` and fetched with the session, so the endpoint does its
+ * own authorization. `sourceConfig.rowsPath` names where the rows sit in the
+ * response (`results` by default; a bare array is taken as is). Every other
+ * key, the active tab's filter and the sidebar choices included, goes along
+ * as a query parameter. The manifest declares the columns.
+ *
+ * Without a `sourceConfig.url`, and when the page config itself arrived in
+ * its place (CnPageRenderer's fallback for a page that sets no
+ * `sourceConfig`, recognisable by its `entitySource` key), nothing is
+ * requested: page-config keys must never become query parameters. The list
+ * stays empty and one console error names the page.
+ *
+ * @return {object} The source adapter.
+ * @spec openspec/changes/index-endpoint-source/specs/index-page/spec.md#requirement-an-index-page-can-list-rows-from-an-app-endpoint
+ */
+function endpointSource() {
+	const state = reactive({ rows: [], loading: false })
+	let seq = 0
+	let warned = false
+
+	return {
+		/**
+		 * Fetch the rows.
+		 *
+		 * @param {object} config The page's source config with the tab filter merged in.
+		 * @return {Promise<void>} Resolves when loaded; a failed request leaves no rows and rethrows.
+		 */
+		load: async (config) => {
+			const { url, rowsPath, ...rest } = config || {}
+			const mine = ++seq
+			const pageConfig = Boolean(config && Object.hasOwn(config, 'entitySource'))
+			if (typeof url !== 'string' || url === '' || pageConfig) {
+				state.rows = []
+				if (!warned) {
+					warned = true
+					const page = (config && (config.title || config.id)) || 'an index page'
+					// eslint-disable-next-line no-console
+					console.error(`[CnIndexPage] entitySource "endpoint" on "${page}" needs an explicit sourceConfig with a url (an app path such as /apps/<app>/api/<path>); nothing is loaded.`)
+				}
+				return
+			}
+			const params = {}
+			for (const [key, value] of Object.entries(rest)) {
+				if (value === undefined || value === null || value === '') {
+					continue
+				}
+				params[key] = Array.isArray(value) ? value.join(',') : (typeof value === 'object' ? JSON.stringify(value) : value)
+			}
+			state.loading = true
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const res = await axios.get(generateUrl(url), { params })
+				const body = res ? res.data : null
+				const rows = Array.isArray(body) ? body : readRowsPath(body, rowsPath || 'results')
+				if (mine === seq) {
+					state.rows = Array.isArray(rows) ? rows : []
+				}
+			} catch (error) {
+				if (mine === seq) {
+					state.rows = []
+				}
+				throw error
+			} finally {
+				if (mine === seq) {
+					state.loading = false
+				}
+			}
+		},
+
+		/**
+		 * @return {Array<object>} The rows the endpoint returned.
+		 */
+		rows: () => state.rows,
+
+		/**
+		 * @return {boolean} Whether a load is in flight.
+		 */
+		loading: () => state.loading,
+	}
+}
+
+/**
  * The registered sources, by the name a manifest uses.
  *
  * @type {Record<string, () => object>}
@@ -627,6 +725,7 @@ export const indexSources = {
 	flows: flowsSource,
 	flowRuns: flowRunsSource,
 	tasks: tasksSource,
+	endpoint: endpointSource,
 }
 
 /**
