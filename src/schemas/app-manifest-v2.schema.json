@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.118.0",
+	"version": "2.119.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4259,6 +4259,7 @@
 								"properties": {
 									"id": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_-]+$", "description": "The view id, written to the address as `?view=<id>`." },
 									"label": { "type": "string", "minLength": 1, "description": "The option label and the region's accessible name (through the app's translations)." },
+									"title": { "type": "string", "minLength": 1, "description": "type='dashboard': the page title while this view is open, e.g. \"My team\" (through the app's translations; view-title, 2.119.0). Without it the page keeps its own title." },
 									"icon": { "type": "string", "minLength": 1, "description": "Optional MDI icon name, reserved for an icon-bearing switch." },
 									"emptyText": { "type": "string", "minLength": 1, "description": "The sentence shown when the view has nothing to draw." },
 									"widgets": { "type": "array", "description": "The view's widget definitions, the same shape as the page's `widgets`.", "items": { "type": "object", "additionalProperties": true } },
