@@ -456,17 +456,23 @@
 
 /* ---- The next-step card ------------------------------------------------- */
 
+/* The board sets the card at the browser's normal line height: a step row is
+   the 20px marker, 28px apart (DqZaak "Wat nu?"). */
 .cn-look-board .cn-next-step-card--board {
 	border-radius: 12px;
 	gap: 16px 32px;
+	line-height: normal;
 	padding: 20px 24px 20px 28px;
 }
 
+/* The kicker keeps its tone under a theme that colours every h3 with
+   `!important` (thematiq's heading colour); only `!important` beats it. */
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__title.cn-next-step-card__title {
-	color: var(--color-primary-element-light-text);
+	color: var(--color-primary-element-light-text) !important;
 	font-size: 13px !important;
 	font-weight: 700;
 	letter-spacing: 0.06em;
+	line-height: normal;
 	text-transform: uppercase;
 }
 
@@ -497,9 +503,34 @@
 	padding: 0 20px;
 }
 
+/* The label alone sets the width (DqZaak: 198px for "Verder met beoordelen"):
+   NcButton pads its text 4px a side inside the button's own padding, from a
+   rule that reaches it through `:has()`, hence the doubled class. */
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__side .button-vue .button-vue__text.button-vue__text {
+	margin-inline: 0;
+	padding-inline: 0;
+}
+
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__after {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+}
+
+/* Done and open steps are muted, the current one in the main text. Each hands
+   its ink to --nldesign-color-on-surface, which a theme that forces the body
+   ink onto every li and span (thematiq) reads instead. */
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__item,
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__hint,
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__after {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__item--current {
+	--nldesign-color-on-surface: var(--color-main-text);
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__item--current .cn-next-step-card__hint {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 }
 
 /* ---- History: the activity tab ------------------------------------------ */
