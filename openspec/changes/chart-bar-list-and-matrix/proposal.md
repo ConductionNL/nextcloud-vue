@@ -15,4 +15,4 @@ tinted by its value. The chart widget only had ApexCharts kinds; a horizontal ba
 - `endpointSource` gains `rowsPath`, `rowLabelPath` and `rowValuesPath` for a payload with one row per series.
 - A matrix holds text cells tinted by `colorMap`, and `highlight` outlines the record's cell (board DqHandhaving).
 - In the board look dashboard card heads draw no divider.
-- The manifest schema types the new keys (version given at merge).
+- Manifest schema 2.120.0 types the new keys.
