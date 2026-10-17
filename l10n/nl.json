@@ -1699,7 +1699,10 @@
     "%n feature": [
       "%n functie",
       "%n functies"
-    ]
+    ],
+    "For administrators": "Voor beheerders",
+    "Administrators only": "Alleen beheerders",
+    "Open admin settings": "Beheerinstellingen openen"
   },
   "plurals": {
     "{count} selected": [

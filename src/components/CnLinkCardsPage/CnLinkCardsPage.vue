@@ -87,6 +87,12 @@
 								class="cn-link-cards-page__row-description">
 								{{ card.description }}
 							</span>
+							<CnStatusBadge
+								v-if="noteOf(card)"
+								class="cn-link-cards-page__note"
+								:label="noteOf(card).text"
+								:variant="noteOf(card).variant"
+								data-testid="cn-link-card-note" />
 						</span>
 						<OpenInNew v-if="trailingOf(card) === 'external'" :size="18" class="cn-link-cards-page__row-trailing" />
 						<ChevronRight v-else :size="20" class="cn-link-cards-page__row-trailing" />
@@ -121,24 +127,72 @@
 								class="cn-link-cards-page__card-description">
 								{{ card.description }}
 							</span>
+							<CnStatusBadge
+								v-if="noteOf(card)"
+								class="cn-link-cards-page__note"
+								:label="noteOf(card).text"
+								:variant="noteOf(card).variant"
+								data-testid="cn-link-card-note" />
 						</span>
+						<OpenInNew
+							v-if="trailingOf(card) === 'external'"
+							class="cn-link-cards-page__trailing"
+							:size="20"
+							:title="t('nextcloud-vue', 'Opens in a new tab')"
+							data-testid="cn-link-card-trailing"
+							data-trailing="external" />
+						<ChevronRight
+							v-else
+							class="cn-link-cards-page__trailing"
+							:size="20"
+							data-testid="cn-link-card-trailing"
+							data-trailing="chevron" />
 					</a>
 				</li>
 			</ul>
+		</section>
+
+		<section
+			v-if="showAdminPanel"
+			class="cn-link-cards-page__admin"
+			data-testid="cn-link-cards-admin"
+			:aria-label="t('nextcloud-vue', 'For administrators')">
+			<div v-if="resolvedAdminPanel" class="cn-link-cards-page__admin-card">
+				<span class="cn-link-cards-page__admin-pill">
+					<ShieldAccountOutline :size="16" />
+					{{ t('nextcloud-vue', 'Administrators only') }}
+				</span>
+				<p v-if="resolvedAdminPanel.text" class="cn-link-cards-page__admin-text">
+					{{ resolvedAdminPanel.text }}
+				</p>
+				<a v-if="resolvedAdminPanel.url" class="cn-link-cards-page__admin-link" :href="resolvedAdminPanel.url">
+					{{ resolvedAdminPanel.linkLabel }}
+				</a>
+			</div>
+			<component :is="adminComponent" v-if="adminComponent" />
+			<!-- @slot admin More content in the panel under the cards that only administrators see. -->
+			<slot name="admin" />
 		</section>
 	</div>
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import CnModuleCard from '../CnModuleCard/CnModuleCard.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
+
+const NOTE_VARIANTS = { neutral: 'default', success: 'success', warning: 'warning', error: 'error', info: 'primary' }
 
 let linkCardsPageUid = 0
 
@@ -169,7 +223,7 @@ let linkCardsPageUid = 0
 export default {
 	name: 'CnLinkCardsPage',
 
-	components: { ChevronRight, CnIcon, CnModuleCard, InformationOutline, OpenInNew },
+	components: { ChevronRight, CnIcon, CnModuleCard, CnStatusBadge, InformationOutline, OpenInNew, ShieldAccountOutline },
 
 	inject: {
 		/** The app's translate function, provided by CnAppRoot. Identity outside one. */
@@ -178,6 +232,10 @@ export default {
 		cnManifest: { default: null },
 		/** The permissions the user holds. Empty means the app did not say, and allows. */
 		cnPermissions: { default: () => [] },
+		/** Opens the app's user settings modal, provided by CnAppRoot. */
+		cnOpenUserSettings: { default: null },
+		/** The app's custom components, for `adminPanel.component`. */
+		cnCustomComponents: { default: () => ({}) },
 	},
 
 	props: {
@@ -251,6 +309,19 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * A panel under the cards that only administrators see:
+		 * `{ text?, href?, route?, linkLabel?, component? }`. `component`
+		 * names a custom component drawn beside it (a form the app owns).
+		 *
+		 * @type {object|null}
+		 * @spec openspec/changes/link-cards-notes/specs/link-cards-page/spec.md#requirement-an-admin-panel-under-the-cards
+		 */
+		adminPanel: {
+			type: Object,
+			default: null,
+		},
+
 		/** Text shown when no card is visible. */
 		emptyLabel: {
 			type: String,
@@ -272,6 +343,8 @@ export default {
 		linkCardsPageUid += 1
 		return {
 			uid: linkCardsPageUid,
+			// Fetched note counts, by card id and count name.
+			noteCounts: {},
 		}
 	},
 
@@ -285,7 +358,7 @@ export default {
 		config() {
 			const fromPage = (this.page && this.page.config) || {}
 			const fromProps = {}
-			for (const key of ['cards', 'categories', 'description', 'title', 'emptyLabel', 'modules', 'modulesTitle', 'footnote', 'groupStyle']) {
+			for (const key of ['cards', 'categories', 'description', 'title', 'emptyLabel', 'modules', 'modulesTitle', 'footnote', 'groupStyle', 'adminPanel']) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
 				}
@@ -349,6 +422,9 @@ export default {
 						external: target.external,
 						location: target.location,
 						url: target.url,
+						action: target.action || '',
+						trailing: target.external ? 'external' : 'chevron',
+						note: card.note ?? null,
 					}
 				})
 				.filter((card) => card.url !== '')
@@ -439,6 +515,59 @@ export default {
 		},
 
 		/**
+		 * The admin panel's text and link, resolved; null without `adminPanel`
+		 * text or link.
+		 *
+		 * @return {{text: string, url: string, linkLabel: string}|null}
+		 * @spec openspec/changes/link-cards-notes/specs/link-cards-page/spec.md#requirement-an-admin-panel-under-the-cards
+		 */
+		resolvedAdminPanel() {
+			const panel = this.config.adminPanel
+			if (!panel || typeof panel !== 'object' || (!panel.text && !panel.href && !panel.route)) {
+				return null
+			}
+			let url = ''
+			if (typeof panel.route === 'string' && panel.route !== '') {
+				url = this.targetOf({ route: panel.route }).url
+			} else if (typeof panel.href === 'string' && panel.href !== '') {
+				url = panel.href.startsWith('/') && !panel.href.startsWith('//') ? prefixUrl(panel.href) : panel.href
+			}
+			return {
+				text: this.tr(panel.text || ''),
+				url,
+				linkLabel: panel.linkLabel ? this.tr(panel.linkLabel) : t('nextcloud-vue', 'Open admin settings'),
+			}
+		},
+
+		/**
+		 * The custom component the admin panel names, or null.
+		 *
+		 * @return {object|null}
+		 */
+		adminComponent() {
+			const name = this.config.adminPanel?.component
+			return (name && this.cnCustomComponents && this.cnCustomComponents[name]) || null
+		},
+
+		/**
+		 * Whether the admin panel shows: only to an administrator, and only
+		 * when there is something in it.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/link-cards-notes/specs/link-cards-page/spec.md#requirement-an-admin-panel-under-the-cards
+		 */
+		showAdminPanel() {
+			if (!this.resolvedAdminPanel && !this.adminComponent && !this.$slots.admin) {
+				return false
+			}
+			try {
+				return getCurrentUser()?.isAdmin === true
+			} catch {
+				return false
+			}
+		},
+
+		/**
 		 * The groups to draw: ungrouped cards first under no caption, then
 		 * one group per category in declaration order. A group without a
 		 * visible card is left out.
@@ -466,16 +595,89 @@ export default {
 		},
 	},
 
+	watch: {
+		visibleCards: {
+			handler() {
+				this.loadNoteCounts()
+			},
+
+			immediate: true,
+		},
+	},
+
 	methods: {
+		t,
+
 		/**
-		 * Whether a module is in the menu: its `enabled` boolean, else its
-		 * `enabledIf` condition evaluated as a `visibleIf`, else false.
+		 * The note a card shows, resolved against its counts: the first entry
+		 * whose `when` count is above 0 (an entry without `when` always
+		 * applies), its text with `{name}` filled in, and its tone as a badge
+		 * variant. Null while a count it needs is loading or failed.
 		 *
-		 * @param {object} module The declared module.
-		 * @param {object|null} runtime `manifest.runtime`, or null.
-		 * @return {boolean} True when the module is in the menu.
-		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-links-page-can-show-modules
+		 * @param {object} card The resolved card.
+		 * @return {{text: string, variant: string}|null}
+		 * @spec openspec/changes/link-cards-notes/specs/link-cards-page/spec.md#requirement-a-card-can-carry-a-note-with-a-tone
 		 */
+		noteOf(card) {
+			const declared = card.note
+			if (!declared) {
+				return null
+			}
+			const entries = (Array.isArray(declared) ? declared : [declared])
+				.map((entry) => (typeof entry === 'string' ? { text: entry } : entry))
+				.filter((entry) => entry && typeof entry === 'object' && typeof entry.text === 'string')
+			const counts = this.noteCounts[card.id] || {}
+			for (const entry of entries) {
+				const names = Object.keys(entry.counts || {})
+				if (names.some((name) => typeof counts[name] !== 'number')) {
+					continue
+				}
+				if (entry.when && !(counts[entry.when] > 0)) {
+					continue
+				}
+				const one = entry.textOne && counts[entry.when || names[0]] === 1
+				const text = this.tr(one ? entry.textOne : entry.text)
+					.replace(/\{(\w+)\}/g, (match, name) => (typeof counts[name] === 'number' ? String(counts[name]) : match))
+				return { text, variant: NOTE_VARIANTS[entry.tone] || 'default' }
+			}
+			return null
+		},
+
+		/**
+		 * Fetch the counts the visible cards' notes name, one `_limit=1` list
+		 * request per count, once per card and name.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/link-cards-notes/specs/link-cards-page/spec.md#requirement-a-card-can-carry-a-note-with-a-tone
+		 */
+		async loadNoteCounts() {
+			const jobs = []
+			for (const card of this.visibleCards) {
+				const entries = Array.isArray(card.note) ? card.note : [card.note]
+				for (const entry of entries) {
+					for (const [name, source] of Object.entries((entry && entry.counts) || {})) {
+						if (!source || !source.register || !source.schema || this.noteCounts[card.id]?.[name] !== undefined) {
+							continue
+						}
+						this.setNoteCount(card.id, name, null)
+						jobs.push(fetchListTotal(source.register, source.schema, source.filter || {})
+							.then((total) => this.setNoteCount(card.id, name, typeof total === 'number' ? total : false))
+							.catch(() => this.setNoteCount(card.id, name, false)))
+					}
+				}
+			}
+			await Promise.all(jobs)
+		},
+
+		/**
+		 * @param {string} cardId The card.
+		 * @param {string} name The count name.
+		 * @param {number|null|false} value The total; null while loading, false when it failed.
+		 */
+		setNoteCount(cardId, name, value) {
+			this.noteCounts = { ...this.noteCounts, [cardId]: { ...(this.noteCounts[cardId] || {}), [name]: value } }
+		},
+
 		/**
 		 * The icon at the end of a list row: an external-link icon for a URL,
 		 * a chevron for a page in the app. A resolved `trailing` wins.
@@ -491,6 +693,15 @@ export default {
 			return card.external ? 'external' : 'chevron'
 		},
 
+		/**
+		 * Whether a module is in the menu: its `enabled` boolean, else its
+		 * `enabledIf` condition evaluated as a `visibleIf`, else false.
+		 *
+		 * @param {object} module The declared module.
+		 * @param {object|null} runtime `manifest.runtime`, or null.
+		 * @return {boolean} True when the module is in the menu.
+		 * @spec openspec/changes/screens-links-module-cards/specs/link-cards-page/spec.md#requirement-a-links-page-can-show-modules
+		 */
 		moduleEnabled(module, runtime) {
 			if (typeof module.enabled === 'boolean') {
 				return module.enabled
@@ -563,6 +774,11 @@ export default {
 		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-a-card-is-a-real-link
 		 */
 		targetOf(card) {
+			if (card.action === 'user-settings') {
+				return typeof this.cnOpenUserSettings === 'function'
+					? { external: false, location: null, url: '#', action: 'user-settings' }
+					: { external: false, location: null, url: '' }
+			}
 			if (typeof card.route === 'string' && card.route !== '') {
 				const location = card.route.startsWith('/') ? { path: card.route } : { name: card.route }
 				if (card.params && typeof card.params === 'object') {
@@ -589,6 +805,11 @@ export default {
 		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-a-card-is-a-real-link
 		 */
 		open(card, event) {
+			if (card.action === 'user-settings') {
+				event.preventDefault()
+				this.cnOpenUserSettings()
+				return
+			}
 			if (card.external || !card.location) {
 				return
 			}
@@ -846,5 +1067,59 @@ export default {
 
 .cn-link-cards-page__modules-note-icon {
 	flex: none;
+}
+
+.cn-link-cards-page__note {
+	align-self: flex-start;
+	margin-top: 2px;
+}
+
+/* In-app cards end in a chevron, external ones in an external-link icon. */
+.cn-link-cards-page__trailing {
+	align-self: center;
+	flex: none;
+	margin-inline-start: auto;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-link-cards-page__admin {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	align-items: start;
+	gap: calc(4 * var(--default-grid-baseline));
+}
+
+.cn-link-cards-page__admin-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: calc(2 * var(--default-grid-baseline));
+	padding: calc(4 * var(--default-grid-baseline));
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-large);
+	background: var(--color-background-hover);
+}
+
+.cn-link-cards-page__admin-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 10px;
+	border-radius: var(--border-radius-pill);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text, var(--color-main-text));
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-link-cards-page__admin-text {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.cn-link-cards-page__admin-link {
+	color: var(--color-primary-element);
+	font-weight: 600;
 }
 </style>

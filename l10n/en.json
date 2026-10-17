@@ -1513,7 +1513,10 @@
     "%n feature": [
       "%n feature",
       "%n features"
-    ]
+    ],
+    "For administrators": "For administrators",
+    "Administrators only": "Administrators only",
+    "Open admin settings": "Open admin settings"
   },
   "plurals": {
     "{count} selected": [

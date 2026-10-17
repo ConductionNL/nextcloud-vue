@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.111.0",
+	"version": "2.114.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1720,12 +1720,48 @@
 				"query": { "type": "object", "description": "Query passed along with `route`.", "additionalProperties": { "type": ["string", "number", "boolean"] } },
 				"href": { "type": "string", "minLength": 1, "description": "External URL, opened in a new tab. Mutually exclusive with route." },
 				"permission": { "type": "string", "description": "Permission the user must hold for the card to render. Same rule as menuItem.permission." },
-				"visibleIf": { "$ref": "#/$defs/visibleIfCondition", "description": "Display condition, evaluated the way a menu entry's is." }
+				"visibleIf": { "$ref": "#/$defs/visibleIfCondition", "description": "Display condition, evaluated the way a menu entry's is." },
+				"action": { "type": "string", "enum": ["user-settings"], "description": "link-cards-notes (2.114.0): what the card does instead of going to a page. `user-settings` opens the app's user settings modal (CnAppRoot); where there is none the card is left out. Mutually exclusive with route and href." },
+				"note": {
+					"description": "link-cards-notes (2.114.0): a chip under the description. A string, a `$defs/linkCardNote`, or a list of those of which the first that applies shows (board PqGeavanceerdHub: \"7 actief, 2 gepauzeerd\" in green, \"1 koppeling heeft een fout\" in red). A note whose counts are loading or failed is not shown.",
+					"anyOf": [
+						{ "type": "string", "minLength": 1 },
+						{ "$ref": "#/$defs/linkCardNote" },
+						{ "type": "array", "minItems": 1, "items": { "anyOf": [{ "type": "string", "minLength": 1 }, { "$ref": "#/$defs/linkCardNote" }] } }
+					]
+				}
 			},
 			"allOf": [
 				{ "not": { "required": ["route", "href"] } },
-				{ "anyOf": [{ "required": ["route"] }, { "required": ["href"] }] }
+				{ "not": { "required": ["route", "action"] } },
+				{ "not": { "required": ["href", "action"] } },
+				{ "anyOf": [{ "required": ["route"] }, { "required": ["href"] }, { "required": ["action"] }] }
 			]
+		},
+		"linkCardNote": {
+			"type": "object",
+			"required": ["text"],
+			"additionalProperties": false,
+			"description": "link-cards-notes (2.114.0): one note on a link card.",
+			"properties": {
+				"text": { "type": "string", "minLength": 1, "description": "i18n key / text of the note. `{name}` is replaced by the count of that name." },
+				"textOne": { "type": "string", "minLength": 1, "description": "i18n key / text used when the count named by `when` (else the first count) is exactly 1." },
+				"tone": { "type": "string", "enum": ["neutral", "success", "warning", "error", "info"], "description": "The chip's colour. Default neutral." },
+				"when": { "type": "string", "minLength": 1, "description": "A count name: the note applies only when that count is above 0; otherwise the next note in the list is tried." },
+				"counts": {
+					"type": "object",
+					"description": "Count name to the list it counts, read as one `_limit=1` list request.",
+					"additionalProperties": {
+						"type": "object",
+						"required": ["register", "schema"],
+						"properties": {
+							"register": { "type": "string", "minLength": 1 },
+							"schema": { "type": "string", "minLength": 1 },
+							"filter": { "type": "object" }
+						}
+					}
+				}
+			}
 		},
 		"navCardEntry": {
 			"type": "object",
@@ -4809,6 +4845,18 @@
 								"properties": {
 									"description": { "type": "string" },
 									"emptyLabel": { "type": "string" },
+									"adminPanel": {
+										"type": "object",
+										"additionalProperties": false,
+										"description": "link-cards-notes (2.114.0): a panel under the cards that only administrators see (an \"Administrators only\" pill, a text and a link), with an optional custom component beside it, such as a form the app owns.",
+										"properties": {
+											"text": { "type": "string", "description": "i18n key / text of the panel." },
+											"href": { "type": "string", "minLength": 1, "description": "Link target: an instance-absolute path or a URL." },
+											"route": { "type": "string", "minLength": 1, "description": "Link target as a route name or path, instead of href." },
+											"linkLabel": { "type": "string", "minLength": 1, "description": "i18n key / text of the link. Default \"Open admin settings\"." },
+											"component": { "type": "string", "minLength": 1, "description": "A customComponents name drawn beside the panel." }
+										}
+									},
 									"categories": { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } },
 									"cards": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/linkCard" } },
 									"modules": { "type": "array", "items": { "$ref": "#/$defs/linkModule" }, "description": "Module cards drawn above the link cards (board PqModules): per module an icon, title, in-the-menu/off badge, description, its pages, an Open button and, when off, a link to the admin settings." },
