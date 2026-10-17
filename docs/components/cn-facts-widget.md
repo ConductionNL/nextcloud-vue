@@ -33,8 +33,8 @@ The object is the current detail-page object, or one other object named by `sour
 |-----|---------|
 | `path` | Dot-path into the object (`domains`, `@self.updated`). |
 | `label` | Row label, translated. An entry with a label and no `as` is a row. |
-| `as` | `row`, `title`, `line` or `pill`. Without `as` and without `label` an entry is a `line`. |
-| `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year) or `list` (an array joined by ", "). |
+| `as` | `row`, `title`, `line`, `pill` or `meter`. Without `as` and without `label` an entry is a `line`. |
+| `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year), `list` (an array joined by ", ") or `bytes` (a size, "1.5 MB"). |
 | `itemPath` | With `list`: the path read off each array item (`hostname` of `domains[]`). |
 | `resolve` | `{ register, schema, labelField? }`. The value is a reference (an id, or a list of ids): the row shows the label of the referenced object (`labelField`, else `title`, then `name`) instead of the id. Works on a row, a `title`, and on a part of a `line`. The ids are read through the object store, one batched request per register and schema, and the labels are shared by every facts widget on the page. The entry stays empty until its label is known, and when none can be read; it never shows the id. With an array of objects, `itemPath` names the id (default `id`, then `uuid`). |
 | `map` | Raw value to label, translated (`{ "published": "Published" }`). Booleans read `"true"` / `"false"`, else Yes / No. |
@@ -43,6 +43,7 @@ The object is the current detail-page object, or one other object named by `sour
 | `variant` / `variantMap` / `colorMap` | On a `pill`: the CnStatusBadge variant, or value to variant (`colorMap` is the same as `variantMap`). An unknown variant falls back to `default`. |
 | `resolve` on a `pill` | The pill shows the label of the referenced object; `map` is applied to that label. The tone is looked up in `variantMap` / `colorMap` by the value of `resolve.toneField` on the referenced object when that is set (a status shown by its `name` and coloured by its `state`), then by the resolved label, then by the stored value. |
 | `key` | Optional stable key for the entry's `data-testid` (`cn-fact-<key>`). |
+| `limitPath` / `limit` | On a `meter`: the path of the limit, or a constant limit. |
 
 Consecutive rows form one two-column list (`max-content 1fr`, gap 8px 16px, label muted), as the boards draw it.
 
@@ -76,6 +77,25 @@ The person and organisation boards (screens-relation-pages) draw their side card
     ]
   }
 }
+```
+
+### A meter: an amount against a limit
+
+`as: "meter"` draws the amount at `path` against a limit, as a quota card does:
+the label, "12 of 50" and a bar as wide as the share. The limit is read at
+`limitPath`, or given as a constant `limit`, and both are formatted with the
+entry's `format` (`bytes` for storage).
+
+- Past the limit the bar is full and red, and the text reads "12 of 10, over
+  the limit", so the state never rests on colour alone.
+- Without a positive limit (absent, null or 0) the meter shows the amount and
+  no bar: a bar against no limit draws a share that does not exist.
+- An amount that is absent or null leaves the meter out, like any empty entry.
+- The bar is a `role="meter"` with the amount, the limit and the text as its
+  values.
+
+```json
+{ "as": "meter", "key": "storage", "label": "Storage", "path": "usage.storage", "limitPath": "quota.storage", "format": "bytes" }
 ```
 
 ### Other keys

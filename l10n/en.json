@@ -1145,6 +1145,8 @@
     "Due tomorrow": "Due tomorrow",
     "Due in {days} days": "Due in {days} days",
     "Available": "Available",
+    "{value} of {limit}": "{value} of {limit}",
+    "{value} of {limit}, over the limit": "{value} of {limit}, over the limit",
     "Ready to claim": "Ready to claim",
     "In progress": "In progress",
     "Completed": "Completed",
