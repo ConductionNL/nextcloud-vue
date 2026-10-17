@@ -34,7 +34,7 @@ The object is the current detail-page object, or one other object named by `sour
 | `path` | Dot-path into the object (`domains`, `@self.updated`). |
 | `label` | Row label, translated. An entry with a label and no `as` is a row. |
 | `as` | `row`, `title`, `line` or `pill`. Without `as` and without `label` an entry is a `line`. |
-| `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year) or `list` (an array joined by ", "). |
+| `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year), `list` (an array joined by ", ") or `user` (a Nextcloud user id shown as the user's display name, read once per id and shared with the header meta tokens; the entry stays empty until the name is known). |
 | `itemPath` | With `list`: the path read off each array item (`hostname` of `domains[]`). |
 | `resolve` | `{ register, schema, labelField? }`. The value is a reference (an id, or a list of ids): the row shows the label of the referenced object (`labelField`, else `title`, then `name`) instead of the id. Works on a row, a `title`, and on a part of a `line`. The ids are read through the object store, one batched request per register and schema, and the labels are shared by every facts widget on the page. The entry stays empty until its label is known, and when none can be read; it never shows the id. With an array of objects, `itemPath` names the id (default `id`, then `uuid`). |
 | `map` | Raw value to label, translated (`{ "published": "Published" }`). Booleans read `"true"` / `"false"`, else Yes / No. |
@@ -126,6 +126,33 @@ page's own object instead, so one card can show the client's name and the ticket
       { "path": "account", "label": "Contact" }
     ],
     "link": { "label": "Contact details and earlier tickets", "route": { "name": "ClientDetail", "params": { "id": "@source.id" } } }
+  }
+}
+```
+
+## Two columns, label above value (`columns: 2`)
+
+`columns: 2` lays the rows out in two columns with the label above the value and a hairline under each fact (one
+column on a phone), as the board DqContact "Contact" card draws a person. Paths read nested fields, a row with `parts`
+joins them like a line, and a part can be a group of parts with its own separator, so an address reads on one row:
+
+```json
+{
+  "type": "facts",
+  "title": "Contact",
+  "content": {
+    "columns": 2,
+    "fields": [
+      { "path": "displayName", "label": "Name" },
+      { "path": "name.givenNames", "label": "Given names" },
+      { "path": "name.surname", "label": "Surname" },
+      { "path": "birth.date", "label": "Date of birth", "format": "date-long" },
+      { "key": "address", "label": "Residential address", "separator": ", ", "parts": [
+        { "parts": ["residence.street", "residence.houseNumber"], "separator": " " },
+        { "parts": ["residence.postcode", "residence.city"], "separator": " " }
+      ] },
+      { "path": "description", "label": "Description" }
+    ]
   }
 }
 ```

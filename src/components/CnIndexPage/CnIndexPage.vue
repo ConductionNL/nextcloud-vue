@@ -122,6 +122,26 @@
 			<slot name="below-header" />
 		</div>
 
+		<!-- Page tabs a named source declares (`pageTabs()`): sibling lists
+		     of the same thing, such as a flow list and its runs this week.
+		     Links, not tabs: each one is its own page. -->
+		<nav v-if="sourcePageTabs.length > 0"
+			class="cn-index-page__page-tabs"
+			:aria-label="title || t('nextcloud-vue', 'Pages')"
+			data-testid="cn-index-page-tabs">
+			<a v-for="tab in sourcePageTabs"
+				:key="tab.id || tab.to"
+				class="cn-index-page__page-tab"
+				:class="{ 'cn-index-page__page-tab--active': isActivePageTab(tab) }"
+				:href="pageTabHref(tab)"
+				:aria-current="isActivePageTab(tab) ? 'page' : undefined"
+				:data-testid="`cn-index-page-tab-${tab.id || tab.to}`"
+				@click="onPageTabClick(tab, $event)">
+				{{ tab.label }}
+				<span v-if="typeof tab.count === 'number'" class="cn-index-page__page-tab-count">{{ tab.count }}</span>
+			</a>
+		</nav>
+
 		<!-- KPI tiles above the list (`statRow`) and cards beside it
 		     (`sidePanel`), as DqTeamwachtrij and PqContracten
 		     (screens-index-stat-row). -->
@@ -352,7 +372,7 @@
 					:multiple="quickFilterMultiple"
 					:activeIndex="activeQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
-					:counts="tabCounts"
+					:counts="effectiveTabCounts"
 					@update:activeIndex="onQuickFilterChange"
 					@update:selectedIndices="onQuickFilterMultiChange" />
 			</template>
@@ -1047,7 +1067,7 @@
 				<CnPagination
 					v-else-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
 					:variant="isBoardLook ? 'board' : ''"
-					:footerNote="footerNote ? cnTranslate(footerNote) : footerNote"
+					:footerNote="effectiveFooterNote"
 					:currentPage="effectivePagination.page || 1"
 					:totalPages="effectivePagination.pages || 1"
 					:totalItems="effectivePagination.total || 0"
@@ -1179,6 +1199,7 @@ import {
 	resolveDropValue,
 } from '../../utils/boardReferenceColumns.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
+import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
@@ -1870,6 +1891,24 @@ export default {
 		 */
 		quickFilters: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Quick filters made from the values a field holds in this list
+		 * (manifest `config.quickFiltersFrom`): `{ field, register?, schema?,
+		 * labelField?, allLabel? }`. The page asks OpenRegister for the
+		 * distinct values of `field` with their counts (within `filter`) and
+		 * draws "All" plus one tab per value, the most frequent first, each
+		 * with its count. With `register` and `schema` the values are ids of
+		 * records of that schema and each tab shows the record's `labelField`
+		 * (else its title or name). Ignored when `quickFilters` is set.
+		 *
+		 * @type {{field: string, register?: string, schema?: string, labelField?: string, allLabel?: string}|null}
+		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
+		 */
+		quickFiltersFrom: {
+			type: Object,
 			default: null,
 		},
 
@@ -3606,6 +3645,8 @@ export default {
 			tabCounts: null,
 			// The counts of the `filterStrip` pills, by pill key ('all', 'v0', ...).
 			filterStripCounts: null,
+			/** The tabs `quickFiltersFrom` produced, or null before they load. */
+			generatedQuickFilters: null,
 			/** Count per saved-view id, for the views control; null = none. */
 			savedViewCounts: null,
 			// The id (or slug) of the saved view that is applied; its chip shows selected under the board look.
@@ -4760,6 +4801,21 @@ export default {
 		 *
 		 * @return {string} The signature, '' when the strip counts nothing.
 		 */
+		/**
+		 * What the `quickFiltersFrom` tabs depend on, as one key: a change
+		 * asks again. Empty without the prop, or with `quickFilters` set.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
+		 */
+		quickFiltersFromKey() {
+			const from = this.quickFiltersFrom
+			if (this.quickFilters || !from || typeof from.field !== 'string' || from.field === '') {
+				return ''
+			}
+			return JSON.stringify({ r: this.register, s: this.exportSchemaSlug, f: this.filter || null, q: from })
+		},
+
 		filterStripCountKey() {
 			if (!this.filterStrip || this.filterStrip.showCount !== true || this.filterStripValues.length === 0) {
 				return ''
@@ -5972,6 +6028,47 @@ export default {
 		},
 
 		/**
+		 * The page tabs a named source declares, each `{id, label, to, count?}`.
+		 *
+		 * @return {Array<object>} The tabs, empty without a source that has them.
+		 */
+		sourcePageTabs() {
+			const source = this.isNamedSource ? this.namedSource : null
+			if (!source || typeof source.pageTabs !== 'function') {
+				return []
+			}
+			return (source.pageTabs() || []).filter((tab) => tab && tab.to && tab.label)
+		},
+
+		/**
+		 * The numbers on the quick filters: a named source counts its own
+		 * tabs (`tabCounts()`), a self-fetching page asks OpenRegister.
+		 *
+		 * @return {Record<number, number>|null} Counts by tab index.
+		 */
+		effectiveTabCounts() {
+			const source = this.isNamedSource ? this.namedSource : null
+			if (source && typeof source.tabCounts === 'function' && !(Array.isArray(this.quickFilters) && this.quickFilters.length > 0)) {
+				return source.tabCounts()
+			}
+			return this.tabCounts
+		},
+
+		/**
+		 * The footer's free text: the manifest's `footerNote`, else a named
+		 * source's own.
+		 *
+		 * @return {string} The note, translated, or ''.
+		 */
+		effectiveFooterNote() {
+			if (this.footerNote) {
+				return this.cnTranslate(this.footerNote)
+			}
+			const source = this.isNamedSource ? this.namedSource : null
+			return (source && source.footerNote) || this.footerNote
+		},
+
+		/**
 		 * The quick-filter tabs to render: the `quickFilters` prop when set,
 		 * else a named source's own tabs (`useNamedSource` resolved the same
 		 * precedence for the LOAD side, so strip and fetch cannot disagree).
@@ -5979,7 +6076,7 @@ export default {
 		 * @return {Array<object>|null} The tabs, or null when there are none.
 		 */
 		effectiveQuickFilters() {
-			const own = withPersonalLenses(this.quickFilters, this.personalLenses)
+			const own = withPersonalLenses(this.quickFilters || this.generatedQuickFilters, this.personalLenses)
 			if (own && own.length > 0) {
 				return own
 			}
@@ -6607,6 +6704,14 @@ export default {
 			},
 		},
 
+		quickFiltersFromKey: {
+			immediate: true,
+			/** @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values */
+			handler() {
+				this.loadGeneratedQuickFilters()
+			},
+		},
+
 		filterStripCountKey: {
 			immediate: true,
 			/** @spec openspec/changes/screens-filter-strip/specs/index-filter-strip/spec.md#requirement-an-index-page-can-draw-a-second-filter-strip */
@@ -6932,6 +7037,59 @@ export default {
 				return true
 			}
 			return Array.isArray(this.viewCounts) && this.viewCounts.map(String).includes(String(id))
+		},
+
+		/**
+		 * Build the `quickFiltersFrom` tabs: the field's distinct values with
+		 * their counts in one grouped request, labelled through the
+		 * reference-label resolver when the values are record ids. A failed
+		 * request draws no tabs.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
+		 */
+		async loadGeneratedQuickFilters() {
+			const key = this.quickFiltersFromKey
+			const schema = this.exportSchemaSlug
+			if (key === '' || !this.register || !schema) {
+				this.generatedQuickFilters = null
+				return
+			}
+			const from = this.quickFiltersFrom
+			const params = (this.$route && this.$route.params) || {}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			let groups
+			try {
+				groups = await fetchGroupedCounts({ register: this.register, schema, groupBy: from.field, filter: resolveFilterMap(this.filter, params, ctx) }, ctx)
+			} catch {
+				groups = []
+			}
+			let labels = {}
+			if (from.register && from.schema && groups.length > 0) {
+				if (!this._quickFilterLabelResolver) {
+					this._quickFilterLabelResolver = createRefLabelResolver(() => {
+						try {
+							return (this.list && this.list.objectStore) || useObjectStore()
+						} catch {
+							return null
+						}
+					})
+				}
+				labels = await this._quickFilterLabelResolver.resolve(from.register, from.schema, groups.map((g) => g.key), from.labelField || '').catch(() => ({}))
+			}
+			if (key !== this.quickFiltersFromKey) {
+				return
+			}
+			if (groups.length === 0) {
+				this.generatedQuickFilters = null
+				return
+			}
+			const sorted = [...groups].sort((a, b) => b.count - a.count)
+			const total = sorted.reduce((sum, g) => sum + g.count, 0)
+			this.generatedQuickFilters = [
+				{ label: from.allLabel || t('nextcloud-vue', 'All'), filter: {}, default: true, count: total },
+				...sorted.map((g) => ({ label: (labels && labels[g.key]) || g.key, filter: { [from.field]: g.key }, count: g.count })),
+			]
 		},
 
 		/**
@@ -9210,6 +9368,52 @@ export default {
 				}
 			}
 			this.$emit('edit-open', row)
+		},
+
+		/**
+		 * Whether a page tab is the page being shown.
+		 *
+		 * @param {object} tab The page tab.
+		 * @return {boolean} True for the current page.
+		 */
+		isActivePageTab(tab) {
+			const path = this.$route && this.$route.path
+			return !!path && String(path).replace(/\/+$/, '') === String(tab.to).replace(/\/+$/, '')
+		},
+
+		/**
+		 * The href of a page tab, resolved through the router when there is one.
+		 *
+		 * @param {object} tab The page tab.
+		 * @return {string} The href.
+		 */
+		pageTabHref(tab) {
+			if (this.$router && typeof this.$router.resolve === 'function') {
+				const resolved = this.$router.resolve(tab.to)
+				if (resolved && resolved.href) {
+					return resolved.href
+				}
+			}
+			return tab.to
+		},
+
+		/**
+		 * Follow a page tab on the app's router. A ctrl/cmd/shift or middle
+		 * click keeps the browser's own new-tab behaviour.
+		 *
+		 * @param {object} tab The page tab.
+		 * @param {MouseEvent} event The click.
+		 * @return {void}
+		 */
+		onPageTabClick(tab, event) {
+			if (!this.$router || isNewTabClick(event) || this.isActivePageTab(tab)) {
+				if (this.isActivePageTab(tab)) {
+					event.preventDefault()
+				}
+				return
+			}
+			event.preventDefault()
+			this.$router.push(tab.to).catch(() => {})
 		},
 
 		/**
