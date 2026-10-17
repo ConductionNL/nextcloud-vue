@@ -382,12 +382,19 @@ function readRowsPath(body, path) {
  * key, the active tab's filter and the sidebar choices included, goes along
  * as a query parameter. The manifest declares the columns.
  *
+ * Without a `sourceConfig.url`, and when the page config itself arrived in
+ * its place (CnPageRenderer's fallback for a page that sets no
+ * `sourceConfig`, recognisable by its `entitySource` key), nothing is
+ * requested: page-config keys must never become query parameters. The list
+ * stays empty and one console error names the page.
+ *
  * @return {object} The source adapter.
  * @spec openspec/changes/index-endpoint-source/specs/index-page/spec.md#requirement-an-index-page-can-list-rows-from-an-app-endpoint
  */
 function endpointSource() {
 	const state = reactive({ rows: [], loading: false })
 	let seq = 0
+	let warned = false
 
 	return {
 		/**
@@ -399,8 +406,15 @@ function endpointSource() {
 		load: async (config) => {
 			const { url, rowsPath, ...rest } = config || {}
 			const mine = ++seq
-			if (typeof url !== 'string' || url === '') {
+			const pageConfig = Boolean(config && Object.hasOwn(config, 'entitySource'))
+			if (typeof url !== 'string' || url === '' || pageConfig) {
 				state.rows = []
+				if (!warned) {
+					warned = true
+					const page = (config && (config.title || config.id)) || 'an index page'
+					// eslint-disable-next-line no-console
+					console.error(`[CnIndexPage] entitySource "endpoint" on "${page}" needs an explicit sourceConfig with a url (an app path such as /apps/<app>/api/<path>); nothing is loaded.`)
+				}
 				return
 			}
 			const params = {}

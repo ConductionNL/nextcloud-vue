@@ -15,5 +15,6 @@ OpenRegister schema, so `type: "index"` had nothing to point at and the page wou
   through the named-source load the page already has. The manifest declares the columns.
 - A failed request leaves the list empty and is logged, as for the other named sources. No manifest schema change.
 
-Note: CnPageRenderer fills `sourceConfig` with the whole page config when a page sets none, so an endpoint page sets
-`sourceConfig` explicitly; without `sourceConfig.url` the source loads nothing.
+Note: CnPageRenderer fills `sourceConfig` with the whole page config when a page sets none. The endpoint source
+recognises that (the config carries `entitySource`) and, like a config without `url`, requests nothing: the list stays
+empty and one console error names the page and the missing url. Page-config keys never become query parameters.

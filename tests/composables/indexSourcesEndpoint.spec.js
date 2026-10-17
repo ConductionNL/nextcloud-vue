@@ -39,13 +39,24 @@ describe('endpoint index source', () => {
 		expect(source.rows()).toEqual([{ id: 'b' }])
 	})
 
-	it('leaves no rows and rethrows on a failed request, and loads nothing without a url', async () => {
+	it('leaves no rows and rethrows on a failed request', async () => {
 		const source = resolveIndexSource('endpoint')
 		mockGet.mockRejectedValue(new Error('403'))
 		await expect(source.load({ url: '/apps/x/api/y' })).rejects.toThrow('403')
 		expect(source.rows()).toEqual([])
-		mockGet.mockReset()
+	})
+
+	it('requests nothing when the page config arrived instead of a sourceConfig, and says so once', async () => {
+		const error = jest.spyOn(console, 'error').mockImplementation(() => {})
+		const source = resolveIndexSource('endpoint')
+		const pageConfig = { title: 'Postvak', entitySource: 'endpoint', url: '/apps/dossiq/api/postvak', columns: ['subject'], quickFilters: [] }
+		await source.load(pageConfig)
 		await source.load({})
 		expect(mockGet).not.toHaveBeenCalled()
+		expect(source.rows()).toEqual([])
+		expect(error).toHaveBeenCalledTimes(1)
+		expect(error.mock.calls[0][0]).toContain('"Postvak"')
+		expect(error.mock.calls[0][0]).toContain('sourceConfig')
+		error.mockRestore()
 	})
 })
