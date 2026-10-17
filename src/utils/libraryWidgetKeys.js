@@ -100,6 +100,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'countdown',
 	'data',
 	'delta',
+	'device-frames',
 	'divider',
 	'document-review',
 	'facts',
