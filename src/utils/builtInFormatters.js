@@ -418,6 +418,38 @@ export function formatConnectionSettingsLabel(value) {
 }
 
 /**
+ * Show a value with all but its last characters replaced by `*`, as the facts
+ * widget's `masked` format does: an IBAN or a BSN reads `*****4567`.
+ *
+ * DISPLAY ONLY, NOT ACCESS CONTROL. The full value is still in the row the
+ * page received; a reader with the browser's developer tools can read it.
+ * A value the reader must not have belongs hidden in OpenRegister (property
+ * authorization), not masked here.
+ *
+ * The column's `formatterOptions.visible` sets how many characters stay
+ * (default 4); at most five `*` are drawn, so the length does not leak.
+ * Null-safe: `''` for null or empty.
+ *
+ * @param {unknown} value The value.
+ * @param {object} [_row] The full row (unused).
+ * @param {object} [_property] The schema property (unused).
+ * @param {{visible?: number}} [options] The column's `formatterOptions`.
+ * @return {string} The masked value.
+ * @spec openspec/changes/masked-formatter-max-aggregate/specs/index-page/spec.md#requirement-a-column-can-mask-its-value-for-display
+ */
+export function formatMasked(value, _row, _property, options) {
+	if (value === null || value === undefined || value === '') {
+		return ''
+	}
+	const text = String(value)
+	const visible = Number.isInteger(options && options.visible) && options.visible >= 0 ? options.visible : 4
+	if (text.length <= visible) {
+		return text
+	}
+	return '*'.repeat(Math.min(text.length - visible, 5)) + (visible > 0 ? text.slice(-visible) : '')
+}
+
+/**
  * Built-in formatter registry merged under any consumer-registered
  * `formatters` in `CnAppRoot`'s `cnFormatters` provide.
  */
@@ -433,4 +465,5 @@ export const BUILT_IN_FORMATTERS = {
 	count: formatCount,
 	connectionStatus: formatConnectionStatus,
 	connectionSettingsLabel: formatConnectionSettingsLabel,
+	masked: formatMasked,
 }

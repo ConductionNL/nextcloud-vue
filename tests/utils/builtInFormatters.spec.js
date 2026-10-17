@@ -414,3 +414,20 @@ describe('builtInFormatters', () => {
 		})
 	})
 })
+
+describe('masked formatter (masked-formatter-max-aggregate)', () => {
+	const { formatMasked, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+
+	it('keeps the last four characters and draws at most five stars', () => {
+		expect(formatMasked('NL91ABNA0417164300')).toBe('*****4300')
+		expect(formatMasked('123456')).toBe('**3456')
+		expect(BUILT_IN_FORMATTERS.masked).toBe(formatMasked)
+	})
+
+	it('takes formatterOptions.visible, and leaves a short or empty value', () => {
+		expect(formatMasked('123456789', null, null, { visible: 2 })).toBe('*****89')
+		expect(formatMasked('123', null, null, {})).toBe('123')
+		expect(formatMasked(null)).toBe('')
+		expect(formatMasked('')).toBe('')
+	})
+})
