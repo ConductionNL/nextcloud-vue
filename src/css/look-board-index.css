@@ -184,10 +184,15 @@
 	outline-offset: 2px;
 }
 
+/* The selected chip is light on dark, so it hands its ink to
+   --nldesign-color-on-surface: thematiq forces the body ink onto every span
+   with `!important` and reads it from that property, which left the label
+   dark on dark. */
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected,
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected:hover,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active:hover {
+	--nldesign-color-on-surface: var(--color-main-background);
 	border-color: transparent;
 	background: var(--color-main-text);
 	color: var(--color-main-background);
@@ -208,8 +213,12 @@
 }
 
 .cn-look-board .cn-saved-views__chip--selected .cn-saved-views__chip-count,
+/* On the selected chip the count is a lighter bubble on the dark chip
+   (DqZaken: #3d4047 on #1b1c1d); --cn-board-text-soft resolves to the main
+   text, the chip's own colour, which hid the bubble. */
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active .cn-quick-filter-bar__count {
-	background: var(--cn-board-text-soft);
+	--nldesign-color-on-surface: var(--color-primary-element-text);
+	background: color-mix(in srgb, var(--color-main-background) 15%, var(--color-main-text));
 	color: var(--color-primary-element-text);
 }
 
