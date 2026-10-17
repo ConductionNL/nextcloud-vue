@@ -874,7 +874,7 @@
 			"page": "cn-detail-grid"
 		},
 		"CnDetailPage": {
-			"direct": 10,
+			"direct": 11,
 			"transitive": 180,
 			"tier": "heavy",
 			"via": [
