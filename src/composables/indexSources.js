@@ -7,6 +7,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import { useFlowStore } from './useFlowStore.js'
+import { organisationRecord, useOrganisationStore } from './useOrganisationStore.js'
 import { useTaskInboxStore } from './useTaskInboxStore.js'
 
 /**
@@ -359,6 +360,97 @@ function tasksSource() {
 }
 
 /**
+ * The organisations source: OpenRegister organisations, which are not
+ * register/schema objects.
+ *
+ * The list is the viewer's own organisations and the single read refuses an
+ * organisation the viewer has no access to; both are decided by OpenRegister
+ * from the session. The adapter forwards nothing that could widen that.
+ *
+ * It is a RECORD source as well (`loadRecord` + `record`), so a
+ * `type: "detail"` page with the same `entitySource` shows one organisation
+ * with the header, pills, facts and `@objectId` / `@object.*` tokens an object
+ * page has.
+ *
+ * @return {object} The source adapter.
+ * @spec openspec/changes/organisations-entity-source/specs/organisations-entity-source/spec.md
+ */
+function organisationsSource() {
+	const store = useOrganisationStore()
+
+	const statusLabels = {
+		provisioning: t('nextcloud-vue', 'Provisioning'),
+		active: t('nextcloud-vue', 'Active'),
+		suspended: t('nextcloud-vue', 'Suspended'),
+		deprovisioning: t('nextcloud-vue', 'Deprovisioning'),
+		archived: t('nextcloud-vue', 'Archived'),
+		retained: t('nextcloud-vue', 'Retained'),
+	}
+
+	return {
+		store,
+
+		/**
+		 * Load the viewer's organisations. The endpoint takes no parameters.
+		 *
+		 * @return {Promise<void>} Resolves when loaded.
+		 */
+		load: () => store.load(),
+
+		/**
+		 * @return {Array<object>} The rows, keyed on the organisation uuid.
+		 */
+		rows: () => (store.organisations || []).map(organisationRecord),
+
+		/**
+		 * @return {boolean} Whether a load is in flight.
+		 */
+		loading: () => !!store.loading,
+
+		/**
+		 * Read one organisation for a detail page.
+		 *
+		 * @param {string} id The organisation uuid.
+		 * @return {Promise<object|null>} The organisation, or null when it could not be read.
+		 */
+		loadRecord: (id) => store.fetchRecord(id),
+
+		/**
+		 * @param {string} id The organisation uuid.
+		 * @return {object|null} The organisation read for this id, keyed on its uuid, or null.
+		 */
+		record: (id) => {
+			const organisation = store.records?.[String(id)]
+			return organisation ? organisationRecord(organisation) : null
+		},
+
+		/**
+		 * @param {string} id The organisation uuid.
+		 * @return {number|null} The HTTP status of a failed read of this id, or null.
+		 */
+		recordError: (id) => store.recordErrors?.[String(id)] ?? null,
+
+		columns: [
+			{ key: 'name', label: t('nextcloud-vue', 'Name') },
+			{
+				key: 'status',
+				label: t('nextcloud-vue', 'Status'),
+				enum: Object.keys(statusLabels),
+				enumLabels: statusLabels,
+				colorMap: { active: 'success', provisioning: 'info', suspended: 'warning', deprovisioning: 'error', archived: 'default', retained: 'default' },
+			},
+			{ key: 'type', label: t('nextcloud-vue', 'Type') },
+			{ key: 'created', label: t('nextcloud-vue', 'Created'), type: 'string', format: 'date-time' },
+		],
+
+		// Creating an organisation is not the index's object form, and
+		// OpenRegister has no delete for one, so neither action is offered.
+		showAdd: false,
+		title: t('nextcloud-vue', 'Organisations'),
+	}
+}
+
+/**
  * The registered sources, by the name a manifest uses.
  *
  * @type {Record<string, () => object>}
@@ -366,6 +458,7 @@ function tasksSource() {
 export const indexSources = {
 	flows: flowsSource,
 	tasks: tasksSource,
+	organisations: organisationsSource,
 }
 
 /**
@@ -395,4 +488,32 @@ export function resolveIndexSource(name) {
 	}
 
 	return factory()
+}
+
+/**
+ * Resolve a named source for ONE record, for a `type: "detail"` page.
+ *
+ * The same registry as the index: a source that can also read a single record
+ * supplies `loadRecord(id)` and `record(id)`, and the detail page names it with
+ * the same `entitySource`. A name that is unknown, or a source that cannot read
+ * one record, resolves to null with a console warning, and the page shows no
+ * record rather than the wrong one.
+ *
+ * @param {string} name The source name from `config.entitySource`.
+ * @return {object|null} The adapter, or null.
+ * @spec openspec/changes/organisations-entity-source/specs/organisations-entity-source/spec.md
+ */
+export function resolveRecordSource(name) {
+	const key = String(name || '')
+	if (!key) {
+		return null
+	}
+	const factory = indexSources[key]
+	const source = typeof factory === 'function' ? factory() : null
+	if (!source || typeof source.loadRecord !== 'function' || typeof source.record !== 'function') {
+		// eslint-disable-next-line no-console
+		console.warn(`[CnDetailPage] entitySource "${key}" is not a source that reads one record. The page shows no record.`)
+		return null
+	}
+	return source
 }
