@@ -50,4 +50,11 @@ describe('look-board-index.css: the board table rhythm', () => {
 		expect(col).toContain('width: 60px')
 		expect(col).toContain('padding-inline: 16px;')
 	})
+
+	it('draws the header labels 14px muted and hands the muted ink to a forcing theme, the secondary line too', () => {
+		const th = rule('.cn-look-board .cn-table-container--board .cn-data-table th')
+		expect(th).toContain('font-size: 14px')
+		expect(th).toContain('--nldesign-color-on-surface: var(--color-text-maxcontrast)')
+		expect(css).toMatch(/td\.cn-table-col--title \.cn-table-cell__secondary \{\s*--nldesign-color-on-surface: var\(--color-text-maxcontrast\);/)
+	})
 })

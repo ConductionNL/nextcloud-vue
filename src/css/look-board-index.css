@@ -481,12 +481,16 @@
 	border-radius: 0;
 }
 
-/* The header row is near-white on the boards (#fafbfc), not the hover grey. */
+/* The header row is near-white on the boards (#fafbfc), not the hover grey,
+   its labels 14px muted. The ink also goes to --nldesign-color-on-surface,
+   which a theme that forces the body ink onto every span (thematiq) reads. */
 .cn-look-board .cn-table-container--board .cn-data-table th {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	padding: 12px 16px;
 	border-bottom: 0;
 	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
 	color: var(--color-text-maxcontrast);
+	font-size: 14px;
 	font-weight: 600;
 }
 
@@ -606,6 +610,7 @@
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title .cn-table-cell__secondary {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
 	font-weight: 400;
