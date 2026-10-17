@@ -1786,7 +1786,8 @@
     "The checklist could not be loaded.": "De checklist kon niet worden geladen.",
     "The answer could not be saved. Try again.": "Het antwoord kon niet worden opgeslagen. Probeer het opnieuw.",
     "Checklist finished.": "Checklist afgerond.",
-    "Not applicable": "Niet van toepassing"
+    "Not applicable": "Niet van toepassing",
+    "Answer with a photo.": "Beantwoord met een foto."
   },
   "plurals": {
     "{count} selected": [

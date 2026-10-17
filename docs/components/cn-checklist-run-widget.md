@@ -46,9 +46,46 @@ the wording are all configuration; nothing in the widget knows what is being ins
 | `caption` | Text after the position ("Question 7 of 24 · …"), with `{field}` filled from the record. |
 | `emptyText` | The text when the checklist has no questions. |
 
-Question types: `yes_no` (Yes, No), `yes_no_na` (Yes, No, Not applicable), `choice` (the record's `options`, a list of
-strings or `{ value, label }`), and any other type as a text field. A required question keeps the page until it is
-answered. Question texts, labels and options go through the app's translate.
+Question kinds: `yes_no` (Yes, No), `yes_no_na` (Yes, No, Not applicable), `choice` (the question's `options`, a list of
+strings or `{ value, label }`), `number`, `photo` (answered with a photo) and `text`. `typeMap` maps the app's own type
+values onto these kinds (an unknown type is a text field), and `choiceValues` (`{ yes, no, na }`) the values stored for
+Yes, No and Not applicable. A required question keeps the page until it is answered. Question texts, labels and options
+go through the app's translate.
+
+## Questions and answers inside the open record
+
+When a run keeps its questions and answers in its own record, read the questions with `questionsPath` and write the
+answers with `answersPath` instead of `questions` and `answers`:
+
+```json
+{
+  "type": "checklist-run",
+  "content": {
+    "questionsPath": "templateSnapshot.sections",
+    "itemsKey": "items",
+    "groupLabelField": "name",
+    "orderField": "order",
+    "fields": { "id": "id", "text": "label", "type": "responseType", "options": "choices", "required": "required", "help": "helpText" },
+    "typeMap": { "yes_no_na": "yes_no_na", "text": "text", "getal": "number", "meerkeuze": "choice", "photo": "photo", "meting": "number" },
+    "choiceValues": { "yes": "ja", "no": "nee", "na": "nvt" },
+    "answersPath": "responses",
+    "answerKey": "itemId",
+    "answerFields": { "value": "value", "number": "numericValue", "choice": "choice", "note": "comment", "photos": "photos", "at": "respondedAt" },
+    "recordPhotosField": "photos",
+    "caption": "{templateSnapshot.name} versie {templateVersion}"
+  }
+}
+```
+
+| Key | Description |
+|---|---|
+| `questionsPath` | Path on the open record of the questions, or of groups of them. |
+| `itemsKey` | With groups: the key of each group's questions. The group's `groupLabelField` (default `name`) is shown above its questions. |
+| `orderField` | Sorts the groups and the questions, lowest first (default `order`). |
+| `answersPath` | A property of the open record holding one answer entry per question, keyed by `answerKey` (default `questionId`). The changed answers of a page are written into it with one update of the record through the object API, under the reader's own rights. |
+| `answerFields` | Where an entry keeps its parts: `value` (yes/no and text), `number`, `choice`, `note`, `photos`, and `at` (set to the time of the answer when given). |
+| `recordPhotosField` | The record's own photo list. A photo is uploaded to the record's files and added there, and its reference (`photoRefField`, default `id`) goes into the answer's `photos`. |
+| `record` | `{ register, schema }` of the open record, when the page does not hand them in. |
 
 ## Keyboard and screen readers
 
@@ -63,7 +100,9 @@ it. Progress is a progress bar of the questions answered.
 |---|---|---|---|
 | `content` | `Object` | `{}` | The configuration above. |
 | `objectId` | `String\|Number` | `''` | The bound record's id, for `@objectId` (handed in by the page host). |
-| `objectData` | `Object` | `null` | The bound record, for `@object.<field>` and the caption. |
+| `objectData` | `Object` | `null` | The bound record, for `@object.<field>`, the caption, `questionsPath` and `answersPath`. |
+| `register` | `String\|Object` | `''` | The bound record's register, for writing `answersPath` (handed in by the page host; `content.record` wins). |
+| `schema` | `String\|Object` | `''` | The bound record's schema, for writing `answersPath`. |
 
 ## Events
 

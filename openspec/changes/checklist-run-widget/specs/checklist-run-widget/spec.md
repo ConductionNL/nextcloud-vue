@@ -56,3 +56,28 @@ no photos.
 - **GIVEN** `saveAction: { type: "handler", handler: "saveAnswer" }`
 - **WHEN** the inspector answers a question and presses Next
 - **THEN** the handler receives the answer and no object is written by the widget
+
+### Requirement: Questions and answers can live inside the open record
+
+With `questionsPath` the widget SHALL read its questions from that path on the open record; with `itemsKey` the path
+holds groups whose `itemsKey` holds the questions, and the group's label SHALL show above its questions. Groups and
+questions SHALL be sorted by `orderField` (default `order`). `typeMap` SHALL map the record's type values onto the kinds
+`yes_no`, `yes_no_na`, `choice`, `number`, `photo` and `text`, and `choiceValues` SHALL give the stored values of yes,
+no and not applicable. With `answersPath` the widget SHALL read the answers from that array on the record (matched on
+`answerKey`) and SHALL write the changed answers of a page into it with one update of the record through the object API,
+each part in its `answerFields` field by kind. A photo SHALL be uploaded to the record's own files (`recordPhotosField`)
+and its reference added to the answer's photos.
+
+#### Scenario: Board DqInspectie with a run that holds its own checklist
+
+- **GIVEN** a run record with `templateSnapshot.sections[].items[]` and `responses[]` keyed by `itemId`
+- **AND** `typeMap: { getal: "number", meerkeuze: "choice" }` and `choiceValues: { yes: "ja", no: "nee", na: "nvt" }`
+- **THEN** the questions show in section and item order, "Ja / Nee / Niet van toepassing" stored as ja / nee / nvt
+- **WHEN** the inspector answers "Nee", picks a door type and enters a count, then presses Next
+- **THEN** the run is updated once, its `responses` holding `value: "nee"`, `choice` and `numericValue` per item
+
+#### Scenario: A photo for an answer in the record
+
+- **WHEN** the inspector adds a photo to a question and presses Next
+- **THEN** the photo is uploaded to the run's files and its id added to that answer's photos
+

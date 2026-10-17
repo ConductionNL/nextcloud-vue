@@ -11,3 +11,10 @@
 - **files**: `src/components/CnChecklistRunWidget/CnChecklistRunWidget.vue`
 - [x] Implement: object API create/update, saveAction, photos through uploadHeldFiles
 - [x] Test: `tests/components/CnChecklistRunWidget.spec.js`
+
+### Task 3: Questions and answers can live inside the open record
+- **spec_ref**: `openspec/changes/checklist-run-widget/specs/checklist-run-widget/spec.md#requirement-questions-and-answers-can-live-inside-the-open-record`
+- **files**: `src/components/CnChecklistRunWidget/CnChecklistRunWidget.vue`, `docs/components/cn-checklist-run-widget.md`
+- [x] Implement: `questionsPath` / `itemsKey`, `typeMap`, `choiceValues`, `answersPath` written with one record update, photos to the record's files
+- [x] Test: `tests/components/CnChecklistRunWidget.spec.js`
+

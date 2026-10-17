@@ -39,6 +39,9 @@
 			</span>
 			<span class="cn-checklist-run__live" aria-live="polite">{{ liveText }}</span>
 
+			<p v-if="pageGroup" class="cn-checklist-run__group" data-testid="cn-checklist-run-group">
+				{{ pageGroup }}
+			</p>
 			<fieldset
 				v-for="question in pageQuestions"
 				:key="question.id"
@@ -69,6 +72,19 @@
 						{{ choice.label }}
 					</label>
 				</template>
+				<input
+					v-else-if="question.kind === 'number'"
+					v-model="draft[question.id].value"
+					class="cn-checklist-run__number"
+					type="number"
+					inputmode="decimal"
+					:aria-label="question.text"
+					:required="question.required"
+					data-testid="cn-checklist-run-number"
+					@input="markDirty(question.id)">
+				<p v-else-if="question.kind === 'photo'" class="cn-checklist-run__help">
+					{{ photoOnlyLabel }}
+				</p>
 				<textarea
 					v-else
 					v-model="draft[question.id].value"
@@ -162,9 +178,44 @@ let instanceCounter = 0
  * @type {Record<string, Array<{value: string, label: string}>>}
  */
 const TYPE_CHOICES = Object.freeze({
-	yes_no: [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }],
-	yes_no_na: [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }, { value: 'na', label: 'Not applicable' }],
+	yes_no: [{ key: 'yes', label: 'Yes' }, { key: 'no', label: 'No' }],
+	yes_no_na: [{ key: 'yes', label: 'Yes' }, { key: 'no', label: 'No' }, { key: 'na', label: 'Not applicable' }],
 })
+
+/** The kinds of question the widget draws. */
+const KINDS = Object.freeze(['yes_no', 'yes_no_na', 'choice', 'text', 'number', 'photo'])
+
+/**
+ * Sort by a numeric field, lowest first, keeping the given order for ties and
+ * for entries without the field.
+ *
+ * @param {Array<object>} list The entries.
+ * @param {string} field The field.
+ * @return {Array<object>} A sorted copy.
+ */
+function byOrder(list, field) {
+	if (!field) {
+		return [...list]
+	}
+	const rank = (entry) => {
+		const n = Number(readPath(entry, field))
+		return Number.isFinite(n) ? n : Infinity
+	}
+	return list.map((entry, index) => ({ entry, index })).sort((a, b) => (rank(a.entry) - rank(b.entry)) || (a.index - b.index)).map(({ entry }) => entry)
+}
+
+/**
+ * A register or schema as the object API path takes it.
+ *
+ * @param {string|object} value A slug, or a register/schema object.
+ * @return {string} The slug or id.
+ */
+function slugOf(value) {
+	if (value && typeof value === 'object') {
+		return String(value.slug ?? value.id ?? '')
+	}
+	return value ? String(value) : ''
+}
 
 /**
  * The id of an object, wherever OpenRegister carries it.
@@ -211,8 +262,17 @@ function idOf(object) {
  * }
  * ```
  *
- * Question types: `yes_no`, `yes_no_na`, `choice` (the record's `options`, a
- * list of strings or `{ value, label }`) and anything else as free text.
+ * The questions and answers can also live inside the open record:
+ * `questionsPath` (with `itemsKey` for groups, both sorted by `orderField`)
+ * reads the questions off it, and `answersPath` writes the answers into an
+ * array on it, one entry per question keyed by `answerKey`, by updating the
+ * record through the object API. Photos then go to the record's own files
+ * (`recordPhotosField`) and their references into the answer.
+ *
+ * Question kinds: `yes_no`, `yes_no_na`, `choice` (the question's `options`,
+ * a list of strings or `{ value, label }`), `number`, `photo` and `text`.
+ * `typeMap` maps the app's type values onto them, `choiceValues` the stored
+ * values of yes / no / not applicable.
  * Keyboard: the choices are native radio buttons in a fieldset whose legend is
  * the question; on a new page focus moves to the position line and a polite
  * live region reads it.
@@ -235,9 +295,12 @@ export default {
 
 	props: {
 		/**
-		 * The widget config: `{ questions, fields?, answers?, saveAction?,
-		 * finishAction?, pageSize?, allowNote?, allowPhotos?, caption?,
-		 * emptyText? }`, as in the component description.
+		 * The widget config: `{ questions | questionsPath, itemsKey?,
+		 * groupLabelField?, orderField?, fields?, typeMap?, choiceValues?,
+		 * answers | answersPath, answerKey?, answerFields?, recordPhotosField?,
+		 * record?, saveAction?, finishAction?, pageSize?, allowNote?,
+		 * allowPhotos?, caption?, emptyText? }`, as in the component
+		 * description and docs/components/cn-checklist-run-widget.md.
 		 *
 		 * @type {object}
 		 */
@@ -252,10 +315,22 @@ export default {
 			default: '',
 		},
 
-		/** The bound record, for `@object.<field>` and the caption. */
+		/** The bound record, for `@object.<field>`, the caption and `questionsPath` / `answersPath`. */
 		objectData: {
 			type: Object,
 			default: null,
+		},
+
+		/** The bound record's register, for writing `answersPath` (`content.record` wins). */
+		register: {
+			type: [String, Object],
+			default: '',
+		},
+
+		/** The bound record's schema, for writing `answersPath` (`content.record` wins). */
+		schema: {
+			type: [String, Object],
+			default: '',
 		},
 	},
 
@@ -273,6 +348,8 @@ export default {
 			answerIds: {},
 			// Photos an answer already holds, kept when new ones are attached.
 			storedPhotos: {},
+			// `answersPath` mode: the answer entries as last read or written.
+			recordAnswers: [],
 			draft: {},
 			dirty: {},
 			photos: {},
@@ -328,7 +405,7 @@ export default {
 
 		/** @return {number} Questions with an answer. */
 		answeredCount() {
-			return this.questions.filter((q) => this.hasValue(this.draft[q.id]?.value)).length
+			return this.questions.filter((q) => this.isAnswered(q)).length
 		},
 
 		/** @return {number} The share answered, 0 to 100. */
@@ -362,9 +439,41 @@ export default {
 			return this.content?.allowNote !== false
 		},
 
-		/** @return {boolean} Whether photos can be added: allowed, and stored through the object API. */
+		/** @return {boolean} Whether the answers are written into an array on the open record. */
+		inRecord() {
+			return typeof this.content?.answersPath === 'string' && this.content.answersPath !== ''
+		},
+
+		/** @return {object} `answersPath` field names, with their defaults. */
+		answerFields() {
+			return { value: 'value', number: 'value', choice: 'value', note: 'note', photos: 'photos', ...(this.content?.answerFields || {}) }
+		},
+
+		/** @return {{register: string, schema: string}} Where the open record lives. */
+		recordRef() {
+			const own = this.content?.record || {}
+			return { register: slugOf(own.register || this.register), schema: slugOf(own.schema || this.schema) }
+		},
+
+		/**
+		 * Whether photos can be added: allowed, and somewhere to put them.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/checklist-run-widget/specs/checklist-run-widget/spec.md#requirement-questions-and-answers-can-live-inside-the-open-record
+		 */
 		photosEnabled() {
-			return this.content?.allowPhotos !== false && !this.content?.saveAction && Boolean(this.content?.answers?.photosField)
+			if (this.content?.allowPhotos === false || this.content?.saveAction) {
+				return false
+			}
+			if (this.inRecord) {
+				return Boolean(this.content?.recordPhotosField && this.answerFields.photos)
+			}
+			return Boolean(this.content?.answers?.photosField)
+		},
+
+		/** @return {string} The group (section) of this page's first question, or ''. */
+		pageGroup() {
+			return this.currentQuestion?.group || ''
 		},
 
 		/** @return {string[]} The names of the photos held for the current question. */
@@ -381,6 +490,10 @@ export default {
 
 		/** @return {string} The key of the source lists, to read them again when they change. */
 		sourceKey() {
+			if (typeof this.content?.questionsPath === 'string' && this.content.questionsPath !== '') {
+				const object = this.tokenCtx.object
+				return object ? JSON.stringify({ path: this.content.questionsPath, id: idOf(object), at: object['@self']?.updated ?? null }) : ''
+			}
 			const q = this.content?.questions
 			if (!q || !q.register || !q.schema) {
 				return ''
@@ -402,6 +515,7 @@ export default {
 		nextLabel: () => t('nextcloud-vue', 'Next'),
 		finishLabel: () => t('nextcloud-vue', 'Finish'),
 		addPhotoLabel: () => t('nextcloud-vue', 'Take or add a photo'),
+		photoOnlyLabel: () => t('nextcloud-vue', 'Answer with a photo.'),
 		morePhotoLabel: () => t('nextcloud-vue', 'Another photo'),
 
 		/** @return {string} The note field's label. */
@@ -447,16 +561,34 @@ export default {
 		},
 
 		/**
+		 * Whether a question has an answer: a value, or for a photo question
+		 * a photo stored or held.
+		 *
+		 * @param {object} question The question.
+		 * @return {boolean} True when answered.
+		 */
+		isAnswered(question) {
+			if (question.kind === 'photo') {
+				return (this.storedPhotos[question.id] || []).length > 0 || (this.photos[question.id] || []).length > 0
+			}
+			return this.hasValue(this.draft[question.id]?.value)
+		},
+
+		/**
 		 * A question record as the widget draws it.
 		 *
 		 * @param {object} record The question record.
-		 * @return {{id: string, text: string, required: boolean, help: string, choices: Array<{value: string, label: string}>}} The question.
+		 * @param {string} [group] The group (section) it belongs to.
+		 * @return {{id: string, text: string, kind: string, required: boolean, help: string, choices: Array<{value: string, label: string}>, group: string}} The question.
 		 */
-		toQuestion(record) {
+		toQuestion(record, group = '') {
 			const f = this.fields
-			const type = String(readPath(record, f.type) ?? '')
-			let choices = (TYPE_CHOICES[type] || []).map((c) => ({ value: c.value, label: t('nextcloud-vue', c.label) }))
-			if (type === 'choice') {
+			const raw = String(readPath(record, f.type) ?? '')
+			const mapped = this.content?.typeMap && typeof this.content.typeMap === 'object' ? this.content.typeMap[raw] : undefined
+			const kind = KINDS.includes(mapped) ? mapped : (KINDS.includes(raw) ? raw : 'text')
+			const stored = { yes: 'yes', no: 'no', na: 'na', ...(this.content?.choiceValues || {}) }
+			let choices = (TYPE_CHOICES[kind] || []).map((c) => ({ value: String(stored[c.key]), label: t('nextcloud-vue', c.label) }))
+			if (kind === 'choice') {
 				const options = readPath(record, f.options)
 				choices = (Array.isArray(options) ? options : []).map((o) => (o && typeof o === 'object'
 					? { value: String(o.value ?? o.label ?? ''), label: this.translate(String(o.label ?? o.value ?? '')) }
@@ -466,10 +598,51 @@ export default {
 			return {
 				id: String(readPath(record, f.id) ?? idOf(record)),
 				text: this.translate(String(readPath(record, f.text) ?? '')),
+				kind,
 				required: Boolean(readPath(record, f.required)),
 				help: typeof help === 'string' && help !== '' ? this.translate(help) : '',
 				choices,
+				group,
 			}
+		},
+
+		/**
+		 * The questions on the open record (`questionsPath`): a list of
+		 * questions, or of groups whose `itemsKey` holds them, both levels
+		 * sorted by `orderField`.
+		 *
+		 * @return {object[]} The questions.
+		 * @spec openspec/changes/checklist-run-widget/specs/checklist-run-widget/spec.md#requirement-questions-and-answers-can-live-inside-the-open-record
+		 */
+		questionsFromRecord() {
+			const c = this.content
+			const list = readPath(this.tokenCtx.object, c.questionsPath)
+			const orderField = c.orderField === undefined ? 'order' : c.orderField
+			const top = byOrder(Array.isArray(list) ? list : [], orderField)
+			if (!c.itemsKey) {
+				return top.map((record) => this.toQuestion(record))
+			}
+			const labelField = c.groupLabelField || 'name'
+			return top.flatMap((group) => {
+				const items = readPath(group, c.itemsKey)
+				const label = readPath(group, labelField)
+				return byOrder(Array.isArray(items) ? items : [], orderField).map((record) => this.toQuestion(record, typeof label === 'string' ? this.translate(label) : ''))
+			})
+		},
+
+		/**
+		 * The draft of one answer entry from the open record's `answersPath`.
+		 *
+		 * @param {object} question The question.
+		 * @param {object} entry The stored entry.
+		 * @return {{value: string, note: string}} The draft.
+		 */
+		draftFromEntry(question, entry) {
+			const af = this.answerFields
+			const field = question.kind === 'number' ? af.number : (question.kind === 'choice' ? af.choice : af.value)
+			const value = readPath(entry, field)
+			const note = readPath(entry, af.note)
+			return { value: value === null || value === undefined ? '' : String(value), note: note === null || note === undefined ? '' : String(note) }
 		},
 
 		/**
@@ -486,14 +659,16 @@ export default {
 			this.loading = true
 			this.error = ''
 			try {
-				const q = this.content.questions
-				const records = await fetchReferenceObjects({ register: q.register, schema: q.schema, filter: resolveFilterTokens(q.filter || {}, this.tokenCtx), limit: q.limit || 500 })
-				const orderField = q.orderField
-				const sorted = orderField
-					? [...records].sort((x, y) => (Number(readPath(x, orderField)) || 0) - (Number(readPath(y, orderField)) || 0))
-					: records
-				const questions = sorted.map((r) => this.toQuestion(r)).filter((x) => x.id !== '' && x.text !== '')
-				const a = this.content.answers
+				let questions
+				if (this.content.questionsPath) {
+					questions = this.questionsFromRecord()
+				} else {
+					const q = this.content.questions
+					const records = await fetchReferenceObjects({ register: q.register, schema: q.schema, filter: resolveFilterTokens(q.filter || {}, this.tokenCtx), limit: q.limit || 500 })
+					questions = byOrder(records, q.orderField).map((r) => this.toQuestion(r))
+				}
+				questions = questions.filter((x) => x.id !== '' && x.text !== '')
+				const a = this.inRecord ? null : this.content.answers
 				const answers = a && a.register && a.schema
 					? await fetchReferenceObjects({ register: a.register, schema: a.schema, filter: resolveFilterTokens(a.filter || {}, this.tokenCtx), limit: a.limit || 500 })
 					: []
@@ -505,6 +680,21 @@ export default {
 				const storedPhotos = {}
 				for (const question of questions) {
 					draft[question.id] = { value: '', note: '' }
+				}
+				if (this.inRecord) {
+					const entries = readPath(this.tokenCtx.object, this.content.answersPath)
+					this.recordAnswers = Array.isArray(entries) ? entries : []
+					const key = this.content.answerKey || 'questionId'
+					for (const entry of this.recordAnswers) {
+						const qid = String(readPath(entry, key) ?? '')
+						const question = questions.find((x) => x.id === qid)
+						if (question && !answerIds[qid]) {
+							draft[qid] = this.draftFromEntry(question, entry)
+							answerIds[qid] = qid
+							const photos = readPath(entry, this.answerFields.photos)
+							storedPhotos[qid] = Array.isArray(photos) ? photos : []
+						}
+					}
 				}
 				for (const answer of answers) {
 					const qid = String(readPath(answer, a.questionField || 'question') ?? '')
@@ -577,6 +767,11 @@ export default {
 			this.saving = true
 			this.saveError = ''
 			try {
+				if (this.inRecord && !this.content?.saveAction) {
+					await this.saveIntoRecord(changed)
+					this.dirty = Object.fromEntries(Object.entries(this.dirty).filter(([id]) => !changed.some((q) => q.id === id)))
+					return true
+				}
 				for (const question of changed) {
 					await this.saveAnswer(question)
 					const { [question.id]: _done, ...rest } = this.dirty
@@ -589,6 +784,73 @@ export default {
 			} finally {
 				this.saving = false
 			}
+		},
+
+		/**
+		 * Write the changed answers of this page into the open record's
+		 * `answersPath` array (one entry per question, keyed by `answerKey`)
+		 * with one update of the record through the object API. Held photos
+		 * go first to the record's own files (`recordPhotosField`), and their
+		 * references (`photoRefField`, default `id`) into the answer.
+		 *
+		 * @param {object[]} changed The changed questions.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/checklist-run-widget/specs/checklist-run-widget/spec.md#requirement-questions-and-answers-can-live-inside-the-open-record
+		 */
+		async saveIntoRecord(changed) {
+			const { register, schema } = this.recordRef
+			const objectId = idOf(this.tokenCtx.object) || String(this.tokenCtx.objectId || '')
+			if (!register || !schema || !objectId) {
+				throw new Error('no record to write to')
+			}
+			const c = this.content
+			const af = this.answerFields
+			const key = c.answerKey || 'questionId'
+			const refField = c.photoRefField || 'id'
+			let recordPhotos = Array.isArray(readPath(this.tokenCtx.object, c.recordPhotosField)) ? readPath(this.tokenCtx.object, c.recordPhotosField) : []
+			const entries = [...this.recordAnswers]
+			for (const question of changed) {
+				const draft = this.draft[question.id]
+				const index = entries.findIndex((entry) => String(readPath(entry, key) ?? '') === question.id)
+				const entry = { ...(index >= 0 ? entries[index] : { [key]: question.id }) }
+				if (question.kind === 'number') {
+					entry[af.number] = draft.value === '' ? null : Number(draft.value)
+				} else if (question.kind === 'choice') {
+					entry[af.choice] = draft.value
+				} else if (question.kind !== 'photo') {
+					entry[af.value] = draft.value
+				}
+				if (this.allowNote) {
+					entry[af.note] = draft.note
+				}
+				if (af.at) {
+					entry[af.at] = new Date().toISOString()
+				}
+				const held = this.photos[question.id] || []
+				if (this.photosEnabled && held.length) {
+					const field = c.recordPhotosField
+					const { failed, attached } = await uploadHeldFiles({ register, schema, objectId, held: { [field]: held }, kept: { [field]: recordPhotos } })
+					if (failed.length) {
+						throw new Error('photo upload failed')
+					}
+					const now = Array.isArray(attached[field]) ? attached[field] : recordPhotos
+					const added = now.slice(recordPhotos.length).map((ref) => (ref && typeof ref === 'object' ? ref[refField] ?? ref : ref))
+					recordPhotos = now
+					const existing = Array.isArray(entry[af.photos]) ? entry[af.photos] : []
+					entry[af.photos] = [...existing, ...added]
+					this.storedPhotos = { ...this.storedPhotos, [question.id]: entry[af.photos] }
+					const { [question.id]: _sent, ...rest } = this.photos
+					this.photos = rest
+				}
+				if (index >= 0) {
+					entries[index] = entry
+				} else {
+					entries.push(entry)
+				}
+			}
+			const url = generateUrl(`${OBJECT_API}/${encodeURIComponent(register)}/${encodeURIComponent(schema)}/${encodeURIComponent(objectId)}`)
+			await axios.patch(url, { [c.answersPath]: entries })
+			this.recordAnswers = entries
 		},
 
 		/**
@@ -649,7 +911,7 @@ export default {
 		 * @return {string[]} Their ids.
 		 */
 		unansweredRequired() {
-			return this.pageQuestions.filter((q) => q.required && !this.hasValue(this.draft[q.id]?.value)).map((q) => q.id)
+			return this.pageQuestions.filter((q) => q.required && !this.isAnswered(q)).map((q) => q.id)
 		},
 
 		/**
@@ -795,9 +1057,15 @@ export default {
 	width: 20px;
 }
 
-.cn-checklist-run__text {
+.cn-checklist-run__text,
+.cn-checklist-run__number {
 	box-sizing: border-box;
 	width: 100%;
+}
+
+.cn-checklist-run__group {
+	font-weight: 600;
+	margin: 0;
 }
 
 .cn-checklist-run__note-label {

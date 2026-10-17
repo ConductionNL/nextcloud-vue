@@ -14,5 +14,7 @@ an online checklist a question at a time from manifest configuration.
 - Answers are saved one record per question through the OpenRegister object API under the reader's own rights, or
   through an app-supplied `saveAction`. A `finishAction` runs after the last page.
 - Photos go up through the answer object's own file upload (`uploadHeldFiles`); no new storage.
+- The questions and answers can also live inside the open record (`questionsPath` with groups, `answersPath` written with
+  one update of the record), with `typeMap` and `choiceValues` mapping an app's own type and value names.
 - Native fieldsets and radio buttons, focus and a live announcement on each page.
 - No manifest schema change: widget content is not typed per widget type.
