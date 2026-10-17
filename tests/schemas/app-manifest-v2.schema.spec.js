@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.103.0', () => {
+	it('the manifest schema version reads 2.109.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1384,8 +1384,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.100.0 adds columnFields[].source.capacityField on a board (board-column-capacity).
 		// 2.101.0 adds columnFields[].source.neutralColor on a board (board-neutral-column-colour).
 		// 2.102.0 adds columnFields[].source.colorMap on a board (board-column-colour-map).
-		// 2.103.0 lets config.breadcrumb take a list of crumbs, for index, dashboard and settings pages too (page-header-breadcrumb).
-		expect(schema.version).toBe('2.103.0')
+		// 2.108.0 adds config.modules, modulesTitle and footnote on a links page (screens-links-module-cards).
+		// 2.109.0 lets config.breadcrumb take a list of crumbs, for index, dashboard and settings pages too (page-header-breadcrumb).
+		expect(schema.version).toBe('2.109.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2236,5 +2237,33 @@ describe('app-manifest-v2 — config.breadcrumb (page-header-breadcrumb)', () =>
 		expect(validateManifestV2(page({ breadcrumb: { route: 'Settings' } })).valid).toBe(false)
 		expect(validateManifestV2(page({ breadcrumb: [{ label: 'A', colour: 'red' }] })).valid).toBe(false)
 		expect(validateManifestV2(page({ breadcrumb: [] })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: module cards on a links page (screens-links-module-cards, 2.108.0)', () => {
+	const linksPage = (config) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Modules', route: '/modules', type: 'links', title: 'Modules', config: { cards: [{ id: 'Tasks', label: 'Tasks', route: 'Tasks' }], ...config } }],
+	})
+
+	it('accepts modules with pages, a state and an admin-settings link', () => {
+		const result = validateManifestV2(linksPage({
+			modulesTitle: 'Modules',
+			footnote: 'An admin turns a module on.',
+			modules: [
+				{ id: 'sales', label: 'Sales', icon: 'CashMultiple', enabled: true, pages: [{ label: 'Leads', route: 'Leads', highlight: true }] },
+				{ id: 'pos', label: 'Till', enabledIf: { 'config.modules': { contains: 'pos' } }, pages: [], settings: { route: '/admin', prefix: 'In het menu zetten:', permission: 'admin' } },
+			],
+			groupStyle: 'list',
+		}))
+		expect(result.valid).toBe(true)
+	})
+
+	it('refuses a module without a label, a page without a target and an unknown key', () => {
+		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales' }] })).valid).toBe(false)
+		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales', label: 'Sales', pages: [{ label: 'Leads' }] }] })).valid).toBe(false)
+		expect(validateManifestV2(linksPage({ modules: [{ id: 'sales', label: 'Sales', colour: 'red' }] })).valid).toBe(false)
+		expect(validateManifestV2(linksPage({ groupStyle: 'tiles' })).valid).toBe(false)
+		expect(validateManifestV2(linksPage({ modules: [{ id: 'pos', label: 'Till', enable: { route: '/admin' } }] })).valid).toBe(false)
 	})
 })
