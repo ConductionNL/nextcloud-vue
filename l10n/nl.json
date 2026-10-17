@@ -1770,7 +1770,10 @@
     "{s} s": "{s} s",
     "About this {app} installation.": "Over deze {app}-installatie.",
     "{version}, up to date": "{version}, bijgewerkt",
-    "for an SLA": "voor een SLA"
+    "for an SLA": "voor een SLA",
+    "Sent message": "Verstuurd bericht",
+    "Received message": "Ontvangen bericht",
+    "Loading messages…": "Berichten laden…"
   },
   "plurals": {
     "{count} selected": [
