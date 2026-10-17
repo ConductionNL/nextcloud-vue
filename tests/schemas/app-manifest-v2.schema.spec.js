@@ -1387,6 +1387,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.108.0 adds config.modules, modulesTitle and footnote on a links page (screens-links-module-cards).
 		// 2.111.0 lets config.greeting lead with a label or the date alone (dashboard-greeting-label).
 		// 2.115.0 lets config.breadcrumb take a list of crumbs, for index, dashboard and settings pages too (page-header-breadcrumb).
+		// 2.118.0 adds nav.searchPlaceholder (screens-board-top-bar-search).
+		// 2.119.0 adds views[].title on a dashboard (view-title).
+		// 2.120.0 adds chart barMax, footnote, highlight, valueFormat 'number' with suffix and endpointSource rowsPath (chart-bar-list-and-matrix).
 		// 2.121.0 lets a query preset or a folder scope set addLabel, headerButtons, breadcrumb, headerMeta and afterList, and adds config.afterList (index-scope-presentation).
 		expect(schema.version).toBe('2.121.0')
 	})
@@ -2302,5 +2305,14 @@ describe('app-manifest-v2 — preset and scope presentation (index-scope-present
 	it('refuses an afterList entry without a type and an unknown preset key', () => {
 		expect(validateManifestV2(page({ afterList: [{ id: 'x' }] })).valid).toBe(false)
 		expect(validateManifestV2(page({ queryPresets: [{ match: { a: 'b' }, colour: 'red' }] })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: a view title (view-title, 2.119.0)', () => {
+	const page = (views) => ({ ...MINIMAL_V2, pages: [{ id: 'mywork', route: '/', type: 'dashboard', title: 'My work', config: { views } }] })
+
+	it('accepts a view title and refuses an empty one', () => {
+		expect(validateManifestV2(page([{ id: 'mine', label: 'My work' }, { id: 'team', label: 'My team', title: 'My team' }])).valid).toBe(true)
+		expect(validateManifestV2(page([{ id: 'team', label: 'My team', title: '' }])).valid).toBe(false)
 	})
 })

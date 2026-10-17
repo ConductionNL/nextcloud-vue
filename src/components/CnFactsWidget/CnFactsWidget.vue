@@ -18,7 +18,8 @@
 			<template v-for="block in blocks" :key="block.key">
 				<dl
 					v-if="block.kind === 'rows'"
-					class="cn-facts-widget__rows">
+					class="cn-facts-widget__rows"
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns }">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
@@ -148,6 +149,7 @@ import { parseDateValue } from '../../utils/dateVariant.js'
 import { formatMoney, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 
 /** Kinds of entry a `fields[]` item can be. A labelled item without `as` is a row. */
 const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text'])
@@ -262,12 +264,14 @@ export default {
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
+		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `link` — `{ label, route? | href? }` at the foot.
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
+		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row).
 		 * - `emptyText` — shown when no entry has a value.
 		 *
 		 * @type {{fields?: Array<object>, source?: object, link?: object, hideEmpty?: boolean, emptyText?: string}}
@@ -310,6 +314,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the rows sit in two columns, label above value.
+		 *
+		 * @spec openspec/changes/facts-columns/specs/facts-widget/spec.md#requirement-facts-rows-can-sit-in-two-columns
+		 * @return {boolean}
+		 */
+		twoColumns() {
+			return Number(this.content?.columns) === 2
+		},
+
 		/**
 		 * The token context: the detail object (prop, else the injected context)
 		 * and the page workspace.
@@ -546,7 +560,7 @@ export default {
 			if (kind === 'lead') {
 				return this.partsValue(record, field.title)
 			}
-			if ((kind === 'line' || kind === 'text') && Array.isArray(field.parts)) {
+			if ((kind === 'line' || kind === 'text' || kind === 'row') && Array.isArray(field.parts)) {
 				return this.lineValue(record, field)
 			}
 			if ((kind === 'line' || kind === 'text') && !field.path && typeof field.text === 'string') {
@@ -924,6 +938,11 @@ export default {
 					if (!spec.path && typeof spec.text === 'string') {
 						return this.tr(spec.text)
 					}
+					// A group of parts with its own separator ("Parkstraat 24" inside
+					// "Parkstraat 24, 3421 AB Zuiddrecht").
+					if (!spec.path && Array.isArray(spec.parts)) {
+						return this.lineValue(record, spec)
+					}
 					const value = this.format(readPath(record, spec.path), spec, record)
 					if (value === '') {
 						return ''
@@ -942,6 +961,7 @@ export default {
 		 * @param {object|null} [record] The object shown, which `currencyField` reads.
 		 * @return {string} The text, '' when empty.
 		 * @spec openspec/changes/facts-currency-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-money-amount
+		 * @spec openspec/changes/facts-user-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-user-by-name
 		 */
 		format(raw, spec, record = null) {
 			if (raw === null || raw === undefined || raw === '') {
@@ -967,6 +987,9 @@ export default {
 				return format === 'date-long'
 					? formatBoardDate(date, new Date(date.getFullYear() + 1, 0, 1))
 					: formatBoardDate(date)
+			}
+			if (format === 'user') {
+				return userDisplayName(raw)
 			}
 			if (format === 'currency') {
 				const money = formatMoney(raw, { currency: spec.currency, currencyField: spec.currencyField, decimals: spec.decimals }, record, unwrapAppConfig(this.cnAppConfig))
@@ -1239,5 +1262,32 @@ export default {
 	font-weight: 600;
 	color: var(--color-primary-element);
 	text-decoration: underline;
+}
+
+/* `columns: 2` (board DqContact): two columns, the label above the value, a
+   hairline under each fact; one column on a phone. */
+.cn-facts-widget__rows--columns {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px 24px;
+	font-size: 15px;
+}
+
+.cn-facts-widget__rows--columns .cn-facts-widget__row {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-facts-widget__rows--columns .cn-facts-widget__label.cn-facts-widget__label {
+	font-size: 13px;
+}
+
+@media (max-width: 640px) {
+	.cn-facts-widget__rows--columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 </style>

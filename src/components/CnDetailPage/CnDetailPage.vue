@@ -851,6 +851,7 @@
 							<CnDetailWidgetHost
 								:widget="findWidget(item)"
 								chrome="card"
+								inGridCell
 								:showCardTitle="showCardTitle(item)"
 								:showActions="effectiveShowWidgetActions"
 								:objectId="objectId"
@@ -2101,7 +2102,7 @@ export default {
 			default: false,
 		},
 
-		/** Label for the header Edit button. Defaults to a translated "Edit". */
+		/** Label for the header Edit button, run through the host translate. Defaults to a translated "Edit". */
 		editLabel: {
 			type: String,
 			default: '',
@@ -3416,14 +3417,40 @@ export default {
 
 		/**
 		 * The side column's widget definitions. A string names a widget
-		 * declared in `widgets`; an object is a definition of its own.
+		 * declared in `widgets`; an object is a definition of its own. A
+		 * definition whose `visibleWhen` does not hold for the record (or the
+		 * records `visibilityContext` names) is left out, exactly as in the
+		 * body grid; edit mode shows them all.
 		 *
 		 * @return {Array<object>} The definitions that resolve, each with an `id`.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
+		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
 		 */
 		sideColumnWidgets() {
+			const resolved = this.declaredSideWidgets.filter((widget) => this.sideWidgetVisible(widget))
+			if (!this.isBoard) {
+				return resolved
+			}
+			// The board look: the notice first, the History card last.
+			const rank = (widget) => (widget.type === 'banner' ? 0 : isActivityWidget(widget) ? 2 : 1)
+			return resolved
+				.map((widget, index) => ({ widget, index }))
+				.sort((a, b) => (rank(a.widget) - rank(b.widget)) || (a.index - b.index))
+				.map(({ widget }) => widget)
+		},
+
+		/**
+		 * The side column's entries resolved to definitions, before any
+		 * `visibleWhen` is read: a string names a widget declared in
+		 * `widgets`, an object is a definition of its own (given an id when it
+		 * has none).
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
+		 */
+		declaredSideWidgets() {
 			const declared = Array.isArray(this.widgets) ? this.widgets : []
-			const resolved = (Array.isArray(this.sideColumn) ? this.sideColumn : [])
+			return (Array.isArray(this.sideColumn) ? this.sideColumn : [])
 				.map((entry, index) => {
 					if (typeof entry === 'string') {
 						return declared.find((widget) => widget && widget.id === entry) || null
@@ -3434,15 +3461,6 @@ export default {
 					return entry.id ? entry : { ...entry, id: `cn-side-${index}` }
 				})
 				.filter(Boolean)
-			if (!this.isBoard) {
-				return resolved
-			}
-			// The board look: the notice first, the History card last.
-			const rank = (widget) => (widget.type === 'banner' ? 0 : isActivityWidget(widget) ? 2 : 1)
-			return resolved
-				.map((widget, index) => ({ widget, index }))
-				.sort((a, b) => (rank(a.widget) - rank(b.widget)) || (a.index - b.index))
-				.map(({ widget }) => widget)
 		},
 
 		/**
@@ -3763,12 +3781,14 @@ export default {
 		},
 
 		/**
-		 * Label for the header Edit button.
+		 * Label for the header Edit button: the manifest's `editLabel` through
+		 * the host translate, else the library's translated "Edit".
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/detail-edit-label-translate/specs/detail-page/spec.md#requirement-the-edit-button-label-follows-the-reader-s-language
 		 */
 		editActionLabel() {
-			return this.editLabel || t('nextcloud-vue', 'Edit')
+			return this.editLabel ? this.effectiveTranslate(this.editLabel) : t('nextcloud-vue', 'Edit')
 		},
 
 		/**
@@ -4022,7 +4042,7 @@ export default {
 			if (!this.widgetVisibilityData || this.visibilityRowsPending) {
 				return ''
 			}
-			const defs = [...(this.bodyGridWidgets || []), ...((this.activeView && this.activeView.widgets) || [])]
+			const defs = [...(this.bodyGridWidgets || []), ...((this.activeView && this.activeView.widgets) || []), ...this.declaredSideWidgets]
 			const remote = defs.filter((def) => def && def.visibleWhen && typeof def.visibleWhen === 'object'
 				&& !isLocallyDecidableVisibleWhen(def.visibleWhen))
 			if (remote.length === 0) {
@@ -5895,6 +5915,27 @@ export default {
 			}
 
 			return compactLayoutRows(drawable)
+		},
+
+		/**
+		 * Whether a side column widget shows: always in edit mode or without a
+		 * `visibleWhen`, else while it holds for the record and the records
+		 * `visibilityContext` names, read by the same `detailWidgetVisible` the
+		 * body grid uses (local field conditions, `@context.<name>.*`, and the
+		 * answers of endpoint and source conditions).
+		 *
+		 * @param {object} widget A side column widget definition.
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
+		 */
+		sideWidgetVisible(widget) {
+			if (this.editingBody || widget.visibleWhen === undefined || widget.visibleWhen === null) {
+				return true
+			}
+			return detailWidgetVisible(widget, this.widgetVisibilityData, {
+				pending: this.visibilityRowsPending,
+				answers: this.widgetConditionAnswers,
+			})
 		},
 
 		/**

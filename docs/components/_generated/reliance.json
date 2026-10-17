@@ -653,7 +653,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 176,
+			"transitive": 177,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -873,7 +873,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 179,
+			"transitive": 180,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1019,6 +1019,65 @@
 				"CnXwikiPagePicker"
 			],
 			"page": "cn-detail-widget-host"
+		},
+		"CnDeviceFramesWidget": {
+			"direct": 0,
+			"transitive": 125,
+			"tier": "heavy",
+			"via": [
+				"CnActionsMenu",
+				"CnAnalyticsReportPicker",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnChildRecordsField",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnDetailWidgetHost",
+				"CnEmailPicker",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnFormDialog",
+				"CnIndexPage",
+				"CnIntegrationWidget",
+				"CnMapPoiPicker",
+				"CnMapWidget",
+				"CnNavCardGrid",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectDataWidget",
+				"CnObjectFilesWidget",
+				"CnObjectGeoWidget",
+				"CnObjectMetadataWidget",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnRelatedObjectsWidget",
+				"CnResourceSelect",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnTimelineWidget",
+				"CnTranslatedBadge",
+				"CnVersionHistory",
+				"CnWidgetObjectTable",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
+			],
+			"page": "cn-device-frames-widget"
 		},
 		"CnDialog": {
 			"direct": 0,
@@ -1333,7 +1392,7 @@
 			"page": "cn-flow-step-outcomes"
 		},
 		"CnFlowsPage": {
-			"direct": 0,
+			"direct": 1,
 			"transitive": 187,
 			"tier": "heavy",
 			"via": [
@@ -1558,6 +1617,13 @@
 			"via": [],
 			"page": "cn-guardian-home"
 		},
+		"CnHeaderSearchLabel": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnHeaderWidget": {
 			"direct": 0,
 			"transitive": 0,
@@ -1615,7 +1681,7 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 8,
+			"direct": 9,
 			"transitive": 184,
 			"tier": "heavy",
 			"via": [
@@ -2590,7 +2656,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 200,
+			"transitive": 201,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2627,6 +2693,7 @@
 				"CnFlowOperationPicker",
 				"CnFlowRunsWidget",
 				"CnFlowRunsWidgetForm",
+				"CnFlowsPage",
 				"CnFormDialog",
 				"CnGaugeWidgetForm",
 				"CnGraphCanvas",
@@ -2701,6 +2768,53 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-pagination"
+		},
+		"CnPartyActionsWidget": {
+			"direct": 0,
+			"transitive": 112,
+			"tier": "heavy",
+			"via": [
+				"CnActionButtons",
+				"CnAnalyticsReportPicker",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnChildRecordsField",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnEmailPicker",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnFormDialog",
+				"CnIndexPage",
+				"CnMapPoiPicker",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnResourceSelect",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnVersionHistory",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
+			],
+			"page": "cn-party-actions-widget"
 		},
 		"CnPeopleWidget": {
 			"direct": 0,
@@ -2817,7 +2931,7 @@
 			"page": "cn-reference-preview"
 		},
 		"CnRegisterMapping": {
-			"direct": 3,
+			"direct": 4,
 			"transitive": 1,
 			"tier": "medium",
 			"via": [],
@@ -2943,7 +3057,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 177,
+			"transitive": 178,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3672,7 +3786,7 @@
 		},
 		"CnTasksWidget": {
 			"direct": 2,
-			"transitive": 4,
+			"transitive": 6,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-tasks-widget"
@@ -3904,9 +4018,10 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 166,
+			"transitive": 168,
 			"tier": "heavy",
 			"via": [
+				"CnActionButtons",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",

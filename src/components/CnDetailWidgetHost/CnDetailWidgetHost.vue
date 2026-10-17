@@ -239,6 +239,32 @@
 			<component :is="renderer" :content="content" v-bind="declaredContent" />
 		</CnWidgetWrapper>
 
+		<!-- An app's own widget (consumer registry) on a card surface, the
+		     side column or a tab stack, whose registry entry asks for the
+		     titled card (`chrome: "card"`). Opt-in: many app widgets draw their
+		     own card. A body grid cell has its own card, so there it stays
+		     bare. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsConsumerWidget"
+			:title="widget.title || ''"
+			:showTitle="effectiveShowCardTitle"
+			titleIconPosition="left"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__consumer-card"
+			data-testid="cn-detail-widget-consumer-card">
+			<template v-if="widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
+		</CnWidgetWrapper>
+
 		<!-- Every other content-driven catalog widget, and every bare-mode
 		     catalog widget. These self-fetch from OpenRegister. The object
 		     context is forwarded too (the same shape CnWidgetGrid merges on the
@@ -430,6 +456,17 @@ export default {
 			type: String,
 			default: 'card',
 			validator: (v) => ['card', 'bare'].includes(v),
+		},
+
+		/**
+		 * The host sits in a body grid cell, which draws its own card: an
+		 * app's own widget then stays bare, as it always has.
+		 *
+		 * @spec openspec/changes/detail-consumer-widget-card/specs/detail-page/spec.md#requirement-a-consumer-widget-on-a-card-surface-gets-the-titled-card
+		 */
+		inGridCell: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** The bound record's id. Present on the first render; `object` is not. */
@@ -734,6 +771,26 @@ export default {
 		/** @return {boolean} true for object-list / table / files. */
 		isContentOnly() {
 			return isContentOnlyWidgetDef(this.widget)
+		},
+
+		/**
+		 * Whether an app's own widget (from the consumer registry) gets the
+		 * titled card: on a card surface outside a body grid cell, when its
+		 * registry entry asks for it (`chrome: "card"`). Opt-in, because many
+		 * app widgets already draw their own card.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-consumer-widget-card/specs/detail-page/spec.md#requirement-a-consumer-widget-on-a-card-surface-gets-the-titled-card
+		 */
+		wrapsConsumerWidget() {
+			if (this.isBare || this.inGridCell || !this.widget || !this.widget.type || this.isContentOnly || this.isCard) {
+				return false
+			}
+			const entry = (this.cnRegistry || {})[this.widget.type]
+			if (!entry) {
+				return false
+			}
+			return typeof entry === 'object' && entry.chrome === 'card'
 		},
 
 		/** @return {boolean} true when the registry entry declares `card`. */
