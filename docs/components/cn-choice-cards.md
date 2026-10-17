@@ -37,14 +37,16 @@ Options are tolerant about shape, so a list can be handed straight from a server
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `options` | Array | `[]` | The options to offer: `{ value, label, description?, stats?, tags?, icon? }`. `icon` is a PascalCase MDI name resolved by [CnIcon](./cn-icon.md). |
+| `options` | Array | `[]` | The options to offer: `{ value, label, description?, stats?, tags?, icon?, disabled?, disabledReason? }`. `icon` is a PascalCase MDI name resolved by [CnIcon](./cn-icon.md). A `disabled` option is greyed out and cannot be picked; its `disabledReason` shows under it and describes the input. |
 | `modelValue` | String \| Number \| Boolean \| Array \| Object | `null` | The selection. An array when `multiple`. |
 | `multiple` | Boolean | `false` | Allow several cards. Inputs become checkboxes and the model becomes an array. |
 | `label` | String | `''` | Group label, rendered as the fieldset legend. |
 | `disabled` | Boolean | `false` | Disable every card, for example while a dependent choice has no parent value yet. |
 | `loading` | Boolean | `false` | Show a spinner instead of the grid while the options are being fetched. |
 | `emptyText` | String | `'Nothing to choose from here.'` | Shown when there are no options. |
+| `columns` | Number | `0` | Columns of the card grid. `1` stacks the cards in one column; `0` fits as many as the width allows. |
 | `descriptionLines` | Number | `4` | Lines of description before clamping. |
+| `layout` | String | `'cards'` | `cards`: the grid of cards. `rows`: one option per row, full width, the input on the left and the title over a muted description; the selected row has a primary border on a light primary ground. With `multiple` and one option it is a single checkbox card ("Also publish the decision"). Stats and tags are not drawn in rows. |
 
 ### Events
 
@@ -56,7 +58,7 @@ Options are tolerant about shape, so a list can be handed straight from a server
 
 | Slot | Scope | Description |
 |------|-------|-------------|
-| `option-actions` | `{ option, selected }` | Content below one card, such as a Load button. It renders outside the card's `<label>`, so a click on a button there never toggles the card. The setup wizard uses it for `loadAction`. |
+| `option-actions` | `{ option, selected }` | Content below one card, such as a Load button. It renders outside the card's `<label>`, so a click on a button there never toggles the card. The setup wizard uses it for `loadAction`; with `v-if="selected"` it holds the fields for the chosen option, right under it. |
 
 ## Accessibility
 

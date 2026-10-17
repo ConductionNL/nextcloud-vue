@@ -20,6 +20,6 @@ Under the board look the store page now draws board PqStore. pipelinq's own Stor
 - `src/components/CnStorePage/CnStorePage.vue`: board chips and search, `shownCards`, the side column, the
   `kindChips`, `updatesNote` and `footnote` props, the Available pill and the version line.
 - `src/css/look-board-store.css`: the board PqStore rules.
-- Manifest schema 2.110.0: page `config.kindChips` and `config.updatesNote` (store).
+- Manifest schema 2.117.0: page `config.kindChips` and `config.updatesNote` (store).
 - `l10n/en.json`, `l10n/nl.json`: the page's new copy.
 - The Nextcloud look is unchanged: the kind buttons still ask the registry by kind.
