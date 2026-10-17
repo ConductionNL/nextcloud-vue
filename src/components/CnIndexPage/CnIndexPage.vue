@@ -6149,7 +6149,10 @@ export default {
 		 * @return {string} The note, translated, or ''.
 		 */
 		effectiveFooterNote() {
-			const footerNote = this.presented('footerNote')
+			// The scope's note, else the page's (a preset may have set it),
+			// else the named source's.
+			const scoped = this.activeScopePresentation ? this.activeScopePresentation.footerNote : undefined
+			const footerNote = scoped !== undefined ? scoped : this.footerNote
 			if (footerNote) {
 				return this.cnTranslate(footerNote)
 			}
@@ -6579,7 +6582,8 @@ export default {
 
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
-			const addLabel = this.presented('addLabel')
+			const scoped = this.activeScopePresentation ? this.activeScopePresentation.addLabel : undefined
+			const addLabel = scoped !== undefined ? scoped : this.addLabel
 			if (addLabel) {
 				return this.cnTranslate(addLabel)
 			}

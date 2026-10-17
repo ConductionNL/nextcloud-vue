@@ -254,9 +254,6 @@ describe('a named source supplies its create and navigation actions', () => {
 	it('labels the create button from the source', () => {
 		const label = CnIndexPage().computed.resolvedAddLabel.call({
 			addLabel: '',
-			presented(key) {
-				return this[key]
-			},
 			cnTranslate: (s) => s,
 			isNamedSource: true,
 			namedSource: flows(),
