@@ -83,7 +83,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
-import { cloneVNode, markRaw } from 'vue'
+import { cloneVNode, markRaw, ref } from 'vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 
@@ -92,6 +92,9 @@ import CnIcon from '../CnIcon/CnIcon.vue'
  * (`Symbol.for`, so the same symbol `@nextcloud/vue` provides).
  */
 const REGISTRATION_KEY = Symbol.for('NcAppSettingsDialog:registration')
+
+/** The key NcAppSettingsSection injects for the legacy design flag. */
+const LEGACY_DESIGN_KEY = Symbol.for('NcAppSettingsDialog:legacy')
 
 /** Renders a section's icon vnodes as they were registered. */
 const CnVNodes = {
@@ -130,6 +133,9 @@ export default {
 				registerSection: this.registerSection,
 				unregisterSection: this.unregisterSection,
 			},
+
+			// NcAppSettingsSection also asks its dialog whether to use the legacy design.
+			[LEGACY_DESIGN_KEY]: ref(false),
 		}
 	},
 
