@@ -238,7 +238,7 @@ A `matrix` can hold text cells: a static `series` whose data are strings, tinted
 }
 ```
 
-In the board look a dashboard card head draws no rule under its title.
+In the board look a dashboard card holding a bar list or a matrix draws no rule under its title; other cards keep theirs.
 
 ## `views` — in-widget display switcher (Wave 3, #91)
 

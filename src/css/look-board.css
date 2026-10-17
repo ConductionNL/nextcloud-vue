@@ -893,10 +893,11 @@
 	flex-wrap: wrap;
 }
 
-/* ---- Dashboard card heads (DqDashboard) ---------------------------------- */
-/* The board draws no rule under a dashboard card's title.
-   @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-board-dashboard-card-heads-draw-no-divider */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__header {
+/* ---- Bar-list and matrix cards (DqDashboard) ----------------------------- */
+/* The board draws no rule under the title of a card holding a bar list or a
+   matrix. Other cards, plain stat tiles among them, keep theirs.
+   @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-board-bar-list-and-matrix-cards-draw-no-header-rule */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-chart-widget__html) .cn-widget-wrapper__header {
 	border-bottom: none;
 }
 

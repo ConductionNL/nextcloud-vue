@@ -50,12 +50,13 @@ record, SHALL outline the matching cell and mark it `aria-current`.
 - **AND** a record with behaviour 2 and consequence C
 - **THEN** each cell is tinted by its measure and the cell in row 2, column C is outlined
 
-### Requirement: Board dashboard card heads draw no divider
+### Requirement: Board bar-list and matrix cards draw no header rule
 
-In the board look a dashboard card's header SHALL draw no rule under its title.
+In the board look a dashboard card that holds a `bar-list` or `matrix` chart SHALL draw no rule under its title. Other
+cards SHALL keep their header rule.
 
 #### Scenario: Board DqDashboard
 
-- **GIVEN** a dashboard in the board look
-- **THEN** no card draws a line between its title and its content
-
+- **GIVEN** a dashboard in the board look with a "Zaken per status" bar-list card and a card of plain stat tiles
+- **THEN** the bar-list card draws no line between its title and its content
+- **AND** the stat-tile card keeps its line

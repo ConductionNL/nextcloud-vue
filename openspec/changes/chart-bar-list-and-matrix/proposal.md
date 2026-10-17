@@ -14,5 +14,5 @@ tinted by its value. The chart widget only had ApexCharts kinds; a horizontal ba
 - New props `barMax` and `footnote`; `valueFormat` gains `number` with a `suffix`.
 - `endpointSource` gains `rowsPath`, `rowLabelPath` and `rowValuesPath` for a payload with one row per series.
 - A matrix holds text cells tinted by `colorMap`, and `highlight` outlines the record's cell (board DqHandhaving).
-- In the board look dashboard card heads draw no divider.
+- In the board look a card holding a bar list or matrix draws no rule under its title; other cards keep theirs.
 - Manifest schema 2.120.0 types the new keys.
