@@ -158,11 +158,25 @@ describe('look-board.css: the navigation', () => {
 		expect(attention).not.toContain('--color-error-text')
 	})
 
-	it('puts the active wash on the entry and keeps the link transparent, so a theme wash shows', () => {
-		expect(rulesFor('.app-navigation-entry.active {')).toContain('background: var(--color-primary-element-light)')
-		const link = rulesFor('.app-navigation-entry.active .app-navigation-entry-link')
-		expect(link).toContain('background: transparent')
-		expect(link).not.toContain('--color-primary-element-light)')
+	it('puts the tonal primary on the open entry at !important, over NcAppNavigationItem\'s 16% mix, hovered too', () => {
+		expect(rulesFor('.app-navigation-entry.active {')).toContain('background-color: var(--color-primary-element-light) !important')
+		expect(rulesFor('.app-navigation-entry.active:hover {')).toContain('background-color: var(--color-primary-element-light) !important')
+		expect(rulesFor('.app-navigation-entry.active .app-navigation-entry-link')).toContain('background: var(--color-primary-element-light)')
+	})
+
+	it('scopes the !important wash to the board look', () => {
+		const important = []
+		const re = /([^{}]+)\{([^{}]*)\}/g
+		let m
+		while ((m = re.exec(css))) {
+			if (/\.app-navigation-entry\.active/.test(m[1]) && /!important/.test(m[2])) {
+				important.push(...m[1].split(',').map((s) => s.trim()))
+			}
+		}
+		expect(important.length).toBeGreaterThan(0)
+		for (const selector of important) {
+			expect(selector.startsWith('.cn-look-board ')).toBe(true)
+		}
 	})
 
 	it('orders Help before Advanced and pushes the card down', () => {

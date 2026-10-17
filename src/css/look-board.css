@@ -244,14 +244,17 @@
 	color: var(--color-main-text);
 }
 
-/* The wash sits on the entry only, so a theme that tints the entry (thematiq's
-   accent wash on DqZijbalk) is not painted over by the link. */
-.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active {
-	background: var(--color-primary-element-light);
+/* The open entry sits on the tonal primary. NcAppNavigationItem paints an
+   active entry with a 16% (22% hovered) primary mix at `!important`, so the
+   board value needs `!important` too; the selector is the more specific one.
+   The link carries the same ground. */
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active,
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active:hover {
+	background-color: var(--color-primary-element-light) !important;
 }
 
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active .app-navigation-entry-link {
-	background: transparent;
+	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
 	font-weight: 600;
 }
