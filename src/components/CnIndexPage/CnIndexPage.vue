@@ -4643,6 +4643,30 @@ export default {
 		},
 
 		/**
+		 * This page's own value of each presentation key, which a query preset
+		 * may have set: what `presented()` falls back to without a scope.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
+		 */
+		ownPresentation() {
+			return {
+				title: this.title,
+				quickFilters: this.quickFilters,
+				cardFields: this.cardFields,
+				countText: this.countText,
+				searchPlaceholder: this.searchPlaceholder,
+				footerNote: this.footerNote,
+				viewSwitch: this.viewSwitch,
+				addLabel: this.addLabel,
+				headerButtons: this.headerButtons,
+				breadcrumb: this.breadcrumb,
+				headerMeta: this.headerMeta,
+				afterList: this.afterList,
+			}
+		},
+
+		/**
 		 * The presentation the active scope declares (`title`, `countText`,
 		 * `quickFilters`, `addLabel`, `afterList` and the other query preset
 		 * keys), from its folder entry or its row's `x-index`. Empty without a
@@ -6909,12 +6933,12 @@ export default {
 		 * else this page's own prop (which a query preset may have set).
 		 *
 		 * @param {string} key One of the query preset keys.
-		 * @return {*} The value.
+		 * @return {unknown} The value.
 		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
 		 */
 		presented(key) {
 			const scoped = this.activeScopePresentation
-			return scoped[key] !== undefined ? scoped[key] : this[key]
+			return scoped[key] !== undefined ? scoped[key] : this.ownPresentation[key]
 		},
 
 		/**
@@ -6922,7 +6946,7 @@ export default {
 		 * preset, so it shows no removable chip.
 		 *
 		 * @param {string} key The filter key.
-		 * @param {*} value One filter value.
+		 * @param {unknown} value One filter value.
 		 * @return {boolean}
 		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-the-query-that-chose-a-preset-is-not-a-removable-filter
 		 */
