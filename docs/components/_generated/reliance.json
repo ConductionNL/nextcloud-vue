@@ -406,7 +406,7 @@
 		},
 		"CnChartWidget": {
 			"direct": 8,
-			"transitive": 8,
+			"transitive": 9,
 			"tier": "heavy",
 			"via": [
 				"CnIndexPage"
@@ -664,7 +664,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 178,
+			"transitive": 179,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -884,8 +884,8 @@
 			"page": "cn-detail-grid"
 		},
 		"CnDetailPage": {
-			"direct": 10,
-			"transitive": 181,
+			"direct": 11,
+			"transitive": 182,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1406,7 +1406,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 188,
+			"transitive": 189,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1696,7 +1696,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 9,
-			"transitive": 185,
+			"transitive": 186,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2678,7 +2678,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 202,
+			"transitive": 203,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3080,7 +3080,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 179,
+			"transitive": 180,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4042,7 +4042,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 169,
+			"transitive": 170,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
