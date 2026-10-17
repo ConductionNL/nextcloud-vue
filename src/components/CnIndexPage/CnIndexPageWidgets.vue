@@ -11,7 +11,7 @@
 -->
 <template>
 	<component
-		:is="variant === 'stat-row' ? 'CnKpiGrid' : 'aside'"
+		:is="variant === 'stat-row' ? 'CnKpiGrid' : (variant === 'after-list' ? 'section' : 'aside')"
 		v-if="entries.length > 0"
 		:columns="variant === 'stat-row' ? 'auto' : undefined"
 		class="cn-index-page-widgets"
@@ -25,7 +25,7 @@
 			<CnWidgetWrapper
 				:widgetId="entry.id"
 				:title="entry.title"
-				:showTitle="variant === 'side-panel' && entry.title !== ''"
+				:showTitle="variant !== 'stat-row' && entry.title !== ''"
 				:showActions="false"
 				:showRefresh="false"
 				:headerLink="entry.headerLink"
@@ -77,11 +77,11 @@ export default {
 			default: () => [],
 		},
 
-		/** Where the widgets sit: `stat-row` above the list, `side-panel` beside it. */
+		/** Where the widgets sit: `stat-row` above the list, `side-panel` beside it, `after-list` under it. */
 		variant: {
 			type: String,
 			default: 'stat-row',
-			validator: (v) => ['stat-row', 'side-panel'].includes(v),
+			validator: (v) => ['stat-row', 'side-panel', 'after-list'].includes(v),
 		},
 	},
 
@@ -169,6 +169,15 @@ export default {
 
 .cn-index-page-widgets__cell > * {
 	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* The cards after the list, stacked full width (PqSocial). */
+.cn-index-page-widgets--after-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--cn-board-section-gap, 16px);
+	margin-top: var(--cn-board-section-gap, 16px);
 	min-width: 0;
 }
 
