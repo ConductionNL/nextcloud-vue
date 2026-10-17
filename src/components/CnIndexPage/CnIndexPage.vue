@@ -5108,6 +5108,10 @@ export default {
 					}
 				})
 			}
+			// An `actions` column: the page's row actions it names, as buttons.
+			cols = cols.map((col) => (col && typeof col === 'object' && col.widget === 'actions'
+				? { ...col, sortable: false, widgetProps: { ...(col.widgetProps || {}), items: (row) => this.actionColumnItems(col, row), run: this.runColumnAction } }
+				: col))
 			// The Recent lens owns the order: no column sorts while it is on.
 			if (this.recentLensActive) {
 				cols = cols.map((col) => (col && typeof col === 'object' ? { ...col, sortable: false } : col))
@@ -8365,6 +8369,50 @@ export default {
 			 * @type {{id: (string|number), patch: object}}
 			 */
 			this.$emit('quick-edit-save', { id, patch })
+		},
+
+		/**
+		 * The buttons an `actions` column shows on a row: the row actions its
+		 * `widgetProps.actions` names (by id, else by label), in that order,
+		 * that are visible for the row.
+		 *
+		 * @param {object} col The column.
+		 * @param {object} row The row.
+		 * @return {Array<{key: string, label: string, variant: string, disabled: boolean}>}
+		 * @spec openspec/changes/table-actions-column/specs/index-page/spec.md#requirement-a-column-can-show-row-actions-as-buttons
+		 */
+		actionColumnItems(col, row) {
+			const wanted = Array.isArray(col.widgetProps && col.widgetProps.actions) ? col.widgetProps.actions : []
+			const available = this.rowActionsFor(row)
+			return wanted
+				.map((ref) => available.find((action) => action.id === ref) || available.find((action) => action.label === ref))
+				.filter((action) => action && isRowActionVisible(action, row))
+				.map((action, index) => ({
+					key: action.id || action.label,
+					label: this.cnTranslate(action.label),
+					variant: action.variant || (index === 0 ? 'secondary' : 'tertiary'),
+					disabled: typeof action.disabled === 'function' ? !!action.disabled(row) : action.disabled === true,
+				}))
+		},
+
+		/**
+		 * Run one `actions` column button: its handler, then the same `action`
+		 * event a row menu entry emits.
+		 *
+		 * @param {string} key The action's id, else its label.
+		 * @param {object} row The row.
+		 * @return {void}
+		 * @spec openspec/changes/table-actions-column/specs/index-page/spec.md#requirement-a-column-can-show-row-actions-as-buttons
+		 */
+		runColumnAction(key, row) {
+			const action = this.rowActionsFor(row).find((entry) => (entry.id || entry.label) === key)
+			if (!action) {
+				return
+			}
+			if (typeof action.handler === 'function') {
+				action.handler(row)
+			}
+			this.onRowAction(rowActionPayload(action, row))
 		},
 
 		/**
