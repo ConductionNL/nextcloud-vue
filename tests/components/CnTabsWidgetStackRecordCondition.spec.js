@@ -9,7 +9,7 @@
  * @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md
  */
 import { mount } from '@vue/test-utils'
-import { nextTick, ref } from 'vue'
+import { nextTick, reactive } from 'vue'
 import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
 
 const WIDGETS = [
@@ -42,11 +42,16 @@ describe('CnTabsWidget stack on a detail page', () => {
 	})
 
 	it('reads @context from the records the page names, and hides while they load', async () => {
-		const rows = ref(null)
-		const w = mountTabs({ id: 't2', kind: 'interaction' }, { cnDetailVisibilityRows: rows })
+		const state = reactive({ rows: null })
+		const holder = {
+			get value() {
+				return state.rows
+			},
+		}
+		const w = mountTabs({ id: 't2', kind: 'interaction' }, { cnDetailVisibilityRows: holder })
 		await nextTick()
 		expect(shown(w)).toEqual(['w-data', 'w-note'])
-		rows.value = { ticketType: { review: true } }
+		state.rows = { ticketType: { review: true } }
 		await nextTick()
 		expect(shown(w)).toEqual(['w-data', 'w-interaction', 'w-review', 'w-note'])
 	})

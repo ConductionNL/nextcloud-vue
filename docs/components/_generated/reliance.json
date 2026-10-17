@@ -651,7 +651,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 175,
+			"transitive": 176,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1332,7 +1332,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 186,
+			"transitive": 187,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1614,7 +1614,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 183,
+			"transitive": 184,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2941,7 +2941,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 176,
+			"transitive": 177,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3530,7 +3530,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 0,
-			"transitive": 127,
+			"transitive": 128,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3895,7 +3895,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 165,
+			"transitive": 166,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
