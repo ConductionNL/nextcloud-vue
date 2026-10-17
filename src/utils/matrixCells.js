@@ -120,3 +120,35 @@ export function pivotCells(records, config) {
 		columnKeys,
 	}
 }
+
+/**
+ * The cells of a matrix kept inside ONE record: the array at `cellsPath`,
+ * narrowed by `cellFilter` (field to value, compared as text), with the axis
+ * order read from `rowOrderPath` / `columnOrderPath` on the record when the
+ * config gives no `rowOrder` / `columnOrder` list.
+ *
+ * @param {object|null} record The record that holds the matrix.
+ * @param {object} config The `cellSource` config.
+ * @param {object} [cellFilter] The `cellFilter`, tokens already resolved.
+ * @return {{cells: Array<object>, config: object}} The cells, and the config to lay them out with.
+ * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-one-record
+ */
+export function cellsFromRecord(record, config, cellFilter = {}) {
+	const cfg = config && typeof config === 'object' ? config : {}
+	const list = record ? readPath(record, cfg.cellsPath) : null
+	const wanted = Object.entries(cellFilter && typeof cellFilter === 'object' ? cellFilter : {})
+	const cells = (Array.isArray(list) ? list : []).filter((cell) => cell && typeof cell === 'object'
+		&& wanted.every(([field, value]) => keyOf(readPath(cell, field)) === keyOf(value)))
+	const axis = (path) => {
+		const value = record && path ? readPath(record, path) : null
+		return Array.isArray(value) ? value : undefined
+	}
+	return {
+		cells,
+		config: {
+			...cfg,
+			rowOrder: Array.isArray(cfg.rowOrder) ? cfg.rowOrder : axis(cfg.rowOrderPath),
+			columnOrder: Array.isArray(cfg.columnOrder) ? cfg.columnOrder : axis(cfg.columnOrderPath),
+		},
+	}
+}

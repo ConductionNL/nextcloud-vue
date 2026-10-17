@@ -93,3 +93,51 @@ describe('CnChartWidget matrix from cell records', () => {
 		expect(w.findAll('[role="rowheader"]').map((c) => c.text())).toEqual(['Row'])
 	})
 })
+
+describe('CnChartWidget matrix inside one record', () => {
+	const MATRIX = {
+		version: 'v2',
+		behaviourAxis: ['2', '1'],
+		severityAxis: ['A', 'C'],
+		cells: [
+			{ behaviour: '1', severity: 'A', actorType: 'company', intervention: 'talk' },
+			{ behaviour: '2', severity: 'C', actorType: 'company', intervention: 'order' },
+			{ behaviour: '2', severity: 'C', actorType: 'person', intervention: 'warning' },
+		],
+	}
+	const RECORD_SOURCE = {
+		register: 'app',
+		schema: 'matrix',
+		filter: { version: '@object.matrixVersion' },
+		fallbackFilter: { active: true },
+		cellsPath: 'cells',
+		cellFilter: { actorType: '@object.actorType' },
+		rowField: 'behaviour',
+		columnField: 'severity',
+		valueField: 'intervention',
+		rowOrderPath: 'behaviourAxis',
+		columnOrderPath: 'severityAxis',
+		valueLabels: SOURCE.valueLabels,
+	}
+	const object = { objectId: 'h1', object: { matrixVersion: 'v2', actorType: 'company', behaviour: '2', severity: 'C' } }
+
+	it('reads one record, narrows its cells to the record\'s slice, orders by its axes and outlines the record\'s cell', async () => {
+		fetchReferenceObjects.mockResolvedValue([MATRIX])
+		const w = mountMatrix(object, { cellSource: RECORD_SOURCE, highlight: { row: '@object.behaviour', column: '@object.severity' } })
+		await flush()
+		expect(fetchReferenceObjects).toHaveBeenCalledWith({ register: 'app', schema: 'matrix', filter: { version: 'v2' }, limit: 1 })
+		expect(w.findAll('[role="rowheader"]').map((c) => c.text())).toEqual(['2', '1'])
+		expect(w.findAll('[role="columnheader"]').map((c) => c.text())).toEqual(['', 'A', 'C'])
+		const cells = w.findAll('[data-testid="cn-chart-widget-matrix-cell"]')
+		expect(cells.map((c) => c.text())).toEqual(['', 'Order', 'Talk', ''])
+		expect(cells.filter((c) => c.attributes('aria-current') === 'true').map((c) => c.text())).toEqual(['Order'])
+	})
+
+	it('falls back to fallbackFilter when the version finds no record', async () => {
+		fetchReferenceObjects.mockResolvedValueOnce([]).mockResolvedValueOnce([MATRIX])
+		const w = mountMatrix(object, { cellSource: RECORD_SOURCE })
+		await flush()
+		expect(fetchReferenceObjects).toHaveBeenLastCalledWith({ register: 'app', schema: 'matrix', filter: { active: true }, limit: 1 })
+		expect(w.findAll('[role="rowheader"]').map((c) => c.text())).toEqual(['2', '1'])
+	})
+})

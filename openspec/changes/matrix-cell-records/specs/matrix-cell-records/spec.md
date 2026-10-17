@@ -35,3 +35,28 @@ that text. `highlight` SHALL match the row key and the column key. Without `cell
 
 - **GIVEN** the same matrix while the record has no `matrixVersion`
 - **THEN** nothing is listed until the record names one
+
+### Requirement: A matrix can read its cells from one record
+
+With `cellsPath` CnChartWidget SHALL read the matrix from ONE record: the first record `filter` finds, else the first
+`fallbackFilter` finds. It SHALL take the array at `cellsPath`, keep the cells whose fields equal every entry of
+`cellFilter` (tokens resolved against the page record; nothing is read while one is unresolved), and lay them out as
+the per-record mode does. Without a `rowOrder` / `columnOrder` list the order SHALL come from the arrays at
+`rowOrderPath` / `columnOrderPath` on that record.
+
+#### Scenario: A versioned matrix over three axes
+
+- **GIVEN** a matrix record with `version` "v2", `behaviourAxis`, `severityAxis` and `cells[]` of
+  `{ behaviour, severity, actorType, intervention }`
+- **AND** a detail record with `matrixVersion` "v2", `actorType` "company", behaviour "2" and severity "C"
+- **AND** `cellSource: { filter: { version: "@object.matrixVersion" }, cellsPath: "cells", cellFilter: { actorType:
+  "@object.actorType" }, rowField: "behaviour", columnField: "severity", valueField: "intervention", rowOrderPath:
+  "behaviourAxis", columnOrderPath: "severityAxis" }`
+- **THEN** the company slice of matrix "v2" is drawn in the axis order of the record
+- **AND** the cell in row "2", column "C" is outlined
+
+#### Scenario: No matrix for that version
+
+- **GIVEN** `filter` finds no record and `fallbackFilter: { active: true }` finds one
+- **THEN** the cells of that record are drawn
+

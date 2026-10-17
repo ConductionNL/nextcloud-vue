@@ -141,7 +141,7 @@ import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
-import { pivotCells } from '../../utils/matrixCells.js'
+import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 
@@ -397,6 +397,10 @@ export default {
 		 * columnLabels?, valueLabels?, rowOrder?, columnOrder?, rowOrderField?,
 		 * columnOrderField?, limit? }`. `filter` takes tokens such as
 		 * `@object.matrixVersion`; the list waits while one is unresolved.
+		 * With `cellsPath` the matrix sits inside ONE record instead: the
+		 * first record `filter` finds (else `fallbackFilter`), its array at
+		 * `cellsPath` narrowed by `cellFilter` (tokens allowed), the axis
+		 * order from `rowOrderPath` / `columnOrderPath` on that record.
 		 * Wins over `series` / `categories`.
 		 *
 		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
@@ -1358,11 +1362,15 @@ export default {
 			if (!src || typeof src !== 'object' || !src.register || !src.schema || !src.rowField || !src.columnField || !src.valueField) {
 				return null
 			}
-			const filter = resolveFilterTokens(src.filter && typeof src.filter === 'object' ? src.filter : {}, this.chartTokenCtx())
-			if (hasUnresolvedTokens(filter)) {
+			const ctx = this.chartTokenCtx()
+			const resolve = (value) => resolveFilterTokens(value && typeof value === 'object' ? value : {}, ctx)
+			const filter = resolve(src.filter)
+			const cellFilter = resolve(src.cellFilter)
+			if (hasUnresolvedTokens(filter) || hasUnresolvedTokens(cellFilter)) {
 				return null
 			}
-			return JSON.stringify({ register: src.register, schema: src.schema, filter, limit: src.limit || 500 })
+			const fallbackFilter = src.fallbackFilter ? resolve(src.fallbackFilter) : null
+			return JSON.stringify({ register: src.register, schema: src.schema, filter, fallbackFilter, cellFilter, limit: src.cellsPath ? 1 : (src.limit || 500) })
 		},
 
 		/**
@@ -2037,12 +2045,14 @@ export default {
 		},
 
 		/**
-		 * Read the `cellSource` records and lay them out as the matrix. A
+		 * Read the `cellSource` records and lay them out as the matrix: one
+		 * record per cell, or with `cellsPath` the cells inside one record. A
 		 * failed read leaves the matrix empty rather than showing stale
 		 * cells; an answer to an older request is dropped.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-one-record
 		 */
 		async fetchCells() {
 			const key = this.cellSourceKey
@@ -2050,12 +2060,21 @@ export default {
 				this.cellData = null
 				return
 			}
-			const { register, schema, filter, limit } = JSON.parse(key)
+			const { register, schema, filter, fallbackFilter, cellFilter, limit } = JSON.parse(key)
 			this._cellRequest = key
-			const records = await fetchReferenceObjects({ register, schema, filter, limit }).catch(() => [])
-			if (this._cellRequest === key) {
-				this.cellData = pivotCells(records, this.cellSource)
+			let records = await fetchReferenceObjects({ register, schema, filter, limit }).catch(() => [])
+			if (this.cellSource.cellsPath && records.length === 0 && fallbackFilter) {
+				records = await fetchReferenceObjects({ register, schema, filter: fallbackFilter, limit }).catch(() => [])
 			}
+			if (this._cellRequest !== key) {
+				return
+			}
+			if (this.cellSource.cellsPath) {
+				const { cells, config } = cellsFromRecord(records[0] || null, this.cellSource, cellFilter)
+				this.cellData = pivotCells(cells, config)
+				return
+			}
+			this.cellData = pivotCells(records, this.cellSource)
 		},
 
 		/**

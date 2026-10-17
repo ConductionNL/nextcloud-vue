@@ -256,6 +256,28 @@ A matrix the app keeps as data, one record per cell, is read with `cellSource` i
 }
 ```
 
+When the matrix sits inside ONE record (an array of cells on a versioned matrix record), add `cellsPath`: the chart reads the first record `filter` finds (else `fallbackFilter`), takes the array at `cellsPath`, keeps the cells that match `cellFilter` (tokens allowed, e.g. one slice of a matrix over three axes), and takes the row and column order from `rowOrderPath` / `columnOrderPath` on that record (board DqHandhaving):
+
+```json
+{
+  "chartKind": "matrix",
+  "cellSource": {
+    "register": "dossiq",
+    "schema": "lhsMatrix",
+    "filter": { "version": "@object.matrixVersion" },
+    "fallbackFilter": { "active": true },
+    "cellsPath": "cells",
+    "cellFilter": { "actorType": "@object.actorType" },
+    "rowField": "behaviour",
+    "columnField": "severity",
+    "valueField": "intervention",
+    "rowOrderPath": "behaviourAxis",
+    "columnOrderPath": "severityAxis"
+  },
+  "highlight": { "row": "@object.behaviour", "column": "@object.severity" }
+}
+```
+
 In the board look a dashboard card head draws no rule under its title.
 
 ## `views` — in-widget display switcher (Wave 3, #91)
@@ -322,7 +344,7 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 | `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
 | `footnote` | String | `''` | `bar-list` / `matrix`: a line under the rows, through the host's translate |
 | `highlight` | Object | `null` | `matrix`: the cell to outline, `{ row, column, columnKeys? }`, tokens such as `@object.behaviour` resolved |
-| `cellSource` | Object | `null` | `matrix`: read the cells from records that each hold one cell (`{ register, schema, filter?, rowField, columnField, valueField, … }`), see [Bar list and matrix](#bar-list-and-matrix) |
+| `cellSource` | Object | `null` | `matrix`: read the cells from records that each hold one cell (`{ register, schema, filter?, rowField, columnField, valueField, … }`), or with `cellsPath` from the cells inside one record, see [Bar list and matrix](#bar-list-and-matrix) |
 | `valueAxisBaseline` | String | `'auto'` | How the value axis picks its baseline — see [Value-axis baseline](#value-axis-baseline) below. `auto` anchors bar/area at zero and stops line charts over-zooming; `zero` always anchors at zero; `fit` restores plain ApexCharts autoscaling. |
 | `valueFormat` | String \| Object | `null` | Named value formatter applied to the VALUE axis labels AND the tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"` (compact notation, e.g. `€ 1,2K`), `"percent"`. Object form `{ name, currency?, decimals? }` overrides the ISO code (EUR default, guarded) and fraction digits. With `horizontal` bars the formatter moves to the x-axis (the value axis flips). |
 | `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie/donut/radialBar slices and bar categories (bars switch to `distributed` rendering so each category gets its colour). Unmapped categories keep the default palette colour. |

@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.120.0",
+	"version": "2.124.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2228,7 +2228,7 @@
 										"type": "object",
 										"additionalProperties": false,
 										"required": ["register", "schema", "rowField", "columnField", "valueField"],
-										"description": "chartKind 'matrix': read the cells from records that each hold one cell. The records are listed from register/schema with `filter` (tokens such as '@object.matrixVersion' resolved; the list waits while one is unresolved), then laid out by rowField / columnField with valueField as the cell. Labels come from rowLabels / columnLabels maps or rowLabelField / columnLabelField; order from rowOrder / columnOrder lists, else rowOrderField / columnOrderField, else natural order. valueLabels maps a stored value to the text shown; colorMap may key on either. Wins over series / categories.",
+										"description": "chartKind 'matrix': read the cells from records that each hold one cell. The records are listed from register/schema with `filter` (tokens such as '@object.matrixVersion' resolved; the list waits while one is unresolved), then laid out by rowField / columnField with valueField as the cell. Labels come from rowLabels / columnLabels maps or rowLabelField / columnLabelField; order from rowOrder / columnOrder lists, else rowOrderField / columnOrderField, else natural order. valueLabels maps a stored value to the text shown; colorMap may key on either. With cellsPath the matrix sits inside ONE record: the first record filter finds (else fallbackFilter), its array at cellsPath narrowed by cellFilter (tokens allowed), and the axis order from rowOrderPath / columnOrderPath on that record. Wins over series / categories.",
 										"properties": {
 											"register": { "type": "string" },
 											"schema": { "type": "string" },
@@ -2245,7 +2245,12 @@
 											"columnOrder": { "type": "array", "items": { "type": ["string", "number"] } },
 											"rowOrderField": { "type": "string" },
 											"columnOrderField": { "type": "string" },
-											"limit": { "type": "integer", "minimum": 1 }
+											"limit": { "type": "integer", "minimum": 1 },
+											"cellsPath": { "type": "string", "description": "Path of the cells array inside the one record the source finds." },
+											"cellFilter": { "type": "object", "additionalProperties": true, "description": "Equality filter on the cells of that record, e.g. { actorType: '@object.actorType' }." },
+											"fallbackFilter": { "type": "object", "additionalProperties": true, "description": "Filter used when `filter` finds no record, e.g. { active: true }." },
+											"rowOrderPath": { "type": "string", "description": "Path of an array on that record giving the row order." },
+											"columnOrderPath": { "type": "string", "description": "Path of an array on that record giving the column order." }
 										}
 									},
 									"endpointSource": {

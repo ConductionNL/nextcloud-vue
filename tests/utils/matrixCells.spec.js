@@ -6,7 +6,7 @@
  *
  * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md
  */
-import { pivotCells } from '../../src/utils/matrixCells.js'
+import { cellsFromRecord, pivotCells } from '../../src/utils/matrixCells.js'
 
 const CELLS = [
 	{ row: '2', col: 'B', step: 'warning' },
@@ -53,5 +53,34 @@ describe('pivotCells', () => {
 	it('reads nested paths and returns an empty matrix for nothing', () => {
 		expect(pivotCells([{ cell: { r: 1, c: 2, v: 'z' } }], { rowField: 'cell.r', columnField: 'cell.c', valueField: 'cell.v' }).series).toEqual([{ key: '1', name: '1', data: ['z'] }])
 		expect(pivotCells(null, {})).toEqual({ series: [], categories: [], columnKeys: [] })
+	})
+})
+
+describe('cellsFromRecord', () => {
+	const MATRIX = {
+		version: 'v2',
+		behaviourAxis: ['4', '1', '2'],
+		severityAxis: ['C', 'A'],
+		cells: [
+			{ behaviour: '1', severity: 'A', actorType: 'company', intervention: 'talk' },
+			{ behaviour: '1', severity: 'A', actorType: 'person', intervention: 'letter' },
+			{ behaviour: '2', severity: 'C', actorType: 'company', intervention: 'order' },
+			{ behaviour: '4', severity: 'A', actorType: 'company', intervention: 'enforce' },
+		],
+	}
+	const CFG = { cellsPath: 'cells', rowField: 'behaviour', columnField: 'severity', valueField: 'intervention', rowOrderPath: 'behaviourAxis', columnOrderPath: 'severityAxis' }
+
+	it('takes the cells of the record, narrows them by cellFilter and orders by the record axes', () => {
+		const { cells, config } = cellsFromRecord(MATRIX, CFG, { actorType: 'company' })
+		expect(cells).toHaveLength(3)
+		const out = pivotCells(cells, config)
+		expect(out.series.map((s) => s.key)).toEqual(['4', '1', '2'])
+		expect(out.columnKeys).toEqual(['C', 'A'])
+		expect(out.series.map((s) => s.data)).toEqual([[null, 'enforce'], [null, 'talk'], ['order', null]])
+	})
+
+	it('keeps an explicit order over the record axes, and returns no cells without a record', () => {
+		expect(cellsFromRecord(MATRIX, { ...CFG, rowOrder: ['2'] }).config.rowOrder).toEqual(['2'])
+		expect(cellsFromRecord(null, CFG).cells).toEqual([])
 	})
 })

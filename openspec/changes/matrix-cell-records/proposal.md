@@ -14,7 +14,10 @@ the record's cell outlined.
   `filter`) and laid out by `rowField` / `columnField` with `valueField` as the cell.
 - Labels from maps or fields, order from lists or a numeric field, `valueLabels` for the text of a stored value.
 - `highlight` matches the row and column keys of the cell records.
-- A new util `matrixCells.pivotCells` does the layout; the list reuses `fetchReferenceObjects`.
-- The manifest schema types `cellSource` (version given at merge).
+- With `cellsPath` the matrix sits inside ONE record (a versioned matrix with a `cells[]` array, as dossiq's `lhsMatrix`):
+  the first record `filter` finds, else `fallbackFilter`, its cells narrowed by `cellFilter`, the axis order from
+  `rowOrderPath` / `columnOrderPath`.
+- New utils `matrixCells.pivotCells` and `cellsFromRecord` do the layout; the list reuses `fetchReferenceObjects`.
+- Manifest schema 2.124.0 types `cellSource`.
 
 Stacked on chart-bar-list-and-matrix (#1734). Nothing changes for a matrix without `cellSource`.
