@@ -9,9 +9,9 @@
 		:errorMessage="registersError || ''"
 		:onRetry="loadRegisters">
 		<!-- Action buttons -->
-		<template #actions>
+		<template v-if="hasHeaderActions" #actions>
 			<NcButton
-				v-if="showSaveButton"
+				v-if="showSaveButton && !isBoardLook"
 				variant="primary"
 				:disabled="saving || !hasChanges"
 				@click="handleSave">
@@ -36,7 +36,132 @@
 		</template>
 
 		<!-- Group sections -->
-		<div v-if="!registersLoading && !registersError" class="cn-register-mapping">
+		<div
+			v-if="isBoardLook && !registersLoading && !registersError"
+			class="cn-register-mapping cn-register-mapping--board"
+			data-testid="cn-register-mapping-board">
+			<div class="cn-register-mapping__board-group" data-testid="cn-register-mapping-board-group">
+				<div class="cn-register-mapping__board-head">
+					<h3 class="cn-register-mapping__board-title">
+						{{ activeGroup.name }}
+					</h3>
+					<CnStatusBadge
+						:label="groupStatusLabel(activeGroupIdx, true)"
+						:variant="groupStatusVariant(activeGroupIdx)"
+						data-testid="cn-register-mapping-board-status" />
+				</div>
+				<p v-if="activeGroup.description" class="cn-register-mapping__group-description">
+					{{ activeGroup.description }}
+				</p>
+				<div class="cn-register-mapping__register-select cn-register-mapping__board-select">
+					<NcSelect
+						:modelValue="selectedRegister(activeGroupIdx)"
+						:options="registerSelectOptions"
+						:placeholder="labels.selectRegister"
+						:inputLabel="labels.register"
+						label="label"
+						trackBy="value"
+						@update:modelValue="handleRegisterChange(activeGroupIdx, $event)" />
+				</div>
+				<table v-if="selectedRegister(activeGroupIdx)" class="cn-register-mapping__board-table">
+					<thead>
+						<tr>
+							<th scope="col">
+								{{ t('nextcloud-vue', 'Object type') }}
+							</th>
+							<th scope="col">
+								{{ labels.schema }}
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<template v-for="type in boardVisibleTypes" :key="type.slug + '-board'">
+							<tr data-testid="cn-register-mapping-board-row">
+								<td>{{ type.label }}</td>
+								<td>
+									<button
+										type="button"
+										class="cn-register-mapping__board-schema"
+										:aria-expanded="String(isExpanded(activeGroupIdx, type.slug))"
+										:aria-label="t('nextcloud-vue', 'Change the schema for {type}', { type: type.label })"
+										@click="toggleExpand(activeGroupIdx, type.slug)">
+										<CheckCircle
+											v-if="schemaValue(activeGroupIdx, type)"
+											class="cn-register-mapping__board-check"
+											:size="16" />
+										{{ schemaLabel(activeGroupIdx, type) || t('nextcloud-vue', 'Not set') }}
+									</button>
+								</td>
+							</tr>
+							<tr v-if="isExpanded(activeGroupIdx, type.slug)" class="cn-register-mapping__board-detail">
+								<td colspan="2">
+									<p v-if="type.description" class="cn-register-mapping__type-description">
+										{{ type.description }}
+									</p>
+									<NcSelect
+										:modelValue="selectedSchema(activeGroupIdx, type)"
+										:options="schemaSelectOptions(activeGroupIdx)"
+										:placeholder="labels.selectSchema"
+										:inputLabel="labels.schema"
+										label="label"
+										trackBy="value"
+										@update:modelValue="handleSchemaChange(activeGroupIdx, type, $event)" />
+								</td>
+							</tr>
+						</template>
+					</tbody>
+				</table>
+				<p
+					v-if="selectedRegister(activeGroupIdx) && boardHiddenTypes.length > 0"
+					class="cn-register-mapping__board-more"
+					data-testid="cn-register-mapping-board-more">
+					{{ boardHiddenSummary }}
+					<button type="button" class="cn-register-mapping__board-link" @click="showAllTypes = true">
+						{{ t('nextcloud-vue', 'Show all types') }}
+					</button>
+				</p>
+				<NcNoteCard v-if="!selectedRegister(activeGroupIdx)" type="info">
+					{{ labels.selectRegister }}
+				</NcNoteCard>
+				<NcNoteCard
+					v-if="selectedRegister(activeGroupIdx) && schemaSelectOptions(activeGroupIdx).length === 0"
+					type="warning">
+					{{ labels.noSchemas }}
+				</NcNoteCard>
+			</div>
+			<ul v-if="boardOtherGroups.length > 0" class="cn-register-mapping__board-groups">
+				<li v-for="item in boardOtherGroups" :key="item.idx">
+					<button
+						type="button"
+						class="cn-register-mapping__board-group-row"
+						data-testid="cn-register-mapping-board-group-row"
+						@click="openBoardGroup(item.idx)">
+						<ChevronRight :size="18" class="cn-register-mapping__board-chevron" />
+						<strong class="cn-register-mapping__board-group-name">{{ item.group.name }}</strong>
+						<span class="cn-register-mapping__board-group-count">
+							{{ n('nextcloud-vue', '%n type', '%n types', item.group.types.length) }}
+						</span>
+						<CnStatusBadge
+							:label="groupStatusLabel(item.idx, false)"
+							:variant="groupStatusVariant(item.idx)" />
+					</button>
+				</li>
+			</ul>
+			<div v-if="showSaveButton" class="cn-register-mapping__board-save">
+				<NcButton
+					variant="primary"
+					:disabled="saving || !hasChanges"
+					data-testid="cn-register-mapping-board-save"
+					@click="handleSave">
+					<template v-if="saving" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : saveButtonText }}
+				</NcButton>
+			</div>
+		</div>
+
+		<div v-else-if="!registersLoading && !registersError" class="cn-register-mapping">
 			<div
 				v-for="(group, groupIdx) in groups"
 				:key="groupIdx"
@@ -186,14 +311,18 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { buildHeaders, prefixUrl } from '../../utils/headers.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 let mappingCount = 0
 
@@ -204,6 +333,13 @@ let mappingCount = 0
  * Self-fetches available registers and schemas from the OpenRegister API.
  * Supports multiple register groups (stacked sections) with expandable
  * type rows for manual schema override.
+ *
+ * Only the registers the configuration maps have their schemas fetched; the
+ * register select lists every register without its schemas.
+ *
+ * In the board look one group is open as a type/schema table under a status
+ * chip, the other groups are rows with their type count and status, and the
+ * save button closes the section.
  *
  * Single register (Pipelinq)
  * ```vue
@@ -238,14 +374,22 @@ export default {
 
 	components: {
 		CnSettingsSection,
+		CnStatusBadge,
 		NcButton,
 		NcLoadingIcon,
 		NcNoteCard,
 		NcSelect,
 		ContentSave,
 		Refresh,
+		CheckCircle,
 		ChevronDown,
+		ChevronRight,
 		ChevronUp,
+	},
+
+	inject: {
+		/** The look CnAppRoot or CnAdminSettingsShell provides. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -335,6 +479,28 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * The look the mapping is drawn in: `board` or `nextcloud`. Empty
+		 * follows the provided `cnLook`.
+		 *
+		 * @spec openspec/changes/register-mapping-board-look/specs/register-mapping/spec.md#requirement-the-board-look-draws-one-open-group-and-compact-rows
+		 */
+		look: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: how many types the open group lists before a "show all"
+		 * line. 0 lists every type.
+		 *
+		 * @spec openspec/changes/register-mapping-board-look/specs/register-mapping/spec.md#requirement-the-board-look-draws-one-open-group-and-compact-rows
+		 */
+		boardRowLimit: {
+			type: Number,
+			default: 4,
+		},
+
 		/** Auto-match schema titles to type slugs on register change */
 		autoMatch: {
 			type: Boolean,
@@ -372,6 +538,12 @@ export default {
 			expandedRows: {},
 			// The groups opened by the reader, by index.
 			openGroups: {},
+			// Board look: the group drawn open, and whether it lists every type.
+			activeGroupIdx: 0,
+			// Schema requests by register id, so a register is fetched once.
+			schemaRequests: {},
+			registersLoaded: false,
+			showAllTypes: false,
 			uid: ++mappingCount,
 		}
 	},
@@ -395,6 +567,79 @@ export default {
 			return this.collapseGroups === null ? this.groups.length > 1 : this.collapseGroups
 		},
 
+		/**
+		 * Whether the board look applies.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.look || this.cnLook) === 'board'
+		},
+
+		/**
+		 * The group the board look draws open.
+		 *
+		 * @return {object}
+		 */
+		activeGroup() {
+			return this.groups[this.activeGroupIdx] || this.groups[0]
+		},
+
+		/**
+		 * The open group's types the board table lists.
+		 *
+		 * @return {Array<object>}
+		 */
+		boardVisibleTypes() {
+			const types = this.activeGroup.types
+			if (this.showAllTypes || this.boardRowLimit <= 0) {
+				return types
+			}
+			return types.slice(0, this.boardRowLimit)
+		},
+
+		/**
+		 * The open group's types below the row limit.
+		 *
+		 * @return {Array<object>}
+		 */
+		boardHiddenTypes() {
+			return this.activeGroup.types.slice(this.boardVisibleTypes.length)
+		},
+
+		/**
+		 * The line under the board table that counts the types not listed.
+		 *
+		 * @return {string}
+		 */
+		boardHiddenSummary() {
+			const count = this.boardHiddenTypes.length
+			const allSet = this.boardHiddenTypes.every((type) => !!this.schemaValue(this.activeGroupIdx, type))
+			return allSet
+				? n('nextcloud-vue', 'And %n more type in this group, set up.', 'And %n more types in this group, all set up.', count)
+				: n('nextcloud-vue', 'And %n more type in this group.', 'And %n more types in this group.', count)
+		},
+
+		/**
+		 * The groups the board look draws as compact rows, with their index.
+		 *
+		 * @return {Array<{group: object, idx: number}>}
+		 */
+		boardOtherGroups() {
+			return this.groups
+				.map((group, idx) => ({ group, idx }))
+				.filter((item) => item.idx !== this.activeGroupIdx)
+		},
+
+		/**
+		 * Whether the section header draws buttons; the board look saves at the end.
+		 *
+		 * @return {boolean}
+		 */
+		hasHeaderActions() {
+			return (this.showSaveButton && !this.isBoardLook) || this.showReimportButton || !!this.$slots.actions
+		},
+
 		/** Whether local config differs from prop */
 		hasChanges() {
 			return JSON.stringify(this.localConfig) !== JSON.stringify(this.configuration)
@@ -405,10 +650,19 @@ export default {
 		configuration: {
 			handler(newVal) {
 				this.localConfig = { ...newVal }
+				if (this.registersLoaded) {
+					this.mappedRegisterIds().forEach((id) => this.loadSchemasForRegister(id))
+				}
 			},
 
 			immediate: true,
 			deep: true,
+		},
+
+		groups() {
+			if (this.activeGroupIdx >= this.groups.length) {
+				this.activeGroupIdx = 0
+			}
 		},
 	},
 
@@ -418,6 +672,65 @@ export default {
 
 	methods: {
 		t,
+		n,
+
+		/**
+		 * The status chip text of a group: every type set up, none, or how many.
+		 *
+		 * @param {number} groupIdx Group index
+		 * @param {boolean} open Whether the group is the open one, which says "All types set up"
+		 * @return {string}
+		 * @spec openspec/changes/register-mapping-board-look/specs/register-mapping/spec.md#requirement-the-board-look-draws-one-open-group-and-compact-rows
+		 */
+		groupStatusLabel(groupIdx, open) {
+			const configured = this.configuredCount(groupIdx)
+			const total = this.groups[groupIdx].types.length
+			if (configured === total) {
+				return open ? t('nextcloud-vue', 'All types set up') : t('nextcloud-vue', 'Set up')
+			}
+			if (configured === 0) {
+				return t('nextcloud-vue', 'Not set')
+			}
+			return t('nextcloud-vue', '{configured} of {total} set up', { configured, total })
+		},
+
+		/**
+		 * The status chip variant of a group.
+		 *
+		 * @param {number} groupIdx Group index
+		 * @return {'success'|'warning'|'default'}
+		 */
+		groupStatusVariant(groupIdx) {
+			const configured = this.configuredCount(groupIdx)
+			if (configured === this.groups[groupIdx].types.length) {
+				return 'success'
+			}
+			return configured === 0 ? 'default' : 'warning'
+		},
+
+		/**
+		 * Board look: draw another group open.
+		 *
+		 * @param {number} groupIdx Group index
+		 * @return {void}
+		 * @spec openspec/changes/register-mapping-board-look/specs/register-mapping/spec.md#requirement-the-board-look-draws-one-open-group-and-compact-rows
+		 */
+		openBoardGroup(groupIdx) {
+			this.activeGroupIdx = groupIdx
+			this.showAllTypes = false
+		},
+
+		/**
+		 * The register ids the configuration maps, one per distinct value.
+		 *
+		 * @return {string[]}
+		 */
+		mappedRegisterIds() {
+			const ids = this.groups
+				.map((group, idx) => String(this.localConfig[this.registerConfigKey(idx)] || ''))
+				.filter(Boolean)
+			return [...new Set(ids)]
+		},
 
 		/**
 		 * Whether a group's body shows.
@@ -675,17 +988,24 @@ export default {
 		},
 
 		/**
-		 * Fetch all registers from OpenRegister API.
+		 * Fetch the registers for the select, without their schemas, and the
+		 * schemas of the registers the configuration maps. Expanding the schemas
+		 * of every register costs megabytes on a busy instance.
+		 *
+		 * @spec openspec/changes/register-mapping-board-look/specs/register-mapping/spec.md#requirement-only-mapped-registers-have-their-schemas-fetched
 		 */
 		async loadRegisters() {
 			this.registersLoading = true
 			this.registersError = null
 
 			try {
-				const response = await fetch(prefixUrl('/apps/openregister/api/registers?_extend[]=schemas'), {
-					method: 'GET',
-					headers: buildHeaders(),
-				})
+				const [response] = await Promise.all([
+					fetch(prefixUrl('/apps/openregister/api/registers'), {
+						method: 'GET',
+						headers: buildHeaders(),
+					}),
+					...this.mappedRegisterIds().map((id) => this.loadSchemasForRegister(id)),
+				])
 
 				if (!response.ok) {
 					this.registersError = t('nextcloud-vue', 'The registers could not be loaded: {reason}', { reason: response.statusText || response.status })
@@ -695,19 +1015,7 @@ export default {
 				const data = await response.json()
 				const results = data.results || data
 				this.registers = Array.isArray(results) ? results : []
-
-				// Cache expanded schemas
-				for (const reg of this.registers) {
-					if (Array.isArray(reg.schemas) && reg.schemas.length > 0) {
-						const schemas = reg.schemas.filter((s) => s && typeof s === 'object' && s.id)
-						if (schemas.length > 0) {
-							this.schemasByRegister = {
-								...this.schemasByRegister,
-								[String(reg.id)]: schemas,
-							}
-						}
-					}
-				}
+				this.registersLoaded = true
 			} catch (error) {
 				this.registersError = error.message || t('nextcloud-vue', 'The registers could not be loaded: {reason}', { reason: t('nextcloud-vue', 'no connection') })
 			} finally {
@@ -716,32 +1024,54 @@ export default {
 		},
 
 		/**
-		 * Fetch schemas for a specific register.
+		 * Fetch the schemas of one register, through `registers/{id}/schemas`,
+		 * or the register with its schemas expanded where that route is missing.
 		 *
 		 * @param {string} registerId Register ID
+		 * @spec openspec/changes/register-mapping-board-look/specs/register-mapping/spec.md#requirement-only-mapped-registers-have-their-schemas-fetched
 		 */
 		async loadSchemasForRegister(registerId) {
 			const id = String(registerId)
 
-			// Return cached
 			if (this.schemasByRegister[id]?.length > 0) {
 				return
 			}
+			if (!this.schemaRequests[id]) {
+				this.schemaRequests[id] = this.fetchSchemas(id).finally(() => {
+					delete this.schemaRequests[id]
+				})
+			}
+			await this.schemaRequests[id]
+		},
 
+		/**
+		 * One schema request for a register; fills `schemasByRegister`.
+		 *
+		 * @param {string} id Register ID
+		 * @return {Promise<void>}
+		 */
+		async fetchSchemas(id) {
 			try {
-				const response = await fetch(
-					prefixUrl(`/apps/openregister/api/registers/${encodeURIComponent(id)}?_extend[]=schemas`),
+				let response = await fetch(
+					prefixUrl(`/apps/openregister/api/registers/${encodeURIComponent(id)}/schemas`),
 					{ method: 'GET', headers: buildHeaders() },
 				)
+				if (response.status === 404) {
+					response = await fetch(
+						prefixUrl(`/apps/openregister/api/registers/${encodeURIComponent(id)}?_extend[]=schemas`),
+						{ method: 'GET', headers: buildHeaders() },
+					)
+				}
 				if (!response.ok) {
 					return
 				}
 
 				const data = await response.json()
-				const schemas = (data.schemas || []).filter((s) => s && typeof s === 'object' && s.id)
+				const list = data.results || data.schemas || []
+				const schemas = (Array.isArray(list) ? list : []).filter((s) => s && typeof s === 'object' && s.id)
 				this.schemasByRegister = { ...this.schemasByRegister, [id]: schemas }
 			} catch {
-				// Silently fail — register already selected, schemas just won't populate
+				// The register stays selected; its schema select stays empty.
 			}
 		},
 	},
@@ -922,6 +1252,159 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 	margin: 0 0 8px 0;
+}
+
+/* Board look (PqBeheer): one open group, compact rows for the others. */
+.cn-register-mapping--board {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.cn-register-mapping__board-group {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+}
+
+.cn-register-mapping__board-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px 16px;
+}
+
+.cn-register-mapping__board-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.cn-register-mapping__board-select {
+	max-width: 400px;
+	margin-bottom: 0;
+}
+
+.cn-register-mapping__board-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.cn-register-mapping__board-table th {
+	padding: 8px 12px 8px 0;
+	border-bottom: 1px solid var(--color-border);
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+	text-align: start;
+	white-space: nowrap;
+}
+
+.cn-register-mapping__board-table td {
+	padding: 10px 12px 10px 0;
+	border-bottom: 1px solid var(--color-border);
+	font-size: 14px;
+	vertical-align: middle;
+}
+
+.cn-register-mapping__board-schema {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 32px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-register-mapping__board-schema:hover {
+	text-decoration: underline;
+}
+
+.cn-register-mapping__board-schema:focus-visible,
+.cn-register-mapping__board-link:focus-visible,
+.cn-register-mapping__board-group-row:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+	border-radius: var(--border-radius);
+}
+
+.cn-register-mapping__board-check {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-register-mapping__board-more {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.4;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-register-mapping__board-link {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--color-primary-element);
+	font: inherit;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.cn-register-mapping__board-groups {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-register-mapping__board-group-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	min-height: 44px;
+	margin: 0;
+	padding: 10px 2px;
+	border: 0;
+	border-bottom: 1px solid var(--color-border);
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-size: 14px;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-register-mapping__board-group-row:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-register-mapping__board-chevron,
+.cn-register-mapping__board-group-count {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-register-mapping__board-group-name {
+	flex: 1;
+}
+
+.cn-register-mapping__board-save {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
 }
 
 /* Slide transition */

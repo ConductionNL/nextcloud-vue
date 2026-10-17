@@ -335,6 +335,11 @@
 						}
 					}
 				},
+				"searchPlaceholder": {
+					"type": "string",
+					"minLength": 1,
+					"description": "i18n key / text for the line on the search field in Nextcloud's header (screens-board-top-bar-search, 2.118.0), naming what the app's search finds, for example \"Search cases, documents or contacts\". Applied by CnAppRoot under `look: \"board\"` on a page with `#header`; it replaces only the text of the resting field. Omitted, the field keeps Nextcloud's own line."
+				},
 				"featureRequestRepo": {
 					"type": "string",
 					"description": "`<owner>/<repo>` slug on the forge that the in-product feature-request deep-link targets (provided to descendants as `cnFeatureRequestRepo`). Falls back to `Conduction/<appId>` when omitted."

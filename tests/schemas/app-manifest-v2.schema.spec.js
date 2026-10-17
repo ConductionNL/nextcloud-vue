@@ -1387,6 +1387,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.108.0 adds config.modules, modulesTitle and footnote on a links page (screens-links-module-cards).
 		// 2.111.0 lets config.greeting lead with a label or the date alone (dashboard-greeting-label).
 		// 2.115.0 lets config.breadcrumb take a list of crumbs, for index, dashboard and settings pages too (page-header-breadcrumb).
+		// 2.118.0 adds nav.searchPlaceholder (screens-board-top-bar-search).
 		// 2.119.0 adds views[].title on a dashboard (view-title).
 		expect(schema.version).toBe('2.119.0')
 	})
