@@ -32,6 +32,10 @@ opens the corresponding issue in a new tab.
 | `forge` | Object | No | `{ type, baseUrl? }` target forge the feature-request deep-links are built against (the Suggest CTA and the support dialog's feature-request URL). |
 | `features` | Array | Yes | Build-time feature manifest — array of `{slug, title, summary, docsUrl}` objects rendered by `CnFeaturesTab`. |
 | `disabled` | Boolean | No | When `true`, the view collapses to a single "disabled by your administrator" empty state. |
+| `categories` | Object | No | Feature category key to caption; the order of the groups in the board look. |
+| `board` | Object | No | Board look options for CnFeaturesBoard (`layout`, `tabs`, `filter`, `statusLabels`, `next`, `issueLabels`, `subtitle`, `notice`, `documentationButton`, `suggestButton`). See [CnFeaturesAndRoadmapPage](cn-features-and-roadmap-page.md#the-board-look). Ignored in the default look. |
+| `title` | String | No | Page title in the board look. Empty reads "Features and roadmap". |
+| `appVersion` | String | No | The app version for `{appVersion}` in the board subtitle. |
 | `openbuiltUrl` | String | No | Override the OpenBuilt sidebar CTA target. Pass an absolute URL or a Nextcloud-relative path. Defaults to the in-instance OpenBuilt route at `/apps/openbuilt` (resolved via `generateUrl`). |
 | `llmSkillsUrl` | String | No | Override the LLM-skills sidebar CTA target. Defaults to `https://docs.conduction.nl/ai-skills`. |
 
@@ -96,3 +100,7 @@ and the Suggest modal POSTs to the same endpoint. Full backend contract:
 The in-app capability comparison (`capabilityComparison` on CnFeaturesAndRoadmapView and CnFeaturesAndRoadmapPage, the `features_roadmap_capabilities` initial state key, and CnCapabilityTable) is deprecated. Publish the comparison on the app's docs site and link to it instead, as dossiq #3312 and pipelinq #2195 did. It still renders; removal waits for a major version. A development build warns once per page load when a comparison is given.
 
 :::
+
+## The board look
+
+In the board look (`cnLook` is `board`) the view draws CnFeaturesBoard with the `board` options instead of the card grid, and publishes no right-hand sidebar: its links sit in the board's Actions menu. See [CnFeaturesAndRoadmapPage](cn-features-and-roadmap-page.md#the-board-look) for the options and the PqRoadmap and DqFunctionaliteiten configurations.

@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 2 direct references, 0 files reached through imports.
+**light**: this component touches OpenRegister lightly. 1 direct reference, 1 file reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
