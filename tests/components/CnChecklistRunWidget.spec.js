@@ -264,3 +264,113 @@ describe('CnChecklistRunWidget with the questions and answers inside the open re
 		w.unmount()
 	})
 })
+
+describe('CnChecklistRunWidget photo rule and a record picked by filter', () => {
+	const RUN = {
+		id: 'run-5',
+		templateSnapshot: {
+			name: 'Fire safety',
+			sections: [{
+				order: 1,
+				name: 'Escape routes',
+				items: [
+					{ id: 'i1', order: 1, label: 'Are the escape routes clear?', responseType: 'yes_no_na', photoRequired: 'if_no' },
+					{ id: 'i2', order: 2, label: 'Photo of the main exit', responseType: 'text', photoRequired: 'altijd' },
+					{ id: 'i3', order: 3, label: 'Remarks', responseType: 'text', photoRequired: 'nooit' },
+				],
+			}],
+		},
+		responses: [],
+		photos: [],
+	}
+
+	const CONTENT_RUN = {
+		record: { register: 'app', schema: 'run', filter: { inspector: '@me', status: 'in_execution' }, sort: { field: 'startedAt', dir: 'desc' } },
+		questionsPath: 'templateSnapshot.sections',
+		itemsKey: 'items',
+		fields: { id: 'id', text: 'label', type: 'responseType', photoRequired: 'photoRequired' },
+		photoRequiredValues: { nooit: 'never', altijd: 'always', if_no: { whenAnswer: 'nee' } },
+		choiceValues: { yes: 'ja', no: 'nee', na: 'nvt' },
+		answersPath: 'responses',
+		answerKey: 'itemId',
+		answerFields: { value: 'value', note: 'comment', photos: 'photos' },
+		recordPhotosField: 'photos',
+		pageSize: 3,
+		emptyText: 'No inspection running.',
+	}
+
+	beforeEach(() => {
+		globalThis.OC = { ...(globalThis.OC || {}), getCurrentUser: () => ({ uid: 'pieter' }) }
+	})
+
+	function mountDashboard(content = CONTENT_RUN) {
+		return mount(CnChecklistRunWidget, {
+			props: { content },
+			global: { stubs: { NcLoadingIcon: true } },
+			attachTo: document.body,
+		})
+	}
+
+	it('picks the newest matching record by filter on a page with no bound record', async () => {
+		fetchReferenceObjects.mockResolvedValue([RUN])
+		const w = mountDashboard()
+		await flush()
+		expect(fetchReferenceObjects).toHaveBeenCalledWith({ register: 'app', schema: 'run', filter: expect.objectContaining({ status: 'in_execution', '_order[startedAt]': 'desc' }), limit: 1 })
+		expect(legends(w)[0]).toContain('Are the escape routes clear?')
+		w.unmount()
+	})
+
+	it('shows the empty text when nothing matches', async () => {
+		fetchReferenceObjects.mockResolvedValue([])
+		const w = mountDashboard()
+		await flush()
+		expect(w.find('[data-testid="cn-checklist-run-empty"]').text()).toBe('No inspection running.')
+		w.unmount()
+	})
+
+	it('holds the page until the photos the rules ask for are attached, and writes into the picked record', async () => {
+		fetchReferenceObjects.mockResolvedValue([RUN])
+		uploadHeldFiles.mockImplementation(async ({ held, kept }) => ({ uploaded: 1, failed: [], attached: { photos: [...kept.photos, ...held.photos.map((f, i) => ({ id: `${f.name}-${i}` }))] } }))
+		const w = mountDashboard()
+		await flush()
+		// i1 (if_no) and i2 (altijd) get a photo control, i3 (nooit) does not.
+		expect(w.findAll('[data-testid="cn-checklist-run-photos"]')).toHaveLength(2)
+		await w.findAll('[data-testid="cn-checklist-run-choice"]').find((r) => r.element.value === 'nee').setValue(true)
+		await w.find('form').trigger('submit')
+		await flush()
+		expect(w.findAll('[data-testid="cn-checklist-run-missing-photo"]')).toHaveLength(2)
+		expect(axios.patch).not.toHaveBeenCalled()
+		const inputs = w.findAll('[data-testid="cn-checklist-run-photo-input"]')
+		for (const [index, input] of inputs.entries()) {
+			Object.defineProperty(input.element, 'files', { value: [new File(['x'], `p${index}.jpg`, { type: 'image/jpeg' })], configurable: true })
+			await input.trigger('change')
+		}
+		expect(w.findAll('[data-testid="cn-checklist-run-missing-photo"]')).toHaveLength(0)
+		await w.find('form').trigger('submit')
+		await flush()
+		expect(axios.patch).toHaveBeenCalledTimes(1)
+		const [url, body] = axios.patch.mock.calls[0]
+		expect(url).toBe('/apps/openregister/api/objects/app/run/run-5')
+		expect(body.responses.find((r) => r.itemId === 'i1')).toEqual(expect.objectContaining({ value: 'nee', photos: ['p0.jpg-0'] }))
+		w.unmount()
+	})
+
+	it('needs no photo for an if_no question answered otherwise', async () => {
+		fetchReferenceObjects.mockResolvedValue([{ ...RUN, templateSnapshot: { ...RUN.templateSnapshot, sections: [{ ...RUN.templateSnapshot.sections[0], items: [RUN.templateSnapshot.sections[0].items[0]] }] } }])
+		const w = mountDashboard()
+		await flush()
+		await w.findAll('[data-testid="cn-checklist-run-choice"]').find((r) => r.element.value === 'ja').setValue(true)
+		await w.find('form').trigger('submit')
+		await flush()
+		expect(w.find('[data-testid="cn-checklist-run-missing-photo"]').exists()).toBe(false)
+		expect(axios.patch).toHaveBeenCalledTimes(1)
+		w.unmount()
+	})
+
+	it('reads nothing while a record filter token is unresolved', async () => {
+		const w = mountDashboard({ ...CONTENT_RUN, record: { ...CONTENT_RUN.record, filter: { case: '@object.caseId' } } })
+		await flush()
+		expect(fetchReferenceObjects).not.toHaveBeenCalled()
+		w.unmount()
+	})
+})

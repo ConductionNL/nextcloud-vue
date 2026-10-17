@@ -85,7 +85,32 @@ answers with `answersPath` instead of `questions` and `answers`:
 | `answersPath` | A property of the open record holding one answer entry per question, keyed by `answerKey` (default `questionId`). The changed answers of a page are written into it with one update of the record through the object API, under the reader's own rights. |
 | `answerFields` | Where an entry keeps its parts: `value` (yes/no and text), `number`, `choice`, `note`, `photos`, and `at` (set to the time of the answer when given). |
 | `recordPhotosField` | The record's own photo list. A photo is uploaded to the record's files and added there, and its reference (`photoRefField`, default `id`) goes into the answer's `photos`. |
-| `record` | `{ register, schema }` of the open record, when the page does not hand them in. |
+| `record` | `{ register, schema }` of the open record, when the page does not hand them in; with `filter` (and `sort`) it picks the record, see below. |
+
+## A photo a question asks for
+
+`fields.photoRequired` names a question's photo rule, and `photoRequiredValues` maps its stored values onto `never`,
+`always` or `{ "whenAnswer": <value> }` (a photo is needed when the answer is that value). `true` / `false` and
+`always` / `never` map by themselves. With a rule, every question of the page that is not `never` gets its own photo
+control, and Next holds the page, saying "This answer needs a photo", until the photo is attached:
+
+```json
+{
+  "fields": { "photoRequired": "photoRequired" },
+  "photoRequiredValues": { "nooit": "never", "altijd": "always", "if_no": { "whenAnswer": "nee" } }
+}
+```
+
+## Picking the record on a page without one
+
+A dashboard (a device frame, say) hands the widget no record. `record` then picks it by filter, under the reader's own
+rights: `{ register, schema, filter, sort }` reads the first match (`sort: { field, dir }`, newest first by default),
+and the widget works on that record as on a bound one. With no match it shows `emptyText`; while a filter token is
+unresolved it reads nothing.
+
+```json
+{ "record": { "register": "app", "schema": "run", "filter": { "inspector": "@me", "status": "in_execution" }, "sort": { "field": "startedAt", "dir": "desc" } } }
+```
 
 ## Keyboard and screen readers
 

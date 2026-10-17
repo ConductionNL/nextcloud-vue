@@ -1787,7 +1787,8 @@
     "The answer could not be saved. Try again.": "Het antwoord kon niet worden opgeslagen. Probeer het opnieuw.",
     "Checklist finished.": "Checklist afgerond.",
     "Not applicable": "Niet van toepassing",
-    "Answer with a photo.": "Beantwoord met een foto."
+    "Answer with a photo.": "Beantwoord met een foto.",
+    "This answer needs a photo. Add one to go on.": "Bij dit antwoord hoort een foto. Voeg er een toe om verder te gaan."
   },
   "plurals": {
     "{count} selected": [
