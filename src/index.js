@@ -236,6 +236,7 @@ export {
 	CnObjectRow,
 	CnObjectSidebar,
 	CnOfflineQueue,
+	CnOrderedListField,
 	CnPageHeader,
 	CnPageRenderer,
 	CnPagination,

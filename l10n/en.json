@@ -1586,7 +1586,15 @@
     "{s} s": "{s} s",
     "About this {app} installation.": "About this {app} installation.",
     "{version}, up to date": "{version}, up to date",
-    "for an SLA": "for an SLA"
+    "for an SLA": "for an SLA",
+    "Move {item} up": "Move {item} up",
+    "Move {item} down": "Move {item} down",
+    "Remove {item}": "Remove {item}",
+    "Nothing added yet.": "Nothing added yet.",
+    "Ordered list": "Ordered list",
+    "{item} moved to position {position} of {total}": "{item} moved to position {position} of {total}",
+    "{item} removed": "{item} removed",
+    "{item} added": "{item} added"
   },
   "plurals": {
     "{count} selected": [

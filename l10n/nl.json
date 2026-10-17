@@ -1772,7 +1772,15 @@
     "{s} s": "{s} s",
     "About this {app} installation.": "Over deze {app}-installatie.",
     "{version}, up to date": "{version}, bijgewerkt",
-    "for an SLA": "voor een SLA"
+    "for an SLA": "voor een SLA",
+    "Move {item} up": "{item} omhoog",
+    "Move {item} down": "{item} omlaag",
+    "Remove {item}": "{item} verwijderen",
+    "Nothing added yet.": "Nog niets toegevoegd.",
+    "Ordered list": "Lijst op volgorde",
+    "{item} moved to position {position} of {total}": "{item} staat nu op plaats {position} van {total}",
+    "{item} removed": "{item} verwijderd",
+    "{item} added": "{item} toegevoegd"
   },
   "plurals": {
     "{count} selected": [
