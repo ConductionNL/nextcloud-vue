@@ -108,3 +108,30 @@ The person and organisation boards (screens-relation-pages) draw their side card
 - **Three states.** A failed source read shows one quiet line ("Could not load this information", the error goes to the console); an object with no values shows `emptyText`; loading shows a small spinner.
 - **Translation.** Labels, `map` values, the link label and the empty text go through the host app's `cnTranslate`. Values read off the object are shown as they are.
 - Renderer only: there is no config form, so the Add-widget picker does not offer it. Declare it in the manifest.
+
+## Two columns, label above value (`columns: 2`)
+
+`columns: 2` lays the rows out in two columns with the label above the value and a hairline under each fact (one
+column on a phone), as the board DqContact "Contact" card draws a person. Paths read nested fields, a row with `parts`
+joins them like a line, and a part can be a group of parts with its own separator, so an address reads on one row:
+
+```json
+{
+  "type": "facts",
+  "title": "Contact",
+  "content": {
+    "columns": 2,
+    "fields": [
+      { "path": "displayName", "label": "Name" },
+      { "path": "name.givenNames", "label": "Given names" },
+      { "path": "name.surname", "label": "Surname" },
+      { "path": "birth.date", "label": "Date of birth", "format": "date-long" },
+      { "key": "address", "label": "Residential address", "separator": ", ", "parts": [
+        { "parts": ["residence.street", "residence.houseNumber"], "separator": " " },
+        { "parts": ["residence.postcode", "residence.city"], "separator": " " }
+      ] },
+      { "path": "description", "label": "Description" }
+    ]
+  }
+}
+```
