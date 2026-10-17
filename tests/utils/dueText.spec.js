@@ -49,6 +49,36 @@ describe('resolveDue', () => {
 	})
 })
 
+describe('resolveDue upcomingLabel', () => {
+	beforeEach(() => setLanguage('nl'))
+	const cfg = {
+		upcomingLabel: { one: 'nog {count} dag', other: 'nog {count} dagen' },
+		upcomingWeeksLabel: { one: 'nog {count} week', other: 'nog {count} weken' },
+	}
+
+	it('reads the days left for a day to come', () => {
+		expect(resolveDue(day(1), cfg, (x) => x, NOW)).toEqual({ text: 'nog 1 dag', tone: 'upcoming' })
+		expect(resolveDue(day(4), cfg, (x) => x, NOW)).toEqual({ text: 'nog 4 dagen', tone: 'upcoming' })
+		expect(resolveDue(day(28), cfg, (x) => x, NOW)).toEqual({ text: 'nog 28 dagen', tone: 'upcoming' })
+	})
+
+	it('reads the weeks left from upcomingWeeksFrom days, default 35', () => {
+		expect(resolveDue(day(56), cfg, (x) => x, NOW).text).toBe('nog 8 weken')
+		expect(resolveDue(day(35), cfg, (x) => x, NOW).text).toBe('nog 5 weken')
+		expect(resolveDue(day(14), { ...cfg, upcomingWeeksFrom: 7 }, (x) => x, NOW).text).toBe('nog 2 weken')
+	})
+
+	it('keeps days without upcomingWeeksLabel, and the date without upcomingLabel', () => {
+		expect(resolveDue(day(56), { upcomingLabel: cfg.upcomingLabel }, (x) => x, NOW).text).toBe('nog 56 dagen')
+		expect(resolveDue(day(9), {}, (x) => x, NOW).text).toBe('21 okt')
+	})
+
+	it('leaves today and overdue alone', () => {
+		expect(resolveDue(day(0), cfg, (x) => x, NOW).tone).toBe('today')
+		expect(resolveDue(day(-2), cfg, (x) => x, NOW)).toEqual({ text: '2 dagen te laat', tone: 'danger' })
+	})
+})
+
 describe('CnCellRenderer date widget with due', () => {
 	beforeEach(() => setLanguage('nl'))
 	const stubs = { NcDateTime: true }

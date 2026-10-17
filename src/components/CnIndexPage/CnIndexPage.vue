@@ -21,6 +21,8 @@
 				:title="title"
 				:description="headerDescription"
 				:icon="showTitleIcon && !isBoardLook ? resolvedIcon : ''"
+				:breadcrumb="breadcrumb"
+				:meta="headerMetaText"
 				:visuallyHidden="!showTitle">
 				<!-- The board's header buttons (`headerButtons`), beside the
 				     title. Declaring them takes the Views and Actions menus
@@ -754,6 +756,7 @@
 					:columnOverrides="columnOverrides"
 					:rowClass="rowClass"
 					:rowTitle="rowTitle"
+					:showUnread="showUnreadRows"
 					:filterable="tableHeaderFilters"
 					:activeFilters="effectiveActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
@@ -1629,6 +1632,31 @@ export default {
 			required: true,
 		},
 
+		/**
+		 * A breadcrumb under the title (manifest `config.breadcrumb`): one
+		 * crumb `{ label, route?, params?, href?, icon?, separator? }` or a
+		 * list; the title follows as the current crumb. Drawn as the detail
+		 * header's breadcrumb row. Null (the default) draws none.
+		 *
+		 * @type {object|Array<object>|null}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		breadcrumb: {
+			type: [Object, Array],
+			default: null,
+		},
+
+		/**
+		 * A note after the breadcrumb and a middle dot (manifest `config.headerMeta`),
+		 * such as "{total} open": `{total}` and `{shown}` are the list's counts.
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		headerMeta: {
+			type: String,
+			default: '',
+		},
+
 		/** Optional description shown below the title */
 		description: {
 			type: String,
@@ -2252,7 +2280,7 @@ export default {
 		 * can open is an ordinary segment; one it cannot (no board columns, no
 		 * map configured) is drawn disabled, named "<mode>: not available on
 		 * this list". Fed from `pages[].config.viewSwitch`. Ignored without the
-		 * board look, and absent the switch is as before.
+		 * board look; absent, the board look draws all four.
 		 *
 		 * @type {Array<'table' | 'cards' | 'board' | 'map'>}
 		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
@@ -3575,6 +3603,8 @@ export default {
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/** Whether `?_view=` names a mode the page did not offer yet, to open once it does. */
+			routeViewPending: false,
 			/** The column field the reader picked in the board's column switch; '' = the default. */
 			boardColumnFieldChoice: '',
 			/** The rows a reference column field is built from, by field. */
@@ -4138,11 +4168,14 @@ export default {
 		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
 		 */
 		viewSwitchDisabledModes() {
-			if (!this.isBoardLook || !Array.isArray(this.viewSwitch)) {
+			if (!this.isBoardLook) {
 				return []
 			}
+			// The index boards draw all four segments, so the board look does
+			// too unless the manifest names its own list.
+			const listed = Array.isArray(this.viewSwitch) ? this.viewSwitch : ['table', 'cards', 'board', 'map']
 			const offered = [...this.effectiveToggleModes, ...(this.showMapSegment ? ['map'] : [])]
-			return this.viewSwitch.filter((mode) => ['table', 'cards', 'board', 'map'].includes(mode) && !offered.includes(mode))
+			return listed.filter((mode) => ['table', 'cards', 'board', 'map'].includes(mode) && !offered.includes(mode))
 		},
 
 		/**
@@ -4178,6 +4211,17 @@ export default {
 				}
 				return true
 			})
+		},
+
+		/**
+		 * The modes `?_view=` can open: the toggle's modes plus the map when
+		 * the page offers it.
+		 *
+		 * @return {Array<string>} The modes.
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-the-address-opens-a-view-mode-that-arrives-later
+		 */
+		routeViewModes() {
+			return [...this.effectiveToggleModes, ...(this.showMapSegment ? ['map'] : [])]
 		},
 
 		/**
@@ -5400,6 +5444,21 @@ export default {
 			return this.isSelfFetchMode ? this.list.pagination.value : this.pagination
 		},
 
+		/**
+		 * Whether the table marks unread rows. The boards draw every row alike,
+		 * so under the board look only a page that offers the Unread lens
+		 * (`personalLenses`) marks them; the Nextcloud look always does.
+		 *
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-unread-rows-are-marked-only-where-the-reader-asked-for-them
+		 * @return {boolean} True when unread rows read in bold with the dot.
+		 */
+		showUnreadRows() {
+			if (!this.isBoardLook) {
+				return true
+			}
+			return Array.isArray(this.personalLenses) && this.personalLenses.includes('unread')
+		},
+
 		/** Resolved schema OBJECT (for column generation / icons / labels). */
 		/**
 		 * Whether the table shows its header filters. A self-fetching page
@@ -6063,8 +6122,9 @@ export default {
 					}
 					// The board's header: Export reads "Download" with its icon and
 					// the Actions menu reads "Actions", without the manifest saying so.
-					if (this.isBoardLook && label === '' && button.action === 'export') {
-						label = t('nextcloud-vue', 'Download')
+					// A labelled Export keeps the icon too, unless it names its own.
+					if (this.isBoardLook && button.action === 'export') {
+						label = label || t('nextcloud-vue', 'Download')
 						icon = icon || 'Download'
 					}
 					if (label === '' && button.action === 'actions-menu') {
@@ -6347,6 +6407,22 @@ export default {
 		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-the-count-reads-in-the-users-language
 		 * @return {string}
 		 */
+		/**
+		 * The header meta note with the list's counts filled in.
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 * @return {string}
+		 */
+		headerMetaText() {
+			if (!this.headerMeta) {
+				return ''
+			}
+			const total = this.effectivePagination?.total
+			return this.cnTranslate(this.headerMeta)
+				.replace('{shown}', String(this.effectiveObjects.length))
+				.replace('{total}', typeof total === 'number' ? String(total) : '')
+		},
+
 		headerDescription() {
 			const total = this.effectivePagination?.total
 			// Board look: the count line is a template over the rows on this page
@@ -6535,6 +6611,12 @@ export default {
 	watch: {
 		'$route.query._view': function() {
 			this.applyViewModeFromRoute()
+		},
+
+		routeViewModes() {
+			if (this.routeViewPending) {
+				this.applyViewModeFromRoute()
+			}
 		},
 
 		boardFetchKey: {
@@ -6969,6 +7051,10 @@ export default {
 		 */
 		async loadFilterCounts() {
 			const requestKey = this.countRequestKey
+			if (this.isNamedSource) {
+				await this.loadNamedSourceCounts(requestKey)
+				return
+			}
 			const schema = this.exportSchemaSlug
 			if (requestKey === '' || !this.register || !schema) {
 				this.tabCounts = null
@@ -6998,6 +7084,46 @@ export default {
 			}
 			this.tabCounts = tabCounts
 			this.savedViewCounts = viewCounts
+		},
+
+		/**
+		 * The quick-filter counts of a named source (`entitySource`): each tab
+		 * that asks is counted by the source's own `count(config)`, with the
+		 * tab's filter over `sourceConfig`. A source without `count` shows
+		 * none; a failed count leaves that tab without a number.
+		 *
+		 * @param {string} requestKey The `countRequestKey` this load answers.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-a-named-source-counts-its-quick-filters
+		 */
+		async loadNamedSourceCounts(requestKey) {
+			const count = this.namedSource ? this.namedSource.count : null
+			if (requestKey === '' || typeof count !== 'function') {
+				this.tabCounts = null
+				this.savedViewCounts = null
+				return
+			}
+			const params = (this.$route && this.$route.params) || {}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const tabCounts = {}
+			await Promise.all(this.countEntries
+				.filter((entry) => entry.key.startsWith('tab:'))
+				.map(async (entry) => {
+					const config = resolveFilterMap({ ...(this.sourceConfig || {}), ...(entry.filter || {}) }, params, ctx)
+					try {
+						const total = await count(config)
+						if (Number.isFinite(total)) {
+							tabCounts[Number(entry.key.slice(4))] = total
+						}
+					} catch {
+						// No number for this tab.
+					}
+				}))
+			if (requestKey !== this.countRequestKey) {
+				return
+			}
+			this.tabCounts = tabCounts
+			this.savedViewCounts = null
 		},
 
 		// ── Split view (case-page-and-list-as-a-place) ──────────────────
@@ -9310,6 +9436,7 @@ export default {
 		 * @param {string} mode 'table' or 'cards'
 		 */
 		onViewModeChange(mode) {
+			this.routeViewPending = false
 			this.currentViewMode = mode
 			this.$emit('view-mode-change', mode)
 		},
@@ -9319,16 +9446,26 @@ export default {
 		 * offers it. The key starts with `_`, like `_search` and `_page`, so it
 		 * is never read as a list filter. A menu entry's `query` can so open a
 		 * list as its board, on the one page that lists the schema
-		 * (screens-board-reference-columns).
+		 * (screens-board-reference-columns). A mode the page offers only later
+		 * (the map, once rows with a geometry are in) opens when it arrives,
+		 * unless the reader picked a view first.
 		 *
 		 * @return {void}
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-address-can-open-a-list-in-a-view-mode
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-the-address-opens-a-view-mode-that-arrives-later
 		 */
 		applyViewModeFromRoute() {
 			const wanted = this.$route?.query?._view
-			if (typeof wanted === 'string' && wanted !== this.currentViewMode && this.effectiveToggleModes.includes(wanted)) {
-				this.currentViewMode = wanted
+			if (typeof wanted !== 'string' || wanted === '' || wanted === this.currentViewMode) {
+				this.routeViewPending = false
+				return
 			}
+			if (this.routeViewModes.includes(wanted)) {
+				this.currentViewMode = wanted
+				this.routeViewPending = false
+				return
+			}
+			this.routeViewPending = true
 		},
 
 		/**

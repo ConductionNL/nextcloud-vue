@@ -141,6 +141,8 @@ export default {
 | `notificationLabels` (`notification-labels`) | `Object` | `{}` | Labels for the app's notification rules in the user-settings notification pane, keyed `<schema>.<key>` or `<key>`. Values are translated strings or per-locale maps. A rule without a label reads as its key split into words, never as the raw key. Provided as `cnNotificationLabels`. |
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
 | `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to "User settings" from the library catalogue ("Persoonlijke instellingen" in Dutch), then the app's `translate`. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
+| `userSettingsEyebrow` | `String` | `''` | Board look: the line above the user-settings title. Empty uses "Your account" ("Uw account"). Goes through the app's `translate`. |
+| `userSettingsSubtitle` | `String` | `''` | Board look: the sentence under the user-settings title. Empty uses "Only for you. Colleagues keep their own settings." Goes through the app's `translate`. |
 | `userSettingsSections` | `Array` | `null` | The sections of the user-settings modal, in the order they are drawn: `app` (the app's own slot content), `notifications`, `credentials`, `walkthrough`, `integrations`. A key left out is not drawn, so `['app', 'credentials', 'walkthrough']` hides the notifications pane and the integrations section. The app's slot content always renders; without `app` it comes first. `null` keeps the defaults: every section after `#user-settings-sections` content, or only the `#user-settings` content and the integrations section. See [User-settings modal](#user-settings-modal). |
 | `adminSettingsTitle` | `String` | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
 | `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
@@ -367,3 +369,12 @@ They are off by default because they stacked: an app declaring four optional lea
 | `hideMenu` | `Boolean` | `false` | Render no app navigation at all: neither the default `CnAppNav` nor the `#menu` slot, so the content starts at the left edge. An empty `#menu` override cannot do this (an empty slot falls back to the default `CnAppNav`), which is why launchpad passed a hidden empty span. |
 
 `CnAppRoot` also provides `cnMenuItemCounts`, the filtered totals for menu entries whose `count` is `{ register, schema, filter }` (see [CnAppNav](./cn-app-nav.md)).
+
+## User settings in the board look
+
+Under the board look (`look: "board"` or manifest `look`) the user settings open in the board dialog (board
+PqPersoonlijk) instead of `NcAppSettingsDialog`: an eyebrow, the title and a subtitle, a 200px navigation listing every
+section with its icon, the sections, and a footer "Changes are saved straight away · Pipelinq" (the app's name) with Close. The sections
+stay the app's: every `NcAppSettingsSection` in `#user-settings-sections` registers itself with the board dialog as it
+does with `NcAppSettingsDialog`, so give each one an `#icon` slot to show an icon in the navigation. The library's own
+sections carry one. The Nextcloud look is unchanged.

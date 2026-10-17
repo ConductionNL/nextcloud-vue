@@ -1514,6 +1514,15 @@
       "%n feature",
       "%n features"
     ],
+    "Your account": "Your account",
+    "Only for you. Colleagues keep their own settings.": "Only for you. Colleagues keep their own settings.",
+    "Sections of the settings": "Sections of the settings",
+    "Changes are saved straight away": "Changes are saved straight away",
+    "Change the schema for {type}": "Change the schema for {type}",
+    "Show all types": "Show all types",
+    "All types set up": "All types set up",
+    "Set up": "Set up",
+    "{configured} of {total} set up": "{configured} of {total} set up",
     "Finished": "Finished",
     "Stopped early": "Stopped early",
     "Queued": "Queued",
@@ -1616,6 +1625,18 @@
     "{count} more filter": [
       "{count} more filter",
       "{count} more filters"
+    ],
+    "%n type": [
+      "%n type",
+      "%n types"
+    ],
+    "And %n more type in this group, set up.": [
+      "And %n more type in this group, set up.",
+      "And %n more types in this group, all set up."
+    ],
+    "And %n more type in this group.": [
+      "And %n more type in this group.",
+      "And %n more types in this group."
     ]
   }
 }
