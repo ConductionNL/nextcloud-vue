@@ -408,6 +408,7 @@ import { fillTemplate, joinTemplateParts } from '../../utils/fillTemplate.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
+import { readPath } from '../../utils/readPath.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -1841,8 +1842,11 @@ export default {
 				if (v === undefined) {
 					return this.aggregateLoading ? '…' : '—'
 				}
+				if (v === null && !(typeof col.aggregate.zeroLabel === 'string' && col.aggregate.zeroLabel !== '')) {
+					return '—'
+				}
 				const zeroLabel = col.aggregate.zeroLabel
-				if ((v === 0 || v === '0') && typeof zeroLabel === 'string' && zeroLabel !== '') {
+				if ((v === 0 || v === '0' || v === null) && typeof zeroLabel === 'string' && zeroLabel !== '') {
 					return typeof this.cnTranslate === 'function' ? this.cnTranslate(zeroLabel) : zeroLabel
 				}
 				return v
@@ -1872,17 +1876,21 @@ export default {
 		},
 
 		/**
-		 * For every column that declares `aggregate` (currently `op: "count"`),
-		 * issue one `_limit=0` count request per visible row against the related
-		 * OpenRegister collection and cache the totals in `aggregateValues`.
+		 * For every column that declares `aggregate`, issue one request per
+		 * visible row against the related OpenRegister collection and cache the
+		 * answer in `aggregateValues`: `op: "count"` asks `_limit=0` for the
+		 * total, `op: "max"` asks for the one object with the highest `field`
+		 * (`_limit=1`, sorted descending) and keeps that value, null when there
+		 * is none (shown as `zeroLabel`, else a dash).
 		 * Batched with `Promise.all`; a per-request failure degrades that one
 		 * cell to `'—'` (logged), never the page. A monotonic request id
 		 * discards a stale batch when `rows` / columns change mid-flight.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/masked-formatter-max-aggregate/specs/index-page/spec.md#requirement-a-column-aggregate-can-take-the-highest-value
 		 */
 		async loadAggregates() {
-			const aggCols = this.effectiveColumns.filter((c) => c && c.aggregate && c.aggregate.op === 'count')
+			const aggCols = this.effectiveColumns.filter((c) => c && c.aggregate && (c.aggregate.op === 'count' || (c.aggregate.op === 'max' && c.aggregate.field)))
 			if (aggCols.length === 0) {
 				if (Object.keys(this.aggregateValues).length > 0) {
 					this.aggregateValues = {}
@@ -1903,11 +1911,21 @@ export default {
 						continue
 					}
 					const where = this.resolveAggregateWhere(agg.where, row)
-					jobs.push(axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), {
-						params: { ...where, _limit: 0 },
-					})
+					// `max`: the highest `field` among the related objects, as the
+					// first of them sorted on it descending ("Laatste contact").
+					const isMax = agg.op === 'max'
+					const params = isMax
+						? { ...where, _limit: 1, [`_order[${agg.field}]`]: 'desc' }
+						: { ...where, _limit: 0 }
+					jobs.push(axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), { params })
 						.then((res) => {
 							const d = res && res.data
+							if (isMax) {
+								const first = d && Array.isArray(d.results) ? d.results[0] : undefined
+								const top = first === undefined ? undefined : readPath(first, agg.field)
+								next[rowKey][col.key] = top === undefined || top === '' ? null : top
+								return
+							}
 							next[rowKey][col.key] = (d && (d.total ?? (Array.isArray(d.results) ? d.results.length : undefined))) ?? 0
 						})
 						.catch((e) => {

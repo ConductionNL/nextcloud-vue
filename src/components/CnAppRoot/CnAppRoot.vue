@@ -1688,6 +1688,20 @@ export default {
 		},
 
 		/**
+		 * Board look: Nextcloud's own personal settings, listed first in the
+		 * user-settings navigation as links, `[{ label, section? | href?, icon? }]`
+		 * (`section` is a personal settings section id). With any, the app's
+		 * sections sit under one entry named after the app. Labels go through
+		 * the app's `translate`.
+		 *
+		 * @type {Array<object>}
+		 */
+		userSettingsNextcloudLinks: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * The sections of the user-settings modal, in the order they are
 		 * drawn. Keys: `app` (the content of the `#user-settings-sections`
 		 * and `#user-settings` slots), `notifications`, `credentials`,
@@ -3142,6 +3156,9 @@ export default {
 			}
 			if (this.userSettingsSubtitle) {
 				props.subtitle = this.translate(this.userSettingsSubtitle)
+			}
+			if (Array.isArray(this.userSettingsNextcloudLinks) && this.userSettingsNextcloudLinks.length > 0) {
+				props.nextcloudLinks = this.userSettingsNextcloudLinks.map((link) => ({ ...link, label: this.translate(link?.label || '') }))
 			}
 			return props
 		},

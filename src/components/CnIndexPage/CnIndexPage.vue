@@ -1224,6 +1224,7 @@ import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
@@ -3749,6 +3750,8 @@ export default {
 			 */
 			folderSidebarAllValues: [],
 			folderRegisterList: [],
+			/** The Nextcloud groups a `folderSidebar.source: 'groups'` pane lists. */
+			folderGroupList: [],
 			// `x-index` blocks read off the schema rows a `source: 'register'`
 			// folder list was built from, keyed by folder id. The layout a case
 			// type carries travels with the record rather than being restated
@@ -4666,7 +4669,7 @@ export default {
 		 */
 		folderSidebarSource() {
 			const s = this.folderSidebar && this.folderSidebar.source
-			return (s === 'register' || !s) ? 'custom' : s
+			return (s === 'register' || s === 'groups' || !s) ? 'custom' : s
 		},
 
 		/**
@@ -4682,6 +4685,9 @@ export default {
 			}
 			if (this.folderSidebar.source === 'register') {
 				return this.folderRegisterList
+			}
+			if (this.folderSidebar.source === 'groups') {
+				return this.folderGroupList
 			}
 			return this.folderSidebar.folders || []
 		},
@@ -5448,7 +5454,7 @@ export default {
 		 * @return {string} The id field key.
 		 */
 		folderPassthroughIdField() {
-			if (this.folderSidebar && this.folderSidebar.source === 'register') {
+			if (this.folderSidebar && (this.folderSidebar.source === 'register' || this.folderSidebar.source === 'groups')) {
 				return 'id'
 			}
 			return (this.folderSidebar && this.folderSidebar.idField) || 'id'
@@ -5458,7 +5464,7 @@ export default {
 		 * @return {string} The name field key for CnFolderSidebar's custom list.
 		 */
 		folderPassthroughNameField() {
-			if (this.folderSidebar && this.folderSidebar.source === 'register') {
+			if (this.folderSidebar && (this.folderSidebar.source === 'register' || this.folderSidebar.source === 'groups')) {
 				return 'name'
 			}
 			return (this.folderSidebar && this.folderSidebar.nameField) || 'name'
@@ -7113,6 +7119,7 @@ export default {
 		this.maybeOpenCreateFromQuery()
 		if (this.folderSidebar) {
 			this.loadFolderRegister()
+			this.loadFolderGroups()
 			// Reflect a deep-link filter (e.g. ?caseType=<id>) as the active folder.
 			const key = this.folderSidebar.filterField || this.folderSidebar.field
 			const active = key && this.effectiveActiveFilters[key]
@@ -8982,6 +8989,39 @@ export default {
 			}
 			if (typeof this.list.refresh === 'function') {
 				this.list.refresh(1)
+			}
+		},
+
+		/**
+		 * Load the Nextcloud groups for `folderSidebar.source: 'groups'`, each
+		 * with its member count. `folderSidebar.groups` (`[{ id, parent? }]`)
+		 * picks and orders them and nests a group under its `parent`; without
+		 * it every group shows, by name. A refused request lists none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
+		 */
+		async loadFolderGroups() {
+			const cfg = this.folderSidebar
+			if (!cfg || cfg.source !== 'groups') {
+				return
+			}
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const groups = await fetchGroups(axios, { search: cfg.search || '', limit: cfg.limit || 200 })
+				const declared = Array.isArray(cfg.groups) ? cfg.groups.filter((entry) => entry && entry.id) : null
+				if (!declared) {
+					this.folderGroupList = [...groups].sort((a, b) => a.name.localeCompare(b.name))
+					return
+				}
+				const byId = new Map(groups.map((group) => [group.id, group]))
+				this.folderGroupList = declared
+					.filter((entry) => byId.has(String(entry.id)))
+					.map((entry) => ({ ...byId.get(String(entry.id)), parentId: entry.parent ? String(entry.parent) : null }))
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.error('[CnIndexPage] failed to load the Nextcloud groups', e)
+				this.folderGroupList = []
 			}
 		},
 

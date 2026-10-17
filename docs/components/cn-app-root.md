@@ -143,6 +143,7 @@ export default {
 | `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to "User settings" from the library catalogue ("Persoonlijke instellingen" in Dutch), then the app's `translate`. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
 | `userSettingsEyebrow` | `String` | `''` | Board look: the line above the user-settings title. Empty uses "Your account" ("Uw account"). Goes through the app's `translate`. |
 | `userSettingsSubtitle` | `String` | `''` | Board look: the sentence under the user-settings title. Empty uses "Only for you. Colleagues keep their own settings." Goes through the app's `translate`. |
+| `userSettingsNextcloudLinks` | `Array` | `[]` | Board look: Nextcloud's own personal settings, listed first in the user-settings navigation as links, `[{ label, section? \| href?, icon? }]` (`section` is a personal settings section id, opened at `/settings/user/<section>`). With any, the app's sections sit under one entry named after the app. Labels go through the app's `translate`. |
 | `userSettingsSections` | `Array` | `null` | The sections of the user-settings modal, in the order they are drawn: `app` (the app's own slot content), `notifications`, `credentials`, `walkthrough`, `integrations`. A key left out is not drawn, so `['app', 'credentials', 'walkthrough']` hides the notifications pane and the integrations section. The app's slot content always renders; without `app` it comes first. `null` keeps the defaults: every section after `#user-settings-sections` content, or only the `#user-settings` content and the integrations section. See [User-settings modal](#user-settings-modal). |
 | `adminSettingsTitle` | `String` | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
 | `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
@@ -378,3 +379,16 @@ section with its icon, the sections, and a footer "Changes are saved straight aw
 stay the app's: every `NcAppSettingsSection` in `#user-settings-sections` registers itself with the board dialog as it
 does with `NcAppSettingsDialog`, so give each one an `#icon` slot to show an icon in the navigation. The library's own
 sections carry one. The Nextcloud look is unchanged.
+
+Nextcloud does not expose its personal settings sections to an app's page, so the board's list of Nextcloud's own
+settings (Persoonlijke info, Beveiliging, ..., Privacy) is configured with `userSettingsNextcloudLinks`. With it, the
+navigation lists those links first and then one entry named after the app, with the app's sections under it (board
+DqPersoonlijkeInstellingen). A section's `#icon` also stands before its heading in the board dialog. The board dialog shows one section at a time: picking a navigation entry shows that section and moves focus to its heading; the other sections stay mounted but hidden, so what was typed in them survives a switch.
+
+```js
+const userSettingsNextcloudLinks = [
+	{ label: 'Personal info', section: 'personal-info', icon: 'AccountOutline' },
+	{ label: 'Security', section: 'security', icon: 'LockOutline' },
+	{ label: 'Privacy', section: 'privacy', icon: 'ShieldAccountOutline' },
+]
+```

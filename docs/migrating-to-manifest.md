@@ -837,6 +837,7 @@ The toggles still decide whether each built-in renders, and enabled built-ins yo
 | `count` | Summarises a collection-valued cell as an entry count instead of a truncated JSON blob — array entries or object keys, a collection persisted as a JSON string, or a present scalar counting as 1. Every empty value (`null`, `''`, `0`, `false`, an empty collection) takes the zero phrase. `formatterOptions { singular, plural, zero }` supply pre-translated phrases with `{n}` substituted; without them it renders the bare count. |
 | `connectionStatus` | Renders a connection registry status as its label: `configured` is Configured, `limited` is Limited, `unconfigured` is Not configured, `simulated` is Simulated, `disabled` is Switched off, `unavailable` is Not available, `error` is Error. Any other value passes through unchanged. Translated through the library catalogue, Dutch included. |
 | `connectionSettingsLabel` | Renders "Open settings" when the row's `settingsUrl` is a non-empty string, and nothing otherwise. Pair it with the `link` cell widget so a connection without a settings section offers no link. |
+| `masked` | Shows all but the last `formatterOptions.visible` characters (default 4) as `*`, at most five: an IBAN reads `*****4300`. Display only, not an access control: the full value is still in the row the page received. Hide a value the reader must not have in OpenRegister. |
 
 ```jsonc
 "columns": [
