@@ -108,3 +108,24 @@ The person and organisation boards (screens-relation-pages) draw their side card
 - **Three states.** A failed source read shows one quiet line ("Could not load this information", the error goes to the console); an object with no values shows `emptyText`; loading shows a small spinner.
 - **Translation.** Labels, `map` values, the link label and the empty text go through the host app's `cnTranslate`. Values read off the object are shown as they are.
 - Renderer only: there is no config form, so the Add-widget picker does not offer it. Declare it in the manifest.
+
+## An entry from the page's own object (`from: "object"`)
+
+A card with a `source` shows another object, such as the client of a ticket. An entry with `from: "object"` reads the
+page's own object instead, so one card can show the client's name and the ticket's channel (board PqTicket "Klant"):
+
+```json
+{
+  "type": "facts",
+  "title": "Client",
+  "content": {
+    "source": { "register": "pipelinq", "schema": "client", "id": "@object.client" },
+    "fields": [
+      { "as": "lead", "title": "name", "subtitle": ["kind", "address"], "initialsPath": "name" },
+      { "path": "channel", "label": "Channel", "from": "object" },
+      { "path": "account", "label": "Contact" }
+    ],
+    "link": { "label": "Contact details and earlier tickets", "route": { "name": "ClientDetail", "params": { "id": "@source.id" } } }
+  }
+}
+```

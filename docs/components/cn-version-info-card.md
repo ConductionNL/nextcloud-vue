@@ -26,7 +26,7 @@ Displays application version information in admin settings pages. Shows the app 
 | `docUrl` | String | `''` | Documentation URL — shows an info icon link next to the title |
 | `wide` | Boolean | `true` | Under the board look the card spans the whole settings grid, as the boards draw it. `false` keeps it one card in the grid. No effect without the board look. |
 | `cardTitle` | String | `'Application information'` | Heading shown inside the card |
-| `configuredVersion` | String | `''` | Configured version string (for apps that track configuration versions separately). When non-empty, an extra row is shown. |
+| `configuredVersion` | String | `''` | Configured version string (for apps that track configuration versions separately). When non-empty, an extra row is shown; the board look always shows the row, reading "Unknown" until the app passes a value. |
 | `isUpToDate` | Boolean | `true` | Whether the configured version matches the installed version. Controls the status indicator color. |
 | `showUpdateButton` | Boolean | `false` | Whether to show an "Update" action button |
 | `updating` | Boolean | `false` | Whether an update is currently in progress (shows a loading indicator on the button) |

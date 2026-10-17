@@ -124,7 +124,21 @@ A list can follow the page's controls (a `workspace-filter` select and switch). 
 `badges` adds status badges after the row's pill. A field badge takes the same keys as `pill` (`field`, `labels`, `colorMap`, `variant`) plus `hideValues`, a list of values that draw nothing, so a priority badge shows for urgent and high and stays away for normal. An age badge, `{ "kind": "stale", "field": "updatedAt", "afterDays": 7, "label": "Stale {days} days", "variant": "warning" }`, shows when the date field is more than `afterDays` whole days old and replaces `{days}` with the age. `pill.hideValues` hides the pill the same way.
 ## Due text
 
-`due` draws a date field as text with a tone: `{ "field": "deadline", "todayLabel": "Vandaag", "overdueLabel": { "one": "{count} dag te laat", "other": "{count} dagen te laat" }, "emptyText": "Geen deadline" }`. A date before today reads the overdue label in the danger colour, today reads `todayLabel` (default "Due today"), a day to come reads "tomorrow" or the short date, and an empty field reads `emptyText` in the muted colour, or nothing without one. The texts go through the host's translate. The same keys work on a `date` column as `widgetProps.due`.
+`due` draws a date field as text with a tone: `{ "field": "deadline", "todayLabel": "Vandaag", "overdueLabel": { "one": "{count} dag te laat", "other": "{count} dagen te laat" }, "emptyText": "Geen deadline" }`. A date before today reads the overdue label in the danger colour, today reads `todayLabel` (default "Due today"), a day to come reads "tomorrow" or the short date, and an empty field reads `emptyText` in the muted colour, or nothing without one. With `upcomingLabel` (`{ "one": "nog {count} dag", "other": "nog {count} dagen" }`) a day to come reads the days left instead of the date, and with `upcomingWeeksLabel` (`{ "one": "nog {count} week", "other": "nog {count} weken" }`) it reads the weeks left, rounded, from `upcomingWeeksFrom` days left (default 35). The texts go through the host's translate. The same keys work on a `date` column as `widgetProps.due`.
+
+## A bar under each row
+
+`bar` draws a thin track under each row of the `rows` presentation. With `valueField` alone the track is filled to the row's share of the largest row (board DqTeamwachtrij "Team vandaag": cases per colleague). With `maxField` it is filled to the row's value against its own maximum, and `overVariant: "error"` draws it in the error colour once the value is past that maximum (board PqWachtrij "Team vandaag": open tickets against `maxConcurrent`). The track is a `meter` named after the row's title.
+
+```json
+{
+  "avatar": "{displayName}",
+  "title": "{displayName}",
+  "meta": "{availability}",
+  "trailing": "{open} open",
+  "bar": { "valueField": "open", "maxField": "maxConcurrent", "overVariant": "error" }
+}
+```
 
 ## Money
 

@@ -250,3 +250,17 @@
 		min-height: 44px;
 	}
 }
+
+/* Above a phone the boards top-align a dialog (DqNieuweZaak, DqUwWachtrij,
+   DqVolgendeStap: the top edge sits about 90px down at 1440 wide) instead of
+   centring it. `--cn-dialog-top` moves it. */
+@media (min-width: 601px) {
+	.modal-mask.cn-dialog-board .modal-wrapper {
+		align-items: flex-start;
+	}
+
+	.modal-mask.cn-dialog-board .modal-wrapper .modal-container {
+		margin-top: var(--cn-dialog-top, 88px);
+		max-height: calc(100% - var(--cn-dialog-top, 88px) - 24px);
+	}
+}
