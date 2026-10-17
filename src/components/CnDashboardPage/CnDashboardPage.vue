@@ -13,6 +13,7 @@
 	<div
 		class="cn-dashboard-page"
 		:class="{ 'cn-dashboard-page--board': isBoardLook }"
+		:style="{ '--cn-dashboard-grid-margin': `${gridMargin}px` }"
 		data-testid="cn-dashboard-page">
 		<!-- Header. `showHeader: false` drops the whole row (title, description,
 		     header actions, edit toggle) for a page that opens with its own
@@ -4919,6 +4920,15 @@ export default {
 	margin-bottom: var(--cn-board-section-gap, 16px);
 }
 
+/* Board look: GridStack insets every card by the grid margin on each side, so
+   the cards started a margin to the right of the KPI row and the header. The
+   grid reaches out by that margin, so the card edges line up with the page's
+   (dashboard-grid-flush). */
+.cn-dashboard-page--board :deep(.cn-dashboard-grid) {
+	width: auto;
+	margin-inline: calc(-1 * var(--cn-dashboard-grid-margin, 12px));
+}
+
 .cn-dashboard-page__kpi-cell {
 	display: flex;
 	min-width: 0;
@@ -5148,6 +5158,21 @@ export default {
 
 	.cn-dashboard-page--board .cn-dashboard-page__kpi-cell {
 		min-height: 44px;
+	}
+
+	/* The widget Actions menu shows its icon only, so the card title keeps
+	   the room; the name stays for assistive tech. */
+	.cn-dashboard-page--board :deep(.cn-widget-wrapper__actions .action-item__menutoggle) {
+		min-width: 44px;
+	}
+
+	.cn-dashboard-page--board :deep(.cn-widget-wrapper__actions .action-item__menutoggle .button-vue__text) {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 }
 
