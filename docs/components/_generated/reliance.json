@@ -429,6 +429,15 @@
 			"via": [],
 			"page": "cn-chat-page"
 		},
+		"CnChecklistRunWidget": {
+			"direct": 1,
+			"transitive": 6,
+			"tier": "medium",
+			"via": [
+				"CnIndexPage"
+			],
+			"page": "cn-checklist-run-widget"
+		},
 		"CnChildRecordsField": {
 			"direct": 1,
 			"transitive": 109,
@@ -655,7 +664,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 177,
+			"transitive": 178,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -668,6 +677,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -875,7 +885,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 180,
+			"transitive": 181,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -888,6 +898,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -1395,7 +1406,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 187,
+			"transitive": 188,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1408,6 +1419,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -1684,7 +1696,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 9,
-			"transitive": 184,
+			"transitive": 185,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1697,6 +1709,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -2665,7 +2678,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 201,
+			"transitive": 202,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2678,6 +2691,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -3066,7 +3080,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 178,
+			"transitive": 179,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3079,6 +3093,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -4027,7 +4042,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 168,
+			"transitive": 169,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4039,6 +4054,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",

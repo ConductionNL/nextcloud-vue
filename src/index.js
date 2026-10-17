@@ -59,6 +59,7 @@ export {
 	CnChartWidget,
 	CnChartWidgetForm,
 	CnChatPage,
+	CnChecklistRunWidget,
 	CnChildRecordsField,
 	CnChipsFieldWidget,
 	CnChoiceCards,
