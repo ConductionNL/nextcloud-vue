@@ -131,7 +131,7 @@ describe('CnFlowStepLog', () => {
 })
 
 describe('CnFlowBoard', () => {
-	const stubs = { CnFlowDetail: true, CnFlowSidebar: true, NcNoteCard: { template: '<div class="note"><slot /></div>' } }
+	const stubs = { CnFlowDetail: true, CnFlowSidebar: true, CnBuildiqEditButton: true, NcNoteCard: { template: '<div class="note"><slot /></div>' } }
 
 	/**
 	 * Mount the board and seed the store the COMPONENT holds: tests/setup.js

@@ -39,6 +39,7 @@
 					@click="$emit('run')">
 					{{ t('nextcloud-vue', 'Run') }}
 				</NcButton>
+				<CnBuildiqEditButton />
 				<NcButton variant="primary"
 					:disabled="store.saving || !store.flow.name || store.graphLocked"
 					data-testid="flow-board-save"
@@ -185,6 +186,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
 import CnFlowRunSummary from '../CnFlowDetail/CnFlowRunSummary.vue'
 import CnFlowSidebar from '../CnFlowDetail/CnFlowSidebar.vue'
@@ -202,7 +204,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowBoard',
 
-	components: { CnFlowDetail, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard },
+	components: { CnBuildiqEditButton, CnFlowDetail, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard },
 
 	props: {
 		/** The flow uuid, or `new`. */
