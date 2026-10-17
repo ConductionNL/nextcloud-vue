@@ -122,6 +122,26 @@
 			<slot name="below-header" />
 		</div>
 
+		<!-- Page tabs a named source declares (`pageTabs()`): sibling lists
+		     of the same thing, such as a flow list and its runs this week.
+		     Links, not tabs: each one is its own page. -->
+		<nav v-if="sourcePageTabs.length > 0"
+			class="cn-index-page__page-tabs"
+			:aria-label="title || t('nextcloud-vue', 'Pages')"
+			data-testid="cn-index-page-tabs">
+			<a v-for="tab in sourcePageTabs"
+				:key="tab.id || tab.to"
+				class="cn-index-page__page-tab"
+				:class="{ 'cn-index-page__page-tab--active': isActivePageTab(tab) }"
+				:href="pageTabHref(tab)"
+				:aria-current="isActivePageTab(tab) ? 'page' : undefined"
+				:data-testid="`cn-index-page-tab-${tab.id || tab.to}`"
+				@click="onPageTabClick(tab, $event)">
+				{{ tab.label }}
+				<span v-if="typeof tab.count === 'number'" class="cn-index-page__page-tab-count">{{ tab.count }}</span>
+			</a>
+		</nav>
+
 		<!-- KPI tiles above the list (`statRow`) and cards beside it
 		     (`sidePanel`), as DqTeamwachtrij and PqContracten
 		     (screens-index-stat-row). -->
@@ -352,7 +372,7 @@
 					:multiple="quickFilterMultiple"
 					:activeIndex="activeQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
-					:counts="tabCounts"
+					:counts="effectiveTabCounts"
 					@update:activeIndex="onQuickFilterChange"
 					@update:selectedIndices="onQuickFilterMultiChange" />
 			</template>
@@ -1047,7 +1067,7 @@
 				<CnPagination
 					v-else-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
 					:variant="isBoardLook ? 'board' : ''"
-					:footerNote="footerNote ? cnTranslate(footerNote) : footerNote"
+					:footerNote="effectiveFooterNote"
 					:currentPage="effectivePagination.page || 1"
 					:totalPages="effectivePagination.pages || 1"
 					:totalItems="effectivePagination.total || 0"
@@ -5972,6 +5992,47 @@ export default {
 		},
 
 		/**
+		 * The page tabs a named source declares, each `{id, label, to, count?}`.
+		 *
+		 * @return {Array<object>} The tabs, empty without a source that has them.
+		 */
+		sourcePageTabs() {
+			const source = this.isNamedSource ? this.namedSource : null
+			if (!source || typeof source.pageTabs !== 'function') {
+				return []
+			}
+			return (source.pageTabs() || []).filter((tab) => tab && tab.to && tab.label)
+		},
+
+		/**
+		 * The numbers on the quick filters: a named source counts its own
+		 * tabs (`tabCounts()`), a self-fetching page asks OpenRegister.
+		 *
+		 * @return {Record<number, number>|null} Counts by tab index.
+		 */
+		effectiveTabCounts() {
+			const source = this.isNamedSource ? this.namedSource : null
+			if (source && typeof source.tabCounts === 'function' && !(Array.isArray(this.quickFilters) && this.quickFilters.length > 0)) {
+				return source.tabCounts()
+			}
+			return this.tabCounts
+		},
+
+		/**
+		 * The footer's free text: the manifest's `footerNote`, else a named
+		 * source's own.
+		 *
+		 * @return {string} The note, translated, or ''.
+		 */
+		effectiveFooterNote() {
+			if (this.footerNote) {
+				return this.cnTranslate(this.footerNote)
+			}
+			const source = this.isNamedSource ? this.namedSource : null
+			return (source && source.footerNote) || this.footerNote
+		},
+
+		/**
 		 * The quick-filter tabs to render: the `quickFilters` prop when set,
 		 * else a named source's own tabs (`useNamedSource` resolved the same
 		 * precedence for the LOAD side, so strip and fetch cannot disagree).
@@ -9210,6 +9271,52 @@ export default {
 				}
 			}
 			this.$emit('edit-open', row)
+		},
+
+		/**
+		 * Whether a page tab is the page being shown.
+		 *
+		 * @param {object} tab The page tab.
+		 * @return {boolean} True for the current page.
+		 */
+		isActivePageTab(tab) {
+			const path = this.$route && this.$route.path
+			return !!path && String(path).replace(/\/+$/, '') === String(tab.to).replace(/\/+$/, '')
+		},
+
+		/**
+		 * The href of a page tab, resolved through the router when there is one.
+		 *
+		 * @param {object} tab The page tab.
+		 * @return {string} The href.
+		 */
+		pageTabHref(tab) {
+			if (this.$router && typeof this.$router.resolve === 'function') {
+				const resolved = this.$router.resolve(tab.to)
+				if (resolved && resolved.href) {
+					return resolved.href
+				}
+			}
+			return tab.to
+		},
+
+		/**
+		 * Follow a page tab on the app's router. A ctrl/cmd/shift or middle
+		 * click keeps the browser's own new-tab behaviour.
+		 *
+		 * @param {object} tab The page tab.
+		 * @param {MouseEvent} event The click.
+		 * @return {void}
+		 */
+		onPageTabClick(tab, event) {
+			if (!this.$router || isNewTabClick(event) || this.isActivePageTab(tab)) {
+				if (this.isActivePageTab(tab)) {
+					event.preventDefault()
+				}
+				return
+			}
+			event.preventDefault()
+			this.$router.push(tab.to).catch(() => {})
 		},
 
 		/**

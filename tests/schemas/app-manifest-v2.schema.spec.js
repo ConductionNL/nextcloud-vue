@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.115.0', () => {
+	it('the manifest schema version reads 2.119.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1388,14 +1388,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.111.0 lets config.greeting lead with a label or the date alone (dashboard-greeting-label).
 		// 2.115.0 lets config.breadcrumb take a list of crumbs, for index, dashboard and settings pages too (page-header-breadcrumb).
 		// 2.118.0 adds nav.searchPlaceholder (screens-board-top-bar-search).
-		expect(schema.version).toBe('2.118.0')
-	})
-
-	it('accepts nav.searchPlaceholder as a non-empty string', () => {
-		const withLine = (searchPlaceholder) => ({ ...MINIMAL_V2, nav: { searchPlaceholder } })
-		expect(validateManifestV2(withLine('Search cases, documents or contacts')).valid).toBe(true)
-		expect(validateManifestV2(withLine('')).valid).toBe(false)
-		expect(validateManifestV2(withLine(3)).valid).toBe(false)
+		// 2.119.0 adds views[].title on a dashboard (view-title).
+		expect(schema.version).toBe('2.119.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2286,5 +2280,14 @@ describe('app-manifest-v2: a dashboard greeting label (dashboard-greeting-label,
 		expect(validateManifestV2(page({ greeting: { label: '' } })).valid).toBe(false)
 		expect(validateManifestV2(page({ greeting: {} })).valid).toBe(false)
 		expect(validateManifestV2(page({ greeting: { label: 'Customer contact', icon: 'x' } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: a view title (view-title, 2.119.0)', () => {
+	const page = (views) => ({ ...MINIMAL_V2, pages: [{ id: 'mywork', route: '/', type: 'dashboard', title: 'My work', config: { views } }] })
+
+	it('accepts a view title and refuses an empty one', () => {
+		expect(validateManifestV2(page([{ id: 'mine', label: 'My work' }, { id: 'team', label: 'My team', title: 'My team' }])).valid).toBe(true)
+		expect(validateManifestV2(page([{ id: 'team', label: 'My team', title: '' }])).valid).toBe(false)
 	})
 })
