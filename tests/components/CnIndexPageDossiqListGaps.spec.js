@@ -30,7 +30,7 @@ function mountPage(query, props = {}) {
 		global: {
 			provide: { cnLook: 'board' },
 			mocks: { $router: { push: jest.fn(), replace: jest.fn() }, $route: { query, params: {}, name: 'Cases' } },
-			stubs: { CnActionsBar: true, CnDataTable: true, CnCardGrid: true, CnPagination: true, CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true, CnSavedViewsControl: true, CnBuildiqEditButton: true, CnMapView: true },
+			stubs: { CnActionsBar: true, CnDataTable: true, CnCardGrid: true, CnPagination: true, CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true, CnSavedViewsControl: true, CnBuildiqEditButton: true, CnMapView: true, CnMapWidget: true },
 		},
 	})
 }
