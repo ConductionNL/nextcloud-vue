@@ -33,6 +33,8 @@ OpenRegister register/schema configuration panel. Lets admin users map app objec
 | `saveButtonText` | String | `'Save configuration'` | Save button label |
 | `reimportButtonText` | String | `'Re-import configuration'` | Re-import button label |
 | `collapseGroups` | Boolean | `null` | Each group is a heading button that opens and closes it, with its configured count shown while closed; the groups start closed. `null` does this when there is more than one group; `true` or `false` forces it. |
+| `look` | String | `''` | `board` or `nextcloud`; empty follows the provided `cnLook`. The board look draws one open group as a type/schema table and the others as rows with a status chip, and saves at the end of the section |
+| `boardRowLimit` | Number | `4` | Board look: how many types the open group lists before the "show all" line; `0` lists every type |
 | `autoMatch` | Boolean | `true` | When a register is selected, automatically match schema titles to object type slugs |
 | `labels` | Object | `{ register, schema, configured, notConfigured, noSchemas, selectRegister, selectSchema, allConfigured, partiallyConfigured }` | Override UI strings (all default to translated English) |
 
