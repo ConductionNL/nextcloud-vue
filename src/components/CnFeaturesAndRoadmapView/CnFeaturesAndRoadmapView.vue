@@ -224,7 +224,7 @@ export default {
 		 * Board look options, passed to CnFeaturesBoard: `layout` (`cards` or
 		 * `rows`), `tabs`, `filter` (`chips` or `segmented`), `statusLabels`,
 		 * `next`, `issueLabels`, `subtitle`, `notice`, `noticeLink`,
-		 * `documentationButton` and `suggestButton`. Ignored in the default look.
+		 * `summaries`, `documentationButton` and `suggestButton`. Ignored in the default look.
 		 *
 		 * @type {object}
 		 */
@@ -460,7 +460,7 @@ export default {
 		 * @return {object}
 		 */
 		boardOptions() {
-			const keys = ['layout', 'tabs', 'filter', 'statusLabels', 'next', 'issueLabels', 'subtitle', 'notice', 'noticeLink', 'documentationButton', 'suggestButton']
+			const keys = ['layout', 'tabs', 'filter', 'statusLabels', 'next', 'issueLabels', 'subtitle', 'notice', 'noticeLink', 'summaries', 'documentationButton', 'suggestButton']
 			const options = {}
 			for (const key of keys) {
 				if (this.board && this.board[key] !== undefined && this.board[key] !== null) {
