@@ -2101,7 +2101,7 @@ export default {
 			default: false,
 		},
 
-		/** Label for the header Edit button. Defaults to a translated "Edit". */
+		/** Label for the header Edit button, run through the host translate. Defaults to a translated "Edit". */
 		editLabel: {
 			type: String,
 			default: '',
@@ -3780,12 +3780,14 @@ export default {
 		},
 
 		/**
-		 * Label for the header Edit button.
+		 * Label for the header Edit button: the manifest's `editLabel` through
+		 * the host translate, else the library's translated "Edit".
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/detail-edit-label-translate/specs/detail-page/spec.md#requirement-the-edit-button-label-follows-the-reader-s-language
 		 */
 		editActionLabel() {
-			return this.editLabel || t('nextcloud-vue', 'Edit')
+			return this.editLabel ? this.effectiveTranslate(this.editLabel) : t('nextcloud-vue', 'Edit')
 		},
 
 		/**
