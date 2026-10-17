@@ -1075,6 +1075,10 @@ const CHART_PROP_KEYS = [
 	// separately via the template's :data-source binding (getWidgetDataSource),
 	// so the Wave-3 aggregate/drilldown inside it already flow through.
 	'endpointSource',
+	// `bar-list` / `matrix` presentation keys.
+	'barMax',
+	'footnote',
+	'highlight',
 ]
 
 /**
@@ -2149,11 +2153,17 @@ export default {
 
 		/**
 		 * The page title run through the host translate function so a
-		 * manifest-authored source string localises.
+		 * manifest-authored source string localises. The open view's
+		 * `title`, when it has one, takes its place ("My team").
 		 *
+		 * @spec openspec/changes/view-title/specs/view-switch-containers/spec.md#requirement-the-page-title-follows-the-open-view
 		 * @return {string}
 		 */
 		resolvedTitle() {
+			const view = this.hasViews ? this.activeView : null
+			if (view && view.title) {
+				return view.title
+			}
 			return this.title ? this.effectiveTranslate(this.title) : this.title
 		},
 

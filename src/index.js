@@ -239,6 +239,7 @@ export {
 	CnPageHeader,
 	CnPageRenderer,
 	CnPagination,
+	CnPartyActionsWidget,
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
 	CnPresenceAvatars,

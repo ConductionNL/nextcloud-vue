@@ -250,6 +250,44 @@
 			</span>
 		</template>
 
+		<!-- Built-in "switch" widget: an on/off switch with the value as its
+		     label. widgetProps { checked(row) => boolean, onToggle(row, on) =>
+		     Promise }. The switch shows the new state at once and returns to
+		     the old one when onToggle rejects. Clicks stay in the cell, so
+		     toggling never opens the row. -->
+		<template v-else-if="widget === 'switch'">
+			<span class="cn-cell-renderer__switch"
+				data-testid="cn-cell-switch"
+				@click.stop
+				@keydown.stop>
+				<NcCheckboxRadioSwitch
+					type="switch"
+					:modelValue="switchChecked"
+					:disabled="switchBusy || typeof (widgetProps && widgetProps.onToggle) !== 'function'"
+					@update:modelValue="onSwitchToggle">
+					{{ hasValue ? labelledValue : '' }}
+				</NcCheckboxRadioSwitch>
+			</span>
+		</template>
+
+		<!-- Built-in "iconLabel" widget: an icon before the value. widgetProps
+		     { icon }: a component or an icon name, or a function of the row
+		     returning one. The icon is decorative; the text carries the meaning. -->
+		<template v-else-if="widget === 'iconLabel'">
+			<span class="cn-cell-renderer__icon-label" data-testid="cn-cell-icon-label">
+				<CnIcon v-if="typeof iconLabelIcon === 'string' && iconLabelIcon"
+					:name="iconLabelIcon"
+					:size="16"
+					aria-hidden="true" />
+				<component :is="iconLabelIcon"
+					v-else-if="iconLabelIcon"
+					:size="16"
+					aria-hidden="true" />
+				<span v-if="hasValue">{{ labelledValue }}</span>
+				<span v-else class="cn-cell-renderer__dash">—</span>
+			</span>
+		</template>
+
 		<!-- Explicit column formatter — overrides the type-aware paths below -->
 		<template v-else-if="hasFormatter">
 			<span :title="rawTitle">{{ formattedValue }}</span>
@@ -330,9 +368,10 @@
 
 <script>
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
-import { NcAvatar, NcButton, NcDateTime } from '@nextcloud/vue'
+import { NcAvatar, NcButton, NcCheckboxRadioSwitch, NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeDate, formatTimeOfDay, resolveAgeVariant } from '../../utils/boardDate.js'
@@ -370,7 +409,9 @@ export default {
 	name: 'CnCellRenderer',
 
 	components: {
+		CnIcon,
 		CnStatusBadge,
+		NcCheckboxRadioSwitch,
 		CnFkResolveCell,
 		CnGroupNameCell,
 		CheckBold,
@@ -556,6 +597,13 @@ export default {
 		},
 	},
 
+	data() {
+		return {
+			// The switch's state while its onToggle is in flight, or null.
+			switchPending: null,
+		}
+	},
+
 	computed: {
 		/**
 		 * The `actions` widget's buttons for this row: the page's resolved
@@ -573,6 +621,41 @@ export default {
 				variant: item.variant || 'secondary',
 				disabled: item.disabled === true,
 			}))
+		},
+
+		/**
+		 * Whether the "switch" widget is on: the pending state while a toggle
+		 * is in flight, else `widgetProps.checked(row)`, else the value.
+		 *
+		 * @return {boolean} The switch state.
+		 */
+		switchChecked() {
+			if (this.switchPending !== null) {
+				return this.switchPending
+			}
+			const checked = this.widgetProps && this.widgetProps.checked
+			if (typeof checked === 'function') {
+				return checked(this.row) === true
+			}
+			return this.value === true
+		},
+
+		/**
+		 * @return {boolean} Whether a toggle is in flight.
+		 */
+		switchBusy() {
+			return this.switchPending !== null
+		},
+
+		/**
+		 * The "iconLabel" widget's icon, resolved against the row.
+		 *
+		 * @return {object|string|null} A component, an icon name, or null.
+		 */
+		iconLabelIcon() {
+			const icon = this.widgetProps && this.widgetProps.icon
+			const resolved = typeof icon === 'function' ? icon(this.row) : icon
+			return resolved || null
 		},
 
 		propertyType() {
@@ -1387,6 +1470,29 @@ export default {
 		},
 
 		/**
+		 * The "switch" widget was flipped: show the new state and hand it to
+		 * `widgetProps.onToggle(row, on)`. A rejection puts the switch back.
+		 *
+		 * @param {boolean} on The new state.
+		 * @return {Promise<void>}
+		 */
+		async onSwitchToggle(on) {
+			const toggle = this.widgetProps && this.widgetProps.onToggle
+			if (typeof toggle !== 'function' || this.switchPending !== null) {
+				return
+			}
+			this.switchPending = on === true
+			try {
+				await toggle(this.row, on === true)
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('[CnCellRenderer] switch toggle failed', error)
+			} finally {
+				this.switchPending = null
+			}
+		},
+
+		/**
 		 * The initials of a name, at most two letters (first and last word).
 		 *
 		 * @param {string} name The name.
@@ -1503,6 +1609,17 @@ export default {
 	display: inline-flex;
 	flex-wrap: wrap;
 	gap: 8px;
+}
+
+.cn-cell-renderer__icon-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+}
+
+.cn-cell-renderer__switch {
+	display: inline-flex;
 }
 
 .cn-cell-renderer__mono {

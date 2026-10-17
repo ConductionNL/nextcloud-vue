@@ -193,6 +193,8 @@
 		<template v-else>
 			<!-- The brand block in Nextcloud's own header (board look); teleported, renders nothing here. -->
 			<CnBrandBar v-if="brandInHeader" :brand="resolvedBrandBlock" @unavailable="headerMissing = true" />
+			<!-- The app's own line on the header's search field (board look); renders nothing here. -->
+			<CnHeaderSearchLabel v-if="headerSearchLabel" :label="headerSearchLabel" />
 			<!--
 			  @slot menu
 			  @description Left-rail navigation surface. Default:
@@ -713,6 +715,7 @@ import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
+import CnHeaderSearchLabel from '../CnHeaderSearchLabel/CnHeaderSearchLabel.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
@@ -819,6 +822,7 @@ export default {
 
 	components: {
 		CnBrandBar,
+		CnHeaderSearchLabel,
 		NcAppContent,
 		NcAppSettingsDialog,
 		NcAppSettingsSection,
@@ -2193,6 +2197,22 @@ export default {
 				&& this.headerPresent
 				&& !!this.resolvedBrandBlock
 				&& this.resolvedBrandBlock.placement !== 'nav'
+		},
+
+		/**
+		 * The line on the search field in Nextcloud's header: the manifest's
+		 * `nav.searchPlaceholder`, translated, under the board look on a page
+		 * with a header. Empty otherwise, and then the field keeps Nextcloud's line.
+		 *
+		 * @spec openspec/changes/screens-board-top-bar-search/specs/layout-components/spec.md#requirement-the-board-look-names-what-the-header-search-finds
+		 * @return {string}
+		 */
+		headerSearchLabel() {
+			const key = this.manifest?.nav?.searchPlaceholder
+			if (this.resolvedLook !== 'board' || !this.headerPresent || typeof key !== 'string' || key === '') {
+				return ''
+			}
+			return this.manifestTranslate(key)
 		},
 
 		/**
