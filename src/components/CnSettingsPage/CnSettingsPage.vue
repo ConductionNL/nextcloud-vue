@@ -47,6 +47,8 @@
 				:title="title"
 				:description="resolvedDescription"
 				:icon="icon"
+				:breadcrumb="breadcrumb"
+				:meta="headerMeta"
 				:visuallyHidden="!showTitle">
 				<!-- Board look: the buildiq square, then the page Save as the
 				     last header button. -->
@@ -473,6 +475,30 @@ export default {
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Settings'),
+		},
+
+		/**
+		 * A breadcrumb under the title (manifest `config.breadcrumb`): one
+		 * crumb `{ label, route?, params?, href?, icon?, separator? }` or a
+		 * list; the title follows as the current crumb. Drawn as the detail
+		 * header's breadcrumb row. Null (the default) draws none.
+		 *
+		 * @type {object|Array<object>|null}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		breadcrumb: {
+			type: [Object, Array],
+			default: null,
+		},
+
+		/**
+		 * A note after the breadcrumb and a middle dot (manifest `config.headerMeta`).
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		headerMeta: {
+			type: String,
+			default: '',
 		},
 
 		/** Description shown under the title when `showTitle` is set. */

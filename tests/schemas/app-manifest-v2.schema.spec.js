@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.111.0', () => {
+	it('the manifest schema version reads 2.115.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1386,7 +1386,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.102.0 adds columnFields[].source.colorMap on a board (board-column-colour-map).
 		// 2.108.0 adds config.modules, modulesTitle and footnote on a links page (screens-links-module-cards).
 		// 2.111.0 lets config.greeting lead with a label or the date alone (dashboard-greeting-label).
-		expect(schema.version).toBe('2.111.0')
+		// 2.115.0 lets config.breadcrumb take a list of crumbs, for index, dashboard and settings pages too (page-header-breadcrumb).
+		expect(schema.version).toBe('2.115.0')
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2222,6 +2223,21 @@ describe('app-manifest-v2: a board column colour map (board-column-colour-map, 2
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: { orange: '' } })).valid).toBe(false)
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: { orange: 3 } })).valid).toBe(false)
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: 'orange' })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — config.breadcrumb (page-header-breadcrumb)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'types', route: '/types', type: 'index', title: 'Zaaktypen', config: { register: 'r', schema: 's', ...config } }] })
+
+	it('accepts one crumb, a list of crumbs and a headerMeta', () => {
+		expect(validateManifestV2(page({ breadcrumb: { label: 'Instellingen', route: 'Settings' }, headerMeta: 'Geldt voor iedereen' })).valid).toBe(true)
+		expect(validateManifestV2(page({ breadcrumb: [{ label: 'Beheer', href: '/beheer' }, { label: 'Organisatie', route: 'Org' }] })).valid).toBe(true)
+	})
+
+	it('rejects a crumb without a label, an unknown crumb key and an empty list', () => {
+		expect(validateManifestV2(page({ breadcrumb: { route: 'Settings' } })).valid).toBe(false)
+		expect(validateManifestV2(page({ breadcrumb: [{ label: 'A', colour: 'red' }] })).valid).toBe(false)
+		expect(validateManifestV2(page({ breadcrumb: [] })).valid).toBe(false)
 	})
 })
 

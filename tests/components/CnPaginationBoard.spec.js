@@ -51,10 +51,15 @@ describe('CnPagination board variant', () => {
 		expect(wrapper.emitted('page-changed')[0]).toEqual([2])
 	})
 
-	it('shows the count on a single page too', () => {
+	it('draws a single page as "1" and an inert Next, as the boards do', async () => {
 		const wrapper = mountBoard({ totalPages: 1, totalItems: 8 })
 		expect(wrapper.find('[data-testid="cn-pagination-board-count"]').text()).toBe('8 of 8')
-		expect(wrapper.find('.cn-pagination__board-pages').exists()).toBe(false)
+		const links = wrapper.findAll('.cn-pagination__board-pages .cn-pagination__board-link')
+		expect(links.map((l) => l.text())).toEqual(['1', 'Next'])
+		expect(links[1].element.tagName).toBe('SPAN')
+		expect(links[1].attributes('aria-disabled')).toBe('true')
+		await links[1].trigger('click')
+		expect(wrapper.emitted('page-changed')).toBeUndefined()
 	})
 
 	it('keeps the default variant as it was', () => {
