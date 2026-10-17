@@ -10,8 +10,8 @@
  * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md
  */
 import { mount } from '@vue/test-utils'
-import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
+import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 
 function mountPage(props = {}, look = 'board') {
 	return mount(CnIndexPage, {

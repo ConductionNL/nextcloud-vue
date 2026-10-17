@@ -18,8 +18,8 @@ jest.mock('@nextcloud/axios', () => ({
 }))
 
 import { mount } from '@vue/test-utils'
-import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
+import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import { resolveIndexSource } from '../../src/composables/indexSources.js'
 
 const SCHEMA = { title: 'Zaak', properties: { title: { type: 'string' } } }
