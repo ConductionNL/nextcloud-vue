@@ -1513,7 +1513,8 @@
     "%n feature": [
       "%n feature",
       "%n features"
-    ]
+    ],
+    "Open {item}": "Open {item}"
   },
   "plurals": {
     "{count} selected": [

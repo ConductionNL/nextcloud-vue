@@ -1699,7 +1699,8 @@
     "%n feature": [
       "%n functie",
       "%n functies"
-    ]
+    ],
+    "Open {item}": "{item} openen"
   },
   "plurals": {
     "{count} selected": [
