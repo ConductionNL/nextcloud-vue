@@ -13,12 +13,12 @@
 			app="pipelinq"
 			title="Store"
 			description="Een pagina die elke app heeft · sjablonen en connectors voor Pipelinq, 9 in de registry"
-			:can-install="true"
-			:can-publish="true"
-			publish-route="Publish"
-			:kind-chips="[{ value: 'adapter', label: 'Connectors' }]"
-			updates-note="Een update bewaart je eigen wijzigingen aan fases en wachtrijen."
-			:built-in="builtIn"
+			:canInstall="true"
+			:canPublish="true"
+			publishRoute="Publish"
+			:kindChips="[{ value: 'adapter', label: 'Connectors' }]"
+			updatesNote="Een update bewaart je eigen wijzigingen aan fases en wachtrijen."
+			:builtIn="builtIn"
 			footnote="This page comes from the library (nextcloud-vue) and looks the same in every app; only the content is the app's own." />
 	</div>
 </template>
@@ -41,7 +41,6 @@ const CARDS = [
 	card('asterisk', 'Asterisk-telefonie', 'Connector', 'Conduction', 'Schermmeldingen en klikken om te bellen via een Asterisk-centrale.', { kind: 'adapter', version: '2.6.1', latestVersion: '3.0.0', installed: true, updateAvailable: true }),
 	card('berichtenbox', 'Berichtenbox', 'Connector', 'Conduction', 'Berichten naar de Berichtenbox van MijnOverheid van een inwoner, via Logius.', { kind: 'adapter' }),
 ]
-
 
 const realFetch = window.fetch.bind(window)
 window.fetch = (url, options) => (String(url).includes('/apps/pipelinq/api/store/items')

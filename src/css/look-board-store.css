@@ -121,7 +121,7 @@
 .cn-look-board .cn-store-page--board:not(.cn-look-nextcloud *) .cn-store-page__search-icon {
 	position: absolute;
 	top: 11px;
-	left: 12px;
+	inset-inline-start: 12px;
 	color: var(--color-text-maxcontrast);
 	pointer-events: none;
 }
