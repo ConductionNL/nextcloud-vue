@@ -727,9 +727,9 @@ export default {
 		},
 
 		/**
-		 * The row's due text (`due`: `{ field, todayLabel?, overdueLabel?, emptyText? }`):
-		 * "3 dagen te laat" in the danger tone, "Vandaag", the date otherwise,
-		 * `emptyText` when the field is empty.
+		 * The row's due text (`due`: `{ field, todayLabel?, overdueLabel?, upcomingLabel?, upcomingWeeksLabel?, upcomingWeeksFrom?, emptyText? }`):
+		 * "3 dagen te laat" in the danger tone, "Vandaag", the date or the time
+		 * left ("nog 4 dagen") otherwise, `emptyText` when the field is empty.
 		 *
 		 * @param {object} row The row.
 		 * @return {{text: string, tone: string}|null} The text and tone, or null.

@@ -1386,6 +1386,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.102.0 adds columnFields[].source.colorMap on a board (board-column-colour-map).
 		// 2.108.0 adds config.modules, modulesTitle and footnote on a links page (screens-links-module-cards).
 		// 2.111.0 lets config.greeting lead with a label or the date alone (dashboard-greeting-label).
+		// 2.115.0 lets config.breadcrumb take a list of crumbs, for index, dashboard and settings pages too (page-header-breadcrumb).
 		// 2.120.0 adds chart barMax, footnote, highlight, valueFormat 'number' with suffix and endpointSource rowsPath (chart-bar-list-and-matrix).
 		expect(schema.version).toBe('2.120.0')
 	})
@@ -2223,6 +2224,21 @@ describe('app-manifest-v2: a board column colour map (board-column-colour-map, 2
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: { orange: '' } })).valid).toBe(false)
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: { orange: 3 } })).valid).toBe(false)
 		expect(validateManifestV2(index({ schema: 'statusType', colorMap: 'orange' })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — config.breadcrumb (page-header-breadcrumb)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'types', route: '/types', type: 'index', title: 'Zaaktypen', config: { register: 'r', schema: 's', ...config } }] })
+
+	it('accepts one crumb, a list of crumbs and a headerMeta', () => {
+		expect(validateManifestV2(page({ breadcrumb: { label: 'Instellingen', route: 'Settings' }, headerMeta: 'Geldt voor iedereen' })).valid).toBe(true)
+		expect(validateManifestV2(page({ breadcrumb: [{ label: 'Beheer', href: '/beheer' }, { label: 'Organisatie', route: 'Org' }] })).valid).toBe(true)
+	})
+
+	it('rejects a crumb without a label, an unknown crumb key and an empty list', () => {
+		expect(validateManifestV2(page({ breadcrumb: { route: 'Settings' } })).valid).toBe(false)
+		expect(validateManifestV2(page({ breadcrumb: [{ label: 'A', colour: 'red' }] })).valid).toBe(false)
+		expect(validateManifestV2(page({ breadcrumb: [] })).valid).toBe(false)
 	})
 })
 

@@ -624,6 +624,33 @@
 	opacity: 1 !important;
 }
 
+/* The support card at the end of an admin page (`supportPosition: "end"`,
+   board PqBeheer): one row, the title then the lines, wrapping in a narrow
+   window, with less padding than a settings card.
+   @spec openspec/changes/admin-shell-support-end/specs/settings-board-look/spec.md#requirement-support-can-be-its-own-card-at-the-end */
+.cn-look-board .settings-section.cn-admin-settings-shell__support:not(.cn-look-nextcloud *) {
+	flex-direction: row !important;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 24px;
+	padding: 16px 24px;
+}
+
+.cn-look-board .cn-admin-settings-shell__support:not(.cn-look-nextcloud *) .settings-section__name {
+	font-size: 16px;
+}
+
+.cn-look-board .cn-admin-settings-shell__support:not(.cn-look-nextcloud *) .cn-settings-section__content {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 24px;
+}
+
+.cn-look-board .cn-admin-settings-shell__support:not(.cn-look-nextcloud *) .cn-admin-settings-shell__support-line {
+	margin: 0;
+	font-size: 14px;
+}
+
 /* The section footer is the save row: the hairline replaces its own rule. */
 .cn-look-board .settings-section .cn-settings-section__footer {
 	margin: 0;

@@ -8,13 +8,13 @@
 		  Board variant (`variant: "board"`): the footer of the table card as the
 		  screens draw it. The count text at the start, numbered 34px links at
 		  the end, "Previous" only after the first page and "Next" only before
-		  the last. No First, no Last, no page-size select.
+		  the last (inert on a single page). No First, no Last, no page-size select.
 		-->
 		<template v-if="isBoardVariant">
 			<span class="cn-pagination__page-info cn-pagination__board-count" data-testid="cn-pagination-board-count">
 				{{ boardCountText }}
 			</span>
-			<nav v-if="totalPages > 1" class="cn-pagination__board-pages" :aria-label="t('nextcloud-vue', 'Pagination')">
+			<nav class="cn-pagination__board-pages" :aria-label="t('nextcloud-vue', 'Pagination')">
 				<button
 					v-if="currentPage > 1"
 					type="button"
@@ -43,6 +43,14 @@
 					@click="changePage(currentPage + 1)">
 					{{ nextLabel }}
 				</button>
+				<!-- A single page still draws its "1" and an inert Next, as the boards do. -->
+				<span
+					v-else-if="totalPages <= 1"
+					class="cn-pagination__board-link cn-pagination__board-link--wide cn-pagination__board-link--disabled"
+					aria-disabled="true"
+					data-testid="cn-pagination-next">
+					{{ nextLabel }}
+				</span>
 			</nav>
 		</template>
 
