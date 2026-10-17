@@ -13,6 +13,7 @@
 	<div
 		class="cn-dashboard-page"
 		:class="{ 'cn-dashboard-page--board': isBoardLook }"
+		:style="{ '--cn-dashboard-grid-margin': `${gridMargin}px` }"
 		data-testid="cn-dashboard-page">
 		<!-- Header. `showHeader: false` drops the whole row (title, description,
 		     header actions, edit toggle) for a page that opens with its own
@@ -1252,12 +1253,16 @@ export default {
 		 * October 2026", `"full"` uses the whole display name. The page
 		 * `description`, when set, follows after another middle dot. Off by
 		 * default: the subtitle is the description alone, as before.
+		 * `"date"` leads with the date alone, and `{ label }` puts the
+		 * translated label where the greeting would be ("Customer contact ·
+		 * Wednesday 7 October 2026 · ...").
 		 *
 		 * @spec openspec/changes/screens-dashboard-greeting-header/specs/dashboard-page/spec.md#requirement-the-header-subtitle-can-greet-the-reader
-		 * @type {boolean|string}
+		 * @spec openspec/changes/dashboard-greeting-label/specs/dashboard-page/spec.md#requirement-the-header-subtitle-can-lead-with-a-label-or-the-date
+		 * @type {boolean|string|object}
 		 */
 		greeting: {
-			type: [Boolean, String],
+			type: [Boolean, String, Object],
 			default: false,
 		},
 
@@ -1992,6 +1997,10 @@ export default {
 		 * @return {string}
 		 */
 		greetingLine() {
+			if (this.greeting && typeof this.greeting === 'object') {
+				const label = typeof this.greeting.label === 'string' ? this.greeting.label.trim() : ''
+				return label ? this.effectiveTranslate(label) : ''
+			}
 			if (this.greeting !== true && this.greeting !== 'first' && this.greeting !== 'full') {
 				return ''
 			}
@@ -2014,17 +2023,20 @@ export default {
 		},
 
 		/**
-		 * The header subtitle: with `greeting` on, the greeting, today's date
-		 * written out and the description, joined by a middle dot; else the
-		 * description alone, as before.
+		 * The header subtitle: with `greeting` on, the greeting (or the
+		 * label), today's date written out and the description, joined by a
+		 * middle dot; with `greeting: "date"` the date leads, capitalised;
+		 * else the description alone, as before.
 		 *
 		 * @spec openspec/changes/screens-dashboard-greeting-header/specs/dashboard-page/spec.md#requirement-the-header-subtitle-can-greet-the-reader
+		 * @spec openspec/changes/dashboard-greeting-label/specs/dashboard-page/spec.md#requirement-the-header-subtitle-can-lead-with-a-label-or-the-date
 		 * @return {string}
 		 */
 		subtitleText() {
 			const description = this.description ? this.resolvedDescription : ''
+			const dateOnly = this.greeting === 'date'
 			const greeting = this.greetingLine
-			if (greeting === '') {
+			if (greeting === '' && !dateOnly) {
 				return description
 			}
 			const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
@@ -2033,6 +2045,9 @@ export default {
 				date = new Intl.DateTimeFormat(getCanonicalLocale() || undefined, options).format(new Date())
 			} catch {
 				date = new Intl.DateTimeFormat(undefined, options).format(new Date())
+			}
+			if (dateOnly) {
+				date = date.charAt(0).toLocaleUpperCase() + date.slice(1)
 			}
 			return [greeting, date, description].filter((part) => part !== '').join(' · ')
 		},
@@ -4897,6 +4912,15 @@ export default {
 /* The KPI row above the grid: tiles are cells of the auto-fit grid. */
 .cn-dashboard-page__kpi-row {
 	margin-bottom: var(--cn-board-section-gap, 16px);
+}
+
+/* Board look: GridStack insets every card by the grid margin on each side, so
+   the cards started a margin to the right of the KPI row and the header. The
+   grid reaches out by that margin, so the card edges line up with the page's
+   (dashboard-grid-flush). */
+.cn-dashboard-page--board :deep(.cn-dashboard-grid) {
+	width: auto;
+	margin-inline: calc(-1 * var(--cn-dashboard-grid-margin, 12px));
 }
 
 .cn-dashboard-page__kpi-cell {
