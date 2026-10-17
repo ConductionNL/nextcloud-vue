@@ -1681,7 +1681,7 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 8,
+			"direct": 9,
 			"transitive": 184,
 			"tier": "heavy",
 			"via": [
