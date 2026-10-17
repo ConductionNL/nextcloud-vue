@@ -203,3 +203,64 @@
 .cn-dialog__confirm-pending {
 	opacity: 0.45;
 }
+
+/* On a phone the board dialog is a bottom sheet (board PqMobiel): full width,
+   anchored to the bottom, as tall as its content up to the screen less the
+   header, a 16px top radius and a grab bar. The footer buttons share the row. */
+@media (max-width: 600px) {
+	.modal-mask.cn-dialog-board .modal-wrapper .modal-container,
+	.modal-mask.cn-dialog-board .modal-wrapper--normal > .modal-container {
+		position: absolute;
+		inset: auto 0 0;
+		width: 100%;
+		max-width: 100%;
+		height: auto;
+		max-height: calc(100% - var(--header-height, 50px));
+		border-radius: 16px 16px 0 0;
+	}
+
+	.modal-mask.cn-dialog-board .modal-container::before {
+		content: '';
+		display: block;
+		flex: none;
+		width: 40px;
+		height: 4px;
+		margin: 8px auto 0;
+		border-radius: 2px;
+		background: var(--color-border-dark);
+	}
+
+	.modal-mask.cn-dialog-board .modal-container {
+		flex-direction: column;
+	}
+
+	.cn-dialog-board .dialog {
+		height: auto;
+		min-height: 0;
+	}
+
+	.cn-dialog-board .dialog__content {
+		flex: 0 1 auto;
+		overflow-y: auto;
+	}
+
+	.cn-dialog-board .dialog__actions > .button-vue,
+	.cn-dialog-board .dialog__actions > * {
+		flex: 1 1 0;
+		min-height: 44px;
+	}
+}
+
+/* Above a phone the boards top-align a dialog (DqNieuweZaak, DqUwWachtrij,
+   DqVolgendeStap: the top edge sits about 90px down at 1440 wide) instead of
+   centring it. `--cn-dialog-top` moves it. */
+@media (min-width: 601px) {
+	.modal-mask.cn-dialog-board .modal-wrapper {
+		align-items: flex-start;
+	}
+
+	.modal-mask.cn-dialog-board .modal-wrapper .modal-container {
+		margin-top: var(--cn-dialog-top, 88px);
+		max-height: calc(100% - var(--cn-dialog-top, 88px) - 24px);
+	}
+}

@@ -165,8 +165,9 @@ describe('resolveHeaderMeta formats', () => {
 		expect(resolveHeaderMeta('via {channel} · {createdAt|relative}', { channel: 'Web', createdAt: '2026-10-12T09:42:00' }, now)).not.toContain('2026-10-12T')
 	})
 
-	it('drops the line when the formatted token has no value', () => {
-		expect(resolveHeaderMeta('via {channel} · {createdAt|relative}', { channel: 'Web' }, now)).toBe('')
+	it('drops a formatted token without a value with its separator, and the line when nothing is left', () => {
+		expect(resolveHeaderMeta('via {channel} · {createdAt|relative}', { channel: 'Web' }, now)).toBe('via Web')
+		expect(resolveHeaderMeta('via {channel} · {createdAt|relative}', {}, now)).toBe('')
 	})
 })
 

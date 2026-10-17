@@ -47,6 +47,7 @@ export default { components: { CnTabs, CnTab } }
 | `card` | `Boolean` | `false` | Card-style chrome (border + padding) around the panel area. |
 | `variant` | `'line' \| 'segmented' \| 'underline'` | `'line'` | How the strip is drawn. `segmented` is a compact pill switch for a view switch such as "My work / My team". `underline` draws plain labels on a rule with the open one underlined, and wraps instead of scrolling (board LpBeheerAlgemeen). Roles and keyboard behaviour stay the same. For a switch without panels, use [`CnSegmentedControl`](./cn-segmented-control.md). |
 | `ariaLabel` | `String` | `''` | Accessible name applied to the `role="tablist"` element. **Set this** — screen-reader users otherwise hear an unnamed tab list. |
+| `overflowInNavEnd` | `Boolean` | `false` | Leave the `overflow` tabs to the host's `#nav-end` menu instead of a "More" menu. The strip draws only the other tabs, and a selected overflow tab joins it just before the last one. The host lists the overflow tabs and opens one through its `CnTab`'s `active`. `CnTabsWidget` sets it in the board look. |
 | `moreLabel` | `String` | `'More'` | Name of the menu that lists the tabs marked `overflow`. |
 
 ## Counts and the More menu
@@ -127,7 +128,7 @@ Implements the WAI-ARIA tabs pattern:
 
 ## The board look
 
-In the board look a `line` strip draws the screens' folder tabs: 34px tabs on the darker surface, the open tab bold on the panel's colour with no coloured top edge, and a grey borderless 20px count badge 8px after the label. It never moves a tab under "More"; the strip scrolls. The `look` prop (`nextcloud` or `board`) overrides the look the app provides. The segmented variant is unchanged.
+In the board look a `line` strip draws the screens' folder tabs: 34px tabs on the darker surface, the open tab bold on the panel's colour with no coloured top edge, and a grey borderless 20px count badge 8px after the label. It never moves a tab under "More"; the strip scrolls (unless `overflowInNavEnd` hands the overflow tabs to the host's menu). The `look` prop (`nextcloud` or `board`) overrides the look the app provides. The segmented variant is unchanged.
 ## See also
 
 - [`CnTab`](./cn-tab.md) — one panel in the strip

@@ -5,6 +5,7 @@ import { boardDateLocale, formatBoardDate, formatBoardWeekday, formatRelativeDat
 import { parseDateValue } from './dateVariant.js'
 import { formatMoney } from './formatMetric.js'
 import { readPath } from './readPath.js'
+import { userDisplayName } from './userDisplayName.js'
 
 const TOKEN = /\{([^{}\s|]+)(?:\|([a-z]+)(?::([^{}\s]+))?)?\}/g
 
@@ -33,10 +34,36 @@ export function formatBoardDateTime(value, now = new Date()) {
 }
 
 /**
+ * A date with the month written out: "7 oktober", or "6 oktober 2026"
+ * outside the current year or when `withYear` asks for it.
+ *
+ * @param {unknown} value A Date, a timestamp or an ISO string.
+ * @param {Date} now The reference moment.
+ * @param {boolean} [withYear] Always write the year.
+ * @return {string} The text, or '' when the value is not a date.
+ * @spec openspec/changes/screens-header-meta-tokens/specs/detail-page-board-look/spec.md#requirement-the-header-meta-line-formats-users-long-dates-and-enum-labels
+ */
+export function formatLongDate(value, now = new Date(), withYear = false) {
+	const date = parseDateValue(value)
+	if (date === null) {
+		return ''
+	}
+	const options = { day: 'numeric', month: 'long' }
+	if (withYear || date.getFullYear() !== now.getFullYear()) {
+		options.year = 'numeric'
+	}
+	try {
+		return new Intl.DateTimeFormat(boardDateLocale(), options).format(date)
+	} catch {
+		return new Intl.DateTimeFormat(undefined, options).format(date)
+	}
+}
+
+/**
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime`, `weekday`, `time`, `relative`, `relativetime`, `days` or '' (as is).
+ * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `currency`, `relative`, `relativetime`, `days` or '' (as is).
  * @param {Date} now The reference moment.
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
@@ -55,6 +82,12 @@ function formatValue(value, format, now, arg = '', object = null, config = null)
 	}
 	if (format === 'weekday') {
 		return formatBoardWeekday(value, now, { today: arg === 'today' })
+	}
+	if (format === 'longdate') {
+		return formatLongDate(value, now, arg === 'year')
+	}
+	if (format === 'user') {
+		return userDisplayName(value)
 	}
 	if (format === 'time') {
 		const date = parseDateValue(value)
@@ -88,7 +121,10 @@ function formatValue(value, format, now, arg = '', object = null, config = null)
  * Every `{path}` token is a dot path into the object; `{path|date}` and
  * `{path|datetime}` format it as the boards write dates, `{path|weekday}` adds
  * the short weekday ("wo 7 okt"; `{path|weekday:today}` reads "Vandaag, wo 7 okt"
- * for today), `{path|time}` is the time of day ("08:45"), `{path|currency}`,
+ * for today), `{path|longdate}` writes the month out ("7 oktober";
+ * `{path|longdate:year}` always adds the year), `{path|time}` is the time
+ * of day ("08:45"), `{path|user}` is a user id's display name (looked up
+ * once, '' until it arrives), `{path|currency}`,
  * `{path|currency:EUR}` and `{path|currency:field}` write an amount in a
  * currency (a code, or the row field that holds it; without either, or when
  * the row field is empty, the app's reporting currency), `{path|relative}` and
@@ -146,4 +182,39 @@ export function firstFilled(templates, object, translate = (key) => key, now = n
 		}
 	}
 	return ''
+}
+
+/**
+ * Fill a template such as `"{identifier} · {requester}"` field by field
+ * (a table column's `secondary` line, a detail page's meta line).
+ *
+ * A field without a value takes its separator with it: the text between two
+ * fields belongs to the field after it, so an empty requester leaves
+ * "2026-0002", not "2026-0002 ·", and an empty first field does not leave a
+ * leading separator either. Text before the first field and after the last
+ * one is kept as written. A template whose fields all have values fills
+ * exactly as before.
+ *
+ * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-empty-field-takes-its-separator-with-it
+ * @param {string} template The template, with `{field}` placeholders.
+ * @param {(key: string) => string} valueOf The text of a field ('' when empty).
+ * @return {string} The filled template.
+ */
+export function joinTemplateParts(template, valueOf) {
+	// split() with a capture group alternates literal, field, literal, …
+	const parts = template.split(/\{([^}]+)\}/)
+	const lead = parts[0]
+	const tail = parts[parts.length - 1]
+	let body = ''
+	for (let i = 1; i < parts.length; i += 2) {
+		const value = valueOf(parts[i].trim())
+		if (value === '') {
+			continue
+		}
+		// The literal before this field: the separator, unless nothing has
+		// been written yet (then there is nothing to separate from).
+		const separator = i === 1 ? '' : parts[i - 1]
+		body += (body === '' ? '' : separator) + value
+	}
+	return lead + body + tail
 }

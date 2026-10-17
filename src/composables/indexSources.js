@@ -267,6 +267,15 @@ function tasksSource() {
 		 */
 		loading: () => !!store.loading,
 
+		/**
+		 * Count the inbox for a config without touching the rows on screen,
+		 * for a quick-filter tab with `showCount`.
+		 *
+		 * @param {object} config The merged config, as for `load`.
+		 * @return {Promise<number>} The datastore total.
+		 */
+		count: async (config) => (await store.fetchFor({ ...(config || {}), limit: 1 })).total,
+
 		columns: [
 			{ key: 'title', label: t('nextcloud-vue', 'Task') },
 			{ key: 'subjectLabel', label: t('nextcloud-vue', 'Subject') },

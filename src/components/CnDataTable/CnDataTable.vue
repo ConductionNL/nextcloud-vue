@@ -130,7 +130,7 @@
 								col.class || '',
 								pinClass(leadingCount + colIndex),
 								isGrowColumn(col) ? 'cn-table-col--grow' : '',
-								colIndex === 0 ? 'cn-table-head--title' : '',
+								colIndex === titleColumnIndex ? 'cn-table-head--title' : '',
 							]"
 							:style="{ ...(col.width ? { width: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							:aria-sort="ariaSortFor(col)"
@@ -259,7 +259,7 @@
 						<td
 							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
-							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === 0 ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '']"
+							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === titleColumnIndex ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '']"
 							:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							@mouseenter="titleWhenClipped">
 							<!-- A row with a `rowClickRoute` is a real link: this anchor
@@ -267,7 +267,7 @@
 							     the URL, a middle or ctrl click opens a new tab natively,
 							     and the row is reachable with Tab. The row's own click
 							     handlers treat it as a nested control and leave it be. -->
-							<a v-if="colIndex === 0 && rowLinks[String(row[rowKey])]"
+							<a v-if="colIndex === titleColumnIndex && rowLinks[String(row[rowKey])]"
 								class="cn-table-row__link"
 								:href="rowLinks[String(row[rowKey])].href"
 								:aria-label="rowLinkLabel(row, col)"
@@ -281,9 +281,9 @@
 							     the record is locked. It renders nothing when unlocked,
 							     so an unlocked table is byte-for-byte what it was. -->
 							<CnUnreadMarker
-								v-if="colIndex === 0 && isUnreadRow(row)" />
+								v-if="colIndex === titleColumnIndex && isUnreadRow(row)" />
 							<CnLockIndicator
-								v-if="colIndex === 0"
+								v-if="colIndex === titleColumnIndex"
 								:object="row"
 								:size="16" />
 							<!-- Declared state indicators ride the first data cell
@@ -293,7 +293,7 @@
 							     however the record is shaped. Past the cap the rest move
 							     into the row menu, because a row of nine icons is not a
 							     row anyone can triage at a glance. -->
-							<span v-if="colIndex === 0 && indicatorsFor(row).shown.length > 0"
+							<span v-if="colIndex === titleColumnIndex && indicatorsFor(row).shown.length > 0"
 								class="cn-table-row-indicators"
 								data-testid="cn-row-indicators">
 								<span v-for="indicator in indicatorsFor(row).shown"
@@ -338,7 +338,7 @@
 							     file names it (OpenRegister `@self.matchedFile`): plain text,
 							     file name only, under the first cell. -->
 							<span
-								v-if="colIndex === 0 && matchedFileOf(row)"
+								v-if="colIndex === titleColumnIndex && matchedFileOf(row)"
 								class="cn-table-cell__secondary cn-table-cell__matched-file"
 								data-testid="cn-row-matched-file">{{ matchedFileLabel(row) }}</span>
 						</td>
@@ -404,7 +404,7 @@ import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
-import { fillTemplate } from '../../utils/fillTemplate.js'
+import { fillTemplate, joinTemplateParts } from '../../utils/fillTemplate.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
@@ -420,40 +420,6 @@ import { CnUnreadMarker } from '../CnUnreadMarker/index.js'
 // shared table stylesheet. Import it here so the table is styled even when the
 // consuming app does not pull in the library's global css/index.css.
 import '../../css/table.css'
-
-/**
- * Fill a `secondary` template such as `"{identifier} · {requester}"`.
- *
- * A field without a value takes its separator with it: the text between two
- * fields belongs to the field after it, so an empty requester leaves
- * "2026-0002", not "2026-0002 ·", and an empty first field does not leave a
- * leading separator either. Text before the first field and after the last
- * one is kept as written. A template whose fields all have values fills
- * exactly as before.
- *
- * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-empty-field-takes-its-separator-with-it
- * @param {string} template The template, with `{field}` placeholders.
- * @param {(key: string) => string} valueOf The text of a field ('' when empty).
- * @return {string} The filled template.
- */
-function fillSecondaryTemplate(template, valueOf) {
-	// split() with a capture group alternates literal, field, literal, …
-	const parts = template.split(/\{([^}]+)\}/)
-	const lead = parts[0]
-	const tail = parts[parts.length - 1]
-	let body = ''
-	for (let i = 1; i < parts.length; i += 2) {
-		const value = valueOf(parts[i].trim())
-		if (value === '') {
-			continue
-		}
-		// The literal before this field: the separator, unless nothing has
-		// been written yet (then there is nothing to separate from).
-		const separator = i === 1 ? '' : parts[i - 1]
-		body += (body === '' ? '' : separator) + value
-	}
-	return lead + body + tail
-}
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -566,7 +532,10 @@ export default {
 		 * formats through `fillTemplate`), or a function of the row. Empty fields leave their placeholder blank; a line that
 		 * resolves to nothing is not drawn.
 		 *
-		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, secondary: (string|((row: object) => string))}|string>}
+		 * `link: true` makes that column the one that names the row: it carries
+		 * the row link and the title look. Without it the first column does.
+		 *
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string))}|string>}
 		 */
 		columns: {
 			type: Array,
@@ -774,6 +743,17 @@ export default {
 		title: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Draw an unread record (`@self.unread`) in bold with the unread dot.
+		 * Off, every row reads alike whatever its read state.
+		 *
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-unread-rows-are-marked-only-where-the-reader-asked-for-them
+		 */
+		showUnread: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -1079,6 +1059,20 @@ export default {
 		 * @return {string|null} The column key, or null when not fitting.
 		 * @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-a-narrow-object-table-keeps-its-trailing-columns-in-view
 		 */
+		/**
+		 * The column that names the row: it carries the row link, the title
+		 * look and the unread, lock and indicator marks. The first column with
+		 * `link: true`, else the first column (DqTeamwachtrij puts the waiting
+		 * time first and links the case title in the second).
+		 *
+		 * @return {number} The index in `effectiveColumns`.
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-a-column-can-carry-the-row-link
+		 */
+		titleColumnIndex() {
+			const index = this.effectiveColumns.findIndex((c) => c && c.link === true)
+			return index === -1 ? 0 : index
+		},
+
 		growColumnKey() {
 			if (!this.fitWidth || this.effectiveColumns.length === 0) {
 				return null
@@ -1399,13 +1393,14 @@ export default {
 
 		/**
 		 * Whether a row's record changed since the user last looked
-		 * (`@self.unread`). A row without the marker renders as it always did.
+		 * (`@self.unread`), when `showUnread` is on. A row without the marker
+		 * renders as it always did.
 		 *
 		 * @param {object} row The row.
 		 * @return {boolean} True when the row is unread.
 		 */
 		isUnreadRow(row) {
-			return !!(row && row['@self'] && row['@self'].unread === true)
+			return this.showUnread && !!(row && row['@self'] && row['@self'].unread === true)
 		},
 
 		/**
@@ -1790,7 +1785,7 @@ export default {
 				return ''
 			}
 			if (spec.includes('{')) {
-				const filled = fillSecondaryTemplate(spec, (key) => (key.includes('|')
+				const filled = joinTemplateParts(spec, (key) => (key.includes('|')
 					? fillTemplate(`{${key}}`, row)
 					: this.secondaryFieldText(row, key)))
 				// A template whose every field is empty leaves only separators:

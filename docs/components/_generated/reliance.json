@@ -602,9 +602,11 @@
 		},
 		"CnCountdownWidget": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 4,
+			"tier": "medium",
+			"via": [
+				"CnIndexPage"
+			],
 			"page": "cn-countdown-widget"
 		},
 		"CnCountdownWidgetForm": {
@@ -871,7 +873,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 180,
+			"transitive": 179,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1332,7 +1334,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 186,
+			"transitive": 187,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1614,7 +1616,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 183,
+			"transitive": 184,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2700,53 +2702,6 @@
 			"via": [],
 			"page": "cn-pagination"
 		},
-		"CnPartyActionsWidget": {
-			"direct": 0,
-			"transitive": 112,
-			"tier": "heavy",
-			"via": [
-				"CnActionButtons",
-				"CnAnalyticsReportPicker",
-				"CnAuditTrailCard",
-				"CnBookmarkPicker",
-				"CnCalendarEventCreate",
-				"CnCalendarEventPicker",
-				"CnChildRecordsField",
-				"CnCollectivePageCreate",
-				"CnCollectivePagePicker",
-				"CnContactPicker",
-				"CnCospendCreate",
-				"CnCospendPicker",
-				"CnDataTable",
-				"CnDeckCardCreate",
-				"CnDeckCardPicker",
-				"CnEmailPicker",
-				"CnFilesBrowser",
-				"CnFilesCard",
-				"CnFkResolveCell",
-				"CnFlowOperationPicker",
-				"CnFormDialog",
-				"CnIndexPage",
-				"CnMapPoiPicker",
-				"CnNoteComposer",
-				"CnNotesCard",
-				"CnObjectSidebar",
-				"CnOpenProjectCreate",
-				"CnOpenProjectPicker",
-				"CnPhotoAlbumPicker",
-				"CnPollPicker",
-				"CnResourceSelect",
-				"CnTagsCard",
-				"CnTalkRoomPicker",
-				"CnTasksCard",
-				"CnTimeTrackerCreate",
-				"CnTimeTrackerPicker",
-				"CnVersionHistory",
-				"CnXwikiPageCreate",
-				"CnXwikiPagePicker"
-			],
-			"page": "cn-party-actions-widget"
-		},
 		"CnPeopleWidget": {
 			"direct": 0,
 			"transitive": 0,
@@ -3577,7 +3532,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 0,
-			"transitive": 127,
+			"transitive": 128,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3841,6 +3796,13 @@
 			"via": [],
 			"page": "cn-user-action-menu"
 		},
+		"CnUserSettingsDialog": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnVersionHistory": {
 			"direct": 3,
 			"transitive": 6,
@@ -3942,10 +3904,9 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 167,
+			"transitive": 166,
 			"tier": "heavy",
 			"via": [
-				"CnActionButtons",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
