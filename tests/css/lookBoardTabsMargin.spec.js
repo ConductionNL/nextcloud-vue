@@ -18,4 +18,11 @@ describe('look-board-detail.css: folder tabs', () => {
 		expect(at).toBeGreaterThan(-1)
 		expect(css.slice(at, css.indexOf('}', at))).toContain('margin: 0')
 	})
+
+	it('bottom-aligns the tabs and keeps the Actions button 8px clear of the end and the card', () => {
+		const bar = css.indexOf('.cn-look-board .cn-tabs--board .cn-tabs__bar {')
+		expect(css.slice(bar, css.indexOf('}', bar))).toContain('align-items: flex-end')
+		const end = css.indexOf('.cn-look-board .cn-tabs--board .cn-tabs__nav-end {')
+		expect(css.slice(end, css.indexOf('}', end))).toContain('margin: 0 8px 8px 0')
+	})
 })
