@@ -664,7 +664,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 179,
+			"transitive": 180,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -749,6 +749,7 @@
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
 				"CnWidgetRefItem",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -885,7 +886,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 182,
+			"transitive": 183,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -969,6 +970,7 @@
 				"CnWeekStripWidget",
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -1406,7 +1408,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 189,
+			"transitive": 190,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1491,6 +1493,7 @@
 				"CnWeekStripWidget",
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -1696,7 +1699,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 9,
-			"transitive": 186,
+			"transitive": 187,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1780,6 +1783,7 @@
 				"CnWeekStripWidget",
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -2678,7 +2682,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 203,
+			"transitive": 204,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2772,6 +2776,7 @@
 				"CnWidgetObjectTable",
 				"CnWidgetRefItem",
 				"CnWikiPage",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -3080,7 +3085,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 180,
+			"transitive": 181,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3166,6 +3171,7 @@
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
 				"CnWidgetRefItem",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -4056,7 +4062,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 170,
+			"transitive": 171,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4137,6 +4143,7 @@
 				"CnWeekStripWidget",
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -4203,6 +4210,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-wizard-dialog"
+		},
+		"CnWorkingCalendarWidget": {
+			"direct": 2,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-working-calendar-widget"
 		},
 		"CnWorkspaceFilterWidget": {
 			"direct": 3,

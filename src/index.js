@@ -346,6 +346,7 @@ export {
 	CnWidgetVisibilityRulesModal,
 	CnWidgetWrapper,
 	CnWizardDialog,
+	CnWorkingCalendarWidget,
 	CnWorkspaceFilterWidget,
 	DEFAULT_DATE_RANGE_PRESETS,
 	defaultPageTypes,
