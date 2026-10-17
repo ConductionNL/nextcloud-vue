@@ -599,6 +599,7 @@ export default {
 				value: over
 					? t('nextcloud-vue', '{value} of {limit}, over the limit', { value, limit: limitText })
 					: t('nextcloud-vue', '{value} of {limit}', { value, limit: limitText }),
+
 				amount,
 				limit,
 				percent: Math.max(0, Math.min(100, (amount / limit) * 100)),
