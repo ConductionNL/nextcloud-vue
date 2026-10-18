@@ -100,7 +100,7 @@ export default {
 | `lockedFields` | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
 | `excludeFields` | `[]` | Array of field keys to exclude from the auto-generated form. |
 | `includeFields` | `null` | Array of field keys to include (whitelist mode). Null means all fields. |
-| `fieldOverrides` | `{}` | Per-field override objects passed to `fieldsFromSchema`. |
+| `fieldOverrides` | `{}` | Per-field override objects passed to `fieldsFromSchema`. A `widget` that names a registered component (v2 registry, then `customComponents`) mounts it as the field's control, with `value`/`modelValue`, `field`, `error` and `disabled`, writing back on `input` or `update:modelValue`. |
 | `nameField` | `'title'` | Which field is the "name" of the item (used in result messages). |
 | `size` | `'normal'` | NcDialog size — `'small'`, `'normal'`, or `'large'`. |
 | `dynamicLoadingLabel` | `'Loading the fields this choice adds.'` | Text shown while the fields a chosen value brings with it are being fetched. See *Fields the data decides* below. |

@@ -131,6 +131,22 @@
 							:error="errors[field.key]"
 							:updateField="updateField" />
 
+						<!-- A `widget` naming a registered component (v2 registry or
+						     customComponents) mounts that component as the control.
+						     It gets `value`/`modelValue`, `field`, `error` and
+						     `disabled`, and writes back with `input` or
+						     `update:modelValue`. -->
+						<component
+							:is="resolveFieldComponent(field)"
+							v-else-if="resolveFieldComponent(field)"
+							:value="formData[field.key]"
+							:modelValue="formData[field.key]"
+							:field="field"
+							:error="errors[field.key] || ''"
+							:disabled="!!field.readOnly"
+							@input="value => updateField(field.key, value)"
+							@update:modelValue="value => updateField(field.key, value)" />
+
 						<!-- referenceType (AD-18): render the integration's
 						     single-entity widget instead of a plain input. -->
 						<component
@@ -843,6 +859,36 @@ import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAuto
  * @type {string[]}
  */
 const WIDE_WIDGETS = ['textarea', 'json', 'code']
+
+// The widget names the form draws itself; a registered component cannot take one over.
+const BUILT_IN_WIDGETS = new Set([
+	'text',
+	'email',
+	'url',
+	'number',
+	'textarea',
+	'switch',
+	'select',
+	'user',
+	'group',
+	'multiselect',
+	'user-multiselect',
+	'group-multiselect',
+	'tags',
+	'checkbox',
+	'date',
+	'datetime',
+	'json',
+	'code',
+	'file',
+	'duration',
+	'child-records',
+	'sub-objects',
+	'property-source',
+	'icon',
+	'language',
+	'timezone',
+])
 
 /** Largest file carried inline in the saved payload; bigger ones upload after save. */
 const INLINE_FILE_CAP = 1024 * 1024
@@ -2029,6 +2075,28 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve the registered component a field's `widget` names: the v2
+		 * registry (any entry with a `component`) first, then the legacy
+		 * customComponents map. Built-in widget names never resolve here.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveFieldComponent(field) {
+			const name = field && field.widget
+			if (typeof name !== 'string' || name === '' || BUILT_IN_WIDGETS.has(name)) {
+				return null
+			}
+			const entry = this.cnRegistry && this.cnRegistry[name]
+			if (entry && entry.component) {
+				return entry.component
+			}
+			const legacy = this.cnCustomComponents && this.cnCustomComponents[name]
+			// A bare function in the legacy map is a handler, not a component.
+			return legacy && typeof legacy === 'object' ? legacy : null
+		},
+
 		/**
 		 * Resolve a field's reference integration widget, if any.
 		 * Returns the integration's single-entity widget component

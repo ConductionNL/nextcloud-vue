@@ -392,6 +392,16 @@ fieldOverrides: {
 
 A form without `section` keys renders as before.
 
+### `widget` naming a registered component
+
+A `widget` that is not one of the form's own widget names is looked up as a registered component: the v2 registry (`registry` on CnAppRoot, any entry with a `component`) first, then the `customComponents` map. When one answers, it is mounted as the field's control (board DqNieuweZaak, the Aanvrager picker). It receives `value` and `modelValue` (the field's value), `field` (the field descriptor), `error` and `disabled`, and writes the value back by emitting `input` or `update:modelValue`. The built-in names (`text`, `select`, `textarea`, `user` and the rest) always draw the built-in control, and a name nothing answers to falls back to the text input.
+
+```js
+fieldOverrides: {
+  applicant: { widget: 'ApplicantPicker' },
+}
+```
+
 ### `enumLabels`
 
 For `select` fields backed by an `enum`, the dropdown displays raw enum values by default. Use `enumLabels` to provide human-readable labels:
