@@ -155,7 +155,7 @@ export function interpolateUrlTokens(str, ctx) {
  *
  * @param {{url: string, method?: string, params?: object}} config The endpointSource block.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object}} [ctx] The token context.
- * @return {{url: string, method: ('GET'|'POST'), params: object, blocked: boolean}} The resolved request.
+ * @return {{url: string, method: ('GET'|'POST'), params: object, blocked: boolean, responsePath: string}} The resolved request.
  */
 export function resolveEndpointRequest(config, ctx) {
 	const cfg = config || {}
@@ -163,8 +163,30 @@ export function resolveEndpointRequest(config, ctx) {
 	const resolved = resolveFilterTokens(cfg.params || {}, ctx)
 	const params = dropOptionalUnresolved(resolved)
 	const method = String(cfg.method || 'GET').toUpperCase() === 'POST' ? 'POST' : 'GET'
-	const blocked = hasUnresolvedTokens(params) || hasEmptyPathSegment(cfg.url || '', url)
-	return { url, method, params, blocked }
+	const responsePath = resolveResponsePath(cfg.responsePath, ctx)
+	const blocked = hasUnresolvedTokens(params) || hasEmptyPathSegment(cfg.url || '', url) || responsePath === null
+	return { url, method, params, blocked, responsePath: responsePath || '' }
+}
+
+/**
+ * Resolve the tokens in a `responsePath` (`phaseDays.@workspace.measure`), so a
+ * page control can choose which part of one response a widget reads. Null when
+ * a token resolved to nothing and left an empty path segment: the read waits
+ * instead of plucking the wrong part.
+ *
+ * @param {string|undefined} path The configured path.
+ * @param {object} [ctx] The token context.
+ * @return {string|null} The resolved path, '' for none, null when blocked.
+ */
+function resolveResponsePath(path, ctx) {
+	if (typeof path !== 'string' || path === '') {
+		return ''
+	}
+	if (path.indexOf('@') === -1) {
+		return path
+	}
+	const resolved = interpolateUrlTokens(path, ctx)
+	return resolved.split('.').some((segment) => segment === '') ? null : resolved
 }
 
 /**
@@ -309,7 +331,7 @@ export async function fetchEndpointSource(config, ctx, opts) {
 		return null
 	}
 	const body = await fetchSharedResponse(request, opts)
-	const payload = getByPath(body, config.responsePath)
+	const payload = getByPath(body, request.responsePath)
 	return payload === undefined ? null : payload
 }
 
@@ -378,7 +400,7 @@ export function useEndpointSource(source, options) {
 			u: request.url,
 			m: request.method,
 			p: request.params,
-			r: cfg.responsePath || '',
+			r: request.responsePath,
 			b: request.blocked,
 		})
 	})
@@ -418,7 +440,7 @@ export function useEndpointSource(source, options) {
 			if (seq !== fetchSeq) {
 				return
 			}
-			const payload = getByPath(body, cfg.responsePath)
+			const payload = getByPath(body, request.responsePath)
 			data.value = payload === undefined ? null : payload
 		} catch (e) {
 			if (seq !== fetchSeq) {

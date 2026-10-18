@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.123.0', () => {
+	it('the manifest schema version reads 2.124.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1400,7 +1400,18 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.121.0 lets a query preset or a folder scope set addLabel, headerButtons, breadcrumb, headerMeta and afterList, adds config.afterList, and lets config.entitySource name the flowRuns, endpoint, search and users sources with a described sourceConfig (index-scope-presentation).
 		// 2.122.0 adds headerPill.resolve, a pill that shows a referenced record's label (detail-pill-resolve), chart cellSource, a matrix read from records (matrix-cell-records), and the organisations entitySource (organisations-entity-source).
 		// 2.123.0 adds the setup step's note and footnote, a line under a choice step's options (setup-wizard), config.headerMetaCounts on an index page (index-page), and actionsMenu.showMarkUnread and showOpenSidebar (detail-page).
-		expect(schema.version).toBe('2.123.0')
+		// 2.124.0 adds setup.steps[].visibleWhen (setup-wizard), and the dashboard config.pageFilters with control and placement (dashboard-page).
+		expect(schema.version).toBe('2.124.0')
+	})
+
+	it('accepts a dashboard page filter drawn as a segmented group on the description line, and refuses unknown keys', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'trend', route: '/trend', type: 'dashboard', title: 'Trend', config: { pageFilters: [filter] } }] })
+		const options = [{ value: 'mean', label: 'Gemiddeld' }, { value: 'median', label: 'Mediaan' }]
+		expect(validateManifestV2(withFilter({ key: 'measure', options, control: 'segmented', placement: 'description' })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'period', options })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'measure', options, control: 'radio' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'measure', options, placement: 'footer' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'measure', options, colour: 'red' })).valid).toBe(false)
 	})
 
 	it('accepts nav.searchPlaceholder as a non-empty string', () => {

@@ -865,6 +865,21 @@ export default {
 					const color = (feature.properties && feature.properties.markerColor)
 						|| (this.cfg.markers && this.cfg.markers.iconColor)
 						|| 'var(--color-primary-element, #2196F3)'
+					// A numbered pin, the number the list beside the map shows for the
+					// same row (an index map with `mapConfig.list`); the active row's
+					// pin draws darker.
+					const number = feature.properties && Number(feature.properties.markerNumber)
+					if (Number.isInteger(number) && number > 0) {
+						const active = feature.properties.markerActive === true
+						return L.marker(latlng, {
+							icon: L.divIcon({
+								className: active ? 'cn-map-widget__pin cn-map-widget__pin--active' : 'cn-map-widget__pin',
+								html: `<span>${number}</span>`,
+								iconSize: [26, 26],
+								iconAnchor: [13, 13],
+							}),
+						})
+					}
 					if (this.cfg.markers && this.cfg.markers.iconUrl) {
 						return L.marker(latlng, {
 							icon: L.icon({ iconUrl: this.cfg.markers.iconUrl, iconSize: [25, 41], iconAnchor: [12, 41] }),
@@ -1477,5 +1492,27 @@ export default {
 .cn-map-widget ::v-deep .cn-map-widget__control:hover,
 .cn-map-widget ::v-deep .cn-map-widget__control:focus-visible {
 	background: var(--color-background-hover);
+}
+</style>
+
+<style>
+/* A numbered pin (`properties.markerNumber`): a 26px primary circle with its
+   number in white, the active one darker. Unscoped, because Leaflet creates
+   the marker element outside the template. */
+.cn-map-widget__pin {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 2px solid var(--color-main-background);
+	border-radius: 50%;
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	font-size: 13px;
+	font-weight: 700;
+	box-sizing: border-box;
+}
+
+.cn-map-widget__pin--active {
+	background: var(--color-primary-element-light-text);
 }
 </style>

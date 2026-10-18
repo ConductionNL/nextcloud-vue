@@ -71,6 +71,8 @@ export const BUILT_IN_WIDGET_KEYS = Object.freeze([
 	'header',
 	'text',
 	'divider',
+	'saved-view-alert',
+	'exports',
 ])
 
 /**
@@ -109,6 +111,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'files',
 	'flow-runs',
 	'gauge',
+	'grouped-cards',
 	'header',
 	'image',
 	'interaction-form',

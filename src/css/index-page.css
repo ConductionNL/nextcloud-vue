@@ -73,6 +73,123 @@
 	min-height: 300px;
 }
 
+/* The map with its numbered list (`mapConfig.list`, DqZakenKaart): one framed
+   card, the map taking the larger share and the list beside it, stacking
+   under a narrow width. */
+.cn-index-page__map-card {
+	display: flex;
+	flex: 1;
+	flex-wrap: wrap;
+	gap: 16px;
+	min-height: 0;
+	padding: 16px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+}
+
+.cn-index-page__map-card .cn-index-page__map {
+	flex: 3 1 420px;
+	min-width: 0;
+}
+
+.cn-index-page__map-side {
+	display: flex;
+	flex: 2 1 320px;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 0;
+	overflow-y: auto;
+}
+
+.cn-index-page__map-list {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	list-style: none;
+}
+
+.cn-index-page__map-item {
+	display: flex;
+	gap: 12px;
+	padding: 12px 14px;
+}
+
+.cn-index-page__map-item + .cn-index-page__map-item {
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-index-page__map-item--active {
+	background: var(--color-primary-element-light);
+}
+
+.cn-index-page__map-number {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 13px;
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.cn-index-page__map-item--active .cn-index-page__map-number {
+	background: var(--color-primary-element-light-text);
+}
+
+.cn-index-page__map-text {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.cn-index-page__map-title {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-main-text);
+	font: inherit;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.35;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-index-page__map-sub,
+.cn-index-page__map-due {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-index-page__map-pills {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-index-page__map-missing {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	font-size: 14px;
+}
+
 /* Opt-in folder navigation pane (left of the list). */
 .cn-index-page__folder-pane {
 	flex: 0 0 240px;

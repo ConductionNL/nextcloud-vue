@@ -75,7 +75,10 @@ export function useNamedSource(props, options = {}) {
 		}
 	}
 
-	const source = resolveIndexSource(props.entitySource, props.sourceConfig)
+	const cnTranslate = inject('cnTranslate', null)
+	const source = resolveIndexSource(props.entitySource, props.sourceConfig, {
+		translate: (text) => (typeof cnTranslate === 'function' ? cnTranslate(text) : text),
+	})
 
 	// An unknown source name resolves to null and was already warned about.
 	// The page then behaves as an empty index rather than throwing.

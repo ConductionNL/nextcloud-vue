@@ -233,6 +233,15 @@
 				{{ moreLabel }}
 			</p>
 		</template>
+		<!-- `content.footnote`: a line under the table ("Awb 4:17 en 4:18"),
+		     through the host translate. Not while the list waits for its
+		     context or failed to load. -->
+		<p
+			v-if="resolvedFootnote && !waitingForContext && !error"
+			class="cn-object-list-widget__footnote"
+			data-testid="cn-object-list-widget-footnote">
+			{{ resolvedFootnote }}
+		</p>
 		<!-- Create affordance (ADR-062): every collection carries its Add at
 		     the bottom of the widget; the host card's Actions menu calls the
 		     same openCreate() through the public method. Suppressed while the
@@ -430,8 +439,10 @@ export default {
 		 * `hideHeader: true` drops the table's column header row (CnDataTable's
 		 * `hideHeader`), for a short list that reads as rows, not as a table.
 		 *
+		 * `footnote` is a line under the table, through the host translate.
+		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean}}
 		 */
 		content: {
 			type: Object,
@@ -916,6 +927,17 @@ export default {
 		resolvedEmptyText() {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 			return this.emptyText ? fn(this.emptyText) : this.emptyText
+		},
+
+		/**
+		 * `content.footnote` run through the host translate function, or ''.
+		 *
+		 * @return {string}
+		 */
+		resolvedFootnote() {
+			const note = typeof this.content.footnote === 'string' ? this.content.footnote : ''
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return note ? fn(note) : ''
 		},
 
 		/**
@@ -2025,6 +2047,12 @@ export default {
 	font-size: 0.85em;
 	margin: 4px 0 0;
 	padding: 4px;
+}
+
+.cn-object-list-widget__footnote {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	margin: 8px 0 0;
 }
 
 /* Footer Add — same pattern as the integration leaves' footer action

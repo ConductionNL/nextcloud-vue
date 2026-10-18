@@ -17,7 +17,30 @@
 				v-for="(row, index) in rows"
 				:key="row.value"
 				class="cn-ordered-list-field__row"
-				:data-testid="`cn-ordered-list-row-${row.value}`">
+				:class="{
+					'cn-ordered-list-field__row--dragging': dragIndex === index,
+					'cn-ordered-list-field__row--over': dropIndex === index && dragIndex !== index,
+				}"
+				:data-testid="`cn-ordered-list-row-${row.value}`"
+				@dragover.prevent="onDragOver(index)"
+				@drop.prevent="onDrop(index)">
+				<!-- A drag handle (DqPersoonlijkeInstellingen). It is a button: a
+				     keyboard user moves the row with the arrow keys on it, and the
+				     up and down buttons stay for anyone who neither drags nor uses
+				     arrow keys. -->
+				<button
+					v-if="!disabled"
+					type="button"
+					class="cn-ordered-list-field__handle"
+					draggable="true"
+					:aria-label="t('nextcloud-vue', 'Reorder {item}: drag, or press the up and down arrow keys', { item: row.label })"
+					:data-testid="`cn-ordered-list-handle-${row.value}`"
+					@dragstart="onDragStart($event, index)"
+					@dragend="onDragEnd"
+					@keydown.up.prevent="move(index, index - 1, 'handle')"
+					@keydown.down.prevent="move(index, index + 1, 'handle')">
+					<DragVertical :size="20" />
+				</button>
 				<span class="cn-ordered-list-field__position" aria-hidden="true">{{ index + 1 }}</span>
 				<span v-if="row.icon" class="cn-ordered-list-field__tile" aria-hidden="true">
 					<CnIcon :name="row.icon" :size="18" />
@@ -104,6 +127,7 @@ import { NcSelect } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 
 let orderedListUid = 0
@@ -134,7 +158,7 @@ let orderedListUid = 0
 export default {
 	name: 'CnOrderedListField',
 
-	components: { ChevronDown, ChevronUp, Close, CnIcon, NcSelect },
+	components: { ChevronDown, ChevronUp, Close, CnIcon, DragVertical, NcSelect },
 
 	props: {
 		/** The values in their order. */
@@ -205,6 +229,12 @@ export default {
 		return {
 			labelId: `cn-ordered-list-label-${orderedListUid}`,
 			announcement: '',
+			/** The value whose handle takes focus after the next render, or null. */
+			pendingHandleFocus: null,
+			/** The index of the row being dragged, or -1. */
+			dragIndex: -1,
+			/** The index of the row the drag is over, or -1. */
+			dropIndex: -1,
 		}
 	},
 
@@ -244,6 +274,20 @@ export default {
 		},
 	},
 
+	watch: {
+		// The parent's new order arrives as new rows; the moved row's handle
+		// lost focus when its row moved in the DOM, so it takes it back.
+		rows: {
+			flush: 'post',
+			handler() {
+				if (this.pendingHandleFocus !== null) {
+					this.focusPendingHandle()
+					this.pendingHandleFocus = null
+				}
+			},
+		},
+	},
+
 	methods: {
 		t,
 
@@ -270,13 +314,15 @@ export default {
 		},
 
 		/**
-		 * Move a row to another place and keep focus on the pressed button
-		 * where it still makes sense.
+		 * Move a row to another place and keep focus on the pressed control
+		 * where it still makes sense: the row's handle after an arrow key on
+		 * it, else the up or down button.
 		 *
 		 * @param {number} from Its index.
 		 * @param {number} to The index it moves to.
+		 * @param {string} [via] `handle` when the move came from the handle.
 		 */
-		move(from, to) {
+		move(from, to, via = '') {
 			if (to < 0 || to >= this.rows.length) {
 				return
 			}
@@ -286,7 +332,16 @@ export default {
 			const row = this.rows[from]
 			this.emitValue(values)
 			this.announcement = t('nextcloud-vue', '{item} moved to position {position} of {total}', { item: row.label, position: to + 1, total: values.length })
+			if (via === 'handle') {
+				// Re-focused once the parent hands the new order back: moving the
+				// row in the DOM takes focus off its handle.
+				this.pendingHandleFocus = row.value
+			}
 			this.$nextTick(() => {
+				if (via === 'handle') {
+					this.focusPendingHandle()
+					return
+				}
 				const direction = to < from ? 'up' : 'down'
 				const atEdge = (direction === 'up' && to === 0) || (direction === 'down' && to === values.length - 1)
 				const target = this.$el.querySelector(`[data-testid="cn-ordered-list-${atEdge ? (direction === 'up' ? 'down' : 'up') : direction}-${row.value}"]`)
@@ -294,6 +349,61 @@ export default {
 					target.focus()
 				}
 			})
+		},
+
+		/** Put focus back on the handle of the row just moved by its handle. */
+		focusPendingHandle() {
+			if (this.pendingHandleFocus === null) {
+				return
+			}
+			const handle = this.$el.querySelector(`[data-testid="cn-ordered-list-handle-${this.pendingHandleFocus}"]`)
+			if (handle) {
+				handle.focus()
+			}
+		},
+
+		/**
+		 * Start dragging a row by its handle.
+		 *
+		 * @param {DragEvent} event The drag event.
+		 * @param {number} index The row's index.
+		 */
+		onDragStart(event, index) {
+			this.dragIndex = index
+			if (event && event.dataTransfer) {
+				event.dataTransfer.effectAllowed = 'move'
+				event.dataTransfer.setData('text/plain', String(this.rows[index].value))
+			}
+		},
+
+		/**
+		 * Mark the row a drag is over as where the row will land.
+		 *
+		 * @param {number} index The row's index.
+		 */
+		onDragOver(index) {
+			if (this.dragIndex !== -1) {
+				this.dropIndex = index
+			}
+		},
+
+		/**
+		 * Drop the dragged row in the place of the row it is over.
+		 *
+		 * @param {number} index The row's index.
+		 */
+		onDrop(index) {
+			const from = this.dragIndex
+			this.onDragEnd()
+			if (from !== -1 && from !== index) {
+				this.move(from, index, 'handle')
+			}
+		},
+
+		/** End a drag, dropped or not. */
+		onDragEnd() {
+			this.dragIndex = -1
+			this.dropIndex = -1
 		},
 
 		/**
@@ -369,6 +479,42 @@ export default {
 
 .cn-ordered-list-field__row + .cn-ordered-list-field__row {
 	border-top: 1px solid var(--color-border);
+}
+
+.cn-ordered-list-field__row--dragging {
+	opacity: 0.5;
+}
+
+/* Where a dragged row will land: a primary line on the row's top edge. */
+.cn-ordered-list-field__row--over {
+	box-shadow: inset 0 2px 0 var(--color-primary-element);
+}
+
+.cn-ordered-list-field__handle {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	min-width: 28px;
+	height: 34px;
+	min-height: 34px;
+	margin: 0 -6px 0 -8px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--border-radius-element, 8px);
+	background: transparent;
+	color: var(--color-text-maxcontrast);
+	cursor: grab;
+}
+
+.cn-ordered-list-field__handle:active {
+	cursor: grabbing;
+}
+
+.cn-ordered-list-field__handle:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 1px;
 }
 
 .cn-ordered-list-field__position {

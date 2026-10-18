@@ -42,12 +42,13 @@
 				     group ends the description line ("Week 41 · alle teams ·
 				     [Deze week | Dit kwartaal | Dit jaar]"). -->
 				<div
-					v-if="datePeriodInDescription"
+					v-if="datePeriodInDescription || descriptionPageFilters.length > 0"
 					class="cn-dashboard-page__description cn-dashboard-page__description--with-period"
 					data-testid="cn-dashboard-page-subtitle">
 					<span v-if="subtitleText">{{ subtitleText }}</span>
 					<span v-if="subtitleText" aria-hidden="true">&middot;</span>
 					<CnSegmentedControl
+						v-if="datePeriodInDescription"
 						size="compact"
 						mode="toggle"
 						:options="segmentedOptions"
@@ -55,6 +56,20 @@
 						:ariaLabel="datePeriodLabel"
 						data-testid="cn-dashboard-page-date-segmented"
 						@update:modelValue="onSegmentPick" />
+					<!-- A page filter with `control: "segmented"` and
+					     `placement: "description"` (DqProcesanalyse
+					     "Gemiddeld | Mediaan"): a segmented group on the
+					     description line that writes the workspace context. -->
+					<CnSegmentedControl
+						v-for="pf in descriptionPageFilters"
+						:key="pf.key"
+						size="compact"
+						mode="toggle"
+						:options="pageFilterSegments(pf)"
+						:modelValue="workspaceContext[pf.key]"
+						:ariaLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
+						:data-testid="'cn-page-filter-' + pf.key"
+						@update:modelValue="onPageFilterChange(pf, $event)" />
 				</div>
 				<p v-else-if="subtitleText" class="cn-dashboard-page__description" data-testid="cn-dashboard-page-subtitle">
 					{{ subtitleText }}
@@ -316,23 +331,33 @@
 		     `@page.<key>` / `@workspace.<key>` token (e.g. an endpoint KPI's URL
 		     interpolating a chosen period). -->
 		<div
-			v-if="pageFilters && pageFilters.length"
+			v-if="rowPageFilters.length > 0"
 			class="cn-dashboard-page__page-filters"
 			data-testid="cn-dashboard-page-page-filters">
-			<label
-				v-for="pf in pageFilters"
-				:key="pf.key"
-				class="cn-dashboard-page__page-filter">
-				<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ pf.label }}</span>
-				<NcSelect
-					:modelValue="selectedPageFilterOption(pf)"
-					:options="pf.options || []"
-					:clearable="false"
-					:inputLabel="pf.label || pf.key"
-					label="label"
+			<template v-for="pf in rowPageFilters" :key="pf.key">
+				<CnSegmentedControl
+					v-if="pf.control === 'segmented'"
+					size="compact"
+					mode="toggle"
+					:options="pageFilterSegments(pf)"
+					:modelValue="workspaceContext[pf.key]"
+					:ariaLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
 					:data-testid="'cn-page-filter-' + pf.key"
 					@update:modelValue="onPageFilterChange(pf, $event)" />
-			</label>
+				<label
+					v-else
+					class="cn-dashboard-page__page-filter">
+					<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ pf.label }}</span>
+					<NcSelect
+						:modelValue="selectedPageFilterOption(pf)"
+						:options="pf.options || []"
+						:clearable="false"
+						:inputLabel="pf.label || pf.key"
+						label="label"
+						:data-testid="'cn-page-filter-' + pf.key"
+						@update:modelValue="onPageFilterChange(pf, $event)" />
+				</label>
+			</template>
 		</div>
 
 		<!-- Declarative in-body sections, `placement: "before-grid"` — host-app
@@ -1678,13 +1703,18 @@ export default {
 		 * read it via a `@page.<key>` / `@workspace.<key>` token — e.g. a period
 		 * selector that every endpoint-bound KPI's URL interpolates.
 		 *
-		 * Each entry: `{ key, label?, type?: 'select', options: [{ value, label }],
-		 * default? }`. `key` is the workspace-context key written on change;
-		 * `default` (or the first option) seeds it on mount. Only `'select'` is
-		 * supported today. Empty (the default) renders no controls and leaves the
-		 * context untouched.
+		 * Each entry: `{ key, label?, type?: 'select', control?, placement?,
+		 * options: [{ value, label }], default? }`. `key` is the workspace-context
+		 * key written on change; `default` (or the first option) seeds it on
+		 * mount. The control is a select, or with `control: 'segmented'` a
+		 * compact segmented group; `placement: 'description'` puts a segmented
+		 * group on the header's description line, after the period group
+		 * (DqProcesanalyse "Gemiddeld | Mediaan"). An endpoint widget can read
+		 * the value in its `responsePath` too (`phaseDays.@workspace.measure`).
+		 * Empty (the default) renders no controls and leaves the context
+		 * untouched.
 		 *
-		 * @type {Array<{key: string, label?: string, type?: string, options: Array<{value: (string|number), label: string}>, default?: (string|number)}>}
+		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options: Array<{value: (string|number), label: string}>, default?: (string|number)}>}
 		 */
 		pageFilters: {
 			type: Array,
@@ -2344,6 +2374,33 @@ export default {
 		},
 
 		/**
+		 * The page filters drawn as a segmented group on the description
+		 * line (`control: "segmented"`, `placement: "description"`).
+		 * Without a header row they fall back to the filter row.
+		 *
+		 * @spec openspec/changes/dashboard-board-termijnen/specs/dashboard-page/spec.md#requirement-a-page-filter-as-a-segmented-group-on-the-description-line
+		 * @return {Array<object>}
+		 */
+		descriptionPageFilters() {
+			if (!this.showHeader) {
+				return []
+			}
+			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control === 'segmented' && pf.placement === 'description')
+		},
+
+		/**
+		 * The page filters drawn in the filter row under the header: every
+		 * filter the description line does not draw.
+		 *
+		 * @spec openspec/changes/dashboard-board-termijnen/specs/dashboard-page/spec.md#requirement-a-page-filter-as-a-segmented-group-on-the-description-line
+		 * @return {Array<object>}
+		 */
+		rowPageFilters() {
+			const inDescription = this.descriptionPageFilters
+			return (this.pageFilters || []).filter((pf) => pf && pf.key && !inDescription.includes(pf))
+		},
+
+		/**
 		 * The preset list passed to the picker. Falls back to the
 		 * `DEFAULT_DATE_RANGE_PRESETS` constant when the consumer
 		 * doesn't supply one.
@@ -2793,6 +2850,18 @@ export default {
 			}
 			const current = this.workspaceContext[pf.key]
 			return (pf.options || []).find((o) => o.value === current) || null
+		},
+
+		/**
+		 * A page filter's options as segments, labels through the host
+		 * translate.
+		 *
+		 * @spec openspec/changes/dashboard-board-termijnen/specs/dashboard-page/spec.md#requirement-a-page-filter-as-a-segmented-group-on-the-description-line
+		 * @param {object} pf The page-filter descriptor.
+		 * @return {Array<{value: (string|number), label: string}>}
+		 */
+		pageFilterSegments(pf) {
+			return (pf.options || []).map((o) => ({ value: o.value, label: o.label ? this.effectiveTranslate(o.label) : String(o.value) }))
 		},
 
 		/**
