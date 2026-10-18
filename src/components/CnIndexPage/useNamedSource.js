@@ -105,6 +105,9 @@ export function useNamedSource(props, options = {}) {
 	const tabs = manifestTabs || sourceTabs
 	const activeIndex = options.activeQuickFilterIndex || null
 	const activeFilters = options.activeFilters || null
+	// A source that pages (`pages: true`) gets the page as `limit` and
+	// `offset`, from the pager the page draws for it.
+	const paging = source.pages === true ? (options.paging || null) : null
 
 	// Seed the default tab before the watcher below registers: the mount load
 	// already carries this tab's filter, so the seed must not fire a second
@@ -165,6 +168,7 @@ export function useNamedSource(props, options = {}) {
 					activeFilters ? activeFilters.value : null,
 					props.entitySource,
 				),
+				...(paging ? { limit: paging.value.limit, offset: (paging.value.page - 1) * paging.value.limit } : {}),
 			},
 			tokenCtx(),
 		)
@@ -182,15 +186,35 @@ export function useNamedSource(props, options = {}) {
 
 	// Registered AFTER the seed above, so only a person switching tabs
 	// reloads. Without tabs there is nothing to watch.
+	/**
+	 * Reload for a new query: on a paging source back to page 1, which
+	 * reloads through the paging watcher below.
+	 *
+	 * @return {void}
+	 */
+	function reloadFromFirstPage() {
+		if (paging && paging.value.page !== 1) {
+			paging.value = { ...paging.value, page: 1 }
+			return
+		}
+		loadActive()
+	}
+
 	if (tabs && activeIndex) {
-		watch(activeIndex, loadActive)
+		watch(activeIndex, reloadFromFirstPage)
 	}
 
 	// A sidebar choice is a new QUERY, not a new view of the page already
 	// fetched, so it reloads. `deep` because the map is rewritten key by key
 	// and a shallow watch misses a second value added to the same field.
 	if (activeFilters) {
-		watch(activeFilters, loadActive, { deep: true })
+		watch(activeFilters, reloadFromFirstPage, { deep: true })
+	}
+
+	// A new page, or a new page size, is a new request. A new tab or filter
+	// first returns to page 1, which reloads through here.
+	if (paging) {
+		watch(paging, loadActive, { deep: true })
 	}
 
 	// No manual invalidation tick here on purpose. The adapters read from a
