@@ -101,6 +101,7 @@ export {
 	CnDetailPage,
 	CnDetailWidgetHost,
 	CnDeviceFramesWidget,
+	CnGroupedCardsWidget,
 	CnDialog,
 	CnDialogHeader,
 	CnDividerWidget,

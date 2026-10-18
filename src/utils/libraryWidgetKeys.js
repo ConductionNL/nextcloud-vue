@@ -109,6 +109,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'files',
 	'flow-runs',
 	'gauge',
+	'grouped-cards',
 	'header',
 	'image',
 	'interaction-form',
