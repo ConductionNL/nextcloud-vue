@@ -1909,7 +1909,13 @@
     "Day added.": "Dag toegevoegd.",
     "Only an administrator can change the working calendar.": "Alleen een beheerder kan de werkkalender wijzigen.",
     "The day could not be added. Try again.": "De dag kon niet worden toegevoegd. Probeer het opnieuw.",
-    "Loading …": "Laden …"
+    "Loading …": "Laden …",
+    "The saved flow runs once with the record you pick as its subject.": "De opgeslagen flow draait één keer met het record dat u kiest als onderwerp.",
+    "Record": "Record",
+    "Run test": "Test uitvoeren",
+    "Test with a record": "Testen met een record",
+    "admin": "beheerder",
+    "Wizard": "Assistent"
   },
   "plurals": {
     "{count} selected": [

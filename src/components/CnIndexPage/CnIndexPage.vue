@@ -1578,6 +1578,8 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/** The permissions the user holds, provided by CnAppRoot; for gated page tabs. */
+		cnPermissions: { default: () => [] },
 		/** The app id CnAppRoot provides, for the plural form of `countSubtitle`. */
 		cnAppId: { default: '' },
 		/**
@@ -1668,7 +1670,9 @@ export default {
 
 		/**
 		 * A note after the breadcrumb and a middle dot (manifest `config.headerMeta`),
-		 * such as "{total} open": `{total}` and `{shown}` are the list's counts.
+		 * such as "{total} open": `{total}` and `{shown}` are the list's counts,
+		 * and `{count:<name>}` the count of a list named in `headerMetaCounts`
+		 * ("{total} contracten bij {count:suppliers} leveranciers").
 		 *
 		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
 		 */
@@ -1678,11 +1682,28 @@ export default {
 		},
 
 		/**
+		 * The other lists `headerMeta` counts (manifest `config.headerMetaCounts`):
+		 * `{ <name>: { register, schema, filter? } }`, each read as one list
+		 * total and filled in for `{count:<name>}`. While a count loads, or when
+		 * it fails, the note is left out rather than shown with a gap.
+		 *
+		 * @type {Record<string, {register: string, schema: string, filter?: object}>|null}
+		 */
+		headerMetaCounts: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Tabs to sibling pages above the toolbar (manifest `config.pageTabs`),
 		 * each `{ id?, label, route?, params?, query?, href?, countFrom?: {
-		 * register, schema, filter? } }`: DqPrivacy's "AVG-verzoeken |
-		 * Datalekken". The current page's tab is marked; `countFrom` adds the
-		 * count of that list. Wins over a named source's own page tabs.
+		 * register, schema, filter? }, adminOnly?, permission? }`: DqPrivacy's
+		 * "AVG-verzoeken | Datalekken". The current page's tab is marked;
+		 * `countFrom` adds the count of that list. A tab with `adminOnly` shows
+		 * only to an instance admin, one with `permission` only to a user who
+		 * holds it. That hides the tab and nothing more: the page it points to
+		 * must still refuse the user on the server. Wins over a named source's
+		 * own page tabs.
 		 *
 		 * @type {Array<object>|null}
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
@@ -3722,6 +3743,8 @@ export default {
 			filterStripCounts: null,
 			/** The `countFrom` counts of the manifest page tabs, by index. */
 			pageTabCounts: {},
+			/** The `headerMetaCounts` totals, by name; a failed one is null. */
+			headerMetaCountValues: {},
 			/** The tabs `quickFiltersFrom` produced, or null before they load. */
 			generatedQuickFilters: null,
 			/** Count per saved-view id, for the views control; null = none. */
@@ -6202,9 +6225,13 @@ export default {
 			if (!Array.isArray(this.pageTabs) || this.pageTabs.length === 0) {
 				return this.sourcePageTabs
 			}
+			// The index is the tab's place in `pageTabs`, which is how its count
+			// is keyed, so the tabs are numbered before any is left out.
 			return this.pageTabs
-				.filter((tab) => tab && typeof tab.label === 'string' && tab.label !== '' && (tab.route || tab.to || tab.href))
-				.map((tab, index) => {
+				.map((tab, index) => ({ tab, index }))
+				.filter(({ tab }) => tab && typeof tab.label === 'string' && tab.label !== '' && (tab.route || tab.to || tab.href))
+				.filter(({ tab }) => this.pageTabVisible(tab))
+				.map(({ tab, index }) => {
 					const to = tab.route
 						? { name: tab.route, ...(tab.params ? { params: tab.params } : {}), ...(tab.query ? { query: tab.query } : {}) }
 						: (tab.to || tab.href)
@@ -6646,9 +6673,41 @@ export default {
 				return ''
 			}
 			const total = this.effectivePagination?.total
-			return this.cnTranslate(headerMeta)
+			let missing = false
+			const text = this.cnTranslate(headerMeta)
 				.replace('{shown}', String(this.effectiveObjects.length))
 				.replace('{total}', typeof total === 'number' ? String(total) : '')
+				.replace(/\{count:([\w-]+)\}/g, (match, name) => {
+					const value = this.headerMetaCountValues[name]
+					if (typeof value !== 'number') {
+						missing = true
+						return ''
+					}
+					return String(value)
+				})
+			return missing ? '' : text
+		},
+
+		/**
+		 * Whether the header note carries a count, so the board leaves out its
+		 * own "{shown} of {total}" line (DqPrivacy, DqContracten).
+		 *
+		 * @return {boolean}
+		 */
+		headerMetaCarriesCount() {
+			const headerMeta = this.presented('headerMeta')
+			return typeof headerMeta === 'string' && /\{(shown|total|count:[\w-]+)\}/.test(headerMeta)
+		},
+
+		/**
+		 * What the header note's other counts depend on, as one key.
+		 *
+		 * @return {string}
+		 */
+		headerMetaCountKey() {
+			const sources = this.headerMetaCounts && typeof this.headerMetaCounts === 'object' ? this.headerMetaCounts : {}
+			const valid = Object.entries(sources).filter(([, from]) => from && from.register && from.schema)
+			return valid.length > 0 ? JSON.stringify(valid) : ''
 		},
 
 		headerDescription() {
@@ -6661,6 +6720,10 @@ export default {
 				// reads "14 van 14" in Dutch; a page's own template goes
 				// through the app's label lookup.
 				const countText = this.presented('countText')
+				// The note after the breadcrumb already says how many there are.
+				if (!countText && !this.countSubtitle && this.headerMetaCarriesCount) {
+					return this.description
+				}
 				if (!countText && !this.countSubtitle) {
 					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
 				}
@@ -6904,6 +6967,13 @@ export default {
 			/** @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values */
 			handler() {
 				this.loadGeneratedQuickFilters()
+			},
+		},
+
+		headerMetaCountKey: {
+			immediate: true,
+			handler() {
+				this.loadHeaderMetaCounts()
 			},
 		},
 
@@ -7324,6 +7394,65 @@ export default {
 				{ label: from.allLabel || t('nextcloud-vue', 'All'), filter: {}, default: true, count: total },
 				...sorted.map((g) => ({ label: (labels && labels[g.key]) || g.key, filter: { [from.field]: g.key }, count: g.count })),
 			]
+		},
+
+		/**
+		 * Whether Nextcloud says the user administers this instance; false
+		 * when the user cannot be read.
+		 *
+		 * @return {boolean}
+		 */
+		viewerIsAdmin() {
+			try {
+				return getCurrentUser()?.isAdmin === true
+			} catch {
+				return false
+			}
+		},
+
+		/**
+		 * Whether a manifest page tab shows to this user: an `adminOnly` tab to
+		 * an instance admin, a tab with a `permission` to a user who holds it
+		 * (as a menu entry: with no permissions known, it shows). This only
+		 * decides whether the tab is drawn. It is not access control; the
+		 * page behind the tab must enforce its own access on the server.
+		 *
+		 * @param {object} tab The tab declaration.
+		 * @return {boolean} True when the tab is drawn.
+		 */
+		pageTabVisible(tab) {
+			if (tab.adminOnly === true && !this.viewerIsAdmin()) {
+				return false
+			}
+			if (tab.permission) {
+				const held = Array.isArray(this.cnPermissions) ? this.cnPermissions : []
+				if (held.length > 0 && !held.includes(tab.permission)) {
+					return false
+				}
+			}
+			return true
+		},
+
+		/**
+		 * Read the totals of the lists `headerMetaCounts` names, one list
+		 * request each. A failed count is null and leaves the note out.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadHeaderMetaCounts() {
+			const key = this.headerMetaCountKey
+			if (key === '') {
+				this.headerMetaCountValues = {}
+				return
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const values = {}
+			await Promise.all(JSON.parse(key).map(async ([name, from]) => {
+				values[name] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
+			}))
+			if (key === this.headerMetaCountKey) {
+				this.headerMetaCountValues = values
+			}
 		},
 
 		/**

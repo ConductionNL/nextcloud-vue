@@ -184,8 +184,14 @@
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
 			<!-- A renderer that reports its own header (`header` event:
-			     `{ link, note }`, e.g. record-list's "3 in totaal"). -->
-			<template v-if="rendererHeader.note || rendererHeader.action" #actions>
+			     `{ link, note, action, pill }`, e.g. record-list's "3 in totaal",
+			     a facts card's status pill). -->
+			<template v-if="rendererHeader.note || rendererHeader.action || rendererHeader.pill" #actions>
+				<CnStatusBadge
+					v-if="rendererHeader.pill"
+					:label="rendererHeader.pill.label"
+					:variant="rendererHeader.pill.variant"
+					data-testid="cn-detail-widget-header-pill" />
 				<span
 					v-if="rendererHeader.note"
 					class="cn-detail-page__catalog-note"
@@ -298,6 +304,7 @@ import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectFilesWidget from '../CnObjectFilesWidget/CnObjectFilesWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
@@ -376,6 +383,7 @@ export default {
 		CnObjectDataWidget,
 		CnObjectGeoWidget,
 		CnRelatedObjectsWidget,
+		CnStatusBadge,
 		CnWidgetWrapper,
 		NcActionButton,
 		CnEmptyContent,
@@ -631,7 +639,7 @@ export default {
 			 * `header` event (screens-relation-pages): a link and a note,
 			 * with the list's total already filled in.
 			 */
-			rendererHeader: { link: null, note: '', action: null },
+			rendererHeader: { link: null, note: '', action: null, pill: null },
 		}
 	},
 
@@ -1218,7 +1226,8 @@ export default {
 			const link = header && header.link && typeof header.link === 'object' ? header.link : null
 			const note = header && typeof header.note === 'string' ? header.note : ''
 			const action = header && header.action && typeof header.action.run === 'function' && header.action.label ? header.action : null
-			this.rendererHeader = { link, note, action }
+			const pill = header && header.pill && typeof header.pill.label === 'string' && header.pill.label !== '' ? header.pill : null
+			this.rendererHeader = { link, note, action, pill }
 		},
 
 		/**
