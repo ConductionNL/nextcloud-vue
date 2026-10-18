@@ -18,6 +18,8 @@
 			:headerActions="headerActions"
 			:rowButton="rowButton"
 			:reviewSummary="reviewSummary"
+			:footnote="footnote"
+			:nameSecondary="nameSecondary"
 			:linkedItems="linkedItems"
 			:columns="columns"
 			:rowData="rowDataSource"
@@ -429,6 +431,10 @@ export default {
 		rowButton: { type: Object, default: null },
 		/** Forwarded to CnFilesBrowser: the review summary above the list. */
 		reviewSummary: { type: Object, default: null },
+		/** Forwarded to CnFilesBrowser: the host's own line under the list. */
+		footnote: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the second line under each file's name. */
+		nameSecondary: { type: String, default: '' },
 		/** A dotted path to the list of records in the `rowDataUrl` answer; empty reads the answer itself. */
 		rowDataPath: { type: String, default: '' },
 		/** The record field that holds the Nextcloud file id. */
