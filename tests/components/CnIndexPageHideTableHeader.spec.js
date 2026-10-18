@@ -17,7 +17,7 @@ import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
  */
 function tableOfPage(props = {}) {
 	const wrapper = mount(CnIndexPage, {
-		propsData: { title: 'Teamwachtrij', schema: { title: 'Zaak', properties: {} }, objects: [], ...props },
+		propsData: { title: 'Teamwachtrij', schema: { title: 'Zaak', properties: { title: { type: 'string' } } }, objects: [{ id: 'c1', title: 'Verlichting fietspad' }], viewMode: 'table', ...props },
 		stubs: { CnDataTable: true, CnCardGrid: true, CnPagination: true, CnActionsBar: true, CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true },
 	})
 	return wrapper.findComponent({ name: 'CnDataTable' })
