@@ -201,13 +201,38 @@
 				</span>
 			</li>
 		</ul>
+		<!-- `footerAction`: one action under the list, also under the empty
+		     text ("Beroep registreren"). With `disabledWhen` it greys out and
+		     says why (`disabledReason`: "Kan zodra de beslissing is
+		     verzonden"). -->
+		<div
+			v-if="footerAction && !error"
+			class="cn-record-list__footer"
+			data-testid="cn-record-list-footer">
+			<NcButton
+				variant="secondary"
+				:disabled="footerDisabled"
+				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
+				data-testid="cn-record-list-footer-action"
+				@click="runFooterAction">
+				<template v-if="footerAction.icon" #icon>
+					<CnIcon :name="footerAction.icon" :size="16" />
+				</template>
+				{{ footerAction.label }}
+			</NcButton>
+			<span
+				v-if="footerDisabled && footerAction.reason"
+				:id="footerReasonId"
+				class="cn-record-list__footer-reason"
+				data-testid="cn-record-list-footer-reason">{{ footerAction.reason }}</span>
+		</div>
 	</div>
 </template>
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
@@ -224,8 +249,12 @@ import { lensUnavailableText, readLensReports } from '../../utils/lensAvailabili
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
+/** Gives each list's footer reason its own element id. */
+let footerSeq = 0
 const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice']
 
 /** The tones a `notice` list takes. */
@@ -279,7 +308,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { ChevronRight, CnIcon, CnStatusBadge, NcLoadingIcon },
+	components: { ChevronRight, CnIcon, CnStatusBadge, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -314,6 +343,10 @@ export default {
 		 * `presentation: "notice"` draws the rows as sentences in one box toned by
 		 * `variant` (`info`, `warning` or `error`), after an optional `lead`
 		 * (`{total}` filled in).
+		 * `footerAction` (`{ label, icon?, type, ..., disabledWhen?,
+		 * disabledReason? }`) ends the card with one action, also under the
+		 * empty text; while the visibleWhen condition `disabledWhen` holds the
+		 * button is disabled and `disabledReason` shows under it.
 		 *
 		 * @type {object}
 		 */
@@ -367,10 +400,48 @@ export default {
 			error: false,
 			/** Personal-lens reports (`@self.lenses`) of the latest response. */
 			lenses: {},
+			/** Whether `footerAction.disabledWhen` holds. */
+			footerDisabled: false,
+			footerReasonId: `cn-record-list-footer-reason-${++footerSeq}`,
 		}
 	},
 
 	computed: {
+		/**
+		 * The action under the list (`footerAction`: `{ label, icon?, type,
+		 * ..., disabledWhen?, disabledReason? }`), labels through the host
+		 * translate, or null without a label.
+		 *
+		 * @spec openspec/changes/record-list-footer-action/specs/record-list/spec.md#requirement-a-record-list-can-end-with-an-action-that-says-why-it-is-disabled
+		 * @return {{label: string, icon: string, reason: string, action: object}|null}
+		 */
+		footerAction() {
+			const action = this.content?.footerAction
+			if (!action || typeof action !== 'object' || typeof action.label !== 'string' || action.label === '') {
+				return null
+			}
+			return {
+				label: this.translate(action.label),
+				icon: typeof action.icon === 'string' ? action.icon : '',
+				reason: typeof action.disabledReason === 'string' && action.disabledReason !== '' ? this.translate(action.disabledReason) : '',
+				action,
+			}
+		},
+
+		/**
+		 * What `footerAction.disabledWhen` depends on, so it is evaluated again
+		 * when the condition, the record or the workspace changes.
+		 *
+		 * @return {string}
+		 */
+		footerDisabledKey() {
+			const cond = this.content?.footerAction?.disabledWhen
+			if (!cond) {
+				return ''
+			}
+			return JSON.stringify({ cond, object: this.tokenCtx.object, workspace: this.tokenCtx.workspace, total: this.total })
+		},
+
 		/** @return {string} `rows`, `feed`, `inline` or `cards`. */
 		/**
 		 * The tone of a `notice` list (`content.variant`): info, warning or error.
@@ -595,6 +666,13 @@ export default {
 			this.fetchRows()
 		},
 
+		footerDisabledKey: {
+			immediate: true,
+			handler() {
+				this.evaluateFooterDisabled()
+			},
+		},
+
 		endpointKey() {
 			this.fetchRows()
 		},
@@ -619,6 +697,47 @@ export default {
 		 */
 		translate(text) {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * Settle whether the footer action is disabled: `disabledWhen` is a
+		 * visibleWhen condition read against the page's record (`field`), the
+		 * workspace, an endpoint or a source; `total` is the list's total.
+		 *
+		 * @spec openspec/changes/record-list-footer-action/specs/record-list/spec.md#requirement-a-record-list-can-end-with-an-action-that-says-why-it-is-disabled
+		 * @return {Promise<void>}
+		 */
+		async evaluateFooterDisabled() {
+			const cond = this.content?.footerAction?.disabledWhen
+			if (!cond) {
+				this.footerDisabled = false
+				return
+			}
+			const ctx = { ...this.tokenCtx, object: { ...(this.tokenCtx.object || {}), total: this.total } }
+			const key = this.footerDisabledKey
+			const disabled = await evaluateVisibleWhen(cond, ctx)
+			if (key === this.footerDisabledKey) {
+				this.footerDisabled = disabled
+			}
+		},
+
+		/**
+		 * Run the footer action through the page's dispatcher, with the page's
+		 * record as the token context.
+		 *
+		 * @spec openspec/changes/record-list-footer-action/specs/record-list/spec.md#requirement-a-record-list-can-end-with-an-action-that-says-why-it-is-disabled
+		 * @return {unknown} What the dispatcher returns.
+		 */
+		runFooterAction() {
+			const declared = this.footerAction?.action
+			if (!declared || this.footerDisabled) {
+				return undefined
+			}
+			const { disabledWhen, disabledReason, ...action } = declared
+			if (typeof this.cnDispatchAction === 'function') {
+				return this.cnDispatchAction(action)
+			}
+			return dispatchAction(action, { router: this.$router || null, tokenCtx: this.tokenCtx, source: { register: this.content?.register, schema: this.content?.schema } })
 		},
 
 		/**
@@ -1194,6 +1313,19 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+}
+
+.cn-record-list__footer {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+	margin-top: 10px;
+}
+
+.cn-record-list__footer-reason {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-record-list__empty,

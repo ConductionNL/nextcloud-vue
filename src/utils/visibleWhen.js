@@ -29,7 +29,9 @@
  *     on the current record's state (`{ field: "lifecycleState", op: "eq",
  *     value: "approved" }`).
  *
- * `op` is `eq | neq | gt | gte | lt | lte` (default `eq`); `value` is the
+ * `op` is `eq | neq | gt | gte | lt | lte | empty | notEmpty | in | anyOf`
+ * (default `eq`); `anyOf` matches a list value that shares an entry with the
+ * listed `value`. `value` is the
  * literal right-hand side. Evaluation is FAIL-SAFE: any fetch / shape error
  * resolves `false` (hidden) — a broken predicate never breaks a page.
  *
@@ -49,7 +51,7 @@ import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
 
 /** Supported visibleWhen comparison operators. */
-export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty', 'in']
+export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty', 'in', 'anyOf']
 
 /**
  * Read a dot-path off an object (`'a.b.c'`); the object itself when no
@@ -98,6 +100,15 @@ export function compareVisibleWhen(actual, op, expected, ctx) {
 	if (operator === 'in') {
 		const list = Array.isArray(right) ? right : [right]
 		return list.some((entry) => entry === actual || String(entry) === String(actual))
+	}
+	// `anyOf` holds when the value, or any entry of a list value, is one of
+	// the listed values: a record whose `dataCategories` holds "health" among
+	// others matches `anyOf ["health", "ethnicity"]` (DqSociaalDomein).
+	if (operator === 'anyOf') {
+		const list = Array.isArray(right) ? right : [right]
+		const values = Array.isArray(actual) ? actual : [actual]
+		return values.some((value) => value !== undefined && value !== null
+			&& list.some((entry) => entry === value || String(entry) === String(value)))
 	}
 	if (operator === 'eq' || operator === 'neq') {
 		const equal = actual === right || String(actual) === String(right)
