@@ -173,6 +173,54 @@
 	color: var(--color-main-text);
 }
 
+/* A Nextcloud text field or text area in a board dialog is the board's field:
+   its label above the control at 14px/600, the control 40px with a 1px grey
+   border and radius 8 (PlanItemDialog, DqWerkvoorraad). NcInputField draws
+   its border as a 65%-transparent shadow, which on the white dialog read as
+   an empty band, and floats its label inside the border. A field with
+   `labelOutside` keeps the app's own label and takes the same control. */
+.cn-dialog-board .dialog__content .input-field:has(.input-field__label),
+.cn-dialog-board .dialog__content .textarea:has(.textarea__label) {
+	margin-block-start: 26px;
+}
+
+/* The doubled class outranks NcInputField's raised-label rule (focused or
+   filled), which would pin the label's top as well and squash it. */
+.cn-dialog-board .dialog__content .input-field__input + .input-field__label.input-field__label,
+.cn-dialog-board .dialog__content .textarea__input + .textarea__label.textarea__label {
+	inset-block-start: auto;
+	inset-block-end: calc(100% + 4px);
+	inset-inline: 0 auto;
+	max-width: 100%;
+	margin: 0;
+	padding: 0;
+	background: none;
+	color: var(--color-main-text);
+	font-size: var(--cn-field-label-size, 14px);
+	font-weight: 600;
+	line-height: 20px;
+	pointer-events: auto;
+	transition: none;
+}
+
+.cn-dialog-board .dialog__content .input-field__main-wrapper {
+	height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));
+}
+
+.cn-dialog-board .dialog__content .input-field__input,
+.cn-dialog-board .dialog__content .input-field__input:hover:not([disabled]),
+.cn-dialog-board .dialog__content .textarea__input,
+.cn-dialog-board .dialog__content .textarea__input:hover:not([disabled]) {
+	border-radius: 8px;
+	box-shadow: 0 0 0 1px var(--color-border-dark);
+	font-size: var(--cn-field-text-size, 15px);
+}
+
+.cn-dialog-board .dialog__content .input-field:has(.input-field__label) .input-field__input:not(:focus)::placeholder,
+.cn-dialog-board .dialog__content .textarea__input:not(:focus)::placeholder {
+	opacity: 1 !important;
+}
+
 /* Type-to-confirm: a labelled 40px field with a monospace value and a hint. */
 .cn-dialog__confirm-field {
 	display: flex;

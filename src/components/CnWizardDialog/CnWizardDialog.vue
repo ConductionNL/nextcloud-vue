@@ -208,7 +208,7 @@ export default {
 		 */
 		dialogTitle: {
 			type: String,
-			default: 'Wizard',
+			default: () => t('nextcloud-vue', 'Wizard'),
 		},
 
 		/**
@@ -279,17 +279,17 @@ export default {
 		submitIcon: { type: [Object, Function], default: null },
 
 		/** Cancel-button label (wizard phase). */
-		cancelLabel: { type: String, default: 'Cancel' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		/** Back-button label. */
-		backLabel: { type: String, default: 'Back' },
+		backLabel: { type: String, default: () => t('nextcloud-vue', 'Back') },
 		/** Next-button label (intermediate steps). */
-		nextLabel: { type: String, default: 'Next' },
+		nextLabel: { type: String, default: () => t('nextcloud-vue', 'Next') },
 		/** Submit-button label (last step). */
-		submitLabel: { type: String, default: 'Submit' },
+		submitLabel: { type: String, default: () => t('nextcloud-vue', 'Submit') },
 		/** Close-button label (result phase). */
-		closeLabel: { type: String, default: 'Close' },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		/** Success banner default text when result.message is empty. */
-		successText: { type: String, default: 'Done.' },
+		successText: { type: String, default: () => t('nextcloud-vue', 'Done.') },
 		/**
 		 * Whether the dialog can be dismissed (Cancel button, ESC, backdrop
 		 * click) before reaching the result phase. `false` hides Cancel and

@@ -39,6 +39,15 @@
 					@click="$emit('run')">
 					{{ t('nextcloud-vue', 'Run') }}
 				</NcButton>
+				<NcButton v-if="testSubjectReady"
+					:disabled="store.running || !store.flow.id"
+					data-testid="flow-board-test"
+					@click="testOpen = true">
+					<template #icon>
+						<TestTube :size="16" />
+					</template>
+					{{ testLabel }}
+				</NcButton>
 				<CnBuildiqEditButton />
 				<NcButton variant="primary"
 					:disabled="store.saving || !store.flow.name || store.graphLocked"
@@ -48,6 +57,32 @@
 				</NcButton>
 			</div>
 		</header>
+
+		<CnDialog v-if="testOpen"
+			:name="testLabel"
+			data-testid="flow-board-test-dialog"
+			@closing="testOpen = false">
+			<p class="cn-flow-board__test-intro">
+				{{ t('nextcloud-vue', 'The saved flow runs once with the record you pick as its subject.') }}
+			</p>
+			<CnResourceSelect v-model="testRecord"
+				:register="testSubject.register"
+				:schema="testSubject.schema"
+				:labelField="testSubject.labelField || 'title'"
+				:inputLabel="t('nextcloud-vue', 'Record')"
+				data-testid="flow-board-test-record" />
+			<template #actions>
+				<NcButton data-testid="flow-board-test-cancel" @click="testOpen = false">
+					{{ t('nextcloud-vue', 'Cancel') }}
+				</NcButton>
+				<NcButton variant="primary"
+					:disabled="!testRecord || store.running"
+					data-testid="flow-board-test-run"
+					@click="runTest">
+					{{ t('nextcloud-vue', 'Run test') }}
+				</NcButton>
+			</template>
+		</CnDialog>
 
 		<p class="cn-flow-board__path" data-testid="flow-board-path">
 			<a :href="listHref" class="cn-flow-board__crumb" @click="onCrumbClick($event, detailRoute)">{{ listText }}</a>
@@ -186,11 +221,14 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
+import TestTube from 'vue-material-design-icons/TestTube.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
 import CnFlowRunSummary from '../CnFlowDetail/CnFlowRunSummary.vue'
 import CnFlowSidebar from '../CnFlowDetail/CnFlowSidebar.vue'
 import CnFlowStepLog from '../CnFlowDetail/CnFlowStepLog.vue'
+import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 import { formatRelativeDate } from '../../utils/boardDate.js'
 import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, formatFlowDuration } from '../../utils/flowRunLog.js'
@@ -204,7 +242,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowBoard',
 
-	components: { CnBuildiqEditButton, CnFlowDetail, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard },
+	components: { CnBuildiqEditButton, CnDialog, CnFlowDetail, CnResourceSelect, TestTube, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard },
 
 	props: {
 		/** The flow uuid, or `new`. */
@@ -225,6 +263,12 @@ export default {
 		notice: { type: String, default: '' },
 		/** The pill beside the title ("Case type flow"). */
 		pill: { type: String, default: '' },
+		/**
+		 * The records a test run can take as its subject: `{ register, schema,
+		 * labelField?, label? }`. Draws a header button ("Testen met een zaak",
+		 * DqFlow) that runs the saved flow once with a picked record.
+		 */
+		testSubject: { type: Object, default: null },
 	},
 
 	emits: ['save', 'run', 'retried'],
@@ -234,10 +278,20 @@ export default {
 	},
 
 	data() {
-		return { runTab: 'step' }
+		return { runTab: 'step', testOpen: false, testRecord: null }
 	},
 
 	computed: {
+		/** @return {boolean} Whether a test subject is declared well enough to pick one. */
+		testSubjectReady() {
+			return Boolean(this.testSubject && this.testSubject.register && this.testSubject.schema)
+		},
+
+		/** @return {string} The test button's label: the page's own, else the library's. */
+		testLabel() {
+			return (this.testSubject && this.testSubject.label) || t('nextcloud-vue', 'Test with a record')
+		},
+
 		/** @return {boolean} Whether the palette card is drawn. */
 		showPalette() {
 			return this.palette === 'column' && !this.store.inRunView
@@ -454,6 +508,22 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Run the saved flow once with the picked record as its subject, then
+		 * close the dialog; the run shows on the canvas as any run does.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async runTest() {
+			const uuid = Array.isArray(this.testRecord) ? this.testRecord[0] : this.testRecord
+			if (!uuid) {
+				return
+			}
+			await this.store.run({ uuid, register: this.testSubject.register, schema: this.testSubject.schema })
+			this.testOpen = false
+			this.testRecord = null
+		},
+
 		t,
 
 		/**
@@ -579,6 +649,11 @@ export default {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
+}
+
+.cn-flow-board__test-intro {
+	margin: 0 0 12px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-flow-board__path {

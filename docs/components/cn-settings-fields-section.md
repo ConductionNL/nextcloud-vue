@@ -23,14 +23,14 @@ A settings section declared as fields. It reads the app's settings, draws the fi
 
 ## Loading and saving
 
-- It reads `GET url`, by default `/apps/<appId>/api/settings`, and takes each field's value from the answer (or from `valuesPath` in it). A dotted `key` reads a nested value.
+- It reads `GET url`, by default `/apps/<appId>/api/settings`, and takes each field's value from the answer (or from `valuesPath` in it). A key the answer holds as written wins, so a flat map with dotted keys (`integration.brk.mode`) reads as it is; otherwise a dotted `key` reads a nested value. A key is written as written.
 - One Save button closes the section. It is on only while a field differs from what was loaded or last saved, and "Unsaved changes" shows beside it.
 - Save checks the fields first. A required field left empty, a value that does not match `pattern`, or a number outside `min`/`max` is marked (`aria-invalid`), its message replaces its hint and is tied to the control, the first one takes focus, and nothing is sent.
 - Then it sends the changed fields: one request per save target, each carrying that target's fields. Fields without a target of their own go to `saveUrl` (default `url`) with `saveMethod` (default `PUT`). The section says "Saved.", or why a target did not save (naming its fields when there are several targets), and emits `saved` or `save-error`. A target that failed keeps its fields unsaved, so the next Save sends only those.
 
 ## Fields of several apps
 
-One section can hold settings that live in different apps, with no store in between: a field with its own `url` is read there (at `valuePath`, default its key) and saved to its own `saveUrl` (default that `url`), with `saveMethod` (default `POST`), under `saveKey` (default its key). Each distinct read target is read once. When a field's own target cannot be read, that field says so and is left out of the save; the rest of the section works.
+One section can hold settings that live in different apps, with no store in between: a field with its own `url` is read there (at `valuePath`, default its key) and saved to its own `saveUrl` (default that `url`), with `saveMethod` (default `POST`), under `saveKey` (default its key). Each distinct read target is read once. A target under `/ocs/` (a Nextcloud OCS API such as `/ocs/v2.php/cloud/capabilities?format=json`) is requested outside `index.php` with the `OCS-APIRequest` header. When a field's own target cannot be read, that field says so and is left out of the save; the rest of the section works.
 
 ```js
 fields: [
@@ -58,7 +58,7 @@ A `secret` field is replace-only. The stored value is never put in the input; wh
 | `label` | The label, through the app's translate function. Every field has one; a select gets it through NcSelect's `inputLabel`. |
 | `type` | `text` (default), `textarea`, `number`, `switch`, `select`, `secret` or `image`. |
 | `url`, `valuePath` | Read this field from another endpoint, at this dotted path. |
-| `saveUrl`, `saveMethod`, `saveKey` | Save this field to another endpoint (default `url`, `POST`), under this key. |
+| `saveUrl`, `saveMethod`, `saveKey`, `saveParams` | Save this field to another endpoint (default `url`, `POST`), under this key, with these static fields merged into the body (`{ setting: 'name' }`). |
 | `uploadUrl`, `uploadField`, `uploadParams`, `uploadValuePath`, `previewUrl`, `uploadLabel`, `accept` | An image's upload, see above. |
 | `initials`, `initialsFrom` | An image's initials when there is no image: a name, or the key of the field that holds one. |
 | `hint` | A line under the field, tied to it for screen readers. |
