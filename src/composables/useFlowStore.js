@@ -23,6 +23,7 @@
 //      vocabulary.
 
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { defineStore } from 'pinia'
 import { layoutFlowNodes, needsFullLayout, placeLooseNodes } from './flowGraphLayout.js'
@@ -968,7 +969,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				// A new flow is runnable on demand until its author picks a real
 				// trigger, so the flow-level trigger and the seeded start node
 				// say the same thing.
-				this.flow = { ...emptyFlow(), name: 'New flow', app: app || 'openregister', trigger: 'manual' }
+				this.flow = { ...emptyFlow(), name: t('nextcloud-vue', 'New flow'), app: app || 'openregister', trigger: 'manual' }
 				this.seedStartNode()
 				this.dirty = false
 				return

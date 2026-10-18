@@ -44,4 +44,12 @@ describe('CnOrderedListField: accessibility', () => {
 		expect(wrapper.find('[aria-live="polite"]').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Add case type')
 	})
+
+	it('has no WCAG 2.1 AA violations with descriptions and icons', async () => {
+		const options = [{ value: 'woo', label: 'Woo request', description: '19 open cases', icon: 'FileDocumentOutline' }, { value: 'objection', label: 'Objection' }]
+		wrapper = mountAttached(CnOrderedListField, { propsData: { modelValue: ['woo', 'objection'], options, label: 'Case types in my menu', addLabel: 'Add case type' } })
+		await expectAccessible(wrapper)
+		const id = wrapper.find('.cn-ordered-list-field__description').attributes('id')
+		expect(wrapper.findAll('[aria-describedby]').every((el) => el.attributes('aria-describedby') === id)).toBe(true)
+	})
 })

@@ -172,34 +172,9 @@
 								:field="field"
 								:value="formData[field.key]"
 								:onInput="(v) => updateField(field.key, v)">
-								<NcCheckboxRadioSwitch
-									v-if="field.type === 'boolean'"
-									:modelValue="!!formData[field.key]"
-									@update:modelValue="updateField(field.key, $event)">
-									{{ resolveLabel(field.label) }}
-								</NcCheckboxRadioSwitch>
-								<NcTextField
-									v-else-if="field.type === 'number'"
-									:label="resolveLabel(field.label)"
-									type="number"
-									:modelValue="String(fieldValue(field.key, ''))"
-									@update:modelValue="updateField(field.key, $event === '' ? null : Number($event))" />
-								<NcTextField
-									v-else-if="field.type === 'password'"
-									:label="resolveLabel(field.label)"
-									type="password"
-									:modelValue="fieldValue(field.key, '')"
-									@update:modelValue="updateField(field.key, $event)" />
-								<NcSelect
-									v-else-if="field.type === 'enum' && Array.isArray(field.options)"
-									:modelValue="selectedOption(field)"
-									:options="field.options"
-									:inputLabel="resolveLabel(field.label)"
-									@update:modelValue="updateField(field.key, optionValue($event))" />
-								<NcTextField
-									v-else
-									:label="resolveLabel(field.label)"
-									:modelValue="fieldValue(field.key, '')"
+								<CnSettingsField
+									:field="{ ...field, label: resolveLabel(field.label) }"
+									:modelValue="formData[field.key]"
 									@update:modelValue="updateField(field.key, $event)" />
 							</slot>
 							<small
@@ -297,14 +272,12 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
-	NcCheckboxRadioSwitch,
 	NcLoadingIcon,
-	NcSelect,
-	NcTextField,
 } from '@nextcloud/vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
+import CnSettingsField from '../CnSettingsField/CnSettingsField.vue'
 import CnToggleTableWidget from '../CnToggleTableWidget/CnToggleTableWidget.vue'
 import CnVersionInfoCard from '../CnVersionInfoCard/CnVersionInfoCard.vue'
 import { useLook } from '../../composables/useLook.js'
@@ -356,7 +329,7 @@ const BUILTIN_SETTINGS_WIDGETS = Object.freeze({
  * three body kinds:
  *
  *  - `fields[]`    — flat form fields (back-compat default).
- *    Each field's `type` controls which input renders:
+ *    Each field's `type` controls which input CnSettingsField renders:
  *      - `boolean` → NcCheckboxRadioSwitch
  *      - `number` → NcTextField (type=number)
  *      - `string` → NcTextField (default)
@@ -409,11 +382,9 @@ export default {
 
 	components: {
 		NcButton,
-		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
-		NcSelect,
-		NcTextField,
 		ContentSave,
+		CnSettingsField,
 		CnBuildiqEditButton,
 		CnSettingsCard,
 		CnSettingsSection,
@@ -823,57 +794,6 @@ export default {
 	},
 
 	methods: {
-		// Coalesce a field value to a fallback when null / undefined.
-		// Used in template bindings instead of `formData[key] ?? ''` because
-		// vue-template-es2015-compiler (the Rollup VuePlugin's parser) does
-		// not accept ES2020 nullish-coalescing inside template expressions.
-		fieldValue(key, fallback) {
-			const v = this.formData[key]
-			return (v === null || v === undefined) ? fallback : v
-		},
-
-		// Resolve the currently-selected option for an enum field.
-		// `field.options` may be an array of strings/numbers OR an array
-		// of `{ label, value }`-shaped objects. NcSelect needs the actual
-		// option entry (not the bare value) to render the selection
-		// correctly, so this resolver looks up the matching object form
-		// when a primitive value is stored. Returns `null` when nothing
-		// is selected so NcSelect renders the empty state instead of
-		// emitting a Vue warning about an undefined `value` prop.
-		selectedOption(field) {
-			const v = this.formData[field.key]
-			if (v === null || v === undefined) {
-				return null
-			}
-			if (!Array.isArray(field.options)) {
-				return v
-			}
-			for (const opt of field.options) {
-				if (opt && typeof opt === 'object') {
-					if (opt.value === v) {
-						return opt
-					}
-				} else if (opt === v) {
-					return opt
-				}
-			}
-			return v
-		},
-
-		// Inverse of `selectedOption` — extract the storable value from
-		// whatever NcSelect emits. NcSelect emits the full option entry
-		// when options are objects, the primitive when options are
-		// primitives, or `null` on clear.
-		optionValue(emitted) {
-			if (emitted === null || emitted === undefined) {
-				return null
-			}
-			if (typeof emitted === 'object' && 'value' in emitted) {
-				return emitted.value
-			}
-			return emitted
-		},
-
 		cloneInitial() {
 			const merged = { ...(this.initialValues || {}) }
 			// Collect every section across both modes (flat
