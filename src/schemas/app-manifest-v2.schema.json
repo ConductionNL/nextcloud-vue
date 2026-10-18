@@ -4333,6 +4333,20 @@
 							"minLength": 1,
 							"description": "type='detail', board look: the meta line on row 2 of the header, after the breadcrumb and a middle dot (screens-detail-page-parity). A field template such as `\"via {channel}\"`: every `{path}` is read from the record, and a line with an empty value is dropped. Maps to CnDetailPage `headerMeta`. type='index' | 'dashboard' | 'settings' (page-header-breadcrumb): the note after the breadcrumb and a middle dot under the title; on an index page `{total}` and `{shown}` are the list's counts."
 						},
+						"headerMetaCounts": {
+							"type": "object",
+							"description": "type='index': the other lists headerMeta counts, by name. Each is read as one list total and fills `{count:<name>}` in headerMeta (\"{total} contracten bij {count:suppliers} leveranciers\"); while a count loads or when it fails, the note is left out.",
+							"additionalProperties": {
+								"type": "object",
+								"required": ["register", "schema"],
+								"additionalProperties": false,
+								"properties": {
+									"register": { "type": "string", "minLength": 1 },
+									"schema": { "type": "string", "minLength": 1 },
+									"filter": { "type": "object" }
+								}
+							}
+						},
 						"tabsLabel": {
 							"type": "string",
 							"minLength": 1,
