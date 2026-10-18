@@ -371,6 +371,9 @@
 								:class="`cn-files-browser__col-${column.key}`"
 								:data-testid="`cn-files-browser-cell-${column.key}`">
 								<span v-if="column.key === 'name'" class="cn-files-browser__name">{{ node.basename }}</span>
+								<span v-if="column.key === 'name' && nameSecondaryOf(node)"
+									class="cn-files-browser__name-secondary"
+									data-testid="cn-files-browser-name-secondary">{{ nameSecondaryOf(node) }}</span>
 								<template v-else-if="column.key === 'size'">
 									{{ isFolder(node) ? '' : formatSize(node.size) }}
 								</template>
@@ -599,6 +602,14 @@
 			<Upload :size="16" />
 			{{ dropHintLabel }}
 		</p>
+		<!-- The host's own line under the list ("Elk bestand wordt bij het
+		     uploaden op virussen gescand", DqDocumentenBeheer), apart from
+		     the drop hint. -->
+		<p v-if="footnote && !loading && error === ''"
+			class="cn-files-browser__footnote"
+			data-testid="cn-files-browser-footnote">
+			{{ cnTranslate(footnote) }}
+		</p>
 
 		<NcDialog
 			v-if="renaming !== null"
@@ -739,6 +750,7 @@ import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { isNewTabClick, isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, hostActionApplies, joinPath } from './filesBrowser.js'
 import {
@@ -1024,6 +1036,29 @@ export default {
 		dropHint: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * A line of the host's own under the list, apart from the drop hint
+		 * ("Elk bestand wordt bij het uploaden op virussen gescand en krijgt een
+		 * controlegetal", DqDocumentenBeheer). Translated with the host's
+		 * catalogue.
+		 */
+		footnote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A second line under each file's name (DqDocumentenBeheer "Inwoner ·
+		 * 4 okt"): a field template read from the file's row data, plus
+		 * `name`, `modified` (the change date) and `owner` (the owner's display
+		 * name), e.g. `"{uploadedBy} · {modified|date}"`. A line with an empty
+		 * value is left out. Translated with the host's catalogue first.
+		 */
+		nameSecondary: {
+			type: String,
+			default: '',
 		},
 
 		/** The line `dropHint` shows. */
@@ -1909,6 +1944,24 @@ export default {
 		 */
 		hostLabel(action) {
 			return this.cnTranslate(String(action?.label ?? ''))
+		},
+
+		/**
+		 * The second line under a file's name, or '' without `nameSecondary`,
+		 * for a folder, or when a value in it is empty.
+		 *
+		 * @param {object} node The file.
+		 * @return {string}
+		 */
+		nameSecondaryOf(node) {
+			if (!this.nameSecondary || this.isFolder(node)) {
+				return ''
+			}
+			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
+			const entry = byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
+			const owner = node.attributes ? node.attributes['owner-display-name'] : undefined
+			const object = { ...entry, name: node.basename, modified: node.mtime, ...(owner ? { owner } : {}) }
+			return fillTemplate(this.cnTranslate(this.nameSecondary), object)
 		},
 
 		/**
@@ -3254,6 +3307,22 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-files-browser__name-secondary {
+	display: block;
+	overflow: hidden;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-files-browser__footnote {
+	margin: 0;
+	padding-top: 12px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-files-browser__row--linked {

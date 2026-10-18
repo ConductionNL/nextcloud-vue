@@ -145,8 +145,24 @@ describe('CnFilesBrowser review surfaces', () => {
 		wrapper.unmount()
 	})
 
+	it('draws the host\'s footnote under the list, apart from the drop hint', async () => {
+		const wrapper = mountBrowser({ footnote: 'Elk bestand wordt bij het uploaden op virussen gescand.' })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-files-browser-footnote"]').text()).toBe('Elk bestand wordt bij het uploaden op virussen gescand.')
+		expect(wrapper.find('[data-testid="cn-files-browser-drop-hint"]').exists()).toBe(false)
+		wrapper.unmount()
+	})
+
+	it('draws a second line under each file\'s name from its row data, and none where a value is empty', async () => {
+		const wrapper = mountBrowser({ rowData: { 21: { review: 'Openbaar', uploadedBy: 'Inwoner' }, 22: { review: 'Openbaar' } }, nameSecondary: '{uploadedBy} · {name}' })
+		await flushPromises()
+		const lines = wrapper.findAll('[data-testid="cn-files-browser-name-secondary"]')
+		expect(lines.map((line) => line.text())).toEqual(['Inwoner · 21.pdf'])
+		wrapper.unmount()
+	})
+
 	it('is forwarded by the files tab', () => {
-		for (const prop of ['headerActions', 'rowButton', 'reviewSummary']) {
+		for (const prop of ['headerActions', 'rowButton', 'reviewSummary', 'footnote', 'nameSecondary']) {
 			expect(CnFilesTab.props[prop]).toBeDefined()
 		}
 	})
