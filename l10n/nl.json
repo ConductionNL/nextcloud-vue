@@ -1915,7 +1915,8 @@
     "Run test": "Test uitvoeren",
     "Test with a record": "Testen met een record",
     "admin": "beheerder",
-    "Wizard": "Assistent"
+    "Wizard": "Assistent",
+    "On": "Aan"
   },
   "plurals": {
     "{count} selected": [
