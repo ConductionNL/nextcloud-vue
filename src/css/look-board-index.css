@@ -128,6 +128,16 @@
 	gap: 8px;
 }
 
+/* `quickFilterPlacement: "toolbar"` (DqTeamwachtrij): the chips take the room
+   the Filter button and the view switch leave on row 1, so the three stay on
+   one row in the column beside a side panel; the chips that do not fit move
+   into the overflow chip (CnQuickFilterBar `fit`) instead of pushing the
+   buttons onto a row of their own. */
+.cn-look-board.cn-index-page--quick-filters-toolbar .cn-actions-bar--board > .cn-actions-bar__row--views > .cn-quick-filter-bar {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
 /* Row 2: the search field and the active filters on a line of their own. */
 .cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--search {
 	display: flex;

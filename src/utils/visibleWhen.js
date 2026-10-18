@@ -67,6 +67,17 @@ export function readVisibleWhenPath(data, field) {
 }
 
 /**
+ * Whether a value is a date string: not a number, and a moment `Date.parse`
+ * can read.
+ *
+ * @param {unknown} value The value.
+ * @return {boolean}
+ */
+function isDateLike(value) {
+	return typeof value === 'string' && value.trim() !== '' && !Number.isFinite(Number(value)) && Number.isFinite(Date.parse(value))
+}
+
+/**
  * Apply a visibleWhen comparison operator. Ordering operators coerce both
  * sides to Number; equality compares loosely-normalized primitives
  * (`String(a) === String(b)` when types differ) so `"3" eq 3` holds for
@@ -103,8 +114,14 @@ export function compareVisibleWhen(actual, op, expected, ctx) {
 		const equal = actual === right || String(actual) === String(right)
 		return operator === 'eq' ? equal : !equal
 	}
-	const a = Number(actual)
-	const b = Number(right)
+	let a = Number(actual)
+	let b = Number(right)
+	// Two dates (`dueAt` against `@today`) compare as moments; a value that
+	// is a number on either side never reads as a date.
+	if ((!Number.isFinite(a) || !Number.isFinite(b)) && isDateLike(actual) && isDateLike(right)) {
+		a = Date.parse(actual)
+		b = Date.parse(right)
+	}
 	if (!Number.isFinite(a) || !Number.isFinite(b)) {
 		return false
 	}

@@ -507,12 +507,15 @@
 
 	<!--
 		Board look: the bulk band is its own row between the toolbar and the
-		table card, outside the toolbar element, and only while rows are
-		selected. The count stays announced by the live region above.
+		table card, outside the toolbar element, while rows are selected; with
+		`bulkBandAlways` also before, its buttons disabled until there is a
+		selection (DqZaken, DqWerkbord). The count stays announced by the live
+		region above.
 	-->
 	<div
-		v-if="isBoardLayout && selectable && selectedIds.length > 0"
+		v-if="isBoardLayout && selectable && (selectedIds.length > 0 || (bulkBandAlways && bulkBandHasActions))"
 		class="cn-actions-bar__band"
+		:class="{ 'cn-actions-bar__band--idle': selectedIds.length === 0 }"
 		role="region"
 		:aria-label="t('nextcloud-vue', 'Actions for the selection')"
 		data-testid="cn-bulk-band">
@@ -520,12 +523,14 @@
 		<NcButton
 			v-if="showMassCopy"
 			variant="secondary"
+			:disabled="selectedIds.length === 0"
 			@click="$emit('show-copy')">
 			{{ t('nextcloud-vue', 'Copy selected') }}
 		</NcButton>
 		<NcButton
 			v-if="showMassDelete"
 			variant="secondary"
+			:disabled="selectedIds.length === 0"
 			@click="$emit('show-delete')">
 			{{ t('nextcloud-vue', 'Delete selected') }}
 		</NcButton>
@@ -533,7 +538,7 @@
 			v-for="entry in bulkActions"
 			:key="entry.id"
 			variant="secondary"
-			:disabled="entry.disabled === true"
+			:disabled="entry.disabled === true || selectedIds.length === 0"
 			:data-testid="`cn-bulk-action-${entry.id}`"
 			:lang="bulkLang(entry)"
 			@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
@@ -717,6 +722,16 @@ export default {
 		bulkNoun: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: draw the bulk band also before anything is selected, its
+		 * buttons disabled until there is a selection, as DqZaken and DqWerkbord
+		 * draw it. Only when the band has an action to offer.
+		 */
+		bulkBandAlways: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** The 13px hint after the board bulk band's buttons (`config.bulkHint`). */
@@ -1115,6 +1130,18 @@ export default {
 		 */
 		filterCountLabel() {
 			return t('nextcloud-vue', '{count} active', { count: this.filterCount })
+		},
+
+		/**
+		 * Whether the bulk band has an action to offer: copy, delete, a
+		 * declared bulk action or the host's own buttons.
+		 *
+		 * @return {boolean}
+		 */
+		bulkBandHasActions() {
+			return this.showMassCopy || this.showMassDelete
+				|| (Array.isArray(this.bulkActions) && this.bulkActions.length > 0)
+				|| Boolean(this.$slots['selection-actions'])
 		},
 
 		/**

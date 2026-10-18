@@ -59,6 +59,7 @@ In `manifest.json` (the usual entry-point — CnIndexPage mounts the bar for you
 - `selectLabel` (String, default `'Filter'`) — accessible label / placeholder for the dropdown control.
 - `placeholder` (String) — placeholder text for the dropdown (falls back to `selectLabel`).
 - `maxVisible` (Number, default `0`) — chips mode only: how many pills render inline before the rest move behind one more chip, a `⋯` pill that opens a small panel of the hidden lenses (also as chips). `0` renders every tab. The visible set is the first `maxVisible` entries of `tabs`, so their declared order decides what stays in the strip; an active hidden tab moves its label and fill onto that chip. Manifest: `config.quickFilterMaxVisible`.
+- `fit` (Boolean, default `false`) — chips mode only: show as many chips as the bar's own width holds and move the rest behind the overflow chip, measured again when the width, the tabs or the counts change. The bar takes the room its parent gives it; CnIndexPage's `quickFilterPlacement: "toolbar"` gives it what the Filter button and the view switch leave on their row. With `maxVisible` too, the smaller of the two wins.
 - `counts` (Object or Array, default `null`): how many records each tab matches, keyed by tab index. A tab with a number shows it after its label. CnIndexPage fills this for tabs that set `showCount`.
 
 ### Events

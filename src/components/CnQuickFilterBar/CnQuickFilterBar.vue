@@ -24,8 +24,28 @@
 	</div>
 	<!-- Chips mode (default): the clickable tab strip. -->
 	<div v-else
+		ref="chipsRoot"
 		class="cn-quick-filter-bar"
-		:class="{ 'cn-quick-filter-bar--inline': inline }">
+		:class="{ 'cn-quick-filter-bar--inline': inline, 'cn-quick-filter-bar--fit': fit }">
+		<!-- With `fit`: an invisible copy of every chip and the overflow chip,
+		     measured to work out how many chips the bar's width holds. -->
+		<div v-if="fit"
+			ref="measure"
+			class="cn-quick-filter-bar__measure"
+			aria-hidden="true">
+			<span v-for="entry in entries"
+				:key="'m:' + entry.tab.label + ':' + entry.index"
+				class="cn-quick-filter-bar__tab"
+				:class="{ 'cn-quick-filter-bar__tab--active': isChipActive(entry.index) }"
+				data-measure="chip">
+				<span class="cn-quick-filter-bar__label">{{ tl(entry.tab.label) }}</span>
+				<span v-if="countOf(entry) !== null" class="cn-quick-filter-bar__count">{{ ' ' + countOf(entry) }}</span>
+			</span>
+			<span class="cn-quick-filter-bar__tab cn-quick-filter-bar__more" data-measure="more">
+				<span v-if="overflowLabel" class="cn-quick-filter-bar__label">{{ overflowLabel }}</span>
+				<DotsHorizontal :size="16" class="cn-quick-filter-bar__icon" />
+			</span>
+		</div>
 		<!-- The tablist holds ONLY tabs: the overflow chip is a sibling, not a
 		     child, because a role="tablist" may not contain a menu button. -->
 		<!-- Board look: the tabs are chips, pressed buttons in a group, not a
@@ -266,6 +286,19 @@ export default {
 			type: [Object, Array],
 			default: null,
 		},
+
+		/**
+		 * Chips mode only: show as many chips as the bar's own width holds and
+		 * move the rest into the overflow chip, measured again whenever the
+		 * width, the tabs or the counts change. The bar takes the room it is
+		 * given (CnIndexPage's `quickFilterPlacement: "toolbar"` gives it what
+		 * the Filter button and the view switch leave on their row). With
+		 * `maxVisible` too, the smaller of the two wins.
+		 */
+		fit: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['update:active-index', 'update:selected-indices'],
@@ -274,6 +307,8 @@ export default {
 		return {
 			/** Whether the overflow chip's panel is open. */
 			moreOpen: false,
+			/** With `fit`: how many chips the width holds; null before the first measure. */
+			fitCount: null,
 		}
 	},
 
@@ -303,10 +338,24 @@ export default {
 		 * @return {Array<{tab: object, index: number}>}
 		 */
 		visibleEntries() {
-			if (!this.maxVisible || this.tabs.length <= this.maxVisible) {
+			const limit = this.effectiveMax
+			if (!limit || this.tabs.length <= limit) {
 				return this.entries
 			}
-			return this.entries.slice(0, this.maxVisible)
+			return this.entries.slice(0, limit)
+		},
+
+		/**
+		 * How many chips render: `maxVisible`, and with `fit` no more than the
+		 * width holds; 0 for no limit.
+		 *
+		 * @return {number}
+		 */
+		effectiveMax() {
+			if (!this.fit || this.fitCount === null) {
+				return this.maxVisible
+			}
+			return this.maxVisible ? Math.min(this.maxVisible, this.fitCount) : this.fitCount
 		},
 
 		/**
@@ -316,10 +365,11 @@ export default {
 		 * @return {Array<{tab: object, index: number}>}
 		 */
 		overflowEntries() {
-			if (!this.maxVisible || this.tabs.length <= this.maxVisible) {
+			const limit = this.effectiveMax
+			if (!limit || this.tabs.length <= limit) {
 				return []
 			}
-			return this.entries.slice(this.maxVisible)
+			return this.entries.slice(limit)
 		},
 
 		/**
@@ -399,7 +449,79 @@ export default {
 		},
 	},
 
+	watch: {
+		tabs() {
+			this.scheduleFit()
+		},
+
+		counts: {
+			deep: true,
+			handler() {
+				this.scheduleFit()
+			},
+		},
+	},
+
+	mounted() {
+		if (this.fit && typeof ResizeObserver === 'function' && this.$refs.chipsRoot) {
+			this.fitObserver = new ResizeObserver(() => this.measureFit())
+			this.fitObserver.observe(this.$refs.chipsRoot)
+		}
+		this.scheduleFit()
+	},
+
+	beforeUnmount() {
+		if (this.fitObserver) {
+			this.fitObserver.disconnect()
+			this.fitObserver = null
+		}
+	},
+
 	methods: {
+		/** Measure the fit after the next render. */
+		scheduleFit() {
+			if (this.fit) {
+				this.$nextTick(() => this.measureFit())
+			}
+		},
+
+		/**
+		 * Work out how many chips the bar's width holds, from the invisible
+		 * copy: every chip that fits, and when not all do, room left for the
+		 * overflow chip. At least one chip always shows.
+		 */
+		measureFit() {
+			const box = this.$refs.measure
+			const root = this.$refs.chipsRoot
+			if (!this.fit || !box || !root) {
+				return
+			}
+			const available = root.clientWidth
+			const chips = [...box.querySelectorAll('[data-measure="chip"]')].map((el) => el.offsetWidth)
+			const more = box.querySelector('[data-measure="more"]')
+			const moreWidth = more ? more.offsetWidth : 0
+			const gap = parseFloat(getComputedStyle(box).columnGap) || 8
+			if (available <= 0 || chips.length === 0) {
+				this.fitCount = null
+				return
+			}
+			const total = chips.reduce((sum, width) => sum + width, 0) + gap * (chips.length - 1)
+			if (total <= available) {
+				this.fitCount = null
+				return
+			}
+			let used = moreWidth
+			let count = 0
+			for (const width of chips) {
+				if (used + gap + width > available) {
+					break
+				}
+				used += gap + width
+				count++
+			}
+			this.fitCount = Math.max(1, count)
+		},
+
 		/**
 		 * A manifest string through the host's label lookup (`cnTranslate`), so a key
 		 * such as "Mine" reads in the user's language.
@@ -531,6 +653,38 @@ export default {
 /* Inline variant — bare strip for embedding inside another bar (e.g. the
    CnActionsBar #filters slot), so it reads as a control beside the view toggle
    rather than a separate bordered row. */
+/* With `fit`: one line, as wide as it is given; the chips it cannot hold
+   are in the overflow chip. The measuring copy takes no room and is never
+   seen or read. */
+.cn-quick-filter-bar--fit {
+	position: relative;
+	flex-wrap: nowrap;
+	min-width: 0;
+}
+
+.cn-quick-filter-bar--fit .cn-quick-filter-bar__tabs {
+	flex-wrap: nowrap;
+	min-width: 0;
+}
+
+.cn-quick-filter-bar__measure {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	display: flex;
+	gap: 8px;
+	width: 0;
+	height: 0;
+	overflow: hidden;
+	visibility: hidden;
+	pointer-events: none;
+	white-space: nowrap;
+}
+
+.cn-quick-filter-bar__measure > * {
+	flex: none;
+}
+
 .cn-quick-filter-bar--inline {
 	padding: 0;
 	border-bottom: none;
