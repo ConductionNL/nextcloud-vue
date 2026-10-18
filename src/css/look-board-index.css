@@ -184,10 +184,15 @@
 	outline-offset: 2px;
 }
 
+/* The selected chip is light on dark, so it hands its ink to
+   --nldesign-color-on-surface: thematiq forces the body ink onto every span
+   with `!important` and reads it from that property, which left the label
+   dark on dark. */
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected,
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected:hover,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active:hover {
+	--nldesign-color-on-surface: var(--color-main-background);
 	border-color: transparent;
 	background: var(--color-main-text);
 	color: var(--color-main-background);
@@ -208,8 +213,12 @@
 }
 
 .cn-look-board .cn-saved-views__chip--selected .cn-saved-views__chip-count,
+/* On the selected chip the count is a lighter bubble on the dark chip
+   (DqZaken: #3d4047 on #1b1c1d); --cn-board-text-soft resolves to the main
+   text, the chip's own colour, which hid the bubble. */
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active .cn-quick-filter-bar__count {
-	background: var(--cn-board-text-soft);
+	--nldesign-color-on-surface: var(--color-primary-element-text);
+	background: color-mix(in srgb, var(--color-main-background) 15%, var(--color-main-text));
 	color: var(--color-primary-element-text);
 }
 
@@ -481,12 +490,16 @@
 	border-radius: 0;
 }
 
-/* The header row is near-white on the boards (#fafbfc), not the hover grey. */
+/* The header row is near-white on the boards (#fafbfc), not the hover grey,
+   its labels 14px muted. The ink also goes to --nldesign-color-on-surface,
+   which a theme that forces the body ink onto every span (thematiq) reads. */
 .cn-look-board .cn-table-container--board .cn-data-table th {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	padding: 12px 16px;
 	border-bottom: 0;
 	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
 	color: var(--color-text-maxcontrast);
+	font-size: 14px;
 	font-weight: 600;
 }
 
@@ -495,6 +508,20 @@
 	border-top: 1px solid var(--cn-board-hairline);
 	border-bottom: 0;
 	font-size: 14px;
+}
+
+/* The board sets its table at the normal line height: a row with a title and
+   a secondary line is 66px and the header row 50px (DqZaken). Nextcloud's 1.5
+   made them 71px and 67px, and the header's sort button kept the 34px
+   clickable area. */
+.cn-look-board .cn-table-container--board .cn-data-table {
+	line-height: normal;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table th .cn-table-header__sort {
+	min-height: 0;
+	height: auto;
+	line-height: inherit;
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-row {
@@ -552,7 +579,9 @@
 	margin-inline-start: 4px;
 }
 
-/* The selection column: 18px checkboxes, 28px of content after 16px of padding.
+/* The selection column: 18px checkboxes, 28px of content between 16px of
+   padding either side, 60px in all (DqZaken and 130 other boards; the title
+   column starts 77px in).
    The box model is set with `!important` and the widths include the padding:
    Nextcloud's server.css sets `box-sizing: border-box` on everything under
    `#content[class*="app-"]`, an id selector no class rule outranks, so a plain
@@ -560,14 +589,24 @@
    header's checkbox showed as a stray bracket). */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--checkbox {
 	box-sizing: border-box !important;
-	width: 44px;
-	min-width: 44px;
-	padding-inline: 16px 0;
+	width: 60px;
+	min-width: 60px;
+	padding-inline: 16px;
 	text-align: start;
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table .checkbox-radio-switch {
 	--icon-size: 18px;
+}
+
+/* The checkbox is the 18px box alone, as the board draws it: NcCheckboxRadioSwitch
+   wraps it in a 34px clickable area with 4px 7px of padding, a 42px block that
+   set every row's height (71px where DqZaken's rows are 66). The cell around it
+   stays the click target's room: 44px wide, a full row high. */
+.cn-look-board .cn-table-container--board .cn-data-table .checkbox-radio-switch .checkbox-radio-switch__content {
+	min-height: 0;
+	height: auto;
+	padding: 0;
 }
 
 /* The title column: a 15px weight 600 link, the secondary line under it. */
@@ -580,6 +619,7 @@
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title .cn-table-cell__secondary {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
 	font-weight: 400;
@@ -621,10 +661,14 @@
 	gap: 10px;
 }
 
+/* The initials sit on the light primary tint in the primary ink, the board's
+   person chip (DqZaken's Behandelaar, and most boards' people). */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials {
-	background: var(--color-background-dark);
-	color: var(--color-main-text);
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
 	font-size: 12px;
+	font-weight: 700;
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title .cn-cell-renderer__avatar-name {

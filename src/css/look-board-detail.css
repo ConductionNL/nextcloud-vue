@@ -152,6 +152,32 @@
 	margin-top: 16px;
 }
 
+/* ---- The stages bars (CnStagesWidget `variant: "bars"`) ---------------- */
+/* DqZaak's "Voortgang": the bars sit flush with the content edge (the
+   widget's 4px pad is room for the 32px circles, which the bars variant does
+   not draw), the label 8px under its bar and the date 8px under the label at
+   the normal line height, open steps muted and the done and current ones in
+   the main text. Each hands its ink to --nldesign-color-on-surface, which a
+   theme that forces the body ink onto every span (thematiq) reads instead. */
+.cn-look-board .cn-stages-widget:has(> .cn-stages-widget__bars):not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
+.cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-label:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	line-height: normal;
+}
+
+.cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-step--done .cn-stages-widget__bar-label:not(.cn-look-nextcloud *),
+.cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-step--current .cn-stages-widget__bar-label:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+}
+
+.cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-date:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	line-height: normal;
+}
+
 /* ---- The body and the side column ------------------------------------- */
 
 .cn-look-board.cn-detail-page--with-side {
@@ -185,6 +211,7 @@
    The open tab overlaps that top border by 1px (the nav's -1px margin) and
    paints over it, so it flows into the card as a folder tab. */
 .cn-look-board .cn-tabs--board .cn-tabs__bar {
+	align-items: flex-end;
 	border-bottom: none;
 	gap: 4px;
 	position: relative;
@@ -227,6 +254,9 @@
 	row-gap: 4px;
 }
 
+/* `margin: 0`: a tab is a <button>, and Nextcloud's core stylesheet gives
+   every `button:not(.button-vue)` `margin: 3px 3px 3px 0`, which put the strip
+   3px low and the tabs 7px apart instead of 4 (DqZaak "Zaakonderdelen"). */
 .cn-look-board .cn-tabs--board .cn-tabs__nav-item {
 	background-color: var(--color-background-dark);
 	border: 1px solid var(--color-border-dark);
@@ -234,6 +264,7 @@
 	border-radius: 8px 8px 0 0;
 	font-size: 14px;
 	font-weight: 400;
+	margin: 0;
 	min-height: 34px;
 	padding: 8px 12px;
 }
@@ -267,9 +298,12 @@
 	padding: 0 6px;
 }
 
-/* The Actions button at the end of the strip, level with the tabs. */
+/* The Actions button at the end of the strip: at the top, 8px in from the
+   end and 8px clear of the card, so the tabs, aligned to the bottom, sit 6px
+   lower than the button (DqZaak "Acties"). */
 .cn-look-board .cn-tabs--board .cn-tabs__nav-end {
 	align-self: flex-start;
+	margin: 0 8px 8px 0;
 }
 
 .cn-look-board .cn-tabs--board .cn-tabs__nav-end .button-vue {
@@ -327,21 +361,26 @@
 
 /* ---- Body cards and side cards ----------------------------------------- */
 
+/* A CnDetailCard takes the board card wherever it sits, not only on a detail
+   page: a dashboard or a custom page that mounts one drew the Nextcloud card
+   (a 12px 16px header over a rule). The doubled class keeps the specificity
+   the page-scoped rule had. */
+
 .cn-look-board .cn-detail-page .cn-widget-wrapper,
-.cn-look-board .cn-detail-page .cn-detail-card {
+.cn-look-board .cn-detail-card.cn-detail-card:not(.cn-detail-card--chromeless) {
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
 	border-radius: var(--cn-board-card-radius);
 }
 
 .cn-look-board .cn-detail-page .cn-widget-wrapper__header,
-.cn-look-board .cn-detail-page .cn-detail-card__header {
+.cn-look-board .cn-detail-card .cn-detail-card__header {
 	border-bottom: none;
 	padding: 20px 22px 0;
 }
 
 .cn-look-board .cn-detail-page .cn-widget-wrapper__title,
-.cn-look-board .cn-detail-page .cn-detail-card__title {
+.cn-look-board .cn-detail-card .cn-detail-card__title {
 	font-size: var(--cn-board-heading-size);
 	font-weight: 700;
 	line-height: 1.3;
@@ -351,7 +390,7 @@
 	padding: 12px 22px 20px;
 }
 
-.cn-look-board .cn-detail-page .cn-detail-card__content {
+.cn-look-board .cn-detail-card .cn-detail-card__content {
 	padding: 12px 22px 20px;
 }
 
@@ -398,10 +437,12 @@
 	font-weight: 500;
 }
 
-/* Side cards: the heading is a 15px muted label, not a title. */
+/* Side cards: the heading is a 15px muted label, not a title. The tone
+   carries `!important` against a theme that colours every h3 that way
+   (thematiq's heading colour). */
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__title,
 .cn-look-board .cn-detail-page__side .cn-detail-card__title {
-	color: var(--color-text-maxcontrast);
+	color: var(--color-text-maxcontrast) !important;
 	font-size: var(--cn-board-side-heading-size);
 	font-weight: 600;
 }
@@ -456,17 +497,23 @@
 
 /* ---- The next-step card ------------------------------------------------- */
 
+/* The board sets the card at the browser's normal line height: a step row is
+   the 20px marker, 28px apart (DqZaak "Wat nu?"). */
 .cn-look-board .cn-next-step-card--board {
 	border-radius: 12px;
 	gap: 16px 32px;
+	line-height: normal;
 	padding: 20px 24px 20px 28px;
 }
 
+/* The kicker keeps its tone under a theme that colours every h3 with
+   `!important` (thematiq's heading colour); only `!important` beats it. */
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__title.cn-next-step-card__title {
-	color: var(--color-primary-element-light-text);
+	color: var(--color-primary-element-light-text) !important;
 	font-size: 13px !important;
 	font-weight: 700;
 	letter-spacing: 0.06em;
+	line-height: normal;
 	text-transform: uppercase;
 }
 
@@ -497,9 +544,34 @@
 	padding: 0 20px;
 }
 
+/* The label alone sets the width (DqZaak: 198px for "Verder met beoordelen"):
+   NcButton pads its text 4px a side inside the button's own padding, from a
+   rule that reaches it through `:has()`, hence the doubled class. */
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__side .button-vue .button-vue__text.button-vue__text {
+	margin-inline: 0;
+	padding-inline: 0;
+}
+
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__after {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+}
+
+/* Done and open steps are muted, the current one in the main text. Each hands
+   its ink to --nldesign-color-on-surface, which a theme that forces the body
+   ink onto every li and span (thematiq) reads instead. */
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__item,
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__hint,
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__after {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__item--current {
+	--nldesign-color-on-surface: var(--color-main-text);
+}
+
+.cn-look-board .cn-next-step-card--board .cn-next-step-card__item--current .cn-next-step-card__hint {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 }
 
 /* ---- History: the activity tab ------------------------------------------ */

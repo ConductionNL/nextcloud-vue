@@ -19,7 +19,16 @@
 				class="cn-ordered-list-field__row"
 				:data-testid="`cn-ordered-list-row-${row.value}`">
 				<span class="cn-ordered-list-field__position" aria-hidden="true">{{ index + 1 }}</span>
-				<span class="cn-ordered-list-field__text">{{ row.label }}</span>
+				<span v-if="row.icon" class="cn-ordered-list-field__tile" aria-hidden="true">
+					<CnIcon :name="row.icon" :size="18" />
+				</span>
+				<span class="cn-ordered-list-field__text">
+					<span class="cn-ordered-list-field__name">{{ row.label }}</span>
+					<span v-if="row.description"
+						:id="descriptionId(row)"
+						class="cn-ordered-list-field__description"
+						:data-testid="`cn-ordered-list-description-${row.value}`">{{ row.description }}</span>
+				</span>
 				<span class="cn-ordered-list-field__actions">
 					<button
 						type="button"
@@ -27,6 +36,7 @@
 						:disabled="disabled || index === 0"
 						:aria-label="t('nextcloud-vue', 'Move {item} up', { item: row.label })"
 						:data-testid="`cn-ordered-list-up-${row.value}`"
+						:aria-describedby="row.description ? descriptionId(row) : null"
 						@click="move(index, index - 1)">
 						<ChevronUp :size="20" />
 					</button>
@@ -36,6 +46,7 @@
 						:disabled="disabled || index === rows.length - 1"
 						:aria-label="t('nextcloud-vue', 'Move {item} down', { item: row.label })"
 						:data-testid="`cn-ordered-list-down-${row.value}`"
+						:aria-describedby="row.description ? descriptionId(row) : null"
 						@click="move(index, index + 1)">
 						<ChevronDown :size="20" />
 					</button>
@@ -45,6 +56,7 @@
 						:disabled="disabled"
 						:aria-label="t('nextcloud-vue', 'Remove {item}', { item: row.label })"
 						:data-testid="`cn-ordered-list-remove-${row.value}`"
+						:aria-describedby="row.description ? descriptionId(row) : null"
 						@click="remove(index)">
 						<Close :size="20" />
 					</button>
@@ -66,7 +78,19 @@
 				:filterable="!searchable"
 				data-testid="cn-ordered-list-add"
 				@search="onSearch"
-				@update:modelValue="add" />
+				@update:modelValue="add">
+				<template #option="option">
+					<span class="cn-ordered-list-field__option">
+						<span v-if="option.icon" class="cn-ordered-list-field__tile" aria-hidden="true">
+							<CnIcon :name="option.icon" :size="18" />
+						</span>
+						<span class="cn-ordered-list-field__text">
+							<span class="cn-ordered-list-field__name">{{ option.label }}</span>
+							<span v-if="option.description" class="cn-ordered-list-field__description">{{ option.description }}</span>
+						</span>
+					</span>
+				</template>
+			</NcSelect>
 		</div>
 		<p class="hidden-visually" aria-live="polite" data-testid="cn-ordered-list-live">
 			{{ announcement }}
@@ -80,6 +104,7 @@ import { NcSelect } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 
 let orderedListUid = 0
 
@@ -109,7 +134,7 @@ let orderedListUid = 0
 export default {
 	name: 'CnOrderedListField',
 
-	components: { ChevronDown, ChevronUp, Close, NcSelect },
+	components: { ChevronDown, ChevronUp, Close, CnIcon, NcSelect },
 
 	props: {
 		/** The values in their order. */
@@ -119,8 +144,11 @@ export default {
 		},
 
 		/**
-		 * The choices, `{ value, label }` (a plain string is its own label).
-		 * A value in `modelValue` without a choice shows the value itself.
+		 * The choices, `{ value, label, description?, icon? }` (a plain string
+		 * is its own label). `description` is a muted second line ("19 open
+		 * cases"), in the row and in the picker; `icon` an MDI name drawn in a
+		 * small tile before the label. A value in `modelValue` without a
+		 * choice shows the value itself.
 		 */
 		options: {
 			type: Array,
@@ -185,17 +213,22 @@ export default {
 		choices() {
 			return (Array.isArray(this.options) ? this.options : [])
 				.map((option) => (option && typeof option === 'object'
-					? { value: String(option.value ?? option.id ?? ''), label: String(option.label ?? option.title ?? option.value ?? '') }
-					: { value: String(option), label: String(option) }))
+					? {
+							value: String(option.value ?? option.id ?? ''),
+							label: String(option.label ?? option.title ?? option.value ?? ''),
+							description: typeof option.description === 'string' ? option.description : '',
+							icon: typeof option.icon === 'string' ? option.icon : '',
+						}
+					: { value: String(option), label: String(option), description: '', icon: '' }))
 				.filter((option) => option.value !== '')
 		},
 
-		/** @return {Array<{value: string, label: string}>} The rows, in order. */
+		/** @return {Array<{value: string, label: string, description: string, icon: string}>} The rows, in order. */
 		rows() {
 			return (Array.isArray(this.modelValue) ? this.modelValue : []).map((value) => {
 				const key = String(value)
 				const choice = this.choices.find((option) => option.value === key)
-				return { value: key, label: choice ? choice.label : key }
+				return choice || { value: key, label: key, description: '', icon: '' }
 			})
 		},
 
@@ -213,6 +246,16 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * The id of a row's description, which its buttons name as their description.
+		 *
+		 * @param {{value: string}} row The row.
+		 * @return {string}
+		 */
+		descriptionId(row) {
+			return `${this.labelId}-desc-${String(row.value).replace(/[^\w-]/g, '-')}`
+		},
 
 		/**
 		 * Emit the new order.
@@ -382,5 +425,34 @@ export default {
 .cn-ordered-list-field__empty {
 	margin: 0;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-ordered-list-field__tile {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.cn-ordered-list-field__name {
+	display: block;
+}
+
+.cn-ordered-list-field__description {
+	display: block;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-ordered-list-field__option {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
 }
 </style>
