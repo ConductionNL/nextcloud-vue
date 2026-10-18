@@ -17,6 +17,22 @@
 		<p v-else-if="rows.length === 0" class="cn-record-list__empty" data-testid="cn-record-list-empty">
 			{{ emptyLabel }}
 		</p>
+		<!-- notice: the rows as sentences in one toned box ("2 waarschuwingen: ..."). -->
+		<div
+			v-else-if="presentation === 'notice'"
+			class="cn-record-list__notice"
+			:class="`cn-record-list__notice--${noticeVariant}`"
+			role="note"
+			data-testid="cn-record-list-notice">
+			<CnIcon
+				:name="noticeIcon"
+				:size="18"
+				class="cn-record-list__notice-icon"
+				aria-hidden="true" />
+			<p class="cn-record-list__notice-text">
+				{{ noticeText }}
+			</p>
+		</div>
 		<ul v-else class="cn-record-list__list">
 			<li
 				v-for="item in items"
@@ -210,7 +226,22 @@ import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
-const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards']
+const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice']
+
+/** The tones a `notice` list takes. */
+const NOTICE_VARIANTS = ['info', 'warning', 'error']
+
+/**
+ * A row that is a plain string or number (an endpoint answering `["...", "..."]`)
+ * read as `{ value }`, so the templates reach it as `{value}` and a list
+ * without a `title` shows the value itself. An object row is returned as is.
+ *
+ * @param {(object|string|number)} row The row.
+ * @return {(object|string|number)} The row, or `{ value }` for a string or number.
+ */
+function scalarRow(row) {
+	return typeof row === 'string' || typeof row === 'number' ? { value: String(row) } : row
+}
 
 /**
  * Unwrap a value that may be a ref.
@@ -266,7 +297,7 @@ export default {
 	props: {
 		/**
 		 * The list config: `{ register, schema, filter?, sort?, limit?, extend?,
-		 * presentation?, title?, meta?, text?, label?, pill?, trailing?, icon?,
+		 * presentation?, variant?, lead?, title?, meta?, text?, label?, pill?, trailing?, icon?,
 		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
 		 * valueLabels?, endpointSource?, bar? }`. `bar` (`{ valueField, maxField?,
 		 * overVariant? }`) draws a thin track under each row: filled to
@@ -275,7 +306,12 @@ export default {
 		 * largest row. `endpointSource` (`{ url, method?,
 		 * params?, responsePath? }`) reads the rows from an app endpoint instead
 		 * of `register` / `schema`. `valueLabels` maps a field's stored values to the labels
-		 * the templates show.
+		 * the templates show. A row that is a plain string or number (an endpoint
+		 * answering `["…", "…"]`) is read as `{ value }`: templates reach it as
+		 * `{value}`, and without `title` a row shows the value itself.
+		 * `presentation: "notice"` draws the rows as sentences in one box toned by
+		 * `variant` (`info`, `warning` or `error`), after an optional `lead`
+		 * (`{total}` filled in).
 		 *
 		 * @type {object}
 		 */
@@ -334,6 +370,35 @@ export default {
 
 	computed: {
 		/** @return {string} `rows`, `feed`, `inline` or `cards`. */
+		/**
+		 * The tone of a `notice` list (`content.variant`): info, warning or error.
+		 *
+		 * @return {string} The variant, `info` when unset or unknown.
+		 * @spec openspec/changes/record-list-string-rows/specs/record-list-string-rows/spec.md#requirement-a-record-list-draws-rows-that-are-plain-strings
+		 */
+		noticeVariant() {
+			const value = this.content?.variant
+			return NOTICE_VARIANTS.includes(value) ? value : 'info'
+		},
+
+		/** @return {string} The icon of the notice tone. */
+		noticeIcon() {
+			return this.noticeVariant === 'info' ? 'InformationOutline' : 'AlertOutline'
+		},
+
+		/**
+		 * The rows of a `notice` list as one paragraph: each row's title, as
+		 * sentences, after the optional `lead` with `{total}` filled in.
+		 *
+		 * @return {string} The text.
+		 * @spec openspec/changes/record-list-string-rows/specs/record-list-string-rows/spec.md#requirement-a-record-list-draws-rows-that-are-plain-strings
+		 */
+		noticeText() {
+			const parts = this.items.map((item) => item.title).filter((text) => text !== '')
+			const lead = typeof this.content?.lead === 'string' && this.content.lead !== '' ? this.withTotal(this.content.lead) : ''
+			return [lead, ...parts].filter(Boolean).join(' ')
+		},
+
 		presentation() {
 			const value = this.content?.presentation
 			return PRESENTATIONS.includes(value) ? value : 'rows'
@@ -421,7 +486,8 @@ export default {
 		items() {
 			const c = this.content || {}
 			const barScale = this.barScale
-			return this.rows.slice(0, this.limit).map((row, index) => {
+			return this.rows.slice(0, this.limit).map((raw, index) => {
+				const row = scalarRow(raw)
 				const link = this.rowLink(row)
 				return {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
@@ -430,7 +496,7 @@ export default {
 					tag: link ? 'router-link' : 'div',
 					attrs: link ? { to: link } : {},
 					initials: this.initialsFor(row),
-					title: this.fill(c.title, row),
+					title: this.fill(c.title || (row !== raw ? '{value}' : ''), row),
 					meta: this.metaOf(row),
 					text: this.fill(c.text, row),
 					label: this.fill(c.label, row),
@@ -1123,6 +1189,36 @@ export default {
 .cn-record-list__error {
 	color: var(--color-text-maxcontrast);
 	margin: 0;
+}
+
+.cn-record-list__notice {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	padding: 12px 14px;
+	border-radius: var(--border-radius-large, 10px);
+	background: var(--color-primary-element-light, var(--color-background-dark));
+	color: var(--color-main-text);
+}
+
+.cn-record-list__notice--warning {
+	background: var(--color-warning-light, rgba(255, 196, 0, 0.12));
+	color: var(--color-warning-text, var(--color-main-text));
+}
+
+.cn-record-list__notice--error {
+	background: var(--color-error-light, rgba(219, 0, 0, 0.08));
+	color: var(--color-error-text, var(--color-main-text));
+}
+
+.cn-record-list__notice-icon {
+	flex: 0 0 auto;
+	margin-top: 1px;
+}
+
+.cn-record-list__notice-text {
+	margin: 0;
+	line-height: 1.5;
 }
 
 .cn-record-list__loading {
