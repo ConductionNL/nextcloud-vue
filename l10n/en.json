@@ -1696,7 +1696,8 @@
     "Upload {name}": "Upload {name}",
     "The image could not be uploaded: {reason}": "The image could not be uploaded: {reason}",
     "On the map": "On the map",
-    "Show them in the table": "Show them in the table"
+    "Show them in the table": "Show them in the table",
+    "Linked": "Linked"
   },
   "plurals": {
     "{count} selected": [
