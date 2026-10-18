@@ -4024,6 +4024,14 @@
 									"type": "boolean",
 									"description": "false removes Request a feature, Report a bug and Documentation, for an app that offers them in its own help menu."
 								},
+								"showMarkUnread": {
+									"type": "boolean",
+									"description": "false removes the built-in Mark as unread entry."
+								},
+								"showOpenSidebar": {
+									"type": "boolean",
+									"description": "false removes the built-in Open sidebar entry of the board look."
+								},
 								"label": {
 									"type": "string",
 									"minLength": 1,
