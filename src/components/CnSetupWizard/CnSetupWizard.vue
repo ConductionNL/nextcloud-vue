@@ -5,6 +5,7 @@
 		ref="wizard"
 		:steps="wizardSteps"
 		:dialogTitle="resolvedDialogTitle"
+		stepHeading
 		:submitLabel="submitLabel"
 		:cancelLabel="cancelLabel"
 		:nextLabel="nextLabel"
@@ -465,14 +466,16 @@ export default {
 	computed: {
 		/**
 		 * The title actually rendered by CnWizardDialog: "Set up {appName}"
-		 * when a display name was passed, otherwise whatever `dialogTitle`
-		 * resolves to (a caller override, or its own generic default).
+		 * when a display name was passed (the name through the host's
+		 * translate), otherwise whatever `dialogTitle` resolves to (a caller
+		 * override, or its own generic default). In the board look it is the
+		 * eyebrow's context and the current step's title is the heading.
 		 *
 		 * @return {string}
 		 */
 		resolvedDialogTitle() {
 			return this.appName
-				? t('nextcloud-vue', 'Set up {app}', { app: this.appName })
+				? t('nextcloud-vue', 'Set up {app}', { app: this.cnTranslate(this.appName) })
 				: this.dialogTitle
 		},
 

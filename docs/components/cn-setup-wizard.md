@@ -49,6 +49,10 @@ On an admin page `CnAdminSettingsShell` passes its `appName` to the wizard, so
 the title reads "Set up {appName}", and hands it the app's catalog as
 `cnTranslate`.
 
+In the board look the heading is the current step's title, under the eyebrow
+"Set up {appName}, step N of M" ("Dossiq instellen, stap 4 van 5" in Dutch,
+board DqInstellen). The app name goes through the host's translate.
+
 ## Radio rows
 
 `display: "rows"` draws a choice as [CnChoiceCards](./cn-choice-cards.md) in its `rows` layout: one option per row, full width, the radio on the left and the description under the label (board DqInstellen, step 4). Use it for a short list of options that each need a sentence; `cards` suits options with stats and tags.
