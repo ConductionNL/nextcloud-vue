@@ -1700,7 +1700,10 @@
     "Run test": "Run test",
     "Test with a record": "Test with a record",
     "admin": "admin",
-    "Wizard": "Wizard"
+    "Wizard": "Wizard",
+    "No contacts linked": "No contacts linked",
+    "No relations yet": "No relations yet",
+    "Period": "Period"
   },
   "plurals": {
     "{count} selected": [

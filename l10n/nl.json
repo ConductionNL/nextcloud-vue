@@ -1915,7 +1915,10 @@
     "Run test": "Test uitvoeren",
     "Test with a record": "Testen met een record",
     "admin": "beheerder",
-    "Wizard": "Assistent"
+    "Wizard": "Assistent",
+    "No contacts linked": "Geen contacten gekoppeld",
+    "No relations yet": "Nog geen relaties",
+    "Period": "Periode"
   },
   "plurals": {
     "{count} selected": [
