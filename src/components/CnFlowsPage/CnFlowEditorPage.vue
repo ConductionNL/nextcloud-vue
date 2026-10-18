@@ -11,6 +11,7 @@
 		:paletteFootnote="paletteFootnote ? cnTranslate(paletteFootnote) : ''"
 		:notice="notice ? cnTranslate(notice) : ''"
 		:pill="pill ? cnTranslate(pill) : ''"
+		:testSubject="testSubject ? { ...testSubject, label: testSubject.label ? cnTranslate(testSubject.label) : '' } : null"
 		@save="onSave"
 		@run="onRun" />
 	<CnFlowDetail v-else
@@ -120,6 +121,16 @@ export default {
 		paletteFootnote: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: the records a test run can take as its subject,
+		 * `{ register, schema, labelField?, label? }`. Manifest key
+		 * `config.testSubject`; `label` is translated with the app's catalogue.
+		 */
+		testSubject: {
+			type: Object,
+			default: null,
 		},
 
 		/**

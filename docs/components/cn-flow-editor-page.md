@@ -30,6 +30,7 @@ Controls belong in Nextcloud's app sidebar so the canvas keeps the full width â€
 | `look` | `String` | `''` | `board` or `nextcloud`, overriding the app's look for this page (`config.look`). |
 | `palette` | `String` | `'picker'` | Board look: `column` draws the step palette as a card left of the canvas, grouped by the app that provides each step; `picker` keeps "Add a step" in the canvas toolbar (`config.palette`). |
 | `paletteFootnote` | `String` | `''` | Board look: a line under the palette (`config.paletteFootnote`, translated). |
+| `testSubject` | `Object` | `null` | Board look: `{ register, schema, labelField?, label? }` (`config.testSubject`). Draws a header button ("Testen met een zaak") that opens a picker on that register and schema and runs the saved flow once with the picked record as its subject. `label` is translated; without it the button reads "Test with a record". |
 | `notice` | `String` | `''` | Board look: an info notice under the path (`config.notice`, translated). |
 | `pill` | `String` | `''` | Board look: the pill beside the flow's name, such as "Case type flow" (`config.pill`, translated). Empty shows Draft or Retired for a flow in that state. |
 | `listLabel` | `String` | `''` | Board look: the list's name at the start of the path, such as "Settings / Flows" (`config.listLabel`, translated). Empty reads "Flows". |
