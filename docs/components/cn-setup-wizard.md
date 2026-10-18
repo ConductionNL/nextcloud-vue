@@ -28,6 +28,27 @@ shell while a `required` step is unmet.
 | `summary` | a recap of step completion | — |
 | `component` | the parent's `#step-<id>` slot (escape hatch) | up to the slot |
 
+## A choice step's intro and footnote
+
+A `choice` step's `body` is its intro. In the board look it is a plain
+paragraph above the options, as the boards draw it; in the Nextcloud look it
+stays an info note card. A `note` (or `footnote`) is a muted line under the
+options, in either look. Both go through the app's own translations.
+
+```json
+{
+  "id": "case-types",
+  "type": "choice",
+  "display": "cards",
+  "body": "Which case types do you start with?",
+  "note": "You can add case types later under Case types."
+}
+```
+
+On an admin page `CnAdminSettingsShell` passes its `appName` to the wizard, so
+the title reads "Set up {appName}", and hands it the app's catalog as
+`cnTranslate`.
+
 ## Dataset cards that load themselves
 
 A cards `choice` step can declare `loadAction`. Every card then gets its own

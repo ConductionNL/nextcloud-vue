@@ -114,6 +114,14 @@ describe('CnRecordListWidget', () => {
 		expect(last.note).toBe('2 in totaal')
 	})
 
+	it('fills {count:field=value} in the header note from the loaded rows', async () => {
+		axios.get.mockResolvedValue({ data: { results: [{ id: 's1', status: 'done' }, { id: 's2', status: 'done' }, { id: 's3', status: 'open' }, { id: 's4', done: true }], total: 4 } })
+		const w = mountList({ headerNote: '{count:status=done} van {total} stappen klaar, {count:done=true} afgevinkt, {count:status=late} te laat' })
+		await flush()
+		const events = w.emitted('header')
+		expect(events[events.length - 1][0].note).toBe('2 van 4 stappen klaar, 1 afgevinkt, 0 te laat')
+	})
+
 	it('translates the templates through the host', async () => {
 		const w = mountList({ title: 'Case {identifier}', emptyText: 'No cases' }, { translate: (k) => k.replace('Case', 'Zaak') })
 		await flush()

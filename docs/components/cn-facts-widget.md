@@ -63,6 +63,8 @@ The person and organisation boards (screens-relation-pages) draw their side card
 | `{ "text": "..." }` | a part | A constant part ("Handelsregister"). A `line` or `text` entry without `path` or `parts` shows its own `text` ("Het tonen van het BSN wordt gelogd."). |
 | `action` | `content` | An action object (the header action shape) drawn as a tinted button under the facts. `@objectId` / `@object.<field>` resolve before it is dispatched. |
 | `headerAction` | `content` | The same, drawn as a small button in the card header ("+ Toevoegen"). The widget reports it through the `header` event; the detail page puts it in the card header, also on a side card. |
+| `headerPill` | `content` | A status pill in the card header, `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"). Reported through the `header` event; the detail page draws it beside the title. Nothing shows while the value is empty. |
+| `notice` | `content` | `{ text, variant? }`, a note band inside the card under the facts: `info` by default, or `success`, `warning`, `error`. The text is translated. |
 
 ```json
 {
@@ -120,7 +122,7 @@ entry's `format` (`bytes` for storage).
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `reveal` | `{ path }` | A masked value was shown. |
-| `header` | `{ link, note, action }` | The card header's parts; `action` is the `headerAction` (`{ label, icon, run }`) or null. |
+| `header` | `{ link, note, action, pill }` | The card header's parts; `action` is the `headerAction` (`{ label, icon, run }`) or null, `pill` the `headerPill` (`{ label, variant }`) or null. |
 
 ## Notes
 

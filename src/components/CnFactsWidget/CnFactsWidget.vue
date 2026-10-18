@@ -132,6 +132,13 @@
 				</div>
 			</template>
 		</template>
+		<NcNoteCard
+			v-if="notice && record"
+			:type="notice.type"
+			class="cn-facts-widget__notice"
+			data-testid="cn-facts-notice">
+			{{ notice.text }}
+		</NcNoteCard>
 		<component
 			:is="link.to ? 'router-link' : 'a'"
 			v-if="link && record"
@@ -157,7 +164,7 @@
 import { emit } from '@nextcloud/event-bus'
 import { formatFileSize } from '@nextcloud/files'
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
@@ -266,7 +273,7 @@ export const FACTS_REVEAL_CHANNEL = 'cn:facts:reveal'
 export default {
 	name: 'CnFactsWidget',
 
-	components: { Check, CnIcon, CnStatusBadge, ContentCopy, EyeOutline, NcLoadingIcon },
+	components: { Check, CnIcon, CnStatusBadge, ContentCopy, EyeOutline, NcLoadingIcon, NcNoteCard },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -290,6 +297,8 @@ export default {
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
+		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
+		 * - `notice` — `{ text, variant? }`, a note band inside the card under the facts (`info` by default; `success`, `warning` or `error`); the text is translated.
 		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
@@ -508,6 +517,47 @@ export default {
 			return this.actionView(this.content?.headerAction)
 		},
 
+		/**
+		 * The card header's status pill, read from the record like a `pill`
+		 * entry, or null when it has no text.
+		 *
+		 * @return {{label: string, variant: string}|null}
+		 */
+		headerPill() {
+			const pill = this.content?.headerPill
+			if (!pill || typeof pill !== 'object' || !this.record) {
+				return null
+			}
+			const raw = typeof pill.path === 'string' && pill.path !== '' ? readPath(this.record, pill.path) : undefined
+			const mapped = pill.map && (typeof raw === 'string' || typeof raw === 'number') && Object.hasOwn(pill.map, raw) ? pill.map[raw] : undefined
+			const text = mapped ?? pill.text ?? raw
+			if (typeof text !== 'string' && typeof text !== 'number') {
+				return null
+			}
+			const label = this.tr(String(text))
+			if (label === '') {
+				return null
+			}
+			const colours = pill.variantMap || pill.colorMap
+			const hit = colours && (typeof raw === 'string' || typeof raw === 'number') && Object.hasOwn(colours, raw) ? colours[raw] : pill.variant
+			return { label, variant: isBadgeVariant(hit) ? hit : 'default' }
+		},
+
+		/**
+		 * The note band under the facts: its text translated, its NcNoteCard
+		 * type from `variant` (info by default), or null without text.
+		 *
+		 * @return {{text: string, type: string}|null}
+		 */
+		notice() {
+			const notice = this.content?.notice
+			const text = notice && typeof notice.text === 'string' ? this.tr(notice.text) : ''
+			if (text === '') {
+				return null
+			}
+			return { text, type: ['success', 'warning', 'error'].includes(notice.variant) ? notice.variant : 'info' }
+		},
+
 		/** @return {string} The reveal button's text. */
 		showLabel() {
 			return t('nextcloud-vue', 'Show')
@@ -540,6 +590,13 @@ export default {
 
 		headerAction: {
 			immediate: true,
+			handler() {
+				this.emitHeader()
+			},
+		},
+
+		headerPill: {
+			deep: true,
 			handler() {
 				this.emitHeader()
 			},
@@ -803,12 +860,13 @@ export default {
 			const view = this.headerAction
 			/**
 			 * @event header Emitted with the card header's parts: the header action, if any.
-			 * @type {{link: null, note: string, action: (object|null)}} `action` is `{ label, icon, run }`.
+			 * @type {{link: null, note: string, action: (object|null), pill: (object|null)}} `action` is `{ label, icon, run }`, `pill` is `{ label, variant }`.
 			 */
 			this.$emit('header', {
 				link: null,
 				note: '',
 				action: view ? { ...view, run: () => this.runAction(this.content.headerAction) } : null,
+				pill: this.headerPill,
 			})
 		},
 
@@ -1366,6 +1424,10 @@ export default {
 .cn-facts-widget__action:hover,
 .cn-facts-widget__action:focus-visible {
 	background: var(--color-primary-element-light-hover, var(--color-primary-element-light));
+}
+
+.cn-facts-widget__notice {
+	margin: 4px 0 0;
 }
 
 .cn-facts-widget__link {

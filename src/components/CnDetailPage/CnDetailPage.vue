@@ -414,7 +414,8 @@
 									:key="`${entry.id}-link`"
 									:href="entry.href"
 									:target="entry.linkTarget || undefined"
-									:data-testid="entry.testid">
+									:data-testid="entry.testid"
+									:data-cn-admin-tag="adminTagFor(group)">
 									<template v-if="entry.iconName || entry.iconClass" #icon>
 										<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
 										<span v-else :class="entry.iconClass" />
@@ -428,6 +429,7 @@
 									:disabled="entry.disabled"
 									:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
 									:closeAfterClick="true"
+									:data-cn-admin-tag="adminTagFor(group)"
 									@click="entry.run()">
 									<template v-if="entry.iconName || entry.iconClass" #icon>
 										<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
@@ -2443,13 +2445,15 @@ export default {
 
 		/**
 		 * What the Actions menu itself shows (manifest `config.actionsMenu`):
-		 * `{ showRefresh?, showHelpLinks?, label? }`. `showRefresh: false`
-		 * removes Refresh. `showHelpLinks: false` removes Request a feature,
-		 * Report a bug and Documentation, for an app that offers them in its
-		 * own help menu. `label` names the menu, for example "More". `null`
-		 * (the default) changes nothing.
+		 * `{ showRefresh?, showHelpLinks?, showMarkUnread?, showOpenSidebar?, label? }`.
+		 * `showRefresh: false` removes Refresh. `showHelpLinks: false` removes
+		 * Request a feature, Report a bug and Documentation, for an app that
+		 * offers them in its own help menu. `showMarkUnread: false` and
+		 * `showOpenSidebar: false` remove those two built-in entries, for a
+		 * menu the board draws without them (DqZaakMeer). `label` names the
+		 * menu, for example "More". `null` (the default) changes nothing.
 		 *
-		 * @type {{showRefresh?: boolean, showHelpLinks?: boolean, label?: string}|null}
+		 * @type {{showRefresh?: boolean, showHelpLinks?: boolean, showMarkUnread?: boolean, showOpenSidebar?: boolean, label?: string}|null}
 		 */
 		actionsMenu: {
 			type: Object,
@@ -4173,7 +4177,8 @@ export default {
 		 * @spec openspec/changes/record-unread-markers/tasks.md#task-2
 		 */
 		showMarkUnread() {
-			return typeof this.resolvedSelf.unread === 'boolean'
+			return this.actionsMenu?.showMarkUnread !== false
+				&& typeof this.resolvedSelf.unread === 'boolean'
 				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
 		},
 
@@ -4185,7 +4190,8 @@ export default {
 		 * @return {boolean}
 		 */
 		showOpenSidebar() {
-			return this.isBoard && this.hasExternalSidebar && this.sidebarActive && this.objectSidebarState.open !== true
+			return this.actionsMenu?.showOpenSidebar !== false
+				&& this.isBoard && this.hasExternalSidebar && this.sidebarActive && this.objectSidebarState.open !== true
 		},
 
 		/** @return {string} Label of the Open sidebar entry. */
@@ -4933,6 +4939,19 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The tag after an admin-only entry in the board look ("beheerder",
+		 * DqZaakMeer), or null for any other entry or look. It is drawn by
+		 * detail-page.css from the attribute, since the menu renders its
+		 * entries' text as plain text.
+		 *
+		 * @param {{key: string}} group The menu group the entry is in.
+		 * @return {string|null} The tag, or null.
+		 */
+		adminTagFor(group) {
+			return this.isBoard && group && group.key === 'cn-admin' ? t('nextcloud-vue', 'admin') : null
+		},
+
 		/**
 		 * Open the object sidebar through the shared channel.
 		 *
