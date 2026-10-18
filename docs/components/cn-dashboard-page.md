@@ -548,6 +548,9 @@ A drag or resize in a view's grid while editing is written back into that view's
 
 ### Each view arranged per user (`userLayout`)
 
+> **Deprecated: layout belongs to Buildiq.** Arranging a page is Buildiq's job (Ruben, 18 Oct 2026): its **Indeling aanpassen** edits the layout everybody sees. `userLayout` still works for this release and will be removed after it. While Buildiq edits the page (`cnEditingBody`), the grid shows the manifest layout, and a drag or resize goes into the manifest Buildiq saves, also on a page with `userLayout`. A user arrangement made outside an in-page edit session is saved at once, because no **Done** follows to save it.
+
+
 With `config.userLayout: true` a user arranges each view for themselves, exactly as they arrange the page's own grid:
 
 - In edit mode the view grid is draggable too. A drag moves the user's copy of the view, never the manifest `layout`.
