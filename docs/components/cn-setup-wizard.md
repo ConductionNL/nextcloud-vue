@@ -66,6 +66,14 @@ the title reads "Set up {appName}", and hands it the app's catalog as
 }
 ```
 
+## A preselected option
+
+A choice step's `default` is the option chosen when the step opens (board DqInstellen, step 4, opens on "Example data"); with `multiple` it is an array of values. Next saves it like a picked option. A step the server already completed keeps its stored value: the default is not applied there.
+
+```json
+{ "id": "examples", "type": "choice", "display": "cards", "configKey": "example_data", "default": "demo", "options": [ ... ] }
+```
+
 ## A step that depends on the app's state
 
 `visibleWhen` offers a step only when the setup status says so: a dotted path

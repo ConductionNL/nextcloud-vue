@@ -728,6 +728,12 @@ export default {
 		},
 	},
 
+	created() {
+		for (const step of this.setupSteps) {
+			this.applyDefault(step)
+		}
+	},
+
 	mounted() {
 		// Covers a RESUMED wizard opening straight onto its run-action step
 		// (`initialStepId`) — `onStepChange` only fires on later navigation,
@@ -1057,6 +1063,36 @@ export default {
 		},
 
 		/**
+		 * Preselect a `choice` step's `default` option. Skipped once the user
+		 * picked here, when a value is already chosen, and for a step the
+		 * server already completed (its stored value must not be overwritten
+		 * by a Next). A card step holds the plain value; a dropdown holds the
+		 * option object, or the value while the options are still loading.
+		 *
+		 * @param {object} step The choice step.
+		 * @return {void}
+		 */
+		applyDefault(step) {
+			if (!step || step.type !== 'choice' || step.default === undefined || step.default === null) {
+				return
+			}
+			if (this.userTouched[step.id] === true || this.hasChoice(step) || this.isServerDone(step.id)) {
+				return
+			}
+			const wanted = step.multiple === true ? [].concat(step.default) : step.default
+			if (this.isCardChoice(step)) {
+				this.choiceModel[step.id] = wanted
+			} else {
+				const options = this.optionsFor(step)
+				const pick = (value) => options.find((o) => o.value === value) || value
+				this.choiceModel[step.id] = Array.isArray(wanted) ? wanted.map(pick) : pick(wanted)
+			}
+			if (step.configKey) {
+				this.choiceValues[step.configKey] = this.scalarChoice(step)
+			}
+		},
+
+		/**
 		 * Auto-fill a `choice` step's suggested default from an earlier choice
 		 * (its `suggestFrom` configKey → `suggestMap[parentValue]`). No-op once
 		 * the user has manually picked here, so a suggestion never clobbers an
@@ -1361,6 +1397,15 @@ export default {
 			const step = this.setupSteps.find((s) => s.id === payload.stepId)
 			if (step && step.suggestFrom) {
 				this.applySuggestion(step)
+			}
+			// A default seeded before a dropdown's options arrived is a bare
+			// value; swap in its option object now the step opens.
+			if (step && step.default !== undefined && this.userTouched[step.id] !== true && !this.isCardChoice(step)) {
+				const held = this.choiceModel[step.id]
+				const option = this.optionsFor(step).find((o) => o.value === held)
+				if (option && held !== null && typeof held !== 'object') {
+					this.choiceModel[step.id] = option
+				}
 			}
 			this.maybeAutoRunStep(payload.stepId)
 			/**
