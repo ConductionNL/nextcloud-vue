@@ -126,6 +126,12 @@
 				</p>
 			</slot>
 		</div>
+		<p
+			v-if="footnote && chartComponent && !showEmptyState && type !== 'bar-list' && type !== 'matrix'"
+			class="cn-chart-widget__footnote"
+			data-testid="cn-chart-widget-footnote">
+			{{ hostTranslate(footnote) }}
+		</p>
 	</div>
 </template>
 
@@ -368,8 +374,9 @@ export default {
 		},
 
 		/**
-		 * A line under a `bar-list` or `matrix` ("Klik een balk om de zaken
-		 * te zien"), through the host's translate.
+		 * A line under the chart ("Klik een balk om de zaken te zien"),
+		 * through the host's translate: under the rows of a `bar-list` or
+		 * `matrix`, and under the plot of an ApexCharts type.
 		 *
 		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
 		 */
@@ -601,6 +608,17 @@ export default {
 		 * @type {string}
 		 */
 		emptyLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * `matrix`: the text of a cell without a value ("geen"), through the
+		 * host's translate. Empty (the default) leaves the cell blank.
+		 *
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		emptyCellLabel: {
 			type: String,
 			default: '',
 		},
@@ -1442,7 +1460,7 @@ export default {
 						const value = Number(raw)
 						return Number.isFinite(value) && raw !== null && raw !== undefined
 							? { text: this.formatPlain(value), level: levelOf(value), color: '', current: isCurrent }
-							: { text: '', level: 0, color: '', current: isCurrent }
+							: { text: this.emptyCellLabel ? this.hostTranslate(this.emptyCellLabel) : '', level: 0, color: '', current: isCurrent }
 					}),
 				})),
 			}
@@ -2388,6 +2406,8 @@ export default {
 		 * Map an endpoint payload whose `rowsPath` names an array of rows:
 		 * each row is a series (name at `rowLabelPath`, values at
 		 * `rowValuesPath`), the categories are at `labelsPath`.
+		 * A missing value stays null; a `matrix` keeps a text value ("none")
+		 * as text, other types read it as 0.
 		 *
 		 * @param {unknown} payload The plucked payload.
 		 * @param {object} es The `endpointSource` block.
@@ -2398,12 +2418,23 @@ export default {
 			const rows = getByPath(payload, es.rowsPath)
 			const rawLabels = es.labelsPath ? getByPath(payload, es.labelsPath) : undefined
 			const labels = Array.isArray(rawLabels) ? rawLabels.map((v) => ((v === null || v === undefined) ? '' : String(v))) : []
+			const keepText = this.type === 'matrix'
+			const cellOf = (v) => {
+				if (v === null || v === undefined) {
+					return null
+				}
+				const num = typeof v === 'string' && v.trim() === '' ? NaN : Number(v)
+				if (Number.isFinite(num)) {
+					return num
+				}
+				return keepText && typeof v === 'string' ? v : 0
+			}
 			const series = (Array.isArray(rows) ? rows : []).map((row) => {
 				const name = getByPath(row, es.rowLabelPath || 'label')
 				const values = getByPath(row, es.rowValuesPath || 'values')
 				return {
 					name: (name === null || name === undefined) ? '' : String(name),
-					data: Array.isArray(values) ? values.map((v) => (v === null || v === undefined ? null : Number(v) || 0)) : [],
+					data: Array.isArray(values) ? values.map(cellOf) : [],
 				}
 			})
 			return { series, categories: labels, labels }
@@ -2688,6 +2719,13 @@ export default {
 .cn-chart-widget__footnote {
 	color: var(--color-text-maxcontrast);
 	margin: 0;
+}
+
+/* Under an ApexCharts plot the footnote is a sibling of the canvas, so it keeps
+   its own line height while the canvas takes the rest of a fitted column. */
+.cn-chart-widget > .cn-chart-widget__footnote {
+	flex: 0 0 auto;
+	margin-top: 8px;
 }
 
 .cn-chart-widget__matrix {

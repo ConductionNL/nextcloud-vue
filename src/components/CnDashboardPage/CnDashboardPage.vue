@@ -1080,6 +1080,7 @@ const CHART_PROP_KEYS = [
 	'footnote',
 	'highlight',
 	'cellSource',
+	'emptyCellLabel',
 ]
 
 /**
