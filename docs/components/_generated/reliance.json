@@ -3,7 +3,7 @@
 	"components": {
 		"CnActionButtons": {
 			"direct": 4,
-			"transitive": 110,
+			"transitive": 111,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -136,7 +136,7 @@
 		},
 		"CnAppNav": {
 			"direct": 0,
-			"transitive": 111,
+			"transitive": 112,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -183,7 +183,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 122,
+			"transitive": 123,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -406,7 +406,7 @@
 		},
 		"CnChartWidget": {
 			"direct": 8,
-			"transitive": 8,
+			"transitive": 9,
 			"tier": "heavy",
 			"via": [
 				"CnIndexPage"
@@ -429,9 +429,18 @@
 			"via": [],
 			"page": "cn-chat-page"
 		},
+		"CnChecklistRunWidget": {
+			"direct": 1,
+			"transitive": 6,
+			"tier": "medium",
+			"via": [
+				"CnIndexPage"
+			],
+			"page": "cn-checklist-run-widget"
+		},
 		"CnChildRecordsField": {
 			"direct": 1,
-			"transitive": 109,
+			"transitive": 110,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -655,7 +664,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 177,
+			"transitive": 180,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -668,6 +677,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -739,6 +749,7 @@
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
 				"CnWidgetRefItem",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -832,7 +843,7 @@
 		},
 		"CnDetailGrid": {
 			"direct": 0,
-			"transitive": 98,
+			"transitive": 99,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -874,8 +885,8 @@
 			"page": "cn-detail-grid"
 		},
 		"CnDetailPage": {
-			"direct": 10,
-			"transitive": 180,
+			"direct": 11,
+			"transitive": 183,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -888,6 +899,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -958,6 +970,7 @@
 				"CnWeekStripWidget",
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -966,7 +979,7 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 124,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1024,7 +1037,7 @@
 		},
 		"CnDeviceFramesWidget": {
 			"direct": 0,
-			"transitive": 125,
+			"transitive": 126,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1395,7 +1408,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 187,
+			"transitive": 190,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1408,6 +1421,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -1479,6 +1493,7 @@
 				"CnWeekStripWidget",
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -1515,7 +1530,7 @@
 		},
 		"CnFormDialog": {
 			"direct": 6,
-			"transitive": 109,
+			"transitive": 110,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -1684,7 +1699,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 9,
-			"transitive": 184,
+			"transitive": 187,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1697,6 +1712,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -1767,6 +1783,7 @@
 				"CnWeekStripWidget",
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -1803,7 +1820,7 @@
 		},
 		"CnIntegrationWidget": {
 			"direct": 8,
-			"transitive": 98,
+			"transitive": 99,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1846,7 +1863,7 @@
 		},
 		"CnIntegrationWidgetGrid": {
 			"direct": 1,
-			"transitive": 97,
+			"transitive": 98,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2034,7 +2051,7 @@
 		},
 		"CnLogsPage": {
 			"direct": 4,
-			"transitive": 116,
+			"transitive": 117,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2327,7 +2344,7 @@
 		},
 		"CnObjectDataWidget": {
 			"direct": 9,
-			"transitive": 114,
+			"transitive": 115,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -2424,7 +2441,7 @@
 		},
 		"CnObjectListWidget": {
 			"direct": 4,
-			"transitive": 110,
+			"transitive": 111,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2479,7 +2496,7 @@
 		},
 		"CnObjectMetadataModal": {
 			"direct": 0,
-			"transitive": 99,
+			"transitive": 100,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2523,7 +2540,7 @@
 		},
 		"CnObjectMetadataWidget": {
 			"direct": 1,
-			"transitive": 98,
+			"transitive": 99,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2580,7 +2597,7 @@
 		},
 		"CnObjectSidebar": {
 			"direct": 16,
-			"transitive": 110,
+			"transitive": 111,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -2649,6 +2666,13 @@
 			"via": [],
 			"page": null
 		},
+		"CnOrderedListField": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-ordered-list-field"
+		},
 		"CnPageHeader": {
 			"direct": 0,
 			"transitive": 0,
@@ -2658,7 +2682,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 201,
+			"transitive": 204,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2671,6 +2695,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -2751,6 +2776,7 @@
 				"CnWidgetObjectTable",
 				"CnWidgetRefItem",
 				"CnWikiPage",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -2773,7 +2799,7 @@
 		},
 		"CnPartyActionsWidget": {
 			"direct": 0,
-			"transitive": 112,
+			"transitive": 113,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2948,7 +2974,7 @@
 		},
 		"CnRelatedCollections": {
 			"direct": 0,
-			"transitive": 111,
+			"transitive": 112,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3002,7 +3028,7 @@
 		},
 		"CnRelatedObjectsWidget": {
 			"direct": 7,
-			"transitive": 104,
+			"transitive": 105,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3059,7 +3085,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 178,
+			"transitive": 181,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3072,6 +3098,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -3144,6 +3171,7 @@
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
 				"CnWidgetRefItem",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -3215,7 +3243,7 @@
 		},
 		"CnSavedViewWidget": {
 			"direct": 0,
-			"transitive": 112,
+			"transitive": 113,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3301,7 +3329,7 @@
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 125,
+			"transitive": 126,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3570,7 +3598,7 @@
 		},
 		"CnSubObjectsField": {
 			"direct": 0,
-			"transitive": 110,
+			"transitive": 111,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3662,7 +3690,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 0,
-			"transitive": 128,
+			"transitive": 129,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3749,7 +3777,7 @@
 		},
 		"CnTaskFormDialog": {
 			"direct": 1,
-			"transitive": 110,
+			"transitive": 111,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3802,7 +3830,7 @@
 		},
 		"CnTasksWidget": {
 			"direct": 2,
-			"transitive": 6,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-tasks-widget"
@@ -4034,7 +4062,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 168,
+			"transitive": 171,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4046,6 +4074,7 @@
 				"CnCalendarEventPicker",
 				"CnChartWidget",
 				"CnChartWidgetForm",
+				"CnChecklistRunWidget",
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
@@ -4114,6 +4143,7 @@
 				"CnWeekStripWidget",
 				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
+				"CnWorkingCalendarWidget",
 				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
@@ -4180,6 +4210,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-wizard-dialog"
+		},
+		"CnWorkingCalendarWidget": {
+			"direct": 2,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-working-calendar-widget"
 		},
 		"CnWorkspaceFilterWidget": {
 			"direct": 3,
