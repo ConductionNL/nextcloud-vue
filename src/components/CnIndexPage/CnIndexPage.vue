@@ -1578,6 +1578,8 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/** The permissions the user holds, provided by CnAppRoot; for gated page tabs. */
+		cnPermissions: { default: () => [] },
 		/** The app id CnAppRoot provides, for the plural form of `countSubtitle`. */
 		cnAppId: { default: '' },
 		/**
@@ -1695,9 +1697,13 @@ export default {
 		/**
 		 * Tabs to sibling pages above the toolbar (manifest `config.pageTabs`),
 		 * each `{ id?, label, route?, params?, query?, href?, countFrom?: {
-		 * register, schema, filter? } }`: DqPrivacy's "AVG-verzoeken |
-		 * Datalekken". The current page's tab is marked; `countFrom` adds the
-		 * count of that list. Wins over a named source's own page tabs.
+		 * register, schema, filter? }, adminOnly?, permission? }`: DqPrivacy's
+		 * "AVG-verzoeken | Datalekken". The current page's tab is marked;
+		 * `countFrom` adds the count of that list. A tab with `adminOnly` shows
+		 * only to an instance admin, one with `permission` only to a user who
+		 * holds it. That hides the tab and nothing more: the page it points to
+		 * must still refuse the user on the server. Wins over a named source's
+		 * own page tabs.
 		 *
 		 * @type {Array<object>|null}
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
@@ -6219,9 +6225,13 @@ export default {
 			if (!Array.isArray(this.pageTabs) || this.pageTabs.length === 0) {
 				return this.sourcePageTabs
 			}
+			// The index is the tab's place in `pageTabs`, which is how its count
+			// is keyed, so the tabs are numbered before any is left out.
 			return this.pageTabs
-				.filter((tab) => tab && typeof tab.label === 'string' && tab.label !== '' && (tab.route || tab.to || tab.href))
-				.map((tab, index) => {
+				.map((tab, index) => ({ tab, index }))
+				.filter(({ tab }) => tab && typeof tab.label === 'string' && tab.label !== '' && (tab.route || tab.to || tab.href))
+				.filter(({ tab }) => this.pageTabVisible(tab))
+				.map(({ tab, index }) => {
 					const to = tab.route
 						? { name: tab.route, ...(tab.params ? { params: tab.params } : {}), ...(tab.query ? { query: tab.query } : {}) }
 						: (tab.to || tab.href)
@@ -7384,6 +7394,43 @@ export default {
 				{ label: from.allLabel || t('nextcloud-vue', 'All'), filter: {}, default: true, count: total },
 				...sorted.map((g) => ({ label: (labels && labels[g.key]) || g.key, filter: { [from.field]: g.key }, count: g.count })),
 			]
+		},
+
+		/**
+		 * Whether Nextcloud says the user administers this instance; false
+		 * when the user cannot be read.
+		 *
+		 * @return {boolean}
+		 */
+		viewerIsAdmin() {
+			try {
+				return getCurrentUser()?.isAdmin === true
+			} catch {
+				return false
+			}
+		},
+
+		/**
+		 * Whether a manifest page tab shows to this user: an `adminOnly` tab to
+		 * an instance admin, a tab with a `permission` to a user who holds it
+		 * (as a menu entry: with no permissions known, it shows). This only
+		 * decides whether the tab is drawn. It is not access control; the
+		 * page behind the tab must enforce its own access on the server.
+		 *
+		 * @param {object} tab The tab declaration.
+		 * @return {boolean} True when the tab is drawn.
+		 */
+		pageTabVisible(tab) {
+			if (tab.adminOnly === true && !this.viewerIsAdmin()) {
+				return false
+			}
+			if (tab.permission) {
+				const held = Array.isArray(this.cnPermissions) ? this.cnPermissions : []
+				if (held.length > 0 && !held.includes(tab.permission)) {
+					return false
+				}
+			}
+			return true
 		},
 
 		/**
