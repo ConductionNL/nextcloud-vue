@@ -87,4 +87,22 @@ under it through the `option-actions` slot (scope `{ option, selected }`):
 </div>
 ```
 
+A recorded choice shown back with `readonly`: every option at full contrast, the
+chosen one marked, nothing pickable. `disabled` greys the options out instead.
+
+```vue
+<div style="max-width: 560px;">
+  <CnChoiceCards
+    label="Outcome"
+    layout="rows"
+    :readonly="true"
+    :model-value="'partial'"
+    :options="[
+      { value: 'public', label: 'Made public' },
+      { value: 'partial', label: 'Partly made public' },
+      { value: 'none', label: 'Not made public' },
+    ]" />
+</div>
+```
+
 `columns` fixes the card grid's column count; `:columns="1"` stacks the cards in one column.

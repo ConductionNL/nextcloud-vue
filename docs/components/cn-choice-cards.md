@@ -37,11 +37,12 @@ Options are tolerant about shape, so a list can be handed straight from a server
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `options` | Array | `[]` | The options to offer: `{ value, label, description?, stats?, tags?, icon?, disabled?, disabledReason? }`. `icon` is a PascalCase MDI name resolved by [CnIcon](./cn-icon.md). A `disabled` option is greyed out and cannot be picked; its `disabledReason` shows under it and describes the input. |
+| `options` | Array | `[]` | The options to offer: `{ value, label, description?, stats?, tags?, icon?, disabled?, disabledReason? }`. `icon` is a PascalCase MDI name resolved by [CnIcon](./cn-icon.md). A `disabled` option sits on the grey ground in the muted ink and cannot be picked; its `disabledReason` shows under it and describes the input. |
 | `modelValue` | String \| Number \| Boolean \| Array \| Object | `null` | The selection. An array when `multiple`. |
 | `multiple` | Boolean | `false` | Allow several cards. Inputs become checkboxes and the model becomes an array. |
 | `label` | String | `''` | Group label, rendered as the fieldset legend. |
 | `disabled` | Boolean | `false` | Disable every card, for example while a dependent choice has no parent value yet. |
+| `readonly` | Boolean | `false` | Show the choice without letting it change: every option at full contrast, the selected one marked, nothing pickable. `disabled` greys the options out instead. |
 | `loading` | Boolean | `false` | Show a spinner instead of the grid while the options are being fetched. |
 | `emptyText` | String | `'Nothing to choose from here.'` | Shown when there are no options. |
 | `columns` | Number | `0` | Columns of the card grid. `1` stacks the cards in one column; `0` fits as many as the width allows. |
