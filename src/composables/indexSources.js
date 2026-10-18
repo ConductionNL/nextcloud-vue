@@ -530,6 +530,15 @@ function tasksSource() {
 		 */
 		loading: () => !!store.loading,
 
+		// The inbox pages: the page sends `limit` and `offset` and draws the
+		// pager from the datastore total.
+		pages: true,
+
+		/**
+		 * @return {number} The datastore total, independent of the page size.
+		 */
+		total: () => Number(store.total) || 0,
+
 		/**
 		 * Count the inbox for a config without touching the rows on screen,
 		 * for a quick-filter tab with `showCount`.

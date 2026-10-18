@@ -1933,7 +1933,11 @@
     "Expires today": "Verloopt vandaag",
     "Made {date}": "Gemaakt {date}",
     "expires {date}": "verloopt {date}",
-    "Reorder {item}: drag, or press the up and down arrow keys": "{item} verplaatsen: slepen, of de pijltoetsen omhoog en omlaag"
+    "Reorder {item}: drag, or press the up and down arrow keys": "{item} verplaatsen: slepen, of de pijltoetsen omhoog en omlaag",
+    "No contacts linked": "Geen contacten gekoppeld",
+    "No relations yet": "Nog geen relaties",
+    "Period": "Periode",
+    "On": "Aan"
   },
   "plurals": {
     "{count} selected": [

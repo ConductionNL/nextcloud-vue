@@ -380,24 +380,44 @@ const CONNECTION_STATUS_LABELS = {
 }
 
 /**
+ * The short labels `formatterOptions.short` draws (board DqInstellingen
+ * "Aan / Uit / Fout"): a connection that works in some form is on, one that
+ * does not run is off, and a failing one is an error.
+ */
+const CONNECTION_STATUS_SHORT_LABELS = {
+	configured: 'On',
+	limited: 'On',
+	simulated: 'On',
+	unconfigured: 'Off',
+	disabled: 'Off',
+	unavailable: 'Off',
+	error: 'Error',
+}
+
+/**
  * Connection status formatter (`connectionStatus` registry key) for the
  * fleet connection registry. Renders one of the seven stored status values
  * as its translated label through the library's own slug (`nextcloud-vue`).
+ * With `formatterOptions.short` it renders the board's three short labels
+ * instead: On (configured, limited, simulated), Off (not configured,
+ * switched off, not available) and Error.
  *
  * An unknown value passes through unchanged, so a status added later still
  * shows as its raw value instead of an empty cell. Null and undefined render
  * as `''`. Never throws.
  *
  * @param {unknown} value The stored status value.
+ * @param {object} [row] The row (unused).
+ * @param {object} [property] The column's property (unused).
+ * @param {{short?: boolean}} [options] The column's `formatterOptions`.
  * @return {string} The translated label, or the value itself when it is not one of the seven.
  */
-export function formatConnectionStatus(value) {
+export function formatConnectionStatus(value, row, property, options) {
 	if (value === null || value === undefined) {
 		return ''
 	}
-	const label = Object.hasOwn(CONNECTION_STATUS_LABELS, value)
-		? CONNECTION_STATUS_LABELS[value]
-		: null
+	const labels = options && options.short === true ? CONNECTION_STATUS_SHORT_LABELS : CONNECTION_STATUS_LABELS
+	const label = Object.hasOwn(labels, value) ? labels[value] : null
 	return label ? t('nextcloud-vue', label) : String(value)
 }
 

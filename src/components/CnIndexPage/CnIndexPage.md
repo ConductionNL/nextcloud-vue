@@ -362,7 +362,7 @@ export default {
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable lens, keyed `<lens>.<reason>` or `<reason>`. |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI name or `(row) => iconName`. Forwarded to CnDataTable; fed from the manifest as `pages[].config.rowIcon`. Unset = no icon column. |
-| `rowClass` | Function | `null` | Callback returning CSS class(es) for a row |
+| `rowClass` | Function \| Array | `null` | Callback returning CSS class(es) for a row, or (manifest `config.rowClass`) rules `[{ when: { field, op?, value }, class }]` compiled into one: each adds its class to a row whose field compares to the value (`visibleWhen` operators; two dates compare as moments, `@today` included). |
 | `rowIcon` | String \| Function | `null` | Optional leading row icon forwarded to CnDataTable — a static MDI icon name or `(row) => iconName`. Fed from the manifest as `pages[].config.rowIcon`; unset = no icon column |
 | `inlineActionCount` | Number | `2` | How many row actions to show inline (rest go in overflow menu) |
 | `showMassImport` | Boolean | `true` | Whether to show the mass Import action |
@@ -414,6 +414,7 @@ export default {
 | `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`). Fed from `pages[].config.quickFilterMode`. |
 | `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once; selected tabs' filters are OR-ed into the fetch (same field → `field[]=` array). Fed from `pages[].config.quickFilterMultiple`. |
 | `quickFilterMaxVisible` | Number | `0` | Chips mode only — how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
+| `quickFilterPlacement` | String | `''` | Where the quick-filter chips sit. `'toolbar'` keeps them on one row with the Filter button and the view switch, in whatever width that row has beside a side panel (DqTeamwachtrij): the chips take the room the buttons leave, and those that do not fit move behind the overflow chip. Fed from `pages[].config.quickFilterPlacement`. |
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 | `subscribe` | Boolean | `true` | Self-fetch mode only. When `register` + `schema` are set (and no `objects` prop), the page subscribes to the collection's `or-collection-{register}-{schema}` live-update scope on mount and refetches on an update event; released on unmount. Set `false` (manifest: `config.subscribe: false`) for static / read-once views. No-op in consumer-managed mode or on stores without live-updates support. |
@@ -1136,3 +1137,6 @@ columns are right.
 ## Board look
 
 With `look: "board"` (the page's `look` prop, `config.look`, or the app's) the index page takes the DqZaken setup: a header with the count line from `countText` (`{shown}`, `{total}`), the buttons Download, Actions, the buildiq square and the primary one in that order, a two-row toolbar (saved-view chips, Filter with a count and the view switch; then search and active filter chips), a bulk band between toolbar and table (`bulkHint`), the table as a white card with one menu button per row, and a footer inside the card (`footerNote`). `cardFields` names the facts of each card in the cards view. Without the look nothing changes.
+
+`bulkBandAlways` (`config.bulkBandAlways`) draws the board bulk band before a selection too, its buttons
+disabled until rows are selected (DqZaken, DqWerkbord).

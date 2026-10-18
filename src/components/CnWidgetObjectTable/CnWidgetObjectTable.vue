@@ -88,8 +88,8 @@ import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatch
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { compileRowClass } from '../../utils/rowClassRules.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
-import { compareVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
@@ -762,28 +762,7 @@ export default {
 		 * @return {?(row: object) => string} The row-class function, or null.
 		 */
 		compiledRowClass() {
-			const rc = this.rowClass
-			if (typeof rc === 'function') {
-				return rc
-			}
-			if (!Array.isArray(rc) || rc.length === 0) {
-				return null
-			}
-			const rules = rc
-			return (row) => {
-				const classes = []
-				for (const rule of rules) {
-					if (!rule || !rule.class) {
-						continue
-					}
-					const when = rule.when || {}
-					const actual = readVisibleWhenPath(row, when.field)
-					if (compareVisibleWhen(actual, when.op || 'eq', when.value)) {
-						classes.push(rule.class)
-					}
-				}
-				return classes.join(' ')
-			}
+			return compileRowClass(this.rowClass)
 		},
 
 		/**
