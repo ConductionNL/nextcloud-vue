@@ -13,12 +13,12 @@
 		     region (WCAG 2.4.6 / 1.3.1). -->
 		<slot
 			name="header"
-			:title="presented('title')"
+			:title="shownTitle"
 			:description="headerDescription"
 			:icon="resolvedIcon"
 			:showTitle="showTitle">
 			<CnPageHeader
-				:title="presented('title')"
+				:title="shownTitle"
 				:description="headerDescription"
 				:icon="showTitleIcon && !isBoardLook ? resolvedIcon : ''"
 				:breadcrumb="presented('breadcrumb')"
@@ -5772,7 +5772,36 @@ export default {
 			if (this.selfFetchFailed) {
 				return { ...this.list.pagination.value, total: 0, page: 1, pages: 1 }
 			}
+			// A named source that reports its own total (the search source)
+			// gives the count line its number.
+			if (this.isNamedSource && this.namedSource && typeof this.namedSource.total === 'function') {
+				return { ...(this.pagination || {}), total: this.namedSource.total() }
+			}
 			return this.isSelfFetchMode ? this.list.pagination.value : this.pagination
+		},
+
+		/**
+		 * The term a named source searched for, for `{term}` in the title and
+		 * the count line ("Zoeken: Lindelaan"), or ''.
+		 *
+		 * @return {string}
+		 */
+		sourceTerm() {
+			return this.isNamedSource && this.namedSource && typeof this.namedSource.term === 'function' ? String(this.namedSource.term() || '') : ''
+		},
+
+		/**
+		 * The page title with `{term}` filled in.
+		 *
+		 * @return {string}
+		 */
+		shownTitle() {
+			const title = this.presented('title')
+			// A title with the term is translated here, before the term goes in,
+			// so its catalogue entry is found ("Zoeken: {term}").
+			return typeof title === 'string' && title.includes('{term}')
+				? this.cnTranslate(title).replace(/\{term\}/g, this.sourceTerm)
+				: title
 		},
 
 		/**
@@ -6879,6 +6908,7 @@ export default {
 					return this.cnTranslate(countText)
 						.replace('{shown}', String(shown))
 						.replace('{total}', String(total))
+						.replace(/\{term\}/g, this.sourceTerm)
 				}
 				return this.countLine(this.countSubtitle, total, shown)
 			}
