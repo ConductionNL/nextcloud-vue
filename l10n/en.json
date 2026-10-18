@@ -1723,7 +1723,8 @@
     "Reorder {item}: drag, or press the up and down arrow keys": "Reorder {item}: drag, or press the up and down arrow keys",
     "No contacts linked": "No contacts linked",
     "No relations yet": "No relations yet",
-    "Period": "Period"
+    "Period": "Period",
+    "On": "On"
   },
   "plurals": {
     "{count} selected": [
