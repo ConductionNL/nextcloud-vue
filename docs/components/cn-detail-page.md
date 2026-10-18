@@ -632,6 +632,9 @@ A detail page can offer a few views of a record, each its own widget grid, behin
 
 ### Each view arranged per user (`userLayout`)
 
+> **Deprecated: layout belongs to Buildiq.** Arranging a page is Buildiq's job (Ruben, 18 Oct 2026): its **Indeling aanpassen** edits the layout everybody sees. `userLayout` still works for this release and will be removed after it. While Buildiq edits the page (`cnEditingBody`), the grid shows the manifest layout, and a drag or resize goes into the manifest Buildiq saves, also on a page with `userLayout`. A user arrangement made outside an in-page edit session is saved at once, because no **Done** follows to save it.
+
+
 With `config.userLayout: true` the header shows **Arrange view** next to the view switch. While it is on, the chosen view's grid is draggable. **Done** stores the arrangement for that view and user (a user preference under `dashboard-layout.<page>.view.<view>`, on the server and mirrored in the browser), and the next visit opens with it. **Reset view** returns the chosen view to its manifest layout and emits `view-layout-reset` with `{ view }`; other views keep theirs. The manifest `layout` is never changed by a user, and the page's own body grid is not affected.
 
 ```json

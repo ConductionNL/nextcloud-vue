@@ -5,7 +5,7 @@
 		defaultWidth="wizard"
 		:eyebrow="boardEyebrow"
 		:subtitle="subtitle"
-		:name="dialogTitle"
+		:name="shownTitle"
 		size="large"
 		:open="dialogOpen"
 		:noClose="loading || !cancellable"
@@ -266,6 +266,12 @@ export default {
 		 */
 		eyebrowContext: { type: String, default: '' },
 		/**
+		 * Board look: head the dialog with the current step's label, the
+		 * dialog title moving to the eyebrow's context. The result phase and
+		 * the Nextcloud look keep `dialogTitle`.
+		 */
+		stepHeading: { type: Boolean, default: false },
+		/**
 		 * The eyebrow sentence, with `{context}`, `{step}` and `{total}`
 		 * placeholders, so it can be translated.
 		 */
@@ -354,6 +360,19 @@ export default {
 				.replace('{context}', this.eyebrowContext || this.eyebrow || this.dialogTitle)
 				.replace('{step}', String(this.currentIndex + 1))
 				.replace('{total}', String(this.steps.length))
+		},
+
+		/**
+		 * The dialog's heading: the current step's label with `stepHeading`
+		 * in the board look, otherwise `dialogTitle`.
+		 *
+		 * @return {string} The heading.
+		 */
+		shownTitle() {
+			if (this.stepHeading && this.isBoardLook && this.result === null && this.currentStep && this.currentStep.label) {
+				return this.currentStep.label
+			}
+			return this.dialogTitle
 		},
 
 		/** @return {object} The check icon, the default finishing icon. */

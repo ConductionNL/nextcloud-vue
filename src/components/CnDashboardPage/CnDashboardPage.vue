@@ -1839,6 +1839,9 @@ export default {
 		 * and renders exactly as it did before this existed, which is the
 		 * property that makes shipping it safe on every dashboard at once.
 		 *
+		 * Deprecated: layout belongs to Buildiq. Kept working for one release.
+		 *
+		 * @deprecated
 		 * @type {boolean}
 		 */
 		userLayout: {
@@ -2216,9 +2219,25 @@ export default {
 		 * @return {boolean}
 		 */
 		gridEditable() {
+			return this.isEditing || this.editingBody
+		},
+
+		/**
+		 * Whether Buildiq is editing the page (the injected `cnEditingBody`
+		 * ref, or a plain boolean). Buildiq is the layout editor: while it
+		 * edits, the grid shows and changes the manifest layout, also on a
+		 * page with `userLayout`.
+		 *
+		 * @return {boolean}
+		 */
+		editingBody() {
 			const e = this.cnEditingBody
-			const buildiqEditing = Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
-			return this.isEditing || buildiqEditing
+			return Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
+		},
+
+		/** @return {boolean} Whether the grid shows this user's arrangement. */
+		showsUserLayout() {
+			return this.userLayout && !this.editingBody && Array.isArray(this.userLayoutItems)
 		},
 
 		/**
@@ -2279,9 +2298,7 @@ export default {
 		 * @return {Array<object>} The layout.
 		 */
 		renderedLayout() {
-			const base = (this.userLayout && Array.isArray(this.userLayoutItems))
-				? this.userLayoutItems
-				: this.layout
+			const base = this.showsUserLayout ? this.userLayoutItems : this.layout
 			// The KPI row is not part of the grid.
 			if (Array.isArray(this.kpiRow) && this.kpiRow.length > 0 && Array.isArray(base)) {
 				return base.filter((item) => !this.kpiRow.includes(item.widgetId))
@@ -3577,7 +3594,8 @@ export default {
 			// write below is for the admin editor, which edits the page for
 			// everybody; doing it for a user rearranging their own dashboard
 			// would rewrite the page for everyone who opens it after them.
-			if (this.userLayout && Array.isArray(this.userLayoutItems)) {
+			// While Buildiq edits, the drag is the admin's and goes below.
+			if (this.showsUserLayout) {
 				this.userLayoutDirty = true
 				this.userLayoutItems = this.userLayoutItems.map((item) => {
 					const u = (Array.isArray(updated) ? updated : []).find((candidate) => String(candidate.id) === String(item.id)
@@ -3586,6 +3604,11 @@ export default {
 					return (u ? { ...item, ...this.geometryFrom(u) } : item)
 				})
 				this.$emit('layout-change', this.userLayoutItems)
+				// Outside an in-page edit session no Done will come to save
+				// the arrangement, so it is saved now.
+				if (!this.isEditing) {
+					this.saveUserLayout()
+				}
 
 				return
 			}

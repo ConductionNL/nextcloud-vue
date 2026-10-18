@@ -9,13 +9,27 @@
 		data-testid="cn-conversation-thread"
 		:aria-labelledby="title ? titleId : null"
 		:aria-label="title ? null : fallbackLabel">
-		<component
-			:is="titleTag"
-			v-if="title"
-			:id="titleId"
-			class="cn-conversation-thread__title">
-			{{ title }}
-		</component>
+		<div v-if="title || $slots['header-actions']" class="cn-conversation-thread__header">
+			<component
+				:is="titleTag"
+				v-if="title"
+				:id="titleId"
+				class="cn-conversation-thread__title">
+				{{ title }}
+			</component>
+			<div v-if="$slots['header-actions']" class="cn-conversation-thread__header-actions">
+				<!-- @slot header-actions Buttons beside the title, for example "Log contact". -->
+				<slot name="header-actions" />
+			</div>
+		</div>
+
+		<CnQuickFilterBar
+			v-if="channelChips.length > 0"
+			inline
+			class="cn-conversation-thread__channels"
+			:tabs="channelChips"
+			:activeIndex="activeChannelIndex"
+			@update:activeIndex="onChannelChip" />
 
 		<p v-if="loading && rows.length === 0"
 			class="cn-conversation-thread__empty"
@@ -27,9 +41,13 @@
 			{{ emptyText }}
 		</p>
 
+		<p v-else-if="shownRows.length === 0" class="cn-conversation-thread__empty" data-testid="cn-conversation-channel-empty">
+			{{ emptyText }}
+		</p>
+
 		<ol v-else class="cn-conversation-thread__messages">
 			<li
-				v-for="row in rows"
+				v-for="row in shownRows"
 				:key="row.key"
 				class="cn-conversation-thread__message"
 				:class="`cn-conversation-thread__message--${row.side}`"
@@ -93,6 +111,7 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import CnQuickFilterBar from '../CnQuickFilterBar/CnQuickFilterBar.vue'
 import { prefixUrl } from '../../utils/headers.js'
 import { userLocale } from '../../utils/userLocale.js'
 
@@ -126,6 +145,7 @@ export default {
 	name: 'CnConversationThread',
 
 	components: {
+		CnQuickFilterBar,
 		NcButton,
 	},
 
@@ -204,6 +224,24 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Draw channel chips above the messages: All, then one per channel
+		 * with its count. Choosing one shows only that channel's messages.
+		 */
+		channelFilter: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Channel labels that always get a chip, in this order, also when no
+		 * message uses them yet. Channels the messages use follow.
+		 */
+		channels: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Shown when there are no messages yet. */
 		emptyText: {
 			type: String,
@@ -224,6 +262,8 @@ export default {
 		conversationThreadUid += 1
 		return {
 			draft: '',
+			/** The channel the chips narrow the thread to; '' is All. */
+			activeChannel: '',
 			sending: false,
 			errorMessage: '',
 			titleId: `cn-conversation-title-${conversationThreadUid}`,
@@ -263,6 +303,47 @@ export default {
 		},
 
 		/**
+		 * The channel labels with a chip: the declared ones, then the ones
+		 * the messages use.
+		 *
+		 * @return {Array<string>} The labels, each once.
+		 */
+		channelLabels() {
+			const declared = (Array.isArray(this.channels) ? this.channels : []).filter((label) => typeof label === 'string' && label !== '')
+			return [...new Set([...declared, ...this.rows.map((row) => row.channel).filter(Boolean)])]
+		},
+
+		/**
+		 * The chips: All, then each channel, each with its count. Empty
+		 * without `channelFilter` or without channels.
+		 *
+		 * @return {Array<{label: string, count: number}>} The chips.
+		 */
+		channelChips() {
+			if (!this.channelFilter || this.channelLabels.length === 0) {
+				return []
+			}
+			return [
+				{ label: t('nextcloud-vue', 'All'), count: this.rows.length },
+				...this.channelLabels.map((label) => ({ label, count: this.rows.filter((row) => row.channel === label).length })),
+			]
+		},
+
+		/** @return {number} The pressed chip: 0 for All. */
+		activeChannelIndex() {
+			const index = this.channelLabels.indexOf(this.activeChannel)
+			return index < 0 ? 0 : index + 1
+		},
+
+		/** @return {Array<object>} The rows on the chosen channel, or all of them. */
+		shownRows() {
+			if (this.channelChips.length === 0 || this.activeChannelIndex === 0) {
+				return this.rows
+			}
+			return this.rows.filter((row) => row.channel === this.activeChannel)
+		},
+
+		/**
 		 * Whether there is something to send and nothing in flight.
 		 *
 		 * @return {boolean} True when Send is enabled.
@@ -289,6 +370,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Narrow the thread to the chip's channel; the All chip (0) clears it.
+		 *
+		 * @param {number|null} index The chip index.
+		 * @return {void}
+		 */
+		onChannelChip(index) {
+			this.activeChannel = index > 0 ? (this.channelLabels[index - 1] || '') : ''
+		},
+
 		/**
 		 * Up to two initials of a name, for the avatar.
 		 *
@@ -368,6 +459,20 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: calc(3.5 * var(--default-grid-baseline));
+}
+
+.cn-conversation-thread__header {
+	align-items: flex-start;
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(3 * var(--default-grid-baseline));
+	justify-content: space-between;
+}
+
+.cn-conversation-thread__header-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(2 * var(--default-grid-baseline));
 }
 
 .cn-conversation-thread__title {

@@ -64,6 +64,21 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 - It is a manifest action plus a `label`: `open-page` opens that page for the row's id, `navigate` reads `@object.<field>` and `@objectId` off the row (`"/votes/@object.id"`). Both render as links. Any other type is a button that runs through the page's dispatcher: a `handler` gets the row as its last argument, `open-modal` gets it as the `row` prop.
 - `labels: { field, map }` picks the label per row: `{ "field": "status", "map": { "open": "Starten" } }` reads "Starten" for an open item and `label` ("Afronden") for the rest.
 
+### An action under the list
+
+`footerAction` ends the card with one secondary button, also under the empty text, as board DqBezwaar draws "Beroep registreren" in its Beroep card. It is a manifest action plus a `label` and an optional `icon`, run through the page's dispatcher with the page's record as `@object`. `disabledWhen` is a visibleWhen condition (a `field` on the page's record, the workspace, an endpoint or a source; `total` reads the list's total): while it holds the button is disabled and `disabledReason` shows under it, tied to the button with `aria-describedby`. Label and reason go through the app's translate.
+
+```json
+"footerAction": {
+  "label": "Register appeal",
+  "icon": "Gavel",
+  "type": "open-form",
+  "schema": "beroep",
+  "disabledWhen": { "field": "decisionSent", "op": "neq", "value": true },
+  "disabledReason": "Possible once the decision is sent"
+}
+```
+
 ### Header
 
 On a card surface the detail page or the dashboard page draws the titled card. The widget reports its header through the `header` event, and the card shows it:

@@ -23,6 +23,23 @@ Read-only, for a closed record:
   ]" />
 ```
 
+Channel chips and a header action. `channel-filter` draws All plus a chip per channel with its count, `channels` lists labels that always get a chip, and the `header-actions` slot puts buttons beside the title:
+
+```vue
+<CnConversationThread
+  title="Contact"
+  channel-filter
+  :channels="['E-mail', 'Letter']"
+  :messages="[
+    { id: 1, author: 'Sanne de Vries', side: 'them', channel: 'E-mail', text: 'Could I see the documents?' },
+    { id: 2, side: 'us', channel: 'E-mail', text: 'They are on their way.' },
+  ]">
+  <template #header-actions>
+    <NcButton>Log contact</NcButton>
+  </template>
+</CnConversationThread>
+```
+
 No messages yet:
 
 ```vue

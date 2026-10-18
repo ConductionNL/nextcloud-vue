@@ -150,16 +150,18 @@ Set `look: "board"` in the manifest (or pass `look="board"` to the dialog) and t
 | --- | --- | --- |
 | `look` | follows the app | `board` or `nextcloud`. The prop wins over the app. |
 | `width` | per component | `confirm` (560), `form` (640) or `wizard` (720). No other width is reachable. |
-| `eyebrow` | empty | A context line above the title, uppercase 13px. Not part of the accessible name. |
+| `eyebrow` | empty | A context line above the title, 13px in sentence case. Not part of the accessible name. |
 | `subtitle` | empty | A sentence under the title. |
 
-Widths are capped at the viewport minus 32px. Theme hooks: `--cn-dialog-danger` (fill of a destructive primary, default `--color-error`), `--cn-dialog-eyebrow-color` and `--cn-dialog-eyebrow-transform`.
+Widths are capped at the viewport minus 32px. Theme hooks: `--cn-dialog-danger` (fill of a destructive primary, default `--color-error`), `--cn-dialog-eyebrow-color`, `--cn-dialog-eyebrow-transform` (`uppercase` for capitals) and `--cn-dialog-eyebrow-tracking`.
 
 ### Stepper, eyebrow and footer
 
 The stepper is an ordered list in both looks, with `aria-current="step"` on the current step; it is no longer a tablist. A finished step is a button only when `allowJumpBack` is true (e2e tests that selected `role="tab"` inside a wizard need the new selector).
 
 In the board look the stepper draws 28px circles with the label beside each: a green check on a finished step, a filled primary circle on the current one and an outlined circle on the rest, joined by a 2px connector. The eyebrow reads like `New newsletter, step 2 of 5` and follows the step: `eyebrowContext` sets the context (default the dialog title) and `stepEyebrow` translates the sentence with `{context}`, `{step}` and `{total}`.
+
+With `stepHeading` the board dialog is headed by the current step's label, and the dialog title stays in the eyebrow as its context (`Set up Dossiq, step 4 of 5` over `Example data`, board DqInstellen). The result phase and the Nextcloud look keep `dialogTitle` as the heading. `CnSetupWizard` turns it on.
 
 The footer reads Cancel, Back (chevron left) and the primary: Next with a chevron right, or on the last step `submitLabel` with `submitIcon` (default a check). `CnSetupWizard` passes these through.
 
