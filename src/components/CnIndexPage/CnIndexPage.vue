@@ -747,6 +747,7 @@
 					:sortOrder="effectiveSortOrder"
 					:sortKeys="effectiveSortKeys"
 					:selectable="selectable"
+					:hideHeader="hideTableHeader"
 					:rowClickToView="rowClickOpens"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
@@ -2241,6 +2242,16 @@ export default {
 		selectable: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Draw the table without its column-header row (manifest
+		 * `config.hideTableHeader`), for a list the board draws as plain rows
+		 * (DqTeamwachtrij). Pair it with `selectable: false` for no checkboxes.
+		 */
+		hideTableHeader: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**

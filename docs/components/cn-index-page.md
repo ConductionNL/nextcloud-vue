@@ -51,6 +51,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `loading` | Boolean | `false` | Loading state |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
+| `hideTableHeader` | Boolean | `false` | Draw the table without its column-header row (manifest `config.hideTableHeader`), for a list the board draws as plain rows (DqTeamwachtrij). Pair it with `selectable: false` for no checkboxes. |
 | `rowClickToView` | Boolean | `false` | When true, a row/card click emits `row-click` (to open/navigate) even while `selectable` — selection then via the checkbox only. Only takes effect when something can open the row (a `row-click` listener, or a named source that routes its rows); otherwise the click selects, so it is never dead. With `selectable: false` a click always emits `row-click`. Manifest-driven pages set this automatically when a matching detail page, `rowRoute` or split view exists, and ignore an explicit `true` when none does. |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `viewMode` | String | `'table'` | `'table'`, `'cards'`, or `'map'`. The `'map'` mode is only offered when the page opts in — see [Map view mode](#map-view-mode). |
