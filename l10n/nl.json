@@ -1915,7 +1915,10 @@
     "Run test": "Test uitvoeren",
     "Test with a record": "Testen met een record",
     "admin": "beheerder",
-    "Wizard": "Assistent"
+    "Wizard": "Assistent",
+    "{done} of {total} reviewed": "{done} van {total} beoordeeld",
+    "{open} still to review": "Nog {open} te beoordelen",
+    "{action}: {name}": "{action}: {name}"
   },
   "plurals": {
     "{count} selected": [

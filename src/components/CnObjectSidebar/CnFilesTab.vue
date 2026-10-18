@@ -15,6 +15,9 @@
 			:dropHint="dropHint"
 			:rowActions="rowActions"
 			:newActions="newActions"
+			:headerActions="headerActions"
+			:rowButton="rowButton"
+			:reviewSummary="reviewSummary"
 			:linkedItems="linkedItems"
 			:columns="columns"
 			:rowData="rowDataSource"
@@ -420,6 +423,12 @@ export default {
 		 * @type {string[]}
 		 */
 		facets: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: the host's own buttons in the bar. */
+		headerActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: one visible button on every file row. */
+		rowButton: { type: Object, default: null },
+		/** Forwarded to CnFilesBrowser: the review summary above the list. */
+		reviewSummary: { type: Object, default: null },
 		/** A dotted path to the list of records in the `rowDataUrl` answer; empty reads the answer itself. */
 		rowDataPath: { type: String, default: '' },
 		/** The record field that holds the Nextcloud file id. */
