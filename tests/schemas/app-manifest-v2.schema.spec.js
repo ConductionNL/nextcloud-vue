@@ -1399,7 +1399,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.120.0 adds chart barMax, footnote, highlight, valueFormat 'number' with suffix and endpointSource rowsPath (chart-bar-list-and-matrix).
 		// 2.121.0 lets a query preset or a folder scope set addLabel, headerButtons, breadcrumb, headerMeta and afterList, adds config.afterList, and lets config.entitySource name the flowRuns, endpoint, search and users sources with a described sourceConfig (index-scope-presentation).
 		// 2.122.0 adds headerPill.resolve, a pill that shows a referenced record's label (detail-pill-resolve), chart cellSource, a matrix read from records (matrix-cell-records), and the organisations entitySource (organisations-entity-source).
-		// 2.123.0 adds the setup step's note and footnote, a line under a choice step's options.
+		// 2.123.0 adds the setup step's note and footnote, a line under a choice step's options (setup-wizard), config.headerMetaCounts on an index page (index-page), and actionsMenu.showMarkUnread and showOpenSidebar (detail-page).
 		expect(schema.version).toBe('2.123.0')
 	})
 
