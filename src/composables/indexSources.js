@@ -650,6 +650,10 @@ function readRowsPath(body, path) {
  * requested: page-config keys must never become query parameters. The list
  * stays empty and one console error names the page.
  *
+ * A quick filter with `showCount` is counted with `count(config)`: the same
+ * request with that tab's filter, its total read at `sourceConfig.totalPath`
+ * (`total` by default), else the number of rows the answer holds.
+ *
  * @return {object} The source adapter.
  * @spec openspec/changes/index-endpoint-source/specs/index-page/spec.md#requirement-an-index-page-can-list-rows-from-an-app-endpoint
  */
@@ -657,6 +661,36 @@ function endpointSource() {
 	const state = reactive({ rows: [], loading: false })
 	let seq = 0
 	let warned = false
+
+	/**
+	 * The query parameters for a config: every key but the url and the paths,
+	 * empty values left out, a list joined by commas.
+	 *
+	 * @param {object} rest The config without `url`, `rowsPath` and `totalPath`.
+	 * @return {object} The parameters.
+	 */
+	const paramsOf = (rest) => {
+		const params = {}
+		for (const [key, value] of Object.entries(rest)) {
+			if (value === undefined || value === null || value === '') {
+				continue
+			}
+			params[key] = Array.isArray(value) ? value.join(',') : (typeof value === 'object' ? JSON.stringify(value) : value)
+		}
+		return params
+	}
+
+	/**
+	 * Whether a config can be requested: it names a url and is not the page
+	 * config handed over in its place.
+	 *
+	 * @param {object} config The config.
+	 * @return {boolean}
+	 */
+	const requestable = (config) => {
+		const url = config && config.url
+		return typeof url === 'string' && url !== '' && !Object.hasOwn(config, 'entitySource')
+	}
 
 	return {
 		/**
@@ -666,10 +700,9 @@ function endpointSource() {
 		 * @return {Promise<void>} Resolves when loaded; a failed request leaves no rows and rethrows.
 		 */
 		load: async (config) => {
-			const { url, rowsPath, ...rest } = config || {}
+			const { url, rowsPath, totalPath, ...rest } = config || {}
 			const mine = ++seq
-			const pageConfig = Boolean(config && Object.hasOwn(config, 'entitySource'))
-			if (typeof url !== 'string' || url === '' || pageConfig) {
+			if (!requestable(config)) {
 				state.rows = []
 				if (!warned) {
 					warned = true
@@ -679,13 +712,7 @@ function endpointSource() {
 				}
 				return
 			}
-			const params = {}
-			for (const [key, value] of Object.entries(rest)) {
-				if (value === undefined || value === null || value === '') {
-					continue
-				}
-				params[key] = Array.isArray(value) ? value.join(',') : (typeof value === 'object' ? JSON.stringify(value) : value)
-			}
+			const params = paramsOf(rest)
 			state.loading = true
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
@@ -705,6 +732,29 @@ function endpointSource() {
 					state.loading = false
 				}
 			}
+		},
+
+		/**
+		 * Count the rows for a config without touching the rows on screen, for
+		 * a quick-filter tab with `showCount`.
+		 *
+		 * @param {object} config The page's source config with the tab's filter merged in.
+		 * @return {Promise<number>} The total, or NaN when nothing can be requested.
+		 */
+		count: async (config) => {
+			if (!requestable(config)) {
+				return Number.NaN
+			}
+			const { url, rowsPath, totalPath, ...rest } = config
+			const { default: axios } = await import('@nextcloud/axios')
+			const res = await axios.get(generateUrl(url), { params: paramsOf(rest) })
+			const body = res ? res.data : null
+			const total = body && typeof body === 'object' && !Array.isArray(body) ? readRowsPath(body, totalPath || 'total') : undefined
+			if (typeof total === 'number' && Number.isFinite(total)) {
+				return total
+			}
+			const rows = Array.isArray(body) ? body : readRowsPath(body, rowsPath || 'results')
+			return Array.isArray(rows) ? rows.length : Number.NaN
 		},
 
 		/**
