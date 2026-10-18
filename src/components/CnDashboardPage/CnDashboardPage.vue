@@ -96,7 +96,7 @@
 						<Pencil v-if="!isEditing" :size="20" />
 						<Check v-else :size="20" />
 					</template>
-					{{ isEditing ? doneLabel : editLabel }}
+					{{ isEditing ? shownDoneLabel : shownEditLabel }}
 				</NcButton>
 				<!-- With `userLayout`, edit mode offers a way back to the
 				     manifest: the page's own grid and the chosen view return
@@ -2341,6 +2341,25 @@ export default {
 		datePeriodInDescription() {
 			return this.showHeaderDateRange && this.dateRangeControl === 'segmented'
 				&& this.dateRange.placement === 'description' && !this.hasCustomPreset
+		},
+
+		/**
+		 * The edit button's label through the app's translate: a manifest's
+		 * `editLabel` ("Edit layout", DqDashboard) reads in the user's language.
+		 *
+		 * @return {string}
+		 */
+		shownEditLabel() {
+			return this.effectiveTranslate(this.editLabel)
+		},
+
+		/**
+		 * The done button's label through the app's translate.
+		 *
+		 * @return {string}
+		 */
+		shownDoneLabel() {
+			return this.effectiveTranslate(this.doneLabel)
 		},
 
 		/**
