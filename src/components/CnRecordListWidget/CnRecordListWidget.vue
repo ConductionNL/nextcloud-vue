@@ -275,7 +275,8 @@ export default {
 		 * largest row. `endpointSource` (`{ url, method?,
 		 * params?, responsePath? }`) reads the rows from an app endpoint instead
 		 * of `register` / `schema`. `valueLabels` maps a field's stored values to the labels
-		 * the templates show.
+		 * the templates show. `headerNote` and `headerLink.label` fill `{total}`
+		 * and `{count:<field>=<value>}`, the loaded rows with that value.
 		 *
 		 * @type {object}
 		 */
@@ -638,13 +639,22 @@ export default {
 		},
 
 		/**
-		 * Replace `{total}` in a translated label.
+		 * Fill a translated label's counts: `{total}` is the list's total, and
+		 * `{count:<field>=<value>}` the loaded rows whose field reads that
+		 * value ("{count:status=done} van {total} stappen klaar"). The count
+		 * reads the rows the list loaded, so it is exact when `limit` covers
+		 * the list.
 		 *
 		 * @param {string} label The label.
 		 * @return {string} The text.
 		 */
 		withTotal(label) {
-			return this.translate(label).replace(/\{total\}/g, String(this.total))
+			return this.translate(label)
+				.replace(/\{total\}/g, String(this.total))
+				.replace(/\{count:([^=}]+)=([^}]*)\}/g, (match, field, value) => {
+					const wanted = value.trim()
+					return String(this.rows.filter((row) => String(readPath(row, field.trim())) === wanted).length)
+				})
 		},
 
 		/**
