@@ -15,12 +15,27 @@
 			:endpoint="replyAction ? '' : endpoint"
 			:loading="loading"
 			:emptyText="content.emptyText ? tr(content.emptyText) : undefined"
+			:channelFilter="content.channelChips === true"
+			:channels="channelLabels"
 			@send="onSend"
-			@sent="onSent" />
+			@sent="onSent">
+			<template v-if="headerAction" #header-actions>
+				<NcButton
+					data-testid="cn-conversation-header-action"
+					@click="onHeaderAction">
+					<template v-if="headerAction.icon" #icon>
+						<CnIcon :name="headerAction.icon" :size="20" />
+					</template>
+					{{ tr(headerAction.label) }}
+				</NcButton>
+			</template>
+		</CnConversationThread>
 	</div>
 </template>
 
 <script>
+import { NcButton } from '@nextcloud/vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnConversationThread from './CnConversationThread.vue'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
@@ -45,12 +60,20 @@ import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveF
  * `replyAction`, an action descriptor the app decides the meaning of: it is
  * dispatched with `args: [{ text, objectId }]` and `props.text`. After a send
  * the source is read again.
+ *
+ * `channelChips: true` draws a chip per channel above the thread (every
+ * `channelMap` label, in map order, then any other channel a message uses).
+ * `headerAction` is a button beside the title (`{ label, icon?, ...action }`,
+ * DqZaakContact's "Contact vastleggen"), dispatched like `replyAction` with
+ * `args: [{ objectId }]`; after it the source is read again.
  */
 export default {
 	name: 'CnConversationWidget',
 
 	components: {
 		CnConversationThread,
+		CnIcon,
+		NcButton,
 	},
 
 	inject: {
@@ -100,6 +123,18 @@ export default {
 		source() {
 			const source = this.content?.source
 			return source && typeof source === 'object' && source.register && source.schema ? source : null
+		},
+
+		/** @return {object|null} The header action, or null without a label. */
+		headerAction() {
+			const action = this.content?.headerAction
+			return action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '' ? action : null
+		},
+
+		/** @return {Array<string>} The `channelMap` labels, translated, each once. */
+		channelLabels() {
+			const map = this.content?.channelMap && typeof this.content.channelMap === 'object' ? this.content.channelMap : {}
+			return [...new Set(Object.values(map).filter((label) => typeof label === 'string' && label !== '').map((label) => this.tr(label)))]
 		},
 
 		/** @return {object|null} The reply action, or null. */
@@ -252,6 +287,30 @@ export default {
 				return
 			}
 			this.onSent({ text })
+		},
+
+		/**
+		 * Run `headerAction` with the record id, then read the source again.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async onHeaderAction() {
+			if (!this.headerAction) {
+				return
+			}
+			const { label, icon, ...rest } = resolveDeepTokens(this.headerAction, this.tokenCtx)
+			const action = { ...rest, args: [{ objectId: this.objectId }] }
+			try {
+				const outcome = await (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action)
+					: dispatchAction(action, { router: this.$router || null }))
+				if (outcome === false) {
+					return
+				}
+			} catch {
+				return
+			}
+			await this.loadSource()
 		},
 
 		/**

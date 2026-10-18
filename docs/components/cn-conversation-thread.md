@@ -76,6 +76,8 @@ The `conversation` widget type reads the messages from a field on the record and
 | `endpoint` | String | `''` | URL the reply is posted to. Empty means you handle `send` yourself. |
 | `payload` | Object | `{}` | Extra fields sent along with `message`. |
 | `loading` | Boolean | `false` | While true and there are no messages yet, the thread says "Loading messages…" in a status region. |
+| `channelFilter` | Boolean | `false` | Draw channel chips above the messages: All, then one per channel with its count. Choosing one shows only that channel's messages. |
+| `channels` | Array | `[]` | Channel labels that always get a chip, in this order, also when no message uses them yet. |
 | `emptyText` | String | `'No messages yet.'` | Shown when there are no messages. |
 
 ### Events
@@ -90,6 +92,7 @@ The `conversation` widget type reads the messages from a field on the record and
 
 | Slot | Scope | Description |
 |------|-------|-------------|
+| `header-actions` | none | Buttons beside the title, for example "Log contact". |
 | `reply-actions` | `{ draft }` | Extra buttons before Send, for example "Save draft". |
 
 ## Accessibility
