@@ -98,6 +98,7 @@
 							"title": { "type": "string" },
 							"body": { "type": "string", "description": "info: explanatory copy." },
 							"note": { "type": "string", "minLength": 1, "description": "choice: a footnote under the options, translated like body." },
+							"visibleWhen": { "description": "Offer the step only when the setup status says so: a dotted path into the setup status document whose value must be truthy, or { path, equals } for an exact value. Hidden while the status loads.", "oneOf": [ { "type": "string", "minLength": 1 }, { "type": "object", "required": ["path"], "additionalProperties": false, "properties": { "path": { "type": "string", "minLength": 1 }, "equals": {} } } ] },
 							"footnote": { "type": "string", "minLength": 1, "description": "choice: the same footnote under another name; note wins when both are set." },
 							"required": { "type": "boolean", "default": false, "description": "When true the step gates the app until done." },
 							"schema": { "description": "config-fields: a JSON Schema ref (string) or inline object rendered via fieldsFromSchema." },

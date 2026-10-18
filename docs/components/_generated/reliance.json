@@ -3,7 +3,7 @@
 	"components": {
 		"CnActionButtons": {
 			"direct": 4,
-			"transitive": 111,
+			"transitive": 112,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -136,7 +136,7 @@
 		},
 		"CnAppNav": {
 			"direct": 0,
-			"transitive": 112,
+			"transitive": 113,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -183,7 +183,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 123,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -440,7 +440,7 @@
 		},
 		"CnChildRecordsField": {
 			"direct": 1,
-			"transitive": 110,
+			"transitive": 111,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -664,7 +664,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 180,
+			"transitive": 181,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -690,6 +690,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFactsWidget",
 				"CnFieldListWidget",
 				"CnFilesBrowser",
@@ -843,7 +844,7 @@
 		},
 		"CnDetailGrid": {
 			"direct": 0,
-			"transitive": 99,
+			"transitive": 100,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -886,7 +887,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 183,
+			"transitive": 184,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -912,6 +913,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFactsWidget",
 				"CnFieldListWidget",
 				"CnFilesBrowser",
@@ -979,7 +981,7 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 125,
+			"transitive": 128,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -998,6 +1000,7 @@
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFkResolveCell",
@@ -1037,7 +1040,7 @@
 		},
 		"CnDeviceFramesWidget": {
 			"direct": 0,
-			"transitive": 126,
+			"transitive": 129,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1057,6 +1060,7 @@
 				"CnDeckCardPicker",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFkResolveCell",
@@ -1163,6 +1167,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-export-wizard"
+		},
+		"CnExportsWidget": {
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-exports-widget"
 		},
 		"CnFacetSidebar": {
 			"direct": 0,
@@ -1408,7 +1419,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 190,
+			"transitive": 191,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1434,6 +1445,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFactsWidget",
 				"CnFieldListWidget",
 				"CnFilesBrowser",
@@ -1530,7 +1542,7 @@
 		},
 		"CnFormDialog": {
 			"direct": 6,
-			"transitive": 110,
+			"transitive": 111,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -1706,7 +1718,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 9,
-			"transitive": 187,
+			"transitive": 188,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1732,6 +1744,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFactsWidget",
 				"CnFieldListWidget",
 				"CnFilesBrowser",
@@ -1827,7 +1840,7 @@
 		},
 		"CnIntegrationWidget": {
 			"direct": 8,
-			"transitive": 99,
+			"transitive": 100,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1870,7 +1883,7 @@
 		},
 		"CnIntegrationWidgetGrid": {
 			"direct": 1,
-			"transitive": 98,
+			"transitive": 99,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2058,7 +2071,7 @@
 		},
 		"CnLogsPage": {
 			"direct": 4,
-			"transitive": 117,
+			"transitive": 118,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2351,7 +2364,7 @@
 		},
 		"CnObjectDataWidget": {
 			"direct": 9,
-			"transitive": 115,
+			"transitive": 116,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -2448,7 +2461,7 @@
 		},
 		"CnObjectListWidget": {
 			"direct": 4,
-			"transitive": 111,
+			"transitive": 112,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2503,7 +2516,7 @@
 		},
 		"CnObjectMetadataModal": {
 			"direct": 0,
-			"transitive": 100,
+			"transitive": 101,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2547,7 +2560,7 @@
 		},
 		"CnObjectMetadataWidget": {
 			"direct": 1,
-			"transitive": 99,
+			"transitive": 100,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2604,7 +2617,7 @@
 		},
 		"CnObjectSidebar": {
 			"direct": 16,
-			"transitive": 111,
+			"transitive": 112,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -2689,7 +2702,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 204,
+			"transitive": 205,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2717,6 +2730,7 @@
 				"CnDetailPage",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFactsWidget",
 				"CnFieldListWidget",
 				"CnFilesBrowser",
@@ -2981,7 +2995,7 @@
 		},
 		"CnRelatedCollections": {
 			"direct": 0,
-			"transitive": 112,
+			"transitive": 113,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3035,7 +3049,7 @@
 		},
 		"CnRelatedObjectsWidget": {
 			"direct": 7,
-			"transitive": 105,
+			"transitive": 106,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3092,7 +3106,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 181,
+			"transitive": 182,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3119,6 +3133,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFactsWidget",
 				"CnFieldListWidget",
 				"CnFilesBrowser",
@@ -3227,6 +3242,13 @@
 			"via": [],
 			"page": "cn-save-view-dialog"
 		},
+		"CnSavedViewAlertWidget": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-saved-view-alert-widget"
+		},
 		"CnSavedViewPresentationDialog": {
 			"direct": 0,
 			"transitive": 1,
@@ -3250,7 +3272,7 @@
 		},
 		"CnSavedViewWidget": {
 			"direct": 0,
-			"transitive": 113,
+			"transitive": 114,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3336,7 +3358,7 @@
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 126,
+			"transitive": 129,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3356,6 +3378,7 @@
 				"CnDeckCardPicker",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFkResolveCell",
@@ -3605,7 +3628,7 @@
 		},
 		"CnSubObjectsField": {
 			"direct": 0,
-			"transitive": 111,
+			"transitive": 112,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3697,7 +3720,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 0,
-			"transitive": 129,
+			"transitive": 132,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3717,6 +3740,7 @@
 				"CnDeckCardPicker",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFilesBrowser",
 				"CnFilesCard",
 				"CnFkResolveCell",
@@ -3784,7 +3808,7 @@
 		},
 		"CnTaskFormDialog": {
 			"direct": 1,
-			"transitive": 111,
+			"transitive": 112,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3837,7 +3861,7 @@
 		},
 		"CnTasksWidget": {
 			"direct": 2,
-			"transitive": 7,
+			"transitive": 8,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-tasks-widget"
@@ -4069,7 +4093,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 171,
+			"transitive": 172,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4094,6 +4118,7 @@
 				"CnDeltaWidgetForm",
 				"CnDetailWidgetHost",
 				"CnEmailPicker",
+				"CnExportsWidget",
 				"CnFactsWidget",
 				"CnFieldListWidget",
 				"CnFilesBrowser",

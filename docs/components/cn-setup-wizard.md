@@ -49,6 +49,17 @@ On an admin page `CnAdminSettingsShell` passes its `appName` to the wizard, so
 the title reads "Set up {appName}", and hands it the app's catalog as
 `cnTranslate`.
 
+## A step that depends on the app's state
+
+`visibleWhen` offers a step only when the setup status says so: a dotted path
+into the document `GET /api/setup/status` returns, whose value must be truthy,
+or `{ "path": "...", "equals": <value> }` for an exact value. The step stays
+hidden while the status loads, and when the path is not there.
+
+```json
+{ "id": "dwangsom", "type": "config-fields", "visibleWhen": "flags.hasPayouts" }
+```
+
 ## Dataset cards that load themselves
 
 A cards `choice` step can declare `loadAction`. Every card then gets its own
