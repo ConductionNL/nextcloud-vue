@@ -44,7 +44,7 @@ On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many ro
 ## Notes
 
 - `columns[]` maps object property keys to table headers; each row links through to the object when a route is resolvable.
-- `limit` is a **fetch cap** (default 25), not a render promise — the visible row count fits the host cell, unless `fit` is `false`.
+- `limit` is a **fetch cap** (default 25), not a render promise — the visible row count fits the host cell, unless `fit` is `false`. A list inside a tab panel does not own the cell, so it renders every fetched row, as on a dashboard; `fit: true` brings the fit back there.
 - An empty collection renders a compact one-line empty state (`emptyText`), never a full-height void.
 - `viewAllRoute` names a page id; `viewAllQuery` values are token-resolved (`@objectId` / `@object.<field>` / `@workspace.<key>`) so the target index opens pre-scoped.
 - The `table` registry alias uses the same renderer.
