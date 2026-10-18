@@ -87,6 +87,27 @@ under it through the `option-actions` slot (scope `{ option, selected }`):
 </div>
 ```
 
+The chosen option's own fields can also sit inside its frame, under its text,
+through the `option-details` slot (scope `{ option }`): rendered only for the
+selected option, and outside the radio's label.
+
+```vue
+<div style="max-width: 560px;">
+  <CnChoiceCards
+    label="Next step"
+    layout="rows"
+    :model-value="'suspend'"
+    :options="[
+      { value: 'suspend', label: 'Suspend', description: 'The term stops until the answer is in.' },
+      { value: 'abort', label: 'Abort' },
+    ]">
+    <template #option-details="{ option }">
+      <p v-if="option.value === 'suspend'" style="margin: 0;">Reason and return date go here.</p>
+    </template>
+  </CnChoiceCards>
+</div>
+```
+
 A recorded choice shown back with `readonly`: every option at full contrast, the
 chosen one marked, nothing pickable. `disabled` greys the options out instead.
 
