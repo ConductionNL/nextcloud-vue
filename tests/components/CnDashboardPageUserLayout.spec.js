@@ -161,8 +161,10 @@ describe('CnDashboardPage per-user layout', () => {
 
 		// A pending change from before this session. Entering edit mode must
 		// not flush it: the save belongs to leaving, and a save on entry is a
-		// write the user never finished asking for.
-		page.vm.onLayoutChange([{ id: 'kpis', widgetId: 'kpis', gridX: 4 }])
+		// write the user never finished asking for. (A drag outside a session
+		// saves at once, so the pending change is set directly.)
+		page.vm.userLayoutItems = page.vm.userLayoutItems.map((item) => (item.widgetId === 'kpis' ? { ...item, gridX: 4 } : item))
+		page.vm.userLayoutDirty = true
 		page.vm.toggleEdit()
 		await new Promise((resolve) => setTimeout(resolve, 0))
 
