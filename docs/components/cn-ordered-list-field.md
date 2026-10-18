@@ -1,12 +1,13 @@
 # CnOrderedListField
 
-An ordered list a user keeps for themselves: rows in their order, each with a move up, a move down and a remove
-button, and a search-as-you-type picker under it that adds a row. The board DqPersoonlijkeInstellingen draws it as
+An ordered list a user keeps for themselves: rows in their order, each with a drag handle, a move up, a move down
+and a remove button, and a search-as-you-type picker under it that adds a row. The board DqPersoonlijkeInstellingen draws it as
 "Zaaktypen in mijn menu" in the personal settings.
 
 The app supplies the choices and keeps the value: every change emits `update:modelValue` with the new list of values,
-so `v-model` works. Reordering is done with the buttons, not by dragging, and every move, removal and addition is
-announced in a polite live region, so it works with the keyboard and a screen reader. The picker is an `NcSelect`
+so `v-model` works. A row moves by dragging its handle onto another row, by the up and down arrow keys on the
+handle (focus stays on it), or by its up and down buttons. Every move, removal and addition is announced in a polite
+live region, so it works with the keyboard and a screen reader. A disabled list draws no handles. The picker is an `NcSelect`
 with an `inputLabel`; it offers only the choices not in the list yet.
 
 ```vue

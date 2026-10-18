@@ -438,7 +438,7 @@ export default {
 	 */
 	setup(props) {
 		const { isBoard } = useLook()
-		const wantsSource = (props.steps || []).some((s) => s && s.optionsSource)
+		const wantsSource = (props.steps || []).some((s) => s && (s.optionsSource || s.visibleWhen))
 		if (!wantsSource) {
 			return { isBoard }
 		}
@@ -506,7 +506,7 @@ export default {
 
 		setupSteps() {
 			const skipped = new Set(this.skippedSteps.map((entry) => entry.step.id))
-			return this.declaredSteps.filter((s) => !skipped.has(s.id))
+			return this.declaredSteps.filter((s) => !skipped.has(s.id) && this.stepConditionHolds(s))
 		},
 
 		/**
@@ -867,6 +867,39 @@ export default {
 				}
 				return translated
 			})
+		},
+
+		/**
+		 * Whether a step's `visibleWhen` holds: the value at that path in the
+		 * setup status (`"flags.hasPayouts"`, dots walk into objects) is truthy,
+		 * or equals `equals` when the step gives `{ path, equals }`. A step
+		 * without `visibleWhen` always shows; one with it stays hidden until the
+		 * status says so, also while the status loads (DqInstellen: the dwangsom
+		 * step only when the app pays penalties).
+		 *
+		 * @param {object} step The step declaration.
+		 * @return {boolean}
+		 */
+		stepConditionHolds(step) {
+			const when = step && step.visibleWhen
+			if (when === undefined || when === null || when === '') {
+				return true
+			}
+			const path = typeof when === 'string' ? when : when.path
+			if (typeof path !== 'string' || path === '') {
+				return true
+			}
+			let node = this.setupStatus
+			for (const key of path.split('.')) {
+				if (node === null || node === undefined || typeof node !== 'object') {
+					return false
+				}
+				node = node[key]
+			}
+			if (typeof when === 'object' && Object.hasOwn(when, 'equals')) {
+				return node === when.equals
+			}
+			return Boolean(node)
 		},
 
 		/**

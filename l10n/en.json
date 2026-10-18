@@ -1700,7 +1700,27 @@
     "Run test": "Run test",
     "Test with a record": "Test with a record",
     "admin": "admin",
-    "Wizard": "Wizard"
+    "Wizard": "Wizard",
+    "{done} of {total} reviewed": "{done} of {total} reviewed",
+    "{open} still to review": "{open} still to review",
+    "{action}: {name}": "{action}: {name}",
+    "On the map": "On the map",
+    "Show them in the table": "Show them in the table",
+    "Linked": "Linked",
+    "Now": "Now",
+    "Tell me above a number": "Tell me above a number",
+    "Threshold": "Threshold",
+    "A message to you when there are {threshold} or more": "A message to you when there are {threshold} or more",
+    "Save this search or open a saved one to set an alert on it.": "Save this search or open a saved one to set an alert on it.",
+    "The alert could not be saved.": "The alert could not be saved.",
+    "Your exports could not be loaded.": "Your exports could not be loaded.",
+    "You have no exports here.": "You have no exports here.",
+    "Expires today": "Expires today",
+    "Download": "Download",
+    "Made {date}": "Made {date}",
+    "expires {date}": "expires {date}",
+    "Loading …": "Loading …",
+    "Reorder {item}: drag, or press the up and down arrow keys": "Reorder {item}: drag, or press the up and down arrow keys"
   },
   "plurals": {
     "{count} selected": [
@@ -1798,6 +1818,22 @@
     "Showing %n flow": [
       "Showing %n flow",
       "Showing %n flows"
+    ],
+    "%n without an address": [
+      "%n without an address",
+      "%n without an address"
+    ],
+    "%n with an address on the map": [
+      "%n with an address on the map",
+      "%n with an address on the map"
+    ],
+    "%n result": [
+      "%n result",
+      "%n results"
+    ],
+    "downloaded %n time": [
+      "downloaded %n time",
+      "downloaded %n times"
     ]
   }
 }
