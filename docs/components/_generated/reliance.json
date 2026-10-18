@@ -3356,6 +3356,13 @@
 			"via": [],
 			"page": "cn-search-page"
 		},
+		"CnSearchSelect": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-search-select"
+		},
 		"CnSectionsWidget": {
 			"direct": 0,
 			"transitive": 129,

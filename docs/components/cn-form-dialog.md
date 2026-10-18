@@ -392,6 +392,14 @@ fieldOverrides: {
 
 A form without `section` keys renders as before.
 
+### `look: "search"`
+
+A single select field drawn as a search field ([CnSearchSelect](./cn-search-select.md)): a magnifier instead of the chevron, and rows with initials or an icon, the name, a secondary line and a check on the chosen one (DqOverdragen "Nieuw team"). `optionSecondary` is a template filled from each option, `optionAvatar: true` draws the initials, `optionIcon` names one icon for every row. A Nextcloud-user field keeps its own picker.
+
+```json
+"fieldOverrides": { "team": { "look": "search", "optionSecondary": "{members} leden · {focus}", "optionAvatar": true } }
+```
+
 ### `enumLabels`
 
 For `select` fields backed by an `enum`, the dropdown displays raw enum values by default. Use `enumLabels` to provide human-readable labels:
