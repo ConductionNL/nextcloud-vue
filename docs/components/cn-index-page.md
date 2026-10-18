@@ -1286,6 +1286,8 @@ A column `{ key: "do", label: "Doen", widget: "actions", widgetProps: { actions:
 | `fixedFilters` | `Object` | `null` | The route query pairs that chose the page's query preset, set by CnPageRenderer. An active filter with one of these keys and values shows no removable chip. |
 | `sidePanel` | `Array` | `[]` | Cards beside the list (manifest `config.sidePanel`): widget definitions `{ id, type, title?, content, headerLink? }` in a 300px column right of the toolbar and the list. Below 1024px the column sits above the toolbar. |
 
+Two built-in widgets are made for the side panel: `saved-view-alert` ([CnSavedViewAlertWidget](./cn-saved-view-alert-widget.md), the applied saved search with its count alert) and `exports` ([CnExportsWidget](./cn-exports-widget.md), the reader's own exports). The page provides `cnIndexList` (`appliedView`, `total`, `replaceSavedView(view)`) for a widget that reads the list.
+
 Types resolve like dashboard widgets: the app's widget registry first, then the dashboard catalog (`stat`, `table`, `people`, `stats-block` and the rest). An entry without an id, or with a type nothing resolves, is skipped with a development warning. As on a dashboard, a widget gets its whole `content` as the `content` prop and, of the individual keys, only the ones it declares as props.
 
 ```json

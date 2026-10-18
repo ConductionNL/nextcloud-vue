@@ -1635,6 +1635,29 @@ export default {
 	 * Falls back to an empty object so `CnIndexPage` works standalone
 	 * (unit tests, isolated mount) without `CnAppRoot`.
 	 */
+	/**
+	 * The list a side-panel widget reads (`cnIndexList`): the applied saved
+	 * view, the list's total, and a way to hand back a view that changed
+	 * (the saved-view alert widget). Getters, so a widget follows the page.
+	 *
+	 * @return {object}
+	 */
+	provide() {
+		return {
+			cnIndexList: Object.defineProperties({}, {
+				appliedView: { enumerable: true, get: () => this.appliedSavedView },
+				total: {
+					enumerable: true,
+					get: () => {
+						const total = this.effectivePagination && this.effectivePagination.total
+						return typeof total === 'number' ? total : undefined
+					},
+				},
+				replaceSavedView: { enumerable: true, value: (view) => this.replaceSavedView(view) },
+			}),
+		}
+	},
+
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
 		/** The permissions the user holds, provided by CnAppRoot; for gated page tabs. */
@@ -5780,6 +5803,19 @@ export default {
 				return { ...(this.pagination || {}), total: this.namedSource.total() }
 			}
 			return this.isSelfFetchMode ? this.list.pagination.value : this.pagination
+		},
+
+		/**
+		 * The saved view the page has applied, or null.
+		 *
+		 * @return {object|null}
+		 */
+		appliedSavedView() {
+			const id = this.appliedSavedViewId
+			if (!id) {
+				return null
+			}
+			return (this.savedViews || []).find((view) => view && (String(view.id) === id || String(view.slug) === id || String(view.uuid) === id)) || null
 		},
 
 		/**
@@ -10370,6 +10406,21 @@ export default {
 			} catch {
 				// No toast. What it was reporting on happened either way.
 			}
+		},
+
+		/**
+		 * Put a saved view that changed elsewhere (its alert) back in the list,
+		 * matched on its id or uuid.
+		 *
+		 * @param {object} view The saved view as the server returned it.
+		 * @return {void}
+		 */
+		replaceSavedView(view) {
+			if (!view || typeof view !== 'object') {
+				return
+			}
+			const same = (other) => other && ((view.id !== undefined && other.id === view.id) || (view.uuid && other.uuid === view.uuid))
+			this.savedViews = (this.savedViews || []).map((other) => (same(other) ? view : other))
 		},
 
 		async onSaveViewConfirm({ name, isPublic, sharedWith, presentation }) {
