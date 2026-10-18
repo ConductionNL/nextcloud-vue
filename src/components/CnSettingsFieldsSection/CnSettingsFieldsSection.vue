@@ -69,6 +69,21 @@ import { CnSettingsField } from '../CnSettingsField/index.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 
 /**
+ * A value by key: the key as written when the object holds it (a flat map
+ * with dotted keys such as `integration.brk.mode`), else as a dotted path.
+ *
+ * @param {object} data The object.
+ * @param {string} key The key or dotted path.
+ * @return {unknown}
+ */
+function literalFirst(data, key) {
+	if (data && typeof data === 'object' && Object.hasOwn(data, key)) {
+		return data[key]
+	}
+	return readPath(data, key)
+}
+
+/**
  * Up to two initials of a name, for an image field without an image.
  *
  * @param {unknown} name The name.
@@ -396,7 +411,8 @@ export default {
 
 		/**
 		 * A field's value in its read answer: at its `valuePath` (a field with its
-		 * own `url`), else at the section's `valuesPath`, then its `key`.
+		 * own `url`), else at the section's `valuesPath`, then its `key`. A key
+		 * the answer holds as written wins over reading it as a dotted path.
 		 *
 		 * @param {object} field The field.
 		 * @param {object|null} data The answer of the field's read target.
@@ -407,10 +423,10 @@ export default {
 				return undefined
 			}
 			if (field.url) {
-				return readPath(data, field.valuePath || field.key)
+				return literalFirst(data, field.valuePath || field.key)
 			}
-			const values = (this.valuesPath ? readPath(data, this.valuesPath) : data) || {}
-			return Object.hasOwn(values, field.key) ? values[field.key] : readPath(values, field.key)
+			const values = (this.valuesPath ? literalFirst(data, this.valuesPath) : data) || {}
+			return literalFirst(values, field.key)
 		},
 
 		/**

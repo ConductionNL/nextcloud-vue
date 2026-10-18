@@ -23,7 +23,7 @@ A settings section declared as fields. It reads the app's settings, draws the fi
 
 ## Loading and saving
 
-- It reads `GET url`, by default `/apps/<appId>/api/settings`, and takes each field's value from the answer (or from `valuesPath` in it). A dotted `key` reads a nested value.
+- It reads `GET url`, by default `/apps/<appId>/api/settings`, and takes each field's value from the answer (or from `valuesPath` in it). A key the answer holds as written wins, so a flat map with dotted keys (`integration.brk.mode`) reads as it is; otherwise a dotted `key` reads a nested value. A key is written as written.
 - One Save button closes the section. It is on only while a field differs from what was loaded or last saved, and "Unsaved changes" shows beside it.
 - Save checks the fields first. A required field left empty, a value that does not match `pattern`, or a number outside `min`/`max` is marked (`aria-invalid`), its message replaces its hint and is tied to the control, the first one takes focus, and nothing is sent.
 - Then it sends the changed fields: one request per save target, each carrying that target's fields. Fields without a target of their own go to `saveUrl` (default `url`) with `saveMethod` (default `PUT`). The section says "Saved.", or why a target did not save (naming its fields when there are several targets), and emits `saved` or `save-error`. A target that failed keeps its fields unsaved, so the next Save sends only those.

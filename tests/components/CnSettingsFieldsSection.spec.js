@@ -84,6 +84,26 @@ describe('CnSettingsFieldsSection', () => {
 		expect(input(wrapper, 'baseUrl').element.value).toBe('https://x.example')
 	})
 
+	it('reads a flat map with dotted keys by the key as written, then as a path', async () => {
+		axios.get.mockResolvedValue({ data: { config: { 'integration.brk.mode': 'live', integration: { woz: { mode: 'test' } } } } })
+		const wrapper = await mountSection({
+			valuesPath: 'config',
+			fields: [{ key: 'integration.brk.mode', label: 'BRK mode' }, { key: 'integration.woz.mode', label: 'WOZ mode' }],
+		})
+		expect(input(wrapper, 'integration.brk.mode').element.value).toBe('live')
+		expect(input(wrapper, 'integration.woz.mode').element.value).toBe('test')
+		await input(wrapper, 'integration.brk.mode').setValue('test')
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+		expect(axios.request.mock.calls[0][0].data).toEqual({ 'integration.brk.mode': 'test' })
+	})
+
+	it('reads a dotted key as written from a field\'s own target too', async () => {
+		axios.get.mockResolvedValue({ data: { 'integration.brk.baseUrl': 'https://brk.example' } })
+		const wrapper = await mountSection({ fields: [{ key: 'brk', label: 'BRK address', url: '/apps/other/settings', valuePath: 'integration.brk.baseUrl' }] })
+		expect(input(wrapper, 'brk').element.value).toBe('https://brk.example')
+	})
+
 	it('enables Save only while something changed, and says so', async () => {
 		const wrapper = await mountSection()
 		expect(save(wrapper).attributes('disabled')).toBeDefined()
