@@ -1719,7 +1719,8 @@
     "Download": "Download",
     "Made {date}": "Made {date}",
     "expires {date}": "expires {date}",
-    "Loading …": "Loading …"
+    "Loading …": "Loading …",
+    "Reorder {item}: drag, or press the up and down arrow keys": "Reorder {item}: drag, or press the up and down arrow keys"
   },
   "plurals": {
     "{count} selected": [

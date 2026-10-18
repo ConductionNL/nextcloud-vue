@@ -1932,7 +1932,8 @@
     "You have no exports here.": "U heeft hier geen exports.",
     "Expires today": "Verloopt vandaag",
     "Made {date}": "Gemaakt {date}",
-    "expires {date}": "verloopt {date}"
+    "expires {date}": "verloopt {date}",
+    "Reorder {item}: drag, or press the up and down arrow keys": "{item} verplaatsen: slepen, of de pijltoetsen omhoog en omlaag"
   },
   "plurals": {
     "{count} selected": [
