@@ -1694,7 +1694,9 @@
     "{fields}: {reason}": "{fields}: {reason}",
     "Current {name}": "Current {name}",
     "Upload {name}": "Upload {name}",
-    "The image could not be uploaded: {reason}": "The image could not be uploaded: {reason}"
+    "The image could not be uploaded: {reason}": "The image could not be uploaded: {reason}",
+    "On the map": "On the map",
+    "Show them in the table": "Show them in the table"
   },
   "plurals": {
     "{count} selected": [
@@ -1792,6 +1794,14 @@
     "Showing %n flow": [
       "Showing %n flow",
       "Showing %n flows"
+    ],
+    "%n without an address": [
+      "%n without an address",
+      "%n without an address"
+    ],
+    "%n with an address on the map": [
+      "%n with an address on the map",
+      "%n with an address on the map"
     ]
   }
 }

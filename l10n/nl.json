@@ -1909,7 +1909,9 @@
     "Day added.": "Dag toegevoegd.",
     "Only an administrator can change the working calendar.": "Alleen een beheerder kan de werkkalender wijzigen.",
     "The day could not be added. Try again.": "De dag kon niet worden toegevoegd. Probeer het opnieuw.",
-    "Loading …": "Laden …"
+    "Loading …": "Laden …",
+    "On the map": "Op de kaart",
+    "Show them in the table": "Toon ze in de tabel"
   },
   "plurals": {
     "{count} selected": [
@@ -2007,6 +2009,14 @@
     "Showing %n flow": [
       "%n flow",
       "%n flows"
+    ],
+    "%n without an address": [
+      "%n zonder adres",
+      "%n zonder adres"
+    ],
+    "%n with an address on the map": [
+      "%n met een adres op de kaart",
+      "%n met een adres op de kaart"
     ]
   }
 }

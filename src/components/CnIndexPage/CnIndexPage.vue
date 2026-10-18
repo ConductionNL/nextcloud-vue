@@ -845,9 +845,64 @@
 				     filter / sidebar / quick-filter machinery as table and cards.
 				     A marker click routes back through onRowClick for identical
 				     detail-page navigation. -->
+				<!-- Map with a numbered list beside it (`mapConfig.list`,
+				     DqZakenKaart): one framed card, the list numbered as the pins
+				     are, the row under the pointer marked on both sides, and the
+				     rows without a place counted under the list with a way to
+				     the table. -->
+				<div v-else-if="currentViewMode === 'map' && mapListEnabled"
+					class="cn-index-page__map-card"
+					data-testid="cn-index-map-card">
+					<CnMapWidget
+						class="cn-index-page__map"
+						:center="mapCenter"
+						:zoom="mapZoom"
+						:layers="mapLayers"
+						:basemaps="mapBasemaps"
+						:markers="mapMarkers"
+						:clustering="mapClustering"
+						:autoFit="true"
+						height="100%"
+						@markerClick="onMarkerClick" />
+					<div class="cn-index-page__map-side">
+						<ol class="cn-index-page__map-list" :aria-label="mapListLabel" data-testid="cn-index-map-list">
+							<li v-for="item in mapList.items"
+								:key="item.key"
+								class="cn-index-page__map-item"
+								:class="{ 'cn-index-page__map-item--active': activeMapKey === item.key }"
+								data-testid="cn-index-map-item"
+								@mouseenter="activeMapKey = item.key"
+								@mouseleave="activeMapKey = ''"
+								@focusin="activeMapKey = item.key">
+								<span class="cn-index-page__map-number" aria-hidden="true">{{ item.n }}</span>
+								<div class="cn-index-page__map-text">
+									<button type="button" class="cn-index-page__map-title" @click="onRowClick(item.row)">
+										{{ item.title }}
+									</button>
+									<span v-if="item.sub" class="cn-index-page__map-sub">{{ item.sub }}</span>
+									<span v-if="item.pills.length > 0 || item.due" class="cn-index-page__map-pills">
+										<CnStatusBadge v-for="(pill, index) in item.pills"
+											:key="index"
+											:label="pill.label"
+											:variant="pill.variant" />
+										<span v-if="item.due" class="cn-index-page__map-due">{{ item.due }}</span>
+									</span>
+								</div>
+							</li>
+						</ol>
+						<div v-if="mapList.missing.length > 0" class="cn-index-page__map-missing" data-testid="cn-index-map-missing">
+							<strong>{{ mapMissingTitle }}</strong>
+							<NcButton variant="tertiary-no-background" data-testid="cn-index-map-missing-table" @click="onViewModeChange('table')">
+								{{ mapMissingLink }}
+							</NcButton>
+						</div>
+					</div>
+				</div>
+
 				<CnMapWidget
 					v-else-if="currentViewMode === 'map'"
 					class="cn-index-page__map"
+					:zoom="mapZoom"
 					:center="mapCenter"
 					:layers="mapLayers"
 					:basemaps="mapBasemaps"
@@ -1194,6 +1249,7 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
@@ -1223,6 +1279,7 @@ import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
+import { mapListItems } from '../../utils/mapList.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
@@ -1508,6 +1565,7 @@ export default {
 
 	components: {
 		CnIndexPageWidgets,
+		CnStatusBadge,
 		NcNoteCard,
 		CnBuildiqEditButton,
 		CnFollowToggle,
@@ -2328,8 +2386,15 @@ export default {
 		 * - `popupField` — object property rendered in the marker popup.
 		 * - `center` — optional `[lat, lng]` fallback centre when the filtered set
 		 *   has no plottable rows.
+		 * - `zoom` — the map's initial zoom level.
+		 * - `list` — a numbered list beside the map, map and list in one card
+		 *   (DqZakenKaart): `{ title, sub?, pills?: [{ path?, text?, map?,
+		 *   colorMap? }], due? }`, field templates read per row. The pins carry the
+		 *   list's numbers, the row under the pointer is marked on both, the rows
+		 *   without a place are counted under the list with a link to the table,
+		 *   and the page's count line adds how many are on the map.
 		 *
-		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number] }}
+		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number], zoom?: number, list?: object }}
 		 */
 		mapConfig: {
 			type: Object,
@@ -3745,6 +3810,8 @@ export default {
 			pageTabCounts: {},
 			/** The `headerMetaCounts` totals, by name; a failed one is null. */
 			headerMetaCountValues: {},
+			/** The row the pointer is on in the map list, by key; '' for none. */
+			activeMapKey: '',
 			/** The tabs `quickFiltersFrom` produced, or null before they load. */
 			generatedQuickFilters: null,
 			/** Count per saved-view id, for the views control; null = none. */
@@ -5503,6 +5570,8 @@ export default {
 		 */
 		mapMarkers() {
 			const features = []
+			// With the list beside the map, a pin carries the row's number there.
+			const numbers = this.mapListEnabled ? new Map(this.mapList.items.map((item) => [item.row, item.n])) : null
 			for (const row of this.displayObjects) {
 				const geometry = this.resolveRowGeometry(row)
 				if (!geometry) {
@@ -5514,6 +5583,7 @@ export default {
 					properties: {
 						[this.rowKey]: row[this.rowKey],
 						...(this.mapConfig.popupField ? { [this.mapConfig.popupField]: row[this.mapConfig.popupField] } : {}),
+						...(numbers && numbers.has(row) ? { markerNumber: numbers.get(row), markerActive: this.activeMapKey === String(row[this.rowKey]) } : {}),
 					},
 				})
 			}
@@ -5538,6 +5608,57 @@ export default {
 		 */
 		mapClustering() {
 			return this.mapConfig.clustering !== false
+		},
+
+		/** @return {number|undefined} The map's initial zoom (`mapConfig.zoom`), when a number. */
+		mapZoom() {
+			const zoom = this.mapConfig && this.mapConfig.zoom
+			return typeof zoom === 'number' && Number.isFinite(zoom) ? zoom : undefined
+		},
+
+		/** @return {boolean} Whether the map draws its numbered list (`mapConfig.list`). */
+		mapListEnabled() {
+			const list = this.mapConfig && this.mapConfig.list
+			return Boolean(list && typeof list === 'object' && typeof list.title === 'string' && list.title !== '')
+		},
+
+		/**
+		 * The map list's entries, numbered as the pins, and the rows without a
+		 * place. Templates go through the host's translate first.
+		 *
+		 * @return {{items: Array<object>, missing: Array<object>}}
+		 */
+		mapList() {
+			if (!this.mapListEnabled) {
+				return { items: [], missing: [] }
+			}
+			const list = this.mapConfig.list
+			const translated = {
+				...list,
+				title: this.cnTranslate(list.title),
+				sub: list.sub ? this.cnTranslate(list.sub) : '',
+				due: list.due ? this.cnTranslate(list.due) : '',
+			}
+			return mapListItems(this.displayObjects, translated, {
+				rowKey: this.rowKey,
+				located: (row) => Boolean(this.resolveRowGeometry(row)),
+				translate: (text) => this.cnTranslate(text),
+			})
+		},
+
+		/** @return {string} The list's accessible name. */
+		mapListLabel() {
+			return t('nextcloud-vue', 'On the map')
+		},
+
+		/** @return {string} The card under the list, for the rows without a place. */
+		mapMissingTitle() {
+			return n('nextcloud-vue', '%n without an address', '%n without an address', this.mapList.missing.length)
+		},
+
+		/** @return {string} The link from that card to the table. */
+		mapMissingLink() {
+			return t('nextcloud-vue', 'Show them in the table')
 		},
 
 		/**
@@ -6710,7 +6831,23 @@ export default {
 			return valid.length > 0 ? JSON.stringify(valid) : ''
 		},
 
+		/**
+		 * The header's description line, and on the map with its list the
+		 * number of rows on the map after a middle dot ("· 5 met een adres op
+		 * de kaart", DqZakenKaart).
+		 *
+		 * @return {string}
+		 */
 		headerDescription() {
+			const base = this.headerDescriptionBase
+			if (this.currentViewMode !== 'map' || !this.mapListEnabled) {
+				return base
+			}
+			const onMap = n('nextcloud-vue', '%n with an address on the map', '%n with an address on the map', this.mapList.items.length)
+			return base ? `${base} · ${onMap}` : onMap
+		},
+
+		headerDescriptionBase() {
 			const total = this.effectivePagination?.total
 			// Board look: the count line is a template over the rows on this page
 			// and all rows, "{shown} of {total}" unless the page says otherwise.
