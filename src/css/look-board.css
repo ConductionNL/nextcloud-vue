@@ -99,6 +99,50 @@
 	padding-inline-start: 56px;
 }
 
+/* The dashboard header as the board draws it (DqTermijnen): the actions on
+   the title's row, the description and its segmented period under both, at
+   the header's full width. As two flex columns the description sat in the
+   title's column only, so a long period group wrapped under its text and the
+   actions dropped to a line of their own. The title column never shrinks
+   below its longest word; the actions wrap their buttons first.
+   @spec openspec/changes/dashboard-board-header-row/specs/dashboard-page/spec.md#requirement-the-board-dashboard-header-keeps-its-actions-on-the-title-row */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
+	display: grid;
+	grid-template-columns: minmax(min-content, 1fr) auto;
+	align-items: start;
+	column-gap: 16px;
+	row-gap: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header-left {
+	display: contents;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__title-row {
+	grid-column: 1;
+	grid-row: 1;
+	align-self: center;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header-left > :not(.cn-dashboard-page__title-row) {
+	grid-column: 1 / -1;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header > .cn-dashboard-page__header-actions {
+	grid-column: 2;
+	grid-row: 1;
+	justify-content: flex-end;
+	margin-inline-start: 0;
+}
+
+/* A stat tile in the board's KPI row carries the board's own 18px 20px inset
+   (`cn-kpi-card--board`), so the card-fit cell adds none of its own: with
+   both the label sat 29px from the tile's top and 37px from its side, and
+   the row stood about 1.4 times the board's height. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__kpi-cell .cn-dashboard-page__card-fit .cn-widget-wrapper__content:has(> .cn-kpi-card--board.cn-kpi-card--stacked) {
+	padding: 0;
+}
+
 /* ---- The header button ------------------------------------------------- */
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
