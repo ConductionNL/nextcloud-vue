@@ -9,7 +9,7 @@
  * source's total.
  */
 
-import { mount, flushPromises } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 
 const mockGet = jest.fn(() => Promise.resolve({ data: { results: [], total: 45 } }))
