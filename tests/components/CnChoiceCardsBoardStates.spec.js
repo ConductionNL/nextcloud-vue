@@ -77,4 +77,8 @@ describe('CnChoiceCards board states', () => {
 		expect(cards[2].classes()).toContain('cn-choice-cards__option--disabled')
 		expect(rulesFor('.cn-choice-cards__option--disabled .cn-choice-cards__input + :deep(.cn-card)')).toContain('opacity: 0.6')
 	})
+
+	it('pads a row 12px 14px, as the boards draw an option row', () => {
+		expect(rulesFor('.cn-choice-cards__row')).toContain('padding: 12px 14px')
+	})
 })

@@ -20,7 +20,8 @@
 			<div
 				v-for="option in normalizedOptions"
 				:key="String(option.value)"
-				class="cn-choice-cards__cell">
+				class="cn-choice-cards__cell"
+				:class="{ 'cn-choice-cards__cell--with-details': hasDetails(option) }">
 				<label
 					class="cn-choice-cards__row"
 					:class="{ 'cn-choice-cards__row--selected': isSelected(option), 'cn-choice-cards__row--disabled': isDisabled(option), 'cn-choice-cards__row--readonly': readonly }">
@@ -47,6 +48,16 @@
 							data-testid="cn-choice-cards-reason">{{ option.disabledReason }}</span>
 					</span>
 				</label>
+				<div v-if="hasDetails(option)"
+					class="cn-choice-cards__details"
+					:data-testid="`cn-choice-cards-details-${option.value}`">
+					<!-- @slot option-details The chosen option's own fields, drawn
+					     inside the selected row's frame under its text (DqVolgendeStap:
+					     Opschorten's reason, days and return date). Rendered only for a
+					     selected option, outside the label so a field is not part of
+					     the radio's label. Scope: `{ option }`. -->
+					<slot name="option-details" :option="option" />
+				</div>
 				<div v-if="$slots['option-actions']" class="cn-choice-cards__actions">
 					<slot name="option-actions" :option="option" :selected="isSelected(option)" />
 				</div>
@@ -322,6 +333,17 @@ export default {
 		 * @return {boolean} True when selected.
 		 */
 		/**
+		 * Whether a rows option draws the `option-details` slot in its frame:
+		 * the slot is given and the option is the chosen one.
+		 *
+		 * @param {object} option The option.
+		 * @return {boolean}
+		 */
+		hasDetails(option) {
+			return Boolean(this.$slots['option-details']) && this.isSelected(option)
+		},
+
+		/**
 		 * Whether an option cannot be picked: the whole group is disabled, or the option is.
 		 *
 		 * @param {object} option The normalised option.
@@ -472,11 +494,12 @@ export default {
 	gap: 8px;
 }
 
+/* 12px 14px, as the boards draw an option row (DqVolgendeStap, DqBesluit). */
 .cn-choice-cards__row {
 	display: flex;
 	align-items: flex-start;
 	gap: 12px;
-	padding: 14px 16px;
+	padding: 12px 14px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 8px);
 	background: var(--color-main-background);
@@ -511,6 +534,30 @@ export default {
 .cn-choice-cards__row--disabled .cn-choice-cards__row-title {
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	color: var(--color-text-maxcontrast);
+}
+
+/* The chosen option's fields share the selected row's frame: the cell draws
+   the 2px primary border and the ground, the row inside it draws none, and
+   the fields sit under the text, indented to it (DqVolgendeStap). */
+.cn-choice-cards__cell--with-details {
+	border: 1px solid var(--color-primary-element);
+	border-radius: var(--border-radius-large, 8px);
+	box-shadow: inset 0 0 0 1px var(--color-primary-element);
+	background: var(--color-primary-element-light);
+}
+
+.cn-choice-cards__cell--with-details .cn-choice-cards__row,
+.cn-choice-cards__cell--with-details .cn-choice-cards__row:hover {
+	border-color: transparent;
+	box-shadow: none;
+	background: transparent;
+}
+
+.cn-choice-cards__details {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 0 14px 14px 44px;
 }
 
 .cn-choice-cards__row--readonly {

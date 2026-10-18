@@ -60,6 +60,7 @@ Options are tolerant about shape, so a list can be handed straight from a server
 | Slot | Scope | Description |
 |------|-------|-------------|
 | `option-actions` | `{ option, selected }` | Content below one card, such as a Load button. It renders outside the card's `<label>`, so a click on a button there never toggles the card. The setup wizard uses it for `loadAction`; with `v-if="selected"` it holds the fields for the chosen option, right under it. |
+| `option-details` | `{ option }` | Rows layout: the chosen option's own fields, drawn inside the selected row's frame under its text (DqVolgendeStap's Opschorten: reason, days, return date). Only for the selected option, and outside the radio's `<label>`. |
 
 ## Accessibility
 
