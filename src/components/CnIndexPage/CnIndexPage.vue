@@ -163,6 +163,7 @@
 			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
 			:bulkHint="bulkHint ? cnTranslate(bulkHint) : bulkHint"
+			:bulkBandAlways="bulkBandAlways"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -1937,6 +1938,17 @@ export default {
 		footerNote: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: draw the bulk band before anything is selected too, its
+		 * buttons disabled until there is a selection (DqZaken, DqWerkbord).
+		 * Manifest key `config.bulkBandAlways`. Only when the band has an
+		 * action to offer.
+		 */
+		bulkBandAlways: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
