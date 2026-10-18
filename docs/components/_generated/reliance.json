@@ -1627,6 +1627,13 @@
 			"via": [],
 			"page": "cn-graph-canvas"
 		},
+		"CnGroupedCardsWidget": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-grouped-cards-widget"
+		},
 		"CnGuardianHome": {
 			"direct": 0,
 			"transitive": 0,
