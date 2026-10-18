@@ -49,6 +49,10 @@ On an admin page `CnAdminSettingsShell` passes its `appName` to the wizard, so
 the title reads "Set up {appName}", and hands it the app's catalog as
 `cnTranslate`.
 
+In the board look the heading is the current step's title, under the eyebrow
+"Set up {appName}, step N of M" ("Dossiq instellen, stap 4 van 5" in Dutch,
+board DqInstellen). The app name goes through the host's translate.
+
 ## A step that depends on the app's state
 
 `visibleWhen` offers a step only when the setup status says so: a dotted path

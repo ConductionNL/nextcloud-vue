@@ -161,6 +161,8 @@ The stepper is an ordered list in both looks, with `aria-current="step"` on the 
 
 In the board look the stepper draws 28px circles with the label beside each: a green check on a finished step, a filled primary circle on the current one and an outlined circle on the rest, joined by a 2px connector. The eyebrow reads like `New newsletter, step 2 of 5` and follows the step: `eyebrowContext` sets the context (default the dialog title) and `stepEyebrow` translates the sentence with `{context}`, `{step}` and `{total}`.
 
+With `stepHeading` the board dialog is headed by the current step's label, and the dialog title stays in the eyebrow as its context (`Set up Dossiq, step 4 of 5` over `Example data`, board DqInstellen). The result phase and the Nextcloud look keep `dialogTitle` as the heading. `CnSetupWizard` turns it on.
+
 The footer reads Cancel, Back (chevron left) and the primary: Next with a chevron right, or on the last step `submitLabel` with `submitIcon` (default a check). `CnSetupWizard` passes these through.
 
 ## See also
