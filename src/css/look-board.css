@@ -230,6 +230,40 @@
 	color: inherit;
 }
 
+/* A caption's edit pencil ("Mijn zaaktypen") sits on the caption's line at
+   its end, 4px in: a 28px round muted button with a 16px icon that adds no
+   height (DqZijbalk). It is placed absolutely because a theme may force the
+   caption to `display: block` at id strength (thematiq's Zuiddrecht sheet),
+   which put the pencil on a line of its own. */
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-caption:has(.app-navigation-caption__actions) {
+	position: relative;
+	padding-inline-end: 36px;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-caption .app-navigation-caption__actions {
+	--default-clickable-area: 28px;
+	position: absolute;
+	inset-block-start: -6px;
+	inset-inline-end: 4px;
+	margin: 0;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-caption .app-navigation-caption__actions .button-vue {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	width: 28px;
+	min-width: 28px;
+	height: 28px;
+	min-height: 28px;
+	padding: 0;
+	border-radius: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-caption .app-navigation-caption__actions .button-vue svg {
+	width: 16px;
+	height: 16px;
+}
+
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry,
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry-link {
 	min-height: 42px;

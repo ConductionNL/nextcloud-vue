@@ -164,6 +164,16 @@ describe('look-board.css: the navigation', () => {
 		expect(rulesFor('.app-navigation-entry.active .app-navigation-entry-link')).toContain('background: var(--color-primary-element-light)')
 	})
 
+	it('puts a caption\'s edit pencil on the caption line at its end, a 28px round button', () => {
+		expect(rulesFor('.app-navigation-caption:has(.app-navigation-caption__actions) {')).toContain('position: relative')
+		const actions = rulesFor('.app-navigation-caption .app-navigation-caption__actions {')
+		expect(actions).toContain('position: absolute')
+		expect(actions).toContain('inset-inline-end: 4px')
+		const button = rulesFor('.app-navigation-caption .app-navigation-caption__actions .button-vue {')
+		expect(button).toContain('width: 28px')
+		expect(button).toContain('border-radius: 14px')
+	})
+
 	it('scopes the !important wash to the board look', () => {
 		const important = []
 		const re = /([^{}]+)\{([^{}]*)\}/g
