@@ -1385,7 +1385,8 @@ export default {
 		 * is the budget). Measures the cell's remaining height below the table
 		 * top, reserves room for the "View all" footer, and derives the row
 		 * budget from the first rendered row's height. No-ops (fitRows null =
-		 * render all fetched rows) outside a fixed-height cell.
+		 * render all fetched rows) outside a fixed-height cell and inside a
+		 * tab panel, unless the content sets `fit: true`.
 		 *
 		 * @return {void}
 		 */
@@ -1404,6 +1405,14 @@ export default {
 			}
 			const cell = this.$el && this.$el.closest && this.$el.closest('.grid-stack-item-content')
 			if (!cell) {
+				this.fitRows = null
+				return
+			}
+			// A list inside a tab panel does not own the cell, as on a
+			// dashboard: it renders every fetched row unless the content asks
+			// for the fit with `fit: true`.
+			const panel = this.$el.closest('[role="tabpanel"]')
+			if (panel && cell.contains(panel) && !(this.content && this.content.fit === true)) {
 				this.fitRows = null
 				return
 			}

@@ -241,6 +241,7 @@ A tab entry can carry `visibleWhen`, the shared predicate every other surface us
 
 - **Local form** (a `field` of the page object): decided on every change of the object. While the object is still loading the tab shows disabled.
 - **Source form** (`source` with `@total`): counted once on mount, when the record changes, and again when a write is reported on the page (a `cn:page:refresh` or `cn:widget:refresh` broadcast, which the object-list widgets send after they save). While the count is pending the tab shows disabled with a spinner, so the strip does not jump; a refresh keeps the last answer until the new one arrives.
+- **A tab keeps its panel.** A tab is keyed on its `id`, else its place in `content.tabs`, not on the widget it starts with. A stack whose first card turns visible once the record arrives (DqBezwaar) keeps its panel, its place and, when it is open, the open state. Give tabs an `id` when their order can change.
 - **The active tab is always visible.** When the active tab goes, the first visible tab takes over and, if the page was opened with a route hash, the hash follows. A hash naming a hidden tab opens the first visible tab, without an error; a hash naming a visible tab (`#decision`, the tab's `id`) opens it.
 
 ## The board look

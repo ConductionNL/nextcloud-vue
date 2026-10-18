@@ -270,12 +270,14 @@ export const pageViews = {
 
 		/**
 		 * Whether a user arranges the views for themselves (`userLayout`).
+		 * Not while Buildiq edits the page (`editingBody`): Buildiq is the
+		 * layout editor, and it shows and changes the manifest layout.
 		 *
 		 * @return {boolean}
 		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
 		 */
 		viewUserLayoutOn() {
-			return this.userLayout === true && this.hasViews
+			return this.userLayout === true && this.hasViews && this.editingBody !== true
 		},
 
 		/**
@@ -640,6 +642,11 @@ export const pageViews = {
 				this.viewUserLayouts = { ...this.viewUserLayouts, [view.id]: arranged }
 				this.viewUserLayoutsDirty = { ...this.viewUserLayoutsDirty, [view.id]: true }
 				this.$emit('view-layout-change', { view: view.id, layout: arranged })
+				// Outside an in-page edit session (the dashboard's edit mode, the
+				// detail page's Arrange) no Done will come to save it.
+				if (this.isEditing !== true && this.arrangingView !== true) {
+					this.saveViewUserLayouts()
+				}
 				return
 			}
 			for (const u of updated) {

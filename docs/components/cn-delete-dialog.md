@@ -121,10 +121,10 @@ Set `look: "board"` in the manifest (or pass `look="board"` to the dialog) and t
 | --- | --- | --- |
 | `look` | follows the app | `board` or `nextcloud`. The prop wins over the app. |
 | `width` | per component | `confirm` (560), `form` (640) or `wizard` (720). No other width is reachable. |
-| `eyebrow` | empty | A context line above the title, uppercase 13px. Not part of the accessible name. |
+| `eyebrow` | empty | A context line above the title, 13px in sentence case. Not part of the accessible name. |
 | `subtitle` | empty | A sentence under the title. |
 
-Widths are capped at the viewport minus 32px. Theme hooks: `--cn-dialog-danger` (fill of a destructive primary, default `--color-error`), `--cn-dialog-eyebrow-color` and `--cn-dialog-eyebrow-transform`.
+Widths are capped at the viewport minus 32px. Theme hooks: `--cn-dialog-danger` (fill of a destructive primary, default `--color-error`), `--cn-dialog-eyebrow-color`, `--cn-dialog-eyebrow-transform` (`uppercase` for capitals) and `--cn-dialog-eyebrow-tracking`.
 
 ### Destructive wording and type-to-confirm
 

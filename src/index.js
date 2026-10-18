@@ -279,6 +279,7 @@ export {
 	CnSaveViewDialog,
 	CnSchemaFormDialog,
 	CnSearchPage,
+	CnSearchSelect,
 	CnSectionsWidget,
 	CnSettingsCard,
 	CnSettingsField,

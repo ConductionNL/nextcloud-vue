@@ -215,7 +215,7 @@ export default {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `userLayout` | Boolean | `false` | Let the user arrange each of the page's `views` for themselves. The header shows **Arrange view** next to the view switch; **Done** stores the arrangement per view and user (a user preference, mirrored in the browser), **Reset view** returns the chosen view to its manifest layout. The manifest `layout` is never changed. See [the guide](../../../docs/components/cn-detail-page.md#each-view-arranged-per-user-userlayout). |
+| `userLayout` | Boolean | `false` | **Deprecated** (layout belongs to Buildiq; removed after this release). Let the user arrange each of the page's `views` for themselves. The header shows **Arrange view** next to the view switch; **Done** stores the arrangement per view and user (a user preference, mirrored in the browser), **Reset view** returns the chosen view to its manifest layout. The manifest `layout` is never changed. See [the guide](../../../docs/components/cn-detail-page.md#each-view-arranged-per-user-userlayout). |
 
 ## Slots
 
