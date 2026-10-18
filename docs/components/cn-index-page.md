@@ -1187,6 +1187,16 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 }
 ```
 
+`pane: false` draws no pane. The folder still comes from the deep-link filter (`/cases?caseType=<uuid>`) and its scope look (title, count line, columns, quick filters, `afterList` from the folder or its row's `x-index`) still applies, so a list narrowed to one case type looks like that case type's list without a folder column (boards DqWooVerzoeken, DqKlachten):
+
+```json
+"folderSidebar": {
+  "source": "register", "register": "dossiq", "schema": "caseType",
+  "idField": "@self.uuid", "nameField": "title",
+  "filterField": "caseType", "pane": false
+}
+```
+
 
 ## A count in the subtitle (`countSubtitle`)
 

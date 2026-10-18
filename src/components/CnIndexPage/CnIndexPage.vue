@@ -658,11 +658,12 @@
 		</slot>
 
 		<!-- Body -->
-		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': folderSidebar }">
+		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': showsFolderPane }">
 			<!-- Optional folder navigation pane (opt-in via the `folderSidebar`
 			     config). Selecting a folder filters the list by the config's
-			     `filterField`; "All" clears it. -->
-			<div v-if="folderSidebar" class="cn-index-page__folder-pane">
+			     `filterField`; "All" clears it. `pane: false` keeps the scope
+			     from the deep link and draws no pane. -->
+			<div v-if="showsFolderPane" class="cn-index-page__folder-pane">
 				<CnFolderSidebar
 					:source="folderSidebarSource"
 					:folders="folderSidebarFolders"
@@ -3162,6 +3163,9 @@ export default {
 		 *   defaults to `field`).
 		 * - `folders` — explicit folder list for `source:'custom'`.
 		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
+		 * - `pane` — `false` draws no pane: the scope still comes from the
+		 *   deep-link filter (`?caseType=<id>`) and still applies its look, as
+		 *   a list narrowed to one case type does without a folder column.
 		 *
 		 * A folder entry is also a SCOPE: it may carry `columns`, `defaultSort`
 		 * and `searchFields`, and while it is selected the list is shown that
@@ -4785,6 +4789,17 @@ export default {
 		boardLoadCounts() {
 			const shown = this.effectiveObjects.length
 			return { shown, total: Math.max(shown, Number(this.effectivePagination?.total || 0)) }
+		},
+
+		/**
+		 * Whether the folder pane is drawn: a `folderSidebar` without
+		 * `pane: false`.
+		 *
+		 * @spec openspec/changes/folder-sidebar-pane-off/specs/index-page/spec.md#requirement-a-folder-scope-without-a-pane
+		 * @return {boolean}
+		 */
+		showsFolderPane() {
+			return Boolean(this.folderSidebar) && this.folderSidebar.pane !== false
 		},
 
 		/**
