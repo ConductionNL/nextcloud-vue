@@ -1705,7 +1705,8 @@
     "{open} still to review": "{open} still to review",
     "{action}: {name}": "{action}: {name}",
     "On the map": "On the map",
-    "Show them in the table": "Show them in the table"
+    "Show them in the table": "Show them in the table",
+    "Linked": "Linked"
   },
   "plurals": {
     "{count} selected": [

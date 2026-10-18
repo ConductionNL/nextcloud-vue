@@ -11,6 +11,8 @@ import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
 import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
+import { fetchReferenceObjects } from '../utils/boardReferenceColumns.js'
+import { fillTemplate } from '../utils/fillTemplate.js'
 import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
 import { fetchGroupMembers, fetchPresence, fetchStatuses } from '../utils/nextcloudDirectory.js'
 import { readPath } from '../utils/readPath.js'
@@ -737,39 +739,102 @@ function fillRowTemplate(template, row) {
  * and its count (DqZoekresultaten).
  *
  * `sourceConfig.kinds` lists what is searched:
- * `{ id, label, register, schema, titleField?, subtitleField?, statusField?, href?, limit? }`
+ * `{ id, label, register, schema, titleField?, subtitleField?, statusField?, statusResolve?, linkedField?, linkedTemplate?, href?, limit? }`
  * for objects (OpenRegister's `_search`, so the reader sees what they may
  * read), or `{ id, label, files: true, limit? }` for the reader's files
  * (Nextcloud's unified search). The term is `sourceConfig.term`, else the
  * address's `?q=` (or `sourceConfig.termQuery`). A kind that fails shows no
  * rows and no count; the others still answer.
  *
+ * The kind's `label` goes through the app's translate (the "Soort" cell and
+ * the quick filters). `statusResolve: { register?, schema, labelField? }`
+ * reads `statusField` as a reference and shows the referenced object's label
+ * (`labelField`, else `title`, then `name`); the status column is a pill,
+ * coloured by `sourceConfig.statusColorMap`. `linkedTemplate` (a field
+ * template, "{case.title}") or `linkedField` (a path) fills the "Linked"
+ * column, drawn when a kind declares one; `sourceConfig.linkedLabel` names it.
+ * The page's title and count line can name the term as `{term}`, and the
+ * count is the active kind's total. Kind, link and status are filterable.
+ *
  * @param {object} [config] The page's source config.
+ * @param {object} [context] The page's helpers.
+ * @param {Function} [context.translate] The app's translate.
  * @return {object} The source adapter.
  * @spec openspec/changes/index-search-source/specs/index-page/spec.md#requirement-an-index-page-can-search-several-schemas-and-files
  */
-function searchSource(config = {}) {
+function searchSource(config = {}, context = {}) {
+	const translate = typeof context.translate === 'function' ? context.translate : (text) => text
 	const kinds = (Array.isArray(config && config.kinds) ? config.kinds : [])
 		.filter((kind) => kind && typeof kind.id === 'string' && kind.id !== '' && (kind.files === true || (kind.register && kind.schema)))
-	const state = reactive({ rows: [], totals: {}, loading: false, kind: 'all', term: '' })
+		.map((kind) => ({ ...kind, label: translate(String(kind.label || kind.id)) }))
+	const hasLinked = kinds.some((kind) => kind.linkedTemplate || kind.linkedField)
+	const state = reactive({ rows: [], totals: {}, loading: false, kind: 'all', term: '', filters: {} })
 	let seq = 0
+
+	/**
+	 * The labels of the objects a kind's status points at, by id: the
+	 * referenced schema read once per search.
+	 *
+	 * @param {object} kind The kind with `statusResolve`.
+	 * @return {Promise<Map<string, string>>} Labels by id; empty when it cannot be read.
+	 */
+	const statusLabels = async (kind) => {
+		const resolve = kind.statusResolve
+		if (!resolve || !resolve.schema) {
+			return new Map()
+		}
+		const objects = await fetchReferenceObjects({ register: resolve.register || kind.register, schema: resolve.schema }).catch(() => [])
+		const labels = new Map()
+		for (const object of objects) {
+			const id = object.id || object.uuid || (object['@self'] && object['@self'].id)
+			const label = readPath(object, resolve.labelField || 'title') ?? object.name
+			if (id !== undefined && label !== undefined && label !== null) {
+				labels.set(String(id), String(label))
+			}
+		}
+		return labels
+	}
+
+	/**
+	 * What a row shows in the Linked column.
+	 *
+	 * @param {object} kind The row's kind.
+	 * @param {object} object The found object.
+	 * @return {string}
+	 */
+	const linkedOf = (kind, object) => {
+		if (kind.linkedTemplate) {
+			return fillTemplate(translate(kind.linkedTemplate), object)
+		}
+		if (kind.linkedField) {
+			const value = readPath(object, kind.linkedField)
+			return value === undefined || value === null ? '' : String(value)
+		}
+		return ''
+	}
 
 	const searchObjects = async (axios, kind, term) => {
 		const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: kind.register, schema: kind.schema })
 		const res = await axios.get(url, { params: { _search: term, _limit: kind.limit || 20 } })
 		const body = (res && res.data) || {}
 		const results = Array.isArray(body.results) ? body.results : (Array.isArray(body) ? body : [])
+		const labels = kind.statusResolve && kind.statusField ? await statusLabels(kind) : null
 		return {
 			total: typeof body.total === 'number' ? body.total : results.length,
 			rows: results.map((object) => {
 				const id = object.id || object.uuid || (object['@self'] && object['@self'].id)
+				const rawStatus = kind.statusField ? readPath(object, kind.statusField) : undefined
+				const status = rawStatus === undefined || rawStatus === null
+					? ''
+					: (labels ? (labels.get(String(rawStatus)) || '') : String(rawStatus))
 				return {
 					id: `${kind.id}:${id}`,
 					kind: kind.id,
 					kindLabel: kind.label,
 					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
 					subtitle: kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : '',
-					status: kind.statusField ? String(readPath(object, kind.statusField) ?? '') : '',
+					status,
+					linked: linkedOf(kind, object),
 					href: kind.href ? generateUrl(fillRowTemplate(kind.href, { ...object, id })) : '',
 					object,
 				}
@@ -792,6 +857,7 @@ function searchSource(config = {}) {
 				title: entry.title || '',
 				subtitle: entry.subline || '',
 				status: '',
+				linked: '',
 				href: entry.resourceUrl || '',
 			})),
 		}
@@ -806,6 +872,17 @@ function searchSource(config = {}) {
 		 */
 		load: async (cfg) => {
 			state.kind = cfg && typeof cfg.kind === 'string' ? cfg.kind : 'all'
+			// The header filters on Kind, Linked and Status narrow the answer
+			// already fetched; they do not search again.
+			const filters = {}
+			for (const key of ['kindLabel', 'linked', 'status']) {
+				const value = cfg && cfg[key]
+				const values = (Array.isArray(value) ? value : (value === undefined || value === null || value === '' ? [] : [value])).map(String)
+				if (values.length > 0) {
+					filters[key] = values
+				}
+			}
+			state.filters = filters
 			const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
 			const term = String((cfg && cfg.term) || (query && query.get((cfg && cfg.termQuery) || 'q')) || '').trim()
 			const mine = ++seq
@@ -837,7 +914,20 @@ function searchSource(config = {}) {
 		/**
 		 * @return {Array<object>} The results of the active kind, or all of them.
 		 */
-		rows: () => (state.kind === 'all' ? state.rows : state.rows.filter((row) => row.kind === state.kind)),
+		rows: () => (state.kind === 'all' ? state.rows : state.rows.filter((row) => row.kind === state.kind))
+			.filter((row) => Object.entries(state.filters).every(([key, values]) => values.includes(String(row[key])))),
+
+		/**
+		 * @return {string} The term searched for, for a `{term}` in the title or count line.
+		 */
+		term: () => state.term,
+
+		/**
+		 * @return {number} The active kind's total, or every kind's together on All.
+		 */
+		total: () => (state.kind === 'all'
+			? Object.values(state.totals).reduce((sum, value) => sum + value, 0)
+			: (state.totals[state.kind] || 0)),
 
 		/**
 		 * @return {boolean} Whether a search is in flight.
@@ -846,8 +936,14 @@ function searchSource(config = {}) {
 
 		columns: [
 			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle' },
-			{ key: 'kindLabel', label: t('nextcloud-vue', 'Kind') },
-			{ key: 'status', label: t('nextcloud-vue', 'Status') },
+			{ key: 'kindLabel', label: t('nextcloud-vue', 'Kind'), enum: kinds.map((kind) => kind.label) },
+			...(hasLinked ? [{ key: 'linked', label: config.linkedLabel ? translate(config.linkedLabel) : t('nextcloud-vue', 'Linked') }] : []),
+			{
+				key: 'status',
+				label: t('nextcloud-vue', 'Status'),
+				widget: 'badge',
+				widgetProps: { colorMap: (config && config.statusColorMap) || {} },
+			},
 		],
 
 		quickFilters: kinds.length > 0
@@ -1125,10 +1221,11 @@ export const indexSources = {
  *
  * @param {string} name The source name from `config.source`.
  * @param {object} [config] The page's source config, for a source that builds its tabs from it.
+ * @param {object} [context] The page's helpers a source may use, such as `translate` (the app's catalogue).
  *
  * @return {object|null} The adapter, or null when the name is not registered.
  */
-export function resolveIndexSource(name, config) {
+export function resolveIndexSource(name, config, context) {
 	const key = String(name || '')
 	if (!key) {
 		return null
@@ -1141,7 +1238,7 @@ export function resolveIndexSource(name, config) {
 		return null
 	}
 
-	return factory(config || {})
+	return factory(config || {}, context || {})
 }
 
 /**
