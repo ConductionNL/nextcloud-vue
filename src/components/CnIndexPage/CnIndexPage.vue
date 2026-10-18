@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel }]"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--quick-filters-toolbar': quickFilterPlacement === 'toolbar' }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -163,6 +163,7 @@
 			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
 			:bulkHint="bulkHint ? cnTranslate(bulkHint) : bulkHint"
+			:bulkBandAlways="bulkBandAlways"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -369,6 +370,7 @@
 					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
 					:maxVisible="quickFilterMaxVisible"
+					:fit="quickFilterPlacement === 'toolbar'"
 					:multiple="quickFilterMultiple"
 					:activeIndex="activeQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
@@ -755,7 +757,7 @@
 					:excludeColumns="excludeColumns"
 					:includeColumns="includeColumns"
 					:columnOverrides="columnOverrides"
-					:rowClass="rowClass"
+					:rowClass="compiledRowClass"
 					:rowTitle="rowTitle"
 					:showUnread="showUnreadRows"
 					:filterable="tableHeaderFilters"
@@ -1292,6 +1294,7 @@ import { resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
 import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
@@ -1939,6 +1942,17 @@ export default {
 		},
 
 		/**
+		 * Board look: draw the bulk band before anything is selected too, its
+		 * buttons disabled until there is a selection (DqZaken, DqWerkbord).
+		 * Manifest key `config.bulkBandAlways`. Only when the band has an
+		 * action to offer.
+		 */
+		bulkBandAlways: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Board look: the 13px hint after the bulk band's buttons ("See what
 		 * changes first, then run it"). Manifest key `config.bulkHint`.
 		 *
@@ -2117,6 +2131,21 @@ export default {
 		filterStrip: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Where the quick-filter chips sit (manifest `config.quickFilterPlacement`).
+		 * `''` (the default) as before. `'toolbar'` keeps them on one row with
+		 * the Filter button and the view switch, in whatever width that row has
+		 * beside a side panel (DqTeamwachtrij): the chips take the room the
+		 * buttons leave, and those that do not fit move into the overflow chip.
+		 *
+		 * @type {''|'toolbar'}
+		 */
+		quickFilterPlacement: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'toolbar'].includes(v),
 		},
 
 		/**
@@ -2695,9 +2724,18 @@ export default {
 			default: 'Loading…',
 		},
 
-		/** Function returning CSS class(es) for a row */
+		/**
+		 * CSS class(es) for a row: a function `(row) => string`, or (manifest
+		 * `config.rowClass`) rules `[{ when: { field, op?, value }, class }]`,
+		 * each adding its class to a row whose field compares to the value
+		 * (the `visibleWhen` operators, `@today` included). DqTaken marks an
+		 * overdue task: `{ when: { field: "dueAt", op: "lt", value: "@today" },
+		 * class: "cn-row--overdue" }`.
+		 *
+		 * @type {((row: object) => string)|Array<{when: {field: string, op?: string, value: unknown}, class: string}>|null}
+		 */
 		rowClass: {
-			type: Function,
+			type: [Function, Array],
 			default: null,
 		},
 
@@ -3779,6 +3817,10 @@ export default {
 		//
 		// Seeded from the route query so a shared link lands filtered, the
 		// same way `_order` and a deep-link filter already do for self-fetch.
+		// The page a paging named source shows: page 1 at the source config's
+		// `limit` (20 by default), moved by the pager.
+		const namedPageSize = Number(props.sourceConfig && props.sourceConfig.limit) > 0 ? Number(props.sourceConfig.limit) : 20
+		const namedPaging = ref({ page: 1, limit: namedPageSize })
 		const namedActiveFilters = ref(namedFiltersFromRoute(getCurrentInstance(), props))
 
 		const {
@@ -3787,7 +3829,7 @@ export default {
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
-		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters })
+		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging })
 
 		return {
 			isBoard: isBoardLook,
@@ -3799,6 +3841,7 @@ export default {
 			namedLoading,
 			namedQuickFilters,
 			namedActiveFilters,
+			namedPaging,
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
@@ -4760,6 +4803,9 @@ export default {
 			if (this.boardLoadsAll) {
 				const loaded = this.effectivePagination || {}
 				return Number(loaded.page || 1) < Number(loaded.pages || 1)
+			}
+			if (this.isNamedSource && this.namedSource && this.namedSource.pages === true) {
+				return Number(this.effectivePagination?.pages || 1) > 1
 			}
 			return Number(this.pagination?.pages || 1) > 1
 		},
@@ -5800,7 +5846,13 @@ export default {
 			// A named source that reports its own total (the search source)
 			// gives the count line its number.
 			if (this.isNamedSource && this.namedSource && typeof this.namedSource.total === 'function') {
-				return { ...(this.pagination || {}), total: this.namedSource.total() }
+				const total = this.namedSource.total()
+				// A source with `pages: true` gets the pager the self-fetched lists draw.
+				if (this.namedSource.pages === true) {
+					const { page, limit } = this.namedPaging
+					return { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) }
+				}
+				return { ...(this.pagination || {}), total }
 			}
 			return this.isSelfFetchMode ? this.list.pagination.value : this.pagination
 		},
@@ -6051,6 +6103,16 @@ export default {
 				return this.schema
 			}
 			return (this.effectiveSchema && this.effectiveSchema.slug) || ''
+		},
+
+		/**
+		 * The row-class function the table takes: a function as given, or the
+		 * manifest's rules compiled.
+		 *
+		 * @return {?(row: object) => string}
+		 */
+		compiledRowClass() {
+			return compileRowClass(this.rowClass)
 		},
 
 		/** @return {number} How many leading columns the person pinned (0 while a saved view's columns are applied). */
@@ -8777,6 +8839,9 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') {
 				this.list.onPageChange(page)
 			}
+			if (this.isNamedSource && this.namedSource && this.namedSource.pages === true) {
+				this.namedPaging = { ...this.namedPaging, page }
+			}
 			this.$emit('page-changed', page)
 		},
 
@@ -8791,6 +8856,9 @@ export default {
 		onPageSizeEvent(size) {
 			if (this.isSelfFetchMode && typeof this.list.onPageSizeChange === 'function') {
 				this.list.onPageSizeChange(size)
+			}
+			if (this.isNamedSource && this.namedSource && this.namedSource.pages === true) {
+				this.namedPaging = { page: 1, limit: size }
 			}
 			this.$emit('page-size-changed', size)
 		},
