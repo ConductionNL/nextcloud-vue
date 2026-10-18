@@ -1909,7 +1909,10 @@
     "Day added.": "Dag toegevoegd.",
     "Only an administrator can change the working calendar.": "Alleen een beheerder kan de werkkalender wijzigen.",
     "The day could not be added. Try again.": "De dag kon niet worden toegevoegd. Probeer het opnieuw.",
-    "Loading …": "Laden …"
+    "Loading …": "Laden …",
+    "{done} of {total} reviewed": "{done} van {total} beoordeeld",
+    "{open} still to review": "Nog {open} te beoordelen",
+    "{action}: {name}": "{action}: {name}"
   },
   "plurals": {
     "{count} selected": [

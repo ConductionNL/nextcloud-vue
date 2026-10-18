@@ -113,6 +113,22 @@
 					{{ hostLabel(action) }}
 				</NcActionButton>
 			</NcActions>
+			<!-- The host's own buttons in the bar ("Vraag een bestand aan een
+			     partij", DqZaakDocumenten), dispatched like a New-menu entry with
+			     the current folder; `#header-actions` adds anything else. -->
+			<NcButton v-for="action in headerActions"
+				:key="`header-${action.id}`"
+				:variant="action.variant === 'primary' ? 'primary' : 'secondary'"
+				:disabled="folder === null"
+				:data-testid="`cn-files-browser-header-action-${action.id}`"
+				@click="runHostAction(action, null)">
+				<template v-if="action.icon" #icon>
+					<CnIcon :name="action.icon" :size="20" />
+				</template>
+				{{ hostLabel(action) }}
+			</NcButton>
+			<!-- @slot header-actions Buttons in the bar, before the upload button. -->
+			<slot name="header-actions" />
 			<!-- A plain upload as its own button, when the host names it
 			     (`uploadButton`). It takes the primary place and the New
 			     menu steps back beside it. -->
@@ -146,6 +162,31 @@
 				<span v-if="upload.error" class="cn-files-browser__upload-error" role="alert">{{ upload.error }}</span>
 			</li>
 		</ul>
+
+		<!-- The review summary (`reviewSummary`): how many files are reviewed,
+		     a bar in the review tones and a legend with the count per value. -->
+		<div v-if="review && review.total > 0 && !loading && error === ''"
+			class="cn-files-browser__review"
+			data-testid="cn-files-browser-review">
+			<div class="cn-files-browser__review-head">
+				<strong class="cn-files-browser__review-title">{{ reviewTitle }}</strong>
+				<span v-if="reviewSubtitle" class="cn-files-browser__review-sub">{{ reviewSubtitle }}</span>
+			</div>
+			<span class="cn-files-browser__review-bar" role="img" :aria-label="reviewTitle">
+				<span v-for="segment in review.segments"
+					v-show="segment.count > 0 && !isOpenValue(segment.value)"
+					:key="segment.value"
+					:class="`cn-files-browser__review-part cn-files-browser__review-part--${segment.tone}`"
+					:style="{ width: `${segment.share}%` }" />
+			</span>
+			<ul class="cn-files-browser__review-legend">
+				<li v-for="segment in review.segments" :key="segment.value" data-testid="cn-files-browser-review-entry">
+					<span :class="`cn-files-browser__review-dot cn-files-browser__review-part--${segment.tone}`" aria-hidden="true" />
+					{{ hostLabel(segment) }}
+					<strong>{{ segment.count }}</strong>
+				</li>
+			</ul>
+		</div>
 
 		<!-- The host's filter: per declared column, a chip per value in use
 		     with how many files carry it. Chips narrow the list. -->
@@ -347,6 +388,16 @@
 									:row="node" />
 							</td>
 							<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
+								<!-- The host's one visible button on a file ("Beoordelen"),
+								     primary while the row still asks for it. -->
+								<NcButton v-if="rowButton && !isFolder(node) && hostActionApplies(rowButton, node)"
+									:variant="rowButtonPrimary(node) ? 'primary' : 'secondary'"
+									class="cn-files-browser__row-button"
+									:aria-label="t('nextcloud-vue', '{action}: {name}', { action: hostLabel(rowButton), name: node.basename })"
+									data-testid="cn-files-browser-row-button"
+									@click="runHostAction(rowButton, node)">
+									{{ hostLabel(rowButton) }}
+								</NcButton>
 								<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
 									<NcActionButton
 										v-for="action in actionsFor(node)"
@@ -700,6 +751,7 @@ import {
 	sortNodesByColumn,
 	visibleFileColumns,
 } from './filesBrowserColumns.js'
+import { reviewSummary } from './filesReview.js'
 
 let uploadSeq = 0
 
@@ -809,6 +861,50 @@ export default {
 		newActions: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The host's own buttons in the bar, before the upload button ("Vraag
+		 * een bestand aan een partij", DqZaakDocumenten). Each is dispatched
+		 * like a New-menu entry, with the current folder; `variant:
+		 * 'primary'` draws it as the primary button.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, variant?: string, type?: string, target?: string, props?: object, handler?: string, args?: Array}>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * One visible button on every file row ("Beoordelen"), dispatched like a
+		 * row action. `primaryWhen: { key, values }` draws it as the primary
+		 * button while the row-data field `key` holds one of `values` (a file
+		 * still to review), and secondary otherwise. `visibleIf` works as on a
+		 * row action.
+		 *
+		 * @type {{id: string, label: string, type?: string, target?: string, props?: object, handler?: string, args?: Array, primaryWhen?: {key: string, values: Array<string>}, visibleIf?: object}|null}
+		 */
+		rowButton: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * A review summary above the list (DqZaakDocumenten "4 van 7
+		 * beoordeeld"): `{ key, open, values: [{ value, label?, tone? }], title?,
+		 * subtitle? }`. `key` is the row-data field with the review state, `open`
+		 * the value (or values) of a file still to review; a file without a
+		 * listed value counts as open. `tone` is `success`, `warning`, `error`,
+		 * `info` or `default`. `title` and `subtitle` take `{done}`, `{total}` and
+		 * `{open}`, through the host's translate; they default to the library's
+		 * "{done} of {total} reviewed" and "{open} still to review".
+		 *
+		 * @type {{key: string, open?: string|Array<string>, values: Array<{value: string, label?: string, tone?: string}>, title?: string, subtitle?: string}|null}
+		 */
+		reviewSummary: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -1332,6 +1428,28 @@ export default {
 		},
 
 		/**
+		 * The review counts over the folder's files, or null without a summary.
+		 *
+		 * @return {object|null}
+		 */
+		review() {
+			return reviewSummary(this.reviewSummary, this.fileNodes, this.resolvedRowData)
+		},
+
+		/** @return {string} The summary's title, counts filled in. */
+		reviewTitle() {
+			return this.reviewText('title', t('nextcloud-vue', '{done} of {total} reviewed'))
+		},
+
+		/** @return {string} The summary's second line, or '' when nothing is open. */
+		reviewSubtitle() {
+			if (!this.review || this.review.open === 0) {
+				return ''
+			}
+			return this.reviewText('subtitle', t('nextcloud-vue', '{open} still to review'))
+		},
+
+		/**
 		 * Whether any facet value is chosen.
 		 *
 		 * @return {boolean} True when the filter narrows the list.
@@ -1792,6 +1910,55 @@ export default {
 		hostLabel(action) {
 			return this.cnTranslate(String(action?.label ?? ''))
 		},
+
+		/**
+		 * A review summary line: the host's template through its translate, else
+		 * the library's, with the counts filled in.
+		 *
+		 * @param {string} key `title` or `subtitle`.
+		 * @param {string} fallback The library's line, already translated.
+		 * @return {string}
+		 */
+		reviewText(key, fallback) {
+			const own = this.reviewSummary && typeof this.reviewSummary[key] === 'string' && this.reviewSummary[key] !== ''
+				? this.cnTranslate(this.reviewSummary[key])
+				: fallback
+			const counts = this.review || { done: 0, total: 0, open: 0 }
+			return own.replace(/\{(done|total|open)\}/g, (match, name) => String(counts[name]))
+		},
+
+		/**
+		 * Whether a review value is one of the summary's open values.
+		 *
+		 * @param {string} value The value.
+		 * @return {boolean}
+		 */
+		isOpenValue(value) {
+			const open = this.reviewSummary ? this.reviewSummary.open : undefined
+			const list = (Array.isArray(open) ? open : [open]).filter((v) => v !== undefined && v !== null)
+			return list.some((v) => String(v).toLowerCase() === String(value).toLowerCase())
+		},
+
+		/**
+		 * Whether a file's row button is the primary one: the row-data field
+		 * `primaryWhen.key` holds one of `primaryWhen.values`.
+		 *
+		 * @param {object} node The file.
+		 * @return {boolean}
+		 */
+		rowButtonPrimary(node) {
+			const when = this.rowButton && this.rowButton.primaryWhen
+			if (!when || typeof when.key !== 'string' || !Array.isArray(when.values)) {
+				return false
+			}
+			const raw = fileColumnValue({ key: when.key, source: 'row' }, node, this.resolvedRowData)
+			if (raw === null || raw === undefined) {
+				return false
+			}
+			return when.values.some((v) => String(v).toLowerCase() === String(raw).toLowerCase())
+		},
+
+		hostActionApplies,
 
 		/**
 		 * Re-read the folder once after a burst of change signals. One upload
@@ -2938,6 +3105,89 @@ export default {
 	margin-inline-end: 8px;
 }
 
+.cn-files-browser__review {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-block-end: 12px;
+	padding: 14px 16px;
+	border-radius: 10px;
+	background: var(--color-background-hover);
+}
+
+.cn-files-browser__review-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.cn-files-browser__review-title {
+	font-size: 15px;
+}
+
+.cn-files-browser__review-sub {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-files-browser__review-bar {
+	display: flex;
+	height: 8px;
+	overflow: hidden;
+	border-radius: 4px;
+	background: var(--color-border);
+}
+
+.cn-files-browser__review-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 18px;
+	margin: 0;
+	padding: 0;
+	font-size: 14px;
+	list-style: none;
+}
+
+.cn-files-browser__review-legend li {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-files-browser__review-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 5px;
+}
+
+.cn-files-browser__review-part--success {
+	background: var(--color-success-text, var(--color-success));
+}
+
+.cn-files-browser__review-part--warning {
+	background: var(--color-warning);
+}
+
+.cn-files-browser__review-part--error {
+	background: var(--color-error-text, var(--color-error));
+}
+
+.cn-files-browser__review-part--info {
+	background: var(--color-primary-element);
+}
+
+.cn-files-browser__review-part--default {
+	background: var(--color-border-dark);
+}
+
+.cn-files-browser__row-button {
+	display: inline-flex;
+	margin-inline-end: 8px;
+	vertical-align: middle;
+}
+
 .cn-files-browser__facets {
 	display: flex;
 	flex-wrap: wrap;
@@ -2988,6 +3238,11 @@ export default {
 
 .cn-files-browser__col-actions {
 	width: 48px;
+	white-space: nowrap;
+}
+
+.cn-files-browser__col-actions:has(.cn-files-browser__row-button) {
+	width: auto;
 }
 
 .cn-files-browser__col-name {
