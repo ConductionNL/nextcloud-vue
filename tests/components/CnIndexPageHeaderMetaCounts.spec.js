@@ -16,7 +16,7 @@ jest.mock('../../src/utils/fetchFilterCounts.js', () => ({
 const { fetchListTotal } = require('../../src/utils/fetchFilterCounts.js')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 
-const { headerMetaText, headerMetaCarriesCount, headerMetaCountKey, headerDescription } = CnIndexPage.computed
+const { headerMetaText, headerMetaCarriesCount, headerMetaCountKey, headerDescriptionBase: headerDescription } = CnIndexPage.computed
 
 /**
  * A stand-in for the component's `this`.

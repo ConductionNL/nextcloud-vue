@@ -1703,7 +1703,9 @@
     "Wizard": "Wizard",
     "{done} of {total} reviewed": "{done} of {total} reviewed",
     "{open} still to review": "{open} still to review",
-    "{action}: {name}": "{action}: {name}"
+    "{action}: {name}": "{action}: {name}",
+    "On the map": "On the map",
+    "Show them in the table": "Show them in the table"
   },
   "plurals": {
     "{count} selected": [
@@ -1801,6 +1803,14 @@
     "Showing %n flow": [
       "Showing %n flow",
       "Showing %n flows"
+    ],
+    "%n without an address": [
+      "%n without an address",
+      "%n without an address"
+    ],
+    "%n with an address on the map": [
+      "%n with an address on the map",
+      "%n with an address on the map"
     ]
   }
 }
