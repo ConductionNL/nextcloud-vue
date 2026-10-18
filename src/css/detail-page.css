@@ -525,3 +525,18 @@
 	align-items: center;
 	gap: 4px;
 }
+
+/* The tag after an admin-only entry in a board detail page's Actions menu
+   ("beheerder", DqZaakMeer): 12px muted text at the end of the row. The menu
+   opens outside the page, so the rule keys on the attribute CnDetailPage sets
+   only in the board look. */
+.action-button[data-cn-admin-tag]::after,
+.action-link[data-cn-admin-tag]::after {
+	content: attr(data-cn-admin-tag);
+	margin-inline-start: auto;
+	padding-inline: 12px 4px;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 400;
+	white-space: nowrap;
+}

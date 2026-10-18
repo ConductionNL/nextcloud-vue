@@ -2,17 +2,18 @@
 
 ### Props
 
-| Name              | Type     | Required | Default    | Description                                                                |
-| ----------------- | -------- | -------- | ---------- | -------------------------------------------------------------------------- |
-| `id`              | `string` |          | `''`       | The flow uuid, or `new`.                                                   |
-| `app`             | `string` |          | `null`     | The owning app, for a new flow and the list scope.                         |
-| `run`             | `string` |          | `''`       | The run to show, or ''.                                                    |
-| `detailRoute`     | `string` |          | `'/flows'` | Where the flow list lives; flows open at `&lt;detailRoute&gt;/&lt;id&gt;`. |
-| `listLabel`       | `string` |          | `''`       | The list's name in the path ("Flows", "Settings / Flows").                 |
-| `palette`         | `string` |          | `'picker'` | `column` draws the step palette as a card on the left.                     |
-| `paletteFootnote` | `string` |          | `''`       | Free text under the path in the palette card.                              |
-| `notice`          | `string` |          | `''`       | An info notice under the path.                                             |
-| `pill`            | `string` |          | `''`       | The pill beside the title ("Case type flow").                              |
+| Name              | Type     | Required | Default    | Description                                                                                                                                                                                            |
+| ----------------- | -------- | -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`              | `string` |          | `''`       | The flow uuid, or `new`.                                                                                                                                                                               |
+| `app`             | `string` |          | `null`     | The owning app, for a new flow and the list scope.                                                                                                                                                     |
+| `run`             | `string` |          | `''`       | The run to show, or ''.                                                                                                                                                                                |
+| `detailRoute`     | `string` |          | `'/flows'` | Where the flow list lives; flows open at `&lt;detailRoute&gt;/&lt;id&gt;`.                                                                                                                             |
+| `listLabel`       | `string` |          | `''`       | The list's name in the path ("Flows", "Settings / Flows").                                                                                                                                             |
+| `palette`         | `string` |          | `'picker'` | `column` draws the step palette as a card on the left.                                                                                                                                                 |
+| `paletteFootnote` | `string` |          | `''`       | Free text under the path in the palette card.                                                                                                                                                          |
+| `notice`          | `string` |          | `''`       | An info notice under the path.                                                                                                                                                                         |
+| `pill`            | `string` |          | `''`       | The pill beside the title ("Case type flow").                                                                                                                                                          |
+| `testSubject`     | `object` |          | `null`     | The records a test run can take as its subject: `{ register, schema, labelField?, label? }`. Draws a header button ("Testen met een zaak", DqFlow) that runs the saved flow once with a picked record. |
 
 ### Events
 

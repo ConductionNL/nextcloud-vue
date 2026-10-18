@@ -69,7 +69,12 @@
 
 				<!-- choice -->
 				<template v-else-if="step.type === 'choice'">
-					<NcNoteCard v-if="step.body" type="info">
+					<!-- The board sets the intro as a plain paragraph above the
+					     cards (DqInstellen); the Nextcloud look keeps the note. -->
+					<p v-if="step.body && isBoard" class="cn-setup-step__intro" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</p>
+					<NcNoteCard v-else-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
 					<CnChoiceCards
@@ -119,6 +124,9 @@
 					<NcNoteCard v-if="isChoiceDisabled(step)" type="warning">
 						{{ dependsOnHint(step) }}
 					</NcNoteCard>
+					<p v-if="stepNote(step)" class="cn-setup-step__note" data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</p>
 				</template>
 
 				<!-- config-fields -->
@@ -212,6 +220,7 @@ import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
 import CnLeafDependencySettings from '../CnLeafDependencySettings/CnLeafDependencySettings.vue'
 import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
 import { checkDependencies, isDependencyResolved, missingRequiredApps, readServerAppStatuses } from '../../composables/useDependencyCheck.js'
+import { useLook } from '../../composables/useLook.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 
@@ -428,12 +437,13 @@ export default {
 	 * @return {object} `setupStatus` / `setupStatusLoading` for the option resolver.
 	 */
 	setup(props) {
+		const { isBoard } = useLook()
 		const wantsSource = (props.steps || []).some((s) => s && s.optionsSource)
 		if (!wantsSource) {
-			return {}
+			return { isBoard }
 		}
 		const { status, loading } = useSetupStatus(props.appId, { setup: { steps: props.steps } })
-		return { setupStatus: status, setupStatusLoading: loading }
+		return { isBoard, setupStatus: status, setupStatusLoading: loading }
 	},
 
 	data() {
@@ -790,6 +800,18 @@ export default {
 		 */
 		stepBody(step) {
 			const raw = (step && step.body) || ''
+			return raw === '' ? '' : this.cnTranslate(raw)
+		},
+
+		/**
+		 * The footnote under a choice step's options, from the step's `note`
+		 * (or `footnote`), translated like the body.
+		 *
+		 * @param {object} step The step declaration.
+		 * @return {string} The translated footnote, or ''.
+		 */
+		stepNote(step) {
+			const raw = (step && (step.note || step.footnote)) || ''
 			return raw === '' ? '' : this.cnTranslate(raw)
 		},
 
@@ -1336,6 +1358,18 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+}
+
+.cn-setup-step__intro {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+.cn-setup-step__note {
+	margin: 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-setup-step__nav {

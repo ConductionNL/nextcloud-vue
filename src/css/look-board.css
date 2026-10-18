@@ -302,6 +302,40 @@
 	color: inherit;
 }
 
+/* A caption's edit pencil ("Mijn zaaktypen") sits on the caption's line at
+   its end, 4px in: a 28px round muted button with a 16px icon that adds no
+   height (DqZijbalk). It is placed absolutely because a theme may force the
+   caption to `display: block` at id strength (thematiq's Zuiddrecht sheet),
+   which put the pencil on a line of its own. */
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-caption:has(.app-navigation-caption__actions) {
+	position: relative;
+	padding-inline-end: 36px;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-caption .app-navigation-caption__actions {
+	--default-clickable-area: 28px;
+	position: absolute;
+	inset-block-start: -6px;
+	inset-inline-end: 4px;
+	margin: 0;
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-caption .app-navigation-caption__actions .button-vue {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	width: 28px;
+	min-width: 28px;
+	height: 28px;
+	min-height: 28px;
+	padding: 0;
+	border-radius: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-caption .app-navigation-caption__actions .button-vue svg {
+	width: 16px;
+	height: 16px;
+}
+
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry,
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry-link {
 	min-height: 42px;
@@ -316,7 +350,15 @@
 	color: var(--color-main-text);
 }
 
+/* The open entry sits on the tonal primary. NcAppNavigationItem paints an
+   active entry with a 16% (22% hovered) primary mix at `!important`, so the
+   board value needs `!important` too; the selector is the more specific one.
+   The link carries the same ground. */
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active,
+.cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active:hover {
+	background-color: var(--color-primary-element-light) !important;
+}
+
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active .app-navigation-entry-link {
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
@@ -362,9 +404,11 @@
 	font-weight: 700;
 }
 
+/* White on the error colour: --color-error-text is the error colour for text on
+   a light ground (#8A0000 under thematiq), not the text on an error pill. */
 .cn-look-board .cn-app-nav__count--attention {
 	background: var(--color-error);
-	color: var(--color-error-text, var(--color-primary-element-text));
+	color: var(--color-primary-element-text);
 }
 
 /* The footer: Help, then Advanced, whatever the declared order. */
@@ -949,6 +993,44 @@
    pill hands it its own ink: "In behandeling" stays purple on purple. */
 .cn-look-board .cn-status-badge:not(.cn-look-nextcloud *) {
 	--nldesign-color-on-surface: var(--cn-status-badge-ink);
+}
+
+/* ---- Info notes (NcNoteCard type="info") -------------------------------- */
+/* The board's info note is a light-blue rounded box: no edge bar, 12px 14px
+   of padding, radius 8, an 18px icon 10px before the text, 14px text in the
+   deep primary ink at 1.5, and a bold heading line (DqBesluit and 13 other
+   boards). NcNoteCard paints its ground and ink with `!important`, and a
+   theme forces the body ink onto every p and span (thematiq), so the ground,
+   the ink and the paragraph colour carry `!important` here too, scoped to
+   the board look; the ink also goes to --nldesign-color-on-surface. */
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
+	--note-card-icon-size: 18px;
+	--note-theme: var(--color-primary-element-light-text);
+	gap: 10px;
+	padding: 12px 14px;
+	border-inline-start: 0;
+	border-radius: 8px;
+	background-color: var(--color-primary-element-light) !important;
+	color: var(--color-primary-element-light-text) !important;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) p {
+	color: var(--color-primary-element-light-text) !important;
+	font-size: inherit;
+	line-height: inherit;
+}
+
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__heading {
+	font-size: inherit;
+	font-weight: 700 !important;
+}
+
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__icon {
+	padding-top: 1px;
+	color: var(--color-primary-element-light-text);
 }
 
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
