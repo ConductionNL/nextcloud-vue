@@ -76,7 +76,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `emptyText` | String | `'No items found'` | Empty state message |
 | `lenses` | Object \| null | `null` | Personal-lens report (`@self.lenses`) of the list on screen, for a host that fetches itself; self-fetch mode reads it from the store. A lens with `available: false` makes the empty state say why ("This server does not keep track of what you open.", "Log in to see what you opened recently.", "Your recent items are not available right now."). Needs openregister#4514. |
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable lens, keyed `<lens>.<reason>` or `<reason>`. |
-| `rowClass` | Function | `null` | CSS class provider for rows |
+| `rowClass` | Function \| Array | `null` | CSS class(es) for a row: a function `(row) => string`, or (manifest `config.rowClass`) rules `[{ when: { field, op?, value }, class }]`, each adding its class to a row whose field compares to the value with the `visibleWhen` operators; two dates compare as moments, so `{ when: { field: "dueAt", op: "lt", value: "@today" }, class: "cn-row--overdue" }` marks an overdue task (DqTaken). The class is the app's to style. |
 | `addLabel` | String | `''` | Add button label |
 | `inlineActionCount` | Number | `2` | Number of inline action buttons before overflow menu |
 | `showMassImport` | Boolean | `true` | Show mass import action |
