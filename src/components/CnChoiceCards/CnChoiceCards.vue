@@ -48,14 +48,14 @@
 							data-testid="cn-choice-cards-reason">{{ option.disabledReason }}</span>
 					</span>
 				</label>
-				<!-- @slot option-details The chosen option's own fields, drawn
-				     inside the selected row's frame under its text (DqVolgendeStap:
-				     Opschorten's reason, days and return date). Rendered only for a
-				     selected option, outside the label so a field is not part of
-				     the radio's label. Scope: `{ option }`. -->
 				<div v-if="hasDetails(option)"
 					class="cn-choice-cards__details"
 					:data-testid="`cn-choice-cards-details-${option.value}`">
+					<!-- @slot option-details The chosen option's own fields, drawn
+					     inside the selected row's frame under its text (DqVolgendeStap:
+					     Opschorten's reason, days and return date). Rendered only for a
+					     selected option, outside the label so a field is not part of
+					     the radio's label. Scope: `{ option }`. -->
 					<slot name="option-details" :option="option" />
 				</div>
 				<div v-if="$slots['option-actions']" class="cn-choice-cards__actions">
