@@ -392,6 +392,24 @@ fieldOverrides: {
 
 A form without `section` keys renders as before.
 
+### `widget` naming a registered component
+
+A `widget` that is not one of the form's own widget names is looked up as a registered component: the v2 registry (`registry` on CnAppRoot, any entry with a `component`) first, then the `customComponents` map. When one answers, it is mounted as the field's control (board DqNieuweZaak, the Aanvrager picker). It receives `value` and `modelValue` (the field's value), `field` (the field descriptor), `error` and `disabled`, and writes the value back by emitting `input` or `update:modelValue`. The built-in names (`text`, `select`, `textarea`, `user` and the rest) always draw the built-in control, and a name nothing answers to falls back to the text input.
+
+```js
+fieldOverrides: {
+  applicant: { widget: 'ApplicantPicker' },
+}
+```
+
+### `look: "search"`
+
+A single select field drawn as a search field ([CnSearchSelect](./cn-search-select.md)): a magnifier instead of the chevron, and rows with initials or an icon, the name, a secondary line and a check on the chosen one (DqOverdragen "Nieuw team"). `optionSecondary` is a template filled from each option, `optionAvatar: true` draws the initials, `optionIcon` names one icon for every row. A Nextcloud-user field keeps its own picker.
+
+```json
+"fieldOverrides": { "team": { "look": "search", "optionSecondary": "{members} leden · {focus}", "optionAvatar": true } }
+```
+
 ### `enumLabels`
 
 For `select` fields backed by an `enum`, the dropdown displays raw enum values by default. Use `enumLabels` to provide human-readable labels:
@@ -551,10 +569,10 @@ Set `look: "board"` in the manifest (or pass `look="board"` to the dialog) and t
 | --- | --- | --- |
 | `look` | follows the app | `board` or `nextcloud`. The prop wins over the app. |
 | `width` | per component | `confirm` (560), `form` (640) or `wizard` (720). No other width is reachable. |
-| `eyebrow` | empty | A context line above the title, uppercase 13px. Not part of the accessible name. |
+| `eyebrow` | empty | A context line above the title, 13px in sentence case. Not part of the accessible name. |
 | `subtitle` | empty | A sentence under the title. |
 
-Widths are capped at the viewport minus 32px. Theme hooks: `--cn-dialog-danger` (fill of a destructive primary, default `--color-error`), `--cn-dialog-eyebrow-color` and `--cn-dialog-eyebrow-transform`.
+Widths are capped at the viewport minus 32px. Theme hooks: `--cn-dialog-danger` (fill of a destructive primary, default `--color-error`), `--cn-dialog-eyebrow-color`, `--cn-dialog-eyebrow-transform` (`uppercase` for capitals) and `--cn-dialog-eyebrow-tracking`.
 
 ### Fields
 

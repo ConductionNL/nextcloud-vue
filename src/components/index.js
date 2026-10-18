@@ -130,6 +130,7 @@ export { default as CnContactsTab } from '../integrations/builtin/contacts/CnCon
 export { CnContactPicker } from './CnContactPicker/index.js'
 export { CnContactCreate } from './CnContactCreate/index.js'
 export { CnResourceSelect } from './CnResourceSelect/index.js'
+export { CnSearchSelect } from './CnSearchSelect/index.js'
 export { CnPropertySourceField } from './CnPropertySourceField/index.js'
 export { CnDurationField } from './CnDurationField/index.js'
 export { CnFavouriteToggle } from './CnFavouriteToggle/index.js'

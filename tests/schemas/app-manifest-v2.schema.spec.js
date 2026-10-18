@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.125.0', () => {
+	it('the manifest schema version reads 2.126.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1402,7 +1402,20 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.123.0 adds the setup step's note and footnote, a line under a choice step's options (setup-wizard), config.headerMetaCounts on an index page (index-page), and actionsMenu.showMarkUnread and showOpenSidebar (detail-page).
 		// 2.124.0 adds setup.steps[].visibleWhen (setup-wizard), and the dashboard config.pageFilters with control and placement (dashboard-page).
 		// 2.125.0 adds chart emptyCellLabel and the footnote under line, area and bar charts (chart-widget), config.bulkBandAlways (actions-bar), config.quickFilterPlacement (index-page), config.rowClass rules on an index page (index-page) and sourceConfig.limit for a paging source (index-page).
-		expect(schema.version).toBe('2.125.0')
+		// 2.126.0 adds the setup choice step's display "rows" and default (setup-wizard), visibleWhen op anyOf and the record-list footerAction (record-list), and documents folderSidebar.pane and the fieldOverrides search look (index-page, form-dialog).
+		expect(schema.version).toBe('2.126.0')
+	})
+
+	it('accepts the 2.126.0 keys and refuses malformed ones', () => {
+		const withPage = (page) => ({ ...MINIMAL_V2, pages: [page] })
+		const index = (config) => withPage({ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', ...config } })
+		const recordList = (content) => withPage({ id: 'home', route: '/', type: 'dashboard', title: 'Home', widgets: [{ id: 'appeal', widgetKey: 'record-list', slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2, props: { content } }] })
+		const footerAction = { label: 'Register appeal', type: 'open-form', disabledWhen: { field: 'categories', op: 'anyOf', value: ['health', 'ethnicity'] }, disabledReason: 'Once the decision is sent' }
+		expect(validateManifestV2(recordList({ footerAction })).valid).toBe(true)
+		expect(validateManifestV2(recordList({ footerAction: { type: 'open-form' } })).valid).toBe(false)
+		expect(validateManifestV2(index({ folderSidebar: { pane: false }, fieldOverrides: { team: { look: 'search', optionSecondary: '{members}', optionAvatar: true } } })).valid).toBe(true)
+		expect(validateManifestV2(index({ folderSidebar: { pane: 'no' } })).valid).toBe(false)
+		expect(validateManifestV2(index({ fieldOverrides: { team: { look: 'dropdown' } } })).valid).toBe(false)
 	})
 
 	it('accepts index rowClass rules, bulkBandAlways and quickFilterPlacement, and refuses malformed ones', () => {

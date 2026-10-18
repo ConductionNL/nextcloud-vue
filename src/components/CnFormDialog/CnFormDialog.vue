@@ -131,6 +131,22 @@
 							:error="errors[field.key]"
 							:updateField="updateField" />
 
+						<!-- A `widget` naming a registered component (v2 registry or
+						     customComponents) mounts that component as the control.
+						     It gets `value`/`modelValue`, `field`, `error` and
+						     `disabled`, and writes back with `input` or
+						     `update:modelValue`. -->
+						<component
+							:is="resolveFieldComponent(field)"
+							v-else-if="resolveFieldComponent(field)"
+							:value="formData[field.key]"
+							:modelValue="formData[field.key]"
+							:field="field"
+							:error="errors[field.key] || ''"
+							:disabled="!!field.readOnly"
+							@input="value => updateField(field.key, value)"
+							@update:modelValue="value => updateField(field.key, value)" />
+
 						<!-- referenceType (AD-18): render the integration's
 						     single-entity widget instead of a plain input. -->
 						<component
@@ -314,8 +330,26 @@
 								     plain select. NcSelectUsers wraps NcSelect and merges the
 								     rest of these bindings through, so the async load, search
 								     and select machinery is unchanged either way. -->
+								<!-- `look: "search"` (a `fieldOverrides` key): a search field
+								     with rows of icon or initials, name, a secondary line from
+								     `optionSecondary` and a check on the chosen one
+								     (DqOverdragen "Nieuw team"). -->
+								<CnSearchSelect
+									v-if="field.look === 'search' && !isUserField(field)"
+									:inputId="'cn-form-' + field.key"
+									:inputLabel="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									:options="searchSelectOptions(field)"
+									:modelValue="getEffectiveSelectedOption(field)"
+									:clearable="!field.required"
+									:disabled="field.readOnly"
+									:loading="isFieldLoading(field)"
+									:filterable="!isAsyncEnum(field)"
+									@update:modelValue="onSearchSelectChange(field, $event)"
+									@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined" />
 								<component
 									:is="isUserField(field) ? 'NcSelectUsers' : 'NcSelect'"
+									v-else
 									v-cn-select-aria="fieldAria(field)"
 									:inputId="'cn-form-' + field.key"
 									:inputLabel="fieldLabelText(field)"
@@ -799,6 +833,7 @@ import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
+import CnSearchSelect from '../CnSearchSelect/CnSearchSelect.vue'
 import CnSubObjectsField from '../CnSubObjectsField/CnSubObjectsField.vue'
 import { describeRowProblem, useChildRecords } from '../../composables/useChildRecords.js'
 import { clearAnonymousDrafts, draftIndicatorText, draftKey, formDraftMixin, hasDraftChanges, readDraft, resolveDraftUserId } from '../../composables/useFormDraft.js'
@@ -821,6 +856,7 @@ import {
 	splitDynamicFormData,
 } from '../../utils/dynamicProperties.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { computeAssignments } from '../../utils/formAssign.js'
 import { resolveNextcloudGroup, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { durationSeconds } from '../../utils/isoDuration.js'
@@ -843,6 +879,36 @@ import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAuto
  * @type {string[]}
  */
 const WIDE_WIDGETS = ['textarea', 'json', 'code']
+
+// The widget names the form draws itself; a registered component cannot take one over.
+const BUILT_IN_WIDGETS = new Set([
+	'text',
+	'email',
+	'url',
+	'number',
+	'textarea',
+	'switch',
+	'select',
+	'user',
+	'group',
+	'multiselect',
+	'user-multiselect',
+	'group-multiselect',
+	'tags',
+	'checkbox',
+	'date',
+	'datetime',
+	'json',
+	'code',
+	'file',
+	'duration',
+	'child-records',
+	'sub-objects',
+	'property-source',
+	'icon',
+	'language',
+	'timezone',
+])
 
 /** Largest file carried inline in the saved payload; bigger ones upload after save. */
 const INLINE_FILE_CAP = 1024 * 1024
@@ -1033,6 +1099,7 @@ export default {
 		CnFileField,
 		CnDurationField,
 		CnPropertySourceField,
+		CnSearchSelect,
 		CnReplaceValuesDialog,
 		CnSubObjectsField,
 		CnChildRecordsField,
@@ -2029,6 +2096,28 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve the registered component a field's `widget` names: the v2
+		 * registry (any entry with a `component`) first, then the legacy
+		 * customComponents map. Built-in widget names never resolve here.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveFieldComponent(field) {
+			const name = field && field.widget
+			if (typeof name !== 'string' || name === '' || BUILT_IN_WIDGETS.has(name)) {
+				return null
+			}
+			const entry = this.cnRegistry && this.cnRegistry[name]
+			if (entry && entry.component) {
+				return entry.component
+			}
+			const legacy = this.cnCustomComponents && this.cnCustomComponents[name]
+			// A bare function in the legacy map is a handler, not a component.
+			return legacy && typeof legacy === 'object' ? legacy : null
+		},
+
 		/**
 		 * Resolve a field's reference integration widget, if any.
 		 * Returns the integration's single-entity widget component
@@ -4337,6 +4426,44 @@ export default {
 		 * @param {object} field The field definition
 		 * @return {Array}
 		 */
+		/**
+		 * The options of a `look: "search"` field as CnSearchSelect rows: each
+		 * option's own `secondary` / `icon` / `avatar`, else the field's
+		 * `optionSecondary` template (filled from the option), `optionIcon` and
+		 * `optionAvatar`.
+		 *
+		 * @spec openspec/changes/search-select-look/specs/search-select/spec.md#requirement-a-single-picker-can-take-the-search-look
+		 * @param {object} field The field definition.
+		 * @return {Array<object>}
+		 */
+		searchSelectOptions(field) {
+			const template = typeof field.optionSecondary === 'string' ? field.optionSecondary : ''
+			return this.getEffectiveOptions(field).map((option) => ({
+				...option,
+				secondary: option.secondary || (template ? fillTemplate(template, option).trim() : ''),
+				icon: option.icon || field.optionIcon || '',
+				avatar: option.avatar ?? (field.optionAvatar === true),
+			}))
+		},
+
+		/**
+		 * Pick the option a CnSearchSelect field emitted by its id, and hand
+		 * it to the select change handler.
+		 *
+		 * @spec openspec/changes/search-select-look/specs/search-select/spec.md#requirement-a-single-picker-can-take-the-search-look
+		 * @param {object} field The field definition.
+		 * @param {string|number|null} id The chosen option's id.
+		 */
+		onSearchSelectChange(field, id) {
+			if (id === null || id === undefined) {
+				this.onEffectiveSelectChange(field, null)
+				return
+			}
+			const option = this.searchSelectOptions(field).find((o) => String(o.id ?? o.value) === String(id)) || { id, label: String(id) }
+			const { secondary, icon, avatar, ...plain } = option
+			this.onEffectiveSelectChange(field, plain)
+		},
+
 		getEffectiveOptions(field) {
 			if (this.isAsyncEnum(field)) {
 				// TODO: restore to `this.asyncState[field.key]?.options || []` once on Vue 3 (buble doesn't support optional chaining)

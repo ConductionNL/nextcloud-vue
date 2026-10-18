@@ -9,14 +9,16 @@
  * Theme hooks (all optional, defaults below):
  *   --cn-dialog-danger               fill of a destructive primary
  *   --cn-dialog-eyebrow-color        eyebrow colour
- *   --cn-dialog-eyebrow-transform    uppercase (default) or none
+ *   --cn-dialog-eyebrow-transform    none (default, sentence case) or uppercase
+ *   --cn-dialog-eyebrow-tracking     letter spacing; 0 by default, 0.06em suits capitals
  */
 
 .cn-dialog-board {
 	--cn-dialog-width: 640px;
 	--cn-dialog-danger: var(--color-error);
 	--cn-dialog-eyebrow-color: var(--color-primary-element-text, var(--color-main-text));
-	--cn-dialog-eyebrow-transform: uppercase;
+	--cn-dialog-eyebrow-transform: none;
+	--cn-dialog-eyebrow-tracking: 0;
 }
 
 /* Dimmed page behind the dialog: text colour at 45%. */
@@ -73,7 +75,7 @@
 	margin-bottom: 4px;
 	font-size: 13px;
 	font-weight: 700;
-	letter-spacing: 0.06em;
+	letter-spacing: var(--cn-dialog-eyebrow-tracking, 0.06em);
 	text-transform: var(--cn-dialog-eyebrow-transform, uppercase);
 	color: var(--cn-dialog-eyebrow-color, var(--color-main-text));
 }

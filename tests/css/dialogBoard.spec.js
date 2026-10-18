@@ -44,9 +44,9 @@ describe('dialog.css', () => {
 		expect(css).toMatch(/color-mix\(in srgb, var\(--color-main-text\) 45%, transparent\)/)
 	})
 
-	it('draws the header: 20px/700 title, 13px/700 eyebrow at 0.06em, 36px round close', () => {
+	it('draws the header: 20px/700 title, 13px/700 eyebrow, 36px round close', () => {
 		expect(css).toMatch(/\.cn-dialog-header__title\s*\{[^}]*font-size:\s*20px;[^}]*font-weight:\s*700/)
-		expect(css).toMatch(/\.cn-dialog-header__eyebrow\s*\{[^}]*font-size:\s*13px;[^}]*font-weight:\s*700;[^}]*letter-spacing:\s*0\.06em/)
+		expect(css).toMatch(/\.cn-dialog-header__eyebrow\s*\{[^}]*font-size:\s*13px;[^}]*font-weight:\s*700;[^}]*letter-spacing:\s*var\(--cn-dialog-eyebrow-tracking/)
 		expect(css).toMatch(/\.cn-dialog-header__close\s*\{[^}]*width:\s*36px;[^}]*height:\s*36px;[^}]*border-radius:\s*50%/)
 	})
 

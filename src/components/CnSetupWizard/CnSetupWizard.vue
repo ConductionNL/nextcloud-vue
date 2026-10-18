@@ -5,6 +5,7 @@
 		ref="wizard"
 		:steps="wizardSteps"
 		:dialogTitle="resolvedDialogTitle"
+		stepHeading
 		:submitLabel="submitLabel"
 		:cancelLabel="cancelLabel"
 		:nextLabel="nextLabel"
@@ -79,6 +80,7 @@
 					</NcNoteCard>
 					<CnChoiceCards
 						v-if="isCardChoice(step)"
+						:layout="step.display === 'rows' ? 'rows' : 'cards'"
 						:label="stepTitle(step)"
 						:options="optionsFor(step)"
 						:multiple="step.multiple === true"
@@ -464,14 +466,16 @@ export default {
 	computed: {
 		/**
 		 * The title actually rendered by CnWizardDialog: "Set up {appName}"
-		 * when a display name was passed, otherwise whatever `dialogTitle`
-		 * resolves to (a caller override, or its own generic default).
+		 * when a display name was passed (the name through the host's
+		 * translate), otherwise whatever `dialogTitle` resolves to (a caller
+		 * override, or its own generic default). In the board look it is the
+		 * eyebrow's context and the current step's title is the heading.
 		 *
 		 * @return {string}
 		 */
 		resolvedDialogTitle() {
 			return this.appName
-				? t('nextcloud-vue', 'Set up {app}', { app: this.appName })
+				? t('nextcloud-vue', 'Set up {app}', { app: this.cnTranslate(this.appName) })
 				: this.dialogTitle
 		},
 
@@ -727,6 +731,12 @@ export default {
 		},
 	},
 
+	created() {
+		for (const step of this.setupSteps) {
+			this.applyDefault(step)
+		}
+	},
+
 	mounted() {
 		// Covers a RESUMED wizard opening straight onto its run-action step
 		// (`initialStepId`) — `onStepChange` only fires on later navigation,
@@ -944,13 +954,14 @@ export default {
 		},
 
 		/**
-		 * Whether a choice step renders as a card grid rather than a dropdown.
+		 * Whether a choice step renders as CnChoiceCards (a card grid, or radio
+		 * rows with `display: "rows"`) rather than a dropdown.
 		 *
 		 * @param {object} step The choice step.
-		 * @return {boolean} True for `display: "cards"`.
+		 * @return {boolean} True for `display: "cards"` and `display: "rows"`.
 		 */
 		isCardChoice(step) {
-			return step.display === 'cards'
+			return step.display === 'cards' || step.display === 'rows'
 		},
 
 		/**
@@ -1051,6 +1062,36 @@ export default {
 				if (dep.suggestFrom && dep.suggestFrom === step.configKey) {
 					this.applySuggestion(dep)
 				}
+			}
+		},
+
+		/**
+		 * Preselect a `choice` step's `default` option. Skipped once the user
+		 * picked here, when a value is already chosen, and for a step the
+		 * server already completed (its stored value must not be overwritten
+		 * by a Next). A card step holds the plain value; a dropdown holds the
+		 * option object, or the value while the options are still loading.
+		 *
+		 * @param {object} step The choice step.
+		 * @return {void}
+		 */
+		applyDefault(step) {
+			if (!step || step.type !== 'choice' || step.default === undefined || step.default === null) {
+				return
+			}
+			if (this.userTouched[step.id] === true || this.hasChoice(step) || this.isServerDone(step.id)) {
+				return
+			}
+			const wanted = step.multiple === true ? [].concat(step.default) : step.default
+			if (this.isCardChoice(step)) {
+				this.choiceModel[step.id] = wanted
+			} else {
+				const options = this.optionsFor(step)
+				const pick = (value) => options.find((o) => o.value === value) || value
+				this.choiceModel[step.id] = Array.isArray(wanted) ? wanted.map(pick) : pick(wanted)
+			}
+			if (step.configKey) {
+				this.choiceValues[step.configKey] = this.scalarChoice(step)
 			}
 		},
 
@@ -1359,6 +1400,15 @@ export default {
 			const step = this.setupSteps.find((s) => s.id === payload.stepId)
 			if (step && step.suggestFrom) {
 				this.applySuggestion(step)
+			}
+			// A default seeded before a dropdown's options arrived is a bare
+			// value; swap in its option object now the step opens.
+			if (step && step.default !== undefined && this.userTouched[step.id] !== true && !this.isCardChoice(step)) {
+				const held = this.choiceModel[step.id]
+				const option = this.optionsFor(step).find((o) => o.value === held)
+				if (option && held !== null && typeof held !== 'object') {
+					this.choiceModel[step.id] = option
+				}
 			}
 			this.maybeAutoRunStep(payload.stepId)
 			/**
