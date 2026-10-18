@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel }]"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--quick-filters-toolbar': quickFilterPlacement === 'toolbar' }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -369,6 +369,7 @@
 					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
 					:maxVisible="quickFilterMaxVisible"
+					:fit="quickFilterPlacement === 'toolbar'"
 					:multiple="quickFilterMultiple"
 					:activeIndex="activeQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
@@ -2033,6 +2034,21 @@ export default {
 		filterStrip: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Where the quick-filter chips sit (manifest `config.quickFilterPlacement`).
+		 * `''` (the default) as before. `'toolbar'` keeps them on one row with
+		 * the Filter button and the view switch, in whatever width that row has
+		 * beside a side panel (DqTeamwachtrij): the chips take the room the
+		 * buttons leave, and those that do not fit move into the overflow chip.
+		 *
+		 * @type {''|'toolbar'}
+		 */
+		quickFilterPlacement: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'toolbar'].includes(v),
 		},
 
 		/**
