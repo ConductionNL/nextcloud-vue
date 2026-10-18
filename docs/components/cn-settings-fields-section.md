@@ -30,7 +30,7 @@ A settings section declared as fields. It reads the app's settings, draws the fi
 
 ## Fields of several apps
 
-One section can hold settings that live in different apps, with no store in between: a field with its own `url` is read there (at `valuePath`, default its key) and saved to its own `saveUrl` (default that `url`), with `saveMethod` (default `POST`), under `saveKey` (default its key). Each distinct read target is read once. When a field's own target cannot be read, that field says so and is left out of the save; the rest of the section works.
+One section can hold settings that live in different apps, with no store in between: a field with its own `url` is read there (at `valuePath`, default its key) and saved to its own `saveUrl` (default that `url`), with `saveMethod` (default `POST`), under `saveKey` (default its key). Each distinct read target is read once. A target under `/ocs/` (a Nextcloud OCS API such as `/ocs/v2.php/cloud/capabilities?format=json`) is requested outside `index.php` with the `OCS-APIRequest` header. When a field's own target cannot be read, that field says so and is left out of the save; the rest of the section works.
 
 ```js
 fields: [
@@ -58,7 +58,7 @@ A `secret` field is replace-only. The stored value is never put in the input; wh
 | `label` | The label, through the app's translate function. Every field has one; a select gets it through NcSelect's `inputLabel`. |
 | `type` | `text` (default), `textarea`, `number`, `switch`, `select`, `secret` or `image`. |
 | `url`, `valuePath` | Read this field from another endpoint, at this dotted path. |
-| `saveUrl`, `saveMethod`, `saveKey` | Save this field to another endpoint (default `url`, `POST`), under this key. |
+| `saveUrl`, `saveMethod`, `saveKey`, `saveParams` | Save this field to another endpoint (default `url`, `POST`), under this key, with these static fields merged into the body (`{ setting: 'name' }`). |
 | `uploadUrl`, `uploadField`, `uploadParams`, `uploadValuePath`, `previewUrl`, `uploadLabel`, `accept` | An image's upload, see above. |
 | `initials`, `initialsFrom` | An image's initials when there is no image: a name, or the key of the field that holds one. |
 | `hint` | A line under the field, tied to it for screen readers. |

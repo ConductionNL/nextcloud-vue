@@ -66,7 +66,7 @@ describe('CnSettingsFieldsSection', () => {
 
 	it('reads the app\'s settings endpoint and fills the fields, never the secret', async () => {
 		const wrapper = await mountSection()
-		expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/apps/myapp/api/settings'))
+		expect(axios.get.mock.calls[0][0]).toContain('/apps/myapp/api/settings')
 		expect(input(wrapper, 'baseUrl').element.value).toBe('https://api.example.org')
 		expect(input(wrapper, 'apiKey').element.value).toBe('')
 		expect(input(wrapper, 'apiKey').attributes('placeholder')).toBe('Stored. Type a new value to replace it.')
@@ -80,7 +80,7 @@ describe('CnSettingsFieldsSection', () => {
 	it('reads a configured url and a nested values path', async () => {
 		axios.get.mockResolvedValue({ data: { settings: { baseUrl: 'https://x.example' } } })
 		const wrapper = await mountSection({ url: '/apps/other/api/config', valuesPath: 'settings' })
-		expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/apps/other/api/config'))
+		expect(axios.get.mock.calls[0][0]).toContain('/apps/other/api/config')
 		expect(input(wrapper, 'baseUrl').element.value).toBe('https://x.example')
 	})
 
@@ -225,6 +225,27 @@ describe('CnSettingsFieldsSection with fields of several apps', () => {
 		await wrapper.find('form').trigger('submit')
 		await flushPromises()
 		expect(axios.request.mock.calls.map(([call]) => call.data)).toEqual([{ name: 'X' }])
+	})
+
+	it('reads and saves through OCS and adds static save params', async () => {
+		axios.get.mockImplementation((url) => Promise.resolve({ data: url.includes('/ocs/') ? { ocs: { data: { capabilities: { theming: { name: 'Zuiddrecht' } } } } } : { appName: 'Dossiq' } }))
+		const fields = [
+			{ key: 'orgName', label: 'Organisation name', url: '/ocs/v2.php/cloud/capabilities?format=json', valuePath: 'ocs.data.capabilities.theming.name', saveUrl: '/apps/theming/ajax/updateStylesheet', saveKey: 'value', saveParams: { setting: 'name' } },
+			{ key: 'appName', label: 'App name' },
+		]
+		const wrapper = await mountSection({ fields })
+		const ocsCall = axios.get.mock.calls.find(([url]) => url.includes('/ocs/'))
+		expect(ocsCall[0]).not.toContain('index.php')
+		expect(ocsCall[1]).toEqual({ headers: { 'OCS-APIRequest': 'true' } })
+		expect(input(wrapper, 'orgName').element.value).toBe('Zuiddrecht')
+		await input(wrapper, 'orgName').setValue('Gemeente Zuiddrecht')
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+		const call = axios.request.mock.calls[0][0]
+		expect(call.url).toContain('/apps/theming/ajax/updateStylesheet')
+		expect(call.method).toBe('post')
+		expect(call.data).toEqual({ setting: 'name', value: 'Gemeente Zuiddrecht' })
+		expect(call.headers).toBeUndefined()
 	})
 
 	it('leaves a field whose target could not be read out, and says so', async () => {

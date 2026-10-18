@@ -51,7 +51,7 @@ A `secret` field SHALL never show the stored value. When the settings hold one, 
 
 ### Requirement: A field can read and save elsewhere
 
-A field with its own `url` SHALL be read from that endpoint, at its `valuePath` (default its key), and saved to its `saveUrl` (default that `url`) with `saveMethod` (default `POST`) under `saveKey` (default its key). Each distinct read target SHALL be read once. When a field's own target cannot be read, the field SHALL say so and be left out of the save, and the rest of the section SHALL work.
+A field with its own `url` SHALL be read from that endpoint, at its `valuePath` (default its key), and saved to its `saveUrl` (default that `url`) with `saveMethod` (default `POST`) under `saveKey` (default its key). `saveParams` SHALL be merged into the body of its target's request, and a target under `/ocs/` SHALL be requested outside `index.php` with the `OCS-APIRequest` header. Each distinct read target SHALL be read once. When a field's own target cannot be read, the field SHALL say so and be left out of the save, and the rest of the section SHALL work.
 
 #### Scenario: A brand card over two apps
 

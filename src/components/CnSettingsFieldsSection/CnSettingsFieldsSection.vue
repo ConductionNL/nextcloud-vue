@@ -84,6 +84,17 @@ function literalFirst(data, key) {
 }
 
 /**
+ * The request options for a target: an OCS endpoint (`/ocs/...`) needs the
+ * `OCS-APIRequest` header; `prefixUrl` already serves it outside index.php.
+ *
+ * @param {string} url The target.
+ * @return {object}
+ */
+function ocsConfig(url) {
+	return /^\/ocs\//.test(String(url)) ? { headers: { 'OCS-APIRequest': 'true' } } : {}
+}
+
+/**
  * Up to two initials of a name, for an image field without an image.
  *
  * @param {unknown} name The name.
@@ -161,15 +172,16 @@ export default {
 		 * The fields: `[{ key, label, type?, hint?, placeholder?, required?,
 		 * pattern?, patternMessage?, min?, max?, rows?, options?, optionsUrl?,
 		 * optionsPath?, optionLabel?, optionValue?, default?, readOnly?, wide?,
-		 * url?, valuePath?, saveUrl?, saveMethod?, saveKey?, uploadUrl?,
+		 * url?, valuePath?, saveUrl?, saveMethod?, saveKey?, saveParams?, uploadUrl?,
 		 * uploadField?, uploadParams?, uploadValuePath?, initials?, initialsFrom? }]`.
 		 * `type` is `text` (default), `textarea`, `number`, `switch`, `select`,
 		 * `secret` or `image`. `key` names the setting; a dotted key reads a
 		 * nested value and is written as written. A field with its own `url`
 		 * is read there (at `valuePath`, default its key) and saved to its
 		 * `saveUrl` (default that `url`) with `saveMethod` (default POST) under
-		 * `saveKey` (default its key), so one section can hold the settings of
-		 * several apps. An `image` uploads at once to `uploadUrl`. Labels,
+		 * `saveKey` (default its key), with `saveParams` merged into the body,
+		 * so one section can hold the settings of several apps. A target under
+		 * `/ocs/` is sent the `OCS-APIRequest` header. An `image` uploads at once to `uploadUrl`. Labels,
 		 * hints, placeholders and messages go through the app's translate
 		 * function.
 		 *
@@ -358,7 +370,7 @@ export default {
 				const failures = {}
 				await Promise.all(targets.map(async (target) => {
 					try {
-						const response = await axios.get(prefixUrl(target))
+						const response = await axios.get(prefixUrl(target), ocsConfig(target))
 						answers[target] = response?.data ?? {}
 					} catch (error) {
 						failures[target] = error
@@ -510,6 +522,7 @@ export default {
 				}
 				const group = groups.get(id)
 				group.fields.push(field)
+				Object.assign(group.data, field.saveParams || {})
 				group.data[field.saveKey || field.key] = value
 			}
 			this.saving = true
@@ -518,7 +531,7 @@ export default {
 			const sent = {}
 			for (const group of groups.values()) {
 				try {
-					await axios.request({ url: prefixUrl(group.url), method: group.method, data: group.data })
+					await axios.request({ url: prefixUrl(group.url), method: group.method, data: group.data, ...ocsConfig(group.url) })
 					Object.assign(sent, group.data)
 					this.acceptSaved(group.fields)
 				} catch (error) {
