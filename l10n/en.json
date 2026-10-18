@@ -1694,7 +1694,8 @@
     "{fields}: {reason}": "{fields}: {reason}",
     "Current {name}": "Current {name}",
     "Upload {name}": "Upload {name}",
-    "The image could not be uploaded: {reason}": "The image could not be uploaded: {reason}"
+    "The image could not be uploaded: {reason}": "The image could not be uploaded: {reason}",
+    "Reorder {item}: drag, or press the up and down arrow keys": "Reorder {item}: drag, or press the up and down arrow keys"
   },
   "plurals": {
     "{count} selected": [

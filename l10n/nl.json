@@ -1909,7 +1909,8 @@
     "Day added.": "Dag toegevoegd.",
     "Only an administrator can change the working calendar.": "Alleen een beheerder kan de werkkalender wijzigen.",
     "The day could not be added. Try again.": "De dag kon niet worden toegevoegd. Probeer het opnieuw.",
-    "Loading …": "Laden …"
+    "Loading …": "Laden …",
+    "Reorder {item}: drag, or press the up and down arrow keys": "{item} verplaatsen: slepen, of de pijltoetsen omhoog en omlaag"
   },
   "plurals": {
     "{count} selected": [
