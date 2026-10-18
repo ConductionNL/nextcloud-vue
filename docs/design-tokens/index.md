@@ -165,7 +165,8 @@ These apply under `look: "board"` and have the staff values as defaults; a theme
 | --- | --- | --- |
 | `--cn-dialog-danger` | `var(--color-error)` | Fill of a destructive dialog primary. |
 | `--cn-dialog-eyebrow-color` | primary element text | Dialog eyebrow colour. |
-| `--cn-dialog-eyebrow-transform` | `uppercase` | Set `none` for the sentence-case eyebrow. |
+| `--cn-dialog-eyebrow-transform` | `none` | The board dialog eyebrow is sentence case; set `uppercase` for capitals. |
+| `--cn-dialog-eyebrow-tracking` | `0` | Eyebrow letter spacing; `0.06em` suits capitals. |
 | `--cn-field-label-size` | `14px` | Form field label. |
 | `--cn-field-height` | `40px` | Form field control height. |
 | `--cn-field-text-size` | `15px` | Form field text and error. |
