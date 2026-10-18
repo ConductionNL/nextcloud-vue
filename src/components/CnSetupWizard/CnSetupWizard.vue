@@ -79,6 +79,7 @@
 					</NcNoteCard>
 					<CnChoiceCards
 						v-if="isCardChoice(step)"
+						:layout="step.display === 'rows' ? 'rows' : 'cards'"
 						:label="stepTitle(step)"
 						:options="optionsFor(step)"
 						:multiple="step.multiple === true"
@@ -944,13 +945,14 @@ export default {
 		},
 
 		/**
-		 * Whether a choice step renders as a card grid rather than a dropdown.
+		 * Whether a choice step renders as CnChoiceCards (a card grid, or radio
+		 * rows with `display: "rows"`) rather than a dropdown.
 		 *
 		 * @param {object} step The choice step.
-		 * @return {boolean} True for `display: "cards"`.
+		 * @return {boolean} True for `display: "cards"` and `display: "rows"`.
 		 */
 		isCardChoice(step) {
-			return step.display === 'cards'
+			return step.display === 'cards' || step.display === 'rows'
 		},
 
 		/**
