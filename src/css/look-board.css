@@ -995,6 +995,44 @@
 	--nldesign-color-on-surface: var(--cn-status-badge-ink);
 }
 
+/* ---- Info notes (NcNoteCard type="info") -------------------------------- */
+/* The board's info note is a light-blue rounded box: no edge bar, 12px 14px
+   of padding, radius 8, an 18px icon 10px before the text, 14px text in the
+   deep primary ink at 1.5, and a bold heading line (DqBesluit and 13 other
+   boards). NcNoteCard paints its ground and ink with `!important`, and a
+   theme forces the body ink onto every p and span (thematiq), so the ground,
+   the ink and the paragraph colour carry `!important` here too, scoped to
+   the board look; the ink also goes to --nldesign-color-on-surface. */
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
+	--note-card-icon-size: 18px;
+	--note-theme: var(--color-primary-element-light-text);
+	gap: 10px;
+	padding: 12px 14px;
+	border-inline-start: 0;
+	border-radius: 8px;
+	background-color: var(--color-primary-element-light) !important;
+	color: var(--color-primary-element-light-text) !important;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) p {
+	color: var(--color-primary-element-light-text) !important;
+	font-size: inherit;
+	line-height: inherit;
+}
+
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__heading {
+	font-size: inherit;
+	font-weight: 700 !important;
+}
+
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__icon {
+	padding-top: 1px;
+	color: var(--color-primary-element-light-text);
+}
+
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
 /* The board sets every waiting time ("3 dagen", "4 uur") in weight 600; a
    late one is red through its variant class. */
