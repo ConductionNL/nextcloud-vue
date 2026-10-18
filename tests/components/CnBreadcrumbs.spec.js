@@ -21,6 +21,11 @@ const CRUMBS = [
 const crumbEls = (wrapper) => wrapper.findAll('[data-testid^="cn-breadcrumbs-crumb-"]')
 
 describe('CnBreadcrumbs', () => {
+	it('carries cn-breadcrumbs on its root, so the board look can draw the trail as text', () => {
+		const wrapper = mount(CnBreadcrumbs, { propsData: { crumbs: CRUMBS } })
+		expect(wrapper.find('[data-testid="cn-breadcrumbs"]').classes()).toContain('cn-breadcrumbs')
+	})
+
 	it('renders one NcBreadcrumb per crumb with the label as its name', () => {
 		const wrapper = mount(CnBreadcrumbs, { propsData: { crumbs: CRUMBS } })
 		const crumbs = crumbEls(wrapper)

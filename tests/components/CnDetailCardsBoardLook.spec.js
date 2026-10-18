@@ -116,9 +116,19 @@ describe('the body and side layout rules', () => {
 describe('the board card anatomy rules', () => {
 	it('draws a body card at radius 12, padding 20px 22px and an h2 of 17px', () => {
 		expect(css).toMatch(/--cn-board-heading-size: 17px/)
-		expect(rule('.cn-look-board .cn-detail-page .cn-widget-wrapper__header,\n.cn-look-board .cn-detail-page .cn-detail-card__header')).toMatch(/padding: 20px 22px 0/)
+		expect(rule('.cn-look-board .cn-detail-page .cn-widget-wrapper__header,\n.cn-look-board .cn-detail-card .cn-detail-card__header')).toMatch(/padding: 20px 22px 0/)
 		expect(rule('.cn-look-board .cn-detail-page .cn-widget-wrapper:not(:has(.cn-widget-wrapper__header)) > .cn-widget-wrapper__content')).toMatch(/var\(--cn-board-card-padding\)/)
-		expect(rule('.cn-look-board .cn-detail-page .cn-widget-wrapper,\n.cn-look-board .cn-detail-page .cn-detail-card')).toMatch(/var\(--cn-board-card-radius\)/)
+		expect(rule('.cn-look-board .cn-detail-page .cn-widget-wrapper,\n.cn-look-board .cn-detail-card.cn-detail-card:not(.cn-detail-card--chromeless)')).toMatch(/var\(--cn-board-card-radius\)/)
+	})
+
+	it('draws a CnDetailCard as the board card wherever it sits, a chromeless one excepted', () => {
+		expect(css).not.toContain('.cn-look-board .cn-detail-page .cn-detail-card')
+		expect(rule('.cn-look-board .cn-detail-card .cn-detail-card__title')).toBeTruthy()
+		expect(rule('.cn-look-board .cn-detail-card .cn-detail-card__content')).toMatch(/padding: 12px 22px 20px/)
+	})
+
+	it('keeps the side card heading muted under a theme that colours every h3', () => {
+		expect(rule('.cn-look-board .cn-detail-page__side .cn-widget-wrapper__title,\n.cn-look-board .cn-detail-page__side .cn-detail-card__title')).toContain('color: var(--color-text-maxcontrast) !important')
 	})
 
 	it('draws a side card heading as a 15px muted label and hides its Actions menu', () => {
