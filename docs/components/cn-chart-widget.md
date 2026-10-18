@@ -195,7 +195,7 @@ Pie-family charts (`pie` / `donut` / `radialBar`) flatten the FIRST mapped serie
 
 Two chart kinds are drawn as plain rows instead of an ApexCharts canvas, as the boards draw them.
 
-`chartKind: "bar-list"` draws one row per category: the label, a track filled to the value's share of `barMax` (default the largest value), and the value at the end (boards DqDashboard "Zaken per status", DqTermijnen "Op tijd beslist per zaaktype"). When the `dataSource` declares a `drilldown`, each row is a button that opens the drilldown route. `footnote` adds a line under the rows.
+`chartKind: "bar-list"` draws one row per category: the label, a track filled to the value's share of `barMax` (default the largest value), and the value at the end (boards DqDashboard "Zaken per status", DqTermijnen "Op tijd beslist per zaaktype"). When the `dataSource` declares a `drilldown`, each row is a button that opens the drilldown route. `footnote` adds a line under the rows. A `line`, `area` or `bar` chart takes a `footnote` too and draws it under the plot (board DqDoorlooptijd).
 
 ```json
 {
@@ -210,7 +210,7 @@ Two chart kinds are drawn as plain rows instead of an ApexCharts canvas, as the 
 }
 ```
 
-`chartKind: "matrix"` draws one row per series and one column per category, each cell tinted in four steps by its share of the largest value (board DqProcesanalyse "Dagen per fase"). An endpoint with one row per series names them with `rowsPath`, `rowLabelPath` (default `label`) and `rowValuesPath` (default `values`); the columns come from `labelsPath`. `valueFormat: { "name": "number", "suffix": " d" }` reads "9 d".
+`chartKind: "matrix"` draws one row per series and one column per category, each cell tinted in four steps by its share of the largest value (board DqProcesanalyse "Dagen per fase"). An endpoint with one row per series names them with `rowsPath`, `rowLabelPath` (default `label`) and `rowValuesPath` (default `values`); the columns come from `labelsPath`. `valueFormat: { "name": "number", "suffix": " d" }` reads "9 d". A text value in the rows (dossiq sends `"none"` for a phase a case type never passes) stays a text cell, through the host's translate, never "0 d"; a cell without a value shows `emptyCellLabel` when set, and stays blank otherwise.
 
 ```json
 {
@@ -342,7 +342,8 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 | `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars). An explicit `options.plotOptions.bar.horizontal` still wins. |
 | `legendPosition` | String | `''` | Legend placement override: `top \| bottom \| left \| right`. Empty keeps the automatic placement (bottom for pie-family, top otherwise). |
 | `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
-| `footnote` | String | `''` | `bar-list` / `matrix`: a line under the rows, through the host's translate |
+| `footnote` | String | `''` | A line under the chart, through the host's translate: under the rows of a `bar-list` or `matrix`, under the plot of a `line`, `area` or `bar` chart |
+| `emptyCellLabel` | String | `''` | `matrix`: the text of a cell without a value ("geen"), through the host's translate. Empty leaves the cell blank |
 | `highlight` | Object | `null` | `matrix`: the cell to outline, `{ row, column, columnKeys? }`, tokens such as `@object.behaviour` resolved |
 | `cellSource` | Object | `null` | `matrix`: read the cells from records that each hold one cell (`{ register, schema, filter?, rowField, columnField, valueField, … }`), or with `cellsPath` from the cells inside one record, see [Bar list and matrix](#bar-list-and-matrix) |
 | `valueAxisBaseline` | String | `'auto'` | How the value axis picks its baseline — see [Value-axis baseline](#value-axis-baseline) below. `auto` anchors bar/area at zero and stops line charts over-zooming; `zero` always anchors at zero; `fit` restores plain ApexCharts autoscaling. |

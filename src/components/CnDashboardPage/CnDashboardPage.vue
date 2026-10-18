@@ -111,7 +111,7 @@
 						<Pencil v-if="!isEditing" :size="20" />
 						<Check v-else :size="20" />
 					</template>
-					{{ isEditing ? doneLabel : editLabel }}
+					{{ isEditing ? shownDoneLabel : shownEditLabel }}
 				</NcButton>
 				<!-- With `userLayout`, edit mode offers a way back to the
 				     manifest: the page's own grid and the chosen view return
@@ -1105,6 +1105,7 @@ const CHART_PROP_KEYS = [
 	'footnote',
 	'highlight',
 	'cellSource',
+	'emptyCellLabel',
 ]
 
 /**
@@ -2398,6 +2399,25 @@ export default {
 		rowPageFilters() {
 			const inDescription = this.descriptionPageFilters
 			return (this.pageFilters || []).filter((pf) => pf && pf.key && !inDescription.includes(pf))
+		},
+
+		/**
+		 * The edit button's label through the app's translate: a manifest's
+		 * `editLabel` ("Edit layout", DqDashboard) reads in the user's language.
+		 *
+		 * @return {string}
+		 */
+		shownEditLabel() {
+			return this.effectiveTranslate(this.editLabel)
+		},
+
+		/**
+		 * The done button's label through the app's translate.
+		 *
+		 * @return {string}
+		 */
+		shownDoneLabel() {
+			return this.effectiveTranslate(this.doneLabel)
 		},
 
 		/**

@@ -124,7 +124,7 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `columns` | Number | `12` | Number of grid columns |
 | `cellHeight` | Number | `80` | Grid cell height in pixels |
 | `gridMargin` | Number | `12` | Gap between grid items in pixels |
-| `editLabel` | String | `'Edit'` | Label for the edit button |
+| `editLabel` | String | `'Edit'` | Label for the edit button. A manifest label goes through the app's translate ("Edit layout" reads "Indeling aanpassen" where the app has it), as does `doneLabel`. |
 | `doneLabel` | String | `'Done'` | Label for the done button |
 | `emptyLabel` | String | `'No widgets configured'` | Empty state message |
 | `unavailableLabel` | String | `'Widget not available'` | Fallback for unknown widget IDs |

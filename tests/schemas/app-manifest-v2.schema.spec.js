@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.124.0', () => {
+	it('the manifest schema version reads 2.125.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1401,7 +1401,18 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.122.0 adds headerPill.resolve, a pill that shows a referenced record's label (detail-pill-resolve), chart cellSource, a matrix read from records (matrix-cell-records), and the organisations entitySource (organisations-entity-source).
 		// 2.123.0 adds the setup step's note and footnote, a line under a choice step's options (setup-wizard), config.headerMetaCounts on an index page (index-page), and actionsMenu.showMarkUnread and showOpenSidebar (detail-page).
 		// 2.124.0 adds setup.steps[].visibleWhen (setup-wizard), and the dashboard config.pageFilters with control and placement (dashboard-page).
-		expect(schema.version).toBe('2.124.0')
+		// 2.125.0 adds chart emptyCellLabel and the footnote under line, area and bar charts (chart-widget), config.bulkBandAlways (actions-bar), config.quickFilterPlacement (index-page), config.rowClass rules on an index page (index-page) and sourceConfig.limit for a paging source (index-page).
+		expect(schema.version).toBe('2.125.0')
+	})
+
+	it('accepts index rowClass rules, bulkBandAlways and quickFilterPlacement, and refuses malformed ones', () => {
+		const withIndex = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'tasks', route: '/tasks', type: 'index', title: 'Tasks', config: { register: 'r', schema: 's', ...config } }] })
+		const overdue = { when: { field: 'dueAt', op: 'lt', value: '@today' }, class: 'cn-row--overdue' }
+		expect(validateManifestV2(withIndex({ rowClass: [overdue], bulkBandAlways: true, quickFilterPlacement: 'toolbar' })).valid).toBe(true)
+		expect(validateManifestV2(withIndex({ rowClass: [{ when: { field: 'dueAt', op: 'before', value: '@today' }, class: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ rowClass: [{ when: { field: 'dueAt', value: 1 } }] })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ bulkBandAlways: 'yes' })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ quickFilterPlacement: 'header' })).valid).toBe(false)
 	})
 
 	it('accepts a dashboard page filter drawn as a segmented group on the description line, and refuses unknown keys', () => {

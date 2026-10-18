@@ -239,6 +239,11 @@ export default {
 		CnMenuItemIcon,
 	},
 
+	inject: {
+		/** Host translate function provided by CnAppRoot, for the item labels. */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/**
 		 * Persisted widget content `{items, style, orientation, showIcons,
@@ -288,7 +293,26 @@ export default {
 		 */
 		items() {
 			const arr = this.content?.items
-			return Array.isArray(arr) ? arr : []
+			if (!Array.isArray(arr)) {
+				return []
+			}
+			// Labels are manifest strings: they go through the app's translate,
+			// children included, so "Case types" reads "Zaaktypen" (DqCatalogus).
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			const translated = (list) => list.map((item) => {
+				if (!item || typeof item !== 'object') {
+					return item
+				}
+				const out = { ...item }
+				if (typeof item.label === 'string' && item.label !== '') {
+					out.label = translate(item.label)
+				}
+				if (Array.isArray(item.children)) {
+					out.children = translated(item.children)
+				}
+				return out
+			})
+			return translated(arr)
 		},
 
 		/**
