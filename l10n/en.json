@@ -1720,7 +1720,10 @@
     "Made {date}": "Made {date}",
     "expires {date}": "expires {date}",
     "Loading …": "Loading …",
-    "Reorder {item}: drag, or press the up and down arrow keys": "Reorder {item}: drag, or press the up and down arrow keys"
+    "Reorder {item}: drag, or press the up and down arrow keys": "Reorder {item}: drag, or press the up and down arrow keys",
+    "No contacts linked": "No contacts linked",
+    "No relations yet": "No relations yet",
+    "Period": "Period"
   },
   "plurals": {
     "{count} selected": [
