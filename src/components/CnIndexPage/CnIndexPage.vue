@@ -757,7 +757,7 @@
 					:excludeColumns="excludeColumns"
 					:includeColumns="includeColumns"
 					:columnOverrides="columnOverrides"
-					:rowClass="rowClass"
+					:rowClass="compiledRowClass"
 					:rowTitle="rowTitle"
 					:showUnread="showUnreadRows"
 					:filterable="tableHeaderFilters"
@@ -1294,6 +1294,7 @@ import { resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
 import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
@@ -2723,9 +2724,18 @@ export default {
 			default: 'Loading…',
 		},
 
-		/** Function returning CSS class(es) for a row */
+		/**
+		 * CSS class(es) for a row: a function `(row) => string`, or (manifest
+		 * `config.rowClass`) rules `[{ when: { field, op?, value }, class }]`,
+		 * each adding its class to a row whose field compares to the value
+		 * (the `visibleWhen` operators, `@today` included). DqTaken marks an
+		 * overdue task: `{ when: { field: "dueAt", op: "lt", value: "@today" },
+		 * class: "cn-row--overdue" }`.
+		 *
+		 * @type {((row: object) => string)|Array<{when: {field: string, op?: string, value: unknown}, class: string}>|null}
+		 */
 		rowClass: {
-			type: Function,
+			type: [Function, Array],
 			default: null,
 		},
 
@@ -6079,6 +6089,16 @@ export default {
 				return this.schema
 			}
 			return (this.effectiveSchema && this.effectiveSchema.slug) || ''
+		},
+
+		/**
+		 * The row-class function the table takes: a function as given, or the
+		 * manifest's rules compiled.
+		 *
+		 * @return {?(row: object) => string}
+		 */
+		compiledRowClass() {
+			return compileRowClass(this.rowClass)
 		},
 
 		/** @return {number} How many leading columns the person pinned (0 while a saved view's columns are applied). */

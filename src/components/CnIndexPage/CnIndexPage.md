@@ -362,7 +362,7 @@ export default {
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable lens, keyed `<lens>.<reason>` or `<reason>`. |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI name or `(row) => iconName`. Forwarded to CnDataTable; fed from the manifest as `pages[].config.rowIcon`. Unset = no icon column. |
-| `rowClass` | Function | `null` | Callback returning CSS class(es) for a row |
+| `rowClass` | Function \| Array | `null` | Callback returning CSS class(es) for a row, or (manifest `config.rowClass`) rules `[{ when: { field, op?, value }, class }]` compiled into one: each adds its class to a row whose field compares to the value (`visibleWhen` operators; two dates compare as moments, `@today` included). |
 | `rowIcon` | String \| Function | `null` | Optional leading row icon forwarded to CnDataTable — a static MDI icon name or `(row) => iconName`. Fed from the manifest as `pages[].config.rowIcon`; unset = no icon column |
 | `inlineActionCount` | Number | `2` | How many row actions to show inline (rest go in overflow menu) |
 | `showMassImport` | Boolean | `true` | Whether to show the mass Import action |
