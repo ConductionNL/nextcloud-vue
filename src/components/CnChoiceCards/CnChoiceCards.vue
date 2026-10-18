@@ -23,14 +23,14 @@
 				class="cn-choice-cards__cell">
 				<label
 					class="cn-choice-cards__row"
-					:class="{ 'cn-choice-cards__row--selected': isSelected(option), 'cn-choice-cards__row--disabled': isDisabled(option) }">
+					:class="{ 'cn-choice-cards__row--selected': isSelected(option), 'cn-choice-cards__row--disabled': isDisabled(option), 'cn-choice-cards__row--readonly': readonly }">
 					<input
 						class="cn-choice-cards__row-input"
 						:type="multiple ? 'checkbox' : 'radio'"
 						:name="groupName"
 						:value="String(option.value)"
 						:checked="isSelected(option)"
-						:disabled="isDisabled(option)"
+						:disabled="isDisabled(option) || readonly"
 						:aria-describedby="option.disabled && option.disabledReason ? reasonId(option) : null"
 						@change="onToggle(option)">
 					<CnIcon v-if="option.icon"
@@ -64,7 +64,7 @@
 				class="cn-choice-cards__cell">
 				<label
 					class="cn-choice-cards__option"
-					:class="{ 'cn-choice-cards__option--selected': isSelected(option) }">
+					:class="{ 'cn-choice-cards__option--selected': isSelected(option), 'cn-choice-cards__option--disabled': isDisabled(option) }">
 					<!-- A REAL, VISIBLE input, not a styled div with a click handler.
 					     It carries the checked state to assistive technology and to
 					     Windows high-contrast mode for free, and it keeps the
@@ -76,7 +76,7 @@
 						:name="groupName"
 						:value="String(option.value)"
 						:checked="isSelected(option)"
-						:disabled="isDisabled(option)"
+						:disabled="isDisabled(option) || readonly"
 						:aria-describedby="option.disabled && option.disabledReason ? reasonId(option) : null"
 						@change="onToggle(option)">
 					<CnCard
@@ -187,6 +187,16 @@ export default {
 
 		/** Disable every card (e.g. a dependent choice with no parent value yet). */
 		disabled: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Show the choice without letting it change: every option at full
+		 * contrast, the selected one marked, nothing pickable (DqBesluit's
+		 * recorded outcome). `disabled` greys the options out instead.
+		 */
+		readonly: {
 			type: Boolean,
 			default: false,
 		},
@@ -342,7 +352,7 @@ export default {
 		 * @return {void}
 		 */
 		onToggle(option) {
-			if (this.isDisabled(option)) {
+			if (this.readonly || this.isDisabled(option)) {
 				return
 			}
 			if (!this.multiple) {
@@ -452,7 +462,7 @@ export default {
 	cursor: default;
 }
 
-.cn-choice-cards__input:disabled + :deep(.cn-card) {
+.cn-choice-cards__option--disabled .cn-choice-cards__input + :deep(.cn-card) {
 	opacity: 0.6;
 }
 
@@ -485,9 +495,30 @@ export default {
 	background: var(--color-primary-element-light);
 }
 
-.cn-choice-cards__row--disabled {
+/* An option this record does not allow: the grey ground and the muted ink,
+   still legible (DqVolgendeStap), not faded. */
+.cn-choice-cards__row--disabled,
+.cn-choice-cards__row--disabled:hover {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	border-color: var(--color-border);
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
 	cursor: default;
-	opacity: 0.6;
+}
+
+/* The title takes the muted ink itself: a theme that colours every label
+   with `!important` (thematiq) would otherwise hand it the label colour. */
+.cn-choice-cards__row--disabled .cn-choice-cards__row-title {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-choice-cards__row--readonly {
+	cursor: default;
+}
+
+.cn-choice-cards__row--readonly:not(.cn-choice-cards__row--selected):hover {
+	border-color: var(--color-border);
 }
 
 .cn-choice-cards__row:has(.cn-choice-cards__row-input:focus-visible) {
@@ -518,15 +549,14 @@ export default {
 	font-weight: 600;
 }
 
-.cn-choice-cards__row-description {
-	font-size: 13px;
-	color: var(--color-text-maxcontrast);
-}
-
+/* Regular weight on the span itself: a theme that sets every label bold
+   with `!important` (thematiq) reaches a span that only inherits. */
+.cn-choice-cards__row-description,
 .cn-choice-cards__reason {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	font-size: 13px;
+	font-weight: 400;
 	color: var(--color-text-maxcontrast);
-	font-style: italic;
 }
 
 .cn-choice-cards__reason--card {
