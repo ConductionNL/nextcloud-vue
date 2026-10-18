@@ -218,6 +218,7 @@
 		<CnSetupWizard
 			v-if="showSetup && setupWizardOpen"
 			:appId="appId"
+			:appName="appName"
 			:steps="setupSteps"
 			@complete="setupWizardOpen = false"
 			@close="setupWizardOpen = false" />
@@ -231,7 +232,7 @@ import { loadState } from '@nextcloud/initial-state'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
-import { computed, provide } from 'vue'
+import { computed, inject, provide } from 'vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
@@ -772,6 +773,11 @@ export default {
 		// Everything inside the shell, its own version card and the app's
 		// sections alike, follows the shell's look without the app providing it.
 		provide('cnLook', look)
+		// The setup wizard translates its step titles and bodies through
+		// `cnTranslate`. On an admin page no CnAppRoot provides it, so the
+		// shell hands down the app's own catalog, keyed by its app id.
+		const hostTranslate = inject('cnTranslate', null)
+		provide('cnTranslate', hostTranslate || ((text, vars) => t(props.appId, text, vars)))
 		return { environmentName, isBoard, ownLookClass }
 	},
 

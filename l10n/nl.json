@@ -1914,7 +1914,8 @@
     "Record": "Record",
     "Run test": "Test uitvoeren",
     "Test with a record": "Testen met een record",
-    "admin": "beheerder"
+    "admin": "beheerder",
+    "Wizard": "Assistent"
   },
   "plurals": {
     "{count} selected": [

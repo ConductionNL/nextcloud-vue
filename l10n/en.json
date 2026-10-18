@@ -1699,7 +1699,8 @@
     "Record": "Record",
     "Run test": "Run test",
     "Test with a record": "Test with a record",
-    "admin": "admin"
+    "admin": "admin",
+    "Wizard": "Wizard"
   },
   "plurals": {
     "{count} selected": [

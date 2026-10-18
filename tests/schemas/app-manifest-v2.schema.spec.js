@@ -1299,13 +1299,20 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
+	it('accepts a setup step note or footnote as a non-empty string', () => {
+		const steps = (extra) => [{ id: 'kind', type: 'choice', options: [{ value: 'a', label: 'A' }], ...extra }]
+		expect(validateManifestV2({ ...MINIMAL_V2, setup: { steps: steps({ note: 'Later.' }) } }).valid).toBe(true)
+		expect(validateManifestV2({ ...MINIMAL_V2, setup: { steps: steps({ footnote: 'Later.' }) } }).valid).toBe(true)
+		expect(validateManifestV2({ ...MINIMAL_V2, setup: { steps: steps({ note: '' }) } }).valid).toBe(false)
+	})
+
 	it('accepts setup.dismissAction as a slug and refuses anything else', () => {
 		const steps = [{ id: 'demo', type: 'run-action', action: 'load-demo-data' }]
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: 'dismiss-setup', steps } }).valid).toBe(true)
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.122.0', () => {
+	it('the manifest schema version reads 2.123.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1392,7 +1399,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.120.0 adds chart barMax, footnote, highlight, valueFormat 'number' with suffix and endpointSource rowsPath (chart-bar-list-and-matrix).
 		// 2.121.0 lets a query preset or a folder scope set addLabel, headerButtons, breadcrumb, headerMeta and afterList, adds config.afterList, and lets config.entitySource name the flowRuns, endpoint, search and users sources with a described sourceConfig (index-scope-presentation).
 		// 2.122.0 adds headerPill.resolve, a pill that shows a referenced record's label (detail-pill-resolve), chart cellSource, a matrix read from records (matrix-cell-records), and the organisations entitySource (organisations-entity-source).
-		expect(schema.version).toBe('2.122.0')
+		// 2.123.0 adds the setup step's note and footnote, a line under a choice step's options.
+		expect(schema.version).toBe('2.123.0')
 	})
 
 	it('accepts nav.searchPlaceholder as a non-empty string', () => {
