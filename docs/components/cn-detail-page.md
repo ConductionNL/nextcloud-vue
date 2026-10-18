@@ -82,6 +82,7 @@ A record page can carry forty actions in one menu, and then nobody finds the one
 | `statusPill` | Object \| null | `null` | A second pill, same shape, for where the record stands. |
 | `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
 | `sideColumn` | Array | `[]` | A column of cards beside the body. An entry is a widget definition or the id of a widget in `widgets`. An entry with `visibleWhen` shows only while it holds for the record and the `visibilityContext` records, exactly as a grid widget (local fields, `@context.<name>.*`, endpoint and source conditions); edit mode shows them all. |
+| `sideColumnFrom` | String | `''` | A field path, read like a `visibleWhen` field, whose value picks the side column and its order for this record, e.g. `@context.caseType.sideCards`. A non-empty list of ids keeps those `sideColumn` entries in that order and leaves the rest out; each still follows its own `visibleWhen`, and an id that names no entry is skipped. Any other value keeps `sideColumn` as declared; edit mode shows them all. |
 | `isAdmin` | Boolean \| null | `null` | Whether the viewer administers this instance, for `adminOnly` actions. `null` reads it from Nextcloud. |
 
 ### The next step follows the stage
@@ -674,6 +675,20 @@ A widget in `widgets` that carries `visibleWhen` is drawn only while the conditi
   ]
 }
 ```
+
+## Side cards per record: sideColumnFrom
+
+`sideColumnFrom` (manifest `config.sideColumnFrom`) lets the record decide which side cards it shows and in what order. It is a field path read like a `visibleWhen` field, so it can read a `visibilityContext` record: a case page reads the list its case type keeps. When the value is a non-empty list of ids, the side column is those `sideColumn` entries in that order; an id that names no entry is skipped, and each card still follows its own `visibleWhen`. Any other value, or none, keeps `sideColumn` as declared, so a case type that lists nothing shows the usual column.
+
+```json
+"config": {
+  "visibilityContext": { "caseType": { "field": "caseType", "register": "dossiq", "schema": "caseType" } },
+  "sideColumn": ["deadline", "requester", "handling", "consent", "people"],
+  "sideColumnFrom": "@context.caseType.sideCards"
+}
+```
+
+A case type with `"sideCards": ["consent", "people", "deadline"]` shows those three cards, in that order; one without `sideCards` shows all five.
 
 ## Breadcrumb current field and separator, widget actions (zuiddrecht-pixel-gaps-3)
 
