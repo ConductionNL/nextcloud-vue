@@ -1932,7 +1932,9 @@ export default {
 		 * variant?, icon?, format?, id? }`: `action` is `add` (the Add flow;
 		 * its label defaults to the Add label), `export` (the export leaf in
 		 * `format`, `csv` by default, else the export dialog), `import`,
-		 * `refresh`, or the id of a `headerActions` entry; `variant` is
+		 * `refresh`, `save-view` (the save-current-view dialog: the board's
+		 * "Zoekopdracht opslaan", label "Save view" by default), or the id of a
+		 * `headerActions` entry; `variant` is
 		 * `primary` or `secondary` (the default). Shown only with
 		 * `showTitle`. When they show, the actions bar drops its Views and
 		 * Actions menus, and the Add button and Export menu when a button
@@ -6544,6 +6546,9 @@ export default {
 					if (label === '' && button.action === 'actions-menu') {
 						label = t('nextcloud-vue', 'Actions')
 					}
+					if (label === '' && button.action === 'save-view') {
+						label = t('nextcloud-vue', 'Save view')
+					}
 					return {
 						key: String(button.id || button.action || index),
 						label,
@@ -8355,6 +8360,8 @@ export default {
 				this.showImportDialog = true
 			} else if (button.action === 'refresh') {
 				this.onRefreshEvent()
+			} else if (button.action === 'save-view') {
+				this.showSaveViewDialog = true
 			} else {
 				this.onHeaderAction({ action: button.action, id: button.action })
 			}
