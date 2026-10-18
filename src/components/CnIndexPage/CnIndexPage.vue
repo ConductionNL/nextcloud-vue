@@ -13,12 +13,12 @@
 		     region (WCAG 2.4.6 / 1.3.1). -->
 		<slot
 			name="header"
-			:title="presented('title')"
+			:title="shownTitle"
 			:description="headerDescription"
 			:icon="resolvedIcon"
 			:showTitle="showTitle">
 			<CnPageHeader
-				:title="presented('title')"
+				:title="shownTitle"
 				:description="headerDescription"
 				:icon="showTitleIcon && !isBoardLook ? resolvedIcon : ''"
 				:breadcrumb="presented('breadcrumb')"
@@ -747,6 +747,7 @@
 					:sortOrder="effectiveSortOrder"
 					:sortKeys="effectiveSortKeys"
 					:selectable="selectable"
+					:hideHeader="hideTableHeader"
 					:rowClickToView="rowClickOpens"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
@@ -845,9 +846,64 @@
 				     filter / sidebar / quick-filter machinery as table and cards.
 				     A marker click routes back through onRowClick for identical
 				     detail-page navigation. -->
+				<!-- Map with a numbered list beside it (`mapConfig.list`,
+				     DqZakenKaart): one framed card, the list numbered as the pins
+				     are, the row under the pointer marked on both sides, and the
+				     rows without a place counted under the list with a way to
+				     the table. -->
+				<div v-else-if="currentViewMode === 'map' && mapListEnabled"
+					class="cn-index-page__map-card"
+					data-testid="cn-index-map-card">
+					<CnMapWidget
+						class="cn-index-page__map"
+						:center="mapCenter"
+						:zoom="mapZoom"
+						:layers="mapLayers"
+						:basemaps="mapBasemaps"
+						:markers="mapMarkers"
+						:clustering="mapClustering"
+						:autoFit="true"
+						height="100%"
+						@markerClick="onMarkerClick" />
+					<div class="cn-index-page__map-side">
+						<ol class="cn-index-page__map-list" :aria-label="mapListLabel" data-testid="cn-index-map-list">
+							<li v-for="item in mapList.items"
+								:key="item.key"
+								class="cn-index-page__map-item"
+								:class="{ 'cn-index-page__map-item--active': activeMapKey === item.key }"
+								data-testid="cn-index-map-item"
+								@mouseenter="activeMapKey = item.key"
+								@mouseleave="activeMapKey = ''"
+								@focusin="activeMapKey = item.key">
+								<span class="cn-index-page__map-number" aria-hidden="true">{{ item.n }}</span>
+								<div class="cn-index-page__map-text">
+									<button type="button" class="cn-index-page__map-title" @click="onRowClick(item.row)">
+										{{ item.title }}
+									</button>
+									<span v-if="item.sub" class="cn-index-page__map-sub">{{ item.sub }}</span>
+									<span v-if="item.pills.length > 0 || item.due" class="cn-index-page__map-pills">
+										<CnStatusBadge v-for="(pill, index) in item.pills"
+											:key="index"
+											:label="pill.label"
+											:variant="pill.variant" />
+										<span v-if="item.due" class="cn-index-page__map-due">{{ item.due }}</span>
+									</span>
+								</div>
+							</li>
+						</ol>
+						<div v-if="mapList.missing.length > 0" class="cn-index-page__map-missing" data-testid="cn-index-map-missing">
+							<strong>{{ mapMissingTitle }}</strong>
+							<NcButton variant="tertiary-no-background" data-testid="cn-index-map-missing-table" @click="onViewModeChange('table')">
+								{{ mapMissingLink }}
+							</NcButton>
+						</div>
+					</div>
+				</div>
+
 				<CnMapWidget
 					v-else-if="currentViewMode === 'map'"
 					class="cn-index-page__map"
+					:zoom="mapZoom"
 					:center="mapCenter"
 					:layers="mapLayers"
 					:basemaps="mapBasemaps"
@@ -1194,6 +1250,7 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
@@ -1223,6 +1280,7 @@ import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
+import { mapListItems } from '../../utils/mapList.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
@@ -1508,6 +1566,7 @@ export default {
 
 	components: {
 		CnIndexPageWidgets,
+		CnStatusBadge,
 		NcNoteCard,
 		CnBuildiqEditButton,
 		CnFollowToggle,
@@ -1576,6 +1635,29 @@ export default {
 	 * Falls back to an empty object so `CnIndexPage` works standalone
 	 * (unit tests, isolated mount) without `CnAppRoot`.
 	 */
+	/**
+	 * The list a side-panel widget reads (`cnIndexList`): the applied saved
+	 * view, the list's total, and a way to hand back a view that changed
+	 * (the saved-view alert widget). Getters, so a widget follows the page.
+	 *
+	 * @return {object}
+	 */
+	provide() {
+		return {
+			cnIndexList: Object.defineProperties({}, {
+				appliedView: { enumerable: true, get: () => this.appliedSavedView },
+				total: {
+					enumerable: true,
+					get: () => {
+						const total = this.effectivePagination && this.effectivePagination.total
+						return typeof total === 'number' ? total : undefined
+					},
+				},
+				replaceSavedView: { enumerable: true, value: (view) => this.replaceSavedView(view) },
+			}),
+		}
+	},
+
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
 		/** The permissions the user holds, provided by CnAppRoot; for gated page tabs. */
@@ -1873,7 +1955,9 @@ export default {
 		 * variant?, icon?, format?, id? }`: `action` is `add` (the Add flow;
 		 * its label defaults to the Add label), `export` (the export leaf in
 		 * `format`, `csv` by default, else the export dialog), `import`,
-		 * `refresh`, or the id of a `headerActions` entry; `variant` is
+		 * `refresh`, `save-view` (the save-current-view dialog: the board's
+		 * "Zoekopdracht opslaan", label "Save view" by default), or the id of a
+		 * `headerActions` entry; `variant` is
 		 * `primary` or `secondary` (the default). Shown only with
 		 * `showTitle`. When they show, the actions bar drops its Views and
 		 * Actions menus, and the Add button and Export menu when a button
@@ -2186,6 +2270,16 @@ export default {
 		},
 
 		/**
+		 * Draw the table without its column-header row (manifest
+		 * `config.hideTableHeader`), for a list the board draws as plain rows
+		 * (DqTeamwachtrij). Pair it with `selectable: false` for no checkboxes.
+		 */
+		hideTableHeader: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * When true, a row/card click emits `row-click` (to open/navigate) even
 		 * while `selectable` — selection then happens via the checkbox only.
 		 * Manifest-driven index pages set this when a matching detail page
@@ -2328,8 +2422,15 @@ export default {
 		 * - `popupField` — object property rendered in the marker popup.
 		 * - `center` — optional `[lat, lng]` fallback centre when the filtered set
 		 *   has no plottable rows.
+		 * - `zoom` — the map's initial zoom level.
+		 * - `list` — a numbered list beside the map, map and list in one card
+		 *   (DqZakenKaart): `{ title, sub?, pills?: [{ path?, text?, map?,
+		 *   colorMap? }], due? }`, field templates read per row. The pins carry the
+		 *   list's numbers, the row under the pointer is marked on both, the rows
+		 *   without a place are counted under the list with a link to the table,
+		 *   and the page's count line adds how many are on the map.
 		 *
-		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number] }}
+		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number], zoom?: number, list?: object }}
 		 */
 		mapConfig: {
 			type: Object,
@@ -3745,6 +3846,8 @@ export default {
 			pageTabCounts: {},
 			/** The `headerMetaCounts` totals, by name; a failed one is null. */
 			headerMetaCountValues: {},
+			/** The row the pointer is on in the map list, by key; '' for none. */
+			activeMapKey: '',
 			/** The tabs `quickFiltersFrom` produced, or null before they load. */
 			generatedQuickFilters: null,
 			/** Count per saved-view id, for the views control; null = none. */
@@ -5503,6 +5606,8 @@ export default {
 		 */
 		mapMarkers() {
 			const features = []
+			// With the list beside the map, a pin carries the row's number there.
+			const numbers = this.mapListEnabled ? new Map(this.mapList.items.map((item) => [item.row, item.n])) : null
 			for (const row of this.displayObjects) {
 				const geometry = this.resolveRowGeometry(row)
 				if (!geometry) {
@@ -5514,6 +5619,7 @@ export default {
 					properties: {
 						[this.rowKey]: row[this.rowKey],
 						...(this.mapConfig.popupField ? { [this.mapConfig.popupField]: row[this.mapConfig.popupField] } : {}),
+						...(numbers && numbers.has(row) ? { markerNumber: numbers.get(row), markerActive: this.activeMapKey === String(row[this.rowKey]) } : {}),
 					},
 				})
 			}
@@ -5538,6 +5644,57 @@ export default {
 		 */
 		mapClustering() {
 			return this.mapConfig.clustering !== false
+		},
+
+		/** @return {number|undefined} The map's initial zoom (`mapConfig.zoom`), when a number. */
+		mapZoom() {
+			const zoom = this.mapConfig && this.mapConfig.zoom
+			return typeof zoom === 'number' && Number.isFinite(zoom) ? zoom : undefined
+		},
+
+		/** @return {boolean} Whether the map draws its numbered list (`mapConfig.list`). */
+		mapListEnabled() {
+			const list = this.mapConfig && this.mapConfig.list
+			return Boolean(list && typeof list === 'object' && typeof list.title === 'string' && list.title !== '')
+		},
+
+		/**
+		 * The map list's entries, numbered as the pins, and the rows without a
+		 * place. Templates go through the host's translate first.
+		 *
+		 * @return {{items: Array<object>, missing: Array<object>}}
+		 */
+		mapList() {
+			if (!this.mapListEnabled) {
+				return { items: [], missing: [] }
+			}
+			const list = this.mapConfig.list
+			const translated = {
+				...list,
+				title: this.cnTranslate(list.title),
+				sub: list.sub ? this.cnTranslate(list.sub) : '',
+				due: list.due ? this.cnTranslate(list.due) : '',
+			}
+			return mapListItems(this.displayObjects, translated, {
+				rowKey: this.rowKey,
+				located: (row) => Boolean(this.resolveRowGeometry(row)),
+				translate: (text) => this.cnTranslate(text),
+			})
+		},
+
+		/** @return {string} The list's accessible name. */
+		mapListLabel() {
+			return t('nextcloud-vue', 'On the map')
+		},
+
+		/** @return {string} The card under the list, for the rows without a place. */
+		mapMissingTitle() {
+			return n('nextcloud-vue', '%n without an address', '%n without an address', this.mapList.missing.length)
+		},
+
+		/** @return {string} The link from that card to the table. */
+		mapMissingLink() {
+			return t('nextcloud-vue', 'Show them in the table')
 		},
 
 		/**
@@ -5640,7 +5797,49 @@ export default {
 			if (this.selfFetchFailed) {
 				return { ...this.list.pagination.value, total: 0, page: 1, pages: 1 }
 			}
+			// A named source that reports its own total (the search source)
+			// gives the count line its number.
+			if (this.isNamedSource && this.namedSource && typeof this.namedSource.total === 'function') {
+				return { ...(this.pagination || {}), total: this.namedSource.total() }
+			}
 			return this.isSelfFetchMode ? this.list.pagination.value : this.pagination
+		},
+
+		/**
+		 * The saved view the page has applied, or null.
+		 *
+		 * @return {object|null}
+		 */
+		appliedSavedView() {
+			const id = this.appliedSavedViewId
+			if (!id) {
+				return null
+			}
+			return (this.savedViews || []).find((view) => view && (String(view.id) === id || String(view.slug) === id || String(view.uuid) === id)) || null
+		},
+
+		/**
+		 * The term a named source searched for, for `{term}` in the title and
+		 * the count line ("Zoeken: Lindelaan"), or ''.
+		 *
+		 * @return {string}
+		 */
+		sourceTerm() {
+			return this.isNamedSource && this.namedSource && typeof this.namedSource.term === 'function' ? String(this.namedSource.term() || '') : ''
+		},
+
+		/**
+		 * The page title with `{term}` filled in.
+		 *
+		 * @return {string}
+		 */
+		shownTitle() {
+			const title = this.presented('title')
+			// A title with the term is translated here, before the term goes in,
+			// so its catalogue entry is found ("Zoeken: {term}").
+			return typeof title === 'string' && title.includes('{term}')
+				? this.cnTranslate(title).replace(/\{term\}/g, this.sourceTerm)
+				: title
 		},
 
 		/**
@@ -6383,6 +6582,9 @@ export default {
 					if (label === '' && button.action === 'actions-menu') {
 						label = t('nextcloud-vue', 'Actions')
 					}
+					if (label === '' && button.action === 'save-view') {
+						label = t('nextcloud-vue', 'Save view')
+					}
 					return {
 						key: String(button.id || button.action || index),
 						label,
@@ -6710,7 +6912,23 @@ export default {
 			return valid.length > 0 ? JSON.stringify(valid) : ''
 		},
 
+		/**
+		 * The header's description line, and on the map with its list the
+		 * number of rows on the map after a middle dot ("· 5 met een adres op
+		 * de kaart", DqZakenKaart).
+		 *
+		 * @return {string}
+		 */
 		headerDescription() {
+			const base = this.headerDescriptionBase
+			if (this.currentViewMode !== 'map' || !this.mapListEnabled) {
+				return base
+			}
+			const onMap = n('nextcloud-vue', '%n with an address on the map', '%n with an address on the map', this.mapList.items.length)
+			return base ? `${base} · ${onMap}` : onMap
+		},
+
+		headerDescriptionBase() {
 			const total = this.effectivePagination?.total
 			// Board look: the count line is a template over the rows on this page
 			// and all rows, "{shown} of {total}" unless the page says otherwise.
@@ -6731,6 +6949,7 @@ export default {
 					return this.cnTranslate(countText)
 						.replace('{shown}', String(shown))
 						.replace('{total}', String(total))
+						.replace(/\{term\}/g, this.sourceTerm)
 				}
 				return this.countLine(this.countSubtitle, total, shown)
 			}
@@ -8177,6 +8396,8 @@ export default {
 				this.showImportDialog = true
 			} else if (button.action === 'refresh') {
 				this.onRefreshEvent()
+			} else if (button.action === 'save-view') {
+				this.showSaveViewDialog = true
 			} else {
 				this.onHeaderAction({ action: button.action, id: button.action })
 			}
@@ -10185,6 +10406,21 @@ export default {
 			} catch {
 				// No toast. What it was reporting on happened either way.
 			}
+		},
+
+		/**
+		 * Put a saved view that changed elsewhere (its alert) back in the list,
+		 * matched on its id or uuid.
+		 *
+		 * @param {object} view The saved view as the server returned it.
+		 * @return {void}
+		 */
+		replaceSavedView(view) {
+			if (!view || typeof view !== 'object') {
+				return
+			}
+			const same = (other) => other && ((view.id !== undefined && other.id === view.id) || (view.uuid && other.uuid === view.uuid))
+			this.savedViews = (this.savedViews || []).map((other) => (same(other) ? view : other))
 		},
 
 		async onSaveViewConfirm({ name, isPublic, sharedWith, presentation }) {

@@ -158,6 +158,7 @@ export {
 	CnGaugeWidget,
 	CnGaugeWidgetForm,
 	CnGraphCanvas,
+	CnGroupedCardsWidget,
 	CnGuardianHome,
 	CnHeaderWidget,
 	CnHeaderWidgetForm,

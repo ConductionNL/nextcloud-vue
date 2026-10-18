@@ -17,6 +17,7 @@
 import CnAuditTrailWidget from '../CnAuditTrailWidget/CnAuditTrailWidget.vue'
 import CnBannerWidget from '../CnBannerWidget/CnBannerWidget.vue'
 import CnDividerWidget from '../CnDividerWidget/CnDividerWidget.vue'
+import CnExportsWidget from '../CnExportsWidget/CnExportsWidget.vue'
 import CnHeaderWidget from '../CnHeaderWidget/CnHeaderWidget.vue'
 import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
 import CnNavCardGrid from '../CnNavCardGrid/CnNavCardGrid.vue'
@@ -24,6 +25,7 @@ import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnSavedViewAlertWidget from '../CnSavedViewAlertWidget/CnSavedViewAlertWidget.vue'
 import CnTextWidget from '../CnTextWidget/CnTextWidget.vue'
 import CnTimelineWidget from '../CnTimelineWidget/CnTimelineWidget.vue'
 import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
@@ -89,4 +91,6 @@ export const BUILT_IN_WIDGETS = {
 	header: CnHeaderWidget,
 	text: CnTextWidget,
 	divider: CnDividerWidget,
+	'saved-view-alert': CnSavedViewAlertWidget,
+	exports: CnExportsWidget,
 }
