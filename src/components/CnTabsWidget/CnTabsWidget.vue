@@ -624,6 +624,7 @@ export default {
 			// is already going under "More" does not use one up.
 			let placed = pinActivity ? 1 : 0
 			const resolved = []
+			const usedKeys = new Set()
 			tabs.forEach((tab, position) => {
 				const index = originalIndex[position]
 				// A tab whose condition is false is absent, not empty.
@@ -654,8 +655,14 @@ export default {
 						placed += 1
 					}
 				}
+				// Keyed on the tab's own id, else its place in `content.tabs`:
+				// never on the widget the panel starts with, which changes when
+				// a stack's first card turns visible and would remount the panel.
+				const ownId = tab && typeof tab === 'object' && typeof tab.id === 'string' ? tab.id : ''
+				const key = ownId !== '' && !usedKeys.has(ownId) ? ownId : `tab-${index}`
+				usedKeys.add(key)
 				resolved.push({
-					key: `${widgetId || 'tab'}-${index}`,
+					key,
 					id: (tab && typeof tab === 'object' && tab.id) || widgetId || '',
 					widgetId,
 					label: this.tabLabel(tab, widget, widgetId),
