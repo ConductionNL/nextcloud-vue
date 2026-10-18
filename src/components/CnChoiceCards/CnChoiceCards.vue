@@ -472,11 +472,12 @@ export default {
 	gap: 8px;
 }
 
+/* 12px 14px, as the boards draw an option row (DqVolgendeStap, DqBesluit). */
 .cn-choice-cards__row {
 	display: flex;
 	align-items: flex-start;
 	gap: 12px;
-	padding: 14px 16px;
+	padding: 12px 14px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 8px);
 	background: var(--color-main-background);
