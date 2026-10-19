@@ -1832,7 +1832,25 @@
     "This search could not be read from character {position}.": "This search could not be read from character {position}.",
     "Correct that character, or search for plain words. AND, OR and NOT work in capitals, and quotes make a phrase.": "Correct that character, or search for plain words. AND, OR and NOT work in capitals, and quotes make a phrase.",
     "This list could not be read.": "This list could not be read.",
-    "Nothing to show": "Nothing to show"
+    "Nothing to show": "Nothing to show",
+    "What happens to this record once it is closed": "What happens to this record once it is closed",
+    "The archival facts are unavailable": "The archival facts are unavailable",
+    "Archived on {at} by {by}. {reason}": "Archived on {at} by {by}. {reason}",
+    "This record and OpenRegister do not agree on whether it is archived.": "This record and OpenRegister do not agree on whether it is archived.",
+    "Nothing could decide what happens to this record.": "Nothing could decide what happens to this record.",
+    "This record has not been closed yet. Its archival future is recorded when it closes.": "This record has not been closed yet. Its archival future is recorded when it closes.",
+    "Handed over as {kind} on {at} by {by}.": "Handed over as {kind} on {at} by {by}.",
+    "Transfer list": "Transfer list",
+    "Recomputing needs the archivist role": "Recomputing needs the archivist role",
+    "Why are you recomputing this?": "Why are you recomputing this?",
+    "This is recorded against {user}.": "This is recorded against {user}.",
+    "Recompute the nomination": "Recompute the nomination",
+    "Selection list row": "Selection list row",
+    "Decided by": "Decided by",
+    "Written on": "Written on",
+    "Decided when it closes": "Decided when it closes",
+    "Not yet": "Not yet",
+    "This widget has no record to read.": "This widget has no record to read."
   },
   "plurals": {
     "{count} member": [

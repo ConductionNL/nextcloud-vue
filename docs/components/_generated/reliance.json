@@ -671,7 +671,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 182,
+			"transitive": 183,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -736,6 +736,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -901,7 +902,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 185,
+			"transitive": 186,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -966,6 +967,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -1441,7 +1443,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 192,
+			"transitive": 193,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1507,6 +1509,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -1740,7 +1743,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 189,
+			"transitive": 190,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1805,6 +1808,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -2757,7 +2761,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 206,
+			"transitive": 207,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2828,6 +2832,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnRoadmapTab",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
@@ -3168,7 +3173,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 183,
+			"transitive": 184,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3234,6 +3239,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -3268,6 +3274,13 @@
 			"tier": "medium",
 			"via": [],
 			"page": "cn-resource-select"
+		},
+		"CnRetentionWidget": {
+			"direct": 3,
+			"transitive": 0,
+			"tier": "light",
+			"via": [],
+			"page": "cn-retention-widget"
 		},
 		"CnRichSubmitDialog": {
 			"direct": 0,
@@ -4183,7 +4196,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 173,
+			"transitive": 174,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4245,6 +4258,7 @@
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",

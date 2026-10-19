@@ -131,6 +131,7 @@ export { default as CnContactsTab } from '../integrations/builtin/contacts/CnCon
 export { CnContactPicker } from './CnContactPicker/index.js'
 export { CnContactCreate } from './CnContactCreate/index.js'
 export { CnResourceSelect } from './CnResourceSelect/index.js'
+export { CnRetentionWidget } from './CnRetentionWidget/index.js'
 export { CnSearchSelect } from './CnSearchSelect/index.js'
 export { CnPartyPicker } from './CnPartyPicker/index.js'
 export { CnNoticeWidget } from './CnNoticeWidget/index.js'

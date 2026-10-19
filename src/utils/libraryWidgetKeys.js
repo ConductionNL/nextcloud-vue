@@ -139,6 +139,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'radio-cards',
 	'record-list',
 	'related',
+	'retention',
 	'saved-view',
 	'saved-views',
 	'sections',
