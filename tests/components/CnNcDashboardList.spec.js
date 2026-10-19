@@ -75,6 +75,14 @@ describe('CnNcDashboardList', () => {
 		expect(w.find('[data-testid="cn-nc-dashboard-list-view-all"]').attributes('href')).toBe('/index.php/apps/dossiq/cases')
 	})
 
+	it('resolves filter tokens and keeps operator maps for OpenRegister', async () => {
+		await mountList({ source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: false, deadline: { lt: '@today' } } } })
+		const [, { params }] = axios.get.mock.calls[0]
+		expect(params.isFinalStatus).toBe(false)
+		expect(params.deadline.lt).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+		expect(params._limit).toBe(7)
+	})
+
 	it('reads an endpoint with a responsePath, and says when it could not read', async () => {
 		axios.get.mockResolvedValue({ data: { data: { overdue: [{ id: 't1', title: 'Advies opvragen' }] } } })
 		const w = await mountList({ source: { url: '/apps/dossiq/api/signals/overdue-tasks', responsePath: 'data.overdue' } })

@@ -29,7 +29,6 @@
 </template>
 
 <script>
-import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
@@ -64,7 +63,9 @@ function appUrl(url) {
  *
  * `config`:
  * - `source`: `{ register, schema, params? }` (OpenRegister objects, rows in
- *   `results`) or an endpointSource `{ url, params?, responsePath? }`.
+ *   `results`) or an endpointSource `{ url, params?, responsePath? }`. Filter
+ *   tokens (`@me`, `@today`, `@today-7d`) resolve in `params`, and an operator
+ *   map (`{ deadline: { lt: '@today' } }`) goes out as `deadline[lt]=…`.
  * - `itemsPath`: the rows' path in the response, when not `results`.
  * - `limit`: the most rows shown (default 7).
  * - `title`, `subtitle`: templates filled from a row (default `{title}`, none).
@@ -175,13 +176,10 @@ export default {
 			this.loading = true
 			this.error = false
 			try {
-				let data
-				if (source.register && source.schema) {
-					const response = await axios.get(generateUrl(`/apps/openregister/api/objects/${source.register}/${source.schema}`), { params: { _limit: this.limit, ...(source.params || {}) } })
-					data = response.data
-				} else {
-					data = await fetchEndpointSource(source, {}, { fresh: true })
-				}
+				const request = source.register && source.schema
+					? { url: `/apps/openregister/api/objects/${source.register}/${source.schema}`, params: { _limit: this.limit, ...(source.params || {}) } }
+					: source
+				const data = await fetchEndpointSource(request, {}, { fresh: true })
 				const list = readPath(data, this.config.itemsPath || (source.register ? 'results' : '')) ?? data
 				this.items = Array.isArray(list) ? list.filter((item) => item && typeof item === 'object') : []
 			} catch {

@@ -52,3 +52,78 @@ registerNcDashboardWidgets([
 ```
 
 The Dashboard draws the widget's title, so a widget's own component must not draw it again.
+
+## The signal widgets as OpenRegister filters
+
+Each signal is a filter OpenRegister runs, not a list the browser computes from a thousand rows. `params` take the filter tokens (`@me`, `@today`, `@today±Nd`), and an operator map (`{ deadline: { lt: '@today' } }`) goes out as `deadline[lt]=…`. OpenRegister's operators are `gt`, `gte`, `lt`, `lte`, `ne`, `in`, `notIn`, `isnull` and `like`; `created` and `updated` are metadata filters. The examples are dossiq's; another app swaps in its own register, schema and fields.
+
+Open cases (overview):
+
+```js
+{
+  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: false, _order: { deadline: 'asc' } } },
+  subtitle: '#{identifier}',
+  href: '/apps/dossiq/cases/{id}',
+  viewAll: { href: '/apps/dossiq/cases' },
+  emptyText: 'No open cases',
+}
+```
+
+Overdue cases, the deadline before today, most overdue first:
+
+```js
+{
+  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: false, deadline: { lt: '@today' }, _order: { deadline: 'asc' } } },
+  subtitle: '{deadline|days} days overdue',
+  href: '/apps/dossiq/cases/{id}',
+  viewAll: { href: '/apps/dossiq/cases' },
+  emptyText: 'No overdue cases',
+}
+```
+
+Deadline alerts, overdue or due within three days, earliest first:
+
+```js
+{
+  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: false, deadline: { lte: '@today+3d' }, _order: { deadline: 'asc' } } },
+  subtitle: 'Due {deadline|date}',
+  href: '/apps/dossiq/cases/{id}',
+  emptyText: 'No deadline alerts',
+}
+```
+
+Stalled cases, not changed for seven days:
+
+```js
+{
+  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: false, updated: { lt: '@today-7d' }, _order: { '@self.updated': 'asc' } } },
+  subtitle: '{@self.updated|days} days inactive',
+  href: '/apps/dossiq/cases/{id}',
+  emptyText: 'All cases active',
+}
+```
+
+My tasks, from OpenRegister's task inbox (an endpoint, not an object list):
+
+```js
+{
+  source: { url: '/apps/openregister/api/flow-tasks', params: { scope: 'assigned', isTerminal: 'false', sort: 'due' }, responsePath: 'results' },
+  subtitle: 'Due {dueAt|date}',
+  href: '/apps/dossiq/tasks/{uuid}',
+  viewAll: { href: '/apps/dossiq/tasks' },
+  emptyText: 'No tasks found',
+}
+```
+
+Task reminders, open tasks overdue or due within three days:
+
+```js
+{
+  source: { url: '/apps/openregister/api/flow-tasks', params: { scope: 'assigned', isTerminal: 'false', dueBefore: '@today+3d', sort: 'due' }, responsePath: 'results' },
+  subtitle: 'Due {dueAt|date}',
+  href: '/apps/dossiq/tasks/{uuid}',
+  emptyText: 'No task reminders',
+}
+```
+
+A task inbox row carries `uuid` and `dueAt`: the page link takes the uuid, because no route accepts the numeric `id`.
