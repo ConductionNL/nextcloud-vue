@@ -425,7 +425,7 @@ Four levels of action and the case surfaces around them. All opt in. See [the re
 | `typePill` | Object \| null | `null` | `{ field, colorMap?, labels?, variant? }`, a pill above the title. Instead of `field`: `text` (a constant) or `countFrom` + `countLabel` (a count of a related list). |
 | `statusPill` | Object \| null | `null` | A second pill, same shape. |
 | `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
-| `sideColumn` | Array | `[]` | Widget definitions or widget ids, rendered as a column of cards beside the body. |
+| `sideColumn` | Array | `[]` | Widget definitions or widget ids, rendered as a column of cards beside the body. An entry with `tabs` shows only while one of those body tabs is open. |
 | `sideColumnFrom` | String | `''` | A field path, read like a `visibleWhen` field (e.g. `@context.caseType.sideCards`), whose list of ids picks the `sideColumn` entries this record shows and their order. Any other value keeps `sideColumn` as declared. |
 | `isAdmin` | Boolean \| null | `null` | Shows `adminOnly` header actions. `null` reads it from Nextcloud. |
 
