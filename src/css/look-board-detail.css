@@ -64,6 +64,44 @@
 	min-height: var(--cn-board-control-height);
 }
 
+/* The quick actions, Edit and the Meer menu are the board's neutral buttons
+   (DqZaak): the main background, a grey border, the main text at 600. They
+   outrank a theme that gives every secondary button a primary outline with
+   `!important` (nldesign), as the index header does. The buildiq square and
+   the primary button keep their own rules. */
+.cn-look-board .cn-detail-page .cn-detail-page__header-actions > .button-vue--secondary,
+.cn-look-board .cn-detail-page .cn-detail-page__header-actions .action-item--secondary .action-item__menutoggle {
+	--nldesign-color-on-surface: var(--color-main-text);
+	height: var(--cn-board-control-height) !important;
+	min-height: var(--cn-board-control-height) !important;
+	padding: 0 14px !important;
+	border: 1px solid var(--color-border-dark) !important;
+	border-radius: var(--cn-board-control-radius) !important;
+	background: var(--color-main-background) !important;
+	color: var(--color-main-text) !important;
+	font-size: 14px !important;
+	font-weight: 600 !important;
+}
+
+.cn-look-board .cn-detail-page .cn-detail-page__header-actions > .button-vue--secondary:hover,
+.cn-look-board .cn-detail-page .cn-detail-page__header-actions .action-item--secondary .action-item__menutoggle:hover {
+	background: var(--color-background-hover) !important;
+}
+
+/* Each header icon is 16px with 8px to its label; NcButton draws 20px in a 30px slot. */
+.cn-look-board .cn-detail-page .cn-detail-page__header-actions > .button-vue--secondary .button-vue__icon {
+	width: 16px;
+	min-width: 16px;
+	height: 16px;
+	min-height: 16px;
+	margin-inline-end: 8px;
+}
+
+.cn-look-board .cn-detail-page .cn-detail-page__header-actions > .button-vue--secondary .button-vue__icon svg {
+	width: 16px;
+	height: 16px;
+}
+
 /* Row 2: pills, breadcrumb, dot, meta, chips. */
 .cn-look-board .cn-detail-page__header-row2 {
 	align-items: center;
