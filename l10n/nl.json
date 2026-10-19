@@ -2034,7 +2034,13 @@
     "This cannot be filed twice. Open the one it matches, or ask a coordinator.": "Dit kan niet twee keer worden vastgelegd. Open het item waarmee het overeenkomt, of vraag een coördinator.",
     "File it anyway": "Toch vastleggen",
     "A record you may not open": "Een item dat je niet mag openen",
-    "Matched on the score, not on a single field": "Gevonden op de score, niet op één veld"
+    "Matched on the score, not on a single field": "Gevonden op de score, niet op één veld",
+    "This list could not be read": "Deze lijst kon niet worden gelezen",
+    "Nothing to decide right now.": "Er is nu niets te beslissen.",
+    "Your answer": "Je antwoord",
+    "Why?": "Waarom?",
+    "Record this decision": "Dit besluit vastleggen",
+    "This decision was not recorded.": "Dit besluit is niet vastgelegd."
   },
   "plurals": {
     "{count} member": [

@@ -59,6 +59,7 @@ export const BUILT_IN_WIDGET_KEYS = Object.freeze([
 	'form-renderer',
 	'map-viewer',
 	'notice',
+	'decision-list',
 	'object-geo',
 	'card-grid',
 	'nav-card-grid',

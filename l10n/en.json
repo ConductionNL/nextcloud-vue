@@ -1821,7 +1821,14 @@
     "This cannot be filed twice. Open the one it matches, or ask a coordinator.": "This cannot be filed twice. Open the one it matches, or ask a coordinator.",
     "File it anyway": "File it anyway",
     "A record you may not open": "A record you may not open",
-    "Matched on the score, not on a single field": "Matched on the score, not on a single field"
+    "Matched on the score, not on a single field": "Matched on the score, not on a single field",
+    "This list could not be read": "This list could not be read",
+    "Try again": "Try again",
+    "Nothing to decide right now.": "Nothing to decide right now.",
+    "Your answer": "Your answer",
+    "Why?": "Why?",
+    "Record this decision": "Record this decision",
+    "This decision was not recorded.": "This decision was not recorded."
   },
   "plurals": {
     "{count} member": [
