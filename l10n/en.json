@@ -1731,7 +1731,13 @@
     "On": "On",
     "Select a step on the canvas to see its settings.": "Select a step on the canvas to see its settings.",
     "Show runs": "Show runs",
-    "Back to the step settings": "Back to the step settings"
+    "Back to the step settings": "Back to the step settings",
+    "Assign": "Assign",
+    "New handler": "New handler",
+    "New team": "New team",
+    "Why it is moving": "Why it is moving",
+    "Use \"{name}\"": "Use \"{name}\"",
+    "It was not handed over.": "It was not handed over."
   },
   "plurals": {
     "{count} member": [

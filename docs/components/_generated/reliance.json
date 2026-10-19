@@ -243,6 +243,13 @@
 			],
 			"page": "cn-app-root"
 		},
+		"CnAssignDialog": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-assign-dialog"
+		},
 		"CnAuditTrailCard": {
 			"direct": 1,
 			"transitive": 6,
