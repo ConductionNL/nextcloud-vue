@@ -126,7 +126,15 @@
 					<NcNoteCard v-if="isChoiceDisabled(step)" type="warning">
 						{{ dependsOnHint(step) }}
 					</NcNoteCard>
-					<p v-if="stepNote(step)" class="cn-setup-step__note" data-testid="cn-setup-step-note">
+					<!-- `noteStyle: "card"` sets the note as an info card (DqInstellen). -->
+					<NcNoteCard
+						v-if="stepNote(step) && step.noteStyle === 'card'"
+						type="info"
+						class="cn-setup-step__note-card"
+						data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</NcNoteCard>
+					<p v-else-if="stepNote(step)" class="cn-setup-step__note" data-testid="cn-setup-step-note">
 						{{ stepNote(step) }}
 					</p>
 				</template>

@@ -946,7 +946,7 @@ describe('app-manifest-v2 — form logic: fields[].visibleWhen (REQ-MFL-2, manif
 		const manifest = manifestWithFormPage({
 			fields: [
 				{ key: 'kind', label: 'Kind', type: 'string' },
-				{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { field: 'kind', op: 'contains', value: 'x' } },
+				{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { field: 'kind', op: 'startsWith', value: 'x' } },
 			],
 		})
 		const result = validateManifestV2(manifest)
@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.127.0', () => {
+	it('the manifest schema version reads 2.128.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1404,7 +1404,17 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.125.0 adds chart emptyCellLabel and the footnote under line, area and bar charts (chart-widget), config.bulkBandAlways (actions-bar), config.quickFilterPlacement (index-page), config.rowClass rules on an index page (index-page) and sourceConfig.limit for a paging source (index-page).
 		// 2.126.0 adds the setup choice step's display "rows" and default (setup-wizard), visibleWhen op anyOf and the record-list footerAction (record-list), and documents folderSidebar.pane and the fieldOverrides search look (index-page, form-dialog).
 		// 2.127.0 adds config.sideColumnFrom on a detail page (detail-page), headerButtons[].run, config.search, searchPlacement, defaultOrder, listConfig leading / trailing / subtitleTemplate and folderSidebar heading / countText on an index page (index-page, object-row), and the object-table pageSize (object-table).
-		expect(schema.version).toBe('2.127.0')
+		// 2.128.0 adds the setup step's noteStyle (setup-wizard), chart referenceLines and categoryFormat (chart-widget), visibleWhen op contains (visible-when), config.tabsFrom on a detail page (detail-page) and the notice widget (notice-widget).
+		expect(schema.version).toBe('2.128.0')
+	})
+
+	it('accepts the 2.128.0 keys and refuses malformed ones', () => {
+		const withPage = (page) => ({ ...MINIMAL_V2, pages: [page] })
+		const notice = (content, visibleWhen) => withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', tabsFrom: '@context.caseType.tabs' }, widgets: [{ id: 'special', widgetKey: 'notice', slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 1, props: { content }, ...(visibleWhen ? { visibleWhen } : {}) }] })
+		expect(validateManifestV2(notice({ variant: 'warning', title: 'Special category data', text: 'Every view is logged.' }, { field: 'overviewCards', op: 'contains', value: 'special' })).valid).toBe(true)
+		expect(validateManifestV2(notice({ variant: 'loud', text: 'x' })).valid).toBe(false)
+		expect(validateManifestV2(notice({ text: 'x' }, { field: 'overviewCards', op: 'includes', value: 'special' })).valid).toBe(false)
+		expect(validateManifestV2(withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', tabsFrom: '' } })).valid).toBe(false)
 	})
 
 	it('accepts the 2.127.0 keys and refuses malformed ones', () => {

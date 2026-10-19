@@ -52,11 +52,11 @@ record, SHALL outline the matching cell and mark it `aria-current`.
 
 ### Requirement: Board bar-list and matrix cards draw no header rule
 
-In the board look a dashboard card that holds a `bar-list` or `matrix` chart SHALL draw no rule under its title. Other
-cards SHALL keep their header rule.
+In the board look a dashboard card that holds a `bar-list` or `matrix` chart SHALL draw no rule under its title, as
+every board dashboard card does (see board-dashboard-card-header).
 
 #### Scenario: Board DqDashboard
 
 - **GIVEN** a dashboard in the board look with a "Zaken per status" bar-list card and a card of plain stat tiles
 - **THEN** the bar-list card draws no line between its title and its content
-- **AND** the stat-tile card keeps its line
+- **AND** the stat-tile card draws none either

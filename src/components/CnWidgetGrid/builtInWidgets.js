@@ -21,6 +21,7 @@ import CnExportsWidget from '../CnExportsWidget/CnExportsWidget.vue'
 import CnHeaderWidget from '../CnHeaderWidget/CnHeaderWidget.vue'
 import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
 import CnNavCardGrid from '../CnNavCardGrid/CnNavCardGrid.vue'
+import CnNoticeWidget from '../CnNoticeWidget/CnNoticeWidget.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
@@ -86,6 +87,7 @@ export const BUILT_IN_WIDGETS = {
 	related: CnRelatedObjectsWidget,
 	integration: CnIntegrationWidget,
 	banner: CnBannerWidget,
+	notice: CnNoticeWidget,
 	'audit-trail': CnAuditTrailWidget,
 	timeline: CnTimelineWidget,
 	header: CnHeaderWidget,

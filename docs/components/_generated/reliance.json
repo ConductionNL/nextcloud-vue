@@ -2324,6 +2324,13 @@
 			],
 			"page": "cn-notes-card"
 		},
+		"CnNoticeWidget": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-notice-widget"
+		},
 		"CnNotificationMatrix": {
 			"direct": 0,
 			"transitive": 0,
