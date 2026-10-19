@@ -399,6 +399,12 @@ export default {
 				if (data && data.draftUrl) {
 					window.open(data.draftUrl, '_blank', 'noopener')
 				}
+				/**
+				 * @event drafted A draft was made from a template. Carries the
+				 *   draft endpoint's response, including `draftUrl` and
+				 *   `unresolved` when the endpoint returns them.
+				 * @type {object}
+				 */
 				this.$emit('drafted', data)
 			} catch (err) {
 				const response = err && err.response
