@@ -25,7 +25,7 @@
 /* ---- The header: two rows on the ground ------------------------------- */
 
 .cn-look-board .cn-detail-page__header--board {
-	align-items: center;
+	align-items: flex-start;
 	column-gap: 16px;
 	flex-wrap: wrap;
 	margin-bottom: 22px;
@@ -33,10 +33,16 @@
 	row-gap: 6px;
 }
 
-/* Row 1: the title takes what the buttons leave, from a 320px basis. */
+/* Row 1: the title takes what the buttons leave, from a zero basis, and the
+   buttons sit at the row's top beside it (DqZaak: both at 96). From a 320px
+   basis the title and its follow control claimed the row first, so on a 960px
+   header the buttons centred against a two-line title, and below that they
+   dropped to a row of their own. Only when less than 16rem of title fits
+   beside the buttons do they still wrap.
+   @spec openspec/changes/board-detail-header-row/specs/board-detail-header-row/spec.md#requirement-the-board-detail-header-keeps-its-actions-on-the-title-row */
 .cn-look-board .cn-detail-page__header--board > :first-child {
-	flex: 1 1 320px;
-	min-width: 0;
+	flex: 1 1 0;
+	min-width: min(100%, 16rem);
 }
 
 .cn-look-board .cn-detail-page__header--board .cn-detail-page__title {
