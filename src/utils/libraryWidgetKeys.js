@@ -121,6 +121,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'links',
 	'map',
 	'markdown',
+	'matrix',
 	'menu',
 	'nc-widget',
 	'next-step',

@@ -424,6 +424,7 @@ export { CnGuardianHome } from './CnGuardianHome/index.js'
 // Workplace dashboard primitives (openspec: workplace-dashboard-primitives).
 export { CnWeekStripWidget } from './CnWeekStripWidget/index.js'
 export { CnWeekStripWidgetForm } from './CnWeekStripWidgetForm/index.js'
+export { CnMatrixWidget } from './CnMatrixWidget/index.js'
 export { CnStackedBarWidget } from './CnStackedBarWidget/index.js'
 export { CnStackedBarWidgetForm } from './CnStackedBarWidgetForm/index.js'
 export { CnSegmentedControl } from './CnSegmentedControl/index.js'

@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Matrix": "Matrix",
+    "(chosen)": "(chosen)",
     "Channel": "Channel",
     "Outcome": "Outcome",
     "Chat": "Chat",

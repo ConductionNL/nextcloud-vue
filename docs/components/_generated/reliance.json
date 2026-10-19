@@ -2208,6 +2208,13 @@
 			"via": [],
 			"page": "cn-mass-import-dialog"
 		},
+		"CnMatrixWidget": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-matrix-widget"
+		},
 		"CnMenuItemEditor": {
 			"direct": 0,
 			"transitive": 0,

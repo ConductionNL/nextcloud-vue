@@ -25,6 +25,7 @@ import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
 import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
 import CnMarkdownWidget2 from '../CnMarkdownWidget/CnMarkdownWidget.vue'
 import CnMarkdownWidgetForm2 from '../CnMarkdownWidgetForm/CnMarkdownWidgetForm.vue'
+import CnMatrixWidget from '../CnMatrixWidget/CnMatrixWidget.vue'
 import CnNextStepWidget from '../CnNextStepCard/CnNextStepWidget.vue'
 import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
@@ -379,6 +380,17 @@ registerDashboardWidget('stacked-bar', {
 	},
 	displayName: 'Stacked bar',
 	icon: 'ChartBar',
+})
+
+// A categorical grid with one chosen cell (DqHandhaving's enforcement matrix).
+// Placed from the manifest: there is no config form yet.
+registerDashboardWidget('matrix', {
+	renderer: CnMatrixWidget,
+	form: null,
+	defaultContent: { columns: [], rows: [], tones: {}, rowField: '', columnField: '' },
+	displayName: 'Matrix',
+	icon: 'TableColumn',
+	surfaces: ['detail-page'],
 })
 
 /**
