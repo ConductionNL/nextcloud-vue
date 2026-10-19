@@ -846,6 +846,7 @@ import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import {
 	definitionQueryParams,
 	DYNAMIC_KEY_PREFIX,
@@ -861,6 +862,7 @@ import { computeAssignments } from '../../utils/formAssign.js'
 import { resolveNextcloudGroup, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { durationSeconds } from '../../utils/isoDuration.js'
 import { objectDisplayName } from '../../utils/objectName.js'
+import { fieldWithOptionsFrom, filterOptions, isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
 import { languageOptions, resolveDefaultToken, timezoneOptions } from '../../utils/pickerOptions.js'
 import { getDotted, planPropertySourceFill } from '../../utils/propertySourceFill.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
@@ -1149,6 +1151,13 @@ export default {
 		 */
 		cnManifest: { default: null },
 		cnRegistry: { default: null },
+
+		/**
+		 * The page's object (a detail page, or a widget's object), so an
+		 * `optionsFrom` filter can say `@objectId` / `@object.<field>`.
+		 */
+		cnObjectContext: { default: null },
+		cnDetailObjectContext: { default: null },
 		cnCustomComponents: { default: null },
 		cnOpenModal: { default: null },
 	},
@@ -1457,6 +1466,8 @@ export default {
 			referenceLabels: {},
 			/** Concept-scheme fields whose options request failed or came back empty. */
 			codedFailed: {},
+			// Options read through a field's `optionsFrom`, by field key, read once per dialog.
+			sourcedOptions: {},
 			/** Scheme of each coded field, as OpenRegister reported it (for the notation route). */
 			codedSchemes: {},
 			/**
@@ -1782,7 +1793,7 @@ export default {
 		resolvedFields() {
 			// Manual fields take priority
 			const base = this.fields
-				? this.fields
+				? this.fields.map(fieldWithOptionsFrom)
 				: fieldsFromSchema(this.schema, {
 						exclude: this.excludeFields,
 						include: this.includeFields,
@@ -2516,6 +2527,30 @@ export default {
 					}
 				}
 			}
+		},
+
+		/**
+		 * The options of an `optionsFrom` field whose label holds the query.
+		 * The source is read once per dialog, and every option's label is
+		 * cached so a held value shows by its label.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} query The search text.
+		 * @return {Promise<Array<{id: (string|number), label: string}>>} The options, in the source's order.
+		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+		 */
+		async fetchSourcedOptions(field, query) {
+			let all = this.sourcedOptions[field.key]
+			if (!all) {
+				all = await loadOptionsFrom(field.optionsFrom, resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext) || {})
+				this.sourcedOptions = { ...this.sourcedOptions, [field.key]: all }
+				const labels = {}
+				for (const o of all) {
+					labels[o.id] = o.label
+				}
+				this.referenceLabels = { ...this.referenceLabels, ...labels }
+			}
+			return filterOptions(all, query)
 		},
 
 		/**
@@ -3344,7 +3379,29 @@ export default {
 		 * @return {boolean}
 		 */
 		isIdPickerField(field) {
-			return this.isReferenceField(field) || this.isUserField(field) || this.isGroupField(field) || this.isCodedField(field)
+			return this.isReferenceField(field) || this.isUserField(field) || this.isGroupField(field) || this.isCodedField(field) || this.isSourcedField(field)
+		},
+
+		/**
+		 * A single choice whose options come from a source (`optionsFrom`).
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+		 */
+		isSourcedField(field) {
+			return isOptionsFrom(field.optionsFrom) && field.type !== 'array'
+		},
+
+		/**
+		 * Several choices whose options come from a source (`optionsFrom`).
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+		 */
+		isSourcedArrayField(field) {
+			return isOptionsFrom(field.optionsFrom) && field.type === 'array'
 		},
 
 		/**
@@ -3374,7 +3431,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isIdPickerArrayField(field) {
-			return this.isReferenceArrayField(field) || this.isUserArrayField(field) || this.isGroupArrayField(field) || this.isCodedArrayField(field)
+			return this.isReferenceArrayField(field) || this.isUserArrayField(field) || this.isGroupArrayField(field) || this.isCodedArrayField(field) || this.isSourcedArrayField(field)
 		},
 
 		/**
@@ -4350,7 +4407,9 @@ export default {
 
 			try {
 				let results
-				if (this.isCodedField(field) || this.isCodedArrayField(field)) {
+				if (this.isSourcedField(field) || this.isSourcedArrayField(field)) {
+					results = await this.fetchSourcedOptions(field, query)
+				} else if (this.isCodedField(field) || this.isCodedArrayField(field)) {
 					// Options OpenRegister serves for the bound scheme: its order,
 					// its validity window, its labels in the user's language.
 					results = await this.fetchCodedOptions(field)

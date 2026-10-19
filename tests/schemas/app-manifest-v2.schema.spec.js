@@ -1406,7 +1406,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.127.0 adds config.sideColumnFrom on a detail page (detail-page), headerButtons[].run, config.search, searchPlacement, defaultOrder, listConfig leading / trailing / subtitleTemplate and folderSidebar heading / countText on an index page (index-page, object-row), and the object-table pageSize (object-table).
 		// 2.128.0 adds the setup step's noteStyle (setup-wizard), chart referenceLines and categoryFormat (chart-widget), visibleWhen op contains (visible-when), config.tabsFrom on a detail page (detail-page) and the notice widget (notice-widget).
 		// 2.129.0 adds config.cardLayout on an index page, the board record card's layout, with a meta part that names its own formatter (card-layout-part-formatter); also quickFilterPlacement row (index-page), nextStep.stagesFrom, side-column entry tabs and folderSidebar.scopeViews (detail-page, index-page), and the record-list dot / flags, related groupByRelation / layout / groupActions and nc-widget excludeApps / excludeTypes content (widgets).
-		expect(schema.version).toBe('2.129.0')
+		// 2.130.0 adds optionsFrom on a field override, a select whose options come from an endpoint or OpenRegister objects (form-field-options-from).
+		expect(schema.version).toBe('2.130.0')
 	})
 
 	it('accepts the 2.128.0 keys and refuses malformed ones', () => {
