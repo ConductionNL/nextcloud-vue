@@ -189,9 +189,6 @@
 			:mapLabel="mapLabel"
 			:mapIcon="mapIcon"
 			:listIcon="listIcon"
-			:showSortSelect="showSortSelect"
-			:sortOptions="sortSelectOptions"
-			:sortValue="effectiveSortSelectValue"
 			:showSearch="search !== false && (inlineSearch || isBoardLook)"
 			:searchPlacement="searchPlacement"
 			:searchValue="effectiveSearchValue"
@@ -210,7 +207,6 @@
 			:bulkActions="mergedBulkActions"
 			:documentationUrl="documentationUrl"
 			:documentationLabel="documentationLabel || undefined"
-			@sortChange="onSortSelectChange"
 			@add="onAddClick"
 			@clearSelection="onSelect([])"
 			@removeFilter="onRemoveActiveFilter"
@@ -1229,6 +1225,8 @@
 			:showMetadata="resolvedSidebar.showMetadata !== false"
 			:personalColumns="personalColumns"
 			:pinnedCount="pinnedColumnCount"
+			:sortOptions="sidebarSortOptions"
+			:currentSort="currentSortKeys"
 			v-bind="sidebarSearchProps"
 			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
@@ -1237,7 +1235,8 @@
 			@pinChange="onPinChange"
 			@columnsReset="onColumnsReset"
 			@filterChange="onFilterEvent"
-			@clearFilters="onClearFilters" />
+			@clearFilters="onClearFilters"
+			@sortChange="onSidebarSortChange" />
 	</div>
 </template>
 
@@ -1285,6 +1284,7 @@ import {
 	refIdOf,
 	resolveDropValue,
 } from '../../utils/boardReferenceColumns.js'
+import { isColumnSortable } from '../../utils/columnFilters.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
@@ -1310,7 +1310,7 @@ import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
-import { orderToSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
+import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -3181,9 +3181,11 @@ export default {
 		},
 
 		/**
-		 * Show a standalone sort dropdown in the actions bar (for card/list
-		 * views without sortable headers). Emits `@sort-change` with the value.
-		 * Fed from the manifest as `pages[].config.showSortSelect`.
+		 * Deprecated, without effect: the toolbar draws no sort select. The
+		 * table sorts by its column headers, the list, card and map views by
+		 * the Sort section in the index sidebar.
+		 *
+		 * @deprecated
 		 */
 		showSortSelect: {
 			type: Boolean,
@@ -3191,7 +3193,11 @@ export default {
 		},
 
 		/**
-		 * Options for the standalone sort dropdown (manifest `config.sortSelectOptions`).
+		 * The orders the index sidebar's Sort section offers in the list, card
+		 * and map views (manifest `config.sortSelectOptions`): `{ value, label,
+		 * order? }`, the order its `order` (an `orderToSortKeys` form) or its
+		 * `value` read as one. Without them the section offers the sortable
+		 * columns.
 		 *
 		 * @type {Array<{ value: string, label: string }>}
 		 */
@@ -3201,8 +3207,10 @@ export default {
 		},
 
 		/**
-		 * Selected value of the standalone sort dropdown. Empty lets a
-		 * self-fetch page show the option matching its current order.
+		 * Deprecated, without effect: the toolbar sort select is gone; the
+		 * Sort section in the index sidebar shows the current order.
+		 *
+		 * @deprecated
 		 */
 		sortSelectValue: {
 			type: String,
@@ -4986,22 +4994,45 @@ export default {
 		},
 
 		/**
-		 * The sort select's shown value: `sortSelectValue` when the host
-		 * controls it, else on a self-fetch page the option whose order is the
-		 * list's current order (a header click that matches one shows it).
+		 * The list's current order, `[{ key, order }]`: the self-fetched list's,
+		 * else the `sortKeys` / `sortKey` props.
 		 *
-		 * @return {string} The option value, or '' when none matches.
+		 * @return {Array<{key: string, order: string}>} The order.
 		 */
-		effectiveSortSelectValue() {
-			if (this.sortSelectValue) {
-				return this.sortSelectValue
+		currentSortKeys() {
+			if (this.isSelfFetchMode && this.list && this.list.sortKeys) {
+				return this.list.sortKeys.value || []
 			}
-			if (!this.isSelfFetchMode || !this.list || !this.list.sortKeys) {
-				return ''
+			if (Array.isArray(this.sortKeys) && this.sortKeys.length > 0) {
+				return this.sortKeys
 			}
-			const current = this.list.sortKeys.value || []
-			const match = (this.sortSelectOptions || []).find((o) => o && sameSortKeys(this.sortSelectKeys(o), current))
-			return match ? match.value : ''
+			return this.sortKey ? [{ key: this.sortKey, order: this.sortOrder || 'asc' }] : []
+		},
+
+		/**
+		 * The orders the index sidebar's Sort section offers: none in the table
+		 * view, which sorts by its column headers; else `sortSelectOptions`,
+		 * or else the sortable columns, ascending.
+		 *
+		 * @return {Array<{value: string, label: string, keys: Array<{key: string, order: string}>}>} The options.
+		 */
+		sidebarSortOptions() {
+			if (this.currentViewMode === 'table') {
+				return []
+			}
+			if (Array.isArray(this.sortSelectOptions) && this.sortSelectOptions.length > 0) {
+				return this.sortSelectOptions
+					.filter((o) => o && o.value !== undefined && o.value !== null)
+					.map((o) => ({
+						value: String(o.value),
+						label: this.cnTranslate(o.label || String(o.value)),
+						keys: orderToSortKeys(o.order !== undefined ? o.order : o.value),
+					}))
+					.filter((o) => o.keys.length > 0)
+			}
+			return (this.tableColumns || [])
+				.filter((c) => c && typeof c === 'object' && c.key && isColumnSortable(c, this.effectiveSchema))
+				.map((c) => ({ value: c.key, label: this.cnTranslate(c.label || c.key), keys: [{ key: c.key, order: 'asc' }] }))
 		},
 
 		/**
@@ -7263,6 +7294,8 @@ export default {
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
 				personalColumns: this.personalColumns,
 				pinnedCount: this.pinnedColumnCount,
+				sortOptions: this.sidebarSortOptions,
+				currentSort: this.currentSortKeys,
 				...this.sidebarSearchProps,
 			}
 		},
@@ -8735,35 +8768,18 @@ export default {
 		},
 
 		/**
-		 * The sort keys a sort-select option stands for: its `order` (any
-		 * `orderToSortKeys` form), else its `value` read as an order.
+		 * An order chosen in the index sidebar's Sort section. It goes the way
+		 * a header click goes: the self-fetched list sorts (`_order`, kept in
+		 * the address), and `sort` is emitted for a host that sorts itself.
 		 *
-		 * @param {object} option A `sortSelectOptions` entry.
-		 * @return {Array<{key: string, order: string}>} The sort keys.
-		 */
-		sortSelectKeys(option) {
-			if (!option) {
-				return []
-			}
-			return orderToSortKeys(option.order !== undefined ? option.order : option.value)
-		},
-
-		/**
-		 * A choice in the sort select. On a self-fetch page it orders the list
-		 * as a header click does (`_order`, kept in the address); every page
-		 * also emits `sort-change` with the value.
-		 *
-		 * @param {string} value The chosen option's value.
+		 * @param {Array<{key: string, order: string}>} keys The chosen order.
 		 * @return {void}
 		 */
-		onSortSelectChange(value) {
-			const option = (this.sortSelectOptions || []).find((o) => o && o.value === value)
-			const keys = this.sortSelectKeys(option)
-			if (option && keys.length > 0 && this.isSelfFetchMode && typeof this.list.onSort === 'function') {
-				this.list.onSort({ key: keys[0].key, order: keys[0].order, keys })
-				this.persistViewStateToRoute(this.currentViewState())
+		onSidebarSortChange(keys) {
+			if (!Array.isArray(keys) || keys.length === 0) {
+				return
 			}
-			this.$emit('sort-change', value)
+			this.onSortEvent({ key: keys[0].key, order: keys[0].order, keys })
 		},
 
 		/**
@@ -9924,6 +9940,7 @@ export default {
 					'columns-reset': () => this.onColumnsReset(),
 					'filter-change': (event) => this.onFilterEvent(event),
 					'clear-filters': () => this.onClearFilters(),
+					'sort-change': (keys) => this.onSidebarSortChange(keys),
 				},
 			}
 		},

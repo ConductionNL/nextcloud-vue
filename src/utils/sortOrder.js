@@ -56,3 +56,13 @@ export function sameSortKeys(a, b) {
 	return left.length === right.length
 		&& left.every((entry, index) => entry.key === right[index].key && (entry.order || 'asc') === (right[index].order || 'asc'))
 }
+
+/**
+ * The same keys, each direction turned round.
+ *
+ * @param {Array<{key: string, order?: string}>} keys The sort keys.
+ * @return {Array<{key: string, order: 'asc'|'desc'}>} The reversed keys.
+ */
+export function reverseSortKeys(keys) {
+	return (Array.isArray(keys) ? keys : []).map((entry) => ({ key: entry.key, order: entry.order === 'desc' ? 'asc' : 'desc' }))
+}

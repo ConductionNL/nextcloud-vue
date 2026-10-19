@@ -1,5 +1,13 @@
 {
   "translations": {
+    "Sort": "Sorteren",
+    "Direction": "Richting",
+    "Ascending": "Oplopend",
+    "Descending": "Aflopend",
+    "ascending": "oplopend",
+    "descending": "aflopend",
+    "Not sorted": "Niet gesorteerd",
+    "Current order: {order}": "Huidige volgorde: {order}",
     "Channel": "Kanaal",
     "Outcome": "Uitkomst",
     "Chat": "Chat",

@@ -1,5 +1,13 @@
 {
   "translations": {
+    "Sort": "Sort",
+    "Direction": "Direction",
+    "Ascending": "Ascending",
+    "Descending": "Descending",
+    "ascending": "ascending",
+    "descending": "descending",
+    "Not sorted": "Not sorted",
+    "Current order: {order}": "Current order: {order}",
     "Channel": "Channel",
     "Outcome": "Outcome",
     "Chat": "Chat",
