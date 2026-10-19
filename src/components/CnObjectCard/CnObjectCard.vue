@@ -38,8 +38,21 @@
 				<CnLockIndicator :object="object" :size="16" />
 				{{ recordTitle }}
 			</h3>
-			<p v-if="recordMeta" class="cn-object-card__record-meta" data-testid="cn-object-card-meta">
-				{{ recordMeta }}
+			<!-- A part whose field names a page column with a widget draws through
+			     it, as its table cell does; the rest are text. -->
+			<p v-if="recordMetaParts.length > 0" class="cn-object-card__record-meta" data-testid="cn-object-card-meta">
+				<template v-for="(part, index) in recordMetaParts" :key="part.field">
+					<span v-if="index > 0" aria-hidden="true"> · </span>
+					<CnCellRenderer
+						v-if="part.column && part.column.widget"
+						:value="part.value"
+						:widget="part.column.widget"
+						:widgetProps="part.column.widgetProps || undefined"
+						:formatter="part.column.formatter || null"
+						:formatterOptions="part.column.formatterOptions || null"
+						:row="object" />
+					<span v-else>{{ part.text }}</span>
+				</template>
 			</p>
 			<div v-if="$slots.badges" class="cn-object-card__badges">
 				<slot name="badges" :object="object" />
@@ -172,11 +185,14 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
+import { resolveDateVariant } from '../../utils/dateVariant.js'
+import { resolveDue } from '../../utils/dueText.js'
 import { readPath } from '../../utils/readPath.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
@@ -226,6 +242,8 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The look CnAppRoot provides; `board` draws the record card of the screens. */
 		cnLook: { default: 'nextcloud' },
+		/** The cell formatters CnAppRoot provides, for a layout part whose page column names one. */
+		cnFormatters: { default: () => ({}) },
 	},
 
 	props: {
@@ -464,8 +482,21 @@ export default {
 		 * @return {string}
 		 */
 		recordMeta() {
+			return this.recordMetaParts.map((part) => part.text).join(' · ')
+		},
+
+		/**
+		 * The meta line's parts that hold a value: each with its text and, when
+		 * its field names a page column, that column (whose widget draws it).
+		 *
+		 * @return {Array<{field: string, value: unknown, text: string, column: ?object}>}
+		 */
+		recordMetaParts() {
 			const fields = this.recordLayout && Array.isArray(this.recordLayout.meta) ? this.recordLayout.meta : []
-			return fields.map((field) => this.layoutText(field)).filter((text) => text !== '').join(' · ')
+			return fields
+				.filter((field) => typeof field === 'string' && field !== '')
+				.map((field) => ({ field, value: readPath(this.object, field), text: this.layoutText(field), column: this.layoutColumn(field) }))
+				.filter((part) => part.text !== '')
 		},
 
 		/**
@@ -599,11 +630,91 @@ export default {
 			if (value === null || value === undefined || value === '') {
 				return ''
 			}
+			// A part whose field names a page column with a formatter reads as
+			// its table cell does (a case type uuid as its name).
+			const column = this.layoutColumn(field)
+			const format = column && column.formatter && this.cnFormatters ? this.cnFormatters[column.formatter] : null
+			if (typeof format === 'function') {
+				const formatted = format(value, this.object, this.schema?.properties?.[field], column.formatterOptions || undefined)
+				return formatted === null || formatted === undefined ? '' : String(formatted)
+			}
 			if (typeof value === 'object') {
 				const name = value.displayName || value.title || value.name
 				return typeof name === 'string' ? name : ''
 			}
 			return String(value)
+		},
+
+		/**
+		 * The page column a layout part's field names, or null.
+		 *
+		 * @param {string} field The part's field.
+		 * @return {?object} The column.
+		 */
+		layoutColumn(field) {
+			return (this.cardFieldColumns && typeof field === 'string' && this.cardFieldColumns[field]) || null
+		},
+
+		/**
+		 * A pill that reads its date field through the due rules: `variantWhen`
+		 * (the first rule the days left match gives the tone), else `due`
+		 * (overdue reads as error, within `due.soonWithin` days as warning).
+		 * The label is `labels[variant]`, else `labels.overdue` / `labels.soon`,
+		 * else Overdue / Soon, through the host's translate. Any other date
+		 * draws no pill.
+		 *
+		 * @param {{field: string, due?: object, variantWhen?: Array, labels?: object}} def The pill.
+		 * @return {?{label: string, variant: string}}
+		 */
+		datePill(def) {
+			const value = readPath(this.object, def.field)
+			const variant = Array.isArray(def.variantWhen)
+				? this.dateRuleVariant(value, def.variantWhen)
+				: this.dueVariant(value, def.due)
+			if (variant === '') {
+				return null
+			}
+			const labels = def.labels && typeof def.labels === 'object' ? def.labels : {}
+			const state = variant === 'error' ? 'overdue' : (variant === 'warning' ? 'soon' : '')
+			const authored = labels[variant] || (state && labels[state])
+			if (typeof authored === 'string' && authored !== '') {
+				return { label: this.cnTranslate(authored), variant }
+			}
+			if (state === 'overdue') {
+				return { label: t('nextcloud-vue', 'Overdue'), variant }
+			}
+			if (state === 'soon') {
+				return { label: t('nextcloud-vue', 'Soon'), variant }
+			}
+			return null
+		},
+
+		/**
+		 * The variant of the first `variantWhen` rule a date matches, or ''.
+		 *
+		 * @param {unknown} value The date.
+		 * @param {Array} rules The rules.
+		 * @return {string} The variant, or ''.
+		 */
+		dateRuleVariant(value, rules) {
+			const matched = resolveDateVariant(value, rules)
+			return matched === 'default' ? '' : matched
+		},
+
+		/**
+		 * The variant the due rules give a date: error when overdue, warning
+		 * within `soonWithin` days, else ''.
+		 *
+		 * @param {unknown} value The date.
+		 * @param {object} config The `due` config.
+		 * @return {string} The variant, or ''.
+		 */
+		dueVariant(value, config) {
+			const due = resolveDue(value, config)
+			if (due && due.tone === 'danger') {
+				return 'error'
+			}
+			return due && due.soon ? 'warning' : ''
 		},
 
 		/**
@@ -616,6 +727,9 @@ export default {
 		layoutPill(def) {
 			if (!def || typeof def !== 'object') {
 				return null
+			}
+			if (def.due || Array.isArray(def.variantWhen)) {
+				return this.datePill(def)
 			}
 			const value = this.layoutText(def.field)
 			if (value === '') {

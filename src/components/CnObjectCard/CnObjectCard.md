@@ -155,4 +155,4 @@ export default {
 | `leading` | Object | `null` | Leading element: `{ initials }` in a circle or `{ icon }` on a tint |
 | `footerAction` | Object | `null` | `{ label, meta?, ariaLabel? }`, one footer action; emits `footer-action` |
 | `cardFields` | Array | `null` | Property keys of the facts list, in order |
-| `layout` | Object | `null` | Board look: the record layout, `{ headPill, number, title, meta, footerPill, footerDate }`; each part names a field and is left out while it is empty |
+| `layout` | Object | `null` | Board look: the record layout, `{ headPill, number, title, meta, footerPill, footerDate }`; each part names a field and is left out while it is empty. A part whose field names a page column (`cardFieldColumns`) reads through that column's formatter, and a meta part through its widget, as the table cell does. A pill with `due` (`{ soonWithin }`) or `variantWhen` reads its date: overdue as error, soon (or the matching rule) as warning, labelled by `labels[variant]` or `labels.overdue` / `labels.soon` through the host's translate, else Overdue / Soon; any other date draws no pill. |
