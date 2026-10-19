@@ -132,6 +132,7 @@
 				@rowAuxClick="onRowOpen"
 				@editOpen="onRowOpen"
 				@relatedObjectClick="onRelatedObjectOpen"
+				@viewOverrides="onViewOverrides"
 				@configure="showConfigModal = true">
 				<!-- This `<template v-for>` defines dynamic SLOTS, not a
 				     rendered list, so the rule's advice is inverted here:
@@ -214,6 +215,7 @@
 			@rowAuxClick="onRowOpen"
 			@editOpen="onRowOpen"
 			@relatedObjectClick="onRelatedObjectOpen"
+			@viewOverrides="onViewOverrides"
 			@configure="showConfigModal = true">
 			<!-- Dynamic slot definition, not a rendered list — see the note on
 			     the identical block above. -->
@@ -290,7 +292,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
-import { computed, ref } from 'vue'
+import { computed, h, markRaw, ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
@@ -310,6 +312,7 @@ import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { parseSortKeys } from '../../utils/routeFilters.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
 import { isNewTabHandled } from '../../utils/rowAuxClick.js'
+import { applySavedViewOverrides, applySavedViewSlots } from '../../utils/savedViewOverrides.js'
 
 /**
  * OpenRegister registers and schemas already described by id, so a click on
@@ -673,6 +676,9 @@ export default {
 			// CnMassExportDialog export launcher (null = dialog closed). Set
 			// by the `openExport` bound into the cnDispatchAction context.
 			exportAction: null,
+			// The page config overrides of the saved view the index page has
+			// applied (CnIndexPage `view-overrides`), or null.
+			viewOverrides: null,
 		}
 	},
 
@@ -1325,6 +1331,10 @@ export default {
 					topLevel.title = preset.title
 				}
 			}
+			// The applied saved view's overrides, over the page and its preset.
+			if (isIndex && this.viewOverrides) {
+				config = applySavedViewOverrides(config, this.viewOverrides)
+			}
 			// When an index page has somewhere to open a row, make a row click
 			// go there: set `rowClickToView` so the row body emits `row-click`
 			// (→ onRowOpen navigates) even though the page is selectable.
@@ -1564,7 +1574,7 @@ export default {
 			if (!page) {
 				return []
 			}
-			const map = { ...(page.slots ?? {}) }
+			const map = page.type === 'index' ? applySavedViewSlots(page.slots, this.viewOverrides) : { ...(page.slots ?? {}) }
 			// For a custom page that has no explicit `component`, `slots.main`
 			// is promoted to the page BODY by `resolvedComponent`, so drop it
 			// here — otherwise it would also try to mount as a (non-existent)
@@ -1580,7 +1590,9 @@ export default {
 			}
 			const entries = []
 			for (const [name, registryName] of Object.entries(map)) {
-				const component = this.resolveRegistryName(registryName, name)
+				const component = Array.isArray(registryName)
+					? this.slotSequence(registryName, name)
+					: this.resolveRegistryName(registryName, name)
 				if (component) {
 					entries.push({ name, component })
 				}
@@ -1686,6 +1698,11 @@ export default {
 			},
 		},
 
+		// A remounted page has applied no view yet.
+		pageRenderKey() {
+			this.viewOverrides = null
+		},
+
 		currentPageSidebarVisible: {
 			immediate: true,
 			handler(visible) {
@@ -1755,6 +1772,48 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * One slot filled by several registry components, drawn in order with
+		 * the slot's props (a saved view's `slots: { 'below-header': [a, b] }`).
+		 * The same list gets the same component back, so a re-render does not
+		 * remount what the slot shows.
+		 *
+		 * @param {Array<string>} names Registry names.
+		 * @param {string} slot The slot name.
+		 * @return {object|null} A component, or null when none resolves.
+		 */
+		slotSequence(names, slot) {
+			const components = names.map((name) => this.resolveRegistryName(name, slot)).filter(Boolean)
+			if (components.length <= 1) {
+				return components[0] || null
+			}
+			const key = `${slot}|${names.join('|')}`
+			this.slotSequences = this.slotSequences || new Map()
+			if (!this.slotSequences.has(key)) {
+				this.slotSequences.set(key, markRaw({
+					name: 'CnSlotSequence',
+					inheritAttrs: false,
+					render() {
+						return components.map((component, index) => h(component, { key: index, ...this.$attrs }))
+					},
+				}))
+			}
+			return this.slotSequences.get(key)
+		},
+
+		/**
+		 * The index page applied a saved view with page config overrides, or
+		 * left it (`null`). Laid over the page config by `resolvedProps` and
+		 * `resolvedSlotEntries` until the view is left or the page changes.
+		 *
+		 * @param {object|null} overrides The view's overrides.
+		 * @return {void}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-can-override-the-page-config-while-it-is-active
+		 */
+		onViewOverrides(overrides) {
+			this.viewOverrides = overrides && typeof overrides === 'object' ? overrides : null
+		},
+
 		/**
 		 * Resolve a UI string through the consumer's translate function
 		 * (`translate` prop, else injected `cnTranslate`), falling back to the

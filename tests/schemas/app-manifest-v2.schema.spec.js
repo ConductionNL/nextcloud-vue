@@ -1408,7 +1408,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.129.0 adds config.cardLayout on an index page, the board record card's layout, with a meta part that names its own formatter (card-layout-part-formatter); also quickFilterPlacement row (index-page), nextStep.stagesFrom, side-column entry tabs and folderSidebar.scopeViews (detail-page, index-page), and the record-list dot / flags, related groupByRelation / layout / groupActions and nc-widget excludeApps / excludeTypes content (widgets).
 		// 2.130.0 adds config.defaultSavedViews on an index page, views the app ships, read-only and copyable, with savedViewTree.seeded deprecated (saved-views-manage-and-defaults), and a dashboard page filter's optionsFrom, clearable and placeholder, with options required only without optionsFrom (dashboard-page).
 		// 2.131.0 adds sortSelectOptions[].source, an order in the sidebar's Sort section whose rows come from an app endpoint (sidebar-sort-source).
-		expect(schema.version).toBe('2.131.0')
+		// 2.132.0 adds a default view's page config `overrides` (saved-view-overrides), with lockedFilters, and a breadcrumb crumb's `query`; the card layout gains description, chips and the footer date's overdue tone (board-record-card-layout).
+		expect(schema.version).toBe('2.132.0')
 	})
 
 	it('accepts the 2.131.0 sort option with an endpoint source and refuses malformed ones', () => {

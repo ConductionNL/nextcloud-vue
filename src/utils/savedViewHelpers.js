@@ -392,7 +392,11 @@ export function isOwnView(view, currentUserId) {
  * one. `seeded: true` puts them in the control's default group; the query
  * keeps its `@`-tokens, which resolve when a default is applied.
  *
- * @param {Array<object>|null|undefined} defaults The declared entries `{ slug, name, filters, search?, sort?, label? }`.
+ * A default's `overrides` (page config laid over the page while it is
+ * active, see `utils/savedViewOverrides.js`) ride in `query.overrides`, so a
+ * copy of the default keeps them.
+ *
+ * @param {Array<object>|null|undefined} defaults The declared entries `{ slug, name, filters, search?, sort?, label?, overrides? }`.
  * @param {{ scope?: string, register?: string, schema?: object|string|null }} [page] The page, as `savedViewScope` takes it.
  * @return {Array<object>} The views, in declaration order; entries without a slug or name are left out.
  * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-4
@@ -415,6 +419,9 @@ export function defaultFilterViews(defaults, page = {}) {
 				register: page.register,
 				schema: page.schema,
 			})
+			if (entry.overrides && typeof entry.overrides === 'object' && !Array.isArray(entry.overrides)) {
+				query.overrides = entry.overrides
+			}
 			return {
 				id: `default:${entry.slug}`,
 				slug: entry.slug,

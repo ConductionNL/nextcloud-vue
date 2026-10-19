@@ -1,0 +1,471 @@
+{
+	"team-queue": {
+		"title": "Team queue",
+		"showTitle": true,
+		"searchPlaceholder": "Search by case, number or requester",
+		"statRow": [
+			{
+				"id": "queue-unassigned",
+				"type": "stat",
+				"title": "Without a handler",
+				"content": {
+					"label": "Without a handler",
+					"caption": "{queueNewToday} came in today",
+					"format": {
+						"style": "decimal",
+						"decimals": 0
+					},
+					"endpointSource": {
+						"url": "/apps/dossiq/api/dashboard/kpis"
+					},
+					"valueField": "queueCount",
+					"layout": "stacked"
+				}
+			},
+			{
+				"id": "queue-oldest",
+				"type": "stat",
+				"title": "Waiting longest",
+				"content": {
+					"label": "Waiting longest",
+					"caption": "the oldest case in the queue",
+					"format": {
+						"style": "decimal",
+						"decimals": 0,
+						"suffix": " days"
+					},
+					"endpointSource": {
+						"url": "/apps/dossiq/api/dashboard/kpis"
+					},
+					"valueField": "queueOldestDays",
+					"layout": "stacked"
+				}
+			},
+			{
+				"id": "queue-due-soon",
+				"type": "stat",
+				"title": "Deadline within 7 days",
+				"content": {
+					"label": "Deadline within 7 days",
+					"caption": "pick these up first",
+					"format": {
+						"style": "decimal",
+						"decimals": 0
+					},
+					"endpointSource": {
+						"url": "/apps/dossiq/api/dashboard/kpis"
+					},
+					"valueField": "queueDueSoon",
+					"layout": "stacked"
+				}
+			}
+		],
+		"quickFilterMaxVisible": 4,
+		"quickFilterPlacement": "toolbar",
+		"quickFiltersFrom": {
+			"field": "caseType",
+			"register": "dossiq",
+			"schema": "caseType",
+			"labelField": "title",
+			"allLabel": "All types"
+		},
+		"sidePanel": [
+			{
+				"id": "queue-team-today",
+				"type": "record-list",
+				"title": "Team today",
+				"content": {
+					"endpointSource": {
+						"url": "/apps/dossiq/api/work-queue/workload",
+						"responsePath": "handlers"
+					},
+					"presentation": "rows",
+					"avatar": "{displayName}",
+					"title": "{displayName}",
+					"bar": {
+						"valueField": "openCaseCount"
+					},
+					"trailing": [
+						"{openCaseCount} cases"
+					],
+					"limit": 5,
+					"emptyText": "Nobody in your teams has open cases",
+					"errorText": "Only a coordinator sees the team's workload"
+				}
+			},
+			{
+				"id": "queue-by-type",
+				"type": "record-list",
+				"title": "Work in stock per case type",
+				"content": {
+					"endpointSource": {
+						"url": "/apps/dossiq/api/dashboard/kpis",
+						"responsePath": "queueByType"
+					},
+					"presentation": "rows",
+					"title": "{title}",
+					"trailing": [
+						"{open} open · {waiting} waiting"
+					],
+					"emptyText": "No open cases"
+				}
+			}
+		],
+		"columns": [
+			{
+				"key": "startDate",
+				"width": "96px",
+				"label": "Waiting",
+				"widget": "age"
+			},
+			{
+				"key": "title",
+				"width": "328px",
+				"label": "Case",
+				"link": true,
+				"cellClass": "cn-cell--strong",
+				"secondary": "{identifier} · {initiatorDisplayName} · {priority}"
+			},
+			{
+				"key": "caseType",
+				"width": "179px",
+				"label": "Type",
+				"formatter": "caseTypeName",
+				"widget": "badge",
+				"widgetProps": {
+					"variant": "info"
+				}
+			},
+			{
+				"key": "deadline",
+				"width": "141px",
+				"label": "Deadline",
+				"widget": "date",
+				"widgetProps": {
+					"due": {
+						"todayLabel": "Today",
+						"overdueLabel": {
+							"one": "{count} day overdue",
+							"other": "{count} days overdue"
+						},
+						"upcomingLabel": {
+							"one": "{count} day left",
+							"other": "{count} days left"
+						},
+						"upcomingWeeksLabel": {
+							"one": "{count} week left",
+							"other": "{count} weeks left"
+						}
+					},
+					"variantWhen": [
+						{
+							"op": "lt",
+							"value": 0,
+							"variant": "error"
+						},
+						{
+							"op": "lte",
+							"value": 5,
+							"variant": "warning"
+						}
+					]
+				}
+			}
+		],
+		"countText": "{shown} of {total} open cases without a handler · oldest first",
+		"footerNote": "a case leaves the queue as soon as someone picks it up",
+		"headerButtons": [
+			{
+				"action": "export",
+				"label": "Download",
+				"icon": "TrayArrowDown"
+			},
+			{
+				"action": "actions-menu",
+				"label": "Actions",
+				"items": [
+					"header-actions",
+					"import",
+					"refresh",
+					"copy-selected",
+					"delete-selected",
+					"documentation"
+				]
+			},
+			{
+				"action": "add",
+				"label": "New case",
+				"variant": "primary",
+				"icon": "Plus"
+			}
+		],
+		"emptyText": "Nothing is waiting. Every open case has someone on it.",
+		"folderSidebar": null
+	},
+	"my-work": {
+		"title": "Assigned to me",
+		"showTitle": true,
+		"breadcrumb": {
+			"label": "My work",
+			"route": "MyWorkHome"
+		},
+		"headerMeta": "{total} cases in your name · most urgent first",
+		"footerNote": "Urgency follows from the deadline, the priority and how long a case has been idle.",
+		"headerButtons": [
+			{
+				"action": "export",
+				"label": "Download",
+				"icon": "TrayArrowDown"
+			},
+			{
+				"action": "actions-menu",
+				"label": "Actions"
+			},
+			{
+				"action": "add",
+				"label": "New case",
+				"variant": "primary",
+				"icon": "Plus"
+			}
+		],
+		"viewMode": "cards",
+		"viewModes": [
+			"cards",
+			"table"
+		],
+		"columns": [
+			"identifier",
+			"title",
+			{
+				"key": "caseType",
+				"label": "Case type",
+				"formatter": "caseTypeName"
+			},
+			{
+				"key": "status",
+				"label": "Status",
+				"formatter": "statusTypeName"
+			},
+			"deadline"
+		],
+		"sidebar": {
+			"enabled": true,
+			"showMetadata": false
+		},
+		"rowClickToView": true,
+		"showViewAction": false,
+		"sortOption": "urgency",
+		"cardLayout": {
+			"title": "title",
+			"description": {
+				"field": "description",
+				"maxLength": 140
+			},
+			"meta": [
+				"identifier",
+				{
+					"field": "caseType",
+					"formatter": "caseTypeName",
+					"chip": true
+				},
+				{
+					"field": "status",
+					"formatter": "statusTypeName",
+					"chip": true
+				}
+			],
+			"pill": {
+				"source": "urgency",
+				"field": "deadlineTier",
+				"testid": "deadline-tier-pill",
+				"tierAttribute": "data-tier",
+				"labels": {
+					"overdue": "Late",
+					"critical": "Critical",
+					"warning": "Soon",
+					"normal": "Normal"
+				},
+				"variant": {
+					"overdue": "error",
+					"critical": "error",
+					"warning": "warning",
+					"normal": "neutral"
+				}
+			},
+			"footer": {
+				"field": "deadline",
+				"label": "Deadline",
+				"format": "date",
+				"overdueVariant": "error"
+			}
+		},
+		"slots": {
+			"below-header": [
+				"WorkloadSummaryBar"
+			],
+			"before-collection": [
+				"SubstitutedWorkGroup"
+			]
+		}
+	},
+	"data-subject-requests": {
+		"title": "Data subject requests",
+		"showTitle": true,
+		"breadcrumb": {
+			"label": "Privacy",
+			"route": "Cases",
+			"query": {
+				"savedView": "default:data-subject-requests"
+			}
+		},
+		"pageTabs": [
+			{
+				"label": "Data subject requests",
+				"route": "Cases",
+				"query": {
+					"savedView": "default:data-subject-requests"
+				},
+				"countFrom": {
+					"register": "dossiq",
+					"schema": "case",
+					"filter": {
+						"dataSubjectRequestType": [
+							"inzage",
+							"correctie",
+							"verwijdering"
+						],
+						"isFinalStatus": false
+					}
+				}
+			},
+			{
+				"label": "Data breaches",
+				"route": "AvgIncidents",
+				"permission": "privacy",
+				"countFrom": {
+					"register": "dossiq",
+					"schema": "avgIncident",
+					"filter": {}
+				}
+			}
+		],
+		"headerMeta": "{total} open · term one month, extendable by two",
+		"addLabel": "New data subject request",
+		"headerButtons": [
+			{
+				"action": "export",
+				"label": "Download",
+				"icon": "TrayArrowDown"
+			},
+			{
+				"action": "add",
+				"label": "New data subject request",
+				"variant": "primary",
+				"icon": "Plus"
+			}
+		],
+		"searchPlaceholder": "Search by case or person involved",
+		"footerNote": "20 per page",
+		"notice": {
+			"variant": "info",
+			"text": "A data subject request is a case with a handler, a legal month and a history. The search, the preview of what gets erased and the export are done by OpenRegister."
+		},
+		"quickFilters": [
+			{
+				"label": "All",
+				"showCount": true,
+				"filter": {},
+				"default": true
+			},
+			{
+				"label": "Subject access",
+				"activeLabel": "Kind: subject access",
+				"showCount": true,
+				"filter": {
+					"dataSubjectRequestType": "inzage"
+				}
+			},
+			{
+				"label": "Correction",
+				"activeLabel": "Kind: correction",
+				"showCount": true,
+				"filter": {
+					"dataSubjectRequestType": "correctie"
+				}
+			},
+			{
+				"label": "Erasure",
+				"activeLabel": "Kind: erasure",
+				"showCount": true,
+				"filter": {
+					"dataSubjectRequestType": "verwijdering"
+				}
+			}
+		],
+		"columns": [
+			{
+				"key": "title",
+				"label": "Data subject request",
+				"secondary": "{identifier} · {initiatorDisplayName}"
+			},
+			{
+				"key": "dataSubjectRequestType",
+				"label": "Kind"
+			},
+			{
+				"key": "startDate",
+				"label": "Received",
+				"formatter": "date"
+			},
+			{
+				"key": "deadline",
+				"label": "Term",
+				"widget": "deadlineCountdown"
+			},
+			{
+				"key": "status",
+				"label": "Status",
+				"formatter": "statusTypeName",
+				"widget": "statusBadge"
+			},
+			"assignee"
+		],
+		"defaultSort": [
+			{
+				"field": "deadline",
+				"order": "asc"
+			}
+		],
+		"includeFields": [
+			"caseType",
+			"title",
+			"requester",
+			"dataSubjectRequestType",
+			"description",
+			"assignee"
+		],
+		"fieldOverrides": {
+			"description": {
+				"widget": "textarea"
+			},
+			"requester": {
+				"widget": "InitiatorPicker",
+				"label": "Requester"
+			}
+		},
+		"actions": [
+			{
+				"id": "view",
+				"label": "View",
+				"icon": "EyeOutline",
+				"handler": "navigate",
+				"route": "CaseDetail",
+				"type": "handler"
+			}
+		],
+		"sidebar": {
+			"enabled": true,
+			"showMetadata": true
+		}
+	}
+}

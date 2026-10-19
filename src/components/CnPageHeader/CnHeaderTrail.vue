@@ -114,7 +114,7 @@ export default {
 					entry.icon = crumb.icon
 				}
 				if (crumb.route) {
-					entry.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}) }
+					entry.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}), ...(crumb.query ? { query: crumb.query } : {}) }
 				} else if (crumb.href) {
 					entry.href = crumb.href
 				}
