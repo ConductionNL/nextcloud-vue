@@ -2,7 +2,7 @@
 
 The generic dialog for an act on a record: what it is about, whether it is ready, why, and a confirm. One component, configured from the manifest, in place of a hand-built dialog per act. Board DqArchiveren draws the first one: the case, what its case type keeps, a readiness checklist, a reason, a read-only note and **Archive it**.
 
-Every app can open it by name with an `open-modal` action, without registering it: the dialog's configuration goes in the action's `props.config`, the record in `props.objectId` (and `props.object` when the host has it). An app's own registry entry named `CnActionDialog` wins.
+Every app can open it by name with an `open-modal` action, without registering it: the dialog's configuration goes in the action's `props.config`, the record in `props.objectId` (and `props.object` when the host has it). `"objectId": "@objectId"` resolves against the page's object when the action is dispatched; when nothing could resolve it, the dialog reads the record id from the route's `id`. An app's own registry entry named `CnActionDialog` wins.
 
 ## Usage
 
