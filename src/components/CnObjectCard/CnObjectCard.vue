@@ -54,6 +54,17 @@
 					<span v-else>{{ part.text }}</span>
 				</template>
 			</p>
+			<p v-if="recordDescription" class="cn-object-card__record-description" data-testid="cn-object-card-description">
+				{{ recordDescription }}
+			</p>
+			<div v-if="recordChips.length > 0" class="cn-object-card__record-chips" data-testid="cn-object-card-chips">
+				<CnStatusBadge
+					v-for="chip in recordChips"
+					:key="chip.field"
+					class="cn-object-card__record-pill"
+					:label="chip.label"
+					:variant="chip.variant" />
+			</div>
 			<div v-if="$slots.badges" class="cn-object-card__badges">
 				<slot name="badges" :object="object" />
 			</div>
@@ -64,7 +75,11 @@
 					:label="recordFootPill.label"
 					:variant="recordFootPill.variant"
 					data-testid="cn-object-card-foot-pill" />
-				<span v-if="recordDate" class="cn-object-card__record-date" data-testid="cn-object-card-date">{{ recordDate }}</span>
+				<span
+					v-if="recordDate"
+					class="cn-object-card__record-date"
+					:class="[recordDateTone ? 'cn-object-card__record-date--' + recordDateTone : '']"
+					data-testid="cn-object-card-date">{{ recordDate }}</span>
 			</div>
 		</div>
 
@@ -344,10 +359,15 @@ export default {
 		 * A pill is `{ field, colorMap?, labels?, variant? }`: `colorMap` maps a
 		 * value to a CnStatusBadge variant (ignoring case), `labels` a value to
 		 * the text shown. `meta` is a list of fields, joined with " · ".
-		 * `footerDate` is `{ field, label? }`, drawn as "Termijn 5 okt".
+		 * `footerDate` is `{ field, label?, overdueVariant? }`, drawn as
+		 * "Termijn 5 okt", in `overdueVariant`'s tone (`error`) once the date
+		 * has passed. `description` is a field (or `{ field, maxLength? }`, cut
+		 * at 140 characters by default) drawn under the meta line. `chips` is a
+		 * list of `{ field, formatter?, formatterOptions?, colorMap?, labels?,
+		 * variant? }`, each a pill whose text reads through the formatter.
 		 * Without it the card keeps its head, facts and action.
 		 *
-		 * @type {{headPill?: object, number?: string, title?: string, meta?: Array<string>, footerPill?: object, footerDate?: {field: string, label?: string}}}
+		 * @type {{headPill?: object, number?: string, title?: string, meta?: Array<string>, description?: (string|{field: string, maxLength?: number}), chips?: Array<object>, footerPill?: object, footerDate?: {field: string, label?: string, overdueVariant?: string}}}
 		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
 		 */
 		layout: {
@@ -513,6 +533,64 @@ export default {
 				return ''
 			}
 			return typeof def.label === 'string' && def.label !== '' ? `${this.cnTranslate(def.label)} ${date}` : date
+		},
+
+		/**
+		 * The tone of the footer date: `overdueVariant` once the date has
+		 * passed, else ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-board-card-can-draw-a-description-chips-and-an-overdue-date
+		 */
+		recordDateTone() {
+			const def = this.recordLayout ? this.recordLayout.footerDate : null
+			if (!def || typeof def.field !== 'string' || typeof def.overdueVariant !== 'string' || def.overdueVariant === '') {
+				return ''
+			}
+			return this.dueVariant(readPath(this.object, def.field), {}) === 'error' ? def.overdueVariant : ''
+		},
+
+		/**
+		 * The description line, cut at `maxLength` characters (140 by
+		 * default) with an ellipsis, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-board-card-can-draw-a-description-chips-and-an-overdue-date
+		 */
+		recordDescription() {
+			const def = this.recordLayout ? this.recordLayout.description : null
+			const field = typeof def === 'string' ? def : (def && typeof def.field === 'string' ? def.field : '')
+			const text = this.layoutText(field).trim()
+			const max = def && typeof def === 'object' && Number.isInteger(def.maxLength) && def.maxLength > 0 ? def.maxLength : 140
+			return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text
+		},
+
+		/**
+		 * The chips: one pill per `chips` entry whose field holds a value, its
+		 * text read through the entry's formatter (a status uuid as its name).
+		 *
+		 * @return {Array<{field: string, label: string, variant: string}>}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-board-card-can-draw-a-description-chips-and-an-overdue-date
+		 */
+		recordChips() {
+			const chips = this.recordLayout && Array.isArray(this.recordLayout.chips) ? this.recordLayout.chips : []
+			return chips
+				.map((def) => (typeof def === 'string' ? { field: def } : def))
+				.filter((def) => def && typeof def.field === 'string' && def.field !== '')
+				.map((def) => {
+					const column = typeof def.formatter === 'string' ? { formatter: def.formatter, formatterOptions: def.formatterOptions } : undefined
+					const label = this.layoutText(def.field, column)
+					if (label === '') {
+						return null
+					}
+					const raw = readPath(this.object, def.field)
+					const mapped = def.colorMap && typeof def.colorMap === 'object' ? def.colorMap[String(raw)] || def.colorMap[String(raw).toLowerCase()] : undefined
+					const labels = def.labels && typeof def.labels === 'object' ? def.labels : {}
+					const shown = typeof labels[String(raw)] === 'string' ? this.cnTranslate(labels[String(raw)]) : label
+					const variant = mapped || def.variant
+					return { field: def.field, label: shown, variant: isBadgeVariant(variant) ? variant : 'default' }
+				})
+				.filter(Boolean)
 		},
 
 		/**

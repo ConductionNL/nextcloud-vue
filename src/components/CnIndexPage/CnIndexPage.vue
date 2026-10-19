@@ -1357,7 +1357,8 @@ import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, schemaSlug, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
@@ -3962,6 +3963,7 @@ export default {
 		'sort-change',
 		'view',
 		'view-mode-change',
+		'view-overrides',
 		'split-close',
 		'split-saved',
 		'manual-order-change',
@@ -4092,6 +4094,8 @@ export default {
 			savedViewCounts: null,
 			// The id (or slug) of the saved view that is applied; its chip shows selected under the board look.
 			appliedSavedViewId: '',
+			// The sort option the applied view's `overrides.sortOption` selected, so leaving the view can undo it.
+			viewSortOption: '',
 			/**
 			 * The non-`_` query keys this page owns, i.e. may clear on the next
 			 * persist. Seeded with what it adopted from the query on load, and
@@ -5430,6 +5434,33 @@ export default {
 		 */
 		viewsForControl() {
 			return [...this.defaultFilterViews, ...this.splitSavedViews.control]
+		},
+
+		/**
+		 * The page config overrides of the applied view (`overrides`), or null
+		 * when no view is applied or it carries none. CnPageRenderer lays them
+		 * over the page config while the view is active (`view-overrides`).
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-can-override-the-page-config-while-it-is-active
+		 */
+		activeSavedViewOverrides() {
+			const id = this.appliedSavedViewId
+			if (!id) {
+				return null
+			}
+			const views = [...this.defaultFilterViews, ...(this.savedViews || [])]
+			const view = views.find((v) => v && (String(v.id) === id || String(v.slug) === id))
+			return savedViewOverrides(view)
+		},
+
+		/**
+		 * `activeSavedViewOverrides` as one comparable key.
+		 *
+		 * @return {string}
+		 */
+		activeSavedViewOverridesKey() {
+			return JSON.stringify(this.activeSavedViewOverrides)
 		},
 
 		/**
@@ -7822,8 +7853,23 @@ export default {
 			this.applyViewModeFromRoute()
 		},
 
-		'$route.query.savedView': function() {
+		'$route.query.savedView': function(now, before) {
+			// Leaving a view's address (a plain link to the page) leaves the view.
+			if ((typeof now !== 'string' || now === '') && typeof before === 'string' && before !== '' && before === this.appliedSavedViewId) {
+				this.leaveSavedView()
+				return
+			}
 			this.applySavedViewFromRoute()
+		},
+
+		activeSavedViewOverridesKey() {
+			/**
+			 * The applied view's page config overrides changed: a view with
+			 * overrides was applied (payload: the overrides) or left (`null`).
+			 *
+			 * @event view-overrides
+			 */
+			this.$emit('view-overrides', this.activeSavedViewOverrides)
 		},
 
 		routeViewModes() {
@@ -9559,6 +9605,7 @@ export default {
 			// Clearing the view brings the person's own columns back.
 			this.appliedViewColumns = null
 			this.appliedSavedViewId = ''
+			this.applyViewSortOption(null)
 			if (this.isNamedSource && Object.keys(this.namedActiveFilters || {}).length > 0) {
 				this.namedActiveFilters = {}
 				this.persistNamedFiltersToRoute({})
@@ -11305,6 +11352,7 @@ export default {
 				// because it is what records the keys this view wrote — without
 				// that, a later "clear all" has nothing to delete them by.
 				this.persistViewStateToRoute(state, { savedView: keepSavedViewKey ? this.appliedSavedViewId : '' })
+				this.applyViewSortOption(savedViewOverrides(view))
 				this.$emit('apply-view', view)
 				return
 			}
@@ -11321,6 +11369,7 @@ export default {
 			if (nav && typeof nav.catch === 'function') {
 				nav.catch(() => {})
 			}
+			this.applyViewSortOption(savedViewOverrides(view))
 			this.$emit('apply-view', view)
 		},
 
@@ -11487,7 +11536,57 @@ export default {
 			if (!view || !menu || typeof menu.toggle !== 'function' || this.savedViewPage === '') {
 				return
 			}
-			menu.toggle({ id: String(view.id || view.slug), page: this.savedViewPage, name: view.name })
+			const badge = this.savedViewMenuBadge(view)
+			menu.toggle({ id: String(view.id || view.slug), page: this.savedViewPage, name: view.name, ...(badge ? { badge } : {}) })
+		},
+
+		/**
+		 * The count a view's menu entry shows, from its `overrides.badge`:
+		 * `{ count: { register, schema, filter }, counterVariant? }`, or null.
+		 *
+		 * @param {object} view The view.
+		 * @return {{count: object, counterVariant?: string}|null}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 */
+		savedViewMenuBadge(view) {
+			const overrides = savedViewOverrides(view)
+			const badge = overrides ? overrides.badge : null
+			const filters = view && view.query && typeof view.query.filters === 'object' ? view.query.filters : {}
+			const locked = overrides && overrides.lockedFilters && typeof overrides.lockedFilters === 'object' ? overrides.lockedFilters : {}
+			return savedViewBadge(badge, { register: this.register, schema: schemaSlug(this.schema), filter: this.filter }, { ...locked, ...filters })
+		},
+
+		/**
+		 * Select the sort option a view names (`overrides.sortOption`), or,
+		 * given none, undo the one the previous view selected.
+		 *
+		 * @param {object|null} overrides The view's overrides.
+		 * @return {void}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-can-select-a-sort-option
+		 */
+		applyViewSortOption(overrides) {
+			const wanted = overrides && typeof overrides.sortOption === 'string' ? overrides.sortOption : ''
+			if (wanted !== '' && this.selectSortOption(wanted)) {
+				this.viewSortOption = wanted
+				return
+			}
+			if (this.viewSortOption !== '' && this.sortSource && this.sortSource.value === this.viewSortOption) {
+				this.sortSource = { ...this.sortSource, value: '', page: 1 }
+			}
+			this.viewSortOption = ''
+		},
+
+		/**
+		 * Leave the applied view: the page's own config comes back. The filters
+		 * stay as they are, as after any other change to them.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-can-override-the-page-config-while-it-is-active
+		 */
+		leaveSavedView() {
+			this.appliedSavedViewId = ''
+			this.appliedViewColumns = null
+			this.applyViewSortOption(null)
 		},
 
 		/**
@@ -11501,7 +11600,7 @@ export default {
 			if (!menu || typeof menu.sync !== 'function' || this.savedViewPage === '') {
 				return
 			}
-			menu.sync(this.savedViewPage, [...this.defaultFilterViews, ...this.visibleSavedViews])
+			menu.sync(this.savedViewPage, [...this.defaultFilterViews, ...this.visibleSavedViews].map((view) => ({ ...view, menuBadge: this.savedViewMenuBadge(view) })))
 		},
 
 		/**
@@ -11557,6 +11656,10 @@ export default {
 					register: this.register,
 					schema: this.schema,
 				}).query
+				// New criteria keep the view's page config overrides.
+				if (view.query && view.query.overrides) {
+					body.query.overrides = view.query.overrides
+				}
 			}
 			try {
 				const saved = await useSavedViewsApi().patchView(view.id, body)
@@ -11626,6 +11729,9 @@ export default {
 				register: this.register,
 				schema: this.schema,
 			})
+			if (view.query && view.query.overrides) {
+				payload.query.overrides = view.query.overrides
+			}
 			try {
 				const saved = await useSavedViewsApi().updateView(view.id, payload)
 				if (saved) {
