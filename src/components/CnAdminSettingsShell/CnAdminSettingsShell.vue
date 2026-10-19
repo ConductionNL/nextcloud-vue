@@ -160,7 +160,7 @@
 			<template #additional-items>
 				<!-- The board card: support as one fact row, the SLA address on the same line. -->
 				<div v-if="compactCard && showSupport && !supportAtEnd && !$slots.footer" class="cn-version-info__item" data-testid="cn-admin-settings-support-row">
-					<span class="cn-version-info__label">{{ supportTitle }}:</span>
+					<span class="cn-version-info__label">{{ supportTitle }}</span>
 					<span class="cn-version-info__value">
 						<a :href="`mailto:${supportEmail}`">{{ supportEmail }}</a><template v-if="slaEmail">, {{ slaInline }} <a :href="`mailto:${slaEmail}`">{{ slaEmail }}</a></template>
 					</span>

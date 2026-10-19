@@ -1994,7 +1994,10 @@
     "The items themselves stay. This cannot be undone.": "Wat erin staat, blijft bestaan. Dit kunt u niet ongedaan maken.",
     "Whoever gets the filter sees it under Shared with me. It is yours and stays yours.": "Wie het filter krijgt, ziet het onder Gedeeld met mij. Het is van u en blijft dat.",
     "Whoever you share the filter with sees the change at once.": "Wie het filter met u deelt, ziet de wijziging meteen.",
-    "With people and groups": "Met personen en groepen"
+    "With people and groups": "Met personen en groepen",
+    "Select a step on the canvas to see its settings.": "Kies een stap op het canvas om de instellingen te zien.",
+    "Show runs": "Uitvoeringen tonen",
+    "Back to the step settings": "Terug naar de stapinstellingen"
   },
   "plurals": {
     "{count} member": [

@@ -1781,7 +1781,10 @@
     "The items themselves stay. This cannot be undone.": "The items themselves stay. This cannot be undone.",
     "Whoever gets the filter sees it under Shared with me. It is yours and stays yours.": "Whoever gets the filter sees it under Shared with me. It is yours and stays yours.",
     "Whoever you share the filter with sees the change at once.": "Whoever you share the filter with sees the change at once.",
-    "With people and groups": "With people and groups"
+    "With people and groups": "With people and groups",
+    "Select a step on the canvas to see its settings.": "Select a step on the canvas to see its settings.",
+    "Show runs": "Show runs",
+    "Back to the step settings": "Back to the step settings"
   },
   "plurals": {
     "{count} member": [

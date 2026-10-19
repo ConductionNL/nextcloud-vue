@@ -220,6 +220,7 @@ export {
 	CnNotepadWidget,
 	CnNotepadWidgetForm,
 	CnNotesCard,
+	CnNoticeWidget,
 	CnNotificationMatrix,
 	CnNotificationPreferences,
 	CnObjectAccessTab,

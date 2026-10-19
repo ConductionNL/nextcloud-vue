@@ -125,6 +125,7 @@ the badge. "Learn more" goes to `docsUrl` when it is a web address, else to `doc
 |---|---|---|
 | `layout` | `cards` | `cards`: a section per category with two-up feature cards and a count caption. `rows`: one card per category with a row per feature. |
 | `tabs` | `true` | The Features and Roadmap folder tabs. |
+| `actionsMenu` | `true` | The Actions menu (suggest, buildiq, AI skills, support), in the header without tabs or in the tab row with them. `false` draws none, for a board without one. |
 | `filter` | `chips` | `chips`: pills with a count. `segmented`: a segmented control without counts. |
 | `statusLabels` | `{}` | Label overrides by key: `all`, `available`, `beta`, `in_progress`, `planned`. |
 | `next` | `3` | How many issues the Coming next card lists; `0` hides it. |

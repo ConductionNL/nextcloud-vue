@@ -120,6 +120,7 @@
 							"optionsByParent": { "type": "object", "description": "choice: map of parent-choice value → options[] for a dependent (dependsOn) choice. Same option item shape as `options`.", "additionalProperties": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["value", "label"], "properties": { "value": {}, "label": { "type": "string" } } } } },
 							"suggestFrom": { "type": "string", "description": "choice: the configKey of an earlier choice this step pre-fills a suggestion from. When that value is set and the user has not yet picked here, the option matching suggestMap[parentValue] is auto-selected (still user-overridable)." },
 							"default": { "description": "choice: the option value chosen when the step opens (an array of values with `multiple`). Not applied to a step the server already completed." },
+							"noteStyle": { "type": "string", "enum": ["line", "card"], "default": "line", "description": "choice: how `note` is drawn: a muted line under the options (`line`) or an info note card (`card`)." },
 							"suggestMap": { "type": "object", "description": "choice: map of suggestFrom value → suggested option value. Used to auto-suggest a default (e.g. RGS template suggested from organisation type).", "additionalProperties": { "type": "string" } },
 							"multiple": { "type": "boolean", "default": false, "description": "choice: allow multi-select." },
 							"loadAction": { "type": "string", "minLength": 1, "description": "choice with display cards: an actionId each option card loads itself with. Every card except the one whose value is `none` gets its own Load button, which POSTs { dataset: <value> } to /api/setup/action/{loadAction}, spins while it runs and shows the result on that card. A successful load also selects the card. With loadAction the separate run-action step that loaded the picked dataset is no longer needed; manifests that keep it still work." },
@@ -2211,6 +2212,31 @@
 					}
 				},
 				{
+					"description": "notice built-in widget (CnNoticeWidget): one toned box with an icon, a bold title and a text, through the host's translate, in the side column or the grid (DqSociaalDomein, 2.128.0).",
+					"if": {
+						"properties": { "widgetKey": { "const": "notice" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"content": {
+										"type": "object",
+										"properties": {
+											"variant": { "type": "string", "enum": ["info", "warning", "error", "success"], "default": "info" },
+											"title": { "type": "string" },
+											"text": { "type": "string" },
+											"icon": { "type": "string", "minLength": 1 }
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				{
 					"description": "audit-trail built-in widget (CnAuditTrailWidget, Wave 1): the object change-log card. All props are optional — register/schema/objectId normally arrive via the detail-page object-context merge; explicit props win.",
 					"if": {
 						"properties": { "widgetKey": { "const": "audit-trail" } },
@@ -2270,6 +2296,8 @@
 									"emptyLabel": { "type": "string", "description": "Empty-state message rendered instead of the chart when the resolved series contain no data points." },
 									"barMax": { "type": "number", "exclusiveMinimum": 0, "description": "chartKind 'bar-list': the value a full track stands for (100 for percentages). Omitted = the largest value." },
 									"footnote": { "type": "string", "description": "A line under the chart, through the host's translate: under the rows of a bar-list or matrix, and under the plot of a line, area or bar chart." },
+									"referenceLines": { "type": "array", "description": "line, area and bar charts: dashed horizontal reference lines on the value axis, such as a norm. Each `{ value, label?, color? }`; the label goes through the host's translate, the colour defaults to the theme's error colour.", "items": { "type": "object", "required": ["value"], "properties": { "value": { "type": "number" }, "label": { "type": "string" }, "color": { "type": "string" } } } },
+									"categoryFormat": { "type": "string", "enum": ["", "month", "month-year"], "description": "How date categories read on the x-axis: `month` (\"jan\") or `month-year` (\"jan 2026\"), in the user's language. Categories that are not dates are left as is." },
 									"emptyCellLabel": { "type": "string", "description": "chartKind 'matrix': the text of a cell without a value (\"geen\"), through the host's translate. Empty leaves the cell blank. Passed through to CnChartWidget." },
 									"highlight": {
 										"type": "object",
@@ -3249,9 +3277,9 @@
 				},
 				"op": {
 					"type": "string",
-					"enum": ["eq", "neq", "gt", "gte", "lt", "lte", "empty", "notEmpty", "in", "anyOf"],
+					"enum": ["eq", "neq", "gt", "gte", "lt", "lte", "empty", "notEmpty", "in", "anyOf", "contains"],
 					"default": "eq",
-					"description": "Comparison operator (default eq). eq/neq compare loosely-normalised primitives; ordering operators coerce both sides to Number. `in` holds when the value is one of the listed `value` array (2.87.0). `anyOf` holds when the value, or any entry of a list value, is one of the listed `value` array: a record whose `dataCategories` holds \"health\" among others matches `anyOf [\"health\", \"ethnicity\"]` (2.126.0). `empty` / `notEmpty` take no `value` and treat undefined, null, '' and an empty array alike — the one question eq cannot ask, because an unset field arrives in a shape that depends on the store and String(null) is the word 'null' rather than blank."
+					"description": "Comparison operator (default eq). eq/neq compare loosely-normalised primitives; ordering operators coerce both sides to Number. `in` holds when the value is one of the listed `value` array (2.87.0). `anyOf` holds when the value, or any entry of a list value, is one of the listed `value` array: a record whose `dataCategories` holds \"health\" among others matches `anyOf [\"health\", \"ethnicity\"]` (2.126.0). `contains` holds when a list value holds the given `value`, e.g. a case type's overviewCards switching a card on (2.128.0). `empty` / `notEmpty` take no `value` and treat undefined, null, '' and an empty array alike — the one question eq cannot ask, because an unset field arrives in a shape that depends on the store and String(null) is the word 'null' rather than blank."
 				},
 				"value": {
 					"description": "The right-hand side of the comparison, resolved through the shared @-token grammar so `@me` names the signed-in reader rather than a literal only the server knows. Omitted for `empty` / `notEmpty`."
@@ -4218,6 +4246,11 @@
 									}
 								]
 							}
+						},
+						"tabsFrom": {
+							"type": "string",
+							"minLength": 1,
+							"description": "type='detail': a field path, read like a `visibleWhen` field, whose value picks the tabs of the page's tabs widgets and their order for this record, e.g. `@context.caseType.tabs` (DqAanbesteding). A non-empty list of tab ids keeps those tabs in that order; otherwise the declared tabs stay, and edit mode shows them all (2.128.0)."
 						},
 						"sideColumnFrom": {
 							"type": "string",
