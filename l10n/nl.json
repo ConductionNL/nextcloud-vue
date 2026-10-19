@@ -2118,7 +2118,13 @@
     "The passages of this document could not be found. Upload a redacted version instead.": "De passages van dit document konden niet worden gevonden. Upload in plaats daarvan een gelakte versie.",
     "The redacted copy could not be made. Upload a redacted version instead.": "De gelakte kopie kon niet worden gemaakt. Upload in plaats daarvan een gelakte versie.",
     "The redacted version could not be stored. Try again.": "De gelakte versie kon niet worden opgeslagen. Probeer het opnieuw.",
-    "The redacted copy is recorded. Only this copy will be published.": "De gelakte kopie is vastgelegd. Alleen deze kopie wordt gepubliceerd."
+    "The redacted copy is recorded. Only this copy will be published.": "De gelakte kopie is vastgelegd. Alleen deze kopie wordt gepubliceerd.",
+    "Assign": "Toewijzen",
+    "New handler": "Nieuwe behandelaar",
+    "New team": "Nieuw team",
+    "Why it is moving": "Waarom het overgaat",
+    "Use \"{name}\"": "\"{name}\" gebruiken",
+    "It was not handed over.": "Het is niet overgedragen."
   },
   "plurals": {
     "{count} member": [

@@ -1906,7 +1906,13 @@
     "The passages of this document could not be found. Upload a redacted version instead.": "The passages of this document could not be found. Upload a redacted version instead.",
     "The redacted copy could not be made. Upload a redacted version instead.": "The redacted copy could not be made. Upload a redacted version instead.",
     "The redacted version could not be stored. Try again.": "The redacted version could not be stored. Try again.",
-    "The redacted copy is recorded. Only this copy will be published.": "The redacted copy is recorded. Only this copy will be published."
+    "The redacted copy is recorded. Only this copy will be published.": "The redacted copy is recorded. Only this copy will be published.",
+    "Assign": "Assign",
+    "New handler": "New handler",
+    "New team": "New team",
+    "Why it is moving": "Why it is moving",
+    "Use \"{name}\"": "Use \"{name}\"",
+    "It was not handed over.": "It was not handed over."
   },
   "plurals": {
     "{count} member": [

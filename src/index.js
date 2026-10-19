@@ -44,6 +44,7 @@ export {
 	CnAppLoading,
 	CnAppNav,
 	CnAppRoot,
+	CnAssignDialog,
 	CnAuditTrailCard,
 	CnAuditTrailWidget,
 	CnBannerWidget,
