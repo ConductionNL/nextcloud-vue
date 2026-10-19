@@ -44,7 +44,7 @@ fields: [
 
 ## An image
 
-An `image` field shows the current image in a tile (its value is the image url), or up to two initials when there is none (`initials`, or the value of the field `initialsFrom` names). Its button uploads a chosen file at once, as multipart form data, to `uploadUrl`: the file under `uploadField` (default `image`) plus `uploadParams`. The new image url is read from the answer at `uploadValuePath`, or is `previewUrl` with a cache buster. An image is not part of Save. For the Nextcloud logo that is `uploadUrl: '/apps/theming/ajax/uploadImage'`, `uploadParams: { key: 'logo' }`, `uploadValuePath: 'data.url'`; the server only allows an administrator.
+An `image` field shows the current image in a tile (its value is the image url), or up to two initials when there is none (`initials`, or the value of the field `initialsFrom` names). Its button uploads a chosen file at once, as multipart form data, to `uploadUrl`: the file under `uploadField` (default `image`) plus `uploadParams`. The new image url is read from the answer at `uploadValuePath`, or is `previewUrl` with a cache buster. An image is not part of Save. For the Nextcloud logo that is `uploadUrl: '/apps/theming/ajax/uploadImage'`, `uploadParams: { key: 'logo' }`, `uploadValuePath: 'data.url'`; the server only allows an administrator. `hideLabel: true` drops its visible label and keeps it for a screen reader.
 
 ## A secret
 

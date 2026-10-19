@@ -120,6 +120,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`). The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
 | `search` | Boolean | `true` | `false` draws no inline search in the actions bar, also in the board look, which otherwise draws one on every index page (manifest: `config.search`). Wins over `inlineSearch`. |
+| `appConfig` | Object | `{}` | The app config `@config.<key>` tokens resolve against (manifest: `config.appConfig`), as on the dashboard and detail pages, merged over a config an ancestor provides on `cnAppConfig`. A quick filter's `filter` and its `label` / `activeLabel` take the token: `"Residence @config.municipality"` reads "Residence Zuiddrecht" (board DqContacten); the label is translated first, and a key the config does not hold leaves the token as written. |
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls; forwarded to `CnActionsBar` (manifest: `config.showCountWithSearch`). Only relevant with `inlineSearch` |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`). Under the board look on a page without a filter sidebar it is the toolbar's Filter button, which carries the number of active filters as a badge while any is active |
 | `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a visibility checkbox — the in-table equivalent of the sidebar's Columns tab (manifest: `config.columnMenu`). See [Filter and columns: table header vs sidebar](#filter-and-columns-table-header-vs-sidebar). |
@@ -1286,7 +1287,9 @@ A folder in `folderSidebar` (or the `x-index` block of the row a register-derive
 presentation keys a query preset sets, under the same names: `title`, `quickFilters`, `cardFields`, `countText`,
 `searchPlaceholder`, `footerNote`, `viewSwitch`, `addLabel`, `headerButtons`, `breadcrumb`, `headerMeta` and
 `afterList`. While the folder is selected its value replaces the page's, including a value a query preset set; a key it
-does not carry stays the page's. Its `columns`, `defaultSort` and `searchFields` keep working as before.
+does not carry stays the page's. Its `columns`, `defaultSort` and `searchFields` keep working as before. A page column
+the folder's `columns` names is shown even when the page hides it by default (`hidden: true`), so a column only one
+case type needs stays off the general list (board DqWooVerzoeken: Requester and Received).
 
 ```json
 "folders": [{

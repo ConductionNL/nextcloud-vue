@@ -19,6 +19,6 @@
 
 | Name      | Payload | Description |
 | --------- | ------- | ----------- |
-| `run`     | —       |             |
 | `save`    | —       |             |
+| `run`     | —       |             |
 | `retried` | —       |             |

@@ -163,8 +163,15 @@
 	gap: 8px;
 }
 
+/* A chip is a <button>: the nldesign theme sets every button's radius and
+   weight with `!important` through its button tokens, which drew the chips
+   as 8px boxes at 700 (DqTeamwachtrij), so the chip hands its pill radius and
+   600 to those tokens.
+   @spec openspec/changes/board-chips-theme/specs/board-chips-theme/spec.md#requirement-board-chips-stay-pills-under-a-theme */
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab {
+	--nldesign-component-button-border-radius: 19px;
+	--nldesign-component-button-font-weight: 600;
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
@@ -267,12 +274,30 @@
 	padding: 0;
 }
 
-/* Filter: a labelled secondary button, 36px, radius 8, with the active count. */
+/* The toolbar's buttons are the board's neutral control (DqTeamwachtrij
+   "Filter"): the main text at 600 on the main background with a grey border.
+   The nldesign theme paints a secondary button in the primary colour with
+   `!important` through its button tokens, so the bar hands the board's values
+   to those tokens.
+   @spec openspec/changes/board-toolbar-buttons-theme/specs/board-toolbar-buttons-theme/spec.md#requirement-board-toolbar-buttons-are-neutral-under-a-theme */
+.cn-look-board .cn-actions-bar:not(.cn-look-nextcloud *) {
+	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-secondary-action-color: var(--color-main-text);
+	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
+	--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);
+	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
+}
+
+/* Filter: a labelled secondary button, 36px, radius 8, 12px at both sides
+   and 14px text, with the active count. NcButton with an icon pads its start
+   4px and sets 15px. */
 .cn-look-board .cn-actions-bar__filter-button.button-vue,
 .cn-look-board .cn-actions-bar__filter-menu .button-vue {
 	min-height: 36px;
 	height: 36px;
+	padding: 0 12px;
 	border-radius: 8px;
+	font-size: 14px;
 	font-weight: 600;
 }
 
@@ -513,9 +538,18 @@
 
 /* The header row is near-white on the boards (#fafbfc), not the hover grey,
    its labels 14px muted. The ink also goes to --nldesign-color-on-surface,
-   which a theme that forces the body ink onto every span (thematiq) reads. */
+   which a theme that forces the body ink onto every span (thematiq) reads.
+   The nldesign theme paints every `th` with `!important` through its table
+   header tokens, and the sort button in it through its button weight token
+   (bold), so the cell hands the board's ground, ink and weight to those
+   tokens too.
+   @spec openspec/changes/board-table-head-theme/specs/board-table-head-theme/spec.md#requirement-a-board-table-header-keeps-the-boards-ground-ink-and-weight-under-a-theme */
 .cn-look-board .cn-table-container--board .cn-data-table th {
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-font-weight: 600;
+	--nldesign-component-button-font-weight: 600;
 	padding: 12px 16px;
 	border-bottom: 0;
 	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
