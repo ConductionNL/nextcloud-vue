@@ -13,7 +13,11 @@
  *   --cn-dialog-eyebrow-tracking     letter spacing; 0 by default, 0.06em suits capitals
  */
 
+/* The nldesign theme sets a dialog's radius with `!important` through its
+   dialog radius token, so the board's 12px goes to that token.
+   @spec openspec/changes/board-dialog-theme/specs/board-dialog-theme/spec.md#requirement-a-board-dialog-keeps-its-frame-and-inset-under-a-theme */
 .cn-dialog-board {
+	--nldesign-component-dialog-border-radius: var(--cn-board-card-radius, 12px);
 	--cn-dialog-width: 640px;
 	--cn-dialog-danger: var(--color-error);
 	--cn-dialog-eyebrow-color: var(--color-primary-element-text, var(--color-main-text));
@@ -26,14 +30,24 @@
 	background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent);
 }
 
-/* Width by role, capped at the viewport minus a 16px gutter each side. */
+/* Width by role, capped at the viewport minus a 16px gutter each side. The
+   shadow carries `!important`: the nldesign theme removes every
+   `.modal-container`'s shadow with `!important` and offers no token for it. */
 .modal-mask.cn-dialog-board .modal-wrapper--normal > .modal-container,
 .modal-mask.cn-dialog-board .modal-wrapper .modal-container {
 	width: var(--cn-dialog-width);
 	max-width: min(var(--cn-dialog-width), calc(100% - 32px));
 	border-radius: var(--cn-board-card-radius, 12px);
-	box-shadow: 0 12px 40px color-mix(in srgb, var(--color-main-text) 28%, transparent);
+	box-shadow: 0 12px 40px color-mix(in srgb, var(--color-main-text) 28%, transparent) !important;
 	overflow: hidden;
+}
+
+/* The board's header and body carry their own 24px inset. NcDialog pads its
+   container 4px at the top and 12px at the start, which put the title and
+   the fields 36px in; its rule outranked the one above through the scoped
+   `.dialog__modal[data-v-…]`, so this one names the class too. */
+.modal-mask.cn-dialog-board.dialog__modal .modal-wrapper .modal-container {
+	padding: 0;
 }
 
 /* The header is ours: NcModal's own close button and NcDialog's heading give
@@ -267,6 +281,10 @@
 		height: auto;
 		max-height: calc(100% - var(--header-height, 50px));
 		border-radius: 16px 16px 0 0;
+	}
+
+	.cn-dialog-board {
+		--nldesign-component-dialog-border-radius: 16px 16px 0 0;
 	}
 
 	.modal-mask.cn-dialog-board .modal-container::before {
