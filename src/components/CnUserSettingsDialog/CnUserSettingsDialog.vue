@@ -339,7 +339,11 @@ export default {
 	list-style: none;
 }
 
-.cn-user-settings-dialog__nav-link {
+/* A navigation entry, not a link in running text: no underline, also not
+   on hover. `!important` because a theme's `a { text-decoration }` carries
+   it (thematiq), and a bare `a` with `!important` beats any class. */
+.cn-user-settings-dialog__nav-link,
+.cn-user-settings-dialog__nav-link:visited {
 	display: flex;
 	align-items: center;
 	gap: 10px;
@@ -348,11 +352,12 @@ export default {
 	border-radius: var(--border-radius-element, 8px);
 	font-size: 15px;
 	color: var(--color-main-text);
-	text-decoration: none;
+	text-decoration: none !important;
 }
 
 .cn-user-settings-dialog__nav-link:hover {
 	background: var(--color-background-hover);
+	text-decoration: none !important;
 }
 
 .cn-user-settings-dialog__nav-link:focus-visible {
