@@ -1792,7 +1792,22 @@
     "Share view: {name}": "Share view: {name}",
     "The view \"{name}\" leaves your list and the menu on the left.": "The view \"{name}\" leaves your list and the menu on the left.",
     "Whoever gets the view sees it under Shared with me. It is yours and stays yours.": "Whoever gets the view sees it under Shared with me. It is yours and stays yours.",
-    "Whoever you share the view with sees the change at once.": "Whoever you share the view with sees the change at once."
+    "Whoever you share the view with sees the change at once.": "Whoever you share the view with sees the change at once.",
+    "{source} could not be read, so this list is incomplete.": "{source} could not be read, so this list is incomplete.",
+    "This queue could not be read": "This queue could not be read",
+    "Try again": "Try again",
+    "Nothing is waiting on you.": "Nothing is waiting on you.",
+    "Hide this group until tomorrow": "Hide this group until tomorrow",
+    "Hide until tomorrow": "Hide until tomorrow",
+    "Covering for {person}": "Covering for {person}",
+    "Hidden until tomorrow": "Hidden until tomorrow",
+    "Show {group} again": "Show {group} again",
+    "the applicant": "the applicant",
+    "a third party": "a third party",
+    "us": "us",
+    "Waiting on {party} for {days} days": "Waiting on {party} for {days} days",
+    "Waiting on {party} for {days} days, chased once": "Waiting on {party} for {days} days, chased once",
+    "Waiting on {party} for {days} days, chased {chases} times": "Waiting on {party} for {days} days, chased {chases} times"
   },
   "plurals": {
     "{count} member": [

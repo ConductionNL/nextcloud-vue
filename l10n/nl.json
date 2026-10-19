@@ -2005,7 +2005,21 @@
     "Share view: {name}": "Weergave delen: {name}",
     "The view \"{name}\" leaves your list and the menu on the left.": "De weergave \"{name}\" verdwijnt uit uw lijst en uit het menu links.",
     "Whoever gets the view sees it under Shared with me. It is yours and stays yours.": "Wie de weergave krijgt, ziet die onder Gedeeld met mij. Die is van u en blijft dat.",
-    "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen."
+    "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen.",
+    "{source} could not be read, so this list is incomplete.": "{source} kon niet worden gelezen, dus deze lijst is niet compleet.",
+    "This queue could not be read": "Deze wachtrij kon niet worden gelezen",
+    "Nothing is waiting on you.": "Er wacht niets op je.",
+    "Hide this group until tomorrow": "Verberg deze groep tot morgen",
+    "Hide until tomorrow": "Verberg tot morgen",
+    "Covering for {person}": "Waarneming voor {person}",
+    "Hidden until tomorrow": "Verborgen tot morgen",
+    "Show {group} again": "{group} weer tonen",
+    "the applicant": "de aanvrager",
+    "a third party": "een derde",
+    "us": "ons",
+    "Waiting on {party} for {days} days": "Wacht {days} dagen op {party}",
+    "Waiting on {party} for {days} days, chased once": "Wacht {days} dagen op {party}, één keer gerappelleerd",
+    "Waiting on {party} for {days} days, chased {chases} times": "Wacht {days} dagen op {party}, {chases} keer gerappelleerd"
   },
   "plurals": {
     "{count} member": [
