@@ -1121,6 +1121,27 @@
 	font-weight: 600;
 }
 
+.cn-look-board .cn-object-card--board .cn-object-card__record-date--error {
+	color: var(--color-error-text);
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-date--warning {
+	color: var(--color-warning-text);
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-description {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
 /* The catalogue card of the store page. */
 .cn-look-board .cn-store-page__card.cn-store-page__card--board {
 	gap: 10px;

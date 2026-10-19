@@ -880,7 +880,7 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
 | `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
 | `showSortSelect` | Boolean | `false` | Deprecated, without effect: the toolbar draws no sort select. The table sorts by its column headers; the list, card and map views by the Sort section in the index sidebar. |
-| `sortSelectOptions` | Array | `[]` | The orders the index sidebar's Sort section offers in the list, card and map views: `{ value, label, order? }`, the order its `order` or its `value` read as one (`"-createdAt"`, `"priority:desc,title"`). Without them the section offers the sortable columns. |
+| `sortSelectOptions` | Array | `[]` | The orders the index sidebar's Sort section offers in the list, card and map views: `{ value, label, order?, default?, source? }`, the order its `order` or its `value` read as one (`"-createdAt"`, `"priority:desc,title"`). An option with a `source` lists an endpoint's rows in the endpoint's order (see *An order from an endpoint*). Without them the section offers the sortable columns. |
 | `sortSelectValue` | String | `''` | Deprecated, without effect: the Sort section shows the current order. |
 | `defaultOrder` | String, Object or Array | `''` | The order a self-fetch page opens on when neither the address nor `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`): `"-createdAt"`, `"priority:desc,title"`, an `_order` map `{ "priority": "desc" }` or a `[{ key, order }]` list. |
 

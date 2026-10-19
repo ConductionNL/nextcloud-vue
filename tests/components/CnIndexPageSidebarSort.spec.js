@@ -184,4 +184,27 @@ describe('CnIndexSidebar sort section', () => {
 	it('draws no section without options', () => {
 		expect(mountSidebar({ sortOptions: [] }).find('[data-testid="cn-index-sidebar-sort"]').exists()).toBe(false)
 	})
+
+	describe('an order of its own (`fixed`, an endpoint-ranked order)', () => {
+		const withFixed = [{ value: 'urgency', label: 'Urgency', keys: [], fixed: true }, ...options]
+
+		it('shows as chosen by its value, with no direction to pick', () => {
+			const w = mountSidebar({ sortOptions: withFixed, currentSortValue: 'urgency', currentSort: [{ key: 'title', order: 'asc' }] })
+			expect(w.vm.sortSelected).toEqual(expect.objectContaining({ value: 'urgency' }))
+			expect(w.find('[data-testid="cn-index-sidebar-sort-current"]').text()).toBe('Current order: Urgency')
+			const radios = w.findAllComponents({ name: 'NcCheckboxRadioSwitch' })
+			expect(radios.every((radio) => radio.attributes('disabled') !== undefined)).toBe(true)
+		})
+
+		it('is not matched on the current order\'s keys', () => {
+			const w = mountSidebar({ sortOptions: withFixed, currentSort: [{ key: 'title', order: 'asc' }] })
+			expect(w.vm.sortSelected).toEqual(expect.objectContaining({ value: 'title' }))
+		})
+
+		it('emits its value beside the order when chosen', () => {
+			const w = mountSidebar({ sortOptions: withFixed, currentSort: [] })
+			w.vm.onSortField({ value: 'urgency' })
+			expect(w.emitted('sort-change').at(-1)).toEqual([[], 'urgency'])
+		})
+	})
 })

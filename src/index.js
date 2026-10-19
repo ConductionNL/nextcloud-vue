@@ -196,6 +196,7 @@ export {
 	CnLockedBanner,
 	CnLockIndicator,
 	CnLogsPage,
+	CnMailTab,
 	CnMapWidget,
 	CnMarkdownEditor,
 	CnMarkdownWidget,
