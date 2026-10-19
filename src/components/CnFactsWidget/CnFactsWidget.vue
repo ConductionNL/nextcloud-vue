@@ -1206,11 +1206,15 @@ export default {
 	min-width: 0;
 }
 
+/* `padding: 0`: Nextcloud's core stylesheet pads every `dl` 12px at the top
+   and bottom, which put a side card's facts 24px under its title, against
+   the board's 12 (DqZaak "Behandeling", DqZaakDocumenten). */
 .cn-facts-widget__rows {
 	display: grid;
 	grid-template-columns: max-content 1fr;
 	gap: 8px 16px;
 	margin: 0;
+	padding: 0;
 	font-size: 14px;
 }
 
