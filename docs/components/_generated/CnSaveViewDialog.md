@@ -8,10 +8,10 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name          | Type     | Required | Default                                              | Description                                                                                                                                                                                 |
-| ------------- | -------- | -------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Save current filter')` | Dialog title shown in the NcDialog header.                                                                                                                                                  |
-| `schema`      | `object` |          | `null`                                               | The view's JSON Schema. With it the dialog shows the presentation picker (table, board, calendar) and emits `presentation` in `confirm`; without it the dialog renders and emits as before. |
+| Name          | Type     | Required | Default                                            | Description                                                                                                                                                                                 |
+| ------------- | -------- | -------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Save current view')` | Dialog title shown in the NcDialog header.                                                                                                                                                  |
+| `schema`      | `object` |          | `null`                                             | The view's JSON Schema. With it the dialog shows the presentation picker (table, board, calendar) and emits `presentation` in `confirm`; without it the dialog renders and emits as before. |
 
 ### Events
 

@@ -3255,13 +3255,6 @@
 			"via": [],
 			"page": "cn-save-view-dialog"
 		},
-		"CnSavedFiltersPanel": {
-			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
-			"page": "cn-saved-filters-panel"
-		},
 		"CnSavedViewAlertWidget": {
 			"direct": 0,
 			"transitive": 1,
