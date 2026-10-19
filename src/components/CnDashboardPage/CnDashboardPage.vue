@@ -96,7 +96,7 @@
 				<template v-if="!isBoardLook">
 					<CnActionButtons
 						v-if="headerActions && headerActions.length"
-						:actions="headerActions"
+						:actions="linkedHeaderActions"
 						data-testid="cn-dashboard-page-header-actions" />
 					<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, launchpad, opencatalogi, pipelinq, procest). -->
 					<slot name="header-actions" />
@@ -169,7 +169,7 @@
 					<CnBuildiqEditButton />
 					<CnActionButtons
 						v-if="headerActions && headerActions.length"
-						:actions="headerActions"
+						:actions="linkedHeaderActions"
 						data-testid="cn-dashboard-page-header-actions" />
 					<slot name="header-actions" />
 					<slot name="actions" />
@@ -1040,6 +1040,7 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
+import { headerActionAsLink } from '../../utils/actionLink.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
@@ -1686,9 +1687,12 @@ export default {
 		 * in the dashboard header via CnActionButtons — `open-form` (schema
 		 * create dialog), `api-call` (POST/PUT + toast + refresh), `toggle`
 		 * (two-way state button), `navigate` / `open-modal` / `refresh`, each
-		 * with an optional `visibleWhen` predicate. Empty (the default) renders
-		 * nothing; the `#header-actions` slot still works alongside it for
-		 * bespoke buttons.
+		 * with an optional `visibleWhen` predicate. An entry with `href` is a
+		 * link button, never dispatched: an absolute `http(s)`, `mailto:` or
+		 * `tel:` URL as written, an instance path (leading `/`) through
+		 * `generateUrl()`, in a new tab with `target: '_blank'`. Empty (the
+		 * default) renders nothing; the `#header-actions` slot still works
+		 * alongside it for bespoke buttons.
 		 *
 		 * @type {Array<object>}
 		 */
@@ -2083,6 +2087,16 @@ export default {
 		 */
 		effectiveTranslate() {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+		},
+
+		/**
+		 * The header actions handed to CnActionButtons, an entry with `href`
+		 * in its link form (resolved URL, anchor target, no handler).
+		 *
+		 * @return {Array<object>}
+		 */
+		linkedHeaderActions() {
+			return (this.headerActions || []).map(headerActionAsLink)
 		},
 
 		/**

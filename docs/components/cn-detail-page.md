@@ -125,6 +125,17 @@ Ungrouped actions come first. Each group follows under a caption, in the order t
 
 `adminOnly` hides a control. It does not protect anything: the endpoint behind the action decides who may call it.
 
+### A link in the menu
+
+```json
+"headerActions": [
+  { "id": "connections", "label": "Add integration", "href": "/apps/integriq/connections?app=stackiq" },
+  { "id": "guide", "label": "Integration guide", "href": "https://example.org/guide", "target": "_blank" }
+]
+```
+
+An action with `href` is a real link (`<a href>`) in the Actions menu, and as a quick or primary action button, so it can be opened in a new tab or copied. An instance path (leading `/`) goes through `generateUrl()`, an absolute `http(s)`, `mailto:` or `tel:` URL is used as written. It opens in place unless `target` is `"_blank"`, and it is never dispatched, so it carries no `handler`; as the primary button it emits no `primary-action`. A child in `children[]` may be a link the same way. See [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href) for the full rules.
+
 ### Help links out of the record
 
 ```json

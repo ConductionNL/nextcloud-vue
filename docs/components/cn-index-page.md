@@ -1050,6 +1050,26 @@ Example:
 - Non-function entry in the registry (e.g. a Vue component) → console.warn + fall-through to `@action`-only.
 - Function-typed `handler` (passed via the runtime prop, NOT through the manifest) keeps working unchanged — used by the built-in `view` / `edit` / `copy` / `delete` actions.
 
+### Header actions that are links (`href`)
+
+A `headerActions[]` entry that only goes somewhere carries `href` instead of `handler`. It renders as a real link (`<a href>`) in the actions bar's overflow menu, in the board header's Actions menu and as a `headerButtons[]` button naming it, so it can be middle-clicked, opened in a new tab, copied and bookmarked.
+
+- An absolute `http(s)`, `mailto:` or `tel:` URL is used as written; an instance path (leading `/`) goes through `generateUrl()`, so `/apps/integriq/connections` works with and without pretty URLs. A path that already names an entry point (`/index.php/`, `/remote.php/`, `/public.php/`, `/ocs/`) is only prefixed with the instance root, and one that already starts with the root and an entry point is used as written. Anything else (a relative path, another scheme) is dropped with a warning.
+- The link opens in place; `target: "_blank"` opens it in a new tab. `NcActionLink` and `NcButton` give every link `rel="nofollow noreferrer noopener"`.
+- A link only navigates: it runs no handler and emits no `@header-action`. The schema (`$defs/headerAction`) refuses `href` together with `handler` or a `type` other than `handler`, and takes `href` on header actions and their `children[]`, and on a detail page's `quickActions[]` / `primaryActionByStage` entries, only; row, bulk and navigation actions and their children do not take it.
+- A JS-composed entry carrying a function `handler` and `href` keeps working as before, with `href` used as given: on the index and reports pages the handler wins and runs, on detail and dashboard pages the `href` wins and the entry is a link.
+
+```jsonc
+{
+  "headerActions": [
+    { "id": "add-integration", "label": "Add integration", "icon": "Plus", "href": "/apps/integriq/connections?app=stackiq&link=1" },
+    { "id": "guide", "label": "Integration guide", "href": "https://example.org/guide", "target": "_blank" }
+  ]
+}
+```
+
+The same key works on detail, dashboard and reports pages.
+
 ## Bespoke card-grid via `cardComponent`
 
 The default card-grid view renders `CnObjectCard` for each row using

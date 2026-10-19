@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.127.0', () => {
+	it('the manifest schema version reads 2.128.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1404,7 +1404,49 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.125.0 adds chart emptyCellLabel and the footnote under line, area and bar charts (chart-widget), config.bulkBandAlways (actions-bar), config.quickFilterPlacement (index-page), config.rowClass rules on an index page (index-page) and sourceConfig.limit for a paging source (index-page).
 		// 2.126.0 adds the setup choice step's display "rows" and default (setup-wizard), visibleWhen op anyOf and the record-list footerAction (record-list), and documents folderSidebar.pane and the fieldOverrides search look (index-page, form-dialog).
 		// 2.127.0 adds config.sideColumnFrom on a detail page (detail-page), headerButtons[].run, config.search, searchPlacement, defaultOrder, listConfig leading / trailing / subtitleTemplate and folderSidebar heading / countText on an index page (index-page, object-row), and the object-table pageSize (object-table).
-		expect(schema.version).toBe('2.127.0')
+		// 2.128.0 adds $defs.headerAction / headerLinkAction: href with target "_blank" / "_self" on header actions, their children, quick actions and stage actions, a header action that is a real link (actions-bar, nextcloud-vue#1314).
+		expect(schema.version).toBe('2.128.0')
+	})
+
+	it('accepts the 2.128.0 header action href and refuses it with a handler, another type or a bad URL', () => {
+		const withAction = (action) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config: { register: 'r', schema: 's', headerActions: [{ id: 'add', label: 'Add integration', ...action }] } }] })
+		expect(validateManifestV2(withAction({ href: '/apps/integriq/connections?app=stackiq' })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ href: 'https://example.org/docs', target: '_blank' })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ href: 'mailto:support@example.org', target: '_self' })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ href: '/apps/x', handler: 'openConnections' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: '/apps/x', type: 'navigate' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: '/apps/x', target: 'connections' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: 'javascript:alert(1)' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: 'apps/x' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: 'HTTPS://example.org' })).valid).toBe(false)
+		// Without href, `target` keeps naming a destination.
+		expect(validateManifestV2(withAction({ type: 'open-modal', target: 'connections' })).valid).toBe(true)
+	})
+
+	it('takes href on header action children, quick actions and stage actions, but not on row, bulk or navigation actions', () => {
+		const link = { id: 'go', label: 'Go', href: '/apps/x' }
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config: { register: 'r', schema: 's', ...config } }] })
+		const detail = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', ...config } }] })
+		expect(validateManifestV2(index({ headerActions: [{ id: 'more', label: 'More', handler: 'emit', children: [link] }] })).valid).toBe(true)
+		expect(validateManifestV2(index({ headerActions: [{ ...link, children: [{ ...link, id: 'sub' }] }] })).valid).toBe(true)
+		expect(validateManifestV2(index({ headerActions: [{ id: 'more', label: 'More', children: [{ ...link, handler: 'x' }] }] })).valid).toBe(false)
+		expect(validateManifestV2(detail({ quickActions: [link], primaryActionByStage: { open: link } })).valid).toBe(true)
+		expect(validateManifestV2(index({ bulkActions: [link] })).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', actions: [link] }] }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: link } } }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: { id: 'go', label: 'Go', type: 'navigate', target: '/x' } } } }).valid).toBe(true)
+		// Children: a header action's take href, a row, bulk or navigation action's do not.
+		const parent = (children) => ({ id: 'more', label: 'More', handler: 'emit', children })
+		expect(validateManifestV2(index({ bulkActions: [parent([link])] })).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', actions: [parent([link])] }] }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: parent([link]) } } }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: parent([{ id: 'sub', label: 'Sub', handler: 'emit' }]) } } }).valid).toBe(true)
+		expect(validateManifestV2(index({ headerActions: [parent([{ id: 'sub', label: 'Sub', handler: 'emit', unknownKey: 1 }])] })).valid).toBe(false)
+		// Both action defs stay closed and keep the per-type rules.
+		expect(validateManifestV2(index({ bulkActions: [{ id: 'a', label: 'A', unknownKey: 1 }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ bulkActions: [{ id: 'a', label: 'A', type: 'object-op' }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ headerActions: [{ id: 'a', label: 'A', type: 'api-call' }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ headerActions: [{ id: 'a', label: 'A', type: 'api-call', url: '/apps/x/api' }] })).valid).toBe(true)
 	})
 
 	it('accepts the 2.127.0 keys and refuses malformed ones', () => {

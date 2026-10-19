@@ -63,7 +63,7 @@
 									<NcActionLink
 										v-else-if="entry.href"
 										:href="entry.href"
-										target="_blank"
+										:target="entry.linkTarget || '_blank'"
 										rel="noopener noreferrer"
 										:data-testid="`cn-index-header-menu-${entry.key}`">
 										<template v-if="entry.icon" #icon>
@@ -103,6 +103,8 @@
 							<NcButton
 								v-else
 								:variant="button.variant"
+								:href="button.link ? button.link.href : undefined"
+								:target="button.link ? button.link.target : undefined"
 								:data-testid="`cn-index-header-button-${button.key}`"
 								@click="onHeaderButton(button)">
 								<template v-if="button.icon" #icon>
@@ -1272,8 +1274,8 @@ import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
-import { followItemActionLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
-import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { followItemActionLink, headerActionAsLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
+import { buildOnSuccessRoute, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import {
 	buildReferenceStages,
 	buildValueStages,
@@ -3732,11 +3734,16 @@ export default {
 		 * (unless the handler is the `'none'` keyword) emits
 		 * `@header-action({ action: id, id })`.
 		 *
+		 * An entry with `href` instead renders as a real link and is never
+		 * dispatched or emitted: an absolute `http(s)`, `mailto:` or `tel:`
+		 * URL is used as written, an instance path (leading `/`) goes through
+		 * `generateUrl()`. `target: '_blank'` opens it in a new tab.
+		 *
 		 * Reserved ids (those used by built-ins on the bar — `refresh`,
 		 * `import`, `export`, `copy`, `delete`) are dropped from the
 		 * merged list with a `console.warn`.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|(() => void), route?: string, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|(() => void), route?: string, href?: string, target?: ('_blank'|'_self'), disabled?: boolean }>}
 		 */
 		headerActions: {
 			type: Array,
@@ -4170,7 +4177,7 @@ export default {
 		/**
 		 * The header actions that open a dialog: `type: "open-form"` (the
 		 * schema-driven create form, as the navigation's primary action opens
-		 * it) or `type: "open-modal"`, without a `handler` of their own.
+		 * it) or `type: "open-modal"`, without a `handler` or `href` of their own.
 		 * Reserved ids are left out, as in `mergedHeaderActions`.
 		 *
 		 * @spec openspec/changes/index-header-open-form/specs/index-header/spec.md#requirement-an-index-header-action-can-open-the-create-form
@@ -4182,9 +4189,17 @@ export default {
 				&& typeof entry.id === 'string'
 				&& !reserved.has(entry.id)
 				&& (entry.handler === undefined || entry.handler === null || entry.handler === '')
+				&& !entry.href
 				&& (entry.type === 'open-form' || entry.type === 'open-modal'))
 		},
 
+		/**
+		 * The header actions without reserved ids, each through
+		 * `resolveHeaderHandler` (a manifest `href` entry becomes a link with
+		 * `_dispatchSuppress`, so the page neither runs nor emits it).
+		 *
+		 * @return {Array<object>}
+		 */
 		mergedHeaderActions() {
 			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
 			const merged = []
@@ -6739,11 +6754,12 @@ export default {
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @spec openspec/changes/screens-index-header-buttons-parity/specs/index-list-board-look/spec.md#requirement-the-add-header-button-carries-a-plus
-		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string}>}
+		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string, link: ({href: string, target: (string|undefined)}|null)}>}
 		 */
 		resolvedHeaderButtons() {
 			const headerButtons = this.presented('headerButtons')
 			const declared = Array.isArray(headerButtons) ? headerButtons : []
+			const builtInActions = new Set(['add', 'export', 'import', 'refresh', 'save-view', 'actions-menu'])
 			return declared
 				.filter((button) => button && typeof button === 'object' && typeof button.action === 'string' && button.action !== '')
 				.map((button, index) => {
@@ -6770,6 +6786,13 @@ export default {
 					if (label === '' && button.action === 'save-view') {
 						label = t('nextcloud-vue', 'Save view')
 					}
+					const run = typeof button.run === 'string' ? button.run : ''
+					// A button that runs a manifest `href` header action is that link;
+					// a `type: "navigate"` or function-handler entry keeps dispatching.
+					const actionId = button.action === 'export' ? run : (builtInActions.has(button.action) ? '' : button.action)
+					const linked = actionId
+						? this.mergedHeaderActions.find((entry) => entry && entry.id === actionId && entry.href && entry._dispatchSuppress && (!entry.type || entry.type === 'handler'))
+						: null
 					return {
 						key: String(button.id || button.action || index),
 						label,
@@ -6777,7 +6800,8 @@ export default {
 						variant: button.variant === 'primary' ? 'primary' : 'secondary',
 						icon,
 						format: button.format === 'excel' ? 'excel' : 'csv',
-						run: typeof button.run === 'string' ? button.run : '',
+						run,
+						link: linked ? { href: linked.href, target: linked.linkTarget || undefined } : null,
 						items: Array.isArray(button.items)
 							? button.items.filter((item) => (typeof item === 'string' && item !== '')
 								|| (item && typeof item === 'object' && typeof item.heading === 'string' && item.heading !== ''))
@@ -8245,7 +8269,8 @@ export default {
 		 *   becomes a `$router.push` thunk (with the entry's literal
 		 *   `params` map when present); `'none'` becomes a no-op +
 		 *   `_dispatchSuppress: true`; a registry name resolves to a
-		 *   `fn({ actionId })` thunk.
+		 *   `fn({ actionId })` thunk; an `href` becomes a resolved link
+		 *   with `linkTarget`, no handler and `_dispatchSuppress: true`.
 		 */
 		resolveHeaderHandler(entry) {
 			if (!entry) {
@@ -8255,10 +8280,19 @@ export default {
 			if (typeof handler === 'function') {
 				return { ...entry }
 			}
+			// An `href` makes the entry a link, which only navigates: it
+			// carries no handler, and the page emits nothing for it.
+			if (typeof entry.href === 'string' && entry.href !== '') {
+				const link = headerActionAsLink(entry)
+				return link.href ? { ...link, linkTarget: link.target, _dispatchSuppress: true } : link
+			}
 			// `type: "navigate"` with a `target` URL is a link: the bar and the
-			// header's Actions menu render it as a real anchor in a new tab.
+			// header's Actions menu render it as a real anchor, an external URL
+			// in a new tab.
 			if (typeof handler !== 'string' && entry.type === 'navigate' && typeof entry.target === 'string' && entry.target !== '' && !entry.href) {
-				return { ...entry, href: entry.target }
+				return isExternalActionTarget(entry.target)
+					? { ...entry, href: entry.target, linkTarget: '_blank' }
+					: { ...entry, href: entry.target }
 			}
 			if (typeof handler !== 'string') {
 				// No handler declared — emit-only fall-through.
@@ -8430,7 +8464,7 @@ export default {
 		 * @spec openspec/changes/screens-index-header-actions-menu/specs/index-header/spec.md#requirement-the-header-actions-menu-lists-what-its-items-name
 		 * @spec openspec/changes/screens-index-header-menu-headings/specs/index-header/spec.md#requirement-the-header-actions-menu-can-draw-group-headings-and-separators
 		 * @param {{items?: Array<(string|{heading: string})>|null, format?: string}} button The resolved header button.
-		 * @return {Array<{key: string, label: string, kind?: ('heading'|'separator'), icon?: string, href?: string, disabled?: boolean, title?: string, iconComponent?: object, run?: Function}>}
+		 * @return {Array<{key: string, label: string, kind?: ('heading'|'separator'), icon?: string, href?: string, linkTarget?: string, disabled?: boolean, title?: string, iconComponent?: object, run?: () => void}>}
 		 */
 		headerMenuEntries(button) {
 			const fromAction = (entry) => ({
@@ -8438,6 +8472,7 @@ export default {
 				label: entry.label ? this.cnTranslate(entry.label) : '',
 				icon: entry.icon && typeof entry.icon === 'string' && !entry.icon.startsWith('icon-') ? entry.icon : '',
 				href: typeof entry.href === 'string' && entry.href !== '' ? entry.href : '',
+				linkTarget: entry.linkTarget || '',
 				// A `handler: "navigate"` entry whose route resolves carries `to`
 				// (resolveHeaderHandler drops its handler): the menu draws it as
 				// an in-app link, as the actions bar does, so it navigates.
@@ -8471,7 +8506,7 @@ export default {
 				}),
 
 				documentation: () => (this.documentationUrl
-					? { key: 'documentation', label: this.documentationLabel || t('nextcloud-vue', 'Documentation'), icon: 'BookOpenVariantOutline', href: this.documentationUrl }
+					? { key: 'documentation', label: this.documentationLabel || t('nextcloud-vue', 'Documentation'), icon: 'BookOpenVariantOutline', href: this.documentationUrl, linkTarget: '_blank' }
 					: null),
 			}
 			const entries = []
@@ -8567,13 +8602,17 @@ export default {
 
 		/**
 		 * A header button was clicked: run its built-in action, or dispatch
-		 * it as the `headerActions` entry with that id.
+		 * it as the `headerActions` entry with that id. A button that is a
+		 * link is left to the browser.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
-		 * @param {{action: string, format: string}} button The resolved button.
+		 * @param {{action: string, format: string, link?: object}} button The resolved button.
 		 * @return {void}
 		 */
 		onHeaderButton(button) {
+			if (button.link) {
+				return
+			}
 			if (button.action === 'add') {
 				this.onAddClick()
 			} else if (button.action === 'export') {

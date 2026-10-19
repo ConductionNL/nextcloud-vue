@@ -1,8 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 
-import { followItemActionLink, resolveItemActionLink, routeHref } from '../../src/utils/actionLink.js'
+import { followItemActionLink, headerActionAsLink, resolveItemActionLink, resolveManifestHref, routeHref } from '../../src/utils/actionLink.js'
 import { actionLink } from '../../src/utils/actionsDispatcher.js'
+
+jest.mock('@nextcloud/router', () => ({
+	__esModule: true,
+	generateUrl: jest.fn((p) => `/nc/index.php${p}`),
+	getRootUrl: jest.fn(() => '/nc'),
+}))
 
 /**
  * @return {object} A router stub that resolves a path or `{ name }` to a hash href.
@@ -95,5 +101,89 @@ describe('actionLink (actionsDispatcher)', () => {
 		expect(actionLink({ type: 'navigate', target: '/x' }, {})).toBeNull()
 		expect(actionLink({ type: 'open-page', target: 'Missing' }, { router })).toBeNull()
 		expect(actionLink({ type: 'open-page' }, { router })).toBeNull()
+	})
+})
+
+describe('resolveManifestHref', () => {
+	it('keeps an absolute URL and sends an instance path through generateUrl', () => {
+		expect(resolveManifestHref('https://example.org/a?b=1')).toBe('https://example.org/a?b=1')
+		expect(resolveManifestHref('mailto:a@example.org')).toBe('mailto:a@example.org')
+		expect(resolveManifestHref('//cdn.example.org/x')).toBe('//cdn.example.org/x')
+		expect(resolveManifestHref('/apps/integriq/connections?app=stackiq')).toBe('/nc/index.php/apps/integriq/connections?app=stackiq')
+	})
+
+	it('puts a path that already names an entry point under the root, without a second /index.php', () => {
+		expect(resolveManifestHref('/index.php/apps/x')).toBe('/nc/index.php/apps/x')
+		expect(resolveManifestHref('/remote.php/dav/files/admin')).toBe('/nc/remote.php/dav/files/admin')
+		expect(resolveManifestHref('/public.php/dav')).toBe('/nc/public.php/dav')
+		expect(resolveManifestHref('/ocs/v2.php/apps/x')).toBe('/nc/ocs/v2.php/apps/x')
+		// Only a whole path segment counts as an entry point.
+		expect(resolveManifestHref('/ocsapp/x')).toBe('/nc/index.php/ocsapp/x')
+	})
+
+	it('keeps an already generated URL under the root as written', () => {
+		expect(resolveManifestHref('/nc/index.php/apps/x')).toBe('/nc/index.php/apps/x')
+		expect(resolveManifestHref('/nc/remote.php/dav')).toBe('/nc/remote.php/dav')
+	})
+
+	it('refuses a relative path, another scheme, an uppercase scheme and a non-string', () => {
+		expect(resolveManifestHref('apps/x')).toBe('')
+		expect(resolveManifestHref('javascript:alert(1)')).toBe('')
+		expect(resolveManifestHref('data:text/html,x')).toBe('')
+		expect(resolveManifestHref('HTTPS://example.org')).toBe('')
+		expect(resolveManifestHref(null)).toBe('')
+	})
+})
+
+describe('headerActionAsLink', () => {
+	it('returns an entry without href as is', () => {
+		const entry = { id: 'sync', label: 'Sync', handler: 'sync' }
+		expect(headerActionAsLink(entry)).toBe(entry)
+		expect(headerActionAsLink(null)).toBeNull()
+	})
+
+	it('returns an entry with a function handler as is, href and all', () => {
+		const entry = { id: 'js', label: 'JS', href: '/apps/x', handler: () => {} }
+		expect(headerActionAsLink(entry)).toBe(entry)
+	})
+
+	it('still resolves the children of a function-handler entry, without touching the input', () => {
+		const handler = () => {}
+		const child = { id: 'sub', label: 'Sub', href: '/apps/sub' }
+		const entry = { id: 'js', label: 'JS', href: '/index.php/apps/x', handler, children: [child] }
+		const out = headerActionAsLink(entry)
+		expect(out).not.toBe(entry)
+		expect(out).toEqual({ id: 'js', label: 'JS', href: '/index.php/apps/x', handler, children: [{ id: 'sub', label: 'Sub', href: '/nc/index.php/apps/sub', target: '_self' }] })
+		expect(entry.children[0]).toBe(child)
+		expect(child.href).toBe('/apps/sub')
+	})
+
+	it('resolves href, drops the handler and opens in place unless target is _blank', () => {
+		expect(headerActionAsLink({ id: 'add', label: 'Add', href: '/apps/integriq/connections', handler: 'x' }))
+			.toEqual({ id: 'add', label: 'Add', href: '/nc/index.php/apps/integriq/connections', target: '_self' })
+		expect(headerActionAsLink({ id: 'docs', label: 'Docs', href: 'https://example.org', target: '_blank' }))
+			.toEqual({ id: 'docs', label: 'Docs', href: 'https://example.org', target: '_blank' })
+	})
+
+	it('drops an unusable href with one warning per value, leaving an entry without a link or handler', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		expect(headerActionAsLink({ id: 'bad', label: 'Bad', href: 'javascript:void(0)', handler: 'x' })).toEqual({ id: 'bad', label: 'Bad' })
+		headerActionAsLink({ id: 'bad', label: 'Bad', href: 'javascript:void(0)' })
+		expect(warn).toHaveBeenCalledTimes(1)
+		headerActionAsLink({ id: 'other', label: 'Other', href: 'apps/other' })
+		expect(warn).toHaveBeenCalledTimes(2)
+		warn.mockRestore()
+	})
+
+	it('resolves the href of a child, and keeps an entry with nothing to resolve identical', () => {
+		const plain = { id: 'more', label: 'More', children: [{ id: 'a', label: 'A', handler: 'a' }] }
+		expect(headerActionAsLink(plain)).toBe(plain)
+		const parent = { id: 'more', label: 'More', handler: 'more', children: [{ id: 'docs', label: 'Docs', href: '/apps/x' }] }
+		expect(headerActionAsLink(parent)).toEqual({
+			id: 'more',
+			label: 'More',
+			handler: 'more',
+			children: [{ id: 'docs', label: 'Docs', href: '/nc/index.php/apps/x', target: '_self' }],
+		})
 	})
 })

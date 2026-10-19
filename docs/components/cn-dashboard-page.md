@@ -128,6 +128,7 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `doneLabel` | String | `'Done'` | Label for the done button |
 | `emptyLabel` | String | `'No widgets configured'` | Empty state message |
 | `unavailableLabel` | String | `'Widget not available'` | Fallback for unknown widget IDs |
+| `headerActions` | Array | `[]` | Declarative header actions (manifest `config.headerActions`) rendered as buttons through `CnActionButtons`. An entry with `href` is a link button, never dispatched: an absolute `http(s)`, `mailto:` or `tel:` URL as written, an instance path through `generateUrl()`, in a new tab with `target: "_blank"` — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href). |
 | `dateRange` | Object | `null` | Optional date-range header descriptor — see [Date-range header](#date-range-header) |
 | `pageFilters` | Array | `[]` | Optional page-level filter controls rendered in the header — see [Page filters](#page-filters). Each entry `\{ key, label?, type?: 'select', options: [\{ value, label \}], default? \}`. The selection is written into the reactive workspace context, so widgets can read it via a `@page.<key>` / `@workspace.<key>` token. |
 
