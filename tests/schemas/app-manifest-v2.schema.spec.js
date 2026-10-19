@@ -1405,8 +1405,17 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.126.0 adds the setup choice step's display "rows" and default (setup-wizard), visibleWhen op anyOf and the record-list footerAction (record-list), and documents folderSidebar.pane and the fieldOverrides search look (index-page, form-dialog).
 		// 2.127.0 adds config.sideColumnFrom on a detail page (detail-page), headerButtons[].run, config.search, searchPlacement, defaultOrder, listConfig leading / trailing / subtitleTemplate and folderSidebar heading / countText on an index page (index-page, object-row), and the object-table pageSize (object-table).
 		// 2.128.0 adds the setup step's noteStyle (setup-wizard), chart referenceLines and categoryFormat (chart-widget), visibleWhen op contains (visible-when), config.tabsFrom on a detail page (detail-page) and the notice widget (notice-widget).
-		// 2.129.0 adds config.defaultSavedViews on an index page: views the app ships, read-only and copyable (saved-views-manage-and-defaults).
+		// 2.129.0 adds config.defaultSavedViews on an index page: views the app ships, read-only and copyable (saved-views-manage-and-defaults), and sortSelectOptions[].source, an order whose rows come from an app endpoint (index-sort-source).
 		expect(schema.version).toBe('2.129.0')
+	})
+
+	it('accepts the 2.129.0 sort option with an endpoint source and refuses malformed ones', () => {
+		const index = (sortSelectOptions) => ({ ...MINIMAL_V2, pages: [{ id: 'mine', route: '/mine', type: 'index', title: 'Mine', config: { register: 'r', schema: 's', sortSelectOptions } }] })
+		const urgency = { value: 'urgency', label: 'Urgency', default: true, order: 'deadline', source: { url: '/apps/x/api/queue', rowsPath: 'items', rowPath: 'case', carry: ['deadlineTier'], annotate: true, failedNote: 'Ordered by deadline.' } }
+		expect(validateManifestV2(index([urgency, { value: 'newest', label: 'Newest', order: '-startDate' }])).valid).toBe(true)
+		expect(validateManifestV2(index([{ ...urgency, source: { rowsPath: 'items' } }])).valid).toBe(false)
+		expect(validateManifestV2(index([{ ...urgency, source: { url: '/x', rows: 'items' } }])).valid).toBe(false)
+		expect(validateManifestV2(index([{ label: 'No value' }])).valid).toBe(false)
 	})
 
 	it('accepts the 2.128.0 keys and refuses malformed ones', () => {
