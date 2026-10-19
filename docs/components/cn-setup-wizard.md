@@ -35,6 +35,8 @@ paragraph above the options, as the boards draw it; in the Nextcloud look it
 stays an info note card. A `note` (or `footnote`) is a muted line under the
 options, in either look. Both go through the app's own translations.
 
+`noteStyle: "card"` draws the note as an info note card instead of the muted line (board DqInstellen, step 4).
+
 ```json
 {
   "id": "case-types",

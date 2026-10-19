@@ -153,8 +153,15 @@ export function resolveScopeLayout({ scope = null, row = null, pageColumns = [] 
 			return
 		}
 		// The page's own entry is used, not the scope's, so the label and
-		// formatter a column was declared with survive being selected.
-		columns.push(byKey.get(key))
+		// formatter a column was declared with survive being selected. A
+		// column the page hides by default shows: the scope asked for it.
+		const own = byKey.get(key)
+		if (own && typeof own === 'object' && own.hidden === true) {
+			const { hidden, ...shown } = own
+			columns.push(shown)
+			return
+		}
+		columns.push(own)
 	})
 
 	return { columns, sortKeys, searchFields }

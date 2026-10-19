@@ -2568,6 +2568,22 @@ export default {
 		},
 
 		/**
+		 * A field path whose value picks the tabs of the page's `tabs` widgets
+		 * and their order for this record (manifest `config.tabsFrom`), read
+		 * like a `visibleWhen` field: `@context.caseType.tabs` reads the list a
+		 * case type keeps. A non-empty list of tab ids (a tab's `id`, else its
+		 * `widgetId`, or the string entry itself) keeps those tabs in that
+		 * order and leaves the rest out. Any other value keeps the declared
+		 * tabs. Edit mode shows them all.
+		 *
+		 * @spec openspec/changes/detail-tabs-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-tabs-and-their-order
+		 */
+		tabsFrom: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * A column of cards beside the body (manifest `config.sideColumn`),
 		 * for the record's facts: deadline, requester, handler, links. Each
 		 * entry is a widget definition (`{ id?, type, title?, content? }`) or
@@ -4551,12 +4567,27 @@ export default {
 		 */
 		bodyGridWidgets() {
 			if (this.hasGridLayout) {
-				return this.widgets
+				return this.pickTabs(this.widgets)
 			}
 			if (this.shouldRenderAutoBody) {
 				return this.autoBodyWidgets || []
 			}
 			return []
+		},
+
+		/**
+		 * The tab ids `tabsFrom` reads off this record, or null when it reads
+		 * no non-empty list (or the body is being edited).
+		 *
+		 * @spec openspec/changes/detail-tabs-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-tabs-and-their-order
+		 * @return {Array<string>|null}
+		 */
+		pickedTabIds() {
+			if (!this.tabsFrom || this.editingBody || !this.widgetVisibilityData) {
+				return null
+			}
+			const ids = readVisibleWhenPath(this.widgetVisibilityData, this.tabsFrom)
+			return Array.isArray(ids) && ids.length > 0 ? ids.map((id) => String(id)) : null
 		},
 
 		/**
@@ -4977,6 +5008,33 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The widget definitions with each `tabs` widget's tabs narrowed and
+		 * ordered by `pickedTabIds`; the definitions as given without a pick.
+		 * A new definition is returned for a changed widget; the declared one
+		 * is never mutated.
+		 *
+		 * @spec openspec/changes/detail-tabs-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-tabs-and-their-order
+		 * @param {Array<object>} widgets The widget definitions.
+		 * @return {Array<object>}
+		 */
+		pickTabs(widgets) {
+			const ids = this.pickedTabIds
+			if (!ids || !Array.isArray(widgets)) {
+				return widgets
+			}
+			const idOf = (tab) => String(typeof tab === 'string' ? tab : (tab && (tab.id ?? tab.widgetId)) ?? '')
+			return widgets.map((widget) => {
+				if (!widget || widget.type !== 'tabs' || !Array.isArray(widget.content?.tabs)) {
+					return widget
+				}
+				const tabs = ids
+					.map((id) => widget.content.tabs.find((tab) => idOf(tab) === id))
+					.filter(Boolean)
+				return tabs.length > 0 ? { ...widget, content: { ...widget.content, tabs } } : widget
+			})
+		},
+
 		/**
 		 * The tag after an admin-only entry in the board look ("beheerder",
 		 * DqZaakMeer), or null for any other entry or look. It is drawn by

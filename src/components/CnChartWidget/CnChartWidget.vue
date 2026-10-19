@@ -220,6 +220,22 @@ function parseBucketKey(key) {
 	)
 }
 
+/**
+ * A theme colour by CSS variable name, as a literal: ApexCharts writes colours
+ * into SVG attributes, where `var()` does not resolve.
+ *
+ * @param {string} name The variable, e.g. `--color-error`.
+ * @param {string} fallback The colour when the variable is unset (or no DOM).
+ * @return {string} The colour.
+ */
+function themeColor(name, fallback) {
+	if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') {
+		return fallback
+	}
+	const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+	return value || fallback
+}
+
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
 
@@ -381,6 +397,31 @@ export default {
 		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
 		 */
 		footnote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Horizontal reference lines on the value axis of a line, area or bar
+		 * chart, such as a norm: `[{ value, label?, color? }]`. Drawn dashed;
+		 * the label goes through the host's translate. The colour defaults to
+		 * the theme's error colour.
+		 *
+		 * @type {Array<{value: number, label?: string, color?: string}>}
+		 */
+		referenceLines: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * How date categories read on the x-axis: `month` ("jan") or
+		 * `month-year` ("jan 2026"), in the user's language. A category that
+		 * is not a date is shown as is. Empty shows the categories unchanged.
+		 *
+		 * @type {''|'month'|'month-year'}
+		 */
+		categoryFormat: {
 			type: String,
 			default: '',
 		},
@@ -1505,6 +1546,51 @@ export default {
 			return this.footnote ? this.hostTranslate(this.footnote) : t('nextcloud-vue', 'Chart data')
 		},
 
+		/**
+		 * The x-axis categories as shown: with `categoryFormat`, date
+		 * categories as short months in the user's language.
+		 *
+		 * @return {Array<string|number>} The categories.
+		 */
+		displayCategories() {
+			const categories = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
+			if (this.categoryFormat !== 'month' && this.categoryFormat !== 'month-year') {
+				return categories
+			}
+			const options = this.categoryFormat === 'month' ? { month: 'short' } : { month: 'short', year: 'numeric' }
+			return categories.map((category) => {
+				const date = typeof category === 'string' || typeof category === 'number' ? parseBucketKey(category) : null
+				return date ? date.toLocaleDateString(userLocale(), options) : category
+			})
+		},
+
+		/**
+		 * The `referenceLines` as ApexCharts annotations: dashed, labelled,
+		 * in the theme's error colour unless a line names its own.
+		 *
+		 * @return {Array<object>} The annotations, possibly empty.
+		 */
+		referenceAnnotations() {
+			const lines = (Array.isArray(this.referenceLines) ? this.referenceLines : [])
+				.filter((line) => line && Number.isFinite(Number(line.value)))
+			if (lines.length === 0) {
+				return []
+			}
+			const fallback = themeColor('--color-error', '#e04224')
+			return lines.map((line) => {
+				const color = line.color || fallback
+				return {
+					y: Number(line.value),
+					x: Number(line.value),
+					borderColor: color,
+					strokeDashArray: 6,
+					label: line.label
+						? { text: this.hostTranslate(line.label), borderColor: color, style: { color: '#fff', background: color } }
+						: { text: '' },
+				}
+			})
+		},
+
 		mergedOptions() {
 			const isPieType = ['pie', 'donut', 'radialBar'].includes(this.type)
 
@@ -1592,7 +1678,7 @@ export default {
 			if (!isPieType) {
 				if (this.resolvedCategories.length > 0) {
 					defaults.xaxis = {
-						categories: this.resolvedCategories,
+						categories: this.displayCategories,
 						labels: {
 							style: {
 								colors: 'var(--color-text-maxcontrast, #767676)',
@@ -1632,6 +1718,12 @@ export default {
 						valueAxis.forceNiceScale = true
 					}
 				}
+			}
+
+			// Reference lines, such as a norm, on the value axis.
+			if (!isPieType && this.referenceAnnotations.length > 0) {
+				const axisKey = (this.type === 'bar' && this.horizontal) ? 'xaxis' : 'yaxis'
+				defaults.annotations = { [axisKey]: this.referenceAnnotations }
 			}
 
 			// Add labels for pie/donut

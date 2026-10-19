@@ -36,7 +36,7 @@
 						{{ t('nextcloud-vue', 'Suggest feature') }}
 					</NcButton>
 					<NcActions
-						v-if="!tabs"
+						v-if="!tabs && actionsMenu"
 						:menuName="t('nextcloud-vue', 'Actions')"
 						:forceName="true"
 						data-testid="cn-features-board-actions">
@@ -85,6 +85,7 @@
 				</button>
 			</div>
 			<NcActions
+				v-if="actionsMenu"
 				:menuName="t('nextcloud-vue', 'Actions')"
 				:forceName="true"
 				class="cn-features-board__tab-actions"
@@ -375,6 +376,8 @@ export default {
 
 		/** Show the Features and Roadmap folder tabs. */
 		tabs: { type: Boolean, default: true },
+		/** Show the Actions menu (suggest, buildiq, AI skills, support), in the header or the tab row; false draws none. */
+		actionsMenu: { type: Boolean, default: true },
 		/** `chips`: pill buttons with a count. `segmented`: a segmented control without counts. */
 		filter: {
 			type: String,

@@ -1288,6 +1288,7 @@ import {
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
@@ -1677,6 +1678,8 @@ export default {
 		cnCustomComponents: { default: () => ({}) },
 		/** The permissions the user holds, provided by CnAppRoot; for gated page tabs. */
 		cnPermissions: { default: () => [] },
+		/** The app config an ancestor provides, for `@config.<key>` in quick-filter labels. */
+		cnAppConfig: { default: null },
 		/** The app id CnAppRoot provides, for the plural form of `countSubtitle`. */
 		cnAppId: { default: '' },
 		/**
@@ -3131,6 +3134,19 @@ export default {
 		search: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * The app config `@config.<key>` tokens resolve against, in quick-filter
+		 * filters and labels (`"Residence @config.municipality"`), as on the
+		 * dashboard and detail pages. Merged over a config an ancestor provides
+		 * on `cnAppConfig`. Manifest: `config.appConfig`.
+		 *
+		 * @type {object}
+		 */
+		appConfig: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/**
@@ -6678,9 +6694,19 @@ export default {
 		effectiveQuickFilters() {
 			const own = withPersonalLenses(this.presented('quickFilters') || this.generatedQuickFilters, this.personalLenses)
 			if (own && own.length > 0) {
-				return own
+				return own.map((tab) => this.withConfigLabels(tab))
 			}
 			return (this.isNamedSource && this.namedQuickFilters) || null
+		},
+
+		/**
+		 * The app config `@config.<key>` tokens resolve against: the `appConfig`
+		 * prop over a config an ancestor provides.
+		 *
+		 * @return {object} The config.
+		 */
+		effectiveAppConfig() {
+			return { ...unwrapAppConfig(this.cnAppConfig), ...(this.appConfig || {}) }
 		},
 
 		/**
@@ -8764,6 +8790,33 @@ export default {
 				this.persistViewStateToRoute(this.currentViewState())
 			}
 			this.$emit('sort-change', value)
+		},
+
+		/**
+		 * A quick filter with `@config.<key>` in its `label` or `activeLabel`
+		 * (`"Residence @config.municipality"`): the label translated first, then
+		 * each token replaced by its configured value. A key the config does
+		 * not hold leaves its token in place. Other tabs pass unchanged.
+		 *
+		 * @param {object} tab A quick-filter tab.
+		 * @return {object} The tab, with its labels resolved.
+		 */
+		withConfigLabels(tab) {
+			if (!tab || typeof tab !== 'object') {
+				return tab
+			}
+			const hasToken = (value) => typeof value === 'string' && value.includes('@config.')
+			if (!hasToken(tab.label) && !hasToken(tab.activeLabel)) {
+				return tab
+			}
+			const config = this.effectiveAppConfig
+			const fill = (value) => (hasToken(value)
+				? this.cnTranslate(value).replace(/@config\.([A-Za-z0-9_.-]*[A-Za-z0-9_])/g, (token, key) => {
+						const found = this.getByPath(config, key)
+						return found === undefined || found === null || found === '' ? token : String(found)
+					})
+				: value)
+			return { ...tab, label: fill(tab.label), activeLabel: fill(tab.activeLabel) }
 		},
 
 		/**
