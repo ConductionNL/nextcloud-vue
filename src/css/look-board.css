@@ -27,6 +27,8 @@
 	/* Cards. */
 	--cn-board-card-radius: 12px;
 	--cn-board-card-padding: 20px 22px;
+	/* The side inset of a dashboard card: its title and its rows. */
+	--cn-board-dashboard-card-inset: 24px;
 	/* Hairline inside a card, and the soft secondary text. */
 	--cn-board-hairline: var(--color-border);
 	--cn-board-text-soft: var(--color-main-text);
@@ -1158,6 +1160,20 @@
 	line-height: 1.3;
 }
 
+/* The board draws no rule under a dashboard card's title (DqMijnWerk,
+   DqDashboard, PqMijnWerk): the title sits 20px from the card's top and on
+   the card's 24px side inset, the line its rows start on, 12px above the
+   content. A borderless card has no edge to inset from and keeps the
+   wrapper's padding.
+   @spec openspec/changes/board-dashboard-card-header/specs/board-dashboard-card-header/spec.md#requirement-a-board-dashboard-card-draws-no-header-rule */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard) .cn-widget-wrapper__header {
+	border-bottom: none;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard, .cn-widget-wrapper--borderless) .cn-widget-wrapper__header {
+	padding: 20px var(--cn-board-dashboard-card-inset) 12px;
+}
+
 /* ---- Record list on a dashboard card (PtDashboard) ---------------------- */
 /* The dashboard's card body is flush, so the rows carry their own inset: the
    board's card pads 24px at the sides and each row 14px, a soft hairline
@@ -1293,23 +1309,13 @@
 	flex-wrap: wrap;
 }
 
-/* ---- Bar-list and matrix cards (DqDashboard) ----------------------------- */
-/* The board draws no rule under the title of a card holding a bar list or a
-   matrix. Other cards, plain stat tiles among them, keep theirs.
-   @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-board-bar-list-and-matrix-cards-draw-no-header-rule */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-chart-widget__html) .cn-widget-wrapper__header {
-	border-bottom: none;
-}
-
 /* ---- A card of boxed stat tiles (DcRapportages "Vergaderingen en efficiëntie") -- */
 /* The board draws this card 22px from its edge on every side but the bottom
-   (20px), the header 14px above the tiles, and no rule under the header. The
-   card-fit cell padding (8px 14px) plus the grid's own 24px came to 38px at
-   the sides, with the wrapper's divider under the title.
+   (20px) and the header 14px above the tiles. The card-fit cell padding
+   (8px 14px) plus the grid's own 24px came to 38px at the sides.
    @spec openspec/changes/stats-box-card-inset/specs/stats-box-card-inset/spec.md#requirement-a-card-of-boxed-stat-tiles-keeps-the-boards-inset */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-stats-block-widget--tiles-box) .cn-widget-wrapper__header {
 	padding: 20px 22px 0;
-	border-bottom: none;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-stats-block-widget--tiles-box) .cn-widget-wrapper__content {
