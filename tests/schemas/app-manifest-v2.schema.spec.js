@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.130.0', () => {
+	it('the manifest schema version reads 2.131.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1407,7 +1407,18 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.128.0 adds the setup step's noteStyle (setup-wizard), chart referenceLines and categoryFormat (chart-widget), visibleWhen op contains (visible-when), config.tabsFrom on a detail page (detail-page) and the notice widget (notice-widget).
 		// 2.129.0 adds config.cardLayout on an index page, the board record card's layout, with a meta part that names its own formatter (card-layout-part-formatter); also quickFilterPlacement row (index-page), nextStep.stagesFrom, side-column entry tabs and folderSidebar.scopeViews (detail-page, index-page), and the record-list dot / flags, related groupByRelation / layout / groupActions and nc-widget excludeApps / excludeTypes content (widgets).
 		// 2.130.0 adds config.defaultSavedViews on an index page, views the app ships, read-only and copyable, with savedViewTree.seeded deprecated (saved-views-manage-and-defaults), and a dashboard page filter's optionsFrom, clearable and placeholder, with options required only without optionsFrom (dashboard-page).
-		expect(schema.version).toBe('2.130.0')
+		// 2.131.0 adds mapConfig markerColor, plotAll and count on an index page (index-map-parity).
+		expect(schema.version).toBe('2.131.0')
+	})
+
+	it('accepts the 2.131.0 map keys and refuses malformed ones', () => {
+		const index = (mapConfig) => ({ ...MINIMAL_V2, pages: [{ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', mapConfig: { latField: 'lat', lngField: 'lng', ...mapConfig } } }] })
+		expect(validateManifestV2(index({ markerColor: { field: 'status', colorMap: { open: 'var(--color-success)' } }, plotAll: true, count: true })).valid).toBe(true)
+		expect(validateManifestV2(index({ markerColor: { field: 'caseType', source: { register: 'r', schema: 'caseType', colorField: 'colour' } }, plotAll: 200, count: '{located} of {total}' })).valid).toBe(true)
+		expect(validateManifestV2(index({ markerColor: { colorMap: {} } })).valid).toBe(false)
+		expect(validateManifestV2(index({ markerColor: { field: 'caseType', source: { register: 'r' } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ plotAll: 0 })).valid).toBe(false)
+		expect(validateManifestV2(index({ count: 3 })).valid).toBe(false)
 	})
 
 	it('a page filter takes its options or optionsFrom, and refuses neither or a malformed optionsFrom', () => {

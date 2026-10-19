@@ -32,6 +32,7 @@ export { default as NcSelectTags } from './components/NcSelectTags/NcSelectTags.
 // Components
 export {
 	CnActionButtons,
+	CnActionDialog,
 	CnActionsBar,
 	CnActionsMenu,
 	CnAddWidgetModal,
@@ -244,6 +245,7 @@ export {
 	CnPageRenderer,
 	CnPagination,
 	CnPartyActionsWidget,
+	CnPartyPicker,
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
 	CnPresenceAvatars,

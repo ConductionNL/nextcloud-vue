@@ -1134,6 +1134,16 @@
 					{{ t('nextcloud-vue', 'File matches are limited to the best 50.') }}
 				</p>
 
+				<!-- The map's count line (`mapConfig.count`) and the note when a map
+				     that plots every row reached its limit. -->
+				<div
+					v-if="mapCountLine || mapCapNote"
+					class="cn-index-page__map-count"
+					data-testid="cn-index-map-count">
+					<span v-if="mapCountLine" data-testid="cn-index-map-count-line">{{ mapCountLine }}</span>
+					<span v-if="mapCapNote" class="cn-index-page__map-cap" data-testid="cn-index-map-cap">{{ mapCapNote }}</span>
+				</div>
+
 				<!-- The board view's footer: it holds every row it loaded, so it
 				     counts them and offers the next batch instead of pages. -->
 				<div
@@ -1323,6 +1333,7 @@ import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { mapListItems } from '../../utils/mapList.js'
+import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
@@ -1379,7 +1390,7 @@ import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './pe
 import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
-import { BOARD_PAGE_SIZE, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
+import { BOARD_PAGE_SIZE, mapPlotAllLimitOf, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
 
 /** Rows fetched for one month in calendar mode. */
 const CALENDAR_PAGE_SIZE = 200
@@ -4039,6 +4050,10 @@ export default {
 			headerMetaCountValues: {},
 			/** The row the pointer is on in the map list, by key; '' for none. */
 			activeMapKey: '',
+			/** The rows `mapConfig.markerColor.source` points at, or null before they load. */
+			mapColorRefs: null,
+			/** The page size to restore when leaving a map that plots every row. */
+			mapPrevPageSize: this.viewMode === 'map' && mapPlotAllLimitOf(this.mapConfig) > 0 ? ((this.pagination && this.pagination.limit) || 20) : null,
 			/** The tabs `quickFiltersFrom` produced, or null before they load. */
 			generatedQuickFilters: null,
 			/** Count per saved-view id, for the views control; null = none. */
@@ -6002,11 +6017,13 @@ export default {
 				if (!geometry) {
 					continue
 				}
+				const markerColor = resolveCssColor(markerColorOf(row, this.mapMarkerColor, this.mapColorRefsById))
 				features.push({
 					type: 'Feature',
 					geometry,
 					properties: {
 						[this.rowKey]: row[this.rowKey],
+						...(markerColor ? { markerColor } : {}),
 						...(this.mapConfig.popupField ? { [this.mapConfig.popupField]: row[this.mapConfig.popupField] } : {}),
 						...(numbers && numbers.has(row) ? { markerNumber: numbers.get(row), markerActive: this.activeMapKey === String(row[this.rowKey]) } : {}),
 					},
@@ -6033,6 +6050,80 @@ export default {
 		 */
 		mapClustering() {
 			return this.mapConfig.clustering !== false
+		},
+
+		/**
+		 * The marker colour rule (`mapConfig.markerColor`), or null.
+		 *
+		 * @return {object|null} The normalised rule.
+		 * @spec openspec/changes/index-map-parity/specs/index-page/spec.md#requirement-a-marker-can-take-its-colour-from-a-field
+		 */
+		mapMarkerColor() {
+			return normalizeMarkerColor(this.mapConfig && this.mapConfig.markerColor)
+		},
+
+		/** @return {Map<string, object>} The marker colour source rows by id. */
+		mapColorRefsById() {
+			return new Map((this.mapColorRefs || []).map((row) => [refIdOf(row), row]))
+		},
+
+		/** @return {string} Changes when the marker colour source must be read. */
+		mapColorFetchKey() {
+			const source = this.mapMarkerColor && this.mapMarkerColor.source
+			if (this.currentViewMode !== 'map' || !source) {
+				return ''
+			}
+			return [this.mapMarkerColor.field, source.register || '', source.schema || '', this.effectiveSchema ? 1 : 0].join('|')
+		},
+
+		/**
+		 * How many rows the map plots when it plots every matching row
+		 * (`mapConfig.plotAll`: `true` for 500, or a
+		 * number), 0 when it plots the current page.
+		 *
+		 * @return {number} The limit.
+		 * @spec openspec/changes/index-map-parity/specs/index-page/spec.md#requirement-the-map-can-plot-every-matching-row
+		 */
+		mapPlotAllLimit() {
+			return mapPlotAllLimitOf(this.mapConfig)
+		},
+
+		/** @return {number} The rows that match the filters. */
+		mapMatchTotal() {
+			return Math.max(this.displayObjects.length, Number(this.effectivePagination?.total || 0))
+		},
+
+		/**
+		 * The count line under the map (`mapConfig.count`): `true` for "Showing
+		 * {located} of {total} located", or a template with `{located}` and
+		 * `{total}` through the host's translate. '' when not asked for.
+		 *
+		 * @return {string} The line.
+		 * @spec openspec/changes/index-map-parity/specs/index-page/spec.md#requirement-the-map-can-say-how-many-rows-it-placed
+		 */
+		mapCountLine() {
+			const count = this.mapConfig && this.mapConfig.count
+			if (this.currentViewMode !== 'map' || !count) {
+				return ''
+			}
+			const vars = { located: this.mapMarkers.features.length, total: this.mapMatchTotal }
+			if (typeof count === 'string' && count !== '') {
+				return this.cnTranslate(count).replace(/\{(located|total)\}/g, (_, key) => String(vars[key]))
+			}
+			return t('nextcloud-vue', 'Showing {located} of {total} located', vars)
+		},
+
+		/**
+		 * The note when a map that plots every row hit its limit.
+		 *
+		 * @return {string} The note, or ''.
+		 */
+		mapCapNote() {
+			const limit = this.mapPlotAllLimit
+			if (this.currentViewMode !== 'map' || limit === 0 || this.mapMatchTotal <= this.displayObjects.length) {
+				return ''
+			}
+			return t('nextcloud-vue', 'The map shows the first {limit} of {total}. Narrow the filters to see the rest.', { limit: this.displayObjects.length, total: this.mapMatchTotal })
 		},
 
 		/** @return {number|undefined} The map's initial zoom (`mapConfig.zoom`), when a number. */
@@ -7597,6 +7688,15 @@ export default {
 			}
 		},
 
+		mapColorFetchKey: {
+			immediate: true,
+			handler(key) {
+				if (key !== '') {
+					this.loadMapColorSource()
+				}
+			},
+		},
+
 		boardFetchKey: {
 			immediate: true,
 			handler(key) {
@@ -7717,6 +7817,11 @@ export default {
 				listSize = this.boardPrevPageSize || 20
 				this.boardPrevPageSize = null
 			}
+			const leftMapPlotAll = previous === 'map' && this.mapPrevPageSize !== null
+			if (leftMapPlotAll) {
+				listSize = this.mapPrevPageSize
+				this.mapPrevPageSize = null
+			}
 			let size = null
 			if (mode === 'calendar') {
 				this.calendarPrevPageSize = listSize
@@ -7724,7 +7829,10 @@ export default {
 			} else if (mode === 'board') {
 				this.boardPrevPageSize = listSize
 				size = BOARD_PAGE_SIZE
-			} else if (previous === 'calendar' || previous === 'board') {
+			} else if (mode === 'map' && this.mapPlotAllLimit > 0 && !this.isNamedSource) {
+				this.mapPrevPageSize = listSize
+				size = this.mapPlotAllLimit
+			} else if (previous === 'calendar' || previous === 'board' || leftMapPlotAll) {
 				size = listSize
 			}
 			if (size !== null && typeof this.list.onPageSizeChange === 'function') {
@@ -9220,6 +9328,30 @@ export default {
 			this.list.refresh(1)
 			this.persistViewStateToRoute(this.currentViewState())
 			this.$emit('clear-filters')
+		},
+
+		/**
+		 * Read the rows `mapConfig.markerColor.source` points at, once.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadMapColorSource() {
+			const rule = this.mapMarkerColor
+			if (!rule || !rule.source || this.mapColorRefs !== null) {
+				return
+			}
+			const property = this.effectiveSchema?.properties?.[rule.field] || null
+			const target = referenceTargetOf(rule.source, { register: this.register, property })
+			if (!target.register || !target.schema) {
+				return
+			}
+			let rows
+			try {
+				rows = await fetchReferenceObjects({ ...target, filter: rule.source.filter || {} })
+			} catch {
+				rows = []
+			}
+			this.mapColorRefs = Array.isArray(rows) ? rows : []
 		},
 
 		/**

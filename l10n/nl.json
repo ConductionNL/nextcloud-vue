@@ -2005,7 +2005,13 @@
     "Share view: {name}": "Weergave delen: {name}",
     "The view \"{name}\" leaves your list and the menu on the left.": "De weergave \"{name}\" verdwijnt uit uw lijst en uit het menu links.",
     "Whoever gets the view sees it under Shared with me. It is yours and stays yours.": "Wie de weergave krijgt, ziet die onder Gedeeld met mij. Die is van u en blijft dat.",
-    "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen."
+    "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen.",
+    "Reason": "Reden",
+    "Could not be read": "Kon niet worden gelezen",
+    "The action could not be completed.": "De actie kon niet worden uitgevoerd.",
+    "Whether this is ready could not be read.": "Of dit klaar is, kon niet worden gelezen.",
+    "Showing {located} of {total} located": "{located} van {total} met een locatie getoond",
+    "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "De kaart toont de eerste {limit} van {total}. Verfijn de filters om de rest te zien."
   },
   "plurals": {
     "{count} member": [

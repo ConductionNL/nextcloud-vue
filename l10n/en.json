@@ -1792,7 +1792,13 @@
     "Share view: {name}": "Share view: {name}",
     "The view \"{name}\" leaves your list and the menu on the left.": "The view \"{name}\" leaves your list and the menu on the left.",
     "Whoever gets the view sees it under Shared with me. It is yours and stays yours.": "Whoever gets the view sees it under Shared with me. It is yours and stays yours.",
-    "Whoever you share the view with sees the change at once.": "Whoever you share the view with sees the change at once."
+    "Whoever you share the view with sees the change at once.": "Whoever you share the view with sees the change at once.",
+    "Reason": "Reason",
+    "Could not be read": "Could not be read",
+    "The action could not be completed.": "The action could not be completed.",
+    "Whether this is ready could not be read.": "Whether this is ready could not be read.",
+    "Showing {located} of {total} located": "Showing {located} of {total} located",
+    "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "The map shows the first {limit} of {total}. Narrow the filters to see the rest."
   },
   "plurals": {
     "{count} member": [

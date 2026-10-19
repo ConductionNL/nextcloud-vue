@@ -47,6 +47,13 @@
 			],
 			"page": "cn-action-buttons"
 		},
+		"CnActionDialog": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-action-dialog"
+		},
 		"CnActionsBar": {
 			"direct": 0,
 			"transitive": 19,
@@ -431,7 +438,7 @@
 		},
 		"CnChecklistRunWidget": {
 			"direct": 1,
-			"transitive": 6,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [
 				"CnIndexPage"
@@ -583,7 +590,7 @@
 		},
 		"CnConversationThread": {
 			"direct": 0,
-			"transitive": 5,
+			"transitive": 6,
 			"tier": "medium",
 			"via": [
 				"CnIndexPage"
@@ -613,7 +620,7 @@
 		},
 		"CnCountdownWidget": {
 			"direct": 0,
-			"transitive": 4,
+			"transitive": 5,
 			"tier": "medium",
 			"via": [
 				"CnIndexPage"
@@ -1371,7 +1378,7 @@
 		},
 		"CnFkResolveCell": {
 			"direct": 2,
-			"transitive": 5,
+			"transitive": 6,
 			"tier": "medium",
 			"via": [
 				"CnIndexPage"
@@ -1396,7 +1403,7 @@
 		},
 		"CnFlowRunsWidget": {
 			"direct": 3,
-			"transitive": 5,
+			"transitive": 6,
 			"tier": "medium",
 			"via": [
 				"CnFlowRunsWidgetForm",
@@ -2878,6 +2885,13 @@
 				"CnXwikiPagePicker"
 			],
 			"page": "cn-party-actions-widget"
+		},
+		"CnPartyPicker": {
+			"direct": 2,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-party-picker"
 		},
 		"CnPeopleWidget": {
 			"direct": 0,
