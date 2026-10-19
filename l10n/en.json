@@ -1727,7 +1727,17 @@
     "On": "On",
     "Select a step on the canvas to see its settings.": "Select a step on the canvas to see its settings.",
     "Show runs": "Show runs",
-    "Back to the step settings": "Back to the step settings"
+    "Back to the step settings": "Back to the step settings",
+    "This may already exist": "This may already exist",
+    "Why file it anyway": "Why file it anyway",
+    "This cannot be filed twice. Open the one it matches, or ask a coordinator.": "This cannot be filed twice. Open the one it matches, or ask a coordinator.",
+    "File it anyway": "File it anyway",
+    "A record you may not open": "A record you may not open",
+    "Matched on the score, not on a single field": "Matched on the score, not on a single field",
+    "%n existing record looks like this one.": [
+      "%n existing record looks like this one.",
+      "%n existing records look like this one."
+    ]
   },
   "plurals": {
     "{count} member": [

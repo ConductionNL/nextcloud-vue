@@ -1133,6 +1133,13 @@
 			"via": [],
 			"page": "cn-document-review-list"
 		},
+		"CnDuplicateWarning": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-duplicate-warning"
+		},
 		"CnDurationField": {
 			"direct": 0,
 			"transitive": 0,
