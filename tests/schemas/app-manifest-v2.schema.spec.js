@@ -1409,7 +1409,27 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.130.0 adds config.defaultSavedViews on an index page, views the app ships, read-only and copyable, with savedViewTree.seeded deprecated (saved-views-manage-and-defaults), and a dashboard page filter's optionsFrom, clearable and placeholder, with options required only without optionsFrom (dashboard-page).
 		// 2.131.0 adds mapConfig markerColor, plotAll and count on an index page (index-map-parity).
 		// 2.132.0 adds sortSelectOptions[].source, a sidebar sort order whose rows come from an app endpoint (sidebar-sort-endpoint-source), saved-view overrides with locked filters, profile patches and card parts (saved-view-overrides-v2), and the forms work: a field's optionsFrom, dotted-path fields, the sub-objects editor, list reorder by an order field and the smaller form features (form-small-features).
+		// 2.133.0 adds the field override keys placeholderFrom, requiredWhen, warnWhen, clearWhenHidden, stored, initialWhen, sectionCollapsed, optionSwatches and optionIcons, optionsFrom groupField, where, itemsPath and hideWhenEmpty, and a source that follows another field through @answer (object-list-edit-in-place), the decision-list, retention, plan and work-queue widgets (widgets), and config.searchRefusalHint (index-page).
 		expect(schema.version).toBe('2.133.0')
+	})
+
+	it('accepts the 2.133.0 widgets and searchRefusalHint, and refuses malformed ones', () => {
+		const page = (widgets, config = {}) => ({ ...MINIMAL_V2, pages: [{ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', ...config }, widgets }] })
+		const widget = (widgetKey, content) => ({ id: widgetKey, widgetKey, slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, props: { content } })
+		expect(validateManifestV2(page([
+			widget('decision-list', { source: { url: '/apps/x/api/signoffs' }, answers: [{ value: 'ok', label: 'Approve', fields: [{ field: 'until', type: 'date' }] }], reason: false, submit: { request: { method: 'POST', url: '/apps/x/api/signoffs/{id}' } } }),
+			widget('retention', { statusField: 'archiveStatus', archivedValues: ['archived'], archivistGroups: ['archivaris'], recompute: false }),
+			widget('plan', { emptyText: 'No plan yet' }),
+			widget('work-queue', { source: { url: '/apps/x/api/queue' }, hide: '/apps/x/api/queue/{group}/hide', waitingParties: { applicant: 'the applicant' } }),
+		])).valid).toBe(true)
+		expect(validateManifestV2(page([widget('decision-list', { answers: [{ value: 'ok' }] })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('decision-list', { reason: true })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('decision-list', { submit: { request: { method: 'POST' } } })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('retention', { recompute: 'no' })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('work-queue', { waitingParties: { applicant: 1 } })])).valid).toBe(false)
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', ...config } }] })
+		expect(validateManifestV2(index({ searchRefusalHint: 'Use AND, OR or NOT between words.' })).valid).toBe(true)
+		expect(validateManifestV2(index({ searchRefusalHint: 3 })).valid).toBe(false)
 	})
 
 	it('accepts the 2.131.0 map keys and refuses malformed ones', () => {
