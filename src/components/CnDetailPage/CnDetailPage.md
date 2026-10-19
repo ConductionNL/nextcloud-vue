@@ -426,6 +426,7 @@ Four levels of action and the case surfaces around them. All opt in. See [the re
 | `statusPill` | Object \| null | `null` | A second pill, same shape. |
 | `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
 | `sideColumn` | Array | `[]` | Widget definitions or widget ids, rendered as a column of cards beside the body. |
+| `tabsFrom` | String | `''` | A field path, read like a `visibleWhen` field, whose list of tab ids picks the tabs of the page's `tabs` widgets and their order for this record: `@context.caseType.tabs` reads the list a case type keeps (DqAanbesteding: Inschrijvingen, Publicaties, Bestanden, Historie). A tab's id is its `id`, else its `widgetId`, or the string entry. An empty or missing list keeps the declared tabs; edit mode shows them all. |
 | `isAdmin` | Boolean \| null | `null` | Shows `adminOnly` header actions. `null` reads it from Nextcloud. |
 
 ## The record as a place
