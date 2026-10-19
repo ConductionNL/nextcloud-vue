@@ -1131,8 +1131,10 @@ export default {
 			if (this.reorderField !== '' && this.reorderField in props) {
 				out[this.reorderField] = Math.max(this.total, this.rows.length) + 1
 			}
-			const defaults = this.content && this.content.createDefaults
-			if (defaults && typeof defaults === 'object' && !Array.isArray(defaults)) {
+			const declared = this.content && this.content.createDefaults
+			// Tokens resolve as the filter's do: `@objectId` is the page's object.
+			const defaults = declared && typeof declared === 'object' && !Array.isArray(declared) ? resolveFilterTokens(declared, this.tokenCtx) : null
+			if (defaults) {
 				for (const [key, value] of Object.entries(defaults)) {
 					if (key in props && value !== undefined) {
 						out[key] = value
@@ -1662,8 +1664,12 @@ export default {
 				this.$emit('created', payload)
 				this.fetchRows()
 			} catch (e) {
+				// The server's own refusal ("a case type keeps one final status")
+				// says more than the transport's "Request failed with status 422".
+				const data = e && e.response && e.response.data
+				const refusal = data && (data.message || data.error)
 				if (this.$refs.createDialog) {
-					this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' })
+					this.$refs.createDialog.setResult({ error: (typeof refusal === 'string' && refusal) || (e && e.message) || 'error' })
 				}
 			}
 		},

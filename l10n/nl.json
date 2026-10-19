@@ -2017,7 +2017,8 @@
     "Row": "Rij",
     "{name} moved to place {place} of {total}": "{name} staat nu op plaats {place} van {total}",
     "The new order could not be saved.": "De nieuwe volgorde kon niet worden opgeslagen.",
-    "{field} is already used; choose another value.": "{field} is al in gebruik; kies een andere waarde."
+    "{field} is already used; choose another value.": "{field} is al in gebruik; kies een andere waarde.",
+    "One per line": "Eén per regel"
   },
   "plurals": {
     "{count} member": [

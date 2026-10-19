@@ -116,6 +116,10 @@ endpoint — whoever receives the files decides where they are stored, the same
 split the form file field keeps. A drag carrying anything other than files is
 ignored and falls through to the browser.
 
+### Create defaults from the page
+
+`createDefaults` values resolve the same tokens as `filter`: `{ "caseType": "@objectId" }` starts a new row on the page's object. When the server refuses the create, the dialog shows the server's own message.
+
 ### Reorder: `reorder`
 
 `reorder: { "field": "order" }` lists the rows in the order a field of their own records holds, as the statuses of a case type. The reader drags a row to another place, or uses its Move up and Move down actions. The rows are renumbered from 1 (from the page's first place on a later page), and only that field is written, as a PATCH, and only on the rows whose number changed, so every other key of a row keeps its value. The new place is read out ("Intake moved to place 2 of 6"). When the server refuses (a case type must keep a final status), its message is read out and the list is read again. A new row starts last (`order` = list length + 1). A grouped list does not reorder.

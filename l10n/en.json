@@ -1804,7 +1804,8 @@
     "Row": "Row",
     "{name} moved to place {place} of {total}": "{name} moved to place {place} of {total}",
     "The new order could not be saved.": "The new order could not be saved.",
-    "{field} is already used; choose another value.": "{field} is already used; choose another value."
+    "{field} is already used; choose another value.": "{field} is already used; choose another value.",
+    "One per line": "One per line"
   },
   "plurals": {
     "{count} member": [

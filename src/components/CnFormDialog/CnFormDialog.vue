@@ -98,9 +98,23 @@
 						v-if="sectionStarts[field.key]"
 						class="cn-form-dialog__section"
 						data-testid="cn-form-dialog-section">
-						{{ sectionStarts[field.key] }}
+						<!-- A foldable section (`sectionCollapsed` on one of its fields)
+						     opens and closes from its heading. -->
+						<button
+							v-if="foldableSections.includes(field.section)"
+							type="button"
+							class="cn-form-dialog__section-toggle"
+							:aria-expanded="foldedSections.includes(field.section) ? 'false' : 'true'"
+							data-testid="cn-form-dialog-section-toggle"
+							@click="toggleSection(field.section)">
+							{{ sectionStarts[field.key] }}
+						</button>
+						<template v-else>
+							{{ sectionStarts[field.key] }}
+						</template>
 					</h3>
 					<div
+						v-if="!isInFoldedSection(field)"
 						:data-cn-field="field.key"
 						class="cn-form-dialog__field"
 						:class="{
@@ -244,6 +258,31 @@
 							</template>
 
 							<!-- Textarea -->
+							<!-- A list of strings, one per line (widget: 'lines'): lines are
+							     trimmed and empty ones dropped. -->
+							<div v-else-if="field.widget === 'lines'" class="cn-form-dialog__textarea-wrapper">
+								<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+									{{ field.label }}{{ requiredSuffix(field) }}
+								</label>
+								<textarea
+									:id="'cn-form-' + field.key"
+									class="cn-form-dialog__textarea"
+									v-bind="fieldAria(field)"
+									:value="Array.isArray(formData[field.key]) ? formData[field.key].join('\n') : ''"
+									:disabled="field.readOnly"
+									:placeholder="t('nextcloud-vue', 'One per line')"
+									:data-testid="'cn-form-lines-' + field.key"
+									rows="5"
+									@change="updateField(field.key, linesOf($event.target.value))" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
 							<div v-else-if="field.widget === 'textarea'" class="cn-form-dialog__textarea-wrapper">
 								<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
 									{{ field.label }}{{ requiredSuffix(field) }}
@@ -398,7 +437,18 @@
 									<template
 										v-else-if="!isUserField(field)"
 										#option="optionProps">
-										<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
+										<span class="cn-form-dialog__option">
+											<!-- `optionSwatches` / `optionIcons`: a colour or an icon per
+											     value; a grouped source names the option's group. -->
+											<span
+												v-if="optionSwatch(field, optionProps)"
+												class="cn-form-dialog__option-swatch"
+												:style="{ background: optionSwatch(field, optionProps) }"
+												aria-hidden="true" />
+											<CnIcon v-else-if="optionIcon(field, optionProps)" :name="optionIcon(field, optionProps)" :size="16" />
+											<span v-if="optionProps.group" class="cn-form-dialog__option-group">{{ optionProps.group }} ·</span>
+											{{ optionText(optionProps) }}
+										</span>
 									</template>
 									<template
 										v-if="$slots['field-' + field.key + '-selected-option']"
@@ -406,6 +456,19 @@
 										<!-- @slot field-{key}-selected-option Render the chosen option of a select, multiselect or tags field. -->
 										<!-- @binding {object} option The selected option (`{ id, label }`). -->
 										<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
+									</template>
+									<template
+										v-else-if="!isUserField(field) && (field.optionSwatches || field.optionIcons)"
+										#selected-option="optionProps">
+										<span class="cn-form-dialog__option">
+											<span
+												v-if="optionSwatch(field, optionProps)"
+												class="cn-form-dialog__option-swatch"
+												:style="{ background: optionSwatch(field, optionProps) }"
+												aria-hidden="true" />
+											<CnIcon v-else-if="optionIcon(field, optionProps)" :name="optionIcon(field, optionProps)" :size="16" />
+											{{ optionText(optionProps) }}
+										</span>
 									</template>
 								</component>
 								<CnFieldHelper
@@ -737,6 +800,15 @@
 							</small>
 						</template>
 					</div>
+					<!-- `warnWhen`: notes under the field that do not block the save. -->
+					<p
+						v-for="(warning, index) in (isInFoldedSection(field) ? [] : fieldWarnings(field))"
+						:key="field.key + '-warning-' + index"
+						class="cn-form-dialog__warning"
+						role="status"
+						:data-testid="'cn-form-warning-' + field.key">
+						{{ warning }}
+					</p>
 				</template>
 
 				<!-- The extra questions a chosen case type / product line asks
@@ -883,7 +955,7 @@ import {
 	propertiesFromDefinitions,
 	splitDynamicFormData,
 } from '../../utils/dynamicProperties.js'
-import { shouldShow } from '../../utils/fieldCondition.js'
+import { conditionHolds, shouldShow } from '../../utils/fieldCondition.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { computeAssignments } from '../../utils/formAssign.js'
 import { resolveNextcloudGroup, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
@@ -918,6 +990,7 @@ const BUILT_IN_WIDGETS = new Set([
 	'url',
 	'number',
 	'textarea',
+	'lines',
 	'switch',
 	'select',
 	'user',
@@ -1502,6 +1575,8 @@ export default {
 			sourcedFailed: {},
 			// Set while a save that passed its uniqueness check goes on.
 			uniqueChecked: false,
+			// The sections folded away (`sectionCollapsed` on one of their fields opens them folded).
+			foldedSections: [],
 			/** Scheme of each coded field, as OpenRegister reported it (for the notation route). */
 			codedSchemes: {},
 			/**
@@ -1863,9 +1938,25 @@ export default {
 		visibleFields() {
 			return this.resolvedFields
 				.filter((field) => shouldShow(field, this.formData))
+				// `requiredWhen`: required while its condition holds, so the
+				// asterisk, the board look's aria-required and validation follow.
+				.map((field) => (field.requiredWhen ? { ...field, required: conditionHolds(field.requiredWhen, this.formData, field.key) } : field))
 				.map((field) => this.applySemanticResolution(field))
 				.map((field) => this.degradeUnresolvableReference(field))
 				.map((field) => this.applyCodePicker(field))
+		},
+
+		/**
+		 * The sections a reader can fold: those with `sectionCollapsed` on one
+		 * of their fields (`true` opens them folded, `false` open).
+		 *
+		 * @return {Array<string>}
+		 * @spec openspec/changes/form-small-features/specs/form-dialog/spec.md#requirement-a-section-can-be-folded
+		 */
+		foldableSections() {
+			return [...new Set(this.resolvedFields
+				.filter((field) => typeof field.section === 'string' && field.section !== '' && typeof field.sectionCollapsed === 'boolean')
+				.map((field) => field.section))]
 		},
 
 		/**
@@ -1980,15 +2071,6 @@ export default {
 			},
 		},
 
-		/**
-		 * When a field transitions from visible to hidden, clear its
-		 * form-data value so a stale (now-irrelevant) value isn't
-		 * carried into the submitted payload. We diff key lists rather
-		 * than mutating during the computed itself.
-		 *
-		 * @param {object[]} newFields The new visible field set.
-		 * @param {object[]} oldFields The previous visible field set.
-		 */
 		/**
 		 * Load the fields a newly-chosen driving value brings with it.
 		 *
@@ -2495,6 +2577,14 @@ export default {
 			// What the form opened with. A draft is written only once a field
 			// a person edited differs from this (see the `formData` watcher).
 			// Not reactive: nothing renders from it.
+			// Sections that open folded, and the starting value of each field
+			// that is not stored (`stored: false`) from its `initialWhen`.
+			this.foldedSections = [...new Set(this.resolvedFields.filter((f) => f.sectionCollapsed === true && f.section).map((f) => f.section))]
+			for (const field of this.resolvedFields) {
+				if (field.stored === false && field.initialWhen) {
+					this.formData[field.key] = conditionHolds(field.initialWhen, this.formData, field.key)
+				}
+			}
 			this.draftBaseline = JSON.parse(JSON.stringify(this.formData || {}))
 		},
 
@@ -3330,7 +3420,65 @@ export default {
 		 */
 		fieldPlaceholder(field) {
 			const description = field.description || ''
-			return this.helperError(field) ? description : ''
+			if (this.helperError(field)) {
+				return description
+			}
+			// `placeholderFrom`: another field's value, such as the status name
+			// standing in for an empty public label.
+			if (typeof field.placeholderFrom === 'string' && field.placeholderFrom !== '') {
+				const value = this.formData[field.placeholderFrom]
+				return value === null || value === undefined ? '' : String(value)
+			}
+			return ''
+		},
+
+		/**
+		 * The lines of a `lines` field as a list: trimmed, empty ones dropped.
+		 *
+		 * @param {string} text The textarea's text.
+		 * @return {Array<string>}
+		 * @spec openspec/changes/form-small-features/specs/form-dialog/spec.md#requirement-a-list-of-strings-is-edited-one-per-line
+		 */
+		linesOf(text) {
+			return String(text || '').split('\n').map((line) => line.trim()).filter((line) => line !== '')
+		},
+
+		/**
+		 * The warnings of a field (`warnWhen`) whose condition holds now: notes
+		 * under the field that do not block the save.
+		 *
+		 * @param {object} field The field.
+		 * @return {Array<string>} The warning texts, translated.
+		 * @spec openspec/changes/form-small-features/specs/form-dialog/spec.md#requirement-a-field-can-warn-without-blocking-the-save
+		 */
+		fieldWarnings(field) {
+			const list = Array.isArray(field.warnWhen) ? field.warnWhen : (field.warnWhen ? [field.warnWhen] : [])
+			return list
+				.filter((w) => w && typeof w.text === 'string' && w.when && conditionHolds(w.when, this.formData, field.key))
+				.map((w) => this.cnTranslate(w.text))
+		},
+
+		/**
+		 * Whether a field sits in a section the reader has folded away.
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 * @spec openspec/changes/form-small-features/specs/form-dialog/spec.md#requirement-a-section-can-be-folded
+		 */
+		isInFoldedSection(field) {
+			return typeof field.section === 'string' && field.section !== '' && this.foldedSections.includes(field.section)
+		},
+
+		/**
+		 * Fold a section away, or open it.
+		 *
+		 * @param {string} section The section's name.
+		 * @return {void}
+		 */
+		toggleSection(section) {
+			this.foldedSections = this.foldedSections.includes(section)
+				? this.foldedSections.filter((s) => s !== section)
+				: [...this.foldedSections, section]
 		},
 
 		/**
@@ -3358,6 +3506,35 @@ export default {
 				'aria-describedby': ids.length > 0 ? ids.join(' ') : undefined,
 				'aria-required': this.isBoardLook && field.required ? 'true' : undefined,
 			}
+		},
+
+		/**
+		 * The colour shown before an option (`optionSwatches`, value to CSS
+		 * colour), or ''.
+		 *
+		 * @param {object} field The field.
+		 * @param {object} option The option.
+		 * @return {string}
+		 * @spec openspec/changes/form-small-features/specs/form-dialog/spec.md#requirement-an-option-can-show-a-colour-or-an-icon
+		 */
+		optionSwatch(field, option) {
+			const map = field.optionSwatches && typeof field.optionSwatches === 'object' ? field.optionSwatches : null
+			const value = map && option ? map[String(option.id ?? option.value)] : ''
+			return typeof value === 'string' ? value : ''
+		},
+
+		/**
+		 * The icon shown before an option (`optionIcons`, value to icon
+		 * name), or ''.
+		 *
+		 * @param {object} field The field.
+		 * @param {object} option The option.
+		 * @return {string}
+		 */
+		optionIcon(field, option) {
+			const map = field.optionIcons && typeof field.optionIcons === 'object' ? field.optionIcons : null
+			const value = map && option ? map[String(option.id ?? option.value)] : ''
+			return typeof value === 'string' ? value : ''
 		},
 
 		optionText(option) {
@@ -5045,6 +5222,18 @@ export default {
 					delete payload[key]
 				}
 			}
+			// A field that is not stored only steers the form. A hidden field
+			// with `clearWhenHidden` is written empty: hiding a field drops it
+			// from the form data, and an edit sends only what it holds, so
+			// without this the stored value would stay behind.
+			const shown = new Set(this.visibleFields.map((f) => f.key))
+			for (const field of this.resolvedFields) {
+				if (field.stored === false) {
+					delete payload[field.key]
+				} else if (field.clearWhenHidden === true && !shown.has(field.key)) {
+					payload[field.key] = field.widget === 'lines' || field.type === 'array' ? [] : null
+				}
+			}
 			// Child records are saved as their own objects after the parent,
 			// never nested in the parent's payload.
 			for (const field of this.resolvedFields) {
@@ -5255,6 +5444,48 @@ export default {
 
 <style scoped>
 /* A select option breaks between words only, never inside one. */
+.cn-form-dialog__option-swatch {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	margin-inline-end: 6px;
+	border-radius: 50%;
+	vertical-align: middle;
+	box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+.cn-form-dialog__option-group {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-form-dialog__warning {
+	grid-column: 1 / -1;
+	margin: 4px 0 0;
+	padding: 6px 10px;
+	border-inline-start: 3px solid var(--color-warning);
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+}
+
+.cn-form-dialog__section-toggle {
+	all: unset;
+	cursor: pointer;
+	font: inherit;
+}
+
+.cn-form-dialog__section-toggle::after {
+	content: ' ▾';
+}
+
+.cn-form-dialog__section-toggle[aria-expanded='false']::after {
+	content: ' ▸';
+}
+
+.cn-form-dialog__section-toggle:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
 .cn-form-dialog__option {
 	display: block;
 	min-width: 0;

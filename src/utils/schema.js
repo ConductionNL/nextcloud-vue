@@ -890,7 +890,12 @@ export function fieldsFromSchema(schema, options = {}) {
 	const nested = dottedPropertyEntries(schema, [...Object.keys(overrides || {}), ...(Array.isArray(include) ? include : [])])
 	const requiredKeys = [...(Array.isArray(schema.required) ? schema.required : []), ...nested.required]
 
-	const entries = [...Object.entries(schema.properties), ...nested.entries]
+	// A field that is not stored (`stored: false`) and is no property of the
+	// schema steers the form only, such as a "Choice list" switch.
+	const virtual = Object.entries(overrides || {})
+		.filter(([key, o]) => o && o.stored === false && !key.includes('.') && !Object.hasOwn(schema.properties, key))
+		.map(([key, o]) => [key, { type: typeof o.type === 'string' ? o.type : 'boolean', title: typeof o.label === 'string' ? o.label : key }])
+	const entries = [...Object.entries(schema.properties), ...nested.entries, ...virtual]
 		.filter(([key, prop]) => {
 			// Skip properties marked as not visible
 			if (prop.visible === false) {
