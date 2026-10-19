@@ -434,6 +434,7 @@ import CnGroupNameCell from '../CnCellRenderer/CnGroupNameCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
+import { foldDottedFields, isDottedKey, spreadDottedFields } from '../../utils/dottedFields.js'
 import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { humaniseKey } from '../../utils/humaniseKey.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
@@ -944,6 +945,28 @@ export default {
 		 * Resolved field definitions from schema + overrides.
 		 * Sorted by order, filtered by hidden/exclude/include.
 		 */
+		/**
+		 * The keys the overrides and the include list name at a dotted path
+		 * (`handling.teams`), as fields for the dotted-field helpers.
+		 *
+		 * @return {Array<{key: string}>}
+		 * @spec openspec/changes/forms-dotted-path-fields/specs/form-dialog/spec.md#requirement-a-field-can-edit-one-key-inside-an-object-property
+		 */
+		dottedFieldKeys() {
+			const keys = [...Object.keys(this.resolvedOverrides || {}), ...(Array.isArray(this.include) ? this.include : [])]
+			return [...new Set(keys)].filter(isDottedKey).map((key) => ({ key }))
+		},
+
+		/**
+		 * The object's values by field key: its own keys, plus each dotted
+		 * field's value read from inside its object.
+		 *
+		 * @return {object}
+		 */
+		fieldValues() {
+			return spreadDottedFields(this.objectData || {}, this.dottedFieldKeys)
+		},
+
 		resolvedFields() {
 			// The shared pipeline now honours per-key `hidden` (filter) and
 			// `order` (sort) directly, so the overrides map is passed through
@@ -979,7 +1002,7 @@ export default {
 			// otherwise it would vanish mid-edit the moment its value is cleared.
 			return shown.filter((field) => field.key === this.editingField
 				|| field.key in this.dirtyFields
-				|| !this.isEmptyValue((this.objectData || {})[field.key]))
+				|| !this.isEmptyValue(this.fieldValues[field.key]))
 		},
 
 		/**
@@ -1024,7 +1047,7 @@ export default {
 				}
 				const raw = field.key in this.dirtyFields
 					? this.dirtyFields[field.key]
-					: (this.objectData || {})[field.key]
+					: this.fieldValues[field.key]
 				const prop = (this.schema.properties && this.schema.properties[field.key]) || {}
 				try {
 					const formatted = fn(raw, this.objectData || {}, prop)
@@ -1050,7 +1073,7 @@ export default {
 				// Show pending edit value if dirty
 				const raw = field.key in this.dirtyFields
 					? this.dirtyFields[field.key]
-					: (this.objectData || {})[field.key]
+					: this.fieldValues[field.key]
 				const prop = this.schema.properties && this.schema.properties[field.key]
 				if (this.isRelationField(prop) && raw !== null && raw !== undefined && raw !== '') {
 					values[field.key] = this.relationLabel(raw)
@@ -1133,7 +1156,7 @@ export default {
 				// If external data changes (e.g. after save), clear dirty state
 				// for fields that now match the new data
 				for (const key of Object.keys(this.dirtyFields)) {
-					if (this.dirtyFields[key] === this.objectData[key]) {
+					if (this.dirtyFields[key] === this.fieldValues[key]) {
 						const { [key]: _, ...rest } = this.dirtyFields
 						this.dirtyFields = rest
 					}
@@ -1590,7 +1613,7 @@ export default {
 			if (!prop || this.relationProp(prop) === null) {
 				return false
 			}
-			const raw = (this.objectData || {})[field.key]
+			const raw = this.fieldValues[field.key]
 			const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
 			return ids.some((id) => id && !(id in this.relatedLabels))
 		},
@@ -1750,7 +1773,7 @@ export default {
 				if (parts.length < 2) {
 					continue
 				}
-				const raw = (this.objectData || {})[key]
+				const raw = this.fieldValues[key]
 				const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
 				for (const id of ids) {
 					if (!id || (id in this.relatedLabels) || jobs.some((j) => j.id === id)) {
@@ -1887,7 +1910,7 @@ export default {
 		isValueEmpty(key) {
 			const val = key in this.dirtyFields
 				? this.dirtyFields[key]
-				: (this.objectData || {})[key]
+				: this.fieldValues[key]
 			return val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0)
 		},
 
@@ -1900,7 +1923,7 @@ export default {
 			// Set working value: dirty value > current object value
 			const currentValue = field.key in this.dirtyFields
 				? this.dirtyFields[field.key]
-				: (this.objectData || {})[field.key]
+				: this.fieldValues[field.key]
 			this.editData = { ...this.editData, [field.key]: currentValue }
 			this.editingField = field.key
 			// Relation fields edit through a name-labeled object picker.
@@ -1957,7 +1980,7 @@ export default {
 
 			const key = this.editingField
 			const newValue = this.editData[key]
-			const originalValue = this.objectData[key]
+			const originalValue = this.fieldValues[key]
 
 			this.editingField = null
 
@@ -2000,10 +2023,10 @@ export default {
 				return
 			}
 
-			const mergedData = {
+			const mergedData = foldDottedFields({
 				...this.objectData,
 				...this.dirtyFields,
-			}
+			}, this.dottedFieldKeys)
 
 			this.saving = true
 
@@ -2040,7 +2063,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onEditConfirm(formData) {
-			const mergedData = { ...this.objectData, ...formData }
+			const mergedData = foldDottedFields({ ...this.objectData, ...formData }, this.dottedFieldKeys)
 			this.saving = true
 			try {
 				if (this.objectType) {

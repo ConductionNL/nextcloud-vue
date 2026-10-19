@@ -847,6 +847,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { foldDottedFields, spreadDottedFields } from '../../utils/dottedFields.js'
 import {
 	definitionQueryParams,
 	DYNAMIC_KEY_PREFIX,
@@ -2401,7 +2402,7 @@ export default {
 				// schema-valid value (the backend stores date-times
 				// space-separated without a timezone, which would otherwise
 				// fail the schema's `date-time` format on save).
-				this.formData = JSON.parse(JSON.stringify(item))
+				this.formData = spreadDottedFields(JSON.parse(JSON.stringify(item)), this.resolvedFields)
 				this.normalizePersistedDates()
 			} else {
 				// Create mode: initialize with field defaults
@@ -4929,7 +4930,8 @@ export default {
 			const split = splitHeldFiles(payload, this.resolvedFields.filter((f) => f.widget === 'file').map((f) => f.key))
 			this.heldFiles = split.held
 			this.heldKept = split.kept
-			return split.payload
+			// A field at a dotted path goes back inside its object.
+			return foldDottedFields(split.payload, this.resolvedFields)
 		},
 
 		/**

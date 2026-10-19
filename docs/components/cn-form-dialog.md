@@ -387,6 +387,10 @@ This reuses the same `register` fetch machinery as `$ref`, targeting the provide
 
 The `fieldOverrides` prop accepts an object keyed by field name. Each override is merged onto the auto-generated field definition, so any field property can be changed.
 
+### A key inside an object (`handling.teams`)
+
+A `fieldOverrides` key (or an `includeFields` entry) can be a dotted path into an object property: `"handling.teams": { "label": "Teams" }` edits `teams` inside `handling` as a field of its own, with the widget its nested schema property asks for and `required` from that object's `required` list. The form saves `handling` with the edited key and every other key `handling` held, so a form that shows only the teams does not clear `handling.deadline`. An object property is otherwise left out of a form unless its schema or a field override names a `widget` (`"settings": { "widget": "json" }`).
+
 ### `section`
 
 `section` groups fields under a heading (board PqTicketBewerken). A field whose `section` differs from the visible field before it opens a new group with that heading, across both columns; the heading goes through the app's translate function. Sections follow the field order, so set `order` to keep each section's fields together:
