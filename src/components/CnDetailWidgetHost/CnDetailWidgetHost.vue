@@ -184,27 +184,10 @@
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
 			<!-- A renderer that reports its own header (`header` event:
-			     `{ link, note, action, pill }`, e.g. record-list's "3 in totaal",
-			     a facts card's status pill). -->
-			<template v-if="rendererHeader.note || rendererHeader.action || rendererHeader.pill" #actions>
-				<CnStatusBadge
-					v-if="rendererHeader.pill"
-					:label="rendererHeader.pill.label"
-					:variant="rendererHeader.pill.variant"
-					data-testid="cn-detail-widget-header-pill" />
-				<span
-					v-if="rendererHeader.note"
-					class="cn-detail-page__catalog-note"
-					data-testid="cn-detail-widget-header-note">{{ rendererHeader.note }}</span>
-				<button
-					v-if="rendererHeader.action"
-					type="button"
-					class="cn-detail-page__catalog-action"
-					data-testid="cn-detail-widget-header-action"
-					@click="rendererHeader.action.run()">
-					<CnIcon v-if="rendererHeader.action.icon" :name="rendererHeader.action.icon" :size="16" />
-					{{ rendererHeader.action.label }}
-				</button>
+			     `{ link, note, action, actions, pill }`, e.g. record-list's "3 in
+			     totaal", a facts card's status pill). -->
+			<template v-if="hasRendererHeaderItems" #actions>
+				<CnDetailWidgetHeaderItems :header="rendererHeader" />
 			</template>
 			<template v-if="catalogAddEnabled" #action-items>
 				<NcActionButton @click="invokeCatalogAdd">
@@ -264,10 +247,16 @@
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
+			<!-- The app widget reports its title row the way the built-in
+			     cards do (`header` event). -->
+			<template v-if="hasRendererHeaderItems" #actions>
+				<CnDetailWidgetHeaderItems :header="rendererHeader" />
+			</template>
 			<component
 				:is="renderer"
 				ref="renderer"
 				v-bind="rendererProps"
+				@header="onRendererHeader"
 				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
@@ -304,7 +293,7 @@ import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectFilesWidget from '../CnObjectFilesWidget/CnObjectFilesWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
-import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import CnDetailWidgetHeaderItems from './CnDetailWidgetHeaderItems.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
@@ -378,12 +367,12 @@ export default {
 	name: 'CnDetailWidgetHost',
 
 	components: {
+		CnDetailWidgetHeaderItems,
 		CnIcon,
 		CnLeafMountHost,
 		CnObjectDataWidget,
 		CnObjectGeoWidget,
 		CnRelatedObjectsWidget,
-		CnStatusBadge,
 		CnWidgetWrapper,
 		NcActionButton,
 		CnEmptyContent,
@@ -639,7 +628,7 @@ export default {
 			 * `header` event (screens-relation-pages): a link and a note,
 			 * with the list's total already filled in.
 			 */
-			rendererHeader: { link: null, note: '', action: null, pill: null },
+			rendererHeader: { link: null, note: '', actions: [], pill: null },
 		}
 	},
 
@@ -670,6 +659,12 @@ export default {
 		 */
 		resolvedTitle() {
 			return this.isBare ? undefined : widgetTitleOf(this.widget)
+		},
+
+		/** @return {boolean} Whether the reported header has anything for the title row. */
+		hasRendererHeaderItems() {
+			const h = this.rendererHeader
+			return !!(h.note || h.pill || (h.actions && h.actions.length > 0))
 		},
 
 		/**
@@ -1072,11 +1067,20 @@ export default {
 		 * override a value the widget computes there; the whole content still
 		 * arrives as `content`.
 		 *
+		 * `content.chartKind` is read as the chart's `type`, as the dashboard
+		 * dispatcher reads it, so a chart placed on a detail page draws.
+		 *
 		 * @return {object} The declared content keys.
 		 * @spec openspec/changes/declared-props-detail-index-sidebar/specs/widget-hosts/spec.md#requirement-a-widget-host-passes-only-the-keys-a-widget-declares
+		 * @spec openspec/changes/detail-chart-kind/specs/widget-hosts/spec.md#requirement-a-detail-chart-reads-chartkind-as-its-type
 		 */
 		declaredContent() {
-			return pickDeclaredProps(this.renderer, this.content, this.widget?.type || '')
+			let bindings = this.content
+			if (bindings && typeof bindings === 'object' && bindings.chartKind !== undefined && bindings.type === undefined) {
+				const { chartKind, ...rest } = bindings
+				bindings = { ...rest, type: chartKind }
+			}
+			return pickDeclaredProps(this.renderer, bindings, this.widget?.type || '')
 		},
 
 		/**
@@ -1217,17 +1221,20 @@ export default {
 
 	methods: {
 		/**
-		 * Take the header a content-only renderer reports.
+		 * Take the header a content-only renderer, or an app widget in the
+		 * titled card, reports.
 		 *
-		 * @param {{link?: object|null, note?: string, action?: {label: string, icon?: string, run: () => unknown}|null}} header The header parts.
+		 * @param {{link?: object|null, note?: string, action?: {label: string, icon?: string, run: () => unknown}|null, actions?: Array<{label: string, icon?: string, run: () => unknown}>}} header The header parts.
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-record-list-shows-the-objects-that-point-at-this-record
 		 */
 		onRendererHeader(header) {
 			const link = header && header.link && typeof header.link === 'object' ? header.link : null
 			const note = header && typeof header.note === 'string' ? header.note : ''
-			const action = header && header.action && typeof header.action.run === 'function' && header.action.label ? header.action : null
+			const usable = (action) => action && typeof action.run === 'function' && action.label
+			// `action` (one) and `actions` (several) both count, `action` first.
+			const actions = [header && header.action, ...((header && Array.isArray(header.actions)) ? header.actions : [])].filter(usable)
 			const pill = header && header.pill && typeof header.pill.label === 'string' && header.pill.label !== '' ? header.pill : null
-			this.rendererHeader = { link, note, action, pill }
+			this.rendererHeader = { link, note, actions, pill }
 		},
 
 		/**

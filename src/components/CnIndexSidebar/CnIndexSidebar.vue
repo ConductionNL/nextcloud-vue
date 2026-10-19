@@ -37,6 +37,42 @@
 						@update:modelValue="$emit('search', $event)" />
 				</div>
 
+				<!-- Sort (list, card and map views; the table sorts by its headers):
+				     the field, the direction and the order the list has now. -->
+				<div v-if="sortOptions.length > 0" class="cn-index-sidebar__section cn-index-sidebar__sort" data-testid="cn-index-sidebar-sort">
+					<h3>{{ t('nextcloud-vue', 'Sort') }}</h3>
+					<NcSelect
+						:modelValue="sortSelected"
+						:options="sortOptions"
+						label="label"
+						:clearable="false"
+						:inputLabel="t('nextcloud-vue', 'Sort by')"
+						@update:modelValue="onSortField" />
+					<div class="cn-index-sidebar__sort-direction" role="radiogroup" :aria-label="t('nextcloud-vue', 'Direction')">
+						<NcCheckboxRadioSwitch
+							type="radio"
+							name="cn-index-sidebar-sort-direction"
+							value="asc"
+							:modelValue="sortDirection"
+							:disabled="!sortSelected"
+							@update:modelValue="onSortDirection">
+							{{ t('nextcloud-vue', 'Ascending') }}
+						</NcCheckboxRadioSwitch>
+						<NcCheckboxRadioSwitch
+							type="radio"
+							name="cn-index-sidebar-sort-direction"
+							value="desc"
+							:modelValue="sortDirection"
+							:disabled="!sortSelected"
+							@update:modelValue="onSortDirection">
+							{{ t('nextcloud-vue', 'Descending') }}
+						</NcCheckboxRadioSwitch>
+					</div>
+					<p class="cn-index-sidebar__sort-current" data-testid="cn-index-sidebar-sort-current">
+						{{ currentSortText }}
+					</p>
+				</div>
+
 				<div v-if="hasActiveFilters" class="cn-index-sidebar__section">
 					<NcButton variant="tertiary" @click="onClearAll">
 						<template #icon>
@@ -273,6 +309,7 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptions } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
+import { reverseSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
 import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 
@@ -364,6 +401,22 @@ export default {
 		pinnedCount: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * The orders the Sort section offers, `[{ value, label, keys }]`, each
+		 * `keys` a `[{ key, order }]` list read as its ascending form. Empty
+		 * draws no Sort section (the table view sorts by its headers).
+		 */
+		sortOptions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** The list's current order, `[{ key, order }]`. */
+		currentSort: {
+			type: Array,
+			default: () => [],
 		},
 
 		/** Current search term */
@@ -508,7 +561,7 @@ export default {
 		},
 	},
 
-	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'search', 'tab-change', 'update:open'],
+	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'search', 'sort-change', 'tab-change', 'update:open'],
 
 	data() {
 		return {
@@ -535,6 +588,56 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The Sort option the current order matches, as declared or reversed.
+		 *
+		 * @return {{option: object, direction: string}|null} The match, or null.
+		 */
+		sortMatch() {
+			const current = Array.isArray(this.currentSort) ? this.currentSort : []
+			for (const option of this.sortOptions) {
+				const keys = Array.isArray(option.keys) ? option.keys : []
+				if (sameSortKeys(keys, current)) {
+					return { option, direction: 'asc' }
+				}
+				if (sameSortKeys(reverseSortKeys(keys), current)) {
+					return { option, direction: 'desc' }
+				}
+			}
+			return null
+		},
+
+		/** @return {object|null} The Sort option shown as chosen. */
+		sortSelected() {
+			return this.sortMatch ? this.sortMatch.option : null
+		},
+
+		/** @return {string} The chosen direction, `asc` or `desc`. */
+		sortDirection() {
+			return this.sortMatch ? this.sortMatch.direction : 'asc'
+		},
+
+		/**
+		 * The order the list has now, in words: "Current order: Created,
+		 * descending", or that it is not sorted.
+		 *
+		 * @return {string} The sentence.
+		 */
+		currentSortText() {
+			const current = Array.isArray(this.currentSort) ? this.currentSort : []
+			if (current.length === 0) {
+				return t('nextcloud-vue', 'Not sorted')
+			}
+			const labelOf = (key) => {
+				const single = this.sortOptions.find((o) => Array.isArray(o.keys) && o.keys.length === 1 && o.keys[0].key === key)
+				return single ? single.label : key
+			}
+			const order = this.sortMatch && this.sortMatch.option.keys.length > 1
+				? `${this.sortMatch.option.label}, ${this.sortDirection === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`
+				: current.map((entry) => `${labelOf(entry.key)}, ${entry.order === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`).join('; ')
+			return t('nextcloud-vue', 'Current order: {order}', { order })
+		},
+
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			return this.icon || this.schema?.icon || ''
@@ -692,6 +795,50 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * A field chosen in the Sort section: its order, in the direction
+		 * already chosen.
+		 *
+		 * @param {object|null} option The chosen option.
+		 * @return {void}
+		 */
+		onSortField(option) {
+			const chosen = option && this.sortOptions.find((o) => o.value === option.value)
+			if (!chosen) {
+				return
+			}
+			this.emitSort(chosen, this.sortDirection)
+		},
+
+		/**
+		 * A direction chosen in the Sort section, for the chosen field.
+		 *
+		 * @param {string} direction `asc` or `desc`.
+		 * @return {void}
+		 */
+		onSortDirection(direction) {
+			if (!this.sortSelected) {
+				return
+			}
+			this.emitSort(this.sortSelected, direction === 'desc' ? 'desc' : 'asc')
+		},
+
+		/**
+		 * Emit the order an option stands for in a direction.
+		 *
+		 * @param {object} option The Sort option.
+		 * @param {string} direction `asc` or `desc`.
+		 * @return {void}
+		 */
+		emitSort(option, direction) {
+			const keys = Array.isArray(option.keys) ? option.keys : []
+			/**
+			 * @event sort-change The Sort section chose an order. Payload: `[{ key, order }]`.
+			 */
+			this.$emit('sort-change', direction === 'desc' ? reverseSortKeys(keys) : keys.map((k) => ({ key: k.key, order: k.order || 'asc' })))
+		},
 
 		/**
 		 * A manifest label through the injected lookup, or as written.

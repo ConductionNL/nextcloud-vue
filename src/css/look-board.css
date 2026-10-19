@@ -101,6 +101,15 @@
 	margin-bottom: var(--cn-board-section-gap);
 }
 
+/* The boards start a page's header 4px under the content's top, so the title
+   sits at 96 (DqZaak, DqMijnWerk), not 92. The index page's header carries
+   the same inset in look-board-index.css.
+   @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top */
+.cn-look-board .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
+	padding-top: 4px;
+}
+
 /* The 56px inset clears the navigation toggle, which overlays the content
    only while the navigation is closed. The store page's own header too: it
    kept the inset with the navigation open, 56px right of the board's title. */
@@ -140,7 +149,7 @@
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__title-row {
 	grid-column: 1;
 	grid-row: 1;
-	align-self: center;
+	align-self: start;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header-left > :not(.cn-dashboard-page__title-row) {
@@ -650,6 +659,7 @@
 }
 
 .cn-look-board .cn-admin-settings-shell__title:not(.cn-look-nextcloud *) {
+	min-height: var(--cn-board-control-height);
 	margin: 0;
 	font-size: 28px;
 	font-weight: 700;
@@ -662,8 +672,21 @@
 	align-items: center;
 	gap: 8px;
 	margin-top: 6px;
-	font-size: 15px;
+	font-size: 14px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
+}
+
+/* The admin settings header as the board draws it (DqInstellingen): 4px
+   under the content's top and 8px above the grid's gap, the crumbs 6px under
+   the 40px title row in 14px, and the tab strip 20px under the header (at
+   187). The shell is a grid whose gap already spaces its rows, so the
+   header's own 20px bottom margin came on top of it and the strip sat at 194.
+   @spec openspec/changes/board-admin-settings-header-rhythm/specs/board-admin-settings-header-rhythm/spec.md#requirement-the-board-admin-settings-header-keeps-the-boards-rhythm */
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header {
+	margin-bottom: 0;
+	padding: 4px 0 8px;
 }
 
 .cn-look-board .cn-admin-settings-shell__crumb-list:not(.cn-look-nextcloud *) {

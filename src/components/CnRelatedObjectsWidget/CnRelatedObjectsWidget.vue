@@ -42,7 +42,53 @@
 		<div class="cn-related-objects-widget">
 			<!-- Tabbed self-fetch mode -->
 			<template v-if="useTabs">
-				<div v-if="tabStripVisible" class="cn-related-objects-widget__tabs" role="tablist">
+				<!-- `layout: "sections"`: every group under its own heading in one
+				     list, a heading action beside it (DqZaakGerelateerd). -->
+				<template v-if="layout === 'sections'">
+					<section v-for="group in visibleGroups"
+						:key="`section-${group.key}`"
+						class="cn-related-objects-widget__section"
+						:aria-labelledby="`${sectionIdBase}-${group.key}`"
+						data-testid="cn-related-section">
+						<div class="cn-related-objects-widget__section-head">
+							<h4 :id="`${sectionIdBase}-${group.key}`" class="cn-related-objects-widget__section-title">
+								{{ group.label }}
+							</h4>
+							<button v-if="groupAction(group)"
+								type="button"
+								class="cn-related-objects-widget__section-action"
+								data-testid="cn-related-section-action"
+								@click="onGroupAction(group)">
+								<CnIcon v-if="groupAction(group).icon" :name="groupAction(group).icon" :size="16" />
+								{{ groupAction(group).label }}
+							</button>
+						</div>
+						<ul class="cn-related-objects-widget__list">
+							<li v-for="(item, i) in group.items" :key="`item-${group.key}-${item.id || i}`">
+								<a v-if="groupHref(group, item)"
+									class="cn-related-objects-widget__row"
+									:href="groupHref(group, item)"
+									target="_blank"
+									rel="noopener noreferrer">
+									<CnIcon :name="group.icon" :size="20" class="cn-related-objects-widget__icon" />
+									<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+									<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+								</a>
+								<div v-else
+									class="cn-related-objects-widget__row"
+									tabindex="0"
+									role="button"
+									@click="onSelectGroupItem(group, item)"
+									@keydown.enter="onSelectGroupItem(group, item)">
+									<CnIcon :name="group.icon" :size="20" class="cn-related-objects-widget__icon" />
+									<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+									<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+								</div>
+							</li>
+						</ul>
+					</section>
+				</template>
+				<div v-if="layout !== 'sections' && tabStripVisible" class="cn-related-objects-widget__tabs" role="tablist">
 					<button v-for="group in visibleGroups"
 						:key="`tab-${group.key}`"
 						type="button"
@@ -57,7 +103,7 @@
 					</button>
 				</div>
 
-				<section v-if="activeGroup" class="cn-related-objects-widget__panel" role="tabpanel">
+				<section v-if="layout !== 'sections' && activeGroup" class="cn-related-objects-widget__panel" role="tabpanel">
 					<ul class="cn-related-objects-widget__list">
 						<li v-for="(item, i) in activeGroup.items"
 							:key="`item-${activeGroup.key}-${item.id || i}`">
@@ -445,6 +491,8 @@ export default {
 		 * reads in the app's language. Without it a title reads as stored.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The page's pre-bound action dispatcher (CnPageRenderer), for a group's heading action. */
+		cnDispatchAction: { default: null },
 	},
 
 	props: {
@@ -507,15 +555,46 @@ export default {
 
 		/**
 		 * Render mode. `'tabs'` (default) self-fetches from OpenRegister and
-		 * renders a tab per non-empty group. `'list'` forces the deprecated
+		 * renders a tab per non-empty group. `'sections'` renders every group
+		 * under its own heading in one list. `'list'` forces the deprecated
 		 * store-action list path.
 		 *
-		 * @type {'tabs'|'list'}
+		 * @type {'tabs'|'list'|'sections'}
 		 */
 		layout: {
 			type: String,
 			default: 'tabs',
-			validator: (value) => ['tabs', 'list'].includes(value),
+			validator: (value) => ['tabs', 'list', 'sections'].includes(value),
+		},
+
+		/**
+		 * Split the Objects group into one group per relation type, labelled
+		 * with the label OpenRegister answers for the direction
+		 * (`relation.displayLabel` on each row: "Onderwerp van deze zaak",
+		 * "Wacht op"), through the host translate. A row without one stays in
+		 * Objects.
+		 *
+		 * @spec openspec/changes/related-groups-by-relation/specs/related-objects/spec.md#requirement-related-objects-can-be-grouped-by-relation-type-under-headings
+		 */
+		groupByRelation: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * An action on a group's heading in `layout: "sections"`, keyed by the
+		 * group key (`objects`, `files`, an `extraSections` key, or
+		 * `relation:<label>` for a relation group): `{ label, icon?, ...action }`
+		 * ("Vervolg plannen"). An `extraSections` entry may carry its own
+		 * `action`. Pressing it dispatches the action through the page and
+		 * emits `group-action`.
+		 *
+		 * @type {Record<string, object>}
+		 * @spec openspec/changes/related-groups-by-relation/specs/related-objects/spec.md#requirement-related-objects-can-be-grouped-by-relation-type-under-headings
+		 */
+		groupActions: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/** Include `/contracts` relations in the Objects group (opt-in). */
@@ -688,6 +767,7 @@ export default {
 
 	emits: [
 		'add',
+		'group-action',
 		'file-uploaded',
 		'note-added',
 		'open-integration',
@@ -724,6 +804,8 @@ export default {
 			groups: [],
 			/** Active tab key. */
 			activeKey: '',
+			/** Prefix for the section heading ids in `layout: "sections"`. */
+			sectionIdBase: `cn-related-${Math.random().toString(36).slice(2, 9)}`,
 			/** Keys of the tabbed sections whose request is still in flight (`objects`, `files`, `relations`). */
 			pendingSections: [],
 			/** Tabbed sections whose request failed: `{ key, label }`. */
@@ -774,7 +856,7 @@ export default {
 
 		/** True when the tabbed self-fetch path is usable. */
 		useTabs() {
-			return this.layout === 'tabs'
+			return (this.layout === 'tabs' || this.layout === 'sections')
 				&& Boolean(this.resolvedRegister && this.resolvedSchema && this.resolvedId)
 		},
 
@@ -809,6 +891,7 @@ export default {
 						items,
 						total: items.length,
 						isExtra: true,
+						action: section.action && typeof section.action === 'object' ? section.action : null,
 					}
 				})
 		},
@@ -824,7 +907,8 @@ export default {
 			const allow = Array.isArray(this.includeGroups) ? this.includeGroups : []
 			const own = this.groups.filter((group) => (group.total > 0 || group.items.length > 0)
 				&& (allow.length === 0 || allow.includes(group.key)))
-			return [...own, ...this.extraGroups]
+			const split = this.groupByRelation ? own.flatMap((group) => (group.key === 'objects' ? this.splitByRelation(group) : [group])) : own
+			return [...split, ...this.extraGroups]
 		},
 
 		/**
@@ -892,7 +976,7 @@ export default {
 		 */
 		activeGroupHrefs() {
 			const group = this.activeGroup
-			if (!group || group.isExtra || group.key === 'objects') {
+			if (!group || group.isExtra || group.key === 'objects' || String(group.key).startsWith('relation:')) {
 				return []
 			}
 			return group.items.map((item) => this.resolveItemHref(group.key, item.raw || {}))
@@ -1196,6 +1280,83 @@ export default {
 		},
 
 		/**
+		 * The Objects group split by relation type: one group per
+		 * `relation.displayLabel`, in the order they first appear; rows
+		 * without a label stay in an Objects group.
+		 *
+		 * @spec openspec/changes/related-groups-by-relation/specs/related-objects/spec.md#requirement-related-objects-can-be-grouped-by-relation-type-under-headings
+		 * @param {object} group The Objects group.
+		 * @return {Array<object>} The groups.
+		 */
+		splitByRelation(group) {
+			const byLabel = new Map()
+			for (const item of group.items) {
+				const relation = item.raw && item.raw.relation
+				const label = relation && typeof relation.displayLabel === 'string' && relation.displayLabel !== '' ? relation.displayLabel : ''
+				const key = label === '' ? 'objects' : `relation:${label}`
+				if (!byLabel.has(key)) {
+					byLabel.set(key, { ...group, key, label: label === '' ? group.label : this.cnTranslate(label), relationLabel: label, items: [], total: 0 })
+				}
+				const target = byLabel.get(key)
+				target.items.push(item)
+				target.total = target.items.length
+			}
+			return [...byLabel.values()]
+		},
+
+		/**
+		 * The heading action of a group: `groupActions[group.key]`, else the
+		 * extra section's own `action`; null without one or without a label.
+		 *
+		 * @param {object} group The group.
+		 * @return {{label: string, icon: string, action: object}|null}
+		 */
+		groupAction(group) {
+			const declared = (this.groupActions && this.groupActions[group.key]) || group.action || null
+			if (!declared || typeof declared !== 'object' || typeof declared.label !== 'string' || declared.label === '') {
+				return null
+			}
+			return { label: this.cnTranslate(declared.label), icon: typeof declared.icon === 'string' ? declared.icon : '', action: declared }
+		},
+
+		/**
+		 * Run a group's heading action through the page's dispatcher, and say
+		 * so with `group-action`.
+		 *
+		 * @spec openspec/changes/related-groups-by-relation/specs/related-objects/spec.md#requirement-related-objects-can-be-grouped-by-relation-type-under-headings
+		 * @param {object} group The group.
+		 * @return {void}
+		 */
+		onGroupAction(group) {
+			const resolved = this.groupAction(group)
+			if (!resolved) {
+				return
+			}
+			if (typeof this.cnDispatchAction === 'function' && resolved.action.type) {
+				this.cnDispatchAction(resolved.action)
+			}
+			/**
+			 * @event group-action A group's heading action was pressed. Payload: `{ group, action }`, the group key and the declared action.
+			 */
+			this.$emit('group-action', { group: group.key, action: resolved.action })
+		},
+
+		/**
+		 * The owning-app link of one row in a group, '' where the row routes
+		 * through the host (related objects, host sections).
+		 *
+		 * @param {object} group The group.
+		 * @param {object} item The row.
+		 * @return {string}
+		 */
+		groupHref(group, item) {
+			if (!group || group.isExtra || group.key === 'objects' || String(group.key).startsWith('relation:')) {
+				return ''
+			}
+			return this.resolveItemHref(group.key, item.raw || {})
+		},
+
+		/**
 		 * Handle a click on a tabbed-path row that has no owning-app link
 		 * (rows with one render as a real `<a>`): emit a host-routed event.
 		 * Related objects always route through the host (their owning app's
@@ -1213,7 +1374,7 @@ export default {
 				this.onSelectExtra(group.key, item.raw)
 				return
 			}
-			if (group.key === 'objects') {
+			if (group.key === 'objects' || String(group.key).startsWith('relation:')) {
 				this.onSelectObject(item.raw)
 				return
 			}
@@ -1860,6 +2021,45 @@ export default {
 </script>
 
 <style scoped>
+.cn-related-objects-widget__section + .cn-related-objects-widget__section {
+	margin-top: 16px;
+}
+
+.cn-related-objects-widget__section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-related-objects-widget__section-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.cn-related-objects-widget__section-action {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 34px;
+	padding: 0 12px;
+	border: none;
+	border-radius: 17px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-related-objects-widget__section-action:focus-visible {
+	outline: 2px solid var(--color-main-text);
+	outline-offset: 2px;
+}
+
 .cn-related-objects-widget__group {
 	padding: calc(2 * var(--default-grid-baseline, 4px)) 0;
 }

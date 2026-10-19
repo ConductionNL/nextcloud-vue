@@ -3,9 +3,8 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
  * A self-fetch index page orders by `config.defaultOrder` until the address
- * or a choice says otherwise, and its sort select (`config.sortSelectOptions`)
- * applies the chosen order as `_order`, as a header click does. Needed before
- * DqTeamWachtrij can drop its table header without losing its sort.
+ * or a choice says otherwise. The sidebar's Sort section, which took over from
+ * the toolbar sort select, is covered in CnIndexPageSidebarSort.spec.js.
  */
 
 const mockStore = {
@@ -95,12 +94,6 @@ function lastOrder() {
 	return (calls[calls.length - 1][1] || {})._order
 }
 
-const options = [
-	{ value: '-createdAt', label: 'Newest first' },
-	{ value: 'title', label: 'Title' },
-	{ value: 'urgent', label: 'Most urgent', order: { priority: 'desc', dueDate: 'asc' } },
-]
-
 beforeEach(() => {
 	mockStore.fetchCollection.mockClear()
 })
@@ -128,38 +121,5 @@ describe('config.defaultOrder', () => {
 		mountPage({ title: 'Queue', register: 'dossiq', schema: 'case', defaultOrder: '-createdAt' }, { params: {}, query: { _order: JSON.stringify([{ key: 'title', order: 'asc' }]) } })
 		await flush()
 		expect(lastOrder()).toEqual({ title: 'asc' })
-	})
-})
-
-describe('the sort select', () => {
-	it('applies the chosen option as _order and shows it as chosen', async () => {
-		const wrapper = mountPage({ title: 'Queue', register: 'dossiq', schema: 'case', showSortSelect: true, sortSelectOptions: options, defaultOrder: '-createdAt' })
-		await flush()
-		expect(wrapper.vm.effectiveSortSelectValue).toBe('-createdAt')
-
-		wrapper.vm.onSortSelectChange('title')
-		await flush()
-		expect(lastOrder()).toEqual({ title: 'asc' })
-		expect(wrapper.vm.effectiveSortSelectValue).toBe('title')
-		expect(wrapper.emitted('sort-change').at(-1)).toEqual(['title'])
-
-		wrapper.vm.onSortSelectChange('urgent')
-		await flush()
-		expect(lastOrder()).toEqual({ priority: 'desc', dueDate: 'asc' })
-		expect(wrapper.vm.effectiveSortSelectValue).toBe('urgent')
-	})
-
-	it('shows a header-click order that matches an option as that option', async () => {
-		const wrapper = mountPage({ title: 'Queue', register: 'dossiq', schema: 'case', showSortSelect: true, sortSelectOptions: options })
-		await flush()
-		wrapper.vm.onSortEvent({ key: 'createdAt', order: 'desc' })
-		await flush()
-		expect(wrapper.vm.effectiveSortSelectValue).toBe('-createdAt')
-	})
-
-	it('keeps a controlled sortSelectValue', async () => {
-		const wrapper = mountPage({ title: 'Queue', register: 'dossiq', schema: 'case', showSortSelect: true, sortSelectOptions: options, sortSelectValue: 'title' })
-		await flush()
-		expect(wrapper.vm.effectiveSortSelectValue).toBe('title')
 	})
 })
