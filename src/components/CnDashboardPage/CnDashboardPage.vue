@@ -351,7 +351,9 @@
 					<NcSelect
 						:modelValue="selectedPageFilterOption(pf)"
 						:options="pageFilterSegments(pf)"
-						:clearable="false"
+						:clearable="pf.clearable === true"
+						:placeholder="pf.placeholder ? effectiveTranslate(pf.placeholder) : undefined"
+						:loading="pageFilterLoading[pf.key] === true"
 						:inputLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
 						label="label"
 						:data-testid="'cn-page-filter-' + pf.key"
@@ -1036,6 +1038,7 @@ import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
+import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
@@ -1043,6 +1046,7 @@ import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashb
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
+import { readPath } from '../../utils/readPath.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
@@ -1177,6 +1181,32 @@ const CHART_PROP_KEYS = [
  * }]
  * ```
  */
+
+/**
+ * One row of a page filter's `optionsFrom` as a `{ value, label }` option:
+ * `valueField` (default `id`, else the OpenRegister uuid) and `labelField`
+ * (default `title`, else `name`, else the value). Null for a row without a
+ * value.
+ *
+ * @param {unknown} row The row.
+ * @param {{valueField?: string, labelField?: string}} from The `optionsFrom` block.
+ * @return {{value: (string|number), label: string}|null}
+ */
+function pageFilterOptionOf(row, from) {
+	if (row === null || row === undefined) {
+		return null
+	}
+	if (typeof row !== 'object') {
+		return { value: row, label: String(row) }
+	}
+	const value = from.valueField ? readPath(row, from.valueField) : (row.id ?? row['@self']?.id ?? row.uuid)
+	if (value === null || value === undefined || value === '') {
+		return null
+	}
+	const label = from.labelField ? readPath(row, from.labelField) : (row.title || row.name)
+	return { value, label: label === null || label === undefined || label === '' ? String(value) : String(label) }
+}
+
 export default {
 	name: 'CnDashboardPage',
 
@@ -1715,10 +1745,16 @@ export default {
 		 * group on the header's description line, after the period group
 		 * (DqProcesanalyse "Gemiddeld | Mediaan"). An endpoint widget can read
 		 * the value in its `responsePath` too (`phaseDays.@workspace.measure`).
-		 * Empty (the default) renders no controls and leaves the context
-		 * untouched.
+		 * `optionsFrom` reads the options instead of listing them: `{ url,
+		 * params?, responsePath?, valueField?, labelField? }` from an app
+		 * endpoint, or `{ register, schema, filter?, valueField?, labelField? }`
+		 * from OpenRegister objects (value `id`, label `title` or `name` by
+		 * default; tokens resolve). `clearable: true` lets the reader clear the
+		 * select back to "all" (`placeholder`, e.g. "All case types"), which
+		 * writes null and seeds nothing. Empty (the default) renders no
+		 * controls and leaves the context untouched.
 		 *
-		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options: Array<{value: (string|number), label: string}>, default?: (string|number)}>}
+		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
 		 */
 		pageFilters: {
 			type: Array,
@@ -1981,6 +2017,10 @@ export default {
 
 	data() {
 		return {
+			/** Options read through a page filter's `optionsFrom`, by filter key. */
+			pageFilterFetched: {},
+			/** Whether a page filter's `optionsFrom` read is in flight, by filter key. */
+			pageFilterLoading: {},
 			isEditing: false,
 			/**
 			 * This user's arranged layout, when `userLayout` is on.
@@ -2840,6 +2880,7 @@ export default {
 		this.pushAiContext()
 		this.initDateRange()
 		this.initPageFilters()
+		this.loadPageFilterOptions()
 		this.evaluateWidgetConditions()
 		this.loadUserLayout()
 	},
@@ -2869,7 +2910,7 @@ export default {
 				if (this.workspaceContext[pf.key] !== undefined) {
 					continue
 				}
-				const fallback = (pf.options && pf.options.length) ? pf.options[0].value : undefined
+				const fallback = (pf.options && pf.options.length && pf.clearable !== true) ? pf.options[0].value : undefined
 				const value = pf.default !== undefined ? pf.default : fallback
 				if (value !== undefined) {
 					this.workspaceContext[pf.key] = value
@@ -2901,7 +2942,45 @@ export default {
 		 * @return {Array<{value: (string|number), label: string}>}
 		 */
 		pageFilterSegments(pf) {
-			return (pf.options || []).map((o) => ({ value: o.value, label: o.label ? this.effectiveTranslate(o.label) : String(o.value) }))
+			const options = Array.isArray(pf.options) ? pf.options : (this.pageFilterFetched[pf.key] || [])
+			return options.map((o) => ({ value: o.value, label: o.label ? this.effectiveTranslate(o.label) : String(o.value) }))
+		},
+
+		/**
+		 * Read the options of every page filter with `optionsFrom`, then seed
+		 * a filter that is not clearable with its first option when it has no
+		 * value yet.
+		 *
+		 * @spec openspec/changes/page-filter-options-from/specs/dashboard-page/spec.md#requirement-a-page-filter-can-read-its-options
+		 * @return {Promise<void>}
+		 */
+		async loadPageFilterOptions() {
+			const ctx = { workspace: this.workspaceContext || {} }
+			await Promise.all((this.pageFilters || [])
+				.filter((pf) => pf && pf.key && !Array.isArray(pf.options) && pf.optionsFrom && typeof pf.optionsFrom === 'object')
+				.map(async (pf) => {
+					const from = pf.optionsFrom
+					const source = from.register && from.schema
+						? { url: `/apps/openregister/api/objects/${from.register}/${from.schema}`, params: { _limit: 200, ...(from.filter || {}) }, responsePath: 'results' }
+						: { url: from.url, params: from.params, responsePath: from.responsePath }
+					if (!source.url) {
+						return
+					}
+					this.pageFilterLoading = { ...this.pageFilterLoading, [pf.key]: true }
+					let rows
+					try {
+						const data = await fetchEndpointSource(source, ctx, { fresh: true })
+						rows = Array.isArray(data) ? data : []
+					} catch {
+						rows = []
+					}
+					const options = rows.map((row) => pageFilterOptionOf(row, from)).filter(Boolean)
+					this.pageFilterFetched = { ...this.pageFilterFetched, [pf.key]: options }
+					this.pageFilterLoading = { ...this.pageFilterLoading, [pf.key]: false }
+					if (pf.clearable !== true && pf.default === undefined && this.workspaceContext[pf.key] === undefined && options.length > 0) {
+						this.workspaceContext[pf.key] = options[0].value
+					}
+				}))
 		},
 
 		/**
@@ -2916,7 +2995,7 @@ export default {
 			if (!pf || !pf.key) {
 				return
 			}
-			const value = option && typeof option === 'object' ? option.value : option
+			const value = option && typeof option === 'object' ? option.value : (option ?? null)
 			this.workspaceContext[pf.key] = value
 			/**
 			 * @event page-filter-change Emitted when a page-level filter selection changes.

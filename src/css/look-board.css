@@ -171,6 +171,18 @@
 	padding: 0;
 }
 
+/* ---- Button weight ------------------------------------------------------ */
+/* The boards draw a labelled button at 600 (DqZaken "Downloaden", DqZaak's
+   header, dialog footers, toolbar and row actions). An NcButton reads its
+   weight from --font-weight-element, which Nextcloud sets to 500; the board
+   look sets 600 on each button, so every NcButton on a board page draws the
+   board's weight without a rule per surface. Breadcrumb buttons keep the
+   crumb weight.
+   @spec openspec/changes/board-button-weight/specs/board-button-weight/spec.md#requirement-a-board-button-draws-at-600 */
+.cn-look-board .button-vue:not(.cn-look-nextcloud *):not(.vue-crumb *) {
+	--font-weight-element: 600;
+}
+
 /* ---- The header button ------------------------------------------------- */
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
@@ -1084,9 +1096,12 @@
 	color: var(--cn-status-badge-ink);
 }
 
-/* Every board pill is 13px at 600 on a 3px 10px pad with a 12px corner
-   (DqZaak's header pills, DqZaken's status column). */
-.cn-look-board .cn-status-badge:not(.cn-status-badge--small):not(.cn-look-nextcloud *) {
+/* Every board tag is 13px at 600 on a 3px 10px pad with a 12px corner, 21px
+   tall (DqZaak's header pills, DqZaken's status column, DqZaaktype's version
+   tag). The boards draw one tag size, so a small badge takes it too: it was
+   a 17.8px full pill at 500.
+   @spec openspec/changes/board-tags-shape/specs/board-tags-shape/spec.md#requirement-a-board-tag-is-a-21px-rounded-rectangle */
+.cn-look-board .cn-status-badge:not(.cn-look-nextcloud *) {
 	padding: 3px 10px;
 	border-radius: 12px;
 	font-size: 13px;

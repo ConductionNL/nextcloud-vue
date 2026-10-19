@@ -663,7 +663,7 @@
 			"page": "cn-dashboard-grid"
 		},
 		"CnDashboardPage": {
-			"direct": 4,
+			"direct": 5,
 			"transitive": 181,
 			"tier": "heavy",
 			"via": [
@@ -1718,7 +1718,7 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 9,
+			"direct": 8,
 			"transitive": 188,
 			"tier": "heavy",
 			"via": [
@@ -1813,7 +1813,7 @@
 		},
 		"CnIndexSidebar": {
 			"direct": 1,
-			"transitive": 1,
+			"transitive": 2,
 			"tier": "light",
 			"via": [],
 			"page": "cn-index-sidebar"
@@ -3263,6 +3263,13 @@
 			"via": [],
 			"page": "cn-saved-view-alert-widget"
 		},
+		"CnSavedViewEditDialog": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-saved-view-edit-dialog"
+		},
 		"CnSavedViewPresentationDialog": {
 			"direct": 0,
 			"transitive": 1,
@@ -3272,8 +3279,8 @@
 		},
 		"CnSavedViewShareDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
+			"transitive": 1,
+			"tier": "light",
 			"via": [],
 			"page": "cn-saved-view-share-dialog"
 		},
@@ -3344,6 +3351,13 @@
 			"tier": "light",
 			"via": [],
 			"page": "cn-saved-views-control"
+		},
+		"CnSavedViewsPanel": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-saved-views-panel"
 		},
 		"CnSavedViewsWidget": {
 			"direct": 0,

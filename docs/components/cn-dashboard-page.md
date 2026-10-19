@@ -364,6 +364,17 @@ A widget then binds its data to the selected value. With an endpoint-bound [`sta
 
 Each entry: `key` (the context key written on change), optional `label`, `type` (only `'select'` today), `options` (`[{ value, label }]`), and an optional `default` (else the first option seeds the context on mount). Omitting `pageFilters` renders nothing and leaves the context untouched (backwards-compatible). The label and the option labels go through the app's translate.
 
+### Options read from a source (`optionsFrom`)
+
+A filter can read its options instead of listing them, as the case-type filter of a reporting dashboard does:
+
+```json
+{ "key": "caseType", "label": "Filter by case type", "clearable": true, "placeholder": "All case types",
+  "optionsFrom": { "register": "dossiq", "schema": "caseType", "filter": { "hasSla": true } } }
+```
+
+`optionsFrom` is `{ register, schema, filter? }` (OpenRegister objects; tokens in `filter` resolve) or `{ url, params?, responsePath? }` (an app endpoint). `valueField` and `labelField` pick the option's value and label (default the `id` or uuid, and `title` or `name`). `clearable: true` lets the reader clear the select back to all: the context key becomes `null` and nothing is seeded on mount, and `placeholder` says what an empty select means. A filter that is not clearable is seeded with the first option read.
+
 ## Built-in page-level Actions menu
 
 The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu.md) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — next to the edit toggle. This is the **page-level** menu, distinct from each widget's own menu (the per-widget ones emit `@widget-refresh` / `@widget-request-feature`).

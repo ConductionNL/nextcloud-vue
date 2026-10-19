@@ -2,23 +2,23 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**light**: this component touches OpenRegister lightly. 0 direct references, 1 file reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name          | Type     | Required | Default                                     | Description                                                |
-| ------------- | -------- | -------- | ------------------------------------------- | ---------------------------------------------------------- |
-| `view`        | `object` |          | `\{\}`                                      | The view being shared (its `sharedWith` seeds the fields). |
-| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Share view')` | Dialog title.                                              |
+| Name          | Type     | Required | Default | Description                                                |
+| ------------- | -------- | -------- | ------- | ---------------------------------------------------------- |
+| `view`        | `object` |          | `\{\}`  | The view being shared (its `sharedWith` seeds the fields). |
+| `dialogTitle` | `string` |          | `''`    | Dialog title; empty reads "Share view: \{name\}".          |
 
 ### Events
 
-| Name      | Payload | Description                                                                      |
-| --------- | ------- | -------------------------------------------------------------------------------- |
-| `close`   | —       | Dialog dismissed.                                                                |
-| `confirm` | —       | Save clicked. Payload: the audience, `[{ group, mode }]` (`[]` to stop sharing). |
+| Name      | Payload | Description                                                                                             |
+| --------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `close`   | —       | Dialog dismissed.                                                                                       |
+| `confirm` | —       | Save clicked. Payload: the audience, `[{ group, mode }]` and `[{ user, mode }]` (`[]` to stop sharing). |
 
 ### Methods
 

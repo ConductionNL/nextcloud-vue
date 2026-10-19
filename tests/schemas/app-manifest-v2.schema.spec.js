@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.129.0', () => {
+	it('the manifest schema version reads 2.130.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1406,7 +1406,21 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.127.0 adds config.sideColumnFrom on a detail page (detail-page), headerButtons[].run, config.search, searchPlacement, defaultOrder, listConfig leading / trailing / subtitleTemplate and folderSidebar heading / countText on an index page (index-page, object-row), and the object-table pageSize (object-table).
 		// 2.128.0 adds the setup step's noteStyle (setup-wizard), chart referenceLines and categoryFormat (chart-widget), visibleWhen op contains (visible-when), config.tabsFrom on a detail page (detail-page) and the notice widget (notice-widget).
 		// 2.129.0 adds config.cardLayout on an index page, the board record card's layout, with a meta part that names its own formatter (card-layout-part-formatter); also quickFilterPlacement row (index-page), nextStep.stagesFrom, side-column entry tabs and folderSidebar.scopeViews (detail-page, index-page), and the record-list dot / flags, related groupByRelation / layout / groupActions and nc-widget excludeApps / excludeTypes content (widgets).
-		expect(schema.version).toBe('2.129.0')
+		// 2.130.0 adds config.defaultSavedViews on an index page, views the app ships, read-only and copyable, with savedViewTree.seeded deprecated (saved-views-manage-and-defaults), and a dashboard page filter's optionsFrom, clearable and placeholder, with options required only without optionsFrom (dashboard-page).
+		expect(schema.version).toBe('2.130.0')
+	})
+
+	it('a page filter takes its options or optionsFrom, and refuses neither or a malformed optionsFrom', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'trend', route: '/trend', type: 'dashboard', title: 'Trend', config: { pageFilters: [filter] } }] })
+		const options = [{ value: 'mean', label: 'Gemiddeld' }]
+		expect(validateManifestV2(withFilter({ key: 'measure', options })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { register: 'dossiq', schema: 'caseType', labelField: 'name' }, clearable: true, placeholder: 'All case types' })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { url: '/apps/dossiq/api/case-types', responsePath: 'results' } })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'caseType' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', clearable: true, placeholder: 'All' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { labelField: 'name' } })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { register: 'dossiq', schema: 'caseType', source: 'x' } })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', options, clearable: 'yes' })).valid).toBe(false)
 	})
 
 	it('accepts the 2.128.0 keys and refuses malformed ones', () => {
