@@ -1282,6 +1282,8 @@ When a click on a row navigates to the record's detail page, the built-in View i
 
 ## Presentation per scope
 
+While a folder is selected its own filter stays quiet in the table: the table draws no header-filter chip for the `filterField` (the Active chip already names the folder), and a scope that sets its own `columns` does not get the folder's field back as a column, since every row holds the same value there.
+
 A folder in `folderSidebar` (or the `x-index` block of the row a register-derived folder comes from) can carry the
 presentation keys a query preset sets, under the same names: `title`, `quickFilters`, `cardFields`, `countText`,
 `searchPlaceholder`, `footerNote`, `viewSwitch`, `addLabel`, `headerButtons`, `breadcrumb`, `headerMeta` and

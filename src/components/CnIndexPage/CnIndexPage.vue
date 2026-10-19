@@ -772,7 +772,7 @@
 					:rowTitle="rowTitle"
 					:showUnread="showUnreadRows"
 					:filterable="tableHeaderFilters"
-					:activeFilters="effectiveActiveFilters"
+					:activeFilters="tableActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
 					@columnFilter="onColumnFilterEvent"
 					@sort="onSortEvent"
@@ -6394,8 +6394,11 @@ export default {
 
 			const present = new Set(cols.map((c) => (typeof c === 'string' ? c : c.key)))
 			const byKey = new Map(this.governedColumns.map((c) => [c.key, c]))
+			// A scope that sets its own columns does not get its folder field back:
+			// every row of the scope holds the same value there.
+			const scopeField = this.activeScopeLayout.columns ? this.folderFilterKey : ''
 			visible.forEach((key) => {
-				if (present.has(key)) {
+				if (present.has(key) || key === scopeField) {
 					return
 				}
 				const def = byKey.get(key)
@@ -6858,6 +6861,28 @@ export default {
 			const count = this.activeFilterChips.length
 			const name = t('nextcloud-vue', 'Filter')
 			return count > 0 ? `${name}, ${t('nextcloud-vue', '{count} active', { count })}` : name
+		},
+
+		/** @return {string} The field the folder sidebar filters by, or ''. */
+		folderFilterKey() {
+			return (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
+		},
+
+		/**
+		 * The filters the table's header filters show: every active filter but
+		 * the selected folder's own, which the Active chip already names, so
+		 * the table draws no summary chip for it.
+		 *
+		 * @return {object} The filters.
+		 */
+		tableActiveFilters() {
+			const filters = this.effectiveActiveFilters || {}
+			const key = this.folderFilterKey
+			if (!key || this.selectedFolderId === null || this.selectedFolderId === undefined || !Object.hasOwn(filters, key)) {
+				return filters
+			}
+			const { [key]: _folder, ...rest } = filters
+			return rest
 		},
 
 		/**
