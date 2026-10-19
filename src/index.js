@@ -34,6 +34,7 @@ export {
 	CnActionButtons,
 	CnActionsBar,
 	CnActionsMenu,
+	CnAddressSearch,
 	CnAddWidgetModal,
 	CnAdminActionCard,
 	CnAdminSettingsShell,

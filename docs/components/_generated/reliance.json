@@ -68,6 +68,13 @@
 			"via": [],
 			"page": "cn-actions-menu"
 		},
+		"CnAddressSearch": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-address-search"
+		},
 		"CnAdminActionCard": {
 			"direct": 0,
 			"transitive": 0,

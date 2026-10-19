@@ -1940,7 +1940,14 @@
     "On": "Aan",
     "Select a step on the canvas to see its settings.": "Kies een stap op het canvas om de instellingen te zien.",
     "Show runs": "Uitvoeringen tonen",
-    "Back to the step settings": "Terug naar de stapinstellingen"
+    "Back to the step settings": "Terug naar de stapinstellingen",
+    "Search an address": "Zoek een adres",
+    "Street, postcode or place": "Straat, postcode of plaats",
+    "Address search is not available right now.": "Adres zoeken is nu niet beschikbaar.",
+    "Address": "Adres",
+    "Street": "Straat",
+    "Place": "Plaats",
+    "Postcode": "Postcode"
   },
   "plurals": {
     "{count} member": [

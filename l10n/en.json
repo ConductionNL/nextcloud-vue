@@ -1727,7 +1727,14 @@
     "On": "On",
     "Select a step on the canvas to see its settings.": "Select a step on the canvas to see its settings.",
     "Show runs": "Show runs",
-    "Back to the step settings": "Back to the step settings"
+    "Back to the step settings": "Back to the step settings",
+    "Search an address": "Search an address",
+    "Street, postcode or place": "Street, postcode or place",
+    "Address search is not available right now.": "Address search is not available right now.",
+    "Address": "Address",
+    "Street": "Street",
+    "Place": "Place",
+    "Postcode": "Postcode"
   },
   "plurals": {
     "{count} member": [
