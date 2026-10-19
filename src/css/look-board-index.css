@@ -243,7 +243,7 @@
 	color: var(--color-primary-element-text);
 }
 
-/* Save view: a ghost button, 34px, radius 17, no border, on the light primary
+/* Save filter: a ghost button, 34px, radius 17, no border, on the light primary
    tint, a 14px icon 6px before the label, on one line. */
 .cn-look-board .cn-saved-views__save .button-vue {
 	min-height: 34px;

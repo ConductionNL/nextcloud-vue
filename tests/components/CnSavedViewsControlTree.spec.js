@@ -16,7 +16,7 @@ jest.mock('@nextcloud/l10n', () => ({
 }))
 
 const { mount } = require('@vue/test-utils')
-const CnSavedViewsControl = require('../../src/components/CnSavedViewsControl/CnSavedViewsControl.vue').default
+const CnSavedFiltersPanel = require('../../src/components/CnSavedFiltersPanel/CnSavedFiltersPanel.vue').default
 
 /** Shorthand for a view as the store hands it over. */
 const view = (id, extra = {}) => ({ id, slug: id, name: id, owner: 'alice', ...extra })
@@ -28,7 +28,7 @@ const view = (id, extra = {}) => ({ id, slug: id, name: id, owner: 'alice', ...e
  * @return {object} The wrapper.
  */
 function mountControl(views) {
-	return mount(CnSavedViewsControl, {
+	return mount(CnSavedFiltersPanel, {
 		props: { views, currentUserId: 'alice' },
 	})
 }
@@ -78,13 +78,13 @@ describe('the control renders the tree the helper built', () => {
 		expect(rows(wrapper)[0].attributes('aria-label')).toContain('cannot see')
 	})
 
-	it('offers no delete on a seeded view, which a user may copy and not remove', () => {
+	it('offers no delete on a seeded view, which a user may copy and not remove', async () => {
 		// A view the product promises is not a view one person can take off
 		// everybody's install.
 		const wrapper = mountControl([view('geleverd', { seeded: true }), view('eigen')])
 
-		const deletes = wrapper.findAll('[data-testid="cn-saved-views-delete"]')
-		expect(deletes.map((entry) => entry.attributes('data-view-id'))).toEqual(['eigen'])
+		expect(wrapper.findAll('[data-testid="cn-saved-views-delete"]').map((entry) => entry.attributes('data-view-id'))).toEqual(['eigen'])
+		expect(wrapper.findAll('[data-testid="cn-saved-views-copy"]').map((entry) => entry.attributes('data-view-id'))).toEqual(['geleverd'])
 	})
 })
 
