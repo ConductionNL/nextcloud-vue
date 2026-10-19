@@ -1,5 +1,8 @@
 {
   "translations": {
+    "Select a step on the canvas to see its settings.": "Select a step on the canvas to see its settings.",
+    "Show runs": "Show runs",
+    "Back to the step settings": "Back to the step settings",
     "Channel": "Channel",
     "Outcome": "Outcome",
     "Chat": "Chat",

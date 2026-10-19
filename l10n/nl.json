@@ -1,5 +1,8 @@
 {
   "translations": {
+    "Select a step on the canvas to see its settings.": "Kies een stap op het canvas om de instellingen te zien.",
+    "Show runs": "Uitvoeringen tonen",
+    "Back to the step settings": "Terug naar de stapinstellingen",
     "Channel": "Kanaal",
     "Outcome": "Uitkomst",
     "Chat": "Chat",

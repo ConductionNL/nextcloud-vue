@@ -36,7 +36,7 @@
 				<NcButton v-if="showRun"
 					:disabled="store.running || !store.flow.id"
 					data-testid="flow-board-run"
-					@click="$emit('run')">
+					@click="onRun">
 					{{ t('nextcloud-vue', 'Run') }}
 				</NcButton>
 				<NcButton v-if="testSubjectReady"
@@ -135,7 +135,7 @@
 					:toolbarActions="false"
 					:addStep="!showPalette"
 					@save="$emit('save')"
-					@run="$emit('run')" />
+					@run="onRun" />
 				<div v-if="store.inRunView"
 					class="cn-flow-board__legend"
 					data-testid="flow-board-legend">
@@ -183,6 +183,15 @@
 					<h3 class="cn-flow-board__card-title" data-testid="flow-board-step-name">
 						{{ stepName }}
 					</h3>
+					<dl v-if="stepSettings.length > 0" class="cn-flow-board__settings">
+						<div v-for="setting in stepSettings"
+							:key="setting.key"
+							class="cn-flow-board__setting"
+							data-testid="flow-board-step-setting">
+							<dt>{{ setting.label }}</dt>
+							<dd>{{ setting.value }}</dd>
+						</div>
+					</dl>
 					<div class="cn-flow-board__step-actions">
 						<NcButton data-testid="flow-board-edit-step" @click="store.editingNodeId = store.selectedNodeId">
 							{{ t('nextcloud-vue', 'Edit step') }}
@@ -212,7 +221,23 @@
 						</NcButton>
 					</div>
 				</template>
-				<CnFlowSidebar v-else embedded />
+				<template v-else-if="showRuns">
+					<NcButton variant="tertiary"
+						class="cn-flow-board__runs-back"
+						data-testid="flow-board-hide-runs"
+						@click="showRuns = false">
+						{{ t('nextcloud-vue', 'Back to the step settings') }}
+					</NcButton>
+					<CnFlowSidebar embedded />
+				</template>
+				<div v-else class="cn-flow-board__inspector-empty" data-testid="flow-board-inspector-empty">
+					<p>{{ t('nextcloud-vue', 'Select a step on the canvas to see its settings.') }}</p>
+					<NcButton variant="secondary"
+						data-testid="flow-board-show-runs"
+						@click="showRuns = true">
+						{{ t('nextcloud-vue', 'Show runs') }}
+					</NcButton>
+				</div>
 			</aside>
 		</div>
 	</div>
@@ -278,7 +303,7 @@ export default {
 	},
 
 	data() {
-		return { runTab: 'step', testOpen: false, testRecord: null }
+		return { runTab: 'step', testOpen: false, testRecord: null, showRuns: false }
 	},
 
 	computed: {
@@ -477,6 +502,37 @@ export default {
 			return entry ? (entry.displayName || entry.id) : String(node?.type || '')
 		},
 
+		/**
+		 * The selected step's settings as its owner declares them in the
+		 * catalogue's `configForm`: label and value, a select's option label,
+		 * Yes or No for a switch. Unset settings are left out.
+		 *
+		 * @return {Array<{key: string, label: string, value: string}>} The settings.
+		 */
+		stepSettings() {
+			const node = this.store.selectedNode
+			const entry = node ? this.store.catalogEntry(node.type) : null
+			const config = (node && node.config) || {}
+			const form = (entry && Array.isArray(entry.configForm)) ? entry.configForm : []
+			return form
+				.filter((field) => field && field.key && config[field.key] !== undefined && config[field.key] !== null && config[field.key] !== '')
+				.map((field) => {
+					const raw = config[field.key]
+					const option = Array.isArray(field.options) ? field.options.find((o) => o && o.value === raw) : null
+					let value
+					if (option) {
+						value = String(option.label ?? option.value)
+					} else if (typeof raw === 'boolean') {
+						value = raw ? this.t('nextcloud-vue', 'Yes') : this.t('nextcloud-vue', 'No')
+					} else if (typeof raw === 'object') {
+						value = JSON.stringify(raw)
+					} else {
+						value = String(raw)
+					}
+					return { key: field.key, label: field.label || field.key, value }
+				})
+		},
+
 		/** @return {string} The selected step's name. */
 		stepName() {
 			const node = this.store.selectedNode
@@ -507,7 +563,26 @@ export default {
 		},
 	},
 
+	watch: {
+		// A selected step takes the panel back from the run history.
+		'store.selectedNodeId': function(id) {
+			if (id) {
+				this.showRuns = false
+			}
+		},
+	},
+
 	methods: {
+		/**
+		 * Run the flow, with the run history in the panel to follow it.
+		 *
+		 * @return {void}
+		 */
+		onRun() {
+			this.showRuns = true
+			this.$emit('run')
+		},
+
 		/**
 		 * Run the saved flow once with the picked record as its subject, then
 		 * close the dialog; the run shows on the canvas as any run does.
@@ -820,6 +895,36 @@ export default {
 	font-size: 12px;
 	line-height: 18px;
 	text-align: center;
+}
+
+.cn-flow-board__settings {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 0;
+}
+
+.cn-flow-board__setting dt {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-board__setting dd {
+	margin: 2px 0 0;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.cn-flow-board__inspector-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 12px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-board__inspector-empty p {
+	margin: 0;
 }
 
 .cn-flow-board__step-actions,
