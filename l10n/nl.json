@@ -2005,7 +2005,10 @@
     "Share view: {name}": "Weergave delen: {name}",
     "The view \"{name}\" leaves your list and the menu on the left.": "De weergave \"{name}\" verdwijnt uit uw lijst en uit het menu links.",
     "Whoever gets the view sees it under Shared with me. It is yours and stays yours.": "Wie de weergave krijgt, ziet die onder Gedeeld met mij. Die is van u en blijft dat.",
-    "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen."
+    "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen.",
+    "Actions for {row}": "Acties voor {row}",
+    "Edit {row}": "{row} bewerken",
+    "Row": "Rij"
   },
   "plurals": {
     "{count} member": [

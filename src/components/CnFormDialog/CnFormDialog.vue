@@ -178,10 +178,11 @@
 								:placeholder="field.description" />
 						</div>
 
-						<!-- Concept-scheme choice whose options could not be loaded: the
-						     plain text input it had before, with a line saying so. -->
+						<!-- A choice whose options could not be loaded (a concept scheme,
+						     or an `optionsFrom` source that failed or gave none): a plain
+						     text input, with a line saying so. -->
 						<div
-							v-else-if="field.codeList && codedFailed[field.key]"
+							v-else-if="(field.codeList && codedFailed[field.key]) || (field.optionsFrom && sourcedFailed[field.key])"
 							class="cn-form-dialog__coded-fallback">
 							<NcTextField
 								:id="fieldControlId(field)"
@@ -299,6 +300,25 @@
 
 							<!-- Enum toggle (`widget: "switch"` on a 2-value enum):
 							     renders a switch mapping off→enum[0], on→last enum value. -->
+							<!-- An optional object (widget: 'object-switch'): on fills it with
+							     `defaults`, off writes null. Its keys are fields at dotted paths. -->
+							<div v-else-if="field.widget === 'object-switch'" class="cn-form-dialog__switch-wrapper">
+								<NcCheckboxRadioSwitch
+									:modelValue="isObjectOn(field)"
+									:disabled="field.readOnly"
+									type="switch"
+									:data-testid="'cn-form-object-switch-' + field.key"
+									@update:modelValue="value => setObjectOn(field, value)">
+									{{ field.label }}
+								</NcCheckboxRadioSwitch>
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label" />
+							</div>
+
 							<div v-else-if="field.widget === 'switch'" class="cn-form-dialog__switch-wrapper">
 								<NcCheckboxRadioSwitch
 									:modelValue="isSwitchOn(field)"
@@ -631,6 +651,11 @@
 									:inputLabel="fieldLabelText(field)"
 									:disabled="field.readOnly"
 									:error="errors[field.key] || ''"
+									:fieldOverrides="field.itemOverrides || {}"
+									:newItem="field.newItem || null"
+									:itemLabel="field.itemLabel ? cnTranslate(field.itemLabel) : ''"
+									:emptyText="field.emptyText ? cnTranslate(field.emptyText) : ''"
+									:addLabel="field.addLabel ? cnTranslate(field.addLabel) : undefined"
 									@update:modelValue="value => updateField(field.key, value)" />
 								<CnFieldHelper
 									:text="field.description"
@@ -866,6 +891,8 @@ import { objectDisplayName } from '../../utils/objectName.js'
 import { fieldWithOptionsFrom, filterOptions, isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
 import { languageOptions, resolveDefaultToken, timezoneOptions } from '../../utils/pickerOptions.js'
 import { getDotted, planPropertySourceFill } from '../../utils/propertySourceFill.js'
+import { pruneRows } from '../../utils/pruneRows.js'
+import { readPath } from '../../utils/readPath.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, isTenantProperty } from '../../utils/schema.js'
@@ -907,6 +934,7 @@ const BUILT_IN_WIDGETS = new Set([
 	'duration',
 	'child-records',
 	'sub-objects',
+	'object-switch',
 	'property-source',
 	'icon',
 	'language',
@@ -1469,6 +1497,8 @@ export default {
 			codedFailed: {},
 			// Options read through a field's `optionsFrom`, by field key, read once per dialog.
 			sourcedOptions: {},
+			// Whether a field's `optionsFrom` failed or gave no options, by field key: it falls back to text.
+			sourcedFailed: {},
 			/** Scheme of each coded field, as OpenRegister reported it (for the notation route). */
 			codedSchemes: {},
 			/**
@@ -2543,8 +2573,13 @@ export default {
 		async fetchSourcedOptions(field, query) {
 			let all = this.sourcedOptions[field.key]
 			if (!all) {
-				all = await loadOptionsFrom(field.optionsFrom, resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext) || {})
+				try {
+					all = await loadOptionsFrom(field.optionsFrom, resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext) || {})
+				} catch {
+					all = []
+				}
 				this.sourcedOptions = { ...this.sourcedOptions, [field.key]: all }
+				this.sourcedFailed = { ...this.sourcedFailed, [field.key]: all.length === 0 }
 				const labels = {}
 				for (const o of all) {
 					labels[o.id] = o.label
@@ -2651,7 +2686,7 @@ export default {
 		 * @param {string} text The typed text.
 		 */
 		onCodedFallbackInput(field, text) {
-			if (field.codeList.multiple) {
+			if (field.codeList ? field.codeList.multiple : field.type === 'array') {
 				this.updateField(field.key, text.split(',').map((x) => x.trim()).filter(Boolean))
 			} else {
 				this.updateField(field.key, text)
@@ -3226,7 +3261,7 @@ export default {
 			if (!this.isBoardLook || this.$slots['field-' + field.key]) {
 				return false
 			}
-			if (['switch', 'checkbox', 'file', 'duration', 'child-records', 'sub-objects', 'property-source'].includes(field.widget)) {
+			if (['switch', 'object-switch', 'checkbox', 'file', 'duration', 'child-records', 'sub-objects', 'property-source'].includes(field.widget)) {
 				return false
 			}
 			return !this.resolveReferenceWidget(field)
@@ -3977,6 +4012,40 @@ export default {
 		},
 
 		/**
+		 * Whether an optional object (`widget: 'object-switch'`) is on: it
+		 * holds an object rather than null.
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 * @spec openspec/changes/sub-objects-editor/specs/form-dialog/spec.md#requirement-an-optional-object-has-a-switch
+		 */
+		isObjectOn(field) {
+			const value = this.formData[field.key]
+			return value !== null && value !== undefined && typeof value === 'object'
+		},
+
+		/**
+		 * Turn an optional object on (its `defaults`) or off (null). Its fields
+		 * at dotted paths follow: on they take the defaults, off they clear.
+		 *
+		 * @param {object} field The field, with optional `defaults`.
+		 * @param {boolean} on Whether the object is wanted.
+		 * @return {void}
+		 * @spec openspec/changes/sub-objects-editor/specs/form-dialog/spec.md#requirement-an-optional-object-has-a-switch
+		 */
+		setObjectOn(field, on) {
+			const defaults = field.defaults && typeof field.defaults === 'object' ? field.defaults : {}
+			this.updateField(field.key, on ? { ...defaults } : null)
+			const prefix = field.key + '.'
+			for (const other of this.resolvedFields) {
+				if (other.key.startsWith(prefix)) {
+					const value = on ? readPath(defaults, other.key.slice(prefix.length)) : undefined
+					this.updateField(other.key, value === undefined ? null : value)
+				}
+			}
+		},
+
+		/**
 		 * Whether an enum `widget:"switch"` field is currently "on" — i.e. its
 		 * value equals the last enum value (off → first enum value).
 		 *
@@ -4720,9 +4789,11 @@ export default {
 
 				// Sub-objects: every row must carry the row schema's required values.
 				if (field.widget === 'sub-objects' && Array.isArray(value) && field.items && Array.isArray(field.items.required)) {
-					for (let i = 0; i < value.length; i++) {
+					// Rows that `pruneWhen` drops on save are not checked.
+					const rows = pruneRows(value, field.items, field.pruneWhen)
+					for (let i = 0; i < rows.length; i++) {
 						const missing = field.items.required.find((k) => {
-							const cell = value[i] ? value[i][k] : undefined
+							const cell = rows[i] ? rows[i][k] : undefined
 							return cell === undefined || cell === null || cell === ''
 						})
 						if (missing !== undefined) {
@@ -4913,6 +4984,9 @@ export default {
 			for (const field of this.resolvedFields) {
 				if (field.widget === 'child-records') {
 					delete payload[field.key]
+				}
+				if (field.widget === 'sub-objects' && field.pruneWhen && Array.isArray(payload[field.key])) {
+					payload[field.key] = pruneRows(payload[field.key], field.items, field.pruneWhen)
 				}
 			}
 			for (const field of this.resolvedFields) {

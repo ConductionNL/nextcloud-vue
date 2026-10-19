@@ -1792,7 +1792,10 @@
     "Share view: {name}": "Share view: {name}",
     "The view \"{name}\" leaves your list and the menu on the left.": "The view \"{name}\" leaves your list and the menu on the left.",
     "Whoever gets the view sees it under Shared with me. It is yours and stays yours.": "Whoever gets the view sees it under Shared with me. It is yours and stays yours.",
-    "Whoever you share the view with sees the change at once.": "Whoever you share the view with sees the change at once."
+    "Whoever you share the view with sees the change at once.": "Whoever you share the view with sees the change at once.",
+    "Actions for {row}": "Actions for {row}",
+    "Edit {row}": "Edit {row}",
+    "Row": "Row"
   },
   "plurals": {
     "{count} member": [
