@@ -1727,6 +1727,10 @@
     "On": "On"
   },
   "plurals": {
+    "{count} member": [
+      "{count} member",
+      "{count} members"
+    ],
     "{count} selected": [
       "{count} selected",
       "{count} selected"
