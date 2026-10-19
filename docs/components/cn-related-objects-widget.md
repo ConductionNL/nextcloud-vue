@@ -16,6 +16,18 @@ Each section shows as soon as its own request returns: a fast `/relations` does 
 
 > Earlier builds offered an "open in sidebar" action per tab. That was removed — it only worked when the host mounted `CnObjectSidebar`, and silently did nothing otherwise. Deep-linking to the owning app works regardless of host wiring. (`open-in-sidebar-label` is kept as a deprecated no-op prop.)
 
+## Sections grouped by relation type
+
+`layout="sections"` with `group-by-relation` draws a case's related cases as board DqZaakGerelateerd does: one heading per relation type ("Onderwerp van deze zaak", "Wacht op"), each over its rows, and a host section such as "Gepland vervolg" with its heading action ("Vervolg plannen").
+
+```json
+{ "id": "related", "type": "related", "content": {
+  "layout": "sections",
+  "groupByRelation": true,
+  "groupActions": { "relation:Waits on": { "label": "Link case", "icon": "LinkVariant", "type": "open-modal", "target": "LinkCase" } }
+} }
+```
+
 ## Legacy list mode (deprecated)
 
 With `layout="list"` — or when no `register`/`schema` can be resolved — the widget falls back to the original flat sections driven by the object store's `fetchUses` / `fetchUsed` / `fetchContracts` / `fetchFiles` actions, plus the static leaf-integration **Linked apps** list. This path logs a one-time deprecation warning. Prefer the tabbed mode.
@@ -54,7 +66,9 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `object-data` | `Object` | `{}` | The object data — used to derive id/`register`/`schema` (from `@self`) when not passed explicitly |
 | `register` | `String` | `''` | OpenRegister register slug. When omitted, derived from `object-data['@self'].register`. Required (with `schema`) for the tabbed self-fetch path |
 | `schema` | `String` | `''` | OpenRegister schema slug. When omitted, derived from `object-data['@self'].schema`. Required (with `register`) for the tabbed self-fetch path |
-| `layout` | `String` | `'tabs'` | Render mode: `'tabs'` (self-fetch, tab per non-empty group) or `'list'` (deprecated store-action list) |
+| `layout` | `String` | `'tabs'` | Render mode: `'tabs'` (self-fetch, tab per non-empty group), `'sections'` (self-fetch, every group under its own heading in one list) or `'list'` (deprecated store-action list) |
+| `groupByRelation` | `Boolean` | `false` | Split the Objects group into one group per relation type, labelled with the label OpenRegister answers for the direction (`relation.displayLabel` on each uses/used row), through the app's translate; a row without one stays in Objects |
+| `groupActions` | `Object` | `{}` | An action on a group's heading in the sections layout, keyed by group key (`objects`, `files`, an extra section's key, or `relation:<label>`): `{ label, icon?, ...action }`. An `extra-sections` entry may carry its own `action`. Pressing it dispatches the action and emits `group-action` |
 | `store` | `Object` | `null` | Object store instance (legacy list path only). When omitted, the widget tries Pinia auto-detection. |
 | `show-objects` | `Boolean` | `true` | Show the related-objects (uses/used/contracts) section |
 | `show-files` | `Boolean` | `true` | Show the files section |
@@ -86,3 +100,4 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `@add` | group key (string) | An Add-footer entry without a built-in flow was activated (e.g. `objects`, `mails`); the host routes it (open a link-object dialog, compose a mail, …) |
 | `@file-uploaded` | `File[]` | Files were uploaded to the object via the Add footer's built-in upload flow |
 | `@note-added` | note message (string) | A note was created on the object via the Add footer's built-in note flow |
+| `@group-action` | `{ group, action }` | A group's heading action was pressed in the sections layout |
