@@ -16,7 +16,7 @@ jest.mock('@nextcloud/l10n', () => ({
 }))
 
 const { mount } = require('@vue/test-utils')
-const CnSavedViewsControl = require('../../src/components/CnSavedViewsControl/CnSavedViewsControl.vue').default
+const CnSavedFiltersPanel = require('../../src/components/CnSavedFiltersPanel/CnSavedFiltersPanel.vue').default
 
 /** Shorthand for a view as the store hands it over. */
 const view = (id, extra = {}) => ({ id, slug: id, name: id, owner: 'alice', ...extra })
@@ -28,7 +28,7 @@ const view = (id, extra = {}) => ({ id, slug: id, name: id, owner: 'alice', ...e
  * @return {object} The wrapper.
  */
 function mountControl(views) {
-	return mount(CnSavedViewsControl, {
+	return mount(CnSavedFiltersPanel, {
 		props: { views, currentUserId: 'alice' },
 	})
 }
@@ -83,12 +83,8 @@ describe('the control renders the tree the helper built', () => {
 		// everybody's install.
 		const wrapper = mountControl([view('geleverd', { seeded: true }), view('eigen')])
 
-		await wrapper.get('[data-testid="cn-saved-views-manage"][data-view-id="geleverd"]').trigger('click')
-		expect(wrapper.findAll('[data-testid="cn-saved-views-delete"]')).toHaveLength(0)
-		expect(wrapper.findAll('[data-testid="cn-saved-views-copy"]')).toHaveLength(1)
-		await wrapper.get('[data-testid="cn-saved-views-back"]').trigger('click')
-		await wrapper.get('[data-testid="cn-saved-views-manage"][data-view-id="eigen"]').trigger('click')
 		expect(wrapper.findAll('[data-testid="cn-saved-views-delete"]').map((entry) => entry.attributes('data-view-id'))).toEqual(['eigen'])
+		expect(wrapper.findAll('[data-testid="cn-saved-views-copy"]').map((entry) => entry.attributes('data-view-id'))).toEqual(['geleverd'])
 	})
 })
 

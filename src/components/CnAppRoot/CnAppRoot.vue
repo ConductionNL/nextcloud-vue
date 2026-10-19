@@ -757,6 +757,7 @@ import { installModalStack, uninstallModalStack } from '../../utils/modalStack.j
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { normalizeSavedFilterMenu, SAVED_FILTER_MENU_KEY, syncSavedFilterMenu, toggleSavedFilterMenuEntry, withSavedFilterMenu } from '../../utils/savedFilterMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 /**
@@ -891,6 +892,10 @@ export default {
 			get cnUserPreferences() {
 				return self.userPreferences
 			},
+
+			// The saved filters this user added to the menu, and the way to
+			// change them, for an index page's sidebar.
+			cnSavedFilterMenu: self.savedFilterMenu,
 
 			// The same manifest as a REF. The getter above is NOT enough on its
 			// own: Options-API `inject` resolves a provided value once, at the
@@ -1910,6 +1915,16 @@ export default {
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
+			// Saved filters this user added to the menu (per-user preference).
+			// One object for the whole session, so the provide hands out a
+			// live reference: `entries` changes, the holder does not.
+			savedFilterMenuLoaded: false,
+			savedFilterMenu: {
+				entries: [],
+				toggle: (entry) => this.toggleSavedFilterMenu(entry),
+				sync: (page, views) => this.syncSavedFilterMenu(page, views),
+			},
+
 			// Nextcloud's own header, present on a server-rendered page; the
 			// brand block goes into it (CnBrandBar). Read once at creation so
 			// the navigation never draws a block that then moves.
@@ -2378,6 +2393,16 @@ export default {
 		},
 
 		/**
+		 * Whether any page of the manifest offers saved filters.
+		 *
+		 * @return {boolean}
+		 */
+		offersSavedFilters() {
+			const pages = this.manifest && Array.isArray(this.manifest.pages) ? this.manifest.pages : []
+			return pages.some((page) => page && page.config && page.config.allowSavedViews === true)
+		},
+
+		/**
 		 * The manifest the default `<CnAppNav>` renders — the editor's working
 		 * `source` while in-app editing, else the live `manifest` prop. Passed to
 		 * CnAppNav as a REACTIVE prop (not left to the provide/inject fallback):
@@ -2407,6 +2432,11 @@ export default {
 			// prop for async backend-merge updates — see the reactive-menu tests).
 			if (this.manifestEditor && this.manifestEditor.editing.value && m && typeof m === 'object') {
 				return { ...m }
+			}
+			// The user's saved filters hang in the menu. Without any, the live
+			// manifest is still returned by identity.
+			if (m && typeof m === 'object' && Array.isArray(m.menu) && this.savedFilterMenu.entries.length > 0) {
+				return { ...m, menu: withSavedFilterMenu(m.menu, this.savedFilterMenu.entries) }
 			}
 			return m
 		},
@@ -3251,6 +3281,18 @@ export default {
 	},
 
 	watch: {
+		// Only an app with a page that offers saved filters reads the list,
+		// once, when such a page first appears in the manifest.
+		offersSavedFilters: {
+			immediate: true,
+			handler(offers) {
+				if (offers && !this.savedFilterMenuLoaded) {
+					this.savedFilterMenuLoaded = true
+					this.loadSavedFilterMenu()
+				}
+			},
+		},
+
 		/**
 		 * Close a registry modal when the route changes.
 		 *
@@ -3392,6 +3434,62 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the saved filters this user added to the menu.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+		 */
+		async loadSavedFilterMenu() {
+			const read = this.userPreferences && this.userPreferences.read
+			if (typeof read !== 'function') {
+				return
+			}
+			try {
+				this.savedFilterMenu.entries = normalizeSavedFilterMenu(await read(SAVED_FILTER_MENU_KEY, []))
+			} catch {
+				// No menu entries; the filters themselves are unaffected.
+			}
+		},
+
+		/**
+		 * Add a saved filter to the menu, or remove it, and store the list.
+		 *
+		 * @param {{id: string, page: string, name: string}} entry The filter.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+		 */
+		async toggleSavedFilterMenu(entry) {
+			this.savedFilterMenu.entries = toggleSavedFilterMenuEntry(this.savedFilterMenu.entries, entry)
+			await this.writeSavedFilterMenu()
+		},
+
+		/**
+		 * Bring one page's menu entries in line with the filters it lists, and
+		 * store the list only when that changed something.
+		 *
+		 * @param {string} page The page's route name.
+		 * @param {Array<object>} views The filters the page lists.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+		 */
+		async syncSavedFilterMenu(page, views) {
+			const next = syncSavedFilterMenu(this.savedFilterMenu.entries, page, views)
+			if (JSON.stringify(next) === JSON.stringify(this.savedFilterMenu.entries)) {
+				return
+			}
+			this.savedFilterMenu.entries = next
+			await this.writeSavedFilterMenu()
+		},
+
+		/** @return {Promise<void>} Store the list in the user's preferences. */
+		async writeSavedFilterMenu() {
+			const write = this.userPreferences && this.userPreferences.write
+			if (typeof write === 'function') {
+				await write(SAVED_FILTER_MENU_KEY, this.savedFilterMenu.entries)
+			}
+		},
+
 		/** Listen for the host's `diagnostics` function while it is set; adds this root's page id. */
 		syncDiagnostics() {
 			if (this.removeDiagnostics) {

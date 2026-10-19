@@ -5,7 +5,7 @@
 <template>
 	<div v-if="available" class="cn-saved-view-share" data-testid="cn-saved-view-share">
 		<NcSelect
-			:inputLabel="t('nextcloud-vue', 'Share with people and groups')"
+			:inputLabel="t('nextcloud-vue', 'Share with')"
 			:modelValue="selectedOptions"
 			:options="options"
 			:multiple="true"
@@ -16,24 +16,66 @@
 			data-testid="cn-saved-view-share-groups"
 			@search="onSearch"
 			@update:modelValue="onGroups" />
-		<ul v-if="modelValue.length > 0" class="cn-saved-view-share__modes">
-			<li v-for="entry in modelValue" :key="keyOf(entry)" class="cn-saved-view-share__mode">
-				<span class="cn-saved-view-share__group">{{ labelOf(keyOf(entry)) }}</span>
-				<NcCheckboxRadioSwitch
-					:modelValue="entry.mode === 'write'"
-					:disabled="disabled"
-					:data-testid="`cn-saved-view-share-mode-${keyOf(entry)}`"
-					@update:modelValue="(on) => onMode(keyOf(entry), on ? 'write' : 'read')">
-					{{ t('nextcloud-vue', 'May edit') }}
-				</NcCheckboxRadioSwitch>
-			</li>
-		</ul>
+		<p class="cn-saved-view-share__hint">
+			{{ t('nextcloud-vue', 'People and groups from your Nextcloud, as when sharing a file.') }}
+		</p>
+		<template v-if="modelValue.length > 0">
+			<h4 class="cn-saved-view-share__caption">
+				{{ t('nextcloud-vue', 'Shared with') }}
+			</h4>
+			<ul class="cn-saved-view-share__modes">
+				<li v-for="entry in modelValue" :key="keyOf(entry)" class="cn-saved-view-share__mode">
+					<span class="cn-saved-view-share__who">
+						<span class="cn-saved-view-share__group">{{ labelOf(keyOf(entry)) }}</span>
+						<span class="cn-saved-view-share__kind">{{ entry.user ? t('nextcloud-vue', 'Person') : t('nextcloud-vue', 'Group') }}</span>
+					</span>
+					<span
+						class="cn-saved-view-share__rights"
+						role="radiogroup"
+						:aria-label="t('nextcloud-vue', 'Rights of {name}', { name: labelOf(keyOf(entry)) })"
+						:data-testid="`cn-saved-view-share-mode-${keyOf(entry)}`">
+						<NcCheckboxRadioSwitch
+							type="radio"
+							:name="`cn-share-mode-${keyOf(entry)}`"
+							value="read"
+							:modelValue="entry.mode === 'write' ? 'write' : 'read'"
+							:disabled="disabled"
+							@update:modelValue="onMode(keyOf(entry), 'read')">
+							{{ t('nextcloud-vue', 'May use') }}
+						</NcCheckboxRadioSwitch>
+						<NcCheckboxRadioSwitch
+							type="radio"
+							:name="`cn-share-mode-${keyOf(entry)}`"
+							value="write"
+							:modelValue="entry.mode === 'write' ? 'write' : 'read'"
+							:disabled="disabled"
+							@update:modelValue="onMode(keyOf(entry), 'write')">
+							{{ t('nextcloud-vue', 'May update') }}
+						</NcCheckboxRadioSwitch>
+					</span>
+					<NcButton
+						variant="tertiary"
+						:aria-label="t('nextcloud-vue', 'Stop sharing with {name}', { name: labelOf(keyOf(entry)) })"
+						:disabled="disabled"
+						:data-testid="`cn-saved-view-share-remove-${keyOf(entry)}`"
+						@click="onRemove(keyOf(entry))">
+						<template #icon>
+							<Close :size="20" />
+						</template>
+					</NcButton>
+				</li>
+			</ul>
+			<p class="cn-saved-view-share__hint">
+				{{ t('nextcloud-vue', 'May use: sees the filter under Shared with me. May update: can also replace the criteria. Deleting and sharing stay with you.') }}
+			</p>
+		</template>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import { searchUserAndGroupSharees } from '../../utils/searchGroupSharees.js'
 
 /**
@@ -52,7 +94,7 @@ import { searchUserAndGroupSharees } from '../../utils/searchGroupSharees.js'
 export default {
 	name: 'CnSavedViewShareFields',
 
-	components: { NcCheckboxRadioSwitch, NcSelect },
+	components: { Close, NcButton, NcCheckboxRadioSwitch, NcSelect },
 
 	props: {
 		/**
@@ -143,6 +185,15 @@ export default {
 			this.$emit('update:modelValue', next)
 		},
 
+		/**
+		 * Stop sharing with one person or group.
+		 *
+		 * @param {string} key The entry's key.
+		 */
+		onRemove(key) {
+			this.$emit('update:modelValue', this.modelValue.filter((e) => this.keyOf(e) !== key))
+		},
+
 		onMode(key, mode) {
 			this.$emit('update:modelValue', this.modelValue.map((e) => (this.keyOf(e) === key ? { ...e, mode } : e)))
 		},
@@ -161,6 +212,32 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 12px;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+}
+
+.cn-saved-view-share__who {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 160px;
+	min-width: 0;
+}
+
+.cn-saved-view-share__kind,
+.cn-saved-view-share__hint {
+	margin: 0;
+	font-size: var(--font-size-small, 13px);
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-saved-view-share__rights {
+	display: flex;
+	gap: 8px;
+}
+
+.cn-saved-view-share__caption {
+	margin: 8px 0 0;
+	font-size: var(--default-font-size);
+	font-weight: bold;
 }
 </style>

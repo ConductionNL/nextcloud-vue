@@ -251,6 +251,32 @@
 			</div>
 		</NcAppSidebarTab>
 
+		<!-- Filters Tab: the page's saved filters (save, list, manage, add to menu). -->
+		<NcAppSidebarTab
+			v-if="savedFilters"
+			id="filters-tab"
+			:name="t('nextcloud-vue', 'Filters')"
+			:order="3">
+			<template #icon>
+				<BookmarkOutline :size="20" />
+			</template>
+
+			<div class="cn-index-sidebar__tab-content">
+				<div class="cn-index-sidebar__section">
+					<CnSavedFiltersPanel
+						v-bind="savedFiltersPanelProps"
+						@apply="onSavedFilter('apply', $event)"
+						@saveRequest="onSavedFilter('save', null)"
+						@editRequest="onSavedFilter('edit', $event)"
+						@shareRequest="onSavedFilter('share', $event)"
+						@updateRequest="onSavedFilter('update', $event)"
+						@copyRequest="onSavedFilter('copy', $event)"
+						@menuToggle="onSavedFilter('menu', $event)"
+						@deleteRequest="onSavedFilter('delete', $event)" />
+				</div>
+			</div>
+		</NcAppSidebarTab>
+
 		<!-- Extra tabs injected by the consumer -->
 		<slot name="tabs" />
 	</NcAppSidebar>
@@ -259,6 +285,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab, NcButton, NcCheckboxRadioSwitch, NcPopover, NcSelect, NcTextField } from '@nextcloud/vue'
+import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
@@ -269,6 +296,7 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
+import CnSavedFiltersPanel from '../CnSavedFiltersPanel/CnSavedFiltersPanel.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptions } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
@@ -295,6 +323,8 @@ export default {
 	components: {
 		NcAppSidebar,
 		NcAppSidebarTab,
+		CnSavedFiltersPanel,
+		BookmarkOutline,
 		NcTextField,
 		NcSelect,
 		CnDateRangePicker,
@@ -499,6 +529,26 @@ export default {
 		},
 
 		/**
+		 * Switch to a tab while the sidebar is mounted, e.g. `'filters-tab'`
+		 * after a filter was saved from the toolbar. Empty leaves the tab alone.
+		 */
+		activeTab: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The page's saved filters, shown in the Filters tab:
+		 * `{ views, loading, currentUserId, counts, selectedViewId, maxDepth, menuIds }`
+		 * as `CnSavedFiltersPanel` takes them. `null` shows no saved filters.
+		 * Every intent comes back as one `saved-filter` event.
+		 */
+		savedFilters: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Whether the current user is an admin.
 		 * When false, schema properties with `adminOnly: true` are hidden from filters.
 		 */
@@ -508,7 +558,7 @@ export default {
 		},
 	},
 
-	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'search', 'tab-change', 'update:open'],
+	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'saved-filter', 'search', 'tab-change', 'update:open'],
 
 	data() {
 		return {
@@ -535,6 +585,25 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The panel's props, from `savedFilters`.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-6
+		 */
+		savedFiltersPanelProps() {
+			const f = this.savedFilters || {}
+			return {
+				views: Array.isArray(f.views) ? f.views : [],
+				loading: f.loading === true,
+				currentUserId: f.currentUserId || '',
+				counts: f.counts || null,
+				selectedViewId: f.selectedViewId || '',
+				maxDepth: typeof f.maxDepth === 'number' ? f.maxDepth : 3,
+				menuIds: Array.isArray(f.menuIds) ? f.menuIds : null,
+			}
+		},
+
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			return this.icon || this.schema?.icon || ''
@@ -657,6 +726,12 @@ export default {
 	},
 
 	watch: {
+		activeTab(tab) {
+			if (tab) {
+				this.internalActiveTab = tab
+			}
+		},
+
 		open(val) {
 			this.internalOpen = val
 		},
@@ -692,6 +767,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Hand a saved-filter intent to the page.
+		 *
+		 * @param {'apply'|'save'|'edit'|'share'|'presentation'|'update'|'copy'|'menu'|'delete'} action The intent.
+		 * @param {object|null} view The filter, or null for save.
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-6
+		 */
+		onSavedFilter(action, view) {
+			/**
+			 * @event saved-filter A saved-filter intent from the Filters tab. Payload: `{ action, view }`.
+			 * @type {{action: string, view: (object|null)}}
+			 */
+			this.$emit('saved-filter', { action, view })
+		},
 
 		/**
 		 * A manifest label through the injected lookup, or as written.

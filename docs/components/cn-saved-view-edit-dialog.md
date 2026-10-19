@@ -5,7 +5,7 @@ Rename an own saved filter and, when asked, replace its criteria with the filter
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `view` | `Object` | `{}` | The view being edited; its `name` fills the field. |
-| `dialogTitle` | `String` | "Edit filter" | Dialog title. |
+| `dialogTitle` | `String` | `''` | Dialog title; empty reads "Edit filter: {name}". |
 
 | Event | Payload | Description |
 |-------|---------|-------------|

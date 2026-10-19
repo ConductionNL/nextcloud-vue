@@ -38,7 +38,6 @@ const stubs = {
 	CnPagination: true,
 	CnContextMenu: true,
 	CnRowActions: true,
-	CnIndexSidebar: true,
 	CnPageHeader: true,
 	CnMassDeleteDialog: true,
 	CnMassCopyDialog: true,
@@ -142,10 +141,6 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 	it('only offers delete for views the current user owns', async () => {
 		const wrapper = mountPage({ allowSavedViews: true })
 		await flush()
-		await wrapper.get('[data-testid="cn-saved-views-manage"][data-view-id="2"]').trigger('click')
-		expect(wrapper.findAll('[data-testid="cn-saved-views-delete"]')).toHaveLength(0)
-		await wrapper.get('[data-testid="cn-saved-views-back"]').trigger('click')
-		await wrapper.get('[data-testid="cn-saved-views-manage"][data-view-id="1"]').trigger('click')
 		const deletes = wrapper.findAll('[data-testid="cn-saved-views-delete"]')
 		expect(deletes.length).toBe(1)
 		expect(deletes.at(0).attributes('data-view-id')).toBe('1')
@@ -260,7 +255,6 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		axios.delete.mockResolvedValue({})
 		const wrapper = mountPage({ allowSavedViews: true })
 		await flush()
-		await wrapper.get('[data-testid="cn-saved-views-manage"][data-view-id="1"]').trigger('click')
 		await wrapper.find('[data-testid="cn-saved-views-delete"]').trigger('click')
 		const confirm = wrapper.findComponent({ name: 'CnConfirmDialog' })
 		expect(confirm.exists()).toBe(true)

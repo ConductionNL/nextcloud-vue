@@ -27,47 +27,119 @@ The board-look button of `CnSavedViewsControl`, the default label of the header
 - **THEN** the button in the actions bar reads "Filter opslaan" and no text on the page reads "Weergave opslaan"
 - @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
 
+### Requirement: Saved filters live in the filters sidebar
+
+On an index page with `allowSavedViews`, the sidebar SHALL carry a third tab,
+Filters (beside Search and Columns, board IndexZijpaneel), holding
+`CnSavedFiltersPanel`: a "Save filter" button with the line "Keeps the current
+search term, filters and sort under a name.", then My filters, Shared with me
+and the read-only Default filters, each name applying it with its description
+or who shared it beneath. The page SHALL get the sidebar even when it declared
+none, unless it set `sidebar.enabled: false`. The toolbar SHALL keep only "Save
+filter" and, under the board look, the chips; after a save the page SHALL open
+the sidebar on the Filters tab.
+
+#### Scenario: A page without a declared sidebar
+
+- **GIVEN** an index page with `allowSavedViews: true` and no `sidebar`
+- **WHEN** it renders
+- **THEN** the sidebar toggle shows and its Filters tab lists the saved filters
+- @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
+
+#### Scenario: Saving opens the Filters tab
+
+- **GIVEN** the sidebar on its Search tab
+- **WHEN** the user saves a filter from the toolbar
+- **THEN** the sidebar opens on the Filters tab with the new filter listed
+- @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
+
 ### Requirement: One manage menu per saved filter
 
-Every row of `CnSavedViewsControl` SHALL carry one labelled "Manage {name}"
-button. Choosing it SHALL replace the list in the open menu with that filter's
-entries, each a labelled menu item shown only when the caller's access allows
-it: Edit (owner), Share (owner), Presentation (owner, write), Update with
-current filters (owner, write), Save a copy (read, default), Delete (owner),
-and Back. Delete SHALL open a confirm dialog before anything is sent.
+Every filter in the Filters tab SHALL carry one labelled "Manage {name}" menu
+(nl "Beheer {name}", board DqFilterBeheren) with, in this order and only where
+the caller's access allows: Edit (owner), Update with current filters (owner,
+or shared "May update"), Share (owner), Save a copy (shared, default), Add to
+menu or Remove from menu (anyone, when the app has a menu), Delete (owner).
+Only the owner SHALL see Edit, Share and Delete. Delete SHALL open the confirm
+dialog of board DqFilterVerwijderen, naming who it was shared with, before
+anything is sent. The menu SHALL offer no presentation entry; the boards draw
+none.
 
-#### Scenario: Owner sees every entry
+#### Scenario: Owner
 
 - **GIVEN** a view with `@self.access: "owner"`
-- **WHEN** the user chooses Manage on its row
-- **THEN** the menu shows Back, Edit, Share, Presentation, Update with current filters and Delete, and not Save a copy
+- **WHEN** its menu opens
+- **THEN** it shows Edit, Update with current filters, Share, Add to menu and Delete
 - @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
 
-#### Scenario: Read-only shared filter
+#### Scenario: Shared to use, and defaults
 
-- **GIVEN** a view with `@self.access: "read"`
-- **WHEN** the user chooses Manage on its row
-- **THEN** the menu shows Back and Save a copy only
+- **GIVEN** a view with `@self.access: "read"`, or a default filter
+- **WHEN** its menu opens
+- **THEN** it shows Save a copy and Add to menu only
 - @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
 
-#### Scenario: Delete asks first
+#### Scenario: Delete names the audience
 
-- **GIVEN** an own filter in the manage menu
+- **GIVEN** an own filter shared with group "woo" and user "anouk"
 - **WHEN** the user chooses Delete
-- **THEN** a confirm dialog names the filter and no DELETE request is sent until the user confirms
+- **THEN** the confirm says it leaves the list, the menu and the lists of woo, anouk, and nothing is sent until the user confirms
 - @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
 
-#### Scenario: Back returns to the list
+### Requirement: The share dialog follows board DqFilterDelen
 
-- **GIVEN** the manage menu of a filter
-- **WHEN** the user chooses Back, or closes and reopens the menu
-- **THEN** the list of filters shows again
+The share dialog SHALL be titled "Share filter: {name}", pick people and groups
+in one `NcSelect` labelled "Share with", list them under "Shared with" with
+their kind, a radio group "Rights of {name}" with "May use" and "May update",
+and a "Stop sharing with {name}" button per entry, and keep existing user and
+group shares when it opens.
+
+#### Scenario: User shares survive opening the dialog
+
+- **GIVEN** a filter shared with group "woo" and user "anouk"
+- **WHEN** the share dialog opens
+- **THEN** both are listed with their rights, and Stop sharing on anouk leaves only woo
+- @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
+
+### Requirement: A saved filter can be added to the app menu
+
+Add to menu SHALL store `{ id, page, name }` in the user's preferences
+(`cn_saved_filter_menu`, through the app's preferences endpoint) without
+changing the filter, so a recipient can add a filter shared with them. The
+filters SHALL appear as a "My filters" group in the menu (board DqFilterInMenu),
+after the last entry that opens the filter's page and before the next caption,
+linking to the page with `?savedFilter=<id>`, which applies it. Remove from menu SHALL take it out. When the page lists its filters
+and one in the menu is gone or no longer shared, its entry SHALL drop out; an
+empty list SHALL never empty the menu. Only an app with a page offering saved
+filters SHALL read the list.
+
+#### Scenario: Add and remove
+
+- **GIVEN** the Cases page and an own filter "Mine, overdue" with id 7
+- **WHEN** the user chooses Add to menu, then Remove from menu
+- **THEN** the menu shows "Mine, overdue" under My filters, linking to Cases with `savedFilter=7`, and then no longer
+- @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
+
+#### Scenario: The link applies the filter
+
+- **GIVEN** the address `/cases?savedFilter=7`
+- **WHEN** the page has loaded its filters
+- **THEN** filter 7 is applied and the address still names it, so its menu entry is marked active
+- @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
+
+#### Scenario: A deleted filter leaves the menu
+
+- **GIVEN** filter 8 in the menu and no longer listed for this user
+- **WHEN** the Cases page loads its filters
+- **THEN** the menu entry for 8 is removed and the stored list is written
 - @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
 
 ### Requirement: An owner can edit a saved filter
 
-Edit SHALL open `CnSavedViewEditDialog` with the filter's name filled in and a
-switch "Also replace the criteria with the current filters" (off by default).
+Edit SHALL open `CnSavedViewEditDialog` (board DqFilterBewerken), titled "Edit
+filter: {name}", with the name filled in and a Criteria choice between "Keep
+what is saved" (the default) and "Replace with the current search term, filters
+and sort".
 Confirming SHALL send `PATCH /api/views/{id}` carrying `name`, and `query` only
 when the switch is on. A refusal SHALL keep the dialog open with the server's
 message.
@@ -75,14 +147,14 @@ message.
 #### Scenario: Rename only
 
 - **GIVEN** an own filter "Te laat" and the current list filtered on something else
-- **WHEN** the user renames it to "Te laat, van mij" with the switch off and confirms
+- **WHEN** the user renames it to "Te laat, van mij", keeps the criteria and confirms
 - **THEN** the PATCH body is `{ name: "Te laat, van mij" }` and the row shows the new name
 - @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
 
 #### Scenario: Rename and replace criteria
 
 - **GIVEN** an own filter and the list filtered on `assignee=@me`
-- **WHEN** the user turns the switch on and confirms
+- **WHEN** the user chooses Replace and confirms
 - **THEN** the PATCH body carries `name` and a `query` whose filters are the current ones
 - @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
 
@@ -100,7 +172,7 @@ store a personal view whose query keeps the tokens unresolved.
 
 - **GIVEN** `defaultSavedFilters: [{ slug: "overdue-mine", name: "Te laat, van mij", filters: { "assignee": "@me", "deadline[lt]": "@today" } }]`
 - **WHEN** the menu opens
-- **THEN** "Te laat, van mij" is listed under "Default filters" before the user's own views, and its manage menu shows Back and Save a copy only
+- **THEN** "Te laat, van mij" is listed under "Default filters" before the user's own views, and its menu shows Save a copy and Add to menu only
 - @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
 
 #### Scenario: Tokens resolve on apply

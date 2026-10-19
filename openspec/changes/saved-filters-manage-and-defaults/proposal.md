@@ -34,11 +34,16 @@ its manifest.
    "Saved views" becomes "Saved filters". Strings only; the component, prop,
    event and API names stay `view`, because the stored entity is OpenRegister's
    View and renaming it would break every consumer.
-2. **Manage menu.** Each row is the name (applies it) plus one "Manage" button
-   that turns the menu into that filter's own menu: Edit, Share, Presentation,
-   Update with current filters, Save a copy, Delete. Each entry is a labelled
-   `NcActionButton` and appears only when the caller's access allows it. A Back
-   entry returns to the list.
+2. **Saved filters live in the filters sidebar** (Ruben, 19 Oct, second
+   round; boards from design-system #303). A third sidebar tab, Filters, lists them
+   (`CnSavedFiltersPanel`): Save filter, the filters in Default filters, My
+   filters and Shared with me, and per filter one labelled Manage menu with
+   Edit, Update with current filters, Share, Save a copy, Add to menu or Remove
+   from menu, and Delete, each gated by access; only the owner sees Edit,
+   Share and Delete. There is no presentation entry: the boards draw none, so
+   how a filter shows is no longer changeable from the list. The toolbar keeps the Save filter button and, under
+   the board look, the chips that apply filters. A page with saved filters
+   gets the sidebar unless it switched it off.
 3. **Edit.** A new `CnSavedViewEditDialog`: rename, and optionally replace the
    criteria with the current filters, search and sort. Saved with `PATCH`
    carrying only `name` and, when chosen, `query`.
@@ -51,6 +56,16 @@ its manifest.
    one. Applying a default resolves its `@me` / `@today` tokens through the same
    context the quick filters use. "Save a copy" stores a personal view with the
    tokens unresolved, which the user then owns and may edit, share and delete.
+
+## Add to menu
+
+A saved filter can be added to the app's menu and removed again. A previous
+attempt (`savedViewPlaces`, removed in schema 2.40.0) wrote `favoredBy` on the
+view, which only its owner may change, and gave a view its own route. This one
+stores the list per user in the app's preferences endpoint
+(`cn_saved_filter_menu`), so a recipient can add a shared filter and nothing on
+the view changes; the entries form a "My filters" group in the menu and link to the page's own
+route with `?savedFilter=<id>`, so there is no new route. No stored view changes shape.
 
 ## Sharing with users (Ruben, 19 Oct: users and groups)
 

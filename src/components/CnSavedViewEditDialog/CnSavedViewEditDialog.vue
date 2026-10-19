@@ -4,7 +4,7 @@
 -->
 <template>
 	<NcDialog
-		:name="dialogTitle"
+		:name="resolvedTitle"
 		size="small"
 		:noClose="loading"
 		@closing="onClose">
@@ -12,18 +12,39 @@
 			<NcNoteCard v-if="error" type="error">
 				{{ error }}
 			</NcNoteCard>
+			<p class="cn-edit-view__intro">
+				{{ t('nextcloud-vue', 'Give the filter another name, or replace its criteria with what the list shows now.') }}
+			</p>
 			<NcTextField
 				:modelValue="name"
-				:label="t('nextcloud-vue', 'Filter name')"
+				:label="t('nextcloud-vue', 'Name')"
 				:labelVisible="true"
 				data-testid="cn-saved-view-edit-name"
 				@update:modelValue="(v) => name = v" />
-			<NcCheckboxRadioSwitch
-				:modelValue="replaceCriteria"
-				data-testid="cn-saved-view-edit-replace"
-				@update:modelValue="(v) => replaceCriteria = v">
-				{{ t('nextcloud-vue', 'Also replace the criteria with the current filters') }}
-			</NcCheckboxRadioSwitch>
+			<fieldset class="cn-edit-view__criteria" data-testid="cn-saved-view-edit-replace">
+				<legend>{{ t('nextcloud-vue', 'Criteria') }}</legend>
+				<NcCheckboxRadioSwitch
+					type="radio"
+					name="cn-edit-view-criteria"
+					value="keep"
+					:modelValue="replaceCriteria ? 'replace' : 'keep'"
+					data-testid="cn-saved-view-edit-keep"
+					@update:modelValue="replaceCriteria = false">
+					{{ t('nextcloud-vue', 'Keep what is saved') }}
+				</NcCheckboxRadioSwitch>
+				<NcCheckboxRadioSwitch
+					type="radio"
+					name="cn-edit-view-criteria"
+					value="replace"
+					:modelValue="replaceCriteria ? 'replace' : 'keep'"
+					data-testid="cn-saved-view-edit-replace-current"
+					@update:modelValue="replaceCriteria = true">
+					{{ t('nextcloud-vue', 'Replace with the current search term, filters and sort') }}
+				</NcCheckboxRadioSwitch>
+			</fieldset>
+			<p v-if="isShared" class="cn-edit-view__note">
+				{{ t('nextcloud-vue', 'Whoever you share the filter with sees the change at once.') }}
+			</p>
 		</div>
 		<template #actions>
 			<NcButton :disabled="loading" @click="onClose">
@@ -68,10 +89,10 @@ export default {
 			default: () => ({}),
 		},
 
-		/** Dialog title. */
+		/** Dialog title; empty reads "Edit filter: {name}". */
 		dialogTitle: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Edit filter'),
+			default: '',
 		},
 	},
 
@@ -84,6 +105,18 @@ export default {
 			loading: false,
 			error: '',
 		}
+	},
+
+	computed: {
+		/** @return {string} The title. */
+		resolvedTitle() {
+			return this.dialogTitle || t('nextcloud-vue', 'Edit filter: {name}', { name: (this.view && this.view.name) || '' })
+		},
+
+		/** @return {boolean} Whether the filter is shared with anyone. */
+		isShared() {
+			return Array.isArray(this.view && this.view.sharedWith) && this.view.sharedWith.length > 0
+		},
 	},
 
 	methods: {
@@ -127,6 +160,29 @@ export default {
 </script>
 
 <style scoped>
+.cn-edit-view__intro,
+.cn-edit-view__note {
+	margin: 0;
+}
+
+.cn-edit-view__note {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-edit-view__criteria {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	border: 0;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-edit-view__criteria legend {
+	font-weight: bold;
+	margin-bottom: 4px;
+}
+
 .cn-edit-view {
 	display: flex;
 	flex-direction: column;

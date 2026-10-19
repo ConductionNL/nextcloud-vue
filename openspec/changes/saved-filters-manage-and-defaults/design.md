@@ -1,24 +1,32 @@
 # Design: saved-filters-manage-and-defaults
 
-## The manage menu inside NcActions
+## Where the saved filters live
 
-NcActions only renders `NcAction*` children, and nested menus are not
-supported. The control therefore keeps one piece of state, `managing` (the view
-being managed, or null). With it null the menu lists rows as now, each row an
-`NcActionButtonGroup` of the name button and one `DotsHorizontal` "Manage
-{name}" button. Clicking Manage sets `managing`; the menu stays open
-(`NcActionButton` does not close on click by default) and renders:
+The list is `CnSavedFiltersPanel`, in a third `CnIndexSidebar` tab (`filters-tab`,
+after Search and Columns) through one `savedFilters` prop; an `activeTab` prop
+lets the page switch to it after a save. The sidebar is hoisted into
+CnAppRoot (props and listeners only, no slots), so every intent comes back as
+one `saved-filter` event `{ action, view }` that `CnIndexPage` dispatches to
+its existing handlers. Each row is a plain button (apply) and an `NcActions`
+menu with labelled entries; inside the sidebar NcActions nests normally, so the
+earlier in-toolbar "manage state" is gone. The list logic the panel and the
+toolbar chips share (tree, sections, labels, counts, access) is the
+`savedViewsList` mixin. Test ids are the ones the toolbar menu had.
 
-- Back, with the filter's name (`cn-saved-views-back`)
-- Edit (`cn-saved-views-edit`), owner
-- Share (`cn-saved-views-share`), owner
-- Presentation (`cn-saved-views-presentation`), owner or write
-- Update with current filters (`cn-saved-views-update`), owner or write
-- Save a copy (`cn-saved-views-copy`), read or default
-- Delete (`cn-saved-views-delete`), owner
+## Add to menu
 
-The test ids stay those of the icon buttons they replace, so the existing
-specs keep their anchors. Closing the menu resets `managing`.
+`CnAppRoot` owns `{ entries, toggle, sync }` and provides it as
+`cnSavedFilterMenu`. It reads `cn_saved_filter_menu` once, and only when a
+manifest page has `allowSavedViews`. `menuManifest` puts the entries in the menu
+as a "My filters" caption group (`withSavedFilterMenu`), after the last entry
+that opens the page and before the next caption, with `order` values between
+its neighbours; without entries it still returns the manifest by
+identity. An entry is `{ id: "saved-filter-<id>", route: <page>, query:
+{ savedFilter: <id> } }`, so CnAppNav's existing query rule marks it active
+while the address names it. `CnIndexPage` applies `?savedFilter=` once its
+filters loaded, keeps the key while that filter is applied, and drops it on any
+other change. After a successful list load it syncs its page's entries (names,
+gone filters); an empty list never syncs.
 
 ## Access
 

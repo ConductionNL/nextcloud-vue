@@ -1,7 +1,7 @@
 # Tasks: saved-filters-manage-and-defaults
 
 > Saved filters: name, manage menu, edit, defaults (ADR-032 `kind: code`).
-> Checkbox budget: 5 tasks x 2 = 10 unindented `- [ ]` lines (cap 20).
+> Checkbox budget: 7 tasks x 2 = 14 unindented `- [ ]` lines (cap 20).
 
 ## Implementation tasks
 
@@ -47,5 +47,24 @@
 - **files**: `src/components/CnSavedViewShareFields/CnSavedViewShareFields.vue`, `src/utils/searchGroupSharees.js`, `src/utils/savedViewHelpers.js`, `tests/utils/searchGroupSharees.spec.js`
 - **acceptance_criteria**:
   - Users and groups in one picker with `inputLabel`; `normalizeSharedWith` keeps `{user, mode}`
+- [x] Implement
+- [x] Test
+
+### Task 6: Saved filters in the filters sidebar
+- **spec_ref**: `openspec/changes/saved-filters-manage-and-defaults/specs/saved-views-ui/spec.md#requirement-saved-filters-live-in-the-filters-sidebar`
+- **files**: `src/components/CnSavedFiltersPanel/`, `src/mixins/savedViewsList.js`, `src/components/CnIndexSidebar/CnIndexSidebar.vue`, `src/components/CnSavedViewsControl/CnSavedViewsControl.vue`, `src/components/CnIndexPage/CnIndexPage.vue`, `tests/components/CnSavedFiltersManage.spec.js`
+- **acceptance_criteria**:
+  - A Filters tab lists, saves and manages, in the boards' order and wording; the toolbar keeps Save filter and the chips
+  - Share, edit and delete dialogs as boards DqFilterDelen, DqFilterBewerken and DqFilterVerwijderen
+  - A page with saved filters gets the sidebar unless it switched it off
+- [x] Implement
+- [x] Test
+
+### Task 7: Add to menu
+- **spec_ref**: `openspec/changes/saved-filters-manage-and-defaults/specs/saved-views-ui/spec.md#requirement-a-saved-filter-can-be-added-to-the-app-menu`
+- **files**: `src/utils/savedFilterMenu.js`, `src/components/CnAppRoot/CnAppRoot.vue`, `src/components/CnIndexPage/CnIndexPage.vue`, `tests/components/CnSavedFiltersManage.spec.js`
+- **acceptance_criteria**:
+  - Per-user list in preferences, a My filters group in the menu, `?savedFilter=` applies
+  - Gone filters drop out; an empty read never empties the menu
 - [x] Implement
 - [x] Test

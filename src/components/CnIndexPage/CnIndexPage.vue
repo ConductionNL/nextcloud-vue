@@ -308,9 +308,9 @@
 			     the app-specific buttons in `#actions`, with Add sitting between
 			     the two groups rather than before both (dossiq Cases/Queue). -->
 			<template v-if="isEditMode || barShowsExportMenu || barShowsSavedViews" #actions-end>
-				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
-				     OpenRegister saved-search views; applying one writes its stored
-				     filters/search/sort into the route query. -->
+				<!-- Saved filters (opt-in via `allowSavedViews`): the toolbar keeps
+				     "Save filter" and, under the board look, the chips. The list
+				     and every per-filter action live in the sidebar's Search tab. -->
 				<CnSavedViewsControl
 					v-if="barShowsSavedViews"
 					:views="viewsForControl"
@@ -319,13 +319,7 @@
 					:counts="savedViewCounts"
 					:selectedViewId="appliedSavedViewId"
 					@apply="onApplySavedView"
-					@saveRequest="showSaveViewDialog = true"
-					@editRequest="onEditViewRequest"
-					@shareRequest="onShareViewRequest"
-					@presentationRequest="onPresentationViewRequest"
-					@updateRequest="onUpdateViewRequest"
-					@copyRequest="onCopyViewRequest"
-					@deleteRequest="onDeleteViewRequest" />
+					@saveRequest="showSaveViewDialog = true" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
 				     current route's query params through as filters. -->
@@ -558,9 +552,9 @@
 			v-if="viewPendingDelete"
 			ref="deleteViewConfirmDialog"
 			variant="error"
-			:dialogTitle="t('nextcloud-vue', 'Delete filter')"
+			:dialogTitle="t('nextcloud-vue', 'Delete filter?')"
 			:message="deleteViewMessage"
-			:confirmLabel="t('nextcloud-vue', 'Delete')"
+			:confirmLabel="t('nextcloud-vue', 'Delete filter')"
 			@confirm="onDeleteViewConfirm"
 			@close="viewPendingDelete = null" />
 
@@ -1238,8 +1232,12 @@
 			:showMetadata="resolvedSidebar.showMetadata !== false"
 			:personalColumns="personalColumns"
 			:pinnedCount="pinnedColumnCount"
+			:savedFilters="savedFiltersForSidebar"
+			:activeTab="sidebarActiveTab"
 			v-bind="sidebarSearchProps"
 			@update:open="sidebarOpen = $event"
+			@tabChange="sidebarActiveTab = $event"
+			@savedFilter="onSavedFilterAction"
 			@search="onSearchEvent"
 			@columnsChange="onColumnsEvent"
 			@columnsReorder="onColumnsReorder"
@@ -1711,6 +1709,12 @@ export default {
 		 * simply has no held order instead of failing to render.
 		 */
 		cnUserPreferences: { default: null },
+		/**
+		 * The saved filters this user put in the app menu, held by CnAppRoot:
+		 * `{ entries, toggle(entry) }`. Absent without the shell, and then
+		 * the sidebar offers no Add to menu.
+		 */
+		cnSavedFilterMenu: { default: null },
 		/**
 		 * Consumer translation function, provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). Column and
@@ -4038,6 +4042,8 @@ export default {
 			// content (table / cards) starts at the top and fills the width;
 			// opened on demand via the actions-bar toggle.
 			sidebarOpen: false,
+			/** The sidebar tab to show; follows the user's own tab changes. */
+			sidebarActiveTab: '',
 			// Saved views (saved-views-ui): the fetched view list, its
 			// loading flag, the save-dialog toggle, and the view awaiting
 			// delete confirmation.
@@ -5184,6 +5190,51 @@ export default {
 		},
 
 		/**
+		 * What the sidebar's saved-filters panel shows, or null when the page
+		 * does not offer saved filters.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-6
+		 */
+		savedFiltersForSidebar() {
+			if (!this.allowSavedViews) {
+				return null
+			}
+			return {
+				views: this.viewsForControl,
+				loading: this.savedViewsLoading,
+				currentUserId: this.currentSavedViewsUserId,
+				counts: this.savedViewCounts,
+				selectedViewId: this.appliedSavedViewId,
+				menuIds: this.savedFilterMenuIds,
+			}
+		},
+
+		/**
+		 * The route name this page's menu entries point at.
+		 *
+		 * @return {string}
+		 */
+		savedFilterPage() {
+			return (this.$route && typeof this.$route.name === 'string') ? this.$route.name : ''
+		},
+
+		/**
+		 * The ids of this page's filters in the app menu, or null when there is
+		 * no menu to add to.
+		 *
+		 * @return {Array<string>|null}
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+		 */
+		savedFilterMenuIds() {
+			const menu = this.cnSavedFilterMenu
+			if (!menu || typeof menu.toggle !== 'function' || this.savedFilterPage === '') {
+				return null
+			}
+			return (menu.entries || []).filter((e) => e.page === this.savedFilterPage).map((e) => String(e.id))
+		},
+
+		/**
 		 * The page's `defaultSavedFilters` as read-only views.
 		 *
 		 * @return {Array<object>} The views.
@@ -6201,7 +6252,14 @@ export default {
 			if (!this.viewPendingDelete) {
 				return ''
 			}
-			return t('nextcloud-vue', 'Delete the filter "{name}"? This cannot be undone.', { name: this.viewPendingDelete.name })
+			const view = this.viewPendingDelete
+			const parts = [t('nextcloud-vue', 'The filter "{name}" leaves your list and the menu on the left.', { name: view.name })]
+			const audience = normalizeSharedWith(view.sharedWith).map((e) => e.user || e.group)
+			if (audience.length > 0) {
+				parts.push(t('nextcloud-vue', 'It is shared with {names}; it leaves their lists too.', { names: audience.join(', ') }))
+			}
+			parts.push(t('nextcloud-vue', 'The items themselves stay. This cannot be undone.'))
+			return parts.join(' ')
 		},
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
@@ -7215,11 +7273,16 @@ export default {
 		/**
 		 * Effective sidebar configuration. Returns the sidebar config object
 		 * when `sidebar.enabled === true`, otherwise an `{ enabled: false }`
-		 * stub so the embedded CnIndexSidebar is not mounted.
+		 * stub so the embedded CnIndexSidebar is not mounted. A page that
+		 * offers saved filters gets the sidebar unless it switched it off
+		 * with `enabled: false`: the saved filters live in its Search tab.
 		 */
 		resolvedSidebar() {
-			if (this.sidebar && this.sidebar.enabled !== false) {
+			if (this.sidebar && this.sidebar.enabled !== false && (this.sidebar.enabled || !this.allowSavedViews)) {
 				return this.sidebar
+			}
+			if (this.allowSavedViews && !(this.sidebar && this.sidebar.enabled === false)) {
+				return { ...(this.sidebar || {}), enabled: true }
 			}
 			return { enabled: false }
 		},
@@ -7298,6 +7361,8 @@ export default {
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
 				personalColumns: this.personalColumns,
 				pinnedCount: this.pinnedColumnCount,
+				savedFilters: this.savedFiltersForSidebar,
+				activeTab: this.sidebarActiveTab,
 				...this.sidebarSearchProps,
 			}
 		},
@@ -7349,6 +7414,10 @@ export default {
 	watch: {
 		'$route.query._view': function() {
 			this.applyViewModeFromRoute()
+		},
+
+		'$route.query.savedFilter': function() {
+			this.applySavedFilterFromRoute()
 		},
 
 		routeViewModes() {
@@ -8881,13 +8950,21 @@ export default {
 		 * (same resulting path/query) is swallowed.
 		 *
 		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string, sortKeys?: Array<{key: string, order: string}>}} state Current view state.
+		 * @param {{savedFilter?: string}} [options] The saved filter the address keeps naming, or none.
 		 * @return {void}
 		 */
-		persistViewStateToRoute(state) {
+		persistViewStateToRoute(state, { savedFilter = '' } = {}) {
 			if (!this.$router || !this.$route) {
 				return
 			}
 			const query = { ...this.$route.query }
+			// The menu entry of a saved filter is active while the address names
+			// it; any other change to the filters is no longer that filter.
+			if (savedFilter !== '') {
+				query.savedFilter = savedFilter
+			} else {
+				delete query.savedFilter
+			}
 			for (const key of this.persistedFilterKeys) {
 				delete query[key]
 			}
@@ -9959,6 +10036,10 @@ export default {
 					'columns-reset': () => this.onColumnsReset(),
 					'filter-change': (event) => this.onFilterEvent(event),
 					'clear-filters': () => this.onClearFilters(),
+					'saved-filter': (event) => this.onSavedFilterAction(event),
+					'tab-change': (tab) => {
+						this.sidebarActiveTab = tab
+					},
 				},
 			}
 		},
@@ -10603,6 +10684,13 @@ export default {
 			this.savedViewsLoading = true
 			try {
 				this.savedViews = await useSavedViewsApi().fetchViews()
+				// An empty answer is also what a misread response gives, so it
+				// never empties the menu: entries are dropped only against a
+				// list that came back with filters in it.
+				if (this.savedViews.length > 0) {
+					this.syncSavedFilterMenu()
+				}
+				this.applySavedFilterFromRoute()
 			} catch (error) {
 				// eslint-disable-next-line no-console
 				console.error('CnIndexPage: failed to fetch saved views', error)
@@ -10620,8 +10708,9 @@ export default {
 		 * query implicitly resets `_page` to 1.
 		 *
 		 * @param {object} view The View API object to apply.
+		 * @param {{keepSavedFilterKey?: boolean}} [options] Keep `?savedFilter=<id>` in the address, as a menu entry's link does.
 		 */
-		onApplySavedView(view) {
+		onApplySavedView(view, { keepSavedFilterKey = false } = {}) {
 			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
 			const state = extractViewState(view)
 			if (view && view.seeded === true) {
@@ -10646,14 +10735,18 @@ export default {
 				// Through `persistViewStateToRoute` rather than a raw replace,
 				// because it is what records the keys this view wrote — without
 				// that, a later "clear all" has nothing to delete them by.
-				this.persistViewStateToRoute(state)
+				this.persistViewStateToRoute(state, { savedFilter: keepSavedFilterKey ? this.appliedSavedViewId : '' })
 				this.$emit('apply-view', view)
 				return
 			}
 			if (!this.$router) {
 				return
 			}
-			const nav = this.$router.replace({ query: buildRouteQueryFromViewState(state) })
+			const query = buildRouteQueryFromViewState(state)
+			if (keepSavedFilterKey) {
+				query.savedFilter = this.appliedSavedViewId
+			}
+			const nav = this.$router.replace({ query })
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
 			if (nav && typeof nav.catch === 'function') {
@@ -10738,6 +10831,8 @@ export default {
 				}
 				this.savedViews = [...this.savedViews, view]
 				this.showSaveViewDialog = false
+				this.sidebarActiveTab = 'filters-tab'
+				this.sidebarOpen = true
 				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))
 			} catch (error) {
 				// eslint-disable-next-line no-console
@@ -10788,6 +10883,76 @@ export default {
 		},
 
 		/**
+		 * One saved-filter intent from the sidebar's Search tab.
+		 *
+		 * @param {{action: string, view: (object|null)}} event The intent.
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-6
+		 */
+		onSavedFilterAction({ action, view } = {}) {
+			const handlers = {
+				apply: () => this.onApplySavedView(view),
+				save: () => { this.showSaveViewDialog = true },
+				edit: () => this.onEditViewRequest(view),
+				share: () => this.onShareViewRequest(view),
+				presentation: () => this.onPresentationViewRequest(view),
+				update: () => this.onUpdateViewRequest(view),
+				copy: () => this.onCopyViewRequest(view),
+				menu: () => this.onToggleSavedFilterInMenu(view),
+				delete: () => this.onDeleteViewRequest(view),
+			}
+			if (handlers[action]) {
+				handlers[action]()
+			}
+		},
+
+		/**
+		 * Add a saved filter to the app menu, or take it out. Stored per user
+		 * by CnAppRoot; the filter itself is not touched, so a filter shared
+		 * with this user can be added as well as an own one.
+		 *
+		 * @param {object} view The filter.
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+		 */
+		onToggleSavedFilterInMenu(view) {
+			const menu = this.cnSavedFilterMenu
+			if (!view || !menu || typeof menu.toggle !== 'function' || this.savedFilterPage === '') {
+				return
+			}
+			menu.toggle({ id: String(view.id || view.slug), page: this.savedFilterPage, name: view.name })
+		},
+
+		/**
+		 * Bring this page's menu entries in line with the filters it can show:
+		 * current names, and none for a filter deleted or no longer shared.
+		 *
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+		 */
+		syncSavedFilterMenu() {
+			const menu = this.cnSavedFilterMenu
+			if (!menu || typeof menu.sync !== 'function' || this.savedFilterPage === '') {
+				return
+			}
+			menu.sync(this.savedFilterPage, [...this.defaultFilterViews, ...this.visibleSavedViews])
+		},
+
+		/**
+		 * Apply the saved filter the address names (`?savedFilter=<id>`, what a
+		 * menu entry links to), once the list holding it has loaded.
+		 *
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+		 */
+		applySavedFilterFromRoute() {
+			const id = this.$route && this.$route.query ? this.$route.query.savedFilter : undefined
+			if (typeof id !== 'string' || id === '' || id === this.appliedSavedViewId) {
+				return
+			}
+			const view = this.viewsForControl.find((v) => String(v.id) === id || String(v.slug) === id)
+			if (view) {
+				this.onApplySavedView(view, { keepSavedFilterKey: true })
+			}
+		},
+
+		/**
 		 * Open the edit dialog for an own view (CnSavedViewsControl `@edit-request`).
 		 *
 		 * @param {object} view The View API object.
@@ -10827,6 +10992,7 @@ export default {
 			try {
 				const saved = await useSavedViewsApi().patchView(view.id, body)
 				this.savedViews = this.savedViews.map((v) => (v.id === view.id ? { ...v, ...(saved || body) } : v))
+				this.syncSavedFilterMenu()
 				this.viewPendingEdit = null
 				this.toastSavedView('success', t('nextcloud-vue', 'Filter "{name}" saved', { name }))
 			} catch (error) {
@@ -10953,6 +11119,7 @@ export default {
 			try {
 				await useSavedViewsApi().deleteView(view.id)
 				this.savedViews = this.savedViews.filter((v) => v.id !== view.id)
+				this.syncSavedFilterMenu()
 				this.$refs.deleteViewConfirmDialog?.setResult({ success: true })
 			} catch (error) {
 				// eslint-disable-next-line no-console
