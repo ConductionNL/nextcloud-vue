@@ -1956,7 +1956,9 @@
     "{message} until {time}": "{message} tot {time}",
     "Away": "Afwezig",
     "Busy": "Bezet",
-    "No one in the team": "Niemand in het team"
+    "No one in the team": "Niemand in het team",
+    "This search could not be read from character {position}.": "Deze zoekopdracht kon niet worden gelezen vanaf teken {position}.",
+    "Correct that character, or search for plain words. AND, OR and NOT work in capitals, and quotes make a phrase.": "Verbeter dat teken, of zoek op gewone woorden. AND, OR en NOT werken in hoofdletters, en aanhalingstekens maken een zinsdeel."
   },
   "plurals": {
     "{count} member": [

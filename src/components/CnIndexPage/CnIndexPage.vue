@@ -732,6 +732,28 @@
 					<NcLoadingIcon :size="32" :name="loadingText" />
 				</div>
 
+				<!-- A search the server refused for its grammar: the term with the
+				     character it stopped at, the server's reason, and what to do. -->
+				<div v-else-if="searchRefusal"
+					class="cn-index-page__search-refusal"
+					role="status"
+					data-testid="cn-index-page-search-refusal">
+					<NcNoteCard type="warning">
+						<p class="cn-index-page__search-refusal-headline">
+							{{ t('nextcloud-vue', 'This search could not be read from character {position}.', { position: searchRefusal.position }) }}
+						</p>
+						<p class="cn-index-page__search-refusal-term" data-testid="cn-index-page-search-refusal-term">
+							<span>{{ searchRefusal.before }}</span><mark v-if="searchRefusal.at">{{ searchRefusal.at }}</mark><span>{{ searchRefusal.after }}</span>
+						</p>
+						<p class="cn-index-page__search-refusal-muted">
+							{{ searchRefusal.message }}
+						</p>
+						<p class="cn-index-page__search-refusal-muted">
+							{{ searchRefusalHintText }}
+						</p>
+					</NcNoteCard>
+				</div>
+
 				<!-- Error state: the latest self-fetch failed (e.g. a search term the server rejects) -->
 				<div v-else-if="selfFetchFailed"
 					class="cn-index-page__empty"
@@ -1332,6 +1354,7 @@ import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
+import { readSearchRefusal } from '../../utils/searchRefusal.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
@@ -2785,6 +2808,17 @@ export default {
 		lensReasonTexts: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * What to do after a refused search, through the app's translate. The
+		 * default explains AND, OR, NOT and quotes.
+		 *
+		 * @spec openspec/changes/index-search-refusal/specs/index-search-refusal/spec.md#requirement-a-refused-search-is-said-where-it-was-typed
+		 */
+		searchRefusalHint: {
+			type: String,
+			default: '',
 		},
 
 		/** Accessible label for the loading spinner (NcLoadingIcon aria-label) */
@@ -4334,6 +4368,24 @@ export default {
 		 */
 		selfFetchFailed() {
 			return this.isSelfFetchMode && !!this.list.error?.value
+		},
+
+		/**
+		 * The failed fetch as a refused search, or null when it is not one.
+		 *
+		 * @spec openspec/changes/index-search-refusal/specs/index-search-refusal/spec.md#requirement-a-refused-search-is-said-where-it-was-typed
+		 * @return {object|null}
+		 */
+		searchRefusal() {
+			return this.selfFetchFailed ? readSearchRefusal(this.list.error.value, this.effectiveSearchValue) : null
+		},
+
+		/** @return {string} What to do after a refused search. */
+		searchRefusalHintText() {
+			if (this.searchRefusalHint) {
+				return typeof this.cnTranslate === 'function' ? this.cnTranslate(this.searchRefusalHint) : this.searchRefusalHint
+			}
+			return t('nextcloud-vue', 'Correct that character, or search for plain words. AND, OR and NOT work in capitals, and quotes make a phrase.')
 		},
 
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */

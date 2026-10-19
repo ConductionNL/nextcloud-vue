@@ -230,6 +230,30 @@
 	text-align: center;
 }
 
+.cn-index-page__search-refusal {
+	padding: calc(3 * var(--default-grid-baseline)) 0;
+}
+
+.cn-index-page__search-refusal-headline {
+	font-weight: bold;
+}
+
+.cn-index-page__search-refusal-term {
+	font-family: var(--font-face-monospace, monospace);
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
+}
+
+.cn-index-page__search-refusal-term mark {
+	background-color: var(--color-warning);
+	color: var(--color-main-text);
+	font-weight: bold;
+}
+
+.cn-index-page__search-refusal-muted {
+	color: var(--color-text-maxcontrast);
+}
+
 /* Explicit `0` rather than dropping the declaration: this element carries both
    `.cn-pagination` and `.cn-index-page__pagination`, and `.cn-pagination` sets
    `margin-top: calc(8 * baseline)` at the same (0,1,0) specificity. Only the
