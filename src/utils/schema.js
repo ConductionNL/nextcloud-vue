@@ -431,6 +431,49 @@ function applyPickerOverride(field, override) {
 }
 
 /**
+ * The properties a dotted key names inside an object property (`handling.teams`
+ * is `teams` in `properties.handling.properties`), so a form can show one key
+ * of an object without the whole object. Keys that name no such property are
+ * left out.
+ *
+ * @spec openspec/changes/forms-dotted-path-fields/specs/form-dialog/spec.md#requirement-a-field-can-edit-one-key-inside-an-object-property
+ * @param {object} schema The schema.
+ * @param {Array<string>} keys Candidate keys (override and include keys).
+ * @return {{entries: Array<[string, object]>, required: Array<string>}} The nested properties by dotted key, and those the parent requires.
+ */
+function dottedPropertyEntries(schema, keys) {
+	const entries = []
+	const required = []
+	const seen = new Set()
+	for (const key of keys) {
+		if (typeof key !== 'string' || !key.includes('.') || seen.has(key)) {
+			continue
+		}
+		seen.add(key)
+		const parts = key.split('.')
+		let parent = schema
+		let prop = null
+		for (const part of parts) {
+			prop = parent && parent.properties && typeof parent.properties === 'object' ? parent.properties[part] : null
+			if (!prop || typeof prop !== 'object') {
+				prop = null
+				break
+			}
+			if (part !== parts[parts.length - 1]) {
+				parent = prop
+			}
+		}
+		if (prop) {
+			entries.push([key, prop])
+			if (Array.isArray(parent.required) && parent.required.includes(parts[parts.length - 1])) {
+				required.push(key)
+			}
+		}
+	}
+	return { entries, required }
+}
+
+/**
  * Read a property's `x-openregister-property-source` declaration.
  *
  * @spec openspec/changes/form-field-property-source/tasks.md#task-1
@@ -830,9 +873,10 @@ export function fieldsFromSchema(schema, options = {}) {
 		return []
 	}
 
-	const requiredKeys = Array.isArray(schema.required) ? schema.required : []
+	const nested = dottedPropertyEntries(schema, [...Object.keys(overrides || {}), ...(Array.isArray(include) ? include : [])])
+	const requiredKeys = [...(Array.isArray(schema.required) ? schema.required : []), ...nested.required]
 
-	const entries = Object.entries(schema.properties)
+	const entries = [...Object.entries(schema.properties), ...nested.entries]
 		.filter(([key, prop]) => {
 			// Skip properties marked as not visible
 			if (prop.visible === false) {
@@ -872,7 +916,9 @@ export function fieldsFromSchema(schema, options = {}) {
 			// relation to another schema's object, which resolveWidget maps to a
 			// searchable 'select'; dropping it here meant a related-object property
 			// (e.g. cow.barn → barn) silently never rendered in the form at all.
-			if (prop.type === 'object' && !prop.widget && normalizeRef(prop.$ref) === null) {
+			// A field override naming a widget opts in the same way, so a page can
+			// show an object property its schema gives no widget.
+			if (prop.type === 'object' && !prop.widget && !overrides[key]?.widget && normalizeRef(prop.$ref) === null) {
 				return false
 			}
 			return true
