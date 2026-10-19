@@ -157,6 +157,25 @@
 			:widgets="sidePanel" />
 
 		<!-- Actions bar -->
+		<!-- `quickFilterPlacement: "row"`: the chips on a row of their own above
+		     the toolbar, wrapping onto more lines (DqTeamwachtrij). -->
+		<div
+			v-if="quickFilterPlacement === 'row' && tabStripEntries && tabStripEntries.length > 0"
+			class="cn-index-page__quick-filter-row"
+			data-testid="cn-index-page-quick-filter-row">
+			<CnQuickFilterBar
+				inline
+				:tabs="tabStripEntries"
+				:mode="quickFilterMode"
+				:maxVisible="quickFilterMaxVisible"
+				:fit="false"
+				:multiple="quickFilterMultiple"
+				:activeIndex="activeQuickFilterIndex"
+				:selectedIndices="selectedQuickFilterIndices"
+				:counts="effectiveTabCounts"
+				@update:activeIndex="onQuickFilterChange"
+				@update:selectedIndices="onQuickFilterMultiChange" />
+		</div>
 		<CnActionsBar
 			:layout="isBoardLook ? 'board' : 'nextcloud'"
 			:activeFilterChips="activeFilterChips"
@@ -365,7 +384,7 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="tabStripEntries && tabStripEntries.length > 0" #filters>
+			<template v-if="tabStripEntries && tabStripEntries.length > 0 && quickFilterPlacement !== 'row'" #filters>
 				<CnQuickFilterBar
 					inline
 					:tabs="tabStripEntries"
@@ -2154,13 +2173,15 @@ export default {
 		 * the Filter button and the view switch, in whatever width that row has
 		 * beside a side panel (DqTeamwachtrij): the chips take the room the
 		 * buttons leave, and those that do not fit move into the overflow chip.
+		 * `'row'` puts them on a row of their own above the toolbar, wrapping
+		 * onto more lines instead of folding into the overflow chip.
 		 *
-		 * @type {''|'toolbar'}
+		 * @type {''|'toolbar'|'row'}
 		 */
 		quickFilterPlacement: {
 			type: String,
 			default: '',
-			validator: (v) => ['', 'toolbar'].includes(v),
+			validator: (v) => ['', 'toolbar', 'row'].includes(v),
 		},
 
 		/**

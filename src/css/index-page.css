@@ -411,11 +411,12 @@
 .cn-index-page--with-side-panel {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) var(--cn-index-side-panel-width, 300px);
-	grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+	grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
 	grid-template-areas:
 		"head head"
 		"below below"
 		"stats stats"
+		"chips side"
 		"bar side"
 		"body side"
 		"extra extra";
@@ -444,6 +445,10 @@
 	grid-area: bar;
 }
 
+.cn-index-page--with-side-panel > .cn-index-page__quick-filter-row {
+	grid-area: chips;
+}
+
 .cn-index-page--with-side-panel > .cn-index-page__body {
 	grid-area: body;
 }
@@ -461,15 +466,22 @@
 			"below"
 			"stats"
 			"side"
+			"chips"
 			"bar"
 			"body"
 			"extra";
-		grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
+		grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto;
 	}
 
 	.cn-index-page--with-side-panel > .cn-index-page__side-panel {
 		margin-bottom: 20px;
 	}
+}
+
+/* `quickFilterPlacement: "row"` (DqTeamwachtrij): the chips on a row of
+   their own above the toolbar, wrapping onto more lines. */
+.cn-index-page__quick-filter-row {
+	margin-bottom: 12px;
 }
 
 /* The second filter strip (`filterStrip`, board PqWachtrij "Kanaal"): 34px
