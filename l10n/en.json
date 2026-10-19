@@ -1866,7 +1866,21 @@
     "Address": "Address",
     "Street": "Street",
     "Place": "Place",
-    "Postcode": "Postcode"
+    "Postcode": "Postcode",
+    "{source} could not be read, so this list is incomplete.": "{source} could not be read, so this list is incomplete.",
+    "This queue could not be read": "This queue could not be read",
+    "Nothing is waiting on you.": "Nothing is waiting on you.",
+    "Hide this group until tomorrow": "Hide this group until tomorrow",
+    "Hide until tomorrow": "Hide until tomorrow",
+    "Covering for {person}": "Covering for {person}",
+    "Hidden until tomorrow": "Hidden until tomorrow",
+    "Show {group} again": "Show {group} again",
+    "the applicant": "the applicant",
+    "a third party": "a third party",
+    "us": "us",
+    "Waiting on {party} for {days} days": "Waiting on {party} for {days} days",
+    "Waiting on {party} for {days} days, chased once": "Waiting on {party} for {days} days, chased once",
+    "Waiting on {party} for {days} days, chased {chases} times": "Waiting on {party} for {days} days, chased {chases} times"
   },
   "plurals": {
     "{count} member": [

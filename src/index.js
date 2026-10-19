@@ -361,6 +361,7 @@ export {
 	CnWidgetWrapper,
 	CnWizardDialog,
 	CnWorkingCalendarWidget,
+	CnWorkQueue,
 	CnWorkspaceFilterWidget,
 	DEFAULT_DATE_RANGE_PRESETS,
 	defaultPageTypes,

@@ -4368,6 +4368,13 @@
 			"via": [],
 			"page": "cn-wizard-dialog"
 		},
+		"CnWorkQueue": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-work-queue"
+		},
 		"CnWorkingCalendarWidget": {
 			"direct": 2,
 			"transitive": 3,
