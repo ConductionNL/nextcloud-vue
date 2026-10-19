@@ -1170,7 +1170,7 @@
 	border-bottom: none;
 }
 
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard, .cn-widget-wrapper--borderless) .cn-widget-wrapper__header {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless) .cn-widget-wrapper__header {
 	padding: 20px var(--cn-board-dashboard-card-inset) 12px;
 }
 

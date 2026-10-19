@@ -51,7 +51,7 @@ describe('look-board.css: dashboard card header', () => {
 	})
 
 	it('puts the title on the card inset, 20px from the top and 12px above the content', () => {
-		expect(bodyOf(`${CARD}:not(.cn-widget-wrapper--nc-dashboard, .cn-widget-wrapper--borderless) .cn-widget-wrapper__header`))
+		expect(bodyOf(`${CARD}:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless) .cn-widget-wrapper__header`))
 			.toMatch(/padding:\s*20px var\(--cn-board-dashboard-card-inset\) 12px;/)
 	})
 
