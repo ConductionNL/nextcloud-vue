@@ -1156,12 +1156,16 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
 | `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
-| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
-| `sortSelectOptions` | Array | `[]` | Options `{ value, label, order? }` for the sort dropdown. On a self-fetch page a choice orders the list as a header click does (`_order`, kept in the address): by the option's `order`, else its `value` read as an order (`"-createdAt"`, `"priority:desc,title"`). |
-| `sortSelectValue` | String | `''` | Selected sort dropdown value. Empty lets a self-fetch page show the option matching its current order, so a header click that matches an option shows it. |
+| `showSortSelect` | Boolean | `false` | Deprecated, without effect: the toolbar draws no sort select. The table sorts by its column headers; the list, card and map views by the Sort section in the index sidebar. |
+| `sortSelectOptions` | Array | `[]` | The orders the index sidebar's Sort section offers in the list, card and map views: `{ value, label, order? }`, the order its `order` or its `value` read as one (`"-createdAt"`, `"priority:desc,title"`). Without them the section offers the sortable columns. |
+| `sortSelectValue` | String | `''` | Deprecated, without effect: the Sort section shows the current order. |
 | `defaultOrder` | String, Object or Array | `''` | The order a self-fetch page opens on when neither the address nor `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`): `"-createdAt"`, `"priority:desc,title"`, an `_order` map `{ "priority": "desc" }` or a `[{ key, order }]` list. |
 
 The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
+
+## Sorting
+
+The table view sorts by its column headers and nothing else. The list, card and map views sort through the **Sort** section of the index sidebar (Search tab): a field, Ascending or Descending, and the order the list has now ("Current order: Created, descending"). The fields are `sortSelectOptions` when the page declares them, else the sortable columns. A choice goes the way a header click goes: a self-fetched list orders by it (`_order`, kept in the address) and the page emits `sort` for a host that sorts itself. `defaultOrder` is the order the page opens on. The section is absent in the table view.
 
 ## Folder sidebar
 

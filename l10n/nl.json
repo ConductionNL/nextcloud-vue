@@ -1940,7 +1940,15 @@
     "On": "Aan",
     "Select a step on the canvas to see its settings.": "Kies een stap op het canvas om de instellingen te zien.",
     "Show runs": "Uitvoeringen tonen",
-    "Back to the step settings": "Terug naar de stapinstellingen"
+    "Back to the step settings": "Terug naar de stapinstellingen",
+    "Sort": "Sorteren",
+    "Direction": "Richting",
+    "Ascending": "Oplopend",
+    "Descending": "Aflopend",
+    "ascending": "oplopend",
+    "descending": "aflopend",
+    "Not sorted": "Niet gesorteerd",
+    "Current order: {order}": "Huidige volgorde: {order}"
   },
   "plurals": {
     "{count} member": [

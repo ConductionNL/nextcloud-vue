@@ -1727,7 +1727,15 @@
     "On": "On",
     "Select a step on the canvas to see its settings.": "Select a step on the canvas to see its settings.",
     "Show runs": "Show runs",
-    "Back to the step settings": "Back to the step settings"
+    "Back to the step settings": "Back to the step settings",
+    "Sort": "Sort",
+    "Direction": "Direction",
+    "Ascending": "Ascending",
+    "Descending": "Descending",
+    "ascending": "ascending",
+    "descending": "descending",
+    "Not sorted": "Not sorted",
+    "Current order: {order}": "Current order: {order}"
   },
   "plurals": {
     "{count} member": [

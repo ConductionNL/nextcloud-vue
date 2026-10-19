@@ -197,6 +197,8 @@ With admin-only filter control:
 | `visibleColumns` | Array | `null` | Currently visible column keys; `null` means all visible |
 | `personalColumns` | Boolean | `true` | Show the Order and pin list and Reset columns in the Columns tab |
 | `pinnedCount` | Number | `0` | How many of the first visible columns are pinned to the start of the table |
+| `sortOptions` | Array | `[]` | The orders the Sort section in the Search tab offers: `[{ value, label, keys }]`, `keys` a `[{ key, order }]` list read as its ascending form. Empty draws no Sort section. Choosing a field or a direction emits `sort-change` with the new `[{ key, order }]`. |
+| `currentSort` | Array | `[]` | The list's current order, `[{ key, order }]`: the Sort section shows its field, its direction and "Current order: ...". |
 | `facetData` | Object | `{}` | Live facet data from the API: `{ fieldName: { values: [{ value, count }] } }` |
 | `columnGroups` | Array | `[]` | Extra column groups beyond schema properties and built-in Metadata. Each: `{ id, label, columns: [{ key, label }], expanded? }` |
 | `showMetadata` | Boolean | `true` | Whether to include the built-in Metadata column group |
