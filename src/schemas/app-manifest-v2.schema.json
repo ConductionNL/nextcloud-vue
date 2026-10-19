@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.127.0",
+	"version": "2.128.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4674,6 +4674,19 @@
 							"type": "array",
 							"description": "type='index': the property keys the cards view shows as the facts list of each card, in order; defaults to the first four list columns under the board look (screens-card-parity). Maps to CnIndexPage `cardFields`.",
 							"items": { "type": "string", "minLength": 1 }
+						},
+						"cardLayout": {
+							"type": "object",
+							"additionalProperties": false,
+							"description": "type='index', board look: the record layout of each card in the cards view (board-record-card-layout): a pill and the number on the head row, the title, a meta line, and a footer with a pill and a date. Each part names a field (a dot path) and is left out while it is empty; a pill maps values to a badge variant (`colorMap`, ignoring case) and to shown text (`labels`). Maps to CnIndexPage `cardLayout`.",
+							"properties": {
+								"headPill": { "type": "object", "additionalProperties": false, "required": ["field"], "properties": { "field": { "type": "string", "minLength": 1 }, "colorMap": { "type": "object", "additionalProperties": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] } }, "labels": { "type": "object", "additionalProperties": { "type": "string" } }, "variant": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] } } },
+								"number": { "type": "string", "minLength": 1 },
+								"title": { "type": "string", "minLength": 1 },
+								"meta": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+								"footerPill": { "type": "object", "additionalProperties": false, "required": ["field"], "properties": { "field": { "type": "string", "minLength": 1 }, "colorMap": { "type": "object", "additionalProperties": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] } }, "labels": { "type": "object", "additionalProperties": { "type": "string" } }, "variant": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] } } },
+								"footerDate": { "type": "object", "additionalProperties": false, "required": ["field"], "properties": { "field": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 } } }
+							}
 						},
 						"afterList": { "type": "array", "description": "type='index': cards after the list, stacked full width in the listed order, the counterpart of statRow above it (index-scope-presentation). Each entry is a widget definition resolved like statRow's. A query preset or a folder scope can set its own. Maps to CnIndexPage `afterList`.", "items": { "type": "object", "required": ["id", "type"], "properties": { "id": { "type": "string", "minLength": 1 }, "type": { "type": "string", "minLength": 1 }, "title": { "type": "string" }, "subtitle": { "type": "string" }, "content": { "type": "object" }, "headerLink": { "type": "object" } } } },
 						"statRow": {

@@ -1404,7 +1404,25 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.125.0 adds chart emptyCellLabel and the footnote under line, area and bar charts (chart-widget), config.bulkBandAlways (actions-bar), config.quickFilterPlacement (index-page), config.rowClass rules on an index page (index-page) and sourceConfig.limit for a paging source (index-page).
 		// 2.126.0 adds the setup choice step's display "rows" and default (setup-wizard), visibleWhen op anyOf and the record-list footerAction (record-list), and documents folderSidebar.pane and the fieldOverrides search look (index-page, form-dialog).
 		// 2.127.0 adds config.sideColumnFrom on a detail page (detail-page), headerButtons[].run, config.search, searchPlacement, defaultOrder, listConfig leading / trailing / subtitleTemplate and folderSidebar heading / countText on an index page (index-page, object-row), and the object-table pageSize (object-table).
-		expect(schema.version).toBe('2.127.0')
+		// 2.128.0 adds config.cardLayout on an index page, the board record card's layout (board-record-card-layout).
+		expect(schema.version).toBe('2.128.0')
+	})
+
+	it('accepts the 2.128.0 cardLayout and refuses malformed ones', () => {
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'mine', route: '/mine', type: 'index', title: 'Mine', config: { register: 'r', schema: 's', ...config } }] })
+		const cardLayout = {
+			headPill: { field: 'urgency', colorMap: { late: 'error' }, labels: { late: 'Te laat' } },
+			number: 'identifier',
+			title: 'title',
+			meta: ['caseTypeName', 'assignee'],
+			footerPill: { field: 'statusName', colorMap: { 'in behandeling': 'purple' } },
+			footerDate: { field: 'deadline', label: 'Termijn' },
+		}
+		expect(validateManifestV2(index({ cardLayout })).valid).toBe(true)
+		expect(validateManifestV2(index({ cardLayout: { headPill: { colorMap: {} } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ cardLayout: { footerPill: { field: 's', colorMap: { x: 'lilac' } } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ cardLayout: { footerDate: { label: 'Termijn' } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ cardLayout: { badge: 'x' } })).valid).toBe(false)
 	})
 
 	it('accepts the 2.127.0 keys and refuses malformed ones', () => {

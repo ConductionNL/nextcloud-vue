@@ -15,8 +15,48 @@
 				@update:modelValue="$emit('select', object)" />
 		</div>
 
+		<!-- Board look, record layout (`layout`): head pill and number, title,
+		     meta line, then a footer with a pill and a date. -->
+		<div v-if="recordLayout" class="cn-object-card__content cn-object-card__record" data-testid="cn-object-card-record">
+			<div class="cn-object-card__record-head">
+				<CnStatusBadge
+					v-if="recordHeadPill"
+					class="cn-object-card__record-pill"
+					:label="recordHeadPill.label"
+					:variant="recordHeadPill.variant"
+					data-testid="cn-object-card-head-pill" />
+				<span v-if="recordNumber" class="cn-object-card__record-number" data-testid="cn-object-card-number">{{ recordNumber }}</span>
+				<div
+					v-if="$slots.actions"
+					class="cn-object-card__menu"
+					@click.stop
+					@auxclick.stop>
+					<slot name="actions" :object="object" />
+				</div>
+			</div>
+			<h3 class="cn-object-card__title">
+				<CnLockIndicator :object="object" :size="16" />
+				{{ recordTitle }}
+			</h3>
+			<p v-if="recordMeta" class="cn-object-card__record-meta" data-testid="cn-object-card-meta">
+				{{ recordMeta }}
+			</p>
+			<div v-if="$slots.badges" class="cn-object-card__badges">
+				<slot name="badges" :object="object" />
+			</div>
+			<div v-if="recordFootPill || recordDate" class="cn-object-card__record-foot" data-testid="cn-object-card-foot">
+				<CnStatusBadge
+					v-if="recordFootPill"
+					class="cn-object-card__record-pill"
+					:label="recordFootPill.label"
+					:variant="recordFootPill.variant"
+					data-testid="cn-object-card-foot-pill" />
+				<span v-if="recordDate" class="cn-object-card__record-date" data-testid="cn-object-card-date">{{ recordDate }}</span>
+			</div>
+		</div>
+
 		<!-- Card content -->
-		<div class="cn-object-card__content">
+		<div v-else class="cn-object-card__content">
 			<!-- Header: image + title -->
 			<div class="cn-object-card__header">
 				<!-- Board look: the leading element, initials in a circle or an icon on a tint. -->
@@ -130,6 +170,9 @@
 import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
+import { formatBoardDate } from '../../utils/boardDate.js'
+import { readPath } from '../../utils/readPath.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { formatValue } from '../../utils/schema.js'
@@ -271,6 +314,25 @@ export default {
 		},
 
 		/**
+		 * Board look: the record layout (manifest key `config.cardLayout`).
+		 * Every part names a field of the object (a dot path) and is left out
+		 * while that field is empty:
+		 * `{ headPill, number, title, meta, footerPill, footerDate }`.
+		 * A pill is `{ field, colorMap?, labels?, variant? }`: `colorMap` maps a
+		 * value to a CnStatusBadge variant (ignoring case), `labels` a value to
+		 * the text shown. `meta` is a list of fields, joined with " · ".
+		 * `footerDate` is `{ field, label? }`, drawn as "Termijn 5 okt".
+		 * Without it the card keeps its head, facts and action.
+		 *
+		 * @type {{headPill?: object, number?: string, title?: string, meta?: Array<string>, footerPill?: object, footerDate?: {field: string, label?: string}}}
+		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 */
+		layout: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The property keys the facts list shows, in order (manifest key
 		 * `config.cardFields`). Without it the card shows the first
 		 * `maxMetadata` visible properties, as before.
@@ -331,6 +393,80 @@ export default {
 				return { label: this.status.label, variant: this.status.variant || 'default' }
 			}
 			return null
+		},
+
+		/**
+		 * The record layout when the board look draws it, else null.
+		 *
+		 * @return {?object}
+		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 */
+		recordLayout() {
+			return this.isBoardLook && this.layout && typeof this.layout === 'object' ? this.layout : null
+		},
+
+		/**
+		 * The record layout's head pill, or null.
+		 *
+		 * @return {?{label: string, variant: string}}
+		 */
+		recordHeadPill() {
+			return this.recordLayout ? this.layoutPill(this.recordLayout.headPill) : null
+		},
+
+		/**
+		 * The record layout's footer pill, or null.
+		 *
+		 * @return {?{label: string, variant: string}}
+		 */
+		recordFootPill() {
+			return this.recordLayout ? this.layoutPill(this.recordLayout.footerPill) : null
+		},
+
+		/**
+		 * The record number at the end of the head, or ''.
+		 *
+		 * @return {string}
+		 */
+		recordNumber() {
+			return this.recordLayout ? this.layoutText(this.recordLayout.number) : ''
+		},
+
+		/**
+		 * The title: the layout's `title` field, else the card's own title.
+		 *
+		 * @return {string}
+		 */
+		recordTitle() {
+			const text = this.recordLayout ? this.layoutText(this.recordLayout.title) : ''
+			return text !== '' ? text : this.title
+		},
+
+		/**
+		 * The meta line: the layout's `meta` fields that hold a value, joined.
+		 *
+		 * @return {string}
+		 */
+		recordMeta() {
+			const fields = this.recordLayout && Array.isArray(this.recordLayout.meta) ? this.recordLayout.meta : []
+			return fields.map((field) => this.layoutText(field)).filter((text) => text !== '').join(' · ')
+		},
+
+		/**
+		 * The footer date with its label ("Termijn 5 okt"), or ''.
+		 *
+		 * @return {string}
+		 */
+		recordDate() {
+			const def = this.recordLayout ? this.recordLayout.footerDate : null
+			if (!def || typeof def.field !== 'string') {
+				return ''
+			}
+			const date = formatBoardDate(readPath(this.object, def.field))
+			if (date === '') {
+				return ''
+			}
+			return typeof def.label === 'string' && def.label !== '' ? `${this.cnTranslate(def.label)} ${date}` : date
 		},
 
 		/**
@@ -441,6 +577,52 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A field's value as text: a person or a record by its display name,
+		 * title or name, anything else as a string. '' for an empty value or
+		 * a field that is not named.
+		 *
+		 * @param {unknown} field A dot path into the object.
+		 * @return {string}
+		 */
+		layoutText(field) {
+			if (typeof field !== 'string' || field === '') {
+				return ''
+			}
+			const value = readPath(this.object, field)
+			if (value === null || value === undefined || value === '') {
+				return ''
+			}
+			if (typeof value === 'object') {
+				const name = value.displayName || value.title || value.name
+				return typeof name === 'string' ? name : ''
+			}
+			return String(value)
+		},
+
+		/**
+		 * A layout pill as `{ label, variant }`, or null while its field is
+		 * empty.
+		 *
+		 * @param {?{field: string, colorMap?: object, labels?: object, variant?: string}} def The pill.
+		 * @return {?{label: string, variant: string}}
+		 */
+		layoutPill(def) {
+			if (!def || typeof def !== 'object') {
+				return null
+			}
+			const value = this.layoutText(def.field)
+			if (value === '') {
+				return null
+			}
+			const labels = def.labels && typeof def.labels === 'object' ? def.labels : {}
+			const label = typeof labels[value] === 'string' ? this.cnTranslate(labels[value]) : value
+			const colorMap = def.colorMap && typeof def.colorMap === 'object' ? def.colorMap : {}
+			const key = Object.keys(colorMap).find((k) => k.toLowerCase() === value.toLowerCase())
+			const variant = key !== undefined ? colorMap[key] : def.variant
+			return { label, variant: isBadgeVariant(variant) ? variant : 'default' }
+		},
+
 		formatValue,
 
 		/**

@@ -68,4 +68,4 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 
 ## Board look
 
-Under the board look the grid is `repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))` with a `var(--cn-card-grid-gap, 16px)` gap, theme hooks for both; without it the 320px track stands. `cardFields`, `statusOf`, `leadingOf` and `footerActionOf` reach each default `CnObjectCard`.
+Under the board look the grid is `repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))` with a `var(--cn-card-grid-gap, 16px)` gap, theme hooks for both; without it the 320px track stands. `cardFields`, `cardLayout` (the record layout, CnObjectCard `layout`), `statusOf`, `leadingOf` and `footerActionOf` reach each default `CnObjectCard`.

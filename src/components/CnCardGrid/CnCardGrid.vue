@@ -37,6 +37,7 @@
 						:clickToView="clickToView"
 						:selected="isSelected(object)"
 						:cardFields="cardFields"
+						:layout="cardLayout"
 						:status="statusOf ? statusOf(object) : null"
 						:leading="leadingOf ? leadingOf(object) : null"
 						:footerAction="footerActionOf ? footerActionOf(object) : null"
@@ -162,6 +163,18 @@ export default {
 		 */
 		cardFields: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Board look: the record layout each card draws (manifest key
+		 * `config.cardLayout`), passed through to CnObjectCard `layout`.
+		 *
+		 * @type {object}
+		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 */
+		cardLayout: {
+			type: Object,
 			default: null,
 		},
 

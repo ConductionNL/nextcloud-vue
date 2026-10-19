@@ -1148,7 +1148,7 @@ columns are right.
 
 ## Board look
 
-With `look: "board"` (the page's `look` prop, `config.look`, or the app's) the index page takes the DqZaken setup: a header with the count line from `countText` (`{shown}`, `{total}`), the buttons Download, Actions, the buildiq square and the primary one in that order, a two-row toolbar (saved-view chips, Filter with a count and the view switch; then search and active filter chips), a bulk band between toolbar and table (`bulkHint`), the table as a white card with one menu button per row, and a footer inside the card (`footerNote`). `cardFields` names the facts of each card in the cards view. Without the look nothing changes.
+With `look: "board"` (the page's `look` prop, `config.look`, or the app's) the index page takes the DqZaken setup: a header with the count line from `countText` (`{shown}`, `{total}`), the buttons Download, Actions, the buildiq square and the primary one in that order, a two-row toolbar (saved-view chips, Filter with a count and the view switch; then search and active filter chips), a bulk band between toolbar and table (`bulkHint`), the table as a white card with one menu button per row, and a footer inside the card (`footerNote`). `cardFields` names the facts of each card in the cards view, and `cardLayout` draws each card as a record instead: a pill and the number on the head row, the title, a meta line, and a footer with a pill and a date, every part from a field (`{ headPill: { field, colorMap, labels }, number, title, meta: [...], footerPill, footerDate: { field, label } }`). Without the look nothing changes.
 
 `bulkBandAlways` (`config.bulkBandAlways`) draws the board bulk band before a selection too, its buttons
 disabled until rows are selected (DqZaken, DqWerkbord).
