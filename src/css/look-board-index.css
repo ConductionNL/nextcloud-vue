@@ -163,8 +163,15 @@
 	gap: 8px;
 }
 
+/* A chip is a <button>: the nldesign theme sets every button's radius and
+   weight with `!important` through its button tokens, which drew the chips
+   as 8px boxes at 700 (DqTeamwachtrij), so the chip hands its pill radius and
+   600 to those tokens.
+   @spec openspec/changes/board-chips-theme/specs/board-chips-theme/spec.md#requirement-board-chips-stay-pills-under-a-theme */
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab {
+	--nldesign-component-button-border-radius: 19px;
+	--nldesign-component-button-font-weight: 600;
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
