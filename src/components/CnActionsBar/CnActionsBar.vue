@@ -18,6 +18,20 @@
 				@description Under the board look: saved views as chips and the Save view button, in row 1 after the quick-filter chips.
 			-->
 			<slot name="actions-end" />
+			<!-- `searchPlacement: "toolbar"`: the search field on row 1, before
+			     Filter and the view switch, instead of opening row 2. -->
+			<div v-if="showSearch && searchInToolbar"
+				class="cn-actions-bar__search cn-actions-bar__search--toolbar"
+				data-testid="cn-actions-bar-search-toolbar">
+				<Magnify :size="18" class="cn-actions-bar__search-icon" />
+				<input
+					type="search"
+					class="cn-actions-bar__search-input"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:value="searchValue"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					@input="onSearchInput">
+			</div>
 			<!--
 				Filter and the view switch are one unit: when row 1 is full they
 				wrap together to the start of the next line (the DqZaken board),
@@ -373,7 +387,7 @@
 
 		<!-- Board look, row 2: the search field, then the active filters. -->
 		<div v-if="isBoardLayout" class="cn-actions-bar__row cn-actions-bar__row--search" data-testid="cn-actions-bar-row-search">
-			<div v-if="showSearch" class="cn-actions-bar__search">
+			<div v-if="showSearch && !searchInToolbar" class="cn-actions-bar__search">
 				<Magnify :size="18" class="cn-actions-bar__search-icon" />
 				<input
 					type="search"
@@ -383,7 +397,7 @@
 					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
 					@input="onSearchInput">
 			</div>
-			<span v-else-if="showCount && hasTotal" class="cn-actions-bar__count">
+			<span v-else-if="showCount && hasTotal && !searchInToolbar" class="cn-actions-bar__count">
 				{{ countText }}
 			</span>
 			<slot name="after-search" />
@@ -943,6 +957,19 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Where the board look draws the search field: `''` (the default) at
+		 * the start of row 2, `'toolbar'` on row 1 before Filter and the view
+		 * switch (DqTeamwachtrij). No effect outside the board look.
+		 *
+		 * @type {''|'toolbar'}
+		 */
+		searchPlacement: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'toolbar'].includes(v),
+		},
+
 		/** Current value of the inline search field (controlled) */
 		searchValue: {
 			type: String,
@@ -1101,6 +1128,16 @@ export default {
 	],
 
 	computed: {
+		/**
+		 * Whether the search field sits on the board's row 1.
+		 *
+		 * @spec openspec/changes/index-search-on-toolbar/specs/index-page/spec.md#requirement-the-search-field-can-sit-on-the-toolbar-row
+		 * @return {boolean}
+		 */
+		searchInToolbar() {
+			return this.isBoardLayout && this.searchPlacement === 'toolbar'
+		},
+
 		/**
 		 * Whether the board toolbar is drawn: the `layout` prop, else the look
 		 * the app provides.

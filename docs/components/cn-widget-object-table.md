@@ -156,6 +156,7 @@ REST endpoint computes (e.g. a per-source performance report):
 | `fitWidth` | `Boolean` | Fit the table to the tile (default `true`): the title column (a column's `grow: true`, else `title` or `name`, else the first) shrinks and ends in an ellipsis, so trailing columns such as a date stay visible. Pass `false` for the table's own auto layout. |
 | `rowRoute` | `String` | Route NAME for row-click navigation — mapped to CnDataTable's `rowClickRoute` with `{ params: { id } }`. |
 | `viewAllRoute` | `Object` | vue-router location for the "View all" footer link (default `null`). |
+| `pageSize` | `Number` | Rows per page: the board's pager under the table ("4 of 7", page buttons, Next), forwarded to CnDataTable. It pages the rows the widget holds; with a `source`, `source.limit` sets how many are read. `0` (default) shows no pager. |
 | `viewAllLabel` | `String` | Pre-translated "View all" label (CnDataTable default when unset). |
 | `emptyText` | `String` | Empty-state text (CnDataTable default when unset). |
 | `lensReasonTexts` | `Object` | App wording for an unavailable personal lens, keyed `<lens>.<reason>` or `<reason>`. A `source.filter._recent` tile whose response reports `@self.lenses.recent.available: false` (openregister#4514) says why it is empty, for example "This server does not keep track of what you open.", instead of `emptyText`. |

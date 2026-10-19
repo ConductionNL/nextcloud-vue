@@ -2599,6 +2599,22 @@ export default {
 		},
 
 		/**
+		 * A field path whose value picks the side column and its order for
+		 * this record (manifest `config.sideColumnFrom`), read like a
+		 * `visibleWhen` field: `@context.caseType.sideCards` reads the list a
+		 * case type keeps. A non-empty list of ids keeps those `sideColumn`
+		 * entries, in that order, and leaves the rest out; each still follows
+		 * its own `visibleWhen`. Any other value keeps `sideColumn` as
+		 * declared, so a record whose list is empty changes nothing.
+		 *
+		 * @spec openspec/changes/detail-side-column-from/specs/detail-page/spec.md#requirement-a-record-can-pick-the-side-column-and-its-order
+		 */
+		sideColumnFrom: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Draw the header as a card (manifest `config.headerCard: true`): the
 		 * pills, the title and the actions on the page's surface colour inside
 		 * a bordered, rounded box, as the board's case header. Off by default,
@@ -3508,7 +3524,7 @@ export default {
 		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
 		 */
 		sideColumnWidgets() {
-			const resolved = this.declaredSideWidgets.filter((widget) => this.sideWidgetVisible(widget))
+			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetVisible(widget))
 			if (!this.isBoard) {
 				return resolved
 			}
@@ -3518,6 +3534,28 @@ export default {
 				.map((widget, index) => ({ widget, index }))
 				.sort((a, b) => (rank(a.widget) - rank(b.widget)) || (a.index - b.index))
 				.map(({ widget }) => widget)
+		},
+
+		/**
+		 * The side column's definitions as the record picks them
+		 * (`sideColumnFrom`): the ids it lists, in its order, or every
+		 * declared entry when it lists none. Edit mode shows them all.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-side-column-from/specs/detail-page/spec.md#requirement-a-record-can-pick-the-side-column-and-its-order
+		 */
+		pickedSideWidgets() {
+			const declared = this.declaredSideWidgets
+			if (!this.sideColumnFrom || this.editingBody || !this.widgetVisibilityData) {
+				return declared
+			}
+			const ids = readVisibleWhenPath(this.widgetVisibilityData, this.sideColumnFrom)
+			if (!Array.isArray(ids) || ids.length === 0) {
+				return declared
+			}
+			return ids
+				.map((id) => declared.find((widget) => widget.id === id) || null)
+				.filter(Boolean)
 		},
 
 		/**
