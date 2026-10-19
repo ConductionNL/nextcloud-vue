@@ -1956,7 +1956,25 @@
     "{message} until {time}": "{message} tot {time}",
     "Away": "Afwezig",
     "Busy": "Bezet",
-    "No one in the team": "Niemand in het team"
+    "No one in the team": "Niemand in het team",
+    "What happens to this record once it is closed": "Wat er met dit item gebeurt als het is afgesloten",
+    "The archival facts are unavailable": "De archiefgegevens zijn niet beschikbaar",
+    "Archived on {at} by {by}. {reason}": "Gearchiveerd op {at} door {by}. {reason}",
+    "This record and OpenRegister do not agree on whether it is archived.": "Dit item en OpenRegister zijn het niet eens over of het gearchiveerd is.",
+    "Nothing could decide what happens to this record.": "Niets kon bepalen wat er met dit item gebeurt.",
+    "This record has not been closed yet. Its archival future is recorded when it closes.": "Dit item is nog niet afgesloten. Wat ermee gebeurt wordt vastgelegd als het sluit.",
+    "Handed over as {kind} on {at} by {by}.": "Overgedragen als {kind} op {at} door {by}.",
+    "Transfer list": "Overbrengingslijst",
+    "Recomputing needs the archivist role": "Opnieuw berekenen vraagt de rol archivaris",
+    "Why are you recomputing this?": "Waarom bereken je dit opnieuw?",
+    "This is recorded against {user}.": "Dit wordt vastgelegd op naam van {user}.",
+    "Recompute the nomination": "Bereken de nominatie opnieuw",
+    "Selection list row": "Selectielijstregel",
+    "Decided by": "Bepaald door",
+    "Written on": "Vastgelegd op",
+    "Decided when it closes": "Bepaald bij afsluiten",
+    "Not yet": "Nog niet",
+    "This widget has no record to read.": "Deze widget heeft geen item om te lezen."
   },
   "plurals": {
     "{count} member": [

@@ -266,6 +266,7 @@ export {
 	CnRelationLinkModal,
 	CnRelationshipGraph,
 	CnResourceSelect,
+	CnRetentionWidget,
 	CnRichSubmitDialog,
 	CnRoadmapItem,
 	CnRoadmapTab,

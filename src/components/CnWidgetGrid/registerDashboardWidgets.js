@@ -30,6 +30,7 @@ import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
+import CnRetentionWidget from '../CnRetentionWidget/CnRetentionWidget.vue'
 import CnSavedViewWidget2 from '../CnSavedViewWidget/CnSavedViewWidget.vue'
 import CnSavedViewWidgetForm2 from '../CnSavedViewWidgetForm/CnSavedViewWidgetForm.vue'
 import CnStackedBarWidget from '../CnStackedBarWidget/CnStackedBarWidget.vue'
@@ -285,6 +286,16 @@ registerDashboardWidget('next-step', {
 	defaultContent: { field: 'status', stages: {} },
 	displayName: 'Next step',
 	icon: 'CheckCircleOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+registerDashboardWidget('retention', {
+	renderer: CnRetentionWidget,
+	form: null,
+	defaultContent: { statusField: '', archivedValues: [], archivistGroups: ['archivaris'] },
+	displayName: 'Retention',
+	icon: 'ArchiveOutline',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
 })
