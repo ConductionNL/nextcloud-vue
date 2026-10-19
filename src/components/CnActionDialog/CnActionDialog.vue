@@ -5,7 +5,7 @@
 <template>
 	<CnDialog
 		:name="text(config.title) || t('nextcloud-vue', 'Confirm')"
-		:eyebrow="text(config.eyebrow)"
+		:eyebrow="eyebrowText"
 		:subtitle="text(config.subtitle)"
 		width="form"
 		:noClose="busy"
@@ -63,6 +63,24 @@
 				</ul>
 			</section>
 
+			<!-- Fields the action asks for, sent beside the reason. -->
+			<div v-for="field in fields"
+				:key="field.field"
+				class="cn-action-dialog__field"
+				:data-testid="`cn-action-dialog-field-${field.field}`">
+				<NcSelect v-if="field.type === 'select'"
+					:modelValue="selectedOption(field)"
+					:options="optionsOf(field)"
+					:inputLabel="text(field.label) || field.field"
+					:clearable="field.required === false"
+					@update:modelValue="(option) => pick(field, option)" />
+				<NcTextField v-else
+					:modelValue="values[field.field] || ''"
+					:type="field.type === 'datetime' ? 'datetime-local' : (field.type === 'date' ? 'date' : 'text')"
+					:label="text(field.label) || field.field"
+					@update:modelValue="(value) => setValue(field.field, value)" />
+			</div>
+
 			<div v-if="config.reason" class="cn-action-dialog__field">
 				<NcTextArea
 					:id="reasonId"
@@ -116,7 +134,7 @@ import axios from '@nextcloud/axios'
 import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcNoteCard, NcTextArea } from '@nextcloud/vue'
+import { NcButton, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
 import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
@@ -141,7 +159,8 @@ let reasonSeq = 0
  * note and Archive it.
  *
  * `config`:
- * - `title`, `eyebrow`, `subtitle`, `doneText`: texts, through the host translate.
+ * - `title`, `subtitle`, `doneText`: texts, through the host translate;
+ *   `eyebrow` a template filled from the record ("Close off · {identifier}").
  * - `summary`: `{ source?, title, meta?, badge?, icon? }`: templates filled from
  *   the record (`source` an endpointSource to read it from, else `object`).
  * - `facts`: `[{ title?, items: [{ label, value }] }]`, `value` a template.
@@ -149,8 +168,14 @@ let reasonSeq = 0
  *   `{ id, met, label?, detail? }` read from `source`; `labels[id]` gives an
  *   item's `{ label, detail?, unmetDetail? }`; the ids in `required` must be
  *   met before the action can run. `met: null` reads as unknown.
- * - `permission`: `{ source, allowedPath, reasonPath? }`: the action runs only
- *   while `allowedPath` reads true; `reasonPath` says why not.
+ * - `permission`: `{ source, listPath?, match?, allowedPath, reasonPath? }`:
+ *   the action runs only while `allowedPath` reads true; `reasonPath` says
+ *   why not. With `listPath` the paths read the entry of that list whose
+ *   fields equal `match` (`{ act: "archive" }`).
+ * - `fields`: `[{ field, type?: "text"|"date"|"datetime"|"select", label?,
+ *   required?, options?: [{ value, label, fills? }] }]`: inputs sent beside
+ *   the reason, required by default; a select option's `fills` sets other
+ *   fields that are still empty.
  * - `reason`: `{ label?, hint?, required?, field? }`: a text area; required by
  *   default; sent as `field` (default `reason`).
  * - `note`: `{ variant?, title?, text }`: a read-only note.
@@ -163,7 +188,7 @@ let reasonSeq = 0
 export default {
 	name: 'CnActionDialog',
 
-	components: { CheckCircle, CircleOutline, CnDialog, CnIcon, HelpCircleOutline, NcButton, NcNoteCard, NcTextArea },
+	components: { CheckCircle, CircleOutline, CnDialog, CnIcon, HelpCircleOutline, NcButton, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -209,6 +234,7 @@ export default {
 			checklistError: '',
 			allowed: true,
 			reason: '',
+			values: {},
 			busy: false,
 			refusal: '',
 			done: false,
@@ -305,7 +331,27 @@ export default {
 		 * @return {boolean}
 		 */
 		canConfirm() {
-			return !this.busy && this.allowed && this.requiredMet && (!this.reasonNeeded || this.reason.trim() !== '')
+			return !this.busy && this.allowed && this.requiredMet && this.fieldsFilled && (!this.reasonNeeded || this.reason.trim() !== '')
+		},
+
+		/** @return {string} The eyebrow, filled from the record once it is known. */
+		eyebrowText() {
+			return this.record ? this.fill(this.config.eyebrow) || this.text(this.config.eyebrow) : this.text(this.config.eyebrow)
+		},
+
+		/** @return {Array<object>} The fields with a name. */
+		fields() {
+			return (Array.isArray(this.config.fields) ? this.config.fields : []).filter((f) => f && f.field)
+		},
+
+		/**
+		 * Whether every required field has a value.
+		 *
+		 * @spec openspec/changes/action-dialog-fields-and-acts/specs/action-dialog/spec.md#requirement-an-action-dialog-asks-for-fields-and-reads-a-permission-from-a-list
+		 * @return {boolean}
+		 */
+		fieldsFilled() {
+			return this.fields.every((f) => f.required === false || String(this.values[f.field] ?? '').trim() !== '')
 		},
 	},
 
@@ -380,6 +426,63 @@ export default {
 			}
 		},
 
+		/**
+		 * The entry of a list whose fields equal `match`, or null.
+		 *
+		 * @param {unknown} list The list.
+		 * @param {object} [match] The fields to match.
+		 * @return {object|null}
+		 */
+		matchIn(list, match) {
+			const wanted = Object.entries(match || {})
+			return (Array.isArray(list) ? list : []).find((entry) => entry && wanted.every(([key, value]) => String(entry[key]) === String(value))) || null
+		},
+
+		/**
+		 * A select field's options, labels translated.
+		 *
+		 * @param {object} field The field.
+		 * @return {Array<{id: string, label: string, fills?: object}>}
+		 */
+		optionsOf(field) {
+			return (Array.isArray(field.options) ? field.options : []).map((o) => ({ id: String(o.value), label: this.text(o.label) || String(o.value), fills: o.fills }))
+		},
+
+		/**
+		 * A select field's chosen option.
+		 *
+		 * @param {object} field The field.
+		 * @return {object|null}
+		 */
+		selectedOption(field) {
+			return this.optionsOf(field).find((o) => o.id === String(this.values[field.field] ?? '')) || null
+		},
+
+		/**
+		 * Set a field's value.
+		 *
+		 * @param {string} name The field.
+		 * @param {unknown} value The value.
+		 */
+		setValue(name, value) {
+			this.values = { ...this.values, [name]: value === null || value === undefined ? '' : String(value) }
+		},
+
+		/**
+		 * Choose a select option; its `fills` set the fields still empty.
+		 *
+		 * @param {object} field The select field.
+		 * @param {{id: string, fills?: object}|null} option The option.
+		 */
+		pick(field, option) {
+			this.setValue(field.field, option ? option.id : '')
+			for (const [name, value] of Object.entries((option && option.fills) || {})) {
+				if (String(this.values[name] ?? '').trim() === '') {
+					this.setValue(name, this.text(value) || value)
+				}
+			}
+		},
+
 		/** @return {Promise<void>} */
 		async loadPermission() {
 			const def = this.config.permission
@@ -388,8 +491,9 @@ export default {
 			}
 			try {
 				const data = await this.read(def.source)
-				this.allowed = readPath(data, def.allowedPath || 'allowed') === true
-				this.refusal = this.allowed || !def.reasonPath ? '' : String(readPath(data, def.reasonPath) || '')
+				const entry = def.listPath ? this.matchIn(readPath(data, def.listPath), def.match) : data
+				this.allowed = readPath(entry, def.allowedPath || 'allowed') === true
+				this.refusal = this.allowed || !def.reasonPath ? '' : String(readPath(entry, def.reasonPath) || '')
 			} catch {
 				this.allowed = false
 			}
@@ -420,15 +524,18 @@ export default {
 					if (this.config.reason) {
 						body[this.config.reason.field || 'reason'] = reason
 					}
+					for (const field of this.fields) {
+						body[field.field] = this.values[field.field] ?? ''
+					}
 					const method = String(request.method || 'POST').toLowerCase()
 					await axios[['post', 'put', 'patch', 'delete'].includes(method) ? method : 'post'](/^https?:\/\//i.test(url) ? url : generateUrl(url), body)
 				} else if (this.confirmConfig.action && typeof this.cnDispatchAction === 'function') {
-					await this.cnDispatchAction({ ...this.confirmConfig.action, args: [...(this.confirmConfig.action.args || []), { reason }] })
+					await this.cnDispatchAction({ ...this.confirmConfig.action, args: [...(this.confirmConfig.action.args || []), { ...this.values, reason }] })
 				}
 				this.done = true
 				emit(PAGE_REFRESH, {})
-				/** @event done The action ran. Payload: `{ reason }`. */
-				this.$emit('done', { reason })
+				/** @event done The action ran. Payload: the field values and `reason`. */
+				this.$emit('done', { ...this.values, reason })
 			} catch (failure) {
 				const data = failure && failure.response && failure.response.data
 				this.refusal = String((data && (data.message || data.error)) || t('nextcloud-vue', 'The action could not be completed.'))
