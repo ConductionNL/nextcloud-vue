@@ -756,14 +756,16 @@
 	line-height: 16px;
 }
 
-/* A status pill: 3px 10px, radius 12, 13px weight 600. The colours stay the
-   status colour map's. */
+/* A status pill: 3px 10px, radius 12, 13px weight 600, 21px tall on a
+   normal line (a 1.4 line made it 24.2). The colours stay the status colour
+   map's.
+   @spec openspec/changes/board-tags-shape/specs/board-tags-shape/spec.md#requirement-a-board-tag-is-a-21px-rounded-rectangle */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-status-badge {
 	padding: 3px 10px;
 	border-radius: 12px;
 	font-size: 13px;
 	font-weight: 600;
-	line-height: 1.4;
+	line-height: normal;
 }
 
 /* The row menu column holds one 34px button between 16px of padding, so 66px
