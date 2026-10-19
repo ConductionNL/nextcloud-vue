@@ -361,6 +361,11 @@ export default {
 		 * label written in the manifest reads in the user's language.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * CnDetailPage's report of the open body tab, so its side column can
+		 * follow the tab (a side entry's `tabs`). Null on any other page.
+		 */
+		cnDetailReportTab: { default: null },
 	},
 
 	props: {
@@ -802,6 +807,16 @@ export default {
 	watch: {
 		activeIndex(index) {
 			this.activeKey = this.resolvedTabs[index]?.key || ''
+		},
+
+		// Tell the detail page which tab is open (side cards per tab).
+		'activeTab.id': {
+			immediate: true,
+			handler(id) {
+				if (typeof this.cnDetailReportTab === 'function') {
+					this.cnDetailReportTab(id || '')
+				}
+			},
 		},
 
 		// A tab appeared or went. Keep the same tab active; when it is the active

@@ -1540,6 +1540,12 @@ export default {
 				},
 			},
 
+			// The open body tab, reported by a `tabs` widget, so a side entry
+			// with `tabs` shows only beside those tabs.
+			cnDetailReportTab: (id) => {
+				this.activeBodyTab = typeof id === 'string' ? id : ''
+			},
+
 			// The records `visibilityContext` names, keyed `@context.<name>`, so a tab's
 			// `visibleWhen` reads the case type as a grid widget's does. Null
 			// while they are on their way.
@@ -2589,7 +2595,9 @@ export default {
 		 * entry is a widget definition (`{ id?, type, title?, content? }`) or
 		 * the id of a widget declared in `widgets`. The column stacks under
 		 * the body on a narrow page. Empty (the default) leaves the layout as
-		 * it is.
+		 * it is. An entry with `tabs` (tab ids of the body's `tabs` widget)
+		 * shows only while one of those tabs is open (DqZaaktypeVelden: the
+		 * option list beside Velden).
 		 *
 		 * @type {Array<string|object>}
 		 */
@@ -2902,6 +2910,8 @@ export default {
 
 	data() {
 		return {
+			/** The id of the open body tab a `tabs` widget reported, '' before one did. */
+			activeBodyTab: '',
 			/**
 			 * The records `visibilityContext` names, keyed `@context.<name>`: the row,
 			 * `null` when it could not be read, absent while it is on its way.
@@ -3524,7 +3534,7 @@ export default {
 		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
 		 */
 		sideColumnWidgets() {
-			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetVisible(widget))
+			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetOnTab(widget) && this.sideWidgetVisible(widget))
 			if (!this.isBoard) {
 				return resolved
 			}
@@ -6214,6 +6224,22 @@ export default {
 			}
 
 			return compactLayoutRows(drawable)
+		},
+
+		/**
+		 * Whether a side entry belongs beside the open body tab: an entry with
+		 * `tabs` (tab ids) shows only while one of them is open; an entry
+		 * without shows beside every tab. Edit mode shows them all.
+		 *
+		 * @spec openspec/changes/detail-side-cards-per-tab/specs/detail-page/spec.md#requirement-a-side-card-can-follow-the-open-tab
+		 * @param {object} widget The side entry's definition.
+		 * @return {boolean}
+		 */
+		sideWidgetOnTab(widget) {
+			if (this.editingBody || !Array.isArray(widget.tabs) || widget.tabs.length === 0) {
+				return true
+			}
+			return widget.tabs.map((id) => String(id)).includes(this.activeBodyTab)
 		},
 
 		/**
