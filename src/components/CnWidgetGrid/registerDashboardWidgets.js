@@ -40,6 +40,7 @@ import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
 import CnTabsWidget from '../CnTabsWidget/CnTabsWidget.vue'
 import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
+import CnTeamWorkloadWidget from '../CnTeamWorkloadWidget/CnTeamWorkloadWidget.vue'
 import CnWeekStripWidget from '../CnWeekStripWidget/CnWeekStripWidget.vue'
 import CnWeekStripWidgetForm from '../CnWeekStripWidgetForm/CnWeekStripWidgetForm.vue'
 // Typed widgets registered with an explicit renderer + config FORM. chart /
@@ -379,6 +380,17 @@ registerDashboardWidget('stacked-bar', {
 	},
 	displayName: 'Stacked bar',
 	icon: 'ChartBar',
+})
+
+// The team today: availability from the Nextcloud user status and each
+// person's open count from the app (DqTeamwachtrij "Team vandaag"). Placed
+// from the manifest: there is no config form yet.
+registerDashboardWidget('team-workload', {
+	renderer: CnTeamWorkloadWidget,
+	form: null,
+	defaultContent: { source: { url: '', responsePath: '', userField: 'userId', nameField: 'displayName', countField: 'count' } },
+	displayName: 'Team workload',
+	icon: 'AccountGroup',
 })
 
 /**

@@ -1949,7 +1949,14 @@
     "descending": "aflopend",
     "Not sorted": "Niet gesorteerd",
     "Current order: {order}": "Huidige volgorde: {order}",
-    "Soon": "Bijna"
+    "Soon": "Bijna",
+    "{name} (you)": "{name} (u)",
+    "{present} of {total} present": "{present} van {total} aanwezig",
+    "Absent today": "Vandaag afwezig",
+    "{message} until {time}": "{message} tot {time}",
+    "Away": "Afwezig",
+    "Busy": "Bezet",
+    "No one in the team": "Niemand in het team"
   },
   "plurals": {
     "{count} member": [
@@ -2067,6 +2074,10 @@
     "downloaded %n time": [
       "%n keer gedownload",
       "%n keer gedownload"
+    ],
+    "{count} open": [
+      "{count} open",
+      "{count} open"
     ]
   }
 }

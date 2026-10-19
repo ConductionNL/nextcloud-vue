@@ -3894,6 +3894,13 @@
 			"via": [],
 			"page": "cn-tasks-widget-form"
 		},
+		"CnTeamWorkloadWidget": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-team-workload-widget"
+		},
 		"CnTenantBadge": {
 			"direct": 0,
 			"transitive": 0,

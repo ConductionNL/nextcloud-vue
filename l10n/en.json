@@ -1736,7 +1736,14 @@
     "descending": "descending",
     "Not sorted": "Not sorted",
     "Current order: {order}": "Current order: {order}",
-    "Soon": "Soon"
+    "Soon": "Soon",
+    "{name} (you)": "{name} (you)",
+    "{present} of {total} present": "{present} of {total} present",
+    "Absent today": "Absent today",
+    "{message} until {time}": "{message} until {time}",
+    "Away": "Away",
+    "Busy": "Busy",
+    "No one in the team": "No one in the team"
   },
   "plurals": {
     "{count} member": [
@@ -1854,6 +1861,10 @@
     "downloaded %n time": [
       "downloaded %n time",
       "downloaded %n times"
+    ],
+    "{count} open": [
+      "{count} open",
+      "{count} open"
     ]
   }
 }
