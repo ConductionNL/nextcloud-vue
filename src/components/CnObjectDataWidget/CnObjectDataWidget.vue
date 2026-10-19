@@ -438,6 +438,7 @@ import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '.
 import { humaniseKey } from '../../utils/humaniseKey.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { saveEdited } from '../../utils/saveEdited.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
 import { schemaRefSlug } from '../../utils/schemaRefSlug.js'
 import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
@@ -2012,7 +2013,8 @@ export default {
 				if (this.objectType) {
 					const store = this._getObjectStore()
 					if (store) {
-						const result = await store.saveObject(this.objectType, mergedData)
+						// Only the fields edited inline are written (a PATCH).
+						const result = await saveEdited(store, this.objectType, this.objectData, mergedData)
 						if (result) {
 							this.dirtyFields = {}
 							this.editData = {}
@@ -2046,7 +2048,7 @@ export default {
 				if (this.objectType) {
 					const store = this._getObjectStore()
 					if (store) {
-						const result = await store.saveObject(this.objectType, mergedData)
+						const result = await saveEdited(store, this.objectType, this.objectData, mergedData)
 						if (result) {
 							this.dirtyFields = {}
 							this.editData = {}

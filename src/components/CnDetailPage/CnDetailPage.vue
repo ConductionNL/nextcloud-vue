@@ -1266,6 +1266,7 @@ import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
+import { saveEdited } from '../../utils/saveEdited.js'
 import { slotRenders } from '../../utils/slotContent.js'
 import { evaluateVisibleWhen, isLocallyDecidableVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import {
@@ -5949,7 +5950,9 @@ export default {
 				const store = this.effectiveObjectStore
 				let saved = null
 				if (store && typeof store.saveObject === 'function' && this.resolvedObjectType) {
-					saved = await store.saveObject(this.resolvedObjectType, payload)
+					// Only the keys the form changed are written (a PATCH), so keys
+					// the edit form does not show keep their stored value.
+					saved = await saveEdited(store, this.resolvedObjectType, this.currentObject || null, payload)
 					if (!saved) {
 						const err = store.getError?.(this.resolvedObjectType)
 						const error = (err && err.message) || t('nextcloud-vue', 'Save failed')
