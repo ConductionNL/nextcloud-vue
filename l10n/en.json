@@ -1798,7 +1798,10 @@
     "The action could not be completed.": "The action could not be completed.",
     "Whether this is ready could not be read.": "Whether this is ready could not be read.",
     "Showing {located} of {total} located": "Showing {located} of {total} located",
-    "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "The map shows the first {limit} of {total}. Narrow the filters to see the rest."
+    "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "The map shows the first {limit} of {total}. Narrow the filters to see the rest.",
+    "Actions for {row}": "Actions for {row}",
+    "Edit {row}": "Edit {row}",
+    "Row": "Row"
   },
   "plurals": {
     "{count} member": [

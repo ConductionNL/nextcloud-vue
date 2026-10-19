@@ -185,6 +185,7 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import { isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
 import { formatValue, validateValue } from '../../utils/schema.js'
 import { userLocale } from '../../utils/userLocale.js'
 
@@ -275,6 +276,15 @@ export default {
 		selectOptions: { type: Array, default: null },
 		/** Whether the `select` widget allows multiple values. */
 		selectMultiple: { type: Boolean, default: true },
+		/**
+		 * Read the `select` options from a source: `{ url, params?,
+		 * responsePath? }` or `{ register, schema, filter? }`, with
+		 * `valueField` and `labelField`. The schema property's
+		 * `x-options-from` does the same. The value stored is the option's.
+		 *
+		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+		 */
+		optionsFrom: { type: Object, default: null },
 		/** Number of rows for the `textarea` widget. */
 		textareaRows: { type: Number, default: 4 },
 		/** CSS height for the `object` widget's CodeMirror editor. */
@@ -298,12 +308,26 @@ export default {
 			objectArrayDialogOpen: false,
 			objectArrayDialogIndex: null,
 			objectArrayDialogItem: null,
+			/** Options read through `effectiveOptionsFrom`, or null before they load. */
+			sourcedOptions: null,
 		}
 	},
 
 	computed: {
 		schemaProp() {
 			return this.schema?.properties?.[this.propertyKey] || null
+		},
+
+		/**
+		 * The source the select options come from: the `optionsFrom` prop,
+		 * else the schema property's `x-options-from` (or its items'), or null.
+		 *
+		 * @return {object|null}
+		 */
+		effectiveOptionsFrom() {
+			const prop = this.schemaProp
+			const from = this.optionsFrom || prop?.['x-options-from'] || prop?.items?.['x-options-from'] || null
+			return isOptionsFrom(from) ? from : null
 		},
 
 		/**
@@ -319,6 +343,9 @@ export default {
 			}
 			if (this.widget) {
 				return this.widget
+			}
+			if (this.effectiveOptionsFrom) {
+				return 'select'
 			}
 			const prop = this.schemaProp
 			if (!prop) {
@@ -567,6 +594,9 @@ export default {
 			if (this.selectOptions) {
 				return this.selectOptions
 			}
+			if (this.effectiveOptionsFrom) {
+				return this.sourcedOptions || []
+			}
 			const prop = this.schemaProp
 			if (!prop) {
 				return []
@@ -597,7 +627,7 @@ export default {
 
 		/** Whether the `select` widget accepts free-form tags (no fixed enum). */
 		effectiveSelectTaggable() {
-			if (this.widget === 'select') {
+			if (this.widget === 'select' || this.effectiveOptionsFrom) {
 				return false
 			}
 			const prop = this.schemaProp
@@ -718,6 +748,13 @@ export default {
 			if (v === null || v === undefined || v === '') {
 				return '—'
 			}
+			if (this.sourcedOptions) {
+				const labelOf = (id) => {
+					const match = this.sourcedOptions.find((o) => String(o.id) === String(id))
+					return match ? match.label : String(id)
+				}
+				return Array.isArray(v) ? v.map(labelOf).join(', ') : labelOf(v)
+			}
 			return formatValue(v, prop || {})
 		},
 
@@ -746,6 +783,15 @@ export default {
 		},
 	},
 
+	watch: {
+		effectiveOptionsFrom: {
+			immediate: true,
+			handler() {
+				this.loadSourcedOptions()
+			},
+		},
+	},
+
 	beforeUnmount() {
 		if (this.pendingColorTimer) {
 			clearTimeout(this.pendingColorTimer)
@@ -754,6 +800,26 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the options `effectiveOptionsFrom` names. A failed read leaves
+		 * none, so the select stays empty rather than offering stale choices.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+		 */
+		async loadSourcedOptions() {
+			const from = this.effectiveOptionsFrom
+			if (!from) {
+				this.sourcedOptions = null
+				return
+			}
+			try {
+				this.sourcedOptions = await loadOptionsFrom(from)
+			} catch {
+				this.sourcedOptions = []
+			}
+		},
+
 		t,
 
 		/** Focus the underlying text input (called by parent after row click) */
