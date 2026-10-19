@@ -51,6 +51,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
 import { routeHref } from './actionLink.js'
+import { resolveModalEntry } from './builtInModals.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -836,8 +837,7 @@ export function dispatchAction(action, context = {}) {
 
 		case 'open-modal': {
 			const target = action.target
-			const registry = context.registry || {}
-			const entry = registry[target]
+			const entry = resolveModalEntry(context.registry, target)
 
 			if (!entry) {
 			// eslint-disable-next-line no-console
