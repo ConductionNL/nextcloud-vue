@@ -1106,6 +1106,9 @@ const CHART_PROP_KEYS = [
 	'highlight',
 	'cellSource',
 	'emptyCellLabel',
+	// A norm line and month categories on a line chart (DqDoorlooptijd).
+	'referenceLines',
+	'categoryFormat',
 ]
 
 /**
