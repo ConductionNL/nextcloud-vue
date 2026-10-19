@@ -670,7 +670,7 @@
 			"page": "cn-dashboard-grid"
 		},
 		"CnDashboardPage": {
-			"direct": 5,
+			"direct": 4,
 			"transitive": 182,
 			"tier": "heavy",
 			"via": [
