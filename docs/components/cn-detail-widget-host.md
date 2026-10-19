@@ -26,6 +26,8 @@ In card chrome outside a body grid cell (the side column, a tab stack), a widget
 
 A catalog widget gets its whole `content` as the `content` prop and, beside the object context, only the content keys it declares as props, as on a dashboard. A key it does not declare can never land on its root component. A widget with `inheritAttrs: false` keeps every key.
 
+A chart reads `content.chartKind` as its `type`, the key the dashboard dispatcher reads, so the same chart config draws on a dashboard and on a detail page (`{ "type": "chart", "content": { "chartKind": "matrix", … } }`). An explicit `content.type` wins.
+
 ## What bare mode deliberately does not strip
 
 The `data` widget keeps its chrome in both modes. `CnWidgetWrapper` renders its actions inside the header, and `CnObjectDataWidget` puts its **Save** button there, so suppressing the header to remove a duplicate title would also remove the only way to commit an inline edit. A silently unsaveable form is worse than a doubled title.

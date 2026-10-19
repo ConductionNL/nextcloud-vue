@@ -1072,11 +1072,20 @@ export default {
 		 * override a value the widget computes there; the whole content still
 		 * arrives as `content`.
 		 *
+		 * `content.chartKind` is read as the chart's `type`, as the dashboard
+		 * dispatcher reads it, so a chart placed on a detail page draws.
+		 *
 		 * @return {object} The declared content keys.
 		 * @spec openspec/changes/declared-props-detail-index-sidebar/specs/widget-hosts/spec.md#requirement-a-widget-host-passes-only-the-keys-a-widget-declares
+		 * @spec openspec/changes/detail-chart-kind/specs/widget-hosts/spec.md#requirement-a-detail-chart-reads-chartkind-as-its-type
 		 */
 		declaredContent() {
-			return pickDeclaredProps(this.renderer, this.content, this.widget?.type || '')
+			let bindings = this.content
+			if (bindings && typeof bindings === 'object' && bindings.chartKind !== undefined && bindings.type === undefined) {
+				const { chartKind, ...rest } = bindings
+				bindings = { ...rest, type: chartKind }
+			}
+			return pickDeclaredProps(this.renderer, bindings, this.widget?.type || '')
 		},
 
 		/**
