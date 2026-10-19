@@ -43,7 +43,7 @@ its manifest.
    criteria with the current filters, search and sort. Saved with `PATCH`
    carrying only `name` and, when chosen, `query`.
 4. **Delete** keeps the existing confirm dialog, now reached by a labelled entry.
-5. **Defaults.** A new index-page key `config.defaultFilters[]`
+5. **Defaults.** A new index-page key `config.defaultSavedFilters[]`
    (`slug`, `name`, `filters`, optional `search`, `sort`, `label`). The page
    renders them as read-only views in a "Default filters" section above the
    user's own. They are never stored: the manifest is the install path, so a
@@ -63,5 +63,5 @@ after OpenRegister accepts `{user, mode}` entries.
 - Defaults are manifest config rendered client-side, not OpenRegister rows.
   Read-only, copyable, cannot be deleted, cannot be shared (sharing a default is
   pointless: everybody already has it).
-- `savedViewTree.seeded` stays in the schema untouched; `defaultFilters` is the
+- `savedViewTree.seeded` stays in the schema untouched; `defaultSavedFilters` is the
   key that installs filters. Folding `seeded` into it is a follow-up for Ruben.

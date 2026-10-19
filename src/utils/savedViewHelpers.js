@@ -378,7 +378,7 @@ export function isOwnView(view, currentUserId) {
 }
 
 /**
- * The default filters an index page declares (`config.defaultFilters`), as
+ * The default filters an index page declares (`config.defaultSavedFilters`), as
  * read-only views the saved-views control lists. They are never stored: the
  * manifest installs them, so every user has the same set and none can delete
  * one. `seeded: true` puts them in the control's default group; the query

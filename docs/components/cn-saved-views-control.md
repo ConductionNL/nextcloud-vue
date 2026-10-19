@@ -76,7 +76,7 @@ Every row carries one **Manage "{name}"** button. It turns the open menu into th
 
 ## Default filters
 
-An index page may declare `config.defaultFilters` (`slug`, `name`, `filters`, optional `search`, `sort`, `label`). `CnIndexPage` lists them first under **Default filters**, read-only and never stored: a user can apply one or save a copy. Applying a default resolves its `@me` / `@today` tokens; a copy keeps them.
+An index page may declare `config.defaultSavedFilters` (`slug`, `name`, `filters`, optional `search`, `sort`, `label`). `CnIndexPage` lists them first under **Default filters**, read-only and never stored: a user can apply one or save a copy. Applying a default resolves its `@me` / `@today` tokens; a copy keeps them.
 
 ## States
 

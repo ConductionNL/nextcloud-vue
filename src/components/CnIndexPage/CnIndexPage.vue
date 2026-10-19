@@ -2878,12 +2878,12 @@ export default {
 		},
 
 		/**
-		 * Filters the app ships for this page (`config.defaultFilters`), each
+		 * Filters the app ships for this page (`config.defaultSavedFilters`), each
 		 * `{ slug, name, filters, search?, sort?, label? }`. Listed read-only
 		 * above the user's own saved views, never stored; a user may apply one
 		 * or save a copy. `@`-tokens in `filters` resolve when it is applied.
 		 */
-		defaultFilters: {
+		defaultSavedFilters: {
 			type: Array,
 			default: () => [],
 		},
@@ -5184,13 +5184,13 @@ export default {
 		},
 
 		/**
-		 * The page's `defaultFilters` as read-only views.
+		 * The page's `defaultSavedFilters` as read-only views.
 		 *
 		 * @return {Array<object>} The views.
 		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-4
 		 */
 		defaultFilterViews() {
-			const defaults = (this.defaultFilters || []).map((entry) => (entry && typeof entry.name === 'string' ? { ...entry, name: this.cnTranslate(entry.name) } : entry))
+			const defaults = (Array.isArray(this.defaultSavedFilters) ? this.defaultSavedFilters : []).map((entry) => (entry && typeof entry.name === 'string' ? { ...entry, name: this.cnTranslate(entry.name) } : entry))
 			return defaultFilterViews(defaults, this.savedViewsPage)
 		},
 

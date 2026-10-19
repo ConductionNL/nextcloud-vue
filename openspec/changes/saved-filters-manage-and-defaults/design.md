@@ -29,7 +29,7 @@ may not do (owner-only delete is fixed there in the same round).
 
 ## Defaults
 
-`CnIndexPage` gets a `defaultFilters` prop (the manifest key maps straight
+`CnIndexPage` gets a `defaultSavedFilters` prop (the manifest key maps straight
 onto it, like every index config key). A computed turns each entry into a view:
 
 ```js

@@ -88,7 +88,7 @@ message.
 
 ### Requirement: An app ships default filters
 
-An index page SHALL accept `config.defaultFilters`, a list of
+An index page SHALL accept `config.defaultSavedFilters`, a list of
 `{ slug, name, filters, search?, sort?, label? }`. The page SHALL list them in
 `CnSavedViewsControl`, in a "Default filters" section above the user's own,
 without storing them. A default SHALL be applicable and copyable, and SHALL NOT
@@ -98,7 +98,7 @@ store a personal view whose query keeps the tokens unresolved.
 
 #### Scenario: Defaults render first and read-only
 
-- **GIVEN** `defaultFilters: [{ slug: "overdue-mine", name: "Te laat, van mij", filters: { "assignee": "@me", "deadline[lt]": "@today" } }]`
+- **GIVEN** `defaultSavedFilters: [{ slug: "overdue-mine", name: "Te laat, van mij", filters: { "assignee": "@me", "deadline[lt]": "@today" } }]`
 - **WHEN** the menu opens
 - **THEN** "Te laat, van mij" is listed under "Default filters" before the user's own views, and its manage menu shows Back and Save a copy only
 - @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}
@@ -119,7 +119,7 @@ store a personal view whose query keeps the tokens unresolved.
 
 #### Scenario: Invalid declaration is refused
 
-- **GIVEN** a `defaultFilters` entry without `slug` or with a slug outside `^[a-z0-9][a-z0-9-]*$`
+- **GIVEN** a `defaultSavedFilters` entry without `slug` or with a slug outside `^[a-z0-9][a-z0-9-]*$`
 - **WHEN** the manifest is validated
 - **THEN** validation fails naming the entry
 - @e2e exclude {component behaviour, covered by tests/components/CnSavedFiltersManage.spec.js}

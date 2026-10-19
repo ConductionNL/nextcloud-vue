@@ -113,11 +113,11 @@ describe('defaultFilterViews', () => {
 })
 
 describe('the manifest key', () => {
-	const manifest = (defaultFilters) => ({
+	const manifest = (defaultSavedFilters) => ({
 		$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
 		version: '2.10.0',
 		menu: [],
-		pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', defaultFilters } }],
+		pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', defaultSavedFilters } }],
 	})
 
 	it('accepts a declared default', () => {
@@ -170,7 +170,7 @@ describe('CnIndexPage with saved filters', () => {
 	})
 
 	it('lists the defaults and resolves their tokens when applied', async () => {
-		const w = mountPage({ defaultFilters: DEFAULTS })
+		const w = mountPage({ defaultSavedFilters: DEFAULTS })
 		await flush()
 		expect(w.findAll('[data-testid="cn-saved-views-item"]').map((e) => e.text())[0]).toContain('Te laat, van mij')
 		w.vm.onApplySavedView(w.vm.viewsForControl[0])
@@ -181,7 +181,7 @@ describe('CnIndexPage with saved filters', () => {
 
 	it('copies a default with its tokens unresolved', async () => {
 		axios.post.mockResolvedValue({ data: { view: { id: 9, name: 'Te laat, van mij', owner: 'alice' } } })
-		const w = mountPage({ defaultFilters: DEFAULTS })
+		const w = mountPage({ defaultSavedFilters: DEFAULTS })
 		await flush()
 		await w.vm.onCopyViewRequest(w.vm.viewsForControl[0])
 		expect(axios.post.mock.calls[0][1].query.filters).toEqual({ assignee: '@me', 'deadline[lt]': '@today' })
