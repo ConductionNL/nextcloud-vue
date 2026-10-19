@@ -2433,10 +2433,11 @@ export default {
 			if (this.manifestEditor && this.manifestEditor.editing.value && m && typeof m === 'object') {
 				return { ...m }
 			}
-			// The user's saved filters hang in the menu. Without any, the live
-			// manifest is still returned by identity.
-			if (m && typeof m === 'object' && Array.isArray(m.menu) && this.savedFilterMenu.entries.length > 0) {
-				return { ...m, menu: withSavedFilterMenu(m.menu, this.savedFilterMenu.entries) }
+			// An app that offers saved filters ends its menu with the "My
+			// filters" group: the user's pinned filters, or one line saying how
+			// to add one. Any other app gets its live manifest by identity.
+			if (m && typeof m === 'object' && Array.isArray(m.menu) && (this.savedFilterMenu.entries.length > 0 || this.offersSavedFilters)) {
+				return { ...m, menu: withSavedFilterMenu(m.menu, this.savedFilterMenu.entries, { showEmpty: this.offersSavedFilters }) }
 			}
 			return m
 		},

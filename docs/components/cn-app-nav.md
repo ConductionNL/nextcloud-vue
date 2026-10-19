@@ -370,3 +370,7 @@ The primary action is never clipped: the navigation body that holds it keeps its
 ## Board look
 
 With `look: "board"` (the manifest root, or the `look` prop) the navigation takes the anatomy of the screens: 264px wide, padding 20px 14px, 20px between groups, entries 42px high with a tonal active entry, 12px uppercase captions and a 42px primary action. A menu entry's `counterVariant` (`"default"` or `"attention"`) draws its count as a 22px pill, red for `attention`. Without the look `attention` maps to the counter bubble's highlighted state. The footer reads Help, then Advanced, whatever order `nav.footer` declares, and the card above it is pushed to the bottom. Without the look nothing changes.
+
+## A hint line (`type: "hint"`)
+
+A menu entry with `type: "hint"` draws its label as a muted line with no link. CnAppRoot uses it for the empty **My filters** section at the bottom of the menu ("Add a filter to the menu from Filters"); see [CnSavedFiltersPanel](./cn-saved-filters-panel.md).

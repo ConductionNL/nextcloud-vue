@@ -13,7 +13,7 @@ import { translate as t } from '@nextcloud/l10n'
  * removing it from the menu never deletes it.
  *
  * A menu entry links to its page with `?savedFilter=<id>`; the page applies
- * that filter. The entries form a "My filters" group in the menu.
+ * that filter. The entries form the "My filters" group at the bottom of the menu.
  *
  * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
  */
@@ -82,75 +82,55 @@ export function syncSavedFilterMenu(entries, page, views) {
 		.map((e) => (e.page === page ? { ...e, name: byId.get(e.id).name || e.name } : e))
 }
 
-/**
- * Whether a menu entry, or one of its children, opens a page.
- *
- * @param {object} item The menu entry.
- * @param {Set<string>} pages Route names.
- * @return {boolean}
- */
-function opensAnyOf(item, pages) {
-	if (!item) {
-		return false
-	}
-	if (pages.has(item.route)) {
-		return true
-	}
-	return Array.isArray(item.children) && item.children.some((child) => child && pages.has(child.route))
-}
+/** The id of the line the "My filters" group shows while it is empty. */
+export const SAVED_FILTER_MENU_EMPTY = 'saved-filters-empty'
 
 /**
- * The manifest menu with the user's saved filters in it, as their own group:
- * a "My filters" caption and one entry per filter. The group goes after the
- * last entry that opens one of the filters' pages, before the next caption,
- * so it sits with the list it filters (and after a user group such as "My
- * case types" that opens the same list).
+ * The manifest menu with the user's saved filters in it, as the standard
+ * "My filters" group at the bottom of the menu: a caption and one entry per
+ * filter, after every main entry and so just above the footer entries (Help,
+ * Advanced), which CnAppNav draws apart. Every app gets the same group in the
+ * same place (Ruben's design rule, 19 Oct); it replaces app-specific groups
+ * such as dossiq's "My case types".
+ *
+ * With `showEmpty`, an app that offers saved filters shows the group also
+ * while the user pinned none, with one line saying how to add one, so the
+ * group can be found.
  *
  * @param {Array<object>} menu The manifest's `menu`.
  * @param {Array<object>} entries The user's list.
- * @return {Array<object>} A new menu, in manifest order; the given one when the list is empty.
+ * @param {{showEmpty?: boolean}} [options] Options.
+ * @return {Array<object>} A new menu, in manifest order; the given one when there is nothing to add.
+ * @spec openspec/changes/my-filters-menu-section/specs/app-nav/spec.md#requirement-every-app-menu-ends-with-my-filters
  */
-export function withSavedFilterMenu(menu, entries) {
+export function withSavedFilterMenu(menu, entries, options = {}) {
 	const list = normalizeSavedFilterMenu(entries)
-	if (!Array.isArray(menu) || list.length === 0) {
+	if (!Array.isArray(menu) || (list.length === 0 && options.showEmpty !== true)) {
 		return menu
 	}
 	const sorted = menu.map((item, index) => ({ item, index })).sort((a, b) => byOrder(a.item, b.item) || a.index - b.index).map(({ item }) => item)
-	const pages = new Set(list.map((e) => e.page))
-	let last = -1
-	sorted.forEach((item, index) => {
-		if (opensAnyOf(item, pages)) {
-			last = index
-		}
-	})
-	let at = sorted.length
-	if (last >= 0) {
-		const next = sorted.findIndex((item, index) => index > last && item && item.type === 'caption')
-		at = next === -1 ? sorted.length : next
-	}
 	const group = [
 		{ id: SAVED_FILTER_MENU_CAPTION, type: 'caption', label: t('nextcloud-vue', 'My filters') },
-		...list.map((e) => ({
-			id: `${SAVED_FILTER_MENU_PREFIX}${e.id}`,
-			label: e.name,
-			route: e.page,
-			query: { savedFilter: e.id },
-			icon: 'FilterOutline',
-		})),
+		...(list.length > 0
+			? list.map((e) => ({
+					id: `${SAVED_FILTER_MENU_PREFIX}${e.id}`,
+					label: e.name,
+					route: e.page,
+					query: { savedFilter: e.id },
+					icon: 'FilterOutline',
+				}))
+			: [{ id: SAVED_FILTER_MENU_EMPTY, type: 'hint', label: t('nextcloud-vue', 'Add a filter to the menu from Filters') }]),
 	]
-	const before = at > 0 ? sorted[at - 1] : null
-	const after = at < sorted.length ? sorted[at] : null
-	const from = before && typeof before.order === 'number' ? before.order : null
-	const to = after && typeof after.order === 'number' ? after.order : null
-	if (from !== null || to !== null) {
-		// Orders between the neighbours, so CnAppNav's own sort keeps the group here.
-		const start = from ?? (to - group.length - 1)
-		const step = to === null ? 1 : (to - start) / (group.length + 1)
+	// Orders after the last ordered entry, so CnAppNav's own sort keeps the
+	// group at the bottom.
+	const orders = sorted.map((item) => item && item.order).filter((order) => typeof order === 'number')
+	if (orders.length > 0) {
+		const start = Math.max(...orders)
 		group.forEach((item, k) => {
-			item.order = start + step * (k + 1)
+			item.order = start + k + 1
 		})
 	}
-	return [...sorted.slice(0, at), ...group, ...sorted.slice(at)]
+	return [...sorted, ...group]
 }
 
 /**

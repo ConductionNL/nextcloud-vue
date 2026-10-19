@@ -131,27 +131,19 @@ describe('saved filters in the app menu', () => {
 		expect(synced).toEqual([{ ...entry, name: 'Renamed' }, other])
 	})
 
-	it('puts a My filters group after the last entry that opens the page, before the next caption', () => {
-		// The DqZijbalk order: Zaken group, My case types (also opening Cases), then My filters, then Relations.
+	it('puts the My filters group at the bottom of the menu, after every main entry', () => {
 		const menu = [
 			{ id: 'Zaken', type: 'caption', label: 'Cases', order: 20 },
 			{ id: 'Cases', route: 'Cases', label: 'All cases', order: 21 },
-			{ id: 'MyTypes', type: 'caption', label: 'My case types', order: 30 },
-			{ id: 'ct-1', route: 'Cases', query: { caseType: '1' }, label: 'Woo', order: 31 },
 			{ id: 'Rel', type: 'caption', label: 'Relations', order: 40 },
 			{ id: 'Contacts', route: 'Contacts', label: 'Contacts', order: 41 },
 		]
 		const out = withSavedFilterMenu(menu, [entry])
-		expect(out.map((i) => i.id)).toEqual(['Zaken', 'Cases', 'MyTypes', 'ct-1', 'saved-filters-caption', 'saved-filter-7', 'Rel', 'Contacts'])
+		expect(out.map((i) => i.id)).toEqual(['Zaken', 'Cases', 'Rel', 'Contacts', 'saved-filters-caption', 'saved-filter-7'])
 		expect(out[4]).toMatchObject({ type: 'caption', label: 'My filters' })
 		expect(out[5]).toEqual({ id: 'saved-filter-7', label: 'Mine, overdue', route: 'Cases', query: { savedFilter: '7' }, icon: 'FilterOutline', order: expect.any(Number) })
-		expect(out[3].order < out[4].order && out[4].order < out[5].order && out[5].order < out[6].order).toBe(true)
+		expect(out[3].order < out[4].order && out[4].order < out[5].order).toBe(true)
 		expect(withSavedFilterMenu(menu, [])).toBe(menu)
-	})
-
-	it('puts the group at the end when no entry opens the page', () => {
-		const out = withSavedFilterMenu([{ id: 'Contacts', route: 'Contacts' }], [entry])
-		expect(out.map((i) => i.id)).toEqual(['Contacts', 'saved-filters-caption', 'saved-filter-7'])
 	})
 })
 
@@ -298,9 +290,10 @@ describe('CnAppRoot holds the menu entries', () => {
 	const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
 	const manifest = { menu: [{ id: 'Cases', route: 'Cases', label: 'Cases' }], pages: [{ id: 'Cases', type: 'index', config: { allowSavedViews: true } }] }
 
-	it('returns the manifest by identity without entries, and hangs them in the menu with', () => {
-		const ctx = { manifest, manifestEditor: null, savedFilterMenu: { entries: [] } }
-		expect(CnAppRoot.computed.menuManifest.call(ctx)).toBe(manifest)
+	it('ends the menu with My filters, its empty line without entries, and hangs them in it with', () => {
+		const ctx = { manifest, manifestEditor: null, savedFilterMenu: { entries: [] }, offersSavedFilters: true }
+		expect(CnAppRoot.computed.menuManifest.call(ctx).menu.at(-1)).toMatchObject({ type: 'hint' })
+		expect(CnAppRoot.computed.menuManifest.call({ ...ctx, offersSavedFilters: false })).toBe(manifest)
 		ctx.savedFilterMenu.entries = [{ id: '7', page: 'Cases', name: 'Mine, overdue' }]
 		expect(CnAppRoot.computed.menuManifest.call(ctx).menu.at(-1)).toMatchObject({ route: 'Cases', query: { savedFilter: '7' } })
 	})
