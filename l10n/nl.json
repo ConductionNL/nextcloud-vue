@@ -1940,7 +1940,17 @@
     "On": "Aan",
     "Select a step on the canvas to see its settings.": "Kies een stap op het canvas om de instellingen te zien.",
     "Show runs": "Uitvoeringen tonen",
-    "Back to the step settings": "Terug naar de stapinstellingen"
+    "Back to the step settings": "Terug naar de stapinstellingen",
+    "Mail is not available": "E-mail is niet beschikbaar",
+    "Install Nextcloud Mail to draft and link mail here.": "Installeer Nextcloud Mail om hier e-mail op te stellen en te koppelen.",
+    "Email template": "E-mailsjabloon",
+    "Open draft from template": "Concept openen vanuit sjabloon",
+    "Empty draft": "Leeg concept",
+    "Could not open draft": "Kon concept niet openen",
+    "Some template fields could not be filled. Fill these in the draft yourself:": "Sommige sjabloonvelden konden niet worden ingevuld. Vul deze zelf in het concept in:",
+    "No templates yet": "Nog geen sjablonen",
+    "Select a template (optional)…": "Selecteer een sjabloon (niet verplicht)…",
+    "The draft could not be opened.": "Kon het concept niet openen."
   },
   "plurals": {
     "{count} member": [

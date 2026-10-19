@@ -1727,7 +1727,17 @@
     "On": "On",
     "Select a step on the canvas to see its settings.": "Select a step on the canvas to see its settings.",
     "Show runs": "Show runs",
-    "Back to the step settings": "Back to the step settings"
+    "Back to the step settings": "Back to the step settings",
+    "Mail is not available": "Mail is not available",
+    "Install Nextcloud Mail to draft and link mail here.": "Install Nextcloud Mail to draft and link mail here.",
+    "Email template": "Email template",
+    "Open draft from template": "Open draft from template",
+    "Empty draft": "Empty draft",
+    "Could not open draft": "Could not open draft",
+    "Some template fields could not be filled. Fill these in the draft yourself:": "Some template fields could not be filled. Fill these in the draft yourself:",
+    "No templates yet": "No templates yet",
+    "Select a template (optional)…": "Select a template (optional)…",
+    "The draft could not be opened.": "The draft could not be opened."
   },
   "plurals": {
     "{count} member": [
