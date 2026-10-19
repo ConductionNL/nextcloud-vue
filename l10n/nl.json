@@ -2062,7 +2062,16 @@
     "Written on": "Vastgelegd op",
     "Decided when it closes": "Bepaald bij afsluiten",
     "Not yet": "Nog niet",
-    "This widget has no record to read.": "Deze widget heeft geen item om te lezen."
+    "This widget has no record to read.": "Deze widget heeft geen item om te lezen.",
+    "The plan is unavailable": "Het plan is niet beschikbaar",
+    "This record has no plan": "Dit item heeft geen plan",
+    "You are not allowed to see this plan.": "Je mag dit plan niet zien.",
+    "The plan could not be loaded. Try again.": "Het plan kon niet worden geladen. Probeer het opnieuw.",
+    "Start": "Starten",
+    "Stop": "Stoppen",
+    "Can start": "Kan starten",
+    "Stopped": "Gestopt",
+    "Not needed": "Niet nodig"
   },
   "plurals": {
     "{count} member": [

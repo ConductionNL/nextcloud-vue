@@ -28,6 +28,7 @@ import CnMarkdownWidgetForm2 from '../CnMarkdownWidgetForm/CnMarkdownWidgetForm.
 import CnNextStepWidget from '../CnNextStepCard/CnNextStepWidget.vue'
 import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+import CnPlanWidget from '../CnPlanWidget/CnPlanWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
 import CnRetentionWidget from '../CnRetentionWidget/CnRetentionWidget.vue'
@@ -297,6 +298,12 @@ registerDashboardWidget('retention', {
 	defaultContent: { statusField: '', archivedValues: [], archivistGroups: ['archivaris'] },
 	displayName: 'Retention',
 	icon: 'ArchiveOutline',
+registerDashboardWidget('plan', {
+	renderer: CnPlanWidget,
+	form: null,
+	defaultContent: { emptyText: '' },
+	displayName: 'Plan',
+	icon: 'FormatListChecks',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
 })

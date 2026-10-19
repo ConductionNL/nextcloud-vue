@@ -252,6 +252,7 @@ export {
 	CnPartyPicker,
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
+	CnPlanWidget,
 	CnPresenceAvatars,
 	CnProcessSteps,
 	CnProgressBar,

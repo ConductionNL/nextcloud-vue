@@ -1850,7 +1850,16 @@
     "Written on": "Written on",
     "Decided when it closes": "Decided when it closes",
     "Not yet": "Not yet",
-    "This widget has no record to read.": "This widget has no record to read."
+    "This widget has no record to read.": "This widget has no record to read.",
+    "The plan is unavailable": "The plan is unavailable",
+    "This record has no plan": "This record has no plan",
+    "You are not allowed to see this plan.": "You are not allowed to see this plan.",
+    "The plan could not be loaded. Try again.": "The plan could not be loaded. Try again.",
+    "Start": "Start",
+    "Stop": "Stop",
+    "Can start": "Can start",
+    "Stopped": "Stopped",
+    "Not needed": "Not needed"
   },
   "plurals": {
     "{count} member": [
