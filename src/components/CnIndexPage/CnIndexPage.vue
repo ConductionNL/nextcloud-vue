@@ -675,8 +675,8 @@
 					:partial="folderSidebarPartial"
 					:filesPath="folderSidebar.filesPath || '/'"
 					:selectedId="selectedFolderId"
-					:allLabel="folderSidebar.allLabel || undefined"
-					:title="folderSidebar.title || ''"
+					:allLabel="folderSidebar.allLabel ? cnTranslate(folderSidebar.allLabel) : undefined"
+					:title="folderSidebar.title ? cnTranslate(folderSidebar.title) : ''"
 					:idField="folderPassthroughIdField"
 					:nameField="folderPassthroughNameField"
 					:allowCreate="Boolean(folderSidebar.allowCreate)"
@@ -700,6 +700,15 @@
 				@scroll="onListScroll">
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
+
+				<!-- The selected folder as a heading above the list (a group on
+				     DqAfdelingen: its name, then its parent and member count). -->
+				<div v-if="scopeHeading" class="cn-index-page__scope-heading" data-testid="cn-index-page-scope-heading">
+					<h2 class="cn-index-page__scope-title">
+						{{ scopeHeading.name }}
+					</h2>
+					<span v-if="scopeHeading.subtitle" class="cn-index-page__scope-subtitle" data-testid="cn-index-page-scope-subtitle">{{ scopeHeading.subtitle }}</span>
+				</div>
 
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
 				<div v-if="showInitialLoader" class="cn-index-page__loading">
@@ -4894,6 +4903,41 @@ export default {
 			const match = this.folderSidebarFolders
 				.find((f) => f && String(this.getByPath(f, idField)) === String(this.selectedFolderId))
 			return match || null
+		},
+
+		/**
+		 * The heading above the list for the selected folder: on a `groups`
+		 * pane (or with `folderSidebar.heading: true`), its name and, under
+		 * it, its parent folder and its count. The count reads
+		 * `folderSidebar.countText` (`{count}`, through the app's translate),
+		 * else "{count} members" on a groups pane.
+		 *
+		 * @return {{name: string, subtitle: string}|null} The heading, or null on All.
+		 */
+		scopeHeading() {
+			const cfg = this.folderSidebar
+			const scope = this.activeScope
+			if (!cfg || !scope || !(cfg.source === 'groups' || cfg.heading === true)) {
+				return null
+			}
+			const idField = this.folderPassthroughIdField
+			const name = String(this.getByPath(scope, this.folderPassthroughNameField) ?? this.selectedFolderId)
+			const parentId = scope.parentId ?? scope.parent ?? null
+			const parent = parentId === null || parentId === undefined
+				? null
+				: this.folderSidebarFolders.find((f) => f && String(this.getByPath(f, idField)) === String(parentId))
+			const parts = []
+			if (parent) {
+				parts.push(String(this.getByPath(parent, this.folderPassthroughNameField) ?? parentId))
+			}
+			if (typeof scope.count === 'number') {
+				if (cfg.countText) {
+					parts.push(this.cnTranslate(cfg.countText).replace('{count}', String(scope.count)))
+				} else if (cfg.source === 'groups') {
+					parts.push(n('nextcloud-vue', '{count} member', '{count} members', scope.count, { count: scope.count }))
+				}
+			}
+			return { name, subtitle: parts.join(' · ') }
 		},
 
 		/**

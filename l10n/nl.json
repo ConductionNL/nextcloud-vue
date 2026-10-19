@@ -1940,6 +1940,10 @@
     "On": "Aan"
   },
   "plurals": {
+    "{count} member": [
+      "{count} lid",
+      "{count} leden"
+    ],
     "{count} selected": [
       "{count} geselecteerd",
       "{count} geselecteerd"

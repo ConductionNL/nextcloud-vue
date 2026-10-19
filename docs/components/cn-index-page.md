@@ -1199,6 +1199,16 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 ```
 
 
+`title` (the pane's caption) and `allLabel` go through the app's translate. On a `groups` pane, or with `heading: true` on any other, the selected folder heads the list: its name as a heading, and under it its parent folder and its count (board DqAfdelingen: "Vergunningen" over "Fysiek domein · 18 members"). `countText` words the count (`"{count} employees"`, through the app's translate); a groups pane says "{count} members" without it. In the board look the pane is a card with each folder's count in a pill.
+
+```json
+"folderSidebar": {
+  "source": "groups", "filterField": "group", "title": "Organisation",
+  "countText": "{count} employees",
+  "groups": [{ "id": "fysiek" }, { "id": "vergunningen", "parent": "fysiek" }]
+}
+```
+
 ## A count in the subtitle (`countSubtitle`)
 
 | Prop | Type | Default | Description |

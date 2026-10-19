@@ -1108,3 +1108,40 @@
 .cn-look-board:has(.cn-index-page) > .app-sidebar__toggle {
 	display: none;
 }
+
+/* The folder pane as a card (DqAfdelingen): 280px, a hairline border, 12px
+   corners, with each folder's count in a grey pill. */
+.cn-look-board .cn-index-page__folder-pane {
+	flex: 0 0 280px;
+	align-self: flex-start;
+	margin-inline-end: 20px;
+	padding: 14px;
+	border: 1px solid var(--cn-board-hairline);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+}
+
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 6px;
+	box-sizing: border-box;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 600;
+}
+
+/* The selected folder's heading above the list: a 20px title over a soft line. */
+.cn-look-board .cn-index-page__scope-heading {
+	margin-bottom: 16px;
+}
+
+.cn-look-board .cn-index-page__scope-title {
+	font-size: 20px;
+	font-weight: 700;
+}
