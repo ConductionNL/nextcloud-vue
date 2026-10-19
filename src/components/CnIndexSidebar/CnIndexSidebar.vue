@@ -287,6 +287,32 @@
 			</div>
 		</NcAppSidebarTab>
 
+		<!-- Filters Tab: the page's saved views (save, list, manage, add to menu). -->
+		<NcAppSidebarTab
+			v-if="savedViews"
+			id="filters-tab"
+			:name="t('nextcloud-vue', 'Filters')"
+			:order="3">
+			<template #icon>
+				<BookmarkOutline :size="20" />
+			</template>
+
+			<div class="cn-index-sidebar__tab-content">
+				<div class="cn-index-sidebar__section">
+					<CnSavedViewsPanel
+						v-bind="savedViewsPanelProps"
+						@apply="onSavedView('apply', $event)"
+						@saveRequest="onSavedView('save', null)"
+						@editRequest="onSavedView('edit', $event)"
+						@shareRequest="onSavedView('share', $event)"
+						@updateRequest="onSavedView('update', $event)"
+						@copyRequest="onSavedView('copy', $event)"
+						@menuToggle="onSavedView('menu', $event)"
+						@deleteRequest="onSavedView('delete', $event)" />
+				</div>
+			</div>
+		</NcAppSidebarTab>
+
 		<!-- Extra tabs injected by the consumer -->
 		<slot name="tabs" />
 	</NcAppSidebar>
@@ -295,6 +321,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab, NcButton, NcCheckboxRadioSwitch, NcPopover, NcSelect, NcTextField } from '@nextcloud/vue'
+import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
@@ -305,6 +332,7 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
+import CnSavedViewsPanel from '../CnSavedViewsPanel/CnSavedViewsPanel.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptions } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
@@ -332,6 +360,8 @@ export default {
 	components: {
 		NcAppSidebar,
 		NcAppSidebarTab,
+		CnSavedViewsPanel,
+		BookmarkOutline,
 		NcTextField,
 		NcSelect,
 		CnDateRangePicker,
@@ -552,6 +582,26 @@ export default {
 		},
 
 		/**
+		 * Switch to a tab while the sidebar is mounted, e.g. `'filters-tab'`
+		 * after a view was saved from the toolbar. Empty leaves the tab alone.
+		 */
+		activeTab: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The page's saved views, shown in the Filters tab:
+		 * `{ views, loading, currentUserId, counts, selectedViewId, maxDepth, menuIds }`
+		 * as `CnSavedViewsPanel` takes them. `null` shows no saved views.
+		 * Every intent comes back as one `saved-view` event.
+		 */
+		savedViews: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Whether the current user is an admin.
 		 * When false, schema properties with `adminOnly: true` are hidden from filters.
 		 */
@@ -561,7 +611,7 @@ export default {
 		},
 	},
 
-	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'search', 'sort-change', 'tab-change', 'update:open'],
+	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'saved-view', 'search', 'sort-change', 'tab-change', 'update:open'],
 
 	data() {
 		return {
@@ -636,6 +686,25 @@ export default {
 				? `${this.sortMatch.option.label}, ${this.sortDirection === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`
 				: current.map((entry) => `${labelOf(entry.key)}, ${entry.order === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`).join('; ')
 			return t('nextcloud-vue', 'Current order: {order}', { order })
+		},
+
+		/**
+		 * The panel's props, from `savedViews`.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+		 */
+		savedViewsPanelProps() {
+			const f = this.savedViews || {}
+			return {
+				views: Array.isArray(f.views) ? f.views : [],
+				loading: f.loading === true,
+				currentUserId: f.currentUserId || '',
+				counts: f.counts || null,
+				selectedViewId: f.selectedViewId || '',
+				maxDepth: typeof f.maxDepth === 'number' ? f.maxDepth : 3,
+				menuIds: Array.isArray(f.menuIds) ? f.menuIds : null,
+			}
 		},
 
 		/** Resolved icon — explicit prop overrides schema.icon */
@@ -760,6 +829,12 @@ export default {
 	},
 
 	watch: {
+		activeTab(tab) {
+			if (tab) {
+				this.internalActiveTab = tab
+			}
+		},
+
 		open(val) {
 			this.internalOpen = val
 		},
@@ -838,6 +913,21 @@ export default {
 			 * @event sort-change The Sort section chose an order. Payload: `[{ key, order }]`.
 			 */
 			this.$emit('sort-change', direction === 'desc' ? reverseSortKeys(keys) : keys.map((k) => ({ key: k.key, order: k.order || 'asc' })))
+		},
+
+		/**
+		 * Hand a saved-view intent to the page.
+		 *
+		 * @param {'apply'|'save'|'edit'|'share'|'presentation'|'update'|'copy'|'menu'|'delete'} action The intent.
+		 * @param {object|null} view The view, or null for save.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+		 */
+		onSavedView(action, view) {
+			/**
+			 * @event saved-view A saved-view intent from the Filters tab. Payload: `{ action, view }`.
+			 * @type {{action: string, view: (object|null)}}
+			 */
+			this.$emit('saved-view', { action, view })
 		},
 
 		/**

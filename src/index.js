@@ -32,6 +32,7 @@ export { default as NcSelectTags } from './components/NcSelectTags/NcSelectTags.
 // Components
 export {
 	CnActionButtons,
+	CnActionDialog,
 	CnActionsBar,
 	CnActionsMenu,
 	CnAddWidgetModal,
@@ -244,6 +245,7 @@ export {
 	CnPageRenderer,
 	CnPagination,
 	CnPartyActionsWidget,
+	CnPartyPicker,
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
 	CnPresenceAvatars,
@@ -270,10 +272,12 @@ export {
 	CnRoadmapItem,
 	CnRoadmapTab,
 	CnRowActions,
+	CnSavedViewEditDialog,
 	CnSavedViewPresentationDialog,
 	CnSavedViewsControl,
 	CnSavedViewShareDialog,
 	CnSavedViewShareFields,
+	CnSavedViewsPanel,
 	CnSavedViewsWidget,
 	CnSavedViewWidget,
 	CnSavedViewWidgetForm,

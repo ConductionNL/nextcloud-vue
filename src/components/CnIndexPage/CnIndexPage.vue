@@ -323,9 +323,9 @@
 			     the app-specific buttons in `#actions`, with Add sitting between
 			     the two groups rather than before both (dossiq Cases/Queue). -->
 			<template v-if="isEditMode || barShowsExportMenu || barShowsSavedViews" #actions-end>
-				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
-				     OpenRegister saved-search views; applying one writes its stored
-				     filters/search/sort into the route query. -->
+				<!-- Saved views (opt-in via `allowSavedViews`): the toolbar keeps
+				     "Save view" and, under the board look, the chips. The list
+				     and every per-view action live in the sidebar's Filters tab. -->
 				<CnSavedViewsControl
 					v-if="barShowsSavedViews"
 					:views="viewsForControl"
@@ -334,12 +334,7 @@
 					:counts="savedViewCounts"
 					:selectedViewId="appliedSavedViewId"
 					@apply="onApplySavedView"
-					@saveRequest="showSaveViewDialog = true"
-					@shareRequest="onShareViewRequest"
-					@presentationRequest="onPresentationViewRequest"
-					@updateRequest="onUpdateViewRequest"
-					@copyRequest="onCopyViewRequest"
-					@deleteRequest="onDeleteViewRequest" />
+					@saveRequest="showSaveViewDialog = true" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
 				     current route's query params through as filters. -->
@@ -551,6 +546,14 @@
 			@confirm="onPresentationViewConfirm"
 			@close="viewPendingPresentation = null" />
 
+		<!-- Edit-a-saved-view dialog (saved-views-manage-and-defaults) -->
+		<CnSavedViewEditDialog
+			v-if="viewPendingEdit"
+			ref="editViewDialog"
+			:view="viewPendingEdit"
+			@confirm="onEditViewConfirm"
+			@close="viewPendingEdit = null" />
+
 		<!-- Share-a-saved-view dialog (saved-views-shared-by-role) -->
 		<CnSavedViewShareDialog
 			v-if="viewPendingShare"
@@ -564,9 +567,9 @@
 			v-if="viewPendingDelete"
 			ref="deleteViewConfirmDialog"
 			variant="error"
-			:dialogTitle="t('nextcloud-vue', 'Delete view')"
+			:dialogTitle="t('nextcloud-vue', 'Delete view?')"
 			:message="deleteViewMessage"
-			:confirmLabel="t('nextcloud-vue', 'Delete')"
+			:confirmLabel="t('nextcloud-vue', 'Delete view')"
 			@confirm="onDeleteViewConfirm"
 			@close="viewPendingDelete = null" />
 
@@ -1131,6 +1134,16 @@
 					{{ t('nextcloud-vue', 'File matches are limited to the best 50.') }}
 				</p>
 
+				<!-- The map's count line (`mapConfig.count`) and the note when a map
+				     that plots every row reached its limit. -->
+				<div
+					v-if="mapCountLine || mapCapNote"
+					class="cn-index-page__map-count"
+					data-testid="cn-index-map-count">
+					<span v-if="mapCountLine" data-testid="cn-index-map-count-line">{{ mapCountLine }}</span>
+					<span v-if="mapCapNote" class="cn-index-page__map-cap" data-testid="cn-index-map-cap">{{ mapCapNote }}</span>
+				</div>
+
 				<!-- The board view's footer: it holds every row it loaded, so it
 				     counts them and offers the next batch instead of pages. -->
 				<div
@@ -1248,8 +1261,12 @@
 			:pinnedCount="pinnedColumnCount"
 			:sortOptions="sidebarSortOptions"
 			:currentSort="currentSortKeys"
+			:savedViews="savedViewsForSidebar"
+			:activeTab="sidebarActiveTab"
 			v-bind="sidebarSearchProps"
 			@update:open="sidebarOpen = $event"
+			@tabChange="sidebarActiveTab = $event"
+			@savedView="onSavedViewAction"
 			@search="onSearchEvent"
 			@columnsChange="onColumnsEvent"
 			@columnsReorder="onColumnsReorder"
@@ -1316,12 +1333,13 @@ import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { mapListItems } from '../../utils/mapList.js'
+import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
-import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
@@ -1329,7 +1347,7 @@ import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
@@ -1359,6 +1377,7 @@ import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
+import { CnSavedViewEditDialog } from '../CnSavedViewEditDialog/index.js'
 import { CnSavedViewPresentationDialog } from '../CnSavedViewPresentationDialog/index.js'
 import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
 import { CnSavedViewShareDialog } from '../CnSavedViewShareDialog/index.js'
@@ -1371,7 +1390,7 @@ import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './pe
 import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
-import { BOARD_PAGE_SIZE, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
+import { BOARD_PAGE_SIZE, mapPlotAllLimitOf, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
 
 /** Rows fetched for one month in calendar mode. */
 const CALENDAR_PAGE_SIZE = 200
@@ -1653,6 +1672,7 @@ export default {
 		CnIndexSidebar,
 		CnSavedViewsControl,
 		CnSavedViewPresentationDialog,
+		CnSavedViewEditDialog,
 		CnSavedViewShareDialog,
 		CnSaveViewDialog,
 		CnConfirmDialog,
@@ -1724,6 +1744,12 @@ export default {
 		 * simply has no held order instead of failing to render.
 		 */
 		cnUserPreferences: { default: null },
+		/**
+		 * The saved views this user put in the app menu, held by CnAppRoot:
+		 * `{ entries, toggle(entry) }`. Absent without the shell, and then
+		 * the sidebar offers no Add to menu.
+		 */
+		cnSavedViewMenu: { default: null },
 		/**
 		 * Consumer translation function, provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). Column and
@@ -2906,6 +2932,17 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Views the app ships for this page (`config.defaultSavedViews`), each
+		 * `{ slug, name, filters, search?, sort?, label? }`. Listed read-only
+		 * above the user's own saved views, never stored; a user may apply one
+		 * or save a copy. `@`-tokens in `filters` resolve when it is applied.
+		 */
+		defaultSavedViews: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Property name used to display item names in dialogs */
 		massActionNameField: {
 			type: String,
@@ -4013,6 +4050,10 @@ export default {
 			headerMetaCountValues: {},
 			/** The row the pointer is on in the map list, by key; '' for none. */
 			activeMapKey: '',
+			/** The rows `mapConfig.markerColor.source` points at, or null before they load. */
+			mapColorRefs: null,
+			/** The page size to restore when leaving a map that plots every row. */
+			mapPrevPageSize: this.viewMode === 'map' && mapPlotAllLimitOf(this.mapConfig) > 0 ? ((this.pagination && this.pagination.limit) || 20) : null,
 			/** The tabs `quickFiltersFrom` produced, or null before they load. */
 			generatedQuickFilters: null,
 			/** Count per saved-view id, for the views control; null = none. */
@@ -4080,6 +4121,8 @@ export default {
 			// content (table / cards) starts at the top and fills the width;
 			// opened on demand via the actions-bar toggle.
 			sidebarOpen: false,
+			/** The sidebar tab to show; follows the user's own tab changes. */
+			sidebarActiveTab: '',
 			// Saved views (saved-views-ui): the fetched view list, its
 			// loading flag, the save-dialog toggle, and the view awaiting
 			// delete confirmation.
@@ -4089,6 +4132,8 @@ export default {
 			viewPendingDelete: null,
 			/** The own view whose audience is being changed (CnSavedViewShareDialog), or null. */
 			viewPendingShare: null,
+			/** The own view being renamed or re-filtered (CnSavedViewEditDialog), or null. */
+			viewPendingEdit: null,
 			/** The view whose presentation is being changed (CnSavedViewPresentationDialog), or null. */
 			viewPendingPresentation: null,
 			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
@@ -5260,7 +5305,63 @@ export default {
 		 * @return {Array<object>} The views.
 		 */
 		viewsForControl() {
-			return this.splitSavedViews.control
+			return [...this.defaultFilterViews, ...this.splitSavedViews.control]
+		},
+
+		/**
+		 * What the sidebar's saved-views panel shows, or null when the page
+		 * does not offer saved views.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+		 */
+		savedViewsForSidebar() {
+			if (!this.allowSavedViews) {
+				return null
+			}
+			return {
+				views: this.viewsForControl,
+				loading: this.savedViewsLoading,
+				currentUserId: this.currentSavedViewsUserId,
+				counts: this.savedViewCounts,
+				selectedViewId: this.appliedSavedViewId,
+				menuIds: this.savedViewMenuIds,
+			}
+		},
+
+		/**
+		 * The route name this page's menu entries point at.
+		 *
+		 * @return {string}
+		 */
+		savedViewPage() {
+			return (this.$route && typeof this.$route.name === 'string') ? this.$route.name : ''
+		},
+
+		/**
+		 * The ids of this page's views in the app menu, or null when there is
+		 * no menu to add to.
+		 *
+		 * @return {Array<string>|null}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		savedViewMenuIds() {
+			const menu = this.cnSavedViewMenu
+			if (!menu || typeof menu.toggle !== 'function' || this.savedViewPage === '') {
+				return null
+			}
+			return (menu.entries || []).filter((e) => e.page === this.savedViewPage).map((e) => String(e.id))
+		},
+
+		/**
+		 * The page's `defaultSavedViews` as read-only views.
+		 *
+		 * @return {Array<object>} The views.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-4
+		 */
+		defaultFilterViews() {
+			const defaults = (Array.isArray(this.defaultSavedViews) ? this.defaultSavedViews : []).map((entry) => (entry && typeof entry.name === 'string' ? { ...entry, name: this.cnTranslate(entry.name) } : entry))
+			return defaultFilterViews(defaults, this.savedViewsPage)
 		},
 
 		/**
@@ -5916,11 +6017,13 @@ export default {
 				if (!geometry) {
 					continue
 				}
+				const markerColor = resolveCssColor(markerColorOf(row, this.mapMarkerColor, this.mapColorRefsById))
 				features.push({
 					type: 'Feature',
 					geometry,
 					properties: {
 						[this.rowKey]: row[this.rowKey],
+						...(markerColor ? { markerColor } : {}),
 						...(this.mapConfig.popupField ? { [this.mapConfig.popupField]: row[this.mapConfig.popupField] } : {}),
 						...(numbers && numbers.has(row) ? { markerNumber: numbers.get(row), markerActive: this.activeMapKey === String(row[this.rowKey]) } : {}),
 					},
@@ -5947,6 +6050,80 @@ export default {
 		 */
 		mapClustering() {
 			return this.mapConfig.clustering !== false
+		},
+
+		/**
+		 * The marker colour rule (`mapConfig.markerColor`), or null.
+		 *
+		 * @return {object|null} The normalised rule.
+		 * @spec openspec/changes/index-map-parity/specs/index-page/spec.md#requirement-a-marker-can-take-its-colour-from-a-field
+		 */
+		mapMarkerColor() {
+			return normalizeMarkerColor(this.mapConfig && this.mapConfig.markerColor)
+		},
+
+		/** @return {Map<string, object>} The marker colour source rows by id. */
+		mapColorRefsById() {
+			return new Map((this.mapColorRefs || []).map((row) => [refIdOf(row), row]))
+		},
+
+		/** @return {string} Changes when the marker colour source must be read. */
+		mapColorFetchKey() {
+			const source = this.mapMarkerColor && this.mapMarkerColor.source
+			if (this.currentViewMode !== 'map' || !source) {
+				return ''
+			}
+			return [this.mapMarkerColor.field, source.register || '', source.schema || '', this.effectiveSchema ? 1 : 0].join('|')
+		},
+
+		/**
+		 * How many rows the map plots when it plots every matching row
+		 * (`mapConfig.plotAll`: `true` for 500, or a
+		 * number), 0 when it plots the current page.
+		 *
+		 * @return {number} The limit.
+		 * @spec openspec/changes/index-map-parity/specs/index-page/spec.md#requirement-the-map-can-plot-every-matching-row
+		 */
+		mapPlotAllLimit() {
+			return mapPlotAllLimitOf(this.mapConfig)
+		},
+
+		/** @return {number} The rows that match the filters. */
+		mapMatchTotal() {
+			return Math.max(this.displayObjects.length, Number(this.effectivePagination?.total || 0))
+		},
+
+		/**
+		 * The count line under the map (`mapConfig.count`): `true` for "Showing
+		 * {located} of {total} located", or a template with `{located}` and
+		 * `{total}` through the host's translate. '' when not asked for.
+		 *
+		 * @return {string} The line.
+		 * @spec openspec/changes/index-map-parity/specs/index-page/spec.md#requirement-the-map-can-say-how-many-rows-it-placed
+		 */
+		mapCountLine() {
+			const count = this.mapConfig && this.mapConfig.count
+			if (this.currentViewMode !== 'map' || !count) {
+				return ''
+			}
+			const vars = { located: this.mapMarkers.features.length, total: this.mapMatchTotal }
+			if (typeof count === 'string' && count !== '') {
+				return this.cnTranslate(count).replace(/\{(located|total)\}/g, (_, key) => String(vars[key]))
+			}
+			return t('nextcloud-vue', 'Showing {located} of {total} located', vars)
+		},
+
+		/**
+		 * The note when a map that plots every row hit its limit.
+		 *
+		 * @return {string} The note, or ''.
+		 */
+		mapCapNote() {
+			const limit = this.mapPlotAllLimit
+			if (this.currentViewMode !== 'map' || limit === 0 || this.mapMatchTotal <= this.displayObjects.length) {
+				return ''
+			}
+			return t('nextcloud-vue', 'The map shows the first {limit} of {total}. Narrow the filters to see the rest.', { limit: this.displayObjects.length, total: this.mapMatchTotal })
 		},
 
 		/** @return {number|undefined} The map's initial zoom (`mapConfig.zoom`), when a number. */
@@ -6300,7 +6477,14 @@ export default {
 			if (!this.viewPendingDelete) {
 				return ''
 			}
-			return t('nextcloud-vue', 'Delete the view "{name}"? This cannot be undone.', { name: this.viewPendingDelete.name })
+			const view = this.viewPendingDelete
+			const parts = [t('nextcloud-vue', 'The view "{name}" leaves your list and the menu on the left.', { name: view.name })]
+			const audience = normalizeSharedWith(view.sharedWith).map((e) => e.user || e.group)
+			if (audience.length > 0) {
+				parts.push(t('nextcloud-vue', 'It is shared with {names}; it leaves their lists too.', { names: audience.join(', ') }))
+			}
+			parts.push(t('nextcloud-vue', 'The items themselves stay. This cannot be undone.'))
+			return parts.join(' ')
 		},
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
@@ -7349,11 +7533,16 @@ export default {
 		/**
 		 * Effective sidebar configuration. Returns the sidebar config object
 		 * when `sidebar.enabled === true`, otherwise an `{ enabled: false }`
-		 * stub so the embedded CnIndexSidebar is not mounted.
+		 * stub so the embedded CnIndexSidebar is not mounted. A page that
+		 * offers saved views gets the sidebar unless it switched it off
+		 * with `enabled: false`: the saved views live in its Search tab.
 		 */
 		resolvedSidebar() {
-			if (this.sidebar && this.sidebar.enabled !== false) {
+			if (this.sidebar && this.sidebar.enabled !== false && (this.sidebar.enabled || !this.allowSavedViews)) {
 				return this.sidebar
+			}
+			if (this.allowSavedViews && !(this.sidebar && this.sidebar.enabled === false)) {
+				return { ...(this.sidebar || {}), enabled: true }
 			}
 			return { enabled: false }
 		},
@@ -7434,6 +7623,8 @@ export default {
 				pinnedCount: this.pinnedColumnCount,
 				sortOptions: this.sidebarSortOptions,
 				currentSort: this.currentSortKeys,
+				savedViews: this.savedViewsForSidebar,
+				activeTab: this.sidebarActiveTab,
 				...this.sidebarSearchProps,
 			}
 		},
@@ -7487,10 +7678,23 @@ export default {
 			this.applyViewModeFromRoute()
 		},
 
+		'$route.query.savedView': function() {
+			this.applySavedViewFromRoute()
+		},
+
 		routeViewModes() {
 			if (this.routeViewPending) {
 				this.applyViewModeFromRoute()
 			}
+		},
+
+		mapColorFetchKey: {
+			immediate: true,
+			handler(key) {
+				if (key !== '') {
+					this.loadMapColorSource()
+				}
+			},
 		},
 
 		boardFetchKey: {
@@ -7613,6 +7817,11 @@ export default {
 				listSize = this.boardPrevPageSize || 20
 				this.boardPrevPageSize = null
 			}
+			const leftMapPlotAll = previous === 'map' && this.mapPrevPageSize !== null
+			if (leftMapPlotAll) {
+				listSize = this.mapPrevPageSize
+				this.mapPrevPageSize = null
+			}
 			let size = null
 			if (mode === 'calendar') {
 				this.calendarPrevPageSize = listSize
@@ -7620,7 +7829,10 @@ export default {
 			} else if (mode === 'board') {
 				this.boardPrevPageSize = listSize
 				size = BOARD_PAGE_SIZE
-			} else if (previous === 'calendar' || previous === 'board') {
+			} else if (mode === 'map' && this.mapPlotAllLimit > 0 && !this.isNamedSource) {
+				this.mapPrevPageSize = listSize
+				size = this.mapPlotAllLimit
+			} else if (previous === 'calendar' || previous === 'board' || leftMapPlotAll) {
 				size = listSize
 			}
 			if (size !== null && typeof this.list.onPageSizeChange === 'function') {
@@ -9027,13 +9239,21 @@ export default {
 		 * (same resulting path/query) is swallowed.
 		 *
 		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string, sortKeys?: Array<{key: string, order: string}>}} state Current view state.
+		 * @param {{savedView?: string}} [options] The saved view the address keeps naming, or none.
 		 * @return {void}
 		 */
-		persistViewStateToRoute(state) {
+		persistViewStateToRoute(state, { savedView = '' } = {}) {
 			if (!this.$router || !this.$route) {
 				return
 			}
 			const query = { ...this.$route.query }
+			// The menu entry of a saved view is active while the address names
+			// it; any other change to the filters is no longer that view.
+			if (savedView !== '') {
+				query.savedView = savedView
+			} else {
+				delete query.savedView
+			}
 			for (const key of this.persistedFilterKeys) {
 				delete query[key]
 			}
@@ -9108,6 +9328,30 @@ export default {
 			this.list.refresh(1)
 			this.persistViewStateToRoute(this.currentViewState())
 			this.$emit('clear-filters')
+		},
+
+		/**
+		 * Read the rows `mapConfig.markerColor.source` points at, once.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadMapColorSource() {
+			const rule = this.mapMarkerColor
+			if (!rule || !rule.source || this.mapColorRefs !== null) {
+				return
+			}
+			const property = this.effectiveSchema?.properties?.[rule.field] || null
+			const target = referenceTargetOf(rule.source, { register: this.register, property })
+			if (!target.register || !target.schema) {
+				return
+			}
+			let rows
+			try {
+				rows = await fetchReferenceObjects({ ...target, filter: rule.source.filter || {} })
+			} catch {
+				rows = []
+			}
+			this.mapColorRefs = Array.isArray(rows) ? rows : []
 		},
 
 		/**
@@ -10106,6 +10350,10 @@ export default {
 					'filter-change': (event) => this.onFilterEvent(event),
 					'clear-filters': () => this.onClearFilters(),
 					'sort-change': (keys) => this.onSidebarSortChange(keys),
+					'saved-view': (event) => this.onSavedViewAction(event),
+					'tab-change': (tab) => {
+						this.sidebarActiveTab = tab
+					},
 				},
 			}
 		},
@@ -10750,6 +10998,13 @@ export default {
 			this.savedViewsLoading = true
 			try {
 				this.savedViews = await useSavedViewsApi().fetchViews()
+				// An empty answer is also what a misread response gives, so it
+				// never empties the menu: entries are dropped only against a
+				// list that came back with views in it.
+				if (this.savedViews.length > 0) {
+					this.syncSavedViewMenu()
+				}
+				this.applySavedViewFromRoute()
 			} catch (error) {
 				// eslint-disable-next-line no-console
 				console.error('CnIndexPage: failed to fetch saved views', error)
@@ -10767,10 +11022,15 @@ export default {
 		 * query implicitly resets `_page` to 1.
 		 *
 		 * @param {object} view The View API object to apply.
+		 * @param {{keepSavedViewKey?: boolean}} [options] Keep `?savedView=<id>` in the address, as a menu entry's link does.
 		 */
-		onApplySavedView(view) {
+		onApplySavedView(view, { keepSavedViewKey = false } = {}) {
 			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
 			const state = extractViewState(view)
+			if (view && view.seeded === true) {
+				const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+				state.filters = resolveFilterTokens(state.filters, ctx)
+			}
 			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
 			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []
 			this.appliedViewColumns = viewColumns.length > 0 ? viewColumns : null
@@ -10789,14 +11049,18 @@ export default {
 				// Through `persistViewStateToRoute` rather than a raw replace,
 				// because it is what records the keys this view wrote — without
 				// that, a later "clear all" has nothing to delete them by.
-				this.persistViewStateToRoute(state)
+				this.persistViewStateToRoute(state, { savedView: keepSavedViewKey ? this.appliedSavedViewId : '' })
 				this.$emit('apply-view', view)
 				return
 			}
 			if (!this.$router) {
 				return
 			}
-			const nav = this.$router.replace({ query: buildRouteQueryFromViewState(state) })
+			const query = buildRouteQueryFromViewState(state)
+			if (keepSavedViewKey) {
+				query.savedView = this.appliedSavedViewId
+			}
+			const nav = this.$router.replace({ query })
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
 			if (nav && typeof nav.catch === 'function') {
@@ -10881,6 +11145,8 @@ export default {
 				}
 				this.savedViews = [...this.savedViews, view]
 				this.showSaveViewDialog = false
+				this.sidebarActiveTab = 'filters-tab'
+				this.sidebarOpen = true
 				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))
 			} catch (error) {
 				// eslint-disable-next-line no-console
@@ -10927,6 +11193,125 @@ export default {
 			} catch (error) {
 				const data = error?.response?.data
 				this.$refs.presentationViewDialog?.setError((data && (data.error || data.message)) || error?.message)
+			}
+		},
+
+		/**
+		 * One saved-view intent from the sidebar's Search tab.
+		 *
+		 * @param {{action: string, view: (object|null)}} event The intent.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+		 */
+		onSavedViewAction({ action, view } = {}) {
+			const handlers = {
+				apply: () => this.onApplySavedView(view),
+				save: () => { this.showSaveViewDialog = true },
+				edit: () => this.onEditViewRequest(view),
+				share: () => this.onShareViewRequest(view),
+				presentation: () => this.onPresentationViewRequest(view),
+				update: () => this.onUpdateViewRequest(view),
+				copy: () => this.onCopyViewRequest(view),
+				menu: () => this.onToggleSavedViewInMenu(view),
+				delete: () => this.onDeleteViewRequest(view),
+			}
+			if (handlers[action]) {
+				handlers[action]()
+			}
+		},
+
+		/**
+		 * Add a saved view to the app menu, or take it out. Stored per user
+		 * by CnAppRoot; the view itself is not touched, so a view shared
+		 * with this user can be added as well as an own one.
+		 *
+		 * @param {object} view The view.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		onToggleSavedViewInMenu(view) {
+			const menu = this.cnSavedViewMenu
+			if (!view || !menu || typeof menu.toggle !== 'function' || this.savedViewPage === '') {
+				return
+			}
+			menu.toggle({ id: String(view.id || view.slug), page: this.savedViewPage, name: view.name })
+		},
+
+		/**
+		 * Bring this page's menu entries in line with the views it can show:
+		 * current names, and none for a view deleted or no longer shared.
+		 *
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		syncSavedViewMenu() {
+			const menu = this.cnSavedViewMenu
+			if (!menu || typeof menu.sync !== 'function' || this.savedViewPage === '') {
+				return
+			}
+			menu.sync(this.savedViewPage, [...this.defaultFilterViews, ...this.visibleSavedViews])
+		},
+
+		/**
+		 * Apply the saved view the address names (`?savedView=<id>`, what a
+		 * menu entry links to), once the list holding it has loaded.
+		 *
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		applySavedViewFromRoute() {
+			const id = this.$route && this.$route.query ? this.$route.query.savedView : undefined
+			if (typeof id !== 'string' || id === '' || id === this.appliedSavedViewId) {
+				return
+			}
+			const view = this.viewsForControl.find((v) => String(v.id) === id || String(v.slug) === id)
+			if (view) {
+				this.onApplySavedView(view, { keepSavedViewKey: true })
+			}
+		},
+
+		/**
+		 * Open the edit dialog for an own view (CnSavedViewsControl `@edit-request`).
+		 *
+		 * @param {object} view The View API object.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-3
+		 */
+		onEditViewRequest(view) {
+			this.viewPendingEdit = view
+		},
+
+		/**
+		 * Save a rename, and the current filters when asked
+		 * (CnSavedViewEditDialog `@confirm`). The PATCH carries `name`, plus
+		 * `query` only when the criteria are replaced, so nothing else on the
+		 * view is rewritten from this tab's copy. A refusal keeps the dialog open.
+		 *
+		 * @param {{ name: string, replaceCriteria: boolean }} payload The dialog payload.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-3
+		 */
+		async onEditViewConfirm({ name, replaceCriteria }) {
+			const view = this.viewPendingEdit
+			if (!view) {
+				return
+			}
+			const body = { name }
+			if (replaceCriteria === true) {
+				const state = this.isSelfFetchMode
+					? this.currentViewState()
+					: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
+				body.query = buildViewCreatePayload({
+					name,
+					state,
+					scope: savedViewScope(this.savedViewsPage),
+					register: this.register,
+					schema: this.schema,
+				}).query
+			}
+			try {
+				const saved = await useSavedViewsApi().patchView(view.id, body)
+				this.savedViews = this.savedViews.map((v) => (v.id === view.id ? { ...v, ...(saved || body) } : v))
+				this.syncSavedViewMenu()
+				this.viewPendingEdit = null
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))
+			} catch (error) {
+				const data = error?.response?.data
+				this.$refs.editViewDialog?.setError((data && (data.error || data.message)) || error?.message)
 			}
 		},
 
@@ -11048,6 +11433,7 @@ export default {
 			try {
 				await useSavedViewsApi().deleteView(view.id)
 				this.savedViews = this.savedViews.filter((v) => v.id !== view.id)
+				this.syncSavedViewMenu()
 				this.$refs.deleteViewConfirmDialog?.setResult({ success: true })
 			} catch (error) {
 				// eslint-disable-next-line no-console
