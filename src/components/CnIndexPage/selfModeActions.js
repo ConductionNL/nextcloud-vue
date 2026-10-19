@@ -1,4 +1,5 @@
 import { useObjectCopy } from '../../composables/useObjectCopy.js'
+import { saveEdited } from '../../utils/saveEdited.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import {
 	cloneObjectForCopy,
@@ -337,7 +338,9 @@ export function createSelfModeActions(ctx) {
 		try {
 			const item = ctx.editItem()
 			const type = item ? typeFor(ctx, item) : ctx.selfObjectType()
-			const saved = await ctx.selfObjectStore().saveObject(type, formData)
+			// An edit writes only the keys the form changed (a PATCH), so keys
+			// the form does not show keep their stored value.
+			const saved = await saveEdited(ctx.selfObjectStore(), type, item || null, formData)
 			if (saved) {
 				ctx.setResults.form({ success: true })
 				const isCreate = !ctx.editItem()
