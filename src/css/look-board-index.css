@@ -10,12 +10,16 @@
 
 /* ------------------------------------------------------------------ header */
 
-/* Row 1: the h1 and the buttons at its end. Row 2: the count line, 6px under. */
+/* Row 1: the h1 and the buttons at its end, both at the row's top. Row 2:
+   the count line, 6px under. The header starts 4px under the content's top
+   (DqZaken: the title at 96, the count line at 142).
+   @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top */
 .cn-look-board .cn-index-page .cn-page-header {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
-	align-items: center;
+	align-items: start;
 	row-gap: 6px;
+	padding-top: 4px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 }
 

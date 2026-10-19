@@ -101,6 +101,15 @@
 	margin-bottom: var(--cn-board-section-gap);
 }
 
+/* The boards start a page's header 4px under the content's top, so the title
+   sits at 96 (DqZaak, DqMijnWerk), not 92. The index page's header carries
+   the same inset in look-board-index.css.
+   @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top */
+.cn-look-board .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
+	padding-top: 4px;
+}
+
 /* The 56px inset clears the navigation toggle, which overlays the content
    only while the navigation is closed. The store page's own header too: it
    kept the inset with the navigation open, 56px right of the board's title. */
@@ -140,7 +149,7 @@
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__title-row {
 	grid-column: 1;
 	grid-row: 1;
-	align-self: center;
+	align-self: start;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header-left > :not(.cn-dashboard-page__title-row) {
