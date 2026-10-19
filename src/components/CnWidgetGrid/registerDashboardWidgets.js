@@ -299,6 +299,10 @@ registerDashboardWidget('retention', {
 	defaultContent: { statusField: '', archivedValues: [], archivistGroups: ['archivaris'] },
 	displayName: 'Retention',
 	icon: 'ArchiveOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
 registerDashboardWidget('plan', {
 	renderer: CnPlanWidget,
 	form: null,
@@ -307,6 +311,8 @@ registerDashboardWidget('plan', {
 	icon: 'FormatListChecks',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
+})
+
 registerDashboardWidget('work-queue', {
 	renderer: CnWorkQueue,
 	form: null,
