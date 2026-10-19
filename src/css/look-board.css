@@ -650,6 +650,7 @@
 }
 
 .cn-look-board .cn-admin-settings-shell__title:not(.cn-look-nextcloud *) {
+	min-height: var(--cn-board-control-height);
 	margin: 0;
 	font-size: 28px;
 	font-weight: 700;
@@ -662,8 +663,21 @@
 	align-items: center;
 	gap: 8px;
 	margin-top: 6px;
-	font-size: 15px;
+	font-size: 14px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
+}
+
+/* The admin settings header as the board draws it (DqInstellingen): 4px
+   under the content's top and 8px above the grid's gap, the crumbs 6px under
+   the 40px title row in 14px, and the tab strip 20px under the header (at
+   187). The shell is a grid whose gap already spaces its rows, so the
+   header's own 20px bottom margin came on top of it and the strip sat at 194.
+   @spec openspec/changes/board-admin-settings-header-rhythm/specs/board-admin-settings-header-rhythm/spec.md#requirement-the-board-admin-settings-header-keeps-the-boards-rhythm */
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header {
+	margin-bottom: 0;
+	padding: 4px 0 8px;
 }
 
 .cn-look-board .cn-admin-settings-shell__crumb-list:not(.cn-look-nextcloud *) {
