@@ -27,3 +27,13 @@ When the manifest has a page that offers saved filters, CnAppRoot SHALL end the 
 - **GIVEN** the same app with no pinned filter
 - **WHEN** the menu renders
 - **THEN** "My filters" ends the menu with the line "Zet een filter in het menu via Filters"
+
+### Requirement: Default views from the user delta join the page defaults
+
+`mergeManifestDelta` SHALL merge an index page's `defaultSavedViews` by `slug`: a delta entry with a new slug SHALL be added, one with an existing slug SHALL patch it, and `$op: "remove"` SHALL delete it. A menu entry `default:<slug>` SHALL resolve against the merged list, so a default view that arrives through the per-user `/api/manifest` delta stays in the menu.
+
+#### Scenario: Case type pins
+
+- **GIVEN** a Cases page shipping the default view `woo-requests`, and a user delta adding `pin-objection` and `pin-complaint`
+- **WHEN** the manifest merges
+- **THEN** the page has all three default views, and the user's menu entry `default:pin-objection` stays
