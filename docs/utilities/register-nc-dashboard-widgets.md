@@ -55,13 +55,13 @@ The Dashboard draws the widget's title, so a widget's own component must not dra
 
 ## The signal widgets as OpenRegister filters
 
-Each signal is a filter OpenRegister runs, not a list the browser computes from a thousand rows. `params` take the filter tokens (`@me`, `@today`, `@today±Nd`), and an operator map (`{ deadline: { lt: '@today' } }`) goes out as `deadline[lt]=…`. OpenRegister's operators are `gt`, `gte`, `lt`, `lte`, `ne`, `in`, `notIn`, `isnull` and `like`; `created` and `updated` are metadata filters. The examples are dossiq's; another app swaps in its own register, schema and fields.
+Each signal is a filter OpenRegister runs, not a list the browser computes from a thousand rows. `params` take the filter tokens (`@me`, `@today`, `@today±Nd`), and an operator map (`{ deadline: { lt: '@today' } }`) goes out as `deadline[lt]=…`. OpenRegister's operators are `gt`, `gte`, `lt`, `lte`, `ne`, `in`, `notIn`, `isnull` and `like`, and `orNull: true` beside an operator also keeps rows where the field is empty. Metadata filters go under `'@self'`. Tokens resolve at any depth. These filters need the OpenRegister release that adds `orNull` and the `lastUserActivity` metadata field. Its aggregation endpoint ignores `orNull`, so take a widget's count from the list total, not from an aggregation. The examples are dossiq's; another app swaps in its own register, schema and fields.
 
 Open cases (overview):
 
 ```js
 {
-  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: false, _order: { deadline: 'asc' } } },
+  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: { ne: true, orNull: true }, _order: { deadline: 'asc' } } },
   subtitle: '#{identifier}',
   href: '/apps/dossiq/cases/{id}',
   viewAll: { href: '/apps/dossiq/cases' },
@@ -73,7 +73,7 @@ Overdue cases, the deadline before today, most overdue first:
 
 ```js
 {
-  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: false, deadline: { lt: '@today' }, _order: { deadline: 'asc' } } },
+  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: { ne: true, orNull: true }, deadline: { lt: '@today' }, _order: { deadline: 'asc' } } },
   subtitle: '{deadline|days} days overdue',
   href: '/apps/dossiq/cases/{id}',
   viewAll: { href: '/apps/dossiq/cases' },
@@ -85,19 +85,19 @@ Deadline alerts, overdue or due within three days, earliest first:
 
 ```js
 {
-  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: false, deadline: { lte: '@today+3d' }, _order: { deadline: 'asc' } } },
+  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: { ne: true, orNull: true }, deadline: { lte: '@today+3d' }, _order: { deadline: 'asc' } } },
   subtitle: 'Due {deadline|date}',
   href: '/apps/dossiq/cases/{id}',
   emptyText: 'No deadline alerts',
 }
 ```
 
-Stalled cases, not changed for seven days:
+Stalled cases, not touched by a person for seven days. `lastUserActivity` is stamped only on writes by a person, so a system recompute does not count as activity; an object nobody has written since the field arrived is empty, which `orNull` keeps in:
 
 ```js
 {
-  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: false, updated: { lt: '@today-7d' }, _order: { '@self.updated': 'asc' } } },
-  subtitle: '{@self.updated|days} days inactive',
+  source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: { ne: true, orNull: true }, '@self': { lastUserActivity: { lt: '@today-7d', orNull: true } }, _order: { '@self.lastUserActivity': 'asc' } } },
+  subtitle: '{@self.lastUserActivity|days} days inactive',
   href: '/apps/dossiq/cases/{id}',
   emptyText: 'All cases active',
 }

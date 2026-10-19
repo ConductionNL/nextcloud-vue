@@ -83,6 +83,14 @@ describe('CnNcDashboardList', () => {
 		expect(params._limit).toBe(7)
 	})
 
+	it('resolves tokens nested under a metadata filter', async () => {
+		await mountList({ source: { register: 'dossiq', schema: 'case', params: { isFinalStatus: { ne: true, orNull: true }, '@self': { lastUserActivity: { lt: '@today-7d', orNull: true } } } } })
+		const [, { params }] = axios.get.mock.calls[0]
+		expect(params.isFinalStatus).toEqual({ ne: true, orNull: true })
+		expect(params['@self'].lastUserActivity.lt).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+		expect(params['@self'].lastUserActivity.orNull).toBe(true)
+	})
+
 	it('reads an endpoint with a responsePath, and says when it could not read', async () => {
 		axios.get.mockResolvedValue({ data: { data: { overdue: [{ id: 't1', title: 'Advies opvragen' }] } } })
 		const w = await mountList({ source: { url: '/apps/dossiq/api/signals/overdue-tasks', responsePath: 'data.overdue' } })

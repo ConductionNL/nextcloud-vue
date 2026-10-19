@@ -35,6 +35,7 @@ import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { readPath } from '../../utils/readPath.js'
+import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 
 /** A name and a muted, right-aligned trailing line. */
@@ -176,9 +177,12 @@ export default {
 			this.loading = true
 			this.error = false
 			try {
+				// Tokens nested below an operator map (`'@self': { lastUserActivity: { lt: '@today-7d' } }`)
+				// resolve here; the endpoint path resolves one level only.
+				const params = resolveDeepTokens(source.params || {}, {})
 				const request = source.register && source.schema
-					? { url: `/apps/openregister/api/objects/${source.register}/${source.schema}`, params: { _limit: this.limit, ...(source.params || {}) } }
-					: source
+					? { url: `/apps/openregister/api/objects/${source.register}/${source.schema}`, params: { _limit: this.limit, ...params } }
+					: { ...source, params }
 				const data = await fetchEndpointSource(request, {}, { fresh: true })
 				const list = readPath(data, this.config.itemsPath || (source.register ? 'results' : '')) ?? data
 				this.items = Array.isArray(list) ? list.filter((item) => item && typeof item === 'object') : []
