@@ -1273,7 +1273,9 @@ A folder in `folderSidebar` (or the `x-index` block of the row a register-derive
 presentation keys a query preset sets, under the same names: `title`, `quickFilters`, `cardFields`, `countText`,
 `searchPlaceholder`, `footerNote`, `viewSwitch`, `addLabel`, `headerButtons`, `breadcrumb`, `headerMeta` and
 `afterList`. While the folder is selected its value replaces the page's, including a value a query preset set; a key it
-does not carry stays the page's. Its `columns`, `defaultSort` and `searchFields` keep working as before.
+does not carry stays the page's. Its `columns`, `defaultSort` and `searchFields` keep working as before. A page column
+the folder's `columns` names is shown even when the page hides it by default (`hidden: true`), so a column only one
+case type needs stays off the general list (board DqWooVerzoeken: Requester and Received).
 
 ```json
 "folders": [{
