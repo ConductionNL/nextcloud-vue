@@ -18,7 +18,10 @@
 			class="cn-settings-field__image"
 			role="group"
 			:aria-labelledby="`${inputId}-label`">
-			<span :id="`${inputId}-label`" class="cn-settings-field__image-label">{{ label }}</span>
+			<!-- `hideLabel` keeps the name for a screen reader only. -->
+			<span :id="`${inputId}-label`"
+				class="cn-settings-field__image-label"
+				:class="{ 'hidden-visually': field.hideLabel === true }">{{ label }}</span>
 			<div class="cn-settings-field__image-row">
 				<span class="cn-settings-field__image-tile" :data-testid="`cn-settings-field-image-${field.key}`">
 					<img v-if="stringValue" :src="stringValue" :alt="t('nextcloud-vue', 'Current {name}', { name: label })">
