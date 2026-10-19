@@ -120,7 +120,7 @@ Tab titles are separately configurable for a reason: "Files and attachments" rea
 
 ### A title row for a single widget
 
-A tab that holds one widget draws that widget's own `title` as a heading in its panel, with its `description` on a line under it, both through the app's translate (board DqZaakDocumenten: tab "Documenten", heading "Documenten bij dit verzoek"). A widget without a title, or whose title the tab already shows, draws no heading.
+A tab that holds one widget draws that widget's own `title` as a heading in its panel, with its `description` on a line under it, both through the app's translate (board DqZaakDocumenten: tab "Documenten", heading "Documenten bij dit verzoek"). A widget without a title or without a description, or whose title the tab already shows, draws no heading: a title alone repeats what the tab names, so the widget stays bare in its panel.
 
 ### A stack of widgets in one tab
 

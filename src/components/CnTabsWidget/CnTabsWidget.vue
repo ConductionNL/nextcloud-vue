@@ -1027,7 +1027,9 @@ export default {
 		/**
 		 * The title row a single widget's panel draws: the widget's own title
 		 * and its description, through the app's translate. None when the
-		 * widget has no title, or the tab already shows it.
+		 * widget has no title or no description, or the tab already shows the
+		 * title: a title alone names what the tab already names, so the
+		 * widget stays bare in its panel.
 		 *
 		 * @param {object} entry A resolved tab.
 		 * @return {{title: string, subtitle: string}|null} The heading, or null.
@@ -1043,8 +1045,10 @@ export default {
 			if (title === entry.label) {
 				return null
 			}
-			const description = widget && typeof widget.description === 'string' && widget.description !== '' ? translate(widget.description) : ''
-			return { title, subtitle: description }
+			if (!widget || typeof widget.description !== 'string' || widget.description === '') {
+				return null
+			}
+			return { title, subtitle: translate(widget.description) }
 		},
 
 		/**

@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * A tab that holds a single widget draws a title row in its panel when the
- * widget declares a title of its own (board DqZaakDocumenten: tab
- * "Documenten", panel "Documenten bij dit verzoek" with its line under it).
- * A title the tab already shows is not repeated.
+ * widget declares a title and a description of its own (board
+ * DqZaakDocumenten: tab "Documenten", panel "Documenten bij dit verzoek" with
+ * its line under it). A title the tab already shows is not repeated, and a
+ * title without a description draws nothing.
  */
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
@@ -40,11 +41,12 @@ describe('CnTabsWidget single-widget panel title', () => {
 		expect(row.find('.cn-tabs-widget__panel-subtitle').text()).toBe('Per document beoordelen.')
 	})
 
-	it('draws none when the widget has no title, or the tab already shows it', async () => {
+	it('draws none when the widget has no title or no description, or the tab already shows it', async () => {
 		for (const [widgets, tabs] of [
-			[[{ id: 'w', type: 'files' }], [{ id: 'docs', label: 'Documents', widgetId: 'w' }]],
-			[[{ id: 'w', type: 'files', title: 'Documents' }], [{ id: 'docs', label: 'Documents', widgetId: 'w' }]],
-			[[{ id: 'w', type: 'files', title: 'Documents' }], ['w']],
+			[[{ id: 'w', type: 'files', description: 'Review each document.' }], [{ id: 'docs', label: 'Documents', widgetId: 'w' }]],
+			[[{ id: 'w', type: 'files', title: 'Documents for this request' }], [{ id: 'docs', label: 'Documents', widgetId: 'w' }]],
+			[[{ id: 'w', type: 'files', title: 'Documents', description: 'Review each document.' }], [{ id: 'docs', label: 'Documents', widgetId: 'w' }]],
+			[[{ id: 'w', type: 'files', title: 'Documents', description: 'Review each document.' }], ['w']],
 		]) {
 			const w = mountTabs(widgets, tabs)
 			await nextTick()
