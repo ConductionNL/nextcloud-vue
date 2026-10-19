@@ -24,9 +24,24 @@ For rows that are their own records, use an object-list widget instead.
 | `error` | String | `''` | Validation message shown under the table. |
 | `addLabel` | String | `'Add row'` | Label of the add button. |
 | `fieldOverrides` | Object | `{}` | Field overrides forwarded to the row dialog. |
+| `newItem` | Object | `null` | The values a new row starts with; the row schema's defaults fill the rest. |
+| `itemLabel` | String | `''` | What one row is called: "Checklist item" names the rows "Checklist item 1", "Checklist item 2" for the row actions and the edit dialog. Defaults to "Row". |
+| `emptyText` | String | `''` | Shown while there are no rows. Defaults to "No rows yet.". |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `update:modelValue` | `object[]` | The rows in their new sequence. |
+
+## Keyboard and screen readers
+
+Each row's actions are named after the row ("Actions for Checklist item 2"). After a row is added, focus moves to its actions; after one is removed, to the previous row's actions, or to the add button when none is left.
+
+## In a form
+
+`CnFormDialog` passes these from the field's override: `itemOverrides` (the row form's field overrides), `newItem`, `itemLabel`, `emptyText` and `addLabel`. `pruneWhen` tidies the rows before the form is saved: strings are trimmed, optional keys left empty are omitted, a row whose `blank` key is empty is dropped, and with `invalid: true` so is a row missing a required key. Those rows are not checked when the form validates.
+
+```json
+"checklist": { "itemLabel": "Checklist item", "emptyText": "No checklist items yet.", "newItem": { "required": false }, "pruneWhen": { "blank": ["title"] } }
+```

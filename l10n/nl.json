@@ -2021,7 +2021,10 @@
     "Some template fields could not be filled. Fill these in the draft yourself:": "Sommige sjabloonvelden konden niet worden ingevuld. Vul deze zelf in het concept in:",
     "No templates yet": "Nog geen sjablonen",
     "Select a template (optional)…": "Selecteer een sjabloon (niet verplicht)…",
-    "The draft could not be opened.": "Kon het concept niet openen."
+    "The draft could not be opened.": "Kon het concept niet openen.",
+    "Actions for {row}": "Acties voor {row}",
+    "Edit {row}": "{row} bewerken",
+    "Row": "Rij"
   },
   "plurals": {
     "{count} member": [

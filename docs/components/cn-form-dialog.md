@@ -212,7 +212,7 @@ A select can read its options instead of listing them, as dossiq's IV3 taakveld 
 
 `optionsFrom` is `{ register, schema, filter? }` (OpenRegister objects; tokens in `filter` resolve) or `{ url, params?, responsePath? }` (an app endpoint), the shape a dashboard page filter takes. `valueField` and `labelField` are dot-paths into a row: by default the value is `id` (else the object's uuid) and the label `title` (else `name`, else the value).
 
-The field becomes a select, or a multiselect on an array field. The form stores the option's value, never the row, and shows a held value by its label. The source is read once per dialog; typing filters those options on their label or value. A failed read offers no options. [`CnAdvancedFormDialog`](./cn-advanced-form-dialog.md) reads the same declaration in its Properties tab.
+The field becomes a select, or a multiselect on an array field. The form stores the option's value, never the row, and shows a held value by its label. The source is read once per dialog; typing filters those options on their label or value. A read that fails or gives no options turns the field into a text input with a line saying so, as a concept-scheme choice does. [`CnAdvancedFormDialog`](./cn-advanced-form-dialog.md) reads the same declaration in its Properties tab.
 
 ## Object references (`$ref`)
 
@@ -390,6 +390,10 @@ The `fieldOverrides` prop accepts an object keyed by field name. Each override i
 ### A key inside an object (`handling.teams`)
 
 A `fieldOverrides` key (or an `includeFields` entry) can be a dotted path into an object property: `"handling.teams": { "label": "Teams" }` edits `teams` inside `handling` as a field of its own, with the widget its nested schema property asks for and `required` from that object's `required` list. The form saves `handling` with the edited key and every other key `handling` held, so a form that shows only the teams does not clear `handling.deadline`. An object property is otherwise left out of a form unless its schema or a field override names a `widget` (`"settings": { "widget": "json" }`).
+
+### An optional object (`widget: "object-switch"`)
+
+An object property that is either there or not, such as a field rule's `condition`, gets a switch: `"condition": { "widget": "object-switch", "label": "Only in some cases", "defaults": { "kind": "fieldPresent" } }`. On fills it with `defaults`, off writes `null`. Its keys are fields at dotted paths (`condition.kind`), shown with `visibleWhen: { "field": "condition", "truthy": true }`; while the switch is off they are not saved and the object stays `null`.
 
 ### `section`
 

@@ -48,7 +48,8 @@ export function spreadDottedFields(data, fields) {
 /**
  * A payload with each dotted field's value put back inside its object. The
  * object keeps every other key it held, so a save of `handling.teams` does not
- * clear `handling.deadline`.
+ * clear `handling.deadline`. An optional object switched off (its own field is
+ * an `object-switch` and holds null) stays null: its dotted fields are dropped.
  *
  * @param {object} payload The form values.
  * @param {Array<{key: string}>} fields The form's fields.
@@ -56,6 +57,9 @@ export function spreadDottedFields(data, fields) {
  */
 export function foldDottedFields(payload, fields) {
 	const out = { ...(payload || {}) }
+	const switchedOff = new Set((fields || [])
+		.filter((field) => field && field.widget === 'object-switch' && out[field.key] === null)
+		.map((field) => field.key))
 	for (const field of fields || []) {
 		if (!field || !isDottedKey(field.key) || !Object.hasOwn(out, field.key)) {
 			continue
@@ -64,6 +68,9 @@ export function foldDottedFields(payload, fields) {
 		delete out[field.key]
 		const parts = field.key.split('.')
 		const head = parts[0]
+		if (switchedOff.has(head)) {
+			continue
+		}
 		out[head] = setIn(out[head], parts.slice(1), value)
 	}
 	return out

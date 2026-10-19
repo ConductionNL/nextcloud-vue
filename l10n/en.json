@@ -1808,7 +1808,10 @@
     "Some template fields could not be filled. Fill these in the draft yourself:": "Some template fields could not be filled. Fill these in the draft yourself:",
     "No templates yet": "No templates yet",
     "Select a template (optional)…": "Select a template (optional)…",
-    "The draft could not be opened.": "The draft could not be opened."
+    "The draft could not be opened.": "The draft could not be opened.",
+    "Actions for {row}": "Actions for {row}",
+    "Edit {row}": "Edit {row}",
+    "Row": "Row"
   },
   "plurals": {
     "{count} member": [
