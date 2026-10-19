@@ -1157,7 +1157,7 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
 | `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
 | `showSortSelect` | Boolean | `false` | Deprecated, without effect: the toolbar draws no sort select. The table sorts by its column headers; the list, card and map views by the Sort section in the index sidebar. |
-| `sortSelectOptions` | Array | `[]` | The orders the index sidebar's Sort section offers in the list, card and map views: `{ value, label, order? }`, the order its `order` or its `value` read as one (`"-createdAt"`, `"priority:desc,title"`). Without them the section offers the sortable columns. |
+| `sortSelectOptions` | Array | `[]` | The orders the index sidebar's Sort section offers in the list, card and map views: `{ value, label, order?, default?, source? }`, the order its `order` or its `value` read as one (`"-createdAt"`, `"priority:desc,title"`). An option with a `source` lists an endpoint's rows in the endpoint's order (see *An order from an endpoint*). Without them the section offers the sortable columns. |
 | `sortSelectValue` | String | `''` | Deprecated, without effect: the Sort section shows the current order. |
 | `defaultOrder` | String, Object or Array | `''` | The order a self-fetch page opens on when neither the address nor `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`): `"-createdAt"`, `"priority:desc,title"`, an `_order` map `{ "priority": "desc" }` or a `[{ key, order }]` list. |
 
@@ -1166,6 +1166,30 @@ The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override 
 ## Sorting
 
 The table view sorts by its column headers and nothing else. The list, card and map views sort through the **Sort** section of the index sidebar (Search tab): a field, Ascending or Descending, and the order the list has now ("Current order: Created, descending"). The fields are `sortSelectOptions` when the page declares them, else the sortable columns. A choice goes the way a header click goes: a self-fetched list orders by it (`_order`, kept in the address) and the page emits `sort` for a host that sorts itself. `defaultOrder` is the order the page opens on. The section is absent in the table view.
+
+### An order from an endpoint
+
+Some orders the server cannot sort by, such as an urgency it computes per request. A `sortSelectOptions` entry can name the endpoint that ranks the rows:
+
+```json
+{
+  "value": "urgency", "label": "Urgency", "default": true, "order": "deadline",
+  "source": {
+    "url": "/apps/dossiq/api/work-queue",
+    "rowsPath": "items", "rowPath": "case",
+    "carry": ["deadlineTier"], "annotate": true,
+    "searchFields": ["title", "identifier"],
+    "failedNote": "Ordered by deadline: the urgency could not be computed."
+  }
+}
+```
+
+- Choosing it in the Sort section (it has no direction) lists the endpoint's rows in their order. The page's search box, sidebar filters and pager run over those rows in the browser, from page 1 after each change.
+- `default: true` opens the page on it unless the address carries an `_order`. A column header click in the table view, or another field in the Sort section, leaves it.
+- `rowsPath` names where the entries sit (`results` by default). `rowPath` names where each entry carries its row; entries without one are left out.
+- `carry` copies entry fields onto each row, so `cardLayout.headPill: { field: "deadlineTier" }` draws them. With `annotate: true` they reach the rows of every other order too, matched on `idPath` (`id` by default).
+- When the endpoint fails, the list orders by the option's `order` and shows `failedNote` above it.
+- `selectSortOption(value)` chooses an option by its value; a saved view's `sortOption` uses it.
 
 ## Folder sidebar
 

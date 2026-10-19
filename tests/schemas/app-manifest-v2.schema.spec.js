@@ -1407,7 +1407,17 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.128.0 adds the setup step's noteStyle (setup-wizard), chart referenceLines and categoryFormat (chart-widget), visibleWhen op contains (visible-when), config.tabsFrom on a detail page (detail-page) and the notice widget (notice-widget).
 		// 2.129.0 adds config.cardLayout on an index page, the board record card's layout, with a meta part that names its own formatter (card-layout-part-formatter); also quickFilterPlacement row (index-page), nextStep.stagesFrom, side-column entry tabs and folderSidebar.scopeViews (detail-page, index-page), and the record-list dot / flags, related groupByRelation / layout / groupActions and nc-widget excludeApps / excludeTypes content (widgets).
 		// 2.130.0 adds config.defaultSavedViews on an index page, views the app ships, read-only and copyable, with savedViewTree.seeded deprecated (saved-views-manage-and-defaults), and a dashboard page filter's optionsFrom, clearable and placeholder, with options required only without optionsFrom (dashboard-page).
-		expect(schema.version).toBe('2.130.0')
+		// 2.131.0 adds sortSelectOptions[].source, an order in the sidebar's Sort section whose rows come from an app endpoint (sidebar-sort-source).
+		expect(schema.version).toBe('2.131.0')
+	})
+
+	it('accepts the 2.131.0 sort option with an endpoint source and refuses malformed ones', () => {
+		const index = (sortSelectOptions) => ({ ...MINIMAL_V2, pages: [{ id: 'mine', route: '/mine', type: 'index', title: 'Mine', config: { register: 'r', schema: 's', sortSelectOptions } }] })
+		const urgency = { value: 'urgency', label: 'Urgency', default: true, order: 'deadline', source: { url: '/apps/x/api/queue', rowsPath: 'items', rowPath: 'case', carry: ['deadlineTier'], annotate: true, failedNote: 'Ordered by deadline.' } }
+		expect(validateManifestV2(index([urgency, { value: 'newest', label: 'Newest', order: '-startDate' }])).valid).toBe(true)
+		expect(validateManifestV2(index([{ ...urgency, source: { rowsPath: 'items' } }])).valid).toBe(false)
+		expect(validateManifestV2(index([{ ...urgency, source: { url: '/x', rows: 'items' } }])).valid).toBe(false)
+		expect(validateManifestV2(index([{ label: 'No value' }])).valid).toBe(false)
 	})
 
 	it('a page filter takes its options or optionsFrom, and refuses neither or a malformed optionsFrom', () => {
