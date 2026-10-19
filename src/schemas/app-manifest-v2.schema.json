@@ -1060,7 +1060,8 @@
 				},
 				"seeded": {
 					"type": "array",
-					"description": "Views that ship with the app. They render as their own group above the user's own, and a user may copy one but not delete it: a view the product promises is not a view one person can remove from everybody's install.",
+					"deprecated": true,
+					"description": "DEPRECATED since 2.129.0: declare default views with the index page's `config.defaultSavedViews`, which carries the criteria this key never had and is what the page actually lists. Nothing ever read this key, so moving off it loses nothing. Views that ship with the app. They render as their own group above the user's own, and a user may copy one but not delete it: a view the product promises is not a view one person can remove from everybody's install.",
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
@@ -4476,6 +4477,52 @@
 						"savedViewsScope": {
 							"type": "string",
 							"description": "type='index': which pages share this page's saved views. By default a view is shared by every page over the same register and schema and by no other, because a view is filters over one schema's fields. Set this to share views across pages over different sources, or to keep two pages over one source apart. Written into the saved view's `query.scope`; views saved before scoping stay visible everywhere. Maps to CnIndexPage `savedViewsScope`."
+						},
+						"defaultSavedViews": {
+							"type": "array",
+							"description": "type='index': views the app ships for this page. Listed read-only above each user's own saved views, under Default views, and never stored: a new app version updates them for everybody and no user can delete one. A user may apply a default or save a copy, which they then own. `@`-tokens in `filters` (`@me`, `@today`, `@today+7d`) resolve when the default is applied; a copy keeps them. Maps to CnIndexPage `defaultSavedViews`.",
+							"items": {
+								"type": "object",
+								"additionalProperties": false,
+								"required": ["slug", "name", "filters"],
+								"properties": {
+									"slug": {
+										"type": "string",
+										"pattern": "^[a-z0-9][a-z0-9-]*$",
+										"description": "The stable name of the default. Lowercase and dash only."
+									},
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"description": "What the filter is called in the control. Translatable."
+									},
+									"filters": {
+										"type": "object",
+										"description": "The filters, keyed by property, in the shape a quick filter's `filter` takes."
+									},
+									"search": {
+										"type": "string",
+										"description": "A search term the default applies."
+									},
+									"sort": {
+										"type": "array",
+										"description": "Sort keys, in priority order.",
+										"items": {
+											"type": "object",
+											"additionalProperties": false,
+											"required": ["key"],
+											"properties": {
+												"key": { "type": "string" },
+												"order": { "type": "string", "enum": ["asc", "desc"] }
+											}
+										}
+									},
+									"label": {
+										"type": "string",
+										"description": "One label for the control's label filter."
+									}
+								}
+							}
 						},
 						"splitCloseButton": {
 							"type": "boolean",
