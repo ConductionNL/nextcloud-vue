@@ -90,8 +90,8 @@
 							v-else
 							type="button"
 							class="cn-actions-bar__view-toggle-btn"
-							:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode, 'cn-actions-bar__view-toggle-btn--disabled': seg.disabled }"
-							:aria-pressed="viewMode === seg.mode"
+							:class="{ 'cn-actions-bar__view-toggle-btn--active': activeViewMode === seg.mode, 'cn-actions-bar__view-toggle-btn--disabled': seg.disabled }"
+							:aria-pressed="activeViewMode === seg.mode"
 							:aria-label="seg.label"
 							:title="seg.disabled ? unavailableViewLabel(seg.label) : seg.label"
 							:disabled="seg.disabled"
@@ -160,8 +160,8 @@
 					:key="seg.mode"
 					type="button"
 					class="cn-actions-bar__view-toggle-btn"
-					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode }"
-					:aria-pressed="viewMode === seg.mode"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': activeViewMode === seg.mode }"
+					:aria-pressed="activeViewMode === seg.mode"
 					:aria-label="isBoardLayout ? seg.label : null"
 					:title="isBoardLayout ? seg.label : null"
 					@click="$emit('view-mode-change', seg.mode)">
@@ -592,6 +592,7 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { isModifiedClick } from '../../utils/linkNavigation.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
+import { normalizeViewMode, normalizeViewModeKeys, normalizeViewModes } from '../../utils/viewModes.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -698,7 +699,7 @@ export default {
 
 		/**
 		 * Board look: view modes that open another PAGE instead of switching in
-		 * place, by mode: `{ board: { href, to? } }`. Such a segment is drawn as
+		 * place, by mode: `{ kanban: { href, to? } }`. Such a segment is drawn as
 		 * a link in its place in the switch; `to` (a router location) is pushed
 		 * on a plain click, `href` serves a new tab. A mode the page offers in
 		 * place stays a button. Ignored without the board look.
@@ -844,23 +845,26 @@ export default {
 			default: true,
 		},
 
-		/** Current view mode: 'table', 'cards', 'list', or 'map' */
+		/** Current view mode: 'table', 'cards', 'list', 'map', 'calendar' or 'kanban' (the deprecated 'board' is read as 'kanban'). */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map', 'calendar'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map', 'calendar', 'kanban', 'board'].includes(v),
 		},
 
 		/**
 		 * Which view-mode segments to render, in order. Defaults to the
 		 * historical two-segment control; add `'list'` to expose the list view.
 		 *
-		 * @type {Array<'cards' | 'table' | 'list' | 'calendar'>}
+		 * `'kanban'` is drawn under the board look; the deprecated `'board'` is
+		 * read as `'kanban'`.
+		 *
+		 * @type {Array<'cards' | 'table' | 'list' | 'calendar' | 'kanban'>}
 		 */
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'calendar'].includes(m)),
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'calendar', 'kanban', 'board'].includes(m)),
 		},
 
 		/** Whether to show the view-mode toggle */
@@ -1278,23 +1282,23 @@ export default {
 				map: { label: this.mapLabel || t('nextcloud-vue', 'Map'), icon: this.mapIcon, fallback: MapMarkerOutline },
 				calendar: { label: t('nextcloud-vue', 'Calendar'), icon: '', fallback: CalendarMonthOutline },
 			}
-			const modes = [...this.availableViewModes]
+			const modes = normalizeViewModes([...this.availableViewModes])
 			if (this.showMap && !modes.includes('map')) {
 				modes.push('map')
 			}
 			if (this.isBoardLayout) {
-				// The board look's fixed order: table, cards, board, map, each
+				// The board look's fixed order: table, cards, kanban, map, each
 				// only when the page offers it. A mode the board switch does not
 				// name (list, calendar) follows, so it is never lost.
-				defs.board = { label: t('nextcloud-vue', 'Board'), icon: '', fallback: ViewColumnOutline }
+				defs.kanban = { label: t('nextcloud-vue', 'Kanban'), icon: '', fallback: ViewColumnOutline }
 				// The board's list icon: plain bullets, not the boxed ones.
 				defs.table.boardFallback = FormatListBulleted
 				// A mode that opens another page: a link, unless the page offers it in place.
-				const links = this.viewModeLinks && typeof this.viewModeLinks === 'object' ? this.viewModeLinks : {}
+				const links = this.viewModeLinks && typeof this.viewModeLinks === 'object' ? normalizeViewModeKeys(this.viewModeLinks) : {}
 				const linked = Object.keys(links).filter((mode) => !modes.includes(mode) && links[mode] && typeof links[mode].href === 'string' && links[mode].href !== '')
-				const disabled = (this.disabledViewModes || []).filter((mode) => !modes.includes(mode) && !linked.includes(mode))
+				const disabled = normalizeViewModes(this.disabledViewModes || []).filter((mode) => !modes.includes(mode) && !linked.includes(mode))
 				const all = [...modes, ...linked, ...disabled]
-				const fixed = ['table', 'cards', 'board', 'map']
+				const fixed = ['table', 'cards', 'kanban', 'map']
 				const rest = all.filter((mode) => !fixed.includes(mode))
 				return [...fixed.filter((mode) => all.includes(mode)), ...rest]
 					.filter((mode) => defs[mode])
@@ -1310,10 +1314,19 @@ export default {
 			return this.sortOptions.find((o) => o.value === this.sortValue) || null
 		},
 
+		/**
+		 * The current view mode under its current name (`board` reads as `kanban`).
+		 *
+		 * @return {string} The view mode.
+		 */
+		activeViewMode() {
+			return normalizeViewMode(this.viewMode)
+		},
+
 		/** Sliding-thumb width + offset, driven by the active segment index. */
 		thumbStyle() {
 			const count = this.viewSegments.length || 1
-			const activeIndex = Math.max(0, this.viewSegments.findIndex((s) => s.mode === this.viewMode))
+			const activeIndex = Math.max(0, this.viewSegments.findIndex((s) => s.mode === this.activeViewMode))
 			return {
 				width: `calc((100% - 8px) / ${count})`,
 				transform: `translateX(${activeIndex * 100}%)`,

@@ -37,7 +37,7 @@ async function mountPage(viewMode, sidebar = { scopeViews: ['table', 'list'] }) 
 		global: {
 			provide: { cnLook: 'board' },
 			mocks: { $router: { push: jest.fn() }, $route: { query: {}, name: 'Cases' } },
-			stubs: { CnActionsBar: true, CnDataTable: true, CnCardGrid: true, CnPagination: true, CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true, CnSavedViewsControl: true, CnBuildiqEditButton: true, CnQuickFilterBar: true, CnFolderSidebar: true, CnBoardView: true, CnObjectList: true },
+			stubs: { CnActionsBar: true, CnDataTable: true, CnCardGrid: true, CnPagination: true, CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true, CnSavedViewsControl: true, CnBuildiqEditButton: true, CnQuickFilterBar: true, CnFolderSidebar: true, CnKanbanView: true, CnObjectList: true },
 		},
 	})
 	await nextTick()

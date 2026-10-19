@@ -59,6 +59,9 @@ const EXEMPT = new Set([
 	// alias, so a second page per alias would only duplicate them.
 	'CnOpenBuildEditButton',
 	'useOpenBuildEditAvailability',
+	// Deprecated alias of CnKanbanView (the view mode `board` became
+	// `kanban`); docs/components/cn-kanban-view.md documents the alias.
+	'CnBoardView',
 ])
 
 /**

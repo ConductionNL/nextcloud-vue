@@ -819,7 +819,7 @@ export default {
 	padding-top: 8px;
 }
 
-/* Board look (screens-kanban-parity): the same column tokens as CnBoardView. */
+/* Board look (screens-kanban-parity): the same column tokens as CnKanbanView. */
 .cn-object-kanban__board--board {
 	gap: 16px;
 }

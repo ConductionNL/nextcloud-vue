@@ -4,10 +4,10 @@
 -->
 <template>
 	<div
-		class="cn-board-view"
-		:class="{ 'cn-board-view--board': isBoardLook, 'cn-board-view--wrap': wrapColumns, 'cn-board-view--selecting': selectedKeys.length > 0 }"
-		data-testid="cn-board-view">
-		<p v-if="!usable" class="cn-board-view__unusable" data-testid="cn-board-unusable">
+		class="cn-kanban-view"
+		:class="{ 'cn-kanban-view--board': isBoardLook, 'cn-kanban-view--wrap': wrapColumns, 'cn-kanban-view--selecting': selectedKeys.length > 0 }"
+		data-testid="cn-kanban-view">
+		<p v-if="!usable" class="cn-kanban-view__unusable" data-testid="cn-kanban-unusable">
 			{{ unusableText }}
 		</p>
 
@@ -15,13 +15,13 @@
 			v-for="lane in lanes"
 			v-else
 			:key="`lane-${lane.key}`"
-			class="cn-board-view__lane"
-			data-testid="cn-board-lane"
+			class="cn-kanban-view__lane"
+			data-testid="cn-kanban-lane"
 			:data-lane="lane.key">
 			<button
 				v-if="lane.key !== ''"
-				class="cn-board-view__lane-header"
-				data-testid="cn-board-lane-header"
+				class="cn-kanban-view__lane-header"
+				data-testid="cn-kanban-lane-header"
 				:aria-expanded="String(!isCollapsed(lane.key))"
 				@click="toggleLane(lane.key)">
 				{{ lane.label }} ({{ lane.count }})
@@ -29,16 +29,16 @@
 
 			<div
 				v-show="!isCollapsed(lane.key)"
-				class="cn-board-view__columns"
+				class="cn-kanban-view__columns"
 				role="list"
 				:aria-label="lane.key === '' ? boardLabel : lane.label">
 				<section
 					v-for="column in lane.columns"
 					:key="`col-${lane.key}-${column.key}`"
-					class="cn-board-view__column"
-					:class="{ 'cn-board-view__column--unreachable': isUnreachable(column), 'cn-board-view__column--full': isFull(column), 'cn-board-view__column--reason': dragReason(column) !== '' }"
+					class="cn-kanban-view__column"
+					:class="{ 'cn-kanban-view__column--unreachable': isUnreachable(column), 'cn-kanban-view__column--full': isFull(column), 'cn-kanban-view__column--reason': dragReason(column) !== '' }"
 					role="listitem"
-					data-testid="cn-board-column"
+					data-testid="cn-kanban-column"
 					:data-column="column.key"
 					:data-unreachable="isUnreachable(column) ? 'true' : null"
 					:data-full="isFull(column) ? 'true' : null"
@@ -46,42 +46,42 @@
 					@drop="onDrop(column, $event)">
 					<!-- Board look: a dot, the label and a white count badge, with an
 					     optional sum line under it (screens-kanban-parity). -->
-					<div v-if="isBoardLook" class="cn-board-view__column-head">
-						<h2 class="cn-board-view__column-header cn-board-view__column-header--board">
+					<div v-if="isBoardLook" class="cn-kanban-view__column-head">
+						<h2 class="cn-kanban-view__column-header cn-kanban-view__column-header--board">
 							<span
-								class="cn-board-view__dot"
-								data-testid="cn-board-dot"
+								class="cn-kanban-view__dot"
+								data-testid="cn-kanban-dot"
 								:style="{ background: dotColor(column) }"
 								aria-hidden="true" />
-							<span class="cn-board-view__column-title">{{ column.label }}</span>
+							<span class="cn-kanban-view__column-title">{{ column.label }}</span>
 							<span
-								class="cn-board-view__badge"
-								:class="{ 'cn-board-view__badge--full': isFull(column) }"
-								data-testid="cn-board-count">
+								class="cn-kanban-view__badge"
+								:class="{ 'cn-kanban-view__badge--full': isFull(column) }"
+								data-testid="cn-kanban-count">
 								{{ capacityOf(column) === null ? column.count : capacityText(column) }}<span v-if="paged" class="hidden-visually"> {{ t('nextcloud-vue', 'on this page') }}</span><span v-if="isFull(column)" class="hidden-visually">{{ ' ' + t('nextcloud-vue', 'full') }}</span>
 							</span>
 						</h2>
 						<span
 							v-if="columnSum(column) !== ''"
-							class="cn-board-view__sum"
-							data-testid="cn-board-sum">
+							class="cn-kanban-view__sum"
+							data-testid="cn-kanban-sum">
 							{{ columnSum(column) }}
 						</span>
 					</div>
-					<h3 v-else class="cn-board-view__column-header">
+					<h3 v-else class="cn-kanban-view__column-header">
 						{{ column.label }}
 						<span
-							class="cn-board-view__count"
-							:class="{ 'cn-board-view__count--full': isFull(column) }"
-							data-testid="cn-board-count">
+							class="cn-kanban-view__count"
+							:class="{ 'cn-kanban-view__count--full': isFull(column) }"
+							data-testid="cn-kanban-count">
 							{{ countLabel(column) }}<span v-if="isFull(column)" class="hidden-visually">{{ ' ' + t('nextcloud-vue', 'full') }}</span>
 						</span>
 					</h3>
 
 					<p
 						v-if="dragReason(column) !== ''"
-						class="cn-board-view__column-reason"
-						data-testid="cn-board-column-reason">
+						class="cn-kanban-view__column-reason"
+						data-testid="cn-kanban-column-reason">
 						{{ dragReason(column) }}
 					</p>
 
@@ -93,7 +93,7 @@
 					-->
 					<div
 						v-if="column.cards.length > 0"
-						class="cn-board-view__cards"
+						class="cn-kanban-view__cards"
 						role="list"
 						:aria-label="column.label">
 						<!--
@@ -115,20 +115,20 @@
 							here makes axe report nested-interactive (serious,
 							"Interactive controls must not be nested") and
 							aria-required-children (critical), and four tests
-							in tests/a11y/CnBoardView.a11y.spec.js go red.
+							in tests/a11y/CnKanbanView.a11y.spec.js go red.
 							Gate 32 suggests exactly this change. The gate is a
 							mechanical floor, not the standard.
 						-->
 						<article
 							v-for="card in visibleCards(lane, column)"
 							:key="`card-${cardKey(card)}`"
-							class="cn-board-view__card"
+							class="cn-kanban-view__card"
 							:class="[
-								cardDueState(card) ? `cn-board-view__card--${cardDueState(card)}` : null,
-								{ 'cn-board-view__card--board': isBoardLook },
+								cardDueState(card) ? `cn-kanban-view__card--${cardDueState(card)}` : null,
+								{ 'cn-kanban-view__card--board': isBoardLook },
 							]"
 							role="listitem"
-							data-testid="cn-board-card"
+							data-testid="cn-kanban-card"
 							:data-card-id="cardKey(card)"
 							:draggable="canMove"
 							@dragstart="onDragStart(card, column, $event)"
@@ -137,20 +137,20 @@
 							<!-- Board look: title link, sub line, pill, footer, and a
 							     menu button instead of the Move to select. -->
 							<template v-if="isBoardLook">
-								<div class="cn-board-view__card-head">
+								<div class="cn-kanban-view__card-head">
 									<input
 										v-if="selectable"
 										type="checkbox"
-										class="cn-board-view__select"
-										data-testid="cn-board-card-select"
+										class="cn-kanban-view__select"
+										data-testid="cn-kanban-card-select"
 										:data-card-id="cardKey(card)"
 										:checked="isSelected(card)"
 										:aria-label="selectLabel(card)"
 										@change="toggleSelected(card)">
 									<a
 										href="#"
-										class="cn-board-view__card-title"
-										data-testid="cn-board-card-open"
+										class="cn-kanban-view__card-title"
+										data-testid="cn-kanban-card-open"
 										:data-card-id="cardKey(card)"
 										:aria-label="cardLabel(card, column)"
 										@click.prevent="openCard(card, $event)"
@@ -158,57 +158,57 @@
 										@auxclick="onCardAuxClick(card, $event)">
 										{{ roleText(card, roles.title) || cardKey(card) }}
 									</a>
-									<span class="cn-board-view__menu-wrap">
+									<span class="cn-kanban-view__menu-wrap">
 										<button
 											type="button"
-											class="cn-board-view__menu-button"
-											data-testid="cn-board-card-menu"
+											class="cn-kanban-view__menu-button"
+											data-testid="cn-kanban-card-menu"
 											:data-card-id="cardKey(card)"
 											aria-haspopup="menu"
 											:aria-expanded="String(isMenuOpen(card))"
 											:aria-label="menuButtonLabel(card)"
 											@click="toggleMenu(card)">
-											<span class="cn-board-view__menu-dots" aria-hidden="true">&#8943;</span>
+											<span class="cn-kanban-view__menu-dots" aria-hidden="true">&#8943;</span>
 										</button>
 										<div
 											v-if="isMenuOpen(card)"
-											class="cn-board-view__menu"
+											class="cn-kanban-view__menu"
 											role="menu"
-											data-testid="cn-board-card-menu-list"
+											data-testid="cn-kanban-card-menu-list"
 											:aria-label="menuButtonLabel(card)"
 											@keydown="onMenuKeydown(card, $event)">
 											<div
 												v-if="canMove"
 												role="group"
 												:aria-label="moveLabel">
-												<span class="cn-board-view__menu-heading" aria-hidden="true">{{ moveLabel }}</span>
+												<span class="cn-kanban-view__menu-heading" aria-hidden="true">{{ moveLabel }}</span>
 												<button
 													v-for="target in moveTargets(lane, column)"
 													:key="`m-${cardKey(card)}-${target.key}`"
 													type="button"
 													role="menuitem"
-													class="cn-board-view__menu-item"
-													data-testid="cn-board-menu-move"
+													class="cn-kanban-view__menu-item"
+													data-testid="cn-kanban-menu-move"
 													:data-target="target.key"
 													:aria-disabled="canMoveTo(card, target) ? null : 'true'"
-													:class="{ 'cn-board-view__menu-item--blocked': !canMoveTo(card, target), 'cn-board-view__menu-item--reason': blockReason(card, target) !== '' }"
+													:class="{ 'cn-kanban-view__menu-item--blocked': !canMoveTo(card, target), 'cn-kanban-view__menu-item--reason': blockReason(card, target) !== '' }"
 													@click="canMoveTo(card, target) && onMenuMove(card, column, target)">
 													{{ target.label }}
 													<span
 														v-if="!canMoveTo(card, target) && blockedNote(card, target) !== ''"
-														class="cn-board-view__menu-note"
-														data-testid="cn-board-menu-blocked">{{ blockedNote(card, target) }}</span>
+														class="cn-kanban-view__menu-note"
+														data-testid="cn-kanban-menu-blocked">{{ blockedNote(card, target) }}</span>
 													<span
 														v-if="blockReason(card, target) !== ''"
-														class="cn-board-view__menu-reason"
-														data-testid="cn-board-menu-reason">{{ blockReason(card, target) }}</span>
+														class="cn-kanban-view__menu-reason"
+														data-testid="cn-kanban-menu-reason">{{ blockReason(card, target) }}</span>
 												</button>
 											</div>
 											<button
 												type="button"
 												role="menuitem"
-												class="cn-board-view__menu-item"
-												data-testid="cn-board-menu-new-tab"
+												class="cn-kanban-view__menu-item"
+												data-testid="cn-kanban-menu-new-tab"
 												@click="onMenuOpenNewTab(card)">
 												{{ openInNewTabLabel }}
 											</button>
@@ -217,33 +217,33 @@
 								</div>
 								<span
 									v-if="roleText(card, roles.sub) !== ''"
-									class="cn-board-view__card-sub"
-									data-testid="cn-board-card-sub">
+									class="cn-kanban-view__card-sub"
+									data-testid="cn-kanban-card-sub">
 									{{ roleText(card, roles.sub) }}
 								</span>
 								<span
 									v-if="roleText(card, roles.pill) !== ''"
-									class="cn-board-view__card-pills">
+									class="cn-kanban-view__card-pills">
 									<CnStatusBadge
-										class="cn-board-view__pill"
-										data-testid="cn-board-card-pill"
+										class="cn-kanban-view__pill"
+										data-testid="cn-kanban-card-pill"
 										:label="roleText(card, roles.pill)"
 										:variant="pillVariant(card)" />
 								</span>
 								<span
 									v-if="dueText(card) !== '' || ownerName(card) !== ''"
-									class="cn-board-view__card-footer"
-									data-testid="cn-board-card-footer">
+									class="cn-kanban-view__card-footer"
+									data-testid="cn-kanban-card-footer">
 									<span
-										class="cn-board-view__due-text"
-										:class="cardDueState(card) ? `cn-board-view__due-text--${cardDueState(card)}` : null"
-										data-testid="cn-board-card-due">
+										class="cn-kanban-view__due-text"
+										:class="cardDueState(card) ? `cn-kanban-view__due-text--${cardDueState(card)}` : null"
+										data-testid="cn-kanban-card-due">
 										{{ dueText(card) }}
 									</span>
 									<span
 										v-if="ownerName(card) !== ''"
-										class="cn-board-view__avatar"
-										data-testid="cn-board-card-owner"
+										class="cn-kanban-view__avatar"
+										data-testid="cn-kanban-card-owner"
 										:title="ownerName(card)"
 										role="img"
 										:aria-label="ownerName(card)">
@@ -252,11 +252,11 @@
 								</span>
 							</template>
 							<template v-else>
-								<label v-if="selectable" class="cn-board-view__select-label">
+								<label v-if="selectable" class="cn-kanban-view__select-label">
 									<input
 										type="checkbox"
-										class="cn-board-view__select"
-										data-testid="cn-board-card-select"
+										class="cn-kanban-view__select"
+										data-testid="cn-kanban-card-select"
 										:data-card-id="cardKey(card)"
 										:checked="isSelected(card)"
 										:aria-label="selectLabel(card)"
@@ -264,15 +264,15 @@
 								</label>
 								<span
 									v-if="dueLabel(card)"
-									class="cn-board-view__due"
-									:class="`cn-board-view__due--${dueState(card)}`"
-									data-testid="cn-board-due">
+									class="cn-kanban-view__due"
+									:class="`cn-kanban-view__due--${dueState(card)}`"
+									data-testid="cn-kanban-due">
 									{{ dueLabel(card) }}
 								</span>
 								<span
 									v-for="field in cardFields"
 									:key="`f-${cardKey(card)}-${field}`"
-									class="cn-board-view__card-field">
+									class="cn-kanban-view__card-field">
 									{{ card[field] }}
 								</span>
 
@@ -284,8 +284,8 @@
 							-->
 								<button
 									type="button"
-									class="cn-board-view__card-open"
-									data-testid="cn-board-card-open"
+									class="cn-kanban-view__card-open"
+									data-testid="cn-kanban-card-open"
 									:data-card-id="cardKey(card)"
 									:aria-label="cardLabel(card, column)"
 									@click="openCard(card, $event)"
@@ -300,10 +300,10 @@
 								user cannot use at all, and "drag the card" is not
 								an instruction you can follow with a keyboard.
 							-->
-								<label v-if="canMove" class="cn-board-view__move">
-									<span class="cn-board-view__move-label">{{ moveLabel }}</span>
+								<label v-if="canMove" class="cn-kanban-view__move">
+									<span class="cn-kanban-view__move-label">{{ moveLabel }}</span>
 									<select
-										data-testid="cn-board-move"
+										data-testid="cn-kanban-move"
 										:data-card-id="cardKey(card)"
 										:value="column.key"
 										@change="onMoveTo(card, column, $event)">
@@ -321,8 +321,8 @@
 
 					<p
 						v-else
-						class="cn-board-view__empty"
-						data-testid="cn-board-column-empty">
+						class="cn-kanban-view__empty"
+						data-testid="cn-kanban-column-empty">
 						{{ emptyColumnText }}
 					</p>
 
@@ -331,8 +331,8 @@
 					<button
 						v-if="hiddenCount(lane, column) > 0"
 						type="button"
-						class="cn-board-view__show-more"
-						data-testid="cn-board-show-more"
+						class="cn-kanban-view__show-more"
+						data-testid="cn-kanban-show-more"
 						@click="showMore(lane, column)">
 						{{ showMoreLabel(hiddenCount(lane, column)) }}
 					</button>
@@ -342,8 +342,8 @@
 
 		<p
 			v-if="refusal"
-			class="cn-board-view__refusal"
-			data-testid="cn-board-refusal"
+			class="cn-kanban-view__refusal"
+			data-testid="cn-kanban-refusal"
 			role="alert">
 			{{ refusal }}
 		</p>
@@ -364,10 +364,10 @@ import { readPath } from '../../utils/readPath.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { userLocale } from '../../utils/userLocale.js'
 
-import '../../css/board.css'
+import '../../css/kanban.css'
 
 /**
- * CnBoardView — the index page's rows as a board, one column per stage.
+ * CnKanbanView: the index page's rows as a kanban, one column per stage.
  *
  * THE COLUMNS ARE THE SCHEMA'S, NOT THE DATA'S. `buildBoardColumns` decides
  * them and is tested on its own; this renders what it returns. A board that
@@ -391,7 +391,7 @@ import '../../css/board.css'
  * @event {object} stale — The card had already moved. Payload: `{ card }`.
  */
 export default {
-	name: 'CnBoardView',
+	name: 'CnKanbanView',
 
 	components: { CnStatusBadge },
 
@@ -738,7 +738,7 @@ export default {
 
 		/** @return {string} The board's accessible name. */
 		boardLabel() {
-			return t('nextcloud-vue', 'Board')
+			return t('nextcloud-vue', 'Kanban')
 		},
 
 		/** @return {string} The Move to control's label. */
@@ -1271,7 +1271,7 @@ export default {
 			this.openMenuKey = null
 			if (card && this.$el && typeof this.$el.querySelector === 'function') {
 				this.$nextTick(() => {
-					const button = this.$el.querySelector(`[data-testid="cn-board-card-menu"][data-card-id="${this.cardKey(card)}"]`)
+					const button = this.$el.querySelector(`[data-testid="cn-kanban-card-menu"][data-card-id="${this.cardKey(card)}"]`)
 					button?.focus?.()
 				})
 			}
@@ -1297,7 +1297,7 @@ export default {
 		 * @return {Array<HTMLElement>} The open menu's items.
 		 */
 		menuItems(card) {
-			const article = this.$el?.querySelector?.(`[data-testid="cn-board-card"][data-card-id="${this.cardKey(card)}"]`)
+			const article = this.$el?.querySelector?.(`[data-testid="cn-kanban-card"][data-card-id="${this.cardKey(card)}"]`)
 			return article ? Array.from(article.querySelectorAll('[role="menuitem"]')) : []
 		},
 
@@ -1612,21 +1612,21 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.cn-board-view__columns {
+.cn-kanban-view__columns {
 	display: flex;
 	gap: 12px;
 	overflow-x: auto;
 	align-items: flex-start;
 }
 
-.cn-board-view__column {
+.cn-kanban-view__column {
 	flex: 0 0 260px;
 	background-color: var(--color-background-hover);
 	border-radius: var(--border-radius-large);
 	padding: 8px;
 }
 
-.cn-board-view__column-header {
+.cn-kanban-view__column-header {
 	display: flex;
 	justify-content: space-between;
 	gap: 8px;
@@ -1634,13 +1634,13 @@ export default {
 	margin: 0 0 8px;
 }
 
-.cn-board-view__count,
-.cn-board-view__empty,
-.cn-board-view__unusable {
+.cn-kanban-view__count,
+.cn-kanban-view__empty,
+.cn-kanban-view__unusable {
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-board-view__card {
+.cn-kanban-view__card {
 	display: block;
 	background-color: var(--color-main-background);
 	border: 1px solid var(--color-border);
@@ -1649,29 +1649,29 @@ export default {
 	margin-bottom: 8px;
 }
 
-.cn-board-view__card-field {
+.cn-kanban-view__card-field {
 	display: block;
 }
 
 /* A late card: an edge in the error colour, drawn as an inset shadow so the
    card keeps its size and its rounded corners. The label below carries the
    meaning; the edge only helps a sighted reader find it. */
-.cn-board-view__card--overdue {
+.cn-kanban-view__card--overdue {
 	border-color: var(--color-error);
 	box-shadow: inset 3px 0 0 var(--color-error);
 }
 
-.cn-board-view__due {
+.cn-kanban-view__due {
 	display: block;
 	font-size: 0.85em;
 	font-weight: 700;
 }
 
-.cn-board-view__due--overdue {
+.cn-kanban-view__due--overdue {
 	color: var(--color-error-text, var(--color-error));
 }
 
-.cn-board-view__due--soon {
+.cn-kanban-view__due--soon {
 	color: var(--color-warning-text, var(--color-main-text));
 	font-weight: 600;
 }
@@ -1680,7 +1680,7 @@ export default {
  * The card's opening control. The cursor and the focus ring live here now,
  * on the thing that actually does something, rather than on the box.
  */
-.cn-board-view__card-open {
+.cn-kanban-view__card-open {
 	background: none;
 	border: none;
 	padding: 0;
@@ -1689,12 +1689,12 @@ export default {
 	font-size: 0.8rem;
 }
 
-.cn-board-view__card-open:focus-visible {
+.cn-kanban-view__card-open:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
 }
 
-.cn-board-view__lane-header {
+.cn-kanban-view__lane-header {
 	background: none;
 	border: none;
 	font-weight: bold;
@@ -1703,16 +1703,16 @@ export default {
 	color: var(--color-main-text);
 }
 
-.cn-board-view__move-label {
+.cn-kanban-view__move-label {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.8rem;
 }
 
-.cn-board-view__refusal {
+.cn-kanban-view__refusal {
 	color: var(--color-error);
 }
 
-.cn-board-view__count--full {
+.cn-kanban-view__count--full {
 	color: var(--color-error-text, var(--color-error));
 	font-weight: 600;
 }

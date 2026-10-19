@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.131.0",
+	"version": "2.132.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1115,11 +1115,11 @@
 				}
 			}
 		},
-		"boardView": {
+		"kanbanView": {
 			"type": "object",
 			"additionalProperties": false,
 			"required": ["statusField"],
-			"description": "The board view of this list: one column per stage of a status field. Index pages only, and only offered when `viewModes` also lists `board`. The COLUMNS COME FROM THE SCHEMA, not from the values present in the loaded rows: a board built from the data would lose the stage nothing is in, which is the one you drag a card into, and would reorder itself as work moved. A move goes through the host's transition and never writes the status field, so a board can never move a case past a rule the case page enforces.",
+			"description": "The kanban view of this list: one column per stage of a status field. Index pages only, and only offered when `viewModes` also lists `kanban` (or the deprecated `board`). The COLUMNS COME FROM THE SCHEMA, not from the values present in the loaded rows: a board built from the data would lose the stage nothing is in, which is the one you drag a card into, and would reorder itself as work moved. A move goes through the host's transition and never writes the status field, so a board can never move a case past a rule the case page enforces.",
 			"properties": {
 				"statusField": {
 					"type": "string",
@@ -3723,9 +3723,14 @@
 					"$ref": "#/$defs/splitView",
 					"description": "Index pages only. Opens a row beside the list rather than instead of it, at the sibling route <route>/split/:id that buildManifestRoutes() emits. Refused on any other page type."
 				},
+				"kanban": {
+					"$ref": "#/$defs/kanbanView",
+					"description": "Index pages only. The kanban view's configuration, handed to CnIndexPage as the `kanban` prop. The segment appears only when `viewModes` also lists `kanban`. Refused on any other page type."
+				},
 				"board": {
-					"$ref": "#/$defs/boardView",
-					"description": "Index pages only. The board view's configuration, handed to CnIndexPage as the `board` prop. The segment appears only when `viewModes` also lists `board`. Refused on any other page type."
+					"$ref": "#/$defs/kanbanView",
+					"deprecated": true,
+					"description": "Deprecated: the former name of `kanban`, still read when `kanban` is absent. Write `kanban`. Refused on any other page type than index."
 				},
 				"dateAxis": {
 					"$ref": "#/$defs/dateAxisView",
@@ -4774,7 +4779,7 @@
 									"searchPlaceholder": { "type": "string", "minLength": 1, "description": "The search placeholder while the preset applies." },
 									"footerNote": { "type": "string", "minLength": 1, "description": "The footer note while the preset applies." },
 									"defaultSort": { "type": "array", "description": "The default sort while the preset applies; same shape as config.defaultSort." },
-									"viewSwitch": { "type": "array", "items": { "type": "string", "enum": ["table", "cards", "board", "map"] }, "description": "The drawn view segments while the preset applies." },
+									"viewSwitch": { "type": "array", "items": { "type": "string", "enum": ["table", "cards", "kanban", "board", "map"] }, "description": "The drawn view segments while the preset applies. `board` is the deprecated name of `kanban`." },
 									"addLabel": { "type": "string", "minLength": 1, "description": "The add button label while the preset applies (index-scope-presentation)." },
 									"headerButtons": { "type": "array", "description": "The header buttons while the preset applies; same shape as config.headerButtons (index-scope-presentation)." },
 									"breadcrumb": { "description": "The breadcrumb while the preset applies; same shape as config.breadcrumb (index-scope-presentation).", "anyOf": [{ "$ref": "#/$defs/breadcrumbCrumb" }, { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/breadcrumbCrumb" } }] },
@@ -4787,8 +4792,8 @@
 							"type": "array",
 							"minItems": 1,
 							"uniqueItems": true,
-							"items": { "type": "string", "enum": ["table", "cards", "board", "map"] },
-							"description": "type='index', board look: the segments the view switch draws, e.g. [\"table\", \"cards\", \"board\", \"map\"] as the boards do. A listed mode the page can open is an ordinary segment; one it cannot (no board columns, no map) is drawn disabled and named \"<mode>: not available on this list\". Order is always table, cards, board, map. Ignored without the board look (screens-view-switch-parity). Maps to CnIndexPage `viewSwitch`."
+							"items": { "type": "string", "enum": ["table", "cards", "kanban", "board", "map"] },
+							"description": "type='index', board look: the segments the view switch draws, e.g. [\"table\", \"cards\", \"kanban\", \"map\"] as the boards do. A listed mode the page can open is an ordinary segment; one it cannot (no kanban columns, no map) is drawn disabled and named \"<mode>: not available on this list\". Order is always table, cards, kanban, map. `board` is the deprecated name of `kanban` and is read as it. Ignored without the board look (screens-view-switch-parity). Maps to CnIndexPage `viewSwitch`."
 						},
 						"filterStrip": {
 							"type": "object",
@@ -4807,11 +4812,12 @@
 							"type": "object",
 							"additionalProperties": false,
 							"minProperties": 1,
-							"description": "type='index', board look: view switch segments that open another PAGE instead of switching in place, by mode: `{ \"board\": { \"route\": \"CaseBoard\" } }` for a board or a map that is a page of its own. The segment sits in its place in the switch (table, cards, board, map) as a link: `route` with optional `params` and `query`, or `href`. A mode the page opens in place stays a button, and a route the router cannot resolve is left out. Ignored without the board look (screens-view-switch-links, 2.91.0). Maps to CnIndexPage `viewSwitchLinks`.",
+							"description": "type='index', board look: view switch segments that open another PAGE instead of switching in place, by mode: `{ \"kanban\": { \"route\": \"CaseBoard\" } }` for a kanban or a map that is a page of its own. The segment sits in its place in the switch (table, cards, kanban, map); a `board` key is read as `kanban` as a link: `route` with optional `params` and `query`, or `href`. A mode the page opens in place stays a button, and a route the router cannot resolve is left out. Ignored without the board look (screens-view-switch-links, 2.91.0). Maps to CnIndexPage `viewSwitchLinks`.",
 							"properties": {
 								"table": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["route"] }, { "required": ["href"] }], "properties": { "route": { "type": "string", "minLength": 1 }, "params": { "type": "object", "additionalProperties": true }, "query": { "type": "object", "additionalProperties": true }, "href": { "type": "string", "minLength": 1 } } },
 								"cards": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["route"] }, { "required": ["href"] }], "properties": { "route": { "type": "string", "minLength": 1 }, "params": { "type": "object", "additionalProperties": true }, "query": { "type": "object", "additionalProperties": true }, "href": { "type": "string", "minLength": 1 } } },
-								"board": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["route"] }, { "required": ["href"] }], "properties": { "route": { "type": "string", "minLength": 1 }, "params": { "type": "object", "additionalProperties": true }, "query": { "type": "object", "additionalProperties": true }, "href": { "type": "string", "minLength": 1 } } },
+								"kanban": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["route"] }, { "required": ["href"] }], "properties": { "route": { "type": "string", "minLength": 1 }, "params": { "type": "object", "additionalProperties": true }, "query": { "type": "object", "additionalProperties": true }, "href": { "type": "string", "minLength": 1 } } },
+								"board": { "deprecated": true, "description": "Deprecated: the former name of `kanban`, read as it.", "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["route"] }, { "required": ["href"] }], "properties": { "route": { "type": "string", "minLength": 1 }, "params": { "type": "object", "additionalProperties": true }, "query": { "type": "object", "additionalProperties": true }, "href": { "type": "string", "minLength": 1 } } },
 								"map": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["route"] }, { "required": ["href"] }], "properties": { "route": { "type": "string", "minLength": 1 }, "params": { "type": "object", "additionalProperties": true }, "query": { "type": "object", "additionalProperties": true }, "href": { "type": "string", "minLength": 1 } } }
 							}
 						},
@@ -5141,9 +5147,9 @@
 					}
 				},
 				{
-					"description": "screens-board-reference-columns (2.97.0): config.board on an index page, the block CnPageRenderer hands to CnIndexPage's `board` prop, is typed by boardView like pages[].board.",
+					"description": "screens-board-reference-columns (2.97.0): config.kanban on an index page, the block CnPageRenderer hands to CnIndexPage's `kanban` prop, is typed by kanbanView like pages[].kanban. The deprecated config.board is typed the same and read when config.kanban is absent.",
 					"if": { "properties": { "type": { "const": "index" } }, "required": ["type"] },
-					"then": { "properties": { "config": { "properties": { "board": { "$ref": "#/$defs/boardView" } } } } }
+					"then": { "properties": { "config": { "properties": { "kanban": { "$ref": "#/$defs/kanbanView" }, "board": { "$ref": "#/$defs/kanbanView", "deprecated": true } } } } }
 				},
 				{
 					"description": "index-calendar-view-mode: config.calendar on an index page is typed by calendarView.",
@@ -5184,6 +5190,7 @@
 								{ "required": ["splitView"] },
 								{ "required": ["manualOrder"] },
 								{ "required": ["savedViewTree"] },
+								{ "required": ["kanban"] },
 								{ "required": ["board"] },
 								{ "required": ["dateAxis"] }
 							]

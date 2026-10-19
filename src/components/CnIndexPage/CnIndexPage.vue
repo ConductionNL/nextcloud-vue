@@ -253,12 +253,12 @@
 				<template v-if="boardControlsShown">
 					<label
 						v-if="boardNarrow"
-						class="cn-index-page__board-control"
-						data-testid="cn-board-narrow">
-						<span class="cn-index-page__board-control-label">{{ boardNarrowLabel }}</span>
+						class="cn-index-page__kanban-control"
+						data-testid="cn-kanban-narrow">
+						<span class="cn-index-page__kanban-control-label">{{ boardNarrowLabel }}</span>
 						<select
-							class="cn-index-page__board-select"
-							data-testid="cn-board-narrow-select"
+							class="cn-index-page__kanban-select"
+							data-testid="cn-kanban-narrow-select"
 							:value="boardNarrowValue"
 							@change="onBoardNarrowChange($event.target.value)">
 							<option value="">{{ boardNarrowAllLabel }}</option>
@@ -272,12 +272,12 @@
 					</label>
 					<label
 						v-if="boardColumnFields.length > 1"
-						class="cn-index-page__board-control"
-						data-testid="cn-board-column-switch">
-						<span class="cn-index-page__board-control-label">{{ boardColumnSwitchLabel }}</span>
+						class="cn-index-page__kanban-control"
+						data-testid="cn-kanban-column-switch">
+						<span class="cn-index-page__kanban-control-label">{{ boardColumnSwitchLabel }}</span>
 						<select
-							class="cn-index-page__board-select cn-index-page__board-select--strong"
-							data-testid="cn-board-column-switch-select"
+							class="cn-index-page__kanban-select cn-index-page__kanban-select--strong"
+							data-testid="cn-kanban-column-switch-select"
 							:value="boardColumnField"
 							@change="onBoardColumnFieldChange($event.target.value)">
 							<option
@@ -289,9 +289,9 @@
 						</select>
 					</label>
 					<span
-						v-if="board.hint"
-						class="cn-index-page__board-hint"
-						data-testid="cn-board-hint">{{ cnTranslate(board.hint) }}</span>
+						v-if="kanbanConfig.hint"
+						class="cn-index-page__kanban-hint"
+						data-testid="cn-kanban-hint">{{ cnTranslate(kanbanConfig.hint) }}</span>
 				</template>
 				<NcCheckboxRadioSwitch
 					v-if="searchInFiles"
@@ -945,29 +945,29 @@
 					@markerClick="onMarkerClick" />
 
 				<!--
-					Board view. The columns are the schema's stages and a move
-					goes through the host's transition; CnBoardView never
+					Kanban view. The columns are the schema's stages and a move
+					goes through the host's transition; CnKanbanView never
 					writes the status field, so with no runTransition it is
 					read-only rather than broken.
 				-->
-				<CnBoardView
-					v-else-if="currentViewMode === 'board'"
+				<CnKanbanView
+					v-else-if="currentViewMode === 'kanban'"
 					:rows="displayObjects"
 					:statusFieldSchema="boardFieldSchema"
 					:statusField="boardColumnField"
 					:columnKeyOf="boardColumnKeyOf"
-					:wrapColumns="board.wrap === true"
+					:wrapColumns="kanbanConfig.wrap === true"
 					:selectable="selectable"
 					:selectedIds="internalSelectedIds"
 					:allowedMoves="boardAllowedMoves"
-					:cardFields="board.cardFields || []"
-					:swimlaneField="board.swimlaneField || ''"
-					:dueRule="board.dueRule || null"
-					:cardRoles="board.card || null"
-					:colorField="board.colorField || ''"
-					:sumField="board.sumField || ''"
+					:cardFields="kanbanConfig.cardFields || []"
+					:swimlaneField="kanbanConfig.swimlaneField || ''"
+					:dueRule="kanbanConfig.dueRule || null"
+					:cardRoles="kanbanConfig.card || null"
+					:colorField="kanbanConfig.colorField || ''"
+					:sumField="kanbanConfig.sumField || ''"
 					:sumFormat="boardSumFormat"
-					:columnLimit="board.columnLimit || 0"
+					:columnLimit="kanbanConfig.columnLimit || 0"
 					:rowKey="rowKey"
 					:runTransition="boardRunTransition"
 					:paged="isPaged"
@@ -1148,15 +1148,15 @@
 				     counts them and offers the next batch instead of pages. -->
 				<div
 					v-if="boardLoadsAll && boardLoadCounts.total > 0"
-					class="cn-index-page__board-load"
-					data-testid="cn-index-board-load">
-					<span class="cn-index-page__board-load-count" data-testid="cn-index-board-load-count">
+					class="cn-index-page__kanban-load"
+					data-testid="cn-index-kanban-load">
+					<span class="cn-index-page__kanban-load-count" data-testid="cn-index-kanban-load-count">
 						{{ t('nextcloud-vue', 'Showing {count} of {total}', { count: boardLoadCounts.shown, total: boardLoadCounts.total }) }}
 					</span>
 					<NcButton
 						v-if="isPaged"
 						:disabled="effectiveLoading"
-						data-testid="cn-index-board-load-more"
+						data-testid="cn-index-kanban-load-more"
 						@click="onBoardLoadMore">
 						{{ t('nextcloud-vue', 'Load more') }}
 					</NcButton>
@@ -1351,11 +1351,11 @@ import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterView
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
+import { normalizeViewMode, normalizeViewModeKeys, normalizeViewModes } from '../../utils/viewModes.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { CnBoardView } from '../CnBoardView/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
@@ -1366,6 +1366,7 @@ import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
+import { CnKanbanView } from '../CnKanbanView/index.js'
 import { CnMapWidget } from '../CnMapWidget/index.js'
 import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
@@ -1652,7 +1653,7 @@ export default {
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
-		CnBoardView,
+		CnKanbanView,
 		CnDateAxisView,
 		CnObjectCalendar,
 		CnMapWidget,
@@ -2520,15 +2521,16 @@ export default {
 		},
 
 		/**
-		 * View mode: 'table', 'cards', 'list', 'map', 'board', 'dateAxis' or 'calendar'.
+		 * View mode: 'table', 'cards', 'list', 'map', 'kanban', 'dateAxis' or 'calendar'.
 		 * Default 'table'. List is opted in via `availableViewModes`; map via
-		 * `mapConfig` / `config.viewModes`; board and dateAxis via
-		 * `config.viewModes` and their own config blocks.
+		 * `mapConfig` / `config.viewModes`; kanban and dateAxis via
+		 * `config.viewModes` and their own config blocks. The deprecated
+		 * 'board' is read as 'kanban'.
 		 */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map', 'board', 'dateAxis', 'calendar'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map', 'kanban', 'board', 'dateAxis', 'calendar'].includes(v),
 		},
 
 		/**
@@ -2580,7 +2582,9 @@ export default {
 		 * inferred availability (map otherwise appears iff `mapConfig` is
 		 * non-empty). Cards/table always render regardless of this list.
 		 *
-		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis' | 'calendar'>}
+		 * The deprecated `board` is read as `kanban`.
+		 *
+		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'kanban' | 'dateAxis' | 'calendar'>}
 		 */
 		viewModes: {
 			type: Array,
@@ -2589,13 +2593,14 @@ export default {
 
 		/**
 		 * Board look: the segments the view switch draws, e.g. `['table',
-		 * 'cards', 'board', 'map']` as the boards do. A listed mode the page
-		 * can open is an ordinary segment; one it cannot (no board columns, no
+		 * 'cards', 'kanban', 'map']` as the boards do. A listed mode the page
+		 * can open is an ordinary segment; one it cannot (no kanban columns, no
 		 * map configured) is drawn disabled, named "<mode>: not available on
 		 * this list". Fed from `pages[].config.viewSwitch`. Ignored without the
-		 * board look; absent, the board look draws all four.
+		 * board look; absent, the board look draws all four. The deprecated
+		 * `board` is read as `kanban`.
 		 *
-		 * @type {Array<'table' | 'cards' | 'board' | 'map'>}
+		 * @type {Array<'table' | 'cards' | 'kanban' | 'map'>}
 		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
 		 */
 		viewSwitch: {
@@ -2605,12 +2610,12 @@ export default {
 
 		/**
 		 * Board look: view switch segments that open another PAGE, by mode
-		 * (`table`, `cards`, `board`, `map`): `{ board: { route: 'CaseBoard',
+		 * (`table`, `cards`, `kanban`, `map`): `{ kanban: { route: 'CaseBoard',
 		 * params?, query? } }` or `{ map: { href: '/apps/x/map' } }`. The
-		 * segment sits in its place in the switch as a link, for a board or a
+		 * segment sits in its place in the switch as a link, for a kanban or a
 		 * map that is a page of its own. A mode this page opens in place stays
 		 * a button. Fed from `pages[].config.viewSwitchLinks`. Ignored without
-		 * the board look.
+		 * the board look. A `board` key is read as `kanban`.
 		 *
 		 * @type {{[mode: string]: {route?: string, params?: object, query?: object, href?: string}}}
 		 * @spec openspec/changes/screens-view-switch-links/specs/view-switch/spec.md#requirement-a-view-switch-segment-can-open-another-page
@@ -2621,12 +2626,24 @@ export default {
 		},
 
 		/**
-		 * The board's configuration, mirroring the manifest `config.board`
-		 * block: `{ statusField, cardFields, swimlaneField }`. The board is
+		 * The kanban's configuration, mirroring the manifest `config.kanban`
+		 * block: `{ statusField, cardFields, swimlaneField }`. The kanban is
 		 * offered only when this names a `statusField` AND `viewModes` lists
-		 * `board`: a segment that opens a board saying it cannot be one is
+		 * `kanban`: a segment that opens a kanban saying it cannot be one is
 		 * worse than no segment.
 		 *
+		 * @type {object}
+		 */
+		kanban: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The former name of `kanban` (manifest `config.board`), read when
+		 * `kanban` is empty.
+		 *
+		 * @deprecated Use `kanban`.
 		 * @type {object}
 		 */
 		board: {
@@ -2677,12 +2694,12 @@ export default {
 		 * list view. Fed from the manifest as `pages[].config.availableViewModes`.
 		 * Map is added separately via `mapConfig` / `viewModes`.
 		 *
-		 * @type {Array<'cards' | 'table' | 'list' | 'map' | 'board' | 'dateAxis' | 'calendar'>}
+		 * @type {Array<'cards' | 'table' | 'list' | 'map' | 'kanban' | 'dateAxis' | 'calendar'>}
 		 */
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map', 'board', 'dateAxis', 'calendar'].includes(m)),
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map', 'kanban', 'board', 'dateAxis', 'calendar'].includes(m)),
 		},
 
 		/** Current sort key */
@@ -4020,7 +4037,7 @@ export default {
 
 	data() {
 		return {
-			currentViewMode: this.viewMode,
+			currentViewMode: normalizeViewMode(this.viewMode),
 			/** Whether `?_view=` names a mode the page did not offer yet, to open once it does. */
 			routeViewPending: false,
 			/** The column field the reader picked in the board's column switch; '' = the default. */
@@ -4037,7 +4054,7 @@ export default {
 			calendarPrevPageSize: null,
 			// The table's page size while the board view holds the list at
 			// BOARD_PAGE_SIZE; restored on leaving the board.
-			boardPrevPageSize: this.viewMode === 'board' ? ((this.pagination && this.pagination.limit) || 20) : null,
+			boardPrevPageSize: normalizeViewMode(this.viewMode) === 'kanban' ? ((this.pagination && this.pagination.limit) || 20) : null,
 			/** Resolved labels of reference columns: `{ [columnKey]: { [id]: label|null } }`. */
 			refLabels: {},
 			/** Count per tab-strip index, for the entries that asked for one; null = none. */
@@ -4546,6 +4563,18 @@ export default {
 		},
 
 		/**
+		 * The kanban's configuration: `kanban`, else the deprecated `board`.
+		 *
+		 * @return {object} The configuration, `{}` when neither is set.
+		 */
+		kanbanConfig() {
+			if (this.kanban && typeof this.kanban === 'object' && Object.keys(this.kanban).length > 0) {
+				return this.kanban
+			}
+			return (this.board && typeof this.board === 'object') ? this.board : {}
+		},
+
+		/**
 		 * Whether the `map` segment is offered in the view toggle. An explicit
 		 * `viewModes` whitelist wins; otherwise map is available iff `mapConfig`
 		 * carries at least one field. Cards/table are always available.
@@ -4568,13 +4597,13 @@ export default {
 		 * @spec openspec/changes/screens-view-switch-links/specs/view-switch/spec.md#requirement-a-view-switch-segment-can-open-another-page
 		 */
 		viewSwitchLinkTargets() {
-			const declared = this.viewSwitchLinks
+			const declared = normalizeViewModeKeys(this.viewSwitchLinks)
 			if (!this.isBoardLook || !declared || typeof declared !== 'object') {
 				return {}
 			}
 			const targets = {}
 			for (const [mode, link] of Object.entries(declared)) {
-				if (!['table', 'cards', 'board', 'map'].includes(mode) || !link || typeof link !== 'object') {
+				if (!['table', 'cards', 'kanban', 'map'].includes(mode) || !link || typeof link !== 'object') {
 					continue
 				}
 				if (typeof link.route === 'string' && link.route !== '') {
@@ -4609,10 +4638,10 @@ export default {
 			}
 			// The index boards draw all four segments, so the board look does
 			// too unless the manifest names its own list.
-			const viewSwitch = this.presented('viewSwitch')
-			const listed = Array.isArray(viewSwitch) ? viewSwitch : ['table', 'cards', 'board', 'map']
+			const viewSwitch = normalizeViewModes(this.presented('viewSwitch'))
+			const listed = Array.isArray(viewSwitch) ? viewSwitch : ['table', 'cards', 'kanban', 'map']
 			const offered = [...this.effectiveToggleModes, ...(this.showMapSegment ? ['map'] : [])]
-			return listed.filter((mode) => ['table', 'cards', 'board', 'map'].includes(mode) && !offered.includes(mode))
+			return listed.filter((mode) => ['table', 'cards', 'kanban', 'map'].includes(mode) && !offered.includes(mode))
 		},
 
 		/**
@@ -4624,9 +4653,9 @@ export default {
 		 * @return {Array<string>} The ordered toggle segments minus 'map'.
 		 */
 		effectiveToggleModes() {
-			const list = (Array.isArray(this.viewModes) && this.viewModes.length)
+			const list = normalizeViewModes((Array.isArray(this.viewModes) && this.viewModes.length)
 				? this.viewModes
-				: this.availableViewModes
+				: this.availableViewModes)
 
 			// 🔴 A SEGMENT ONLY WHEN THE MODE CAN ACTUALLY WORK. A board needs
 			// a status field to build its columns from and a date axis needs
@@ -4637,8 +4666,8 @@ export default {
 				if (mode === 'map') {
 					return false
 				}
-				if (mode === 'board') {
-					return Boolean(this.board?.statusField)
+				if (mode === 'kanban') {
+					return Boolean(this.kanbanConfig?.statusField)
 				}
 				if (mode === 'dateAxis') {
 					return Boolean(this.dateAxis?.startField) && Boolean(this.dateAxis?.endField)
@@ -4669,7 +4698,7 @@ export default {
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-board-can-switch-the-field-its-columns-come-from
 		 */
 		boardColumnFields() {
-			return columnFieldsOf(this.board)
+			return columnFieldsOf(this.kanbanConfig)
 		},
 
 		/**
@@ -4684,13 +4713,13 @@ export default {
 				return null
 			}
 			return fields.find((entry) => entry.field === this.boardColumnFieldChoice)
-				|| fields.find((entry) => entry.field === this.board?.statusField)
+				|| fields.find((entry) => entry.field === this.kanbanConfig?.statusField)
 				|| fields[0]
 		},
 
 		/** @return {string} The row field the columns come from. */
 		boardColumnField() {
-			return this.boardActiveColumnField?.field || this.board?.statusField || 'status'
+			return this.boardActiveColumnField?.field || this.kanbanConfig?.statusField || 'status'
 		},
 
 		/**
@@ -4700,7 +4729,7 @@ export default {
 		 * @return {string} The parent id.
 		 */
 		boardNarrowValue() {
-			const field = this.board?.narrow?.field || this.boardActiveColumnField?.source?.narrowBy?.rowField
+			const field = this.kanbanConfig?.narrow?.field || this.boardActiveColumnField?.source?.narrowBy?.rowField
 			if (!field) {
 				return ''
 			}
@@ -4799,8 +4828,8 @@ export default {
 			if (active?.readOnly) {
 				return null
 			}
-			const onStatusField = !active || active.field === this.board?.statusField
-			const name = active?.moveHandler || (onStatusField ? (this.board?.moveHandler || '') : '')
+			const onStatusField = !active || active.field === this.kanbanConfig?.statusField
+			const name = active?.moveHandler || (onStatusField ? (this.kanbanConfig?.moveHandler || '') : '')
 			const handler = name ? resolveRegisteredHandler(name, this.effectiveRegistry, this.resolvedCustomComponents) : null
 			if (name && typeof handler !== 'function') {
 				return null
@@ -4852,8 +4881,8 @@ export default {
 		 */
 		boardAllowedMoves() {
 			const active = this.boardActiveColumnField
-			const onStatusField = !active || active.field === this.board?.statusField
-			const name = active?.moveTargetsHandler || (onStatusField ? (this.board?.moveTargetsHandler || '') : '')
+			const onStatusField = !active || active.field === this.kanbanConfig?.statusField
+			const name = active?.moveTargetsHandler || (onStatusField ? (this.kanbanConfig?.moveTargetsHandler || '') : '')
 			const handler = name ? resolveRegisteredHandler(name, this.effectiveRegistry, this.resolvedCustomComponents) : null
 			if (typeof handler !== 'function' || this.boardRunTransition === null) {
 				return null
@@ -4881,7 +4910,7 @@ export default {
 
 		/** @return {object|null} The board's narrowing select (`board.narrow`). */
 		boardNarrow() {
-			const narrow = this.board?.narrow
+			const narrow = this.kanbanConfig?.narrow
 			return narrow && typeof narrow === 'object' && typeof narrow.field === 'string' && narrow.field !== '' ? narrow : null
 		},
 
@@ -4899,14 +4928,14 @@ export default {
 
 		/** @return {string} The column switch's label, with its colon. */
 		boardColumnSwitchLabel() {
-			const label = this.board?.columnSwitchLabel ? this.cnTranslate(this.board.columnSwitchLabel) : t('nextcloud-vue', 'Columns')
+			const label = this.kanbanConfig?.columnSwitchLabel ? this.cnTranslate(this.kanbanConfig.columnSwitchLabel) : t('nextcloud-vue', 'Columns')
 			return t('nextcloud-vue', '{label}:', { label })
 		},
 
 		/** @return {boolean} Whether the board view draws its controls row. */
 		boardControlsShown() {
-			return this.currentViewMode === 'board'
-				&& (this.boardColumnFields.length > 1 || this.boardNarrow !== null || Boolean(this.board?.hint))
+			return this.currentViewMode === 'kanban'
+				&& (this.boardColumnFields.length > 1 || this.boardNarrow !== null || Boolean(this.kanbanConfig?.hint))
 		},
 
 		/**
@@ -4915,7 +4944,7 @@ export default {
 		 * @return {string} The key, '' outside the board view.
 		 */
 		boardFetchKey() {
-			if (this.currentViewMode !== 'board') {
+			if (this.currentViewMode !== 'kanban') {
 				return ''
 			}
 			return [this.boardColumnField, this.boardActiveColumnField?.kind || '', this.effectiveSchema ? 1 : 0, this.boardNarrow ? this.boardNarrow.field : ''].join('|')
@@ -4931,7 +4960,7 @@ export default {
 		 * @return {?object} The field schema, or null.
 		 */
 		boardStatusFieldSchema() {
-			const field = this.board?.statusField
+			const field = this.kanbanConfig?.statusField
 			if (!field) {
 				return null
 			}
@@ -4947,10 +4976,10 @@ export default {
 		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-the-board-column-header
 		 */
 		boardSumFormat() {
-			if (this.board?.sumFormat && typeof this.board.sumFormat === 'object') {
-				return this.board.sumFormat
+			if (this.kanbanConfig?.sumFormat && typeof this.kanbanConfig.sumFormat === 'object') {
+				return this.kanbanConfig.sumFormat
 			}
-			const field = this.board?.sumField
+			const field = this.kanbanConfig?.sumField
 			const property = field ? this.effectiveSchema?.properties?.[field] : null
 			if (property && (property.format === 'currency' || property.format === 'percent')) {
 				return { style: property.format, currency: property.currency, decimals: property.format === 'currency' ? 2 : 0 }
@@ -4986,7 +5015,7 @@ export default {
 		 * @spec openspec/changes/board-loads-every-row/specs/board-view/spec.md#requirement-the-index-board-shows-every-matching-row
 		 */
 		boardLoadsAll() {
-			return this.currentViewMode === 'board' && this.isSelfFetchMode && !this.isNamedSource && typeof this.list.loadMore === 'function'
+			return this.currentViewMode === 'kanban' && this.isSelfFetchMode && !this.isNamedSource && typeof this.list.loadMore === 'function'
 		},
 
 		/**
@@ -5185,7 +5214,7 @@ export default {
 		 * @return {boolean}
 		 */
 		scopeShapesView() {
-			const views = this.folderSidebar && this.folderSidebar.scopeViews
+			const views = normalizeViewModes(this.folderSidebar && this.folderSidebar.scopeViews)
 			if (!Array.isArray(views) || views.length === 0) {
 				return true
 			}
@@ -7796,7 +7825,7 @@ export default {
 		},
 
 		viewMode(val) {
-			this.currentViewMode = val
+			this.currentViewMode = normalizeViewMode(val)
 		},
 
 		// Entering calendar mode fetches one page sized to the month; leaving
@@ -7813,7 +7842,7 @@ export default {
 				this.calendarRange = null
 				listSize = this.calendarPrevPageSize || 20
 				this.calendarPrevPageSize = null
-			} else if (previous === 'board') {
+			} else if (previous === 'kanban') {
 				listSize = this.boardPrevPageSize || 20
 				this.boardPrevPageSize = null
 			}
@@ -7826,13 +7855,13 @@ export default {
 			if (mode === 'calendar') {
 				this.calendarPrevPageSize = listSize
 				size = CALENDAR_PAGE_SIZE
-			} else if (mode === 'board') {
+			} else if (mode === 'kanban') {
 				this.boardPrevPageSize = listSize
 				size = BOARD_PAGE_SIZE
 			} else if (mode === 'map' && this.mapPlotAllLimit > 0 && !this.isNamedSource) {
 				this.mapPrevPageSize = listSize
 				size = this.mapPlotAllLimit
-			} else if (previous === 'calendar' || previous === 'board' || leftMapPlotAll) {
+			} else if (previous === 'calendar' || previous === 'kanban' || leftMapPlotAll) {
 				size = listSize
 			}
 			if (size !== null && typeof this.list.onPageSizeChange === 'function') {
@@ -10902,13 +10931,15 @@ export default {
 		 * @param {string} mode 'table' or 'cards'
 		 */
 		onViewModeChange(mode) {
+			const next = normalizeViewMode(mode)
 			this.routeViewPending = false
-			this.currentViewMode = mode
-			this.$emit('view-mode-change', mode)
+			this.currentViewMode = next
+			this.$emit('view-mode-change', next)
 		},
 
 		/**
-		 * Open in the mode the address names (`?_view=board`), when the page
+		 * Open in the mode the address names (`?_view=kanban`; the deprecated
+		 * `?_view=board` opens the same), when the page
 		 * offers it. The key starts with `_`, like `_search` and `_page`, so it
 		 * is never read as a list filter. A menu entry's `query` can so open a
 		 * list as its board, on the one page that lists the schema
@@ -10921,7 +10952,7 @@ export default {
 		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-the-address-opens-a-view-mode-that-arrives-later
 		 */
 		applyViewModeFromRoute() {
-			const wanted = this.$route?.query?._view
+			const wanted = normalizeViewMode(this.$route?.query?._view)
 			if (typeof wanted !== 'string' || wanted === '' || wanted === this.currentViewMode) {
 				this.routeViewPending = false
 				return

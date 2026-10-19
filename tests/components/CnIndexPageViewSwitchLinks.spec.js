@@ -36,12 +36,12 @@ function targets(extra = {}, look = 'board') {
 
 describe('CnIndexPage viewSwitchLinks', () => {
 	it('resolves a route (with query) and an href, and leaves the rest out', () => {
-		const props = targets({ viewSwitch: ['table', 'cards', 'board', 'map'], viewSwitchLinks: { board: { route: 'CaseBoard', query: { team: 'woo' } }, map: { href: '/apps/x/map' }, cards: { route: 'Missing' }, calendar: { href: '/x' } } })
-		expect(props.viewModeLinks).toEqual({ board: { href: '#/cases/board?team=woo', to: { name: 'CaseBoard', query: { team: 'woo' } } }, map: { href: '/apps/x/map' } })
+		const props = targets({ viewSwitch: ['table', 'cards', 'kanban', 'map'], viewSwitchLinks: { kanban: { route: 'CaseBoard', query: { team: 'woo' } }, map: { href: '/apps/x/map' }, cards: { route: 'Missing' }, calendar: { href: '/x' } } })
+		expect(props.viewModeLinks).toEqual({ kanban: { href: '#/cases/board?team=woo', to: { name: 'CaseBoard', query: { team: 'woo' } } }, map: { href: '/apps/x/map' } })
 	})
 
 	it('passes nothing without the board look or without the key', () => {
-		expect(targets({ viewSwitchLinks: { board: { route: 'CaseBoard' } } }, 'nextcloud').viewModeLinks).toEqual({})
+		expect(targets({ viewSwitchLinks: { kanban: { route: 'CaseBoard' } } }, 'nextcloud').viewModeLinks).toEqual({})
 		expect(targets().viewModeLinks).toEqual({})
 	})
 
@@ -52,8 +52,8 @@ describe('CnIndexPage viewSwitchLinks', () => {
 			menu: [],
 			pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 'case', viewSwitchLinks } }],
 		})
-		expect(validateManifestV2(manifest({ board: { route: 'CaseBoard', query: { team: 'woo' } }, map: { href: '/apps/x/map' } })).valid).toBe(true)
-		expect(validateManifestV2(manifest({ board: {} })).valid).toBe(false)
+		expect(validateManifestV2(manifest({ kanban: { route: 'CaseBoard', query: { team: 'woo' } }, map: { href: '/apps/x/map' } })).valid).toBe(true)
+		expect(validateManifestV2(manifest({ kanban: {} })).valid).toBe(false)
 		expect(validateManifestV2(manifest({ calendar: { route: 'X' } })).valid).toBe(false)
 	})
 })

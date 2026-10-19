@@ -20,6 +20,7 @@
     "Apps sometimes act for you on an external service. You give the secret to Nextcloud once, and Keepiq keeps it in an encrypted vault. Apps make the call through Keepiq and never see the secret. You choose which apps may use each credential. Share one across apps, or keep one per app.": "Apps sometimes act for you on an external service. You give the secret to Nextcloud once, and Keepiq keeps it in an encrypted vault. Apps make the call through Keepiq and never see the secret. You choose which apps may use each credential. Share one across apps, or keep one per app.",
     "Show as": "Show as",
     "Board": "Board",
+    "Kanban": "Kanban",
     "Calendar": "Calendar",
     "Group by": "Group by",
     "Card fields (at most {max})": "Card fields (at most {max})",

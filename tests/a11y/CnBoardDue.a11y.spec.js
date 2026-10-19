@@ -2,14 +2,14 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * Accessibility coverage for late marking on `CnBoardView` cards.
+ * Accessibility coverage for late marking on `CnKanbanView` cards.
  *
  * An edge in the error colour is the part a sighted reader notices, and the
  * part nobody else gets. The assertion beside the scan holds the card to
  * saying it in words too.
  */
 
-const CnBoardView = require('../../src/components/CnBoardView/CnBoardView.vue').default
+const CnKanbanView = require('../../src/components/CnKanbanView/CnKanbanView.vue').default
 const { expectAccessible } = require('../../src/testing/a11y.js')
 const { mountAttached } = require('./support/mountAttached.js')
 
@@ -36,7 +36,7 @@ const propsData = {
 	dueRule: { field: 'deadline', soonDays: 3 },
 }
 
-describe('CnBoardView late marking: accessibility', () => {
+describe('CnKanbanView late marking: accessibility', () => {
 	let wrapper
 
 	afterEach(() => {
@@ -44,20 +44,20 @@ describe('CnBoardView late marking: accessibility', () => {
 	})
 
 	it('has no WCAG 2.1 AA violations with overdue and soon cards', async () => {
-		wrapper = mountAttached(CnBoardView, { propsData })
+		wrapper = mountAttached(CnKanbanView, { propsData })
 		await expectAccessible(wrapper)
 	})
 
 	it('has no WCAG 2.1 AA violations with late cards and the move control', async () => {
-		wrapper = mountAttached(CnBoardView, {
+		wrapper = mountAttached(CnKanbanView, {
 			propsData: { ...propsData, runTransition: async () => ({ outcome: 'moved' }) },
 		})
 		await expectAccessible(wrapper)
 	})
 
 	it('says late in text inside the card, not by its edge alone', () => {
-		wrapper = mountAttached(CnBoardView, { propsData })
-		const cards = [...wrapper.element.querySelectorAll('[data-testid="cn-board-card"]')]
+		wrapper = mountAttached(CnKanbanView, { propsData })
+		const cards = [...wrapper.element.querySelectorAll('[data-testid="cn-kanban-card"]')]
 		expect(cards[0].textContent).toContain('Overdue')
 		expect(cards[1].textContent).toContain('Due soon')
 		expect(cards[2].textContent).not.toMatch(/Overdue|Due soon/)

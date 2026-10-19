@@ -9,7 +9,7 @@
 -->
 <template>
 	<div class="cn-look-board" style="width: 900px" data-testid="board-card-quiet">
-		<CnBoardView
+		<CnKanbanView
 			:rows="rows"
 			:statusFieldSchema="field"
 			statusField="status"
@@ -21,14 +21,14 @@
 </template>
 
 <script>
-import CnBoardView from '../../../src/components/CnBoardView/CnBoardView.vue'
+import CnKanbanView from '../../../src/components/CnKanbanView/CnKanbanView.vue'
 
 import '../../../src/css/index.css'
 
 export default {
 	name: 'BoardCardQuiet',
 
-	components: { CnBoardView },
+	components: { CnKanbanView },
 
 	provide() {
 		return { cnLook: 'board' }

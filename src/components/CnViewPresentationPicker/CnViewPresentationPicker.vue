@@ -196,7 +196,7 @@ export default {
 		types() {
 			return [
 				{ id: 'table', label: t('nextcloud-vue', 'Table'), reason: '' },
-				{ id: 'kanban', label: t('nextcloud-vue', 'Board'), reason: this.candidates.reasons.kanban },
+				{ id: 'kanban', label: t('nextcloud-vue', 'Kanban'), reason: this.candidates.reasons.kanban },
 				{ id: 'calendar', label: t('nextcloud-vue', 'Calendar'), reason: this.candidates.reasons.calendar },
 			]
 		},

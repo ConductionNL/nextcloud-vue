@@ -182,6 +182,7 @@ export {
 	CnJourneyDialog,
 	CnJourneyReviewList,
 	CnJsonViewer,
+	CnKanbanView,
 	CnKbSearchWidget,
 	CnKpiGrid,
 	CnLabelWidget,

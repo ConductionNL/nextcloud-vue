@@ -39,7 +39,7 @@ const fetchCollection = mockStore.fetchCollection
 const stubs = {
 	CnDataTable: true,
 	CnCardGrid: true,
-	CnBoardView: true,
+	CnKanbanView: true,
 	CnPagination: true,
 	CnActionsBar: true,
 	CnContextMenu: true,
@@ -65,7 +65,7 @@ const stubs = {
  */
 function mountPage(propsData) {
 	return mount(CnIndexPage, {
-		propsData: { title: 'Zaken', register: 'dossiq', schema: 'case', viewModes: ['table', 'board'], ...propsData },
+		propsData: { title: 'Zaken', register: 'dossiq', schema: 'case', viewModes: ['table', 'kanban'], ...propsData },
 		stubs,
 		mocks: { $route: { params: {}, query: {} }, $router: { push: jest.fn(), replace: jest.fn(() => Promise.resolve()) } },
 	})
@@ -87,7 +87,7 @@ beforeEach(() => {
 
 describe('CnIndexPage — the board view loads every row', () => {
 	it('opens in board view with one fetch of BOARD_PAGE_SIZE rows', async () => {
-		mountPage({ viewMode: 'board' })
+		mountPage({ viewMode: 'kanban' })
 		await flush()
 
 		expect(BOARD_PAGE_SIZE).toBe(500)
@@ -99,7 +99,7 @@ describe('CnIndexPage — the board view loads every row', () => {
 		await flush()
 		expect(limits()).toEqual([25])
 
-		wrapper.vm.onViewModeChange('board')
+		wrapper.vm.onViewModeChange('kanban')
 		await flush()
 		expect(limits()).toEqual([25, BOARD_PAGE_SIZE])
 
@@ -109,19 +109,19 @@ describe('CnIndexPage — the board view loads every row', () => {
 	})
 
 	it('counts what it holds of what matches and adds the next batch on Load more', async () => {
-		const wrapper = mountPage({ viewMode: 'board' })
+		const wrapper = mountPage({ viewMode: 'kanban' })
 		await flush()
 		const type = fetchCollection.mock.calls[0][0]
 		mockStore.collections = { [type]: [{ id: 'a' }, { id: 'b' }] }
 		mockStore.pagination = { [type]: { total: 3, page: 1, pages: 2, limit: BOARD_PAGE_SIZE } }
 		await wrapper.vm.$nextTick()
 
-		expect(wrapper.find('[data-testid="cn-index-board-load-count"]').text()).toBe('Showing 2 of 3')
-		expect(wrapper.find('[data-testid="cn-index-board-load-more"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-index-kanban-load-count"]').text()).toBe('Showing 2 of 3')
+		expect(wrapper.find('[data-testid="cn-index-kanban-load-more"]').exists()).toBe(true)
 		expect(wrapper.vm.isPaged).toBe(true)
 
 		fetchCollection.mockClear()
-		await wrapper.find('[data-testid="cn-index-board-load-more"]').trigger('click')
+		await wrapper.find('[data-testid="cn-index-kanban-load-more"]').trigger('click')
 		await flush()
 
 		const [, params, options] = fetchCollection.mock.calls[0]
@@ -130,24 +130,24 @@ describe('CnIndexPage — the board view loads every row', () => {
 	})
 
 	it('offers no Load more once every row is loaded', async () => {
-		const wrapper = mountPage({ viewMode: 'board' })
+		const wrapper = mountPage({ viewMode: 'kanban' })
 		await flush()
 		const type = fetchCollection.mock.calls[0][0]
 		mockStore.collections = { [type]: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] }
 		mockStore.pagination = { [type]: { total: 3, page: 2, pages: 2, limit: BOARD_PAGE_SIZE } }
 		await wrapper.vm.$nextTick()
 
-		expect(wrapper.find('[data-testid="cn-index-board-load-count"]').text()).toBe('Showing 3 of 3')
-		expect(wrapper.find('[data-testid="cn-index-board-load-more"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-index-kanban-load-count"]').text()).toBe('Showing 3 of 3')
+		expect(wrapper.find('[data-testid="cn-index-kanban-load-more"]').exists()).toBe(false)
 		expect(wrapper.vm.isPaged).toBe(false)
 	})
 
 	it('leaves a host-fed board on its pages', async () => {
-		const wrapper = mountPage({ register: '', schema: { title: 'Zaak', properties: {} }, objects: [{ id: 'a' }], viewMode: 'board', pagination: { total: 40, page: 1, pages: 2, limit: 20 } })
+		const wrapper = mountPage({ register: '', schema: { title: 'Zaak', properties: {} }, objects: [{ id: 'a' }], viewMode: 'kanban', pagination: { total: 40, page: 1, pages: 2, limit: 20 } })
 		await flush()
 
 		expect(fetchCollection).not.toHaveBeenCalled()
-		expect(wrapper.find('[data-testid="cn-index-board-load"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-index-kanban-load"]').exists()).toBe(false)
 		wrapper.vm.onBoardLoadMore()
 		expect(wrapper.emitted('page-changed')).toEqual([[2]])
 	})

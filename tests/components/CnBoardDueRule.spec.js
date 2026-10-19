@@ -2,12 +2,12 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * Late marking on board cards: `dueRule: { field, soonDays }` on CnBoardView
+ * Late marking on board cards: `dueRule: { field, soonDays }` on CnKanbanView
  * and CnObjectKanban, and the hand-off from a manifest `board` block.
  */
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
-import CnBoardView from '../../src/components/CnBoardView/CnBoardView.vue'
+import CnKanbanView from '../../src/components/CnKanbanView/CnKanbanView.vue'
 import CnObjectKanban from '../../src/components/CnObjectKanban/CnObjectKanban.vue'
 import { validateManifestV2 } from '../../src/utils/validateManifest.js'
 
@@ -31,54 +31,54 @@ const rows = [
 	{ id: 4, status: 'doing', title: 'No date at all' },
 ]
 
-describe('CnBoardView late marking', () => {
+describe('CnKanbanView late marking', () => {
 	const baseProps = {
 		rows,
 		statusFieldSchema: { enum: ['open', 'doing'] },
 		statusField: 'status',
 		cardFields: ['title'],
 	}
-	const card = (wrapper, id) => wrapper.find(`[data-testid="cn-board-card"][data-card-id="${id}"]`)
+	const card = (wrapper, id) => wrapper.find(`[data-testid="cn-kanban-card"][data-card-id="${id}"]`)
 
 	it('marks nothing without a rule, so an existing board is unchanged', () => {
-		const wrapper = mount(CnBoardView, { propsData: baseProps })
-		expect(wrapper.findAll('[data-testid="cn-board-due"]')).toHaveLength(0)
-		expect(wrapper.html()).not.toContain('cn-board-view__card--')
+		const wrapper = mount(CnKanbanView, { propsData: baseProps })
+		expect(wrapper.findAll('[data-testid="cn-kanban-due"]')).toHaveLength(0)
+		expect(wrapper.html()).not.toContain('cn-kanban-view__card--')
 	})
 
 	it('gives an overdue card the error edge and says "Overdue" in text', () => {
-		const wrapper = mount(CnBoardView, { propsData: { ...baseProps, dueRule: { field: 'deadline' } } })
-		expect(card(wrapper, 1).classes()).toContain('cn-board-view__card--overdue')
-		const label = card(wrapper, 1).find('[data-testid="cn-board-due"]')
+		const wrapper = mount(CnKanbanView, { propsData: { ...baseProps, dueRule: { field: 'deadline' } } })
+		expect(card(wrapper, 1).classes()).toContain('cn-kanban-view__card--overdue')
+		const label = card(wrapper, 1).find('[data-testid="cn-kanban-due"]')
 		expect(label.text()).toBe('Overdue')
-		expect(label.classes()).toContain('cn-board-view__due--overdue')
+		expect(label.classes()).toContain('cn-kanban-view__due--overdue')
 	})
 
 	it('says "Due soon" on a card inside the soon window', () => {
-		const wrapper = mount(CnBoardView, { propsData: { ...baseProps, dueRule: { field: 'deadline' } } })
-		expect(card(wrapper, 2).find('[data-testid="cn-board-due"]').text()).toBe('Due soon')
-		expect(card(wrapper, 2).classes()).toContain('cn-board-view__card--soon')
-		expect(card(wrapper, 2).classes()).not.toContain('cn-board-view__card--overdue')
+		const wrapper = mount(CnKanbanView, { propsData: { ...baseProps, dueRule: { field: 'deadline' } } })
+		expect(card(wrapper, 2).find('[data-testid="cn-kanban-due"]').text()).toBe('Due soon')
+		expect(card(wrapper, 2).classes()).toContain('cn-kanban-view__card--soon')
+		expect(card(wrapper, 2).classes()).not.toContain('cn-kanban-view__card--overdue')
 	})
 
 	it('leaves a card that is fine, or has no date, without a label', () => {
-		const wrapper = mount(CnBoardView, { propsData: { ...baseProps, dueRule: { field: 'deadline' } } })
-		expect(card(wrapper, 3).find('[data-testid="cn-board-due"]').exists()).toBe(false)
-		expect(card(wrapper, 4).find('[data-testid="cn-board-due"]').exists()).toBe(false)
-		expect(card(wrapper, 4).classes()).toEqual(['cn-board-view__card'])
+		const wrapper = mount(CnKanbanView, { propsData: { ...baseProps, dueRule: { field: 'deadline' } } })
+		expect(card(wrapper, 3).find('[data-testid="cn-kanban-due"]').exists()).toBe(false)
+		expect(card(wrapper, 4).find('[data-testid="cn-kanban-due"]').exists()).toBe(false)
+		expect(card(wrapper, 4).classes()).toEqual(['cn-kanban-view__card'])
 	})
 
 	it('honours soonDays', () => {
-		const wide = mount(CnBoardView, { propsData: { ...baseProps, dueRule: { field: 'deadline', soonDays: 45 } } })
-		expect(card(wide, 3).find('[data-testid="cn-board-due"]').text()).toBe('Due soon')
-		const narrow = mount(CnBoardView, { propsData: { ...baseProps, dueRule: { field: 'deadline', soonDays: 0 } } })
-		expect(card(narrow, 2).find('[data-testid="cn-board-due"]').exists()).toBe(false)
+		const wide = mount(CnKanbanView, { propsData: { ...baseProps, dueRule: { field: 'deadline', soonDays: 45 } } })
+		expect(card(wide, 3).find('[data-testid="cn-kanban-due"]').text()).toBe('Due soon')
+		const narrow = mount(CnKanbanView, { propsData: { ...baseProps, dueRule: { field: 'deadline', soonDays: 0 } } })
+		expect(card(narrow, 2).find('[data-testid="cn-kanban-due"]').exists()).toBe(false)
 	})
 
 	it('keeps the card a list item with its open button', () => {
-		const wrapper = mount(CnBoardView, { propsData: { ...baseProps, dueRule: { field: 'deadline' } } })
+		const wrapper = mount(CnKanbanView, { propsData: { ...baseProps, dueRule: { field: 'deadline' } } })
 		expect(card(wrapper, 1).attributes('role')).toBe('listitem')
-		expect(card(wrapper, 1).find('[data-testid="cn-board-card-open"]').exists()).toBe(true)
+		expect(card(wrapper, 1).find('[data-testid="cn-kanban-card-open"]').exists()).toBe(true)
 	})
 })
 
@@ -138,7 +138,7 @@ describe('manifest board.dueRule', () => {
 			type: 'index',
 			title: 'Cases',
 			board,
-			config: { register: 'r', schema: 'case', viewModes: ['table', 'board'] },
+			config: { register: 'r', schema: 'case', viewModes: ['table', 'kanban'] },
 		}],
 	})
 

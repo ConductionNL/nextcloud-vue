@@ -40,7 +40,7 @@ const fetchCollection = mockStore.fetchCollection
 const stubs = {
 	CnDataTable: true,
 	CnCardGrid: true,
-	CnBoardView: true,
+	CnKanbanView: true,
 	CnMapWidget: true,
 	CnPagination: true,
 	CnActionsBar: true,

@@ -22,7 +22,7 @@ test('the Board segment is a link in the switch, the same box as its neighbours'
 		const box = seg.getBoundingClientRect()
 		return { mode: seg.getAttribute('data-mode'), tag: seg.tagName, width: Math.round(box.width), height: Math.round(box.height), top: Math.round(box.top), disabled: seg.disabled === true, underline: getComputedStyle(seg).textDecorationLine }
 	}))
-	expect(info.map((seg) => seg.mode)).toEqual(['table', 'cards', 'board', 'map'])
+	expect(info.map((seg) => seg.mode)).toEqual(['table', 'cards', 'kanban', 'map'])
 	const board = info[2]
 	expect(board.tag).toBe('A')
 	expect(board.disabled).toBe(false)

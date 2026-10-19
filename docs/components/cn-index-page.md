@@ -44,8 +44,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `filterStrip` | Object | `null` | A second filter strip under the toolbar on one field: `{ field, label?, allLabel?, options?: [{ value, label }], showCount? }`. All and one pill per value (options, else the schema enum); a pill filters the list on that value, All clears it; with `showCount` each pill counts its rows within the active quick filter (manifest: `config.filterStrip`) |
 | `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`; the empty-filter "All" tab is dropped). Fed from `pages[].config.quickFilterMode`. |
 | `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once. Selected tabs' filters are OR-ed together into the fetch (same field → array value → `field[]=` IN query). Fed from `pages[].config.quickFilterMultiple`. |
-| `viewSwitch` | Array | `null` | Board look only: the segments the view switch draws (`table`, `cards`, `board`, `map`), always in that order. A listed mode the page cannot open (no board config, no `mapConfig`) is drawn disabled with the tooltip "not available on this list". Fed from `pages[].config.viewSwitch`. |
-| `viewSwitchLinks` | Object | `null` | Board look: view switch segments that open another page, by mode (`table`, `cards`, `board`, `map`): `{ board: { route, params?, query? } }` or `{ map: { href } }`. The segment is a link in its place in the switch, for a board or a map that is a page of its own; a mode the page opens in place stays a button (manifest: `config.viewSwitchLinks`) |
+| `viewSwitch` | Array | `null` | Board look only: the segments the view switch draws (`table`, `cards`, `kanban`, `map`), always in that order. A listed mode the page cannot open (no kanban config, no `mapConfig`) is drawn disabled with the tooltip "not available on this list". Fed from `pages[].config.viewSwitch`. |
+| `viewSwitchLinks` | Object | `null` | Board look: view switch segments that open another page, by mode (`table`, `cards`, `kanban`, `map`): `{ kanban: { route, params?, query? } }` or `{ map: { href } }`. The segment is a link in its place in the switch, for a board or a map that is a page of its own; a mode the page opens in place stays a button (manifest: `config.viewSwitchLinks`) |
 | `quickFilterMaxVisible` | Number | `0` | Chips mode only: how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
 | `quickFilterPlacement` | String | `''` | Where the quick-filter chips sit (`pages[].config.quickFilterPlacement`). `'toolbar'` keeps them on one row with the Filter button and the view switch, in whatever width that row has beside a side panel (DqTeamwachtrij): the chips take the room the buttons leave, and those that do not fit move into the overflow chip. The default leaves the layout as it was. `'row'` puts them on a row of their own above the toolbar, wrapping onto more lines instead of folding into the overflow chip (DqTeamwachtrij); beside a side panel the row sits in the list column. |
 | `searchPlacement` | String | `''` | Where the board look's search field sits (`pages[].config.searchPlacement`). `'toolbar'` puts it on row 1, before the Filter button and the view switch, taking the room they leave (DqTeamwachtrij); the default opens row 2 with it. No effect outside the board look. |
@@ -159,18 +159,18 @@ The Export menu (`allowExport`) and the mass-action Export export the rows the l
 
 With `endDateField` an entry spans every day from the start to the end. In calendar mode the page adds the visible month to the list query (`dateField[gte]` and `[lte]`, or with an end field the overlap `dateField[lte]` and `endDateField[gte]`), asks again when the month changes, and fetches one page sized to the month; leaving calendar mode removes the range and restores the page size, so the table is never narrowed. A click on an entry opens the record as a row click does. A busy day's "+N" button switches to the table filtered to that day. Nothing here reschedules a record: dragging an entry to another day is not offered. Applying a saved view only changes the list filters, so the same month query is used; the `/api/views/{id}/calendar` endpoint is not called.
 
-## Board and date axis: two more ways to look at the same list
+## Kanban and date axis: two more ways to look at the same list
 
-`viewMode` accepts `board` and `dateAxis` beside `table`, `cards`, `list` and
-`map`. Each needs its own config block, and each segment appears only when the
-mode can actually work: a board needs a `statusField`, a date axis needs both
-dates. A segment that opens a view saying it cannot be one is worse than no
+`viewMode` accepts `kanban` and `dateAxis` beside `table`, `cards`, `list` and
+`map`. Each needs its own config block (the `kanban` and `dateAxis` props), and
+each segment appears only when the mode can actually work: a kanban needs a
+`statusField`, a date axis needs both dates. A segment that opens a view saying it cannot be one is worse than no
 segment, because the reader has to click it to find out.
 
 ```json
 {
-  "viewModes": ["table", "board", "dateAxis"],
-  "board": {
+  "viewModes": ["table", "kanban", "dateAxis"],
+  "kanban": {
     "statusField": "status",
     "cardFields": ["title", "assignee"],
     "swimlaneField": "assignee"
@@ -183,6 +183,13 @@ segment, because the reader has to click it to find out.
   }
 }
 ```
+
+The kanban was called `board` before. A manifest, saved view or address that
+still says `board` keeps working: `viewMode`, `viewModes`, `viewSwitch`,
+`folderSidebar.scopeViews` and the keys of `viewSwitchLinks` read `board` as
+`kanban`, `?_view=board` opens the kanban, and the `board` prop (manifest
+`config.board`) is read when `kanban` is empty. The page emits
+`view-mode-change` with `kanban`. Write `kanban` in new manifests.
 
 **The board never writes the status field.** A move goes through
 `runTransition`, the host's own transition, so a board can never move a case
@@ -209,7 +216,7 @@ look at the answer.
 
 **What the manifest cannot check.** A `statusField` naming a field with no enum
 and no lifecycle cannot be refused at validation time, because the stages live
-in the register schema and the manifest does not contain it. `CnBoardView` says
+in the register schema and the manifest does not contain it. `CnKanbanView` says
 so on screen instead of drawing empty columns.
 
 ### Columns from a referenced field
@@ -219,7 +226,7 @@ and every case type has its own rows. `columnFields` lets the board take its
 columns from those rows (since manifest schema 2.97.0):
 
 ```json
-"board": {
+"kanban": {
   "statusField": "status",
   "wrap": true,
   "columnLimit": 3,

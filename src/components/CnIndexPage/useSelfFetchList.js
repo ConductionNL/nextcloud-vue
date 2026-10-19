@@ -8,6 +8,7 @@ import { useObjectStore } from '../../store/index.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
+import { normalizeViewMode } from '../../utils/viewModes.js'
 
 export function resolveInitialQuickFilterIndex(quickFilters) {
 	const tabs = Array.isArray(quickFilters) ? quickFilters : null
@@ -285,7 +286,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		defaultSortKeys: initialSortKeys,
 		defaultActiveFilters: initialActiveFilters,
 		defaultSearchTerm: initialSearchTerm,
-		defaultPageSize: props.viewMode === 'board'
+		defaultPageSize: normalizeViewMode(props.viewMode) === 'kanban'
 			? BOARD_PAGE_SIZE
 			: ((props.viewMode === 'map' && mapPlotAllLimitOf(props.mapConfig)) || (props.pagination && props.pagination.limit) || undefined),
 		defaultVisibleColumns: configuredColumnKeys.length ? configuredColumnKeys : null,

@@ -280,13 +280,6 @@
 			"via": [],
 			"page": null
 		},
-		"CnBoardView": {
-			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
-			"page": "cn-board-view"
-		},
 		"CnBodySections": {
 			"direct": 0,
 			"transitive": 1,
@@ -1976,6 +1969,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-json-viewer"
+		},
+		"CnKanbanView": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-kanban-view"
 		},
 		"CnKbSearchWidget": {
 			"direct": 1,

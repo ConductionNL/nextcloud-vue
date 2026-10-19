@@ -14,10 +14,10 @@
 			title="Alle zaken"
 			register="dossiq"
 			schema="case"
-			viewMode="board"
-			:viewModes="['table', 'board']"
+			viewMode="kanban"
+			:viewModes="['table', 'kanban']"
 			:showRefresh="false"
-			:board="board" />
+			:kanban="board" />
 	</div>
 </template>
 

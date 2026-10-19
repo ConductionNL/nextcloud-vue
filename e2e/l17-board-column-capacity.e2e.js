@@ -76,11 +76,11 @@ async function open(page) {
 	})
 	await page.setViewportSize({ width: 1280, height: 1000 })
 	await page.goto('/?l8=board-capacity', { waitUntil: 'domcontentloaded', timeout: 90_000 })
-	await expect(page.locator('[data-testid="board-capacity"] [data-testid="cn-board-card"]').first()).toBeVisible({ timeout: 90_000 })
+	await expect(page.locator('[data-testid="board-capacity"] [data-testid="cn-kanban-card"]').first()).toBeVisible({ timeout: 90_000 })
 	return seen
 }
 
-const count = (page, column) => page.locator(`[data-column="${column}"] [data-testid="cn-board-count"]`)
+const count = (page, column) => page.locator(`[data-column="${column}"] [data-testid="cn-kanban-count"]`)
 
 test('the header reads "count / capacity", turns full at the limit, and a column without a limit reads its count', async ({ page }) => {
 	await open(page)
@@ -104,32 +104,32 @@ test('the header reads "count / capacity", turns full at the limit, and a column
 
 test('a drop on a full column is refused with a sentence and nothing is written', async ({ page }) => {
 	const seen = await open(page)
-	await page.locator('[data-testid="cn-board-card"][data-card-id="c3"]').dragTo(page.locator('[data-column="Hoorzitting"]'))
-	await expect(page.locator('[data-testid="cn-board-refusal"]')).toHaveText('Hoorzitting is full: 1 of 1.')
+	await page.locator('[data-testid="cn-kanban-card"][data-card-id="c3"]').dragTo(page.locator('[data-column="Hoorzitting"]'))
+	await expect(page.locator('[data-testid="cn-kanban-refusal"]')).toHaveText('Hoorzitting is full: 1 of 1.')
 	expect(seen.patches).toHaveLength(0)
 })
 
 test('the card menu marks a full column "full"', async ({ page }) => {
 	await open(page)
-	const card = page.locator('[data-testid="cn-board-card"][data-card-id="c3"]')
-	await card.locator('[data-testid="cn-board-card-menu"]').click()
-	const full = card.locator('[data-testid="cn-board-menu-move"][data-target="Hoorzitting"]')
+	const card = page.locator('[data-testid="cn-kanban-card"][data-card-id="c3"]')
+	await card.locator('[data-testid="cn-kanban-card-menu"]').click()
+	const full = card.locator('[data-testid="cn-kanban-menu-move"][data-target="Hoorzitting"]')
 	await expect(full).toHaveAttribute('aria-disabled', 'true')
 	await expect(full).toContainText('full')
 })
 
 test('a merged column refuses the row that is full and takes the one that is not', async ({ page }) => {
 	const seen = await open(page)
-	await page.locator('[data-testid="cn-board-card"][data-card-id="c1"]').dragTo(page.locator('[data-column="In behandeling"]'))
-	await expect(page.locator('[data-testid="cn-board-refusal"]')).toHaveText('In behandeling is full: 1 of 1.')
+	await page.locator('[data-testid="cn-kanban-card"][data-card-id="c1"]').dragTo(page.locator('[data-column="In behandeling"]'))
+	await expect(page.locator('[data-testid="cn-kanban-refusal"]')).toHaveText('In behandeling is full: 1 of 1.')
 	expect(seen.patches).toHaveLength(0)
-	await page.locator('[data-testid="cn-board-card"][data-card-id="c3"]').dragTo(page.locator('[data-column="In behandeling"]'))
+	await page.locator('[data-testid="cn-kanban-card"][data-card-id="c3"]').dragTo(page.locator('[data-column="In behandeling"]'))
 	await expect.poll(() => seen.patches.length).toBe(1)
 	expect(seen.patches[0].body).toEqual({ status: 'b2' })
 })
 
 test('narrowed to one case type, the merged column shows that row\'s limit', async ({ page }) => {
 	await open(page)
-	await page.locator('[data-testid="cn-board-narrow-select"]').selectOption('woo')
+	await page.locator('[data-testid="cn-kanban-narrow-select"]').selectOption('woo')
 	await expect(count(page, 'In behandeling')).toHaveText(/^1 \/ 1\s*full$/)
 })

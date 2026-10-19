@@ -242,7 +242,7 @@
 
 /* The board view's footer: how many rows it holds of how many match, and
    "Load more" while the list is not complete. */
-.cn-index-page__board-load {
+.cn-index-page__kanban-load {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -552,7 +552,7 @@
  * search (board DqWerkbord): "Case type:" and "Columns:" as a 600 label and a
  * 36px select, then the hint in the secondary text colour.
  */
-.cn-index-page__board-control {
+.cn-index-page__kanban-control {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
@@ -561,7 +561,7 @@
 	color: var(--color-main-text);
 }
 
-.cn-index-page__board-select {
+.cn-index-page__kanban-select {
 	height: 36px;
 	min-height: 36px;
 	margin: 0;
@@ -574,11 +574,11 @@
 	font-weight: 400;
 }
 
-.cn-index-page__board-select--strong {
+.cn-index-page__kanban-select--strong {
 	font-weight: 500;
 }
 
-.cn-index-page__board-hint {
+.cn-index-page__kanban-hint {
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
 }

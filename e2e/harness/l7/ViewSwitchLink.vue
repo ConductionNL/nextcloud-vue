@@ -15,8 +15,8 @@
 			:objects="rows"
 			:loading="false"
 			:showRefresh="false"
-			:viewSwitch="['table', 'cards', 'board', 'map']"
-			:viewSwitchLinks="{ board: { href: '#/zaken/bord' } }"
+			:viewSwitch="['table', 'cards', 'kanban', 'map']"
+			:viewSwitchLinks="{ kanban: { href: '#/zaken/bord' } }"
 			:pagination="{ total: 2, page: 1, pages: 1, limit: 20 }" />
 	</div>
 </template>

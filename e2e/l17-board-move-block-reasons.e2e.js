@@ -76,7 +76,7 @@ async function open(page) {
 	})
 	await page.setViewportSize({ width: 1280, height: 1000 })
 	await page.goto('/?l8=board-block-reasons', { waitUntil: 'domcontentloaded', timeout: 90_000 })
-	await expect(page.locator('[data-testid="board-block-reasons"] [data-testid="cn-board-card"]').first()).toBeVisible({ timeout: 90_000 })
+	await expect(page.locator('[data-testid="board-block-reasons"] [data-testid="cn-kanban-card"]').first()).toBeVisible({ timeout: 90_000 })
 	return seen
 }
 
@@ -84,28 +84,28 @@ const REASON = 'Er is nog geen besluit vastgelegd.'
 
 test('the card menu shows a blocked target disabled with its reason, and a plain id stays open', async ({ page }) => {
 	await open(page)
-	const card = page.locator('[data-testid="cn-board-card"][data-card-id="c1"]')
-	await card.locator('[data-testid="cn-board-card-menu"]').click()
-	const besluit = card.locator('[data-testid="cn-board-menu-move"][data-target="Besluit"]')
+	const card = page.locator('[data-testid="cn-kanban-card"][data-card-id="c1"]')
+	await card.locator('[data-testid="cn-kanban-card-menu"]').click()
+	const besluit = card.locator('[data-testid="cn-kanban-menu-move"][data-target="Besluit"]')
 	await expect(besluit).toHaveAttribute('aria-disabled', 'true')
-	await expect(besluit.locator('[data-testid="cn-board-menu-reason"]')).toHaveText(REASON)
-	await expect(card.locator('[data-testid="cn-board-menu-move"][data-target="In behandeling"]')).not.toHaveAttribute('aria-disabled', 'true')
+	await expect(besluit.locator('[data-testid="cn-kanban-menu-reason"]')).toHaveText(REASON)
+	await expect(card.locator('[data-testid="cn-kanban-menu-move"][data-target="In behandeling"]')).not.toHaveAttribute('aria-disabled', 'true')
 	// Not offered by the handler at all: still "not allowed", as before.
-	await expect(card.locator('[data-testid="cn-board-menu-move"][data-target="Hoorzitting"] [data-testid="cn-board-menu-blocked"]')).toHaveText('not allowed')
+	await expect(card.locator('[data-testid="cn-kanban-menu-move"][data-target="Hoorzitting"] [data-testid="cn-kanban-menu-blocked"]')).toHaveText('not allowed')
 	// The reason sits under the name, inside the menu.
 	const box = await besluit.boundingBox()
-	const reasonBox = await besluit.locator('[data-testid="cn-board-menu-reason"]').boundingBox()
+	const reasonBox = await besluit.locator('[data-testid="cn-kanban-menu-reason"]').boundingBox()
 	expect(reasonBox.y).toBeGreaterThan(box.y + 10)
 })
 
 test('during a drag the refused column shows the reason under its header at full contrast', async ({ page }) => {
 	await open(page)
-	const card = page.locator('[data-testid="cn-board-card"][data-card-id="c1"]')
+	const card = page.locator('[data-testid="cn-kanban-card"][data-card-id="c1"]')
 	const dataTransfer = await page.evaluateHandle(() => new DataTransfer())
 	await card.dispatchEvent('dragstart', { dataTransfer })
-	const reason = page.locator('[data-column="Besluit"] [data-testid="cn-board-column-reason"]')
+	const reason = page.locator('[data-column="Besluit"] [data-testid="cn-kanban-column-reason"]')
 	await expect(reason).toHaveText(REASON)
-	await expect(page.locator('[data-column="In behandeling"] [data-testid="cn-board-column-reason"]')).toHaveCount(0)
+	await expect(page.locator('[data-column="In behandeling"] [data-testid="cn-kanban-column-reason"]')).toHaveCount(0)
 	const opacity = await reason.evaluate((el) => {
 		let value = 1
 		for (let node = el; node; node = node.parentElement) {
@@ -114,7 +114,7 @@ test('during a drag the refused column shows the reason under its header at full
 		return value
 	})
 	expect(opacity).toBe(1)
-	const cardsFaded = await page.locator('[data-column="Besluit"] [data-testid="cn-board-column-empty"]').evaluate((el) => Number(getComputedStyle(el).opacity))
+	const cardsFaded = await page.locator('[data-column="Besluit"] [data-testid="cn-kanban-column-empty"]').evaluate((el) => Number(getComputedStyle(el).opacity))
 	expect(cardsFaded).toBeLessThan(1)
 	await card.dispatchEvent('dragend', { dataTransfer })
 	await expect(reason).toHaveCount(0)
@@ -122,14 +122,14 @@ test('during a drag the refused column shows the reason under its header at full
 
 test('a drop on the blocked column is refused with the reason and nothing is written', async ({ page }) => {
 	const seen = await open(page)
-	await page.locator('[data-testid="cn-board-card"][data-card-id="c1"]').dragTo(page.locator('[data-column="Besluit"]'))
-	await expect(page.locator('[data-testid="cn-board-refusal"]')).toHaveText(REASON)
+	await page.locator('[data-testid="cn-kanban-card"][data-card-id="c1"]').dragTo(page.locator('[data-column="Besluit"]'))
+	await expect(page.locator('[data-testid="cn-kanban-refusal"]')).toHaveText(REASON)
 	expect(seen.patches).toHaveLength(0)
 })
 
 test('a card the handler leaves open moves as before', async ({ page }) => {
 	const seen = await open(page)
-	await page.locator('[data-testid="cn-board-card"][data-card-id="c3"]').dragTo(page.locator('[data-column="In behandeling"]'))
+	await page.locator('[data-testid="cn-kanban-card"][data-card-id="c3"]').dragTo(page.locator('[data-column="In behandeling"]'))
 	await expect.poll(() => seen.patches.length).toBe(1)
 	expect(seen.patches[0].body).toEqual({ status: 'b2' })
 })

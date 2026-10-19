@@ -15,7 +15,7 @@ jest.mock('@nextcloud/l10n', () => ({
 }))
 
 const { mount } = require('@vue/test-utils')
-const CnBoardView = require('../../src/components/CnBoardView/CnBoardView.vue').default
+const CnKanbanView = require('../../src/components/CnKanbanView/CnKanbanView.vue').default
 
 const FIELD = { enum: ['open', 'doing', 'done'], enumLabels: { open: 'Open', doing: 'Doing', done: 'Done' } }
 const ROWS = [
@@ -30,7 +30,7 @@ const ROWS = [
  * @return {object} The wrapper.
  */
 function mountBoard(props = {}) {
-	return mount(CnBoardView, {
+	return mount(CnKanbanView, {
 		props: {
 			rows: ROWS,
 			statusFieldSchema: FIELD,
@@ -43,7 +43,7 @@ function mountBoard(props = {}) {
 
 describe('the board renders what the helpers decided', () => {
 	it('renders a column per stage, including the empty one', () => {
-		const columns = mountBoard().findAll('[data-testid="cn-board-column"]')
+		const columns = mountBoard().findAll('[data-testid="cn-kanban-column"]')
 
 		expect(columns.map((column) => column.attributes('data-column'))).toEqual([
 			'open',
@@ -56,15 +56,15 @@ describe('the board renders what the helpers decided', () => {
 		// Told rather than shown three blank columns somebody has to diagnose.
 		const wrapper = mountBoard({ statusFieldSchema: { type: 'string' } })
 
-		expect(wrapper.find('[data-testid="cn-board-unusable"]').exists()).toBe(true)
-		expect(wrapper.findAll('[data-testid="cn-board-column"]')).toHaveLength(0)
+		expect(wrapper.find('[data-testid="cn-kanban-unusable"]').exists()).toBe(true)
+		expect(wrapper.findAll('[data-testid="cn-kanban-column"]')).toHaveLength(0)
 	})
 
 	it('says a count is of one page when it is', () => {
 		// A page count shown as a total is a number somebody quotes.
 		const wrapper = mountBoard({ paged: true })
 
-		expect(wrapper.find('[data-testid="cn-board-count"]').text()).toContain('on this page')
+		expect(wrapper.find('[data-testid="cn-kanban-count"]').text()).toContain('on this page')
 	})
 })
 
@@ -73,8 +73,8 @@ describe('moving a card', () => {
 		const runTransition = jest.fn(async ({ card }) => ({ ...card, status: 'done' }))
 		const wrapper = mountBoard({ runTransition })
 
-		await wrapper.findAll('[data-testid="cn-board-card"]')[0].trigger('dragstart')
-		await wrapper.findAll('[data-testid="cn-board-column"]')[2].trigger('drop')
+		await wrapper.findAll('[data-testid="cn-kanban-card"]')[0].trigger('dragstart')
+		await wrapper.findAll('[data-testid="cn-kanban-column"]')[2].trigger('drop')
 
 		expect(runTransition).toHaveBeenCalledWith({ card: ROWS[0], toKey: 'done' })
 		expect(ROWS[0].status).toBe('open')
@@ -87,7 +87,7 @@ describe('moving a card', () => {
 		const runTransition = jest.fn(async ({ card }) => ({ ...card, status: 'done' }))
 		const wrapper = mountBoard({ runTransition })
 
-		const select = wrapper.findAll('[data-testid="cn-board-move"]')[0]
+		const select = wrapper.findAll('[data-testid="cn-kanban-move"]')[0]
 		select.element.value = 'done'
 		await select.trigger('change')
 
@@ -98,11 +98,11 @@ describe('moving a card', () => {
 		// A gesture that cannot do anything is worse than no gesture.
 		const wrapper = mountBoard()
 
-		expect(wrapper.findAll('[data-testid="cn-board-move"]')).toHaveLength(0)
+		expect(wrapper.findAll('[data-testid="cn-kanban-move"]')).toHaveLength(0)
 		// Vue renders :draggable="false" as the string "false", which is what
 		// the DOM honours; asserting absence would pass on a board that was
 		// draggable and merely rendered the attribute differently.
-		expect(wrapper.findAll('[data-testid="cn-board-card"]')[0].attributes('draggable')).toBe('false')
+		expect(wrapper.findAll('[data-testid="cn-kanban-card"]')[0].attributes('draggable')).toBe('false')
 	})
 })
 
@@ -115,11 +115,11 @@ describe('a refusal reaches the screen', () => {
 		}
 		const wrapper = mountBoard({ runTransition })
 
-		await wrapper.findAll('[data-testid="cn-board-card"]')[0].trigger('dragstart')
-		await wrapper.findAll('[data-testid="cn-board-column"]')[2].trigger('drop')
+		await wrapper.findAll('[data-testid="cn-kanban-card"]')[0].trigger('dragstart')
+		await wrapper.findAll('[data-testid="cn-kanban-column"]')[2].trigger('drop')
 		await wrapper.vm.$nextTick()
 
-		expect(wrapper.find('[data-testid="cn-board-refusal"]').text())
+		expect(wrapper.find('[data-testid="cn-kanban-refusal"]').text())
 			.toBe('Een zaak zonder besluit kan niet worden afgesloten.')
 	})
 
@@ -130,11 +130,11 @@ describe('a refusal reaches the screen', () => {
 			},
 		})
 
-		await wrapper.findAll('[data-testid="cn-board-card"]')[0].trigger('dragstart')
-		await wrapper.findAll('[data-testid="cn-board-column"]')[2].trigger('drop')
+		await wrapper.findAll('[data-testid="cn-kanban-card"]')[0].trigger('dragstart')
+		await wrapper.findAll('[data-testid="cn-kanban-column"]')[2].trigger('drop')
 		await wrapper.vm.$nextTick()
 
-		expect(wrapper.find('[data-testid="cn-board-refusal"]').text()).toBe('That move was refused.')
+		expect(wrapper.find('[data-testid="cn-kanban-refusal"]').text()).toBe('That move was refused.')
 	})
 
 	it('says so when somebody else moved the card', async () => {
@@ -144,12 +144,12 @@ describe('a refusal reaches the screen', () => {
 			reread: async (card) => ({ ...card, status: 'done' }),
 		})
 
-		await wrapper.findAll('[data-testid="cn-board-card"]')[0].trigger('dragstart')
-		await wrapper.findAll('[data-testid="cn-board-column"]')[1].trigger('drop')
+		await wrapper.findAll('[data-testid="cn-kanban-card"]')[0].trigger('dragstart')
+		await wrapper.findAll('[data-testid="cn-kanban-column"]')[1].trigger('drop')
 		await wrapper.vm.$nextTick()
 
 		expect(runTransition).not.toHaveBeenCalled()
-		expect(wrapper.find('[data-testid="cn-board-refusal"]').text()).toContain('Somebody else moved')
+		expect(wrapper.find('[data-testid="cn-kanban-refusal"]').text()).toContain('Somebody else moved')
 	})
 })
 
@@ -157,20 +157,20 @@ describe('swimlanes', () => {
 	it('renders one lane with no header when no field is named', () => {
 		const wrapper = mountBoard()
 
-		expect(wrapper.findAll('[data-testid="cn-board-lane"]')).toHaveLength(1)
-		expect(wrapper.findAll('[data-testid="cn-board-lane-header"]')).toHaveLength(0)
+		expect(wrapper.findAll('[data-testid="cn-kanban-lane"]')).toHaveLength(1)
+		expect(wrapper.findAll('[data-testid="cn-kanban-lane-header"]')).toHaveLength(0)
 	})
 
 	it('renders a row per value, and collapses one while the reader is here', async () => {
 		const wrapper = mountBoard({ swimlaneField: 'who' })
 
-		const headers = wrapper.findAll('[data-testid="cn-board-lane-header"]')
+		const headers = wrapper.findAll('[data-testid="cn-kanban-lane-header"]')
 		expect(headers.map((header) => header.text())).toEqual(['alice (1)', 'bob (1)'])
 		expect(headers[0].attributes('aria-expanded')).toBe('true')
 
 		await headers[0].trigger('click')
 
-		expect(wrapper.findAll('[data-testid="cn-board-lane-header"]')[0].attributes('aria-expanded')).toBe('false')
+		expect(wrapper.findAll('[data-testid="cn-kanban-lane-header"]')[0].attributes('aria-expanded')).toBe('false')
 	})
 })
 
@@ -190,7 +190,7 @@ describe('swimlanes', () => {
 describe('a card is a container, and its actions are controls', () => {
 	it('gives the card no role of a control and no tab stop of its own', () => {
 		const wrapper = mountBoard()
-		const card = wrapper.findAll('[data-testid="cn-board-card"]')[0]
+		const card = wrapper.findAll('[data-testid="cn-kanban-card"]')[0]
 
 		expect(card.attributes('role')).toBe('listitem')
 		expect(card.attributes('tabindex')).toBeUndefined()
@@ -200,19 +200,19 @@ describe('a card is a container, and its actions are controls', () => {
 
 	it('puts the cards in a list of their own, inside the column', () => {
 		const wrapper = mountBoard()
-		const lists = wrapper.findAll('.cn-board-view__cards')
+		const lists = wrapper.findAll('.cn-kanban-view__cards')
 
 		// Two of the three columns hold a card; the empty one holds a list of
 		// nothing rather than an empty list.
 		expect(lists).toHaveLength(2)
 		expect(lists[0].attributes('role')).toBe('list')
 		expect(lists[0].attributes('aria-label')).toBe('Open')
-		expect(wrapper.findAll('[data-testid="cn-board-column-empty"]')).toHaveLength(1)
+		expect(wrapper.findAll('[data-testid="cn-kanban-column-empty"]')).toHaveLength(1)
 	})
 
 	it('opens a card from a native button that says which card it opens', async () => {
 		const wrapper = mountBoard()
-		const open = wrapper.findAll('[data-testid="cn-board-card-open"]')[0]
+		const open = wrapper.findAll('[data-testid="cn-kanban-card-open"]')[0]
 
 		expect(open.element.tagName).toBe('BUTTON')
 		expect(open.attributes('type')).toBe('button')
@@ -226,7 +226,7 @@ describe('a card is a container, and its actions are controls', () => {
 
 	it('emits card-aux-click on a middle click, passing the event, and ignores the right button', async () => {
 		const wrapper = mountBoard()
-		const open = wrapper.findAll('[data-testid="cn-board-card-open"]')[0]
+		const open = wrapper.findAll('[data-testid="cn-kanban-card-open"]')[0]
 
 		await open.trigger('auxclick', { button: 2 })
 		expect(wrapper.emitted('card-aux-click')).toBeFalsy()
@@ -239,8 +239,8 @@ describe('a card is a container, and its actions are controls', () => {
 
 	it('keeps the move control beside the opening button, never inside it', () => {
 		const wrapper = mountBoard({ runTransition: async () => ({}) })
-		const open = wrapper.findAll('[data-testid="cn-board-card-open"]')[0]
-		const move = wrapper.findAll('[data-testid="cn-board-move"]')[0]
+		const open = wrapper.findAll('[data-testid="cn-kanban-card-open"]')[0]
+		const move = wrapper.findAll('[data-testid="cn-kanban-move"]')[0]
 
 		expect(move.exists()).toBe(true)
 		expect(open.element.contains(move.element)).toBe(false)
@@ -249,7 +249,7 @@ describe('a card is a container, and its actions are controls', () => {
 
 	it('leaves the drag on the card, which is the one thing the card still does', () => {
 		const wrapper = mountBoard({ runTransition: async () => ({}) })
-		const card = wrapper.findAll('[data-testid="cn-board-card"]')[0]
+		const card = wrapper.findAll('[data-testid="cn-kanban-card"]')[0]
 
 		expect(card.attributes('draggable')).toBe('true')
 	})

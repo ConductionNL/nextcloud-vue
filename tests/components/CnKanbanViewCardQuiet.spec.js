@@ -15,7 +15,7 @@ jest.mock('@nextcloud/l10n', () => ({
 }))
 
 const { mount } = require('@vue/test-utils')
-const CnBoardView = require('../../src/components/CnBoardView/CnBoardView.vue').default
+const CnKanbanView = require('../../src/components/CnKanbanView/CnKanbanView.vue').default
 
 const FIELD = { enum: ['open', 'doing'], enumLabels: { open: 'Open', doing: 'Doing' } }
 const ROWS = [
@@ -28,22 +28,22 @@ const ROWS = [
  * @return {object} The wrapper.
  */
 function mountBoard(selectedIds) {
-	return mount(CnBoardView, {
+	return mount(CnKanbanView, {
 		props: { rows: ROWS, statusFieldSchema: FIELD, statusField: 'status', selectable: true, selectedIds },
 		global: { provide: { cnLook: 'board' } },
 	})
 }
 
-describe('CnBoardView board look: quiet selection', () => {
+describe('CnKanbanView board look: quiet selection', () => {
 	it('is not selecting while nothing is selected', () => {
-		const root = mountBoard([]).find('[data-testid="cn-board-view"]')
-		expect(root.classes()).toContain('cn-board-view--board')
-		expect(root.classes()).not.toContain('cn-board-view--selecting')
+		const root = mountBoard([]).find('[data-testid="cn-kanban-view"]')
+		expect(root.classes()).toContain('cn-kanban-view--board')
+		expect(root.classes()).not.toContain('cn-kanban-view--selecting')
 	})
 
 	it('is selecting once a card is selected, and every card keeps its checkbox', () => {
 		const wrapper = mountBoard([2])
-		expect(wrapper.find('[data-testid="cn-board-view"]').classes()).toContain('cn-board-view--selecting')
-		expect(wrapper.findAll('[data-testid="cn-board-card-select"]')).toHaveLength(2)
+		expect(wrapper.find('[data-testid="cn-kanban-view"]').classes()).toContain('cn-kanban-view--selecting')
+		expect(wrapper.findAll('[data-testid="cn-kanban-card-select"]')).toHaveLength(2)
 	})
 })

@@ -64,10 +64,10 @@ async function open(page) {
 	})
 	await page.setViewportSize({ width: 1280, height: 1000 })
 	await page.goto('/?l8=board-neutral-colour', { waitUntil: 'domcontentloaded', timeout: 90_000 })
-	await expect(page.locator('[data-testid="board-neutral-colour"] [data-testid="cn-board-card"]').first()).toBeVisible({ timeout: 90_000 })
+	await expect(page.locator('[data-testid="board-neutral-colour"] [data-testid="cn-kanban-card"]').first()).toBeVisible({ timeout: 90_000 })
 }
 
-const dot = (page, column) => page.locator(`[data-column="${column}"] [data-testid="cn-board-dot"]`).first()
+const dot = (page, column) => page.locator(`[data-column="${column}"] [data-testid="cn-kanban-dot"]`).first()
 const background = (locator) => locator.evaluate((el) => getComputedStyle(el).backgroundColor)
 
 test('a merged column with a grey row first and an orange row second is drawn orange', async ({ page }) => {

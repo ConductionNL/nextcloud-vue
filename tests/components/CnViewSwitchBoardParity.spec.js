@@ -25,14 +25,14 @@ function mountBar(props = {}, look = 'board') {
 
 describe('CnActionsBar: disabled segments', () => {
 	it('draws the disabled modes in the board order, inert and named so', async () => {
-		const w = mountBar({ disabledViewModes: ['map', 'board'] })
+		const w = mountBar({ disabledViewModes: ['map', 'kanban'] })
 		const segs = w.findAll('.cn-actions-bar__view-toggle-btn')
-		expect(segs.map((b) => b.attributes('data-mode'))).toEqual(['table', 'cards', 'board', 'map'])
+		expect(segs.map((b) => b.attributes('data-mode'))).toEqual(['table', 'cards', 'kanban', 'map'])
 		const board = segs[2]
 		expect(board.attributes('disabled')).toBeDefined()
 		expect(board.classes()).toContain('cn-actions-bar__view-toggle-btn--disabled')
-		expect(board.attributes('title')).toBe('Board: not available on this list')
-		expect(board.attributes('aria-label')).toBe('Board')
+		expect(board.attributes('title')).toBe('Kanban: not available on this list')
+		expect(board.attributes('aria-label')).toBe('Kanban')
 		await board.trigger('click')
 		expect(w.emitted('view-mode-change')).toBeUndefined()
 		await segs[1].trigger('click')
@@ -72,17 +72,17 @@ describe('CnIndexPage: config.viewSwitch', () => {
 	}
 
 	it('disables the listed modes the page cannot open (no board columns, no map)', () => {
-		const w = mountPage({ viewSwitch: ['table', 'cards', 'board', 'map'] })
-		expect(w.find('.bar').attributes('data-disabled')).toBe('board,map')
+		const w = mountPage({ viewSwitch: ['table', 'cards', 'kanban', 'map'] })
+		expect(w.find('.bar').attributes('data-disabled')).toBe('kanban,map')
 	})
 
 	it('keeps an offered mode enabled', () => {
-		const w = mountPage({ viewSwitch: ['table', 'cards', 'board', 'map'], mapConfig: { geoField: 'geometry' } })
-		expect(w.find('.bar').attributes('data-disabled')).toBe('board')
+		const w = mountPage({ viewSwitch: ['table', 'cards', 'kanban', 'map'], mapConfig: { geoField: 'geometry' } })
+		expect(w.find('.bar').attributes('data-disabled')).toBe('kanban')
 	})
 
 	it('draws the four board segments without the key, and none without the look', () => {
-		expect(mountPage().find('.bar').attributes('data-disabled')).toBe('board,map')
+		expect(mountPage().find('.bar').attributes('data-disabled')).toBe('kanban,map')
 		expect(mountPage({ viewSwitch: ['map'] }, 'nextcloud').find('.bar').attributes('data-disabled')).toBe('')
 	})
 
@@ -93,7 +93,7 @@ describe('CnIndexPage: config.viewSwitch', () => {
 			menu: [],
 			pages: [{ id: 'p', route: '/p', type: 'index', title: 'P', config }],
 		})
-		expect(validateManifestV2(manifest({ register: 'r', schema: 's', viewSwitch: ['table', 'cards', 'board', 'map'] })).valid).toBe(true)
+		expect(validateManifestV2(manifest({ register: 'r', schema: 's', viewSwitch: ['table', 'cards', 'kanban', 'map'] })).valid).toBe(true)
 		expect(validateManifestV2(manifest({ register: 'r', schema: 's', viewSwitch: ['timeline'] })).valid).toBe(false)
 	})
 })

@@ -19,9 +19,9 @@ function mountBar(props = {}, look = 'board') {
 
 describe('CnActionsBar view switch (board look)', () => {
 	it('renders four icon-only segments in the fixed order, only the active one pressed', () => {
-		const wrapper = mountBar({ viewMode: 'table', availableViewModes: ['cards', 'map', 'board', 'table'] })
+		const wrapper = mountBar({ viewMode: 'table', availableViewModes: ['cards', 'map', 'kanban', 'table'] })
 		const buttons = wrapper.findAll('.cn-actions-bar__view-toggle-btn')
-		expect(buttons.map((b) => b.attributes('aria-label'))).toEqual(['Table', 'Cards', 'Board', 'Map'])
+		expect(buttons.map((b) => b.attributes('aria-label'))).toEqual(['Table', 'Cards', 'Kanban', 'Map'])
 		expect(buttons.map((b) => b.attributes('aria-pressed'))).toEqual(['true', 'false', 'false', 'false'])
 		expect(wrapper.find('.cn-actions-bar__view-toggle-label').exists()).toBe(false)
 		expect(wrapper.find('.cn-actions-bar__view-toggle-thumb').exists()).toBe(false)
@@ -29,8 +29,8 @@ describe('CnActionsBar view switch (board look)', () => {
 	})
 
 	it('renders three segments for a page without a map', () => {
-		const wrapper = mountBar({ viewMode: 'table', availableViewModes: ['board', 'cards', 'table'] })
-		expect(wrapper.findAll('.cn-actions-bar__view-toggle-btn').map((b) => b.attributes('aria-label'))).toEqual(['Table', 'Cards', 'Board'])
+		const wrapper = mountBar({ viewMode: 'table', availableViewModes: ['kanban', 'cards', 'table'] })
+		expect(wrapper.findAll('.cn-actions-bar__view-toggle-btn').map((b) => b.attributes('aria-label'))).toEqual(['Table', 'Cards', 'Kanban'])
 	})
 
 	it('keeps a mode the switch does not name after the fixed four', () => {
@@ -52,9 +52,9 @@ describe('CnActionsBar view switch (board look)', () => {
 	})
 
 	it('draws a mode that opens another page as a link in its place, never pressed', () => {
-		const wrapper = mountBar({ viewMode: 'table', availableViewModes: ['table', 'cards'], disabledViewModes: ['map'], viewModeLinks: { board: { href: '#/cases/board', to: { name: 'CaseBoard' } } } })
+		const wrapper = mountBar({ viewMode: 'table', availableViewModes: ['table', 'cards'], disabledViewModes: ['map'], viewModeLinks: { kanban: { href: '#/cases/board', to: { name: 'CaseBoard' } } } })
 		const segments = wrapper.findAll('.cn-actions-bar__view-toggle-btn')
-		expect(segments.map((s) => s.attributes('aria-label'))).toEqual(['Table', 'Cards', 'Board', 'Map'])
+		expect(segments.map((s) => s.attributes('aria-label'))).toEqual(['Table', 'Cards', 'Kanban', 'Map'])
 		const board = segments[2]
 		expect(board.element.tagName).toBe('A')
 		expect(board.attributes('href')).toBe('#/cases/board')
@@ -65,7 +65,7 @@ describe('CnActionsBar view switch (board look)', () => {
 	it('pushes the route on a plain click and leaves a modified click to the browser', async () => {
 		const push = jest.fn()
 		const wrapper = mount(CnActionsBar, {
-			props: { viewMode: 'table', availableViewModes: ['table'], viewModeLinks: { board: { href: '#/cases/board', to: { name: 'CaseBoard' } } } },
+			props: { viewMode: 'table', availableViewModes: ['table'], viewModeLinks: { kanban: { href: '#/cases/board', to: { name: 'CaseBoard' } } } },
 			global: { provide: { cnLook: 'board' }, mocks: { $router: { push } }, stubs: { NcButton: true, NcActions: true, CnBuildiqEditButton: true } },
 		})
 		const link = wrapper.find('[data-testid="cn-actions-bar-view-link"]')
@@ -77,9 +77,9 @@ describe('CnActionsBar view switch (board look)', () => {
 	})
 
 	it('keeps a mode the page offers in place a button, and ignores links without the look', () => {
-		const inPlace = mountBar({ viewMode: 'table', availableViewModes: ['table', 'board'], viewModeLinks: { board: { href: '#/x' } } })
+		const inPlace = mountBar({ viewMode: 'table', availableViewModes: ['table', 'kanban'], viewModeLinks: { kanban: { href: '#/x' } } })
 		expect(inPlace.find('[data-testid="cn-actions-bar-view-link"]').exists()).toBe(false)
-		const plain = mountBar({ viewMode: 'table', availableViewModes: ['table', 'cards'], viewModeLinks: { board: { href: '#/x' } } }, 'nextcloud')
+		const plain = mountBar({ viewMode: 'table', availableViewModes: ['table', 'cards'], viewModeLinks: { kanban: { href: '#/x' } } }, 'nextcloud')
 		expect(plain.find('[data-testid="cn-actions-bar-view-link"]').exists()).toBe(false)
 	})
 })

@@ -19,7 +19,7 @@ test('board cards: a dark plain title and a checkbox only when asked for', async
 	await page.setViewportSize({ width: 1100, height: 800 })
 	await page.goto('/?l8=board-card-quiet', { waitUntil: 'domcontentloaded', timeout: 90_000 })
 	const root = page.locator('[data-testid="board-card-quiet"]')
-	const title = root.locator('[data-testid="cn-board-card-open"]').first()
+	const title = root.locator('[data-testid="cn-kanban-card-open"]').first()
 	await expect(title).toBeVisible({ timeout: 90_000 })
 
 	const look = await title.evaluate((el) => {
@@ -35,9 +35,9 @@ test('board cards: a dark plain title and a checkbox only when asked for', async
 	expect(look.color).toBe(look.ink)
 	expect(look.color).not.toBe('rgb(0, 0, 238)')
 
-	const firstCard = root.locator('[data-testid="cn-board-card"]').first()
-	const lastCard = root.locator('[data-testid="cn-board-card"]').last()
-	const box = (card) => card.locator('[data-testid="cn-board-card-select"]').evaluate((el) => ({ width: el.getBoundingClientRect().width, opacity: getComputedStyle(el).opacity }))
+	const firstCard = root.locator('[data-testid="cn-kanban-card"]').first()
+	const lastCard = root.locator('[data-testid="cn-kanban-card"]').last()
+	const box = (card) => card.locator('[data-testid="cn-kanban-card-select"]').evaluate((el) => ({ width: el.getBoundingClientRect().width, opacity: getComputedStyle(el).opacity }))
 
 	await page.mouse.move(0, 0)
 	expect(await box(firstCard)).toEqual({ width: 0, opacity: '0' })
@@ -46,12 +46,12 @@ test('board cards: a dark plain title and a checkbox only when asked for', async
 	expect(await box(firstCard)).toEqual({ width: 16, opacity: '1' })
 	await page.mouse.move(0, 0)
 
-	await lastCard.locator('[data-testid="cn-board-card-select"]').focus()
+	await lastCard.locator('[data-testid="cn-kanban-card-select"]').focus()
 	expect(await box(lastCard)).toEqual({ width: 16, opacity: '1' })
 	await page.keyboard.press('Space')
 	await page.mouse.move(0, 0)
 	await page.evaluate(() => document.activeElement.blur())
 
-	await expect(root.locator('[data-testid="cn-board-view"]')).toHaveClass(/cn-board-view--selecting/)
+	await expect(root.locator('[data-testid="cn-kanban-view"]')).toHaveClass(/cn-kanban-view--selecting/)
 	expect(await box(firstCard)).toEqual({ width: 16, opacity: '1' })
 })

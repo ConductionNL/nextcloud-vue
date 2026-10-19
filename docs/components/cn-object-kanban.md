@@ -46,7 +46,7 @@ identity (defaults to `id`).
 dot-path to a card's due date. A date before today gets an edge in the error
 colour and the label "Overdue". A date within `soonDays` (default 3) gets the
 label "Due soon". The label is text, so the state does not depend on colour.
-Same rule as [CnBoardView](./cn-board-view.md#late-cards). Without it, cards
+Same rule as [CnKanbanView](./cn-kanban-view.md#late-cards). Without it, cards
 render as before.
 
 ```vue

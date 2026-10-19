@@ -73,7 +73,7 @@
 			:widgets="[]"
 			:allowEdit="true" />
 
-		<CnBoardView
+		<CnKanbanView
 			v-else-if="scenario === 'board'"
 			:rows="rows"
 			:statusFieldSchema="{ states: states }"
@@ -86,8 +86,8 @@
 
 <script>
 import { h, markRaw } from 'vue'
-import CnBoardView from '../../src/components/CnBoardView/CnBoardView.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
+import CnKanbanView from '../../src/components/CnKanbanView/CnKanbanView.vue'
 import CnKpiGrid from '../../src/components/CnKpiGrid/CnKpiGrid.vue'
 import CnSegmentedControl from '../../src/components/CnSegmentedControl/CnSegmentedControl.vue'
 import CnStatsBlock from '../../src/components/CnStatsBlock/CnStatsBlock.vue'
@@ -99,7 +99,7 @@ const STATES = ['Received', 'Review', 'Decision', 'Publish', 'Archive', 'Closed'
 export default {
 	name: 'ScreensParityHarness',
 
-	components: { CnBoardView, CnDashboardPage, CnKpiGrid, CnSegmentedControl, CnStatsBlock, CnStatWidget },
+	components: { CnKanbanView, CnDashboardPage, CnKpiGrid, CnSegmentedControl, CnStatsBlock, CnStatWidget },
 
 	provide() {
 		return { cnLook: params.get('plain') === '1' ? 'nextcloud' : 'board' }

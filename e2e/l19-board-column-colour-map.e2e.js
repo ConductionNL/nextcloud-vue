@@ -65,10 +65,10 @@ async function open(page) {
 	})
 	await page.setViewportSize({ width: 1280, height: 1000 })
 	await page.goto('/?l8=board-colour-map', { waitUntil: 'domcontentloaded', timeout: 90_000 })
-	await expect(page.locator('[data-testid="board-colour-map"] [data-testid="cn-board-card"]').first()).toBeVisible({ timeout: 90_000 })
+	await expect(page.locator('[data-testid="board-colour-map"] [data-testid="cn-kanban-card"]').first()).toBeVisible({ timeout: 90_000 })
 }
 
-const dot = (page, column) => page.locator(`[data-column="${column}"] [data-testid="cn-board-dot"]`).first()
+const dot = (page, column) => page.locator(`[data-column="${column}"] [data-testid="cn-kanban-dot"]`).first()
 const background = (locator) => locator.evaluate((el) => getComputedStyle(el).backgroundColor)
 
 test('a merged column draws the mapped colour of the hue it picked', async ({ page }) => {

@@ -19,8 +19,8 @@ jest.mock('../../src/utils/boardReferenceColumns.js', () => ({
 }))
 
 import { flushPromises, mount } from '@vue/test-utils'
-import CnBoardView from '../../src/components/CnBoardView/CnBoardView.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
+import CnKanbanView from '../../src/components/CnKanbanView/CnKanbanView.vue'
 import { normalizeAllowed } from '../../src/utils/boardColumns.js'
 
 const REASON = 'Er is nog geen besluit vastgelegd.'
@@ -28,7 +28,7 @@ const FIELD = { states: [{ key: 'a', label: 'A' }, { key: 'b', label: 'B' }, { k
 const ROWS = [{ id: 1, status: 'a', title: 'One' }]
 
 function mountBoard(props = {}, look = 'board') {
-	return mount(CnBoardView, {
+	return mount(CnKanbanView, {
 		attachTo: document.body,
 		props: { rows: ROWS, statusFieldSchema: FIELD, statusField: 'status', cardFields: ['title'], runTransition: jest.fn().mockResolvedValue({}), ...props },
 		global: { provide: { cnLook: look } },
@@ -50,21 +50,21 @@ describe('normalizeAllowed', () => {
 	})
 })
 
-describe('CnBoardView: a blocked target with a reason', () => {
+describe('CnKanbanView: a blocked target with a reason', () => {
 	it('shows the blocked target disabled in the menu with its reason, and "not allowed" without one', async () => {
 		const runTransition = jest.fn().mockResolvedValue({})
 		const w = mountBoard({ runTransition, allowedMoves: MIXED })
-		await w.find('[data-testid="cn-board-card-menu"]').trigger('click')
+		await w.find('[data-testid="cn-kanban-card-menu"]').trigger('click')
 		await flushPromises()
-		const item = (key) => w.find(`[data-testid="cn-board-menu-move"][data-target="${key}"]`)
+		const item = (key) => w.find(`[data-testid="cn-kanban-menu-move"][data-target="${key}"]`)
 		expect(item('b').attributes('aria-disabled')).toBeUndefined()
 		expect(item('c').attributes('aria-disabled')).toBe('true')
-		expect(item('c').find('[data-testid="cn-board-menu-reason"]').text()).toBe(REASON)
-		expect(item('c').find('[data-testid="cn-board-menu-blocked"]').exists()).toBe(false)
-		expect(item('c').classes()).toContain('cn-board-view__menu-item--reason')
+		expect(item('c').find('[data-testid="cn-kanban-menu-reason"]').text()).toBe(REASON)
+		expect(item('c').find('[data-testid="cn-kanban-menu-blocked"]').exists()).toBe(false)
+		expect(item('c').classes()).toContain('cn-kanban-view__menu-item--reason')
 		expect(item('d').attributes('aria-disabled')).toBe('true')
-		expect(item('d').find('[data-testid="cn-board-menu-blocked"]').text()).toBe('not allowed')
-		expect(item('d').find('[data-testid="cn-board-menu-reason"]').exists()).toBe(false)
+		expect(item('d').find('[data-testid="cn-kanban-menu-blocked"]').text()).toBe('not allowed')
+		expect(item('d').find('[data-testid="cn-kanban-menu-reason"]').exists()).toBe(false)
 		await item('c').trigger('click')
 		expect(runTransition).not.toHaveBeenCalled()
 		w.unmount()
@@ -73,36 +73,36 @@ describe('CnBoardView: a blocked target with a reason', () => {
 	it('shows the reason under the refused column during a drag, refuses the drop with it, and clears it after', async () => {
 		const runTransition = jest.fn().mockResolvedValue({})
 		const w = mountBoard({ runTransition, allowedMoves: MIXED })
-		await w.find('[data-testid="cn-board-card"]').trigger('dragstart')
+		await w.find('[data-testid="cn-kanban-card"]').trigger('dragstart')
 		await flushPromises()
-		expect(w.find('[data-column="c"] [data-testid="cn-board-column-reason"]').text()).toBe(REASON)
-		expect(w.find('[data-column="c"]').classes()).toContain('cn-board-view__column--reason')
+		expect(w.find('[data-column="c"] [data-testid="cn-kanban-column-reason"]').text()).toBe(REASON)
+		expect(w.find('[data-column="c"]').classes()).toContain('cn-kanban-view__column--reason')
 		expect(w.find('[data-column="d"]').attributes('data-unreachable')).toBe('true')
-		expect(w.find('[data-column="d"] [data-testid="cn-board-column-reason"]').exists()).toBe(false)
-		expect(w.find('[data-column="b"] [data-testid="cn-board-column-reason"]').exists()).toBe(false)
+		expect(w.find('[data-column="d"] [data-testid="cn-kanban-column-reason"]').exists()).toBe(false)
+		expect(w.find('[data-column="b"] [data-testid="cn-kanban-column-reason"]').exists()).toBe(false)
 		await w.find('[data-column="c"]').trigger('drop')
 		await flushPromises()
 		expect(runTransition).not.toHaveBeenCalled()
-		expect(w.find('[data-testid="cn-board-refusal"]').text()).toBe(REASON)
-		expect(w.findAll('[data-testid="cn-board-column-reason"]')).toHaveLength(0)
+		expect(w.find('[data-testid="cn-kanban-refusal"]').text()).toBe(REASON)
+		expect(w.findAll('[data-testid="cn-kanban-column-reason"]')).toHaveLength(0)
 		w.unmount()
 	})
 
 	it('shows the reason in the Nextcloud look during a drag too', async () => {
 		const w = mountBoard({ allowedMoves: MIXED }, 'nextcloud')
-		await w.find('[data-testid="cn-board-card"]').trigger('dragstart')
+		await w.find('[data-testid="cn-kanban-card"]').trigger('dragstart')
 		await flushPromises()
-		expect(w.find('[data-column="c"] [data-testid="cn-board-column-reason"]').text()).toBe(REASON)
+		expect(w.find('[data-column="c"] [data-testid="cn-kanban-column-reason"]').text()).toBe(REASON)
 		w.unmount()
 	})
 
 	it('a column without a reason keeps the old sentence on a refused drop', async () => {
 		const w = mountBoard({ allowedMoves: MIXED })
-		await w.find('[data-testid="cn-board-card"]').trigger('dragstart')
+		await w.find('[data-testid="cn-kanban-card"]').trigger('dragstart')
 		await flushPromises()
 		await w.find('[data-column="d"]').trigger('drop')
 		await flushPromises()
-		expect(w.find('[data-testid="cn-board-refusal"]').text()).toBe('One cannot move to D.')
+		expect(w.find('[data-testid="cn-kanban-refusal"]').text()).toBe('One cannot move to D.')
 		w.unmount()
 	})
 })
@@ -126,10 +126,10 @@ describe('CnIndexPage: moveTargetsHandler entries', () => {
 				register: 'dossiq',
 				schema: SCHEMA,
 				objects: CASES,
-				viewMode: 'board',
-				viewModes: ['table', 'board'],
+				viewMode: 'kanban',
+				viewModes: ['table', 'kanban'],
 				pagination: { page: 1, pages: 1, total: 1, limit: 20 },
-				board: { statusField: 'status', moveTargetsHandler: 'targets', columnFields: [{ field: 'status', source: { schema: 'statusType', orderField: 'order', mergeBy: 'name' } }] },
+				kanban: { statusField: 'status', moveTargetsHandler: 'targets', columnFields: [{ field: 'status', source: { schema: 'statusType', orderField: 'order', mergeBy: 'name' } }] },
 			},
 			global: {
 				provide: { cnLook: 'board', cnRegistry: { targets } },
@@ -138,7 +138,7 @@ describe('CnIndexPage: moveTargetsHandler entries', () => {
 			},
 		})
 		await flushPromises()
-		const allowed = await w.findComponent(CnBoardView).props('allowedMoves')(CASES[0])
+		const allowed = await w.findComponent(CnKanbanView).props('allowedMoves')(CASES[0])
 		expect(allowed).toEqual([
 			'In behandeling',
 			{ key: 'Besluit', allowed: false, reason: REASON },

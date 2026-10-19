@@ -66,7 +66,7 @@ describe('CnIndexPage board list: the view switch', () => {
 	it('draws the four board segments without a viewSwitch key', () => {
 		const w = mountPage()
 		expect(w.vm.effectiveToggleModes).toEqual(expect.arrayContaining(['table', 'cards']))
-		expect(w.vm.viewSwitchDisabledModes).toEqual(['board', 'map'])
+		expect(w.vm.viewSwitchDisabledModes).toEqual(['kanban', 'map'])
 	})
 
 	it('follows a viewSwitch the manifest names', () => {

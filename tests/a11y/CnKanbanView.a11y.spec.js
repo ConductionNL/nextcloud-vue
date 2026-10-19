@@ -2,13 +2,13 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * Accessibility coverage for `CnBoardView`.
+ * Accessibility coverage for `CnKanbanView`.
  *
  * 🔴 THIS SUITE IS THE POINT OF THE CHANGE THAT ADDED IT. Gate 32
  * `semantic-controls` found the board's card was a tab stop carrying
  * `tabindex="0"`, an `aria-label`, a click handler and an Enter handler, and
  * no role at all. It found it only because a quality sweep ran the gates by
- * hand: `npm run check:a11y` ran nine suites and `CnBoardView` was not one of
+ * hand: `npm run check:a11y` ran nine suites and `CnKanbanView` was not one of
  * them, so no axe assertion had ever looked at this component. Its absence was
  * indistinguishable from its success.
  *
@@ -41,7 +41,7 @@
 
 const { expectAccessible } = require('../../src/testing/a11y.js')
 const { mountAttached } = require('./support/mountAttached.js')
-const CnBoardView = require('../../src/components/CnBoardView/CnBoardView.vue').default
+const CnKanbanView = require('../../src/components/CnKanbanView/CnKanbanView.vue').default
 
 const statusFieldSchema = {
 	enum: ['open', 'doing', 'done'],
@@ -59,7 +59,7 @@ const baseProps = {
 	cardFields: ['title'],
 }
 
-describe('CnBoardView — accessibility', () => {
+describe('CnKanbanView — accessibility', () => {
 	let wrapper
 
 	afterEach(() => {
@@ -67,13 +67,13 @@ describe('CnBoardView — accessibility', () => {
 	})
 
 	it('has no WCAG 2.1 AA violations as a read-only board', async () => {
-		wrapper = mountAttached(CnBoardView, { propsData: { ...baseProps } })
+		wrapper = mountAttached(CnKanbanView, { propsData: { ...baseProps } })
 
 		await expectAccessible(wrapper)
 	})
 
 	it('has no WCAG 2.1 AA violations with the move control on every card', async () => {
-		wrapper = mountAttached(CnBoardView, {
+		wrapper = mountAttached(CnKanbanView, {
 			propsData: { ...baseProps, runTransition: async () => ({ outcome: 'moved' }) },
 		})
 
@@ -81,7 +81,7 @@ describe('CnBoardView — accessibility', () => {
 	})
 
 	it('has no WCAG 2.1 AA violations with swimlanes', async () => {
-		wrapper = mountAttached(CnBoardView, {
+		wrapper = mountAttached(CnKanbanView, {
 			propsData: { ...baseProps, swimlaneField: 'who' },
 		})
 
@@ -89,7 +89,7 @@ describe('CnBoardView — accessibility', () => {
 	})
 
 	it('has no WCAG 2.1 AA violations when the field cannot back a board', async () => {
-		wrapper = mountAttached(CnBoardView, {
+		wrapper = mountAttached(CnKanbanView, {
 			propsData: { ...baseProps, statusFieldSchema: {} },
 		})
 
@@ -107,23 +107,23 @@ describe('CnBoardView — accessibility', () => {
 		}
 
 		it('has no WCAG 2.1 AA violations at rest', async () => {
-			wrapper = mountAttached(CnBoardView, { propsData: boardProps, ...board })
+			wrapper = mountAttached(CnKanbanView, { propsData: boardProps, ...board })
 
 			await expectAccessible(wrapper)
 		})
 
 		it('has no WCAG 2.1 AA violations with a card menu open', async () => {
-			wrapper = mountAttached(CnBoardView, { propsData: boardProps, ...board })
-			await wrapper.find('[data-testid="cn-board-card-menu"]').trigger('click')
+			wrapper = mountAttached(CnKanbanView, { propsData: boardProps, ...board })
+			await wrapper.find('[data-testid="cn-kanban-card-menu"]').trigger('click')
 			expect(wrapper.find('[role="menu"]').exists()).toBe(true)
 
 			await expectAccessible(wrapper)
 		})
 
 		it('keeps the card a listitem with no role=button and no nested controls', () => {
-			wrapper = mountAttached(CnBoardView, { propsData: boardProps, ...board })
+			wrapper = mountAttached(CnKanbanView, { propsData: boardProps, ...board })
 
-			const card = wrapper.element.querySelector('[data-testid="cn-board-card"]')
+			const card = wrapper.element.querySelector('[data-testid="cn-kanban-card"]')
 
 			expect(card.getAttribute('role')).toBe('listitem')
 			expect(card.querySelector('[role="button"]')).toBeNull()
@@ -136,11 +136,11 @@ describe('CnBoardView — accessibility', () => {
 
 	describe('the card is a container and its actions are controls', () => {
 		it('names the kind of every focusable thing on a card', () => {
-			wrapper = mountAttached(CnBoardView, {
+			wrapper = mountAttached(CnKanbanView, {
 				propsData: { ...baseProps, runTransition: async () => ({ outcome: 'moved' }) },
 			})
 
-			const card = wrapper.element.querySelector('[data-testid="cn-board-card"]')
+			const card = wrapper.element.querySelector('[data-testid="cn-kanban-card"]')
 
 			expect(card.getAttribute('role')).toBe('listitem')
 			expect(card.getAttribute('role')).not.toBe('button')
@@ -156,9 +156,9 @@ describe('CnBoardView — accessibility', () => {
 		})
 
 		it('gives the opening control the name of the card it opens', () => {
-			wrapper = mountAttached(CnBoardView, { propsData: { ...baseProps } })
+			wrapper = mountAttached(CnKanbanView, { propsData: { ...baseProps } })
 
-			const open = wrapper.element.querySelector('[data-testid="cn-board-card-open"]')
+			const open = wrapper.element.querySelector('[data-testid="cn-kanban-card-open"]')
 
 			expect(open.tagName).toBe('BUTTON')
 			expect(open.getAttribute('type')).toBe('button')
@@ -168,11 +168,11 @@ describe('CnBoardView — accessibility', () => {
 		})
 
 		it('keeps the move control out of the opening button', () => {
-			wrapper = mountAttached(CnBoardView, {
+			wrapper = mountAttached(CnKanbanView, {
 				propsData: { ...baseProps, runTransition: async () => ({ outcome: 'moved' }) },
 			})
 
-			const move = wrapper.element.querySelector('[data-testid="cn-board-move"]')
+			const move = wrapper.element.querySelector('[data-testid="cn-kanban-move"]')
 
 			expect(move).not.toBeNull()
 			expect(move.closest('button')).toBeNull()
@@ -180,9 +180,9 @@ describe('CnBoardView — accessibility', () => {
 		})
 
 		it('tells a reader how many cards a column holds', () => {
-			wrapper = mountAttached(CnBoardView, { propsData: { ...baseProps } })
+			wrapper = mountAttached(CnKanbanView, { propsData: { ...baseProps } })
 
-			const lists = [...wrapper.element.querySelectorAll('.cn-board-view__cards')]
+			const lists = [...wrapper.element.querySelectorAll('.cn-kanban-view__cards')]
 
 			expect(lists).toHaveLength(2)
 			lists.forEach((list) => {

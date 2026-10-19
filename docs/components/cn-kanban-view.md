@@ -1,12 +1,27 @@
 ---
-title: CnBoardView
+title: CnKanbanView
 ---
 
-# CnBoardView
+# CnKanbanView
 
-The index page's rows as a board: one column per stage of a status field.
-Offered as the `board` view mode when the page declares `config.board` and
-lists `board` in `viewModes`.
+The index page's rows as a kanban: one column per stage of a status field.
+Offered as the `kanban` view mode when the page declares `config.kanban` and
+lists `kanban` in `viewModes`.
+
+## Formerly the board view
+
+The view mode was called `board` before it was renamed to `kanban`. Manifests,
+saved views and addresses that still say `board` keep working:
+
+- `viewMode`, `viewModes`, `viewSwitch` and the keys of `viewSwitchLinks` read
+  `board` as `kanban`, so `"viewModes": ["table", "board"]` offers the kanban.
+- `?_view=board` opens the kanban, like `?_view=kanban`.
+- `config.board` is read when the page has no `config.kanban`.
+- `CnBoardView` is exported as an alias of this component.
+
+The page emits `view-mode-change` with `kanban`, so an app that stores the
+reader's view stores the new name from then on. Write `kanban` in new
+manifests: `board` is deprecated and only read.
 
 ## The columns are the schema's, not the data's
 
@@ -62,7 +77,7 @@ The card is deliberately not one big control. Giving it `role="button"` would
 make the Move to select an interactive control inside a button, which takes
 away the only way a keyboard user can move a card, and it would collapse every
 field on the card into a single label. Gate 32 `semantic-controls` suggests
-exactly that; `tests/a11y/CnBoardView.a11y.spec.js` holds the line, and axe
+exactly that; `tests/a11y/CnKanbanView.a11y.spec.js` holds the line, and axe
 calls the suggestion `nested-interactive` when you try it.
 
 ## Props
@@ -79,13 +94,13 @@ calls the suggestion `nested-interactive` when you try it.
 | `reread` | `Function` | `null` | `(card) => Promise<object>`, to check the card has not moved under the dragger. |
 | `paged` | `Boolean` | `false` | Whether the counts are of one page. |
 | `dueRule` | `Object` | `null` | Marks late cards: `{ field, soonDays? }`. See below. |
-| `cardRoles` | `Object` | `null` | Board look: the card's roles `{ title, sub, pill, due, owner, pillColors?, formatters? }` (`config.board.card`). `formatters` maps a role's field to a formatter id in the app's `cnFormatters` registry, so a reference reads as its name. |
+| `cardRoles` | `Object` | `null` | Board look: the card's roles `{ title, sub, pill, due, owner, pillColors?, formatters? }` (`config.kanban.card`). `formatters` maps a role's field to a formatter id in the app's `cnFormatters` registry, so a reference reads as its name. |
 | `colorField` | `String` | `''` | Board look: the state key holding a column's dot colour. |
 | `sumField` | `String` | `''` | Board look: a numeric field summed under each column heading. |
 | `sumFormat` | `Object` | `null` | Board look: metric format of the sum. |
 | `columnLimit` | `Number` | `0` | Cards drawn per column before "Show N more"; 0 draws all. |
 | `columnKeyOf` | `Function` | `null` | `(row) => string`: the column a row sits in, for a status whose raw value is not the column key (a reference whose rows are merged by name). Absent, the row's `statusField` value is the key. |
-| `wrapColumns` | `Boolean` | `false` | Wrap the columns onto more rows, as many to a row as fit at 240px, instead of one row that scrolls sideways (`config.board.wrap`). |
+| `wrapColumns` | `Boolean` | `false` | Wrap the columns onto more rows, as many to a row as fit at 240px, instead of one row that scrolls sideways (`config.kanban.wrap`). |
 | `selectable` | `Boolean` | `false` | A checkbox on every card, for the list's bulk actions. |
 | `selectedIds` | `Array` | `[]` | The selected cards, by row key. |
 | `allowedMoves` | `Function` | `null` | `(card) => Promise<Array<string>\|null>`: the column keys a card can reach, `null` for all. See below. |
@@ -95,7 +110,7 @@ calls the suggestion `nested-interactive` when you try it.
 Give the board a `dueRule` and it marks the cards that are late:
 
 ```vue
-<CnBoardView
+<CnKanbanView
   :rows="rows"
   :status-field-schema="statusSchema"
   :card-fields="['title']"
@@ -112,10 +127,10 @@ The label is text inside the card. The edge helps a sighted reader find the card
 
 Days are whole calendar days in the reader's own timezone. A deadline of today is never overdue in the morning.
 
-From a manifest, put the rule in the page's `board` block:
+From a manifest, put the rule in the page's `kanban` block:
 
 ```json
-"board": {
+"kanban": {
   "statusField": "status",
   "cardFields": ["identifier", "title", "requester"],
   "dueRule": { "field": "deadline", "soonDays": 3 }
@@ -188,22 +203,22 @@ two gestures stay as defined above.
   sideways when the tracks do not fit; a column is a 12px panel with 12px
   padding. Four columns in a 1184px area are 284px each; six are 240px.
 - **Column header.** An `h2` with a 10px dot, the label and a white count
-  badge showing the column's total. The dot comes from `config.board.colorField`
+  badge showing the column's total. The dot comes from `config.kanban.colorField`
   on the state, else the state's declared `color`, else the muted text colour.
-  `config.board.sumField` adds a 13px grey sum line, formatted by
-  `config.board.sumFormat` (or the field's `format`).
-- **Card.** `config.board.card` names the roles; the card falls back to
+  `config.kanban.sumField` adds a 13px grey sum line, formatted by
+  `config.kanban.sumFormat` (or the field's `format`).
+- **Card.** `config.kanban.card` names the roles; the card falls back to
   `cardFields` (first field the title, the rest the sub line).
 - **No form controls at rest.** The title is the link that opens the card
   (middle click kept), a 34px "..." menu button holds "Move to" (every other
   column) and "Open in new tab", and the M key opens the same menu. Choosing a
   column runs the same transition as a drop. The card stays a `listitem`.
-- **Cut columns.** `config.board.columnLimit` draws the first N cards and a
+- **Cut columns.** `config.kanban.columnLimit` draws the first N cards and a
   dashed "Show N more" button; the badge keeps the total. With `paged` the
   button also emits `load-more` (`CnIndexPage` asks for the next page).
 
 ```json
-"board": {
+"kanban": {
   "statusField": "status",
   "card": { "title": "title", "sub": ["identifier", "requester"], "pill": "type", "due": "deadline", "owner": "assignee" },
   "colorField": "statusColor",
@@ -220,4 +235,4 @@ is not changed by this look.
 - `utils/boardColumns.js` — the columns, and which card is in which.
 - `utils/boardSwimlanes.js` — the second axis.
 - `utils/boardTransition.js` — what a drop actually does.
-- `CnIndexPage` — `config.board` and `viewModes` wire the mode.
+- `CnIndexPage`: `config.kanban` and `viewModes` wire the mode.
