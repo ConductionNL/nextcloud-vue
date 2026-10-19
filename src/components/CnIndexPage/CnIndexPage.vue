@@ -191,7 +191,7 @@
 			:listIcon="listIcon"
 			:showSortSelect="showSortSelect"
 			:sortOptions="sortSelectOptions"
-			:sortValue="sortSelectValue"
+			:sortValue="effectiveSortSelectValue"
 			:showSearch="search !== false && (inlineSearch || isBoardLook)"
 			:searchValue="effectiveSearchValue"
 			:searchPlaceholder="presented('searchPlaceholder') ? cnTranslate(presented('searchPlaceholder')) : presented('searchPlaceholder')"
@@ -209,7 +209,7 @@
 			:bulkActions="mergedBulkActions"
 			:documentationUrl="documentationUrl"
 			:documentationLabel="documentationLabel || undefined"
-			@sortChange="$emit('sort-change', $event)"
+			@sortChange="onSortSelectChange"
 			@add="onAddClick"
 			@clearSelection="onSelect([])"
 			@removeFilter="onRemoveActiveFilter"
@@ -1309,6 +1309,7 @@ import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
+import { orderToSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -3184,9 +3185,25 @@ export default {
 			default: () => [],
 		},
 
-		/** Selected value of the standalone sort dropdown (controlled). */
+		/**
+		 * Selected value of the standalone sort dropdown. Empty lets a
+		 * self-fetch page show the option matching its current order.
+		 */
 		sortSelectValue: {
 			type: String,
+			default: '',
+		},
+
+		/**
+		 * The order a self-fetch page opens on when neither the address nor
+		 * `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`):
+		 * `"-createdAt"`, `"priority:desc,title"`, an `_order` map or a
+		 * `[{ key, order }]` list.
+		 *
+		 * @type {string|object|Array}
+		 */
+		defaultOrder: {
+			type: [String, Object, Array],
 			default: '',
 		},
 
@@ -4951,6 +4968,25 @@ export default {
 				}
 			}
 			return { name, subtitle: parts.join(' · ') }
+		},
+
+		/**
+		 * The sort select's shown value: `sortSelectValue` when the host
+		 * controls it, else on a self-fetch page the option whose order is the
+		 * list's current order (a header click that matches one shows it).
+		 *
+		 * @return {string} The option value, or '' when none matches.
+		 */
+		effectiveSortSelectValue() {
+			if (this.sortSelectValue) {
+				return this.sortSelectValue
+			}
+			if (!this.isSelfFetchMode || !this.list || !this.list.sortKeys) {
+				return ''
+			}
+			const current = this.list.sortKeys.value || []
+			const match = (this.sortSelectOptions || []).find((o) => o && sameSortKeys(this.sortSelectKeys(o), current))
+			return match ? match.value : ''
 		},
 
 		/**
@@ -8681,6 +8717,38 @@ export default {
 		onQuickFilterMultiChange(indices) {
 			this.selectedQuickFilterIndices = Array.isArray(indices) ? indices : []
 			this.$emit('quick-filter-change', this.selectedQuickFilterIndices)
+		},
+
+		/**
+		 * The sort keys a sort-select option stands for: its `order` (any
+		 * `orderToSortKeys` form), else its `value` read as an order.
+		 *
+		 * @param {object} option A `sortSelectOptions` entry.
+		 * @return {Array<{key: string, order: string}>} The sort keys.
+		 */
+		sortSelectKeys(option) {
+			if (!option) {
+				return []
+			}
+			return orderToSortKeys(option.order !== undefined ? option.order : option.value)
+		},
+
+		/**
+		 * A choice in the sort select. On a self-fetch page it orders the list
+		 * as a header click does (`_order`, kept in the address); every page
+		 * also emits `sort-change` with the value.
+		 *
+		 * @param {string} value The chosen option's value.
+		 * @return {void}
+		 */
+		onSortSelectChange(value) {
+			const option = (this.sortSelectOptions || []).find((o) => o && o.value === value)
+			const keys = this.sortSelectKeys(option)
+			if (option && keys.length > 0 && this.isSelfFetchMode && typeof this.list.onSort === 'function') {
+				this.list.onSort({ key: keys[0].key, order: keys[0].order, keys })
+				this.persistViewStateToRoute(this.currentViewState())
+			}
+			this.$emit('sort-change', value)
 		},
 
 		/**
