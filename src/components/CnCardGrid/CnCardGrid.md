@@ -113,6 +113,7 @@ Custom card slot — replace the default CnObjectCard with your own rendering:
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `cardFields` | Array | `null` | Property keys each card's facts list shows |
+| `cardFieldColumns` | Object | `null` | The page's columns by key, passed to each CnObjectCard (see CnObjectCard `cardFieldColumns`) |
 | `cardLayout` | Object | `null` | Board look: the record layout each card draws, passed to CnObjectCard `layout` |
 | `statusOf` | Function | `null` | `(object) => status` for each card's status pill |
 | `leadingOf` | Function | `null` | `(object) => { initials | icon }` for each card's leading element |

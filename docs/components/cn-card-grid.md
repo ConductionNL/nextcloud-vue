@@ -25,6 +25,7 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
 | `schema` | Object | `null` | Passed to each CnObjectCard (required only when using the default card template; not needed when providing a custom `#card` slot) |
 | `loading` | Boolean | `false` | Loading state |
 | `selectable` | Boolean | `false` | Enable card selection |
+| `cardFieldColumns` | Object | `null` | The page's columns by key, passed to each CnObjectCard: a fact or a layout part whose field names a column reads through that column's label, formatter and widget, as the table does |
 | `clickToView` | Boolean | `false` | Body click on a selectable card emits `click` (navigation); selection happens via the checkbox only (`CnIndexPage` wires this from its `rowClickToView`) |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `rowKey` | String | `'id'` | Unique identifier field |
