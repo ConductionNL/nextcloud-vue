@@ -12,6 +12,9 @@
 - [x] 1.4 The "My views" menu entry shows the view's count
   - Files: src/utils/savedViewMenu.js, src/components/CnAppRoot/CnAppRoot.vue
   - Test: tests/utils/savedViewOverrides.spec.js
-- [x] 1.5 Manifest schema 2.129.0 declares overrides and the crumb query
+- [x] 1.5 Manifest schema 2.132.0 declares overrides and the crumb query
   - Files: src/schemas/app-manifest-v2.schema.json, src/components/CnPageHeader/CnHeaderTrail.vue, src/components/CnDetailPage/CnDetailPage.vue, tests/schemas/app-manifest-v2.schema.hashes.json
   - Test: tests/components/CnSavedViewOverrides.spec.js
+- [x] 1.6 lockedFilters, the profile patch by slug, and the card description, chips and overdue tone
+  - Files: src/utils/savedViewOverrides.js, src/components/CnObjectCard/CnObjectCard.vue, src/css/look-board-index.css, src/schemas/app-manifest-v2.schema.json
+  - Test: tests/utils/savedViewOverrides.spec.js, tests/components/CnObjectCardRecordParts.spec.js

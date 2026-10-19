@@ -1,3 +1,4 @@
+import { mergeManifestDelta } from '../../src/utils/mergeManifestDelta.js'
 import { defaultFilterViews } from '../../src/utils/savedViewHelpers.js'
 import { normalizeSavedViewMenu, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../src/utils/savedViewMenu.js'
 /**
@@ -128,6 +129,30 @@ describe('applySavedViewOverrides, one key at a time', () => {
 	it('slots take a list of components, one of them as itself, an empty list empties the slot', () => {
 		const out = applySavedViewSlots({ 'below-header': 'A' }, { slots: { 'below-header': ['B'], 'before-collection': ['C', 'D'], 'after-search': [] } })
 		expect(out).toEqual({ 'below-header': 'B', 'before-collection': ['C', 'D'] })
+	})
+})
+
+describe('lockedFilters', () => {
+	it('adds to the page\'s base filter while the view is active', () => {
+		expect(applySavedViewOverrides(PAGE, { lockedFilters: { assignee: 'IS NULL' } }).filter).toEqual({ isFinalStatus: false, assignee: 'IS NULL' })
+		expect(applySavedViewOverrides({ register: 'r' }, { lockedFilters: { a: 1 } }).filter).toEqual({ a: 1 })
+	})
+})
+
+describe('a profile patches a default view\'s overrides by slug', () => {
+	it('deep-merges the patch into the shipped overrides', () => {
+		const base = { pages: [{ id: 'Cases', config: { defaultSavedViews: [
+			{ slug: 'team-queue', name: 'Team queue', filters: {}, overrides: { title: 'Team queue', statRow: [{ id: 'a' }], folderSidebar: null, columns: ['startDate', 'title'] } },
+			{ slug: 'my-work', name: 'My work', filters: {} },
+		] } }] }
+		const profile = { pages: [{ id: 'Cases', config: { defaultSavedViews: [
+			{ slug: 'team-queue', overrides: { title: 'Queue', statRow: [], folderSidebar: { field: 'caseType' }, columns: ['@self.unread', 'identifier', 'title'] } },
+		] } }] }
+		const { manifest } = mergeManifestDelta(base, profile)
+		const [queue, mine] = manifest.pages[0].config.defaultSavedViews
+		expect(queue.name).toBe('Team queue')
+		expect(queue.overrides).toEqual({ title: 'Queue', statRow: [], folderSidebar: { field: 'caseType' }, columns: ['@self.unread', 'identifier', 'title'] })
+		expect(mine.slug).toBe('my-work')
 	})
 })
 

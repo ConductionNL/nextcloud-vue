@@ -78,7 +78,7 @@ describe('CnIndexPage and the applied view\'s overrides', () => {
 		const w = mountPage()
 		await flush()
 		w.vm.onApplySavedView(w.vm.defaultFilterViews[0])
-		expect(w.emitted('sort-change').at(-1)[0]).toBe('urgency')
+		expect(w.emitted('sort').at(-1)[0]).toMatchObject({ key: 'urgency' })
 		expect(w.vm.viewSortOption).toBe('urgency')
 		w.vm.applyViewSortOption({ sortOption: 'unknown' })
 		expect(w.vm.viewSortOption).toBe('')

@@ -15,8 +15,11 @@ dossiq turned four list pages into default views of its Cases page: the team que
   - `slots` lays registry components over the page's named slots, one name or a list drawn in order. `null` empties a slot.
   - `badge` puts a count on the view's menu entry: `true` counts the view's own list, and `counterVariant: attention` draws the attention pill.
 - One generic merge does the work. CnIndexPage reports the applied view's overrides (`view-overrides`), and CnPageRenderer lays them over the page config and slots. A copy of a default keeps them, and so does a saved view whose criteria are rewritten.
+- `lockedFilters` adds base filters the reader cannot clear while the view is active.
+- A profile overlay patches a default view's `overrides` by slug, key by key (`mergeManifestDelta`).
+- The board card's record layout gains `description` (cut at a length), `chips` (through formatters) and a `footerDate` tone once the date has passed.
 - A breadcrumb crumb can carry a `query`, so it can land on a view.
-- Manifest schema 2.129.0 declares `overrides` and the crumb `query`.
+- Manifest schema 2.132.0 declares `overrides`, the crumb `query` and the card parts.
 
 ## Impact
 

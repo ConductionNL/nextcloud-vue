@@ -80,9 +80,10 @@ export const SAVED_VIEW_HEADER_KEYS = Object.freeze(['title', 'showTitle', 'brea
 
 /**
  * Every key a view's `overrides` may carry: the config keys, their aliases,
- * `header`, and the three that are not page config: `sortOption` (selected
- * by CnIndexPage), `slots` (mounted by CnPageRenderer) and `badge` (drawn on
- * the view's menu entry).
+ * `header`, `lockedFilters` (added to the page's base `filter`, so the reader
+ * cannot clear them), and the three that are not page config: `sortOption`
+ * (selected by CnIndexPage), `slots` (mounted by CnPageRenderer) and `badge`
+ * (drawn on the view's menu entry).
  *
  * @type {ReadonlyArray<string>}
  */
@@ -90,6 +91,7 @@ export const SAVED_VIEW_OVERRIDE_KEYS = Object.freeze([
 	...SAVED_VIEW_CONFIG_KEYS,
 	...Object.keys(SAVED_VIEW_ALIASES),
 	'header',
+	'lockedFilters',
 	'sortOption',
 	'slots',
 	'badge',
@@ -157,6 +159,9 @@ export function applySavedViewOverrides(config, overrides) {
 		if (overrides[key] !== undefined) {
 			out[key] = overrides[key]
 		}
+	}
+	if (isPlainObject(overrides.lockedFilters)) {
+		out.filter = { ...(isPlainObject(out.filter) ? out.filter : {}), ...overrides.lockedFilters }
 	}
 	return out
 }

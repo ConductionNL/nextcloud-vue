@@ -67,10 +67,13 @@ A view can change more than the filters. A default view declares `overrides` bes
 | `title`, `showTitle`, `breadcrumb`, `headerMeta`, `notice`, `pageTabs`, `headerButtons`, `addLabel`, `searchPlaceholder`, `statRow`, `quickFilters`, `quickFiltersFrom`, `quickFilterPlacement`, `quickFilterMaxVisible`, `sidePanel`, `afterList`, `columns`, `cardLayout`, `cardFields`, `cardComponent`, `listConfig`, `viewModes`, `viewMode`, `viewSwitch`, `countText`, `footerNote`, `emptyText`, `folderSidebar`, `sidebar`, `defaultSort`, `rowClickToView`, `showViewAction`, `actions`, `includeFields`, `fieldOverrides` | Replace the page config key of the same name, in its shape. `folderSidebar: null` hides the folder sidebar. |
 | `header` | Groups `title`, `showTitle`, `breadcrumb`, `notice`, `headerMeta` and `headerButtons`. A key spelled out beside it wins. |
 | `tabs`, `views` | Aliases of `pageTabs` and `viewModes`. |
-| `sortOption` | Selects the `sortSelectOptions` entry with this value, an endpoint-sourced one included. |
+| `lockedFilters` | Filters added to the page's base `filter` while the view is active, so the reader cannot clear them (the old Queue's `assignee: IS NULL`). |
+| `sortOption` | Selects the sidebar sort entry (`sortSelectOptions`) with this value, an endpoint-sourced one included. |
 | `slots` | Lays registry components over the page's named slots (`below-header`, `before-collection`, ...): one name, or a list drawn in order. `null` or `[]` empties the slot. |
 | `badge` | A count on the view's menu entry. `true`, or `count: true`, counts the view's own list: the page's register, schema and base filter with the view's filters. `count` may also be `{ register?, schema?, filter? }`. `counterVariant: "attention"` draws the attention pill. |
 
 Nothing else is read: a view never changes which register or schema the page reads, or what it may write. [`CnIndexPage`](./cn-index-page.md) reports the applied view's overrides with `view-overrides`, and [`CnPageRenderer`](./cn-page-renderer.md) lays them over the page, so the overrides apply on manifest pages.
 
 A breadcrumb crumb can carry a `query` beside its `route`, so a crumb or a page tab can land on a view: `{ "label": "Privacy", "route": "Cases", "query": { "savedView": "default:data-subject-requests" } }`.
+
+A profile overlay that goes through `mergeManifestDelta` patches a default view by its `slug`, and its `overrides` merge key by key: `{ "slug": "team-queue", "overrides": { "title": "Queue" } }` changes the title and keeps the rest of the view.

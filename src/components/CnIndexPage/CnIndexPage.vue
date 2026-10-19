@@ -11420,7 +11420,8 @@ export default {
 			const overrides = savedViewOverrides(view)
 			const badge = overrides ? overrides.badge : null
 			const filters = view && view.query && typeof view.query.filters === 'object' ? view.query.filters : {}
-			return savedViewBadge(badge, { register: this.register, schema: schemaSlug(this.schema), filter: this.filter }, filters)
+			const locked = overrides && overrides.lockedFilters && typeof overrides.lockedFilters === 'object' ? overrides.lockedFilters : {}
+			return savedViewBadge(badge, { register: this.register, schema: schemaSlug(this.schema), filter: this.filter }, { ...locked, ...filters })
 		},
 
 		/**
@@ -11433,10 +11434,8 @@ export default {
 		 */
 		applyViewSortOption(overrides) {
 			const wanted = overrides && typeof overrides.sortOption === 'string' ? overrides.sortOption : ''
-			const option = wanted ? (this.sortSelectOptions || []).find((o) => o && o.value === wanted) : null
-			if (option) {
+			if (wanted !== '' && this.selectSortOption(wanted)) {
 				this.viewSortOption = wanted
-				this.onSortSelectChange(wanted)
 				return
 			}
 			if (this.viewSortOption !== '' && this.sortSource && this.sortSource.value === this.viewSortOption) {
