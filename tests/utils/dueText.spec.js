@@ -25,6 +25,30 @@ afterAll(() => setLanguage('en'))
 describe('resolveDue', () => {
 	beforeEach(() => setLanguage('nl'))
 
+	it('marks today and a date within soonWithin days as soon, and nothing else', () => {
+		const cfg = { soonWithin: 7 }
+		expect(resolveDue(day(0), cfg, (x) => x, NOW).soon).toBe(true)
+		expect(resolveDue(day(3), cfg, (x) => x, NOW).soon).toBe(true)
+		expect(resolveDue(day(7), cfg, (x) => x, NOW).soon).toBe(true)
+		expect(resolveDue(day(10), cfg, (x) => x, NOW).soon).toBeUndefined()
+		expect(resolveDue(day(-2), cfg, (x) => x, NOW)).toMatchObject({ tone: 'danger' })
+		expect(resolveDue(day(-2), cfg, (x) => x, NOW).soon).toBeUndefined()
+		expect(resolveDue(day(3), {}, (x) => x, NOW).soon).toBeUndefined()
+	})
+
+	it('draws a soon date in the warning colour in a table cell', () => {
+		const soon = new Date(Date.now() + 3 * 86400000).toISOString()
+		const w = mount(CnCellRenderer, { propsData: { value: soon, widget: 'date', widgetProps: { due: { soonWithin: 7 } } }, stubs: { NcDateTime: true } })
+		expect(w.find('[data-testid="cn-cell-renderer-due"]').classes()).toContain('cn-cell-renderer__date--warning')
+	})
+
+	it('follows variantWhen rules on a due date when they match', () => {
+		const soon = new Date(Date.now() + 3 * 86400000).toISOString()
+		const rules = [{ op: 'lt', value: 0, variant: 'error' }, { op: 'lte', value: 7, variant: 'warning' }]
+		const w = mount(CnCellRenderer, { propsData: { value: soon, widget: 'date', widgetProps: { due: {}, variantWhen: rules } }, stubs: { NcDateTime: true } })
+		expect(w.find('[data-testid="cn-cell-renderer-due"]').classes()).toContain('cn-cell-renderer__date--warning')
+	})
+
 	it('reads days overdue in the danger tone', () => {
 		expect(resolveDue(day(-3), {}, (x) => x, NOW)).toEqual({ text: '3 dagen te laat', tone: 'danger' })
 		expect(resolveDue(day(-1), {}, (x) => x, NOW)).toEqual({ text: '1 dag te laat', tone: 'danger' })

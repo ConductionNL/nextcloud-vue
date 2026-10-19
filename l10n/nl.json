@@ -1948,7 +1948,8 @@
     "ascending": "oplopend",
     "descending": "aflopend",
     "Not sorted": "Niet gesorteerd",
-    "Current order: {order}": "Huidige volgorde: {order}"
+    "Current order: {order}": "Huidige volgorde: {order}",
+    "Soon": "Bijna"
   },
   "plurals": {
     "{count} member": [

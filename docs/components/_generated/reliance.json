@@ -1396,10 +1396,11 @@
 		},
 		"CnFlowRunsWidget": {
 			"direct": 3,
-			"transitive": 2,
+			"transitive": 5,
 			"tier": "medium",
 			"via": [
-				"CnFlowRunsWidgetForm"
+				"CnFlowRunsWidgetForm",
+				"CnIndexPage"
 			],
 			"page": "cn-flow-runs-widget"
 		},

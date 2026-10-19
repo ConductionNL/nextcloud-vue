@@ -1072,6 +1072,8 @@
 					:selectable="selectable"
 					:clickToView="rowClickOpens"
 					:cardFields="resolvedCardFields"
+					:cardLayout="cardLayout"
+					:cardFieldColumns="cardFieldColumns"
 					:accentOf="cardAccent"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
@@ -1950,6 +1952,20 @@ export default {
 		 */
 		cardFields: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Board look: the record layout of each card in the cards view
+		 * (manifest key `config.cardLayout`): `{ headPill, number, title,
+		 * meta, footerPill, footerDate }`, each part naming a field. See
+		 * CnObjectCard `layout`.
+		 *
+		 * @type {object}
+		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 */
+		cardLayout: {
+			type: Object,
 			default: null,
 		},
 
@@ -5645,6 +5661,22 @@ export default {
 				})
 			}
 			return specs
+		},
+
+		/**
+		 * The rendered columns by key, so a card fact shows what its table
+		 * cell shows (label, formatter, widget).
+		 *
+		 * @return {object} Column definitions keyed by property.
+		 */
+		cardFieldColumns() {
+			const byKey = {}
+			for (const col of this.renderedColumns || []) {
+				if (col && typeof col === 'object' && typeof col.key === 'string') {
+					byKey[col.key] = col
+				}
+			}
+			return byKey
 		},
 
 		/**

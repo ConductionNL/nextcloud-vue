@@ -1735,7 +1735,8 @@
     "ascending": "ascending",
     "descending": "descending",
     "Not sorted": "Not sorted",
-    "Current order: {order}": "Current order: {order}"
+    "Current order: {order}": "Current order: {order}",
+    "Soon": "Soon"
   },
   "plurals": {
     "{count} member": [
