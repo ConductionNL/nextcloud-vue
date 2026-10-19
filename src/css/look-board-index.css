@@ -513,9 +513,18 @@
 
 /* The header row is near-white on the boards (#fafbfc), not the hover grey,
    its labels 14px muted. The ink also goes to --nldesign-color-on-surface,
-   which a theme that forces the body ink onto every span (thematiq) reads. */
+   which a theme that forces the body ink onto every span (thematiq) reads.
+   The nldesign theme paints every `th` with `!important` through its table
+   header tokens, and the sort button in it through its button weight token
+   (bold), so the cell hands the board's ground, ink and weight to those
+   tokens too.
+   @spec openspec/changes/board-table-head-theme/specs/board-table-head-theme/spec.md#requirement-a-board-table-header-keeps-the-boards-ground-ink-and-weight-under-a-theme */
 .cn-look-board .cn-table-container--board .cn-data-table th {
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-font-weight: 600;
+	--nldesign-component-button-font-weight: 600;
 	padding: 12px 16px;
 	border-bottom: 0;
 	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
