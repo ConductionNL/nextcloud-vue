@@ -170,7 +170,8 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		const objCtx = unwrapCtx(objectCtxRaw)
 		const base = (objCtx && typeof objCtx === 'object') ? { ...objCtx } : {}
 		base.workspace = unwrapCtx(workspaceCtxRaw) || {}
-		base.config = unwrapCtx(appConfigRaw) || {}
+		// The page's own `appConfig` prop wins over a config an ancestor provides.
+		base.config = { ...(unwrapCtx(appConfigRaw) || {}), ...(props.appConfig || {}) }
 		return base
 	}
 
@@ -182,7 +183,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// never again. Stringified (like CnDeltaWidget's `sourceKey`) so the
 	// watcher fires on real content changes only, not object identity.
 	const workspaceSignature = computed(() => JSON.stringify(unwrapCtx(workspaceCtxRaw) || {}))
-	const appConfigSignature = computed(() => JSON.stringify(unwrapCtx(appConfigRaw) || {}))
+	const appConfigSignature = computed(() => JSON.stringify({ ...(unwrapCtx(appConfigRaw) || {}), ...(props.appConfig || {}) }))
 
 	// Pass register/schema in their positional id slots (not as a {register, schema} object as
 	// second arg) — that previously made fetch URLs go to `/api/objects/undefined/[object Object]`.
