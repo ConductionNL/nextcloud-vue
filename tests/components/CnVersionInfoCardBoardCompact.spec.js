@@ -140,7 +140,7 @@ describe('CnAdminSettingsShell board version card', () => {
 
 	it('draws dossiq\'s compact card with compact', () => {
 		const wrapper = shell({ compact: true, showUpdateButton: true, isUpToDate: true })
-		expect(wrapper.findAll('.cn-version-info__label').map((l) => l.text())).toEqual(['Version:', 'Configured version:', 'Support:'])
+		expect(wrapper.findAll('.cn-version-info__label').map((l) => l.text())).toEqual(['Version', 'Configured version', 'Support'])
 		expect(wrapper.find('[data-testid="cn-version-info-configured"]').text()).toContain('0.4.47, up to date')
 		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').classes()).not.toContain('cn-version-info__footer-row--divided')
 		expect(wrapper.find('.cn-version-info--compact').exists()).toBe(true)
@@ -152,7 +152,7 @@ describe('CnAdminSettingsShell board version card', () => {
 		const wrapper = shell({ compact: true })
 		expect(wrapper.text()).toContain('About this Dossiq installation.')
 		const row = wrapper.find('[data-testid="cn-admin-settings-support-row"]')
-		expect(row.find('.cn-version-info__label').text()).toBe('Support:')
+		expect(row.find('.cn-version-info__label').text()).toBe('Support')
 		expect(row.find('.cn-version-info__value').text().replace(/\s+/g, ' ')).toBe('support@conduction.nl, for an SLA sales@conduction.nl')
 		expect(wrapper.find('.cn-support-info').exists()).toBe(false)
 	})
