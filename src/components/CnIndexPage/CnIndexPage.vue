@@ -1978,7 +1978,10 @@ export default {
 		 * case" (manifest `config.headerButtons`). Each is `{ label?, action,
 		 * variant?, icon?, format?, id? }`: `action` is `add` (the Add flow;
 		 * its label defaults to the Add label), `export` (the export leaf in
-		 * `format`, `csv` by default, else the export dialog), `import`,
+		 * `format`, `csv` by default, else the export dialog; with `run` the
+		 * `headerActions` entry of that id; on an `entitySource` page without
+		 * `run` and without a `@mass-export` listener it is not drawn),
+		 * `import`,
 		 * `refresh`, `save-view` (the save-current-view dialog: the board's
 		 * "Zoekopdracht opslaan", label "Save view" by default), or the id of a
 		 * `headerActions` entry; `variant` is
@@ -6713,6 +6716,7 @@ export default {
 						variant: button.variant === 'primary' ? 'primary' : 'secondary',
 						icon,
 						format: button.format === 'excel' ? 'excel' : 'csv',
+						run: typeof button.run === 'string' ? button.run : '',
 						items: Array.isArray(button.items)
 							? button.items.filter((item) => (typeof item === 'string' && item !== '')
 								|| (item && typeof item === 'object' && typeof item.heading === 'string' && item.heading !== ''))
@@ -6720,6 +6724,10 @@ export default {
 					}
 				})
 				.filter((button) => button.label !== '')
+				// An Export with nothing to export through is not drawn: a
+				// named or endpoint source with no `run` and no `@mass-export`
+				// listener.
+				.filter((button) => button.action !== 'export' || this.headerExportAvailable(button))
 				// The Actions menu lists the page's header actions (or the
 				// entries its `items` name), so a menu with nothing to list
 				// is not drawn.
@@ -8508,7 +8516,9 @@ export default {
 			if (button.action === 'add') {
 				this.onAddClick()
 			} else if (button.action === 'export') {
-				if (this.register && this.exportSchemaSlug) {
+				if (button.run) {
+					this.onHeaderAction({ action: button.run, id: button.run })
+				} else if (this.register && this.exportSchemaSlug) {
 					this.onExportClick(button.format)
 				} else {
 					this.showExportDialog = true
@@ -8522,6 +8532,25 @@ export default {
 			} else {
 				this.onHeaderAction({ action: button.action, id: button.action })
 			}
+		},
+
+		/**
+		 * Whether a header Export has something to export through. Any page
+		 * listing OpenRegister objects (self-fetch or the consumer's
+		 * `objects`) keeps it; a named or endpoint source (`entitySource`)
+		 * needs a `run` naming one of the page's header actions, or a
+		 * `@mass-export` listener.
+		 *
+		 * @spec openspec/changes/index-header-export-source/specs/index-page/spec.md#requirement-a-header-export-is-drawn-only-when-it-can-export
+		 * @param {{run?: string}} button The resolved header button.
+		 * @return {boolean}
+		 */
+		headerExportAvailable(button) {
+			if (!this.isNamedSource || (button && button.run)) {
+				return true
+			}
+			const props = this.$ && this.$.vnode && this.$.vnode.props
+			return Boolean(props && typeof props.onMassExport === 'function')
 		},
 
 		/**
