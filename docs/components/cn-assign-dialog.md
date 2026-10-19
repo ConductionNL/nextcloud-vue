@@ -20,7 +20,7 @@ It is a built-in modal: any app opens it by name with an `open-modal` action and
         "kinds": ["group"],
         "label": "New team",
         "currentPath": "assignedGroupPublicName",
-        "currentHint": "Now with {current}.",
+        "currentHint": "Now with {current}. The new team picks its own handler.",
         "hint": "The new team picks its own handler.",
         "allowTyped": true,
         "field": "team"
@@ -47,7 +47,7 @@ Confirming sends `{ team, reason, doorzending }` to the request url, or dispatch
 | `source` | An endpointSource to read the record from; else the `object` prop |
 | `assignee.kinds` | `["group"]` (default), `["user"]`, or both |
 | `assignee.label`, `placeholder`, `hint` | The field's texts |
-| `assignee.currentPath`, `currentHint` | Who has the record now, read from it, and the sentence that says so (`{current}`) |
+| `assignee.currentPath`, `currentHint`, `currentAs` | Who has the record now, read from it, and the sentence that says so, shown in place of `hint`. The placeholder is `{current}`, or the name in `currentAs`, so an app can reuse a sentence it already translates (`"currentAs": "team"` for "Now with {team}.") |
 | `assignee.allowTyped` | Offer what was typed as a choice, for instances where the search answers nothing |
 | `assignee.field`, `kindField` | The key the id is sent as (default `assignee`), and the key its kind (`group`/`user`) is sent as |
 | `note` | `{ label?, hint?, required?, field? }`, required by default and sent as `field` (default `note`); `false` drops it |

@@ -14,7 +14,7 @@ One dialog to hand a record to another user or team, in every app.
 
 ### Requirement: A manifest configures an assign dialog
 
-CnAssignDialog SHALL be a built-in modal that an `open-modal` action opens by name. It SHALL search Nextcloud groups, users or both as `assignee.kinds` says, and SHALL offer what was typed as a choice when `allowTyped` is set. It SHALL say who has the record now from `currentPath`. It SHALL ask a note unless `note` is false or not required, and SHALL show `toggles` as switches that start off. Confirming SHALL be possible only with an assignee and a needed note, and SHALL send `{ <field>: id, <kindField>: kind, <note.field>: note, ...toggles }` to `confirm.request` or dispatch `confirm.action` with it, then show `doneText` and refresh the page. A refusal SHALL be shown in the server's words and the dialog SHALL stay open.
+CnAssignDialog SHALL be a built-in modal that an `open-modal` action opens by name. It SHALL search Nextcloud groups, users or both as `assignee.kinds` says, and SHALL offer what was typed as a choice when `allowTyped` is set. It SHALL say who has the record now from `currentPath`, in place of `hint`. It SHALL ask a note unless `note` is false or not required, and SHALL show `toggles` as switches that start off. Confirming SHALL be possible only with an assignee and a needed note, and SHALL send `{ <field>: id, <kindField>: kind, <note.field>: note, ...toggles }` to `confirm.request` or dispatch `confirm.action` with it, then show `doneText` and refresh the page. A refusal SHALL be shown in the server's words and the dialog SHALL stay open.
 
 #### Scenario: Handing a case to another team
 

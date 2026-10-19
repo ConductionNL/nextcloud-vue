@@ -133,9 +133,10 @@ export function withTypedAssignee(found, typed, label) {
  *   `eyebrow` a template filled from the record.
  * - `source`: an endpointSource to read the record from, else `object`.
  * - `assignee`: `{ kinds?, label?, placeholder?, hint?, currentPath?,
- *   currentHint?, allowTyped?, field?, kindField? }`. `kinds` is `["group"]`
+ *   currentHint?, currentAs?, allowTyped?, field?, kindField? }`. `kinds` is `["group"]`
  *   (default), `["user"]` or both; `currentPath` reads who has it now from the
- *   record and `currentHint` ("Now with {current}.") says so; `allowTyped`
+ *   record and `currentHint` ("Now with {current}.", the placeholder named
+ *   by `currentAs`) says so, in place of `hint`; `allowTyped`
  *   offers what was typed as a choice; the id is sent as `field` (default
  *   `assignee`) and its kind as `kindField` when set.
  * - `note`: `{ label?, hint?, required?, field? }`, required by default and
@@ -279,14 +280,15 @@ export default {
 		},
 
 		/**
-		 * The hint under the assignee field: who has it now, then the configured hint.
+		 * The hint under the assignee field: who has it now, else the configured hint.
 		 *
 		 * @spec openspec/changes/assign-dialog/specs/assign-dialog/spec.md#requirement-a-manifest-configures-an-assign-dialog
 		 * @return {string}
 		 */
 		assigneeHint() {
-			const now = this.current && this.assigneeConfig.currentHint ? fillTemplate(this.cnTranslate(this.assigneeConfig.currentHint), { current: this.current }) : ''
-			return [now, this.text(this.assigneeConfig.hint)].filter(Boolean).join(' ')
+			const name = this.assigneeConfig.currentAs || 'current'
+			const now = this.current && this.assigneeConfig.currentHint ? fillTemplate(this.cnTranslate(this.assigneeConfig.currentHint), { [name]: this.current }) : ''
+			return now || this.text(this.assigneeConfig.hint)
 		},
 
 		/** @return {Array<object>} The rows, keeping the picked one listed. */

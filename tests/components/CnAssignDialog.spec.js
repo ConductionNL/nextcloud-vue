@@ -23,7 +23,7 @@ const HANDOVER = {
 	title: 'Hand this case to another team',
 	eyebrow: 'Hand over · {identifier}',
 	source: { url: '/apps/dossiq/api/case/@objectId/summary' },
-	assignee: { kinds: ['group'], label: 'New team', currentPath: 'assignedGroupPublicName', currentHint: 'Now with {current}.', hint: 'The new team picks its own handler.', allowTyped: true, field: 'team' },
+	assignee: { kinds: ['group'], label: 'New team', currentPath: 'assignedGroupPublicName', currentHint: 'Now with {team}. The new team picks its own handler.', currentAs: 'team', hint: 'The new team picks its own handler.', allowTyped: true, field: 'team' },
 	note: { label: 'Why it is moving', field: 'reason' },
 	toggles: [{ field: 'doorzending', label: 'Tell the applicant, this is a doorzending (Awb 2:3)', note: 'Leave it off for a move inside the organisation.' }],
 	confirm: { label: 'Hand it over', request: { url: '/apps/dossiq/api/case/@objectId/handover' } },
@@ -97,6 +97,12 @@ describe('CnAssignDialog', () => {
 		expect(axios.get.mock.calls[0][0]).toBe('/nc/apps/dossiq/api/case/z-82/summary')
 		expect(w.find('.dialog').attributes('data-eyebrow')).toBe('Hand over · 2026-0082')
 		expect(w.text()).toContain('Now with Vergunningen. The new team picks its own handler.')
+		expect(w.text().match(/picks its own handler/g)).toHaveLength(1)
+
+		axios.get.mockResolvedValue({ data: { identifier: '2026-0083' } })
+		const nobody = await mountDialog()
+		expect(nobody.text()).toContain('The new team picks its own handler.')
+		expect(nobody.text()).not.toContain('Now with')
 	})
 
 	it('searches the configured kinds and offers what was typed when allowed', async () => {
