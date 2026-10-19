@@ -2092,7 +2092,33 @@
     "us": "ons",
     "Waiting on {party} for {days} days": "Wacht {days} dagen op {party}",
     "Waiting on {party} for {days} days, chased once": "Wacht {days} dagen op {party}, één keer gerappelleerd",
-    "Waiting on {party} for {days} days, chased {chases} times": "Wacht {days} dagen op {party}, {chases} keer gerappelleerd"
+    "Waiting on {party} for {days} days, chased {chases} times": "Wacht {days} dagen op {party}, {chases} keer gerappelleerd",
+    "Previous document": "Vorig document",
+    "Next document": "Volgend document",
+    "Record redaction": "Lakken vastleggen",
+    "No document here needs redacting.": "Hier hoeft geen document gelakt te worden.",
+    "Document {index} of {count}": "Document {index} van {count}",
+    "Redacted copy recorded": "Gelakte kopie vastgelegd",
+    "Upload redacted version": "Gelakte versie uploaden",
+    "Document without a title": "Document zonder titel",
+    "Finding the passages to redact…": "De te lakken passages worden gezocht…",
+    "No text was extracted from this document.": "Uit dit document is geen tekst gehaald.",
+    "Proposal": "Voorstel",
+    "Always redacted by rule": "Altijd gelakt volgens regel",
+    "Verdict for {passage}": "Oordeel over {passage}",
+    "Passage type": "Soort passage",
+    "Passage text": "Tekst van de passage",
+    "Add passage": "Passage toevoegen",
+    "Redact: {title}": "Lakken: {title}",
+    "Redact documents": "Documenten lakken",
+    "Agreed": "Akkoord",
+    "Adjust": "Aanpassen",
+    "Do not redact": "Niet lakken",
+    "The documents could not be read.": "De documenten konden niet worden gelezen.",
+    "The passages of this document could not be found. Upload a redacted version instead.": "De passages van dit document konden niet worden gevonden. Upload in plaats daarvan een gelakte versie.",
+    "The redacted copy could not be made. Upload a redacted version instead.": "De gelakte kopie kon niet worden gemaakt. Upload in plaats daarvan een gelakte versie.",
+    "The redacted version could not be stored. Try again.": "De gelakte versie kon niet worden opgeslagen. Probeer het opnieuw.",
+    "The redacted copy is recorded. Only this copy will be published.": "De gelakte kopie is vastgelegd. Alleen deze kopie wordt gepubliceerd."
   },
   "plurals": {
     "{count} member": [
@@ -2218,6 +2244,10 @@
     "%n existing record looks like this one.": [
       "%n bestaand item lijkt hierop.",
       "%n bestaande items lijken hierop."
+    ],
+    "%n passage found. Review each one.": [
+      "%n passage gevonden. Beoordeel elke passage.",
+      "%n passages gevonden. Beoordeel elke passage."
     ]
   }
 }

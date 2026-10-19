@@ -1880,7 +1880,33 @@
     "us": "us",
     "Waiting on {party} for {days} days": "Waiting on {party} for {days} days",
     "Waiting on {party} for {days} days, chased once": "Waiting on {party} for {days} days, chased once",
-    "Waiting on {party} for {days} days, chased {chases} times": "Waiting on {party} for {days} days, chased {chases} times"
+    "Waiting on {party} for {days} days, chased {chases} times": "Waiting on {party} for {days} days, chased {chases} times",
+    "Previous document": "Previous document",
+    "Next document": "Next document",
+    "Record redaction": "Record redaction",
+    "No document here needs redacting.": "No document here needs redacting.",
+    "Document {index} of {count}": "Document {index} of {count}",
+    "Redacted copy recorded": "Redacted copy recorded",
+    "Upload redacted version": "Upload redacted version",
+    "Document without a title": "Document without a title",
+    "Finding the passages to redact…": "Finding the passages to redact…",
+    "No text was extracted from this document.": "No text was extracted from this document.",
+    "Proposal": "Proposal",
+    "Always redacted by rule": "Always redacted by rule",
+    "Verdict for {passage}": "Verdict for {passage}",
+    "Passage type": "Passage type",
+    "Passage text": "Passage text",
+    "Add passage": "Add passage",
+    "Redact: {title}": "Redact: {title}",
+    "Redact documents": "Redact documents",
+    "Agreed": "Agreed",
+    "Adjust": "Adjust",
+    "Do not redact": "Do not redact",
+    "The documents could not be read.": "The documents could not be read.",
+    "The passages of this document could not be found. Upload a redacted version instead.": "The passages of this document could not be found. Upload a redacted version instead.",
+    "The redacted copy could not be made. Upload a redacted version instead.": "The redacted copy could not be made. Upload a redacted version instead.",
+    "The redacted version could not be stored. Try again.": "The redacted version could not be stored. Try again.",
+    "The redacted copy is recorded. Only this copy will be published.": "The redacted copy is recorded. Only this copy will be published."
   },
   "plurals": {
     "{count} member": [
@@ -2006,6 +2032,10 @@
     "%n existing record looks like this one.": [
       "%n existing record looks like this one.",
       "%n existing records look like this one."
+    ],
+    "%n passage found. Review each one.": [
+      "%n passage found. Review each one.",
+      "%n passages found. Review each one."
     ]
   }
 }
