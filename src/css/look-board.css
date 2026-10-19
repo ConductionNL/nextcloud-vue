@@ -58,6 +58,23 @@
 	margin-inline: 0;
 }
 
+/* The page shows the content area's ground (the theme's content surface,
+   light grey on the boards) and draws none of its own; only its cards are
+   white. A theme rule that paints every `[class*="panel"]` with the main
+   background (the nldesign theme's element overrides) caught an index page
+   with a side panel (`cn-index-page--with-side-panel`) and drew the whole
+   page white (DqTeamwachtrij). That rule carries an id through
+   `:not(#header *)`, so this one names an id in `:not()` to outrank it.
+   @spec openspec/changes/board-page-ground/specs/board-page-ground/spec.md#requirement-a-board-page-draws-no-ground-of-its-own */
+.cn-look-board .cn-index-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-dashboard-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-store-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-admin-settings-shell:not(#cn-board-page-ground):not(.cn-look-nextcloud *) {
+	background-color: transparent;
+}
+
 .cn-look-board .cn-index-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page:not(.cn-look-nextcloud *) {
 	gap: var(--cn-board-section-gap);
