@@ -92,6 +92,11 @@
 						<CnCellRenderer
 							:value="field.value"
 							:property="field.property"
+							:formatter="field.column && field.column.formatter || null"
+							:formatterOptions="field.column && field.column.formatterOptions || null"
+							:widget="field.column && field.column.widget || null"
+							:widgetProps="field.column && field.column.widgetProps || undefined"
+							:row="object"
 							:truncate="60" />
 					</div>
 				</slot>
@@ -282,6 +287,17 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * The page's columns by key: a fact whose key names a column renders
+		 * through that column's label, formatter and widget, as the table does.
+		 *
+		 * @type {object}
+		 */
+		cardFieldColumns: {
+			type: Object,
+			default: null,
+		},
+
 		/** Maximum number of metadata fields to show */
 		maxMetadata: {
 			type: Number,
@@ -401,12 +417,7 @@ export default {
 			if (Array.isArray(this.cardFields)) {
 				return this.cardFields
 					.filter((key) => typeof key === 'string' && this.schema.properties[key] && !this.configFields.includes(key))
-					.map((key) => ({
-						key,
-						label: this.cnTranslate(this.schema.properties[key].title || key),
-						value: this.object[key],
-						property: this.schema.properties[key],
-					}))
+					.map((key) => this.metadataField(key, this.schema.properties[key]))
 			}
 
 			return Object.entries(this.schema.properties)
@@ -431,16 +442,30 @@ export default {
 					return orderA - orderB
 				})
 				.slice(0, this.maxMetadata)
-				.map(([key, prop]) => ({
-					key,
-					label: this.cnTranslate(prop.title || key),
-					value: this.object[key],
-					property: prop,
-				}))
+				.map(([key, prop]) => this.metadataField(key, prop))
 		},
 	},
 
 	methods: {
+		/**
+		 * One fact of the card: the property's value with the matching page
+		 * column (label, formatter, widget) when there is one.
+		 *
+		 * @param {string} key The property key.
+		 * @param {object} prop The schema property.
+		 * @return {object} { key, label, value, property, column }
+		 */
+		metadataField(key, prop) {
+			const column = (this.cardFieldColumns && this.cardFieldColumns[key]) || null
+			return {
+				key,
+				label: this.cnTranslate((column && column.label) || prop.title || key),
+				value: this.object[key],
+				property: prop,
+				column,
+			}
+		},
+
 		formatValue,
 
 		/**

@@ -37,6 +37,7 @@
 						:clickToView="clickToView"
 						:selected="isSelected(object)"
 						:cardFields="cardFields"
+						:cardFieldColumns="cardFieldColumns"
 						:status="statusOf ? statusOf(object) : null"
 						:leading="leadingOf ? leadingOf(object) : null"
 						:footerAction="footerActionOf ? footerActionOf(object) : null"
@@ -162,6 +163,12 @@ export default {
 		 */
 		cardFields: {
 			type: Array,
+			default: null,
+		},
+
+		/** The page's columns by key, passed through to CnObjectCard. */
+		cardFieldColumns: {
+			type: Object,
 			default: null,
 		},
 
