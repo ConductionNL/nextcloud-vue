@@ -14,7 +14,7 @@ import { formatRelativeDate } from '../utils/boardDate.js'
 import { fetchReferenceObjects } from '../utils/boardReferenceColumns.js'
 import { fillTemplate } from '../utils/fillTemplate.js'
 import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
-import { fetchGroupMembers, fetchPresence, fetchStatuses } from '../utils/nextcloudDirectory.js'
+import { fetchGroupMembers, fetchPresence, fetchStatuses, fetchUsers } from '../utils/nextcloudDirectory.js'
 import { readPath } from '../utils/readPath.js'
 import { useFlowStore } from './useFlowStore.js'
 import { organisationRecord, useOrganisationStore } from './useOrganisationStore.js'
@@ -1054,7 +1054,8 @@ function searchSource(config = {}, context = {}) {
  * DqAfdelingen). Pair it with `folderSidebar: { source: 'groups',
  * filterField: 'group' }`, which lists the groups as the folder tree; the
  * selected group arrives as `group`. `sourceConfig.group` is the group shown
- * before one is picked.
+ * before one is picked; without one, All lists every user the reader may
+ * list (all users for an admin, their groups' users for a sub-admin).
  *
  * Today is the dav app's out-of-office period when one runs now ("Absent
  * until 14 Oct"), else the user status (present, away) and its message. The
@@ -1088,14 +1089,13 @@ function usersSource() {
 		load: async (config) => {
 			const group = String((config && (config.group || config.defaultGroup)) || '')
 			const mine = ++seq
-			if (group === '') {
-				state.rows = []
-				return
-			}
 			state.loading = true
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
-				const [members, statuses] = await Promise.all([fetchGroupMembers(axios, group), fetchStatuses(axios)])
+				const [members, statuses] = await Promise.all([
+					group === '' ? fetchUsers(axios, { limit: (config && config.limit) || 500 }) : fetchGroupMembers(axios, group),
+					fetchStatuses(axios),
+				])
 				const functionField = (config && config.functionField) || 'headline'
 				const rolesField = (config && config.rolesField) || 'role'
 				const rows = await Promise.all(members.map(async (user) => {
