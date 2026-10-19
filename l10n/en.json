@@ -1,5 +1,12 @@
 {
   "translations": {
+    "{name} (you)": "{name} (you)",
+    "{present} of {total} present": "{present} of {total} present",
+    "Absent today": "Absent today",
+    "{message} until {time}": "{message} until {time}",
+    "Away": "Away",
+    "Busy": "Busy",
+    "No one in the team": "No one in the team",
     "Channel": "Channel",
     "Outcome": "Outcome",
     "Chat": "Chat",
@@ -1730,6 +1737,10 @@
     "Back to the step settings": "Back to the step settings"
   },
   "plurals": {
+    "{count} open": [
+      "{count} open",
+      "{count} open"
+    ],
     "{count} member": [
       "{count} member",
       "{count} members"

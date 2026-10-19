@@ -1,5 +1,12 @@
 {
   "translations": {
+    "{name} (you)": "{name} (u)",
+    "{present} of {total} present": "{present} van {total} aanwezig",
+    "Absent today": "Vandaag afwezig",
+    "{message} until {time}": "{message} tot {time}",
+    "Away": "Afwezig",
+    "Busy": "Bezet",
+    "No one in the team": "Niemand in het team",
     "Channel": "Kanaal",
     "Outcome": "Uitkomst",
     "Chat": "Chat",
@@ -1943,6 +1950,10 @@
     "Back to the step settings": "Terug naar de stapinstellingen"
   },
   "plurals": {
+    "{count} open": [
+      "{count} open",
+      "{count} open"
+    ],
     "{count} member": [
       "{count} lid",
       "{count} leden"
