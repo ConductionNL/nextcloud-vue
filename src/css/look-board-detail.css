@@ -222,7 +222,7 @@
 }
 
 /* Tabs sit on the card's top edge; only the open tab reaches 1px further
-   down (min-height 35px below), over the card's top border. Top-aligned so
+   down (min-height 38px below), over the card's top border. Top-aligned so
    the inactive tabs do not stretch to the open tab's height. */
 .cn-look-board .cn-tabs--board .cn-tabs__nav {
 	align-items: flex-start;
@@ -256,8 +256,15 @@
 
 /* `margin: 0`: a tab is a <button>, and Nextcloud's core stylesheet gives
    every `button:not(.button-vue)` `margin: 3px 3px 3px 0`, which put the strip
-   3px low and the tabs 7px apart instead of 4 (DqZaak "Zaakonderdelen"). */
+   3px low and the tabs 7px apart instead of 4 (DqZaak "Zaakonderdelen").
+   The nldesign theme sets every button's weight and radius with `!important`
+   through its button tokens, which drew every tab bold with four rounded
+   corners; the tab hands the board's values to those tokens. A tab is 37px
+   with or without a count (DqZaak), not 34px without one.
+   @spec openspec/changes/board-tabs-theme/specs/board-tabs-theme/spec.md#requirement-board-folder-tabs-keep-the-boards-weight-shape-and-height-under-a-theme */
 .cn-look-board .cn-tabs--board .cn-tabs__nav-item {
+	--nldesign-component-button-font-weight: 400;
+	--nldesign-component-button-border-radius: 8px 8px 0 0;
 	background-color: var(--color-background-dark);
 	border: 1px solid var(--color-border-dark);
 	border-bottom: none;
@@ -265,17 +272,18 @@
 	font-size: 14px;
 	font-weight: 400;
 	margin: 0;
-	min-height: 34px;
+	min-height: 37px;
 	padding: 8px 12px;
 }
 
 /* The open tab: the panel's colour, bold, and no coloured top edge. */
 .cn-look-board .cn-tabs--board .cn-tabs__nav-item.cn-tabs__nav-item--active {
+	--nldesign-component-button-font-weight: 700;
 	background-color: var(--color-main-background);
 	border-bottom: 1px solid var(--color-main-background);
 	border-top: 1px solid var(--color-border-dark);
 	font-weight: 700;
-	min-height: 35px;
+	min-height: 38px;
 	padding-bottom: 9px;
 	padding-top: 8px;
 	position: relative;
