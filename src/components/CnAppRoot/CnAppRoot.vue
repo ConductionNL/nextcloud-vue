@@ -180,7 +180,7 @@
 				<div class="cn-app-root__setup">
 					<CnSetupWizard
 						:appId="appId"
-						:appName="appDisplayName || (manifest && manifest.name) || appId"
+						:appName="shownAppName"
 						:steps="manifest.setup.steps"
 						:cancellable="false"
 						:completedStepIds="setupCompletedStepIds"
@@ -441,7 +441,7 @@
 			<div v-if="setupWizardOpen" class="cn-app-root__setup-optional">
 				<CnSetupWizard
 					:appId="appId"
-					:appName="appDisplayName || (manifest && manifest.name) || appId"
+					:appName="shownAppName"
 					:steps="manifest.setup.steps"
 					:cancellable="true"
 					:completedStepIds="setupCompletedStepIds"
@@ -580,7 +580,7 @@
 						<CnCredentials
 							scope="personal"
 							:appId="appId"
-							:appName="appDisplayName || (manifest && manifest.name) || appId"
+							:appName="shownAppName"
 							:appCredentials="(manifest && manifest.credentials) || []" />
 					</NcAppSettingsSection>
 					<!--
@@ -747,6 +747,7 @@ import {
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { appShownName } from '../../utils/appShownName.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
@@ -3135,6 +3136,22 @@ export default {
 		},
 
 		/**
+		 * The app's name as the reader reads it: `appDisplayName` or the
+		 * manifest's `name` through the app's translate, else the name
+		 * Nextcloud's app menu shows (localised), else the id with a capital.
+		 * Used for the user settings dialog, the setup wizard and the
+		 * credentials section; never for NcContent's `appName`, which also
+		 * keys the stored list-pane width (`pane-list-size-<appName>`).
+		 *
+		 * @spec openspec/changes/app-shown-name-in-chrome/specs/app-root/spec.md#requirement-the-app-chrome-shows-the-apps-localised-name
+		 * @return {string}
+		 */
+		shownAppName() {
+			const given = this.appDisplayName || (this.manifest && this.manifest.name) || ''
+			return appShownName(this.appId, given ? this.translate(given) : '')
+		},
+
+		/**
 		 * The props of the user-settings dialog: `NcAppSettingsDialog`'s, or
 		 * under the board look CnUserSettingsDialog's (eyebrow, subtitle and
 		 * the app's name for the footer note).
@@ -3149,7 +3166,7 @@ export default {
 			const props = {
 				open: this.userSettingsOpen,
 				title: this.resolvedUserSettingsTitle,
-				appName: this.appDisplayName || (this.manifest && this.manifest.name) || this.appId || '',
+				appName: this.shownAppName,
 			}
 			if (this.userSettingsEyebrow) {
 				props.eyebrow = this.translate(this.userSettingsEyebrow)

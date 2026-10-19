@@ -65,6 +65,23 @@ export async function fetchGroupMembers(axios, groupId) {
 }
 
 /**
+ * Every user the reader may list, with their details: all users for an
+ * admin, the users of their groups for a sub-admin. Refused for others.
+ *
+ * @param {object} axios The axios instance.
+ * @param {{limit?: number}} [options] How many to read.
+ * @return {Promise<Array<object>>} Nextcloud's user details, one per user.
+ */
+export async function fetchUsers(axios, options = {}) {
+	const res = await axios.get(generateOcsUrl('cloud/users/details'), {
+		params: { limit: options.limit || 500, format: 'json' },
+		headers: OCS_HEADERS,
+	})
+	const users = (ocsData(res) && ocsData(res).users) || {}
+	return Array.isArray(users) ? users : Object.values(users)
+}
+
+/**
  * Whether a user is in today: an out-of-office period that runs now (the
  * dav app's absence, Nextcloud 28 and later), else their user status.
  *

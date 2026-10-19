@@ -389,6 +389,18 @@
 				</button>
 			</slot>
 		</div>
+		<!-- `pageSize`: the board's pager under the rows, "4 of 7" and the
+		     page buttons (DqCatalogus). -->
+		<CnPagination
+			v-if="pageSize > 0 && totalRowCount > pageSize"
+			variant="board"
+			class="cn-data-table__pager"
+			:currentPage="currentPage"
+			:totalPages="pageCount"
+			:totalItems="totalRowCount"
+			:currentPageSize="pageSize"
+			data-testid="cn-data-table-pager"
+			@pageChanged="currentPage = $event" />
 	</div>
 </template>
 
@@ -400,6 +412,7 @@ import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import CnPagination from '../CnPagination/CnPagination.vue'
 import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
@@ -491,6 +504,7 @@ export default {
 		CnColumnFilterPopover,
 		CnIcon,
 		CnLockIndicator,
+		CnPagination,
 		CnUnreadMarker,
 		ChevronDown,
 		ChevronUp,
@@ -859,6 +873,19 @@ export default {
 		},
 
 		/**
+		 * Rows per page. Above 0 the table shows one page of its rows and the
+		 * board's pager under them ("4 of 7", page buttons, Next) once there is
+		 * more than one page. Pages the rows the table holds; 0 (the default)
+		 * shows them all, or the first `limit`.
+		 *
+		 * @spec openspec/changes/object-table-pager/specs/object-table/spec.md#requirement-an-object-table-can-page-its-rows
+		 */
+		pageSize: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
 		 * vue-router route object for the "View all" footer link. The footer only
 		 * shows when set AND the rows are a `limit`-ed subset. Folded in from CnTableWidget.
 		 *
@@ -1010,6 +1037,8 @@ export default {
 			aggregateRequestId: 0,
 			/** Rows fetched in self-fetch mode (register + schemaId). */
 			fetchedRows: [],
+			/** The page shown under `pageSize`. */
+			currentPage: 1,
 			/** Personal-lens reports (`@self.lenses`) of the latest self-fetch response. */
 			fetchedLenses: {},
 			/** True while a self-fetch request is in flight. */
@@ -1125,7 +1154,21 @@ export default {
 		 * @return {Array<object>}
 		 */
 		effectiveRows() {
+			if (this.pageSize > 0) {
+				const page = Math.min(this.currentPage, this.pageCount)
+				return this.sourceRows.slice((page - 1) * this.pageSize, page * this.pageSize)
+			}
 			return this.limit > 0 ? this.sourceRows.slice(0, this.limit) : this.sourceRows
+		},
+
+		/**
+		 * The number of pages under `pageSize` (at least 1).
+		 *
+		 * @spec openspec/changes/object-table-pager/specs/object-table/spec.md#requirement-an-object-table-can-page-its-rows
+		 * @return {number}
+		 */
+		pageCount() {
+			return this.pageSize > 0 ? Math.max(1, Math.ceil(this.sourceRows.length / this.pageSize)) : 1
 		},
 
 		/**
@@ -1337,6 +1380,12 @@ export default {
 			handler() {
 				this.loadAggregates()
 			},
+		},
+
+		pageCount(count) {
+			if (this.currentPage > count) {
+				this.currentPage = count
+			}
 		},
 
 		effectiveColumns: {
