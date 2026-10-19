@@ -1403,7 +1403,7 @@
 		},
 		"CnFlowRunsWidget": {
 			"direct": 3,
-			"transitive": 5,
+			"transitive": 6,
 			"tier": "medium",
 			"via": [
 				"CnFlowRunsWidgetForm",
