@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.129.0",
+	"version": "2.130.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4621,13 +4621,32 @@
 							"description": "type='dashboard': page-level filter controls in the header. Each selection is written into the page's workspace context, so a widget reads it through a `@page.<key>` / `@workspace.<key>` token (an endpoint widget also in its `responsePath`). Maps to the CnDashboardPage `pageFilters` prop.",
 							"items": {
 								"type": "object",
-								"required": ["key", "options"],
+								"required": ["key"],
+								"anyOf": [{ "required": ["options"] }, { "required": ["optionsFrom"] }],
 								"additionalProperties": false,
 								"properties": {
 									"key": { "type": "string", "minLength": 1, "description": "Workspace-context key written on change (the `@page.<key>` / `@workspace.<key>` token name)." },
 									"label": { "type": "string", "description": "Control label (i18n key or plain text)." },
 									"type": { "type": "string", "enum": ["select"], "default": "select", "description": "Control type, carried over from v1." },
 									"control": { "type": "string", "enum": ["select", "segmented"], "default": "select", "description": "How the filter is drawn: a select, or a compact segmented group." },
+									"clearable": { "type": "boolean", "default": false, "description": "Lets the reader clear the select back to all; `placeholder` names that state (2.130.0)." },
+									"placeholder": { "type": "string", "description": "What a cleared select shows, e.g. \"All case types\", through the app's translate (2.130.0)." },
+									"optionsFrom": {
+										"type": "object",
+										"additionalProperties": false,
+										"description": "Read the options instead of listing them: from an app endpoint (`url`, `params`, `responsePath`) or from OpenRegister objects (`register`, `schema`, `filter`). `valueField` and `labelField` pick each option's value and label (default `id` and `title` or `name`); tokens resolve (2.130.0).",
+										"anyOf": [{ "required": ["url"] }, { "required": ["register", "schema"] }],
+										"properties": {
+											"url": { "type": "string", "minLength": 1 },
+											"params": { "type": "object", "additionalProperties": true },
+											"responsePath": { "type": "string", "minLength": 1 },
+											"register": { "type": "string", "minLength": 1 },
+											"schema": { "type": "string", "minLength": 1 },
+											"filter": { "type": "object", "additionalProperties": true },
+											"valueField": { "type": "string", "minLength": 1 },
+											"labelField": { "type": "string", "minLength": 1 }
+										}
+									},
 									"placement": { "type": "string", "enum": ["row", "description"], "default": "row", "description": "Where the filter sits: in the header's filter row, or (a segmented group) on the description line after the period group (DqProcesanalyse)." },
 									"default": { "type": ["string", "number"], "description": "Initial value seeded into the context on mount; the first option's value when omitted." },
 									"options": {
