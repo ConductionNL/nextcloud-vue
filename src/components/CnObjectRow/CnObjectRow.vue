@@ -15,6 +15,22 @@
 				@update:modelValue="$emit('select', object)" />
 		</div>
 
+		<!-- `config.leading`: one cell before the title, as a table cell renders
+		     it (`{ key, widget?, widgetProps?, formatter? }`), e.g. the age
+		     "6 dagen" in the team queue. -->
+		<span
+			v-if="leadingCell"
+			class="cn-object-row__lead"
+			:style="leadingCell.width ? { width: leadingCell.width } : null"
+			data-testid="cn-object-row-lead">
+			<CnCellRenderer
+				:value="cellValue(leadingCell)"
+				:formatter="leadingCell.formatter || null"
+				:widget="leadingCell.widget || null"
+				:widgetProps="leadingCell.widgetProps || undefined"
+				:row="object" />
+		</span>
+
 		<!-- Leading icon / image — omitted entirely when nothing is configured
 		     (no image, no icon name, no slot). -->
 		<span v-if="hasLeadingIcon" class="cn-object-row__icon">
@@ -52,6 +68,22 @@
 			</slot>
 		</span>
 
+		<!-- `config.trailing`: cells after the badges, each in its own column
+		     (the case type badge, the due text). -->
+		<span
+			v-for="(cell, index) in trailingCells"
+			:key="cell.key + '-' + index"
+			class="cn-object-row__trail"
+			:style="cell.width ? { width: cell.width } : null"
+			data-testid="cn-object-row-trail">
+			<CnCellRenderer
+				:value="cellValue(cell)"
+				:formatter="cell.formatter || null"
+				:widget="cell.widget || null"
+				:widgetProps="cell.widgetProps || undefined"
+				:row="object" />
+		</span>
+
 		<!-- Trailing actions -->
 		<span v-if="$slots.actions"
 			class="cn-object-row__actions"
@@ -67,8 +99,11 @@
 <script>
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { joinTemplateParts } from '../../utils/fillTemplate.js'
+import { readPath } from '../../utils/readPath.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
@@ -98,6 +133,7 @@ export default {
 
 	components: {
 		NcCheckboxRadioSwitch,
+		CnCellRenderer,
 		CnIcon,
 		CnStatusBadge,
 	},
@@ -119,7 +155,15 @@ export default {
 		 * Explicit field mapping. Every key is optional and overrides the
 		 * schema-configuration default.
 		 *
-		 * @type {{ titleField?: string, subtitleField?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object }}
+		 * `subtitleTemplate` fills `{field}` tokens from the row (empty parts and
+		 * their separators drop). `leading` (one cell) and `trailing` (a cell or
+		 * a list) draw cells as a table column does, `{ key, widget?,
+		 * widgetProps?, formatter? }`: `{ key: "createdAt", widget: "age" }`
+		 * reads "6 dagen", `{ key: "deadline", widget: "date", widgetProps: {
+		 * due: {} } }` the due text. A cell's `width` (CSS) lines the column
+		 * up across rows.
+		 *
+		 * @type {{ titleField?: string, subtitleField?: string, subtitleTemplate?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object, leading?: object, trailing?: (object|Array<object>) }}
 		 */
 		config: {
 			type: Object,
@@ -168,6 +212,13 @@ export default {
 		},
 
 		subtitle() {
+			if (typeof this.config.subtitleTemplate === 'string' && this.config.subtitleTemplate !== '') {
+				const text = joinTemplateParts(this.config.subtitleTemplate, (key) => {
+					const value = readPath(this.object, key)
+					return value === null || value === undefined ? '' : String(value)
+				})
+				return text.trim() || null
+			}
 			const field = this.config.subtitleField || this.schemaConfig.objectDescriptionField
 			if (field && this.object[field] !== null && this.object[field] !== undefined && this.object[field] !== '') {
 				return String(this.object[field])
@@ -215,9 +266,42 @@ export default {
 		badgeColorMap() {
 			return this.config.badgeColorMap || null
 		},
+
+		/**
+		 * The `config.leading` cell, or null.
+		 *
+		 * @spec openspec/changes/index-row-list-cells/specs/object-row/spec.md#requirement-a-list-row-can-carry-leading-and-trailing-cells
+		 * @return {object|null}
+		 */
+		leadingCell() {
+			const cell = this.config.leading
+			return cell && typeof cell === 'object' && typeof cell.key === 'string' && cell.key !== '' ? cell : null
+		},
+
+		/**
+		 * The `config.trailing` cells (one object or a list), those with a key.
+		 *
+		 * @spec openspec/changes/index-row-list-cells/specs/object-row/spec.md#requirement-a-list-row-can-carry-leading-and-trailing-cells
+		 * @return {Array<object>}
+		 */
+		trailingCells() {
+			const cells = this.config.trailing
+			const list = Array.isArray(cells) ? cells : (cells && typeof cells === 'object' ? [cells] : [])
+			return list.filter((cell) => cell && typeof cell === 'object' && typeof cell.key === 'string' && cell.key !== '')
+		},
 	},
 
 	methods: {
+		/**
+		 * A cell's value: the dot-path `key` read off the row.
+		 *
+		 * @param {{key: string}} cell The cell.
+		 * @return {unknown} The value.
+		 */
+		cellValue(cell) {
+			return readPath(this.object, cell.key)
+		},
+
 		/**
 		 * Row-body click: emits `select` when `selectable` (ignoring drags),
 		 * otherwise emits `click` for navigation.
@@ -295,6 +379,16 @@ export default {
 	/* Inset accent — never border-left (would shift cell content). */
 	box-shadow: inset 3px 0 0 0 var(--color-primary-element);
 	background-color: var(--color-primary-element-light);
+}
+
+.cn-object-row__lead,
+.cn-object-row__trail {
+	flex: 0 0 auto;
+	min-width: 0;
+}
+
+.cn-object-row__lead {
+	font-weight: 600;
 }
 
 .cn-object-row__checkbox {
