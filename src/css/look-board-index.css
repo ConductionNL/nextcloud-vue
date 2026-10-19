@@ -372,6 +372,17 @@
 	cursor: not-allowed;
 }
 
+/* `searchPlacement: "toolbar"`: the search field on row 1 takes the room
+   before Filter and the view switch, which keep the end of the row. */
+.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views > .cn-actions-bar__search--toolbar {
+	flex: 1 1 220px;
+	min-width: 180px;
+}
+
+.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views > .cn-actions-bar__search--toolbar ~ .cn-actions-bar__view-controls {
+	margin-inline-start: 0;
+}
+
 /* The search field: 40px, radius 8, not a pill. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__search {
 	flex: 1 1 260px;
@@ -1107,4 +1118,41 @@
    "New contact". The board draws none; the Filter button opens the sidebar. */
 .cn-look-board:has(.cn-index-page) > .app-sidebar__toggle {
 	display: none;
+}
+
+/* The folder pane as a card (DqAfdelingen): 280px, a hairline border, 12px
+   corners, with each folder's count in a grey pill. */
+.cn-look-board .cn-index-page__folder-pane {
+	flex: 0 0 280px;
+	align-self: flex-start;
+	margin-inline-end: 20px;
+	padding: 14px;
+	border: 1px solid var(--cn-board-hairline);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+}
+
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 6px;
+	box-sizing: border-box;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 600;
+}
+
+/* The selected folder's heading above the list: a 20px title over a soft line. */
+.cn-look-board .cn-index-page__scope-heading {
+	margin-bottom: 16px;
+}
+
+.cn-look-board .cn-index-page__scope-title {
+	font-size: 20px;
+	font-weight: 700;
 }

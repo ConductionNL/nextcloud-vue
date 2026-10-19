@@ -153,6 +153,7 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `mapLabel` | `String` | `''` | Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap` |
 | `mapIcon` | `String` | `''` | MDI icon name for the map option (defaults to the built-in map-marker icon). Resolved via `CnIcon` |
 | `showSearch` | `Boolean` | `false` | Whether to show the inline search field on the left of the bar. The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
+| `searchPlacement` | `String` | `''` | Board look only: `'toolbar'` draws the search field on row 1, before Filter and the view switch, instead of at the start of row 2 |
 | `searchValue` | `String` | `''` | Current value of the inline search field (controlled) |
 | `searchPlaceholder` | `String` | `''` | Placeholder / accessible label for the inline search field |
 | `showCountWithSearch` | `Boolean` | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls. No effect without `showSearch` |
