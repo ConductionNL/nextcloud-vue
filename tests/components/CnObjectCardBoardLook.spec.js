@@ -71,6 +71,15 @@ describe('CnObjectCard (board look)', () => {
 		expect(w.find('.cn-object-card__metadata').classes()).toContain('cn-object-card__metadata--facts')
 	})
 
+	it('renders a fact through its page column: label and formatter, as the table cell does', () => {
+		const w = mount(CnObjectCard, {
+			props: { object, schema, cardFields: ['city'], cardFieldColumns: { city: { key: 'city', label: 'Place', formatter: 'upper' } } },
+			global: { provide: { cnLook: 'board', cnFormatters: { upper: (value) => String(value).toUpperCase() } } },
+		})
+		expect(w.find('.cn-object-card__meta-label').text()).toBe('Place')
+		expect(w.find('.cn-object-card__meta-item').text()).toContain('ZUIDDRECHT')
+	})
+
 	it('defaults the facts to the first four visible properties', () => {
 		const w = mountCard()
 		expect(w.findAll('.cn-object-card__meta-label')).toHaveLength(4)

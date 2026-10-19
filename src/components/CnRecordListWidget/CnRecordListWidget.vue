@@ -33,6 +33,31 @@
 				{{ noticeText }}
 			</p>
 		</div>
+		<!-- table: one row per record under a header, one cell per `columns`
+		     entry; a cell past its `alertAbove` reads bold in the danger colour. -->
+		<table v-else-if="presentation === 'table'" class="cn-record-list__table" data-testid="cn-record-list-table">
+			<thead>
+				<tr>
+					<th
+						v-for="col in tableColumns"
+						:key="col.key"
+						scope="col"
+						:class="{ 'cn-record-list__cell--end': col.align === 'end' }">
+						{{ col.label }}
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="item in tableRows" :key="item.key" data-testid="cn-record-list-item">
+					<td
+						v-for="cell in item.cells"
+						:key="cell.key"
+						:class="{ 'cn-record-list__cell--end': cell.align === 'end', 'cn-record-list__cell--alert': cell.alert }">
+						{{ cell.text }}
+					</td>
+				</tr>
+			</tbody>
+		</table>
 		<ul v-else class="cn-record-list__list">
 			<li
 				v-for="item in items"
@@ -48,6 +73,11 @@
 						class="cn-record-list__avatar"
 						aria-hidden="true"
 						data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+					<span v-if="item.dot"
+						class="cn-record-list__dot"
+						:style="{ background: item.dot }"
+						aria-hidden="true"
+						data-testid="cn-record-list-dot" />
 					<span class="cn-record-list__main">
 						<component
 							:is="item.tag"
@@ -59,6 +89,7 @@
 						</component>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 					</span>
+					<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
 					<span v-if="item.pill || item.badges.length > 0" class="cn-record-list__pills">
 						<CnStatusBadge
 							v-if="item.pill"
@@ -76,7 +107,7 @@
 					<span
 						v-if="item.due"
 						class="cn-record-list__due cn-record-list__due--column"
-						:class="`cn-record-list__due--${item.due.tone}`"
+						:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
 						data-testid="cn-record-list-due">{{ item.due.text }}</span>
 					<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
 					<component
@@ -99,11 +130,17 @@
 						class="cn-record-list__avatar"
 						aria-hidden="true"
 						data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+					<span v-if="item.dot"
+						class="cn-record-list__dot"
+						:style="{ background: item.dot }"
+						aria-hidden="true"
+						data-testid="cn-record-list-dot" />
 					<span class="cn-record-list__main">
 						<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 					</span>
-					<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing" class="cn-record-list__aside">
+					<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing || item.flag" class="cn-record-list__aside">
+						<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
 						<CnStatusBadge
 							v-if="item.pill"
 							:label="item.pill.label"
@@ -119,7 +156,7 @@
 						<span
 							v-if="item.due"
 							class="cn-record-list__due"
-							:class="`cn-record-list__due--${item.due.tone}`"
+							:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
 							data-testid="cn-record-list-due">{{ item.due.text }}</span>
 						<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
 					</span>
@@ -201,6 +238,9 @@
 				</span>
 			</li>
 		</ul>
+		<p v-if="footnote && !error" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
+			{{ footnote }}
+		</p>
 		<!-- `footerAction`: one action under the list, also under the empty
 		     text ("Beroep registreren"). With `disabledWhen` it greys out and
 		     says why (`disabledReason`: "Kan zodra de beslissing is
@@ -255,7 +295,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /** Gives each list's footer reason its own element id. */
 let footerSeq = 0
-const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice']
+const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice', 'table']
 
 /** The tones a `notice` list takes. */
 const NOTICE_VARIANTS = ['info', 'warning', 'error']
@@ -343,6 +383,9 @@ export default {
 		 * `presentation: "notice"` draws the rows as sentences in one box toned by
 		 * `variant` (`info`, `warning` or `error`), after an optional `lead`
 		 * (`{total}` filled in).
+		 * `dot` (a field, or `{ field, colorMap? }`) draws a colour dot before
+		 * the title; `flags` (`[{ field, label, value? }]`) draws the labels
+		 * of the flags a row has ("Start", "End") at its end.
 		 * `footerAction` (`{ label, icon?, type, ..., disabledWhen?,
 		 * disabledReason? }`) ends the card with one action, also under the
 		 * empty text; while the visibleWhen condition `disabledWhen` holds the
@@ -579,8 +622,53 @@ export default {
 					due: this.dueOf(row),
 					icon: this.iconOf(row),
 					bar: this.barOf(row, barScale),
+					dot: this.dotOf(row),
+					flag: this.flagOf(row),
 				}
 			})
+		},
+
+		/**
+		 * The `table` presentation's columns: `{ label, value, align?, alertAbove? }`,
+		 * `value` a template over the row.
+		 *
+		 * @return {Array<object>} The columns with a key and a translated label.
+		 * @spec openspec/changes/record-list-table/specs/record-list-table/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-small-table
+		 */
+		tableColumns() {
+			const columns = Array.isArray(this.content?.columns) ? this.content.columns : []
+			return columns
+				.filter((col) => col && typeof col === 'object' && typeof col.value === 'string')
+				.map((col, index) => ({ ...col, key: `col-${index}`, label: typeof col.label === 'string' ? this.translate(col.label) : '' }))
+		},
+
+		/**
+		 * The `table` presentation's rows: one cell per column.
+		 *
+		 * @return {Array<object>} `{ key, cells: [{ key, text, align, alert }] }`.
+		 * @spec openspec/changes/record-list-table/specs/record-list-table/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-small-table
+		 */
+		tableRows() {
+			return this.items.map((item) => ({
+				key: item.key,
+				cells: this.tableColumns.map((col) => {
+					const text = this.fill(col.value, item.row)
+					const limit = Number(col.alertAbove)
+					const value = Number(text)
+					return {
+						key: col.key,
+						text,
+						align: col.align,
+						alert: col.alertAbove !== undefined && Number.isFinite(limit) && text !== '' && Number.isFinite(value) && value > limit,
+					}
+				}),
+			}))
+		},
+
+		/** @return {string} The note under the list (`footnote`), translated. */
+		footnote() {
+			const note = this.content?.footnote
+			return typeof note === 'string' && note !== '' ? this.translate(note) : ''
 		},
 
 		/**
@@ -697,6 +785,50 @@ export default {
 		 */
 		translate(text) {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * A row's colour dot (`dot`: a field name, or `{ field, colorMap? }`):
+		 * the field's colour, or its value through `colorMap`. Only a hex
+		 * colour, an `rgb()`/`hsl()` colour or a `var(--…)` token is drawn.
+		 *
+		 * @spec openspec/changes/record-list-dot-flags/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-colour-dot-and-flag-text
+		 * @param {object} row The row.
+		 * @return {string} The colour, or ''.
+		 */
+		dotOf(row) {
+			const dot = this.content?.dot
+			const def = typeof dot === 'string' ? { field: dot } : dot
+			if (!def || typeof def !== 'object' || typeof def.field !== 'string' || def.field === '') {
+				return ''
+			}
+			const raw = readPath(row, def.field)
+			if (raw === null || raw === undefined || raw === '') {
+				return ''
+			}
+			const mapped = def.colorMap && typeof def.colorMap === 'object' && typeof def.colorMap[String(raw)] === 'string' ? def.colorMap[String(raw)] : String(raw)
+			return /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([^;{}]*\)|var\(--[a-z0-9-]+(,[^;{}]*)?\))$/i.test(mapped.trim()) ? mapped.trim() : ''
+		},
+
+		/**
+		 * A row's flag text (`flags`: `[{ field, label, value? }]`): the
+		 * labels of the flags whose field is set (or equals `value`), through
+		 * the host translate and joined with " · " ("Start", "End").
+		 *
+		 * @spec openspec/changes/record-list-dot-flags/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-colour-dot-and-flag-text
+		 * @param {object} row The row.
+		 * @return {string} The text, or ''.
+		 */
+		flagOf(row) {
+			const flags = Array.isArray(this.content?.flags) ? this.content.flags : []
+			return flags
+				.filter((flag) => flag && typeof flag.field === 'string' && typeof flag.label === 'string' && flag.label !== '')
+				.filter((flag) => {
+					const raw = readPath(row, flag.field)
+					return flag.value !== undefined ? String(raw) === String(flag.value) : raw === true || raw === 'true' || raw === 1
+				})
+				.map((flag) => this.translate(flag.label))
+				.join(' · ')
 		},
 
 		/**
@@ -1408,6 +1540,19 @@ export default {
 	text-decoration: underline;
 }
 
+.cn-record-list__dot {
+	flex: 0 0 14px;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+}
+
+.cn-record-list__flag {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	white-space: nowrap;
+}
+
 .cn-record-list__avatar {
 	align-items: center;
 	background: var(--color-background-hover);
@@ -1459,6 +1604,47 @@ export default {
 
 .cn-record-list__due--danger {
 	color: var(--color-text-error, var(--color-error-text));
+	font-weight: 600;
+}
+
+.cn-record-list__table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+
+.cn-record-list__table th {
+	padding: 6px 0;
+	border-bottom: 1px solid var(--color-border);
+	color: var(--color-text-maxcontrast);
+	font-weight: 600;
+	text-align: start;
+}
+
+.cn-record-list__table td {
+	padding: 8px 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-record-list__table .cn-record-list__cell--end {
+	padding-inline-start: 12px;
+	text-align: end;
+	font-variant-numeric: tabular-nums;
+}
+
+.cn-record-list__table .cn-record-list__cell--alert {
+	color: var(--color-text-error, var(--color-error-text));
+	font-weight: 700;
+}
+
+.cn-record-list__footnote {
+	margin: 8px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-record-list__due--soon {
+	color: var(--color-text-warning, var(--color-warning-text));
 	font-weight: 600;
 }
 

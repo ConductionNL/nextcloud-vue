@@ -10,12 +10,16 @@
 
 /* ------------------------------------------------------------------ header */
 
-/* Row 1: the h1 and the buttons at its end. Row 2: the count line, 6px under. */
+/* Row 1: the h1 and the buttons at its end, both at the row's top. Row 2:
+   the count line, 6px under. The header starts 4px under the content's top
+   (DqZaken: the title at 96, the count line at 142).
+   @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top */
 .cn-look-board .cn-index-page .cn-page-header {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
-	align-items: center;
+	align-items: start;
 	row-gap: 6px;
+	padding-top: 4px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 }
 
@@ -1055,6 +1059,64 @@
 	margin-inline-start: auto;
 	padding: 0 12px;
 	border-radius: 8px;
+}
+
+/* The record layout (`config.cardLayout`, DqAanMijToegewezen): a 20px 22px
+   inset, 10px between its parts; the head pill at the start and the number
+   in 13px muted at the end; a 17px bold title, not underlined; a 14px muted
+   meta line; a footer over a hairline with a pill and the 14px semibold date.
+   @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config */
+.cn-look-board .cn-object-card.cn-object-card--board:has(> .cn-object-card__record) {
+	padding: 20px 22px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record {
+	gap: 10px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 24px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-number {
+	margin-inline-start: auto;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record .cn-object-card__title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.3;
+	text-decoration: none;
+	white-space: normal;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-meta {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: auto;
+	padding-top: 10px;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-date {
+	margin-inline-start: auto;
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
 }
 
 /* The catalogue card of the store page. */

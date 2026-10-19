@@ -15,8 +15,61 @@
 				@update:modelValue="$emit('select', object)" />
 		</div>
 
+		<!-- Board look, record layout (`layout`): head pill and number, title,
+		     meta line, then a footer with a pill and a date. -->
+		<div v-if="recordLayout" class="cn-object-card__content cn-object-card__record" data-testid="cn-object-card-record">
+			<div class="cn-object-card__record-head">
+				<CnStatusBadge
+					v-if="recordHeadPill"
+					class="cn-object-card__record-pill"
+					:label="recordHeadPill.label"
+					:variant="recordHeadPill.variant"
+					data-testid="cn-object-card-head-pill" />
+				<span v-if="recordNumber" class="cn-object-card__record-number" data-testid="cn-object-card-number">{{ recordNumber }}</span>
+				<div
+					v-if="$slots.actions"
+					class="cn-object-card__menu"
+					@click.stop
+					@auxclick.stop>
+					<slot name="actions" :object="object" />
+				</div>
+			</div>
+			<h3 class="cn-object-card__title">
+				<CnLockIndicator :object="object" :size="16" />
+				{{ recordTitle }}
+			</h3>
+			<!-- A part whose field names a page column with a widget draws through
+			     it, as its table cell does; the rest are text. -->
+			<p v-if="recordMetaParts.length > 0" class="cn-object-card__record-meta" data-testid="cn-object-card-meta">
+				<template v-for="(part, index) in recordMetaParts" :key="part.field">
+					<span v-if="index > 0" aria-hidden="true"> · </span>
+					<CnCellRenderer
+						v-if="part.column && part.column.widget"
+						:value="part.value"
+						:widget="part.column.widget"
+						:widgetProps="part.column.widgetProps || undefined"
+						:formatter="part.column.formatter || null"
+						:formatterOptions="part.column.formatterOptions || null"
+						:row="object" />
+					<span v-else>{{ part.text }}</span>
+				</template>
+			</p>
+			<div v-if="$slots.badges" class="cn-object-card__badges">
+				<slot name="badges" :object="object" />
+			</div>
+			<div v-if="recordFootPill || recordDate" class="cn-object-card__record-foot" data-testid="cn-object-card-foot">
+				<CnStatusBadge
+					v-if="recordFootPill"
+					class="cn-object-card__record-pill"
+					:label="recordFootPill.label"
+					:variant="recordFootPill.variant"
+					data-testid="cn-object-card-foot-pill" />
+				<span v-if="recordDate" class="cn-object-card__record-date" data-testid="cn-object-card-date">{{ recordDate }}</span>
+			</div>
+		</div>
+
 		<!-- Card content -->
-		<div class="cn-object-card__content">
+		<div v-else class="cn-object-card__content">
 			<!-- Header: image + title -->
 			<div class="cn-object-card__header">
 				<!-- Board look: the leading element, initials in a circle or an icon on a tint. -->
@@ -92,6 +145,11 @@
 						<CnCellRenderer
 							:value="field.value"
 							:property="field.property"
+							:formatter="field.column && field.column.formatter || null"
+							:formatterOptions="field.column && field.column.formatterOptions || null"
+							:widget="field.column && field.column.widget || null"
+							:widgetProps="field.column && field.column.widgetProps || undefined"
+							:row="object"
 							:truncate="60" />
 					</div>
 				</slot>
@@ -127,9 +185,15 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
+import { formatBoardDate } from '../../utils/boardDate.js'
+import { resolveDateVariant } from '../../utils/dateVariant.js'
+import { resolveDue } from '../../utils/dueText.js'
+import { readPath } from '../../utils/readPath.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { formatValue } from '../../utils/schema.js'
@@ -178,6 +242,8 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The look CnAppRoot provides; `board` draws the record card of the screens. */
 		cnLook: { default: 'nextcloud' },
+		/** The cell formatters CnAppRoot provides, for a layout part whose page column names one. */
+		cnFormatters: { default: () => ({}) },
 	},
 
 	props: {
@@ -271,6 +337,25 @@ export default {
 		},
 
 		/**
+		 * Board look: the record layout (manifest key `config.cardLayout`).
+		 * Every part names a field of the object (a dot path) and is left out
+		 * while that field is empty:
+		 * `{ headPill, number, title, meta, footerPill, footerDate }`.
+		 * A pill is `{ field, colorMap?, labels?, variant? }`: `colorMap` maps a
+		 * value to a CnStatusBadge variant (ignoring case), `labels` a value to
+		 * the text shown. `meta` is a list of fields, joined with " · ".
+		 * `footerDate` is `{ field, label? }`, drawn as "Termijn 5 okt".
+		 * Without it the card keeps its head, facts and action.
+		 *
+		 * @type {{headPill?: object, number?: string, title?: string, meta?: Array<string>, footerPill?: object, footerDate?: {field: string, label?: string}}}
+		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 */
+		layout: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The property keys the facts list shows, in order (manifest key
 		 * `config.cardFields`). Without it the card shows the first
 		 * `maxMetadata` visible properties, as before.
@@ -279,6 +364,17 @@ export default {
 		 */
 		cardFields: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * The page's columns by key: a fact whose key names a column renders
+		 * through that column's label, formatter and widget, as the table does.
+		 *
+		 * @type {object}
+		 */
+		cardFieldColumns: {
+			type: Object,
 			default: null,
 		},
 
@@ -331,6 +427,92 @@ export default {
 				return { label: this.status.label, variant: this.status.variant || 'default' }
 			}
 			return null
+		},
+
+		/**
+		 * The record layout when the board look draws it, else null.
+		 *
+		 * @return {?object}
+		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 */
+		recordLayout() {
+			return this.isBoardLook && this.layout && typeof this.layout === 'object' ? this.layout : null
+		},
+
+		/**
+		 * The record layout's head pill, or null.
+		 *
+		 * @return {?{label: string, variant: string}}
+		 */
+		recordHeadPill() {
+			return this.recordLayout ? this.layoutPill(this.recordLayout.headPill) : null
+		},
+
+		/**
+		 * The record layout's footer pill, or null.
+		 *
+		 * @return {?{label: string, variant: string}}
+		 */
+		recordFootPill() {
+			return this.recordLayout ? this.layoutPill(this.recordLayout.footerPill) : null
+		},
+
+		/**
+		 * The record number at the end of the head, or ''.
+		 *
+		 * @return {string}
+		 */
+		recordNumber() {
+			return this.recordLayout ? this.layoutText(this.recordLayout.number) : ''
+		},
+
+		/**
+		 * The title: the layout's `title` field, else the card's own title.
+		 *
+		 * @return {string}
+		 */
+		recordTitle() {
+			const text = this.recordLayout ? this.layoutText(this.recordLayout.title) : ''
+			return text !== '' ? text : this.title
+		},
+
+		/**
+		 * The meta line: the layout's `meta` fields that hold a value, joined.
+		 *
+		 * @return {string}
+		 */
+		recordMeta() {
+			return this.recordMetaParts.map((part) => part.text).join(' · ')
+		},
+
+		/**
+		 * The meta line's parts that hold a value: each with its text and, when
+		 * its field names a page column, that column (whose widget draws it).
+		 *
+		 * @return {Array<{field: string, value: unknown, text: string, column: ?object}>}
+		 */
+		recordMetaParts() {
+			const fields = this.recordLayout && Array.isArray(this.recordLayout.meta) ? this.recordLayout.meta : []
+			return fields
+				.map((part) => this.metaPart(part))
+				.filter((part) => part !== null && part.text !== '')
+		},
+
+		/**
+		 * The footer date with its label ("Termijn 5 okt"), or ''.
+		 *
+		 * @return {string}
+		 */
+		recordDate() {
+			const def = this.recordLayout ? this.recordLayout.footerDate : null
+			if (!def || typeof def.field !== 'string') {
+				return ''
+			}
+			const date = formatBoardDate(readPath(this.object, def.field))
+			if (date === '') {
+				return ''
+			}
+			return typeof def.label === 'string' && def.label !== '' ? `${this.cnTranslate(def.label)} ${date}` : date
 		},
 
 		/**
@@ -401,12 +583,7 @@ export default {
 			if (Array.isArray(this.cardFields)) {
 				return this.cardFields
 					.filter((key) => typeof key === 'string' && this.schema.properties[key] && !this.configFields.includes(key))
-					.map((key) => ({
-						key,
-						label: this.cnTranslate(this.schema.properties[key].title || key),
-						value: this.object[key],
-						property: this.schema.properties[key],
-					}))
+					.map((key) => this.metadataField(key, this.schema.properties[key]))
 			}
 
 			return Object.entries(this.schema.properties)
@@ -431,16 +608,180 @@ export default {
 					return orderA - orderB
 				})
 				.slice(0, this.maxMetadata)
-				.map(([key, prop]) => ({
-					key,
-					label: this.cnTranslate(prop.title || key),
-					value: this.object[key],
-					property: prop,
-				}))
+				.map(([key, prop]) => this.metadataField(key, prop))
 		},
 	},
 
 	methods: {
+		/**
+		 * One meta part: a field name reads through the page column it names;
+		 * `{ field, formatter?, formatterOptions? }` reads as plain text through
+		 * its own formatter, so a column's widget (a badge) stays in the table.
+		 *
+		 * @param {string|{field: string, formatter?: string, formatterOptions?: object}} part The part.
+		 * @return {?{field: string, value: unknown, text: string, column: ?object}} The part, or null when it names no field.
+		 * @spec openspec/changes/card-layout-part-formatter/specs/card-layout-part-formatter/spec.md#requirement-a-card-meta-part-can-name-its-own-formatter
+		 */
+		metaPart(part) {
+			if (typeof part === 'string' && part !== '') {
+				return { field: part, value: readPath(this.object, part), text: this.layoutText(part), column: this.layoutColumn(part) }
+			}
+			if (!part || typeof part !== 'object' || typeof part.field !== 'string' || part.field === '') {
+				return null
+			}
+			const column = typeof part.formatter === 'string' ? { formatter: part.formatter, formatterOptions: part.formatterOptions } : null
+			return { field: part.field, value: readPath(this.object, part.field), text: this.layoutText(part.field, column), column }
+		},
+
+		/**
+		 * A field's value as text: a person or a record by its display name,
+		 * title or name, anything else as a string. '' for an empty value or
+		 * a field that is not named.
+		 *
+		 * @param {unknown} field A dot path into the object.
+		 * @param {?object} [own] The column to read through instead of the one the field names.
+		 * @return {string}
+		 */
+		layoutText(field, own) {
+			if (typeof field !== 'string' || field === '') {
+				return ''
+			}
+			const value = readPath(this.object, field)
+			if (value === null || value === undefined || value === '') {
+				return ''
+			}
+			// A part whose field names a page column with a formatter reads as
+			// its table cell does (a case type uuid as its name).
+			const column = own === undefined ? this.layoutColumn(field) : own
+			const format = column && column.formatter && this.cnFormatters ? this.cnFormatters[column.formatter] : null
+			if (typeof format === 'function') {
+				const formatted = format(value, this.object, this.schema?.properties?.[field], column.formatterOptions || undefined)
+				return formatted === null || formatted === undefined ? '' : String(formatted)
+			}
+			if (typeof value === 'object') {
+				const name = value.displayName || value.title || value.name
+				return typeof name === 'string' ? name : ''
+			}
+			return String(value)
+		},
+
+		/**
+		 * The page column a layout part's field names, or null.
+		 *
+		 * @param {string} field The part's field.
+		 * @return {?object} The column.
+		 */
+		layoutColumn(field) {
+			return (this.cardFieldColumns && typeof field === 'string' && this.cardFieldColumns[field]) || null
+		},
+
+		/**
+		 * A pill that reads its date field through the due rules: `variantWhen`
+		 * (the first rule the days left match gives the tone), else `due`
+		 * (overdue reads as error, within `due.soonWithin` days as warning).
+		 * The label is `labels[variant]`, else `labels.overdue` / `labels.soon`,
+		 * else Overdue / Soon, through the host's translate. Any other date
+		 * draws no pill.
+		 *
+		 * @param {{field: string, due?: object, variantWhen?: Array, labels?: object}} def The pill.
+		 * @return {?{label: string, variant: string}}
+		 */
+		datePill(def) {
+			const value = readPath(this.object, def.field)
+			const variant = Array.isArray(def.variantWhen)
+				? this.dateRuleVariant(value, def.variantWhen)
+				: this.dueVariant(value, def.due)
+			if (variant === '') {
+				return null
+			}
+			const labels = def.labels && typeof def.labels === 'object' ? def.labels : {}
+			const state = variant === 'error' ? 'overdue' : (variant === 'warning' ? 'soon' : '')
+			const authored = labels[variant] || (state && labels[state])
+			if (typeof authored === 'string' && authored !== '') {
+				return { label: this.cnTranslate(authored), variant }
+			}
+			if (state === 'overdue') {
+				return { label: t('nextcloud-vue', 'Overdue'), variant }
+			}
+			if (state === 'soon') {
+				return { label: t('nextcloud-vue', 'Soon'), variant }
+			}
+			return null
+		},
+
+		/**
+		 * The variant of the first `variantWhen` rule a date matches, or ''.
+		 *
+		 * @param {unknown} value The date.
+		 * @param {Array} rules The rules.
+		 * @return {string} The variant, or ''.
+		 */
+		dateRuleVariant(value, rules) {
+			const matched = resolveDateVariant(value, rules)
+			return matched === 'default' ? '' : matched
+		},
+
+		/**
+		 * The variant the due rules give a date: error when overdue, warning
+		 * within `soonWithin` days, else ''.
+		 *
+		 * @param {unknown} value The date.
+		 * @param {object} config The `due` config.
+		 * @return {string} The variant, or ''.
+		 */
+		dueVariant(value, config) {
+			const due = resolveDue(value, config)
+			if (due && due.tone === 'danger') {
+				return 'error'
+			}
+			return due && due.soon ? 'warning' : ''
+		},
+
+		/**
+		 * A layout pill as `{ label, variant }`, or null while its field is
+		 * empty.
+		 *
+		 * @param {?{field: string, colorMap?: object, labels?: object, variant?: string}} def The pill.
+		 * @return {?{label: string, variant: string}}
+		 */
+		layoutPill(def) {
+			if (!def || typeof def !== 'object') {
+				return null
+			}
+			if (def.due || Array.isArray(def.variantWhen)) {
+				return this.datePill(def)
+			}
+			const value = this.layoutText(def.field)
+			if (value === '') {
+				return null
+			}
+			const labels = def.labels && typeof def.labels === 'object' ? def.labels : {}
+			const label = typeof labels[value] === 'string' ? this.cnTranslate(labels[value]) : value
+			const colorMap = def.colorMap && typeof def.colorMap === 'object' ? def.colorMap : {}
+			const key = Object.keys(colorMap).find((k) => k.toLowerCase() === value.toLowerCase())
+			const variant = key !== undefined ? colorMap[key] : def.variant
+			return { label, variant: isBadgeVariant(variant) ? variant : 'default' }
+		},
+
+		/**
+		 * One fact of the card: the property's value with the matching page
+		 * column (label, formatter, widget) when there is one.
+		 *
+		 * @param {string} key The property key.
+		 * @param {object} prop The schema property.
+		 * @return {object} { key, label, value, property, column }
+		 */
+		metadataField(key, prop) {
+			const column = (this.cardFieldColumns && this.cardFieldColumns[key]) || null
+			return {
+				key,
+				label: this.cnTranslate((column && column.label) || prop.title || key),
+				value: this.object[key],
+				property: prop,
+				column,
+			}
+		},
+
 		formatValue,
 
 		/**

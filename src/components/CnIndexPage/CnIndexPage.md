@@ -416,7 +416,7 @@ export default {
 | `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`). Fed from `pages[].config.quickFilterMode`. |
 | `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once; selected tabs' filters are OR-ed into the fetch (same field → `field[]=` array). Fed from `pages[].config.quickFilterMultiple`. |
 | `quickFilterMaxVisible` | Number | `0` | Chips mode only — how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
-| `quickFilterPlacement` | String | `''` | Where the quick-filter chips sit. `'toolbar'` keeps them on one row with the Filter button and the view switch, in whatever width that row has beside a side panel (DqTeamwachtrij): the chips take the room the buttons leave, and those that do not fit move behind the overflow chip. Fed from `pages[].config.quickFilterPlacement`. |
+| `quickFilterPlacement` | String | `''` | Where the quick-filter chips sit. `'toolbar'` keeps them on one row with the Filter button and the view switch, in whatever width that row has beside a side panel (DqTeamwachtrij): the chips take the room the buttons leave, and those that do not fit move behind the overflow chip. Fed from `pages[].config.quickFilterPlacement`. `'row'` puts them on a row of their own above the toolbar, wrapping onto more lines instead of folding into the overflow chip (DqTeamwachtrij); beside a side panel the row sits in the list column. |
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 | `subscribe` | Boolean | `true` | Self-fetch mode only. When `register` + `schema` are set (and no `objects` prop), the page subscribes to the collection's `or-collection-{register}-{schema}` live-update scope on mount and refetches on an update event; released on unmount. Set `false` (manifest: `config.subscribe: false`) for static / read-once views. No-op in consumer-managed mode or on stores without live-updates support. |
@@ -879,9 +879,9 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
 | `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
-| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
-| `sortSelectOptions` | Array | `[]` | Options `{ value, label, order? }` for the sort dropdown. On a self-fetch page a choice orders the list as a header click does (`_order`, kept in the address): by the option's `order`, else its `value` read as an order (`"-createdAt"`, `"priority:desc,title"`). |
-| `sortSelectValue` | String | `''` | Selected sort dropdown value. Empty lets a self-fetch page show the option matching its current order, so a header click that matches an option shows it. |
+| `showSortSelect` | Boolean | `false` | Deprecated, without effect: the toolbar draws no sort select. The table sorts by its column headers; the list, card and map views by the Sort section in the index sidebar. |
+| `sortSelectOptions` | Array | `[]` | The orders the index sidebar's Sort section offers in the list, card and map views: `{ value, label, order? }`, the order its `order` or its `value` read as one (`"-createdAt"`, `"priority:desc,title"`). Without them the section offers the sortable columns. |
+| `sortSelectValue` | String | `''` | Deprecated, without effect: the Sort section shows the current order. |
 | `defaultOrder` | String, Object or Array | `''` | The order a self-fetch page opens on when neither the address nor `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`): `"-createdAt"`, `"priority:desc,title"`, an `_order` map `{ "priority": "desc" }` or a `[{ key, order }]` list. |
 
 The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
@@ -1097,6 +1097,8 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 }
 ```
 
+`scopeViews` limits the scope's look (columns, title, count line and the other scope keys) to the view modes it names, e.g. `["table", "list"]`, so a board view keeps the page's generic look (DqWerkbord) while the scope still filters it.
+
 `pane: false` draws no pane. The folder still comes from the deep-link filter (`/cases?caseType=<uuid>`) and its scope look (title, count line, columns, quick filters, `afterList` from the folder or its row's `x-index`) still applies, so a list narrowed to one case type looks like that case type's list without a folder column (boards DqWooVerzoeken, DqKlachten):
 
 ```json
@@ -1149,7 +1151,7 @@ columns are right.
 
 ## Board look
 
-With `look: "board"` (the page's `look` prop, `config.look`, or the app's) the index page takes the DqZaken setup: a header with the count line from `countText` (`{shown}`, `{total}`), the buttons Download, Actions, the buildiq square and the primary one in that order, a two-row toolbar (saved-view chips, Filter with a count and the view switch; then search and active filter chips), a bulk band between toolbar and table (`bulkHint`), the table as a white card with one menu button per row, and a footer inside the card (`footerNote`). `cardFields` names the facts of each card in the cards view. Without the look nothing changes.
+With `look: "board"` (the page's `look` prop, `config.look`, or the app's) the index page takes the DqZaken setup: a header with the count line from `countText` (`{shown}`, `{total}`), the buttons Download, Actions, the buildiq square and the primary one in that order, a two-row toolbar (saved-view chips, Filter with a count and the view switch; then search and active filter chips), a bulk band between toolbar and table (`bulkHint`), the table as a white card with one menu button per row, and a footer inside the card (`footerNote`). `cardFields` names the facts of each card in the cards view, and `cardLayout` draws each card as a record instead: a pill and the number on the head row, the title, a meta line, and a footer with a pill and a date, every part from a field (`{ headPill: { field, colorMap, labels }, number, title, meta: [...], footerPill, footerDate: { field, label } }`). Without the look nothing changes.
 
 `bulkBandAlways` (`config.bulkBandAlways`) draws the board bulk band before a selection too, its buttons
 disabled until rows are selected (DqZaken, DqWerkbord).

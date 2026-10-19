@@ -46,7 +46,7 @@
 				{{ t('nextcloud-vue', 'This widget can only be shown on the Nextcloud dashboard itself.') }}
 			</div>
 
-			<div v-else-if="items.length === 0" class="cn-nc-widget-widget__state">
+			<div v-else-if="shownItems.length === 0" class="cn-nc-widget-widget__state">
 				{{ t('nextcloud-vue', 'No items available') }}
 			</div>
 
@@ -137,7 +137,10 @@ export default {
 
 	props: {
 		/**
-		 * Persisted widget content `{widgetId, displayMode, limit?, showAllUrl?, showAllLabel?, showHeader?}`.
+		 * Persisted widget content `{widgetId, displayMode, limit?, showAllUrl?, showAllLabel?, showHeader?, excludeApps?, excludeTypes?}`.
+		 * `excludeApps` (`["systemtags"]`) and `excludeTypes` leave out the
+		 * items of those apps or types (an item's own `app` / `type`, else the
+		 * app in its link or icon URL); the list then comes from the items API.
 		 * `showHeader: false` drops the widget's own header (icon and title);
 		 * it is dropped too when the hosting card draws a title row.
 		 * `limit` is the most items shown (the list then comes from the items
@@ -265,7 +268,38 @@ export default {
 		 * @return {object[]} the items.
 		 */
 		shownItems() {
-			return this.itemLimit > 0 ? this.items.slice(0, this.itemLimit) : this.items
+			const kept = this.hasExclusions ? this.items.filter((item) => !this.isExcluded(item)) : this.items
+			return this.itemLimit > 0 ? kept.slice(0, this.itemLimit) : kept
+		},
+
+		/**
+		 * The apps and item types `content.excludeApps` / `content.excludeTypes`
+		 * leave out, lower-cased.
+		 *
+		 * @spec openspec/changes/nc-widget-exclude-apps/specs/nc-widget/spec.md#requirement-a-nextcloud-widget-can-leave-out-items-of-an-app-or-type
+		 * @return {{apps: string[], types: string[]}}
+		 */
+		exclusions() {
+			const list = (value) => (Array.isArray(value) ? value : (typeof value === 'string' && value !== '' ? [value] : []))
+				.filter((entry) => typeof entry === 'string' && entry !== '')
+				.map((entry) => entry.toLowerCase())
+			return { apps: list(this.content && this.content.excludeApps), types: list(this.content && this.content.excludeTypes) }
+		},
+
+		/**
+		 * How many items to ask the API for: the limit (or the default), and
+		 * more while items are left out, so a filtered list still fills it.
+		 *
+		 * @return {number}
+		 */
+		requestLimit() {
+			const base = this.itemLimit > 0 ? this.itemLimit : API_ITEM_LIMIT
+			return this.hasExclusions ? Math.max(base * 3, 20) : base
+		},
+
+		/** @return {boolean} Whether any app or type is left out. */
+		hasExclusions() {
+			return this.exclusions.apps.length > 0 || this.exclusions.types.length > 0
 		},
 
 		/**
@@ -317,6 +351,34 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether an item belongs to an app or type the content leaves out: its
+		 * own `app` / `type` / `objectType`, else the app in an `/apps/<app>/`
+		 * part of its link or icons.
+		 *
+		 * @spec openspec/changes/nc-widget-exclude-apps/specs/nc-widget/spec.md#requirement-a-nextcloud-widget-can-leave-out-items-of-an-app-or-type
+		 * @param {object} item A widget item.
+		 * @return {boolean}
+		 */
+		isExcluded(item) {
+			if (!item || typeof item !== 'object') {
+				return false
+			}
+			const { apps, types } = this.exclusions
+			const own = (value) => (typeof value === 'string' ? value.toLowerCase() : '')
+			const appsOf = [own(item.app)]
+			for (const url of [item.link, item.iconUrl, item.overlayIconUrl]) {
+				const match = typeof url === 'string' ? url.match(/\/apps\/([a-z0-9_-]+)\//i) : null
+				if (match) {
+					appsOf.push(match[1].toLowerCase())
+				}
+			}
+			if (apps.length > 0 && appsOf.some((app) => app !== '' && apps.includes(app))) {
+				return true
+			}
+			return types.length > 0 && [own(item.type), own(item.objectType)].some((type) => type !== '' && types.includes(type))
+		},
+
 		t,
 
 		/**
@@ -339,7 +401,8 @@ export default {
 			// where the widget has a registered native callback.
 			// A `limit` also takes the API list first: the native callback paints
 			// as many items as it likes. Its fallback to native stays.
-			if (this.displayMode !== 'horizontal' && this.itemLimit === 0) {
+			// Leaving items out works on the API list only, so it skips native too.
+			if (this.displayMode !== 'horizontal' && this.itemLimit === 0 && !this.hasExclusions) {
 				const callback = this.resolveNativeCallback()
 				if (typeof callback === 'function') {
 					this.mountNative(callback)
@@ -424,7 +487,7 @@ export default {
 				// both the flat-array (older providers) and `{items}` (v2) shapes.
 				const url = generateOcsUrl('/apps/dashboard/api/v2/widget-items')
 				const response = await axios.get(url, {
-					params: { widgets: [this.widgetId], limit: this.itemLimit > 0 ? this.itemLimit : API_ITEM_LIMIT },
+					params: { widgets: [this.widgetId], limit: this.requestLimit },
 				})
 				const data = response && response.data && response.data.ocs ? response.data.ocs.data : null
 				const widgetData = data ? data[this.widgetId] : null

@@ -150,6 +150,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'table',
 	'tabs',
 	'tasks',
+	'team-workload',
 	'text',
 	'tile',
 	'timeline',

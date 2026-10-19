@@ -194,7 +194,7 @@
 				<time
 					v-if="dateTimestamp"
 					class="cn-cell-renderer__date"
-					:class="dueResult.tone === 'danger' ? 'cn-cell-renderer__date--error' : null"
+					:class="dueClass"
 					:datetime="dateTimestamp.toISOString()"
 					:title="absoluteDateLabel"
 					data-testid="cn-cell-renderer-due">{{ dueResult.text }}</time>
@@ -778,6 +778,24 @@ export default {
 		avatarSize() {
 			const size = Number(this.widgetProps && this.widgetProps.size)
 			return Number.isFinite(size) && size > 0 ? size : (this.isBoardLook ? 32 : 24)
+		},
+
+		/**
+		 * `date` widget with `widgetProps.due`: the colour class. The
+		 * `variantWhen` rules win when they match; else an overdue date reads
+		 * as an error and a soon one (`due.soonWithin`) as a warning.
+		 *
+		 * @return {string|null} The class, or null for the plain colour.
+		 * @spec openspec/changes/due-text-soon/specs/due-text-soon/spec.md#requirement-a-due-date-within-a-few-days-reads-as-soon
+		 */
+		dueClass() {
+			if (this.dateVariant) {
+				return 'cn-cell-renderer__date--' + this.dateVariant
+			}
+			if (this.dueResult && this.dueResult.tone === 'danger') {
+				return 'cn-cell-renderer__date--error'
+			}
+			return this.dueResult && this.dueResult.soon ? 'cn-cell-renderer__date--warning' : null
 		},
 
 		/**
