@@ -373,7 +373,7 @@
 					:maxVisible="quickFilterMaxVisible"
 					:fit="quickFilterPlacement === 'toolbar'"
 					:multiple="quickFilterMultiple"
-					:activeIndex="activeQuickFilterIndex"
+					:activeIndex="shownQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
 					:counts="effectiveTabCounts"
 					@update:activeIndex="onQuickFilterChange"
@@ -1349,7 +1349,7 @@ import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './pe
 import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
-import { BOARD_PAGE_SIZE, useSelfFetchList } from './useSelfFetchList.js'
+import { BOARD_PAGE_SIZE, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
 
 /** Rows fetched for one month in calendar mode. */
 const CALENDAR_PAGE_SIZE = 200
@@ -5319,6 +5319,20 @@ export default {
 		 * @return {(Array<object>|null)} The tabs.
 		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
 		 */
+		/**
+		 * The chip the strip lights: the active tab, else the default tab of
+		 * tabs that arrived after setup (`quickFiltersFrom`), which is the
+		 * one the fetch applies.
+		 *
+		 * @return {number|null} The tab index, or null without tabs.
+		 */
+		shownQuickFilterIndex() {
+			if (this.activeQuickFilterIndex !== null && this.activeQuickFilterIndex !== undefined) {
+				return this.activeQuickFilterIndex
+			}
+			return this.quickFilterMultiple ? null : resolveInitialQuickFilterIndex(this.tabStripEntries)
+		},
+
 		tabStripEntries() {
 			if (this.lensTabs.length > 0) {
 				return this.lensTabs

@@ -73,6 +73,7 @@ describe('CnIndexPage quickFiltersFrom in self-fetch mode', () => {
 		})
 		await flushPromises()
 		expect(w.vm.effectiveQuickFilters.map((tab) => tab.label)).toEqual(['Alle typen', 'ct-woo', 'ct-bezwaar'])
+		expect(w.vm.shownQuickFilterIndex).toBe(0)
 
 		w.vm.onQuickFilterChange(1)
 		await flushPromises()

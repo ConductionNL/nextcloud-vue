@@ -9,7 +9,7 @@ import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 
-function resolveInitialQuickFilterIndex(quickFilters) {
+export function resolveInitialQuickFilterIndex(quickFilters) {
 	const tabs = Array.isArray(quickFilters) ? quickFilters : null
 	if (!tabs || tabs.length === 0) {
 		return null
@@ -305,7 +305,9 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 
 			// Single mode: the active tab's filter spread last so it wins
 			// over a colliding props.filter entry.
-			const activeIdx = activeQuickFilterIndex.value
+			// Tabs that arrived after setup (`quickFiltersFrom`) have no index
+			// yet: the default tab is the one in force, as the strip shows.
+			const activeIdx = activeQuickFilterIndex.value ?? resolveInitialQuickFilterIndex(tabs)
 			const tabFilter = (activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
 			return { ...queryFilters, ...scope, ...base, ...resolveFilterMap(tabFilter, params, ctx) }
 		},
