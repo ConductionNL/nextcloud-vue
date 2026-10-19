@@ -2121,6 +2121,15 @@
 			],
 			"page": "cn-logs-page"
 		},
+		"CnMailTab": {
+			"direct": 0,
+			"transitive": 8,
+			"tier": "medium",
+			"via": [
+				"CnEmailPicker"
+			],
+			"page": "cn-mail-tab"
+		},
 		"CnMapPage": {
 			"direct": 0,
 			"transitive": 2,

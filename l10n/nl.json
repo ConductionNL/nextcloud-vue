@@ -2011,7 +2011,17 @@
     "The action could not be completed.": "De actie kon niet worden uitgevoerd.",
     "Whether this is ready could not be read.": "Of dit klaar is, kon niet worden gelezen.",
     "Showing {located} of {total} located": "{located} van {total} met een locatie getoond",
-    "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "De kaart toont de eerste {limit} van {total}. Verfijn de filters om de rest te zien."
+    "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "De kaart toont de eerste {limit} van {total}. Verfijn de filters om de rest te zien.",
+    "Mail is not available": "E-mail is niet beschikbaar",
+    "Install Nextcloud Mail to draft and link mail here.": "Installeer Nextcloud Mail om hier e-mail op te stellen en te koppelen.",
+    "Email template": "E-mailsjabloon",
+    "Open draft from template": "Concept openen vanuit sjabloon",
+    "Empty draft": "Leeg concept",
+    "Could not open draft": "Kon concept niet openen",
+    "Some template fields could not be filled. Fill these in the draft yourself:": "Sommige sjabloonvelden konden niet worden ingevuld. Vul deze zelf in het concept in:",
+    "No templates yet": "Nog geen sjablonen",
+    "Select a template (optional)…": "Selecteer een sjabloon (niet verplicht)…",
+    "The draft could not be opened.": "Kon het concept niet openen."
   },
   "plurals": {
     "{count} member": [

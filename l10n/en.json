@@ -1798,7 +1798,17 @@
     "The action could not be completed.": "The action could not be completed.",
     "Whether this is ready could not be read.": "Whether this is ready could not be read.",
     "Showing {located} of {total} located": "Showing {located} of {total} located",
-    "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "The map shows the first {limit} of {total}. Narrow the filters to see the rest."
+    "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "The map shows the first {limit} of {total}. Narrow the filters to see the rest.",
+    "Mail is not available": "Mail is not available",
+    "Install Nextcloud Mail to draft and link mail here.": "Install Nextcloud Mail to draft and link mail here.",
+    "Email template": "Email template",
+    "Open draft from template": "Open draft from template",
+    "Empty draft": "Empty draft",
+    "Could not open draft": "Could not open draft",
+    "Some template fields could not be filled. Fill these in the draft yourself:": "Some template fields could not be filled. Fill these in the draft yourself:",
+    "No templates yet": "No templates yet",
+    "Select a template (optional)…": "Select a template (optional)…",
+    "The draft could not be opened.": "The draft could not be opened."
   },
   "plurals": {
     "{count} member": [
