@@ -2468,8 +2468,12 @@ export default {
 
 		/**
 		 * The "what now" card (manifest `config.nextStep`):
-		 * `{ field?, stages: { <stage>: { title?, checklist, after? } } }`.
+		 * `{ field?, stagesFrom?, stages: { <stage>: { title?, checklist, after? } } }`.
 		 * Each checklist item is `{ label, doneField?, doneWhen?, hint? }`.
+		 * `stagesFrom` is a field path read like a `visibleWhen` field
+		 * (`@context.caseType.nextStep`): when it holds a stages map (or an
+		 * object with `stages`), that map replaces `stages` for this record, so
+		 * a case type keeps its own stage texts. Otherwise `stages` stays.
 		 * Rendered above the body for a stage that declares a checklist, with
 		 * the primary button inside it. See `CnNextStepCard`.
 		 *
@@ -3413,13 +3417,32 @@ export default {
 		},
 
 		/**
+		 * `nextStep` with its stages read from the record when `stagesFrom`
+		 * names a stages map there (a case type's own texts), else as declared.
+		 *
+		 * @spec openspec/changes/detail-next-step-from-record/specs/detail-page/spec.md#requirement-the-next-step-stages-can-come-from-the-record
+		 * @return {object|null}
+		 */
+		effectiveNextStep() {
+			const config = this.nextStep
+			if (!config || typeof config !== 'object' || typeof config.stagesFrom !== 'string' || config.stagesFrom === '' || !this.widgetVisibilityData) {
+				return config
+			}
+			const found = readVisibleWhenPath(this.widgetVisibilityData, config.stagesFrom)
+			const stages = found && typeof found === 'object' && !Array.isArray(found)
+				? (found.stages && typeof found.stages === 'object' && !Array.isArray(found.stages) ? found.stages : found)
+				: null
+			return stages && Object.keys(stages).length > 0 ? { ...config, stages } : config
+		},
+
+		/**
 		 * The "what now" card for the record's stage, labels translated.
 		 *
 		 * @return {{stage: string, title: string, items: Array<object>, after: string}|null} The card, or null when the stage declares no checklist.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
 		 */
 		nextStepCard() {
-			const card = resolveNextStep(this.nextStep, this.currentObject, this.stageField)
+			const card = resolveNextStep(this.effectiveNextStep, this.currentObject, this.stageField)
 			if (!card) {
 				return null
 			}

@@ -421,7 +421,7 @@ Four levels of action and the case surfaces around them. All opt in. See [the re
 | `stageField` | String | `'status'` | Dot-path to the record's stage. |
 | `quickActions` | Array | `[]` | At most three always visible header buttons. |
 | `actionsMenu` | Object \| null | `null` | `{ showRefresh?, showHelpLinks?, label? }` for the overflow menu. |
-| `nextStep` | Object \| null | `null` | The "what now" card per stage, rendered by `CnNextStepCard`. |
+| `nextStep` | Object \| null | `null` | The "what now" card per stage, rendered by `CnNextStepCard`. `stagesFrom` (a field path such as `@context.caseType.nextStep`) reads the stages from the record when it holds them. |
 | `typePill` | Object \| null | `null` | `{ field, colorMap?, labels?, variant? }`, a pill above the title. Instead of `field`: `text` (a constant) or `countFrom` + `countLabel` (a count of a related list). |
 | `statusPill` | Object \| null | `null` | A second pill, same shape. |
 | `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
