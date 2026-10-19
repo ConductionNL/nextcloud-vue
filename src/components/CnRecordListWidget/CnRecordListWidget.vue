@@ -76,7 +76,7 @@
 					<span
 						v-if="item.due"
 						class="cn-record-list__due cn-record-list__due--column"
-						:class="`cn-record-list__due--${item.due.tone}`"
+						:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
 						data-testid="cn-record-list-due">{{ item.due.text }}</span>
 					<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
 					<component
@@ -119,7 +119,7 @@
 						<span
 							v-if="item.due"
 							class="cn-record-list__due"
-							:class="`cn-record-list__due--${item.due.tone}`"
+							:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
 							data-testid="cn-record-list-due">{{ item.due.text }}</span>
 						<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
 					</span>
@@ -1459,6 +1459,11 @@ export default {
 
 .cn-record-list__due--danger {
 	color: var(--color-text-error, var(--color-error-text));
+	font-weight: 600;
+}
+
+.cn-record-list__due--soon {
+	color: var(--color-text-warning, var(--color-warning-text));
 	font-weight: 600;
 }
 

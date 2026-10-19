@@ -194,7 +194,7 @@
 				<time
 					v-if="dateTimestamp"
 					class="cn-cell-renderer__date"
-					:class="dueResult.tone === 'danger' ? 'cn-cell-renderer__date--error' : null"
+					:class="dueResult.tone === 'danger' ? 'cn-cell-renderer__date--error' : (dueResult.soon ? 'cn-cell-renderer__date--warning' : null)"
 					:datetime="dateTimestamp.toISOString()"
 					:title="absoluteDateLabel"
 					data-testid="cn-cell-renderer-due">{{ dueResult.text }}</time>
