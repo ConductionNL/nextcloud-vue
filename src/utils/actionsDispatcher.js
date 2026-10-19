@@ -1021,7 +1021,12 @@ export function dispatchAction(action, context = {}) {
 			if (op === 'delete') {
 				return store.deleteObject(type, id)
 			}
-			// patch: the row's object merged with the action's values.
+			// patch: only the action's values, as a PATCH, so every other key
+			// keeps its stored value. A store without patchObject writes the
+			// row's object merged with the values.
+			if (typeof store.patchObject === 'function') {
+				return store.patchObject(type, id, { ...(action.values || {}) })
+			}
 			return store.saveObject(type, { ...row, ...(action.values || {}), id })
 		}
 

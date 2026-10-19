@@ -2534,7 +2534,7 @@
 			"page": "cn-object-list"
 		},
 		"CnObjectListWidget": {
-			"direct": 5,
+			"direct": 7,
 			"transitive": 113,
 			"tier": "heavy",
 			"via": [
