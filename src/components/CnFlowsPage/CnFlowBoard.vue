@@ -109,7 +109,7 @@
 					:key="group.app"
 					class="cn-flow-board__palette-group">
 					<h4 class="cn-flow-board__palette-app">
-						{{ group.app }}
+						{{ group.name }}
 					</h4>
 					<ul class="cn-flow-board__palette-list">
 						<li v-for="entry in group.entries" :key="entry.id">
@@ -232,6 +232,7 @@ import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 import { formatRelativeDate } from '../../utils/boardDate.js'
 import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, formatFlowDuration } from '../../utils/flowRunLog.js'
+import { appDisplayNames } from '../../utils/nextcloudApps.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
@@ -278,7 +279,7 @@ export default {
 	},
 
 	data() {
-		return { runTab: 'step', testOpen: false, testRecord: null }
+		return { runTab: 'step', testOpen: false, testRecord: null, appNames: {} }
 	},
 
 	computed: {
@@ -414,17 +415,25 @@ export default {
 			return { tone: 'success', text: this.t('nextcloud-vue', 'The flow is valid.') }
 		},
 
-		/** @return {Array<object>} The palette grouped by owning app. */
+		/**
+		 * The palette grouped by owning app, each group named by the app's
+		 * display name (its id when Nextcloud names none), the app that owns
+		 * this flow first.
+		 *
+		 * @return {Array<{app: string, name: string, entries: Array<object>}>} The groups.
+		 */
 		paletteGroups() {
 			const groups = {}
 			;(this.store.nodeCatalog || []).forEach((entry) => {
 				const app = String(entry?.app || String(entry?.id || '').split('.')[0] || '')
 				if (!groups[app]) {
-					groups[app] = { app, entries: [] }
+					groups[app] = { app, name: this.appNames[app] || app, entries: [] }
 				}
 				groups[app].entries.push(entry)
 			})
-			return Object.values(groups)
+			const list = Object.values(groups)
+			const host = list.findIndex((group) => group.app === this.app)
+			return host > 0 ? [list[host], ...list.slice(0, host), ...list.slice(host + 1)] : list
 		},
 
 		/** @return {object|null} The run on screen. */
@@ -505,6 +514,16 @@ export default {
 		lastRunUuid() {
 			return (this.store.runs && this.store.runs[0] && this.store.runs[0].uuid) || ''
 		},
+	},
+
+	async created() {
+		// The palette names its groups by app display name; only the column
+		// palette draws them, so only it reads the names.
+		if (this.palette !== 'column') {
+			return
+		}
+		const { default: axios } = await import('@nextcloud/axios')
+		this.appNames = await appDisplayNames(axios)
 	},
 
 	methods: {
