@@ -663,7 +663,7 @@
 			"page": "cn-dashboard-grid"
 		},
 		"CnDashboardPage": {
-			"direct": 4,
+			"direct": 5,
 			"transitive": 181,
 			"tier": "heavy",
 			"via": [
