@@ -1724,7 +1724,10 @@
     "No contacts linked": "No contacts linked",
     "No relations yet": "No relations yet",
     "Period": "Period",
-    "On": "On"
+    "On": "On",
+    "Select a step on the canvas to see its settings.": "Select a step on the canvas to see its settings.",
+    "Show runs": "Show runs",
+    "Back to the step settings": "Back to the step settings"
   },
   "plurals": {
     "{count} member": [

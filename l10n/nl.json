@@ -1937,7 +1937,10 @@
     "No contacts linked": "Geen contacten gekoppeld",
     "No relations yet": "Nog geen relaties",
     "Period": "Periode",
-    "On": "Aan"
+    "On": "Aan",
+    "Select a step on the canvas to see its settings.": "Kies een stap op het canvas om de instellingen te zien.",
+    "Show runs": "Uitvoeringen tonen",
+    "Back to the step settings": "Terug naar de stapinstellingen"
   },
   "plurals": {
     "{count} member": [
