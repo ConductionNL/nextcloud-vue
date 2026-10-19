@@ -71,6 +71,11 @@ Pieter", `showDate: true` adds today's date above it, and `plain: true` drops th
 coloured background.
 → [`CnHeaderWidget`](./cn-header-widget.md) · [`CnHeaderWidgetForm`](./cn-header-widget-form.md)
 
+### Notice · `notice`
+
+A toned box with an icon, a bold `title` and a `text` (`variant`: `info`, `warning`, `error`, `success`), through the app's translate. Made for a detail page's side column (DqSociaalDomein's special-category warning) and gated like any widget by its `visibleWhen`.
+→ [`CnNoticeWidget`](./cn-notice-widget.md)
+
 ### Banner and attention card · `banner`
 
 A notice with a severity (`info`, `warning`, `error`, `success`), an optional
