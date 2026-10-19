@@ -166,6 +166,7 @@
 			</div>
 			<div v-else class="cn-object-list-widget__table">
 				<CnDataTable
+					:reorderable="reorderField !== ''"
 					:columns="resolvedColumns"
 					:rows="facetedRows"
 					:loading="loading"
@@ -181,7 +182,8 @@
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
 					@select="onSelect"
-					@sort="onSort">
+					@sort="onSort"
+					@rowMove="onRowMove">
 					<!-- Declarative per-row actions (`content.rowActions`).
 					     CnDataTable only paints the trailing actions column
 					     when this slot is supplied, so a widget without
@@ -205,6 +207,11 @@
 			  more than the widget is showing, pager or no pager — a widget is
 			  a summary, and the index is where the list actually lives.
 			-->
+			<!-- A reorder's outcome, read out: the row's new place, or why the
+			     server refused it. -->
+			<p class="hidden-visually cn-object-list-widget__reorder-status" aria-live="polite" data-testid="cn-object-list-reorder-status">
+				{{ reorderStatus }}
+			</p>
 			<CnPagination
 				v-if="showPager"
 				compact
@@ -310,6 +317,7 @@ import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
+import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
@@ -454,6 +462,8 @@ export default {
 
 	data() {
 		return {
+			/** What the last reorder did, for the live region: the new place, or the server's refusal. */
+			reorderStatus: '',
 			rows: [],
 			loading: false,
 			error: '',
@@ -712,7 +722,7 @@ export default {
 		 */
 		mappedRowActions() {
 			const declared = Array.isArray(this.content.rowActions) ? this.content.rowActions : []
-			return declared
+			const mapped = declared
 				.filter((a) => a && typeof a === 'object')
 				.map((action) => ({
 					label: action.label,
@@ -722,6 +732,28 @@ export default {
 					...this.rowActionLink(action),
 					handler: (row) => this.runRowAction(action, row),
 				}))
+			if (this.reorderField === '') {
+				return mapped
+			}
+			// The keyboard half of the drag: one place up or down.
+			return [
+				...mapped,
+				{ label: t('nextcloud-vue', 'Move up'), icon: 'ArrowUp', handler: (row) => this.moveRowBy(row, -1) },
+				{ label: t('nextcloud-vue', 'Move down'), icon: 'ArrowDown', handler: (row) => this.moveRowBy(row, 1) },
+			]
+		},
+
+		/**
+		 * The field a reorderable list is ordered by (`content.reorder.field`),
+		 * or '' when the list does not reorder. A grouped list does not.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		reorderField() {
+			const reorder = this.content && this.content.reorder
+			const field = reorder && typeof reorder === 'object' ? reorder.field : ''
+			return typeof field === 'string' && field !== '' && !this.isGrouped ? field : ''
 		},
 
 		/**
@@ -1095,6 +1127,10 @@ export default {
 		createInitialData() {
 			const props = (this.createSchema && this.createSchema.properties) || {}
 			const out = { ...this.filterSeed }
+			// A new row of a reorderable list goes last.
+			if (this.reorderField !== '' && this.reorderField in props) {
+				out[this.reorderField] = Math.max(this.total, this.rows.length) + 1
+			}
 			const defaults = this.content && this.content.createDefaults
 			if (defaults && typeof defaults === 'object' && !Array.isArray(defaults)) {
 				for (const [key, value] of Object.entries(defaults)) {
@@ -1272,6 +1308,69 @@ export default {
 
 	methods: {
 		/**
+		 * Move a row one place up or down (the row actions).
+		 *
+		 * @param {object} row The row.
+		 * @param {number} delta -1 for up, 1 for down.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		moveRowBy(row, delta) {
+			const from = this.rows.findIndex((r) => rowIdOf(r) === rowIdOf(row))
+			return this.reorderTo(from, from + delta)
+		},
+
+		/**
+		 * A row dragged to another place in the table.
+		 *
+		 * @param {{from: number, to: number}} move The old and new index.
+		 * @return {Promise<void>}
+		 */
+		onRowMove({ from, to } = {}) {
+			return this.reorderTo(from, to)
+		},
+
+		/**
+		 * Put the row at `from` at `to`, renumber the rows from this page's
+		 * first place, and write the order field on the rows whose number
+		 * changed, as a PATCH of that field only. A refusal is read out and the
+		 * list is read again.
+		 *
+		 * @param {number} from The index moved from.
+		 * @param {number} to The index moved to.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		async reorderTo(from, to) {
+			const field = this.reorderField
+			if (field === '' || from < 0 || to < 0 || from >= this.rows.length || to >= this.rows.length || from === to) {
+				return
+			}
+			const moved = this.rows[from]
+			const { rows, changes } = renumberRows(moveIndex(this.rows, from, to), field, (this.page - 1) * this.pageSize + 1)
+			this.rows = rows
+			const c = this.content || {}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				for (const change of changes) {
+					await axios.patch(
+						generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id: change.id }),
+						{ [field]: change.value },
+					)
+				}
+				this.reorderStatus = t('nextcloud-vue', '{name} moved to place {place} of {total}', {
+					name: objectDisplayName(moved || {}) || t('nextcloud-vue', 'Row'),
+					place: (this.page - 1) * this.pageSize + to + 1,
+					total: Math.max(this.total, this.rows.length),
+				})
+			} catch (e) {
+				const data = e && e.response && e.response.data
+				this.reorderStatus = (data && (data.message || data.error)) || t('nextcloud-vue', 'The new order could not be saved.')
+				await this.fetchRows()
+			}
+		},
+
+		/**
 		 * Fetch the object rows from OpenRegister. Lazily imports the
 		 * axios/router helpers (the library never hard-depends on them at module
 		 * load — same pattern as CnStatWidget / CnFilesWidget).
@@ -1309,7 +1408,10 @@ export default {
 				// the pager's "1–25 of 137" is the server's arithmetic and not a
 				// client-side count of an already-capped window.
 				const params = { _limit: this.pageSize, _page: this.page }
-				if (this.localSort && this.localSort.field) {
+				if (this.reorderField !== '') {
+					// A reorderable list is always shown in its stored order.
+					params[`_order[${this.reorderField}]`] = 'asc'
+				} else if (this.localSort && this.localSort.field) {
 					params[`_order[${this.localSort.field}]`] = (this.localSort.dir === 'desc' ? 'desc' : 'asc')
 				}
 				// `content.extend` → OpenRegister's repeated `_extend[]`. axios

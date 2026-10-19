@@ -2014,7 +2014,10 @@
     "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "De kaart toont de eerste {limit} van {total}. Verfijn de filters om de rest te zien.",
     "Actions for {row}": "Acties voor {row}",
     "Edit {row}": "{row} bewerken",
-    "Row": "Rij"
+    "Row": "Rij",
+    "{name} moved to place {place} of {total}": "{name} staat nu op plaats {place} van {total}",
+    "The new order could not be saved.": "De nieuwe volgorde kon niet worden opgeslagen.",
+    "{field} is already used; choose another value.": "{field} is al in gebruik; kies een andere waarde."
   },
   "plurals": {
     "{count} member": [

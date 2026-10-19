@@ -217,9 +217,10 @@
 
 					<!-- Data rows -->
 					<tr
-						v-for="row in effectiveRows"
+						v-for="(row, rowIndex) in effectiveRows"
 						v-else
 						:key="row[rowKey]"
+						:draggable="reorderable ? 'true' : undefined"
 						class="cn-table-row"
 						data-testid="cn-object-row"
 						:data-testid-row-id="row[rowKey]"
@@ -228,7 +229,14 @@
 							rowLinks[String(row[rowKey])] ? 'cn-table-row--linked' : '',
 							isUnreadRow(row) ? 'cn-table-row--unread' : '',
 							rowClass ? rowClass(row) : '',
+							reorderable ? 'cn-table-row--reorderable' : '',
+							dragOverIndex === rowIndex ? 'cn-table-row--drop-target' : '',
 						]"
+						@dragstart="onRowDragStart(rowIndex, $event)"
+						@dragover="onRowDragOver(rowIndex, $event)"
+						@dragleave="onRowDragLeave(rowIndex)"
+						@drop="onRowDrop(row, rowIndex, $event)"
+						@dragend="onRowDragEnd"
 						@mousedown="onRowMouseDown"
 						@click="onRowClick(row, $event)"
 						@auxclick="onRowAuxClick(row, $event)"
@@ -820,6 +828,15 @@ export default {
 		},
 
 		/**
+		 * Let the reader drag rows into another order. A drop emits `row-move`
+		 * with the row and its old and new index; the host stores the order.
+		 */
+		reorderable: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Hide the column-header row (`<thead>`). Useful for compact dashboard
 		 * list widgets that want a plain bordered-row list without column labels.
 		 */
@@ -1000,7 +1017,7 @@ export default {
 		},
 	},
 
-	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'select', 'select-all', 'sort', 'view-all', 'column-filter'],
+	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'row-move', 'select', 'select-all', 'sort', 'view-all', 'column-filter'],
 
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
@@ -1009,6 +1026,10 @@ export default {
 
 	data() {
 		return {
+			/** Index of the row being dragged, or -1. */
+			dragFromIndex: -1,
+			/** Index of the row a drag is over, or -1. */
+			dragOverIndex: -1,
 			/** Left offsets (px) of the leading pinned cells, measured from the header. */
 			pinOffsets: [],
 			/** Key of the column whose filter panel is open, or ''. */
@@ -1431,6 +1452,83 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Start dragging a row (`reorderable` only).
+		 *
+		 * @param {number} index The row's index.
+		 * @param {DragEvent} event The drag event.
+		 * @return {void}
+		 */
+		onRowDragStart(index, event) {
+			if (!this.reorderable) {
+				return
+			}
+			this.dragFromIndex = index
+			if (event && event.dataTransfer) {
+				event.dataTransfer.effectAllowed = 'move'
+				event.dataTransfer.setData('text/plain', String(index))
+			}
+		},
+
+		/**
+		 * Accept a dragged row over this one.
+		 *
+		 * @param {number} index The row's index.
+		 * @param {DragEvent} event The drag event.
+		 * @return {void}
+		 */
+		onRowDragOver(index, event) {
+			if (!this.reorderable || this.dragFromIndex < 0) {
+				return
+			}
+			event.preventDefault()
+			this.dragOverIndex = index
+		},
+
+		/**
+		 * The drag left this row.
+		 *
+		 * @param {number} index The row's index.
+		 * @return {void}
+		 */
+		onRowDragLeave(index) {
+			if (this.dragOverIndex === index) {
+				this.dragOverIndex = -1
+			}
+		},
+
+		/**
+		 * Drop the dragged row here.
+		 *
+		 * @param {object} row The row dropped on.
+		 * @param {number} index Its index.
+		 * @param {DragEvent} event The drag event.
+		 * @return {void}
+		 */
+		onRowDrop(row, index, event) {
+			if (!this.reorderable || this.dragFromIndex < 0) {
+				return
+			}
+			event.preventDefault()
+			const from = this.dragFromIndex
+			this.onRowDragEnd()
+			if (from !== index) {
+				/**
+				 * A row was dragged to another place (`reorderable`). Payload:
+				 * `{ row, from, to }`, the dragged row and its old and new index.
+				 *
+				 * @event row-move
+				 */
+				this.$emit('row-move', { row: this.effectiveRows[from], from, to: index })
+			}
+		},
+
+		/** End a drag. */
+		onRowDragEnd() {
+			this.dragFromIndex = -1
+			this.dragOverIndex = -1
+		},
+
 		/**
 		 * Whether a column is the one that takes the spare width (`fitWidth`).
 		 *

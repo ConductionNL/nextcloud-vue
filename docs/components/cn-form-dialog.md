@@ -395,6 +395,10 @@ A `fieldOverrides` key (or an `includeFields` entry) can be a dotted path into a
 
 An object property that is either there or not, such as a field rule's `condition`, gets a switch: `"condition": { "widget": "object-switch", "label": "Only in some cases", "defaults": { "kind": "fieldPresent" } }`. On fills it with `defaults`, off writes `null`. Its keys are fields at dotted paths (`condition.kind`), shown with `visibleWhen: { "field": "condition", "truthy": true }`; while the switch is off they are not saved and the object stays `null`.
 
+### `unique`
+
+`"order": { "unique": { "filter": { "caseType": "@objectId" } } }` refuses a value another stored object of the schema already has, among the objects the filter matches (`unique: true` compares with all of them). It is checked when the reader saves, against the form's `register` and schema; a clash shows on the field ("Order is already used; choose another value."). When the check cannot be made, the save goes on and the server decides.
+
 ### `section`
 
 `section` groups fields under a heading (board PqTicketBewerken). A field whose `section` differs from the visible field before it opens a new group with that heading, across both columns; the heading goes through the app's translate function. Sections follow the field order, so set `order` to keep each section's fields together:

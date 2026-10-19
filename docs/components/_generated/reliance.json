@@ -1549,7 +1549,7 @@
 			"page": "cn-form-builder"
 		},
 		"CnFormDialog": {
-			"direct": 6,
+			"direct": 7,
 			"transitive": 112,
 			"tier": "heavy",
 			"via": [
@@ -2478,7 +2478,7 @@
 			"page": "cn-object-list"
 		},
 		"CnObjectListWidget": {
-			"direct": 4,
+			"direct": 5,
 			"transitive": 113,
 			"tier": "heavy",
 			"via": [

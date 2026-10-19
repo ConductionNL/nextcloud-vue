@@ -1801,7 +1801,10 @@
     "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "The map shows the first {limit} of {total}. Narrow the filters to see the rest.",
     "Actions for {row}": "Actions for {row}",
     "Edit {row}": "Edit {row}",
-    "Row": "Row"
+    "Row": "Row",
+    "{name} moved to place {place} of {total}": "{name} moved to place {place} of {total}",
+    "The new order could not be saved.": "The new order could not be saved.",
+    "{field} is already used; choose another value.": "{field} is already used; choose another value."
   },
   "plurals": {
     "{count} member": [

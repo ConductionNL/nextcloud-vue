@@ -861,6 +861,7 @@ import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnSearchSelect from '../CnSearchSelect/CnSearchSelect.vue'
 import CnSubObjectsField from '../CnSubObjectsField/CnSubObjectsField.vue'
 import { describeRowProblem, useChildRecords } from '../../composables/useChildRecords.js'
+import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { clearAnonymousDrafts, draftIndicatorText, draftKey, formDraftMixin, hasDraftChanges, readDraft, resolveDraftUserId } from '../../composables/useFormDraft.js'
 import { heldFromFailures, splitHeldFiles, uploadHeldFiles } from '../../composables/useHeldFileUpload.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -1499,6 +1500,8 @@ export default {
 			sourcedOptions: {},
 			// Whether a field's `optionsFrom` failed or gave no options, by field key: it falls back to text.
 			sourcedFailed: {},
+			// Set while a save that passed its uniqueness check goes on.
+			uniqueChecked: false,
 			/** Scheme of each coded field, as OpenRegister reported it (for the notation route). */
 			codedSchemes: {},
 			/**
@@ -4860,11 +4863,74 @@ export default {
 			return Object.keys(newErrors).length === 0
 		},
 
+		/**
+		 * Whether each field marked `unique` holds a value no other stored
+		 * object has (`unique: true`, or `{ filter }` to compare only among
+		 * the objects that filter matches, such as `{ caseType: '@objectId' }`
+		 * for the statuses of one case type). A clash is shown on the field.
+		 * A check that cannot be made does not block the save; the server is
+		 * the final word.
+		 *
+		 * @param {Array<object>} fields The fields to check.
+		 * @return {Promise<boolean>} Whether every value is free.
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-an-order-is-unique-among-its-siblings
+		 */
+		async checkUnique(fields) {
+			const register = this.register
+			const schema = this.schema && typeof this.schema === 'object' ? (this.schema.slug || this.schema.id) : this.schema
+			if (!register || !schema) {
+				return true
+			}
+			const ownId = this.item ? String(this.item.id ?? this.item['@self']?.id ?? this.item.uuid ?? '') : ''
+			const errors = { ...this.errors }
+			let free = true
+			for (const field of fields) {
+				const value = this.formData[field.key]
+				if (value === null || value === undefined || value === '') {
+					continue
+				}
+				const filter = field.unique && typeof field.unique === 'object' && field.unique.filter && typeof field.unique.filter === 'object' ? field.unique.filter : {}
+				try {
+					const rows = await fetchEndpointSource({
+						url: `/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(String(schema))}`,
+						params: { ...filter, [field.key]: value, _limit: 2 },
+						responsePath: 'results',
+					}, resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext) || {}, { force: true })
+					const taken = (Array.isArray(rows) ? rows : []).some((row) => String(row.id ?? row['@self']?.id ?? '') !== ownId)
+					if (taken) {
+						errors[field.key] = t('nextcloud-vue', '{field} is already used; choose another value.', { field: field.label || field.key })
+						free = false
+					}
+				} catch {
+					// The check could not be made; the server decides on save.
+				}
+			}
+			this.errors = errors
+			return free
+		},
+
 		executeConfirm() {
 			if (!this.validate()) {
 				return
 			}
 			if (!this.jsonFieldsValid) {
+				return
+			}
+			// A field that must be unique is checked against the stored objects
+			// first; the save goes on once that answered.
+			const unique = this.visibleFields.filter((f) => f.unique)
+			if (unique.length > 0 && !this.uniqueChecked) {
+				this.checkUnique(unique).then((ok) => {
+					if (!ok) {
+						return
+					}
+					this.uniqueChecked = true
+					try {
+						this.executeConfirm()
+					} finally {
+						this.uniqueChecked = false
+					}
+				})
 				return
 			}
 
