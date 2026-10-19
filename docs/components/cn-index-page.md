@@ -57,7 +57,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `rowClickToView` | Boolean | `false` | When true, a row/card click emits `row-click` (to open/navigate) even while `selectable` — selection then via the checkbox only. Only takes effect when something can open the row (a `row-click` listener, or a named source that routes its rows); otherwise the click selects, so it is never dead. With `selectable: false` a click always emits `row-click`. Manifest-driven pages set this automatically when a matching detail page, `rowRoute` or split view exists, and ignore an explicit `true` when none does. |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `viewMode` | String | `'table'` | `'table'`, `'cards'`, or `'map'`. The `'map'` mode is only offered when the page opts in — see [Map view mode](#map-view-mode). |
-| `mapConfig` | Object | `\{\}` | Marker geometry mapping for the opt-in [map view mode](#map-view-mode), mirroring manifest `config.map` 1:1: `\{ latField, lngField, geoField?, popupField?, center? \}`. When non-empty (and not excluded by `viewModes`), a third "Map" toggle segment appears. `latField`/`lngField` are object (or `@self`) property paths (dotted paths supported); `geoField` is an alternative GeoJSON Point property that wins over lat/lng; `center` is a `[lat, lng]` fallback for an empty set. `zoom` is the map's initial zoom. `list: \{ title, sub?, pills?, due? \}` draws a numbered list beside the map, both in one framed card (DqZakenKaart): `title`, `sub` and `due` are field templates per row, a pill is `\{ path?, text?, map?, colorMap? \}`. The pins carry the list's numbers, the row under the pointer is marked on both, the rows without a place are counted under the list with a link to the table, and the count line adds "· N with an address on the map". |
+| `mapConfig` | Object | `\{\}` | Marker geometry mapping for the opt-in [map view mode](#map-view-mode), mirroring manifest `config.map` 1:1: `\{ latField, lngField, geoField?, popupField?, center? \}`. When non-empty (and not excluded by `viewModes`), a third "Map" toggle segment appears. `latField`/`lngField` are object (or `@self`) property paths (dotted paths supported); `geoField` is an alternative GeoJSON Point property that wins over lat/lng; `center` is a `[lat, lng]` fallback for an empty set. `zoom` is the map's initial zoom. `list: \{ title, sub?, pills?, due? \}` draws a numbered list beside the map, both in one framed card (DqZakenKaart): `title`, `sub` and `due` are field templates per row, a pill is `\{ path?, text?, map?, colorMap? \}`. The pins carry the list's numbers, the row under the pointer is marked on both, the rows without a place are counted under the list with a link to the table, and the count line adds "· N with an address on the map". `plotAll`, `markerColor` and `count` are in [Map view mode](#map-view-mode). |
 | `mapLabel` | String | `''` | Label for the map view-toggle segment (defaults to "Map"). Fed from `pages[].config.mapLabel`. |
 | `mapIcon` | String | `''` | MDI icon name for the map view-toggle segment (defaults to the built-in map-marker icon). |
 | `calendar` | Object | `\{\}` | The opt-in [calendar view mode](#calendar-view-mode), mirroring manifest `config.calendar`: `\{ dateField, endDateField?, titleField? \}`. The segment appears only when `viewModes` lists `calendar` and `dateField` is named. |
@@ -843,6 +843,22 @@ Alongside `table` and `cards`, CnIndexPage offers an **opt-in `map` view mode** 
 - **Geometry from object metadata.** Marker coordinates are read from each object via `mapConfig`, typically off the OpenRegister `@self` metadata block that the maps-overview leaf populates — not a bespoke per-app endpoint.
 - **Navigation parity.** A marker click resolves back to its source row and emits the same `@row-click` payload as a table row-click, so detail-page navigation is identical across all three modes.
 - **Graceful geometry gaps.** Rows without finite, resolvable coordinates are skipped silently; an empty set falls back to `mapConfig.center` (or a neutral world view).
+- **Every matching row (`plotAll`).** By default the map plots the current page. `mapConfig.plotAll: true` loads every row that matches the filters while the map is open, up to 500 (or `plotAll: <number>`), and restores the page size when the reader leaves the map. When more rows match, a note under the map says the first N are shown and asks to narrow the filters.
+- **Marker colour (`markerColor`).** `{ field, colorMap?, source?, default? }` colours each marker by a field of its row. Without `source` the value is looked up in `colorMap`. With `source: { schema, register?, colorField, filter? }` the field is a reference: the referenced row's `colorField` is the colour, or the key `colorMap` maps to a CSS colour (`"blue": "var(--nl-color-blue, #0b71ab)"`). `var()` is resolved for the SVG marker. Numbered pins (`list`) take the colour too, except the active one.
+- **Count line (`count`).** `true` adds "Showing {located} of {total} located" under the map: the rows it placed against the rows that match. A string is a template with `{located}` and `{total}`, through the app's translate.
+
+```json
+"map": {
+  "geoField": "geometry",
+  "plotAll": true,
+  "count": "Showing {located} of {total} located cases",
+  "markerColor": {
+    "field": "status",
+    "source": { "schema": "statusType", "colorField": "colour" },
+    "colorMap": { "blue": "var(--nl-color-blue, #0b71ab)", "green": "var(--nl-color-green, #39870c)" }
+  }
+}
+```
 
 **Opting in (manifest):**
 

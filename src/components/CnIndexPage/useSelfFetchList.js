@@ -36,6 +36,24 @@ function resolveInitialQuickFilterIndex(quickFilters) {
  */
 export const BOARD_PAGE_SIZE = 500
 
+/** How many rows `mapConfig.plotAll: true` plots at most. */
+export const MAP_PLOT_ALL_LIMIT = 500
+
+/**
+ * How many rows a map that plots every matching row loads (`mapConfig.plotAll`:
+ * `true` for {@link MAP_PLOT_ALL_LIMIT}, or a number), 0 when it plots the page.
+ *
+ * @param {object} [mapConfig] The page's map config.
+ * @return {number} The limit.
+ */
+export function mapPlotAllLimitOf(mapConfig) {
+	const plotAll = mapConfig && mapConfig.plotAll
+	if (plotAll === true) {
+		return MAP_PLOT_ALL_LIMIT
+	}
+	return typeof plotAll === 'number' && Number.isFinite(plotAll) && plotAll > 0 ? Math.floor(plotAll) : 0
+}
+
 /**
  * The sort a quick filter sets while it is active (`sort: { key, order }`, or a
  * list of those for a multi-column order), as sort keys, or null when it sets
@@ -251,7 +269,9 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		defaultSortKeys: initialSortKeys,
 		defaultActiveFilters: initialActiveFilters,
 		defaultSearchTerm: initialSearchTerm,
-		defaultPageSize: props.viewMode === 'board' ? BOARD_PAGE_SIZE : ((props.pagination && props.pagination.limit) || undefined),
+		defaultPageSize: props.viewMode === 'board'
+			? BOARD_PAGE_SIZE
+			: ((props.viewMode === 'map' && mapPlotAllLimitOf(props.mapConfig)) || (props.pagination && props.pagination.limit) || undefined),
 		defaultVisibleColumns: configuredColumnKeys.length ? configuredColumnKeys : null,
 		// `pages[].config.extend` → OpenRegister's repeated `_extend[]`. A
 		// getter so a reactive change re-scopes the next fetch, matching how

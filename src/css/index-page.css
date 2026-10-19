@@ -253,6 +253,22 @@
 	font-size: 14px;
 }
 
+/* The map's count line and the note when a map that plots every row hit its
+   limit. */
+.cn-index-page__map-count {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+	padding: 12px 16px;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
+.cn-index-page__map-cap {
+	color: var(--color-warning-text, var(--color-main-text));
+}
+
 /* Table view owns both scroll axes. With the page column scrolling instead, the
    table's horizontal scrollbar sat at the bottom of the (taller-than-viewport)
    table, so it only appeared after scrolling down, and the pagination was

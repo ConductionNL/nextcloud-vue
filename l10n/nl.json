@@ -1940,7 +1940,9 @@
     "On": "Aan",
     "Select a step on the canvas to see its settings.": "Kies een stap op het canvas om de instellingen te zien.",
     "Show runs": "Uitvoeringen tonen",
-    "Back to the step settings": "Terug naar de stapinstellingen"
+    "Back to the step settings": "Terug naar de stapinstellingen",
+    "Showing {located} of {total} located": "{located} van {total} met een locatie getoond",
+    "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "De kaart toont de eerste {limit} van {total}. Verfijn de filters om de rest te zien."
   },
   "plurals": {
     "{count} member": [

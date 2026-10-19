@@ -1727,7 +1727,9 @@
     "On": "On",
     "Select a step on the canvas to see its settings.": "Select a step on the canvas to see its settings.",
     "Show runs": "Show runs",
-    "Back to the step settings": "Back to the step settings"
+    "Back to the step settings": "Back to the step settings",
+    "Showing {located} of {total} located": "Showing {located} of {total} located",
+    "The map shows the first {limit} of {total}. Narrow the filters to see the rest.": "The map shows the first {limit} of {total}. Narrow the filters to see the rest."
   },
   "plurals": {
     "{count} member": [
