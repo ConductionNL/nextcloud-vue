@@ -1192,6 +1192,8 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 }
 ```
 
+`scopeViews` limits the scope's look (columns, title, count line and the other scope keys) to the view modes it names, e.g. `["table", "list"]`, so a board view keeps the page's generic look (DqWerkbord) while the scope still filters it.
+
 `pane: false` draws no pane. The folder still comes from the deep-link filter (`/cases?caseType=<uuid>`) and its scope look (title, count line, columns, quick filters, `afterList` from the folder or its row's `x-index`) still applies, so a list narrowed to one case type looks like that case type's list without a folder column (boards DqWooVerzoeken, DqKlachten):
 
 ```json

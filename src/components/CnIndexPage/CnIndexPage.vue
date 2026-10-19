@@ -3271,6 +3271,9 @@ export default {
 		 *   defaults to `field`).
 		 * - `folders` — explicit folder list for `source:'custom'`.
 		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
+		 * - `scopeViews` — the view modes the scope's look (columns, title,
+		 *   count line and the other scope keys) applies in, e.g. `["table",
+		 *   "list"]`; other views keep the page's own look. Default: every view.
 		 * - `pane` — `false` draws no pane: the scope still comes from the
 		 *   deep-link filter (`?caseType=<id>`) and still applies its look, as
 		 *   a list narrowed to one case type does without a folder column.
@@ -5049,7 +5052,7 @@ export default {
 		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
 		 */
 		activeScopeLayout() {
-			if (!this.folderSidebar) {
+			if (!this.folderSidebar || !this.scopeShapesView) {
 				return { columns: null, sortKeys: [], searchFields: [] }
 			}
 			return resolveScopeLayout({
@@ -5057,6 +5060,23 @@ export default {
 				row: this.activeScopeRow,
 				pageColumns: this.declaredColumns,
 			})
+		},
+
+		/**
+		 * Whether the active scope's look applies in the current view mode:
+		 * always, unless `folderSidebar.scopeViews` names the view modes it is
+		 * for (`["table", "list"]`), so the board keeps the page's generic
+		 * look (DqWerkbord). The scope's filter applies in every view.
+		 *
+		 * @spec openspec/changes/index-scope-views/specs/index-page/spec.md#requirement-a-scope-look-can-be-limited-to-view-modes
+		 * @return {boolean}
+		 */
+		scopeShapesView() {
+			const views = this.folderSidebar && this.folderSidebar.scopeViews
+			if (!Array.isArray(views) || views.length === 0) {
+				return true
+			}
+			return views.includes(this.currentViewMode)
 		},
 
 		/**
@@ -5093,7 +5113,7 @@ export default {
 		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
 		 */
 		activeScopePresentation() {
-			if (!this.folderSidebar) {
+			if (!this.folderSidebar || !this.scopeShapesView) {
 				return {}
 			}
 			return resolveScopePresentation({ scope: this.activeScope, row: this.activeScopeRow })
