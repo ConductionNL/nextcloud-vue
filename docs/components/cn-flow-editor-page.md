@@ -28,7 +28,7 @@ Controls belong in Nextcloud's app sidebar so the canvas keeps the full width â€
 | `detailRoute` | `String` | `'/flows'` | Route path the editor lives under, used to swap the URL once a new flow gets its server-assigned id. |
 | `run` | `String` | `''` | The run to show. Defaults to the `run` query parameter (`/flows/:id?run=:uuid`), which opens the run view. |
 | `look` | `String` | `''` | `board` or `nextcloud`, overriding the app's look for this page (`config.look`). |
-| `palette` | `String` | `'picker'` | Board look: `column` draws the step palette as a card left of the canvas, grouped by the app that provides each step; `picker` keeps "Add a step" in the canvas toolbar (`config.palette`). |
+| `palette` | `String` | `'picker'` | Board look: `column` draws the step palette as a card left of the canvas, grouped by the app that provides each step (each group named by the app's display name from Nextcloud's navigation, its id when it has none, and the app that owns the flow first); `picker` keeps "Add a step" in the canvas toolbar (`config.palette`). |
 | `paletteFootnote` | `String` | `''` | Board look: a line under the palette (`config.paletteFootnote`, translated). |
 | `testSubject` | `Object` | `null` | Board look: `{ register, schema, labelField?, label? }` (`config.testSubject`). Draws a header button ("Testen met een zaak") that opens a picker on that register and schema and runs the saved flow once with the picked record as its subject. `label` is translated; without it the button reads "Test with a record". |
 | `notice` | `String` | `''` | Board look: an info notice under the path (`config.notice`, translated). |
