@@ -48,6 +48,11 @@
 						class="cn-record-list__avatar"
 						aria-hidden="true"
 						data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+					<span v-if="item.dot"
+						class="cn-record-list__dot"
+						:style="{ background: item.dot }"
+						aria-hidden="true"
+						data-testid="cn-record-list-dot" />
 					<span class="cn-record-list__main">
 						<component
 							:is="item.tag"
@@ -59,6 +64,7 @@
 						</component>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 					</span>
+					<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
 					<span v-if="item.pill || item.badges.length > 0" class="cn-record-list__pills">
 						<CnStatusBadge
 							v-if="item.pill"
@@ -99,11 +105,17 @@
 						class="cn-record-list__avatar"
 						aria-hidden="true"
 						data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+					<span v-if="item.dot"
+						class="cn-record-list__dot"
+						:style="{ background: item.dot }"
+						aria-hidden="true"
+						data-testid="cn-record-list-dot" />
 					<span class="cn-record-list__main">
 						<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 					</span>
-					<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing" class="cn-record-list__aside">
+					<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing || item.flag" class="cn-record-list__aside">
+						<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
 						<CnStatusBadge
 							v-if="item.pill"
 							:label="item.pill.label"
@@ -343,6 +355,9 @@ export default {
 		 * `presentation: "notice"` draws the rows as sentences in one box toned by
 		 * `variant` (`info`, `warning` or `error`), after an optional `lead`
 		 * (`{total}` filled in).
+		 * `dot` (a field, or `{ field, colorMap? }`) draws a colour dot before
+		 * the title; `flags` (`[{ field, label, value? }]`) draws the labels
+		 * of the flags a row has ("Start", "End") at its end.
 		 * `footerAction` (`{ label, icon?, type, ..., disabledWhen?,
 		 * disabledReason? }`) ends the card with one action, also under the
 		 * empty text; while the visibleWhen condition `disabledWhen` holds the
@@ -579,6 +594,8 @@ export default {
 					due: this.dueOf(row),
 					icon: this.iconOf(row),
 					bar: this.barOf(row, barScale),
+					dot: this.dotOf(row),
+					flag: this.flagOf(row),
 				}
 			})
 		},
@@ -697,6 +714,50 @@ export default {
 		 */
 		translate(text) {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * A row's colour dot (`dot`: a field name, or `{ field, colorMap? }`):
+		 * the field's colour, or its value through `colorMap`. Only a hex
+		 * colour, an `rgb()`/`hsl()` colour or a `var(--…)` token is drawn.
+		 *
+		 * @spec openspec/changes/record-list-dot-flags/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-colour-dot-and-flag-text
+		 * @param {object} row The row.
+		 * @return {string} The colour, or ''.
+		 */
+		dotOf(row) {
+			const dot = this.content?.dot
+			const def = typeof dot === 'string' ? { field: dot } : dot
+			if (!def || typeof def !== 'object' || typeof def.field !== 'string' || def.field === '') {
+				return ''
+			}
+			const raw = readPath(row, def.field)
+			if (raw === null || raw === undefined || raw === '') {
+				return ''
+			}
+			const mapped = def.colorMap && typeof def.colorMap === 'object' && typeof def.colorMap[String(raw)] === 'string' ? def.colorMap[String(raw)] : String(raw)
+			return /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([^;{}]*\)|var\(--[a-z0-9-]+(,[^;{}]*)?\))$/i.test(mapped.trim()) ? mapped.trim() : ''
+		},
+
+		/**
+		 * A row's flag text (`flags`: `[{ field, label, value? }]`): the
+		 * labels of the flags whose field is set (or equals `value`), through
+		 * the host translate and joined with " · " ("Start", "End").
+		 *
+		 * @spec openspec/changes/record-list-dot-flags/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-colour-dot-and-flag-text
+		 * @param {object} row The row.
+		 * @return {string} The text, or ''.
+		 */
+		flagOf(row) {
+			const flags = Array.isArray(this.content?.flags) ? this.content.flags : []
+			return flags
+				.filter((flag) => flag && typeof flag.field === 'string' && typeof flag.label === 'string' && flag.label !== '')
+				.filter((flag) => {
+					const raw = readPath(row, flag.field)
+					return flag.value !== undefined ? String(raw) === String(flag.value) : raw === true || raw === 'true' || raw === 1
+				})
+				.map((flag) => this.translate(flag.label))
+				.join(' · ')
 		},
 
 		/**
@@ -1406,6 +1467,19 @@ export default {
 .cn-record-list__row--link:hover .cn-record-list__title,
 .cn-record-list__row--link:focus-visible .cn-record-list__title {
 	text-decoration: underline;
+}
+
+.cn-record-list__dot {
+	flex: 0 0 14px;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+}
+
+.cn-record-list__flag {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	white-space: nowrap;
 }
 
 .cn-record-list__avatar {
