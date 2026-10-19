@@ -456,6 +456,19 @@
 	padding: 10px 22px 20px;
 }
 
+/* A stat tile in a side card (DqZaak "Termijn") sits on the card's inset as
+   the board draws it. The card-fit wrapper is flush, and the wrapper's own
+   flush rule loads after this sheet and outranked the side card's padding,
+   so the value sat 11px from the card's edge instead of 23px.
+   @spec openspec/changes/board-dashboard-widget-inset/specs/board-dashboard-widget-inset/spec.md#requirement-a-stat-tile-in-a-detail-side-card-keeps-the-cards-inset */
+.cn-look-board .cn-detail-page__side .cn-detail-page__card-fit > .cn-widget-wrapper__content:has(> .cn-kpi-card--board) {
+	padding: 10px 22px 20px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-detail-page__card-fit > .cn-widget-wrapper__content > .cn-kpi-card--board {
+	padding: 0;
+}
+
 /* No Actions menu on a side card. */
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions {
 	display: none;

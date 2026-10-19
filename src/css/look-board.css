@@ -1290,6 +1290,47 @@
 	display: none;
 }
 
+/* ---- Widgets that drew their rows on the card's edge -------------------- */
+/* The card body is flush, so a widget carries the card's side inset itself,
+   as the record list and saved views do. Without it the task list's
+   checkboxes, the step bar and its legend, the week strip's days, the bar
+   list and the activity items started on the card's edge, and a table's
+   first column 16px in (DqMijnWerk "Mijn taken", "Mijn 14 zaken per stap",
+   "Termijnen deze week", "Recente activiteit"; DqDashboard "Zaken per
+   status", "Vastgelopen zaken"). The top inset is 4px: with the header's
+   12px it is the board's 16px from title to bar. This also replaces the
+   step bar's and week strip's opt-in `content.inset` on a board dashboard.
+   A borderless card stands on the page ground and keeps its rows flush.
+   @spec openspec/changes/board-dashboard-widget-inset/specs/board-dashboard-widget-inset/spec.md#requirement-a-board-dashboard-widget-keeps-the-cards-side-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-tasks-widget {
+	padding: 0 var(--cn-board-dashboard-card-inset) 10px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-stacked-bar,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-week-strip {
+	box-sizing: border-box;
+	padding: 4px var(--cn-board-dashboard-card-inset) 22px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-chart-widget__html {
+	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
+}
+
+/* An activity item pads itself 4px, so the body takes 4px less. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-nc-widget-widget__body {
+	padding: 0 calc(var(--cn-board-dashboard-card-inset) - 4px) 16px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table th:first-child,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table td:first-child {
+	padding-inline-start: var(--cn-board-dashboard-card-inset);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table th:last-child,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table td:last-child {
+	padding-inline-end: var(--cn-board-dashboard-card-inset);
+}
+
 /* ---- Week strip (DqMijnWerk "Termijnen deze week") ---------------------- */
 /* The days wrap inside the card instead of scrolling sideways: a row holds
    as many days of at least 120px as the card fits, and the rest go to the
