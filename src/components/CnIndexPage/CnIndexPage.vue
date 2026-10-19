@@ -720,6 +720,15 @@
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
 
+				<!-- A sort option whose endpoint could not answer: the list fell
+				     back to the option's own order, and says so. -->
+				<p v-if="sortSourceFellBack && sortSourceFailedNote"
+					class="cn-index-page__sort-source-note"
+					role="status"
+					data-testid="cn-index-sort-source-note">
+					{{ sortSourceFailedNote }}
+				</p>
+
 				<!-- The selected folder as a heading above the list (a group on
 				     DqAfdelingen: its name, then its parent and member count). -->
 				<div v-if="scopeHeading" class="cn-index-page__scope-heading" data-testid="cn-index-page-scope-heading">
@@ -1261,6 +1270,7 @@
 			:pinnedCount="pinnedColumnCount"
 			:sortOptions="sidebarSortOptions"
 			:currentSort="currentSortKeys"
+			:currentSortValue="sortSource.value"
 			:savedViews="savedViewsForSidebar"
 			:activeTab="sidebarActiveTab"
 			v-bind="sidebarSearchProps"
@@ -1351,6 +1361,7 @@ import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterView
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
+import { annotateRows, filterSourceRows, pageSourceRows, rowsFromSourceBody } from '../../utils/sortSourceRows.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -3285,11 +3296,26 @@ export default {
 		/**
 		 * The orders the index sidebar's Sort section offers in the list, card
 		 * and map views (manifest `config.sortSelectOptions`): `{ value, label,
-		 * order? }`, the order its `order` (an `orderToSortKeys` form) or its
-		 * `value` read as one. Without them the section offers the sortable
-		 * columns.
+		 * order?, default?, source? }`, the order its `order` (an
+		 * `orderToSortKeys` form) or its `value` read as one. Without them the
+		 * section offers the sortable columns.
 		 *
-		 * @type {Array<{ value: string, label: string }>}
+		 * An option may name an endpoint `source` (`{ url, params?, rowsPath?,
+		 * rowPath?, carry?, idPath?, annotate?, searchFields?, failedNote? }`)
+		 * for an order the server cannot sort by: choosing it lists that
+		 * endpoint's rows in their order, and the page's search, sidebar
+		 * filters and pager run over them in the browser. `default: true` opens
+		 * the page on it unless the address carries an order; a column header
+		 * click in the table view leaves it for that column's order. When the
+		 * endpoint fails the list falls back to the option's `order` and shows
+		 * `failedNote`. `carry` copies entry fields onto each row (a tier a
+		 * card's head pill reads); with `annotate` they also reach the rows of
+		 * every other order, matched on `idPath` (`id` by default). The option
+		 * is chosen by its value (`selectSortOption`), as a saved view's
+		 * `sortOption` does.
+		 *
+		 * @type {Array<{ value: string, label: string, order?: (string|object|Array), default?: boolean, source?: object }>}
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
 		 */
 		sortSelectOptions: {
 			type: Array,
@@ -4020,6 +4046,12 @@ export default {
 
 	data() {
 		return {
+			/**
+			 * The chosen sort option that names an endpoint `source`, its rows,
+			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
+			 * shown. The value is '' while an ordinary order is chosen.
+			 */
+			sortSource: { value: '', rows: [], state: 'idle', page: 1 },
 			currentViewMode: this.viewMode,
 			/** Whether `?_view=` names a mode the page did not offer yet, to open once it does. */
 			routeViewPending: false,
@@ -4386,10 +4418,95 @@ export default {
 			if (this.isNamedSource) {
 				return this.namedRows
 			}
+			if (this.sortSourceShown) {
+				return this.sortSourceView.rows
+			}
 			if (this.selfFetchFailed) {
 				return []
 			}
-			return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
+			const rows = this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
+			return this.annotatingSource ? annotateRows(rows, this.sortSource.rows, this.annotatingSource) : rows
+		},
+
+		/**
+		 * The sort options that name an endpoint `source`.
+		 *
+		 * @return {Array<object>}
+		 */
+		sourceSortOptions() {
+			return (this.sortSelectOptions || []).filter((o) => o && o.value !== undefined && o.source && typeof o.source.url === 'string' && o.source.url !== '')
+		},
+
+		/**
+		 * The sort option whose endpoint lists the rows now, or null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		activeSortSource() {
+			if (!this.sortSource.value) {
+				return null
+			}
+			return this.sourceSortOptions.find((o) => String(o.value) === this.sortSource.value) || null
+		},
+
+		/**
+		 * Whether the rows on screen are the sort source's: a self-fetch page
+		 * with a source option chosen whose endpoint did not fail.
+		 *
+		 * @return {boolean}
+		 */
+		sortSourceShown() {
+			return !!this.activeSortSource && this.isSelfFetchMode && this.sortSource.state !== 'failed'
+		},
+
+		/**
+		 * Whether a chosen source option fell back to its own order.
+		 *
+		 * @return {boolean}
+		 */
+		sortSourceFellBack() {
+			return !!this.activeSortSource && this.sortSource.state === 'failed'
+		},
+
+		/**
+		 * The translated note for a fallen-back source option, or ''.
+		 *
+		 * @return {string}
+		 */
+		sortSourceFailedNote() {
+			const note = this.activeSortSource && this.activeSortSource.source.failedNote
+			return typeof note === 'string' && note !== '' ? this.cnTranslate(note) : ''
+		},
+
+		/**
+		 * The source rows after the page's search and sidebar filters, one
+		 * page of them at the list's page size.
+		 *
+		 * @return {{rows: Array<object>, pagination: object}}
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		sortSourceView() {
+			const source = this.activeSortSource ? this.activeSortSource.source : {}
+			const filtered = filterSourceRows(this.sortSource.rows, {
+				search: this.list && this.list.searchTerm ? this.list.searchTerm.value : '',
+				filters: this.list && this.list.activeFilters ? this.list.activeFilters.value : {},
+				searchFields: source.searchFields,
+			})
+			const limit = (this.list && this.list.pagination && this.list.pagination.value && this.list.pagination.value.limit) || 20
+			return pageSourceRows(filtered, this.sortSource.page, limit)
+		},
+
+		/**
+		 * The source whose carried fields reach every order's rows
+		 * (`source.annotate`), once its rows are read, or null.
+		 *
+		 * @return {object|null} The option's source.
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-row-field-the-source-supplies-reaches-every-order
+		 */
+		annotatingSource() {
+			const option = this.sourceSortOptions.find((o) => o.source.annotate === true)
+			return option && this.sortSource.rows.length > 0 ? option.source : null
 		},
 
 		/**
@@ -4444,7 +4561,8 @@ export default {
 		 */
 		sortedObjects() {
 			const spec = this.effectiveDefaultSort
-			if (!spec || spec.length === 0) {
+			// A sort source's rows arrive in the order they stand for.
+			if (this.sortSourceShown || !spec || spec.length === 0) {
 				return this.effectiveObjects
 			}
 			if (this.effectiveSortKey) {
@@ -5124,12 +5242,18 @@ export default {
 			if (Array.isArray(this.sortSelectOptions) && this.sortSelectOptions.length > 0) {
 				return this.sortSelectOptions
 					.filter((o) => o && o.value !== undefined && o.value !== null)
-					.map((o) => ({
-						value: String(o.value),
-						label: this.cnTranslate(o.label || String(o.value)),
-						keys: orderToSortKeys(o.order !== undefined ? o.order : o.value),
-					}))
-					.filter((o) => o.keys.length > 0)
+					.map((o) => {
+						const fixed = this.isSelfFetchMode && !!(o.source && typeof o.source.url === 'string' && o.source.url !== '')
+						return {
+							value: String(o.value),
+							label: this.cnTranslate(o.label || String(o.value)),
+							// An endpoint-ranked order is chosen by its value; its
+							// `order` is only the fallback.
+							keys: fixed ? [] : orderToSortKeys(o.order !== undefined ? o.order : o.value),
+							...(fixed ? { fixed: true } : {}),
+						}
+					})
+					.filter((o) => o.fixed === true || o.keys.length > 0)
 			}
 			return (this.tableColumns || [])
 				.filter((c) => c && typeof c === 'object' && c.key && isColumnSortable(c, this.effectiveSchema))
@@ -6247,6 +6371,9 @@ export default {
 			if (this.isNamedSource) {
 				return this.namedLoading
 			}
+			if (this.sortSourceShown) {
+				return this.sortSource.state === 'loading'
+			}
 			return this.isSelfFetchMode ? !!this.list.loading.value : this.loading
 		},
 
@@ -6274,6 +6401,9 @@ export default {
 
 		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
 		effectivePagination() {
+			if (this.sortSourceShown) {
+				return this.sortSourceView.pagination
+			}
 			if (this.selfFetchFailed) {
 				return { ...this.list.pagination.value, total: 0, page: 1, pages: 1 }
 			}
@@ -7623,6 +7753,7 @@ export default {
 				pinnedCount: this.pinnedColumnCount,
 				sortOptions: this.sidebarSortOptions,
 				currentSort: this.currentSortKeys,
+				currentSortValue: this.sortSource.value,
 				savedViews: this.savedViewsForSidebar,
 				activeTab: this.sidebarActiveTab,
 				...this.sidebarSearchProps,
@@ -7674,6 +7805,19 @@ export default {
 	},
 
 	watch: {
+		// A new search or filter starts the source rows at page 1.
+		'list.searchTerm.value': function() {
+			this.resetSortSourcePage()
+		},
+
+		'list.activeFilters.value': {
+			handler() {
+				this.resetSortSourcePage()
+			},
+
+			deep: true,
+		},
+
 		'$route.query._view': function() {
 			this.applyViewModeFromRoute()
 		},
@@ -7967,6 +8111,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	mounted() {
+		this.openSortSource()
 		this.measureSplitViewport()
 		if (this.splitViewEnabled && typeof window !== 'undefined') {
 			window.addEventListener('resize', this.measureSplitViewport)
@@ -8045,6 +8190,73 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * On mount: open on a source option the page defaults to
+		 * (`default: true`, unless the address carries an order of its own),
+		 * and read an annotating source's rows for the other orders.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		openSortSource() {
+			if (!this.isSelfFetchMode || this.sourceSortOptions.length === 0) {
+				return
+			}
+			const query = (this.$route && this.$route.query) || {}
+			const preferred = this.sourceSortOptions.find((o) => o.default === true)
+			if (preferred && !query._order) {
+				this.sortSource = { ...this.sortSource, value: String(preferred.value), page: 1 }
+				this.loadSortSource(preferred)
+				return
+			}
+			const annotating = this.sourceSortOptions.find((o) => o.source.annotate === true)
+			if (annotating) {
+				this.loadSortSource(annotating)
+			}
+		},
+
+		/**
+		 * Read a source option's rows. A failure while that option is chosen
+		 * orders the self-fetched list by the option's `order` instead.
+		 *
+		 * @param {object} option The sort option.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		async loadSortSource(option) {
+			const source = option.source
+			this.sortSource = { ...this.sortSource, state: 'loading' }
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const res = await axios.get(generateUrl(source.url), { params: source.params || {} })
+				this.sortSource = { ...this.sortSource, rows: rowsFromSourceBody(res ? res.data : null, source), state: 'ready' }
+			} catch (error) {
+				this.sortSource = { ...this.sortSource, rows: [], state: 'failed' }
+				// eslint-disable-next-line no-console
+				console.error(`[CnIndexPage] the sort option "${option.value}" could not load ${source.url}`, error)
+				if (this.sortSource.value === String(option.value)) {
+					const keys = orderToSortKeys(option.order)
+					if (keys.length > 0 && typeof this.list.onSort === 'function') {
+						this.list.onSort({ key: keys[0].key, order: keys[0].order, keys })
+					}
+				}
+			}
+		},
+
+		/**
+		 * Back to the first page of the source rows, after a new search or filter.
+		 *
+		 * @return {void}
+		 */
+		resetSortSourcePage() {
+			if (this.sortSource.page !== 1) {
+				this.sortSource = { ...this.sortSource, page: 1 }
+			}
+		},
+
 		/**
 		 * A presentation value: the active scope's when it declares the key,
 		 * else this page's own prop (which a query preset may have set).
@@ -9118,18 +9330,51 @@ export default {
 		},
 
 		/**
-		 * An order chosen in the index sidebar's Sort section. It goes the way
-		 * a header click goes: the self-fetched list sorts (`_order`, kept in
-		 * the address), and `sort` is emitted for a host that sorts itself.
+		 * An order chosen in the index sidebar's Sort section. An option with
+		 * an endpoint `source` is chosen by its value; any other goes the way a
+		 * header click goes: the self-fetched list sorts (`_order`, kept in the
+		 * address), and `sort` is emitted for a host that sorts itself.
 		 *
 		 * @param {Array<{key: string, order: string}>} keys The chosen order.
+		 * @param {string} [value] The chosen option's value.
 		 * @return {void}
 		 */
-		onSidebarSortChange(keys) {
+		onSidebarSortChange(keys, value) {
+			if (value !== undefined && this.selectSortOption(value)) {
+				return
+			}
 			if (!Array.isArray(keys) || keys.length === 0) {
 				return
 			}
 			this.onSortEvent({ key: keys[0].key, order: keys[0].order, keys })
+		},
+
+		/**
+		 * Choose a sort option by its value: an option with an endpoint
+		 * `source` lists the endpoint's rows; any other applies its order. A
+		 * saved view's `sortOption` selects through here.
+		 *
+		 * @param {string} value The option's value.
+		 * @return {boolean} Whether an option of that value was chosen.
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		selectSortOption(value) {
+			const option = (this.sortSelectOptions || []).find((o) => o && o.value !== undefined && String(o.value) === String(value))
+			if (!option) {
+				return false
+			}
+			if (this.sourceSortOptions.includes(option) && this.isSelfFetchMode) {
+				this.sortSource = { ...this.sortSource, value: String(option.value), page: 1 }
+				this.loadSortSource(option)
+				this.$emit('sort-change', String(option.value))
+				return true
+			}
+			const keys = orderToSortKeys(option.order !== undefined ? option.order : option.value)
+			if (keys.length === 0) {
+				return false
+			}
+			this.onSortEvent({ key: keys[0].key, order: keys[0].order, keys })
+			return true
 		},
 
 		/**
@@ -9164,6 +9409,11 @@ export default {
 		 * @return {void}
 		 */
 		onSortEvent(payload) {
+			// An order by keys (a column header, a field in the Sort section)
+			// leaves an endpoint-ranked order.
+			if (this.sortSource.value) {
+				this.sortSource = { ...this.sortSource, value: '', page: 1 }
+			}
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
 				this.list.onSort(payload)
 				this.persistViewStateToRoute(this.currentViewState())
@@ -9442,6 +9692,11 @@ export default {
 		 * @return {void}
 		 */
 		onPageEvent(page) {
+			if (this.sortSourceShown) {
+				this.sortSource = { ...this.sortSource, page: Number(page) || 1 }
+				this.$emit('page-changed', page)
+				return
+			}
 			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') {
 				this.list.onPageChange(page)
 			}
@@ -10349,7 +10604,7 @@ export default {
 					'columns-reset': () => this.onColumnsReset(),
 					'filter-change': (event) => this.onFilterEvent(event),
 					'clear-filters': () => this.onClearFilters(),
-					'sort-change': (keys) => this.onSidebarSortChange(keys),
+					'sort-change': (keys, value) => this.onSidebarSortChange(keys, value),
 					'saved-view': (event) => this.onSavedViewAction(event),
 					'tab-change': (tab) => {
 						this.sidebarActiveTab = tab
