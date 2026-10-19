@@ -191,8 +191,9 @@
 			:listIcon="listIcon"
 			:showSortSelect="showSortSelect"
 			:sortOptions="sortSelectOptions"
-			:sortValue="sortSelectValue"
-			:showSearch="inlineSearch || isBoardLook"
+			:sortValue="effectiveSortSelectValue"
+			:showSearch="search !== false && (inlineSearch || isBoardLook)"
+			:searchPlacement="searchPlacement"
 			:searchValue="effectiveSearchValue"
 			:searchPlaceholder="presented('searchPlaceholder') ? cnTranslate(presented('searchPlaceholder')) : presented('searchPlaceholder')"
 			:showCountWithSearch="showCountWithSearch"
@@ -209,7 +210,7 @@
 			:bulkActions="mergedBulkActions"
 			:documentationUrl="documentationUrl"
 			:documentationLabel="documentationLabel || undefined"
-			@sortChange="$emit('sort-change', $event)"
+			@sortChange="onSortSelectChange"
 			@add="onAddClick"
 			@clearSelection="onSelect([])"
 			@removeFilter="onRemoveActiveFilter"
@@ -675,8 +676,8 @@
 					:partial="folderSidebarPartial"
 					:filesPath="folderSidebar.filesPath || '/'"
 					:selectedId="selectedFolderId"
-					:allLabel="folderSidebar.allLabel || undefined"
-					:title="folderSidebar.title || ''"
+					:allLabel="folderSidebar.allLabel ? cnTranslate(folderSidebar.allLabel) : undefined"
+					:title="folderSidebar.title ? cnTranslate(folderSidebar.title) : ''"
 					:idField="folderPassthroughIdField"
 					:nameField="folderPassthroughNameField"
 					:allowCreate="Boolean(folderSidebar.allowCreate)"
@@ -700,6 +701,15 @@
 				@scroll="onListScroll">
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
+
+				<!-- The selected folder as a heading above the list (a group on
+				     DqAfdelingen: its name, then its parent and member count). -->
+				<div v-if="scopeHeading" class="cn-index-page__scope-heading" data-testid="cn-index-page-scope-heading">
+					<h2 class="cn-index-page__scope-title">
+						{{ scopeHeading.name }}
+					</h2>
+					<span v-if="scopeHeading.subtitle" class="cn-index-page__scope-subtitle" data-testid="cn-index-page-scope-subtitle">{{ scopeHeading.subtitle }}</span>
+				</div>
 
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
 				<div v-if="showInitialLoader" class="cn-index-page__loading">
@@ -1300,6 +1310,7 @@ import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
+import { orderToSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -1969,7 +1980,10 @@ export default {
 		 * case" (manifest `config.headerButtons`). Each is `{ label?, action,
 		 * variant?, icon?, format?, id? }`: `action` is `add` (the Add flow;
 		 * its label defaults to the Add label), `export` (the export leaf in
-		 * `format`, `csv` by default, else the export dialog), `import`,
+		 * `format`, `csv` by default, else the export dialog; with `run` the
+		 * `headerActions` entry of that id; on an `entitySource` page without
+		 * `run` and without a `@mass-export` listener it is not drawn),
+		 * `import`,
 		 * `refresh`, `save-view` (the save-current-view dialog: the board's
 		 * "Zoekopdracht opslaan", label "Save view" by default), or the id of a
 		 * `headerActions` entry; `variant` is
@@ -2144,6 +2158,20 @@ export default {
 		 * @type {''|'toolbar'}
 		 */
 		quickFilterPlacement: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'toolbar'].includes(v),
+		},
+
+		/**
+		 * Where the board look's search field sits (manifest
+		 * `config.searchPlacement`): `''` (the default) opens row 2 with it,
+		 * `'toolbar'` puts it on row 1 before the Filter button and the view
+		 * switch (DqTeamwachtrij).
+		 *
+		 * @type {''|'toolbar'}
+		 */
+		searchPlacement: {
 			type: String,
 			default: '',
 			validator: (v) => ['', 'toolbar'].includes(v),
@@ -3096,6 +3124,16 @@ export default {
 		},
 
 		/**
+		 * `false` draws no inline search in the actions bar, also in the board
+		 * look, which otherwise draws one on every index page. Fed from the
+		 * manifest as `pages[].config.search`.
+		 */
+		search: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * Keep the "Showing X of Y" counter visible beside the inline search field,
 		 * after any `#after-search` controls (only relevant with `inlineSearch`,
 		 * which otherwise takes the counter's place). Fed from the manifest as
@@ -3162,9 +3200,25 @@ export default {
 			default: () => [],
 		},
 
-		/** Selected value of the standalone sort dropdown (controlled). */
+		/**
+		 * Selected value of the standalone sort dropdown. Empty lets a
+		 * self-fetch page show the option matching its current order.
+		 */
 		sortSelectValue: {
 			type: String,
+			default: '',
+		},
+
+		/**
+		 * The order a self-fetch page opens on when neither the address nor
+		 * `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`):
+		 * `"-createdAt"`, `"priority:desc,title"`, an `_order` map or a
+		 * `[{ key, order }]` list.
+		 *
+		 * @type {string|object|Array}
+		 */
+		defaultOrder: {
+			type: [String, Object, Array],
 			default: '',
 		},
 
@@ -4894,6 +4948,60 @@ export default {
 			const match = this.folderSidebarFolders
 				.find((f) => f && String(this.getByPath(f, idField)) === String(this.selectedFolderId))
 			return match || null
+		},
+
+		/**
+		 * The heading above the list for the selected folder: on a `groups`
+		 * pane (or with `folderSidebar.heading: true`), its name and, under
+		 * it, its parent folder and its count. The count reads
+		 * `folderSidebar.countText` (`{count}`, through the app's translate),
+		 * else "{count} members" on a groups pane.
+		 *
+		 * @return {{name: string, subtitle: string}|null} The heading, or null on All.
+		 */
+		scopeHeading() {
+			const cfg = this.folderSidebar
+			const scope = this.activeScope
+			if (!cfg || !scope || !(cfg.source === 'groups' || cfg.heading === true)) {
+				return null
+			}
+			const idField = this.folderPassthroughIdField
+			const name = String(this.getByPath(scope, this.folderPassthroughNameField) ?? this.selectedFolderId)
+			const parentId = scope.parentId ?? scope.parent ?? null
+			const parent = parentId === null || parentId === undefined
+				? null
+				: this.folderSidebarFolders.find((f) => f && String(this.getByPath(f, idField)) === String(parentId))
+			const parts = []
+			if (parent) {
+				parts.push(String(this.getByPath(parent, this.folderPassthroughNameField) ?? parentId))
+			}
+			if (typeof scope.count === 'number') {
+				if (cfg.countText) {
+					parts.push(this.cnTranslate(cfg.countText).replace('{count}', String(scope.count)))
+				} else if (cfg.source === 'groups') {
+					parts.push(n('nextcloud-vue', '{count} member', '{count} members', scope.count, { count: scope.count }))
+				}
+			}
+			return { name, subtitle: parts.join(' · ') }
+		},
+
+		/**
+		 * The sort select's shown value: `sortSelectValue` when the host
+		 * controls it, else on a self-fetch page the option whose order is the
+		 * list's current order (a header click that matches one shows it).
+		 *
+		 * @return {string} The option value, or '' when none matches.
+		 */
+		effectiveSortSelectValue() {
+			if (this.sortSelectValue) {
+				return this.sortSelectValue
+			}
+			if (!this.isSelfFetchMode || !this.list || !this.list.sortKeys) {
+				return ''
+			}
+			const current = this.list.sortKeys.value || []
+			const match = (this.sortSelectOptions || []).find((o) => o && sameSortKeys(this.sortSelectKeys(o), current))
+			return match ? match.value : ''
 		},
 
 		/**
@@ -6669,6 +6777,7 @@ export default {
 						variant: button.variant === 'primary' ? 'primary' : 'secondary',
 						icon,
 						format: button.format === 'excel' ? 'excel' : 'csv',
+						run: typeof button.run === 'string' ? button.run : '',
 						items: Array.isArray(button.items)
 							? button.items.filter((item) => (typeof item === 'string' && item !== '')
 								|| (item && typeof item === 'object' && typeof item.heading === 'string' && item.heading !== ''))
@@ -6676,6 +6785,10 @@ export default {
 					}
 				})
 				.filter((button) => button.label !== '')
+				// An Export with nothing to export through is not drawn: a
+				// named or endpoint source with no `run` and no `@mass-export`
+				// listener.
+				.filter((button) => button.action !== 'export' || this.headerExportAvailable(button))
 				// The Actions menu lists the page's header actions (or the
 				// entries its `items` name), so a menu with nothing to list
 				// is not drawn.
@@ -8464,7 +8577,9 @@ export default {
 			if (button.action === 'add') {
 				this.onAddClick()
 			} else if (button.action === 'export') {
-				if (this.register && this.exportSchemaSlug) {
+				if (button.run) {
+					this.onHeaderAction({ action: button.run, id: button.run })
+				} else if (this.register && this.exportSchemaSlug) {
 					this.onExportClick(button.format)
 				} else {
 					this.showExportDialog = true
@@ -8478,6 +8593,25 @@ export default {
 			} else {
 				this.onHeaderAction({ action: button.action, id: button.action })
 			}
+		},
+
+		/**
+		 * Whether a header Export has something to export through. Any page
+		 * listing OpenRegister objects (self-fetch or the consumer's
+		 * `objects`) keeps it; a named or endpoint source (`entitySource`)
+		 * needs a `run` naming one of the page's header actions, or a
+		 * `@mass-export` listener.
+		 *
+		 * @spec openspec/changes/index-header-export-source/specs/index-page/spec.md#requirement-a-header-export-is-drawn-only-when-it-can-export
+		 * @param {{run?: string}} button The resolved header button.
+		 * @return {boolean}
+		 */
+		headerExportAvailable(button) {
+			if (!this.isNamedSource || (button && button.run)) {
+				return true
+			}
+			const props = this.$ && this.$.vnode && this.$.vnode.props
+			return Boolean(props && typeof props.onMassExport === 'function')
 		},
 
 		/**
@@ -8598,6 +8732,38 @@ export default {
 		onQuickFilterMultiChange(indices) {
 			this.selectedQuickFilterIndices = Array.isArray(indices) ? indices : []
 			this.$emit('quick-filter-change', this.selectedQuickFilterIndices)
+		},
+
+		/**
+		 * The sort keys a sort-select option stands for: its `order` (any
+		 * `orderToSortKeys` form), else its `value` read as an order.
+		 *
+		 * @param {object} option A `sortSelectOptions` entry.
+		 * @return {Array<{key: string, order: string}>} The sort keys.
+		 */
+		sortSelectKeys(option) {
+			if (!option) {
+				return []
+			}
+			return orderToSortKeys(option.order !== undefined ? option.order : option.value)
+		},
+
+		/**
+		 * A choice in the sort select. On a self-fetch page it orders the list
+		 * as a header click does (`_order`, kept in the address); every page
+		 * also emits `sort-change` with the value.
+		 *
+		 * @param {string} value The chosen option's value.
+		 * @return {void}
+		 */
+		onSortSelectChange(value) {
+			const option = (this.sortSelectOptions || []).find((o) => o && o.value === value)
+			const keys = this.sortSelectKeys(option)
+			if (option && keys.length > 0 && this.isSelfFetchMode && typeof this.list.onSort === 'function') {
+				this.list.onSort({ key: keys[0].key, order: keys[0].order, keys })
+				this.persistViewStateToRoute(this.currentViewState())
+			}
+			this.$emit('sort-change', value)
 		},
 
 		/**

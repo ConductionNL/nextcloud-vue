@@ -22,7 +22,10 @@ import { resolveIndexSource } from '../../src/composables/indexSources.js'
 
 const ocs = (data) => ({ data: { ocs: { data } } })
 
+let mockAllUsersRefused = false
+
 beforeEach(() => {
+	mockAllUsersRefused = false
 	mockGet.mockReset()
 	mockGet.mockImplementation(async (url) => {
 		if (url.endsWith('cloud/groups/details')) {
@@ -33,6 +36,17 @@ beforeEach(() => {
 				lars: { id: 'lars', displayname: 'Lars de Koning', email: 'l.dekoning@zuiddrecht.nl', headline: 'Teamleider', role: 'Vergunningverlener, teamleider' },
 				sanne: { id: 'sanne', displayname: 'Sanne Bakker', email: 's.bakker@zuiddrecht.nl', headline: 'Vergunningverlener', role: 'Vergunningverlener' },
 				jamal: { id: 'jamal', displayname: 'Jamal Ouali', email: 'j.ouali@zuiddrecht.nl', headline: 'Toezichthouder', role: 'Toezichthouder' },
+			} })
+		}
+		if (url.endsWith('cloud/users/details')) {
+			if (mockAllUsersRefused) {
+				throw Object.assign(new Error('403'), { response: { status: 403 } })
+			}
+			return ocs({ users: {
+				lars: { id: 'lars', displayname: 'Lars de Koning' },
+				sanne: { id: 'sanne', displayname: 'Sanne Bakker' },
+				jamal: { id: 'jamal', displayname: 'Jamal Ouali' },
+				mehmet: { id: 'mehmet', displayname: 'Mehmet Yildiz' },
 			} })
 		}
 		if (url.endsWith('apps/user_status/api/v1/statuses')) {
@@ -60,11 +74,19 @@ describe('users index source', () => {
 		expect(source.searchFields.group).toEqual({ param: 'group', single: true })
 	})
 
-	it('lists nothing before a group is picked', async () => {
+	it('lists every user the reader may see on All, before a group is picked', async () => {
 		const source = resolveIndexSource('users')
 		await source.load({})
-		expect(mockGet).not.toHaveBeenCalled()
+		expect(mockGet.mock.calls.some(([url]) => url.endsWith('cloud/users/details'))).toBe(true)
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Jamal Ouali', 'Lars de Koning', 'Mehmet Yildiz', 'Sanne Bakker'])
+	})
+
+	it('lists nothing on All when the reader may not list users', async () => {
+		mockAllUsersRefused = true
+		const source = resolveIndexSource('users')
+		await expect(source.load({})).rejects.toThrow('403')
 		expect(source.rows()).toEqual([])
+		expect(source.loading()).toBe(false)
 	})
 })
 

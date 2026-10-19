@@ -7,6 +7,7 @@ import { useObjectStore } from '../../store/index.js'
 // without pulling in this composable's index-only sidebar/subscription wiring.
 import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
+import { orderToSortKeys } from '../../utils/sortOrder.js'
 
 function resolveInitialQuickFilterIndex(quickFilters) {
 	const tabs = Array.isArray(quickFilters) ? quickFilters : null
@@ -219,9 +220,12 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// legacy single-key `sortKey`/`sortOrder` props.
 	const initialRoute = instance && instance.proxy && instance.proxy.$route
 	// The page's own order, which a lens without a `sort` goes back to.
+	// `defaultOrder` (manifest `config.defaultOrder`) is the order of last
+	// resort, after `sortKeys` and `sortKey`.
+	const defaultOrderKeys = orderToSortKeys(props.defaultOrder)
 	const pageSortKeys = (Array.isArray(props.sortKeys) && props.sortKeys.length > 0)
 		? props.sortKeys
-		: (props.sortKey ? [{ key: props.sortKey, order: props.sortOrder || 'asc' }] : [])
+		: (props.sortKey ? [{ key: props.sortKey, order: props.sortOrder || 'asc' }] : defaultOrderKeys)
 	// The lens that is active on mount may set its own order.
 	const initialTabs = withPersonalLenses(props.quickFilters, props.personalLenses)
 	const initialTabSort = (!isMultiQuickFilter && Array.isArray(initialTabs))
@@ -230,6 +234,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	const initialSortKeys = parseSortKeysFromQuery(initialRoute)
 		|| initialTabSort
 		|| (Array.isArray(props.sortKeys) && props.sortKeys.length > 0 ? props.sortKeys : undefined)
+		|| (!props.sortKey && defaultOrderKeys.length > 0 ? defaultOrderKeys : undefined)
 	// Same deep-link restore for facet filters and search, so opening a
 	// shared/bookmarked URL reproduces the same view (CnIndexPage persists
 	// both back to the route on change).
