@@ -961,7 +961,7 @@ import { computeAssignments } from '../../utils/formAssign.js'
 import { resolveNextcloudGroup, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { durationSeconds } from '../../utils/isoDuration.js'
 import { objectDisplayName } from '../../utils/objectName.js'
-import { fieldWithOptionsFrom, filterOptions, isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
+import { fieldWithOptionsFrom, filterOptions, formTokenKeys, isOptionsFrom, loadOptionsFrom, resolveFormTokens } from '../../utils/optionsFrom.js'
 import { languageOptions, resolveDefaultToken, timezoneOptions } from '../../utils/pickerOptions.js'
 import { getDotted, planPropertySourceFill } from '../../utils/propertySourceFill.js'
 import { pruneRows } from '../../utils/pruneRows.js'
@@ -1573,6 +1573,8 @@ export default {
 			sourcedOptions: {},
 			// Whether a field's `optionsFrom` failed or gave no options, by field key: it falls back to text.
 			sourcedFailed: {},
+			// The resolved source each field's options were read from, by field key.
+			sourcedSignatures: {},
 			// Set while a save that passed its uniqueness check goes on.
 			uniqueChecked: false,
 			// The sections folded away (`sectionCollapsed` on one of their fields opens them folded).
@@ -1938,6 +1940,9 @@ export default {
 		visibleFields() {
 			return this.resolvedFields
 				.filter((field) => shouldShow(field, this.formData))
+				// `optionsFrom.hideWhenEmpty`: a select whose source gives nothing
+				// for the current values is left out (a type without formats).
+				.filter((field) => !(field.optionsFrom && field.optionsFrom.hideWhenEmpty === true && Array.isArray(this.sourcedOptions[field.key]) && this.sourcedOptions[field.key].length === 0))
 				// `requiredWhen`: required while its condition holds, so the
 				// asterisk, the board look's aria-required and validation follow.
 				.map((field) => (field.requiredWhen ? { ...field, required: conditionHolds(field.requiredWhen, this.formData, field.key) } : field))
@@ -2664,13 +2669,18 @@ export default {
 		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
 		 */
 		async fetchSourcedOptions(field, query) {
-			let all = this.sourcedOptions[field.key]
+			// A source that reads another field (`@form.<key>`) is read again
+			// when that value changes: the cache is kept per resolved source.
+			const from = resolveFormTokens(field.optionsFrom, this.formData)
+			const signature = JSON.stringify(from)
+			let all = this.sourcedSignatures[field.key] === signature ? this.sourcedOptions[field.key] : null
 			if (!all) {
 				try {
-					all = await loadOptionsFrom(field.optionsFrom, resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext) || {})
+					all = await loadOptionsFrom(from, resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext) || {})
 				} catch {
 					all = []
 				}
+				this.sourcedSignatures = { ...this.sourcedSignatures, [field.key]: signature }
 				this.sourcedOptions = { ...this.sourcedOptions, [field.key]: all }
 				this.sourcedFailed = { ...this.sourcedFailed, [field.key]: all.length === 0 }
 				const labels = {}
@@ -2942,6 +2952,12 @@ export default {
 			// A hand edit ends this field's own rules; other fields may follow it.
 			delete this.assignedFrom[key]
 			this.runAssignments([key])
+			// A select whose source reads this field (`@form.<key>`) reads it again.
+			for (const field of this.resolvedFields) {
+				if (isOptionsFrom(field.optionsFrom) && formTokenKeys(field.optionsFrom).includes(key)) {
+					this.loadAsyncOptions(field, '')
+				}
+			}
 		},
 
 		/**

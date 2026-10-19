@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.134.0",
+	"version": "2.135.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -594,7 +594,10 @@
 						"responsePath": { "type": "string", "minLength": 1, "description": "Where the rows sit in the answer." },
 						"valueField": { "type": "string", "minLength": 1 },
 						"labelField": { "type": "string", "minLength": 1 },
-						"groupField": { "type": "string", "minLength": 1, "description": "Groups the options by this field, groups in the order they first appear (form-small-features)." }
+						"groupField": { "type": "string", "minLength": 1, "description": "Groups the options by this field, groups in the order they first appear (form-small-features)." },
+						"where": { "type": "object", "description": "Keep the rows whose fields equal these values; a value may be `@form.<key>`, another field of the form (object-list-edit-in-place)." },
+						"itemsPath": { "type": "string", "minLength": 1, "description": "Read the options from the list at this path in each row (object-list-edit-in-place)." },
+						"hideWhenEmpty": { "type": "boolean", "description": "Leave the field out while the source gives no options (object-list-edit-in-place)." }
 					}
 				},
 				{
@@ -607,7 +610,10 @@
 						"filter": { "type": "object", "description": "Filters on the objects, as a list filter takes them." },
 						"valueField": { "type": "string", "minLength": 1 },
 						"labelField": { "type": "string", "minLength": 1 },
-						"groupField": { "type": "string", "minLength": 1, "description": "Groups the options by this field, groups in the order they first appear (form-small-features)." }
+						"groupField": { "type": "string", "minLength": 1, "description": "Groups the options by this field, groups in the order they first appear (form-small-features)." },
+						"where": { "type": "object", "description": "Keep the rows whose fields equal these values; a value may be `@form.<key>`, another field of the form (object-list-edit-in-place)." },
+						"itemsPath": { "type": "string", "minLength": 1, "description": "Read the options from the list at this path in each row (object-list-edit-in-place)." },
+						"hideWhenEmpty": { "type": "boolean", "description": "Leave the field out while the source gives no options (object-list-edit-in-place)." }
 					}
 				}
 			]

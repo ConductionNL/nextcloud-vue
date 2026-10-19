@@ -1410,7 +1410,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.131.0 adds mapConfig markerColor, plotAll and count on an index page (index-map-parity).
 		// 2.133.0 adds optionsFrom on a form field override (form-field-options-from), the sub-objects keys itemOverrides, newItem, itemLabel, emptyText, pruneWhen and the object-switch defaults (sub-objects-editor), and an object list's reorder and a field override's unique (list-reorder-order-field).
 		// 2.134.0 adds the field override keys placeholderFrom, requiredWhen, warnWhen, clearWhenHidden, stored, initialWhen, sectionCollapsed, optionSwatches and optionIcons, and optionsFrom groupField (form-small-features).
-		expect(schema.version).toBe('2.134.0')
+		// 2.135.0 adds optionsFrom where, itemsPath and hideWhenEmpty, a source that follows another field through @form tokens (object-list-edit-in-place).
+		expect(schema.version).toBe('2.135.0')
 	})
 
 	it('accepts the 2.131.0 map keys and refuses malformed ones', () => {
