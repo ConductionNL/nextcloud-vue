@@ -274,12 +274,30 @@
 	padding: 0;
 }
 
-/* Filter: a labelled secondary button, 36px, radius 8, with the active count. */
+/* The toolbar's buttons are the board's neutral control (DqTeamwachtrij
+   "Filter"): the main text at 600 on the main background with a grey border.
+   The nldesign theme paints a secondary button in the primary colour with
+   `!important` through its button tokens, so the bar hands the board's values
+   to those tokens.
+   @spec openspec/changes/board-toolbar-buttons-theme/specs/board-toolbar-buttons-theme/spec.md#requirement-board-toolbar-buttons-are-neutral-under-a-theme */
+.cn-look-board .cn-actions-bar:not(.cn-look-nextcloud *) {
+	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-secondary-action-color: var(--color-main-text);
+	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
+	--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);
+	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
+}
+
+/* Filter: a labelled secondary button, 36px, radius 8, 12px at both sides
+   and 14px text, with the active count. NcButton with an icon pads its start
+   4px and sets 15px. */
 .cn-look-board .cn-actions-bar__filter-button.button-vue,
 .cn-look-board .cn-actions-bar__filter-menu .button-vue {
 	min-height: 36px;
 	height: 36px;
+	padding: 0 12px;
 	border-radius: 8px;
+	font-size: 14px;
 	font-weight: 600;
 }
 
