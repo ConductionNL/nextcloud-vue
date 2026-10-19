@@ -758,7 +758,7 @@ import { installModalStack, uninstallModalStack } from '../../utils/modalStack.j
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
+import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 /**
@@ -3451,18 +3451,21 @@ export default {
 				this.savedViewMenu.entries = normalizeSavedViewMenu(await read(SAVED_VIEW_MENU_KEY, []))
 			} catch {
 				// No menu entries; the views themselves are unaffected.
+				return
 			}
+			this._hydrateSavedViewMenuCounts()
 		},
 
 		/**
 		 * Add a saved view to the menu, or remove it, and store the list.
 		 *
-		 * @param {{id: string, page: string, name: string}} entry The view.
+		 * @param {{id: string, page: string, name: string, badge?: object}} entry The view.
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
 		 */
 		async toggleSavedViewMenu(entry) {
 			this.savedViewMenu.entries = toggleSavedViewMenuEntry(this.savedViewMenu.entries, entry)
+			this._hydrateSavedViewMenuCounts()
 			await this.writeSavedViewMenu()
 		},
 
@@ -3481,6 +3484,7 @@ export default {
 				return
 			}
 			this.savedViewMenu.entries = next
+			this._hydrateSavedViewMenuCounts()
 			await this.writeSavedViewMenu()
 		},
 
@@ -4354,10 +4358,37 @@ export default {
 				}
 				return out
 			}
-			for (const item of collect(this.manifest?.menu)) {
+			for (const item of [...collect(this.manifest?.menu), ...this._savedViewMenuCountItems()]) {
 				if ((register === null || item.count.register === register) && (schema === null || item.count.schema === schema)) {
 					this._fetchMenuItemCount(item)
 				}
+			}
+		},
+
+		/**
+		 * The "My views" menu entries whose view asks for a filtered count
+		 * (`overrides.badge`), as `{ id, count }` under the menu entry's id.
+		 *
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 * @return {Array<{id: string, count: {register: string, schema: string, filter?: object}}>}
+		 * @private
+		 */
+		_savedViewMenuCountItems() {
+			return (this.savedViewMenu?.entries || [])
+				.filter((e) => e.badge && e.badge.count && typeof e.badge.count === 'object')
+				.map((e) => ({ id: `${SAVED_VIEW_MENU_PREFIX}${e.id}`, count: e.badge.count }))
+		},
+
+		/**
+		 * Fetch the count of every "My views" entry that shows one.
+		 *
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateSavedViewMenuCounts() {
+			for (const item of this._savedViewMenuCountItems()) {
+				this._fetchMenuItemCount(item)
 			}
 		},
 

@@ -88,6 +88,13 @@ describe('CnDashboardPage page filter optionsFrom', () => {
 		expect(w.vm.workspaceContext.caseType).toBe('a')
 	})
 
+	it('reads the options afresh on every page, past the endpoint cache', async () => {
+		axios.get.mockResolvedValue({ data: { results: [{ id: 'ct-woo', title: 'Woo-verzoek' }] } })
+		await mountDash(CASE_TYPE)
+		await mountDash(CASE_TYPE)
+		expect(axios.get).toHaveBeenCalledTimes(2)
+	})
+
 	it('keeps declared options as they were', async () => {
 		const w = await mountDash({ key: 'period', options: [{ value: '3m', label: '3 months' }] })
 		expect(axios.get).not.toHaveBeenCalled()

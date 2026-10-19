@@ -54,7 +54,7 @@
 							name="cn-index-sidebar-sort-direction"
 							value="asc"
 							:modelValue="sortDirection"
-							:disabled="!sortSelected"
+							:disabled="!sortSelected || sortSelected.fixed === true"
 							@update:modelValue="onSortDirection">
 							{{ t('nextcloud-vue', 'Ascending') }}
 						</NcCheckboxRadioSwitch>
@@ -63,7 +63,7 @@
 							name="cn-index-sidebar-sort-direction"
 							value="desc"
 							:modelValue="sortDirection"
-							:disabled="!sortSelected"
+							:disabled="!sortSelected || sortSelected.fixed === true"
 							@update:modelValue="onSortDirection">
 							{{ t('nextcloud-vue', 'Descending') }}
 						</NcCheckboxRadioSwitch>
@@ -434,9 +434,12 @@ export default {
 		},
 
 		/**
-		 * The orders the Sort section offers, `[{ value, label, keys }]`, each
-		 * `keys` a `[{ key, order }]` list read as its ascending form. Empty
-		 * draws no Sort section (the table view sorts by its headers).
+		 * The orders the Sort section offers, `[{ value, label, keys, fixed? }]`,
+		 * each `keys` a `[{ key, order }]` list read as its ascending form. An
+		 * option with `fixed: true` is an order of its own (the rows an endpoint
+		 * ranks): it is chosen by its value, has no direction, and its keys are
+		 * not matched against the current order. Empty draws no Sort section
+		 * (the table view sorts by its headers).
 		 */
 		sortOptions: {
 			type: Array,
@@ -447,6 +450,16 @@ export default {
 		currentSort: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The Sort option chosen by its value, for an order that is not a list
+		 * of sort keys (an option with `fixed: true`, such as one whose rows an
+		 * endpoint ranks). Wins over matching `currentSort`.
+		 */
+		currentSortValue: {
+			type: String,
+			default: '',
 		},
 
 		/** Current search term */
@@ -644,8 +657,17 @@ export default {
 		 * @return {{option: object, direction: string}|null} The match, or null.
 		 */
 		sortMatch() {
+			if (this.currentSortValue) {
+				const chosen = this.sortOptions.find((o) => o.value === this.currentSortValue)
+				if (chosen) {
+					return { option: chosen, direction: 'asc' }
+				}
+			}
 			const current = Array.isArray(this.currentSort) ? this.currentSort : []
 			for (const option of this.sortOptions) {
+				if (option.fixed === true) {
+					continue
+				}
 				const keys = Array.isArray(option.keys) ? option.keys : []
 				if (sameSortKeys(keys, current)) {
 					return { option, direction: 'asc' }
@@ -674,6 +696,9 @@ export default {
 		 * @return {string} The sentence.
 		 */
 		currentSortText() {
+			if (this.sortMatch && this.sortMatch.option.fixed === true) {
+				return t('nextcloud-vue', 'Current order: {order}', { order: this.sortMatch.option.label })
+			}
 			const current = Array.isArray(this.currentSort) ? this.currentSort : []
 			if (current.length === 0) {
 				return t('nextcloud-vue', 'Not sorted')
@@ -910,9 +935,10 @@ export default {
 		emitSort(option, direction) {
 			const keys = Array.isArray(option.keys) ? option.keys : []
 			/**
-			 * @event sort-change The Sort section chose an order. Payload: `[{ key, order }]`.
+			 * @event sort-change The Sort section chose an order. Payload: `[{ key, order }]`,
+			 *   and the chosen option's value, which names an order that is not keys (`fixed`).
 			 */
-			this.$emit('sort-change', direction === 'desc' ? reverseSortKeys(keys) : keys.map((k) => ({ key: k.key, order: k.order || 'asc' })))
+			this.$emit('sort-change', direction === 'desc' ? reverseSortKeys(keys) : keys.map((k) => ({ key: k.key, order: k.order || 'asc' })), option.value)
 		},
 
 		/**
