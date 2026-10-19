@@ -118,6 +118,10 @@ The strip opens on the first tab that is in it. None of these keys is required, 
 
 Tab titles are separately configurable for a reason: "Files and attachments" reads fine on a card and is too long once six tabs share the width. [`CnTabsWidgetForm`](./cn-tabs-widget-form.md) edits them in Buildiq edit mode.
 
+### A title row for a single widget
+
+A tab that holds one widget draws that widget's own `title` as a heading in its panel, with its `description` on a line under it, both through the app's translate (board DqZaakDocumenten: tab "Documenten", heading "Documenten bij dit verzoek"). A widget without a title, or whose title the tab already shows, draws no heading.
+
 ### A stack of widgets in one tab
 
 A tab can hold several widgets with `widgetIds` instead of `widgetId`. The
