@@ -1859,7 +1859,14 @@
     "Stop": "Stop",
     "Can start": "Can start",
     "Stopped": "Stopped",
-    "Not needed": "Not needed"
+    "Not needed": "Not needed",
+    "Search an address": "Search an address",
+    "Street, postcode or place": "Street, postcode or place",
+    "Address search is not available right now.": "Address search is not available right now.",
+    "Address": "Address",
+    "Street": "Street",
+    "Place": "Place",
+    "Postcode": "Postcode"
   },
   "plurals": {
     "{count} member": [

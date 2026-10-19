@@ -75,6 +75,13 @@
 			"via": [],
 			"page": "cn-actions-menu"
 		},
+		"CnAddressSearch": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-address-search"
+		},
 		"CnAdminActionCard": {
 			"direct": 0,
 			"transitive": 0,

@@ -2071,7 +2071,14 @@
     "Stop": "Stoppen",
     "Can start": "Kan starten",
     "Stopped": "Gestopt",
-    "Not needed": "Niet nodig"
+    "Not needed": "Niet nodig",
+    "Search an address": "Zoek een adres",
+    "Street, postcode or place": "Straat, postcode of plaats",
+    "Address search is not available right now.": "Adres zoeken is nu niet beschikbaar.",
+    "Address": "Adres",
+    "Street": "Straat",
+    "Place": "Plaats",
+    "Postcode": "Postcode"
   },
   "plurals": {
     "{count} member": [
