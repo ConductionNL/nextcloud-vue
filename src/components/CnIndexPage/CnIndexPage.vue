@@ -320,6 +320,7 @@
 					:selectedViewId="appliedSavedViewId"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true"
+					@editRequest="onEditViewRequest"
 					@shareRequest="onShareViewRequest"
 					@presentationRequest="onPresentationViewRequest"
 					@updateRequest="onUpdateViewRequest"
@@ -536,6 +537,14 @@
 			@confirm="onPresentationViewConfirm"
 			@close="viewPendingPresentation = null" />
 
+		<!-- Edit-a-saved-filter dialog (saved-filters-manage-and-defaults) -->
+		<CnSavedViewEditDialog
+			v-if="viewPendingEdit"
+			ref="editViewDialog"
+			:view="viewPendingEdit"
+			@confirm="onEditViewConfirm"
+			@close="viewPendingEdit = null" />
+
 		<!-- Share-a-saved-view dialog (saved-views-shared-by-role) -->
 		<CnSavedViewShareDialog
 			v-if="viewPendingShare"
@@ -549,7 +558,7 @@
 			v-if="viewPendingDelete"
 			ref="deleteViewConfirmDialog"
 			variant="error"
-			:dialogTitle="t('nextcloud-vue', 'Delete view')"
+			:dialogTitle="t('nextcloud-vue', 'Delete filter')"
 			:message="deleteViewMessage"
 			:confirmLabel="t('nextcloud-vue', 'Delete')"
 			@confirm="onDeleteViewConfirm"
@@ -1299,7 +1308,7 @@ import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
-import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
@@ -1307,7 +1316,7 @@ import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { orderToSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
@@ -1337,6 +1346,7 @@ import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
+import { CnSavedViewEditDialog } from '../CnSavedViewEditDialog/index.js'
 import { CnSavedViewPresentationDialog } from '../CnSavedViewPresentationDialog/index.js'
 import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
 import { CnSavedViewShareDialog } from '../CnSavedViewShareDialog/index.js'
@@ -1631,6 +1641,7 @@ export default {
 		CnIndexSidebar,
 		CnSavedViewsControl,
 		CnSavedViewPresentationDialog,
+		CnSavedViewEditDialog,
 		CnSavedViewShareDialog,
 		CnSaveViewDialog,
 		CnConfirmDialog,
@@ -2866,6 +2877,17 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Filters the app ships for this page (`config.defaultFilters`), each
+		 * `{ slug, name, filters, search?, sort?, label? }`. Listed read-only
+		 * above the user's own saved views, never stored; a user may apply one
+		 * or save a copy. `@`-tokens in `filters` resolve when it is applied.
+		 */
+		defaultFilters: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Property name used to display item names in dialogs */
 		massActionNameField: {
 			type: String,
@@ -4025,6 +4047,8 @@ export default {
 			viewPendingDelete: null,
 			/** The own view whose audience is being changed (CnSavedViewShareDialog), or null. */
 			viewPendingShare: null,
+			/** The own view being renamed or re-filtered (CnSavedViewEditDialog), or null. */
+			viewPendingEdit: null,
 			/** The view whose presentation is being changed (CnSavedViewPresentationDialog), or null. */
 			viewPendingPresentation: null,
 			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
@@ -5156,7 +5180,18 @@ export default {
 		 * @return {Array<object>} The views.
 		 */
 		viewsForControl() {
-			return this.splitSavedViews.control
+			return [...this.defaultFilterViews, ...this.splitSavedViews.control]
+		},
+
+		/**
+		 * The page's `defaultFilters` as read-only views.
+		 *
+		 * @return {Array<object>} The views.
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-4
+		 */
+		defaultFilterViews() {
+			const defaults = (this.defaultFilters || []).map((entry) => (entry && typeof entry.name === 'string' ? { ...entry, name: this.cnTranslate(entry.name) } : entry))
+			return defaultFilterViews(defaults, this.savedViewsPage)
 		},
 
 		/**
@@ -6166,7 +6201,7 @@ export default {
 			if (!this.viewPendingDelete) {
 				return ''
 			}
-			return t('nextcloud-vue', 'Delete the view "{name}"? This cannot be undone.', { name: this.viewPendingDelete.name })
+			return t('nextcloud-vue', 'Delete the filter "{name}"? This cannot be undone.', { name: this.viewPendingDelete.name })
 		},
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
@@ -6768,7 +6803,7 @@ export default {
 						label = t('nextcloud-vue', 'Actions')
 					}
 					if (label === '' && button.action === 'save-view') {
-						label = t('nextcloud-vue', 'Save view')
+						label = t('nextcloud-vue', 'Save filter')
 					}
 					return {
 						key: String(button.id || button.action || index),
@@ -10589,6 +10624,10 @@ export default {
 		onApplySavedView(view) {
 			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
 			const state = extractViewState(view)
+			if (view && view.seeded === true) {
+				const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+				state.filters = resolveFilterTokens(state.filters, ctx)
+			}
 			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
 			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []
 			this.appliedViewColumns = viewColumns.length > 0 ? viewColumns : null
@@ -10745,6 +10784,54 @@ export default {
 			} catch (error) {
 				const data = error?.response?.data
 				this.$refs.presentationViewDialog?.setError((data && (data.error || data.message)) || error?.message)
+			}
+		},
+
+		/**
+		 * Open the edit dialog for an own view (CnSavedViewsControl `@edit-request`).
+		 *
+		 * @param {object} view The View API object.
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-3
+		 */
+		onEditViewRequest(view) {
+			this.viewPendingEdit = view
+		},
+
+		/**
+		 * Save a rename, and the current filters when asked
+		 * (CnSavedViewEditDialog `@confirm`). The PATCH carries `name`, plus
+		 * `query` only when the criteria are replaced, so nothing else on the
+		 * view is rewritten from this tab's copy. A refusal keeps the dialog open.
+		 *
+		 * @param {{ name: string, replaceCriteria: boolean }} payload The dialog payload.
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-3
+		 */
+		async onEditViewConfirm({ name, replaceCriteria }) {
+			const view = this.viewPendingEdit
+			if (!view) {
+				return
+			}
+			const body = { name }
+			if (replaceCriteria === true) {
+				const state = this.isSelfFetchMode
+					? this.currentViewState()
+					: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
+				body.query = buildViewCreatePayload({
+					name,
+					state,
+					scope: savedViewScope(this.savedViewsPage),
+					register: this.register,
+					schema: this.schema,
+				}).query
+			}
+			try {
+				const saved = await useSavedViewsApi().patchView(view.id, body)
+				this.savedViews = this.savedViews.map((v) => (v.id === view.id ? { ...v, ...(saved || body) } : v))
+				this.viewPendingEdit = null
+				this.toastSavedView('success', t('nextcloud-vue', 'Filter "{name}" saved', { name }))
+			} catch (error) {
+				const data = error?.response?.data
+				this.$refs.editViewDialog?.setError((data && (data.error || data.message)) || error?.message)
 			}
 		},
 

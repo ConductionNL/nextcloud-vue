@@ -6,14 +6,14 @@
 	<!--
 		Board look: the saved views are a row of chips on the ground, each with
 		its count, the selected one filled. The menu stays for managing views
-		(apply, rename, share, delete) and is reached from the "Save view"
+		(apply, edit, share, delete) and is reached from the "Save filter"
 		button. Without the look the control is the menu alone, as before.
 	-->
 	<div
 		v-if="isBoardLook && chipRows.length > 0"
 		class="cn-saved-views__chips"
 		role="group"
-		:aria-label="t('nextcloud-vue', 'Saved views')"
+		:aria-label="t('nextcloud-vue', 'Saved filters')"
 		data-testid="cn-saved-views-chips">
 		<button
 			v-for="row in chipRows"
@@ -37,15 +37,16 @@
 		:class="{ 'cn-saved-views__save': isBoardLook }"
 		:forceMenu="true"
 		:forceName="true"
-		:menuName="isBoardLook ? t('nextcloud-vue', 'Save view') : menuLabel"
+		:menuName="isBoardLook ? t('nextcloud-vue', 'Save filter') : menuLabel"
 		data-testid="cn-saved-views-control"
-		:aria-label="isBoardLook ? t('nextcloud-vue', 'Save view') : menuLabel">
+		:aria-label="isBoardLook ? t('nextcloud-vue', 'Save filter') : menuLabel"
+		@close="managing = ''">
 		<template #icon>
 			<ContentSaveOutline v-if="isBoardLook" :size="14" />
 			<BookmarkOutline v-else :size="20" />
 		</template>
 
-		<NcActionCaption :name="t('nextcloud-vue', 'Saved views')" />
+		<NcActionCaption :name="t('nextcloud-vue', 'Saved filters')" />
 
 		<!-- Loading state -->
 		<NcActionCaption
@@ -57,10 +58,10 @@
 		<NcActionCaption
 			v-else-if="views.length === 0"
 			data-testid="cn-saved-views-empty"
-			:name="t('nextcloud-vue', 'No saved views yet')" />
+			:name="t('nextcloud-vue', 'No saved filters yet')" />
 
 		<!-- The labels already in use, offered before anybody types a new one. -->
-		<template v-if="!loading && offeredLabels.length > 0">
+		<template v-if="!loading && managedRow === null && offeredLabels.length > 0">
 			<NcActionButton
 				v-for="label in offeredLabels"
 				:key="`label-${label}`"
@@ -85,15 +86,16 @@
 			the one case it cannot be about.
 		-->
 		<NcActionCaption
-			v-if="!loading && views.length > 0 && rows.length === 0"
+			v-if="!loading && managedRow === null && views.length > 0 && rows.length === 0"
 			data-testid="cn-saved-views-none-for-label"
 			:name="t('nextcloud-vue', 'No views with this label')" />
 
-		<!-- One row per view, in tree order: the name applies it, a trailing
-		     icon button deletes it. NcActions only recognises NcAction* vnodes
-		     as menu items and silently drops anything else, so a row with more
-		     than one control has to be an NcActionButtonGroup. -->
-		<template v-if="!loading">
+		<!-- One row per view, in tree order: the name applies it, the trailing
+		     Manage button opens that view's own menu in place. NcActions only
+		     recognises NcAction* vnodes as menu items and silently drops anything
+		     else, so a row with two controls has to be an NcActionButtonGroup,
+		     and a menu of its own has to be a second state of this one. -->
+		<template v-if="!loading && managedRow === null">
 			<template v-for="section in sections" :key="section.key">
 				<NcActionCaption
 					v-if="section.label"
@@ -117,85 +119,125 @@
 						{{ rowName(row, section.key === 'shared') }}
 					</NcActionButton>
 					<NcActionButton
-						v-if="accessOf(row) === 'owner' && row.group !== SEEDED_GROUP"
-						:key="`share-${row.view.id || row.view.slug}`"
-						data-testid="cn-saved-views-share"
+						:key="`manage-${row.view.id || row.view.slug}`"
+						data-testid="cn-saved-views-manage"
 						:data-view-id="row.view.id || row.view.slug"
-						:aria-label="shareLabel(row.view)"
-						@click="onShareRequest(row.view)">
+						:aria-label="manageLabel(row.view)"
+						@click="onManage(row)">
 						<template #icon>
-							<ShareVariantOutline :size="20" />
-						</template>
-					</NcActionButton>
-					<NcActionButton
-						v-if="(accessOf(row) === 'owner' || accessOf(row) === 'write') && row.group !== SEEDED_GROUP"
-						:key="`presentation-${row.view.id || row.view.slug}`"
-						data-testid="cn-saved-views-presentation"
-						:data-view-id="row.view.id || row.view.slug"
-						:aria-label="presentationLabel(row.view)"
-						@click="onPresentationRequest(row.view)">
-						<template #icon>
-							<ViewDashboardOutline :size="20" />
-						</template>
-					</NcActionButton>
-					<NcActionButton
-						v-if="accessOf(row) === 'write'"
-						:key="`update-${row.view.id || row.view.slug}`"
-						data-testid="cn-saved-views-update"
-						:data-view-id="row.view.id || row.view.slug"
-						:aria-label="updateLabel(row.view)"
-						@click="onUpdateRequest(row.view)">
-						<template #icon>
-							<ContentSaveOutline :size="20" />
-						</template>
-					</NcActionButton>
-					<NcActionButton
-						v-if="accessOf(row) === 'read' && row.group !== SEEDED_GROUP"
-						:key="`copy-${row.view.id || row.view.slug}`"
-						data-testid="cn-saved-views-copy"
-						:data-view-id="row.view.id || row.view.slug"
-						:aria-label="copyLabel(row.view)"
-						@click="onCopyRequest(row.view)">
-						<template #icon>
-							<ContentCopy :size="20" />
-						</template>
-					</NcActionButton>
-					<NcActionButton
-						v-if="accessOf(row) === 'owner' && row.group !== SEEDED_GROUP"
-						:key="`delete-${row.view.id || row.view.slug}`"
-						data-testid="cn-saved-views-delete"
-						:data-view-id="row.view.id || row.view.slug"
-						:aria-label="deleteLabel(row.view)"
-						@click="onDeleteRequest(row.view)">
-						<template #icon>
-							<TrashCanOutline :size="20" />
+							<DotsHorizontal :size="20" />
 						</template>
 					</NcActionButton>
 				</NcActionButtonGroup>
 			</template>
 		</template>
 
-		<NcActionSeparator />
+		<!-- The managed filter's own menu: every entry labelled, each shown only
+		     when the caller's access allows it. The server refuses the rest. -->
+		<template v-if="!loading && managedRow !== null">
+			<NcActionButton
+				data-testid="cn-saved-views-back"
+				:aria-label="t('nextcloud-vue', 'Back to the saved filters')"
+				@click="managing = ''">
+				<template #icon>
+					<ArrowLeft :size="20" />
+				</template>
+				{{ managedRow.view.name }}
+			</NcActionButton>
+			<NcActionSeparator />
+			<NcActionButton
+				v-if="can('edit')"
+				data-testid="cn-saved-views-edit"
+				:data-view-id="managedId"
+				@click="onEditRequest(managedRow.view)">
+				<template #icon>
+					<PencilOutline :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit') }}
+			</NcActionButton>
+			<NcActionButton
+				v-if="can('share')"
+				data-testid="cn-saved-views-share"
+				:data-view-id="managedId"
+				:aria-label="shareLabel(managedRow.view)"
+				@click="onShareRequest(managedRow.view)">
+				<template #icon>
+					<ShareVariantOutline :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Share') }}
+			</NcActionButton>
+			<NcActionButton
+				v-if="can('presentation')"
+				data-testid="cn-saved-views-presentation"
+				:data-view-id="managedId"
+				:aria-label="presentationLabel(managedRow.view)"
+				@click="onPresentationRequest(managedRow.view)">
+				<template #icon>
+					<ViewDashboardOutline :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Presentation') }}
+			</NcActionButton>
+			<NcActionButton
+				v-if="can('update')"
+				data-testid="cn-saved-views-update"
+				:data-view-id="managedId"
+				:aria-label="updateLabel(managedRow.view)"
+				@click="onUpdateRequest(managedRow.view)">
+				<template #icon>
+					<ContentSaveOutline :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Update with current filters') }}
+			</NcActionButton>
+			<NcActionButton
+				v-if="can('copy')"
+				data-testid="cn-saved-views-copy"
+				:data-view-id="managedId"
+				:aria-label="copyLabel(managedRow.view)"
+				@click="onCopyRequest(managedRow.view)">
+				<template #icon>
+					<ContentCopy :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Save a copy') }}
+			</NcActionButton>
+			<NcActionButton
+				v-if="can('delete')"
+				data-testid="cn-saved-views-delete"
+				:data-view-id="managedId"
+				:aria-label="deleteLabel(managedRow.view)"
+				@click="onDeleteRequest(managedRow.view)">
+				<template #icon>
+					<TrashCanOutline :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Delete') }}
+			</NcActionButton>
+		</template>
 
-		<NcActionButton
-			data-testid="cn-saved-views-save"
-			:aria-label="t('nextcloud-vue', 'Save current view…')"
-			@click="onSaveRequest">
-			<template #icon>
-				<ContentSaveOutline :size="20" />
-			</template>
-			{{ t('nextcloud-vue', 'Save current view…') }}
-		</NcActionButton>
+		<template v-if="managedRow === null">
+			<NcActionSeparator />
+
+			<NcActionButton
+				data-testid="cn-saved-views-save"
+				:aria-label="t('nextcloud-vue', 'Save current filter…')"
+				@click="onSaveRequest">
+				<template #icon>
+					<ContentSaveOutline :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Save current filter…') }}
+			</NcActionButton>
+		</template>
 	</NcActions>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionButtonGroup, NcActionCaption, NcActions, NcActionSeparator } from '@nextcloud/vue'
+import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
 import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
+import PencilOutline from 'vue-material-design-icons/PencilOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
@@ -214,18 +256,25 @@ import { isOwnView, viewAccess } from '../../utils/savedViewHelpers.js'
  *
  * - `@apply(view)` — a view entry was clicked; parent writes the view's
  *   stored filters/search/sort into the route query.
- * - `@save-request()` — "Save current view…" clicked; parent opens
+ * - `@save-request()` — "Save current filter…" clicked; parent opens
  *   CnSaveViewDialog.
- * - `@delete-request(view)` — a view's trailing delete icon clicked; parent
- *   opens a confirm dialog. Only rendered for views the current user owns
+ *
+ * Every row carries a Manage button that turns the open menu into that view's
+ * own menu (Back, then the entries below, each shown only when the caller's
+ * access allows it). A default filter (`seeded: true`) only offers a copy.
+ *
+ * - `@edit-request(view)` — Edit on an own view; parent opens the edit dialog.
+ * - `@delete-request(view)` — Delete on an own view; parent opens a confirm
+ *   dialog. Only rendered for views the current user owns
  *   (`@self.access: owner`, else `view.owner === currentUserId`) — OpenRegister
  *   refuses foreign deletes server-side anyway (owner-scoped 404).
  * - `@share-request(view)` — Share on an own view; parent opens the share dialog.
- * - `@update-request(view)` — Save on a view shared with write access; parent
- *   saves the current state to it (never sending `sharedWith` or `owner`).
+ * - `@update-request(view)` — Update with current filters, on an own view or one
+ *   shared with write access; parent saves the current state to it (never
+ *   sending `sharedWith` or `owner`).
  * - `@presentation-request(view)` — Presentation on a view the user may edit
  *   (`owner` or `write`); parent opens the presentation dialog (table, board, calendar).
- * - `@copy-request(view)` — "Save as my view" on a view shared read-only.
+ * - `@copy-request(view)` — Save a copy, on a view shared read-only or a default.
  *
  * Views shared with the user (`@self.access` `write` or `read`) list under
  * "Shared with me", next to "My views", once any exist; with none the list
@@ -233,6 +282,7 @@ import { isOwnView, viewAccess } from '../../utils/savedViewHelpers.js'
  *
  * @event {object} apply — Apply the clicked view. Payload: the View API object.
  * @event {void} save-request — Open the save-current-view dialog.
+ * @event {object} edit-request — Edit the clicked own view. Payload: the View API object.
  * @event {object} delete-request — Confirm-delete the clicked view. Payload: the View API object.
  * @event {object} share-request — Share the clicked own view. Payload: the View API object.
  * @event {object} update-request — Save the current state to the clicked writable shared view. Payload: the View API object.
@@ -248,10 +298,13 @@ export default {
 		NcActionButtonGroup,
 		NcActionCaption,
 		NcActionSeparator,
+		ArrowLeft,
 		BookmarkOutline,
 		ContentCopy,
 		ContentSaveOutline,
+		DotsHorizontal,
 		EyeOutline,
+		PencilOutline,
 		ShareVariantOutline,
 		TagOutline,
 		TrashCanOutline,
@@ -317,12 +370,14 @@ export default {
 		},
 	},
 
-	emits: ['apply', 'copy-request', 'delete-request', 'presentation-request', 'save-request', 'share-request', 'update-request'],
+	emits: ['apply', 'copy-request', 'delete-request', 'edit-request', 'presentation-request', 'save-request', 'share-request', 'update-request'],
 
 	data() {
 		return {
 			/** The label currently filtering the list, or '' for all of them. */
 			labelFilter: '',
+			/** The id (or slug) of the view whose own menu is open, or '' for the list. */
+			managing: '',
 		}
 	},
 
@@ -347,7 +402,26 @@ export default {
 
 		/** @return {string} The dropdown trigger label. */
 		menuLabel() {
-			return t('nextcloud-vue', 'Views')
+			return t('nextcloud-vue', 'Saved filters')
+		},
+
+		/**
+		 * The row whose own menu is open, or null for the list. Null again when
+		 * the view left the list, so a deleted view cannot keep its menu open.
+		 *
+		 * @return {object|null} The row from buildViewTree().
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-2
+		 */
+		managedRow() {
+			if (this.managing === '') {
+				return null
+			}
+			return this.rows.find((row) => String(row.view.id || row.view.slug) === this.managing) || null
+		},
+
+		/** @return {string} The id (or slug) of the managed view. */
+		managedId() {
+			return this.managedRow ? String(this.managedRow.view.id || this.managedRow.view.slug) : ''
 		},
 
 		/** @return {string} The seeded group name, for the template. */
@@ -378,13 +452,13 @@ export default {
 		 */
 		sections() {
 			const shared = this.rows.filter((r) => r.group !== VIEW_GROUPS.SEEDED && this.accessOf(r) !== 'owner')
-			if (shared.length === 0) {
+			const seeded = this.rows.filter((r) => r.group === VIEW_GROUPS.SEEDED)
+			if (shared.length === 0 && seeded.length === 0) {
 				return [{ key: 'all', label: '', rows: this.rows }]
 			}
-			const seeded = this.rows.filter((r) => r.group === VIEW_GROUPS.SEEDED)
 			const mine = this.rows.filter((r) => r.group !== VIEW_GROUPS.SEEDED && this.accessOf(r) === 'owner')
 			return [
-				{ key: 'seeded', label: '', rows: seeded },
+				{ key: 'seeded', label: t('nextcloud-vue', 'Default filters'), rows: seeded },
 				{ key: 'mine', label: t('nextcloud-vue', 'My views'), rows: mine },
 				{ key: 'shared', label: t('nextcloud-vue', 'Shared with me'), rows: shared },
 			].filter((section) => section.rows.length > 0)
@@ -460,16 +534,55 @@ export default {
 				.join(', ')
 		},
 
+		manageLabel(view) {
+			return t('nextcloud-vue', 'Manage "{name}"', { name: view.name })
+		},
+
+		/**
+		 * Open the own menu of a row.
+		 *
+		 * @param {object} row The row from buildViewTree().
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-2
+		 */
+		onManage(row) {
+			this.managing = String(row.view.id || row.view.slug)
+		},
+
+		/**
+		 * Whether the managed view offers an entry, by the caller's access.
+		 * A default filter offers a copy and nothing else.
+		 *
+		 * @param {'edit'|'share'|'presentation'|'update'|'copy'|'delete'} entry The entry.
+		 * @return {boolean}
+		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-2
+		 */
+		can(entry) {
+			const row = this.managedRow
+			if (!row) {
+				return false
+			}
+			if (row.group === VIEW_GROUPS.SEEDED) {
+				return entry === 'copy'
+			}
+			const access = this.accessOf(row)
+			const allowed = {
+				owner: ['edit', 'share', 'presentation', 'update', 'delete'],
+				write: ['presentation', 'update'],
+				read: ['copy'],
+			}
+			return (allowed[access] || []).includes(entry)
+		},
+
 		shareLabel(view) {
 			return t('nextcloud-vue', 'Share "{name}"', { name: view.name })
 		},
 
 		updateLabel(view) {
-			return t('nextcloud-vue', 'Save the current view to "{name}"', { name: view.name })
+			return t('nextcloud-vue', 'Save the current filters to "{name}"', { name: view.name })
 		},
 
 		copyLabel(view) {
-			return t('nextcloud-vue', 'Save "{name}" as my view', { name: view.name })
+			return t('nextcloud-vue', 'Save a copy of "{name}" as my filter', { name: view.name })
 		},
 
 		presentationLabel(view) {
@@ -482,6 +595,14 @@ export default {
 			 * @type {object}
 			 */
 			this.$emit('presentation-request', view)
+		},
+
+		onEditRequest(view) {
+			/**
+			 * @event edit-request Edit on an own view; open the edit dialog.
+			 * @type {object}
+			 */
+			this.$emit('edit-request', view)
 		},
 
 		onShareRequest(view) {

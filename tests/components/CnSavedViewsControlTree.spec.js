@@ -78,13 +78,17 @@ describe('the control renders the tree the helper built', () => {
 		expect(rows(wrapper)[0].attributes('aria-label')).toContain('cannot see')
 	})
 
-	it('offers no delete on a seeded view, which a user may copy and not remove', () => {
+	it('offers no delete on a seeded view, which a user may copy and not remove', async () => {
 		// A view the product promises is not a view one person can take off
 		// everybody's install.
 		const wrapper = mountControl([view('geleverd', { seeded: true }), view('eigen')])
 
-		const deletes = wrapper.findAll('[data-testid="cn-saved-views-delete"]')
-		expect(deletes.map((entry) => entry.attributes('data-view-id'))).toEqual(['eigen'])
+		await wrapper.get('[data-testid="cn-saved-views-manage"][data-view-id="geleverd"]').trigger('click')
+		expect(wrapper.findAll('[data-testid="cn-saved-views-delete"]')).toHaveLength(0)
+		expect(wrapper.findAll('[data-testid="cn-saved-views-copy"]')).toHaveLength(1)
+		await wrapper.get('[data-testid="cn-saved-views-back"]').trigger('click')
+		await wrapper.get('[data-testid="cn-saved-views-manage"][data-view-id="eigen"]').trigger('click')
+		expect(wrapper.findAll('[data-testid="cn-saved-views-delete"]').map((entry) => entry.attributes('data-view-id'))).toEqual(['eigen'])
 	})
 })
 

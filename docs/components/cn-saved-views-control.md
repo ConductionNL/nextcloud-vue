@@ -64,19 +64,24 @@ A view carries `@self.access`: `owner`, `write` or `read` (OpenRegister `view-gr
 
 When any view is shared with the user, the list is split under two captions, **My views** and **Shared with me** (seeded views stay on top, with no caption). A shared row names the sharing group after the view name. With nothing shared the list renders as before. Applying a shared view works as for an own view.
 
-| Access | Row actions | Event |
-|--------|-------------|-------|
-| `owner` | Share, Delete | `share-request(view)`, `delete-request(view)` |
-| `owner`, `write` | Presentation: how the view shows (table, board, calendar) | `presentation-request(view)` |
-| `write` | Save the current view to it (no delete, no share) | `update-request(view)` |
-| `read` | Save as my view (no edit, no delete) | `copy-request(view)` |
+Every row carries one **Manage "{name}"** button. It turns the open menu into that filter's own menu: Back (with the filter's name), then the entries below, each a labelled item shown only when the access allows it. Closing the menu returns to the list.
 
-`CnIndexPage` handles all three: `update-request` PUTs the query and presentation only (never `sharedWith` or `owner`, so the audience cannot change), `copy-request` stores a personal copy and leaves the original, `share-request` opens [`CnSavedViewShareDialog`](./cn-saved-view-share-dialog.md).
+| Access | Entries | Event |
+|--------|---------|-------|
+| `owner` | Edit, Share, Delete | `edit-request(view)`, `share-request(view)`, `delete-request(view)` |
+| `owner`, `write` | Presentation, Update with current filters | `presentation-request(view)`, `update-request(view)` |
+| `read`, default | Save a copy | `copy-request(view)` |
+
+`CnIndexPage` handles them all: `edit-request` opens [`CnSavedViewEditDialog`](./cn-saved-view-edit-dialog.md) and PATCHes `name` (plus `query` when the user asks to replace the criteria), `update-request` PUTs the query and presentation only (never `sharedWith` or `owner`), `copy-request` stores a personal copy and leaves the original, `share-request` opens [`CnSavedViewShareDialog`](./cn-saved-view-share-dialog.md), `delete-request` asks for confirmation first.
+
+## Default filters
+
+An index page may declare `config.defaultFilters` (`slug`, `name`, `filters`, optional `search`, `sort`, `label`). `CnIndexPage` lists them first under **Default filters**, read-only and never stored: a user can apply one or save a copy. Applying a default resolves its `@me` / `@today` tokens; a copy keeps them.
 
 ## States
 
 - **Loading** — `loading: true` shows a caption instead of the list.
-- **Empty** — no views and not loading shows "No saved views yet".
+- **Empty** — no views and not loading shows "No saved filters yet".
 - **Nothing for this label** — views exist but the active label matches none.
   Distinct from Empty, because a menu with nothing matching and a menu with
   nothing in it read the same and mean different things.

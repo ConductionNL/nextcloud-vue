@@ -22,6 +22,11 @@ const { buildViewCreatePayload, normalizeSharedWith, viewAccess } = require('../
 const view = (id, extra = {}) => ({ id, slug: String(id), name: `View ${id}`, owner: 'alice', ...extra })
 const mountControl = (views) => mount(CnSavedViewsControl, { props: { views, currentUserId: 'alice' } })
 const testids = (w, id) => w.findAll(`[data-testid="${id}"]`)
+/** Open the own menu of a view, as the Manage button on its row does. */
+async function manage(w, id) {
+	await w.get(`[data-testid="cn-saved-views-manage"][data-view-id="${id}"]`).trigger('click')
+	return w
+}
 
 beforeEach(() => {
 	mockSearch.mockReset()
@@ -128,32 +133,37 @@ describe('CnSavedViewsControl sections and gating', () => {
 		expect(items[0].text()).not.toContain('·')
 	})
 
-	it('read access hides delete and share, and offers Save as my view', () => {
-		const w = mountControl([readOnly])
+	it('read access hides delete and share, and offers Save a copy', async () => {
+		const w = await manage(mountControl([readOnly]), 2)
 		expect(testids(w, 'cn-saved-views-delete')).toHaveLength(0)
 		expect(testids(w, 'cn-saved-views-share')).toHaveLength(0)
 		expect(testids(w, 'cn-saved-views-update')).toHaveLength(0)
 		expect(testids(w, 'cn-saved-views-copy')).toHaveLength(1)
 	})
 
-	it('write access allows saving changes, hides delete and share', () => {
-		const w = mountControl([writable])
+	it('write access allows saving changes, hides delete and share', async () => {
+		const w = await manage(mountControl([writable]), 3)
 		expect(testids(w, 'cn-saved-views-update')).toHaveLength(1)
 		expect(testids(w, 'cn-saved-views-delete')).toHaveLength(0)
 		expect(testids(w, 'cn-saved-views-share')).toHaveLength(0)
 		expect(testids(w, 'cn-saved-views-copy')).toHaveLength(0)
 	})
 
-	it('owner access offers Share and Delete', () => {
-		const w = mountControl([own])
+	it('owner access offers Share and Delete', async () => {
+		const w = await manage(mountControl([own]), 1)
 		expect(testids(w, 'cn-saved-views-share')).toHaveLength(1)
 		expect(testids(w, 'cn-saved-views-delete')).toHaveLength(1)
 	})
 
 	it('emits the view on each request', async () => {
 		const w = mountControl([own, readOnly, writable])
+		await manage(w, 1)
 		await testids(w, 'cn-saved-views-share')[0].trigger('click')
+		await w.get('[data-testid="cn-saved-views-back"]').trigger('click')
+		await manage(w, 2)
 		await testids(w, 'cn-saved-views-copy')[0].trigger('click')
+		await w.get('[data-testid="cn-saved-views-back"]').trigger('click')
+		await manage(w, 3)
 		await testids(w, 'cn-saved-views-update')[0].trigger('click')
 		expect(w.emitted('share-request')[0][0].id).toBe(1)
 		expect(w.emitted('copy-request')[0][0].id).toBe(2)
@@ -202,13 +212,13 @@ describe('presentation (view-presentation-picker)', () => {
 		expect(w.vm.error).toBe('Something else')
 	})
 
-	it('the control offers Presentation to owner and write, not read', () => {
+	it('the control offers Presentation to owner and write, not read', async () => {
 		const owner = view(1, { '@self': { access: 'owner' } })
 		const writer = view(2, { owner: 'bob', '@self': { access: 'write' } })
 		const reader = view(3, { owner: 'bob', '@self': { access: 'read' } })
-		expect(testids(mountControl([owner]), 'cn-saved-views-presentation')).toHaveLength(1)
-		expect(testids(mountControl([writer]), 'cn-saved-views-presentation')).toHaveLength(1)
-		expect(testids(mountControl([reader]), 'cn-saved-views-presentation')).toHaveLength(0)
+		expect(testids(await manage(mountControl([owner]), 1), 'cn-saved-views-presentation')).toHaveLength(1)
+		expect(testids(await manage(mountControl([writer]), 2), 'cn-saved-views-presentation')).toHaveLength(1)
+		expect(testids(await manage(mountControl([reader]), 3), 'cn-saved-views-presentation')).toHaveLength(0)
 	})
 
 	it('buildViewCreatePayload carries a board or calendar and omits a table', () => {
