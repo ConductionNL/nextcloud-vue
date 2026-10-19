@@ -1946,11 +1946,7 @@
     "This cannot be filed twice. Open the one it matches, or ask a coordinator.": "Dit kan niet twee keer worden vastgelegd. Open het item waarmee het overeenkomt, of vraag een coördinator.",
     "File it anyway": "Toch vastleggen",
     "A record you may not open": "Een item dat je niet mag openen",
-    "Matched on the score, not on a single field": "Gevonden op de score, niet op één veld",
-    "%n existing record looks like this one.": [
-      "%n bestaand item lijkt hierop.",
-      "%n bestaande items lijken hierop."
-    ]
+    "Matched on the score, not on a single field": "Gevonden op de score, niet op één veld"
   },
   "plurals": {
     "{count} member": [
@@ -2068,6 +2064,10 @@
     "downloaded %n time": [
       "%n keer gedownload",
       "%n keer gedownload"
+    ],
+    "%n existing record looks like this one.": [
+      "%n bestaand item lijkt hierop.",
+      "%n bestaande items lijken hierop."
     ]
   }
 }
