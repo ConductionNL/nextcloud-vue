@@ -2253,6 +2253,17 @@
 			],
 			"page": "cn-nav-card-grid"
 		},
+		"CnNcDashboardList": {
+			"direct": 1,
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnIndexPage"
+			],
+			"page": "cn-nc-dashboard-list"
+		},
 		"CnNcDashboardWidgetForm": {
 			"direct": 0,
 			"transitive": 0,

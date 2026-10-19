@@ -209,6 +209,7 @@ export {
 	CnMenuWidgetForm,
 	CnMetadataTab,
 	CnNavCardGrid,
+	CnNcDashboardList,
 	CnNcDashboardWidgetForm,
 	CnNcWidgetGridPicker,
 	CnNcWidgetWidget,
@@ -613,6 +614,7 @@ export { followLinkClick, isModifiedClick, isNewTabHandled, isRowMiddleClick, op
 export { resolveImageUrl } from './utils/index.js'
 export { resolveDateVariant } from './utils/index.js'
 export { actionLink, dispatchAction } from './utils/actionsDispatcher.js'
+export { registerNcDashboardWidgets } from './utils/registerNcDashboardWidgets.js'
 // Nested-modal stacking. `CnAppRoot` installs this itself; apps that do not
 // mount `CnAppRoot` should call `installModalStack()` once from `main.js`, or
 // two open dialogs tie on z-index and the lower one intercepts the clicks.

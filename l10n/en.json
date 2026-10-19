@@ -1743,7 +1743,9 @@
     "{message} until {time}": "{message} until {time}",
     "Away": "Away",
     "Busy": "Busy",
-    "No one in the team": "No one in the team"
+    "No one in the team": "No one in the team",
+    "This list could not be read.": "This list could not be read.",
+    "Nothing to show": "Nothing to show"
   },
   "plurals": {
     "{count} member": [

@@ -1956,7 +1956,9 @@
     "{message} until {time}": "{message} tot {time}",
     "Away": "Afwezig",
     "Busy": "Bezet",
-    "No one in the team": "Niemand in het team"
+    "No one in the team": "Niemand in het team",
+    "This list could not be read.": "Deze lijst kon niet worden gelezen.",
+    "Nothing to show": "Niets om te tonen"
   },
   "plurals": {
     "{count} member": [
