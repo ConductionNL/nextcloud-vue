@@ -101,6 +101,8 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `filterFields` | Object | `null` | Filter declarations for a page with no schema of its own. Wins over `schema`, and feeds the Search tab only |
 | `columnsHeading` | String | `'Column Visibility'` | Heading inside the Columns tab |
 | `columnsDescription` | String | `'Select which columns to display in the table'` | Subtitle inside the Columns tab |
+| `activeTab` | String | `''` | Switch to a tab while the sidebar is mounted, e.g. `'filters-tab'`. Empty leaves the tab alone. |
+| `savedViews` | Object | `null` | The page's saved views, shown in a third tab, Filters, by [`CnSavedViewsPanel`](./cn-saved-views-panel.md): `{ views, loading, currentUserId, counts, selectedViewId, maxDepth, menuIds }`. `null` shows none. |
 | `userIsAdmin` | Boolean | `true` | Whether the current user is an admin. When `false`, schema properties with `adminOnly: true` are hidden from the filter list in the Search tab. |
 
 ### Events
@@ -114,6 +116,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `pin-change` | `count` | The user pinned or unpinned a column; payload is the new number of pinned columns |
 | `columns-reset` | none | The user chose Reset columns |
 | `update:open` | `isOpen` | Emitted when the close button is clicked; use with `v-model:open` |
+| `saved-view` | `{ action, view }` | A saved-view intent from the Filters tab: `apply`, `save`, `edit`, `share`, `presentation`, `update`, `copy`, `menu` or `delete`. |
 | `tab-change` | `tabId` | Emitted when the user switches tabs; payload is the new tab's `id` string |
 | `clear-filters` | — | Emitted when "Clear all" is clicked; the host resets the search term and every active filter |
 

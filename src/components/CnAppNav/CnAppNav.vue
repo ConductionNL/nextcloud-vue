@@ -196,6 +196,15 @@
 						</NcActionLink>
 					</template>
 				</NcAppNavigationCaption>
+				<!-- `type: "hint"`: a muted line, no link, as the empty "My
+				     filters" group says how to add a filter. -->
+				<li
+					v-else-if="item.type === 'hint'"
+					:key="item.id"
+					class="cn-app-nav__hint"
+					:data-testid="`cn-nav-hint-${item.id}`">
+					{{ resolveLabel(item) }}
+				</li>
 				<NcAppNavigationItem
 					v-else
 					:key="item.id"
@@ -2474,6 +2483,14 @@ export default {
 </script>
 
 <style>
+.cn-app-nav__hint {
+	list-style: none;
+	padding: 4px 12px 8px 16px;
+	font-size: 13px;
+	line-height: 1.4;
+	color: var(--color-text-maxcontrast);
+}
+
 /* The emblem beside the app name (`nav.brand.emblem`). A theme sets
    --nldesign-emblem-url for `emblem: true`, and --cn-nav-emblem-size for both. */
 .cn-app-nav__brand-emblem {

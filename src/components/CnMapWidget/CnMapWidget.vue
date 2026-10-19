@@ -871,10 +871,16 @@ export default {
 					const number = feature.properties && Number(feature.properties.markerNumber)
 					if (Number.isInteger(number) && number > 0) {
 						const active = feature.properties.markerActive === true
+						// A colour of the row's own (`markerColor`) fills the pin, except
+						// the active one, which keeps the active colour.
+						const fill = feature.properties.markerColor
+						const style = !active && typeof fill === 'string' && /^[#a-zA-Z0-9(),.%\s_-]+$/.test(fill)
+							? ` class="cn-map-widget__pin-fill" style="background:${fill}"`
+							: ''
 						return L.marker(latlng, {
 							icon: L.divIcon({
 								className: active ? 'cn-map-widget__pin cn-map-widget__pin--active' : 'cn-map-widget__pin',
-								html: `<span>${number}</span>`,
+								html: `<span${style}>${number}</span>`,
 								iconSize: [26, 26],
 								iconAnchor: [13, 13],
 							}),
@@ -1510,6 +1516,15 @@ export default {
 	font-size: 13px;
 	font-weight: 700;
 	box-sizing: border-box;
+}
+
+.cn-map-widget__pin-fill {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
 }
 
 .cn-map-widget__pin--active {
