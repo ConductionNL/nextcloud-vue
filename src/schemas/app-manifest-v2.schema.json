@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.130.0",
+	"version": "2.131.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -552,8 +552,38 @@
 				"look": { "type": "string", "enum": ["search"], "description": "`search` draws a single select as CnSearchSelect: a magnifier instead of the chevron, and rows with initials or an icon, the name, a secondary line and a check on the chosen one (DqOverdragen \"Nieuw team\")." },
 				"optionSecondary": { "type": "string", "description": "look 'search': the row's secondary line, a template filled from each option (\"{members} leden · {focus}\")." },
 				"optionAvatar": { "type": "boolean", "description": "look 'search': draw each option's initials." },
-				"optionIcon": { "type": "string", "minLength": 1, "description": "look 'search': one icon for every row." }
+				"optionIcon": { "type": "string", "minLength": 1, "description": "look 'search': one icon for every row." },
+				"optionsFrom": { "$ref": "#/$defs/optionsFrom", "description": "Draw the field as a select (a multiselect on an array field) over options read from a source; the option's value is stored and its label shown. A register schema property can say the same with `x-options-from` (form-field-options-from, 2.131.0)." }
 			}
+		},
+		"optionsFrom": {
+			"description": "Select options read from a source: rows from an app endpoint (`url`, `params`, `responsePath`) or OpenRegister objects (`register`, `schema`, `filter`; tokens resolve). `valueField` and `labelField` are dot-paths into a row: by default the value is `id` (else the object's uuid) and the label `title` (else `name`, else the value).",
+			"oneOf": [
+				{
+					"type": "object",
+					"additionalProperties": false,
+					"required": ["url"],
+					"properties": {
+						"url": { "type": "string", "minLength": 1, "description": "An app path, resolved with generateUrl." },
+						"params": { "type": "object", "description": "Query parameters sent with the request." },
+						"responsePath": { "type": "string", "minLength": 1, "description": "Where the rows sit in the answer." },
+						"valueField": { "type": "string", "minLength": 1 },
+						"labelField": { "type": "string", "minLength": 1 }
+					}
+				},
+				{
+					"type": "object",
+					"additionalProperties": false,
+					"required": ["register", "schema"],
+					"properties": {
+						"register": { "type": "string", "minLength": 1 },
+						"schema": { "type": "string", "minLength": 1 },
+						"filter": { "type": "object", "description": "Filters on the objects, as a list filter takes them." },
+						"valueField": { "type": "string", "minLength": 1 },
+						"labelField": { "type": "string", "minLength": 1 }
+					}
+				}
+			]
 		},
 		"breadcrumbCrumb": {
 			"type": "object",

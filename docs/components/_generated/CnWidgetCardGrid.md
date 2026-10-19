@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 9 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 10 files reached through imports.
 
 Through: `CnActionsMenu`, `CnFkResolveCell`, `CnIndexPage`.
 

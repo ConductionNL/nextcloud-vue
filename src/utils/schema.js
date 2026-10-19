@@ -6,6 +6,7 @@
  * @module utils/schema
  */
 
+import { fieldWithOptionsFrom, isOptionsFrom } from './optionsFrom.js'
 import { schemaRefSlug } from './schemaRefSlug.js'
 import { userLocale } from './userLocale.js'
 
@@ -428,6 +429,19 @@ function applyPickerOverride(field, override) {
 	if (typeof override['x-default'] === 'string' && override['x-default'] !== '') {
 		field.defaultToken = override['x-default']
 	}
+}
+
+/**
+ * Read a property's `x-options-from` declaration, on the property or on its
+ * `items`.
+ *
+ * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+ * @param {object} prop The schema property definition.
+ * @return {object|null} The declaration, or null when absent or unusable.
+ */
+function optionsFromOf(prop) {
+	const decl = prop && (prop['x-options-from'] || (prop.items && prop.items['x-options-from']))
+	return isOptionsFrom(decl) ? decl : null
 }
 
 /**
@@ -1011,6 +1025,11 @@ export function fieldsFromSchema(schema, options = {}) {
 			// referenced object copies those of its values into this form.
 			// Registry-backed lookup (`x-openregister-property-source`).
 			propertySource: propertySourceOf(prop),
+			// Options read from a source (`x-options-from`, on the property or
+			// on its `items`): `{ url, params?, responsePath? }` or `{ register,
+			// schema, filter? }`, with `valueField` and `labelField`. The form
+			// draws a select over them and stores the value.
+			optionsFrom: optionsFromOf(prop),
 			fillFrom: (prop['x-fill-from'] && typeof prop['x-fill-from'] === 'object') ? prop['x-fill-from'] : null,
 			// Nextcloud user reference: when a property marks a NC user
 			// (`referenceType: 'nextcloud-user'`, or `format: 'user'`/
@@ -1054,7 +1073,7 @@ export function fieldsFromSchema(schema, options = {}) {
 			translateOverrideText(field, overrides[key], tr)
 		}
 
-		return field
+		return fieldWithOptionsFrom(field)
 	})
 }
 
