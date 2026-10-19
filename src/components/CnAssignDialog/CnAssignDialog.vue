@@ -220,7 +220,21 @@ export default {
 	computed: {
 		/** @return {object} The token context. */
 		tokenCtx() {
-			return { objectId: this.objectId, object: this.record || {} }
+			return { objectId: this.recordId, object: this.record || {} }
+		},
+
+		/**
+		 * The record's id: `objectId`, or the route's `id` when the prop is
+		 * empty or a token the opener could not resolve.
+		 *
+		 * @return {string|number}
+		 */
+		recordId() {
+			const given = this.objectId
+			if (given !== '' && given !== null && given !== undefined && !String(given).startsWith('@')) {
+				return given
+			}
+			return (this.$route && this.$route.params && this.$route.params.id) || ''
 		},
 
 		/** @return {object} The assignee config. */

@@ -61,7 +61,7 @@ Tokens (`@objectId`, `@object.<field>`) resolve in every url.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `config` | Object | `{}` | The configuration above |
-| `objectId` | String \| Number | `''` | The record's id, for the `@objectId` token |
+| `objectId` | String \| Number | `''` | The record's id, for the `@objectId` token; when empty or still a token, the route's `id` |
 | `object` | Object | `null` | The record, when the host has it |
 
 ## Events

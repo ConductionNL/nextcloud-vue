@@ -156,4 +156,14 @@ describe('CnAssignDialog', () => {
 		const { resolveModalEntry } = require('../../src/utils/builtInModals.js')
 		expect(resolveModalEntry({}, 'CnAssignDialog')).toMatchObject({ kind: 'modal' })
 	})
+
+	it('takes the record id from the route when objectId is still a token', async () => {
+		const w = mount(CnAssignDialog, {
+			props: { config: HANDOVER, objectId: '@objectId' },
+			global: { mocks: { $route: { params: { id: 'z-9' } } }, stubs: { CnSearchSelect: SearchSelect, CnDialog: { template: '<div><slot /><slot name="actions" /></div>' }, CnIcon: true } },
+		})
+		await flushPromises()
+		expect(axios.get.mock.calls[0][0]).toBe('/nc/apps/dossiq/api/case/z-9/summary')
+		w.unmount()
+	})
 })
