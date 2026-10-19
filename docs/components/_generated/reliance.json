@@ -2986,6 +2986,13 @@
 			],
 			"page": "cn-record-list-widget"
 		},
+		"CnRedactionEditor": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-redaction-editor"
+		},
 		"CnReferencePreview": {
 			"direct": 0,
 			"transitive": 0,

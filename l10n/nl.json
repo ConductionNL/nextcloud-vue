@@ -2005,7 +2005,37 @@
     "Share view: {name}": "Weergave delen: {name}",
     "The view \"{name}\" leaves your list and the menu on the left.": "De weergave \"{name}\" verdwijnt uit uw lijst en uit het menu links.",
     "Whoever gets the view sees it under Shared with me. It is yours and stays yours.": "Wie de weergave krijgt, ziet die onder Gedeeld met mij. Die is van u en blijft dat.",
-    "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen."
+    "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen.",
+    "Previous document": "Vorig document",
+    "Next document": "Volgend document",
+    "Record redaction": "Lakken vastleggen",
+    "No document here needs redacting.": "Hier hoeft geen document gelakt te worden.",
+    "Document {index} of {count}": "Document {index} van {count}",
+    "Redacted copy recorded": "Gelakte kopie vastgelegd",
+    "Upload redacted version": "Gelakte versie uploaden",
+    "Document without a title": "Document zonder titel",
+    "Finding the passages to redact…": "De te lakken passages worden gezocht…",
+    "No text was extracted from this document.": "Uit dit document is geen tekst gehaald.",
+    "Proposal": "Voorstel",
+    "Always redacted by rule": "Altijd gelakt volgens regel",
+    "Verdict for {passage}": "Oordeel over {passage}",
+    "Passage type": "Soort passage",
+    "Passage text": "Tekst van de passage",
+    "Add passage": "Passage toevoegen",
+    "Redact: {title}": "Lakken: {title}",
+    "Redact documents": "Documenten lakken",
+    "Agreed": "Akkoord",
+    "Adjust": "Aanpassen",
+    "Do not redact": "Niet lakken",
+    "The documents could not be read.": "De documenten konden niet worden gelezen.",
+    "The passages of this document could not be found. Upload a redacted version instead.": "De passages van dit document konden niet worden gevonden. Upload in plaats daarvan een gelakte versie.",
+    "The redacted copy could not be made. Upload a redacted version instead.": "De gelakte kopie kon niet worden gemaakt. Upload in plaats daarvan een gelakte versie.",
+    "The redacted version could not be stored. Try again.": "De gelakte versie kon niet worden opgeslagen. Probeer het opnieuw.",
+    "The redacted copy is recorded. Only this copy will be published.": "De gelakte kopie is vastgelegd. Alleen deze kopie wordt gepubliceerd.",
+    "%n passage found. Review each one.": [
+      "%n passage gevonden. Beoordeel elke passage.",
+      "%n passages gevonden. Beoordeel elke passage."
+    ]
   },
   "plurals": {
     "{count} member": [

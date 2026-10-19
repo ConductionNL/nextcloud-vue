@@ -257,6 +257,7 @@ export {
 	CnQuicklinksWidgetForm,
 	CnRadioCardsWidget,
 	CnRecordListWidget,
+	CnRedactionEditor,
 	CnReferencePreview,
 	CnRegisterMapping,
 	CnRegisterSchemaSelect,
