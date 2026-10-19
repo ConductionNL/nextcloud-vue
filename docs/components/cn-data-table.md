@@ -186,6 +186,7 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `borderless` — drop the container's card chrome so the table sits flush inside
   a parent card (e.g. a `CnWidgetWrapper` dashboard slot).
 - `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
+- `pageSize` — rows per page: one page of the rows the table holds, with the board's pager under them ("4 of 7", the page buttons, Next) once there is more than one page (DqCatalogus). 0 (the default) shows every row, or the first `limit`.
 - `viewAllRoute` / `viewAllLabel` — the footer control's route and label. It renders
   as a real `<a :href>` when the router resolves the route, and as a
   `<button type="button">` (emitting `view-all`) otherwise, so it always has a
