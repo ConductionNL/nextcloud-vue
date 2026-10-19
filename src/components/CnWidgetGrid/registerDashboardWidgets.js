@@ -28,6 +28,7 @@ import CnMarkdownWidgetForm2 from '../CnMarkdownWidgetForm/CnMarkdownWidgetForm.
 import CnNextStepWidget from '../CnNextStepCard/CnNextStepWidget.vue'
 import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+import CnPlanWidget from '../CnPlanWidget/CnPlanWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
 import CnSavedViewWidget2 from '../CnSavedViewWidget/CnSavedViewWidget.vue'
@@ -285,6 +286,16 @@ registerDashboardWidget('next-step', {
 	defaultContent: { field: 'status', stages: {} },
 	displayName: 'Next step',
 	icon: 'CheckCircleOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+registerDashboardWidget('plan', {
+	renderer: CnPlanWidget,
+	form: null,
+	defaultContent: { emptyText: '' },
+	displayName: 'Plan',
+	icon: 'FormatListChecks',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
 })

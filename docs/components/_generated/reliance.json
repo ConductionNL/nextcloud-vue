@@ -664,7 +664,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 5,
-			"transitive": 181,
+			"transitive": 182,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -724,6 +724,7 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
@@ -887,7 +888,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 184,
+			"transitive": 185,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -947,6 +948,7 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
@@ -1420,7 +1422,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 191,
+			"transitive": 192,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1481,6 +1483,7 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
@@ -1719,7 +1722,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 188,
+			"transitive": 189,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1779,6 +1782,7 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
@@ -2716,7 +2720,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 205,
+			"transitive": 206,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2781,6 +2785,7 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterMapping",
@@ -2906,6 +2911,13 @@
 			"tier": "medium",
 			"via": [],
 			"page": null
+		},
+		"CnPlanWidget": {
+			"direct": 3,
+			"transitive": 0,
+			"tier": "light",
+			"via": [],
+			"page": "cn-plan-widget"
 		},
 		"CnPollCreate": {
 			"direct": 0,
@@ -3120,7 +3132,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 182,
+			"transitive": 183,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3181,6 +3193,7 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
@@ -4135,7 +4148,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 172,
+			"transitive": 173,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4192,6 +4205,7 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",

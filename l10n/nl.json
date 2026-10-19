@@ -2005,7 +2005,16 @@
     "Share view: {name}": "Weergave delen: {name}",
     "The view \"{name}\" leaves your list and the menu on the left.": "De weergave \"{name}\" verdwijnt uit uw lijst en uit het menu links.",
     "Whoever gets the view sees it under Shared with me. It is yours and stays yours.": "Wie de weergave krijgt, ziet die onder Gedeeld met mij. Die is van u en blijft dat.",
-    "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen."
+    "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen.",
+    "The plan is unavailable": "Het plan is niet beschikbaar",
+    "This record has no plan": "Dit item heeft geen plan",
+    "You are not allowed to see this plan.": "Je mag dit plan niet zien.",
+    "The plan could not be loaded. Try again.": "Het plan kon niet worden geladen. Probeer het opnieuw.",
+    "Start": "Starten",
+    "Stop": "Stoppen",
+    "Can start": "Kan starten",
+    "Stopped": "Gestopt",
+    "Not needed": "Niet nodig"
   },
   "plurals": {
     "{count} member": [
