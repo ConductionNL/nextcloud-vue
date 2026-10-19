@@ -564,6 +564,7 @@
 				"label": { "type": "string", "minLength": 1 },
 				"route": { "type": "string" },
 				"params": { "type": "object", "additionalProperties": true },
+				"query": { "type": "object", "additionalProperties": true, "description": "Query of the `route` link, such as `{ savedView: 'default:<slug>' }` to land on a view (saved-view-overrides)." },
 				"href": { "type": "string" },
 				"icon": { "type": "string", "minLength": 1, "description": "Optional MDI icon name (e.g. `Home`) drawn as the first crumb instead of the label, which then becomes its accessible name (zuiddrecht-pixel-gaps-2). Without it the label shows as text." },
 				"currentField": { "type": "string", "minLength": 1, "description": "A field of the record (dotted path, e.g. `identifier`) whose value is the current crumb instead of the display name; an empty value falls back to the display name (zuiddrecht-pixel-gaps-3)." },
@@ -4464,6 +4465,333 @@
 									"label": {
 										"type": "string",
 										"description": "One label for the control's label filter."
+									},
+									"overrides": {
+										"type": "object",
+										"additionalProperties": false,
+										"description": "Page config this view lays over the page while it is active; leaving the view restores the page. Each key is optional and, apart from `header`, the aliases `tabs` and `views`, `sortOption`, `slots` and `badge`, takes the shape of the page config key of the same name. A saved view carries the same object in `query.overrides`, so a copy of a default keeps it (saved-view-overrides, 2.129.0).",
+										"properties": {
+											"title": {
+												"type": "string",
+												"minLength": 1,
+												"description": "The page title. Translatable."
+											},
+											"showTitle": {
+												"type": "boolean",
+												"description": "Same as config.showTitle."
+											},
+											"breadcrumb": {
+												"description": "Same as config.breadcrumb.",
+												"anyOf": [
+													{
+														"$ref": "#/$defs/breadcrumbCrumb"
+													},
+													{
+														"type": "array",
+														"minItems": 1,
+														"items": {
+															"$ref": "#/$defs/breadcrumbCrumb"
+														}
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"headerMeta": {
+												"type": "string",
+												"description": "Same as config.headerMeta."
+											},
+											"notice": {
+												"type": [
+													"object",
+													"null"
+												],
+												"description": "Same as config.notice."
+											},
+											"pageTabs": {
+												"type": [
+													"array",
+													"null"
+												],
+												"description": "Tabs to sibling pages or views, `countFrom` included. Same as config.pageTabs."
+											},
+											"headerButtons": {
+												"type": "array",
+												"description": "Same as config.headerButtons."
+											},
+											"addLabel": {
+												"type": "string",
+												"description": "Same as config.addLabel."
+											},
+											"searchPlaceholder": {
+												"type": "string",
+												"description": "Same as config.searchPlaceholder."
+											},
+											"statRow": {
+												"type": "array",
+												"description": "Same as config.statRow."
+											},
+											"quickFilters": {
+												"type": "array",
+												"description": "Same as config.quickFilters."
+											},
+											"quickFiltersFrom": {
+												"type": [
+													"object",
+													"null"
+												],
+												"description": "Same as config.quickFiltersFrom."
+											},
+											"quickFilterPlacement": {
+												"type": "string",
+												"description": "Same as config.quickFilterPlacement."
+											},
+											"quickFilterMaxVisible": {
+												"type": "integer",
+												"minimum": 0,
+												"description": "Same as config.quickFilterMaxVisible."
+											},
+											"sidePanel": {
+												"type": "array",
+												"description": "Same as config.sidePanel."
+											},
+											"afterList": {
+												"type": "array",
+												"description": "Same as config.afterList."
+											},
+											"columns": {
+												"type": "array",
+												"description": "Same as config.columns."
+											},
+											"cardLayout": {
+												"type": [
+													"object",
+													"null"
+												],
+												"description": "Same as config.cardLayout."
+											},
+											"cardFields": {
+												"type": "array",
+												"items": {
+													"type": "string"
+												},
+												"description": "Same as config.cardFields."
+											},
+											"cardComponent": {
+												"type": "string",
+												"description": "Same as config.cardComponent."
+											},
+											"listConfig": {
+												"type": "object",
+												"description": "Same as config.listConfig."
+											},
+											"viewModes": {
+												"type": "array",
+												"items": {
+													"type": "string",
+													"minLength": 1
+												},
+												"description": "The view modes the toggle offers. Same as config.viewModes."
+											},
+											"viewMode": {
+												"type": "string",
+												"minLength": 1,
+												"description": "The view mode the view opens in. Same as config.viewMode."
+											},
+											"viewSwitch": {
+												"type": "array",
+												"items": {
+													"type": "string"
+												},
+												"description": "Same as config.viewSwitch."
+											},
+											"countText": {
+												"type": "string",
+												"description": "Same as config.countText."
+											},
+											"footerNote": {
+												"type": "string",
+												"description": "Same as config.footerNote."
+											},
+											"emptyText": {
+												"type": "string",
+												"description": "Same as config.emptyText."
+											},
+											"folderSidebar": {
+												"type": [
+													"object",
+													"null"
+												],
+												"description": "`null` hides the folder sidebar. Same as config.folderSidebar."
+											},
+											"sidebar": {
+												"type": [
+													"object",
+													"null"
+												],
+												"description": "Same as config.sidebar."
+											},
+											"defaultSort": {
+												"type": "array",
+												"description": "Same as config.defaultSort."
+											},
+											"rowClickToView": {
+												"type": "boolean",
+												"description": "Same as config.rowClickToView."
+											},
+											"showViewAction": {
+												"type": "boolean",
+												"description": "Same as config.showViewAction."
+											},
+											"actions": {
+												"type": "array",
+												"description": "Same as config.actions."
+											},
+											"includeFields": {
+												"type": "array",
+												"items": {
+													"type": "string"
+												},
+												"description": "Same as config.includeFields."
+											},
+											"fieldOverrides": {
+												"type": "object",
+												"description": "Same as config.fieldOverrides."
+											},
+											"tabs": {
+												"type": [
+													"array",
+													"null"
+												],
+												"description": "Alias of pageTabs."
+											},
+											"views": {
+												"type": "array",
+												"items": {
+													"type": "string",
+													"minLength": 1
+												},
+												"description": "Alias of viewModes."
+											},
+											"header": {
+												"type": "object",
+												"additionalProperties": false,
+												"description": "Groups header keys; a key spelled out beside it wins.",
+												"properties": {
+													"title": {
+														"type": "string",
+														"minLength": 1
+													},
+													"showTitle": {
+														"type": "boolean"
+													},
+													"breadcrumb": {
+														"anyOf": [
+															{
+																"$ref": "#/$defs/breadcrumbCrumb"
+															},
+															{
+																"type": "array",
+																"minItems": 1,
+																"items": {
+																	"$ref": "#/$defs/breadcrumbCrumb"
+																}
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"notice": {
+														"type": [
+															"object",
+															"null"
+														]
+													},
+													"headerMeta": {
+														"type": "string"
+													},
+													"headerButtons": {
+														"type": "array"
+													}
+												}
+											},
+											"sortOption": {
+												"type": "string",
+												"minLength": 1,
+												"description": "The `value` of a `sortSelectOptions` entry to select, an endpoint-sourced one included."
+											},
+											"slots": {
+												"type": "object",
+												"description": "Named page slots (`below-header`, `before-collection`, ...) mapped to a registry component or a list of them drawn in order, laid over the page's `slots`; `null` or `[]` empties that slot.",
+												"additionalProperties": {
+													"anyOf": [
+														{
+															"type": "string",
+															"minLength": 1
+														},
+														{
+															"type": "array",
+															"items": {
+																"type": "string",
+																"minLength": 1
+															}
+														},
+														{
+															"type": "null"
+														}
+													]
+												}
+											},
+											"badge": {
+												"description": "A count on the view's menu entry, in a menu entry's terms. `true`, or `count: true`, counts the view's own list: the page's register, schema and base filter with the view's filters. A `count` object may name another `register`, `schema` or `filter`. `counterVariant: attention` draws the attention pill.",
+												"anyOf": [
+													{
+														"type": "boolean",
+														"const": true
+													},
+													{
+														"type": "object",
+														"additionalProperties": false,
+														"properties": {
+															"count": {
+																"anyOf": [
+																	{
+																		"type": "boolean",
+																		"const": true
+																	},
+																	{
+																		"type": "object",
+																		"additionalProperties": false,
+																		"properties": {
+																			"register": {
+																				"type": "string",
+																				"minLength": 1
+																			},
+																			"schema": {
+																				"type": "string",
+																				"minLength": 1
+																			},
+																			"filter": {
+																				"type": "object"
+																			}
+																		}
+																	}
+																]
+															},
+															"counterVariant": {
+																"type": "string",
+																"enum": [
+																	"default",
+																	"attention"
+																]
+															}
+														}
+													}
+												]
+											}
+										}
 									}
 								}
 							}

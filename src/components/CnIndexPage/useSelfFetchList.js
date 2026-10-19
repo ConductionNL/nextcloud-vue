@@ -323,6 +323,20 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		}
 	})
 
+	// Another chip set (a saved view's `overrides.quickFilters`, or the page's
+	// own again when the view is left): the selection indexed the old set, so
+	// it starts over on the new set's default chip.
+	const quickFiltersSignature = computed(() => JSON.stringify(props.quickFilters ?? null))
+	watch(quickFiltersSignature, () => {
+		const nextIndex = resolveInitialQuickFilterIndex(withPersonalLenses(props.quickFilters, props.personalLenses))
+		const changed = activeQuickFilterIndex.value !== nextIndex || selectedQuickFilterIndices.value.length > 0
+		activeQuickFilterIndex.value = nextIndex
+		selectedQuickFilterIndices.value = []
+		if (!changed && list && typeof list.refresh === 'function') {
+			list.refresh(1)
+		}
+	})
+
 	// Live collection updates (manifest-live-updates): subscribe to the
 	// page's `or-collection-{register}-{schema}` scope so another user's
 	// create/update/delete refreshes this list without a manual reload.

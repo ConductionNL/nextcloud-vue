@@ -4365,7 +4365,7 @@ export default {
 				first.icon = crumb.icon
 			}
 			if (crumb.route) {
-				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}) }
+				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}), ...(crumb.query ? { query: crumb.query } : {}) }
 			} else if (crumb.href) {
 				first.href = crumb.href
 			}
