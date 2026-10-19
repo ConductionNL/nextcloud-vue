@@ -1058,6 +1058,7 @@
 					:clickToView="rowClickOpens"
 					:cardFields="resolvedCardFields"
 					:cardLayout="cardLayout"
+					:cardFieldColumns="cardFieldColumns"
 					:accentOf="cardAccent"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
@@ -5558,6 +5559,22 @@ export default {
 				})
 			}
 			return specs
+		},
+
+		/**
+		 * The rendered columns by key, so a card fact shows what its table
+		 * cell shows (label, formatter, widget).
+		 *
+		 * @return {object} Column definitions keyed by property.
+		 */
+		cardFieldColumns() {
+			const byKey = {}
+			for (const col of this.renderedColumns || []) {
+				if (col && typeof col === 'object' && typeof col.key === 'string') {
+					byKey[col.key] = col
+				}
+			}
+			return byKey
 		},
 
 		/**

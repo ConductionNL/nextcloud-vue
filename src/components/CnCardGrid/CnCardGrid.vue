@@ -38,6 +38,7 @@
 						:selected="isSelected(object)"
 						:cardFields="cardFields"
 						:layout="cardLayout"
+						:cardFieldColumns="cardFieldColumns"
 						:status="statusOf ? statusOf(object) : null"
 						:leading="leadingOf ? leadingOf(object) : null"
 						:footerAction="footerActionOf ? footerActionOf(object) : null"
@@ -174,6 +175,12 @@ export default {
 		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
 		 */
 		cardLayout: {
+			type: Object,
+			default: null,
+		},
+
+		/** The page's columns by key, passed through to CnObjectCard. */
+		cardFieldColumns: {
 			type: Object,
 			default: null,
 		},
