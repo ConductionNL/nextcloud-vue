@@ -29,6 +29,7 @@
 import axios from '@nextcloud/axios'
 import { t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import { prefixUrl } from '../../utils/headers.js'
 import { CnSearchSelect } from '../CnSearchSelect/index.js'
 
 /** How long typing rests before a search runs, in ms. */
@@ -248,7 +249,7 @@ export default {
 		 */
 		async request(path, params, fallback) {
 			try {
-				const { data } = await axios.get(`${this.baseUrl}/${path}`, { params })
+				const { data } = await axios.get(prefixUrl(`${this.baseUrl}/${path}`), { params })
 				this.unavailable = false
 				return Array.isArray(data?.docs) ? data.docs : fallback
 			} catch (error) {

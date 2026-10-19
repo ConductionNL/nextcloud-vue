@@ -87,7 +87,7 @@ describe('CnAddressSearch', () => {
 		await type(w, 'Be')
 		expect(axios.get).not.toHaveBeenCalled()
 		await type(w, 'Beuk')
-		expect(axios.get.mock.calls[0][0]).toBe('/custom/pdok/suggest')
+		expect(axios.get.mock.calls[0][0]).toBe('/nc/custom/pdok/suggest')
 	})
 
 	it('falls back to a free-text search when nothing is suggested', async () => {

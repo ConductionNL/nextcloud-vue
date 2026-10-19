@@ -70,8 +70,8 @@
 		},
 		"CnAddressSearch": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
+			"transitive": 1,
+			"tier": "light",
 			"via": [],
 			"page": "cn-address-search"
 		},
