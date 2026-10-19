@@ -245,6 +245,7 @@ export {
 	CnPageRenderer,
 	CnPagination,
 	CnPartyActionsWidget,
+	CnPartyPicker,
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
 	CnPresenceAvatars,
