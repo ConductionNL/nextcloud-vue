@@ -5036,11 +5036,30 @@ export default {
 			if (!this.folderSidebar) {
 				return { columns: null, sortKeys: [], searchFields: [] }
 			}
-			return resolveScopeLayout({
+			const layout = resolveScopeLayout({
 				scope: this.activeScope,
 				row: this.activeScopeRow,
 				pageColumns: this.declaredColumns,
 			})
+			// The scope's columns are part of its look, which `scopeViews` limits.
+			return this.scopeLooksApply ? layout : { ...layout, columns: null }
+		},
+
+		/**
+		 * Whether the active scope's look (its columns and presentation keys)
+		 * applies in the current view: always without `folderSidebar.scopeViews`,
+		 * else only in the views it names, so the werkbord keeps the generic
+		 * look while the table takes the case type's. The scope narrows the list
+		 * in every view either way.
+		 *
+		 * @return {boolean}
+		 */
+		scopeLooksApply() {
+			const views = this.folderSidebar && this.folderSidebar.scopeViews
+			if (!Array.isArray(views) || views.length === 0) {
+				return true
+			}
+			return views.includes(this.currentViewMode)
 		},
 
 		/**
@@ -5077,7 +5096,7 @@ export default {
 		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
 		 */
 		activeScopePresentation() {
-			if (!this.folderSidebar) {
+			if (!this.folderSidebar || !this.scopeLooksApply) {
 				return {}
 			}
 			return resolveScopePresentation({ scope: this.activeScope, row: this.activeScopeRow })

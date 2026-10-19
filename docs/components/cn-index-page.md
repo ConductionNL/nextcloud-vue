@@ -1282,6 +1282,8 @@ When a click on a row navigates to the record's detail page, the built-in View i
 
 ## Presentation per scope
 
+`folderSidebar.scopeViews` (`["table", "list"]`) limits a scope's look, its columns and the presentation keys below, to the view modes it names, so the werkbord keeps the generic look while the table takes the case type's. The scope still narrows the list in every view. Without it the look applies in every view.
+
 A folder in `folderSidebar` (or the `x-index` block of the row a register-derived folder comes from) can carry the
 presentation keys a query preset sets, under the same names: `title`, `quickFilters`, `cardFields`, `countText`,
 `searchPlaceholder`, `footerNote`, `viewSwitch`, `addLabel`, `headerButtons`, `breadcrumb`, `headerMeta` and
