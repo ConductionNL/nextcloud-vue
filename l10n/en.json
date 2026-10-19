@@ -1746,7 +1746,8 @@
     "Save the current filters to \"{name}\"": "Save the current filters to \"{name}\"",
     "Saved filters": "Saved filters",
     "Share": "Share",
-    "Update with current filters": "Update with current filters"
+    "Update with current filters": "Update with current filters",
+    "Share with people and groups": "Share with people and groups"
   },
   "plurals": {
     "{count} member": [

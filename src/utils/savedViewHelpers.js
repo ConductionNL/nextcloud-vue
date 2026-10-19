@@ -213,22 +213,30 @@ export function buildViewCreatePayload({ name, description, isPublic, isDefault,
 }
 
 /**
- * Clean an audience list: keep `{ group, mode }` entries with a group id, and
- * coerce any mode but `write` to `read`.
+ * Clean an audience list: keep `{ group, mode }` and `{ user, mode }` entries
+ * that name exactly one target, drop repeats, and coerce any mode but `write`
+ * to `read`.
  *
  * @param {unknown} sharedWith The audience as given.
- * @return {Array<{group: string, mode: 'read'|'write'}>} The cleaned list.
+ * @return {Array<{group?: string, user?: string, mode: 'read'|'write'}>} The cleaned list.
+ * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-5
  */
 export function normalizeSharedWith(sharedWith) {
 	const seen = new Set()
 	const out = []
 	for (const entry of Array.isArray(sharedWith) ? sharedWith : []) {
 		const group = entry && typeof entry.group === 'string' ? entry.group : ''
-		if (group === '' || seen.has(group)) {
+		const user = entry && typeof entry.user === 'string' ? entry.user : ''
+		if ((group === '') === (user === '')) {
 			continue
 		}
-		seen.add(group)
-		out.push({ group, mode: entry.mode === 'write' ? 'write' : 'read' })
+		const key = user !== '' ? `user:${user}` : `group:${group}`
+		if (seen.has(key)) {
+			continue
+		}
+		seen.add(key)
+		const mode = entry.mode === 'write' ? 'write' : 'read'
+		out.push(user !== '' ? { user, mode } : { group, mode })
 	}
 	return out
 }

@@ -1059,7 +1059,8 @@
 				},
 				"seeded": {
 					"type": "array",
-					"description": "Views that ship with the app. They render as their own group above the user's own, and a user may copy one but not delete it: a view the product promises is not a view one person can remove from everybody's install.",
+					"deprecated": true,
+					"description": "DEPRECATED since 2.128.0: declare default filters with the index page's `config.defaultSavedFilters`, which carries the criteria this key never had and is what the page actually lists. Nothing ever read this key, so moving off it loses nothing. Views that ship with the app. They render as their own group above the user's own, and a user may copy one but not delete it: a view the product promises is not a view one person can remove from everybody's install.",
 					"items": {
 						"type": "object",
 						"additionalProperties": false,

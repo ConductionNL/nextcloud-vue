@@ -128,9 +128,9 @@ store a personal view whose query keeps the tokens unresolved.
 
 `CnSavedViewShareFields` SHALL offer users and groups in one `NcSelect` with
 `inputLabel` "Share with people and groups", searched through Nextcloud's sharee
-API, and emit `[{ user, mode } | { group, mode }]`. This requirement is built
-after OpenRegister's `saved-view-user-shares` lands; until then the picker
-offers groups only.
+API within the instance's sharing settings, and emit
+`[{ user, mode } | { group, mode }]`. OpenRegister stores user shares through
+its `saved-view-user-shares` change.
 
 #### Scenario: A user and a group
 

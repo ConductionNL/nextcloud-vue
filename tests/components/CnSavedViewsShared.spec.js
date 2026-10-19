@@ -11,7 +11,7 @@ jest.mock('@nextcloud/l10n', () => ({
 	translate: (app, text, params) => String(text).replace(/\{(\w+)\}/g, (_, key) => String((params || {})[key] ?? `{${key}}`)),
 }))
 const mockSearch = jest.fn()
-jest.mock('../../src/utils/searchGroupSharees.js', () => ({ __esModule: true, searchGroupSharees: (...a) => mockSearch(...a) }))
+jest.mock('../../src/utils/searchGroupSharees.js', () => ({ __esModule: true, searchGroupSharees: (...a) => mockSearch(...a), searchUserAndGroupSharees: (...a) => mockSearch(...a) }))
 
 const { flushPromises, mount } = require('@vue/test-utils')
 const CnSavedViewShareFields = require('../../src/components/CnSavedViewShareFields/CnSavedViewShareFields.vue').default
@@ -50,6 +50,8 @@ describe('buildViewCreatePayload sharedWith', () => {
 		expect(body.sharedWith).toEqual([{ group: 'desk', mode: 'write' }, { group: 'legal', mode: 'read' }])
 		expect('sharedWith' in buildViewCreatePayload({ name: 'x', state: {}, sharedWith: [] })).toBe(false)
 		expect(normalizeSharedWith(null)).toEqual([])
+		expect(normalizeSharedWith([{ user: 'fatma', mode: 'write' }, { user: 'fatma', mode: 'read' }, { user: 'x', group: 'y', mode: 'read' }, { group: 'fatma', mode: 'read' }]))
+			.toEqual([{ user: 'fatma', mode: 'write' }, { group: 'fatma', mode: 'read' }])
 	})
 })
 
@@ -74,6 +76,24 @@ describe('CnSavedViewShareFields', () => {
 		await flushPromises()
 		w.vm.onMode('legal', 'write')
 		expect(w.emitted('update:modelValue').at(-1)[0]).toEqual([{ group: 'desk', mode: 'read' }, { group: 'legal', mode: 'write' }])
+	})
+
+	it('offers people beside groups and picks a person as a user share', async () => {
+		mockSearch.mockResolvedValue([{ id: 'fatma', kind: 'user', label: 'Fatma Yilmaz' }, { id: 'desk', kind: 'group', label: 'Handling desk' }])
+		const w = mount(CnSavedViewShareFields)
+		await flushPromises()
+		expect(w.vm.options).toEqual([{ id: 'user:fatma', label: 'Fatma Yilmaz' }, { id: 'desk', label: 'Handling desk' }])
+		w.vm.onGroups(w.vm.options)
+		expect(w.emitted('update:modelValue').at(-1)[0]).toEqual([{ user: 'fatma', mode: 'read' }, { group: 'desk', mode: 'read' }])
+	})
+
+	it('changes the mode of a user share by its key and labels it by name', async () => {
+		mockSearch.mockResolvedValue([{ id: 'fatma', kind: 'user', label: 'Fatma Yilmaz' }])
+		const w = mount(CnSavedViewShareFields, { props: { modelValue: [{ user: 'fatma', mode: 'read' }, { group: 'desk', mode: 'read' }] } })
+		await flushPromises()
+		expect(w.vm.labelOf('user:fatma')).toBe('Fatma Yilmaz')
+		w.vm.onMode('user:fatma', 'write')
+		expect(w.emitted('update:modelValue').at(-1)[0]).toEqual([{ user: 'fatma', mode: 'write' }, { group: 'desk', mode: 'read' }])
 	})
 
 	it('keeps an existing audience visible even when the search is empty', async () => {

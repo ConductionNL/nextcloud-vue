@@ -42,10 +42,10 @@
 - [x] Implement
 - [x] Test
 
-### Task 5: Share with users (after openregister saved-view-user-shares)
+### Task 5: Share with users (needs openregister saved-view-user-shares)
 - **spec_ref**: `openspec/changes/saved-filters-manage-and-defaults/specs/saved-views-ui/spec.md#requirement-share-with-users-and-groups`
-- **files**: `src/components/CnSavedViewShareFields/CnSavedViewShareFields.vue`, `src/utils/savedViewHelpers.js`
+- **files**: `src/components/CnSavedViewShareFields/CnSavedViewShareFields.vue`, `src/utils/searchGroupSharees.js`, `src/utils/savedViewHelpers.js`, `tests/utils/searchGroupSharees.spec.js`
 - **acceptance_criteria**:
   - Users and groups in one picker with `inputLabel`; `normalizeSharedWith` keeps `{user, mode}`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

@@ -522,14 +522,14 @@ export default {
 		},
 
 		/**
-		 * The groups a view is shared with, as text for the row.
+		 * The people and groups a view is shared with, as text for the row.
 		 *
 		 * @param {object} view The View API object.
-		 * @return {string} The group ids, comma-separated; empty when none.
+		 * @return {string} The user and group ids, comma-separated; empty when none.
 		 */
 		groupsOf(view) {
 			return (Array.isArray(view.sharedWith) ? view.sharedWith : [])
-				.map((e) => e && e.group)
+				.map((e) => e && (e.user || e.group))
 				.filter((g) => typeof g === 'string' && g !== '')
 				.join(', ')
 		},

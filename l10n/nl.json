@@ -1959,7 +1959,8 @@
     "Save the current filters to \"{name}\"": "Huidige filters opslaan in \"{name}\"",
     "Saved filters": "Opgeslagen filters",
     "Share": "Delen",
-    "Update with current filters": "Bijwerken met huidige filters"
+    "Update with current filters": "Bijwerken met huidige filters",
+    "Share with people and groups": "Delen met personen en groepen"
   },
   "plurals": {
     "{count} member": [

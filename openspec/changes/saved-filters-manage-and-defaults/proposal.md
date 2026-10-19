@@ -52,16 +52,18 @@ its manifest.
    context the quick filters use. "Save a copy" stores a personal view with the
    tokens unresolved, which the user then owns and may edit, share and delete.
 
-## Out of scope, needs OpenRegister (see `openregister/openspec/changes/saved-view-user-shares`)
+## Sharing with users (Ruben, 19 Oct: users and groups)
 
-Sharing with individual users. The library side (users in the same picker) is
-specified here as Requirement "Share with users and groups" but is built only
-after OpenRegister accepts `{user, mode}` entries.
+`CnSavedViewShareFields` offers people and groups in one picker, from
+Nextcloud's sharee API, so it follows the instance's own sharing settings like
+the Files share dialog. A user share is `{user, mode}`; OpenRegister accepts it
+with `saved-view-user-shares`. Until that lands a user share is refused there
+with 400, and nothing is stored.
 
 ## Decisions taken
 
 - Defaults are manifest config rendered client-side, not OpenRegister rows.
-  Read-only, copyable, cannot be deleted, cannot be shared (sharing a default is
-  pointless: everybody already has it).
-- `savedViewTree.seeded` stays in the schema untouched; `defaultSavedFilters` is the
-  key that installs filters. Folding `seeded` into it is a follow-up for Ruben.
+  Read-only, copyable, cannot be deleted, cannot be shared (Ruben confirmed).
+- `savedViewTree.seeded` is deprecated in the schema, pointing at
+  `defaultSavedFilters`. Deprecating is the smaller change and loses nothing:
+  nothing ever read `seeded`, and its entries carry no criteria to read.
