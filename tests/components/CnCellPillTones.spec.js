@@ -116,7 +116,7 @@ describe('pill ink under a theme that forces the body ink', () => {
 	})
 
 	it('draws the board pill: 13px at 600 on a 3px 10px pad with a 12px corner', () => {
-		const at = boardCss.indexOf('.cn-look-board .cn-status-badge:not(.cn-status-badge--small):not(.cn-look-nextcloud *) {')
+		const at = boardCss.indexOf('.cn-look-board .cn-status-badge:not(.cn-look-nextcloud *) {\n\tpadding')
 		expect(at).toBeGreaterThan(-1)
 		const rule = boardCss.slice(at, boardCss.indexOf('}', at))
 		expect(rule).toContain('padding: 3px 10px')
