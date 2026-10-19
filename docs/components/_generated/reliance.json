@@ -2878,6 +2878,13 @@
 			],
 			"page": "cn-party-actions-widget"
 		},
+		"CnPartyPicker": {
+			"direct": 2,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-party-picker"
+		},
 		"CnPeopleWidget": {
 			"direct": 0,
 			"transitive": 0,
