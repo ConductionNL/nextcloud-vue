@@ -42,6 +42,13 @@ describe('resolveDue', () => {
 		expect(w.find('[data-testid="cn-cell-renderer-due"]').classes()).toContain('cn-cell-renderer__date--warning')
 	})
 
+	it('follows variantWhen rules on a due date when they match', () => {
+		const soon = new Date(Date.now() + 3 * 86400000).toISOString()
+		const rules = [{ op: 'lt', value: 0, variant: 'error' }, { op: 'lte', value: 7, variant: 'warning' }]
+		const w = mount(CnCellRenderer, { propsData: { value: soon, widget: 'date', widgetProps: { due: {}, variantWhen: rules } }, stubs: { NcDateTime: true } })
+		expect(w.find('[data-testid="cn-cell-renderer-due"]').classes()).toContain('cn-cell-renderer__date--warning')
+	})
+
 	it('reads days overdue in the danger tone', () => {
 		expect(resolveDue(day(-3), {}, (x) => x, NOW)).toEqual({ text: '3 dagen te laat', tone: 'danger' })
 		expect(resolveDue(day(-1), {}, (x) => x, NOW)).toEqual({ text: '1 dag te laat', tone: 'danger' })

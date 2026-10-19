@@ -16,7 +16,8 @@ A deadline that is close reads in the warning colour, as board DqTeamwachtrij dr
 
 The due text SHALL take `soonWithin`, a number of days. With it, a due date today or at most that many days ahead
 SHALL carry `soon: true`, and the date cell and the record list SHALL draw it in the warning colour. An overdue date
-SHALL keep the danger tone. Without `soonWithin` the result SHALL be as before.
+SHALL keep the danger tone. Without `soonWithin` the result SHALL be as before. In a date cell, `variantWhen` rules
+that match SHALL set the colour of a due date as they do for a plain date.
 
 #### Scenario: Board DqTeamwachtrij
 
