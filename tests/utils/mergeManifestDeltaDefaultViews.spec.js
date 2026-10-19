@@ -8,11 +8,11 @@
  * `woo-requests`) instead of replacing them. A menu entry `default:<slug>`
  * then resolves against the merged list.
  *
- * @spec openspec/changes/my-filters-menu-section/specs/app-nav/spec.md#requirement-default-views-from-the-user-delta-join-the-page-defaults
+ * @spec openspec/changes/my-views-menu-section/specs/app-nav/spec.md#requirement-default-views-from-the-user-delta-join-the-page-defaults
  */
 const { KEYED_ARRAYS, mergeManifestDelta } = require('../../src/utils/mergeManifestDelta.js')
-const { syncSavedFilterMenu } = require('../../src/utils/savedFilterMenu.js')
 const { defaultFilterViews } = require('../../src/utils/savedViewHelpers.js')
+const { syncSavedViewMenu } = require('../../src/utils/savedViewMenu.js')
 
 const BASE = {
 	pages: [{
@@ -63,7 +63,7 @@ describe('mergeManifestDelta default views', () => {
 			{ id: 'default:pin-objection', page: 'Cases', name: 'Objections' },
 			{ id: 'default:woo-requests', page: 'Cases', name: 'Woo requests' },
 		]
-		expect(syncSavedFilterMenu(menu, 'Cases', views).map((entry) => entry.id)).toEqual(['default:pin-objection', 'default:woo-requests'])
+		expect(syncSavedViewMenu(menu, 'Cases', views).map((entry) => entry.id)).toEqual(['default:pin-objection', 'default:woo-requests'])
 	})
 
 	it('leaves the base untouched', () => {

@@ -13,7 +13,7 @@
 				{{ error }}
 			</NcNoteCard>
 			<p class="cn-edit-view__intro">
-				{{ t('nextcloud-vue', 'Give the filter another name, or replace its criteria with what the list shows now.') }}
+				{{ t('nextcloud-vue', 'Give the view another name, or replace its criteria with what the list shows now.') }}
 			</p>
 			<NcTextField
 				:modelValue="name"
@@ -43,7 +43,7 @@
 				</NcCheckboxRadioSwitch>
 			</fieldset>
 			<p v-if="isShared" class="cn-edit-view__note">
-				{{ t('nextcloud-vue', 'Whoever you share the filter with sees the change at once.') }}
+				{{ t('nextcloud-vue', 'Whoever you share the view with sees the change at once.') }}
 			</p>
 		</div>
 		<template #actions>
@@ -69,13 +69,13 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 
 /**
- * CnSavedViewEditDialog — rename an own saved filter and, when asked, replace
+ * CnSavedViewEditDialog — rename an own saved view and, when asked, replace
  * its criteria with the filters, search and sort the list shows now. Opened by
  * `CnIndexPage` from the Edit entry of `CnSavedViewsControl`. Emits
  * `confirm({ name, replaceCriteria })`; the parent saves and either closes the
  * dialog or reports a failure through `setError()`, which keeps the form open.
  *
- * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-3
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-3
  */
 export default {
 	name: 'CnSavedViewEditDialog',
@@ -89,7 +89,7 @@ export default {
 			default: () => ({}),
 		},
 
-		/** Dialog title; empty reads "Edit filter: {name}". */
+		/** Dialog title; empty reads "Edit view: {name}". */
 		dialogTitle: {
 			type: String,
 			default: '',
@@ -110,10 +110,10 @@ export default {
 	computed: {
 		/** @return {string} The title. */
 		resolvedTitle() {
-			return this.dialogTitle || t('nextcloud-vue', 'Edit filter: {name}', { name: (this.view && this.view.name) || '' })
+			return this.dialogTitle || t('nextcloud-vue', 'Edit view: {name}', { name: (this.view && this.view.name) || '' })
 		},
 
-		/** @return {boolean} Whether the filter is shared with anyone. */
+		/** @return {boolean} Whether the view is shared with anyone. */
 		isShared() {
 			return Array.isArray(this.view && this.view.sharedWith) && this.view.sharedWith.length > 0
 		},
@@ -125,7 +125,7 @@ export default {
 		/**
 		 * Save clicked with a non-empty name.
 		 *
-		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-3
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-3
 		 */
 		onConfirm() {
 			if (!this.name.trim()) {
@@ -153,7 +153,7 @@ export default {
 		 */
 		setError(message) {
 			this.loading = false
-			this.error = message || t('nextcloud-vue', 'Could not save the filter')
+			this.error = message || t('nextcloud-vue', 'Could not save the view')
 		},
 	},
 }

@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * CnSavedViewEditDialog — rename a saved filter, optionally with the current filters.
+ * CnSavedViewEditDialog — rename a saved view, optionally with the current filters.
  */
 
 import CnSavedViewEditDialog from './CnSavedViewEditDialog.vue'

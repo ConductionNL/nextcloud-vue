@@ -203,6 +203,58 @@
 	width: auto;
 }
 
+/* ---- The follow pill (DqZaak "Volgen") ---------------------------------- */
+/* The board draws the follow control under the title as a 28px pill: 13px
+   text at 600 on the main background, a grey border, a 14px icon 6px from its
+   label. Live it was Nextcloud's 34px tertiary button, 15px bold in the
+   primary colour. The theme tokens carry the weight and radius past the
+   nldesign theme's `!important`; the follower count takes the same pill.
+   @spec openspec/changes/board-follow-pill/specs/board-follow-pill/spec.md#requirement-the-board-follow-control-is-a-pill */
+.cn-look-board .cn-detail-page .cn-follow-toggle .button-vue {
+	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-border-radius: 14px;
+	--nldesign-component-button-secondary-action-color: var(--color-main-text);
+	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
+	--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);
+	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
+	box-sizing: border-box;
+	height: 28px;
+	min-height: 28px;
+	min-width: 0;
+	padding: 0 10px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: 14px;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 13px;
+}
+
+.cn-look-board .cn-detail-page .cn-follow-toggle .button-vue:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-detail-page .cn-follow-toggle .button-vue .button-vue__wrapper {
+	gap: 6px;
+}
+
+.cn-look-board .cn-detail-page .cn-follow-toggle .button-vue .button-vue__icon {
+	width: 14px;
+	min-width: 14px;
+	height: 14px;
+	min-height: 14px;
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-detail-page .cn-follow-toggle .button-vue .button-vue__icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.cn-look-board .cn-detail-page .cn-follow-toggle .button-vue .button-vue__text {
+	margin: 0;
+	padding: 0;
+}
+
 /* ---- Folder tabs ------------------------------------------------------- */
 
 /* The strip draws no line of its own (design-system pull request 147). The card under it
@@ -222,7 +274,7 @@
 }
 
 /* Tabs sit on the card's top edge; only the open tab reaches 1px further
-   down (min-height 35px below), over the card's top border. Top-aligned so
+   down (min-height 38px below), over the card's top border. Top-aligned so
    the inactive tabs do not stretch to the open tab's height. */
 .cn-look-board .cn-tabs--board .cn-tabs__nav {
 	align-items: flex-start;
@@ -256,8 +308,15 @@
 
 /* `margin: 0`: a tab is a <button>, and Nextcloud's core stylesheet gives
    every `button:not(.button-vue)` `margin: 3px 3px 3px 0`, which put the strip
-   3px low and the tabs 7px apart instead of 4 (DqZaak "Zaakonderdelen"). */
+   3px low and the tabs 7px apart instead of 4 (DqZaak "Zaakonderdelen").
+   The nldesign theme sets every button's weight and radius with `!important`
+   through its button tokens, which drew every tab bold with four rounded
+   corners; the tab hands the board's values to those tokens. A tab is 37px
+   with or without a count (DqZaak), not 34px without one.
+   @spec openspec/changes/board-tabs-theme/specs/board-tabs-theme/spec.md#requirement-board-folder-tabs-keep-the-boards-weight-shape-and-height-under-a-theme */
 .cn-look-board .cn-tabs--board .cn-tabs__nav-item {
+	--nldesign-component-button-font-weight: 400;
+	--nldesign-component-button-border-radius: 8px 8px 0 0;
 	background-color: var(--color-background-dark);
 	border: 1px solid var(--color-border-dark);
 	border-bottom: none;
@@ -265,17 +324,18 @@
 	font-size: 14px;
 	font-weight: 400;
 	margin: 0;
-	min-height: 34px;
+	min-height: 37px;
 	padding: 8px 12px;
 }
 
 /* The open tab: the panel's colour, bold, and no coloured top edge. */
 .cn-look-board .cn-tabs--board .cn-tabs__nav-item.cn-tabs__nav-item--active {
+	--nldesign-component-button-font-weight: 700;
 	background-color: var(--color-main-background);
 	border-bottom: 1px solid var(--color-main-background);
 	border-top: 1px solid var(--color-border-dark);
 	font-weight: 700;
-	min-height: 35px;
+	min-height: 38px;
 	padding-bottom: 9px;
 	padding-top: 8px;
 	position: relative;
@@ -454,6 +514,19 @@
 
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__content {
 	padding: 10px 22px 20px;
+}
+
+/* A stat tile in a side card (DqZaak "Termijn") sits on the card's inset as
+   the board draws it. The card-fit wrapper is flush, and the wrapper's own
+   flush rule loads after this sheet and outranked the side card's padding,
+   so the value sat 11px from the card's edge instead of 23px.
+   @spec openspec/changes/board-dashboard-widget-inset/specs/board-dashboard-widget-inset/spec.md#requirement-a-stat-tile-in-a-detail-side-card-keeps-the-cards-inset */
+.cn-look-board .cn-detail-page__side .cn-detail-page__card-fit > .cn-widget-wrapper__content:has(> .cn-kpi-card--board) {
+	padding: 10px 22px 20px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-detail-page__card-fit > .cn-widget-wrapper__content > .cn-kpi-card--board {
+	padding: 0;
 }
 
 /* No Actions menu on a side card. */

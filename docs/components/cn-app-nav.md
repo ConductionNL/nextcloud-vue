@@ -373,4 +373,4 @@ With `look: "board"` (the manifest root, or the `look` prop) the navigation take
 
 ## A hint line (`type: "hint"`)
 
-A menu entry with `type: "hint"` draws its label as a muted line with no link. CnAppRoot uses it for the empty **My filters** section at the bottom of the menu ("Add a filter to the menu from Filters"); see [CnSavedFiltersPanel](./cn-saved-filters-panel.md).
+A menu entry with `type: "hint"` draws its label as a muted line with no link. CnAppRoot uses it for the empty **My views** section at the bottom of the menu ("Add a view to the menu from Filters"); see [CnSavedViewsPanel](./cn-saved-views-panel.md).

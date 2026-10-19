@@ -16,14 +16,14 @@ jest.mock('../../src/utils/searchGroupSharees.js', () => ({ __esModule: true, se
 const { flushPromises, mount } = require('@vue/test-utils')
 const CnSavedViewShareFields = require('../../src/components/CnSavedViewShareFields/CnSavedViewShareFields.vue').default
 const CnSaveViewDialog = require('../../src/components/CnSaveViewDialog/CnSaveViewDialog.vue').default
-const CnSavedFiltersPanel = require('../../src/components/CnSavedFiltersPanel/CnSavedFiltersPanel.vue').default
+const CnSavedViewsPanel = require('../../src/components/CnSavedViewsPanel/CnSavedViewsPanel.vue').default
 const { buildViewCreatePayload, normalizeSharedWith, viewAccess } = require('../../src/utils/savedViewHelpers.js')
 
 const view = (id, extra = {}) => ({ id, slug: String(id), name: `View ${id}`, owner: 'alice', ...extra })
-const mountControl = (views) => mount(CnSavedFiltersPanel, { props: { views, currentUserId: 'alice' } })
+const mountControl = (views) => mount(CnSavedViewsPanel, { props: { views, currentUserId: 'alice' } })
 const testids = (w, id) => w.findAll(`[data-testid="${id}"]`)
 /**
- * The panel renders each filter's own menu in its row; kept as a helper so
+ * The panel renders each view's own menu in its row; kept as a helper so
  * the gating tests read as before.
  *
  * @param {object} w The wrapper.
@@ -135,7 +135,7 @@ describe('CnSaveViewDialog', () => {
 	})
 })
 
-describe('CnSavedFiltersPanel sections and gating', () => {
+describe('CnSavedViewsPanel sections and gating', () => {
 	const own = view(1, { '@self': { access: 'owner' } })
 	const readOnly = view(2, { owner: 'bob', sharedWith: [{ group: 'desk', mode: 'read' }], '@self': { access: 'read' } })
 	const writable = view(3, { owner: 'bob', sharedWith: [{ group: 'desk', mode: 'write' }], '@self': { access: 'write' } })
@@ -149,7 +149,7 @@ describe('CnSavedFiltersPanel sections and gating', () => {
 
 	it('groups my views and shared views from one response, with who shared it on the shared row', () => {
 		const w = mountControl([own, readOnly])
-		expect(w.get('[data-testid="cn-saved-views-section-mine"]').text()).toContain('My filters')
+		expect(w.get('[data-testid="cn-saved-views-section-mine"]').text()).toContain('My views')
 		expect(w.get('[data-testid="cn-saved-views-section-shared"]').text()).toContain('Shared with me')
 		const items = testids(w, 'cn-saved-views-item')
 		expect(items[0].attributes('data-view-id')).toBe('1')
@@ -232,7 +232,7 @@ describe('presentation (view-presentation-picker)', () => {
 		expect(w.vm.error).toBe('Something else')
 	})
 
-	it('the saved-filters panel offers no Presentation entry, as the boards draw none', () => {
+	it('the saved-views panel offers no Presentation entry, as the boards draw none', () => {
 		const owner = view(1, { '@self': { access: 'owner' } })
 		expect(testids(mountControl([owner]), 'cn-saved-views-presentation')).toHaveLength(0)
 	})

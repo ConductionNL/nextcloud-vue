@@ -19,7 +19,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name           | Payload | Description                                  |
-| -------------- | ------- | -------------------------------------------- |
-| `apply`        | —       | A chip was clicked; apply its stored state.  |
-| `save-request` | —       | "Save filter" clicked; open the save dialog. |
+| Name           | Payload | Description                                 |
+| -------------- | ------- | ------------------------------------------- |
+| `apply`        | —       | A chip was clicked; apply its stored state. |
+| `save-request` | —       | "Save view" clicked; open the save dialog.  |

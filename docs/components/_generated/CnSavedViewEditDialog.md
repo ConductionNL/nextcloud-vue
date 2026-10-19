@@ -11,7 +11,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | Name          | Type     | Required | Default | Description                                         |
 | ------------- | -------- | -------- | ------- | --------------------------------------------------- |
 | `view`        | `object` |          | `\{\}`  | The view being edited (its `name` fills the field). |
-| `dialogTitle` | `string` |          | `''`    | Dialog title; empty reads "Edit filter: \{name\}".  |
+| `dialogTitle` | `string` |          | `''`    | Dialog title; empty reads "Edit view: \{name\}".    |
 
 ### Events
 

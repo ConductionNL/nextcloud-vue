@@ -4,16 +4,16 @@
 -->
 <template>
 	<!--
-		The toolbar half of saved filters. Under the board look the filters are
-		a row of chips that apply them; everywhere a "Save filter" button saves
+		The toolbar half of saved views. Under the board look the views are
+		a row of chips that apply them; everywhere a "Save view" button saves
 		the current filters. Listing, editing, sharing and deleting live in the
-		filters sidebar (CnSavedFiltersPanel).
+		sidebar's Filters tab (CnSavedViewsPanel).
 	-->
 	<div
 		v-if="isBoardLook && chipRows.length > 0"
 		class="cn-saved-views__chips"
 		role="group"
-		:aria-label="t('nextcloud-vue', 'Saved filters')"
+		:aria-label="t('nextcloud-vue', 'Saved views')"
 		data-testid="cn-saved-views-chips">
 		<button
 			v-for="row in chipRows"
@@ -38,13 +38,13 @@
 	<div v-bind="$attrs" :class="{ 'cn-saved-views__save': isBoardLook }">
 		<NcButton
 			:variant="isBoardLook ? 'tertiary' : 'secondary'"
-			:aria-label="t('nextcloud-vue', 'Save filter')"
+			:aria-label="t('nextcloud-vue', 'Save view')"
 			data-testid="cn-saved-views-control"
 			@click="onSaveRequest">
 			<template #icon>
 				<ContentSaveOutline :size="isBoardLook ? 14 : 20" />
 			</template>
-			{{ t('nextcloud-vue', 'Save filter') }}
+			{{ t('nextcloud-vue', 'Save view') }}
 		</NcButton>
 	</div>
 </template>
@@ -56,15 +56,15 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { savedViewsList } from '../../mixins/savedViewsList.js'
 
 /**
- * CnSavedViewsControl — the toolbar entry to saved filters: a "Save filter"
- * button and, under the board look, the saved filters as chips that apply
+ * CnSavedViewsControl — the toolbar entry to saved views: a "Save view"
+ * button and, under the board look, the saved views as chips that apply
  * them. Everything else (the list, edit, share, delete, add to menu) lives in
- * the index sidebar's `CnSavedFiltersPanel`.
+ * the index sidebar's `CnSavedViewsPanel`.
  *
  * Purely presentational: `CnIndexPage` owns fetching and every write.
  *
  * @event {object} apply — A chip was clicked; apply its view. Payload: the View API object.
- * @event {void} save-request — "Save filter" clicked; open the save dialog.
+ * @event {void} save-request — "Save view" clicked; open the save dialog.
  */
 export default {
 	name: 'CnSavedViewsControl',
@@ -84,7 +84,7 @@ export default {
 	emits: ['apply', 'save-request'],
 
 	computed: {
-		/** @return {boolean} Whether the saved filters draw as chips. */
+		/** @return {boolean} Whether the saved views draw as chips. */
 		isBoardLook() {
 			return normalizeLook(this.cnLook) === 'board'
 		},
@@ -105,7 +105,7 @@ export default {
 		},
 
 		onSaveRequest() {
-			/** @event save-request "Save filter" clicked; open the save dialog. */
+			/** @event save-request "Save view" clicked; open the save dialog. */
 			this.$emit('save-request')
 		},
 	},

@@ -2,11 +2,11 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * savedViewsList — what the saved-filters panel and the toolbar chips share:
+ * savedViewsList — what the saved-views panel and the toolbar chips share:
  * the views as a tree with the defaults first, the sections, the labels,
  * counts and access. Presentational only; the page owns fetching and writes.
  *
- * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-6
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
  */
 import { translate as t } from '@nextcloud/l10n'
 import { buildViewTree, labelsInUse, VIEW_GROUPS } from '../utils/buildViewTree.js'
@@ -80,7 +80,7 @@ export const savedViewsList = {
 
 		/**
 		 * The rows in their sections: one uncaptioned section when nothing is
-		 * shared and nothing is a default, else Default filters, My filters and
+		 * shared and nothing is a default, else Default views, My views and
 		 * Shared with me.
 		 *
 		 * @return {Array<{key: string, label: string, rows: Array<object>}>} The sections.
@@ -94,8 +94,8 @@ export const savedViewsList = {
 			}
 			const mine = this.rows.filter((r) => r.group !== VIEW_GROUPS.SEEDED && this.accessOf(r) === 'owner')
 			return [
-				{ key: 'seeded', label: t('nextcloud-vue', 'Default filters'), rows: seeded },
-				{ key: 'mine', label: t('nextcloud-vue', 'My filters'), rows: mine },
+				{ key: 'seeded', label: t('nextcloud-vue', 'Default views'), rows: seeded },
+				{ key: 'mine', label: t('nextcloud-vue', 'My views'), rows: mine },
 				{ key: 'shared', label: t('nextcloud-vue', 'Shared with me'), rows: shared },
 			].filter((section) => section.rows.length > 0)
 		},

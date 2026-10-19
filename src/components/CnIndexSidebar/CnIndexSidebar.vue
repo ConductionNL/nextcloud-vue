@@ -251,9 +251,9 @@
 			</div>
 		</NcAppSidebarTab>
 
-		<!-- Filters Tab: the page's saved filters (save, list, manage, add to menu). -->
+		<!-- Filters Tab: the page's saved views (save, list, manage, add to menu). -->
 		<NcAppSidebarTab
-			v-if="savedFilters"
+			v-if="savedViews"
 			id="filters-tab"
 			:name="t('nextcloud-vue', 'Filters')"
 			:order="3">
@@ -263,16 +263,16 @@
 
 			<div class="cn-index-sidebar__tab-content">
 				<div class="cn-index-sidebar__section">
-					<CnSavedFiltersPanel
-						v-bind="savedFiltersPanelProps"
-						@apply="onSavedFilter('apply', $event)"
-						@saveRequest="onSavedFilter('save', null)"
-						@editRequest="onSavedFilter('edit', $event)"
-						@shareRequest="onSavedFilter('share', $event)"
-						@updateRequest="onSavedFilter('update', $event)"
-						@copyRequest="onSavedFilter('copy', $event)"
-						@menuToggle="onSavedFilter('menu', $event)"
-						@deleteRequest="onSavedFilter('delete', $event)" />
+					<CnSavedViewsPanel
+						v-bind="savedViewsPanelProps"
+						@apply="onSavedView('apply', $event)"
+						@saveRequest="onSavedView('save', null)"
+						@editRequest="onSavedView('edit', $event)"
+						@shareRequest="onSavedView('share', $event)"
+						@updateRequest="onSavedView('update', $event)"
+						@copyRequest="onSavedView('copy', $event)"
+						@menuToggle="onSavedView('menu', $event)"
+						@deleteRequest="onSavedView('delete', $event)" />
 				</div>
 			</div>
 		</NcAppSidebarTab>
@@ -296,7 +296,7 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
-import CnSavedFiltersPanel from '../CnSavedFiltersPanel/CnSavedFiltersPanel.vue'
+import CnSavedViewsPanel from '../CnSavedViewsPanel/CnSavedViewsPanel.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptions } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
@@ -323,7 +323,7 @@ export default {
 	components: {
 		NcAppSidebar,
 		NcAppSidebarTab,
-		CnSavedFiltersPanel,
+		CnSavedViewsPanel,
 		BookmarkOutline,
 		NcTextField,
 		NcSelect,
@@ -530,7 +530,7 @@ export default {
 
 		/**
 		 * Switch to a tab while the sidebar is mounted, e.g. `'filters-tab'`
-		 * after a filter was saved from the toolbar. Empty leaves the tab alone.
+		 * after a view was saved from the toolbar. Empty leaves the tab alone.
 		 */
 		activeTab: {
 			type: String,
@@ -538,12 +538,12 @@ export default {
 		},
 
 		/**
-		 * The page's saved filters, shown in the Filters tab:
+		 * The page's saved views, shown in the Filters tab:
 		 * `{ views, loading, currentUserId, counts, selectedViewId, maxDepth, menuIds }`
-		 * as `CnSavedFiltersPanel` takes them. `null` shows no saved filters.
-		 * Every intent comes back as one `saved-filter` event.
+		 * as `CnSavedViewsPanel` takes them. `null` shows no saved views.
+		 * Every intent comes back as one `saved-view` event.
 		 */
-		savedFilters: {
+		savedViews: {
 			type: Object,
 			default: null,
 		},
@@ -558,7 +558,7 @@ export default {
 		},
 	},
 
-	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'saved-filter', 'search', 'tab-change', 'update:open'],
+	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'saved-view', 'search', 'tab-change', 'update:open'],
 
 	data() {
 		return {
@@ -586,13 +586,13 @@ export default {
 
 	computed: {
 		/**
-		 * The panel's props, from `savedFilters`.
+		 * The panel's props, from `savedViews`.
 		 *
 		 * @return {object}
-		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-6
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
 		 */
-		savedFiltersPanelProps() {
-			const f = this.savedFilters || {}
+		savedViewsPanelProps() {
+			const f = this.savedViews || {}
 			return {
 				views: Array.isArray(f.views) ? f.views : [],
 				loading: f.loading === true,
@@ -768,18 +768,18 @@ export default {
 
 	methods: {
 		/**
-		 * Hand a saved-filter intent to the page.
+		 * Hand a saved-view intent to the page.
 		 *
 		 * @param {'apply'|'save'|'edit'|'share'|'presentation'|'update'|'copy'|'menu'|'delete'} action The intent.
-		 * @param {object|null} view The filter, or null for save.
-		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-6
+		 * @param {object|null} view The view, or null for save.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
 		 */
-		onSavedFilter(action, view) {
+		onSavedView(action, view) {
 			/**
-			 * @event saved-filter A saved-filter intent from the Filters tab. Payload: `{ action, view }`.
+			 * @event saved-view A saved-view intent from the Filters tab. Payload: `{ action, view }`.
 			 * @type {{action: string, view: (object|null)}}
 			 */
-			this.$emit('saved-filter', { action, view })
+			this.$emit('saved-view', { action, view })
 		},
 
 		/**

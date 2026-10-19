@@ -11,7 +11,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | Name          | Type     | Required | Default | Description                                                |
 | ------------- | -------- | -------- | ------- | ---------------------------------------------------------- |
 | `view`        | `object` |          | `\{\}`  | The view being shared (its `sharedWith` seeds the fields). |
-| `dialogTitle` | `string` |          | `''`    | Dialog title; empty reads "Share filter: \{name\}".        |
+| `dialogTitle` | `string` |          | `''`    | Dialog title; empty reads "Share view: \{name\}".          |
 
 ### Events
 

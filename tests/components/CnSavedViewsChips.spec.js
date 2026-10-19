@@ -48,11 +48,11 @@ describe('CnSavedViewsControl chips (board look)', () => {
 		expect(wrapper.emitted('apply')[0]).toEqual([VIEWS[1]])
 	})
 
-	it('keeps the Save filter button beside the chips, and it asks to save', async () => {
+	it('keeps the Save view button beside the chips, and it asks to save', async () => {
 		const wrapper = mountControl()
 		const button = wrapper.find('.cn-saved-views__save [data-testid="cn-saved-views-control"]')
 		expect(button.exists()).toBe(true)
-		expect(button.text()).toContain('Save filter')
+		expect(button.text()).toContain('Save view')
 		await button.trigger('click')
 		expect(wrapper.emitted('save-request')).toHaveLength(1)
 	})

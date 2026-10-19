@@ -219,7 +219,7 @@ export function buildViewCreatePayload({ name, description, isPublic, isDefault,
  *
  * @param {unknown} sharedWith The audience as given.
  * @return {Array<{group?: string, user?: string, mode: 'read'|'write'}>} The cleaned list.
- * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-5
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-5
  */
 export function normalizeSharedWith(sharedWith) {
 	const seen = new Set()
@@ -386,7 +386,7 @@ export function isOwnView(view, currentUserId) {
 }
 
 /**
- * The default filters an index page declares (`config.defaultSavedFilters`), as
+ * The default views an index page declares (`config.defaultSavedViews`), as
  * read-only views the saved-views control lists. They are never stored: the
  * manifest installs them, so every user has the same set and none can delete
  * one. `seeded: true` puts them in the control's default group; the query
@@ -395,7 +395,7 @@ export function isOwnView(view, currentUserId) {
  * @param {Array<object>|null|undefined} defaults The declared entries `{ slug, name, filters, search?, sort?, label? }`.
  * @param {{ scope?: string, register?: string, schema?: object|string|null }} [page] The page, as `savedViewScope` takes it.
  * @return {Array<object>} The views, in declaration order; entries without a slug or name are left out.
- * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-4
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-4
  */
 export function defaultFilterViews(defaults, page = {}) {
 	if (!Array.isArray(defaults)) {

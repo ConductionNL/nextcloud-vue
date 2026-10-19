@@ -213,7 +213,7 @@ With admin-only filter control:
 | `propertiesGroupLabel` | String | `''` | Override label for the schema properties group. Falls back to `schema.title` |
 | `defaultTab` | String | `'search-tab'` | Tab id that is active when the sidebar opens. Built-in ids: `'search-tab'`, `'columns-tab'` |
 | `activeTab` | String | `''` | Switch to a tab while mounted, e.g. `'filters-tab'` |
-| `savedFilters` | Object | `null` | The page's saved filters, shown in a third tab, Filters (CnSavedFiltersPanel); every intent comes back as one `saved-filter` event `{ action, view }` |
+| `savedViews` | Object | `null` | The page's saved views, shown in a third tab, Filters (CnSavedViewsPanel); every intent comes back as one `saved-view` event `{ action, view }` |
 | `userIsAdmin` | Boolean | `true` | When `false`, schema properties with `adminOnly: true` are hidden from filters |
 | `filterFields` | Object | `null` | Filter declarations for a page with no schema of its own. Wins over `schema`, and feeds the Search tab only |
 
