@@ -427,7 +427,7 @@ A property form's choice list, as dossiq's property form has it:
 }
 ```
 
-`optionsFrom` can follow another field: `@form.<key>` in it is that field's value, and the source is read again when the value changes. `where` keeps the rows whose fields equal its values and `itemsPath` reads the options from a list in each row, so a property type's formats come from the vocabulary: `{ "url": "/apps/openregister/api/schemas/property-vocabulary", "responsePath": "types", "where": { "type": "@form.propertyType" }, "itemsPath": "formats", "hideWhenEmpty": true }`. With `hideWhenEmpty` the field is left out while there are no options.
+`optionsFrom` can follow another field: `@answer.<key>` in it is that field's value, and the source is read again when the value changes. `where` keeps the rows whose fields equal its values and `itemsPath` reads the options from a list in each row, so a property type's formats come from the vocabulary: `{ "url": "/apps/openregister/api/schemas/property-vocabulary", "responsePath": "types", "where": { "type": "@answer.propertyType" }, "itemsPath": "formats", "hideWhenEmpty": true }`. With `hideWhenEmpty` the field is left out while there are no options.
 
 `optionsFrom` takes a `groupField` too: the options of one group stay together, groups in the order they first appear, and each option shows its group before its label.
 

@@ -14,7 +14,7 @@ dossiq's case type page shows its statuses and its fields through two custom wid
 - `content.deletable` adds a Delete row action for the list's own schema; the toast offers Undo, and a refusal toasts the server's message.
 - An `object-op` patch writes only its values through `patchObject`.
 - `optionsFrom` follows another field:
-  - `@form.<key>` tokens, re-read when that field changes;
+  - `@answer.<key>` tokens, re-read when that field changes;
   - `where` narrows the rows and `itemsPath` reads a list inside each row;
   - `hideWhenEmpty` leaves the field out while the source gives no options.
 - Manifest schema 2.135.0.

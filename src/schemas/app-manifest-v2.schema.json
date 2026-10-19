@@ -595,7 +595,7 @@
 						"valueField": { "type": "string", "minLength": 1 },
 						"labelField": { "type": "string", "minLength": 1 },
 						"groupField": { "type": "string", "minLength": 1, "description": "Groups the options by this field, groups in the order they first appear (form-small-features)." },
-						"where": { "type": "object", "description": "Keep the rows whose fields equal these values; a value may be `@form.<key>`, another field of the form (object-list-edit-in-place)." },
+						"where": { "type": "object", "description": "Keep the rows whose fields equal these values; a value may be `@answer.<key>`, another field of the form (object-list-edit-in-place)." },
 						"itemsPath": { "type": "string", "minLength": 1, "description": "Read the options from the list at this path in each row (object-list-edit-in-place)." },
 						"hideWhenEmpty": { "type": "boolean", "description": "Leave the field out while the source gives no options (object-list-edit-in-place)." }
 					}
@@ -611,7 +611,7 @@
 						"valueField": { "type": "string", "minLength": 1 },
 						"labelField": { "type": "string", "minLength": 1 },
 						"groupField": { "type": "string", "minLength": 1, "description": "Groups the options by this field, groups in the order they first appear (form-small-features)." },
-						"where": { "type": "object", "description": "Keep the rows whose fields equal these values; a value may be `@form.<key>`, another field of the form (object-list-edit-in-place)." },
+						"where": { "type": "object", "description": "Keep the rows whose fields equal these values; a value may be `@answer.<key>`, another field of the form (object-list-edit-in-place)." },
 						"itemsPath": { "type": "string", "minLength": 1, "description": "Read the options from the list at this path in each row (object-list-edit-in-place)." },
 						"hideWhenEmpty": { "type": "boolean", "description": "Leave the field out while the source gives no options (object-list-edit-in-place)." }
 					}

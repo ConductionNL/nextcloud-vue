@@ -2669,7 +2669,7 @@ export default {
 		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
 		 */
 		async fetchSourcedOptions(field, query) {
-			// A source that reads another field (`@form.<key>`) is read again
+			// A source that reads another field (`@answer.<key>`) is read again
 			// when that value changes: the cache is kept per resolved source.
 			const from = resolveFormTokens(field.optionsFrom, this.formData)
 			const signature = JSON.stringify(from)
@@ -2952,7 +2952,7 @@ export default {
 			// A hand edit ends this field's own rules; other fields may follow it.
 			delete this.assignedFrom[key]
 			this.runAssignments([key])
-			// A select whose source reads this field (`@form.<key>`) reads it again.
+			// A select whose source reads this field (`@answer.<key>`) reads it again.
 			for (const field of this.resolvedFields) {
 				if (isOptionsFrom(field.optionsFrom) && formTokenKeys(field.optionsFrom).includes(key)) {
 					this.loadAsyncOptions(field, '')

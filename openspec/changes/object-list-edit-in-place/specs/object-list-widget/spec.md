@@ -17,10 +17,10 @@ An object list with `editable: true` SHALL offer an Edit row action that opens i
 
 ### Requirement: A select can follow another field
 
-A select whose `optionsFrom` names `@form.<key>` SHALL be read with that field's value and read again when it changes, SHALL keep only the rows `where` matches, read its options from `itemsPath`, and with `hideWhenEmpty` be left out while there are none.
+A select whose `optionsFrom` names `@answer.<key>` SHALL be read with that field's value and read again when it changes, SHALL keep only the rows `where` matches, read its options from `itemsPath`, and with `hideWhenEmpty` be left out while there are none.
 
 #### Scenario: Formats of a property type
 
-- **GIVEN** the format select reads the vocabulary's formats of `@form.propertyType`
+- **GIVEN** the format select reads the vocabulary's formats of `@answer.propertyType`
 - **WHEN** the reader picks the type `string`, then `integer`
 - **THEN** it offers email and uri, then is left out

@@ -155,17 +155,17 @@ function narrowRows(rows, from) {
 }
 
 /**
- * An `optionsFrom` block with every `@form.<key>` string replaced by that
+ * An `optionsFrom` block with every `@answer.<key>` string replaced by that
  * form value, so a source can depend on another field (`where: { type:
- * '@form.propertyType' }`). A value the form does not hold becomes ''.
+ * '@answer.propertyType' }`). A value the form does not hold becomes ''.
  *
  * @param {unknown} value The block, or a part of it.
  * @param {object} formData The form values.
  * @return {unknown} The block with the form values filled in.
  */
 export function resolveFormTokens(value, formData) {
-	if (typeof value === 'string' && value.startsWith('@form.')) {
-		const held = (formData || {})[value.slice('@form.'.length)]
+	if (typeof value === 'string' && value.startsWith('@answer.')) {
+		const held = (formData || {})[value.slice('@answer.'.length)]
 		return held === undefined || held === null ? '' : held
 	}
 	if (Array.isArray(value)) {
@@ -178,7 +178,7 @@ export function resolveFormTokens(value, formData) {
 }
 
 /**
- * The form fields an `optionsFrom` block reads through `@form.<key>`.
+ * The form fields an `optionsFrom` block reads through `@answer.<key>`.
  *
  * @param {unknown} from The block.
  * @return {Array<string>} The keys.
@@ -186,8 +186,8 @@ export function resolveFormTokens(value, formData) {
 export function formTokenKeys(from) {
 	const keys = new Set()
 	const walk = (v) => {
-		if (typeof v === 'string' && v.startsWith('@form.')) {
-			keys.add(v.slice('@form.'.length))
+		if (typeof v === 'string' && v.startsWith('@answer.')) {
+			keys.add(v.slice('@answer.'.length))
 		} else if (Array.isArray(v)) {
 			v.forEach(walk)
 		} else if (isPlainObject(v)) {

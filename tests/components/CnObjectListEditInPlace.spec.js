@@ -92,8 +92,8 @@ describe('a declared patch', () => {
 })
 
 describe('options that follow another field', () => {
-	it('fills @form tokens and lists the keys it reads', () => {
-		const from = { url: '/v', where: { type: '@form.propertyType' }, itemsPath: 'formats' }
+	it('fills @answer tokens and lists the keys it reads', () => {
+		const from = { url: '/v', where: { type: '@answer.propertyType' }, itemsPath: 'formats' }
 		expect(resolveFormTokens(from, { propertyType: 'string' }).where).toEqual({ type: 'string' })
 		expect(formTokenKeys(from)).toEqual(['propertyType'])
 	})
@@ -108,7 +108,7 @@ describe('options that follow another field', () => {
 		axios.get.mockReset()
 		axios.get.mockResolvedValue({ data: VOCAB })
 		const schema = { properties: { propertyType: { type: 'string', enum: ['string', 'integer'] }, format: { type: 'string' } } }
-		const fieldOverrides = { format: { optionsFrom: { url: '/apps/openregister/api/schemas/property-vocabulary', responsePath: 'types', where: { type: '@form.propertyType' }, itemsPath: 'formats', hideWhenEmpty: true } } }
+		const fieldOverrides = { format: { optionsFrom: { url: '/apps/openregister/api/schemas/property-vocabulary', responsePath: 'types', where: { type: '@answer.propertyType' }, itemsPath: 'formats', hideWhenEmpty: true } } }
 		const w = shallowMount(CnFormDialog, { propsData: { schema, item: { id: 'p1', propertyType: 'string' }, fieldOverrides }, stubs: { NcDialog: { template: '<div><slot /></div>' } } })
 		await flush()
 		await flush()
