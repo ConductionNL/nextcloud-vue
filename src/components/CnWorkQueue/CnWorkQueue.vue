@@ -93,6 +93,7 @@
 
 <script>
 import axios from '@nextcloud/axios'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
@@ -109,7 +110,8 @@ import { openRowTarget } from '../../utils/linkNavigation.js'
  * not be read is named at the top rather than folded into "nothing is
  * waiting". A group can be hidden until tomorrow, through the server, so the
  * choice follows the reader to another device. dossiq's personal queue is
- * the first; pipelinq's queue has the same shape.
+ * the first; pipelinq's queue has the same shape. It reads again on
+ * `cn:page:refresh`, so work planned or closed in a dialog shows at once.
  *
  * `content`:
  * - `source`: an endpointSource answering `{ groups, hiddenGroups?, unavailable? }`.
@@ -176,7 +178,12 @@ export default {
 	},
 
 	mounted() {
+		subscribe('cn:page:refresh', this.load)
 		this.load()
+	},
+
+	beforeUnmount() {
+		unsubscribe('cn:page:refresh', this.load)
 	},
 
 	methods: {
