@@ -202,6 +202,18 @@ Select, multiselect, and tags fields support **async options** by setting `enum`
 
 **Static enums are unchanged** — arrays work exactly as before, storing just the ID value.
 
+## Options from a source (`optionsFrom`)
+
+A select can read its options instead of listing them, as dossiq's IV3 taakveld picker does. Declare `optionsFrom` on a field (or in `fieldOverrides`), or `x-options-from` on the register schema property:
+
+```json
+{ "taakveld": { "optionsFrom": { "register": "dossiq", "schema": "taakveld", "valueField": "code", "labelField": "name" } } }
+```
+
+`optionsFrom` is `{ register, schema, filter? }` (OpenRegister objects; tokens in `filter` resolve) or `{ url, params?, responsePath? }` (an app endpoint), the shape a dashboard page filter takes. `valueField` and `labelField` are dot-paths into a row: by default the value is `id` (else the object's uuid) and the label `title` (else `name`, else the value).
+
+The field becomes a select, or a multiselect on an array field. The form stores the option's value, never the row, and shows a held value by its label. The source is read once per dialog; typing filters those options on their label or value. A failed read offers no options. [`CnAdvancedFormDialog`](./cn-advanced-form-dialog.md) reads the same declaration in its Properties tab.
+
 ## Object references (`$ref`)
 
 A schema property that is an OpenRegister object reference renders as a **searchable dropdown of the referenced objects** (label = human name, value = UUID) instead of a free-text UUID box:
