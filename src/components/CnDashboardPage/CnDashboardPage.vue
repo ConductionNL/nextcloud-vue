@@ -347,12 +347,12 @@
 				<label
 					v-else
 					class="cn-dashboard-page__page-filter">
-					<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ pf.label }}</span>
+					<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ effectiveTranslate(pf.label) }}</span>
 					<NcSelect
 						:modelValue="selectedPageFilterOption(pf)"
-						:options="pf.options || []"
+						:options="pageFilterSegments(pf)"
 						:clearable="false"
-						:inputLabel="pf.label || pf.key"
+						:inputLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
 						label="label"
 						:data-testid="'cn-page-filter-' + pf.key"
 						@update:modelValue="onPageFilterChange(pf, $event)" />
@@ -2886,12 +2886,12 @@ export default {
 				return null
 			}
 			const current = this.workspaceContext[pf.key]
-			return (pf.options || []).find((o) => o.value === current) || null
+			return this.pageFilterSegments(pf).find((o) => o.value === current) || null
 		},
 
 		/**
-		 * A page filter's options as segments, labels through the host
-		 * translate.
+		 * A page filter's options, labels through the host translate: the
+		 * segments of a segmented filter and the options of a select.
 		 *
 		 * @spec openspec/changes/dashboard-board-termijnen/specs/dashboard-page/spec.md#requirement-a-page-filter-as-a-segmented-group-on-the-description-line
 		 * @param {object} pf The page-filter descriptor.
