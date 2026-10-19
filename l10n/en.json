@@ -1815,7 +1815,13 @@
     "{name} moved to place {place} of {total}": "{name} moved to place {place} of {total}",
     "The new order could not be saved.": "The new order could not be saved.",
     "{field} is already used; choose another value.": "{field} is already used; choose another value.",
-    "One per line": "One per line"
+    "One per line": "One per line",
+    "This may already exist": "This may already exist",
+    "Why file it anyway": "Why file it anyway",
+    "This cannot be filed twice. Open the one it matches, or ask a coordinator.": "This cannot be filed twice. Open the one it matches, or ask a coordinator.",
+    "File it anyway": "File it anyway",
+    "A record you may not open": "A record you may not open",
+    "Matched on the score, not on a single field": "Matched on the score, not on a single field"
   },
   "plurals": {
     "{count} member": [
@@ -1937,6 +1943,10 @@
     "{count} open": [
       "{count} open",
       "{count} open"
+    ],
+    "%n existing record looks like this one.": [
+      "%n existing record looks like this one.",
+      "%n existing records look like this one."
     ]
   }
 }
