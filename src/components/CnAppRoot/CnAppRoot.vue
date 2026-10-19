@@ -749,6 +749,7 @@ import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { appShownName } from '../../utils/appShownName.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { resolveModalEntry } from '../../utils/builtInModals.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
@@ -973,7 +974,7 @@ export default {
 			 * @param {object} props Props forwarded to the modal component.
 			 */
 			cnOpenModal: (key, props = {}) => {
-				const entry = this.registry[key]
+				const entry = resolveModalEntry(this.registry, key)
 				if (!entry || entry.kind !== 'modal') {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnAppRoot] cnOpenModal: "${key}" is not a registered modal (kind must be "modal").`)
@@ -3276,7 +3277,7 @@ export default {
 			if (!this.activeModalKey) {
 				return null
 			}
-			const entry = (this.registry || {})[this.activeModalKey]
+			const entry = resolveModalEntry(this.registry, this.activeModalKey)
 			return (entry && entry.component) ? entry.component : null
 		},
 	},
