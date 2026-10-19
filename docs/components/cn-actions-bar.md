@@ -67,6 +67,7 @@ Custom action items can be injected into the overflow menu:
 | `mapLabel` | String | `''` | Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap` |
 | `mapIcon` | String | `''` | MDI icon name for the map option (defaults to the built-in map-marker icon); resolved via CnIcon |
 | `showSearch` | Boolean | `false` | Show an inline search field on the left of the bar; emits `search` on input. The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
+| `searchPlacement` | String | `''` | Board look only: `'toolbar'` draws the search field on row 1, before Filter and the view switch, instead of at the start of row 2 |
 | `searchValue` | String | `''` | Current value of the inline search field (controlled) |
 | `searchPlaceholder` | String | `''` | Placeholder / accessible label for the inline search field |
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field: after the search and any `#after-search` controls, before the view toggle, on one line, moving to the next row on a narrow bar when there is no room. It is an `aria-live="polite"` region there, so a changed total is announced. Like the counter without search, it only shows text while `pagination.total` is above 0; at 0 the region stays mounted but empty and visually hidden, so results coming back after none are announced too. No effect without `showSearch` |

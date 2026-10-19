@@ -372,6 +372,17 @@
 	cursor: not-allowed;
 }
 
+/* `searchPlacement: "toolbar"`: the search field on row 1 takes the room
+   before Filter and the view switch, which keep the end of the row. */
+.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views > .cn-actions-bar__search--toolbar {
+	flex: 1 1 220px;
+	min-width: 180px;
+}
+
+.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views > .cn-actions-bar__search--toolbar ~ .cn-actions-bar__view-controls {
+	margin-inline-start: 0;
+}
+
 /* The search field: 40px, radius 8, not a pill. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__search {
 	flex: 1 1 260px;

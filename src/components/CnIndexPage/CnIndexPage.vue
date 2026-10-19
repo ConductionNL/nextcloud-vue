@@ -193,6 +193,7 @@
 			:sortOptions="sortSelectOptions"
 			:sortValue="effectiveSortSelectValue"
 			:showSearch="search !== false && (inlineSearch || isBoardLook)"
+			:searchPlacement="searchPlacement"
 			:searchValue="effectiveSearchValue"
 			:searchPlaceholder="presented('searchPlaceholder') ? cnTranslate(presented('searchPlaceholder')) : presented('searchPlaceholder')"
 			:showCountWithSearch="showCountWithSearch"
@@ -2157,6 +2158,20 @@ export default {
 		 * @type {''|'toolbar'}
 		 */
 		quickFilterPlacement: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'toolbar'].includes(v),
+		},
+
+		/**
+		 * Where the board look's search field sits (manifest
+		 * `config.searchPlacement`): `''` (the default) opens row 2 with it,
+		 * `'toolbar'` puts it on row 1 before the Filter button and the view
+		 * switch (DqTeamwachtrij).
+		 *
+		 * @type {''|'toolbar'}
+		 */
+		searchPlacement: {
 			type: String,
 			default: '',
 			validator: (v) => ['', 'toolbar'].includes(v),
