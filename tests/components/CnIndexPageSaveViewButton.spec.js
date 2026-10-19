@@ -4,7 +4,7 @@
  *
  * DqZoekresultaten has "Zoekopdracht opslaan" as its primary header button. A
  * header button with `action: "save-view"` opens the save-current-view dialog;
- * without a label it reads "Save filter".
+ * without a label it reads "Save view".
  */
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 
@@ -26,8 +26,8 @@ function resolve(buttons) {
 }
 
 describe('CnIndexPage save-view header button', () => {
-	it('reads "Save filter" without a label, and keeps the page\'s own label and variant', () => {
-		expect(resolve([{ action: 'save-view' }])[0]).toMatchObject({ label: 'Save filter', action: 'save-view', variant: 'secondary' })
+	it('reads "Save view" without a label, and keeps the page\'s own label and variant', () => {
+		expect(resolve([{ action: 'save-view' }])[0]).toMatchObject({ label: 'Save view', action: 'save-view', variant: 'secondary' })
 		expect(resolve([{ action: 'save-view', label: 'Zoekopdracht opslaan', variant: 'primary' }])[0]).toMatchObject({ label: 'Zoekopdracht opslaan', variant: 'primary' })
 	})
 

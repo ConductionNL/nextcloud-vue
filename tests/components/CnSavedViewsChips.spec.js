@@ -48,20 +48,17 @@ describe('CnSavedViewsControl chips (board look)', () => {
 		expect(wrapper.emitted('apply')[0]).toEqual([VIEWS[1]])
 	})
 
-	it('keeps the Save filter button beside the chips, and it asks to save', async () => {
+	it('keeps the menu, labelled "Save view", for managing views', () => {
 		const wrapper = mountControl()
-		const button = wrapper.find('.cn-saved-views__save [data-testid="cn-saved-views-control"]')
-		expect(button.exists()).toBe(true)
-		expect(button.text()).toContain('Save filter')
-		await button.trigger('click')
-		expect(wrapper.emitted('save-request')).toHaveLength(1)
+		const menu = wrapper.find('[data-testid="cn-saved-views-control"]')
+		expect(menu.exists()).toBe(true)
+		expect(menu.classes()).toContain('cn-saved-views__save')
 	})
 
-	it('is the button alone without the look', () => {
+	it('is the menu alone without the look', () => {
 		const wrapper = mountControl({}, 'nextcloud')
 		expect(wrapper.find('[data-testid="cn-saved-views-chips"]').exists()).toBe(false)
-		expect(wrapper.find('.cn-saved-views__save').exists()).toBe(false)
-		expect(wrapper.find('[data-testid="cn-saved-views-control"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-saved-views-control"]').classes()).not.toContain('cn-saved-views__save')
 	})
 })
 

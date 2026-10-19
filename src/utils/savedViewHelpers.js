@@ -213,30 +213,22 @@ export function buildViewCreatePayload({ name, description, isPublic, isDefault,
 }
 
 /**
- * Clean an audience list: keep `{ group, mode }` and `{ user, mode }` entries
- * that name exactly one target, drop repeats, and coerce any mode but `write`
- * to `read`.
+ * Clean an audience list: keep `{ group, mode }` entries with a group id, and
+ * coerce any mode but `write` to `read`.
  *
  * @param {unknown} sharedWith The audience as given.
- * @return {Array<{group?: string, user?: string, mode: 'read'|'write'}>} The cleaned list.
- * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-5
+ * @return {Array<{group: string, mode: 'read'|'write'}>} The cleaned list.
  */
 export function normalizeSharedWith(sharedWith) {
 	const seen = new Set()
 	const out = []
 	for (const entry of Array.isArray(sharedWith) ? sharedWith : []) {
 		const group = entry && typeof entry.group === 'string' ? entry.group : ''
-		const user = entry && typeof entry.user === 'string' ? entry.user : ''
-		if ((group === '') === (user === '')) {
+		if (group === '' || seen.has(group)) {
 			continue
 		}
-		const key = user !== '' ? `user:${user}` : `group:${group}`
-		if (seen.has(key)) {
-			continue
-		}
-		seen.add(key)
-		const mode = entry.mode === 'write' ? 'write' : 'read'
-		out.push(user !== '' ? { user, mode } : { group, mode })
+		seen.add(group)
+		out.push({ group, mode: entry.mode === 'write' ? 'write' : 'read' })
 	}
 	return out
 }
@@ -383,48 +375,4 @@ export function extractViewState(view) {
  */
 export function isOwnView(view, currentUserId) {
 	return !!view && !!currentUserId && view.owner === currentUserId
-}
-
-/**
- * The default filters an index page declares (`config.defaultSavedFilters`), as
- * read-only views the saved-views control lists. They are never stored: the
- * manifest installs them, so every user has the same set and none can delete
- * one. `seeded: true` puts them in the control's default group; the query
- * keeps its `@`-tokens, which resolve when a default is applied.
- *
- * @param {Array<object>|null|undefined} defaults The declared entries `{ slug, name, filters, search?, sort?, label? }`.
- * @param {{ scope?: string, register?: string, schema?: object|string|null }} [page] The page, as `savedViewScope` takes it.
- * @return {Array<object>} The views, in declaration order; entries without a slug or name are left out.
- * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-4
- */
-export function defaultFilterViews(defaults, page = {}) {
-	if (!Array.isArray(defaults)) {
-		return []
-	}
-	return defaults
-		.filter((entry) => entry && typeof entry.slug === 'string' && entry.slug !== '' && typeof entry.name === 'string' && entry.name !== '')
-		.map((entry) => {
-			const { query } = buildViewCreatePayload({
-				name: entry.name,
-				state: {
-					filters: (entry.filters && typeof entry.filters === 'object' && !Array.isArray(entry.filters)) ? entry.filters : {},
-					search: typeof entry.search === 'string' ? entry.search : '',
-					sortKeys: Array.isArray(entry.sort) ? entry.sort : [],
-				},
-				scope: savedViewScope(page),
-				register: page.register,
-				schema: page.schema,
-			})
-			return {
-				id: `default:${entry.slug}`,
-				slug: entry.slug,
-				name: entry.name,
-				owner: '',
-				seeded: true,
-				isPublic: false,
-				labels: typeof entry.label === 'string' && entry.label !== '' ? [entry.label] : [],
-				'@self': { access: 'read' },
-				query,
-			}
-		})
 }

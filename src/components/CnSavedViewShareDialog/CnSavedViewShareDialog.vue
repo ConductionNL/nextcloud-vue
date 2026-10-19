@@ -4,7 +4,7 @@
 -->
 <template>
 	<NcDialog
-		:name="resolvedTitle"
+		:name="dialogTitle"
 		size="small"
 		:noClose="loading"
 		@closing="onClose">
@@ -12,9 +12,6 @@
 			<NcNoteCard v-if="error" type="error">
 				{{ error }}
 			</NcNoteCard>
-			<p class="cn-share-view__intro">
-				{{ t('nextcloud-vue', 'Whoever gets the filter sees it under Shared with me. It is yours and stays yours.') }}
-			</p>
 			<CnSavedViewShareFields v-model="sharedWith" />
 		</div>
 		<template #actions>
@@ -39,7 +36,6 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnSavedViewShareFields from '../CnSavedViewShareFields/CnSavedViewShareFields.vue'
-import { normalizeSharedWith } from '../../utils/savedViewHelpers.js'
 
 /**
  * CnSavedViewShareDialog — change who a saved view is shared with. Opened by
@@ -59,10 +55,10 @@ export default {
 			default: () => ({}),
 		},
 
-		/** Dialog title; empty reads "Share filter: {name}". */
+		/** Dialog title. */
 		dialogTitle: {
 			type: String,
-			default: '',
+			default: () => t('nextcloud-vue', 'Share view'),
 		},
 	},
 
@@ -70,17 +66,10 @@ export default {
 
 	data() {
 		return {
-			sharedWith: normalizeSharedWith(this.view && this.view.sharedWith),
+			sharedWith: Array.isArray(this.view && this.view.sharedWith) ? this.view.sharedWith.map((e) => ({ group: e.group, mode: e.mode === 'write' ? 'write' : 'read' })) : [],
 			loading: false,
 			error: '',
 		}
-	},
-
-	computed: {
-		/** @return {string} The title: `dialogTitle`, else "Share filter: {name}". */
-		resolvedTitle() {
-			return this.dialogTitle || t('nextcloud-vue', 'Share filter: {name}', { name: (this.view && this.view.name) || '' })
-		},
 	},
 
 	methods: {
@@ -90,8 +79,8 @@ export default {
 			this.loading = true
 			this.error = ''
 			/**
-			 * @event confirm Save clicked. Payload: the audience, `[{ group, mode }]` and `[{ user, mode }]` (`[]` to stop sharing).
-			 * @type {Array<{group?: string, user?: string, mode: string}>}
+			 * @event confirm Save clicked. Payload: the audience, `[{ group, mode }]` (`[]` to stop sharing).
+			 * @type {Array<{group: string, mode: string}>}
 			 */
 			this.$emit('confirm', this.sharedWith)
 		},
@@ -116,10 +105,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-share-view__intro {
-	margin: 0;
-}
-
 .cn-share-view {
 	display: flex;
 	flex-direction: column;

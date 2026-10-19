@@ -38,6 +38,7 @@ const stubs = {
 	CnPagination: true,
 	CnContextMenu: true,
 	CnRowActions: true,
+	CnIndexSidebar: true,
 	CnPageHeader: true,
 	CnMassDeleteDialog: true,
 	CnMassCopyDialog: true,

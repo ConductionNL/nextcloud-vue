@@ -270,8 +270,6 @@ export {
 	CnRoadmapItem,
 	CnRoadmapTab,
 	CnRowActions,
-	CnSavedFiltersPanel,
-	CnSavedViewEditDialog,
 	CnSavedViewPresentationDialog,
 	CnSavedViewsControl,
 	CnSavedViewShareDialog,

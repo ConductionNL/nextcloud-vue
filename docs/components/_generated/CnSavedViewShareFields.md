@@ -8,14 +8,14 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name         | Type                                                                | Required | Default | Description                                                                                    |
-| ------------ | ------------------------------------------------------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------- |
-| `modelValue` | `Array<{group?: string, user?: string, mode: 'read'&#124;'write'}>` |          | `[]`    | The chosen audience, `[{ group, mode }]` and `[{ user, mode }]` with `mode` `read` or `write`. |
-| `disabled`   | `boolean`                                                           |          | `false` | Disable the fields.                                                                            |
+| Name         | Type                                                | Required | Default | Description                                                             |
+| ------------ | --------------------------------------------------- | -------- | ------- | ----------------------------------------------------------------------- |
+| `modelValue` | `Array<{group: string, mode: 'read'&#124;'write'}>` |          | `[]`    | The chosen audience, `[{ group, mode }]` with `mode` `read` or `write`. |
+| `disabled`   | `boolean`                                           |          | `false` | Disable the fields.                                                     |
 
 ### Events
 
-| Name                                                                                                    | Payload | Description |
-| ------------------------------------------------------------------------------------------------------- | ------- | ----------- |
-| `update:modelValue`                                                                                     | —       |             |
-| `update:modelValue The audience, `[{ group, mode }]`and`[{ user, mode }]`; `[]` when nobody is picked.` | —       |             |
+| Name                                                                                 | Payload | Description |
+| ------------------------------------------------------------------------------------ | ------- | ----------- |
+| `update:modelValue`                                                                  | —       |             |
+| `update:modelValue The audience, `[{ group, mode }]`; `[]` when no group is picked.` | —       |             |

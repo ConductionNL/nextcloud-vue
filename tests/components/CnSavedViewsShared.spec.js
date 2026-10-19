@@ -11,27 +11,17 @@ jest.mock('@nextcloud/l10n', () => ({
 	translate: (app, text, params) => String(text).replace(/\{(\w+)\}/g, (_, key) => String((params || {})[key] ?? `{${key}}`)),
 }))
 const mockSearch = jest.fn()
-jest.mock('../../src/utils/searchGroupSharees.js', () => ({ __esModule: true, searchGroupSharees: (...a) => mockSearch(...a), searchUserAndGroupSharees: (...a) => mockSearch(...a) }))
+jest.mock('../../src/utils/searchGroupSharees.js', () => ({ __esModule: true, searchGroupSharees: (...a) => mockSearch(...a) }))
 
 const { flushPromises, mount } = require('@vue/test-utils')
 const CnSavedViewShareFields = require('../../src/components/CnSavedViewShareFields/CnSavedViewShareFields.vue').default
 const CnSaveViewDialog = require('../../src/components/CnSaveViewDialog/CnSaveViewDialog.vue').default
-const CnSavedFiltersPanel = require('../../src/components/CnSavedFiltersPanel/CnSavedFiltersPanel.vue').default
+const CnSavedViewsControl = require('../../src/components/CnSavedViewsControl/CnSavedViewsControl.vue').default
 const { buildViewCreatePayload, normalizeSharedWith, viewAccess } = require('../../src/utils/savedViewHelpers.js')
 
 const view = (id, extra = {}) => ({ id, slug: String(id), name: `View ${id}`, owner: 'alice', ...extra })
-const mountControl = (views) => mount(CnSavedFiltersPanel, { props: { views, currentUserId: 'alice' } })
+const mountControl = (views) => mount(CnSavedViewsControl, { props: { views, currentUserId: 'alice' } })
 const testids = (w, id) => w.findAll(`[data-testid="${id}"]`)
-/**
- * The panel renders each filter's own menu in its row; kept as a helper so
- * the gating tests read as before.
- *
- * @param {object} w The wrapper.
- * @return {Promise<object>} The wrapper.
- */
-async function manage(w) {
-	return w
-}
 
 beforeEach(() => {
 	mockSearch.mockReset()
@@ -55,8 +45,6 @@ describe('buildViewCreatePayload sharedWith', () => {
 		expect(body.sharedWith).toEqual([{ group: 'desk', mode: 'write' }, { group: 'legal', mode: 'read' }])
 		expect('sharedWith' in buildViewCreatePayload({ name: 'x', state: {}, sharedWith: [] })).toBe(false)
 		expect(normalizeSharedWith(null)).toEqual([])
-		expect(normalizeSharedWith([{ user: 'fatma', mode: 'write' }, { user: 'fatma', mode: 'read' }, { user: 'x', group: 'y', mode: 'read' }, { group: 'fatma', mode: 'read' }]))
-			.toEqual([{ user: 'fatma', mode: 'write' }, { group: 'fatma', mode: 'read' }])
 	})
 })
 
@@ -81,24 +69,6 @@ describe('CnSavedViewShareFields', () => {
 		await flushPromises()
 		w.vm.onMode('legal', 'write')
 		expect(w.emitted('update:modelValue').at(-1)[0]).toEqual([{ group: 'desk', mode: 'read' }, { group: 'legal', mode: 'write' }])
-	})
-
-	it('offers people beside groups and picks a person as a user share', async () => {
-		mockSearch.mockResolvedValue([{ id: 'fatma', kind: 'user', label: 'Fatma Yilmaz' }, { id: 'desk', kind: 'group', label: 'Handling desk' }])
-		const w = mount(CnSavedViewShareFields)
-		await flushPromises()
-		expect(w.vm.options).toEqual([{ id: 'user:fatma', label: 'Fatma Yilmaz' }, { id: 'desk', label: 'Handling desk' }])
-		w.vm.onGroups(w.vm.options)
-		expect(w.emitted('update:modelValue').at(-1)[0]).toEqual([{ user: 'fatma', mode: 'read' }, { group: 'desk', mode: 'read' }])
-	})
-
-	it('changes the mode of a user share by its key and labels it by name', async () => {
-		mockSearch.mockResolvedValue([{ id: 'fatma', kind: 'user', label: 'Fatma Yilmaz' }])
-		const w = mount(CnSavedViewShareFields, { props: { modelValue: [{ user: 'fatma', mode: 'read' }, { group: 'desk', mode: 'read' }] } })
-		await flushPromises()
-		expect(w.vm.labelOf('user:fatma')).toBe('Fatma Yilmaz')
-		w.vm.onMode('user:fatma', 'write')
-		expect(w.emitted('update:modelValue').at(-1)[0]).toEqual([{ user: 'fatma', mode: 'write' }, { group: 'desk', mode: 'read' }])
 	})
 
 	it('keeps an existing audience visible even when the search is empty', async () => {
@@ -135,7 +105,7 @@ describe('CnSaveViewDialog', () => {
 	})
 })
 
-describe('CnSavedFiltersPanel sections and gating', () => {
+describe('CnSavedViewsControl sections and gating', () => {
 	const own = view(1, { '@self': { access: 'owner' } })
 	const readOnly = view(2, { owner: 'bob', sharedWith: [{ group: 'desk', mode: 'read' }], '@self': { access: 'read' } })
 	const writable = view(3, { owner: 'bob', sharedWith: [{ group: 'desk', mode: 'write' }], '@self': { access: 'write' } })
@@ -147,44 +117,44 @@ describe('CnSavedFiltersPanel sections and gating', () => {
 		expect(testids(w, 'cn-saved-views-item')).toHaveLength(2)
 	})
 
-	it('groups my views and shared views from one response, with who shared it on the shared row', () => {
+	it('groups my views and shared views from one response, with the sharing group on the shared row', () => {
 		const w = mountControl([own, readOnly])
-		expect(w.get('[data-testid="cn-saved-views-section-mine"]').text()).toContain('My filters')
-		expect(w.get('[data-testid="cn-saved-views-section-shared"]').text()).toContain('Shared with me')
+		expect(w.get('[data-testid="cn-saved-views-section-mine"]').attributes().name || w.get('[data-testid="cn-saved-views-section-mine"]').text()).toContain('My views')
+		expect(w.get('[data-testid="cn-saved-views-section-shared"]').attributes().name || w.get('[data-testid="cn-saved-views-section-shared"]').text()).toContain('Shared with me')
 		const items = testids(w, 'cn-saved-views-item')
 		expect(items[0].attributes('data-view-id')).toBe('1')
 		expect(items[1].attributes('data-view-id')).toBe('2')
-		expect(items[1].text()).toContain('By bob')
-		expect(items[0].text()).not.toContain('By ')
+		expect(items[1].text()).toContain('desk')
+		expect(items[0].text()).not.toContain('·')
 	})
 
-	it('read access hides delete and share, and offers Save a copy', async () => {
-		const w = await manage(mountControl([readOnly]), 2)
+	it('read access hides delete and share, and offers Save as my view', () => {
+		const w = mountControl([readOnly])
 		expect(testids(w, 'cn-saved-views-delete')).toHaveLength(0)
 		expect(testids(w, 'cn-saved-views-share')).toHaveLength(0)
 		expect(testids(w, 'cn-saved-views-update')).toHaveLength(0)
 		expect(testids(w, 'cn-saved-views-copy')).toHaveLength(1)
 	})
 
-	it('write access allows saving changes and a copy, hides delete and share', async () => {
-		const w = await manage(mountControl([writable]), 3)
+	it('write access allows saving changes, hides delete and share', () => {
+		const w = mountControl([writable])
 		expect(testids(w, 'cn-saved-views-update')).toHaveLength(1)
 		expect(testids(w, 'cn-saved-views-delete')).toHaveLength(0)
 		expect(testids(w, 'cn-saved-views-share')).toHaveLength(0)
-		expect(testids(w, 'cn-saved-views-copy')).toHaveLength(1)
+		expect(testids(w, 'cn-saved-views-copy')).toHaveLength(0)
 	})
 
-	it('owner access offers Share and Delete', async () => {
-		const w = await manage(mountControl([own]), 1)
+	it('owner access offers Share and Delete', () => {
+		const w = mountControl([own])
 		expect(testids(w, 'cn-saved-views-share')).toHaveLength(1)
 		expect(testids(w, 'cn-saved-views-delete')).toHaveLength(1)
 	})
 
 	it('emits the view on each request', async () => {
 		const w = mountControl([own, readOnly, writable])
-		await w.get('[data-testid="cn-saved-views-share"][data-view-id="1"]').trigger('click')
-		await w.get('[data-testid="cn-saved-views-copy"][data-view-id="2"]').trigger('click')
-		await w.get('[data-testid="cn-saved-views-update"][data-view-id="3"]').trigger('click')
+		await testids(w, 'cn-saved-views-share')[0].trigger('click')
+		await testids(w, 'cn-saved-views-copy')[0].trigger('click')
+		await testids(w, 'cn-saved-views-update')[0].trigger('click')
 		expect(w.emitted('share-request')[0][0].id).toBe(1)
 		expect(w.emitted('copy-request')[0][0].id).toBe(2)
 		expect(w.emitted('update-request')[0][0].id).toBe(3)
@@ -232,9 +202,13 @@ describe('presentation (view-presentation-picker)', () => {
 		expect(w.vm.error).toBe('Something else')
 	})
 
-	it('the saved-filters panel offers no Presentation entry, as the boards draw none', () => {
+	it('the control offers Presentation to owner and write, not read', () => {
 		const owner = view(1, { '@self': { access: 'owner' } })
-		expect(testids(mountControl([owner]), 'cn-saved-views-presentation')).toHaveLength(0)
+		const writer = view(2, { owner: 'bob', '@self': { access: 'write' } })
+		const reader = view(3, { owner: 'bob', '@self': { access: 'read' } })
+		expect(testids(mountControl([owner]), 'cn-saved-views-presentation')).toHaveLength(1)
+		expect(testids(mountControl([writer]), 'cn-saved-views-presentation')).toHaveLength(1)
+		expect(testids(mountControl([reader]), 'cn-saved-views-presentation')).toHaveLength(0)
 	})
 
 	it('buildViewCreatePayload carries a board or calendar and omits a table', () => {
