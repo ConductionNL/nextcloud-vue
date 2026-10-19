@@ -8,8 +8,9 @@
  * - `{ url, params?, responsePath? }`: rows from an app endpoint;
  * - `{ register, schema, filter? }`: OpenRegister objects of that schema;
  *
- * each with `valueField` (default `id`, else the object's uuid) and
- * `labelField` (default `title`, else `name`, else the value), both dot-paths.
+ * each with `valueField` (default `id`, else the object's uuid),
+ * `labelField` (default `title`, else `name`, else the value) and an optional
+ * `groupField` that groups the options, all dot-paths.
  *
  * @module utils/optionsFrom
  * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
@@ -87,7 +88,15 @@ export function optionFromRow(row, from = {}) {
 	const label = typeof from.labelField === 'string' && from.labelField !== ''
 		? readPath(row, from.labelField)
 		: (row.title || row.name)
-	return { id, label: label === null || label === undefined || label === '' ? String(id) : String(label) }
+	const option = { id, label: label === null || label === undefined || label === '' ? String(id) : String(label) }
+	// `groupField`: the option's group, which keeps options of one group together.
+	if (typeof from.groupField === 'string' && from.groupField !== '') {
+		const group = readPath(row, from.groupField)
+		if (group !== null && group !== undefined && group !== '') {
+			option.group = String(group)
+		}
+	}
+	return option
 }
 
 /**
@@ -113,6 +122,11 @@ export async function loadOptionsFrom(from, ctx = {}) {
 			seen.add(String(option.id))
 			out.push(option)
 		}
+	}
+	if (typeof from.groupField === 'string' && from.groupField !== '') {
+		// Groups in the order they first appear, each option keeping its place within its group.
+		const order = [...new Set(out.map((o) => o.group || ''))]
+		return order.flatMap((group) => out.filter((o) => (o.group || '') === group))
 	}
 	return out
 }

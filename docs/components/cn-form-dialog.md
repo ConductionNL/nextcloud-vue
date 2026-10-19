@@ -62,6 +62,7 @@ When `allowDraft` is on and the schema declares `draftField`, a stored draft rec
 | `url` | URLs |
 | `number` | Numeric input |
 | `textarea` | Long text |
+| `lines` | A list of strings, one per line; lines are trimmed and empty ones dropped |
 | `select` | Single choice from options (static or async) |
 | `multiselect` | Multiple choices (static or async) |
 | `user` | Single Nextcloud user (`referenceType: 'nextcloud-user'` / `format: 'user'`) — a searchable dropdown of real users rendered by the shared select branch as NC's native `:user-select` picker (stores the UID string). See [Nextcloud user references](#nextcloud-user-references-referencetype-nextcloud-user) |
@@ -394,6 +395,39 @@ A `fieldOverrides` key (or an `includeFields` entry) can be a dotted path into a
 ### An optional object (`widget: "object-switch"`)
 
 An object property that is either there or not, such as a field rule's `condition`, gets a switch: `"condition": { "widget": "object-switch", "label": "Only in some cases", "defaults": { "kind": "fieldPresent" } }`. On fills it with `defaults`, off writes `null`. Its keys are fields at dotted paths (`condition.kind`), shown with `visibleWhen: { "field": "condition", "truthy": true }`; while the switch is off they are not saved and the object stays `null`.
+
+### `unique`
+
+`"order": { "unique": { "filter": { "caseType": "@objectId" } } }` refuses a value another stored object of the schema already has, among the objects the filter matches (`unique: true` compares with all of them). It is checked when the reader saves, against the form's `register` and schema; a clash shows on the field ("Order is already used; choose another value."). When the check cannot be made, the save goes on and the server decides.
+
+### Rules between fields
+
+These keys let one field follow another. A condition takes the shapes `visibleWhen` takes (`{ field, equals }`, `notEquals`, `in`, `notIn`, `truthy`, `falsy`, `empty`, `notEmpty`), or `{ all: [...] }` and `{ any: [...] }` of them.
+
+| Key | What it does |
+|-----|--------------|
+| `requiredWhen` | The field is required while the condition holds, with the asterisk and the error that go with it. |
+| `warnWhen` | `{ when, text }` (or a list): a note under the field while `when` holds. It does not block the save. |
+| `clearWhenHidden` | While `visibleWhen` hides the field, the save writes it empty (`null`, or `[]` for a list), so a value the reader can no longer see does not stay behind. |
+| `stored: false` | The field steers the form and is not saved. It may be a key the schema does not have, given a `type` (default `boolean`), a `label` and a `widget`. `initialWhen` sets its starting value from the loaded values. |
+| `placeholderFrom` | A text field's placeholder is another field's value, as the public label shows the status name. |
+| `optionSwatches`, `optionIcons` | A colour (`{ "blue": "var(--color-primary)" }`) or an icon per option value, drawn before the option's label. |
+| `sectionCollapsed` | Makes the field's `section` foldable from its heading; `true` opens it folded ("More options"). |
+
+A property form's choice list, as dossiq's property form has it:
+
+```json
+"choiceList": { "stored": false, "label": "Choice list", "widget": "switch", "initialWhen": { "any": [{ "field": "propertyType", "equals": "enum" }, { "field": "enumValues", "notEmpty": true }] } },
+"enumValues": {
+  "widget": "lines",
+  "visibleWhen": { "field": "choiceList", "truthy": true },
+  "clearWhenHidden": true,
+  "requiredWhen": { "all": [{ "field": "choiceList", "truthy": true }, { "field": "conceptScheme", "empty": true }] },
+  "warnWhen": { "when": { "all": [{ "field": "conceptScheme", "notEmpty": true }, { "field": "enumValues", "notEmpty": true }] }, "text": "The concept scheme wins over these choices." }
+}
+```
+
+`optionsFrom` takes a `groupField` too: the options of one group stay together, groups in the order they first appear, and each option shows its group before its label.
 
 ### `section`
 

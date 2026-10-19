@@ -558,8 +558,27 @@
 				"itemLabel": { "type": "string", "minLength": 1, "description": "widget 'sub-objects': what one row is called (\"Checklist item\"), for its accessible name and dialog title." },
 				"emptyText": { "type": "string", "description": "widget 'sub-objects': shown while there are no rows." },
 				"pruneWhen": { "type": "object", "additionalProperties": false, "description": "widget 'sub-objects': tidy the rows on save: trim strings, omit empty optional keys, drop rows with a `blank` key, and with `invalid: true` rows missing a required key.", "properties": { "blank": { "type": "array", "items": { "type": "string", "minLength": 1 } }, "invalid": { "type": "boolean" } } },
+				"placeholderFrom": { "type": "string", "minLength": 1, "description": "A text field's placeholder is this other field's value (form-small-features)." },
+				"requiredWhen": { "type": "object", "description": "Required while this condition holds: a `visibleWhen` predicate, or `{ all }` / `{ any }` of them (form-small-features)." },
+				"warnWhen": { "description": "A note under the field that does not block the save, shown while `when` holds (form-small-features).", "anyOf": [{ "$ref": "#/$defs/fieldWarning" }, { "type": "array", "items": { "$ref": "#/$defs/fieldWarning" } }] },
+				"clearWhenHidden": { "type": "boolean", "description": "Write the field empty when its visibleWhen hides it (form-small-features)." },
+				"stored": { "type": "boolean", "description": "`false`: the field steers the form only and is not saved; it may be a key the schema does not have, with `type` and `label` (form-small-features)." },
+				"initialWhen": { "type": "object", "description": "A field that is not stored starts true when this condition holds on the loaded values (form-small-features)." },
+				"sectionCollapsed": { "type": "boolean", "description": "Makes the field's section foldable from its heading; true opens it folded (form-small-features)." },
+				"optionSwatches": { "type": "object", "additionalProperties": { "type": "string" }, "description": "A select option's colour by value, drawn before its label (form-small-features)." },
+				"optionIcons": { "type": "object", "additionalProperties": { "type": "string" }, "description": "A select option's icon by value, drawn before its label (form-small-features)." },
+				"unique": { "description": "Refuse a value another stored object of this schema already has, checked before the save: `true`, or `{ filter }` to compare only among the objects the filter matches (`{ \"caseType\": \"@objectId\" }`) (list-reorder-order-field).", "anyOf": [{ "type": "boolean", "const": true }, { "type": "object", "additionalProperties": false, "properties": { "filter": { "type": "object" } } }] },
 				"defaults": { "type": "object", "description": "widget 'object-switch': the object the switch fills in when turned on; off writes null. Its keys are edited as fields at dotted paths." },
-				"optionsFrom": { "$ref": "#/$defs/optionsFrom", "description": "Draw the field as a select (a multiselect on an array field) over options read from a source; the option's value is stored and its label shown. A register schema property can say the same with `x-options-from` (form-field-options-from, 2.131.0)." }
+				"optionsFrom": { "$ref": "#/$defs/optionsFrom", "description": "Draw the field as a select (a multiselect on an array field) over options read from a source; the option's value is stored and its label shown. A register schema property can say the same with `x-options-from` (form-field-options-from, 2.133.0)." }
+			}
+		},
+		"fieldWarning": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["when", "text"],
+			"properties": {
+				"when": { "type": "object", "description": "The condition, as visibleWhen takes it, or `{ all }` / `{ any }`." },
+				"text": { "type": "string", "minLength": 1, "description": "The note, through the app's translate." }
 			}
 		},
 		"optionsFrom": {
@@ -574,7 +593,8 @@
 						"params": { "type": "object", "description": "Query parameters sent with the request." },
 						"responsePath": { "type": "string", "minLength": 1, "description": "Where the rows sit in the answer." },
 						"valueField": { "type": "string", "minLength": 1 },
-						"labelField": { "type": "string", "minLength": 1 }
+						"labelField": { "type": "string", "minLength": 1 },
+						"groupField": { "type": "string", "minLength": 1, "description": "Groups the options by this field, groups in the order they first appear (form-small-features)." }
 					}
 				},
 				{
@@ -586,7 +606,8 @@
 						"schema": { "type": "string", "minLength": 1 },
 						"filter": { "type": "object", "description": "Filters on the objects, as a list filter takes them." },
 						"valueField": { "type": "string", "minLength": 1 },
-						"labelField": { "type": "string", "minLength": 1 }
+						"labelField": { "type": "string", "minLength": 1 },
+						"groupField": { "type": "string", "minLength": 1, "description": "Groups the options by this field, groups in the order they first appear (form-small-features)." }
 					}
 				}
 			]
