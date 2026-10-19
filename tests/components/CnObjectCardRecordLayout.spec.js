@@ -80,3 +80,20 @@ describe('CnObjectCard record layout (board look)', () => {
 		expect(mountCard({}, 'board').find('[data-testid="cn-object-card-record"]').exists()).toBe(false)
 	})
 })
+
+describe('CnObjectCard record layout meta part with its own formatter', () => {
+	it('reads the part as plain text through its formatter, never the column badge', () => {
+		const card = mount(CnObjectCard, {
+			props: {
+				object: { id: 'c2', title: 'Melding', caseType: 'ct-1', initiatorDisplayName: 'B. Smit' },
+				schema: { title: 'Case', properties: { title: {} } },
+				layout: { meta: [{ field: 'caseType', formatter: 'typeName' }, 'initiatorDisplayName'] },
+				cardFieldColumns: { caseType: { key: 'caseType', formatter: 'typeName', widget: 'badge' } },
+			},
+			global: { provide: { cnLook: 'board', cnFormatters: { typeName: (value) => (value === 'ct-1' ? 'Melding' : value) } } },
+		})
+		const meta = card.find('[data-testid="cn-object-card-meta"]')
+		expect(meta.text()).toBe('Melding · B. Smit')
+		expect(meta.find('.cn-status-badge').exists()).toBe(false)
+	})
+})

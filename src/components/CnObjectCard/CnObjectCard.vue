@@ -494,9 +494,8 @@ export default {
 		recordMetaParts() {
 			const fields = this.recordLayout && Array.isArray(this.recordLayout.meta) ? this.recordLayout.meta : []
 			return fields
-				.filter((field) => typeof field === 'string' && field !== '')
-				.map((field) => ({ field, value: readPath(this.object, field), text: this.layoutText(field), column: this.layoutColumn(field) }))
-				.filter((part) => part.text !== '')
+				.map((part) => this.metaPart(part))
+				.filter((part) => part !== null && part.text !== '')
 		},
 
 		/**
@@ -615,14 +614,35 @@ export default {
 
 	methods: {
 		/**
+		 * One meta part: a field name reads through the page column it names;
+		 * `{ field, formatter?, formatterOptions? }` reads as plain text through
+		 * its own formatter, so a column's widget (a badge) stays in the table.
+		 *
+		 * @param {string|{field: string, formatter?: string, formatterOptions?: object}} part The part.
+		 * @return {?{field: string, value: unknown, text: string, column: ?object}} The part, or null when it names no field.
+		 * @spec openspec/changes/card-layout-part-formatter/specs/card-layout-part-formatter/spec.md#requirement-a-card-meta-part-can-name-its-own-formatter
+		 */
+		metaPart(part) {
+			if (typeof part === 'string' && part !== '') {
+				return { field: part, value: readPath(this.object, part), text: this.layoutText(part), column: this.layoutColumn(part) }
+			}
+			if (!part || typeof part !== 'object' || typeof part.field !== 'string' || part.field === '') {
+				return null
+			}
+			const column = typeof part.formatter === 'string' ? { formatter: part.formatter, formatterOptions: part.formatterOptions } : null
+			return { field: part.field, value: readPath(this.object, part.field), text: this.layoutText(part.field, column), column }
+		},
+
+		/**
 		 * A field's value as text: a person or a record by its display name,
 		 * title or name, anything else as a string. '' for an empty value or
 		 * a field that is not named.
 		 *
 		 * @param {unknown} field A dot path into the object.
+		 * @param {?object} [own] The column to read through instead of the one the field names.
 		 * @return {string}
 		 */
-		layoutText(field) {
+		layoutText(field, own) {
 			if (typeof field !== 'string' || field === '') {
 				return ''
 			}
@@ -632,7 +652,7 @@ export default {
 			}
 			// A part whose field names a page column with a formatter reads as
 			// its table cell does (a case type uuid as its name).
-			const column = this.layoutColumn(field)
+			const column = own === undefined ? this.layoutColumn(field) : own
 			const format = column && column.formatter && this.cnFormatters ? this.cnFormatters[column.formatter] : null
 			if (typeof format === 'function') {
 				const formatted = format(value, this.object, this.schema?.properties?.[field], column.formatterOptions || undefined)

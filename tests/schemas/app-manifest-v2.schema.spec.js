@@ -1405,7 +1405,14 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.126.0 adds the setup choice step's display "rows" and default (setup-wizard), visibleWhen op anyOf and the record-list footerAction (record-list), and documents folderSidebar.pane and the fieldOverrides search look (index-page, form-dialog).
 		// 2.127.0 adds config.sideColumnFrom on a detail page (detail-page), headerButtons[].run, config.search, searchPlacement, defaultOrder, listConfig leading / trailing / subtitleTemplate and folderSidebar heading / countText on an index page (index-page, object-row), and the object-table pageSize (object-table).
 		// 2.128.0 adds config.cardLayout on an index page, the board record card's layout (board-record-card-layout).
-		expect(schema.version).toBe('2.128.0')
+		// 2.129.0 lets a cardLayout meta part name its own formatter (card-layout-part-formatter).
+		expect(schema.version).toBe('2.129.0')
+	})
+
+	it('accepts the 2.129.0 meta part with its own formatter and refuses one without a field', () => {
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'mine', route: '/mine', type: 'index', title: 'Mine', config: { register: 'r', schema: 's', ...config } }] })
+		expect(validateManifestV2(index({ cardLayout: { meta: [{ field: 'caseType', formatter: 'caseTypeName' }, 'assignee'] } })).valid).toBe(true)
+		expect(validateManifestV2(index({ cardLayout: { meta: [{ formatter: 'caseTypeName' }] } })).valid).toBe(false)
 	})
 
 	it('accepts the 2.128.0 cardLayout and refuses malformed ones', () => {
