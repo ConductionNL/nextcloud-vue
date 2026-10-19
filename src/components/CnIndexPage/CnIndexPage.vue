@@ -192,7 +192,7 @@
 			:showSortSelect="showSortSelect"
 			:sortOptions="sortSelectOptions"
 			:sortValue="sortSelectValue"
-			:showSearch="inlineSearch || isBoardLook"
+			:showSearch="search !== false && (inlineSearch || isBoardLook)"
 			:searchValue="effectiveSearchValue"
 			:searchPlaceholder="presented('searchPlaceholder') ? cnTranslate(presented('searchPlaceholder')) : presented('searchPlaceholder')"
 			:showCountWithSearch="showCountWithSearch"
@@ -3093,6 +3093,16 @@ export default {
 		inlineSearch: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * `false` draws no inline search in the actions bar, also in the board
+		 * look, which otherwise draws one on every index page. Fed from the
+		 * manifest as `pages[].config.search`.
+		 */
+		search: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
