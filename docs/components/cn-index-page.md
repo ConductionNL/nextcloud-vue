@@ -47,7 +47,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `viewSwitch` | Array | `null` | Board look only: the segments the view switch draws (`table`, `cards`, `board`, `map`), always in that order. A listed mode the page cannot open (no board config, no `mapConfig`) is drawn disabled with the tooltip "not available on this list". Fed from `pages[].config.viewSwitch`. |
 | `viewSwitchLinks` | Object | `null` | Board look: view switch segments that open another page, by mode (`table`, `cards`, `board`, `map`): `{ board: { route, params?, query? } }` or `{ map: { href } }`. The segment is a link in its place in the switch, for a board or a map that is a page of its own; a mode the page opens in place stays a button (manifest: `config.viewSwitchLinks`) |
 | `quickFilterMaxVisible` | Number | `0` | Chips mode only: how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
-| `quickFilterPlacement` | String | `''` | Where the quick-filter chips sit (`pages[].config.quickFilterPlacement`). `'toolbar'` keeps them on one row with the Filter button and the view switch, in whatever width that row has beside a side panel (DqTeamwachtrij): the chips take the room the buttons leave, and those that do not fit move into the overflow chip. The default leaves the layout as it was. |
+| `quickFilterPlacement` | String | `''` | Where the quick-filter chips sit (`pages[].config.quickFilterPlacement`). `'toolbar'` keeps them on one row with the Filter button and the view switch, in whatever width that row has beside a side panel (DqTeamwachtrij): the chips take the room the buttons leave, and those that do not fit move into the overflow chip. The default leaves the layout as it was. `'row'` puts them on a row of their own above the toolbar, wrapping onto more lines instead of folding into the overflow chip (DqTeamwachtrij); beside a side panel the row sits in the list column. |
 | `searchPlacement` | String | `''` | Where the board look's search field sits (`pages[].config.searchPlacement`). `'toolbar'` puts it on row 1, before the Filter button and the view switch, taking the room they leave (DqTeamwachtrij); the default opens row 2 with it. No effect outside the board look. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
@@ -1156,12 +1156,16 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
 | `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
-| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
-| `sortSelectOptions` | Array | `[]` | Options `{ value, label, order? }` for the sort dropdown. On a self-fetch page a choice orders the list as a header click does (`_order`, kept in the address): by the option's `order`, else its `value` read as an order (`"-createdAt"`, `"priority:desc,title"`). |
-| `sortSelectValue` | String | `''` | Selected sort dropdown value. Empty lets a self-fetch page show the option matching its current order, so a header click that matches an option shows it. |
+| `showSortSelect` | Boolean | `false` | Deprecated, without effect: the toolbar draws no sort select. The table sorts by its column headers; the list, card and map views by the Sort section in the index sidebar. |
+| `sortSelectOptions` | Array | `[]` | The orders the index sidebar's Sort section offers in the list, card and map views: `{ value, label, order? }`, the order its `order` or its `value` read as one (`"-createdAt"`, `"priority:desc,title"`). Without them the section offers the sortable columns. |
+| `sortSelectValue` | String | `''` | Deprecated, without effect: the Sort section shows the current order. |
 | `defaultOrder` | String, Object or Array | `''` | The order a self-fetch page opens on when neither the address nor `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`): `"-createdAt"`, `"priority:desc,title"`, an `_order` map `{ "priority": "desc" }` or a `[{ key, order }]` list. |
 
 The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
+
+## Sorting
+
+The table view sorts by its column headers and nothing else. The list, card and map views sort through the **Sort** section of the index sidebar (Search tab): a field, Ascending or Descending, and the order the list has now ("Current order: Created, descending"). The fields are `sortSelectOptions` when the page declares them, else the sortable columns. A choice goes the way a header click goes: a self-fetched list orders by it (`_order`, kept in the address) and the page emits `sort` for a host that sorts itself. `defaultOrder` is the order the page opens on. The section is absent in the table view.
 
 ## Folder sidebar
 
@@ -1191,6 +1195,8 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
   "filterField": "caseType", "allLabel": "All cases"
 }
 ```
+
+`scopeViews` limits the scope's look (columns, title, count line and the other scope keys) to the view modes it names, e.g. `["table", "list"]`, so a board view keeps the page's generic look (DqWerkbord) while the scope still filters it.
 
 `pane: false` draws no pane. The folder still comes from the deep-link filter (`/cases?caseType=<uuid>`) and its scope look (title, count line, columns, quick filters, `afterList` from the folder or its row's `x-index`) still applies, so a list narrowed to one case type looks like that case type's list without a folder column (boards DqWooVerzoeken, DqKlachten):
 
@@ -1282,6 +1288,8 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 When a click on a row navigates to the record's detail page, the built-in View is left out of that row's menu (and of the right-click menu): viewing is what the click does. The menu offers Edit (Dutch "Bewerken", pencil icon). A row whose `viewTo` answers `null`, or a page with no row-click target, keeps View. Actions the page declares itself are not touched. The rule applies in every look.
 
 ## Presentation per scope
+
+While a folder is selected its own filter stays quiet in the table: the table draws no header-filter chip for the `filterField` (the Active chip already names the folder), and a scope that sets its own `columns` does not get the folder's field back as a column, since every row holds the same value there.
 
 A folder in `folderSidebar` (or the `x-index` block of the row a register-derived folder comes from) can carry the
 presentation keys a query preset sets, under the same names: `title`, `quickFilters`, `cardFields`, `countText`,

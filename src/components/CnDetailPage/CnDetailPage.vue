@@ -1540,6 +1540,12 @@ export default {
 				},
 			},
 
+			// The open body tab, reported by a `tabs` widget, so a side entry
+			// with `tabs` shows only beside those tabs.
+			cnDetailReportTab: (id) => {
+				this.activeBodyTab = typeof id === 'string' ? id : ''
+			},
+
 			// The records `visibilityContext` names, keyed `@context.<name>`, so a tab's
 			// `visibleWhen` reads the case type as a grid widget's does. Null
 			// while they are on their way.
@@ -2462,8 +2468,12 @@ export default {
 
 		/**
 		 * The "what now" card (manifest `config.nextStep`):
-		 * `{ field?, stages: { <stage>: { title?, checklist, after? } } }`.
+		 * `{ field?, stagesFrom?, stages: { <stage>: { title?, checklist, after? } } }`.
 		 * Each checklist item is `{ label, doneField?, doneWhen?, hint? }`.
+		 * `stagesFrom` is a field path read like a `visibleWhen` field
+		 * (`@context.caseType.nextStep`): when it holds a stages map (or an
+		 * object with `stages`), that map replaces `stages` for this record, so
+		 * a case type keeps its own stage texts. Otherwise `stages` stays.
 		 * Rendered above the body for a stage that declares a checklist, with
 		 * the primary button inside it. See `CnNextStepCard`.
 		 *
@@ -2589,7 +2599,9 @@ export default {
 		 * entry is a widget definition (`{ id?, type, title?, content? }`) or
 		 * the id of a widget declared in `widgets`. The column stacks under
 		 * the body on a narrow page. Empty (the default) leaves the layout as
-		 * it is.
+		 * it is. An entry with `tabs` (tab ids of the body's `tabs` widget)
+		 * shows only while one of those tabs is open (DqZaaktypeVelden: the
+		 * option list beside Velden).
 		 *
 		 * @type {Array<string|object>}
 		 */
@@ -2902,6 +2914,8 @@ export default {
 
 	data() {
 		return {
+			/** The id of the open body tab a `tabs` widget reported, '' before one did. */
+			activeBodyTab: '',
 			/**
 			 * The records `visibilityContext` names, keyed `@context.<name>`: the row,
 			 * `null` when it could not be read, absent while it is on its way.
@@ -3403,13 +3417,32 @@ export default {
 		},
 
 		/**
+		 * `nextStep` with its stages read from the record when `stagesFrom`
+		 * names a stages map there (a case type's own texts), else as declared.
+		 *
+		 * @spec openspec/changes/detail-next-step-from-record/specs/detail-page/spec.md#requirement-the-next-step-stages-can-come-from-the-record
+		 * @return {object|null}
+		 */
+		effectiveNextStep() {
+			const config = this.nextStep
+			if (!config || typeof config !== 'object' || typeof config.stagesFrom !== 'string' || config.stagesFrom === '' || !this.widgetVisibilityData) {
+				return config
+			}
+			const found = readVisibleWhenPath(this.widgetVisibilityData, config.stagesFrom)
+			const stages = found && typeof found === 'object' && !Array.isArray(found)
+				? (found.stages && typeof found.stages === 'object' && !Array.isArray(found.stages) ? found.stages : found)
+				: null
+			return stages && Object.keys(stages).length > 0 ? { ...config, stages } : config
+		},
+
+		/**
 		 * The "what now" card for the record's stage, labels translated.
 		 *
 		 * @return {{stage: string, title: string, items: Array<object>, after: string}|null} The card, or null when the stage declares no checklist.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
 		 */
 		nextStepCard() {
-			const card = resolveNextStep(this.nextStep, this.currentObject, this.stageField)
+			const card = resolveNextStep(this.effectiveNextStep, this.currentObject, this.stageField)
 			if (!card) {
 				return null
 			}
@@ -3524,7 +3557,7 @@ export default {
 		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
 		 */
 		sideColumnWidgets() {
-			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetVisible(widget))
+			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetOnTab(widget) && this.sideWidgetVisible(widget))
 			if (!this.isBoard) {
 				return resolved
 			}
@@ -6214,6 +6247,22 @@ export default {
 			}
 
 			return compactLayoutRows(drawable)
+		},
+
+		/**
+		 * Whether a side entry belongs beside the open body tab: an entry with
+		 * `tabs` (tab ids) shows only while one of them is open; an entry
+		 * without shows beside every tab. Edit mode shows them all.
+		 *
+		 * @spec openspec/changes/detail-side-cards-per-tab/specs/detail-page/spec.md#requirement-a-side-card-can-follow-the-open-tab
+		 * @param {object} widget The side entry's definition.
+		 * @return {boolean}
+		 */
+		sideWidgetOnTab(widget) {
+			if (this.editingBody || !Array.isArray(widget.tabs) || widget.tabs.length === 0) {
+				return true
+			}
+			return widget.tabs.map((id) => String(id)).includes(this.activeBodyTab)
 		},
 
 		/**

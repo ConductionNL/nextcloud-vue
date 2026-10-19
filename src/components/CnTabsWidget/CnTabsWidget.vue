@@ -164,24 +164,37 @@
 							@selectObject="onSelectObject" />
 					</div>
 				</div>
-				<CnDetailWidgetHost
-					v-else-if="entry.widget"
-					:widget="entry.widget"
-					chrome="bare"
-					:availableWidgets="availableWidgets"
-					:objectId="objectId"
-					:object="objectData"
-					:objectType="objectType"
-					:schemaObject="schemaObject"
-					:register="register"
-					:schema="schema"
-					:store="store"
-					:surface="surface"
-					:integrationContext="integrationContext"
-					:cnRegistry="cnRegistry"
-					@geoSaved="onGeoSaved"
-					@openIntegration="onOpenIntegration"
-					@selectObject="onSelectObject" />
+				<template v-else-if="entry.widget">
+					<!-- A single widget with a title of its own heads its panel
+					     (DqZaakDocumenten); a title the tab already shows is not
+					     repeated. -->
+					<div
+						v-if="panelHeading(entry)"
+						class="cn-tabs-widget__panel-heading"
+						data-testid="cn-tabs-widget-panel-heading">
+						<h2 class="cn-tabs-widget__panel-title">
+							{{ panelHeading(entry).title }}
+						</h2>
+						<span v-if="panelHeading(entry).subtitle" class="cn-tabs-widget__panel-subtitle">{{ panelHeading(entry).subtitle }}</span>
+					</div>
+					<CnDetailWidgetHost
+						:widget="entry.widget"
+						chrome="bare"
+						:availableWidgets="availableWidgets"
+						:objectId="objectId"
+						:object="objectData"
+						:objectType="objectType"
+						:schemaObject="schemaObject"
+						:register="register"
+						:schema="schema"
+						:store="store"
+						:surface="surface"
+						:integrationContext="integrationContext"
+						:cnRegistry="cnRegistry"
+						@geoSaved="onGeoSaved"
+						@openIntegration="onOpenIntegration"
+						@selectObject="onSelectObject" />
+				</template>
 				<CnEmptyContent v-else :name="missingLabel(entry)" />
 			</CnTab>
 		</CnTabs>
@@ -361,6 +374,11 @@ export default {
 		 * label written in the manifest reads in the user's language.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * CnDetailPage's report of the open body tab, so its side column can
+		 * follow the tab (a side entry's `tabs`). Null on any other page.
+		 */
+		cnDetailReportTab: { default: null },
 	},
 
 	props: {
@@ -804,6 +822,16 @@ export default {
 			this.activeKey = this.resolvedTabs[index]?.key || ''
 		},
 
+		// Tell the detail page which tab is open (side cards per tab).
+		'activeTab.id': {
+			immediate: true,
+			handler(id) {
+				if (typeof this.cnDetailReportTab === 'function') {
+					this.cnDetailReportTab(id || '')
+				}
+			},
+		},
+
 		// A tab appeared or went. Keep the same tab active; when it is the active
 		// tab that went, the first visible one takes over and the hash follows.
 		visibleKeys() {
@@ -994,6 +1022,33 @@ export default {
 				}
 			}
 			return [tab?.widgetId]
+		},
+
+		/**
+		 * The title row a single widget's panel draws: the widget's own title
+		 * and its description, through the app's translate. None when the
+		 * widget has no title or no description, or the tab already shows the
+		 * title: a title alone names what the tab already names, so the
+		 * widget stays bare in its panel.
+		 *
+		 * @param {object} entry A resolved tab.
+		 * @return {{title: string, subtitle: string}|null} The heading, or null.
+		 */
+		panelHeading(entry) {
+			const widget = entry && entry.widget
+			const raw = widgetTitleOf(widget)
+			if (!raw) {
+				return null
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			const title = translate(raw)
+			if (title === entry.label) {
+				return null
+			}
+			if (!widget || typeof widget.description !== 'string' || widget.description === '') {
+				return null
+			}
+			return { title, subtitle: translate(widget.description) }
 		},
 
 		/**
@@ -1254,6 +1309,24 @@ export default {
 
 <style scoped>
 /* A stack (`widgetIds`): the panel's widget, then cards 20px apart. */
+.cn-tabs-widget__panel-heading {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 16px;
+}
+
+.cn-tabs-widget__panel-title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.cn-tabs-widget__panel-subtitle {
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-tabs-widget__stack {
 	display: flex;
 	flex-direction: column;

@@ -6,6 +6,14 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 
 ## Reference
 
+## Leaving items out (`excludeApps`, `excludeTypes`)
+
+`excludeApps` (a list, or one app id) leaves out the items of those apps, and `excludeTypes` those of those item types, so a feed shows only what the page is about (DqMijnWerk "Recente activiteit" without the system-tags entries). An item belongs to an app by its own `app` field, else by the `/apps/<app>/` part of its link or icon URL; its type is its `type` or `objectType`. The list then comes from the items API (never the native rendering, which cannot be filtered), which is asked for more items so a `limit` still fills.
+
+```json
+{ "id": "activity", "type": "nc-widget", "content": { "widgetId": "activity", "limit": 4, "excludeApps": ["systemtags"] } }
+```
+
 ## Fitting a dashboard cell (`limit`)
 
 A native widget draws as many items as it has, so in a short dashboard cell its list scrolls inside the cell. `limit` caps the list: the widget then reads its items from the items API (falling back to the native rendering when the API has none) and draws at most that many, with a "Show all" link under them to `showAllUrl`, else the page the widget names itself. Pick the limit by the cell: a vertical item takes about 52px (a 32px icon, 4px padding, 8px gap), the link about 36px.

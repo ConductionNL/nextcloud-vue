@@ -157,6 +157,25 @@
 			:widgets="sidePanel" />
 
 		<!-- Actions bar -->
+		<!-- `quickFilterPlacement: "row"`: the chips on a row of their own above
+		     the toolbar, wrapping onto more lines (DqTeamwachtrij). -->
+		<div
+			v-if="quickFilterPlacement === 'row' && tabStripEntries && tabStripEntries.length > 0"
+			class="cn-index-page__quick-filter-row"
+			data-testid="cn-index-page-quick-filter-row">
+			<CnQuickFilterBar
+				inline
+				:tabs="tabStripEntries"
+				:mode="quickFilterMode"
+				:maxVisible="quickFilterMaxVisible"
+				:fit="false"
+				:multiple="quickFilterMultiple"
+				:activeIndex="activeQuickFilterIndex"
+				:selectedIndices="selectedQuickFilterIndices"
+				:counts="effectiveTabCounts"
+				@update:activeIndex="onQuickFilterChange"
+				@update:selectedIndices="onQuickFilterMultiChange" />
+		</div>
 		<CnActionsBar
 			:layout="isBoardLook ? 'board' : 'nextcloud'"
 			:activeFilterChips="activeFilterChips"
@@ -189,9 +208,6 @@
 			:mapLabel="mapLabel"
 			:mapIcon="mapIcon"
 			:listIcon="listIcon"
-			:showSortSelect="showSortSelect"
-			:sortOptions="sortSelectOptions"
-			:sortValue="effectiveSortSelectValue"
 			:showSearch="search !== false && (inlineSearch || isBoardLook)"
 			:searchPlacement="searchPlacement"
 			:searchValue="effectiveSearchValue"
@@ -210,7 +226,6 @@
 			:bulkActions="mergedBulkActions"
 			:documentationUrl="documentationUrl"
 			:documentationLabel="documentationLabel || undefined"
-			@sortChange="onSortSelectChange"
 			@add="onAddClick"
 			@clearSelection="onSelect([])"
 			@removeFilter="onRemoveActiveFilter"
@@ -365,7 +380,7 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="tabStripEntries && tabStripEntries.length > 0" #filters>
+			<template v-if="tabStripEntries && tabStripEntries.length > 0 && quickFilterPlacement !== 'row'" #filters>
 				<CnQuickFilterBar
 					inline
 					:tabs="tabStripEntries"
@@ -373,7 +388,7 @@
 					:maxVisible="quickFilterMaxVisible"
 					:fit="quickFilterPlacement === 'toolbar'"
 					:multiple="quickFilterMultiple"
-					:activeIndex="activeQuickFilterIndex"
+					:activeIndex="shownQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
 					:counts="effectiveTabCounts"
 					@update:activeIndex="onQuickFilterChange"
@@ -772,7 +787,7 @@
 					:rowTitle="rowTitle"
 					:showUnread="showUnreadRows"
 					:filterable="tableHeaderFilters"
-					:activeFilters="effectiveActiveFilters"
+					:activeFilters="tableActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
 					@columnFilter="onColumnFilterEvent"
 					@sort="onSortEvent"
@@ -1057,6 +1072,8 @@
 					:selectable="selectable"
 					:clickToView="rowClickOpens"
 					:cardFields="resolvedCardFields"
+					:cardLayout="cardLayout"
+					:cardFieldColumns="cardFieldColumns"
 					:accentOf="cardAccent"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
@@ -1229,6 +1246,8 @@
 			:showMetadata="resolvedSidebar.showMetadata !== false"
 			:personalColumns="personalColumns"
 			:pinnedCount="pinnedColumnCount"
+			:sortOptions="sidebarSortOptions"
+			:currentSort="currentSortKeys"
 			v-bind="sidebarSearchProps"
 			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
@@ -1237,7 +1256,8 @@
 			@pinChange="onPinChange"
 			@columnsReset="onColumnsReset"
 			@filterChange="onFilterEvent"
-			@clearFilters="onClearFilters" />
+			@clearFilters="onClearFilters"
+			@sortChange="onSidebarSortChange" />
 	</div>
 </template>
 
@@ -1285,6 +1305,7 @@ import {
 	refIdOf,
 	resolveDropValue,
 } from '../../utils/boardReferenceColumns.js'
+import { isColumnSortable } from '../../utils/columnFilters.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
@@ -1311,7 +1332,7 @@ import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
-import { orderToSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
+import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -1350,7 +1371,7 @@ import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './pe
 import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
-import { BOARD_PAGE_SIZE, useSelfFetchList } from './useSelfFetchList.js'
+import { BOARD_PAGE_SIZE, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
 
 /** Rows fetched for one month in calendar mode. */
 const CALENDAR_PAGE_SIZE = 200
@@ -1935,6 +1956,20 @@ export default {
 		},
 
 		/**
+		 * Board look: the record layout of each card in the cards view
+		 * (manifest key `config.cardLayout`): `{ headPill, number, title,
+		 * meta, footerPill, footerDate }`, each part naming a field. See
+		 * CnObjectCard `layout`.
+		 *
+		 * @type {object}
+		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 */
+		cardLayout: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Gives each card in the card view a status accent: a colored start
 		 * border and icon. See CnObjectCard `accent`.
 		 *
@@ -2157,13 +2192,15 @@ export default {
 		 * the Filter button and the view switch, in whatever width that row has
 		 * beside a side panel (DqTeamwachtrij): the chips take the room the
 		 * buttons leave, and those that do not fit move into the overflow chip.
+		 * `'row'` puts them on a row of their own above the toolbar, wrapping
+		 * onto more lines instead of folding into the overflow chip.
 		 *
-		 * @type {''|'toolbar'}
+		 * @type {''|'toolbar'|'row'}
 		 */
 		quickFilterPlacement: {
 			type: String,
 			default: '',
-			validator: (v) => ['', 'toolbar'].includes(v),
+			validator: (v) => ['', 'toolbar', 'row'].includes(v),
 		},
 
 		/**
@@ -3197,9 +3234,11 @@ export default {
 		},
 
 		/**
-		 * Show a standalone sort dropdown in the actions bar (for card/list
-		 * views without sortable headers). Emits `@sort-change` with the value.
-		 * Fed from the manifest as `pages[].config.showSortSelect`.
+		 * Deprecated, without effect: the toolbar draws no sort select. The
+		 * table sorts by its column headers, the list, card and map views by
+		 * the Sort section in the index sidebar.
+		 *
+		 * @deprecated
 		 */
 		showSortSelect: {
 			type: Boolean,
@@ -3207,7 +3246,11 @@ export default {
 		},
 
 		/**
-		 * Options for the standalone sort dropdown (manifest `config.sortSelectOptions`).
+		 * The orders the index sidebar's Sort section offers in the list, card
+		 * and map views (manifest `config.sortSelectOptions`): `{ value, label,
+		 * order? }`, the order its `order` (an `orderToSortKeys` form) or its
+		 * `value` read as one. Without them the section offers the sortable
+		 * columns.
 		 *
 		 * @type {Array<{ value: string, label: string }>}
 		 */
@@ -3217,8 +3260,10 @@ export default {
 		},
 
 		/**
-		 * Selected value of the standalone sort dropdown. Empty lets a
-		 * self-fetch page show the option matching its current order.
+		 * Deprecated, without effect: the toolbar sort select is gone; the
+		 * Sort section in the index sidebar shows the current order.
+		 *
+		 * @deprecated
 		 */
 		sortSelectValue: {
 			type: String,
@@ -3271,6 +3316,9 @@ export default {
 		 *   defaults to `field`).
 		 * - `folders` — explicit folder list for `source:'custom'`.
 		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
+		 * - `scopeViews` — the view modes the scope's look (columns, title,
+		 *   count line and the other scope keys) applies in, e.g. `["table",
+		 *   "list"]`; other views keep the page's own look. Default: every view.
 		 * - `pane` — `false` draws no pane: the scope still comes from the
 		 *   deep-link filter (`?caseType=<id>`) and still applies its look, as
 		 *   a list narrowed to one case type does without a folder column.
@@ -5002,22 +5050,45 @@ export default {
 		},
 
 		/**
-		 * The sort select's shown value: `sortSelectValue` when the host
-		 * controls it, else on a self-fetch page the option whose order is the
-		 * list's current order (a header click that matches one shows it).
+		 * The list's current order, `[{ key, order }]`: the self-fetched list's,
+		 * else the `sortKeys` / `sortKey` props.
 		 *
-		 * @return {string} The option value, or '' when none matches.
+		 * @return {Array<{key: string, order: string}>} The order.
 		 */
-		effectiveSortSelectValue() {
-			if (this.sortSelectValue) {
-				return this.sortSelectValue
+		currentSortKeys() {
+			if (this.isSelfFetchMode && this.list && this.list.sortKeys) {
+				return this.list.sortKeys.value || []
 			}
-			if (!this.isSelfFetchMode || !this.list || !this.list.sortKeys) {
-				return ''
+			if (Array.isArray(this.sortKeys) && this.sortKeys.length > 0) {
+				return this.sortKeys
 			}
-			const current = this.list.sortKeys.value || []
-			const match = (this.sortSelectOptions || []).find((o) => o && sameSortKeys(this.sortSelectKeys(o), current))
-			return match ? match.value : ''
+			return this.sortKey ? [{ key: this.sortKey, order: this.sortOrder || 'asc' }] : []
+		},
+
+		/**
+		 * The orders the index sidebar's Sort section offers: none in the table
+		 * view, which sorts by its column headers; else `sortSelectOptions`,
+		 * or else the sortable columns, ascending.
+		 *
+		 * @return {Array<{value: string, label: string, keys: Array<{key: string, order: string}>}>} The options.
+		 */
+		sidebarSortOptions() {
+			if (this.currentViewMode === 'table') {
+				return []
+			}
+			if (Array.isArray(this.sortSelectOptions) && this.sortSelectOptions.length > 0) {
+				return this.sortSelectOptions
+					.filter((o) => o && o.value !== undefined && o.value !== null)
+					.map((o) => ({
+						value: String(o.value),
+						label: this.cnTranslate(o.label || String(o.value)),
+						keys: orderToSortKeys(o.order !== undefined ? o.order : o.value),
+					}))
+					.filter((o) => o.keys.length > 0)
+			}
+			return (this.tableColumns || [])
+				.filter((c) => c && typeof c === 'object' && c.key && isColumnSortable(c, this.effectiveSchema))
+				.map((c) => ({ value: c.key, label: this.cnTranslate(c.label || c.key), keys: [{ key: c.key, order: 'asc' }] }))
 		},
 
 		/**
@@ -5049,7 +5120,7 @@ export default {
 		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
 		 */
 		activeScopeLayout() {
-			if (!this.folderSidebar) {
+			if (!this.folderSidebar || !this.scopeShapesView) {
 				return { columns: null, sortKeys: [], searchFields: [] }
 			}
 			return resolveScopeLayout({
@@ -5057,6 +5128,23 @@ export default {
 				row: this.activeScopeRow,
 				pageColumns: this.declaredColumns,
 			})
+		},
+
+		/**
+		 * Whether the active scope's look applies in the current view mode:
+		 * always, unless `folderSidebar.scopeViews` names the view modes it is
+		 * for (`["table", "list"]`), so the board keeps the page's generic
+		 * look (DqWerkbord). The scope's filter applies in every view.
+		 *
+		 * @spec openspec/changes/index-scope-views/specs/index-page/spec.md#requirement-a-scope-look-can-be-limited-to-view-modes
+		 * @return {boolean}
+		 */
+		scopeShapesView() {
+			const views = this.folderSidebar && this.folderSidebar.scopeViews
+			if (!Array.isArray(views) || views.length === 0) {
+				return true
+			}
+			return views.includes(this.currentViewMode)
 		},
 
 		/**
@@ -5093,7 +5181,7 @@ export default {
 		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
 		 */
 		activeScopePresentation() {
-			if (!this.folderSidebar) {
+			if (!this.folderSidebar || !this.scopeShapesView) {
 				return {}
 			}
 			return resolveScopePresentation({ scope: this.activeScope, row: this.activeScopeRow })
@@ -5335,6 +5423,20 @@ export default {
 		 * @return {(Array<object>|null)} The tabs.
 		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
 		 */
+		/**
+		 * The chip the strip lights: the active tab, else the default tab of
+		 * tabs that arrived after setup (`quickFiltersFrom`), which is the
+		 * one the fetch applies.
+		 *
+		 * @return {number|null} The tab index, or null without tabs.
+		 */
+		shownQuickFilterIndex() {
+			if (this.activeQuickFilterIndex !== null && this.activeQuickFilterIndex !== undefined) {
+				return this.activeQuickFilterIndex
+			}
+			return this.quickFilterMultiple ? null : resolveInitialQuickFilterIndex(this.tabStripEntries)
+		},
+
 		tabStripEntries() {
 			if (this.lensTabs.length > 0) {
 				return this.lensTabs
@@ -5559,6 +5661,22 @@ export default {
 				})
 			}
 			return specs
+		},
+
+		/**
+		 * The rendered columns by key, so a card fact shows what its table
+		 * cell shows (label, formatter, widget).
+		 *
+		 * @return {object} Column definitions keyed by property.
+		 */
+		cardFieldColumns() {
+			const byKey = {}
+			for (const col of this.renderedColumns || []) {
+				if (col && typeof col === 'object' && typeof col.key === 'string') {
+					byKey[col.key] = col
+				}
+			}
+			return byKey
 		},
 
 		/**
@@ -6410,8 +6528,11 @@ export default {
 
 			const present = new Set(cols.map((c) => (typeof c === 'string' ? c : c.key)))
 			const byKey = new Map(this.governedColumns.map((c) => [c.key, c]))
+			// A scope that sets its own columns does not get its folder field back:
+			// every row of the scope holds the same value there.
+			const scopeField = this.activeScopeLayout.columns ? this.folderFilterKey : ''
 			visible.forEach((key) => {
-				if (present.has(key)) {
+				if (present.has(key) || key === scopeField) {
 					return
 				}
 				const def = byKey.get(key)
@@ -6886,6 +7007,28 @@ export default {
 			return count > 0 ? `${name}, ${t('nextcloud-vue', '{count} active', { count })}` : name
 		},
 
+		/** @return {string} The field the folder sidebar filters by, or ''. */
+		folderFilterKey() {
+			return (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
+		},
+
+		/**
+		 * The filters the table's header filters show: every active filter but
+		 * the selected folder's own, which the Active chip already names, so
+		 * the table draws no summary chip for it.
+		 *
+		 * @return {object} The filters.
+		 */
+		tableActiveFilters() {
+			const filters = this.effectiveActiveFilters || {}
+			const key = this.folderFilterKey
+			if (!key || this.selectedFolderId === null || this.selectedFolderId === undefined || !Object.hasOwn(filters, key)) {
+				return filters
+			}
+			const { [key]: _folder, ...rest } = filters
+			return rest
+		},
+
 		/**
 		 * The active filters as chips for the board toolbar's second row, one
 		 * per filter: "Team: Woo". A filter with no value is not active.
@@ -7289,6 +7432,8 @@ export default {
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
 				personalColumns: this.personalColumns,
 				pinnedCount: this.pinnedColumnCount,
+				sortOptions: this.sidebarSortOptions,
+				currentSort: this.currentSortKeys,
 				...this.sidebarSearchProps,
 			}
 		},
@@ -8761,35 +8906,18 @@ export default {
 		},
 
 		/**
-		 * The sort keys a sort-select option stands for: its `order` (any
-		 * `orderToSortKeys` form), else its `value` read as an order.
+		 * An order chosen in the index sidebar's Sort section. It goes the way
+		 * a header click goes: the self-fetched list sorts (`_order`, kept in
+		 * the address), and `sort` is emitted for a host that sorts itself.
 		 *
-		 * @param {object} option A `sortSelectOptions` entry.
-		 * @return {Array<{key: string, order: string}>} The sort keys.
-		 */
-		sortSelectKeys(option) {
-			if (!option) {
-				return []
-			}
-			return orderToSortKeys(option.order !== undefined ? option.order : option.value)
-		},
-
-		/**
-		 * A choice in the sort select. On a self-fetch page it orders the list
-		 * as a header click does (`_order`, kept in the address); every page
-		 * also emits `sort-change` with the value.
-		 *
-		 * @param {string} value The chosen option's value.
+		 * @param {Array<{key: string, order: string}>} keys The chosen order.
 		 * @return {void}
 		 */
-		onSortSelectChange(value) {
-			const option = (this.sortSelectOptions || []).find((o) => o && o.value === value)
-			const keys = this.sortSelectKeys(option)
-			if (option && keys.length > 0 && this.isSelfFetchMode && typeof this.list.onSort === 'function') {
-				this.list.onSort({ key: keys[0].key, order: keys[0].order, keys })
-				this.persistViewStateToRoute(this.currentViewState())
+		onSidebarSortChange(keys) {
+			if (!Array.isArray(keys) || keys.length === 0) {
+				return
 			}
-			this.$emit('sort-change', value)
+			this.onSortEvent({ key: keys[0].key, order: keys[0].order, keys })
 		},
 
 		/**
@@ -9977,6 +10105,7 @@ export default {
 					'columns-reset': () => this.onColumnsReset(),
 					'filter-change': (event) => this.onFilterEvent(event),
 					'clear-filters': () => this.onClearFilters(),
+					'sort-change': (keys) => this.onSidebarSortChange(keys),
 				},
 			}
 		},

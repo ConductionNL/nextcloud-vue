@@ -29,7 +29,8 @@ import { parseDateValue } from './dateVariant.js'
  * `upcomingWeeksLabel` `{ one, other }` (from `upcomingWeeksFrom` days left,
  * default 35, it reads the weeks left, rounded). Texts go through `translate`
  * before `{count}` is filled. Tones: `danger` (overdue), `today`, `upcoming`,
- * `empty`.
+ * `empty`. With `soonWithin` (days), today and a date at most that many days
+ * ahead also carry `soon: true`, drawn in the warning colour.
  *
  * @param {unknown} value A Date, a timestamp or an ISO string.
  * @param {object} [config] The `due` config.
@@ -54,9 +55,23 @@ export function resolveDue(value, config, translate = (text) => text, now = new 
 	}
 	if (days === 0) {
 		const label = typeof cfg.todayLabel === 'string' && cfg.todayLabel !== '' ? translate(cfg.todayLabel) : t('nextcloud-vue', 'Due today')
-		return { text: label, tone: 'today' }
+		return withSoon({ text: label, tone: 'today' }, 0, cfg)
 	}
-	return { text: upcomingText(-days, cfg, translate) ?? formatRelativeDate(date, { now }), tone: 'upcoming' }
+	return withSoon({ text: upcomingText(-days, cfg, translate) ?? formatRelativeDate(date, { now }), tone: 'upcoming' }, -days, cfg)
+}
+
+/**
+ * Marks a due date within `soonWithin` days as soon.
+ *
+ * @param {{text: string, tone: string}} result The due text and tone.
+ * @param {number} left Whole days left, 0 for today.
+ * @param {object} cfg The `due` config.
+ * @return {{text: string, tone: string, soon?: boolean}} The result, with `soon: true` when it is due soon.
+ * @spec openspec/changes/due-text-soon/specs/due-text-soon/spec.md#requirement-a-due-date-within-a-few-days-reads-as-soon
+ */
+function withSoon(result, left, cfg) {
+	const within = Number(cfg.soonWithin)
+	return Number.isFinite(within) && within >= 0 && left <= within ? { ...result, soon: true } : result
 }
 
 /**

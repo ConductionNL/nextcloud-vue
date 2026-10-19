@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-files-browser"
-		:class="{ 'cn-files-browser--dragging': dragging }"
+		:class="{ 'cn-files-browser--dragging': dragging, 'cn-files-browser--drop-panel': dropOverlay && dropDetail !== '' }"
 		data-testid="cn-files-browser"
 		@dragenter.prevent="onDragEnter"
 		@dragover.prevent="onDragOver"
@@ -22,7 +22,10 @@
 			aria-hidden="true"
 			data-testid="cn-files-browser-drop-overlay">
 			<span class="cn-files-browser__drop-icon"><Upload :size="28" /></span>
-			<strong class="cn-files-browser__drop-label">{{ dropLabel }}</strong>
+			<strong class="cn-files-browser__drop-label">{{ cnTranslate(dropLabel) }}</strong>
+			<span v-if="dropDetailText"
+				class="cn-files-browser__drop-detail"
+				data-testid="cn-files-browser-drop-detail">{{ dropDetailText }}</span>
 		</div>
 		<p v-if="dropOverlay"
 			class="hidden-visually"
@@ -1026,10 +1029,24 @@ export default {
 			default: false,
 		},
 
-		/** The line `dropOverlay` draws and announces. */
+		/** The line `dropOverlay` draws and announces, through the host translate. */
 		dropLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Drop to add'),
+		},
+
+		/**
+		 * A second line under `dropLabel` in the drop state, through the host
+		 * translate: where the files go ("{count} bestanden komen bij zaak
+		 * 2026-0082, als nog te beoordelen document."). `{count}` is the number
+		 * of files dragged when the browser can tell, and the line is left out
+		 * when it cannot. The overlay then also fills the panel.
+		 *
+		 * @spec openspec/changes/files-drop-panel/specs/files-browser/spec.md#requirement-the-drop-state-fills-the-panel-and-says-where-the-files-go
+		 */
+		dropDetail: {
+			type: String,
+			default: '',
 		},
 
 		/** Show a line under the list saying files can be dropped on it. */
@@ -1259,6 +1276,8 @@ export default {
 			 */
 			visibleColumnKeys: null,
 			dragging: false,
+			/** The number of files the current drag carries, null when unknown. */
+			dragCount: null,
 			/** Nested dragenter/dragleave pairs, so a child does not end the drag. */
 			dragDepth: 0,
 			/** What the live region says: the drop label, then what was added. */
@@ -1294,6 +1313,24 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * `dropDetail` through the host translate with `{count}` filled, '' when
+		 * there is none or the count it needs is unknown.
+		 *
+		 * @spec openspec/changes/files-drop-panel/specs/files-browser/spec.md#requirement-the-drop-state-fills-the-panel-and-says-where-the-files-go
+		 * @return {string}
+		 */
+		dropDetailText() {
+			if (!this.dropDetail) {
+				return ''
+			}
+			const text = this.cnTranslate(this.dropDetail)
+			if (!text.includes('{count}')) {
+				return text
+			}
+			return this.dragCount === null ? '' : text.replace(/\{count\}/g, String(this.dragCount))
+		},
+
 		/**
 		 * Whether this person may add to and change the open folder. Over
 		 * WebDAV the server answers each write on its own, so this is true;
@@ -2247,7 +2284,8 @@ export default {
 			this.dragDepth++
 			if (!this.dragging) {
 				this.dragging = true
-				this.dropStatus = this.dropOverlay ? this.dropLabel : ''
+				this.dragCount = this.draggedFileCount(event)
+				this.dropStatus = this.dropOverlay ? [this.cnTranslate(this.dropLabel), this.dropDetailText].filter(Boolean).join(' ') : ''
 			}
 		},
 
@@ -2275,6 +2313,22 @@ export default {
 				this.dragging = false
 				this.dropStatus = ''
 			}
+		},
+
+		/**
+		 * How many files a drag carries, or null when the browser does not
+		 * say (it lists the items only once they are dropped in some browsers).
+		 *
+		 * @param {DragEvent} event The drag.
+		 * @return {number|null}
+		 */
+		draggedFileCount(event) {
+			const items = event?.dataTransfer?.items
+			if (!items || typeof items.length !== 'number') {
+				return null
+			}
+			const count = Array.from(items).filter((item) => item && item.kind === 'file').length
+			return count > 0 ? count : null
 		},
 
 		/**
@@ -2886,6 +2940,18 @@ export default {
 .cn-files-browser--dragging {
 	outline: 2px dashed var(--color-primary-element);
 	outline-offset: 4px;
+}
+
+/* With a `dropDetail` the drop state fills the panel it sits in, as the
+   board draws it (DqZaakDocumentenSlepen), not only the list's own height. */
+.cn-files-browser--dragging.cn-files-browser--drop-panel {
+	min-height: max(320px, 100%);
+}
+
+.cn-files-browser__drop-detail {
+	max-width: 520px;
+	font-size: 14px;
+	color: var(--color-main-text);
 }
 
 .cn-files-browser__drop-overlay {

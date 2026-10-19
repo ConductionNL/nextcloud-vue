@@ -30,11 +30,15 @@
 				:showRefresh="false"
 				:headerLink="entry.headerLink"
 				:flush="variant === 'stat-row'">
+				<template v-if="headerNotes[entry.id]" #actions>
+					<span class="cn-index-page-widgets__note" data-testid="cn-index-page-widget-note">{{ headerNotes[entry.id] }}</span>
+				</template>
 				<component
 					:is="entry.renderer"
 					:widgetId="entry.id"
 					:content="entry.content"
-					v-bind="declaredContent(entry)" />
+					v-bind="declaredContent(entry)"
+					@header="onHeader(entry.id, $event)" />
 			</CnWidgetWrapper>
 		</div>
 	</component>
@@ -85,6 +89,13 @@ export default {
 		},
 	},
 
+	data() {
+		return {
+			/** The header note each widget reported (`header` event), by widget id. */
+			headerNotes: {},
+		}
+	},
+
 	computed: {
 		/**
 		 * The renderable entries, in the listed order.
@@ -123,6 +134,23 @@ export default {
 
 	methods: {
 		/**
+		 * Keep the header note a widget reports ("4 van 5 aanwezig"); only a
+		 * changed note is stored, so a report on render does not loop.
+		 *
+		 * @param {string} id The widget id.
+		 * @param {object} header `{ note?, link? }` from the widget.
+		 * @return {void}
+		 * @spec openspec/changes/side-panel-header-note/specs/side-panel-header-note/spec.md#requirement-a-side-panel-card-shows-the-note-its-widget-reports
+		 */
+		onHeader(id, header) {
+			const note = header && typeof header === 'object' && typeof header.note === 'string' ? header.note : ''
+			if ((this.headerNotes[id] || '') === note) {
+				return
+			}
+			this.headerNotes = { ...this.headerNotes, [id]: note }
+		},
+
+		/**
 		 * The content keys an entry's renderer declares as props. An undeclared
 		 * key would fall through onto the renderer's root; the whole content
 		 * still arrives as `content`.
@@ -158,6 +186,13 @@ export default {
 </script>
 
 <style scoped>
+.cn-index-page-widgets__note {
+	align-self: center;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	white-space: nowrap;
+}
+
 .cn-index-page-widgets--stat-row {
 	margin-bottom: var(--cn-board-section-gap, 20px);
 }
