@@ -33,6 +33,31 @@
 				{{ noticeText }}
 			</p>
 		</div>
+		<!-- table: one row per record under a header, one cell per `columns`
+		     entry; a cell past its `alertAbove` reads bold in the danger colour. -->
+		<table v-else-if="presentation === 'table'" class="cn-record-list__table" data-testid="cn-record-list-table">
+			<thead>
+				<tr>
+					<th
+						v-for="col in tableColumns"
+						:key="col.key"
+						scope="col"
+						:class="{ 'cn-record-list__cell--end': col.align === 'end' }">
+						{{ col.label }}
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="item in tableRows" :key="item.key" data-testid="cn-record-list-item">
+					<td
+						v-for="cell in item.cells"
+						:key="cell.key"
+						:class="{ 'cn-record-list__cell--end': cell.align === 'end', 'cn-record-list__cell--alert': cell.alert }">
+						{{ cell.text }}
+					</td>
+				</tr>
+			</tbody>
+		</table>
 		<ul v-else class="cn-record-list__list">
 			<li
 				v-for="item in items"
@@ -201,6 +226,9 @@
 				</span>
 			</li>
 		</ul>
+		<p v-if="footnote && !error" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
+			{{ footnote }}
+		</p>
 		<!-- `footerAction`: one action under the list, also under the empty
 		     text ("Beroep registreren"). With `disabledWhen` it greys out and
 		     says why (`disabledReason`: "Kan zodra de beslissing is
@@ -255,7 +283,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /** Gives each list's footer reason its own element id. */
 let footerSeq = 0
-const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice']
+const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice', 'table']
 
 /** The tones a `notice` list takes. */
 const NOTICE_VARIANTS = ['info', 'warning', 'error']
@@ -581,6 +609,49 @@ export default {
 					bar: this.barOf(row, barScale),
 				}
 			})
+		},
+
+		/**
+		 * The `table` presentation's columns: `{ label, value, align?, alertAbove? }`,
+		 * `value` a template over the row.
+		 *
+		 * @return {Array<object>} The columns with a key and a translated label.
+		 * @spec openspec/changes/record-list-table/specs/record-list-table/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-small-table
+		 */
+		tableColumns() {
+			const columns = Array.isArray(this.content?.columns) ? this.content.columns : []
+			return columns
+				.filter((col) => col && typeof col === 'object' && typeof col.value === 'string')
+				.map((col, index) => ({ ...col, key: `col-${index}`, label: typeof col.label === 'string' ? this.translate(col.label) : '' }))
+		},
+
+		/**
+		 * The `table` presentation's rows: one cell per column.
+		 *
+		 * @return {Array<object>} `{ key, cells: [{ key, text, align, alert }] }`.
+		 * @spec openspec/changes/record-list-table/specs/record-list-table/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-small-table
+		 */
+		tableRows() {
+			return this.items.map((item) => ({
+				key: item.key,
+				cells: this.tableColumns.map((col) => {
+					const text = this.fill(col.value, item.row)
+					const limit = Number(col.alertAbove)
+					const value = Number(text)
+					return {
+						key: col.key,
+						text,
+						align: col.align,
+						alert: col.alertAbove !== undefined && Number.isFinite(limit) && text !== '' && Number.isFinite(value) && value > limit,
+					}
+				}),
+			}))
+		},
+
+		/** @return {string} The note under the list (`footnote`), translated. */
+		footnote() {
+			const note = this.content?.footnote
+			return typeof note === 'string' && note !== '' ? this.translate(note) : ''
 		},
 
 		/**
@@ -1460,6 +1531,42 @@ export default {
 .cn-record-list__due--danger {
 	color: var(--color-text-error, var(--color-error-text));
 	font-weight: 600;
+}
+
+.cn-record-list__table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+
+.cn-record-list__table th {
+	padding: 6px 0;
+	border-bottom: 1px solid var(--color-border);
+	color: var(--color-text-maxcontrast);
+	font-weight: 600;
+	text-align: start;
+}
+
+.cn-record-list__table td {
+	padding: 8px 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-record-list__table .cn-record-list__cell--end {
+	padding-inline-start: 12px;
+	text-align: end;
+	font-variant-numeric: tabular-nums;
+}
+
+.cn-record-list__table .cn-record-list__cell--alert {
+	color: var(--color-text-error, var(--color-error-text));
+	font-weight: 700;
+}
+
+.cn-record-list__footnote {
+	margin: 8px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-record-list__due--empty {
