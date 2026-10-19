@@ -1154,8 +1154,9 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
 | `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
 | `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
-| `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
-| `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
+| `sortSelectOptions` | Array | `[]` | Options `{ value, label, order? }` for the sort dropdown. On a self-fetch page a choice orders the list as a header click does (`_order`, kept in the address): by the option's `order`, else its `value` read as an order (`"-createdAt"`, `"priority:desc,title"`). |
+| `sortSelectValue` | String | `''` | Selected sort dropdown value. Empty lets a self-fetch page show the option matching its current order, so a header click that matches an option shows it. |
+| `defaultOrder` | String, Object or Array | `''` | The order a self-fetch page opens on when neither the address nor `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`): `"-createdAt"`, `"priority:desc,title"`, an `_order` map `{ "priority": "desc" }` or a `[{ key, order }]` list. |
 
 The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
 
