@@ -4,28 +4,28 @@
 import { translate as t } from '@nextcloud/l10n'
 
 /**
- * Saved filters a user added to the app menu.
+ * Saved views a user added to the app menu.
  *
- * Per user, in the app's preferences (`cn_saved_filter_menu`), as a list of
+ * Per user, in the app's preferences (`cn_saved_view_menu`), as a list of
  * `{ id, page, name }`: the view id (or `default:<slug>`), the route name of
  * the index page it filters, and the name to show. The view itself is not
- * touched, so a filter shared with the user can be added like an own one, and
+ * touched, so a view shared with the user can be added like an own one, and
  * removing it from the menu never deletes it.
  *
- * A menu entry links to its page with `?savedFilter=<id>`; the page applies
- * that filter. The entries form a "My filters" group in the menu.
+ * A menu entry links to its page with `?savedView=<id>`; the page applies
+ * that view. The entries form a "My views" group in the menu.
  *
- * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
  */
 
 /** The preference key the list is stored under. */
-export const SAVED_FILTER_MENU_KEY = 'cn_saved_filter_menu'
+export const SAVED_VIEW_MENU_KEY = 'cn_saved_view_menu'
 
-/** The id of the "My filters" caption. */
-export const SAVED_FILTER_MENU_CAPTION = 'saved-filters-caption'
+/** The id of the "My views" caption. */
+export const SAVED_VIEW_MENU_CAPTION = 'saved-views-caption'
 
-/** The id prefix of a menu entry made from a saved filter. */
-export const SAVED_FILTER_MENU_PREFIX = 'saved-filter-'
+/** The id prefix of a menu entry made from a saved view. */
+export const SAVED_VIEW_MENU_PREFIX = 'saved-view-'
 
 /**
  * The stored list, cleaned: entries with an id and a page, no repeats.
@@ -33,7 +33,7 @@ export const SAVED_FILTER_MENU_PREFIX = 'saved-filter-'
  * @param {unknown} entries The stored value.
  * @return {Array<{id: string, page: string, name: string}>} The list.
  */
-export function normalizeSavedFilterMenu(entries) {
+export function normalizeSavedViewMenu(entries) {
 	const seen = new Set()
 	const out = []
 	for (const e of Array.isArray(entries) ? entries : []) {
@@ -52,32 +52,32 @@ export function normalizeSavedFilterMenu(entries) {
  * Add an entry, or remove it when it is already there.
  *
  * @param {Array<object>} entries The current list.
- * @param {{id: string, page: string, name: string}} entry The filter.
+ * @param {{id: string, page: string, name: string}} entry The view.
  * @return {Array<{id: string, page: string, name: string}>} The new list.
  */
-export function toggleSavedFilterMenuEntry(entries, entry) {
-	const list = normalizeSavedFilterMenu(entries)
+export function toggleSavedViewMenuEntry(entries, entry) {
+	const list = normalizeSavedViewMenu(entries)
 	const id = String(entry.id)
 	const present = list.some((e) => e.id === id && e.page === entry.page)
 	if (present) {
 		return list.filter((e) => !(e.id === id && e.page === entry.page))
 	}
-	return normalizeSavedFilterMenu([...list, { id, page: entry.page, name: entry.name }])
+	return normalizeSavedViewMenu([...list, { id, page: entry.page, name: entry.name }])
 }
 
 /**
- * Bring one page's entries in line with the filters that page can show:
- * current names, and no entry for a filter that was deleted or is no longer
+ * Bring one page's entries in line with the views that page can show:
+ * current names, and no entry for a view that was deleted or is no longer
  * shared with the user. Other pages' entries are left alone.
  *
  * @param {Array<object>} entries The current list.
  * @param {string} page The page's route name.
- * @param {Array<object>} views The filters the page lists (defaults included).
+ * @param {Array<object>} views The views the page lists (defaults included).
  * @return {Array<{id: string, page: string, name: string}>} The new list.
  */
-export function syncSavedFilterMenu(entries, page, views) {
+export function syncSavedViewMenu(entries, page, views) {
 	const byId = new Map((Array.isArray(views) ? views : []).map((v) => [String(v.id || v.slug), v]))
-	return normalizeSavedFilterMenu(entries)
+	return normalizeSavedViewMenu(entries)
 		.filter((e) => e.page !== page || byId.has(e.id))
 		.map((e) => (e.page === page ? { ...e, name: byId.get(e.id).name || e.name } : e))
 }
@@ -100,9 +100,9 @@ function opensAnyOf(item, pages) {
 }
 
 /**
- * The manifest menu with the user's saved filters in it, as their own group:
- * a "My filters" caption and one entry per filter. The group goes after the
- * last entry that opens one of the filters' pages, before the next caption,
+ * The manifest menu with the user's saved views in it, as their own group:
+ * a "My views" caption and one entry per view. The group goes after the
+ * last entry that opens one of the views' pages, before the next caption,
  * so it sits with the list it filters (and after a user group such as "My
  * case types" that opens the same list).
  *
@@ -110,8 +110,8 @@ function opensAnyOf(item, pages) {
  * @param {Array<object>} entries The user's list.
  * @return {Array<object>} A new menu, in manifest order; the given one when the list is empty.
  */
-export function withSavedFilterMenu(menu, entries) {
-	const list = normalizeSavedFilterMenu(entries)
+export function withSavedViewMenu(menu, entries) {
+	const list = normalizeSavedViewMenu(entries)
 	if (!Array.isArray(menu) || list.length === 0) {
 		return menu
 	}
@@ -129,12 +129,12 @@ export function withSavedFilterMenu(menu, entries) {
 		at = next === -1 ? sorted.length : next
 	}
 	const group = [
-		{ id: SAVED_FILTER_MENU_CAPTION, type: 'caption', label: t('nextcloud-vue', 'My filters') },
+		{ id: SAVED_VIEW_MENU_CAPTION, type: 'caption', label: t('nextcloud-vue', 'My views') },
 		...list.map((e) => ({
-			id: `${SAVED_FILTER_MENU_PREFIX}${e.id}`,
+			id: `${SAVED_VIEW_MENU_PREFIX}${e.id}`,
 			label: e.name,
 			route: e.page,
-			query: { savedFilter: e.id },
+			query: { savedView: e.id },
 			icon: 'FilterOutline',
 		})),
 	]

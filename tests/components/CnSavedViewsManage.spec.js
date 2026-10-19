@@ -2,10 +2,10 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * Saved filters: the Save filter name, one manage menu per filter, the edit
- * dialog, and default filters an app ships through its manifest.
+ * Saved views: the Save view name, one manage menu per view, the edit
+ * dialog, and default views an app ships through its manifest.
  *
- * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-2
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-2
  */
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
@@ -17,9 +17,9 @@ jest.mock('@nextcloud/auth', () => ({ getCurrentUser: jest.fn(() => ({ uid: 'ali
 const { flushPromises, mount } = require('@vue/test-utils')
 const axios = require('@nextcloud/axios').default
 const CnSavedViewsControl = require('../../src/components/CnSavedViewsControl/CnSavedViewsControl.vue').default
-const CnSavedFiltersPanel = require('../../src/components/CnSavedFiltersPanel/CnSavedFiltersPanel.vue').default
+const CnSavedViewsPanel = require('../../src/components/CnSavedViewsPanel/CnSavedViewsPanel.vue').default
 const CnIndexSidebar = require('../../src/components/CnIndexSidebar/CnIndexSidebar.vue').default
-const { syncSavedFilterMenu, toggleSavedFilterMenuEntry, withSavedFilterMenu } = require('../../src/utils/savedFilterMenu.js')
+const { syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } = require('../../src/utils/savedViewMenu.js')
 const CnSavedViewEditDialog = require('../../src/components/CnSavedViewEditDialog/CnSavedViewEditDialog.vue').default
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 const { defaultFilterViews } = require('../../src/utils/savedViewHelpers.js')
@@ -32,17 +32,17 @@ const DEFAULTS = [{ slug: 'overdue-mine', name: 'Te laat, van mij', filters: { a
 
 const ids = (w, id) => w.findAll(`[data-testid="${id}"]`)
 
-describe('the toolbar keeps Save filter only', () => {
-	it('names the board-look button Save filter and lists no filters in the toolbar', () => {
+describe('the toolbar keeps Save view only', () => {
+	it('names the board-look button Save view and lists no views in the toolbar', () => {
 		const w = mount(CnSavedViewsControl, { props: { views: [own], currentUserId: 'alice' }, global: { provide: { cnLook: 'board' } } })
-		expect(w.get('[data-testid="cn-saved-views-control"]').attributes('aria-label')).toBe('Save filter')
+		expect(w.get('[data-testid="cn-saved-views-control"]').attributes('aria-label')).toBe('Save view')
 		expect(ids(w, 'cn-saved-views-item')).toHaveLength(0)
 		expect(ids(w, 'cn-saved-views-delete')).toHaveLength(0)
 	})
 })
 
-describe('the saved-filters panel', () => {
-	const mountPanel = (views, props = {}) => mount(CnSavedFiltersPanel, { props: { views, currentUserId: 'alice', ...props } })
+describe('the saved-views panel', () => {
+	const mountPanel = (views, props = {}) => mount(CnSavedViewsPanel, { props: { views, currentUserId: 'alice', ...props } })
 	const entriesOf = (w, id) => ['edit', 'update', 'share', 'copy', 'menu', 'delete']
 		.filter((e) => w.findAll(`[data-testid="cn-saved-views-${e}"][data-view-id="${id}"]`).length > 0)
 
@@ -59,7 +59,7 @@ describe('the saved-filters panel', () => {
 		expect(entriesOf(w, '3')).toEqual(['copy'])
 	})
 
-	it('offers Add to menu on every filter when there is a menu, and Remove once added', () => {
+	it('offers Add to menu on every view when there is a menu, and Remove once added', () => {
 		const w = mountPanel([own, readOnly], { menuIds: ['3'] })
 		expect(w.get('[data-testid="cn-saved-views-menu"][data-view-id="1"]').text()).toContain('Add to menu')
 		expect(w.get('[data-testid="cn-saved-views-menu"][data-view-id="3"]').text()).toContain('Remove from menu')
@@ -78,14 +78,14 @@ describe('the saved-filters panel', () => {
 		expect(w.emitted('save-request')).toHaveLength(1)
 	})
 
-	it('lists defaults first under Default filters, offering a copy and the menu only', () => {
+	it('lists defaults first under Default views, offering a copy and the menu only', () => {
 		const w = mountPanel([own, ...defaultFilterViews(DEFAULTS)], { menuIds: [] })
-		expect(w.get('[data-testid="cn-saved-views-section-seeded"]').text()).toBe('Default filters')
+		expect(w.get('[data-testid="cn-saved-views-section-seeded"]').text()).toBe('Default views')
 		expect(ids(w, 'cn-saved-views-item')[0].text()).toContain('Te laat, van mij')
 		expect(entriesOf(w, 'default:overdue-mine')).toEqual(['copy', 'menu'])
 	})
 
-	it('marks the applied filter as pressed', () => {
+	it('marks the applied view as pressed', () => {
 		const w = mountPanel([own, readOnly], { selectedViewId: '3' })
 		expect(w.get('[data-testid="cn-saved-views-item"][data-view-id="3"]').attributes('aria-pressed')).toBe('true')
 		expect(w.get('[data-testid="cn-saved-views-item"][data-view-id="1"]').attributes('aria-pressed')).toBe('false')
@@ -93,46 +93,46 @@ describe('the saved-filters panel', () => {
 })
 
 describe('the sidebar carries the panel', () => {
-	it('renders the panel in its own Filters tab and hands every intent back as saved-filter', async () => {
-		const w = mount(CnIndexSidebar, { props: { open: true, savedFilters: { views: [own], currentUserId: 'alice', menuIds: [] } } })
-		expect(w.find('#filters-tab [data-testid="cn-saved-filters"]').exists()).toBe(true)
-		expect(w.find('#search-tab [data-testid="cn-saved-filters"]').exists()).toBe(false)
+	it('renders the panel in its own Filters tab and hands every intent back as saved-view', async () => {
+		const w = mount(CnIndexSidebar, { props: { open: true, savedViews: { views: [own], currentUserId: 'alice', menuIds: [] } } })
+		expect(w.find('#filters-tab [data-testid="cn-saved-views-panel"]').exists()).toBe(true)
+		expect(w.find('#search-tab [data-testid="cn-saved-views-panel"]').exists()).toBe(false)
 		await w.get('[data-testid="cn-saved-views-delete"]').trigger('click')
 		await w.get('[data-testid="cn-saved-views-save"]').trigger('click')
-		expect(w.emitted('saved-filter')[0][0]).toEqual({ action: 'delete', view: own })
-		expect(w.emitted('saved-filter')[1][0]).toEqual({ action: 'save', view: null })
+		expect(w.emitted('saved-view')[0][0]).toEqual({ action: 'delete', view: own })
+		expect(w.emitted('saved-view')[1][0]).toEqual({ action: 'save', view: null })
 	})
 
 	it('switches to the tab activeTab names', async () => {
-		const w = mount(CnIndexSidebar, { props: { open: true, savedFilters: { views: [] } } })
+		const w = mount(CnIndexSidebar, { props: { open: true, savedViews: { views: [] } } })
 		expect(w.vm.internalActiveTab).toBe('search-tab')
 		await w.setProps({ activeTab: 'filters-tab' })
 		expect(w.vm.internalActiveTab).toBe('filters-tab')
 	})
 
-	it('renders no panel without savedFilters', () => {
+	it('renders no panel without savedViews', () => {
 		const w = mount(CnIndexSidebar, { props: { open: true } })
-		expect(w.find('[data-testid="cn-saved-filters"]').exists()).toBe(false)
+		expect(w.find('[data-testid="cn-saved-views-panel"]').exists()).toBe(false)
 	})
 })
 
-describe('saved filters in the app menu', () => {
+describe('saved views in the app menu', () => {
 	const entry = { id: '7', page: 'Cases', name: 'Mine, overdue' }
 
 	it('adds, then removes, an entry', () => {
-		const added = toggleSavedFilterMenuEntry([], entry)
+		const added = toggleSavedViewMenuEntry([], entry)
 		expect(added).toEqual([entry])
-		expect(toggleSavedFilterMenuEntry(added, entry)).toEqual([])
+		expect(toggleSavedViewMenuEntry(added, entry)).toEqual([])
 	})
 
-	it('keeps current names and drops filters the page no longer lists, on that page only', () => {
+	it('keeps current names and drops views the page no longer lists, on that page only', () => {
 		const other = { id: '9', page: 'Queue', name: 'Late' }
-		const synced = syncSavedFilterMenu([entry, { id: '8', page: 'Cases', name: 'Gone' }, other], 'Cases', [{ id: 7, name: 'Renamed' }])
+		const synced = syncSavedViewMenu([entry, { id: '8', page: 'Cases', name: 'Gone' }, other], 'Cases', [{ id: 7, name: 'Renamed' }])
 		expect(synced).toEqual([{ ...entry, name: 'Renamed' }, other])
 	})
 
-	it('puts a My filters group after the last entry that opens the page, before the next caption', () => {
-		// The DqZijbalk order: Zaken group, My case types (also opening Cases), then My filters, then Relations.
+	it('puts a My views group after the last entry that opens the page, before the next caption', () => {
+		// The DqZijbalk order: Zaken group, My case types (also opening Cases), then My views, then Relations.
 		const menu = [
 			{ id: 'Zaken', type: 'caption', label: 'Cases', order: 20 },
 			{ id: 'Cases', route: 'Cases', label: 'All cases', order: 21 },
@@ -141,17 +141,17 @@ describe('saved filters in the app menu', () => {
 			{ id: 'Rel', type: 'caption', label: 'Relations', order: 40 },
 			{ id: 'Contacts', route: 'Contacts', label: 'Contacts', order: 41 },
 		]
-		const out = withSavedFilterMenu(menu, [entry])
-		expect(out.map((i) => i.id)).toEqual(['Zaken', 'Cases', 'MyTypes', 'ct-1', 'saved-filters-caption', 'saved-filter-7', 'Rel', 'Contacts'])
-		expect(out[4]).toMatchObject({ type: 'caption', label: 'My filters' })
-		expect(out[5]).toEqual({ id: 'saved-filter-7', label: 'Mine, overdue', route: 'Cases', query: { savedFilter: '7' }, icon: 'FilterOutline', order: expect.any(Number) })
+		const out = withSavedViewMenu(menu, [entry])
+		expect(out.map((i) => i.id)).toEqual(['Zaken', 'Cases', 'MyTypes', 'ct-1', 'saved-views-caption', 'saved-view-7', 'Rel', 'Contacts'])
+		expect(out[4]).toMatchObject({ type: 'caption', label: 'My views' })
+		expect(out[5]).toEqual({ id: 'saved-view-7', label: 'Mine, overdue', route: 'Cases', query: { savedView: '7' }, icon: 'FilterOutline', order: expect.any(Number) })
 		expect(out[3].order < out[4].order && out[4].order < out[5].order && out[5].order < out[6].order).toBe(true)
-		expect(withSavedFilterMenu(menu, [])).toBe(menu)
+		expect(withSavedViewMenu(menu, [])).toBe(menu)
 	})
 
 	it('puts the group at the end when no entry opens the page', () => {
-		const out = withSavedFilterMenu([{ id: 'Contacts', route: 'Contacts' }], [entry])
-		expect(out.map((i) => i.id)).toEqual(['Contacts', 'saved-filters-caption', 'saved-filter-7'])
+		const out = withSavedViewMenu([{ id: 'Contacts', route: 'Contacts' }], [entry])
+		expect(out.map((i) => i.id)).toEqual(['Contacts', 'saved-views-caption', 'saved-view-7'])
 	})
 })
 
@@ -189,11 +189,11 @@ describe('defaultFilterViews', () => {
 })
 
 describe('the manifest key', () => {
-	const manifest = (defaultSavedFilters) => ({
+	const manifest = (defaultSavedViews) => ({
 		$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
 		version: '2.10.0',
 		menu: [],
-		pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', defaultSavedFilters } }],
+		pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', defaultSavedViews } }],
 	})
 
 	it('accepts a declared default', () => {
@@ -206,12 +206,12 @@ describe('the manifest key', () => {
 	})
 })
 
-describe('CnIndexPage with saved filters', () => {
+describe('CnIndexPage with saved views', () => {
 	const flush = () => new Promise((resolve) => setTimeout(resolve))
 	const mountPage = (props = {}, { query = {}, menu = null } = {}) => mount(CnIndexPage, {
 		propsData: { title: 'Cases', register: 'procest', schema: { slug: 'case', properties: {} }, objects: [], allowSavedViews: true, ...props },
 		stubs: { CnDataTable: true, CnCardGrid: true, CnPagination: true, CnPageHeader: true, CnIcon: true },
-		global: { provide: menu ? { cnSavedFilterMenu: menu } : {} },
+		global: { provide: menu ? { cnSavedViewMenu: menu } : {} },
 		mocks: { $route: { name: 'Cases', params: {}, query }, $router: { push: jest.fn(), replace: jest.fn().mockReturnValue(Promise.resolve()) } },
 	})
 
@@ -246,7 +246,7 @@ describe('CnIndexPage with saved filters', () => {
 	})
 
 	it('lists the defaults and resolves their tokens when applied', async () => {
-		const w = mountPage({ defaultSavedFilters: DEFAULTS })
+		const w = mountPage({ defaultSavedViews: DEFAULTS })
 		await flush()
 		expect(w.findAll('[data-testid="cn-saved-views-item"]').map((e) => e.text())[0]).toContain('Te laat, van mij')
 		w.vm.onApplySavedView(w.vm.viewsForControl[0])
@@ -257,15 +257,15 @@ describe('CnIndexPage with saved filters', () => {
 
 	it('copies a default with its tokens unresolved', async () => {
 		axios.post.mockResolvedValue({ data: { view: { id: 9, name: 'Te laat, van mij', owner: 'alice' } } })
-		const w = mountPage({ defaultSavedFilters: DEFAULTS })
+		const w = mountPage({ defaultSavedViews: DEFAULTS })
 		await flush()
 		await w.vm.onCopyViewRequest(w.vm.viewsForControl[0])
 		expect(axios.post.mock.calls[0][1].query.filters).toEqual({ assignee: '@me', 'deadline[lt]': '@today' })
 	})
-	it('lists the filters in the sidebar even on a page that declared no sidebar', async () => {
+	it('lists the views in the sidebar even on a page that declared no sidebar', async () => {
 		const w = mountPage()
 		await flush()
-		expect(w.find('[data-testid="cn-saved-filters"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-saved-views-panel"]').exists()).toBe(true)
 		expect(w.vm.hasSidebar).toBe(true)
 		w.vm.sidebarActiveTab = ''
 		axios.post.mockResolvedValue({ data: { view: { id: 4, name: 'New', owner: 'alice' } } })
@@ -275,7 +275,7 @@ describe('CnIndexPage with saved filters', () => {
 		expect(mountPage({ sidebar: { enabled: false } }).vm.hasSidebar).toBe(false)
 	})
 
-	it('adds a filter to the app menu through the shell, keyed by this page', async () => {
+	it('adds a view to the app menu through the shell, keyed by this page', async () => {
 		const menu = { entries: [], toggle: jest.fn(), sync: jest.fn() }
 		const w = mountPage({}, { menu })
 		await flush()
@@ -284,12 +284,12 @@ describe('CnIndexPage with saved filters', () => {
 		expect(menu.sync).toHaveBeenCalledWith('Cases', [own])
 	})
 
-	it('applies the filter a menu entry names, and keeps naming it in the address', async () => {
-		const w = mountPage({}, { query: { savedFilter: '1' } })
+	it('applies the view a menu entry names, and keeps naming it in the address', async () => {
+		const w = mountPage({}, { query: { savedView: '1' } })
 		await flush()
 		expect(w.vm.appliedSavedViewId).toBe('1')
 		const query = w.vm.$router.replace.mock.calls.at(-1)[0].query
-		expect(query.savedFilter).toBe('1')
+		expect(query.savedView).toBe('1')
 		expect(query.status).toBe('open')
 	})
 })
@@ -299,38 +299,38 @@ describe('CnAppRoot holds the menu entries', () => {
 	const manifest = { menu: [{ id: 'Cases', route: 'Cases', label: 'Cases' }], pages: [{ id: 'Cases', type: 'index', config: { allowSavedViews: true } }] }
 
 	it('returns the manifest by identity without entries, and hangs them in the menu with', () => {
-		const ctx = { manifest, manifestEditor: null, savedFilterMenu: { entries: [] } }
+		const ctx = { manifest, manifestEditor: null, savedViewMenu: { entries: [] } }
 		expect(CnAppRoot.computed.menuManifest.call(ctx)).toBe(manifest)
-		ctx.savedFilterMenu.entries = [{ id: '7', page: 'Cases', name: 'Mine, overdue' }]
-		expect(CnAppRoot.computed.menuManifest.call(ctx).menu.at(-1)).toMatchObject({ route: 'Cases', query: { savedFilter: '7' } })
+		ctx.savedViewMenu.entries = [{ id: '7', page: 'Cases', name: 'Mine, overdue' }]
+		expect(CnAppRoot.computed.menuManifest.call(ctx).menu.at(-1)).toMatchObject({ route: 'Cases', query: { savedView: '7' } })
 	})
 
-	it('reads the list only for an app that offers saved filters, and writes it on toggle', async () => {
+	it('reads the list only for an app that offers saved views, and writes it on toggle', async () => {
 		const read = jest.fn(async () => [{ id: '7', page: 'Cases', name: 'x' }])
 		const write = jest.fn(async () => true)
-		const ctx = { manifest, userPreferences: { read, write }, savedFilterMenu: { entries: [] }, savedFilterMenuLoaded: false }
-		ctx.loadSavedFilterMenu = CnAppRoot.methods.loadSavedFilterMenu.bind(ctx)
-		ctx.writeSavedFilterMenu = CnAppRoot.methods.writeSavedFilterMenu.bind(ctx)
-		expect(CnAppRoot.computed.offersSavedFilters.call(ctx)).toBe(true)
-		expect(CnAppRoot.computed.offersSavedFilters.call({ manifest: { pages: [{ config: {} }] } })).toBe(false)
-		await ctx.loadSavedFilterMenu()
-		expect(read).toHaveBeenCalledWith('cn_saved_filter_menu', [])
-		await CnAppRoot.methods.toggleSavedFilterMenu.call(ctx, { id: '7', page: 'Cases', name: 'x' })
-		expect(ctx.savedFilterMenu.entries).toEqual([])
-		expect(write).toHaveBeenCalledWith('cn_saved_filter_menu', [])
+		const ctx = { manifest, userPreferences: { read, write }, savedViewMenu: { entries: [] }, savedViewMenuLoaded: false }
+		ctx.loadSavedViewMenu = CnAppRoot.methods.loadSavedViewMenu.bind(ctx)
+		ctx.writeSavedViewMenu = CnAppRoot.methods.writeSavedViewMenu.bind(ctx)
+		expect(CnAppRoot.computed.offersSavedViews.call(ctx)).toBe(true)
+		expect(CnAppRoot.computed.offersSavedViews.call({ manifest: { pages: [{ config: {} }] } })).toBe(false)
+		await ctx.loadSavedViewMenu()
+		expect(read).toHaveBeenCalledWith('cn_saved_view_menu', [])
+		await CnAppRoot.methods.toggleSavedViewMenu.call(ctx, { id: '7', page: 'Cases', name: 'x' })
+		expect(ctx.savedViewMenu.entries).toEqual([])
+		expect(write).toHaveBeenCalledWith('cn_saved_view_menu', [])
 	})
 })
 
-describe('the filter dialogs, as the boards draw them', () => {
+describe('the view dialogs, as the boards draw them', () => {
 	const CnSavedViewShareDialog = require('../../src/components/CnSavedViewShareDialog/CnSavedViewShareDialog.vue').default
 	const shared = { ...own, sharedWith: [{ group: 'woo', mode: 'read' }, { user: 'anouk', mode: 'write' }] }
 
-	it('the share dialog keeps user shares, is titled by the filter, and stops sharing per entry', async () => {
+	it('the share dialog keeps user shares, is titled by the view, and stops sharing per entry', async () => {
 		axios.get.mockResolvedValue({ data: { ocs: { data: { users: [], groups: [] } } } })
 		const w = mount(CnSavedViewShareDialog, { props: { view: shared } })
 		await flushPromises()
 		expect(w.vm.sharedWith).toEqual([{ group: 'woo', mode: 'read' }, { user: 'anouk', mode: 'write' }])
-		expect(w.vm.resolvedTitle).toBe('Share filter: Mine')
+		expect(w.vm.resolvedTitle).toBe('Share view: Mine')
 		const fields = w.findComponent({ name: 'CnSavedViewShareFields' })
 		fields.vm.onRemove('user:anouk')
 		expect(fields.emitted('update:modelValue').at(-1)[0]).toEqual([{ group: 'woo', mode: 'read' }])
@@ -340,7 +340,7 @@ describe('the filter dialogs, as the boards draw them', () => {
 
 	it('the edit dialog chooses between keeping and replacing the criteria', async () => {
 		const w = mount(CnSavedViewEditDialog, { props: { view: shared } })
-		expect(w.vm.resolvedTitle).toBe('Edit filter: Mine')
+		expect(w.vm.resolvedTitle).toBe('Edit view: Mine')
 		expect(w.text()).toContain('sees the change at once')
 		w.vm.replaceCriteria = true
 		w.vm.onConfirm()

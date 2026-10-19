@@ -13,7 +13,7 @@
 				{{ error }}
 			</NcNoteCard>
 			<p class="cn-share-view__intro">
-				{{ t('nextcloud-vue', 'Whoever gets the filter sees it under Shared with me. It is yours and stays yours.') }}
+				{{ t('nextcloud-vue', 'Whoever gets the view sees it under Shared with me. It is yours and stays yours.') }}
 			</p>
 			<CnSavedViewShareFields v-model="sharedWith" />
 		</div>
@@ -59,7 +59,7 @@ export default {
 			default: () => ({}),
 		},
 
-		/** Dialog title; empty reads "Share filter: {name}". */
+		/** Dialog title; empty reads "Share view: {name}". */
 		dialogTitle: {
 			type: String,
 			default: '',
@@ -77,9 +77,9 @@ export default {
 	},
 
 	computed: {
-		/** @return {string} The title: `dialogTitle`, else "Share filter: {name}". */
+		/** @return {string} The title: `dialogTitle`, else "Share view: {name}". */
 		resolvedTitle() {
-			return this.dialogTitle || t('nextcloud-vue', 'Share filter: {name}', { name: (this.view && this.view.name) || '' })
+			return this.dialogTitle || t('nextcloud-vue', 'Share view: {name}', { name: (this.view && this.view.name) || '' })
 		},
 	},
 

@@ -757,7 +757,7 @@ import { installModalStack, uninstallModalStack } from '../../utils/modalStack.j
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { normalizeSavedFilterMenu, SAVED_FILTER_MENU_KEY, syncSavedFilterMenu, toggleSavedFilterMenuEntry, withSavedFilterMenu } from '../../utils/savedFilterMenu.js'
+import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 /**
@@ -893,9 +893,9 @@ export default {
 				return self.userPreferences
 			},
 
-			// The saved filters this user added to the menu, and the way to
+			// The saved views this user added to the menu, and the way to
 			// change them, for an index page's sidebar.
-			cnSavedFilterMenu: self.savedFilterMenu,
+			cnSavedViewMenu: self.savedViewMenu,
 
 			// The same manifest as a REF. The getter above is NOT enough on its
 			// own: Options-API `inject` resolves a provided value once, at the
@@ -1915,14 +1915,14 @@ export default {
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
-			// Saved filters this user added to the menu (per-user preference).
+			// Saved views this user added to the menu (per-user preference).
 			// One object for the whole session, so the provide hands out a
 			// live reference: `entries` changes, the holder does not.
-			savedFilterMenuLoaded: false,
-			savedFilterMenu: {
+			savedViewMenuLoaded: false,
+			savedViewMenu: {
 				entries: [],
-				toggle: (entry) => this.toggleSavedFilterMenu(entry),
-				sync: (page, views) => this.syncSavedFilterMenu(page, views),
+				toggle: (entry) => this.toggleSavedViewMenu(entry),
+				sync: (page, views) => this.syncSavedViewMenu(page, views),
 			},
 
 			// Nextcloud's own header, present on a server-rendered page; the
@@ -2393,11 +2393,11 @@ export default {
 		},
 
 		/**
-		 * Whether any page of the manifest offers saved filters.
+		 * Whether any page of the manifest offers saved views.
 		 *
 		 * @return {boolean}
 		 */
-		offersSavedFilters() {
+		offersSavedViews() {
 			const pages = this.manifest && Array.isArray(this.manifest.pages) ? this.manifest.pages : []
 			return pages.some((page) => page && page.config && page.config.allowSavedViews === true)
 		},
@@ -2433,10 +2433,10 @@ export default {
 			if (this.manifestEditor && this.manifestEditor.editing.value && m && typeof m === 'object') {
 				return { ...m }
 			}
-			// The user's saved filters hang in the menu. Without any, the live
+			// The user's saved views hang in the menu. Without any, the live
 			// manifest is still returned by identity.
-			if (m && typeof m === 'object' && Array.isArray(m.menu) && this.savedFilterMenu.entries.length > 0) {
-				return { ...m, menu: withSavedFilterMenu(m.menu, this.savedFilterMenu.entries) }
+			if (m && typeof m === 'object' && Array.isArray(m.menu) && this.savedViewMenu.entries.length > 0) {
+				return { ...m, menu: withSavedViewMenu(m.menu, this.savedViewMenu.entries) }
 			}
 			return m
 		},
@@ -3281,14 +3281,14 @@ export default {
 	},
 
 	watch: {
-		// Only an app with a page that offers saved filters reads the list,
+		// Only an app with a page that offers saved views reads the list,
 		// once, when such a page first appears in the manifest.
-		offersSavedFilters: {
+		offersSavedViews: {
 			immediate: true,
 			handler(offers) {
-				if (offers && !this.savedFilterMenuLoaded) {
-					this.savedFilterMenuLoaded = true
-					this.loadSavedFilterMenu()
+				if (offers && !this.savedViewMenuLoaded) {
+					this.savedViewMenuLoaded = true
+					this.loadSavedViewMenu()
 				}
 			},
 		},
@@ -3435,58 +3435,58 @@ export default {
 
 	methods: {
 		/**
-		 * Read the saved filters this user added to the menu.
+		 * Read the saved views this user added to the menu.
 		 *
 		 * @return {Promise<void>}
-		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
 		 */
-		async loadSavedFilterMenu() {
+		async loadSavedViewMenu() {
 			const read = this.userPreferences && this.userPreferences.read
 			if (typeof read !== 'function') {
 				return
 			}
 			try {
-				this.savedFilterMenu.entries = normalizeSavedFilterMenu(await read(SAVED_FILTER_MENU_KEY, []))
+				this.savedViewMenu.entries = normalizeSavedViewMenu(await read(SAVED_VIEW_MENU_KEY, []))
 			} catch {
-				// No menu entries; the filters themselves are unaffected.
+				// No menu entries; the views themselves are unaffected.
 			}
 		},
 
 		/**
-		 * Add a saved filter to the menu, or remove it, and store the list.
+		 * Add a saved view to the menu, or remove it, and store the list.
 		 *
-		 * @param {{id: string, page: string, name: string}} entry The filter.
+		 * @param {{id: string, page: string, name: string}} entry The view.
 		 * @return {Promise<void>}
-		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
 		 */
-		async toggleSavedFilterMenu(entry) {
-			this.savedFilterMenu.entries = toggleSavedFilterMenuEntry(this.savedFilterMenu.entries, entry)
-			await this.writeSavedFilterMenu()
+		async toggleSavedViewMenu(entry) {
+			this.savedViewMenu.entries = toggleSavedViewMenuEntry(this.savedViewMenu.entries, entry)
+			await this.writeSavedViewMenu()
 		},
 
 		/**
-		 * Bring one page's menu entries in line with the filters it lists, and
+		 * Bring one page's menu entries in line with the views it lists, and
 		 * store the list only when that changed something.
 		 *
 		 * @param {string} page The page's route name.
-		 * @param {Array<object>} views The filters the page lists.
+		 * @param {Array<object>} views The views the page lists.
 		 * @return {Promise<void>}
-		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-7
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
 		 */
-		async syncSavedFilterMenu(page, views) {
-			const next = syncSavedFilterMenu(this.savedFilterMenu.entries, page, views)
-			if (JSON.stringify(next) === JSON.stringify(this.savedFilterMenu.entries)) {
+		async syncSavedViewMenu(page, views) {
+			const next = syncSavedViewMenu(this.savedViewMenu.entries, page, views)
+			if (JSON.stringify(next) === JSON.stringify(this.savedViewMenu.entries)) {
 				return
 			}
-			this.savedFilterMenu.entries = next
-			await this.writeSavedFilterMenu()
+			this.savedViewMenu.entries = next
+			await this.writeSavedViewMenu()
 		},
 
 		/** @return {Promise<void>} Store the list in the user's preferences. */
-		async writeSavedFilterMenu() {
+		async writeSavedViewMenu() {
 			const write = this.userPreferences && this.userPreferences.write
 			if (typeof write === 'function') {
-				await write(SAVED_FILTER_MENU_KEY, this.savedFilterMenu.entries)
+				await write(SAVED_VIEW_MENU_KEY, this.savedViewMenu.entries)
 			}
 		},
 

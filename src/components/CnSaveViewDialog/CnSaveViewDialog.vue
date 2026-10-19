@@ -23,9 +23,9 @@
 
 			<NcTextField
 				:modelValue="name"
-				:label="t('nextcloud-vue', 'Filter name')"
+				:label="t('nextcloud-vue', 'View name')"
 				:labelVisible="true"
-				:placeholder="t('nextcloud-vue', 'My filter')"
+				:placeholder="t('nextcloud-vue', 'My view')"
 				data-testid="cn-save-view-name-input"
 				@update:modelValue="(v) => name = v" />
 
@@ -62,7 +62,7 @@
 					<NcLoadingIcon v-if="loading" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
 				</template>
-				{{ t('nextcloud-vue', 'Save filter') }}
+				{{ t('nextcloud-vue', 'Save view') }}
 			</NcButton>
 		</template>
 	</CnDialog>
@@ -118,7 +118,7 @@ export default {
 		/** Dialog title shown in the NcDialog header. */
 		dialogTitle: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Save current filter'),
+			default: () => t('nextcloud-vue', 'Save current view'),
 		},
 
 		/**

@@ -66,7 +66,7 @@
 				</li>
 			</ul>
 			<p class="cn-saved-view-share__hint">
-				{{ t('nextcloud-vue', 'May use: sees the filter under Shared with me. May update: can also replace the criteria. Deleting and sharing stay with you.') }}
+				{{ t('nextcloud-vue', 'May use: sees the view under Shared with me. May update: can also replace the criteria. Deleting and sharing stay with you.') }}
 			</p>
 		</template>
 	</div>
@@ -149,7 +149,7 @@ export default {
 		 *
 		 * @param {{group?: string, user?: string}} entry The entry.
 		 * @return {string}
-		 * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-5
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-5
 		 */
 		keyOf(entry) {
 			return typeof entry.user === 'string' && entry.user !== '' ? `user:${entry.user}` : entry.group

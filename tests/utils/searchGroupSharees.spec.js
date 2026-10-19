@@ -2,9 +2,9 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * The sharee search behind the saved-filter share picker.
+ * The sharee search behind the saved-view share picker.
  *
- * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-5
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-5
  */
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
 jest.mock('@nextcloud/router', () => ({ generateOcsUrl: (path) => `/ocs/v2.php/${path}` }))

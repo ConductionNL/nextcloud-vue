@@ -1,12 +1,12 @@
-# Design: saved-filters-manage-and-defaults
+# Design: saved-views-manage-and-defaults
 
-## Where the saved filters live
+## Where the saved views live
 
-The list is `CnSavedFiltersPanel`, in a third `CnIndexSidebar` tab (`filters-tab`,
-after Search and Columns) through one `savedFilters` prop; an `activeTab` prop
+The list is `CnSavedViewsPanel`, in a third `CnIndexSidebar` tab (`filters-tab`,
+after Search and Columns) through one `savedViews` prop; an `activeTab` prop
 lets the page switch to it after a save. The sidebar is hoisted into
 CnAppRoot (props and listeners only, no slots), so every intent comes back as
-one `saved-filter` event `{ action, view }` that `CnIndexPage` dispatches to
+one `saved-view` event `{ action, view }` that `CnIndexPage` dispatches to
 its existing handlers. Each row is a plain button (apply) and an `NcActions`
 menu with labelled entries; inside the sidebar NcActions nests normally, so the
 earlier in-toolbar "manage state" is gone. The list logic the panel and the
@@ -16,17 +16,17 @@ toolbar chips share (tree, sections, labels, counts, access) is the
 ## Add to menu
 
 `CnAppRoot` owns `{ entries, toggle, sync }` and provides it as
-`cnSavedFilterMenu`. It reads `cn_saved_filter_menu` once, and only when a
+`cnSavedViewMenu`. It reads `cn_saved_view_menu` once, and only when a
 manifest page has `allowSavedViews`. `menuManifest` puts the entries in the menu
-as a "My filters" caption group (`withSavedFilterMenu`), after the last entry
+as a "My views" caption group (`withSavedViewMenu`), after the last entry
 that opens the page and before the next caption, with `order` values between
 its neighbours; without entries it still returns the manifest by
-identity. An entry is `{ id: "saved-filter-<id>", route: <page>, query:
-{ savedFilter: <id> } }`, so CnAppNav's existing query rule marks it active
-while the address names it. `CnIndexPage` applies `?savedFilter=` once its
-filters loaded, keeps the key while that filter is applied, and drops it on any
+identity. An entry is `{ id: "saved-view-<id>", route: <page>, query:
+{ savedView: <id> } }`, so CnAppNav's existing query rule marks it active
+while the address names it. `CnIndexPage` applies `?savedView=` once its
+views loaded, keeps the key while that view is applied, and drops it on any
 other change. After a successful list load it syncs its page's entries (names,
-gone filters); an empty list never syncs.
+gone views); an empty list never syncs.
 
 ## Access
 
@@ -37,7 +37,7 @@ may not do (owner-only delete is fixed there in the same round).
 
 ## Defaults
 
-`CnIndexPage` gets a `defaultSavedFilters` prop (the manifest key maps straight
+`CnIndexPage` gets a `defaultSavedViews` prop (the manifest key maps straight
 onto it, like every index config key). A computed turns each entry into a view:
 
 ```js

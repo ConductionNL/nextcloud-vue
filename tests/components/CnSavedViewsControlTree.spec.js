@@ -16,7 +16,7 @@ jest.mock('@nextcloud/l10n', () => ({
 }))
 
 const { mount } = require('@vue/test-utils')
-const CnSavedFiltersPanel = require('../../src/components/CnSavedFiltersPanel/CnSavedFiltersPanel.vue').default
+const CnSavedViewsPanel = require('../../src/components/CnSavedViewsPanel/CnSavedViewsPanel.vue').default
 
 /** Shorthand for a view as the store hands it over. */
 const view = (id, extra = {}) => ({ id, slug: id, name: id, owner: 'alice', ...extra })
@@ -28,7 +28,7 @@ const view = (id, extra = {}) => ({ id, slug: id, name: id, owner: 'alice', ...e
  * @return {object} The wrapper.
  */
 function mountControl(views) {
-	return mount(CnSavedFiltersPanel, {
+	return mount(CnSavedViewsPanel, {
 		props: { views, currentUserId: 'alice' },
 	})
 }

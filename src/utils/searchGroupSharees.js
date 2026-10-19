@@ -74,7 +74,7 @@ export async function searchGroupSharees(query = '', options = {}) {
  * @param {object} [options] Tuning options.
  * @param {number} [options.limit] Max results per type (default 25).
  * @return {Promise<Array<{id: string, kind: 'user'|'group', label: string}>>} The sharees.
- * @spec openspec/changes/saved-filters-manage-and-defaults/tasks.md#task-5
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-5
  */
 export async function searchUserAndGroupSharees(query = '', options = {}) {
 	const { limit = 25 } = options
