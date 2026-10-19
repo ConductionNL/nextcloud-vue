@@ -22,8 +22,7 @@ function sheet(name) {
 }
 
 /**
- * The body of the rule that lists exactly this selector. The list splits on
- * commas outside parentheses, so `:is(th, td)` stays one selector.
+ * The body of the rule that lists exactly this selector.
  *
  * @param {string} css The stylesheet text.
  * @param {string} selector The selector.
@@ -33,7 +32,7 @@ function bodyOf(css, selector) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
+		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
 			return m[2]
 		}
 	}
@@ -60,8 +59,10 @@ describe('look-board.css: widgets on a board dashboard card keep its side inset'
 	})
 
 	it('puts a widget table\'s first and last column on the inset', () => {
-		expect(bodyOf(board, `${CARD} .cn-widget-object-table .cn-data-table :is(th, td):first-child`)).toContain(`padding-inline-start: ${INSET};`)
-		expect(bodyOf(board, `${CARD} .cn-widget-object-table .cn-data-table :is(th, td):last-child`)).toContain(`padding-inline-end: ${INSET};`)
+		for (const cell of ['th', 'td']) {
+			expect(bodyOf(board, `${CARD} .cn-widget-object-table .cn-data-table ${cell}:first-child`)).toContain(`padding-inline-start: ${INSET};`)
+			expect(bodyOf(board, `${CARD} .cn-widget-object-table .cn-data-table ${cell}:last-child`)).toContain(`padding-inline-end: ${INSET};`)
+		}
 	})
 })
 

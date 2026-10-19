@@ -1307,11 +1307,13 @@
 	padding: 0 calc(var(--cn-board-dashboard-card-inset) - 4px) 16px;
 }
 
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table :is(th, td):first-child {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table th:first-child,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table td:first-child {
 	padding-inline-start: var(--cn-board-dashboard-card-inset);
 }
 
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table :is(th, td):last-child {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table th:last-child,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table td:last-child {
 	padding-inline-end: var(--cn-board-dashboard-card-inset);
 }
 
