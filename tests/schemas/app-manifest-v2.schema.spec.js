@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.126.0', () => {
+	it('the manifest schema version reads 2.127.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1403,7 +1403,30 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.124.0 adds setup.steps[].visibleWhen (setup-wizard), and the dashboard config.pageFilters with control and placement (dashboard-page).
 		// 2.125.0 adds chart emptyCellLabel and the footnote under line, area and bar charts (chart-widget), config.bulkBandAlways (actions-bar), config.quickFilterPlacement (index-page), config.rowClass rules on an index page (index-page) and sourceConfig.limit for a paging source (index-page).
 		// 2.126.0 adds the setup choice step's display "rows" and default (setup-wizard), visibleWhen op anyOf and the record-list footerAction (record-list), and documents folderSidebar.pane and the fieldOverrides search look (index-page, form-dialog).
-		expect(schema.version).toBe('2.126.0')
+		// 2.127.0 adds config.sideColumnFrom on a detail page (detail-page), headerButtons[].run, config.search, searchPlacement, defaultOrder, listConfig leading / trailing / subtitleTemplate and folderSidebar heading / countText on an index page (index-page, object-row), and the object-table pageSize (object-table).
+		expect(schema.version).toBe('2.127.0')
+	})
+
+	it('accepts the 2.127.0 keys and refuses malformed ones', () => {
+		const withPage = (page) => ({ ...MINIMAL_V2, pages: [page] })
+		const index = (config) => withPage({ id: 'queue', route: '/queue', type: 'index', title: 'Queue', config: { register: 'r', schema: 's', ...config } })
+		const table = (props) => withPage({ id: 'home', route: '/', type: 'dashboard', title: 'Home', widgets: [{ id: 'cat', widgetKey: 'object-table', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, props }] })
+		expect(validateManifestV2(index({
+			search: false,
+			searchPlacement: 'toolbar',
+			defaultOrder: '-createdAt',
+			headerButtons: [{ action: 'export', run: 'export-queue' }],
+			listConfig: { subtitleTemplate: '{caseType} · {assignee}', leading: { key: 'createdAt', widget: 'age' }, trailing: [{ key: 'deadline', widget: 'date' }] },
+			folderSidebar: { heading: true, countText: '{count} leden' },
+		})).valid).toBe(true)
+		expect(validateManifestV2(index({ defaultOrder: [{ key: 'title', order: 'asc' }] })).valid).toBe(true)
+		expect(validateManifestV2(index({ searchPlacement: 'header' })).valid).toBe(false)
+		expect(validateManifestV2(index({ search: 'no' })).valid).toBe(false)
+		expect(validateManifestV2(index({ listConfig: { leading: { widget: 'age' } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ headerButtons: [{ action: 'export', run: '' }] })).valid).toBe(false)
+		expect(validateManifestV2(withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', sideColumnFrom: '@context.caseType.sideCards' } })).valid).toBe(true)
+		expect(validateManifestV2(table({ pageSize: 4 })).valid).toBe(true)
+		expect(validateManifestV2(table({ pageSize: 0 })).valid).toBe(false)
 	})
 
 	it('accepts the 2.126.0 keys and refuses malformed ones', () => {

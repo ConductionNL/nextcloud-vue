@@ -389,6 +389,7 @@ export default {
 | `customComponents` | Object | `null` | Custom-component / handler registry. When set, takes precedence over the injected `cnCustomComponents` from CnAppRoot. Used to resolve `actions[].handler` registry names declared in the manifest (manifest-actions-dispatch). Named handlers resolve out of the v2 `registry` (a `kind: "handler"` entry) FIRST and fall back to this map. |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (in addition to / instead of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`. The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set. |
+| `search` | Boolean | `true` | `false` draws no inline search in the actions bar, also in the board look, which otherwise draws one on every index page (manifest: `config.search`). Wins over `inlineSearch`. |
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls (only relevant with `inlineSearch`, which otherwise takes the counter's place). Fed from the manifest as `pages[].config.showCountWithSearch`. |
 | `searchInFiles` | Boolean | `false` | "Also search inside files" switch beside the search box (manifest `config.searchInFiles`). On, a search with a term sends `_content_search=true`; rows found through a file show "Found in {file}" (`@self.matchedFile`). State kept in the route as `contentSearch=1`. Emits `content-search`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest `config.searchPlaceholder`). |
@@ -878,8 +879,9 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
 | `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
 | `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
-| `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
-| `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
+| `sortSelectOptions` | Array | `[]` | Options `{ value, label, order? }` for the sort dropdown. On a self-fetch page a choice orders the list as a header click does (`_order`, kept in the address): by the option's `order`, else its `value` read as an order (`"-createdAt"`, `"priority:desc,title"`). |
+| `sortSelectValue` | String | `''` | Selected sort dropdown value. Empty lets a self-fetch page show the option matching its current order, so a header click that matches an option shows it. |
+| `defaultOrder` | String, Object or Array | `''` | The order a self-fetch page opens on when neither the address nor `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`): `"-createdAt"`, `"priority:desc,title"`, an `_order` map `{ "priority": "desc" }` or a `[{ key, order }]` list. |
 
 The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
 

@@ -2454,9 +2454,12 @@
 		},
 		"CnObjectList": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 8,
+			"tier": "medium",
+			"via": [
+				"CnFkResolveCell",
+				"CnIndexPage"
+			],
 			"page": "cn-object-list"
 		},
 		"CnObjectListWidget": {
@@ -2610,9 +2613,12 @@
 		},
 		"CnObjectRow": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 8,
+			"tier": "medium",
+			"via": [
+				"CnFkResolveCell",
+				"CnIndexPage"
+			],
 			"page": "cn-object-row"
 		},
 		"CnObjectSidebar": {
