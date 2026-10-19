@@ -369,6 +369,20 @@ export default {
 		},
 
 		/**
+		 * Rows per page: the board's pager under the table ("4 of 7", page
+		 * buttons, Next), forwarded to CnDataTable. It pages the rows the
+		 * widget holds; with a `source`, `source.limit` is how many are read
+		 * (OpenRegister's default page otherwise). 0 (the default) shows no
+		 * pager.
+		 *
+		 * @spec openspec/changes/object-table-pager/specs/object-table/spec.md#requirement-an-object-table-can-page-its-rows
+		 */
+		pageSize: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
 		 * vue-router route object for the "View all" footer link. Forwarded
 		 * to CnDataTable (footer shows when the rows are a `limit`-ed subset).
 		 *
@@ -611,7 +625,9 @@ export default {
 				params[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'
 			}
 			if (typeof src.limit === 'number' && src.limit > 0) {
-				params._limit = src.limit + 1
+				// Under a pager `limit` is how many rows the pages hold, not a
+				// "View all" cap that needs to see one more.
+				params._limit = this.pageSize > 0 ? src.limit : src.limit + 1
 			}
 			// `source.extend` (#91 Wave 3): forwarded as OR's repeated
 			// `_extend[]` param so virtual/declarative fields (e.g.
@@ -736,7 +752,7 @@ export default {
 				inner.register = this.source.register
 				inner.schemaId = this.source.schema
 				inner.fetchParams = this.resolvedFetchParams
-				if (typeof this.source.limit === 'number' && this.source.limit > 0) {
+				if (typeof this.source.limit === 'number' && this.source.limit > 0 && !(this.pageSize > 0)) {
 					inner.limit = this.source.limit
 				}
 			}
