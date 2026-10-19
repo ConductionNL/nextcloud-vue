@@ -1727,7 +1727,14 @@
     "On": "On",
     "Select a step on the canvas to see its settings.": "Select a step on the canvas to see its settings.",
     "Show runs": "Show runs",
-    "Back to the step settings": "Back to the step settings"
+    "Back to the step settings": "Back to the step settings",
+    "This list could not be read": "This list could not be read",
+    "Try again": "Try again",
+    "Nothing to decide right now.": "Nothing to decide right now.",
+    "Your answer": "Your answer",
+    "Why?": "Why?",
+    "Record this decision": "Record this decision",
+    "This decision was not recorded.": "This decision was not recorded."
   },
   "plurals": {
     "{count} member": [

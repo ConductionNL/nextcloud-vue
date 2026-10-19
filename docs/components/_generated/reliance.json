@@ -788,6 +788,13 @@
 			"via": [],
 			"page": "cn-date-range-picker"
 		},
+		"CnDecisionListWidget": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-decision-list-widget"
+		},
 		"CnDeckCardCreate": {
 			"direct": 1,
 			"transitive": 6,

@@ -1940,7 +1940,13 @@
     "On": "Aan",
     "Select a step on the canvas to see its settings.": "Kies een stap op het canvas om de instellingen te zien.",
     "Show runs": "Uitvoeringen tonen",
-    "Back to the step settings": "Terug naar de stapinstellingen"
+    "Back to the step settings": "Terug naar de stapinstellingen",
+    "This list could not be read": "Deze lijst kon niet worden gelezen",
+    "Nothing to decide right now.": "Er is nu niets te beslissen.",
+    "Your answer": "Je antwoord",
+    "Why?": "Waarom?",
+    "Record this decision": "Dit besluit vastleggen",
+    "This decision was not recorded.": "Dit besluit is niet vastgelegd."
   },
   "plurals": {
     "{count} member": [

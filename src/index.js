@@ -90,6 +90,7 @@ export {
 	CnDataTable,
 	CnDateAxisView,
 	CnDateRangePicker,
+	CnDecisionListWidget,
 	CnDeckCardCreate,
 	CnDeckCardPicker,
 	CnDeleteDialog,
