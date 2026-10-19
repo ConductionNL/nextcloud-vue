@@ -87,6 +87,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `pinnedCount` | Number | `0` | How many of the first visible columns are pinned to the start of the table. |
 | `sortOptions` | Array | `[]` | The orders the Sort section in the Search tab offers: `[{ value, label, keys }]`, `keys` a `[{ key, order }]` list read as its ascending form. Empty draws no Sort section. Choosing a field or a direction emits `sort-change` with the new `[{ key, order }]`. |
 | `currentSort` | Array | `[]` | The list's current order, `[{ key, order }]`: the Sort section shows its field, its direction and "Current order: ...". |
+| `currentSortValue` | String | `''` | The Sort option chosen by its value, for an order that is not a list of sort keys: an option with `fixed: true`, such as one whose rows an endpoint ranks (`sortSelectOptions[].source`). Wins over matching `currentSort`. |
 | `columnGroups` | Array | `[]` | Additional custom column groups to add to the Columns tab |
 | `showMetadata` | Boolean | `true` | When `true`, includes a built-in "Metadata" group with `created`, `updated`, `uuid` columns |
 | `propertiesGroupLabel` | String | `''` | Override the label for the auto-generated properties column group |

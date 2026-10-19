@@ -273,7 +273,7 @@ describe('CnIndexPage with saved views', () => {
 		await flush()
 		await w.get('[data-testid="cn-saved-views-menu"]').trigger('click')
 		expect(menu.toggle).toHaveBeenCalledWith({ id: '1', page: 'Cases', name: 'Mine' })
-		expect(menu.sync).toHaveBeenCalledWith('Cases', [own])
+		expect(menu.sync).toHaveBeenCalledWith('Cases', [{ ...own, menuBadge: null }])
 	})
 
 	it('applies the view a menu entry names, and keeps naming it in the address', async () => {
@@ -304,6 +304,7 @@ describe('CnAppRoot holds the menu entries', () => {
 		const ctx = { manifest, userPreferences: { read, write }, savedViewMenu: { entries: [] }, savedViewMenuLoaded: false }
 		ctx.loadSavedViewMenu = CnAppRoot.methods.loadSavedViewMenu.bind(ctx)
 		ctx.writeSavedViewMenu = CnAppRoot.methods.writeSavedViewMenu.bind(ctx)
+		ctx._hydrateSavedViewMenuCounts = jest.fn()
 		expect(CnAppRoot.computed.offersSavedViews.call(ctx)).toBe(true)
 		expect(CnAppRoot.computed.offersSavedViews.call({ manifest: { pages: [{ config: {} }] } })).toBe(false)
 		await ctx.loadSavedViewMenu()

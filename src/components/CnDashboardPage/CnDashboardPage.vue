@@ -1038,7 +1038,6 @@ import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
-import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
@@ -1046,7 +1045,7 @@ import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashb
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
-import { readPath } from '../../utils/readPath.js'
+import { isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
@@ -1181,31 +1180,6 @@ const CHART_PROP_KEYS = [
  * }]
  * ```
  */
-
-/**
- * One row of a page filter's `optionsFrom` as a `{ value, label }` option:
- * `valueField` (default `id`, else the OpenRegister uuid) and `labelField`
- * (default `title`, else `name`, else the value). Null for a row without a
- * value.
- *
- * @param {unknown} row The row.
- * @param {{valueField?: string, labelField?: string}} from The `optionsFrom` block.
- * @return {{value: (string|number), label: string}|null}
- */
-function pageFilterOptionOf(row, from) {
-	if (row === null || row === undefined) {
-		return null
-	}
-	if (typeof row !== 'object') {
-		return { value: row, label: String(row) }
-	}
-	const value = from.valueField ? readPath(row, from.valueField) : (row.id ?? row['@self']?.id ?? row.uuid)
-	if (value === null || value === undefined || value === '') {
-		return null
-	}
-	const label = from.labelField ? readPath(row, from.labelField) : (row.title || row.name)
-	return { value, label: label === null || label === undefined || label === '' ? String(value) : String(label) }
-}
 
 export default {
 	name: 'CnDashboardPage',
@@ -2960,21 +2934,16 @@ export default {
 				.filter((pf) => pf && pf.key && !Array.isArray(pf.options) && pf.optionsFrom && typeof pf.optionsFrom === 'object')
 				.map(async (pf) => {
 					const from = pf.optionsFrom
-					const source = from.register && from.schema
-						? { url: `/apps/openregister/api/objects/${from.register}/${from.schema}`, params: { _limit: 200, ...(from.filter || {}) }, responsePath: 'results' }
-						: { url: from.url, params: from.params, responsePath: from.responsePath }
-					if (!source.url) {
+					if (!isOptionsFrom(from)) {
 						return
 					}
 					this.pageFilterLoading = { ...this.pageFilterLoading, [pf.key]: true }
-					let rows
+					let options
 					try {
-						const data = await fetchEndpointSource(source, ctx, { fresh: true })
-						rows = Array.isArray(data) ? data : []
+						options = (await loadOptionsFrom(from, ctx)).map((o) => ({ value: o.id, label: o.label }))
 					} catch {
-						rows = []
+						options = []
 					}
-					const options = rows.map((row) => pageFilterOptionOf(row, from)).filter(Boolean)
 					this.pageFilterFetched = { ...this.pageFilterFetched, [pf.key]: options }
 					this.pageFilterLoading = { ...this.pageFilterLoading, [pf.key]: false }
 					if (pf.clearable !== true && pf.default === undefined && this.workspaceContext[pf.key] === undefined && options.length > 0) {
