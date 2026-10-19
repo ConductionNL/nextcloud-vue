@@ -191,6 +191,12 @@
 }
 
 /* The selected folder's heading above the list. */
+/* A sort option whose endpoint failed: the note above the fallen-back list. */
+.cn-index-page__sort-source-note {
+	margin: 0 0 8px;
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-index-page__scope-heading {
 	display: flex;
 	flex-direction: column;
