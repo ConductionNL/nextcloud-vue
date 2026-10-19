@@ -227,6 +227,22 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		? props.sortKeys
 		: (props.sortKey ? [{ key: props.sortKey, order: props.sortOrder || 'asc' }] : defaultOrderKeys)
 	// The lens that is active on mount may set its own order.
+	/**
+	 * The tabs the strip shows, so the fetch filters by the chip that is
+	 * lit: the page's `effectiveQuickFilters` (declared, generated from
+	 * `quickFiltersFrom`, or a named source's), else the prop while the
+	 * page's computeds do not exist yet (setup).
+	 *
+	 * @return {Array<object>|null} The tabs, or null when there are none.
+	 */
+	function shownQuickFilters() {
+		const shown = instance && instance.proxy ? instance.proxy.effectiveQuickFilters : undefined
+		if (shown !== undefined) {
+			return shown
+		}
+		return withPersonalLenses(props.quickFilters, props.personalLenses)
+	}
+
 	const initialTabs = withPersonalLenses(props.quickFilters, props.personalLenses)
 	const initialTabSort = (!isMultiQuickFilter && Array.isArray(initialTabs))
 		? quickFilterSortKeys(initialTabs[activeQuickFilterIndex.value])
@@ -274,7 +290,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 			// The visible calendar month, only while the page is in calendar mode.
 			const month = (instance && instance.proxy && instance.proxy.calendarRangeFilter) || {}
 			const scope = { ...(widen ? { ...scopeBase, _content_search: 'true' } : scopeBase), ...month }
-			const lensed = withPersonalLenses(props.quickFilters, props.personalLenses)
+			const lensed = shownQuickFilters()
 			const tabs = Array.isArray(lensed) ? lensed : null
 			if (!tabs) {
 				return { ...queryFilters, ...scope, ...base }
@@ -309,7 +325,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		// for a lens without goes back to the page's own order. A column the
 		// person sorts by afterwards still wins until the next switch.
 		if (!isMultiQuickFilter && before && now[0] !== before[0]) {
-			const tabs = withPersonalLenses(props.quickFilters, props.personalLenses) || []
+			const tabs = shownQuickFilters() || []
 			const keys = quickFilterSortKeys(tabs[now[0]]) || (quickFilterSortKeys(tabs[before[0]]) ? pageSortKeys : null)
 			if (keys && list.sortKeys) {
 				list.sortKeys.value = keys
