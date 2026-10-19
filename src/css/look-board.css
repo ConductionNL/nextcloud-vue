@@ -157,6 +157,27 @@
 	gap: 10px;
 }
 
+/* The nldesign theme paints every primary and secondary button with
+   `!important` through its button tokens: weight 700, and a secondary in
+   the primary colour with a primary border on no ground. The board draws
+   header buttons at 600, the secondary on the main background with a grey
+   border (DqMijnWerk, DqZaak, DqZaken). The look hands the theme those values
+   through the same tokens, so the theme's own rules draw the board's button.
+   @spec openspec/changes/board-header-buttons-theme/specs/board-header-buttons-theme/spec.md#requirement-board-header-buttons-keep-the-boards-weight-and-ground-under-a-theme */
+.cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
+.cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-action-buttons:not(.cn-look-nextcloud *) {
+	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-primary-action-font-weight: 600;
+	--nldesign-component-button-secondary-action-color: var(--color-main-text);
+	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
+	--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);
+	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
+}
+
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *) .button-vue,
