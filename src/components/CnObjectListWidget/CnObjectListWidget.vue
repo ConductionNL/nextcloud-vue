@@ -1357,6 +1357,11 @@ export default {
 			}
 			const format = config.format === 'excel' ? 'excel' : 'csv'
 			const label = typeof config.label === 'string' && config.label !== '' ? (typeof this.cnTranslate === 'function' ? this.cnTranslate(config.label) : config.label) : t('nextcloud-vue', 'Download')
+			/**
+			 * @event header The card header's Download action for the list as
+			 * filtered here (`content.export`), handed to the host card.
+			 * @type {{action: {label: string, icon: string, run: Function}}}
+			 */
 			this.$emit('header', {
 				action: {
 					label,

@@ -465,7 +465,7 @@
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
-			"page": null
+			"page": "cn-checklist-widget"
 		},
 		"CnChildRecordsField": {
 			"direct": 1,
