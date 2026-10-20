@@ -2132,6 +2132,10 @@
     "It was not handed over.": "Het is niet overgedragen."
   },
   "plurals": {
+    "{count} change: {list}": [
+      "{count} wijziging: {list}",
+      "{count} wijzigingen: {list}"
+    ],
     "{count} member": [
       "{count} lid",
       "{count} leden"

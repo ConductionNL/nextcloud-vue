@@ -54,7 +54,9 @@
 			v-else-if="lastRun"
 			type="success"
 			data-testid="cn-macros-widget-last-run">
-			{{ t('nextcloud-vue', 'Last run: {name}, {date}', { name: lastRun.name, date: lastRun.date }) }}
+			{{ t('nextcloud-vue', 'Last run: {name}, {date}', { name: lastRun.name, date: lastRun.date }) }}<template v-if="lastRun.changes.length">
+				{{ n('nextcloud-vue', '{count} change: {list}', '{count} changes: {list}', lastRun.changes.length, { count: lastRun.changes.length, list: lastRun.changes.join(', ') }) }}
+			</template>
 		</NcNoteCard>
 	</div>
 </template>
@@ -62,7 +64,7 @@
 <script>
 import axios from '@nextcloud/axios'
 import { emit } from '@nextcloud/event-bus'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcNoteCard } from '@nextcloud/vue'
 import { declaredMacros } from '../../utils/declaredMacros.js'
@@ -135,6 +137,7 @@ export default {
 
 	methods: {
 		t,
+		n,
 
 		/**
 		 * Translate an app-supplied text through the host app when it offers it.
@@ -188,8 +191,11 @@ export default {
 				const entry = (res?.data?.results || [])[0]
 				const key = entry?.changed?.declaredAction
 				const macro = this.macros.find((candidate) => candidate.key === key)
+				const changes = Array.isArray(entry?.changed?.changes)
+					? entry.changed.changes.map((change) => (change && typeof change.step === 'string' ? change.step : '')).filter(Boolean)
+					: []
 				this.lastRun = macro && entry.created
-					? { name: macro.name, date: new Date(entry.created).toLocaleString() }
+					? { name: macro.name, date: new Date(entry.created).toLocaleString(), changes }
 					: null
 			} catch {
 				this.lastRun = null
@@ -208,8 +214,12 @@ export default {
 			this.error = ''
 			try {
 				await axios.post(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}/actions/{action}', { register, schema, id, action: macro.key }))
-				this.lastRun = { name: macro.name, date: new Date().toLocaleString() }
+				this.lastRun = { name: macro.name, date: new Date().toLocaleString(), changes: [] }
 				emit('cn:page:refresh', { source: 'cn-macros-widget' })
+				// The audit entry of this run says what it changed.
+				const local = this.lastRun
+				await this.loadLastRun()
+				this.lastRun = this.lastRun || local
 			} catch (e) {
 				this.error = t('nextcloud-vue', 'The macro did not run: {error}', { error: e?.response?.data?.error || e?.message || '' })
 			} finally {
