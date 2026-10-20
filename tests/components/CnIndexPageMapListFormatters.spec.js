@@ -64,6 +64,43 @@ describe('map list through the app formatters', () => {
 })
 
 /**
+ * @spec openspec/changes/map-list-formatters/specs/map-list-formatters/spec.md#requirement-a-map-list-pill-takes-its-tone-and-icon-from-the-referenced-record
+ */
+describe('map list pills through the referenced record\'s look', () => {
+	const STATUS = { path: 'status', formatter: 'statusTypeName', resolve: { colorField: 'colour', register: 'dossiq', schema: 'statusType' } }
+	const rows = [{ id: 'c1', title: 'A', status: 's1', lat: 1 }, { id: 'c2', title: 'B', status: 's2', lat: 2 }]
+	const formatters = { statusTypeName: (v) => ({ s1: 'In behandeling', s2: 'Ontvangen' })[v] }
+
+	it('takes the tone and icon of the status the pill points at', () => {
+		const looks = { status: { s1: { color: 'purple', icon: 'Progress' }, s2: { color: 'blue-light', icon: null } } }
+		const { items } = mapListItems(rows, { title: '{title}', pills: [STATUS] }, { rowKey: 'id', located, formatters, looks })
+		expect(items.map((item) => item.pills[0])).toEqual([
+			{ label: 'In behandeling', variant: 'purple', icon: 'Progress' },
+			{ label: 'Ontvangen', variant: 'info' },
+		])
+	})
+
+	it('keeps the declared tone while the look has not arrived', () => {
+		const { items } = mapListItems(rows, { title: '{title}', pills: [{ ...STATUS, variant: 'default' }] }, { rowKey: 'id', located, formatters, looks: {} })
+		expect(items[0].pills[0]).toEqual({ label: 'In behandeling', variant: 'default' })
+	})
+
+	it('asks the page to read the looks of a resolving map list pill', () => {
+		const c = {
+			mapConfig: { latField: 'lat', list: { title: '{title}', pills: [STATUS, { path: 'caseType', formatter: 'caseTypeName' }] } },
+			mapListEnabled: true,
+			listConfig: null,
+			tableColumns: [],
+			board: null,
+			cardLayout: null,
+			effectiveSchema: null,
+			register: 'dossiq',
+		}
+		expect(CnIndexPage.computed.refLookSpecs.call(c)).toEqual([{ key: 'status', register: 'dossiq', schema: 'statusType', colorField: 'colour', iconField: '' }])
+	})
+})
+
+/**
  * @spec openspec/changes/map-list-formatters/specs/map-list-formatters/spec.md#requirement-the-card-for-rows-without-a-place-stays-under-the-list
  */
 describe('index-page.css: the list scrolls, the card stays under it', () => {

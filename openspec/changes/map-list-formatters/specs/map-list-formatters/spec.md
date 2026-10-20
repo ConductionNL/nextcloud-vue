@@ -27,6 +27,18 @@ the app formatter of that name. `sub` MAY be a list of templates, and the first 
 - **THEN** the row reads "Lindelaan 40 · 2026-0082" with the pills "Woo-verzoek" and "In behandeling"
 - **AND** a located case without a case location reads its case number only
 
+### Requirement: A map list pill takes its tone and icon from the referenced record
+
+A `mapConfig.list` pill with `resolve: { colorField?, iconField?, register?, schema? }` SHALL take its tone and icon
+from the record its `path` value points at, read by the index page with the same resolver as its other pills
+(pill-color-field), the colour mapped onto a badge tone. Until the look arrives, the declared tone is shown.
+
+#### Scenario: DqZakenKaart status pill
+
+- **GIVEN** a map list pill `{ path: "status", formatter: "statusTypeName", resolve: { colorField: "colour" } }`
+- **AND** a case whose status type "In behandeling" has `colour: purple`
+- **THEN** the row's status pill reads "In behandeling" in the purple tone
+
 ### Requirement: The card for rows without a place stays under the list
 
 The map list SHALL scroll inside the side column, and its rows and the card for the rows without a place SHALL keep

@@ -947,7 +947,11 @@
 										<CnStatusBadge v-for="(pill, index) in item.pills"
 											:key="index"
 											:label="pill.label"
-											:variant="pill.variant" />
+											:variant="pill.variant">
+											<template v-if="pill.icon" #icon>
+												<CnIcon :name="pill.icon" :size="14" />
+											</template>
+										</CnStatusBadge>
 										<span v-if="item.due" class="cn-index-page__map-due">{{ item.due }}</span>
 									</span>
 								</div>
@@ -6129,8 +6133,12 @@ export default {
 			const layoutPills = [layout.headPill, layout.footerPill, ...(Array.isArray(layout.chips) ? layout.chips : [])]
 				.filter((def) => def && typeof def === 'object')
 				.map((def) => ({ key: def.field, resolve: def.resolve }))
+			// The map list's pills (`mapConfig.list.pills`, each with its own `resolve`).
+			const mapListPills = (this.mapListEnabled && Array.isArray(this.mapConfig.list.pills) ? this.mapConfig.list.pills : [])
+				.filter((def) => def && typeof def === 'object')
+				.map((def) => ({ key: def.path, resolve: def.resolve }))
 			const seen = new Set()
-			const cols = [...badgeSources, { key: card.pill, resolve: card.resolve }, ...layoutPills].filter((c) => {
+			const cols = [...badgeSources, { key: card.pill, resolve: card.resolve }, ...layoutPills, ...mapListPills].filter((c) => {
 				const wanted = typeof c.key === 'string' && c.key !== '' && c.resolve && typeof c.resolve === 'object'
 					&& (c.resolve.colorField || c.resolve.iconField) && !seen.has(c.key)
 				if (wanted) {
@@ -6477,6 +6485,7 @@ export default {
 				located: (row) => Boolean(this.resolveRowGeometry(row)),
 				translate: (text) => this.cnTranslate(text),
 				formatters: this.cnFormatters,
+				looks: this.refLooks,
 			})
 		},
 

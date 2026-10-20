@@ -11,3 +11,9 @@
 - **files**: `src/css/index-page.css`
 - [x] Implement: the list scrolls, rows and the card keep their height
 - [x] Test: `tests/components/CnIndexPageMapListFormatters.spec.js`
+
+### Task 3: A map list pill takes its tone and icon from the referenced record
+- **spec_ref**: `openspec/changes/map-list-formatters/specs/map-list-formatters/spec.md#requirement-a-map-list-pill-takes-its-tone-and-icon-from-the-referenced-record`
+- **files**: `src/utils/mapList.js`, `src/components/CnIndexPage/CnIndexPage.vue`
+- [x] Implement: map list pills join `refLookSpecs`, `mapListItems` lays `pillLook` over a resolving pill, the icon slot
+- [x] Test: `tests/components/CnIndexPageMapListFormatters.spec.js`

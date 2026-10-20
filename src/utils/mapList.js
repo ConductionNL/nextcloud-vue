@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 import { isBadgeVariant } from './badgeVariants.js'
+import { pillLook } from './detailActionModel.js'
 import { fillTemplate, firstFilled } from './fillTemplate.js'
 import { readPath } from './readPath.js'
 
@@ -12,12 +13,14 @@ import { readPath } from './readPath.js'
  * pin and the number in the list are the same, and the rows without one.
  *
  * `spec` is `mapConfig.list`: `{ title, sub?, pills?: [{ path?, text?, map?,
- * formatter?, colorMap?, variant? }], due? }`. `title`, `sub` and `due` are
+ * formatter?, colorMap?, variant?, resolve? }], due? }`. `title`, `sub` and `due` are
  * field templates (`"{title}"`, `"{address} · {identifier}"`,
  * `"{deadline|date}"`), already translated by the caller; `sub` may list
  * several, the first that fills wins. A pill reads `path` (or shows `text`),
  * maps it through `map` or the app formatter `formatter` (a reference's
- * display name), and takes its tone from `colorMap` by the raw value.
+ * display name), and takes its tone from `colorMap` by the raw value, or,
+ * with `resolve`, the tone and icon of the record the value points at
+ * (`options.looks`, read by CnIndexPage as for its other pills).
  *
  * @param {Array<object>} rows The rows, in display order.
  * @param {object} spec The list declaration.
@@ -26,10 +29,12 @@ import { readPath } from './readPath.js'
  * @param {Function} options.located Whether a row has a place on the map.
  * @param {Function} [options.translate] The host's translate, for pill labels.
  * @param {object} [options.formatters] The app's named formatters, for pills and template tokens.
+ * @param {object} [options.looks] The referenced records' looks by field and id (`{ [path]: { [id]: { color, icon } } }`).
  * @return {{items: Array<{key: string, n: number, row: object, title: string, sub: string, due: string, pills: Array<{label: string, variant: string}>}>, missing: Array<object>}}
  * @spec openspec/changes/map-list-formatters/specs/map-list-formatters/spec.md#requirement-a-map-list-reads-display-names-through-the-apps-formatters
+ * @spec openspec/changes/map-list-formatters/specs/map-list-formatters/spec.md#requirement-a-map-list-pill-takes-its-tone-and-icon-from-the-referenced-record
  */
-export function mapListItems(rows, spec, { rowKey, located, translate = (text) => text, formatters = null }) {
+export function mapListItems(rows, spec, { rowKey, located, translate = (text) => text, formatters = null, looks = null }) {
 	const context = formatters ? { formatters } : null
 	const items = []
 	const missing = []
@@ -57,7 +62,10 @@ export function mapListItems(rows, spec, { rowKey, located, translate = (text) =
 					return null
 				}
 				const tone = pill.colorMap && (typeof raw === 'string' || typeof raw === 'number') ? pill.colorMap[raw] : pill.variant
-				return { label, variant: isBadgeVariant(tone) ? tone : 'default' }
+				const fieldLooks = pill.resolve && looks && typeof pill.path === 'string' ? looks[pill.path] : null
+				const look = pillLook(fieldLooks && (typeof raw === 'string' || typeof raw === 'number') ? fieldLooks[String(raw)] : null)
+				const variant = look.variant || tone
+				return { label, variant: isBadgeVariant(variant) ? variant : 'default', ...(look.icon ? { icon: look.icon } : {}) }
 			})
 			.filter(Boolean)
 		items.push({
