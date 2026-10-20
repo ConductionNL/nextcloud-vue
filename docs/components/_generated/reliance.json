@@ -197,7 +197,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 125,
+			"transitive": 129,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -237,6 +237,7 @@
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
 				"CnResourceSelect",
+				"CnSavedViewMenuSettings",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTasksCard",
@@ -3406,6 +3407,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-saved-view-edit-dialog"
+		},
+		"CnSavedViewMenuSettings": {
+			"direct": 2,
+			"transitive": 7,
+			"tier": "medium",
+			"via": [],
+			"page": null
 		},
 		"CnSavedViewPresentationDialog": {
 			"direct": 0,
