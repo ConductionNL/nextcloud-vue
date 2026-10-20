@@ -28,8 +28,10 @@ import CnMarkdownWidgetForm2 from '../CnMarkdownWidgetForm/CnMarkdownWidgetForm.
 import CnNextStepWidget from '../CnNextStepCard/CnNextStepWidget.vue'
 import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+import CnPlanWidget from '../CnPlanWidget/CnPlanWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
+import CnRetentionWidget from '../CnRetentionWidget/CnRetentionWidget.vue'
 import CnSavedViewWidget2 from '../CnSavedViewWidget/CnSavedViewWidget.vue'
 import CnSavedViewWidgetForm2 from '../CnSavedViewWidgetForm/CnSavedViewWidgetForm.vue'
 import CnStackedBarWidget from '../CnStackedBarWidget/CnStackedBarWidget.vue'
@@ -43,6 +45,7 @@ import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
 import CnTeamWorkloadWidget from '../CnTeamWorkloadWidget/CnTeamWorkloadWidget.vue'
 import CnWeekStripWidget from '../CnWeekStripWidget/CnWeekStripWidget.vue'
 import CnWeekStripWidgetForm from '../CnWeekStripWidgetForm/CnWeekStripWidgetForm.vue'
+import CnWorkQueue from '../CnWorkQueue/CnWorkQueue.vue'
 // Typed widgets registered with an explicit renderer + config FORM. chart /
 // stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
 // branches and `related` through CnDetailPage's isRelatedWidget() branch — the
@@ -288,6 +291,34 @@ registerDashboardWidget('next-step', {
 	icon: 'CheckCircleOutline',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
+})
+
+registerDashboardWidget('retention', {
+	renderer: CnRetentionWidget,
+	form: null,
+	defaultContent: { statusField: '', archivedValues: [], archivistGroups: ['archivaris'] },
+	displayName: 'Retention',
+	icon: 'ArchiveOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+registerDashboardWidget('plan', {
+	renderer: CnPlanWidget,
+	form: null,
+	defaultContent: { emptyText: '' },
+	displayName: 'Plan',
+	icon: 'FormatListChecks',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+registerDashboardWidget('work-queue', {
+	renderer: CnWorkQueue,
+	form: null,
+	defaultContent: { source: null },
+	displayName: 'Work queue',
+	icon: 'TrayFull',
 })
 
 registerDashboardWidget('document-review', {
