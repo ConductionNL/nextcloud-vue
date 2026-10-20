@@ -197,7 +197,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 125,
+			"transitive": 129,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -237,6 +237,7 @@
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
 				"CnResourceSelect",
+				"CnSavedViewMenuSettings",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTasksCard",
@@ -2085,6 +2086,48 @@
 			"via": [],
 			"page": "cn-link-cards-page"
 		},
+		"CnLinkedWidget": {
+			"direct": 0,
+			"transitive": 100,
+			"tier": "heavy",
+			"via": [
+				"CnAnalyticsReportPicker",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnEmailPicker",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnIndexPage",
+				"CnMapPoiPicker",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnVersionHistory",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
+			],
+			"page": "cn-linked-widget"
+		},
 		"CnLinksWidget": {
 			"direct": 0,
 			"transitive": 0,
@@ -3364,6 +3407,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-saved-view-edit-dialog"
+		},
+		"CnSavedViewMenuSettings": {
+			"direct": 2,
+			"transitive": 7,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-saved-view-menu-settings"
 		},
 		"CnSavedViewPresentationDialog": {
 			"direct": 0,

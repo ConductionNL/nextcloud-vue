@@ -32,6 +32,8 @@ fetch matching choices (set `loading` while it does).
 | `label` | `String` | `''` | The list's label, also its accessible name. |
 | `addLabel` | `String` | `'Add'` | The picker's label. |
 | `addPlaceholder` | `String` | `''` | Placeholder in the picker. |
+| `addHint` | `String` | `''` | A hint under the picker. |
+| `removeLabel` | `String` | `''` | The remove action as words ("Remove from menu") instead of the cross icon; its accessible name is these words and the row's label. |
 | `emptyText` | `String` | `'Nothing added yet.'` | Shown when the list is empty. |
 | `searchable` | `Boolean` | `false` | The app searches (`search` event) instead of the picker filtering `options`. |
 | `loading` | `Boolean` | `false` | Whether the app is fetching choices. |

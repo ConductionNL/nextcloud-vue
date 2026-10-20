@@ -152,7 +152,8 @@
 }
 
 /* Saved-view chips: one 38px pill each, the selected one filled with the main
-   text colour. The quick-filter tabs take the same chip. */
+   text colour and drawn without a border. The quick-filter tabs take the same
+   chip. */
 .cn-look-board .cn-saved-views__chips,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tabs {
 	display: flex;
@@ -210,7 +211,7 @@
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected:hover,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active:hover {
-	border-color: transparent;
+	border: 0;
 	background: var(--color-main-text);
 	color: var(--color-main-background);
 }
@@ -293,12 +294,15 @@
 
 /* Filter: a labelled secondary button, 36px, radius 8, 12px at both sides
    and 14px text, with the active count. NcButton with an icon pads its start
-   4px and sets 15px. */
+   4px and sets 15px. Its secondary border reads the light primary hover,
+   which a theme can set near white; the board draws the control border.
+   @spec openspec/changes/board-index-toolbar-controls/specs/board-index-toolbar-controls/spec.md#requirement-the-filter-button-draws-the-control-border */
 .cn-look-board .cn-actions-bar__filter-button.button-vue,
 .cn-look-board .cn-actions-bar__filter-menu .button-vue {
 	min-height: 36px;
 	height: 36px;
 	padding: 0 12px;
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: 8px;
 	font-size: 14px;
 	font-weight: 600;
@@ -419,12 +423,21 @@
 }
 
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__search .cn-actions-bar__search-input {
-	height: 40px;
 	padding-block: 0;
 	padding-inline: 38px 12px !important;
 	border: 1px solid var(--cn-board-control-border);
 	border-radius: 8px;
 	font-size: 14px;
+}
+
+/* The field's height. Nextcloud's input rule sets every text input to the
+   34px clickable area through nine `:not([type=...])` (0,9,1); this selector
+   repeats those nine on the board scope, so it outranks that rule by
+   specificity without `!important`.
+   @spec openspec/changes/board-index-toolbar-controls/specs/board-index-toolbar-controls/spec.md#requirement-the-search-field-is-40px-under-nextclouds-input-rule */
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__search input.cn-actions-bar__search-input:not([type='radio']):not([type='checkbox']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']):not([type='color']):not([type='file']):not([type='image']) {
+	height: 40px;
+	min-height: 40px;
 }
 
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__active-label {

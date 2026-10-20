@@ -122,9 +122,10 @@ test.describe('CnTabsWidget in the board look, narrow', () => {
 })
 
 test.describe('CnTabsWidget panel with a list footer', () => {
-	// The list widget's footer Add bleeds 16px through its card's padding; the
-	// panel of a tab pads 12px, so the footer stuck out by a constant 4px on the
-	// right and the bottom and the panel scrolled (the lead page).
+	// The list widget's footer Add bleeds 16px through its card's padding. In the
+	// board look the panel of a tab is the card and pads 20px 22px, so the footer
+	// bleeds 22px at the sides and 20px at the bottom; a bleed short of the
+	// padding left a gap, one past it made the panel scroll (the lead page).
 	test('a list footer in the panel bleeds the panel padding and does not make it scroll', async ({ page }) => {
 		await openHarness(page)
 		const result = await page.evaluate(() => {
@@ -145,8 +146,8 @@ test.describe('CnTabsWidget panel with a list footer', () => {
 				overY: content.scrollHeight - content.clientHeight,
 			}
 		})
-		expect(result.margin).toBe('-12px')
-		expect(result.bottom).toBe('-12px')
+		expect(result.margin).toBe('-22px')
+		expect(result.bottom).toBe('-20px')
 		expect(result.overX).toBeLessThanOrEqual(0)
 		expect(result.overY).toBeLessThanOrEqual(0)
 	})

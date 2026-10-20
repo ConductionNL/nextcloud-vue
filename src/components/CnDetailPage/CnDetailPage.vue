@@ -377,6 +377,7 @@
 					:actionsMenuLabel="boardMenuLabel"
 					:variant="isBoard ? 'secondary' : undefined"
 					:trailingChevron="isBoard"
+					:placement="isBoard ? 'bottom-end' : 'bottom'"
 					:hasPrimaryItems="headerMenuGroups.length > 0 || showMarkUnread || showOpenSidebar"
 					:documentationUrl="documentationUrl"
 					:docsAnchor="resolvedPageId"
@@ -1276,6 +1277,7 @@ import {
 import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
@@ -3474,8 +3476,8 @@ export default {
 			const tr = (text) => (text ? this.effectiveTranslate(text) : '')
 			return {
 				...card,
-				title: tr(card.title),
-				after: tr(card.after),
+				title: firstFilled(card.title, this.currentObject, tr),
+				after: firstFilled(card.after, this.currentObject, tr),
 				items: card.items.map((item) => ({ ...item, label: tr(item.label), hint: tr(item.hint) })),
 			}
 		},

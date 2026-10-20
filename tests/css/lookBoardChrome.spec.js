@@ -37,14 +37,24 @@ function rulesFor(needle) {
 }
 
 describe('look-board.css: scope', () => {
-	it('puts every selector under .cn-look-board', () => {
+	// NcActions poppers are teleported to <body>, outside every `.cn-look-board`
+	// root, so a rule for one cannot start there. It is rooted at a body that
+	// holds a board-look root instead, and only for a teleported popper.
+	const TELEPORTED_ROOT = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud))'
+	const isTeleported = (selector) => selector.startsWith('body:has(.cn-look-board)')
+
+	it('puts every selector under .cn-look-board, or a teleported popper under a body holding one', () => {
 		const re = /([^{}]+)\{[^{}]*\}/g
 		let m
 		let count = 0
 		while ((m = re.exec(css))) {
 			for (const selector of m[1].split(',').map((s) => s.trim()).filter(Boolean)) {
 				count++
-				expect(selector.startsWith('.cn-look-board')).toBe(true)
+				if (isTeleported(selector)) {
+					expect(selector.startsWith(`${TELEPORTED_ROOT} .v-popper__popper`)).toBe(true)
+				} else {
+					expect(selector.startsWith('.cn-look-board')).toBe(true)
+				}
 			}
 		}
 		expect(count).toBeGreaterThan(40)
@@ -55,7 +65,11 @@ describe('look-board.css: scope', () => {
 		let m
 		while ((m = re.exec(css))) {
 			for (const selector of m[1].split(',').map((s) => s.trim())) {
-				if (/cn-(index|detail|dashboard|settings)-page|cn-page-header|cn-admin-settings-shell/.test(selector)) {
+				if (isTeleported(selector)) {
+					// A teleported popper sits outside the page, so it opts out by the body:
+					// no board styling while any page keeps the Nextcloud look.
+					expect(selector.startsWith(TELEPORTED_ROOT)).toBe(true)
+				} else if (/cn-(index|detail|dashboard|settings)-page|cn-page-header|cn-admin-settings-shell/.test(selector)) {
 					expect(selector).toContain(':not(.cn-look-nextcloud *)')
 				}
 			}

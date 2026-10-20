@@ -70,9 +70,11 @@ describe('CnDetailPage admin tag', () => {
 		expect(tagFor(true, { key: 'cn-group-0' })).toBeNull()
 	})
 
-	it('draws the tag as muted text at the end of the row, from the attribute', () => {
+	it('draws the tag as muted text at the end of the row, from the attribute on the item', () => {
 		const css = fs.readFileSync(path.join(__dirname, '../../src/css/detail-page.css'), 'utf8')
-		const at = css.indexOf('.action-button[data-cn-admin-tag]::after')
+		// NcActionButton puts the attribute on its <li>, so a rule on the button never matched.
+		expect(css).not.toContain('.action-button[data-cn-admin-tag]')
+		const at = css.indexOf('li[data-cn-admin-tag] > .action-button::after')
 		expect(at).toBeGreaterThan(-1)
 		const rule = css.slice(at, css.indexOf('}', at))
 		expect(rule).toContain('content: attr(data-cn-admin-tag)')
