@@ -13,6 +13,15 @@ const path = require('path')
 
 const read = (file) => fs.readFileSync(path.join(__dirname, '../../src', file), 'utf8')
 
+/**
+ * A selector that ends a selector list (` {`) or sits in one (`,`): another board's
+ * header may share the same list.
+ *
+ * @param {string} selector The selector.
+ * @return {RegExp} The pattern.
+ */
+const inSelectorList = (selector) => new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?: \\{|,)')
+
 describe('the board flow editor header', () => {
 	const sfc = read('components/CnFlowsPage/CnFlowBoard.vue')
 
@@ -26,7 +35,7 @@ describe('the board flow editor header', () => {
 
 	it('gives the header actions the board header button rules', () => {
 		const css = read('css/look-board.css')
-		expect(css).toContain('.cn-look-board .cn-flow-board__actions:not(.cn-look-nextcloud *) .button-vue {')
-		expect(css).toContain('.cn-look-board .cn-flow-board__actions:not(.cn-look-nextcloud *) .button-vue--primary {')
+		expect(css).toMatch(inSelectorList('.cn-look-board .cn-flow-board__actions:not(.cn-look-nextcloud *) .button-vue'))
+		expect(css).toMatch(inSelectorList('.cn-look-board .cn-flow-board__actions:not(.cn-look-nextcloud *) .button-vue--primary'))
 	})
 })

@@ -27,6 +27,15 @@ function mountView(look) {
 	})
 }
 
+/**
+ * A selector that ends a selector list (` {`) or sits in one (`,`): another board's
+ * header may share the same list.
+ *
+ * @param {string} selector The selector.
+ * @return {RegExp} The pattern.
+ */
+const inSelectorList = (selector) => new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?: \\{|,)')
+
 describe('the board features page header', () => {
 	it('marks the view in the board look, and only there', () => {
 		expect(mountView('board').classes()).toContain('cn-features-and-roadmap-view--board')
@@ -39,8 +48,8 @@ describe('the board features page header', () => {
 
 	it('gives the board\'s header buttons the board header button rules', () => {
 		const css = read('css/look-board.css')
-		expect(css).toContain('.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *) .button-vue {')
-		expect(css).toContain('.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *) .button-vue--primary {')
+		expect(css).toMatch(inSelectorList('.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *) .button-vue'))
+		expect(css).toMatch(inSelectorList('.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *) .button-vue--primary'))
 	})
 
 	it('draws the meta line 14px and the segmented options without margin in the soft ink', () => {
