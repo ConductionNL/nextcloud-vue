@@ -679,7 +679,7 @@ function readRowsPath(body, path) {
  *
  * @type {Array<string>}
  */
-const ENDPOINT_SOURCE_KEYS = ['url', 'rowsPath', 'totalPath', 'searchParam', 'notePath', 'noteText', 'refusedText']
+const ENDPOINT_SOURCE_KEYS = ['url', 'rowsPath', 'totalPath', 'searchParam', 'searchFields', 'notePath', 'noteText', 'refusedText']
 
 /**
  * The endpoint source: rows from an app's own endpoint
@@ -713,8 +713,12 @@ const ENDPOINT_SOURCE_KEYS = ['url', 'rowsPath', 'totalPath', 'searchParam', 'no
  * - `refusedText`: what a refused load (403) says when the endpoint gave no
  *   `message` of its own. A refusal is not an empty list, so the page shows it
  *   instead of the rows, and a failed load is not one either.
+ * - `searchFields`: the filters the endpoint takes, in the same shape a
+ *   registered source declares them (`{ status: { param: 'status', single:
+ *   true } }`), so a filter strip or sidebar on the page narrows the
+ *   endpoint's query.
  *
- * @param {object} [declared] The page's `sourceConfig`, for `searchParam`.
+ * @param {object} [declared] The page's `sourceConfig`, for `searchParam` and `searchFields`.
  * @param {object} [context] The page's helpers; `translate` is the app's catalogue.
  * @return {object} The source adapter.
  * @spec openspec/changes/index-endpoint-source/specs/index-page/spec.md#requirement-an-index-page-can-list-rows-from-an-app-endpoint
@@ -723,6 +727,7 @@ function endpointSource(declared = {}, context = {}) {
 	const state = reactive({ rows: [], loading: false, refusal: '', failed: false, note: '' })
 	const translate = typeof context.translate === 'function' ? context.translate : (text) => text
 	const searchParam = typeof declared.searchParam === 'string' && declared.searchParam !== '' ? declared.searchParam : null
+	const searchFields = declared.searchFields && typeof declared.searchFields === 'object' && !Array.isArray(declared.searchFields) ? declared.searchFields : null
 	let seq = 0
 	let warned = false
 
@@ -798,6 +803,11 @@ function endpointSource(declared = {}, context = {}) {
 		 * endpoint takes no search.
 		 */
 		searchParam,
+
+		/**
+		 * The page filters this endpoint takes, and the parameter each becomes.
+		 */
+		searchFields,
 
 		/**
 		 * Fetch the rows.

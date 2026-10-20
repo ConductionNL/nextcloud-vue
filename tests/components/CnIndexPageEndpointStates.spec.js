@@ -83,6 +83,23 @@ describe('endpoint source states', () => {
 	})
 })
 
+describe('endpoint source filters', () => {
+	it('sends a page filter as the parameter its searchFields declare, and nothing undeclared', async () => {
+		mockGet.mockResolvedValue({ data: { items: [] } })
+		const activeFilters = ref({})
+		mount({
+			template: '<div />',
+			setup() {
+				return { named: useNamedSource({ entitySource: 'endpoint', objects: [], quickFilters: null, sourceConfig: { url: '/apps/x/api/messages', rowsPath: 'items', searchFields: { messageKind: { param: 'messageKind', single: true } } } }, { activeQuickFilterIndex: ref(null), activeFilters }) }
+			},
+		})
+		await flushPromises()
+		activeFilters.value = { messageKind: ['Lk01'] }
+		await flushPromises()
+		expect(mockGet.mock.calls.at(-1)[1].params).toEqual({ messageKind: 'Lk01' })
+	})
+})
+
 describe('an endpoint index page', () => {
 	/**
 	 * Mount the page over the endpoint source.
