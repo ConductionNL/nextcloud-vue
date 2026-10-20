@@ -118,9 +118,50 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 		loading: false,
 		/** @type {string|null} The last load failure, for the console trail. */
 		error: null,
+		/** @type {Object<string, object>} Single tasks read for a detail page, keyed on their uuid. */
+		records: {},
+		/** @type {Object<string, number|null>} The HTTP status of a failed single read, keyed on the uuid. */
+		recordErrors: {},
 	}),
 
 	actions: {
+		/**
+		 * Read one task into `records`, for a `type: "detail"` page on the
+		 * `tasks` source. A refusal (403) or a missing task (404) leaves no
+		 * record and keeps the status in `recordErrors`, so the page can tell
+		 * "not found" from "still loading". The engine decides what the caller
+		 * may read; nothing here widens that.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @return {Promise<object|null>} The task, or null when it could not be read.
+		 * @spec openspec/changes/tasks-record-source/specs/tasks-record-source/spec.md#requirement-the-tasks-source-reads-one-task
+		 */
+		async fetchRecord(uuid) {
+			const key = String(uuid || '').trim()
+			if (key === '') {
+				return null
+			}
+			try {
+				const response = await axios.get(generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(key)}`))
+				const data = response.data
+				const task = data && typeof data === 'object' && data.results && !Array.isArray(data.results) ? data.results : data
+				const { [key]: dropped, ...errors } = this.recordErrors
+				this.recordErrors = errors
+				if (!task || typeof task !== 'object' || Array.isArray(task)) {
+					return null
+				}
+				this.records = { ...this.records, [key]: task }
+				return task
+			} catch (error) {
+				const { [key]: dropped, ...records } = this.records
+				this.records = records
+				this.recordErrors = { ...this.recordErrors, [key]: error?.response?.status ?? null }
+				// eslint-disable-next-line no-console
+				console.error(`[useTaskInboxStore] Loading task "${key}" failed`, error)
+				return null
+			}
+		},
+
 		/**
 		 * Read one inbox page WITHOUT touching the store's state, so a surface
 		 * that lists a different slice (the Tasks tab of one record) cannot
