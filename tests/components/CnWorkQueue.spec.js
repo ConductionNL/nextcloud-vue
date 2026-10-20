@@ -8,6 +8,7 @@
  * @spec openspec/changes/work-queue/specs/work-queue/spec.md#requirement-one-queue-over-every-source
  */
 import axios from '@nextcloud/axios'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { flushPromises, mount } from '@vue/test-utils'
 import CnWorkQueue from '../../src/components/CnWorkQueue/CnWorkQueue.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
@@ -18,6 +19,7 @@ import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (p) => `/nc${p}`, generateOcsUrl: (p) => p, generateFilePath: (p) => p, imagePath: (p) => p }))
+jest.mock('@nextcloud/event-bus', () => ({ emit: jest.fn(), subscribe: jest.fn(), unsubscribe: jest.fn() }))
 jest.mock('../../src/utils/linkNavigation.js', () => ({ ...jest.requireActual('../../src/utils/linkNavigation.js'), openRowTarget: jest.fn() }))
 
 const QUEUE = {
@@ -119,5 +121,16 @@ describe('CnWorkQueue', () => {
 		const broken = await mountQueue()
 		expect(broken.find('[data-testid="cn-work-queue-error"]').exists()).toBe(true)
 		expect(broken.find('[data-testid="cn-work-queue-empty"]').exists()).toBe(false)
+	})
+
+	it('reads again on a page refresh, and stops listening when it goes', async () => {
+		const w = await mountQueue()
+		const [channel, handler] = subscribe.mock.calls.at(-1)
+		expect(channel).toBe('cn:page:refresh')
+		await handler()
+		await flushPromises()
+		expect(axios.get).toHaveBeenCalledTimes(2)
+		w.unmount()
+		expect(unsubscribe).toHaveBeenCalledWith('cn:page:refresh', handler)
 	})
 })

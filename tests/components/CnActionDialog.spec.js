@@ -164,3 +164,77 @@ describe('CnActionDialog', () => {
 		expect(resolveModalEntry({}, 'Nothing')).toBeNull()
 	})
 })
+
+describe('CnActionDialog fields and a permission read from a list', () => {
+	beforeEach(() => {
+		axios.get.mockReset()
+		axios.post.mockReset()
+		invalidateEndpointSourceCache()
+	})
+
+	it('reads the matching entry of a list for the permission and fills the eyebrow from the record', async () => {
+		axios.get.mockImplementation((url) => Promise.resolve({
+			data: url.endsWith('/acts')
+				? { acts: [{ act: 'reopen', allowed: true }, { act: 'archive', allowed: false, reason: 'Only an archivist may archive.' }] }
+				: CASE,
+		}))
+		const w = await mountDialog({
+			...ARCHIVE,
+			eyebrow: 'Close off · {identifier}',
+			checklist: undefined,
+			permission: { source: { url: '/apps/dossiq/api/case/@objectId/acts' }, listPath: 'acts', match: { act: 'archive' }, allowedPath: 'allowed', reasonPath: 'reason' },
+		})
+		expect(w.findComponent({ name: 'CnDialog' }).props('eyebrow')).toBe('Close off · 2026-0082')
+		expect(w.find('[data-testid="cn-action-dialog-refusal"]').text()).toBe('Only an archivist may archive.')
+		await w.find('textarea').setValue('Closed')
+		expect(w.find('[data-testid="cn-action-dialog-confirm"]').attributes('disabled')).toBeDefined()
+	})
+
+	it('asks its fields, lets an option fill an empty one, and sends them', async () => {
+		axios.post.mockResolvedValue({ data: {} })
+		const PLAN = {
+			title: 'Plan an item',
+			fields: [
+				{ field: 'template', type: 'select', required: false, options: [{ value: 'call-back', label: 'Call someone back', fills: { title: 'Call someone back' } }] },
+				{ field: 'title', label: 'What is it' },
+				{ field: 'startsAt', type: 'datetime', label: 'When' },
+			],
+			confirm: { label: 'Schedule it', request: { url: '/apps/dossiq/api/personal-queue/planned-items' } },
+		}
+		const w = mount(CnActionDialog, {
+			props: { config: PLAN },
+			global: { stubs: { CnDialog: { name: 'CnDialog', props: ['name', 'eyebrow'], template: '<div><slot /><slot name="actions" /></div>' }, NcSelect: { name: 'NcSelect', props: ['modelValue', 'options'], emits: ['update:modelValue'], template: '<div class="select" />' }, NcTextField: { name: 'NcTextField', props: ['modelValue', 'label', 'type'], emits: ['update:modelValue'], template: '<input :type="type" :aria-label="label" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)">' }, CnIcon: true } },
+		})
+		await flushPromises()
+		const confirm = () => w.find('[data-testid="cn-action-dialog-confirm"]')
+		expect(confirm().attributes('disabled')).toBeDefined()
+		w.findComponent({ name: 'NcSelect' }).vm.$emit('update:modelValue', { id: 'call-back', fills: { title: 'Call someone back' } })
+		await flushPromises()
+		expect(w.find('input[aria-label="What is it"]').element.value).toBe('Call someone back')
+		expect(w.find('input[aria-label="When"]').attributes('type')).toBe('datetime-local')
+		await w.find('input[aria-label="When"]').setValue('2026-10-21T09:00')
+		await confirm().trigger('click')
+		await flushPromises()
+		expect(axios.post).toHaveBeenCalledWith('/nc/apps/dossiq/api/personal-queue/planned-items', { template: 'call-back', title: 'Call someone back', startsAt: '2026-10-21T09:00' })
+		expect(w.emitted('done')[0][0]).toEqual({ template: 'call-back', title: 'Call someone back', startsAt: '2026-10-21T09:00', reason: '' })
+	})
+})
+
+describe('CnActionDialog opened with an unresolved token', () => {
+	it('takes the record id from the route, and the dispatcher resolves a prop token when it can', async () => {
+		axios.get.mockReset()
+		invalidateEndpointSourceCache()
+		axios.get.mockResolvedValue({ data: CASE })
+		mount(CnActionDialog, {
+			props: { config: { summary: { source: { url: '/apps/dossiq/api/case/@objectId/summary' }, title: '{title}' } }, objectId: '@objectId' },
+			global: { mocks: { $route: { params: { id: 'z-9' } } }, stubs: { CnDialog: { template: '<div><slot /><slot name="actions" /></div>' }, CnIcon: true } },
+		})
+		await flushPromises()
+		expect(axios.get.mock.calls[0][0]).toBe('/nc/apps/dossiq/api/case/z-9/summary')
+
+		const { dispatchAction } = require('../../src/utils/actionsDispatcher.js')
+		const openModal = jest.fn()
+		dispatchAction({ type: 'open-modal', target: 'CnActionDialog', props: { objectId: '@objectId', config: { title: 'Archive' } } }, { registry: {}, openModal, tokenCtx: { objectId: 'z-82' } })
+		expect(openModal).toHaveBeenCalledWith('CnActionDialog', { objectId: 'z-82', config: { title: 'Archive' } })
+	})
+})
