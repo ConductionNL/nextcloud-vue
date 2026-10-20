@@ -22,6 +22,8 @@ dispatcher — with a confirm gate first when the action asks for it.
 | `navigate` / `open-page` | Rendered as a real link, so it can be middle-clicked, opened in a new tab or copied: an external `navigate` target opens in a new tab, an in-app target (or `open-page` route name) gets the router-resolved `href` and a plain click routes in place. A `confirm: true` action, one carrying an `onSelect` function, or one whose route the router cannot resolve stays a button routed through `dispatchAction`. In `display: "menu"` an in-app link is published as a `run()` entry, not an `href`. |
 | `open-modal` / `refresh` / `handler` | Routed through `dispatchAction` (the pre-bound `cnDispatchAction` when mounted under `CnPageRenderer`). |
 
+An entry with **`href`** (any type) is a real link and is never dispatched: an anchor button in the bar, an `NcActionLink` in a menu, with `target` as its anchor target. This component uses `href` as given, so it must be a finished URL. A manifest `headerActions[]` entry on a detail or dashboard page may carry `href` too; the page resolves an instance path through `generateUrl()` and sets `target` (`_self` unless the manifest says `_blank`) before handing it over — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href).
+
 Every action may carry a **`visibleWhen`** predicate (the shared banner
 shape — `{ endpoint \| source \| field, op, value }`) evaluated against the
 page / object context. A hidden action simply doesn't render. The

@@ -48,6 +48,8 @@
 						<NcButton
 							v-else
 							:variant="button.variant"
+							:href="button.link ? button.link.href : undefined"
+							:target="button.link ? button.link.target : undefined"
 							:data-testid="`cn-reports-header-button-${button.key}`"
 							@click="onHeaderButton(button)">
 							<template v-if="button.icon" #icon>
@@ -163,6 +165,7 @@ import { defineAsyncComponent } from 'vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { useLook } from '../../composables/useLook.js'
+import { headerActionAsLink } from '../../utils/actionLink.js'
 import { resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 
@@ -325,7 +328,11 @@ export default {
 		 * function, `navigate` (with `route`, and `params`), `emit`, `none`,
 		 * or a registry name; `type: "navigate"` with a `target` URL opens
 		 * that URL in a new tab. Every click also emits `header-action`
-		 * `{ action, id }`, except for `handler: "none"`.
+		 * `{ action, id }`, except for `handler: "none"`. An entry with `href`
+		 * makes its button a real link that runs and emits nothing: an
+		 * absolute `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written,
+		 * an instance path (leading `/`) through `generateUrl()`, in a new tab with
+		 * `target: '_blank'`.
 		 *
 		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
 		 * @type {Array<object>|null}
@@ -451,24 +458,31 @@ export default {
 
 		/**
 		 * The declared header buttons that have a label and an action,
-		 * translated, each with a stable key and a variant.
+		 * translated, each with a stable key and a variant. A button naming a
+		 * header action with `href` carries that `link`.
 		 *
 		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
-		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string}>} The buttons.
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, link: ({href: string, target: string}|null)}>} The buttons.
 		 */
 		resolvedHeaderButtons() {
 			const declared = Array.isArray(this.config.headerButtons) ? this.config.headerButtons : []
+			const actions = Array.isArray(this.config.headerActions) ? this.config.headerActions : []
 			return declared
 				.filter((button) => button && typeof button === 'object'
 					&& typeof button.action === 'string' && button.action !== ''
 					&& typeof button.label === 'string' && button.label !== '')
-				.map((button) => ({
-					key: String(button.id || button.action),
-					label: this.tr(button.label),
-					action: button.action,
-					variant: button.variant === 'primary' ? 'primary' : 'secondary',
-					icon: typeof button.icon === 'string' ? button.icon : '',
-				}))
+				.map((button) => {
+					const entry = headerActionAsLink(actions.find((action) => action && action.id === button.action))
+					return {
+						key: String(button.id || button.action),
+						label: this.tr(button.label),
+						action: button.action,
+						variant: button.variant === 'primary' ? 'primary' : 'secondary',
+						icon: typeof button.icon === 'string' ? button.icon : '',
+						link: entry && typeof entry.href === 'string' && entry.href !== '' ? { href: entry.href, target: entry.target } : null,
+					}
+				})
 		},
 
 		/**
@@ -685,13 +699,18 @@ export default {
 
 		/**
 		 * A header button was clicked: run the `headerActions` entry it names
-		 * and emit `header-action`, as an index page's header button does.
+		 * and emit `header-action`, as an index page's header button does. A
+		 * button that is a link is left to the browser.
 		 *
 		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
-		 * @param {{action: string}} button The resolved button.
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @param {{action: string, link?: object}} button The resolved button.
 		 * @return {void}
 		 */
 		onHeaderButton(button) {
+			if (button.link) {
+				return
+			}
 			const id = button.action
 			const actions = Array.isArray(this.config.headerActions) ? this.config.headerActions : []
 			const entry = actions.find((action) => action && action.id === id) || null
