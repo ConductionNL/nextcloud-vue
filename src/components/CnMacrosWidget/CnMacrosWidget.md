@@ -20,3 +20,11 @@ run it asks the page to refresh (`cn:page:refresh`). The last run is read from t
 ```json
 { "id": "case-macros", "type": "macros", "title": "Macros", "content": { "description": "Several steps at once; then you see what changed" } }
 ```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `content` | Object | `{}` | The widget's content above: `description` and `emptyText`, both translated |
+| `objectData` | Object | `null` | The bound record |
+| `objectId` | String \| Number | `''` | The bound record's id |

@@ -2209,7 +2209,7 @@
 			"transitive": 1,
 			"tier": "medium",
 			"via": [],
-			"page": null
+			"page": "cn-macros-widget"
 		},
 		"CnMailTab": {
 			"direct": 0,
