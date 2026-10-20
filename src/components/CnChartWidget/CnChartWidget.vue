@@ -42,7 +42,7 @@
 			:error="epError"
 			:refused="epRefused" />
 		<div v-else-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
-			{{ emptyLabel }}
+			{{ hostTranslate(emptyLabel) }}
 		</div>
 		<!-- Sizing box for the apexcharts mount. apexcharts resolves a
 		     percentage `height` against its element's PARENT (Core.js
