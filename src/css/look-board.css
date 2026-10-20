@@ -356,6 +356,7 @@
 	--nldesign-color-on-surface: var(--color-main-text);
 	--nldesign-component-link-color: var(--color-main-text);
 	--nldesign-component-link-text-decoration: none;
+	color: var(--color-main-text);
 	text-decoration: none;
 }
 
@@ -363,6 +364,7 @@
 .cn-look-board a.button-vue--vue-primary:not(.cn-look-nextcloud *):not(.vue-crumb *) {
 	--nldesign-color-on-surface: var(--color-primary-element-text);
 	--nldesign-component-link-color: var(--color-primary-element-text);
+	color: var(--color-primary-element-text);
 }
 
 /* A settings card's actions ("Checklist toevoegen") are neutral secondary
