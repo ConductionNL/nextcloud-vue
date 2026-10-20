@@ -5523,6 +5523,30 @@
 								}
 							}
 						},
+						"accessPurpose": {
+							"type": "object",
+							"required": ["when", "url"],
+							"additionalProperties": false,
+							"description": "type='detail': ask why the reader opens the record before the page shows it, and record the answer (detail-access-purpose). `when` is a condition in the visibleWhen grammar on the record and its visibilityContext records; `options` the purposes offered (\"Other\" with a written purpose is always added); `url` the app endpoint that records the purpose (POST { purpose, note }, {objectId} filled in). Nothing of the record shows until the endpoint accepts; the same record is not asked again in the same browser session. Maps to CnDetailPage `accessPurpose`.",
+							"properties": {
+								"when": { "type": "object", "description": "The condition under which the page asks, e.g. { \"field\": \"@context.caseType.specialDataCategories\", \"op\": \"notEmpty\" }." },
+								"options": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"required": ["value", "label"],
+										"additionalProperties": false,
+										"properties": {
+											"value": { "type": "string", "minLength": 1 },
+											"label": { "type": "string", "minLength": 1, "description": "i18n key." }
+										}
+									}
+								},
+								"url": { "type": "string", "minLength": 1, "description": "App endpoint that records the purpose; {objectId} is filled in." },
+								"title": { "type": "string", "description": "i18n key of the dialog's title." },
+								"description": { "type": "string", "description": "i18n key of the sentence under the title." }
+							}
+						},
 						"mapConfig": {
 							"type": "object",
 							"additionalProperties": true,

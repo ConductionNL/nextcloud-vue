@@ -1935,7 +1935,16 @@
     "Task deadline": "Deadline",
     "The note could not be recorded. It is kept here; try again.": "The note could not be recorded. It is kept here; try again.",
     "This field is not available here.": "This field is not available here.",
-    "filled in, not recorded yet": "filled in, not recorded yet"
+    "filled in, not recorded yet": "filled in, not recorded yet",
+    "Why are you opening this?": "Why are you opening this?",
+    "This record holds special categories of personal data. Your purpose is recorded with your name and the time.": "This record holds special categories of personal data. Your purpose is recorded with your name and the time.",
+    "Purpose": "Purpose",
+    "Describe your purpose": "Describe your purpose",
+    "State a purpose to open this": "State a purpose to open this",
+    "This record holds special categories of personal data. It opens once your purpose is recorded.": "This record holds special categories of personal data. It opens once your purpose is recorded.",
+    "State a purpose": "State a purpose",
+    "This page cannot record a purpose, so the record stays closed.": "This page cannot record a purpose, so the record stays closed.",
+    "Your purpose could not be recorded, so the record stays closed.": "Your purpose could not be recorded, so the record stays closed."
   },
   "plurals": {
     "{count} member": [
