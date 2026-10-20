@@ -4,9 +4,61 @@
 -->
 
 <template>
-	<div class="cn-settings-field" :data-testid="`cn-settings-field-${field.key}`">
+	<div class="cn-settings-field" :class="`cn-settings-field--${kind}`" :data-testid="`cn-settings-field-${field.key}`">
+		<h3 v-if="kind === 'heading'" class="cn-settings-field__heading">
+			{{ label }}
+		</h3>
+		<NcNoteCard
+			v-else-if="kind === 'status'"
+			:type="statusTone"
+			:role="statusTone === 'error' || statusTone === 'warning' ? 'alert' : 'status'"
+			:data-testid="`cn-settings-field-status-${field.key}`">
+			{{ field.text }}
+		</NcNoteCard>
+		<div v-else-if="kind === 'action'" class="cn-settings-field__action">
+			<div class="cn-settings-field__action-row">
+				<NcButton
+					:disabled="field.readOnly || field.actionBusy"
+					:aria-describedby="describedBy"
+					:data-testid="`cn-settings-field-action-${field.key}`"
+					@click="$emit('action')">
+					<template v-if="field.actionBusy" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ label }}
+				</NcButton>
+			</div>
+			<NcNoteCard v-if="field.actionResult"
+				:type="field.actionResult.type"
+				:role="field.actionResult.type === 'error' ? 'alert' : 'status'"
+				:data-testid="`cn-settings-field-action-result-${field.key}`">
+				{{ field.actionResult.text }}
+			</NcNoteCard>
+		</div>
+		<fieldset v-else-if="kind === 'radio'"
+			class="cn-settings-field__radio"
+			:disabled="field.readOnly"
+			:aria-describedby="describedBy">
+			<legend class="cn-settings-field__radio-legend" :class="{ 'hidden-visually': field.hideLabel === true }">
+				{{ label }}
+			</legend>
+			<template v-for="option in normalizedOptions" :key="String(option.value)">
+				<NcCheckboxRadioSwitch
+					type="radio"
+					:name="inputId"
+					:value="String(option.value)"
+					:modelValue="modelValue === null || modelValue === undefined ? '' : String(modelValue)"
+					:data-testid="`cn-settings-field-option-${field.key}-${option.value}`"
+					@update:modelValue="emitValue(option.value)">
+					{{ option.label }}
+				</NcCheckboxRadioSwitch>
+				<p v-if="option.description" class="cn-settings-field__option-description">
+					{{ option.description }}
+				</p>
+			</template>
+		</fieldset>
 		<NcCheckboxRadioSwitch
-			v-if="kind === 'switch' || kind === 'boolean'"
+			v-else-if="kind === 'switch' || kind === 'boolean'"
 			:type="kind === 'switch' ? 'switch' : 'checkbox'"
 			:modelValue="!!modelValue"
 			:disabled="field.readOnly"
@@ -64,7 +116,7 @@
 			:aria-describedby="describedBy"
 			@update:modelValue="emitValue(optionValue($event))" />
 		<NcTextArea
-			v-else-if="kind === 'textarea'"
+			v-else-if="kind === 'textarea' || kind === 'lines'"
 			:id="inputId"
 			:label="label"
 			:modelValue="stringValue"
@@ -124,7 +176,7 @@
 <script>
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import { buildHeaders, prefixUrl } from '../../utils/headers.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
@@ -145,7 +197,12 @@ const KIND_ALIASES = { enum: 'select', string: 'text' }
  * (replace-only: the input stays empty, and with `secretSet` says a value is
  * stored; the host sends it only when something is typed), and `image` (a
  * preview tile, the initials without an image, and an upload button that
- * posts the file to `uploadUrl` at once and emits `uploaded`).
+ * posts the file to `uploadUrl` at once and emits `uploaded`), `radio` (one
+ * choice from `options`, each with an optional `description` under it),
+ * `lines` (a textarea, one entry per line). Three types hold no value of their
+ * own: `heading` (a subheading between fields), `status` (a read-only note:
+ * the host passes its `text` and `tone`) and `action` (a button that emits
+ * `action`; the host passes `actionBusy` and the `actionResult` note).
  *
  * ```vue
  * <CnSettingsField
@@ -156,12 +213,12 @@ const KIND_ALIASES = { enum: 'select', string: 'text' }
 export default {
 	name: 'CnSettingsField',
 
-	components: { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextArea, NcTextField },
+	components: { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	props: {
 		/**
 		 * The field: `{ key, label, type?, options?, optionsUrl?, optionsPath?,
-		 * optionLabel?, optionValue?, placeholder?, rows?, min?, max?, required?,
+		 * optionLabel?, optionValue?, optionDetail?, placeholder?, rows?, min?, max?, required?,
 		 * readOnly?, secretSet? }`. `label` arrives translated.
 		 *
 		 * @type {object}
@@ -193,7 +250,7 @@ export default {
 		},
 	},
 
-	emits: ['update:modelValue', 'uploaded'],
+	emits: ['update:modelValue', 'uploaded', 'action'],
 
 	data() {
 		fieldUid += 1
@@ -236,6 +293,11 @@ export default {
 			return this.hint ? `${this.inputId}-hint` : null
 		},
 
+		/** @return {string} A status note's tone: `info`, `success`, `warning` or `error`. */
+		statusTone() {
+			return ['info', 'success', 'warning', 'error'].includes(this.field.tone) ? this.field.tone : 'info'
+		},
+
 		/** @return {string} The value as text for a text control. */
 		stringValue() {
 			return this.modelValue === null || this.modelValue === undefined ? '' : String(this.modelValue)
@@ -264,7 +326,10 @@ export default {
 			if (this.modelValue === null || this.modelValue === undefined || this.modelValue === '') {
 				return null
 			}
+			// A stored value is often text where the options carry numbers (an
+			// app config holding an id), so the two are compared as text.
 			return this.normalizedOptions.find((option) => option.value === this.modelValue)
+				|| this.normalizedOptions.find((option) => String(option.value) === String(this.modelValue))
 				|| { label: String(this.modelValue), value: this.modelValue }
 		},
 	},
@@ -374,7 +439,8 @@ export default {
 					}
 					const value = this.field.optionValue ? readPath(item, this.field.optionValue) : (item.value ?? item.id)
 					const label = this.field.optionLabel ? readPath(item, this.field.optionLabel) : (item.label ?? item.title ?? item.name ?? value)
-					return { label: String(label ?? ''), value }
+					const detail = this.field.optionDetail ? readPath(item, this.field.optionDetail) : ''
+					return { label: detail ? `${label ?? ''} (${detail})` : String(label ?? ''), value }
 				})
 			} catch {
 				this.fetchedOptions = []
@@ -442,8 +508,38 @@ export default {
 	color: var(--color-primary-element-light-text, var(--color-primary-element));
 }
 
-.cn-settings-field__hint {
+.cn-settings-field__hint,
+.cn-settings-field__option-description {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-settings-field__heading {
+	margin: 8px 0 0;
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.cn-settings-field__radio {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.cn-settings-field__radio-legend {
+	font-weight: 600;
+}
+
+.cn-settings-field__option-description {
+	margin: 0 0 8px calc(var(--default-grid-baseline, 4px) * 9);
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.cn-settings-field__action-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
 }
 
 .cn-settings-field__error {

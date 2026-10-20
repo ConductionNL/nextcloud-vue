@@ -18,7 +18,12 @@ One settings field: the control for its type with its label, and under it an err
 | `textarea` | NcTextArea (`rows`) |
 | `boolean` | NcCheckboxRadioSwitch as a checkbox |
 | `switch` | NcCheckboxRadioSwitch as a switch |
-| `select`, `enum` | NcSelect with `inputLabel`; static `options`, or `optionsUrl` with `optionsPath`, `optionLabel` and `optionValue` |
+| `select`, `enum` | NcSelect with `inputLabel`; static `options`, or `optionsUrl` with `optionsPath`, `optionLabel`, `optionValue` and `optionDetail` (a value in brackets after the label) |
+| `radio` | A fieldset named by the label with one NcCheckboxRadioSwitch radio per option; an option's `description` is a line under it |
+| `lines` | NcTextArea, one entry per line (the host turns the list into lines and back) |
+| `heading` | The label as a subheading; holds no value |
+| `status` | A read-only NcNoteCard with the host's `text` in its `tone`; holds no value |
+| `action` | A button with the label, emitting `action`; the host passes `actionBusy` and `actionResult` (`{ type, text }`, drawn as a note under it) |
 | `image` | A preview tile (the image at the value's url, else `initials`) and a button that uploads a file to `uploadUrl` at once (`uploadField`, `uploadParams`, `uploadValuePath`, `previewUrl`), emitting `uploaded` `hideLabel: true` keeps the field's label for a screen reader only. |
 
 ## Props
@@ -36,3 +41,4 @@ One settings field: the control for its type with its label, and under it an err
 |-------|---------|-------------|
 | `update:modelValue` | value | The value changed. |
 | `uploaded` | `string` | An image was uploaded; the payload is its new url. |
+| `action` | none | An `action` field's button was pressed. |

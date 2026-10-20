@@ -2167,7 +2167,10 @@
     "Task completed": "Taak afgerond",
     "This could not be done. Try again.": "Dit lukte niet. Probeer het opnieuw.",
     "{done} of {total} done": "{done} van {total} klaar",
-    "Nothing to check off": "Niets af te vinken"
+    "Nothing to check off": "Niets af te vinken",
+    "{field} must be a whole number.": "{field} moet een geheel getal zijn.",
+    "Show the explanations": "Uitleg tonen",
+    "Hide the explanations": "Uitleg verbergen"
   },
   "plurals": {
     "{count} member": [

@@ -1950,7 +1950,10 @@
     "Task completed": "Task completed",
     "This could not be done. Try again.": "This could not be done. Try again.",
     "{done} of {total} done": "{done} of {total} done",
-    "Nothing to check off": "Nothing to check off"
+    "Nothing to check off": "Nothing to check off",
+    "{field} must be a whole number.": "{field} must be a whole number.",
+    "Show the explanations": "Show the explanations",
+    "Hide the explanations": "Hide the explanations"
   },
   "plurals": {
     "{count} member": [
