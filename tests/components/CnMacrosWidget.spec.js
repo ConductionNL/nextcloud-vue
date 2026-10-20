@@ -102,6 +102,15 @@ describe('CnMacrosWidget', () => {
 		expect(w.find('[data-testid="cn-macros-widget-empty"]').exists()).toBe(true)
 	})
 
+	it('names a macro in the app\'s language', async () => {
+		const w = mount(CnMacrosWidget, {
+			props: { objectData: OBJECT, objectId: 'c-1', content: {} },
+			global: { provide: { cnTranslate: (key) => ({ 'Woo-verzoek afronden': 'Finish the Woo request' }[key] ?? key) } },
+		})
+		await flushPromises()
+		expect(w.findAll('.cn-macros-widget__name')[0].text()).toBe('Finish the Woo request')
+	})
+
 	it('is a library widget key', () => {
 		expect(DASHBOARD_CATALOG_WIDGET_KEYS).toContain('macros')
 	})

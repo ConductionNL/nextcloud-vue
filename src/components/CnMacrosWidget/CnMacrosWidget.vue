@@ -33,8 +33,8 @@
 				class="cn-macros-widget__row"
 				:data-testid="`cn-macros-widget-row-${macro.key}`">
 				<div class="cn-macros-widget__text">
-					<span class="cn-macros-widget__name">{{ macro.name }}</span>
-					<span v-if="macro.description" class="cn-macros-widget__hint">{{ macro.description }}</span>
+					<span class="cn-macros-widget__name">{{ tr(macro.name) }}</span>
+					<span v-if="macro.description" class="cn-macros-widget__hint">{{ tr(macro.description) }}</span>
 				</div>
 				<NcButton
 					:disabled="running !== ''"
@@ -195,7 +195,7 @@ export default {
 					? entry.changed.changes.map((change) => (change && typeof change.step === 'string' ? change.step : '')).filter(Boolean)
 					: []
 				this.lastRun = macro && entry.created
-					? { name: macro.name, date: new Date(entry.created).toLocaleString(), changes }
+					? { name: this.tr(macro.name), date: new Date(entry.created).toLocaleString(), changes }
 					: null
 			} catch {
 				this.lastRun = null
@@ -214,7 +214,7 @@ export default {
 			this.error = ''
 			try {
 				await axios.post(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}/actions/{action}', { register, schema, id, action: macro.key }))
-				this.lastRun = { name: macro.name, date: new Date().toLocaleString(), changes: [] }
+				this.lastRun = { name: this.tr(macro.name), date: new Date().toLocaleString(), changes: [] }
 				emit('cn:page:refresh', { source: 'cn-macros-widget' })
 				// The audit entry of this run says what it changed.
 				const local = this.lastRun
