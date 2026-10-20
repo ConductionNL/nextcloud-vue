@@ -64,6 +64,7 @@ The `data-testid`s are derived from `testidBase`: `<base>-actions` (container), 
 | `requestFeatureLabel` | `t('Request a feature')` | Pre-translated label for the Request-a-feature item. |
 | `actionsMenuLabel` | `t('Actions')` | Pre-translated aria-label / tooltip for the overflow trigger. |
 | `trailingChevron` | `false` | Draw a 14px chevron after the label instead of the dots before it, as the board's "Meer" menu in a detail header. `CnDetailPage` sets it in the board look. |
+| `placement` | `'bottom'` | Where the menu opens against its trigger. `CnDetailPage` passes `bottom-end` in the board look, so "Meer" lines up with its trigger's right edge. |
 | `hasPrimaryItems` | `false` | Tells the menu that `#primary-items` has content. Only needed by a host that switches every built-in item off: the menu decides in a computed whether to render at all, and a slot that fills in after mount is not something a computed notices. |
 | `refreshing` | `false` | While true, the Refresh item is disabled and shows a loading spinner — for exactly as long as this stays true, so it reflects the real refresh time. |
 | `specRef` | `''` | Accepted for backward compatibility with the removed in-product suggestion modal; no longer forwarded. |

@@ -377,6 +377,7 @@
 					:actionsMenuLabel="boardMenuLabel"
 					:variant="isBoard ? 'secondary' : undefined"
 					:trailingChevron="isBoard"
+					:placement="isBoard ? 'bottom-end' : 'bottom'"
 					:hasPrimaryItems="headerMenuGroups.length > 0 || showMarkUnread || showOpenSidebar"
 					:documentationUrl="documentationUrl"
 					:docsAnchor="resolvedPageId"
