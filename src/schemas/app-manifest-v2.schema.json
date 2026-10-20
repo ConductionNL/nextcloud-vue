@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.133.0",
+	"version": "2.134.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1378,7 +1378,7 @@
 						"filter": { "type": "object", "additionalProperties": true }
 					}
 				},
-				"resolve": { "type": "object", "additionalProperties": false, "required": ["register", "schema"], "description": "detail-pill-resolve: the field holds the id of a record of this register and schema; the pill shows that record's `labelField` (else its title or name) and keys `colorMap` by it. The raw value shows while the lookup runs and when it finds nothing.", "properties": { "register": { "type": "string", "minLength": 1 }, "schema": { "type": "string", "minLength": 1 }, "labelField": { "type": "string", "minLength": 1 } } },
+				"resolve": { "type": "object", "additionalProperties": false, "required": ["register", "schema"], "description": "detail-pill-resolve: the field holds the id of a record of this register and schema; the pill shows that record's `labelField` (else its title or name) and keys `colorMap` by it. The raw value shows while the lookup runs and when it finds nothing.", "properties": { "register": { "type": "string", "minLength": 1 }, "schema": { "type": "string", "minLength": 1 }, "labelField": { "type": "string", "minLength": 1 }, "colorField": { "type": "string", "minLength": 1, "description": "pill-color-field: the referenced record's property holding a colour name (an NL Design System hue such as `red` or `blue-light`, or a badge role); the pill takes the tone it maps onto." }, "iconField": { "type": "string", "minLength": 1, "description": "pill-color-field: the referenced record's property holding a registered icon name, shown before the label." } } },
 				"countLabel": {
 					"type": "object",
 					"additionalProperties": false,
@@ -4693,6 +4693,11 @@
 									"label": {
 										"type": "string",
 										"description": "One label for the control's label filter."
+									},
+									"icon": {
+										"type": "string",
+										"minLength": 1,
+										"description": "pill-color-field: a registered icon name the view's My views menu entry shows instead of the filter icon (a case type's own icon, say)."
 									},
 									"overrides": {
 										"type": "object",

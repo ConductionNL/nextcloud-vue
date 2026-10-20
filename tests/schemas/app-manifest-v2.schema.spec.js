@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.133.0', () => {
+	it('the manifest schema version reads 2.134.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1410,7 +1410,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.131.0 adds mapConfig markerColor, plotAll and count on an index page (index-map-parity).
 		// 2.132.0 adds sortSelectOptions[].source, a sidebar sort order whose rows come from an app endpoint (sidebar-sort-endpoint-source), saved-view overrides with locked filters, profile patches and card parts (saved-view-overrides-v2), and the forms work: a field's optionsFrom, dotted-path fields, the sub-objects editor, list reorder by an order field and the smaller form features (form-small-features).
 		// 2.133.0 adds the field override keys placeholderFrom, requiredWhen, warnWhen, clearWhenHidden, stored, initialWhen, sectionCollapsed, optionSwatches and optionIcons, optionsFrom groupField, where, itemsPath and hideWhenEmpty, and a source that follows another field through @answer (object-list-edit-in-place), the decision-list, retention, plan and work-queue widgets (widgets), and config.searchRefusalHint (index-page).
-		expect(schema.version).toBe('2.133.0')
+		// 2.134.0 adds headerPill.resolve colorField and iconField, and a default saved view's icon (pill-color-field).
+		expect(schema.version).toBe('2.134.0')
 	})
 
 	it('accepts the 2.133.0 widgets and searchRefusalHint, and refuses malformed ones', () => {
@@ -2524,5 +2525,28 @@ describe('app-manifest-v2 — headerPill resolve (detail-pill-resolve)', () => {
 	it('refuses a resolve without a schema or with an unknown key', () => {
 		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq' } })).valid).toBe(false)
 		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq', schema: 'caseType', colour: 'red' } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — pill colour and icon (pill-color-field)', () => {
+	const page = (typePill, defaultSavedViews) => ({
+		...MINIMAL_V2,
+		pages: [
+			{ id: 'Case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'dossiq', schema: 'case', typePill } },
+			{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'dossiq', schema: 'case', defaultSavedViews } },
+		],
+	})
+
+	it('accepts colorField and iconField on a pill resolve and an icon on a default view', () => {
+		const result = validateManifestV2(page(
+			{ field: 'caseType', resolve: { register: 'dossiq', schema: 'caseType', labelField: 'title', colorField: 'colour', iconField: 'icon' } },
+			[{ slug: 'woo', name: 'Woo', filters: {}, icon: 'FileDocumentOutline' }],
+		))
+		expect(result.errors || []).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('refuses an empty colorField', () => {
+		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq', schema: 'caseType', colorField: '' } }, [])).valid).toBe(false)
 	})
 })

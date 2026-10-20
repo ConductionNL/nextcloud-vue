@@ -16,6 +16,7 @@
  * @module utils/detailActionModel
  */
 
+import { variantForColor } from './headerFieldChips.js'
 import { readPath } from './readPath.js'
 import { evaluateVisibleWhenLocal } from './visibleWhen.js'
 
@@ -237,6 +238,32 @@ export function resolvePill(config, object) {
 		colorMap: config.colorMap && typeof config.colorMap === 'object' ? config.colorMap : null,
 		variant: typeof config.variant === 'string' && config.variant !== '' ? config.variant : 'default',
 	}
+}
+
+/**
+ * What a pill takes from the record its `resolve` points at
+ * (`resolve.colorField`, `resolve.iconField`): the tone its colour name maps
+ * onto (an NL Design System hue or a badge role, see `variantForColor`), which
+ * replaces the pill's own `variant` and `colorMap`, and an icon name. An empty
+ * colour or icon leaves the pill as declared.
+ *
+ * @param {{color?: string|null, icon?: string|null}|null|undefined} look The names read off the record.
+ * @return {{variant?: string, colorMap?: null, icon?: string}} The keys to lay over the pill.
+ * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-pill-takes-its-tone-and-icon-from-the-referenced-record
+ */
+export function pillLook(look) {
+	const out = {}
+	if (!look || typeof look !== 'object') {
+		return out
+	}
+	if (typeof look.color === 'string' && look.color !== '') {
+		out.variant = variantForColor(look.color)
+		out.colorMap = null
+	}
+	if (typeof look.icon === 'string' && look.icon !== '') {
+		out.icon = look.icon
+	}
+	return out
 }
 
 /**

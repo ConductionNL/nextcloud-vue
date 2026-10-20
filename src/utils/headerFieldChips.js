@@ -11,7 +11,12 @@
 /** The renderers a header chip can use. */
 export const HEADER_CHIP_FORMATS = Object.freeze(['text', 'mono', 'badge', 'user', 'date'])
 
-/** The variants a colour name maps onto; anything else is neutral. */
+/**
+ * The variants a colour name maps onto; anything else is neutral. A name is a
+ * badge role (`success`, `warning`, ...) or an NL Design System hue as a
+ * register stores it (`red`, `blue-light`, ...): a hue and its light tint
+ * take the same tone.
+ */
 const COLOR_VARIANTS = Object.freeze({
 	success: 'success',
 	warning: 'warning',
@@ -19,6 +24,20 @@ const COLOR_VARIANTS = Object.freeze({
 	info: 'info',
 	primary: 'primary',
 	neutral: 'default',
+	blue: 'info',
+	'blue-light': 'info',
+	green: 'success',
+	'green-light': 'success',
+	orange: 'warning',
+	'orange-light': 'warning',
+	red: 'error',
+	'red-light': 'error',
+	purple: 'purple',
+	'purple-light': 'purple',
+	teal: 'teal',
+	'teal-light': 'teal',
+	grey: 'default',
+	'grey-light': 'default',
 })
 
 /**
@@ -69,7 +88,7 @@ export function isEmptyChipValue(value) {
 /**
  * Map a colour name read off a referenced object onto a badge variant.
  *
- * @param {*} name The colour name (`success`, `warning`, `error`, `info`, `neutral`).
+ * @param {*} name The colour name: a badge role (`success`, `warning`, `error`, `info`, `neutral`) or an NL Design System hue (`red`, `blue-light`, ...).
  * @return {string} A `CnStatusBadge` variant; `default` (neutral) when unknown.
  */
 export function variantForColor(name) {

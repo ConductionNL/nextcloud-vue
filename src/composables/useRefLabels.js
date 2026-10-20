@@ -66,6 +66,22 @@ export function pickRefLabel(obj, labelField) {
 }
 
 /**
+ * Read one field off a referenced object, with no fallback: a colour or an
+ * icon name must not fall back to the title.
+ *
+ * @param {object|null} obj   The referenced object.
+ * @param {string}      field The (possibly nested) property.
+ * @return {string|null} The value as text, or null when it is empty.
+ */
+export function pickRefField(obj, field) {
+	if (!obj || typeof obj !== 'object' || !field) {
+		return null
+	}
+	const text = asText(readPath(obj, field))
+	return text !== '' ? text : null
+}
+
+/**
  * Create a resolver bound to an object store. Labels are cached per register,
  * schema and label field for the lifetime of the resolver.
  *
@@ -91,9 +107,13 @@ export function createRefLabelResolver(getStore) {
 		 * @param {string}   schema     Schema slug of the referenced objects.
 		 * @param {string[]} ids        Ids to resolve (duplicates are dropped).
 		 * @param {string}   labelField Property holding the label (dotted paths allowed).
+		 * @param {{strict?: boolean}} [options] `strict`: read exactly that field, with no
+		 *   fallback to the title or name (a colour or an icon name).
 		 * @return {Promise<Object<string, string|null>>} Label by id.
 		 */
-		async resolve(register, schema, ids, labelField) {
+		async resolve(register, schema, ids, labelField, options = {}) {
+			const strict = options.strict === true
+			const pick = strict ? pickRefField : pickRefLabel
 			const distinct = [...new Set((ids || []).filter((id) => id !== null && id !== undefined && id !== '').map(String))]
 			const out = {}
 			if (distinct.length === 0) {
@@ -115,14 +135,14 @@ export function createRefLabelResolver(getStore) {
 				})
 				return out
 			}
-			const hit = bucket(`${type}::${labelField || ''}`)
+			const hit = bucket(`${type}::${labelField || ''}::${strict ? 'field' : 'label'}`)
 			const missing = []
 			for (const id of distinct) {
 				const stored = store.objects && store.objects[type] && store.objects[type][id]
 				if (hit.has(id)) {
 					continue
 				}
-				const label = stored ? pickRefLabel(stored, labelField) : null
+				const label = stored ? pick(stored, labelField) : null
 				if (label !== null) {
 					hit.set(id, label)
 				} else {
@@ -136,7 +156,7 @@ export function createRefLabelResolver(getStore) {
 					rows = await store.fetchCollectionForOptions(type, {
 						_ids: missing.join(','),
 						_limit: missing.length,
-						_fields: [...new Set([top, 'title', 'name'])].join(','),
+						_fields: (strict ? [top] : [...new Set([top, 'title', 'name'])]).join(','),
 					})
 				} catch {
 					rows = []
@@ -148,7 +168,7 @@ export function createRefLabelResolver(getStore) {
 						byId.set(String(id), row)
 					}
 				})
-				missing.forEach((id) => hit.set(id, pickRefLabel(byId.get(id), labelField)))
+				missing.forEach((id) => hit.set(id, pick(byId.get(id), labelField)))
 			}
 			distinct.forEach((id) => {
 				out[id] = hit.has(id) ? hit.get(id) : null
