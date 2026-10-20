@@ -1330,7 +1330,7 @@ A column object over a `$ref` property can name the field of the referenced obje
 | `showFollowColumn` | Boolean | `false` | Adds a first column with a compact [`CnFollowToggle`](./cn-follow-toggle.md) per row, bound to the row's `@self.watching`. Clicking it does not open the row. |
 | `showFavouriteColumn` | Boolean | `false` | Deprecated alias of `showFollowColumn`. |
 
-The `personalLenses` value `unread` adds the quick filter Unread (`_unread=true`). Rows whose `@self.unread` is true show a [`CnUnreadMarker`](./cn-unread-marker.md) in the first cell and read in bold, with no prop needed.
+The `personalLenses` value `unread` adds the quick filter Unread (`_unread=true`). Rows whose `@self.unread` is true show a [`CnUnreadMarker`](./cn-unread-marker.md) in the first cell and read in bold, with no prop needed. Under the board look only a page offering that lens marks them, as the boards draw every row alike; `showUnreadRows: true` (manifest `config.showUnreadRows`) marks them in every look, for a page whose Unread chip is one of its own quick filters, and `false` never marks them.
 
 ## Shared saved views
 

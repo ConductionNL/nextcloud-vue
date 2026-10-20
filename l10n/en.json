@@ -2062,6 +2062,9 @@
     "%n passage found. Review each one.": [
       "%n passage found. Review each one.",
       "%n passages found. Review each one."
-    ]
+    ],
+    "Withheld": "Withheld",
+    "You may not open the linked object, so its value is not shown.": "You may not open the linked object, so its value is not shown.",
+    "This value is not shown.": "This value is not shown."
   }
 }
