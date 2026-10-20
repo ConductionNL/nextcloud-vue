@@ -495,6 +495,15 @@
 	padding: 20px 22px 0;
 }
 
+/* The boards title a detail page's cards with the text alone (DqContact
+   "Contact", DqOrganisatie, DqHandhaving "De overtreding", DqZaakGerelateerd):
+   the widget's icon before the title put it 36px further in. The icon still
+   names the widget where the manifest lists it (menus, tabs, pickers).
+   @spec openspec/changes/board-detail-card-title-icon/specs/board-detail-card-title-icon/spec.md#requirement-a-board-detail-card-is-titled-without-an-icon */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__header .cn-widget-wrapper__title-icon {
+	display: none;
+}
+
 .cn-look-board .cn-detail-page .cn-widget-wrapper__title,
 .cn-look-board .cn-detail-card .cn-detail-card__title {
 	font-size: var(--cn-board-heading-size);
