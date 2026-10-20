@@ -257,6 +257,36 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 		},
 
 		/**
+		 * Tick or untick one checklist item on a task read for a detail page
+		 * (`PATCH /flow-tasks/{uuid}/checklist/{itemId}?checked=`). The engine
+		 * answers with the whole task, which replaces the record, so a refused
+		 * tick leaves the item as it was on screen.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {string} itemId The checklist item id.
+		 * @param {boolean} checked The new state.
+		 * @return {Promise<{ok: boolean, status: (number|null), record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		async checkRecordItem(uuid, itemId, checked) {
+			const key = String(uuid || '').trim()
+			const item = String(itemId || '').trim()
+			if (key === '' || item === '') {
+				return { ok: false, status: null, record: null, message: '' }
+			}
+			try {
+				const response = await axios.patch(
+					generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(key)}/checklist/${encodeURIComponent(item)}`),
+					null,
+					{ params: { checked: checked === true ? 'true' : 'false' } },
+				)
+				return { ok: true, status: response.status || 200, record: await this.keepRecord(key, response.data), message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, record: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
 		 * Store the task a write answered with as the detail record. An answer
 		 * that carries no task (an app route that returns only a status) is
 		 * followed by a fresh read, so the page never shows the state from

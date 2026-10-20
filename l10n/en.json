@@ -1919,7 +1919,9 @@
     "Pick up": "Pick up",
     "Task completed": "Task completed",
     "Cancel task": "Cancel task",
-    "This could not be done. Try again.": "This could not be done. Try again."
+    "This could not be done. Try again.": "This could not be done. Try again.",
+    "{done} of {total} done": "{done} of {total} done",
+    "Nothing to check off": "Nothing to check off"
   },
   "plurals": {
     "{count} member": [

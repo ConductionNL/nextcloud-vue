@@ -2131,7 +2131,9 @@
     "Pick up": "Oppakken",
     "Task completed": "Taak afgerond",
     "Cancel task": "Taak annuleren",
-    "This could not be done. Try again.": "Dit lukte niet. Probeer het opnieuw."
+    "This could not be done. Try again.": "Dit lukte niet. Probeer het opnieuw.",
+    "{done} of {total} done": "{done} van {total} klaar",
+    "Nothing to check off": "Niets af te vinken"
   },
   "plurals": {
     "{count} member": [

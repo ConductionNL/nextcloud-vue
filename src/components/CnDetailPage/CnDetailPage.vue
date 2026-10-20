@@ -1560,6 +1560,7 @@ export default {
 		const isBoard = computed(() => this.isBoard)
 		const tabsLabel = computed(() => this.resolvedTabsLabel)
 		const visibilityRows = computed(() => (this.visibilityRowsPending ? null : this.visibilityRows))
+		const canCheckItems = computed(() => this.recordCanCheckItems)
 		return {
 			// The page's own look reaches the tabs, the cards and the activity
 			// below it, also when it came from the `look` prop and not the app.
@@ -1568,6 +1569,15 @@ export default {
 				get value() {
 					return tabsLabel.value
 				},
+			},
+
+			// The record source's checklist writes, for a `checklist` widget.
+			cnRecordChecklist: {
+				get canCheck() {
+					return canCheckItems.value
+				},
+
+				check: (itemId, checked) => this.checkSourceItem(itemId, checked),
 			},
 
 			// The open body tab, reported by a `tabs` widget, so a side entry
@@ -3977,6 +3987,21 @@ export default {
 		},
 
 		/**
+		 * Whether the record source can tick the checklist of the record in
+		 * view: it writes items, and says this record can still be ticked.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		recordCanCheckItems() {
+			const source = this.recordSource
+			if (!source || typeof source.checkItem !== 'function' || !this.currentObject || this.objectNotFound) {
+				return false
+			}
+			return typeof source.canCheckItems !== 'function' || source.canCheckItems(this.currentObject) === true
+		},
+
+		/**
 		 * The source verbs drawn as header buttons.
 		 *
 		 * @return {Array<object>} The verbs.
@@ -5613,6 +5638,31 @@ export default {
 			 * @type {{ action: string, to: string, object: object }}
 			 */
 			this.$emit('transitioned', payload)
+		},
+
+		/**
+		 * Tick or untick one checklist item through the record source. The
+		 * source replaces its record with the answer; a refusal is shown with
+		 * the server's message and leaves the item as it was.
+		 *
+		 * @param {string} itemId The item id.
+		 * @param {boolean} checked The new state.
+		 * @return {Promise<boolean>} Whether the write was taken.
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		async checkSourceItem(itemId, checked) {
+			const source = this.recordSource
+			const objectId = this.objectId
+			if (!this.recordCanCheckItems || !objectId) {
+				return false
+			}
+			const outcome = await source.checkItem(String(objectId), String(itemId), checked === true)
+			if (!outcome || outcome.ok !== true) {
+				const { showError } = await import('@nextcloud/dialogs')
+				showError(String(outcome?.message || '').trim() || t('nextcloud-vue', 'This could not be done. Try again.'))
+				return false
+			}
+			return true
 		},
 
 		/**

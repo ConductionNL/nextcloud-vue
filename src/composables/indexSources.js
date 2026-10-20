@@ -603,6 +603,25 @@ function tasksSource() {
 		runVerb: (id, verb, options) => store.runRecordVerb(id, verb, options || {}),
 
 		/**
+		 * Whether this task's checklist can still be ticked: not once it is finished.
+		 *
+		 * @param {object|null} task The task on the page.
+		 * @return {boolean}
+		 */
+		canCheckItems: (task) => Boolean(task) && !TASK_TERMINAL_STATES.includes(String(task.state || '')),
+
+		/**
+		 * Tick or untick one checklist item through the engine.
+		 *
+		 * @param {string} id The task uuid.
+		 * @param {string} itemId The item id.
+		 * @param {boolean} checked The new state.
+		 * @return {Promise<{ok: boolean, record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		checkItem: (id, itemId, checked) => store.checkRecordItem(id, itemId, checked),
+
+		/**
 		 * @return {boolean} Whether a load is in flight.
 		 */
 		loading: () => !!store.loading,
