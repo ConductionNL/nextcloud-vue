@@ -20,6 +20,12 @@
 	/* Card h2 and side heading. */
 	--cn-board-heading-size: 17px;
 	--cn-board-side-heading-size: 15px;
+	/* The boards set text at the font's normal line height (1.2 for Fira
+	   Sans), Nextcloud at 1.5: a card body's first line carries this much
+	   half-leading above its glyphs that a board does not draw. A gap the
+	   boards measure from a title to the text under it is the board's value
+	   minus this. Resolved in the element that uses it. */
+	--cn-board-first-line-leading: 0.15em;
 }
 
 /* ---- The header: two rows on the ground ------------------------------- */
@@ -487,15 +493,17 @@
 .cn-look-board .cn-detail-card .cn-detail-card__title {
 	font-size: var(--cn-board-heading-size);
 	font-weight: 700;
-	line-height: 1.3;
+	line-height: normal;
 }
 
+/* 12px from the title's glyphs to the first line's glyphs, as drawn.
+   @spec openspec/changes/board-card-title-gap/specs/board-card-title-gap/spec.md#requirement-a-board-cards-body-starts-the-boards-gap-below-its-title */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content {
-	padding: 12px 22px 20px;
+	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
 }
 
 .cn-look-board .cn-detail-card .cn-detail-card__content {
-	padding: 12px 22px 20px;
+	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
 }
 
 /* A header-less card keeps the full 20px 22px. */
@@ -503,13 +511,18 @@
 	padding: var(--cn-board-card-padding);
 }
 
-/* The data card: 200px columns, a 12px 24px gap, label over value, hairline. */
-.cn-look-board .cn-object-data-widget__grid {
+/* The data card: 200px columns, a 12px 24px gap, label over value, hairline.
+   Each selector holds one class more than the component's scoped rule
+   (`.cn-object-data-widget__cell[data-v-...]`), which loads after this sheet:
+   at equal specificity the cell kept its 8px top padding and the grid its 8px
+   gap, so the first label sat 8px further below the card's title.
+   @spec openspec/changes/board-card-title-gap/specs/board-card-title-gap/spec.md#requirement-the-data-cards-grid-keeps-the-boards-gap-and-cell-padding */
+.cn-look-board .cn-object-data-widget__grid-wrap .cn-object-data-widget__grid {
 	font-size: 15px;
 	gap: 12px 24px;
 }
 
-.cn-look-board .cn-object-data-widget__cell {
+.cn-look-board .cn-object-data-widget__grid .cn-object-data-widget__cell {
 	border-bottom: 1px solid var(--cn-board-hairline);
 	gap: 2px;
 	padding: 0 0 10px;
@@ -557,7 +570,7 @@
 }
 
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__content {
-	padding: 10px 22px 20px;
+	padding: calc(10px - var(--cn-board-first-line-leading)) 22px 20px;
 }
 
 /* A stat tile in a side card (DqZaak "Termijn") sits on the card's inset as
