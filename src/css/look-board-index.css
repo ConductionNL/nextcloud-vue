@@ -1298,6 +1298,55 @@
 	font-weight: 600;
 }
 
+/* The folder rows as the board draws them (DqAfdelingen), like a tree menu's
+   folder rows: 8px 10px, an 8px corner, 14px at 400 without a folder icon,
+   each level 18px further in inside the row so the highlight spans the pane,
+   the open folder on the primary tint in the deep primary at 700. The weight
+   goes through the theme's button token too: a row is a button, and the
+   nldesign theme sets every button's weight with `!important`.
+   @spec openspec/changes/board-folder-pane-rows/specs/board-folder-pane-rows/spec.md#requirement-a-board-folder-pane-draws-the-boards-folder-rows */
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__children {
+	padding-inline-start: 0;
+}
+
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__item,
+.cn-look-board .cn-index-page__folder-pane .cn-folder-sidebar__all {
+	--nldesign-component-button-font-weight: 400;
+	min-height: 36px;
+	margin: 0;
+	padding: 8px 10px;
+	border-radius: 8px;
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 400;
+}
+
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__children .cn-folder-tree__item {
+	padding-inline-start: 28px;
+}
+
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__children .cn-folder-tree__children .cn-folder-tree__item {
+	padding-inline-start: 46px;
+}
+
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__children .cn-folder-tree__children .cn-folder-tree__children .cn-folder-tree__item {
+	padding-inline-start: 64px;
+}
+
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__item > :not(.cn-folder-tree__name):not(.cn-folder-tree__count),
+.cn-look-board .cn-index-page__folder-pane .cn-folder-sidebar__all > :not(.cn-folder-sidebar__all-label) {
+	display: none;
+}
+
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__item--active,
+.cn-look-board .cn-index-page__folder-pane .cn-folder-sidebar__all--active {
+	--nldesign-component-button-font-weight: 700;
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
+	background-color: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-weight: 700;
+}
+
 /* The selected folder's heading above the list: a 20px title over a soft line. */
 .cn-look-board .cn-index-page__scope-heading {
 	margin-bottom: 16px;
