@@ -3272,8 +3272,8 @@
 				},
 				"method": {
 					"type": "string",
-					"enum": ["POST", "PUT"],
-					"description": "api-call: HTTP method (default POST). toggle writeUrl: default PUT."
+					"enum": ["POST", "PUT", "GET"],
+					"description": "api-call: HTTP method (default POST); GET sends the resolved params as the query string, and with download: true downloads the file the endpoint answers (DqDoorlooptijd). toggle writeUrl: default PUT."
 				},
 				"payload": {
 					"type": "object",
