@@ -219,14 +219,16 @@
 	color: var(--color-main-background);
 }
 
-/* The count badge: grey on an idle chip, soft text colour on the selected one. */
+/* The count badge: grey on an idle chip, soft text colour on the selected one.
+   Its ink also goes to --nldesign-color-on-surface, which a theme that forces
+   the body ink onto every span (thematiq) reads. */
 .cn-look-board .cn-saved-views__chip .cn-saved-views__chip-count,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__count {
+	--nldesign-color-on-surface: var(--cn-board-text-soft);
 	min-width: 0;
 	padding: 1px 7px;
 	border: 0;
 	border-radius: 10px;
-	--nldesign-color-on-surface: var(--cn-board-text-soft);
 	background: var(--color-border);
 	color: var(--cn-board-text-soft);
 	font-size: 12px;
@@ -246,8 +248,10 @@
 }
 
 /* Save view: a ghost button, 34px, radius 17, no border, on the light primary
-   tint, a 14px icon 6px before the label, on one line. */
+   tint, a 14px icon 6px before the label, on one line. The label is a span,
+   so its ink also goes to --nldesign-color-on-surface. */
 .cn-look-board .cn-saved-views__save .button-vue {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	min-height: 34px;
 	height: 34px;
 	padding: 0 12px;
@@ -437,7 +441,10 @@
 	font-size: 14px;
 }
 
+/* An active filter: the light primary tint, its label (a span) in the tint's
+   ink through --nldesign-color-on-surface too. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__filter-chip {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -581,9 +588,13 @@
 	line-height: normal;
 }
 
+/* The sort button is the bare label, square (the boards draw no box round
+   it); the funnel after it is a 22px button with a 4px radius. Both outrank
+   the 8px element radius the table and Nextcloud's `button` rule give them. */
 .cn-look-board .cn-table-container--board .cn-data-table th .cn-table-header__sort {
 	min-height: 0;
 	height: auto;
+	border-radius: 0;
 	line-height: inherit;
 }
 
@@ -639,6 +650,7 @@
 	min-width: 22px;
 	height: 22px;
 	min-height: 22px;
+	border-radius: 4px;
 	margin-inline-start: 4px;
 }
 
@@ -847,6 +859,8 @@
 	margin-inline-start: auto;
 }
 
+/* A page link is a <button>: Nextcloud's `button` rule sets it bold, the
+   boards set the links at the regular weight and only the current page at 600. */
 .cn-look-board .cn-pagination--board .cn-pagination__board-link {
 	box-sizing: border-box;
 	min-width: 34px;
@@ -859,6 +873,7 @@
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 14px;
+	font-weight: 400;
 	cursor: pointer;
 }
 
@@ -1278,4 +1293,54 @@
 .cn-look-board .cn-index-page__scope-title {
 	font-size: 20px;
 	font-weight: 700;
+}
+
+/* ---- Side panel cards --------------------------------------------------- */
+/* A card beside the list is the board's side card (DqTeamwachtrij "Team
+   vandaag", "Werkvoorraad per zaaktype"): no rule under the header, the
+   title a 15px muted label on the card's 20px 22px inset, 12px above the
+   body, 20px between cards. The wrapper drew the Nextcloud panel: a 14px
+   dark title on a 12px 16px header over a rule, 16px between cards. The
+   tone carries `!important` against a theme that colours every h3.
+   @spec openspec/changes/board-index-side-panel-cards/specs/board-index-side-panel-cards/spec.md#requirement-a-board-index-side-panel-card-is-the-boards-side-card */
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) {
+	gap: var(--cn-board-section-gap, 20px);
+}
+
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-widget-wrapper__header {
+	border-bottom: none;
+	padding: 20px 22px 0;
+}
+
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-widget-wrapper__title {
+	color: var(--color-text-maxcontrast) !important;
+	font-size: var(--cn-board-side-heading-size, 15px);
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-widget-wrapper__content {
+	padding: calc(12px - var(--cn-board-first-line-leading, 0.15em)) 22px 20px;
+}
+
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-index-page-widgets__note {
+	font-size: 13px;
+}
+
+/* A record list drawn as a table (DqTeamwachtrij "Werkvoorraad per
+   zaaktype") is the board's compact grid: a 13px muted header at regular
+   weight, rows 8px apart, no rules between them. Line heights differ from
+   the board's normal ones, so the cell padding sets the board's row pitch.
+   One class more than the component's scoped rules, which load later.
+   @spec openspec/changes/board-index-side-panel-cards/specs/board-index-side-panel-cards/spec.md#requirement-a-board-record-list-table-is-the-boards-compact-grid */
+.cn-look-board .cn-record-list--table .cn-record-list__table th {
+	border-bottom: none;
+	font-size: 13px;
+	font-weight: 400;
+	padding-block: 0 2px;
+}
+
+.cn-look-board .cn-record-list--table .cn-record-list__table td {
+	border-bottom: none;
+	padding-block: 2px;
 }

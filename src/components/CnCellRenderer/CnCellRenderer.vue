@@ -50,7 +50,11 @@
 				:label="labelledValue"
 				:variant="badgeVariant"
 				:colorMap="badgeColorMap"
-				:colorKey="badgeColorKey" />
+				:colorKey="badgeColorKey">
+				<template v-if="badgeLook.icon" #icon>
+					<CnIcon :name="badgeLook.icon" :size="14" class="cn-cell-renderer__badge-icon" />
+				</template>
+			</CnStatusBadge>
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -376,6 +380,7 @@ import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeDate, formatTimeOfDay, resolveAgeVariant } from '../../utils/boardDate.js'
 import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
+import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
 import { formatMoney } from '../../utils/formatMetric.js'
 import { objectFieldValue } from '../../utils/objectName.js'
@@ -1177,9 +1182,25 @@ export default {
 			return Object.keys(map).some((key) => key.toLowerCase() === raw) ? String(this.value) : ''
 		},
 
-		/** Variant for the built-in `badge` widget — `widgetProps.variant` or `'default'`. */
+		/**
+		 * What the built-in `badge` widget takes from the record its value
+		 * points at (`widgetProps.looks`, filled by CnIndexPage from
+		 * `widgetProps.resolve`): a tone and an icon, or nothing.
+		 *
+		 * @return {{variant?: string, colorMap?: null, icon?: string}}
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-badge-cell-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		badgeLook() {
+			const looks = this.widgetProps && this.widgetProps.looks
+			if (!looks || typeof looks !== 'object' || !this.hasValue || typeof this.value === 'object') {
+				return {}
+			}
+			return pillLook(looks[String(this.value)])
+		},
+
+		/** Variant for the built-in `badge` widget: the referenced record's tone, else `widgetProps.variant`, else `'default'`. */
 		badgeVariant() {
-			return (this.widgetProps && this.widgetProps.variant) || 'default'
+			return this.badgeLook.variant || (this.widgetProps && this.widgetProps.variant) || 'default'
 		},
 
 		/**
@@ -1194,6 +1215,9 @@ export default {
 		 * @return {object|null}
 		 */
 		badgeColorMap() {
+			if (this.badgeLook.variant) {
+				return null
+			}
 			return (this.widgetProps && this.widgetProps.colorMap) || this.enumColorMap || null
 		},
 

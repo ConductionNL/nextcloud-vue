@@ -50,9 +50,9 @@ describe('look-board.css: dashboard card header', () => {
 		expect(bodyOf(`${CARD}:not(.cn-widget-wrapper--nc-dashboard) .cn-widget-wrapper__header`)).toMatch(/border-bottom:\s*none;/)
 	})
 
-	it('puts the title on the card inset, 20px from the top and 12px above the content', () => {
+	it('puts the title on the card inset, 20px from the top and 12px above the content, less the first line\'s leading', () => {
 		expect(bodyOf(`${CARD}:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless) .cn-widget-wrapper__header`))
-			.toMatch(/padding:\s*20px var\(--cn-board-dashboard-card-inset\) 12px;/)
+			.toMatch(/padding:\s*20px var\(--cn-board-dashboard-card-inset\) calc\(12px - var\(--cn-board-first-line-leading, 0\.15em\)\);/)
 	})
 
 	it('needs no per-widget rule to drop the line', () => {

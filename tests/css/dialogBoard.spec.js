@@ -47,7 +47,7 @@ describe('dialog.css', () => {
 	it('draws the header: 20px/700 title, 13px/700 eyebrow, 36px round close', () => {
 		expect(css).toMatch(/\.cn-dialog-header__title\s*\{[^}]*font-size:\s*20px;[^}]*font-weight:\s*700/)
 		expect(css).toMatch(/\.cn-dialog-header__eyebrow\s*\{[^}]*font-size:\s*13px;[^}]*font-weight:\s*700;[^}]*letter-spacing:\s*var\(--cn-dialog-eyebrow-tracking/)
-		expect(css).toMatch(/\.cn-dialog-header__close\s*\{[^}]*width:\s*36px;[^}]*height:\s*36px;[^}]*border-radius:\s*50%/)
+		expect(css).toMatch(/\.cn-dialog-header__close(\.button-vue)?\s*\{[^}]*width:\s*36px;[^}]*height:\s*36px;[^}]*border-radius:\s*50%/)
 	})
 
 	it('draws the body and footer: 18px gap, 16px 24px with a 1px hairline, 10px between buttons', () => {

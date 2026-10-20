@@ -24,6 +24,7 @@ Schema-driven card for displaying an object's key information. Uses schema confi
 | `object` | Object | *(required)* | Object data |
 | `schema` | Object | *(required)* | Schema with properties and configuration |
 | `selected` | Boolean | `false` | Selection state |
+| `pillLooks` | Object | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`, read by CnIndexPage). A record layout pill with `resolve: { colorField?, iconField? }` takes its record's tone and icon from here. |
 | `selectable` | Boolean | `false` | Show selection checkbox |
 | `cardFieldColumns` | Object | `null` | The page's columns by key: a fact or a layout part whose field names a column reads through that column's label, formatter and widget, as the table does |
 | `clickToView` | Boolean | `false` | Body click on a selectable card emits `click` (navigation) instead of toggling selection — the checkbox stays the only selection surface (the card counterpart of a table's `rowClickToView`) |

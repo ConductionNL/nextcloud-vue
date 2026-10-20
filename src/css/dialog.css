@@ -20,7 +20,7 @@
 	--nldesign-component-dialog-border-radius: var(--cn-board-card-radius, 12px);
 	--cn-dialog-width: 640px;
 	--cn-dialog-danger: var(--color-error);
-	--cn-dialog-eyebrow-color: var(--color-primary-element-text, var(--color-main-text));
+	--cn-dialog-eyebrow-color: var(--color-primary-element-light-text, var(--color-main-text));
 	--cn-dialog-eyebrow-transform: none;
 	--cn-dialog-eyebrow-tracking: 0;
 }
@@ -86,6 +86,7 @@
 }
 
 .cn-dialog-header__eyebrow {
+	--nldesign-color-on-surface: var(--cn-dialog-eyebrow-color, var(--color-main-text));
 	margin-bottom: 4px;
 	font-size: 13px;
 	font-weight: 700;
@@ -101,13 +102,24 @@
 	color: var(--color-main-text);
 }
 
+/* The subtitle is a <p>, which the nldesign theme sizes and inks with
+   `!important` through its paragraph tokens: the board's 14px muted line
+   goes to those tokens too (DqOverdragen, DqDocumentGenereren). */
 .cn-dialog-header__subtitle {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	margin: 4px 0 0;
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-dialog-header__close {
+/* The close button is a 36px circle. NcButton sizes an icon-only button by
+   --button-size with `!important`, so the size goes through that; the radius
+   also goes to the nldesign theme's button radius token. */
+.cn-dialog-header .cn-dialog-header__close.button-vue {
+	--button-size: 36px;
+	--nldesign-component-button-border-radius: 50%;
 	flex: 0 0 auto;
 	width: 36px;
 	min-width: 36px;
@@ -145,6 +157,28 @@
 .cn-dialog-board .dialog__actions button {
 	min-height: var(--cn-board-control-height, 40px);
 	border-radius: var(--cn-board-control-radius, 8px);
+}
+
+/* The footer buttons set 14px text, 16px in at both sides, and 18px when
+   they carry an icon (DqOverdragen "Annuleren" and "Overdragen"). The padding
+   goes through NcButton's --button-padding. The mask class and the doubled
+   class outrank NcButton's text-only rule, `.button-vue[data-v-…]:has(…:empty)`
+   (four classes, in a stylesheet a spawned dialog loads later), and the board
+   look's general icon-and-label rule.
+   @spec openspec/changes/board-dialog-controls/specs/board-dialog-controls/spec.md#requirement-a-board-dialog-draws-its-controls-as-the-boards-do */
+.modal-mask.cn-dialog-board .dialog__actions .button-vue.button-vue {
+	--button-padding: 16px;
+	font-size: 14px;
+}
+
+.modal-mask.cn-dialog-board .dialog__actions .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+	--button-padding: 18px;
+}
+
+/* NcButton pads a text-only label 4px a side inside the button's own padding;
+   the board's 16px is the whole inset. */
+.modal-mask.cn-dialog-board .dialog__actions .button-vue .button-vue__text.button-vue__text {
+	padding-inline: 0;
 }
 
 /* Cancel is an outlined secondary, never a text link. */
@@ -223,13 +257,29 @@
 	height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));
 }
 
+/* The board draws the control's edge as a 1px border (DqOverdragen "Waarom de
+   zaak verhuist", DqBesluit); NcInputField and NcTextArea draw it as a shadow.
+   The colour is the one that meets WCAG's 3:1 for a control's edge, as the
+   footer's secondary button. Focus keeps NcInputField's own ring, which
+   carries `!important`. */
 .cn-dialog-board .dialog__content .input-field__input,
 .cn-dialog-board .dialog__content .input-field__input:hover:not([disabled]),
 .cn-dialog-board .dialog__content .textarea__input,
 .cn-dialog-board .dialog__content .textarea__input:hover:not([disabled]) {
+	border: 1px solid var(--color-border-maxcontrast);
 	border-radius: 8px;
-	box-shadow: 0 0 0 1px var(--color-border-dark);
+	box-shadow: none;
 	font-size: var(--cn-field-text-size, 15px);
+}
+
+/* A plain input an app puts in a board dialog (a date, a number) is the same
+   40px control; Nextcloud's core stylesheet makes it 34px. */
+.cn-dialog-board .dialog__content input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]):not(.input-field__input) {
+	box-sizing: border-box;
+	height: var(--cn-field-height, 40px);
+	min-height: var(--cn-field-height, 40px);
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 8px;
 }
 
 .cn-dialog-board .dialog__content .input-field:has(.input-field__label) .input-field__input:not(:focus)::placeholder,
