@@ -2304,6 +2304,9 @@
     "{count} change: {list}": [
       "{count} wijziging: {list}",
       "{count} wijzigingen: {list}"
-    ]
+    ],
+    "Withheld": "Afgeschermd",
+    "You may not open the linked object, so its value is not shown.": "U mag het gekoppelde object niet openen, daarom wordt de waarde niet getoond.",
+    "This value is not shown.": "Deze waarde wordt niet getoond."
   }
 }

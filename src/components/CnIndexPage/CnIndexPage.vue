@@ -821,7 +821,7 @@
 					:columnOverrides="columnOverrides"
 					:rowClass="compiledRowClass"
 					:rowTitle="rowTitle"
-					:showUnread="showUnreadRows"
+					:showUnread="marksUnreadRows"
 					:filterable="tableHeaderFilters"
 					:activeFilters="tableActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
@@ -2230,6 +2230,19 @@ export default {
 		personalLenses: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Whether the table marks unread rows (`@self.unread`) in bold with the
+		 * unread marker: `true` in every look, `false` never. Unset (null)
+		 * keeps the look's default (see `marksUnreadRows`). Manifest
+		 * `config.showUnreadRows`.
+		 *
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-page-can-ask-for-its-unread-rows
+		 */
+		showUnreadRows: {
+			type: Boolean,
+			default: null,
 		},
 
 		/**
@@ -6693,14 +6706,19 @@ export default {
 		},
 
 		/**
-		 * Whether the table marks unread rows. The boards draw every row alike,
-		 * so under the board look only a page that offers the Unread lens
+		 * Whether the table marks unread rows. `showUnreadRows` decides when
+		 * the page sets it. Otherwise the boards draw every row alike, so under
+		 * the board look only a page that offers the Unread lens
 		 * (`personalLenses`) marks them; the Nextcloud look always does.
 		 *
 		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-unread-rows-are-marked-only-where-the-reader-asked-for-them
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-page-can-ask-for-its-unread-rows
 		 * @return {boolean} True when unread rows read in bold with the dot.
 		 */
-		showUnreadRows() {
+		marksUnreadRows() {
+			if (typeof this.showUnreadRows === 'boolean') {
+				return this.showUnreadRows
+			}
 			if (!this.isBoardLook) {
 				return true
 			}

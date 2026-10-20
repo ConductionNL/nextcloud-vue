@@ -8,17 +8,18 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name         | Type     | Required | Default | Description                                                                                                                                                                                         |
-| ------------ | -------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `field`      | `object` | ✓        | —       | The field: `{ key, label, type?, options?, optionsUrl?, optionsPath?, optionLabel?, optionValue?, placeholder?, rows?, min?, max?, required?, readOnly?, secretSet? }`. `label` arrives translated. |
-| `modelValue` | `null`   |          | `null`  | The value: text, a number, a boolean or a select value. Any type, because a Boolean in a type list would read an empty string as true.                                                              |
-| `error`      | `string` |          | `''`    | A validation message, drawn under the control and tied to it.                                                                                                                                       |
-| `hint`       | `string` |          | `''`    | A hint under the control (not drawn while there is an error).                                                                                                                                       |
+| Name         | Type     | Required | Default | Description                                                                                                                                                                                                        |
+| ------------ | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `field`      | `object` | ✓        | —       | The field: `{ key, label, type?, options?, optionsUrl?, optionsPath?, optionLabel?, optionValue?, optionDetail?, placeholder?, rows?, min?, max?, required?, readOnly?, secretSet? }`. `label` arrives translated. |
+| `modelValue` | `null`   |          | `null`  | The value: text, a number, a boolean or a select value. Any type, because a Boolean in a type list would read an empty string as true.                                                                             |
+| `error`      | `string` |          | `''`    | A validation message, drawn under the control and tied to it.                                                                                                                                                      |
+| `hint`       | `string` |          | `''`    | A hint under the control (not drawn while there is an error).                                                                                                                                                      |
 
 ### Events
 
 | Name                                                           | Payload | Description                                  |
 | -------------------------------------------------------------- | ------- | -------------------------------------------- |
+| `action`                                                       | —       |                                              |
 | `update:modelValue`                                            | —       |                                              |
 | `uploaded`                                                     | —       | An image was uploaded. Payload: its new url. |
 | `update:modelValue The value changed. Payload: the new value.` | —       |                                              |

@@ -660,6 +660,16 @@
 					"type": "array",
 					"description": "The indicator applies when the field's value is one of these."
 				},
+				"after": {
+					"type": "string",
+					"minLength": 1,
+					"description": "The indicator applies while the field holds a readable date after this moment: `now` or an ISO date (\"held until a later date\")."
+				},
+				"before": {
+					"type": "string",
+					"minLength": 1,
+					"description": "The indicator applies while the field holds a readable date before this moment: `now` or an ISO date."
+				},
 				"icon": {
 					"type": "string",
 					"description": "CnIcon name (PascalCase). Defaults to InformationOutline."
@@ -4591,7 +4601,7 @@
 						},
 						"rowIndicators": {
 							"type": "array",
-							"description": "type='index': state indicators the page declares for its rows. Each entry names a `field` (a dotted path on the row), a condition (`equals`, `in`, or plain truthiness when neither is given), an `icon` (a CnIcon name) and a `text` (the text alternative, required). An entry without `text` does not render, because an icon with no text is colour and shape alone. The page declares which indicators exist; a record cannot add one the page has not declared. Maps to CnIndexPage `rowIndicators`.",
+							"description": "type='index': state indicators the page declares for its rows. Each entry names a `field` (a dotted path on the row), a condition (`equals`, `in`, a date `after` or `before` a moment, or plain truthiness when none is given), an `icon` (a CnIcon name) and a `text` (the text alternative, required). An entry without `text` does not render, because an icon with no text is colour and shape alone. The page declares which indicators exist; a record cannot add one the page has not declared. Maps to CnIndexPage `rowIndicators`.",
 							"items": {
 								"$ref": "#/$defs/rowIndicator"
 							}
