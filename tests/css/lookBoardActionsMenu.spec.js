@@ -42,8 +42,8 @@ describe('look-board.css: the secondary Actions menu trigger', () => {
 		expect(rule).toContain('font-weight: 600')
 	})
 
-	it('hands the label its ink under a theme that forces the body ink', () => {
-		expect(rulesFor(trigger)).toContain('--nldesign-color-on-surface: var(--color-main-text)')
+	it('draws the label in the main text', () => {
+		expect(rulesFor(trigger)).toMatch(/(^|[;\s])color: var\(--color-main-text\)/)
 	})
 
 	it('puts a trailing chevron after the label', () => {
