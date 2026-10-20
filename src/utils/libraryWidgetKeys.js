@@ -120,6 +120,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'kb-search',
 	'label',
 	'link',
+	'linked',
 	'links',
 	'mail',
 	'map',

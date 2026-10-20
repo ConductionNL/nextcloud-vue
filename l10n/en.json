@@ -1918,7 +1918,8 @@
     "New task": "New task",
     "Cancel task": "Cancel task",
     "The task could not be added": "The task could not be added",
-    "{open} open, {done} done · sorted by deadline": "{open} open, {done} done · sorted by deadline"
+    "{open} open, {done} done · sorted by deadline": "{open} open, {done} done · sorted by deadline",
+    "{things}: nothing linked": "{things}: nothing linked"
   },
   "plurals": {
     "{count} member": [
