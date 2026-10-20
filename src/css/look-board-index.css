@@ -205,26 +205,19 @@
 	outline-offset: 2px;
 }
 
-/* The selected chip is light on dark, so it hands its ink to
-   --nldesign-color-on-surface: thematiq forces the body ink onto every span
-   with `!important` and reads it from that property, which left the label
-   dark on dark. */
+/* The selected chip is light on dark. */
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected,
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected:hover,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active:hover {
-	--nldesign-color-on-surface: var(--color-main-background);
 	border-color: transparent;
 	background: var(--color-main-text);
 	color: var(--color-main-background);
 }
 
-/* The count badge: grey on an idle chip, soft text colour on the selected one.
-   Its ink also goes to --nldesign-color-on-surface, which a theme that forces
-   the body ink onto every span (thematiq) reads. */
+/* The count badge: grey on an idle chip, soft text colour on the selected one. */
 .cn-look-board .cn-saved-views__chip .cn-saved-views__chip-count,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__count {
-	--nldesign-color-on-surface: var(--cn-board-text-soft);
 	min-width: 0;
 	padding: 1px 7px;
 	border: 0;
@@ -242,7 +235,6 @@
 /* On the selected chip the count is the soft ink as a lighter bubble on the
    dark chip (DqZaken: #3d4047 on #1b1c1d). */
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active .cn-quick-filter-bar__count {
-	--nldesign-color-on-surface: var(--color-primary-element-text);
 	background: var(--cn-board-text-soft);
 	color: var(--color-primary-element-text);
 }
@@ -322,8 +314,6 @@
 	margin-inline-start: 6px;
 	padding: 0 6px;
 	border-radius: 10px;
-	/* A theme that forces the body ink onto every span reads it from here. */
-	--nldesign-color-on-surface: var(--color-primary-element-text);
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
 	font-size: 12px;
@@ -553,15 +543,13 @@
 }
 
 /* The header row is near-white on the boards (#fafbfc), not the hover grey,
-   its labels 14px muted. The ink also goes to --nldesign-color-on-surface,
-   which a theme that forces the body ink onto every span (thematiq) reads.
+   its labels 14px muted.
    The nldesign theme paints every `th` with `!important` through its table
    header tokens, and the sort button in it through its button weight token
    (bold), so the cell hands the board's ground, ink and weight to those
    tokens too.
    @spec openspec/changes/board-table-head-theme/specs/board-table-head-theme/spec.md#requirement-a-board-table-header-keeps-the-boards-ground-ink-and-weight-under-a-theme */
 .cn-look-board .cn-table-container--board .cn-data-table th {
-	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
 	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
 	--nldesign-component-table-header-font-weight: 600;
@@ -695,7 +683,6 @@
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title .cn-table-cell__secondary {
-	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
 	font-weight: 400;
@@ -740,7 +727,6 @@
 /* The initials sit on the light primary tint in the primary ink, the board's
    person chip (DqZaken's Behandelaar, and most boards' people). */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials {
-	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
 	font-size: 12px;

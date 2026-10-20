@@ -30,7 +30,7 @@ function ruleEndingWith(selector) {
 describe('look-board-index.css: index controls keep their ink under a theme', () => {
 	it('hands an idle chip count the soft text ink', () => {
 		expect(ruleEndingWith('.cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__count'))
-			.toContain('--nldesign-color-on-surface: var(--cn-board-text-soft)')
+			.toMatch(/(^|[;\s])color: var\(--cn-board-text-soft\)/)
 	})
 
 	it('hands the Save view label the light primary ink', () => {

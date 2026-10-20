@@ -97,7 +97,7 @@ describe('a manifest column colours its enum pills', () => {
 	})
 })
 
-describe('pill ink under a theme that forces the body ink', () => {
+describe('pill ink', () => {
 	const ruleBody = (css, selector) => {
 		const at = css.indexOf(selector + ' {')
 		return at === -1 ? '' : css.slice(at, css.indexOf('}', at))
@@ -110,8 +110,8 @@ describe('pill ink under a theme that forces the body ink', () => {
 		}
 	})
 
-	it('hands that ink to the theme\'s on-surface colour in the board look only', () => {
-		expect(boardCss).toMatch(/\.cn-look-board \.cn-status-badge:not\(\.cn-look-nextcloud \*\) \{\s*--nldesign-color-on-surface: var\(--cn-status-badge-ink\);/)
+	it('draws its own ink as color, with no on-surface hand-off', () => {
+		expect(boardCss).not.toMatch(/\.cn-status-badge:not\(\.cn-look-nextcloud \*\) \{\s*--nldesign-color-on-surface/)
 		expect(badgeCss).not.toContain('--nldesign-color-on-surface')
 	})
 
