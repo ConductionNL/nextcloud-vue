@@ -2167,7 +2167,15 @@
     "Task completed": "Taak afgerond",
     "This could not be done. Try again.": "Dit lukte niet. Probeer het opnieuw.",
     "{done} of {total} done": "{done} van {total} klaar",
-    "Nothing to check off": "Niets af te vinken"
+    "Nothing to check off": "Niets af te vinken",
+    "The translations could not be read. Reload the page to try again.": "De vertalingen konden niet worden gelezen. Herlaad de pagina om het opnieuw te proberen.",
+    "This item has no labels that can be translated.": "Dit item heeft geen labels die vertaald kunnen worden.",
+    "Languages": "Talen",
+    "Out of date": "Verouderd",
+    "{translated} of {total}": "{translated} van {total}",
+    "{language} is the source. Change a {language} label and its translations are marked out of date.": "{language} is de bron. Wijzig een {language} label en de vertalingen worden verouderd gemarkeerd.",
+    "The labels are saved.": "De labels zijn opgeslagen.",
+    "The labels could not be saved.": "De labels konden niet worden opgeslagen."
   },
   "plurals": {
     "{count} member": [

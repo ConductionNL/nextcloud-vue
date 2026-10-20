@@ -248,6 +248,7 @@ export {
 	CnObjectPresenceWidget,
 	CnObjectRow,
 	CnObjectSidebar,
+	CnObjectTranslationsWidget,
 	CnOfflineQueue,
 	CnOrderedListField,
 	CnPageHeader,

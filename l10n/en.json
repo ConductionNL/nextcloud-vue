@@ -1950,7 +1950,15 @@
     "Task completed": "Task completed",
     "This could not be done. Try again.": "This could not be done. Try again.",
     "{done} of {total} done": "{done} of {total} done",
-    "Nothing to check off": "Nothing to check off"
+    "Nothing to check off": "Nothing to check off",
+    "The translations could not be read. Reload the page to try again.": "The translations could not be read. Reload the page to try again.",
+    "This item has no labels that can be translated.": "This item has no labels that can be translated.",
+    "Languages": "Languages",
+    "Out of date": "Out of date",
+    "{translated} of {total}": "{translated} of {total}",
+    "{language} is the source. Change a {language} label and its translations are marked out of date.": "{language} is the source. Change a {language} label and its translations are marked out of date.",
+    "The labels are saved.": "The labels are saved.",
+    "The labels could not be saved.": "The labels could not be saved."
   },
   "plurals": {
     "{count} member": [
