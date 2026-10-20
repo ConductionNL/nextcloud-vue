@@ -2167,7 +2167,11 @@
     "Task completed": "Taak afgerond",
     "This could not be done. Try again.": "Dit lukte niet. Probeer het opnieuw.",
     "{done} of {total} done": "{done} van {total} klaar",
-    "Nothing to check off": "Niets af te vinken"
+    "Nothing to check off": "Niets af te vinken",
+    "Nothing to check.": "Er is niets te controleren.",
+    "This could not be read: {reason}": "Dit kon niet worden gelezen: {reason}",
+    "Still open": "Nog open",
+    "The checklist could not be read.": "De lijst kon niet worden gelezen."
   },
   "plurals": {
     "{count} member": [
