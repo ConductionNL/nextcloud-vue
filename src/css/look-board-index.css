@@ -152,7 +152,8 @@
 }
 
 /* Saved-view chips: one 38px pill each, the selected one filled with the main
-   text colour. The quick-filter tabs take the same chip. */
+   text colour and drawn without a border. The quick-filter tabs take the same
+   chip. */
 .cn-look-board .cn-saved-views__chips,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tabs {
 	display: flex;
@@ -214,12 +215,14 @@
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active:hover {
 	--nldesign-color-on-surface: var(--color-main-background);
-	border-color: transparent;
+	border: 0;
 	background: var(--color-main-text);
 	color: var(--color-main-background);
 }
 
-/* The count badge: grey on an idle chip, soft text colour on the selected one. */
+/* The count badge: grey on an idle chip, soft text colour on the selected
+   one, its 12px figure at the font's normal line height (16px with its 1px
+   padding, as the boards draw it). */
 .cn-look-board .cn-saved-views__chip .cn-saved-views__chip-count,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__count {
 	min-width: 0;
@@ -230,7 +233,7 @@
 	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 600;
-	line-height: 1.4;
+	line-height: normal;
 }
 
 .cn-look-board .cn-saved-views__chip--selected .cn-saved-views__chip-count,
