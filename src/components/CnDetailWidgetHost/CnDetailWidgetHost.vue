@@ -174,6 +174,7 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isContentOnly && !isBare"
 			:title="widget.title || ''"
+			:subtitle="rendererHeader.subtitle"
 			titleIconPosition="left"
 			:showActions="actionsShown || catalogAddEnabled"
 			:showRefresh="false"
@@ -236,6 +237,7 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsConsumerWidget"
 			:title="widget.title || ''"
+			:subtitle="rendererHeader.subtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
 			:showActions="false"
@@ -628,7 +630,7 @@ export default {
 			 * `header` event (screens-relation-pages): a link and a note,
 			 * with the list's total already filled in.
 			 */
-			rendererHeader: { link: null, note: '', actions: [], pill: null },
+			rendererHeader: { link: null, note: '', subtitle: '', actions: [], pill: null },
 		}
 	},
 
@@ -1234,7 +1236,9 @@ export default {
 			// `action` (one) and `actions` (several) both count, `action` first.
 			const actions = [header && header.action, ...((header && Array.isArray(header.actions)) ? header.actions : [])].filter(usable)
 			const pill = header && header.pill && typeof header.pill.label === 'string' && header.pill.label !== '' ? header.pill : null
-			this.rendererHeader = { link, note, actions, pill }
+			// `subtitle`: a muted line under the card title (a task table's "1 open, 3 done").
+			const subtitle = header && typeof header.subtitle === 'string' ? header.subtitle : ''
+			this.rendererHeader = { link, note, subtitle, actions, pill }
 		},
 
 		/**

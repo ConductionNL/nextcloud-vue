@@ -14,6 +14,141 @@
 		</div>
 		<!-- An empty inbox is the GOOD state, not an error and not a void:
 		     one muted line, no illustration. -->
+		<template v-else-if="isTable">
+			<!-- The create form the header's "New task" opens: a title and a
+			     deadline, posted as an open task on this record. -->
+			<form
+				v-if="createOpen"
+				class="cn-tasks-widget__create"
+				data-testid="cn-tasks-widget-create"
+				@submit.prevent="createTask">
+				<NcTextField
+					:modelValue="newTitle"
+					:label="tr('Task')"
+					data-testid="cn-tasks-widget-create-title"
+					@update:modelValue="(value) => (newTitle = String(value ?? ''))" />
+				<NcTextField
+					:modelValue="newDue"
+					type="date"
+					:label="tr('Deadline')"
+					data-testid="cn-tasks-widget-create-due"
+					@update:modelValue="(value) => (newDue = String(value ?? ''))" />
+				<NcButton
+					type="submit"
+					variant="primary"
+					:disabled="creating || newTitle.trim() === ''"
+					data-testid="cn-tasks-widget-create-save">
+					{{ tr('Add task') }}
+				</NcButton>
+			</form>
+			<p v-if="tableRows.length === 0" class="cn-tasks-widget__empty">
+				{{ emptyLabel }}
+			</p>
+			<table v-else class="cn-tasks-widget__table" data-testid="cn-tasks-widget-table">
+				<thead>
+					<tr>
+						<th scope="col">
+							{{ tr('Task') }}
+						</th>
+						<th scope="col">
+							{{ tr('Handler') }}
+						</th>
+						<th scope="col">
+							{{ tr('Deadline') }}
+						</th>
+						<th scope="col">
+							{{ tr('Status') }}
+						</th>
+						<th scope="col">
+							<span class="hidden-visually">{{ tr('Task actions') }}</span>
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr
+						v-for="task in tableRows"
+						:key="task.uuid"
+						class="cn-tasks-widget__table-row"
+						:class="{ 'cn-tasks-widget__table-row--done': task.isTerminal === true }"
+						:data-state="task.state"
+						:data-testid="`cn-tasks-widget-row-${task.uuid}`">
+						<td class="cn-tasks-widget__cell-task">
+							<CheckCircle
+								v-if="task.isTerminal === true"
+								:size="20"
+								class="cn-tasks-widget__state-icon cn-tasks-widget__state-icon--done" />
+							<CircleOutline v-else :size="20" class="cn-tasks-widget__state-icon" />
+							<span class="cn-tasks-widget__body">
+								<button
+									type="button"
+									class="cn-tasks-widget__name"
+									@click="onRowClick(task, $event)"
+									@auxclick="onRowAuxClick(task, $event)">
+									{{ titleOf(task) }}
+								</button>
+								<span v-if="tableMeta(task)" class="cn-tasks-widget__meta">{{ tableMeta(task) }}</span>
+							</span>
+						</td>
+						<td class="cn-tasks-widget__cell-handler">
+							<span v-if="task.assignee" class="cn-tasks-widget__handler">
+								<NcAvatar
+									:user="String(task.assignee)"
+									:displayName="handlerName(task)"
+									:size="28"
+									hideStatus />
+								{{ handlerName(task) }}
+							</span>
+							<span v-else class="cn-tasks-widget__meta">{{ tr('Unassigned') }}</span>
+						</td>
+						<td
+							class="cn-tasks-widget__cell-due"
+							:class="{ 'cn-tasks-widget__due--overdue': task.overdue === true && task.isTerminal !== true }">
+							{{ dueLabel(task) }}
+						</td>
+						<td>
+							<CnStatusBadge :label="stateLabel(task)" :variant="task.isTerminal === true ? 'default' : 'info'" />
+						</td>
+						<td class="cn-tasks-widget__cell-actions">
+							<NcButton
+								v-if="canClaim(task)"
+								variant="secondary"
+								:data-testid="`cn-tasks-widget-claim-${task.uuid}`"
+								@click="claim(task)">
+								{{ tr('Claim') }}
+							</NcButton>
+							<NcButton
+								v-else-if="canCompleteRow(task) && outcomesOf(task).length === 1"
+								variant="secondary"
+								:data-testid="`cn-tasks-widget-complete-${task.uuid}`"
+								@click="complete(task, outcomeId(outcomesOf(task)[0]))">
+								{{ tr('Complete') }}
+							</NcButton>
+							<NcActions
+								v-if="(canCompleteRow(task) && outcomesOf(task).length > 1) || canCancelRow(task)"
+								:forceMenu="true"
+								:aria-label="tr('Task actions')">
+								<template v-if="canCompleteRow(task) && outcomesOf(task).length > 1">
+									<NcActionButton
+										v-for="outcome in outcomesOf(task)"
+										:key="outcomeId(outcome)"
+										:closeAfterClick="true"
+										@click="complete(task, outcomeId(outcome))">
+										{{ completeLabel(outcome) }}
+									</NcActionButton>
+								</template>
+								<NcActionButton
+									v-if="canCancelRow(task)"
+									:closeAfterClick="true"
+									:data-testid="`cn-tasks-widget-cancel-${task.uuid}`"
+									@click="cancel(task)">
+									{{ tr('Cancel task') }}
+								</NcActionButton>
+							</NcActions>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</template>
 		<p v-else-if="rows.length === 0" class="cn-tasks-widget__empty">
 			{{ emptyLabel }}
 		</p>
@@ -116,13 +251,17 @@ import axios from '@nextcloud/axios'
 import { showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcAvatar, NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
+import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
+import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 
 /**
  * The OpenRegister inbox read (openregister flow-task-entity). One endpoint
@@ -189,9 +328,15 @@ export default {
 	name: 'CnTasksWidget',
 
 	components: {
+		CheckCircle,
+		CircleOutline,
+		CnStatusBadge,
 		NcActions,
 		NcActionButton,
+		NcAvatar,
+		NcButton,
 		NcLoadingIcon,
+		NcTextField,
 	},
 
 	inject: {
@@ -222,8 +367,19 @@ export default {
 		 * - `viewAllRoute` / `viewAllLabel` — a "View all" text link in the
 		 *   card header: a route name or location `{ name, params?, query? }`,
 		 *   and its label (default "View all"). `headerLink` works too.
+		 * - `objectUuid` — the tasks on one record (`"@objectId"` reads the
+		 *   page's record), every assignee's, instead of the viewer's inbox.
+		 * - `includeDone` — also list finished tasks (after the open ones).
+		 * - `variant: 'table'` — the record's task table (board DqZaakTaken):
+		 *   task, handler, deadline, status and the row's verbs, with the
+		 *   summary ("1 open, 3 done · sorted by deadline") and a "New task"
+		 *   action in the card header.
+		 * - `create` — offer "New task": `true`, or `{ appId?, label? }`; the
+		 *   task is posted as an open task on `objectUuid`.
+		 * - `completeAny` — offer Complete on every open row, not only the
+		 *   viewer's own (the server still decides); `cancel` — offer Cancel.
 		 *
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean}}
 		 */
 		content: {
 			type: Object,
@@ -236,6 +392,12 @@ export default {
 		 */
 		widgetId: {
 			type: String,
+			default: '',
+		},
+
+		/** The page's record id, for `objectUuid: "@objectId"`. */
+		objectId: {
+			type: [String, Number],
 			default: '',
 		},
 
@@ -259,19 +421,27 @@ export default {
 		// same binding CnFlowRunsWidget uses, so a page-level Refresh updates
 		// this widget with everything else on the page.
 		const widgetIdRef = ref(props.widgetId)
-		const source = () => ({
-			url: FLOW_TASKS_URL,
-			method: 'GET',
-			params: {
-				scope: normaliseScope(props.content && props.content.scope),
-				// An inbox drains: finished tasks leave the widget. The index
-				// page's "everything" tab is the place to read history.
-				isTerminal: 'false',
+		const source = () => {
+			const content = props.content || {}
+			const objectUuid = recordUuid(content.objectUuid, props.objectId)
+			const params = {
+				// A record's tasks are everyone's: scoping them to the viewer
+				// would make the record look finished while a colleague works.
+				scope: objectUuid !== '' && !content.scope ? 'all' : normaliseScope(content.scope),
 				// Ascending due date: the most urgent (overdue first) on top.
 				sort: 'dueAt',
-				limit: normaliseLimit(props.content && props.content.limit),
-			},
-		})
+				limit: normaliseLimit(content.limit),
+			}
+			if (objectUuid !== '') {
+				params.objectUuid = objectUuid
+			}
+			// An inbox drains: finished tasks leave the widget, unless the
+			// widget lists a record's work, done included (`includeDone`).
+			if (content.includeDone !== true) {
+				params.isTerminal = 'false'
+			}
+			return { url: FLOW_TASKS_URL, method: 'GET', params }
+		}
 		const { data, loading, error, refetch } = useEndpointSource(source, {
 			widgetId: widgetIdRef,
 		})
@@ -294,6 +464,13 @@ export default {
 			pollTimer: null,
 			/** Uuids of the tasks a checkbox is completing, until the next read. */
 			completing: [],
+			/** Whether the table's create form is open. */
+			createOpen: false,
+			/** The new task's title and deadline. */
+			newTitle: '',
+			newDue: '',
+			/** Whether the new task is being posted. */
+			creating: false,
 		}
 	},
 
@@ -305,6 +482,70 @@ export default {
 		 */
 		isList() {
 			return this.content.variant === 'list'
+		},
+
+		/**
+		 * Whether the rows draw as the record's task table (`variant: 'table'`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		isTable() {
+			return this.content.variant === 'table'
+		},
+
+		/**
+		 * The table's rows: the open tasks first, then the finished ones, each
+		 * in due order as the endpoint sorted them.
+		 *
+		 * @return {Array<object>} The rows.
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		tableRows() {
+			return [...this.rows.filter((task) => task.isTerminal !== true), ...this.rows.filter((task) => task.isTerminal === true)]
+		},
+
+		/**
+		 * The table's summary for the card header: "1 open, 3 done · sorted by deadline".
+		 *
+		 * @return {string} The line.
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		summaryLabel() {
+			const open = this.rows.filter((task) => task.isTerminal !== true).length
+			const done = this.rows.length - open
+			return this.tr('{open} open, {done} done · sorted by deadline')
+				.replace('{open}', String(open))
+				.replace('{done}', String(done))
+		},
+
+		/**
+		 * The card header's parts: the "View all" link, and for the table the
+		 * summary under the title and the "New task" action.
+		 *
+		 * @return {object} The header.
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		header() {
+			const header = { link: this.headerLink, note: '' }
+			if (!this.isTable) {
+				return header
+			}
+			header.subtitle = this.loading && this.rows.length === 0 ? '' : this.summaryLabel
+			if (this.content.create && this.recordUuid !== '') {
+				const label = typeof this.content.create === 'object' && this.content.create.label ? this.tr(this.content.create.label) : this.tr('New task')
+				header.action = { label, icon: 'Plus', variant: 'primary', run: this.toggleCreate }
+			}
+			return header
+		},
+
+		/**
+		 * The record the table lists tasks for, '' without one.
+		 *
+		 * @return {string} The uuid.
+		 */
+		recordUuid() {
+			return recordUuid(this.content.objectUuid, this.objectId)
 		},
 
 		/**
@@ -417,14 +658,14 @@ export default {
 	},
 
 	watch: {
-		headerLink: {
+		header: {
 			immediate: true,
-			handler(link) {
+			handler(header) {
 				/**
-				 * @event header Emitted with the card header's parts: the "View all" link, if any.
-				 * @type {{link: (object|null), note: string}}
+				 * @event header Emitted with the card header's parts: the "View all" link, if any, and for the table its summary and "New task".
+				 * @type {{link: (object|null), note: string, subtitle?: string, action?: object}}
 				 */
-				this.$emit('header', { link, note: '' })
+				this.$emit('header', header)
 			},
 		},
 	},
@@ -586,6 +827,122 @@ export default {
 		},
 
 		/**
+		 * Whether a table row offers Complete: the viewer's own open task, or
+		 * any open task with `completeAny` (the server still decides).
+		 *
+		 * @param {object} task The task row.
+		 * @return {boolean}
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		canCompleteRow(task) {
+			if (task.isTerminal === true || this.canClaim(task)) {
+				return false
+			}
+			return this.content.completeAny === true || this.canComplete(task)
+		},
+
+		/**
+		 * Whether a table row offers Cancel (`content.cancel`), for an open task.
+		 *
+		 * @param {object} task The task row.
+		 * @return {boolean}
+		 */
+		canCancelRow(task) {
+			return this.content.cancel === true && task.isTerminal !== true
+		},
+
+		/**
+		 * Cancel a task.
+		 *
+		 * @param {object} task The task row.
+		 * @return {Promise<void>} Resolves when the verb settled.
+		 */
+		cancel(task) {
+			return this.postVerb(task, 'cancel', {})
+		},
+
+		/**
+		 * The handler's display name, the uid until it resolves.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The name.
+		 */
+		handlerName(task) {
+			return userDisplayName(task.assignee) || String(task.assignee || '')
+		},
+
+		/**
+		 * A table row's status in words.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The label.
+		 */
+		stateLabel(task) {
+			const state = STATE_LABELS[task.state]
+			return state ? this.tr(state) : String(task.state || '')
+		},
+
+		/**
+		 * A table row's second line: its description and a priority above normal.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The line, or ''.
+		 */
+		tableMeta(task) {
+			const parts = []
+			if (typeof task.description === 'string' && task.description.trim() !== '') {
+				parts.push(task.description.trim().split('\n')[0])
+			}
+			const priority = PRIORITY_LABELS[task.priority]
+			if (priority && task.priority !== 'normal') {
+				parts.push(this.tr(priority))
+			}
+			return parts.join(' · ')
+		},
+
+		/**
+		 * Open or close the create form (the header's "New task").
+		 *
+		 * @return {void}
+		 */
+		toggleCreate() {
+			this.createOpen = !this.createOpen
+		},
+
+		/**
+		 * Post the create form as an open task on the record, then refetch.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		async createTask() {
+			const title = this.newTitle.trim()
+			if (title === '' || this.recordUuid === '' || this.creating) {
+				return
+			}
+			const create = typeof this.content.create === 'object' && this.content.create ? this.content.create : {}
+			const payload = { title, objectUuid: this.recordUuid, state: 'available' }
+			if (typeof create.appId === 'string' && create.appId !== '') {
+				payload.appId = create.appId
+			}
+			if (this.newDue !== '') {
+				payload.dueAt = this.newDue
+			}
+			this.creating = true
+			try {
+				await axios.post(generateUrl(FLOW_TASKS_URL), payload)
+				this.newTitle = ''
+				this.newDue = ''
+				this.createOpen = false
+			} catch (error) {
+				const message = error?.response?.data?.error
+				showError(typeof message === 'string' && message !== '' ? message : this.tr('The task could not be added'))
+			}
+			this.creating = false
+			this.refetch(true)
+		},
+
+		/**
 		 * The outcomes to offer on complete: the row's declared list, else
 		 * one entry for the server's default outcome.
 		 *
@@ -739,9 +1096,113 @@ function normaliseLimit(raw) {
 function normaliseScope(raw) {
 	return ['assigned', 'pooled', 'watched', 'all'].includes(raw) ? raw : 'assigned'
 }
+
+/**
+ * The record a widget lists tasks for: `objectUuid` as written, with
+ * `@objectId` read from the page's record.
+ *
+ * @param {unknown} configured The `objectUuid` setting.
+ * @param {unknown} objectId The page's record id.
+ * @return {string} The uuid, or ''.
+ */
+function recordUuid(configured, objectId) {
+	if (typeof configured !== 'string' || configured === '') {
+		return ''
+	}
+	return configured === '@objectId' ? String(objectId ?? '') : configured
+}
 </script>
 
 <style scoped>
+/* The record's task table (`variant: 'table'`, board DqZaakTaken): a head
+   row of muted 14px labels on a near-white ground, rows divided by hairlines,
+   the title at 600 over a muted line, a finished task struck through. */
+.cn-tasks-widget__create {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 12px;
+	margin-block-end: 12px;
+}
+
+.cn-tasks-widget__table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+
+.cn-tasks-widget__table th {
+	padding: 12px 16px;
+	background: color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background));
+	color: var(--color-text-maxcontrast);
+	font-weight: 600;
+	text-align: start;
+	white-space: nowrap;
+}
+
+.cn-tasks-widget__table td {
+	padding: 12px 16px;
+	border-top: 1px solid var(--color-border);
+	vertical-align: middle;
+}
+
+.cn-tasks-widget__cell-task {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.cn-tasks-widget__state-icon {
+	flex: none;
+	color: var(--color-primary-element);
+}
+
+.cn-tasks-widget__state-icon--done {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-tasks-widget__table .cn-tasks-widget__name {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-main-text);
+	font: inherit;
+	font-size: 15px;
+	font-weight: 600;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-tasks-widget__table .cn-tasks-widget__name:hover,
+.cn-tasks-widget__table .cn-tasks-widget__name:focus-visible {
+	text-decoration: underline;
+}
+
+.cn-tasks-widget__table-row--done .cn-tasks-widget__name {
+	text-decoration: line-through;
+}
+
+.cn-tasks-widget__handler {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-tasks-widget__cell-due {
+	white-space: nowrap;
+}
+
+.cn-tasks-widget__cell-due.cn-tasks-widget__due--overdue {
+	color: var(--color-warning-text, var(--color-warning));
+	font-weight: 600;
+}
+
+.cn-tasks-widget__cell-actions {
+	text-align: end;
+	white-space: nowrap;
+}
+
 .cn-tasks-widget {
 	display: flex;
 	flex-direction: column;
