@@ -126,9 +126,26 @@ A column with `labelPath` takes its heading from the endpoint's whole response (
 { "key": "workingHours", "label": "Working hours", "labelPath": "labels.workingHours" }
 ```
 
+### Reading only when asked (`loadOn: "request"`)
+
+An endpoint whose every read is recorded (an audit trail per read, say) should not be read because somebody opened the page. With `loadOn: "request"` in the `endpointSource` block the widget reads nothing on mount: it shows a button (`requestLabel`, default "Show") with an optional `requestHint` sentence above it, and reads only when the reader presses it. When the request changes (another period from the page filters), the last answer is dropped and the widget waits for the next press. Page and widget refreshes do not read a widget that is waiting. Each press is a fresh read, past the shared cache.
+
+```json
+"endpointSource": {
+  "url": "/apps/dossiq/api/woo/reports/throughput",
+  "params": { "from": "@workspace.from", "to": "@workspace.to" },
+  "responsePath": "rows",
+  "loadOn": "request",
+  "requestLabel": "Show",
+  "requestHint": "Every time you open this report, it is recorded."
+}
+```
+
+`CnWidgetObjectTable`, `CnChartWidget` and `CnStatWidget` all honour it; the labels go through the app's translate.
+
 ### Refused, failed and short answers
 
-An endpoint read that is refused (401/403) shows the server's `message` as a warning and no table; a failed read shows its message as an error. A table is never drawn empty for a read that did not answer, so "no rows" keeps meaning no rows. A response body with a top-level `truncated: true` keeps the table and adds a note that the figures may be incomplete. All three come from [CnEndpointNotice](./cn-endpoint-notice.md).
+An endpoint read that is refused (401/403) shows the server's `message` as a warning and no table; a failed read shows its message as an error. A table is never drawn empty for a read that did not answer, so "no rows" keeps meaning no rows. A response body with a top-level `truncated: true` keeps the table and adds a note that the figures may be incomplete. `endpointSource.truncatedText` replaces the default truncation sentence with one that says what to do ("Choose a shorter period."). All three come from [CnEndpointNotice](./cn-endpoint-notice.md).
 
 ## Declarative actions
 

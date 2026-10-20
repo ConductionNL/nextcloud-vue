@@ -3,7 +3,19 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div v-if="error || truncated" class="cn-endpoint-notice">
+	<div v-if="awaitingRequest || error || truncated" class="cn-endpoint-notice">
+		<div v-if="awaitingRequest" class="cn-endpoint-notice__request" data-testid="cn-endpoint-notice-request">
+			<p v-if="requestHint" class="cn-endpoint-notice__hint">
+				{{ requestHint }}
+			</p>
+			<NcButton
+				variant="primary"
+				:disabled="requestDisabled"
+				data-testid="cn-endpoint-request"
+				@click="$emit('request')">
+				{{ requestLabel || t('nextcloud-vue', 'Show') }}
+			</NcButton>
+		</div>
 		<NcNoteCard
 			v-if="error"
 			:type="refused ? 'warning' : 'error'"
@@ -21,7 +33,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcNoteCard } from '@nextcloud/vue'
 
 /**
  * CnEndpointNotice: what an endpoint-fed widget shows instead of, or beside,
@@ -32,13 +44,18 @@ import { NcNoteCard } from '@nextcloud/vue'
  * - A failure shows the server's message as an error.
  * - A `truncated` answer shows an info note: the figures are short.
  *
- * Bind it to the `error`, `refused` and `truncated` refs of
- * `useEndpointSource`. It renders nothing when all three are empty.
+ * - A source with `loadOn: 'request'` that has not been asked yet shows a
+ *   button (`requestLabel`, default "Show"), with an optional `requestHint`
+ *   above it; pressing it emits `request`.
+ *
+ * Bind it to the `error`, `refused`, `truncated` and `awaitingRequest` refs of
+ * `useEndpointSource`, and `@request` to its `request()`. It renders nothing
+ * when all four are empty.
  */
 export default {
 	name: 'CnEndpointNotice',
 
-	components: { NcNoteCard },
+	components: { NcButton, NcNoteCard },
 
 	props: {
 		/**
@@ -67,7 +84,33 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/** Whether the source waits for the reader to ask (`loadOn: 'request'`). */
+		awaitingRequest: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The button that asks, already translated (default "Show"). */
+		requestLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** A sentence above the button, already translated. */
+		requestHint: {
+			type: String,
+			default: '',
+		},
+
+		/** Whether the button is disabled, such as while a required token is unset. */
+		requestDisabled: {
+			type: Boolean,
+			default: false,
+		},
 	},
+
+	emits: ['request'],
 
 	computed: {
 		/**
@@ -91,5 +134,18 @@ export default {
 <style scoped>
 .cn-endpoint-notice {
 	padding: 0 var(--default-grid-baseline, 4px);
+}
+
+.cn-endpoint-notice__request {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 8px 0;
+}
+
+.cn-endpoint-notice__hint {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
 }
 </style>

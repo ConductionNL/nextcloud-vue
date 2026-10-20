@@ -37,6 +37,18 @@ describe('CnEndpointNotice', () => {
 		expect(own.find('[data-testid="cn-endpoint-notice-truncated"]').text()).toBe('Only the first 2000 cases.')
 	})
 
+	it('offers a request button that emits request, labelled Show by default', async () => {
+		const wrapper = mount(CnEndpointNotice, { propsData: { awaitingRequest: true, requestHint: 'Every read is recorded.' } })
+		const button = wrapper.find('[data-testid="cn-endpoint-request"]')
+		expect(button.text()).toBe('Show')
+		expect(wrapper.text()).toContain('Every read is recorded.')
+		await button.trigger('click')
+		expect(wrapper.emitted('request')).toHaveLength(1)
+
+		const own = mount(CnEndpointNotice, { propsData: { awaitingRequest: true, requestLabel: 'Load report' } })
+		expect(own.find('[data-testid="cn-endpoint-request"]').text()).toBe('Load report')
+	})
+
 	it('puts the refusal before the truncation note', () => {
 		const wrapper = mount(CnEndpointNotice, { propsData: { error: 'No.', refused: true, truncated: true } })
 		expect(wrapper.find('[data-testid="cn-endpoint-notice-truncated"]').exists()).toBe(false)

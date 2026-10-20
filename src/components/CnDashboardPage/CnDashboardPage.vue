@@ -1055,6 +1055,7 @@ import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
+import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
@@ -2130,13 +2131,22 @@ export default {
 
 		/**
 		 * The header actions handed to CnActionButtons, an entry with `href`
-		 * in its link form (resolved URL, anchor target, no handler).
+		 * in its link form (resolved URL, anchor target, no handler). An
+		 * `href` may carry `@workspace.<key>` / `@page.<key>` tokens, filled
+		 * (URL-encoded) from the page filters, so a download link asks for
+		 * what the page shows.
 		 *
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 * @return {Array<object>}
 		 */
 		linkedHeaderActions() {
-			return (this.headerActions || []).map(headerActionAsLink)
+			const workspace = Object.fromEntries(Object.entries(this.workspaceContext || {})
+				.map(([key, value]) => [key, (value === undefined || value === null) ? value : encodeURIComponent(String(value))]))
+			return (this.headerActions || [])
+				.map((entry) => ((entry && typeof entry.href === 'string' && entry.href.includes('@'))
+					? { ...entry, href: interpolateUrlTokens(entry.href, { workspace }) }
+					: entry))
+				.map(headerActionAsLink)
 		},
 
 		/**

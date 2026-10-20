@@ -192,6 +192,23 @@ endpointSource: {
 Pie-family charts (`pie` / `donut` / `radialBar`) flatten the FIRST mapped series into the flat value array ApexCharts expects. `params` re-resolve + the chart refetches when the dashboard date range changes (the page publishes `dateFrom` / `dateTo` / `datePreset` into the workspace context).
 
 
+### Reading only when asked (`loadOn: "request"`)
+
+An endpoint whose every read is recorded (an audit trail per read, say) should not be read because somebody opened the page. With `loadOn: "request"` in the `endpointSource` block the widget reads nothing on mount: it shows a button (`requestLabel`, default "Show") with an optional `requestHint` sentence above it, and reads only when the reader presses it. When the request changes (another period from the page filters), the last answer is dropped and the widget waits for the next press. Page and widget refreshes do not read a widget that is waiting. Each press is a fresh read, past the shared cache.
+
+```json
+"endpointSource": {
+  "url": "/apps/dossiq/api/woo/reports/throughput",
+  "params": { "from": "@workspace.from", "to": "@workspace.to" },
+  "responsePath": "rows",
+  "loadOn": "request",
+  "requestLabel": "Show",
+  "requestHint": "Every time you open this report, it is recorded."
+}
+```
+
+`CnWidgetObjectTable`, `CnChartWidget` and `CnStatWidget` all honour it; the labels go through the app's translate.
+
 ### A series the endpoint names (`namePath`)
 
 `series[].namePath` names a series from the endpoint's whole response (before `responsePath`): `{ "name": "Hours", "namePath": "labels.workingHours", "path": "hours" }` reads the series name the endpoint sends, so the legend and tooltip say which clock the numbers are on. `name` is used until the response names one.

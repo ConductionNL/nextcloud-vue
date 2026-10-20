@@ -32,8 +32,14 @@
 				v-if="endpointActive"
 				:error="epError"
 				:refused="epRefused"
-				:truncated="epTruncated" />
-			<CnDataTable v-if="!(endpointActive && epError)" ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
+				:truncated="epTruncated"
+				:truncatedText="endpointText('truncatedText')"
+				:awaitingRequest="epAwaitingRequest"
+				:requestLabel="endpointText('requestLabel')"
+				:requestHint="endpointText('requestHint')"
+				:requestDisabled="epBlocked"
+				@request="epRequest" />
+			<CnDataTable v-if="!(endpointActive && (epError || epAwaitingRequest))" ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
 				     (#footer { total, shown }, #empty, #column-<key>, …). The
 				     #row-actions slot is NOT forwarded while the widget renders
@@ -50,7 +56,7 @@
 			<!-- Widget-scoped object-op create affordance: `create` has no row
 			     to mutate, so it renders in the list footer, never inside the
 			     per-row actions menu (ADR-049 / list-widget-enrichment). -->
-			<div v-if="exportCsv && !(endpointActive && epError)" class="cn-widget-object-table__footer">
+			<div v-if="exportCsv && !(endpointActive && (epError || epAwaitingRequest))" class="cn-widget-object-table__footer">
 				<NcButton
 					variant="tertiary"
 					data-testid="cn-widget-export-csv"
@@ -194,6 +200,8 @@ export default {
 		 * call when mounted outside a CnPageRenderer tree.
 		 */
 		cnDispatchAction: { default: null },
+		/** The app's translate, for manifest-authored strings. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	inheritAttrs: false,
@@ -512,7 +520,7 @@ export default {
 		// External rows always win — and suppress the request entirely (the
 		// pre-existing "when rows are provided, no API calls are made"
 		// contract), so the getter resolves to null while `rows` are supplied.
-		const { data, body, loading, error, refused, truncated, refetch } = useEndpointSource(
+		const { data, body, loading, error, refused, truncated, blocked, awaitingRequest, request, refetch } = useEndpointSource(
 			() => ((props.rows && props.rows.length > 0) ? null : props.endpointSource),
 			{
 				ctx: () => ({
@@ -523,7 +531,7 @@ export default {
 				widgetId: () => props.widgetId,
 			},
 		)
-		return { epData: data, epBody: body, epLoading: loading, epError: error, epRefused: refused, epTruncated: truncated, epRefetch: refetch }
+		return { epData: data, epBody: body, epLoading: loading, epError: error, epRefused: refused, epTruncated: truncated, epBlocked: blocked, epAwaitingRequest: awaitingRequest, epRequest: request, epRefetch: refetch }
 	},
 
 	data() {
@@ -931,6 +939,18 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * A string the `endpointSource` block carries, through the app's
+		 * translate ('' when absent).
+		 *
+		 * @param {string} key The key in the block.
+		 * @return {string} The translated text.
+		 */
+		endpointText(key) {
+			const text = this.endpointSource && this.endpointSource[key]
+			return typeof text === 'string' && text !== '' ? this.cnTranslate(text) : ''
+		},
 
 		/**
 		 * Columns whose `labelPath` names their heading in the endpoint's

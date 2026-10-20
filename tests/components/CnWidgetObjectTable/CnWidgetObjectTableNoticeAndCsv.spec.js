@@ -106,6 +106,29 @@ describe('CnWidgetObjectTable: notices and CSV export', () => {
 		expect(columns[1].label).toBe('Id')
 	})
 
+	it('reads nothing until the reader presses the request button, then draws the rows', async () => {
+		axios.get.mockResolvedValue({ data: { rows: [{ id: 'a', name: 'A' }] } })
+		const wrapper = mount(CnWidgetObjectTable, {
+			propsData: { endpointSource: { ...endpointSource, loadOn: 'request', requestLabel: 'Show report' }, columns: ['name'] },
+			global: {
+				provide: { cnTranslate: (s) => `[${s}]` },
+				stubs: { CnDataTable: { name: 'CnDataTable', props: ['rows'], template: '<div class="table-stub" />' }, CnWidgetWrapper: { template: '<div><slot /></div>' } },
+			},
+		})
+		await flush()
+
+		expect(axios.get).not.toHaveBeenCalled()
+		expect(wrapper.find('.table-stub').exists()).toBe(false)
+		const button = wrapper.find('[data-testid="cn-endpoint-request"]')
+		expect(button.text()).toBe('[Show report]')
+
+		await button.trigger('click')
+		await flush()
+		expect(axios.get).toHaveBeenCalledTimes(1)
+		expect(wrapper.findComponent({ name: 'CnDataTable' }).props('rows')).toEqual([{ id: 'a', name: 'A' }])
+		expect(wrapper.find('[data-testid="cn-endpoint-request"]').exists()).toBe(false)
+	})
+
 	it('has no CSV button unless asked', async () => {
 		axios.get.mockResolvedValue({ data: { rows: [] } })
 		const wrapper = shallowMount(CnWidgetObjectTable, { propsData: { endpointSource, columns: ['name'] } })

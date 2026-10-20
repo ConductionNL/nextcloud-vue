@@ -79,6 +79,18 @@ describe('CnChartWidget: endpoint notices', () => {
 		expect(wrapper.vm.resolvedSeries).toEqual([{ name: 'Working hours', data: [4] }])
 	})
 
+	it('waits for the request button with loadOn: request, then draws', async () => {
+		axios.get.mockResolvedValue({ data: { distribution: [{ label: '0-7', count: 2 }] } })
+		const wrapper = mountChart({ endpointSource: { ...endpointSource, loadOn: 'request' } })
+		await flush()
+		expect(axios.get).not.toHaveBeenCalled()
+		expect(wrapper.find('[data-testid="cn-chart-widget-empty"]').exists()).toBe(false)
+
+		await wrapper.find('[data-testid="cn-endpoint-request"]').trigger('click')
+		await flush()
+		expect(wrapper.vm.resolvedSeries).toEqual([{ name: 'Cases', data: [2] }])
+	})
+
 	it('words the empty state through the app translate', async () => {
 		axios.get.mockResolvedValue({ data: { distribution: [] } })
 		const wrapper = mountChart()

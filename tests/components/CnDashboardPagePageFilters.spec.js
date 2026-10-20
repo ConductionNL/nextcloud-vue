@@ -83,6 +83,18 @@ describe('CnDashboardPage — pageFilters', () => {
 		expect(values[0]).toBe(current)
 	})
 
+	it('fills page filter tokens into a header link, encoded', async () => {
+		const wrapper = mountDash({
+			pageFilters: [PERIOD_FILTER],
+			headerActions: [{ id: 'csv', label: 'Download CSV', href: '/apps/app/api/report?format=csv&period=@workspace.period&from=@workspace.dateFrom' }],
+		})
+		wrapper.vm.workspaceContext.dateFrom = '2026-01-01T00:00:00.000Z'
+		await wrapper.vm.$nextTick()
+		const href = wrapper.vm.linkedHeaderActions[0].href
+		expect(href).toContain('format=csv&period=last-30&from=2026-01-01T00%3A00%3A00.000Z')
+		expect(href).not.toContain('@workspace')
+	})
+
 	it('seeds from the first option when no default is given', () => {
 		const wrapper = mountDash({ pageFilters: [{ key: 'scope', options: [{ value: 'mine', label: 'Mine' }, { value: 'all', label: 'All' }] }] })
 		expect(wrapper.vm.workspaceContext.scope).toBe('mine')

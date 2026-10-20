@@ -38,7 +38,14 @@
 			v-if="!epError && epTruncated"
 			:truncated="true" />
 		<CnEndpointNotice
-			v-if="epError"
+			v-if="epAwaitingRequest"
+			:awaitingRequest="true"
+			:requestLabel="endpointSource.requestLabel ? hostTranslate(endpointSource.requestLabel) : ''"
+			:requestHint="endpointSource.requestHint ? hostTranslate(endpointSource.requestHint) : ''"
+			:requestDisabled="epBlocked"
+			@request="epRequest" />
+		<CnEndpointNotice
+			v-else-if="epError"
 			:error="epError"
 			:refused="epRefused" />
 		<div v-else-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
@@ -875,7 +882,7 @@ export default {
 			() => props.endpointSource,
 			{ ctx: chartTokenCtx },
 		)
-		return { dsData: data, dsRefetch: refetch, epData: ep.data, epBody: ep.body, epError: ep.error, epRefused: ep.refused, epTruncated: ep.truncated, epRefetch: ep.refetch, chartTokenCtx }
+		return { dsData: data, dsRefetch: refetch, epData: ep.data, epBody: ep.body, epError: ep.error, epRefused: ep.refused, epTruncated: ep.truncated, epBlocked: ep.blocked, epAwaitingRequest: ep.awaitingRequest, epRequest: ep.request, epRefetch: ep.refetch, chartTokenCtx }
 	},
 
 	data() {

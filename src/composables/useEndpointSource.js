@@ -392,7 +392,10 @@ function read(v) {
  * endpoint sends beside its rows. `error` carries the
  * server's `message` when it sent one, `refused` is true when the read was
  * answered 401/403, and `truncated` mirrors a top-level `truncated: true` in
- * the response body. The request signature (url + resolved
+ * the response body. A source with `loadOn: 'request'` reads nothing until
+ * `request()` is called (`awaitingRequest` is true until then, and again
+ * whenever the request changes), for an endpoint whose every read is
+ * recorded, so a plain visit records nothing. The request signature (url + resolved
  * params + method) is watched, so a change in the page-level workspace
  * context (the dashboard date-range pills publishing `dateFrom` / `dateTo` /
  * `datePreset`, a page filter publishing `period`, …) re-resolves the tokens
@@ -411,7 +414,7 @@ function read(v) {
  * @param {object|import('vue').Ref<object>|(() => object)} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
  * @param {string|import('vue').Ref<string>|(() => string)} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
  * @param {import('vue').Ref<unknown>|(() => unknown)} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
- * @return {{data: import('vue').Ref<unknown>, body: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refused: import('vue').Ref<boolean>, truncated: import('vue').Ref<boolean>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
+ * @return {{data: import('vue').Ref<unknown>, body: import('vue').Ref<unknown>, awaitingRequest: import('vue').Ref<boolean>, request: () => Promise<void>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refused: import('vue').Ref<boolean>, truncated: import('vue').Ref<boolean>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
  */
 export function useEndpointSource(source, options) {
 	const opts = options || {}
@@ -421,6 +424,13 @@ export function useEndpointSource(source, options) {
 	const refused = ref(false)
 	const truncated = ref(false)
 	const body = ref(null)
+	// `loadOn: 'request'`: nothing is read until request() is called, and a
+	// changed request (another period, say) waits for the next request().
+	const awaitingRequest = ref(false)
+	const onRequest = () => {
+		const cfg = read(source)
+		return Boolean(cfg && cfg.url && cfg.loadOn === 'request')
+	}
 	// Whether the last read was not attempted because a required token is
 	// unset. The three refs above cannot express it: a blocked read looks
 	// exactly like the instant before the first request.
@@ -528,20 +538,54 @@ export function useEndpointSource(source, options) {
 	 * @param {boolean} [force] Bypass the shared cache (default true).
 	 * @return {Promise<void>}
 	 */
-	const refetch = (force = true) => load(force)
+	const refetch = (force = true) => (awaitingRequest.value ? Promise.resolve() : load(force))
+
+	/**
+	 * Read now, for a `loadOn: 'request'` source: the reader asked. Always a
+	 * fresh read, since each request is one the server may record.
+	 *
+	 * @return {Promise<void>}
+	 */
+	const request = () => {
+		if (resolveEndpointRequest(read(source), readCtx()).blocked) {
+			blocked.value = true
+			return Promise.resolve()
+		}
+		awaitingRequest.value = false
+		return load(true)
+	}
 
 	watch(requestKey, () => {
+		if (onRequest()) {
+			// Drop the last answer and any read in flight: it answered another request.
+			fetchSeq++
+			data.value = null
+			body.value = null
+			error.value = ''
+			refused.value = false
+			truncated.value = false
+			loading.value = false
+			awaitingRequest.value = true
+			blocked.value = resolveEndpointRequest(read(source), readCtx()).blocked
+			return
+		}
+		awaitingRequest.value = false
 		load(false)
 	}, { immediate: true })
 
 	if (opts.refreshKey !== undefined) {
 		watch(() => read(opts.refreshKey), () => {
-			load(true)
+			if (!awaitingRequest.value) {
+				load(true)
+			}
 		})
 	}
 
 	// `waitUntil` lets the menu that sent the refresh spin until this fetch lands.
 	const onPageRefresh = (payload) => {
+		if (awaitingRequest.value) {
+			return
+		}
 		const done = load(true, payload)
 		payload?.waitUntil?.(done)
 	}
@@ -550,7 +594,7 @@ export function useEndpointSource(source, options) {
 		if (!id) {
 			return
 		}
-		if (!payload || payload.widgetId !== id) {
+		if (!payload || payload.widgetId !== id || awaitingRequest.value) {
 			return
 		}
 		const done = load(true, payload)
@@ -565,5 +609,5 @@ export function useEndpointSource(source, options) {
 		})
 	}
 
-	return { data, body, loading, error, refused, truncated, blocked, refetch }
+	return { data, body, loading, error, refused, truncated, blocked, awaitingRequest, request, refetch }
 }
