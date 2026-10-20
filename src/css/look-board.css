@@ -168,12 +168,20 @@
 	margin-inline-start: 0;
 }
 
-/* A stat tile in the board's KPI row carries the board's own 18px 20px inset
+/* A board stat tile carries the board's own 18px 20px inset
    (`cn-kpi-card--board`), so the card-fit cell adds none of its own: with
    both the label sat 29px from the tile's top and 37px from its side, and
-   the row stood about 1.4 times the board's height. */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__kpi-cell .cn-dashboard-page__card-fit .cn-widget-wrapper__content:has(> .cn-kpi-card--board.cn-kpi-card--stacked) {
+   the row stood about 1.4 times the board's height. This holds for a tile in
+   the KPI row and for one placed in the grid (DqMijnWerk), and the tile drops
+   the 2px transparent border a free-standing tile keeps for its hover ring:
+   in a card-fit cell the wrapper draws the hover border.
+   @spec openspec/changes/board-stat-tile-inset/specs/board-stat-tile-inset/spec.md#requirement-a-board-stat-tile-in-a-card-fit-cell-sits-on-the-boards-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__card-fit .cn-widget-wrapper__content:has(> .cn-kpi-card--board.cn-kpi-card--stacked) {
 	padding: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__card-fit .cn-kpi-card--board.cn-kpi-card--stacked {
+	border-width: 0;
 }
 
 /* ---- Button weight ------------------------------------------------------ */
