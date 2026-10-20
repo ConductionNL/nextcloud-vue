@@ -224,7 +224,8 @@
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
 .cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *),
-.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) {
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *) {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -243,6 +244,7 @@
 .cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *),
 .cn-look-board .cn-action-buttons:not(.cn-look-nextcloud *) {
 	--nldesign-component-button-font-weight: 600;
 	--nldesign-component-button-primary-action-font-weight: 600;
@@ -256,7 +258,8 @@
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *) .button-vue,
-.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) .button-vue {
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *) .button-vue {
 	box-sizing: border-box;
 	height: var(--cn-board-control-height);
 	min-height: var(--cn-board-control-height);
@@ -275,7 +278,8 @@
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *) .button-vue--primary,
 .cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *) .button-vue--primary,
 .cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *) .button-vue--primary,
-.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) .button-vue--primary {
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) .button-vue--primary,
+.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *) .button-vue--primary {
 	padding: 0 16px;
 	border: 0;
 	background: var(--color-primary-element);
