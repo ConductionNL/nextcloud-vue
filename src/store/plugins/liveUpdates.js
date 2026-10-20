@@ -399,6 +399,8 @@ export function liveUpdatesPlugin(opts = {}) {
 			// Plain (non-reactive) Map: type → last params object
 			store.__lastCollectionParams = new Map()
 
+			// Detached: the store outlives the component whose setup first
+			// used it, and an attached observer is removed with that scope.
 			store.$onAction(({ name, args, after }) => {
 				if (name === 'fetchCollection') {
 					const [type, params = {}] = args
@@ -406,7 +408,7 @@ export function liveUpdatesPlugin(opts = {}) {
 						store.__lastCollectionParams.set(type, params)
 					})
 				}
-			})
+			}, true)
 
 			// -- In-flight dedup for fetchObject --
 			// Plain Map: dedupKey → Promise

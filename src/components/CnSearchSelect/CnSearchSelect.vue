@@ -214,6 +214,13 @@ export default {
 	position: relative;
 }
 
+/* The field takes the row: NcSelect is an inline block of at least 260px,
+   which left the magnifier, placed at the row's end, outside the field
+   (DqOverdragen "Nieuw team"). */
+.cn-search-select :deep(.v-select) {
+	width: 100%;
+}
+
 /* The magnifier sits where the chevron was: in the field, at its end. */
 .cn-search-select__magnifier {
 	position: absolute;
@@ -222,6 +229,7 @@ export default {
 	height: var(--default-clickable-area, 34px);
 	display: flex;
 	align-items: center;
+	z-index: 1;
 	color: var(--color-text-maxcontrast);
 	pointer-events: none;
 }

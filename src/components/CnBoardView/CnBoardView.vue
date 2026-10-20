@@ -228,7 +228,11 @@
 										class="cn-board-view__pill"
 										data-testid="cn-board-card-pill"
 										:label="roleText(card, roles.pill)"
-										:variant="pillVariant(card)" />
+										:variant="pillVariant(card)">
+										<template v-if="pillIcon(card)" #icon>
+											<CnIcon :name="pillIcon(card)" :size="14" />
+										</template>
+									</CnStatusBadge>
 								</span>
 								<span
 									v-if="dueText(card) !== '' || ownerName(card) !== ''"
@@ -352,12 +356,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { buildBoardColumns, normalizeAllowed, resolveStageColor } from '../../utils/boardColumns.js'
 import { buildSwimlanes } from '../../utils/boardSwimlanes.js'
 import { DROP_OUTCOMES, runBoardDrop } from '../../utils/boardTransition.js'
+import { pillLook } from '../../utils/detailActionModel.js'
 import { daysUntil, dueStateForRow } from '../../utils/dueRule.js'
 import { formatMetricValue } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
@@ -393,7 +399,7 @@ import '../../css/board.css'
 export default {
 	name: 'CnBoardView',
 
-	components: { CnStatusBadge },
+	components: { CnIcon, CnStatusBadge },
 
 	inject: {
 		/**
@@ -489,9 +495,10 @@ export default {
 
 		/**
 		 * The board look's card roles (manifest `config.board.card`):
-		 * `{ title, sub, pill, due, owner, pillColors? }`. `sub` is a field or
-		 * a list of fields joined by a middle dot; `pillColors` maps a pill
-		 * value to a badge variant. Missing, the first of `cardFields` is the
+		 * `{ title, sub, pill, due, owner, pillColors?, resolve? }`. `sub` is a
+		 * field or a list of fields joined by a middle dot; `pillColors` maps a
+		 * pill value to a badge variant; `resolve: { colorField?, iconField? }`
+		 * takes the pill's tone and icon from the record it points at. Missing, the first of `cardFields` is the
 		 * title and the rest form the sub line. The Nextcloud look ignores it.
 		 *
 		 * @type {{title?: string, sub?: string|Array<string>, pill?: string, due?: string, owner?: string, pillColors?: object}|null}
@@ -500,6 +507,20 @@ export default {
 		cardRoles: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * The referenced records' colour and icon names, by field and id
+		 * (`{ [field]: { [id]: { color, icon } } }`, CnIndexPage reads them).
+		 * With `cardRoles.resolve: { colorField?, iconField? }` the card's pill
+		 * takes its record's tone and icon from here.
+		 *
+		 * @type {object}
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-card-pill-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		pillLooks: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/**
@@ -1064,9 +1085,41 @@ export default {
 		 * @return {string} A CnStatusBadge variant.
 		 */
 		pillVariant(card) {
+			const look = this.pillLookOf(card)
+			if (look.variant) {
+				return look.variant
+			}
 			const raw = this.fieldText(card, this.roles.pill)
 			const variant = this.roles.pillColors[raw] ?? this.roles.pillColors[raw.toLowerCase()]
 			return isBadgeVariant(variant) ? variant : 'default'
+		},
+
+		/**
+		 * The pill's icon, from the record it points at (`cardRoles.resolve`).
+		 *
+		 * @param {object} card The card's row.
+		 * @return {string} An icon name, or ''.
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-card-pill-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		pillIcon(card) {
+			return this.pillLookOf(card).icon || ''
+		},
+
+		/**
+		 * The tone and icon of the record the card's pill points at, when
+		 * `cardRoles.resolve` asks for them; empty otherwise.
+		 *
+		 * @param {object} card The card's row.
+		 * @return {{variant?: string, icon?: string}} The look.
+		 */
+		pillLookOf(card) {
+			const given = this.cardRoles && typeof this.cardRoles === 'object' ? this.cardRoles : null
+			if (!given || !given.resolve || !this.roles.pill || !this.pillLooks) {
+				return {}
+			}
+			const raw = readPath(card, this.roles.pill)
+			const looks = this.pillLooks[this.roles.pill]
+			return pillLook(looks && raw !== null && raw !== undefined && typeof raw !== 'object' ? looks[String(raw)] : null)
 		},
 
 		/**

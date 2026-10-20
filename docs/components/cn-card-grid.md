@@ -24,6 +24,7 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
 | `objects` | Array | `[]` | Object data array |
 | `schema` | Object | `null` | Passed to each CnObjectCard (required only when using the default card template; not needed when providing a custom `#card` slot) |
 | `loading` | Boolean | `false` | Loading state |
+| `pillLooks` | Object | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`), passed to each CnObjectCard for the record layout's pills that declare `resolve`. |
 | `selectable` | Boolean | `false` | Enable card selection |
 | `cardFieldColumns` | Object | `null` | The page's columns by key, passed to each CnObjectCard: a fact or a layout part whose field names a column reads through that column's label, formatter and widget, as the table does |
 | `clickToView` | Boolean | `false` | Body click on a selectable card emits `click` (navigation); selection happens via the checkbox only (`CnIndexPage` wires this from its `rowClickToView`) |
