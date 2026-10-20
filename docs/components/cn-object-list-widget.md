@@ -144,6 +144,57 @@ with `content.addLabel`. Emits `created` with the sent payload.
 
 The form opens in the list's context: it receives the list's `register` (so a `$ref` field is a picker, not a text box) and `initialData` derived from the resolved filter. Only scalar filter keys the schema declares are used, after `@objectId`, `@me` and `@workspace.*` tokens resolve; operator keys such as `deadline[lt]` and unknown keys are dropped. Those prefilled parent fields render read-only with their label unless `content.lockFilterFields` is `false` (default `true`). `content.createDefaults` (an object of schema keys) merges over the filter-derived data for values a filter cannot express, for example `{ "direction": "outbound" }`; defaults are never locked.
 
+#### A create that goes through the app: `createAction`
+
+When a record has to be created through the app rather than straight to the
+object API (to validate it, or to derive it from the record on the page),
+declare `content.createAction`: one action in the `rowActions` shape. Every
+Add, the footer button, the empty state's button and the host card's menu
+entry, then runs that action instead of opening the form, labelled with its
+`label`.
+
+Its `visibleWhen` is evaluated against the record of the page the list sits
+on. While it fails, every Add is hidden. While the record is still loading,
+the Add stays hidden too, so it does not appear and then vanish.
+`hiddenNote` says why in the Add's place: a string, or a list of
+`{ when, text }` where the first entry whose `when` holds is shown. Both go
+through the app's translate.
+
+```json
+"createAction": {
+  "type": "open-modal",
+  "target": "SubCaseCreateModal",
+  "label": "Create sub-case",
+  "props": { "parentCase": "@objectId" },
+  "visibleWhen": { "all": [
+    { "field": "endDate", "op": "empty" },
+    { "field": "parentCase", "op": "empty" }
+  ] },
+  "hiddenNote": [
+    { "when": { "field": "parentCase", "op": "notEmpty" }, "text": "Sub-cases cannot themselves have sub-cases." },
+    { "when": { "field": "endDate", "op": "notEmpty" }, "text": "This case is closed; sub-cases can no longer be added." }
+  ]
+}
+```
+
+The action's own work, including refreshing the list after it saved, is the
+action's: a modal emits the page refresh (`cn:page:refresh`) when it is done.
+
+#### A roll-up line: `summary`
+
+`content.summary` is one line under the rows. `{total}` is the number of
+loaded rows, and each key of `counts` is the number of loaded rows its
+condition (the `visibleWhen` shape) holds for. The text goes through the
+app's translate before the numbers are filled in, so a catalogue entry keeps
+its placeholders. Nothing is drawn over an empty list.
+
+```json
+"summary": {
+  "text": "({completed}/{total} completed)",
+  "counts": { "completed": { "field": "endDate", "op": "notEmpty" } }
+}
+```
+
 `content.hideHeader: true` drops the table's column header row (CnDataTable's `hideHeader`), for a short list that reads as rows rather than as a table.
 
 The table never scrolls sideways inside its card. When its columns are wider than the card it is squeezed in two steps, each taken only while it still overflows: first the fit (one column takes what is left and is cut with an ellipsis, the others keep their content on one line; `grow: true` on a column picks which one), then a fixed layout (every column an equal share, text wrapped). `content.fitWidth: true` forces the first step on, `false` keeps the table's own layout (and its scrollbar).

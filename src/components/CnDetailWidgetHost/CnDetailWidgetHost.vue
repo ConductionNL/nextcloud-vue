@@ -339,6 +339,7 @@ import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLi
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
+import { createActionState, listCreateAction } from '../../utils/listCreateAction.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import {
@@ -1217,7 +1218,12 @@ export default {
 			if (!['object-list', 'table'].includes(this.widget?.type)) {
 				return false
 			}
-			return this.content.allowCreate !== false
+			if (this.content.allowCreate === false) {
+				return false
+			}
+			// A declared `createAction` shows only where its visibleWhen holds,
+			// the same answer the list gives for its own Add buttons.
+			return createActionState(this.content, this.object).visible
 		},
 
 		/**
@@ -1248,6 +1254,10 @@ export default {
 
 		/** @return {string} Label for the catalog Add action. */
 		addLabel() {
+			const action = listCreateAction(this.content)
+			if (action && typeof action.label === 'string' && action.label !== '') {
+				return typeof this.cnTranslate === 'function' ? this.cnTranslate(action.label) : action.label
+			}
 			return t('nextcloud-vue', 'Add')
 		},
 

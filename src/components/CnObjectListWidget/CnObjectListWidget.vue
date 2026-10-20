@@ -243,11 +243,26 @@
 		<!-- `content.footnote`: a line under the table ("Awb 4:17 en 4:18"),
 		     through the host translate. Not while the list waits for its
 		     context or failed to load. -->
+		<!-- `content.summary`: counts over the loaded rows ("(1/2 completed)"). -->
+		<p
+			v-if="resolvedSummary && !waitingForContext && !error && rows.length > 0"
+			class="cn-object-list-widget__summary"
+			data-testid="cn-object-list-widget-summary">
+			{{ resolvedSummary }}
+		</p>
 		<p
 			v-if="resolvedFootnote && !waitingForContext && !error"
 			class="cn-object-list-widget__footnote"
 			data-testid="cn-object-list-widget-footnote">
 			{{ resolvedFootnote }}
+		</p>
+		<!-- Why the declared create action is withheld on this record
+		     (`content.createAction.hiddenNote`). -->
+		<p
+			v-if="createHiddenNote && !waitingForContext && !error"
+			class="cn-object-list-widget__hidden-note"
+			data-testid="cn-object-list-widget-hidden-note">
+			{{ createHiddenNote }}
 		</p>
 		<!-- Create affordance (ADR-062): every collection carries its Add at
 		     the bottom of the widget; the host card's Actions menu calls the
@@ -317,11 +332,13 @@ import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
+import { createActionState } from '../../utils/listCreateAction.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { changedKeys } from '../../utils/saveEdited.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { getCurrentUserGroups } from '../../utils/widgetVisibility.js'
 import { CnRowActions } from '../CnRowActions/index.js'
@@ -446,6 +463,17 @@ export default {
 		 * field's entries are flattened) and narrows the rendered rows to
 		 * those carrying a selected value. Client-side over the fetched page,
 		 * like the rest of this widget's row set.
+		 *
+		 * `createAction` (one action of the `rowActions` shape) replaces the
+		 * list's own create form: every Add, here and in the host card's menu,
+		 * runs it instead, labelled with its `label`. Its `visibleWhen` is
+		 * evaluated against the page record, and while it fails the Add is
+		 * hidden and `hiddenNote` (a string, or `[{ when, text }]` where the
+		 * first holding entry wins) is shown in its place.
+		 *
+		 * `summary` (`{ text, counts }`) is a line under the rows: `{total}` is
+		 * the number of loaded rows and each `counts` key the number of loaded
+		 * rows its `visibleWhen`-shaped condition holds for.
 		 *
 		 * `hideHeader: true` drops the table's column header row (CnDataTable's
 		 * `hideHeader`), for a short list that reads as rows, not as a table.
@@ -1091,7 +1119,53 @@ export default {
 		/** Whether the create affordance renders (on by default; `content.allowCreate: false` opts out). */
 		allowCreate() {
 			const c = this.content || {}
+			if (this.createState.action) {
+				return c.allowCreate !== false && this.createState.visible
+			}
 			return c.allowCreate !== false && Boolean(c.register) && Boolean(c.schema)
+		},
+
+		/**
+		 * The declared `content.createAction` against the page record: the
+		 * action, whether it shows, and the untranslated note when it does not.
+		 *
+		 * @return {{action: (object|null), visible: boolean, note: string}}
+		 */
+		createState() {
+			return createActionState(this.content, this.objectCtx ? this.objectCtx.object : null)
+		},
+
+		/**
+		 * Why the create action is withheld, through the host translate, or ''.
+		 *
+		 * @return {string}
+		 */
+		createHiddenNote() {
+			const note = this.createState.note
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return note ? fn(note) : ''
+		},
+
+		/**
+		 * `content.summary` filled in: `{total}` is the number of loaded rows
+		 * and every `counts` key the number of loaded rows its condition holds
+		 * for. The text goes through the host translate first, so a catalogue
+		 * entry keeps its placeholders.
+		 *
+		 * @return {string}
+		 */
+		resolvedSummary() {
+			const summary = this.content.summary
+			if (!summary || typeof summary.text !== 'string' || summary.text === '') {
+				return ''
+			}
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			const values = { total: this.rows.length }
+			const counts = summary.counts && typeof summary.counts === 'object' ? summary.counts : {}
+			for (const [key, cond] of Object.entries(counts)) {
+				values[key] = this.rows.filter((row) => evaluateVisibleWhenLocal(cond, row)).length
+			}
+			return fn(summary.text).replace(/\{(\w+)\}/g, (match, key) => (key in values ? String(values[key]) : match))
 		},
 
 		/**
@@ -1214,6 +1288,11 @@ export default {
 			// `prompt`. It used to print raw, so a Dutch user read the English
 			// manifest string. A label an app already translated has no key
 			// of its own in the catalogue and comes back unchanged.
+			const action = this.createState.action
+			if (action && typeof action.label === 'string' && action.label !== '') {
+				const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+				return fn(action.label)
+			}
 			if (this.content.addLabel) {
 				const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 				return fn(this.content.addLabel)
@@ -1712,6 +1791,13 @@ export default {
 
 		async openCreate() {
 			const c = this.content || {}
+			const { action, visible } = this.createState
+			if (action) {
+				if (visible) {
+					this.dispatch(action)
+				}
+				return
+			}
 			if (!c.schema) {
 				return
 			}
