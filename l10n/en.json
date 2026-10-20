@@ -1914,7 +1914,11 @@
     "Use \"{name}\"": "Use \"{name}\"",
     "It was not handed over.": "It was not handed over.",
     "This search could not be read.": "This search could not be read.",
-    "{source} could not be searched, so this list may be incomplete.": "{source} could not be searched, so this list may be incomplete."
+    "{source} could not be searched, so this list may be incomplete.": "{source} could not be searched, so this list may be incomplete.",
+    "New task": "New task",
+    "Cancel task": "Cancel task",
+    "The task could not be added": "The task could not be added",
+    "{open} open, {done} done · sorted by deadline": "{open} open, {done} done · sorted by deadline"
   },
   "plurals": {
     "{count} member": [

@@ -2,6 +2,6 @@
 
 ### Props
 
-| Name     | Type     | Required | Default | Description                                                              |
-| -------- | -------- | -------- | ------- | ------------------------------------------------------------------------ |
-| `header` | `object` | ✓        | —       | The reported header: `{ pill, note, actions: [{ label, icon?, run }] }`. |
+| Name     | Type     | Required | Default | Description                                                                        |
+| -------- | -------- | -------- | ------- | ---------------------------------------------------------------------------------- |
+| `header` | `object` | ✓        | —       | The reported header: `{ pill, note, actions: [{ label, icon?, variant?, run }] }`. |

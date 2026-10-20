@@ -2126,7 +2126,11 @@
     "Use \"{name}\"": "\"{name}\" gebruiken",
     "It was not handed over.": "Het is niet overgedragen.",
     "This search could not be read.": "Deze zoekopdracht kon niet worden gelezen.",
-    "{source} could not be searched, so this list may be incomplete.": "{source} kon niet worden doorzocht, dus deze lijst is mogelijk niet compleet."
+    "{source} could not be searched, so this list may be incomplete.": "{source} kon niet worden doorzocht, dus deze lijst is mogelijk niet compleet.",
+    "New task": "Nieuwe taak",
+    "Cancel task": "Taak annuleren",
+    "The task could not be added": "De taak kon niet worden toegevoegd",
+    "{open} open, {done} done · sorted by deadline": "{open} open, {done} klaar · op deadline gesorteerd"
   },
   "plurals": {
     "{count} member": [

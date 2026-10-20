@@ -890,3 +890,48 @@
 		flex: none;
 	}
 }
+
+/* ---- The archiving card (CnRetentionWidget, DqZaakArchivering) ----------- */
+/* The board titles it 17px at 1.2 with a 14px muted line 3px under it, and
+   draws each fact as a 13px label over a 15px value at 500 above a hairline.
+   The inset is the board card's own, from the panel around it.
+   @spec openspec/changes/board-retention-card/specs/board-retention-card/spec.md#requirement-the-archiving-card-is-drawn-as-the-board-draws-it */
+.cn-look-board .cn-retention .cn-retention__head {
+	gap: 3px;
+}
+
+.cn-look-board .cn-retention .cn-retention__title {
+	font-size: var(--cn-board-heading-size, 17px);
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-retention .cn-retention__head .cn-retention__muted {
+	font-size: 14px;
+}
+
+.cn-look-board .cn-retention .cn-retention__fact {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-look-board .cn-retention .cn-retention__fact dd {
+	font-size: 15px;
+	font-weight: 500;
+}
+
+/* ---- The task table's row button (CnTasksWidget table, DqZaakTaken) ------ */
+/* "Afronden" is a 34px secondary with 13px text 14px in. NcButton pads a
+   text-only label 12px plus 4px inside; the doubled class outranks its
+   `.button-vue[data-v-…]:has(…:empty)` rule.
+   @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header */
+.cn-look-board .cn-tasks-widget .cn-tasks-widget__cell-actions .button-vue.button-vue {
+	--button-padding: 14px;
+	font-size: 13px;
+}
+
+.cn-look-board .cn-tasks-widget .cn-tasks-widget__cell-actions .button-vue .button-vue__text.button-vue__text {
+	padding-inline: 0;
+}
