@@ -21,7 +21,7 @@ const TEXT = { props: ['modelValue', 'label', 'type', 'placeholder', 'error'], e
 const STUBS = {
 	NcTextField: TEXT,
 	NcTextArea: { ...TEXT, template: '<label class="text">{{ label }}<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea></label>' },
-	NcSelect: { props: ['modelValue', 'options', 'inputLabel'], template: '<div class="select"></div>' },
+	NcSelect: { name: 'NcSelect', props: ['modelValue', 'options', 'inputLabel'], template: '<div class="select"></div>' },
 	NcCheckboxRadioSwitch: { props: ['modelValue', 'type', 'value'], emits: ['update:modelValue'], template: '<label class="switch" :data-type="type" :data-checked="type === \'radio\' ? String(modelValue === value) : String(!!modelValue)"><input type="checkbox" :checked="type === \'radio\' ? modelValue === value : modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)"><slot /></label>' },
 	NcSettingsSection: { props: ['name'], template: '<section class="settings-section"><h2>{{ name }}</h2><slot /></section>' },
 	NcNoteCard: { props: ['type'], template: '<div class="note" :data-type="type"><slot /></div>' },
@@ -268,6 +268,17 @@ describe('CnSettingsFieldsSection field kinds', () => {
 			fields: [{ key: 'mail', type: 'status', url: '/apps/myapp/api/accounts', valuePath: 'available', textMap: { false: 'Install Mail first.', '*': '' }, tone: 'warning' }],
 		})
 		expect(wrapper.find('[data-testid="cn-settings-field-status-mail"]').text()).toBe('Install Mail first.')
+	})
+
+	it('selects a sourced option whose id is a number while the stored value is text', async () => {
+		const options = [{ id: 3, name: 'Zaken', email: 'zaken@example.org' }, { id: 4, name: 'Team' }]
+		global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ accounts: options }) }))
+		axios.get.mockResolvedValue({ data: { account: '3' } })
+		const wrapper = await mountSection({ fields: [{ key: 'account', label: 'Account', type: 'select', optionsUrl: '/apps/myapp/api/accounts', optionsPath: 'accounts', optionLabel: 'name', optionValue: 'id', optionDetail: 'email' }] })
+		await flushPromises()
+		const select = wrapper.findComponent({ name: 'NcSelect' })
+		expect(select.props('modelValue')).toEqual({ label: 'Zaken (zaken@example.org)', value: 3 })
+		expect(select.props('options')[1]).toEqual({ label: 'Team', value: 4 })
 	})
 
 	it('hands its detailed description to the card', async () => {

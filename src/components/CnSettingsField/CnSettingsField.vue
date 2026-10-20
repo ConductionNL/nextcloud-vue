@@ -326,7 +326,10 @@ export default {
 			if (this.modelValue === null || this.modelValue === undefined || this.modelValue === '') {
 				return null
 			}
+			// A stored value is often text where the options carry numbers (an
+			// app config holding an id), so the two are compared as text.
 			return this.normalizedOptions.find((option) => option.value === this.modelValue)
+				|| this.normalizedOptions.find((option) => String(option.value) === String(this.modelValue))
 				|| { label: String(this.modelValue), value: this.modelValue }
 		},
 	},
