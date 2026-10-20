@@ -26,10 +26,20 @@ function ruleEndingWith(selector) {
 }
 
 describe('look-board-index.css: board toolbar controls', () => {
-	it('sets the search field to 40px over Nextcloud\'s input rule', () => {
-		const rule = ruleEndingWith('.cn-look-board .cn-actions-bar--board .cn-actions-bar__search .cn-actions-bar__search-input')
-		expect(rule).toMatch(/(^|[\s;{])height: 40px !important;/)
-		expect(rule).toMatch(/min-height: 40px !important;/)
+	it('sets the search field to 40px with a selector that outranks Nextcloud\'s input rule', () => {
+		const nots = ['radio', 'checkbox', 'range', 'submit', 'button', 'reset', 'color', 'file', 'image']
+			.map((type) => `:not([type='${type}'])`).join('')
+		const selector = `.cn-look-board .cn-actions-bar--board .cn-actions-bar__search input.cn-actions-bar__search-input${nots}`
+		const rule = ruleEndingWith(selector)
+		expect(rule).toMatch(/(^|[\s;{])height: 40px;/)
+		expect(rule).toMatch(/min-height: 40px;/)
+		// (0,12,1) against Nextcloud's input rule at (0,9,1).
+		const classes = (selector.match(/\.[\w-]+|\[[^\]]+\]/g) || []).length
+		expect(classes).toBeGreaterThan(9)
+	})
+
+	it('needs no !important for the search field', () => {
+		expect(css).not.toMatch(/cn-actions-bar__search-input[^{]*\{[^}]*height: 40px !important/)
 	})
 
 	it('draws the Filter button with the board control border', () => {

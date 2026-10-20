@@ -15,5 +15,5 @@ theme rule outranked it:
 
 ## What changes
 
-In the board look the search field's height takes `!important`, and the Filter button (and the Filter menu button)
+In the board look the search field's height is set by a selector that repeats Nextcloud's nine `:not([type=...])` on the board scope, so it outranks that rule without `!important`, and the Filter button (and the Filter menu button)
 draws the board control border, `--cn-board-control-border`, like the toolbar's other neutral controls.

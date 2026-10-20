@@ -426,18 +426,22 @@
 	max-width: 360px;
 }
 
-/* Nextcloud's input rule (`input:not([type=radio]):not(...)`, nine
-   attribute selectors) outranks this selector and sets the field to the
-   clickable area, 34px, so the height takes `!important`.
-   @spec openspec/changes/board-index-toolbar-controls/specs/board-index-toolbar-controls/spec.md#requirement-the-search-field-is-40px-under-nextclouds-input-rule */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__search .cn-actions-bar__search-input {
-	height: 40px !important;
-	min-height: 40px !important;
 	padding-block: 0;
 	padding-inline: 38px 12px !important;
 	border: 1px solid var(--cn-board-control-border);
 	border-radius: 8px;
 	font-size: 14px;
+}
+
+/* The field's height. Nextcloud's input rule sets every text input to the
+   34px clickable area through nine `:not([type=...])` (0,9,1); this selector
+   repeats those nine on the board scope, so it outranks that rule by
+   specificity without `!important`.
+   @spec openspec/changes/board-index-toolbar-controls/specs/board-index-toolbar-controls/spec.md#requirement-the-search-field-is-40px-under-nextclouds-input-rule */
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__search input.cn-actions-bar__search-input:not([type='radio']):not([type='checkbox']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']):not([type='color']):not([type='file']):not([type='image']) {
+	height: 40px;
+	min-height: 40px;
 }
 
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__active-label {
