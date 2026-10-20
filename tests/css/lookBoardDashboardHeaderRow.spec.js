@@ -63,12 +63,12 @@ describe('look-board.css: the board dashboard header row', () => {
 
 describe('look-board.css: the board KPI row tile', () => {
 	it('drops the card-fit padding around a stacked board stat tile in the KPI row', () => {
-		const body = bodyOf(`${PAGE} .cn-dashboard-page__kpi-cell .cn-dashboard-page__card-fit .cn-widget-wrapper__content:has(> .cn-kpi-card--board.cn-kpi-card--stacked)`)
+		const body = bodyOf(`${PAGE} .cn-dashboard-page__card-fit .cn-widget-wrapper__content:has(> .cn-kpi-card--board.cn-kpi-card--stacked)`)
 		expect(body).toMatch(/padding:\s*0/)
 	})
 
 	it('scopes every new rule to the board look', () => {
-		const touched = rules().flatMap((r) => r.selectors).filter((s) => /__header-left|__title-row|__kpi-cell/.test(s))
+		const touched = rules().flatMap((r) => r.selectors).filter((s) => /__header-left|__title-row|__card-fit .cn-widget-wrapper__content:has\(> .cn-kpi-card--board/.test(s))
 		expect(touched.length).toBeGreaterThan(0)
 		for (const selector of touched) {
 			expect(selector.startsWith('.cn-look-board ')).toBe(true)
