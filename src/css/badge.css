@@ -13,7 +13,11 @@
 	--cn-status-teal-text: var(--nl-color-teal-text, #1d5e66);
 }
 
+/* A badge is a span: a theme that forces the body ink onto every span
+   (thematiq) reads --nldesign-color-on-surface, so the badge hands it the
+   ink its variant sets. */
 .cn-status-badge {
+	--nldesign-color-on-surface: var(--cn-status-badge-ink);
 	display: inline-flex;
 	align-items: center;
 	gap: calc(0.5 * var(--default-grid-baseline));
