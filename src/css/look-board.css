@@ -1487,3 +1487,21 @@
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stats-block-widget--tiles-box {
 	padding: 14px 22px 20px;
 }
+
+/* ---- Matrix chart (DqProcesanalyse "Dagen per fase") -------------------- */
+/* The board sets the matrix at 14px and the font's normal line height: the
+   column heads and the cell figures at 600, a cell 37px with its 10px
+   padding. Nextcloud's 15px at 1.5 made each row 42.5px.
+   @spec openspec/changes/board-matrix-cells/specs/board-matrix-cells/spec.md#requirement-a-board-matrix-takes-the-boards-type */
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-head {
+	font-weight: 600;
+}
+
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell:not(.cn-chart-widget__matrix-cell--current) {
+	font-weight: 600;
+}
