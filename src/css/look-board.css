@@ -454,11 +454,8 @@
    end of a tab strip) is the board's neutral control: the main background, a
    grey border, the main text at 600 (DqZaak), not Nextcloud's primary tint.
    NcActions marks a secondary menu `action-item--secondary` on its root and
-   keeps a class given to it off, so the rule reads that marker. The label
-   hands its ink to --nldesign-color-on-surface for a theme that forces the
-   body ink onto every span (thematiq). */
+   keeps a class given to it off, so the rule reads that marker. */
 .cn-look-board .action-item.action-item--secondary .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *) {
-	--nldesign-color-on-surface: var(--color-main-text);
 	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
@@ -1352,14 +1349,6 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--cn-status-badge-ink);
 }
 
-/* A pill paints its own pairing of ink and fill. A theme that forces the body
-   ink onto every span (thematiq's text rule, `!important` at id level) reads
-   that ink from --nldesign-color-on-surface when the surface sets it, so the
-   pill hands it its own ink: "In behandeling" stays purple on purple. */
-.cn-look-board .cn-status-badge:not(.cn-look-nextcloud *) {
-	--nldesign-color-on-surface: var(--cn-status-badge-ink);
-}
-
 /* ---- Info notes (NcNoteCard type="info") -------------------------------- */
 /* The board's info note is a light-blue rounded box: no edge bar, 12px 14px
    of padding, radius 8, an 18px icon 10px before the text, 14px text in the
@@ -1411,9 +1400,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    hairline under each pair (DqZaak "Zaakgegevens"), the horizontal layout as
    two columns of 14px text, the label column as wide as its longest label
    (the side cards). Both at the board's line height, 1.2, not Nextcloud's 1.5:
-   a pair is 47px tall on the board. The muted label also hands its ink to
-   --nldesign-color-on-surface, which a theme that forces the body ink onto
-   every div (thematiq) reads. */
+   a pair is 47px tall on the board. */
 .cn-look-board .cn-detail-grid.cn-detail-grid--grid:not(.cn-look-nextcloud *) {
 	gap: 12px 24px;
 	font-size: 15px;
@@ -1444,7 +1431,6 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 .cn-look-board .cn-detail-grid .cn-detail-grid__label:not(.cn-look-nextcloud *) {
-	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	min-width: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;

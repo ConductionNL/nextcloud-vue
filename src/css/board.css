@@ -56,7 +56,6 @@
 	margin-inline-start: auto;
 	padding: 1px 8px;
 	border-radius: 10px;
-	--nldesign-color-on-surface: var(--cn-board-text-soft, var(--color-main-text));
 	background-color: var(--color-main-background);
 	color: var(--cn-board-text-soft, var(--color-main-text));
 	font-size: 12px;
