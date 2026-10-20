@@ -577,9 +577,13 @@
 	line-height: normal;
 }
 
+/* The sort button is the bare label, square (the boards draw no box round
+   it); the funnel after it is a 22px button with a 4px radius. Both outrank
+   the 8px element radius the table and Nextcloud's `button` rule give them. */
 .cn-look-board .cn-table-container--board .cn-data-table th .cn-table-header__sort {
 	min-height: 0;
 	height: auto;
+	border-radius: 0;
 	line-height: inherit;
 }
 
@@ -635,6 +639,7 @@
 	min-width: 22px;
 	height: 22px;
 	min-height: 22px;
+	border-radius: 4px;
 	margin-inline-start: 4px;
 }
 
