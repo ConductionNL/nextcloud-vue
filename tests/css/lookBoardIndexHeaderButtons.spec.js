@@ -30,7 +30,7 @@ describe('look-board-index.css: header buttons', () => {
 	it('draws Download and the Actions menu with a grey border that outranks a theme', () => {
 		for (const needle of ['.cn-index-page__header-buttons > .button-vue--secondary', '.cn-index-page__header-buttons > .action-item .button-vue']) {
 			const body = rulesEndingWith(needle)
-			expect(body).toMatch(/border:\s*1px solid var\(--color-border-dark\) !important/)
+			expect(body).toMatch(/border:\s*1px solid var\(--cn-board-control-border\) !important/)
 			expect(body).toMatch(/background:\s*var\(--color-main-background\) !important/)
 			expect(body).toMatch(/padding:\s*0 14px !important/)
 			expect(body).toMatch(/height:\s*var\(--cn-board-control-height\) !important/)
