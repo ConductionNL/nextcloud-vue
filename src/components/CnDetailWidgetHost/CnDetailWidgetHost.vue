@@ -333,7 +333,7 @@ import CnDetailWidgetHeaderItems from './CnDetailWidgetHeaderItems.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
-import { widgetHeaderLink } from '../../utils/contentHeaderLink.js'
+import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
@@ -712,7 +712,7 @@ export default {
 		 * @return {object|null} `{ label, route?, params?, query?, href? }` or null.
 		 */
 		cardHeaderLink() {
-			return this.rendererHeader.link || (this.showHeaderLink ? widgetHeaderLink(this.widget) : null)
+			return this.rendererHeader.link || (this.showHeaderLink ? resolveHeaderLink(widgetHeaderLink(this.widget), { objectId: this.objectId, object: this.object }) : null)
 		},
 
 		/**

@@ -456,9 +456,13 @@ export default {
 	},
 
 	props: {
-		/** The raw cell value */
+		/**
+		 * The raw cell value. String precedes Boolean: with Boolean first Vue
+		 * casts an empty string to `true`, and an empty cell drew a check mark.
+		 */
 		value: {
-			type: [Boolean, String, Number, Array, Object],
+			// eslint-disable-next-line vue/prefer-prop-type-boolean-first -- an empty string must stay a string
+			type: [String, Number, Boolean, Array, Object],
 			default: null,
 		},
 

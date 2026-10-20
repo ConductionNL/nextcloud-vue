@@ -42,11 +42,28 @@
 				     group ends the description line ("Week 41 · alle teams ·
 				     [Deze week | Dit kwartaal | Dit jaar]"). -->
 				<div
-					v-if="datePeriodInDescription || descriptionPageFilters.length > 0"
+					v-if="datePeriodInDescription || descriptionPageFilters.length > 0 || descriptionSelectFilters.length > 0"
 					class="cn-dashboard-page__description cn-dashboard-page__description--with-period"
 					data-testid="cn-dashboard-page-subtitle">
 					<span v-if="subtitleText">{{ subtitleText }}</span>
 					<span v-if="subtitleText" aria-hidden="true">&middot;</span>
+					<!-- A select page filter with `placement: "description"`
+					     (DqDoorlooptijd "alle zaaktypen"): a compact select on the
+					     description line, before the period group. -->
+					<template v-for="pf in descriptionSelectFilters" :key="pf.key">
+						<NcSelect
+							class="cn-dashboard-page__description-select"
+							:modelValue="selectedPageFilterOption(pf)"
+							:options="pageFilterSegments(pf)"
+							:clearable="pf.clearable === true"
+							:placeholder="pf.placeholder ? effectiveTranslate(pf.placeholder) : undefined"
+							:loading="pageFilterLoading[pf.key] === true"
+							:ariaLabelCombobox="pf.label ? effectiveTranslate(pf.label) : pf.key"
+							label="label"
+							:data-testid="'cn-page-filter-' + pf.key"
+							@update:modelValue="onPageFilterChange(pf, $event)" />
+						<span aria-hidden="true">&middot;</span>
+					</template>
 					<CnSegmentedControl
 						v-if="datePeriodInDescription"
 						size="compact"
@@ -1721,7 +1738,8 @@ export default {
 		 * mount. The control is a select, or with `control: 'segmented'` a
 		 * compact segmented group; `placement: 'description'` puts a segmented
 		 * group on the header's description line, after the period group
-		 * (DqProcesanalyse "Gemiddeld | Mediaan"). An endpoint widget can read
+		 * (DqProcesanalyse "Gemiddeld | Mediaan"), and a select before it
+		 * (DqDoorlooptijd "alle zaaktypen"). An endpoint widget can read
 		 * the value in its `responsePath` too (`phaseDays.@workspace.measure`).
 		 * `optionsFrom` reads the options instead of listing them: `{ url,
 		 * params?, responsePath?, valueField?, labelField? }` from an app
@@ -2446,8 +2464,24 @@ export default {
 		 * @return {Array<object>}
 		 */
 		rowPageFilters() {
-			const inDescription = this.descriptionPageFilters
+			const inDescription = [...this.descriptionPageFilters, ...this.descriptionSelectFilters]
 			return (this.pageFilters || []).filter((pf) => pf && pf.key && !inDescription.includes(pf))
+		},
+
+		/**
+		 * The select page filters drawn on the description line
+		 * (`placement: "description"`, any control but `segmented`), before
+		 * the period group: DqDoorlooptijd's "alle zaaktypen". Without a
+		 * header row they fall back to the filter row.
+		 *
+		 * @spec openspec/changes/dashboard-select-filter-in-description/specs/dashboard-select-filter-in-description/spec.md#requirement-a-select-page-filter-can-sit-on-the-description-line
+		 * @return {Array<object>}
+		 */
+		descriptionSelectFilters() {
+			if (!this.showHeader) {
+				return []
+			}
+			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control !== 'segmented' && pf.placement === 'description')
 		},
 
 		/**
@@ -5184,6 +5218,14 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
+}
+
+/* A select on the description line takes the width of its choice, not a
+   form field's, and no margin of its own. */
+.cn-dashboard-page__description-select {
+	min-width: 180px;
+	max-width: 280px;
+	margin: 0;
 }
 
 .cn-dashboard-page__date-segmented {
