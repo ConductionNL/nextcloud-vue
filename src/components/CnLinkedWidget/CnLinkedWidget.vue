@@ -41,9 +41,11 @@
 				</span>
 			</li>
 		</ul>
-		<p v-if="emptyLine" class="cn-linked-widget__empty" data-testid="cn-linked-empty">
+		<!-- A div, not a p: a theme's paragraph rule would draw the muted
+		     13px line at body size. -->
+		<div v-if="emptyLine" class="cn-linked-widget__empty" data-testid="cn-linked-empty">
 			{{ emptyLine }}
-		</p>
+		</div>
 		<span v-if="emptyActions.length > 0" class="cn-linked-widget__actions">
 			<button
 				v-for="action in emptyActions"
