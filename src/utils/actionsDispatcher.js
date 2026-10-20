@@ -466,7 +466,8 @@ async function executeApiCall(action, context) {
 		console.warn('[dispatchAction] api-call is missing its url or a required token is unresolved — skipping.', action)
 		return { ok: false, error: new Error('api-call blocked') }
 	}
-	const method = String(action.method || 'POST').toUpperCase() === 'PUT' ? 'put' : 'post'
+	const verb = String(action.method || 'POST').toUpperCase()
+	const method = verb === 'PUT' ? 'put' : (verb === 'GET' ? 'get' : 'post')
 	const isDownload = action.download === true
 	const [{ default: axios }, { generateUrl }, dialogs] = await Promise.all([
 		import('@nextcloud/axios'),
@@ -478,9 +479,13 @@ async function executeApiCall(action, context) {
 		// Only pass a third axios config arg for a download call — an
 		// explicit `undefined` third argument would otherwise change the
 		// call shape for every existing (non-download) api-call consumer/test.
-		const res = isDownload
-			? await axios[method](target, body, { responseType: 'blob' })
-			: await axios[method](target, body)
+		// A GET sends the resolved params as the query string: it reads, as a
+		// download of what the page shows (DqDoorlooptijd "Downloaden").
+		const res = method === 'get'
+			? await axios.get(target, isDownload ? { params: body, responseType: 'blob' } : { params: body })
+			: (isDownload
+					? await axios[method](target, body, { responseType: 'blob' })
+					: await axios[method](target, body))
 		if (isDownload) {
 			const filename = parseDispositionFilename(
 				res && res.headers && res.headers['content-disposition'],
@@ -731,7 +736,7 @@ export async function postRunNode(action, context, config = {}) {
  *   through generateUrl) or absolute. May interpolate the shared URL tokens
  *   (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`, and the
  *   `{objectId}` brace form).
- * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT".
+ * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "GET" (the resolved params as the query string).
  * @param {object} [action.payload] "api-call" only: the JSON body — preferred over `params`.
  *   Values resolve the shared `@`-token grammar RECURSIVELY at any nesting depth (objects
  *   and arrays of objects, e.g. `{ dataRefs: [{ id: '@objectId' }] }`); optional (`…?`)
