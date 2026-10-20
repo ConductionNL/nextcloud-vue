@@ -7,9 +7,12 @@ import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { generateOcsUrl, generateUrl } from '@nextcloud/router'
 import { reactive } from 'vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
+import Cancel from 'vue-material-design-icons/Cancel.vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
 import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Undo from 'vue-material-design-icons/Undo.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
 import { fetchReferenceObjects } from '../utils/boardReferenceColumns.js'
 import { fillTemplate } from '../utils/fillTemplate.js'
@@ -457,6 +460,13 @@ export function taskDueLabel(task) {
 }
 
 /**
+ * The CMMN states in which a task is finished: no verb applies to it any more.
+ *
+ * @type {string[]}
+ */
+const TASK_TERMINAL_STATES = ['completed', 'terminated', 'disabled']
+
+/**
  * The tasks source: the caller's inbox on OpenRegister's one task store.
  *
  * The viewer's inbox and nothing else. The endpoint answers from the
@@ -556,6 +566,41 @@ function tasksSource() {
 		 * @return {number|null} The HTTP status of a failed read of this id, or null.
 		 */
 		recordError: (id) => store.recordErrors?.[String(id)] ?? null,
+
+		/**
+		 * The lifecycle verbs a detail page offers on this task, read off the
+		 * row and never guessed at: claim while nobody holds it, hand back
+		 * while somebody does, complete and cancel while it is open. A finished
+		 * task offers none. Whether the viewer MAY run one is the engine's
+		 * call; it refuses with a message the page shows as-is.
+		 *
+		 * @param {object|null} task The task on the page.
+		 * @return {Array<{id: string, label: string, icon: object, menu: boolean, successMessage?: string}>} The verbs, buttons first.
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		verbs: (task) => {
+			if (!task || TASK_TERMINAL_STATES.includes(String(task.state || ''))) {
+				return []
+			}
+			const held = String(task.assignee || '').trim() !== ''
+			return [
+				{ id: 'complete', label: t('nextcloud-vue', 'Finish'), icon: Check, menu: false, successMessage: t('nextcloud-vue', 'Task completed') },
+				held
+					? { id: 'unclaim', label: t('nextcloud-vue', 'Hand back'), icon: Undo, menu: false }
+					: { id: 'claim', label: t('nextcloud-vue', 'Pick up'), icon: HandBackRight, menu: false },
+				{ id: 'cancel', label: t('nextcloud-vue', 'Cancel task'), icon: Cancel, menu: true },
+			]
+		},
+
+		/**
+		 * Run a verb on a task and keep the page's record in step.
+		 *
+		 * @param {string} id The task uuid.
+		 * @param {string} verb The verb id.
+		 * @param {{url?: string}} [options] An app route to post the verb to instead of the engine's.
+		 * @return {Promise<{ok: boolean, record: (object|null), message: string}>} The outcome.
+		 */
+		runVerb: (id, verb, options) => store.runRecordVerb(id, verb, options || {}),
 
 		/**
 		 * @return {boolean} Whether a load is in flight.
