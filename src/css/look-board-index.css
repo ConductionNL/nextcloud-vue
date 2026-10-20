@@ -43,6 +43,19 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* The breadcrumb row stays under the title, in the title's column, with a
+   count line below it. Unplaced, the trail took the next free cell: beside
+   the count line, under the header buttons (DqZaaktypen).
+   @spec openspec/changes/index-count-subtitle-keeps-crumb-row/specs/index-count-subtitle-keeps-crumb-row/spec.md#requirement-the-breadcrumb-row-stays-under-the-title */
+.cn-look-board .cn-index-page .cn-page-header .cn-header-trail {
+	grid-column: 1;
+	grid-row: 2;
+}
+
+.cn-look-board .cn-index-page .cn-page-header .cn-header-trail ~ .cn-page-header__description {
+	grid-row: 3;
+}
+
 .cn-look-board .cn-index-page .cn-page-header .cn-index-page__header-buttons {
 	grid-column: 2;
 	grid-row: 1;
