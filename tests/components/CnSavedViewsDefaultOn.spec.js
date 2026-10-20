@@ -115,3 +115,23 @@ describe('CnAppRoot offers the My views menu group', () => {
 		expect(offers([{ id: 'Home', type: 'dashboard', config: { register: 'procest', schema: 'case', sidebar: SIDEBAR } }])).toBe(false)
 	})
 })
+
+describe('the sidebar tab holding the saved views', () => {
+	const CnIndexSidebar = require('../../src/components/CnIndexSidebar/CnIndexSidebar.vue').default
+	const nl = require('../../l10n/nl.json').translations
+
+	it('is named Views (Weergaven), third after Search and Columns, and keeps its filters-tab id', () => {
+		const w = mount(CnIndexSidebar, { props: { open: true, savedViews: { views: [] } } })
+		const tabs = w.findAllComponents({ name: 'NcAppSidebarTab' }).map((tab) => ({ id: tab.attributes('id'), name: tab.attributes('name'), order: tab.attributes('order') }))
+		const views = tabs.find((tab) => tab.id === 'filters-tab')
+		expect(views).toMatchObject({ name: 'Views', order: '3' })
+		expect(tabs.map((tab) => tab.id)).toEqual(['search-tab', 'columns-tab', 'filters-tab'])
+		expect(nl.Views).toBe('Weergaven')
+		expect(w.find('#filters-tab [data-testid="cn-saved-views-panel"]').exists()).toBe(true)
+	})
+
+	it('leaves Filters as the heading of the real facet filters', () => {
+		const w = mount(CnIndexSidebar, { props: { open: true } })
+		expect(w.vm.filtersLabel).toBe('Filters')
+	})
+})
