@@ -463,6 +463,26 @@
 	border-radius: var(--cn-board-card-radius);
 }
 
+/* A case widget that draws its own card (CnConversationWidget,
+   CnDocumentReviewWidget) is a board card: the board radius and padding.
+   As the first card of a stack it joins the open tab like a widget card,
+   its top-left square (DqZaakContact "Gesprek met de inwoner"). The doubled
+   class outranks the widget's scoped card rule. */
+.cn-look-board .cn-case-widget-card.cn-case-widget-card {
+	border-radius: var(--cn-board-card-radius);
+	padding: var(--cn-board-card-padding);
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs-widget__stack-first .cn-case-widget-card.cn-case-widget-card {
+	border-radius: 0 var(--cn-board-card-radius) var(--cn-board-card-radius) var(--cn-board-card-radius);
+}
+
+/* A conversation's title is a board card title. */
+.cn-look-board .cn-conversation-thread__title.cn-conversation-thread__title {
+	font-size: var(--cn-board-heading-size);
+	line-height: 1.2;
+}
+
 /* ---- Body cards and side cards ----------------------------------------- */
 
 /* A CnDetailCard takes the board card wherever it sits, not only on a detail
