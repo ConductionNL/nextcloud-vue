@@ -23,6 +23,7 @@ import { showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcSelect } from '@nextcloud/vue'
+import { prefixUrl } from '../../utils/headers.js'
 
 /**
  * An OpenRegister record template as an option: `{ id, name, values }`.
@@ -51,8 +52,8 @@ export function recordTemplateOption(row) {
  *   OpenRegister compares the schema as text, so pass it exactly as the
  *   register configuration holds it.
  * - `url` + `params`: any endpoint answering a list (`results`, `items`, or
- *   a bare array), such as an app's content templates of one kind. A relative
- *   `/apps/...` url goes through `generateUrl`.
+ *   a bare array), such as an app's content templates of one kind. An
+ *   app-absolute `/apps/...` url gets the instance prefix.
  *
  * `mapOption(row)` turns one row into `{ id, name, ...anything }` (null skips
  * the row); the default reads a record template. `apply` emits the chosen
@@ -138,17 +139,13 @@ export default {
 		async load() {
 			this.options = []
 			this.chosen = null
-			let request
-			if (this.url) {
-				request = { url: this.url.startsWith('/apps/') ? generateUrl(this.url) : this.url, params: this.params }
-			} else if (this.schema) {
-				request = { url: generateUrl('/apps/openregister/api/record-templates'), params: { schema: this.schema } }
-			} else {
+			if (!this.url && !this.schema) {
 				return
 			}
+			const params = this.url ? this.params : { schema: this.schema }
 			this.loading = true
 			try {
-				const { data } = await axios.get(request.url, { params: request.params })
+				const { data } = await axios.get(this.url ? prefixUrl(this.url) : generateUrl('/apps/openregister/api/record-templates'), { params })
 				const rows = Array.isArray(data?.results) ? data.results : Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
 				const map = this.mapOption || recordTemplateOption
 				this.options = rows.map((row) => map(row)).filter((option) => option && option.id !== undefined && option.id !== null && option.id !== '')

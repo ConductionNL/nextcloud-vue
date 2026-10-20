@@ -5,7 +5,7 @@ A select of named templates that hands the chosen one to the form that mounts it
 ## Sources
 
 - `schema` (the default source): the OpenRegister record templates of that schema the signed-in user may use, `GET /apps/openregister/api/record-templates?schema=`. OpenRegister compares the schema as text, so pass it exactly as the register configuration holds it.
-- `url` and `params`: any endpoint answering a list under `results`, `items` or as a bare array, such as an app's content templates of one kind. A relative `/apps/...` url goes through `generateUrl`.
+- `url` and `params`: any endpoint answering a list under `results`, `items` or as a bare array, such as an app's content templates of one kind. An app-absolute `/apps/...` url gets the instance prefix.
 
 ## Usage
 
