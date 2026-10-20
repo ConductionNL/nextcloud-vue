@@ -686,7 +686,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 186,
+			"transitive": 187,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -919,7 +919,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 189,
+			"transitive": 190,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2589,7 +2589,7 @@
 		},
 		"CnObjectListWidget": {
 			"direct": 7,
-			"transitive": 113,
+			"transitive": 114,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3150,7 +3150,7 @@
 		},
 		"CnRelatedCollections": {
 			"direct": 0,
-			"transitive": 114,
+			"transitive": 115,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3261,7 +3261,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 187,
+			"transitive": 188,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3451,7 +3451,7 @@
 		},
 		"CnSavedViewWidget": {
 			"direct": 0,
-			"transitive": 115,
+			"transitive": 116,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -4293,7 +4293,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 177,
+			"transitive": 178,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
