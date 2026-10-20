@@ -126,6 +126,11 @@ describe('CnTasksWidget table', () => {
 		expect(mockRefetch).toHaveBeenCalled()
 	})
 
+	it('links to all of the record\'s tasks', () => {
+		const header = mountTable({ ...CONTENT, viewAllRoute: { name: 'Tasks', query: { objectUuid: '@objectId' } } }).emitted('header').at(-1)[0]
+		expect(header.link).toMatchObject({ route: 'Tasks', query: { objectUuid: 'case-1' } })
+	})
+
 	it('offers no New task without a record', () => {
 		const header = mountTable({ variant: 'table', create: true }).emitted('header').at(-1)[0]
 		expect(header.action).toBeUndefined()

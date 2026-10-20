@@ -527,7 +527,7 @@ export default {
 		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
 		 */
 		header() {
-			const header = { link: this.headerLink, note: '' }
+			const header = { link: this.recordLink(this.headerLink), note: '' }
 			if (!this.isTable) {
 				return header
 			}
@@ -898,6 +898,21 @@ export default {
 				parts.push(this.tr(priority))
 			}
 			return parts.join(' · ')
+		},
+
+		/**
+		 * The header link with `@objectId` in its query read from the page's
+		 * record ("all tasks of this case" on the Tasks page).
+		 *
+		 * @param {object|null} link The declared link.
+		 * @return {object|null} The link.
+		 */
+		recordLink(link) {
+			if (!link || !link.query || typeof link.query !== 'object') {
+				return link
+			}
+			const query = Object.fromEntries(Object.entries(link.query).map(([key, value]) => [key, value === '@objectId' ? String(this.objectId ?? '') : value]))
+			return { ...link, query }
 		},
 
 		/**
