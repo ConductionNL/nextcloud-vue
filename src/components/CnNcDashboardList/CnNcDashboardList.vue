@@ -32,6 +32,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
+import { resolveDue } from '../../utils/dueText.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { readPath } from '../../utils/readPath.js'
@@ -70,6 +71,9 @@ function appUrl(url) {
  * - `itemsPath`: the rows' path in the response, when not `results`.
  * - `limit`: the most rows shown (default 7).
  * - `title`, `subtitle`: templates filled from a row (default `{title}`, none).
+ * - `due`: `{ field, ...dueText config }`: the trailing line says how a date
+ *   stands ("3 days overdue", "Due today", the date or the days left), in
+ *   place of `subtitle` (see `resolveDue`).
  * - `href`: a template for a row's page (`/apps/dossiq/cases/{id}`).
  * - `viewAll`: `{ href, label? }`.
  * - `emptyText`: text for an empty list.
@@ -125,7 +129,7 @@ export default {
 				return {
 					id: String(id),
 					mainText: this.fill(this.config.title || '{title}', item) || String(id),
-					subText: this.fill(this.config.subtitle, item),
+					subText: this.subtitleOf(item),
 					href: this.config.href ? appUrl(fillTemplate(this.config.href, { ...item, id })) : '',
 				}
 			})
@@ -153,6 +157,22 @@ export default {
 		 */
 		text(value) {
 			return typeof value === 'string' && value !== '' ? this.cnTranslate(value) : ''
+		},
+
+		/**
+		 * A row's trailing line: how its due date stands, or the subtitle template.
+		 *
+		 * @spec openspec/changes/nc-dashboard-due/specs/nc-dashboard-widgets/spec.md#requirement-a-dashboard-row-says-how-its-date-stands
+		 * @param {object} item The row.
+		 * @return {string}
+		 */
+		subtitleOf(item) {
+			const due = this.config.due
+			if (due && typeof due === 'object' && due.field) {
+				const resolved = resolveDue(readPath(item, due.field), due, (text) => this.cnTranslate(text))
+				return resolved ? resolved.text : ''
+			}
+			return this.fill(this.config.subtitle, item)
 		},
 
 		/**
