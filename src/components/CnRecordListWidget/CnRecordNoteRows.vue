@@ -33,7 +33,7 @@
 				<span
 					v-if="item.due"
 					class="cn-record-notes__due"
-					:class="`cn-record-notes__due--${item.due.tone}`"
+					:class="`cn-record-notes__due--${dueToneOf(item.due)}`"
 					data-testid="cn-record-list-due">{{ item.due.text }}</span>
 			</div>
 			<div class="cn-record-notes__fields">
@@ -272,6 +272,20 @@ export default {
 		},
 
 		/**
+		 * The colour of a due text: a term that ended or ends today in the
+		 * error colour, one still to come in the warning colour.
+		 *
+		 * @param {{tone: string}} due The due text.
+		 * @return {string} `error`, `warning` or `muted`.
+		 */
+		dueToneOf(due) {
+			if (due.tone === 'danger' || due.tone === 'today') {
+				return 'error'
+			}
+			return due.tone === 'upcoming' ? 'warning' : 'muted'
+		},
+
+		/**
 		 * @param {string} key The row key.
 		 * @param {string} value The typed note.
 		 * @return {void}
@@ -433,6 +447,11 @@ export default {
 
 .cn-record-notes__due--warning {
 	color: var(--color-warning-text);
+}
+
+.cn-record-notes__due--muted {
+	color: var(--color-text-maxcontrast);
+	font-weight: 400;
 }
 
 .cn-record-notes__fields {

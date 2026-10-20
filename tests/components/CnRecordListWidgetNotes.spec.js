@@ -98,6 +98,17 @@ describe('CnRecordListWidget notes', () => {
 		expect(w.findAll('.cn-record-notes__title').map((a) => a.attributes('data-to'))).toEqual(['CaseDetail', 'TaskDetail'])
 	})
 
+	it('colours an ended or ending term as an error and a term to come as a warning', async () => {
+		axios.get.mockResolvedValue({ data: { open: OPEN } })
+		const w = mountList()
+		await flush()
+		const rows = w.findComponent({ name: 'CnRecordNoteRows' })
+		expect(rows.vm.dueToneOf({ tone: 'danger' })).toBe('error')
+		expect(rows.vm.dueToneOf({ tone: 'today' })).toBe('error')
+		expect(rows.vm.dueToneOf({ tone: 'upcoming' })).toBe('warning')
+		expect(rows.vm.dueToneOf({ tone: 'empty' })).toBe('muted')
+	})
+
 	it('keeps a typed note in the browser and counts it as ready', async () => {
 		axios.get.mockResolvedValue({ data: { open: OPEN } })
 		const w = mountList()
