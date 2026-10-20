@@ -132,4 +132,16 @@ describe('CnPartyPicker', () => {
 		await flushPromises()
 		expect(w.find('[data-testid="cn-party-picker-refusal"]').exists()).toBe(false)
 	})
+
+	it('names a source that could not be searched', async () => {
+		axios.post.mockRejectedValue({ response: { status: 404, data: '<html>' } })
+		axios.get.mockResolvedValue({ data: { results: [] } })
+		const w = mountPicker()
+		w.findComponent(SearchSelect).vm.$emit('search', 'zzz')
+		jest.advanceTimersByTime(300)
+		await flushPromises()
+		const notes = w.findAll('[data-testid="cn-party-picker-unavailable"]')
+		expect(notes).toHaveLength(1)
+		expect(notes[0].text()).toBe('Contact could not be searched, so this list may be incomplete.')
+	})
 })

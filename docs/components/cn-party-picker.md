@@ -17,7 +17,7 @@ One search field over several kinds of party: people and organisations from Open
   @select="onRequester" />
 ```
 
-Typing two characters or more searches every source at once (OpenRegister's `_search`, or Nextcloud's contacts menu for `type: "contacts"`); a source that fails adds nothing. `update:modelValue` emits the chosen row's id, and `select` the whole choice `{ source, id, label, secondary, row }`, so a host can store more than the id (a case's initiator type, source id and display name). A value the list does not hold shows `selectedLabel`, or is looked up by id in the OpenRegister sources. A term a source refuses (OpenRegister answers 400 for a term it cannot parse, such as an unclosed bracket) is said under the field in the server's words, rather than shown as an empty list.
+Typing two characters or more searches every source at once (OpenRegister's `_search`, or Nextcloud's contacts menu for `type: "contacts"`); a source that fails adds nothing. `update:modelValue` emits the chosen row's id, and `select` the whole choice `{ source, id, label, secondary, row }`, so a host can store more than the id (a case's initiator type, source id and display name). A value the list does not hold shows `selectedLabel`, or is looked up by id in the OpenRegister sources. A term a source refuses (OpenRegister answers 400 for a term it cannot parse, such as an unclosed bracket) is said under the field in the server's words, rather than shown as an empty list. A source that could not be searched at all (an app not installed, a server error) is named under the field, so an empty list never hides a missing source.
 
 ## Props
 

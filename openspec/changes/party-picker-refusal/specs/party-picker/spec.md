@@ -14,7 +14,7 @@ A party search the server could not read says so.
 
 ### Requirement: A refused term is said under the field
 
-When a source answers a search with a 400, CnPartyPicker SHALL say under the field that the search could not be read, followed by the server's message, and SHALL clear that line on the next search that no source refuses.
+When a source answers a search with a 400, CnPartyPicker SHALL say under the field that the search could not be read, followed by the server's message, and SHALL clear that line on the next search that no source refuses. A source that fails otherwise SHALL be named under the field as not searched.
 
 #### Scenario: An unclosed bracket
 
