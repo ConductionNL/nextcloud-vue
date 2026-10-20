@@ -329,12 +329,10 @@ export default {
 		 * browser keeps middle-click, "open in new tab" and the link semantics
 		 * assistive tech announces.
 		 *
-		 * `href` is JS-composition-only, like `onSelect` — manifest JSON cannot
-		 * carry it (the schema's `target` field already names the `navigate`
-		 * destination URL, and `additionalProperties: false` rejects an
-		 * unlisted `href`). A manifest author reaching for a link should use
-		 * `type: "navigate"` with an external `target`, which auto-derives the
-		 * anchor/`window.open` behaviour instead.
+		 * `href` is used as given, so it must be a finished URL. A manifest
+		 * `headerActions[]` entry may carry `href` too: the page (CnDetailPage,
+		 * CnDashboardPage) resolves an instance path through `generateUrl()`
+		 * and sets `target` before the entry reaches this component.
 		 *
 		 * @type {Array<object>}
 		 */

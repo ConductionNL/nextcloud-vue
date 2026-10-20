@@ -522,7 +522,6 @@ export default {
    still legible (DqVolgendeStap), not faded. */
 .cn-choice-cards__row--disabled,
 .cn-choice-cards__row--disabled:hover {
-	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	border-color: var(--color-border);
 	background: var(--color-background-hover);
 	color: var(--color-text-maxcontrast);
@@ -532,7 +531,6 @@ export default {
 /* The title takes the muted ink itself: a theme that colours every label
    with `!important` (thematiq) would otherwise hand it the label colour. */
 .cn-choice-cards__row--disabled .cn-choice-cards__row-title {
-	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	color: var(--color-text-maxcontrast);
 }
 
@@ -600,7 +598,6 @@ export default {
    with `!important` (thematiq) reaches a span that only inherits. */
 .cn-choice-cards__row-description,
 .cn-choice-cards__reason {
-	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	font-size: 13px;
 	font-weight: 400;
 	color: var(--color-text-maxcontrast);

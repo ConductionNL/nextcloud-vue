@@ -58,7 +58,7 @@ describe('board pill tones', () => {
 		const body = bodiesOf(sheet('look-board-index.css'), '.cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__count')
 		expect(body).toContain('padding: 1px 7px;')
 		expect(body).toContain('line-height: 14px;')
-		expect(body).toContain('--nldesign-color-on-surface: var(--cn-board-text-soft);')
+		expect(body).toMatch(/(^|[;\s])color: var\(--cn-board-text-soft\);/)
 	})
 
 	it('sets the column count on a 14px line at 700 in the soft ink', () => {
@@ -66,11 +66,10 @@ describe('board pill tones', () => {
 		expect(body).toContain('line-height: 14px;')
 		expect(body).toContain('font-weight: 700;')
 		expect(body).toContain('color: var(--cn-board-text-soft, var(--color-main-text));')
-		expect(body).toContain('--nldesign-color-on-surface: var(--cn-board-text-soft, var(--color-main-text));')
 	})
 
 	it('hands the filter count its light ink', () => {
 		const body = bodiesOf(sheet('look-board-index.css'), '.cn-look-board .cn-actions-bar__filter-badge')
-		expect(body).toContain('--nldesign-color-on-surface: var(--color-primary-element-text);')
+		expect(body).toMatch(/(^|[;\s])color: var\(--color-primary-element-text\);/)
 	})
 })
