@@ -19,7 +19,7 @@ import { registerNcDashboardWidgets } from '../../src/utils/registerNcDashboardW
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (p) => `/index.php${p}`, generateOcsUrl: (p) => p }))
 jest.mock('../../src/utils/linkNavigation.js', () => ({ openRowTarget: jest.fn() }))
-jest.mock('@nextcloud/l10n', () => ({ __esModule: true, translate: jest.fn((app, key) => (app === 'dossiq' && key === 'No open cases' ? 'Geen open zaken' : key)), translatePlural: (app, s, p, n) => (n === 1 ? s : p), t: (app, key) => key, n: (app, s, p, n) => (n === 1 ? s : p), getLanguage: () => 'en', getLocale: () => 'en', isRTL: () => false }))
+jest.mock('@nextcloud/l10n', () => ({ __esModule: true, translate: jest.fn((app, key) => (app === 'dossiq' && key === 'No open cases' ? 'Geen open zaken' : key)), translatePlural: (app, s, p, n, vars) => (n === 1 ? s : p).replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? String(vars[k]) : m)), t: (app, key) => key, n: (app, s, p, n) => (n === 1 ? s : p), getLanguage: () => 'en', getLocale: () => 'en', isRTL: () => false }))
 
 const OPEN_CASES = {
 	source: { register: 'dossiq', schema: 'case', params: { _order: { deadline: 'asc' } } },
@@ -100,6 +100,26 @@ describe('CnNcDashboardList', () => {
 		axios.get.mockRejectedValue(new Error('down'))
 		const broken = await mountList({ source: { url: '/apps/dossiq/api/signals/x' } })
 		expect(broken.find('[data-testid="cn-nc-dashboard-list-error"]').exists()).toBe(true)
+	})
+
+	it('says how a due date stands instead of the subtitle', async () => {
+		const day = (offset) => {
+			const d = new Date()
+			d.setDate(d.getDate() + offset)
+			return d.toISOString().slice(0, 10)
+		}
+		axios.get.mockResolvedValue({ data: { results: [
+			{ id: 'a', title: 'Late', deadline: day(-3) },
+			{ id: 'b', title: 'Today', deadline: day(0) },
+			{ id: 'c', title: 'Soon', deadline: day(2) },
+			{ id: 'd', title: 'None' },
+		] } })
+		const w = await mountList({
+			source: { register: 'dossiq', schema: 'case' },
+			subtitle: 'unused',
+			due: { field: 'deadline', upcomingLabel: { one: '{count} day remaining', other: '{count} days remaining' }, emptyText: 'No deadline' },
+		})
+		expect(w.findComponent(Table).props('rows').map((r) => r.subText)).toEqual(['3 days overdue', 'Due today', '2 days remaining', 'No deadline'])
 	})
 
 	it('opens a row like a link', async () => {
