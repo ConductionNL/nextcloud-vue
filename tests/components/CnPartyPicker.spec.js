@@ -115,4 +115,21 @@ describe('CnPartyPicker', () => {
 		expect(axios.get).not.toHaveBeenCalled()
 		expect(w.findComponent(SearchSelect).props('modelValue')).toMatchObject({ label: 'S. de Vries' })
 	})
+
+	it('says a refused term under the field instead of showing nothing', async () => {
+		axios.get.mockImplementation((url) => (url.endsWith('/brpPerson')
+			? Promise.reject({ response: { status: 400, data: { error: 'Unclosed bracket at position 7.' } } })
+			: Promise.resolve({ data: { results: [] } })))
+		const w = mountPicker()
+		w.findComponent(SearchSelect).vm.$emit('search', 'Visser (')
+		jest.advanceTimersByTime(300)
+		await flushPromises()
+		expect(w.find('[data-testid="cn-party-picker-refusal"]').text()).toBe('This search could not be read. Unclosed bracket at position 7.')
+
+		axios.get.mockResolvedValue({ data: { results: [] } })
+		w.findComponent(SearchSelect).vm.$emit('search', 'Visser')
+		jest.advanceTimersByTime(300)
+		await flushPromises()
+		expect(w.find('[data-testid="cn-party-picker-refusal"]').exists()).toBe(false)
+	})
 })

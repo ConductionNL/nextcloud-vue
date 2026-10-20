@@ -1912,7 +1912,8 @@
     "New team": "New team",
     "Why it is moving": "Why it is moving",
     "Use \"{name}\"": "Use \"{name}\"",
-    "It was not handed over.": "It was not handed over."
+    "It was not handed over.": "It was not handed over.",
+    "This search could not be read.": "This search could not be read."
   },
   "plurals": {
     "{count} member": [
