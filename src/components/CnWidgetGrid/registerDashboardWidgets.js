@@ -15,6 +15,7 @@
  * @module components/CnWidgetGrid/registerDashboardWidgets
  */
 
+import CnAiChatWidget from '../CnAiCompanion/CnAiChatWidget.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnChartWidgetForm from '../CnChartWidgetForm/CnChartWidgetForm.vue'
 import CnConversationWidget from '../CnConversationThread/CnConversationWidget.vue'
@@ -78,6 +79,7 @@ import '../CnFlowRunsWidget/index.js'
 import '../CnTasksWidget/index.js'
 import '../CnSectionsWidget/index.js'
 import '../CnFactsWidget/index.js'
+import '../CnLinkedWidget/index.js'
 import '../CnDeviceFramesWidget/index.js'
 import '../CnGroupedCardsWidget/index.js'
 import '../CnChecklistRunWidget/index.js'
@@ -327,6 +329,18 @@ registerDashboardWidget('document-review', {
 	defaultContent: { field: 'documents', statusField: 'reviewStatus', statuses: [] },
 	displayName: 'Document review',
 	icon: 'FileDocumentCheckOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+// The AI Chat Companion embedded in the page: the assistant as a tab or card
+// rather than the launcher's floating window (DqZaakAssistent).
+registerDashboardWidget('ai-chat', {
+	renderer: CnAiChatWidget,
+	form: null,
+	defaultContent: { chatAppId: '' },
+	displayName: 'Assistant',
+	icon: 'Creation',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
 })

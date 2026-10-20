@@ -195,6 +195,7 @@ export {
 	CnLifecycleActions,
 	CnLinkButtonWidget,
 	CnLinkButtonWidgetForm,
+	CnLinkedWidget,
 	CnLinksWidget,
 	CnLinksWidgetForm,
 	CnLockedBanner,
@@ -282,6 +283,7 @@ export {
 	CnRoadmapTab,
 	CnRowActions,
 	CnSavedViewEditDialog,
+	CnSavedViewMenuSettings,
 	CnSavedViewPresentationDialog,
 	CnSavedViewsControl,
 	CnSavedViewShareDialog,
@@ -403,6 +405,7 @@ export { CnFormPage, CnLinkCardsPage, CnMapPage, CnReportsPage, CnStorePage, CnW
 export {
 	CnAiAgentPicker,
 	CnAiChatPanel,
+	CnAiChatWidget,
 	CnAiCompanion,
 	CnAiFloatingButton,
 	CnAiHistoryList,

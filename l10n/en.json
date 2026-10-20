@@ -1914,7 +1914,22 @@
     "Use \"{name}\"": "Use \"{name}\"",
     "It was not handed over.": "It was not handed over.",
     "This search could not be read.": "This search could not be read.",
-    "{source} could not be searched, so this list may be incomplete.": "{source} could not be searched, so this list may be incomplete."
+    "{source} could not be searched, so this list may be incomplete.": "{source} could not be searched, so this list may be incomplete.",
+    "New task": "New task",
+    "Cancel task": "Cancel task",
+    "The task could not be added": "The task could not be added",
+    "{open} open, {done} done · sorted by deadline": "{open} open, {done} done · sorted by deadline",
+    "{things}: nothing linked": "{things}: nothing linked",
+    "Views in my menu": "Views in my menu",
+    "These saved views are at the bottom of your menu under My views, in this order. Drag a row or use the arrow keys. You put a view in the menu with Add to menu in the side panel of a list.": "These saved views are at the bottom of your menu under My views, in this order. Drag a row or use the arrow keys. You put a view in the menu with Add to menu in the side panel of a list.",
+    "Add view": "Add view",
+    "Pick a saved view": "Pick a saved view",
+    "You see your own views, the views shared with you and the default views. A new view goes to the bottom.": "You see your own views, the views shared with you and the default views. A new view goes to the bottom.",
+    "Your menu has no views yet.": "Your menu has no views yet.",
+    "or": "or",
+    "no value": "no value",
+    "yes": "yes",
+    "no": "no"
   },
   "plurals": {
     "{count} member": [

@@ -168,12 +168,57 @@
 	margin-inline-start: 0;
 }
 
-/* A stat tile in the board's KPI row carries the board's own 18px 20px inset
+/* A board stat tile carries the board's own 18px 20px inset
    (`cn-kpi-card--board`), so the card-fit cell adds none of its own: with
    both the label sat 29px from the tile's top and 37px from its side, and
-   the row stood about 1.4 times the board's height. */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__kpi-cell .cn-dashboard-page__card-fit .cn-widget-wrapper__content:has(> .cn-kpi-card--board.cn-kpi-card--stacked) {
+   the row stood about 1.4 times the board's height. This holds for a tile in
+   the KPI row and for one placed in the grid (DqMijnWerk), and the tile drops
+   the 2px transparent border a free-standing tile keeps for its hover ring:
+   in a card-fit cell the wrapper draws the hover border.
+   @spec openspec/changes/board-stat-tile-inset/specs/board-stat-tile-inset/spec.md#requirement-a-board-stat-tile-in-a-card-fit-cell-sits-on-the-boards-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__card-fit .cn-widget-wrapper__content:has(> .cn-kpi-card--board.cn-kpi-card--stacked) {
 	padding: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__card-fit .cn-kpi-card--board.cn-kpi-card--stacked {
+	border-width: 0;
+}
+
+/* ---- Dashboard switch row --------------------------------------------- */
+/* The switch row under a board dashboard's header (DqMijnWerk, DqMijnTeam).
+   The link pills take the deep primary ink of the boards' primary pills: the
+   light primary text mixed toward the main text, which only raises its
+   contrast on the light primary ground. A theme that forces the link ink onto
+   every `a` reads it from --nldesign-color-on-surface, so the pill hands it
+   its own. The view switch is the board's segmented control: 14px labels, the
+   others in the soft ink, the chosen one raised on white without an edge;
+   forced-colours mode keeps the edge, as it drops the ground and the shadow.
+   @spec openspec/changes/board-dashboard-switch-row/specs/board-dashboard-switch-row/spec.md#requirement-the-link-pills-take-the-deep-primary-ink
+   @spec openspec/changes/board-dashboard-switch-row/specs/board-dashboard-switch-row/spec.md#requirement-the-view-switch-is-the-boards-segmented-control */
+.cn-look-board .cn-dashboard-page__switch-row .cn-dashboard-page__view-link:not(.cn-look-nextcloud *) {
+	--cn-view-link-ink: color-mix(in srgb, var(--color-primary-element-light-text) 60%, var(--color-main-text));
+	--nldesign-color-on-surface: var(--cn-view-link-ink);
+	color: var(--cn-view-link-ink);
+}
+
+.cn-look-board .cn-dashboard-page__switch-row .cn-page-view-switch:not(.cn-look-nextcloud *) {
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-dashboard-page__switch-row .cn-page-view-switch .cn-segmented-control__option:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-text-soft);
+	font-size: 14px;
+}
+
+.cn-look-board .cn-dashboard-page__switch-row .cn-page-view-switch .cn-segmented-control__option--checked:not(.cn-look-nextcloud *) {
+	border-color: transparent;
+	color: var(--color-main-text);
+}
+
+@media (forced-colors: active) {
+	.cn-look-board .cn-dashboard-page__switch-row .cn-page-view-switch .cn-segmented-control__option--checked:not(.cn-look-nextcloud *) {
+		border-color: CanvasText;
+	}
 }
 
 /* ---- Button weight ------------------------------------------------------ */
@@ -234,7 +279,9 @@
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
 .cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *),
-.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) {
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *),
+.cn-look-board .cn-flow-board__actions:not(.cn-look-nextcloud *) {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -253,6 +300,8 @@
 .cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *),
+.cn-look-board .cn-flow-board__actions:not(.cn-look-nextcloud *),
 .cn-look-board .cn-action-buttons:not(.cn-look-nextcloud *) {
 	--nldesign-component-button-font-weight: 600;
 	--nldesign-component-button-primary-action-font-weight: 600;
@@ -266,7 +315,9 @@
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *) .button-vue,
-.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) .button-vue {
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-flow-board__actions:not(.cn-look-nextcloud *) .button-vue {
 	box-sizing: border-box;
 	height: var(--cn-board-control-height);
 	min-height: var(--cn-board-control-height);
@@ -285,11 +336,61 @@
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *) .button-vue--primary,
 .cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *) .button-vue--primary,
 .cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *) .button-vue--primary,
-.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) .button-vue--primary {
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) .button-vue--primary,
+.cn-look-board .cn-features-board__header-actions:not(.cn-look-nextcloud *) .button-vue--primary,
+.cn-look-board .cn-flow-board__actions:not(.cn-look-nextcloud *) .button-vue--primary {
 	padding: 0 16px;
 	border: 0;
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
+}
+
+/* A button that is a link (`href`, such as "Documentatie" or a settings card's
+   "Activiteit koppelen") keeps the button's ink and draws no underline, as
+   the boards draw it (DqInstellingenAlgemeen, DqVthInstellingen). The
+   nldesign theme paints every `<a>` in its link colour with an underline,
+   with `!important`, through its link tokens and the surface ink; the button
+   hands it the values those rules read.
+   @spec openspec/changes/board-link-buttons-keep-button-ink/specs/board-link-buttons-keep-button-ink/spec.md#requirement-a-board-button-that-is-a-link-keeps-the-button-ink */
+.cn-look-board a.button-vue:not(.cn-look-nextcloud *):not(.vue-crumb *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
+	color: var(--color-main-text);
+	text-decoration: none;
+}
+
+.cn-look-board a.button-vue--primary:not(.cn-look-nextcloud *):not(.vue-crumb *),
+.cn-look-board a.button-vue--vue-primary:not(.cn-look-nextcloud *):not(.vue-crumb *) {
+	--nldesign-color-on-surface: var(--color-primary-element-text);
+	--nldesign-component-link-color: var(--color-primary-element-text);
+	color: var(--color-primary-element-text);
+}
+
+/* A settings card's actions ("Checklist toevoegen") are neutral secondary
+   buttons, as on a page header: the main ink at 14px/600 on the main
+   background with the control border, not Nextcloud's primary tint.
+   @spec openspec/changes/board-link-buttons-keep-button-ink/specs/board-link-buttons-keep-button-ink/spec.md#requirement-a-settings-cards-actions-are-neutral-buttons */
+.cn-look-board .cn-settings-section__actions:not(.cn-look-nextcloud *) {
+	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-secondary-action-color: var(--color-main-text);
+	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
+	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
+}
+
+.cn-look-board .cn-settings-section__actions .button-vue--secondary:not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-section__actions .button-vue--vue-secondary:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+	border: 1px solid var(--cn-board-control-border);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-settings-section__actions .button-vue--secondary:not(.cn-look-nextcloud *):hover,
+.cn-look-board .cn-settings-section__actions .button-vue--vue-secondary:not(.cn-look-nextcloud *):hover {
+	background: var(--color-background-hover);
 }
 
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
@@ -371,6 +472,93 @@
 .cn-look-board .action-item.action-item--secondary .action-item__menutoggle:has(.chevron-down-icon) .button-vue__wrapper:not(.cn-look-nextcloud *) {
 	flex-direction: row-reverse;
 	gap: 6px;
+}
+
+/* ---- Menus (NcActions popovers) ----------------------------------------- */
+/* An NcActions menu opens in a popover on <body>, outside CnAppRoot, so no
+   `.cn-look-board` rule reaches it. The rules key on a body that holds a
+   board-look root, which an app without the look never renders, and that
+   holds no page keeping the Nextcloud look (`.cn-look-nextcloud`). The board
+   menu (DqZaakMeer "Meer"): a white card with a hairline, a 10px radius and
+   a soft drop shadow, 6px in; rows of 36px, 10px in, 6px rounded, 14px text
+   at 400 with an 18px icon 10px before it; group captions in 12px bold
+   capitals; separators 4px clear, 6px in. The theme's button tokens are
+   handed the row's weight and radius, because nldesign forces both onto
+   every button. */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper .v-popper__wrapper .v-popper__inner {
+	padding: 6px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	box-shadow: 0 12px 32px color-mix(in srgb, var(--color-main-text) 18%, transparent);
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper ul[role="menu"] {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action > .action-button,
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action > .action-link {
+	--font-weight-element: 400;
+	--nldesign-component-button-font-weight: 400;
+	--nldesign-component-button-border-radius: 6px;
+	align-items: center;
+	gap: 10px;
+	min-height: 36px;
+	padding: 0 10px;
+	border-radius: 6px;
+	font-size: 14px;
+	font-weight: 400;
+	line-height: 20px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action > .action-button > .material-design-icon,
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action > .action-link > .material-design-icon {
+	flex: none;
+	align-self: center;
+	width: 18px;
+	height: 18px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action .material-design-icon__svg {
+	width: 18px;
+	height: 18px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action .action-button__longtext-wrapper,
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action .action-button__longtext,
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action .action-link__longtext-wrapper,
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action .action-link__longtext {
+	max-width: none;
+	padding: 0;
+	line-height: 20px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.app-navigation-caption {
+	height: auto;
+	margin: 0;
+	padding: 6px 10px 2px;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	line-height: 1.2;
+	text-transform: uppercase;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action-separator {
+	margin: 4px 6px;
+	border-bottom-color: var(--color-border);
+}
+
+/* A detail page's header menu is the board's wide menu, 344px, so a long
+   action and its admin tag stay on one line. Its rows carry the page's
+   `cn-detail-page-` test ids. */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has([data-testid^="cn-detail-page-"]) .v-popper__wrapper .v-popper__inner {
+	box-sizing: border-box;
+	width: 344px;
+	max-width: calc(100vw - 32px);
 }
 
 /* ---- The navigation ---------------------------------------------------- */
@@ -1500,4 +1688,90 @@
 
 .cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell:not(.cn-chart-widget__matrix-cell--current) {
 	font-weight: 600;
+}
+
+/* ---- A tree menu on a card (DqCatalogus "Zaaktypen, Attributen ...") ---- */
+/* The board draws a card of folders: 14px inside the card, rows 2px apart,
+   each 8px 10px with an 8px corner at 15px, the open folder on the primary
+   tint in the deep primary at 700. A row's label is a link that keeps the
+   row's ink, without an underline under a theme that paints every link.
+   The tree draws no caret column when no row has children. Global rules: the
+   rows are a child component's, which the widget's scoped highlight never
+   reached.
+   @spec openspec/changes/board-menu-tree-rows/specs/board-menu-tree-rows/spec.md#requirement-a-board-tree-menu-draws-the-boards-folder-rows */
+.cn-look-board .cn-widget-wrapper:not(.cn-look-nextcloud *):has(.cn-menu-widget--style-tree) .cn-widget-wrapper__content {
+	padding: 14px;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-widget__tree,
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-tree-node__children {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-tree-node__row {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
+	padding-block: 8px;
+	padding-inline-end: 10px;
+	border-radius: 8px;
+	color: var(--color-main-text);
+	font-size: 15px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-tree-node--depth-1 > .cn-menu-tree-node__row {
+	padding-inline-start: 10px !important;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-tree-node__label-button {
+	padding: 0;
+	color: inherit;
+	font-size: inherit;
+	font-weight: inherit;
+	text-decoration: none;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-widget__tree:not(:has(.cn-menu-tree-node__caret)) .cn-menu-tree-node__caret-spacer {
+	display: none;
+}
+
+.cn-look-board .cn-menu-widget--style-tree.cn-menu-widget--highlight-background:not(.cn-look-nextcloud *) .cn-menu-tree-node__row.cn-menu-widget__item--active {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
+	--nldesign-component-link-color: var(--color-primary-element-light-text);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-weight: 700;
+}
+
+/* ---- Controls on an admin settings card -------------------------------- */
+/* The boards draw a settings card's text fields and its save and version
+   buttons 40px tall with 14px labels (DqInstellingenAlgemeen "Naam van de
+   organisatie", "Opslaan", "Configuratie opnieuw importeren";
+   DqBeheerinstellingen "Register"), as the board forms do; Nextcloud draws
+   them 34px at 15px. The field wrapper holds the input and its 2px focus
+   ring, as on a board form. The compact version card's title is 18px.
+   @spec openspec/changes/board-settings-card-controls/specs/board-settings-card-controls/spec.md#requirement-a-board-settings-cards-fields-and-save-buttons-are-40px */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__main-wrapper {
+	height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__input {
+	height: var(--cn-field-height, 40px);
+	min-height: var(--cn-field-height, 40px);
+}
+
+.cn-look-board .cn-settings-section__save:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-version-info--board:not(.cn-look-nextcloud *) .cn-version-info__footer-row .button-vue {
+	height: var(--cn-field-height, 40px);
+	min-height: var(--cn-field-height, 40px);
+	font-size: 14px;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(.cn-version-info--compact) > .settings-section__name {
+	font-size: 18px;
 }

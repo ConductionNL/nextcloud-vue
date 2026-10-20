@@ -6,14 +6,15 @@
 <template>
 	<CnNextStepCard
 		v-if="step"
-		:title="step.title"
+		:title="filled(step.title)"
 		:items="step.items"
-		:after="step.after" />
+		:after="filled(step.after)" />
 </template>
 
 <script>
 import CnNextStepCard from './CnNextStepCard.vue'
 import { resolveNextStep } from '../../utils/detailActionModel.js'
+import { firstFilled } from '../../utils/fillTemplate.js'
 
 /**
  * CnNextStepWidget: the `next-step` detail widget type.
@@ -53,6 +54,20 @@ export default {
 		 */
 		step() {
 			return resolveNextStep(this.content, this.objectData)
+		},
+	},
+
+	methods: {
+		/**
+		 * A title or `after` line with its record fields filled, the first
+		 * candidate that fills.
+		 *
+		 * @param {string|string[]} text The text or its candidates.
+		 * @return {string} The text.
+		 * @spec openspec/changes/next-step-title-tokens/specs/next-step-title-tokens/spec.md#requirement-a-what-now-title-can-name-record-fields
+		 */
+		filled(text) {
+			return firstFilled(text, this.objectData)
 		},
 	},
 }
