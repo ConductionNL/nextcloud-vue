@@ -21,7 +21,7 @@ import { mount } from '@vue/test-utils'
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
 
-const flush = async () => {
+async function flush() {
 	for (let i = 0; i < 4; i++) {
 		await new Promise((resolve) => setTimeout(resolve, 0))
 	}
