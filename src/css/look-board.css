@@ -176,6 +176,43 @@
 	padding: 0;
 }
 
+/* ---- Dashboard switch row --------------------------------------------- */
+/* The switch row under a board dashboard's header (DqMijnWerk, DqMijnTeam).
+   The link pills take the deep primary ink of the boards' primary pills: the
+   light primary text mixed toward the main text, which only raises its
+   contrast on the light primary ground. A theme that forces the link ink onto
+   every `a` reads it from --nldesign-color-on-surface, so the pill hands it
+   its own. The view switch is the board's segmented control: 14px labels, the
+   others in the soft ink, the chosen one raised on white without an edge;
+   forced-colours mode keeps the edge, as it drops the ground and the shadow.
+   @spec openspec/changes/board-dashboard-switch-row/specs/board-dashboard-switch-row/spec.md#requirement-the-link-pills-take-the-deep-primary-ink
+   @spec openspec/changes/board-dashboard-switch-row/specs/board-dashboard-switch-row/spec.md#requirement-the-view-switch-is-the-boards-segmented-control */
+.cn-look-board .cn-dashboard-page__switch-row .cn-dashboard-page__view-link:not(.cn-look-nextcloud *) {
+	--cn-view-link-ink: color-mix(in srgb, var(--color-primary-element-light-text) 60%, var(--color-main-text));
+	--nldesign-color-on-surface: var(--cn-view-link-ink);
+	color: var(--cn-view-link-ink);
+}
+
+.cn-look-board .cn-dashboard-page__switch-row .cn-page-view-switch:not(.cn-look-nextcloud *) {
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-dashboard-page__switch-row .cn-page-view-switch .cn-segmented-control__option:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-text-soft);
+	font-size: 14px;
+}
+
+.cn-look-board .cn-dashboard-page__switch-row .cn-page-view-switch .cn-segmented-control__option--checked:not(.cn-look-nextcloud *) {
+	border-color: transparent;
+	color: var(--color-main-text);
+}
+
+@media (forced-colors: active) {
+	.cn-look-board .cn-dashboard-page__switch-row .cn-page-view-switch .cn-segmented-control__option--checked:not(.cn-look-nextcloud *) {
+		border-color: CanvasText;
+	}
+}
+
 /* ---- Button weight ------------------------------------------------------ */
 /* The boards draw a labelled button at 600 (DqZaken "Downloaden", DqZaak's
    header, dialog footers, toolbar and row actions). An NcButton reads its
