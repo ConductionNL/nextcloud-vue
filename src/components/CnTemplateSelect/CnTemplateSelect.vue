@@ -164,6 +164,7 @@ export default {
 		 */
 		choose(option) {
 			this.chosen = option || null
+			/** @event apply The chosen template option, or null when cleared. */
 			this.$emit('apply', option || null)
 		},
 	},

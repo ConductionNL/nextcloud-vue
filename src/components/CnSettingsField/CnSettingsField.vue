@@ -21,7 +21,7 @@
 					:disabled="field.readOnly || field.actionBusy"
 					:aria-describedby="describedBy"
 					:data-testid="`cn-settings-field-action-${field.key}`"
-					@click="$emit('action')">
+					@click="runAction">
 					<template v-if="field.actionBusy" #icon>
 						<NcLoadingIcon :size="20" />
 					</template>
@@ -356,6 +356,12 @@ export default {
 
 	methods: {
 		t,
+
+		/** Ask the host to run an `action` field's action. */
+		runAction() {
+			/** @event action The user pressed an `action` field's button. */
+			this.$emit('action')
+		},
 
 		/**
 		 * Upload a chosen image to `uploadUrl` as multipart form data (the

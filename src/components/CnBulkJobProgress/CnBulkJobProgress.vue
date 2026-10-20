@@ -367,6 +367,9 @@ export default {
 			handler() {
 				if (isBulkJobFinished(this.job)) {
 					this.stopPolling()
+					/**
+					 * @event finished The job stopped moving; payload: the finished job.
+					 */
 					this.$emit('finished', this.job)
 					return
 				}
@@ -417,6 +420,9 @@ export default {
 			this.timer = setInterval(async () => {
 				try {
 					const job = await fetchBulkJob(this.job.id)
+					/**
+					 * @event update:job The job as last read or answered by an action, for `v-model:job`.
+					 */
 					this.$emit('update:job', job)
 					if (this.openOutcome) {
 						await this.open(this.openOutcome, { reset: true })
@@ -505,7 +511,16 @@ export default {
 		async act(event, call, failedKey) {
 			this.error = ''
 			if (this.isLocal) {
-				this.$emit(event)
+				if (event === 'commit') {
+					/** @event commit A local job (no server id) is committed: the host applies it. */
+					this.$emit('commit')
+				} else if (event === 'cancel') {
+					/** @event cancel A local job is cancelled: the host drops it. */
+					this.$emit('cancel')
+				} else {
+					/** @event retry A local job's failed rows are retried: the host runs them again. */
+					this.$emit('retry')
+				}
 				return
 			}
 			try {

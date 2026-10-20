@@ -19,6 +19,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name    | Payload | Description |
-| ------- | ------- | ----------- |
-| `apply` | —       |             |
+| Name    | Payload | Description                                       |
+| ------- | ------- | ------------------------------------------------- |
+| `apply` | —       | The chosen template option, or null when cleared. |

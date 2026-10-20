@@ -22,10 +22,11 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name         | Payload | Description |
-| ------------ | ------- | ----------- |
-| `update:job` | —       |             |
-| `finished`   | —       |             |
-| `commit`     | —       |             |
-| `cancel`     | —       |             |
-| `retry`      | —       |             |
+| Name                                                                           | Payload | Description                                                      |
+| ------------------------------------------------------------------------------ | ------- | ---------------------------------------------------------------- |
+| `update:job`                                                                   | —       |                                                                  |
+| `finished`                                                                     | —       | The job stopped moving; payload: the finished job.               |
+| `commit`                                                                       | —       | A local job (no server id) is committed: the host applies it.    |
+| `cancel`                                                                       | —       | A local job is cancelled: the host drops it.                     |
+| `retry`                                                                        | —       | A local job's failed rows are retried: the host runs them again. |
+| `update:job The job as last read or answered by an action, for `v-model:job`.` | —       |                                                                  |

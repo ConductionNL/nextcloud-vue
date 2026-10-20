@@ -19,7 +19,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 | Name                                                           | Payload | Description                                  |
 | -------------------------------------------------------------- | ------- | -------------------------------------------- |
-| `action`                                                       | —       |                                              |
 | `update:modelValue`                                            | —       |                                              |
 | `uploaded`                                                     | —       | An image was uploaded. Payload: its new url. |
+| `action`                                                       | —       | The user pressed an `action` field's button. |
 | `update:modelValue The value changed. Payload: the new value.` | —       |                                              |

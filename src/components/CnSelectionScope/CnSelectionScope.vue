@@ -12,7 +12,7 @@
 			v-if="offersWholeResult"
 			variant="tertiary"
 			data-testid="bulk-selection-widen"
-			@click="$emit('update:scope', 'result')">
+			@click="setScope('result')">
 			{{ widenText }}
 		</NcButton>
 
@@ -20,7 +20,7 @@
 			v-if="isWholeResult"
 			variant="tertiary"
 			data-testid="bulk-selection-narrow"
-			@click="$emit('update:scope', 'page')">
+			@click="setScope('page')">
 			{{ narrowText }}
 		</NcButton>
 	</div>
@@ -134,6 +134,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Ask the host to change the selection scope.
+		 *
+		 * @param {'page'|'result'} scope The scope to switch to.
+		 */
+		setScope(scope) {
+			/** @event update:scope The scope the user picked: `page` or `result`. */
+			this.$emit('update:scope', scope)
+		},
+
 		/**
 		 * The host's template for `key`, filled, or the library's sentence.
 		 *
