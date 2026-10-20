@@ -1447,6 +1447,26 @@
 	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
 }
 
+/* An ApexCharts plot takes the same inset as an HTML chart (DqDoorlooptijd
+   "Gemiddelde doorlooptijd per maand": the plot 23px in, not on the card's
+   edge). ApexCharts sizes itself to its box minus the box's padding, so the
+   plot shrinks into the inset instead of overflowing it. A footnote under the
+   plot carries the bottom inset in its place.
+   @spec openspec/changes/board-dashboard-chart-inset/specs/board-dashboard-chart-inset/spec.md#requirement-a-board-dashboard-plot-keeps-the-cards-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-chart-widget__canvas {
+	box-sizing: border-box;
+	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-chart-widget__canvas:has(+ .cn-chart-widget__footnote) {
+	padding-bottom: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-chart-widget > .cn-chart-widget__footnote {
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+	font-size: 13px;
+}
+
 /* An activity item pads itself 4px, so the body takes 4px less. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-nc-widget-widget__body {
 	padding: 0 calc(var(--cn-board-dashboard-card-inset) - 4px) 16px;
