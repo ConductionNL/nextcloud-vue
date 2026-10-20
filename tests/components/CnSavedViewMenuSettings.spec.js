@@ -6,7 +6,9 @@
  * DqPersoonlijkeInstellingen). It lists the user's My views menu entries in
  * menu order, reorders and removes them ("Remove from menu"), and adds any
  * view the user can see on a page of the app: the pages' default views and
- * the saved views that belong on the page. Every change goes to CnAppRoot's
+ * the saved views that belong on the page. Each row says what its view shows
+ * and how many records that is ("Case type Woo request, status Open · 19
+ * cases"); the count fills in on its own. Every change goes to CnAppRoot's
  * menu holder, which stores the list.
  *
  * @spec openspec/changes/saved-view-menu-settings/specs/saved-view-menu-settings/spec.md#requirement-a-user-orders-and-picks-the-views-in-their-menu
@@ -39,6 +41,7 @@ const MANIFEST = {
 				register: 'dossiq',
 				schema: 'case',
 				allowSavedViews: true,
+				countSubtitle: '{total} cases',
 				defaultSavedViews: [{ slug: 'this-week', name: 'Deadline this week', filters: { due: 'week' } }],
 			},
 		},
@@ -47,8 +50,16 @@ const MANIFEST = {
 	],
 }
 
+const SCHEMA = {
+	properties: {
+		caseType: { type: 'string', title: 'Case type', $ref: 'caseType' },
+		status: { type: 'string', title: 'Status', oneOf: [{ const: 'open', title: 'Open' }] },
+		due: { type: 'string', title: 'Deadline' },
+	},
+}
+
 const VIEWS = [
-	{ id: 7, name: 'Woo requests', query: { scope: 'dossiq/case', filters: { caseType: 'woo' } } },
+	{ id: 7, name: 'Woo requests', query: { scope: 'dossiq/case', filters: { caseType: ['woo-uuid'], status: 'open' } } },
 	{ id: 8, name: 'Contacts in town', query: { scope: 'dossiq/contact', filters: {} } },
 ]
 
@@ -57,7 +68,11 @@ const VIEWS = [
  * @return {{wrapper: object, menu: object}} The mounted section and its menu holder.
  */
 async function mountSection(entries) {
-	mockGet.mockResolvedValue({ data: { results: VIEWS } })
+	mockGet.mockImplementation(async (url) => (String(url).includes('aggregations') ? { data: { value: 19 } } : { data: { results: VIEWS } }))
+	global.fetch = jest.fn(async (url) => ({
+		ok: true,
+		json: async () => (String(url).includes('/schemas/') ? SCHEMA : { results: [{ id: 'woo-uuid', title: 'Woo request' }] }),
+	}))
 	const menu = { entries, set: jest.fn() }
 	const wrapper = mount(CnSavedViewMenuSettings, {
 		global: {
@@ -77,7 +92,41 @@ describe('CnSavedViewMenuSettings', () => {
 		])
 		const rows = wrapper.findAll('.cn-ordered-list-field__row')
 		expect(rows.map((r) => r.find('.cn-ordered-list-field__name').text())).toEqual(['Woo requests', 'Deadline this week'])
-		expect(rows[0].find('.cn-ordered-list-field__description').text()).toBe('All cases')
+	})
+
+	it('says what each view shows and how many records that is, as the board does', async () => {
+		const { wrapper } = await mountSection([
+			{ id: '7', page: 'Cases', name: 'Woo requests' },
+			{ id: 'default:this-week', page: 'Cases', name: 'Deadline this week' },
+		])
+		await flushPromises()
+		const lines = wrapper.findAll('.cn-ordered-list-field__row .cn-ordered-list-field__description').map((d) => d.text())
+		expect(lines).toEqual(['Case type Woo request, status Open · 19 cases', 'Deadline week · 19 cases'])
+	})
+
+	it('asks each count once and shows the row before the count is in', async () => {
+		let release
+		mockGet.mockReset()
+		mockGet.mockImplementation((url) => (String(url).includes('aggregations')
+			? new Promise((resolve) => {
+					release = () => resolve({ data: { value: 4 } })
+				})
+			: Promise.resolve({ data: { results: VIEWS } })))
+		const menu = { entries: [{ id: 'default:this-week', page: 'Cases', name: 'Deadline this week' }], set: jest.fn() }
+		const wrapper = mount(CnSavedViewMenuSettings, {
+			global: {
+				provide: { cnSavedViewMenu: menu, cnManifest: { pages: [{ ...MANIFEST.pages[0], config: { ...MANIFEST.pages[0].config, filter: { isDraft: false } } }] }, cnTranslate: (key) => key },
+				stubs: { NcSelect: NcSelectStub },
+			},
+		})
+		await flushPromises()
+		expect(wrapper.find('.cn-ordered-list-field__row .cn-ordered-list-field__description').text()).toBe('Deadline week')
+		release()
+		await flushPromises()
+		expect(wrapper.find('.cn-ordered-list-field__row .cn-ordered-list-field__description').text()).toBe('Deadline week · 4 cases')
+		const counts = mockGet.mock.calls.filter(([url]) => String(url).includes('aggregations'))
+		expect(counts).toHaveLength(1)
+		expect(counts[0][1].params).toMatchObject({ 'filter[isDraft]': false, 'filter[due]': 'week' })
 	})
 
 	it('offers the views of the pages that offer saved views, not those already in the menu', async () => {

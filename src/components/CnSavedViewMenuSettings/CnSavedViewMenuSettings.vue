@@ -24,11 +24,25 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import CnOrderedListField from '../CnOrderedListField/CnOrderedListField.vue'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
-import { defaultFilterViews, pageOffersSavedViews, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { countLine } from '../../utils/countLine.js'
+import { facetFilterParams } from '../../utils/facets.js'
+import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
+import { pickRefLabel } from '../../utils/headerFieldChips.js'
+import { buildHeaders, buildQueryString, prefixUrl } from '../../utils/headers.js'
+import { resolveFilterMap } from '../../utils/routeFilters.js'
+import { defaultFilterViews, extractViewState, pageOffersSavedViews, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { normalizeSavedViewMenu } from '../../utils/savedViewMenu.js'
+import { summarizeViewFilters, viewFilterReferences } from '../../utils/savedViewSummary.js'
+import { fieldsFromSchema } from '../../utils/schema.js'
+
+// Per session: a schema, a referenced record's name and a view's count are
+// asked once, however often the dialog opens.
+const schemaCache = new Map()
+const labelCache = new Map()
+const countCache = new Map()
 
 /**
  * The key a menu entry or a candidate view is listed under.
@@ -42,12 +56,118 @@ function keyOf(page, id) {
 }
 
 /**
+ * GET a JSON document from OpenRegister.
+ *
+ * @param {string} path The app-absolute path.
+ * @param {object} [params] Query parameters.
+ * @return {Promise<object>}
+ */
+async function getJson(path, params = {}) {
+	const response = await fetch(prefixUrl(path + buildQueryString(params)), { headers: buildHeaders() })
+	if (!response.ok) {
+		throw new Error(`${path} returned ${response.status}`)
+	}
+	return response.json()
+}
+
+/**
+ * A page's schema, asked once.
+ *
+ * @param {string} register The register slug.
+ * @param {string} schema The schema slug.
+ * @return {Promise<object|null>}
+ */
+function loadSchema(register, schema) {
+	const key = `${register}|${schema}`
+	if (!schemaCache.has(key)) {
+		schemaCache.set(key, getJson(`/apps/openregister/api/schemas/${encodeURIComponent(schema)}`, { register }).catch(() => null))
+	}
+	return schemaCache.get(key)
+}
+
+/**
+ * The names of referenced records, each asked once.
+ *
+ * @param {{register: string, schema: string, labelField: string, ids: Array<string>}} ref The reference filter.
+ * @return {Promise<{[id: string]: string}>}
+ */
+async function loadLabels(ref) {
+	const prefix = `${ref.register}|${ref.schema}|${ref.labelField}|`
+	const missing = ref.ids.filter((id) => !labelCache.has(prefix + id))
+	if (missing.length > 0) {
+		const request = getJson(`/apps/openregister/api/objects/${encodeURIComponent(ref.register)}/${encodeURIComponent(ref.schema)}`, { _ids: missing.join(','), _limit: missing.length })
+			.then((data) => {
+				const byId = {}
+				for (const row of (Array.isArray(data && data.results) ? data.results : [])) {
+					const id = row && (row.id ?? row.uuid ?? (row['@self'] && row['@self'].id))
+					if (id !== undefined && id !== null) {
+						byId[String(id)] = pickRefLabel(row, ref.labelField)
+					}
+				}
+				return byId
+			})
+			.catch(() => ({}))
+		for (const id of missing) {
+			labelCache.set(prefix + id, request.then((byId) => byId[id] || null))
+		}
+	}
+	const out = {}
+	await Promise.all(ref.ids.map(async (id) => {
+		const label = await labelCache.get(prefix + id)
+		if (label) {
+			out[id] = label
+		}
+	}))
+	return out
+}
+
+/**
+ * How many records a view's filters match on its page, asked once per view.
+ *
+ * @param {{register: string, schema: string, baseFilter: object}} page The page.
+ * @param {object} filter The view's filters as query parameters.
+ * @return {Promise<number|null>}
+ */
+function loadCount(page, filter) {
+	const key = JSON.stringify([page.register, page.schema, page.baseFilter, filter])
+	if (!countCache.has(key)) {
+		countCache.set(key, fetchFilterCounts({ register: page.register, schema: page.schema, entries: [{ key: 'view', filter }], baseFilter: page.baseFilter })
+			.then((counts) => (typeof counts.view === 'number' ? counts.view : null))
+			.catch(() => null))
+	}
+	return countCache.get(key)
+}
+
+/**
+ * A view's filters as the list request sends them.
+ *
+ * @param {{filters: object, search: string}} state The view's state.
+ * @return {object}
+ */
+function filterParams(state) {
+	const out = {}
+	for (const [key, raw] of Object.entries(state.filters || {})) {
+		Object.assign(out, facetFilterParams(key, Array.isArray(raw) ? raw : [raw]))
+	}
+	if (state.search) {
+		out._search = state.search
+	}
+	return out
+}
+
+/**
  * CnSavedViewMenuSettings - the user's "My views" menu entries as a settings
  * section body (board DqPersoonlijkeInstellingen, "Views in my menu"): the
  * entries in their menu order, reordered by dragging or the arrow keys,
  * taken out of the menu with "Remove from menu", and a picker that adds any
  * view the user can see on a page of the app (their own, shared ones and the
  * pages' default views). Removing an entry never deletes the view.
+ *
+ * Each row says what its view shows and how many records that is: "Case
+ * type Woo request, status open · 19 cases". The line is built from the
+ * view's filters with the page schema's titles and the names of the records
+ * and options they point at; the count is one request per view, cached for
+ * the session, and fills in when it arrives without holding up the list.
  *
  * Reads and writes the list CnAppRoot holds (`cnSavedViewMenu`, stored in
  * the `cn_saved_view_menu` preference). CnAppRoot draws it as the `views`
@@ -63,12 +183,20 @@ export default {
 		cnSavedViewMenu: { default: null },
 		cnManifest: { default: null },
 		cnTranslate: { default: () => (key) => key },
+		cnAppId: { default: '' },
+		cnAppConfig: { default: null },
 	},
 
 	data() {
 		return {
 			views: [],
 			loading: false,
+			/** The schema per page id. */
+			schemas: {},
+			/** Looked-up display names per page id, filter key and value. */
+			valueLabels: {},
+			/** The count per list value; undefined while it is asked. */
+			counts: {},
 		}
 	},
 
@@ -84,7 +212,7 @@ export default {
 			return normalizeSavedViewMenu(this.cnSavedViewMenu ? this.cnSavedViewMenu.entries : [])
 		},
 
-		/** @return {Array<{id: string, title: string, scope: object, defaults: Array}>} The pages that offer saved views. */
+		/** @return {Array<object>} The pages that offer saved views. */
 		pages() {
 			const pages = this.cnManifest && Array.isArray(this.cnManifest.pages) ? this.cnManifest.pages : []
 			return pages
@@ -96,11 +224,15 @@ export default {
 						title: typeof page.title === 'string' ? this.cnTranslate(page.title) : page.id,
 						scope: { scope: config.savedViewsScope, register: config.register, schema: config.schema, source: config.entitySource },
 						defaults: Array.isArray(config.defaultSavedViews) ? config.defaultSavedViews : [],
+						register: typeof config.register === 'string' ? config.register : '',
+						schema: typeof config.schema === 'string' ? config.schema : '',
+						baseFilter: resolveFilterMap(config.filter, {}, { config: this.cnAppConfig || {} }),
+						countSubtitle: config.countSubtitle || null,
 					}
 				})
 		},
 
-		/** @return {Array<{value: string, id: string, page: string, label: string, description: string}>} Every view the user can put in the menu. */
+		/** @return {Array<object>} Every view the user can put in the menu, with its page and state. */
 		candidates() {
 			const out = []
 			for (const page of this.pages) {
@@ -111,7 +243,7 @@ export default {
 					if (id === '' || typeof view.name !== 'string' || view.name === '') {
 						continue
 					}
-					out.push({ value: keyOf(page.id, id), id, page: page.id, label: view.name, description: page.title })
+					out.push({ value: keyOf(page.id, id), id, page: page.id, label: view.name, state: extractViewState(view) })
 				}
 			}
 			return out
@@ -122,19 +254,46 @@ export default {
 			return this.entries.map((entry) => keyOf(entry.page, entry.id))
 		},
 
-		/** @return {Array<object>} The choices: the candidates, and the entries no candidate covers. */
+		/**
+		 * The choices: the candidates, and the entries no candidate covers. A
+		 * choice's second line says what the view shows; a row in the menu
+		 * adds how many records that is, once the count is in.
+		 *
+		 * @return {Array<{value: string, label: string, description: string}>}
+		 */
 		options() {
+			const byId = new Map(this.pages.map((page) => [page.id, page]))
+			const inMenu = new Set(this.values)
 			const known = new Set(this.candidates.map((c) => c.value))
-			const titles = new Map(this.pages.map((page) => [page.id, page.title]))
+			const candidates = this.candidates.map((c) => {
+				const summary = this.summaryOf(byId.get(c.page), c.state)
+				const count = inMenu.has(c.value) ? this.countText(byId.get(c.page), this.counts[c.value]) : ''
+				return { value: c.value, label: c.label, description: count ? `${summary} · ${count}` : summary }
+			})
 			const stored = this.entries
 				.filter((entry) => !known.has(keyOf(entry.page, entry.id)))
-				.map((entry) => ({ value: keyOf(entry.page, entry.id), label: entry.name, description: titles.get(entry.page) || '' }))
-			return [...this.candidates, ...stored]
+				.map((entry) => ({ value: keyOf(entry.page, entry.id), label: entry.name, description: byId.has(entry.page) ? byId.get(entry.page).title : '' }))
+			return [...candidates, ...stored]
+		},
+	},
+
+	watch: {
+		/** Look up the names a summary needs once the views are in. */
+		candidates() {
+			this.loadValueLabels()
+			this.loadCounts()
+		},
+
+		/** Count a view as soon as it is in the menu. */
+		values() {
+			this.loadCounts()
 		},
 	},
 
 	mounted() {
 		this.fetchViews()
+		this.loadSchemas()
+		this.loadCounts()
 	},
 
 	methods: {
@@ -150,6 +309,91 @@ export default {
 				this.views = []
 			} finally {
 				this.loading = false
+			}
+		},
+
+		/**
+		 * A view's filters as one line, else the page's title.
+		 *
+		 * @param {object} page The page.
+		 * @param {{filters: object, search: string}} state The view's state.
+		 * @return {string}
+		 */
+		summaryOf(page, state) {
+			const schema = this.schemas[page.id]
+			const summary = summarizeViewFilters(state, {
+				properties: (schema && schema.properties) || {},
+				valueLabels: this.valueLabels[page.id] || {},
+				translate: this.cnTranslate,
+			})
+			return summary || page.title
+		},
+
+		/**
+		 * "19 cases": the page's `countSubtitle` for the total, else "19 results".
+		 *
+		 * @param {object} page The page.
+		 * @param {number|undefined} total The count, when it is in.
+		 * @return {string} The text, or '' while the count is unknown.
+		 */
+		countText(page, total) {
+			if (typeof total !== 'number') {
+				return ''
+			}
+			const line = page.countSubtitle ? countLine(page.countSubtitle, total, { translate: this.cnTranslate, appId: this.cnAppId }) : ''
+			return line || n('nextcloud-vue', '%n result', '%n results', total)
+		},
+
+		/** Read the schema of every page that offers saved views, for field titles and value names. */
+		async loadSchemas() {
+			await Promise.all(this.pages.filter((page) => page.register && page.schema).map(async (page) => {
+				const schema = await loadSchema(page.register, page.schema)
+				if (schema) {
+					this.schemas = { ...this.schemas, [page.id]: schema }
+				}
+			}))
+			this.loadValueLabels()
+		},
+
+		/** Look up the names of the referenced records the views filter on. */
+		async loadValueLabels() {
+			for (const page of this.pages) {
+				const schema = this.schemas[page.id]
+				if (!schema) {
+					continue
+				}
+				const fields = fieldsFromSchema(schema, { includeReadOnly: true })
+				const refs = this.candidates
+					.filter((c) => c.page === page.id)
+					.flatMap((c) => viewFilterReferences(c.state, fields))
+				for (const ref of refs) {
+					const labels = await loadLabels({ ...ref, register: ref.register || page.register })
+					if (Object.keys(labels).length === 0) {
+						continue
+					}
+					const forPage = this.valueLabels[page.id] || {}
+					this.valueLabels = { ...this.valueLabels, [page.id]: { ...forPage, [ref.key]: { ...(forPage[ref.key] || {}), ...labels } } }
+				}
+			}
+		},
+
+		/** Count every view in the menu; each count fills in on its own. */
+		loadCounts() {
+			for (const value of this.values) {
+				if (Object.hasOwn(this.counts, value)) {
+					continue
+				}
+				const candidate = this.candidates.find((c) => c.value === value)
+				const page = candidate && this.pages.find((p) => p.id === candidate.page)
+				if (!page || !page.register || !page.schema) {
+					continue
+				}
+				this.counts = { ...this.counts, [value]: undefined }
+				loadCount(page, filterParams(candidate.state)).then((total) => {
+					if (typeof total === 'number') {
+						this.counts = { ...this.counts, [value]: total }
+					}
+				})
 			}
 		},
 

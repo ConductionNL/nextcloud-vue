@@ -38,6 +38,26 @@ SHALL be stored through the menu holder's `set`.
 - **WHEN** the user picks it under "Add view"
 - **THEN** it is stored at the bottom of the list
 
+### Requirement: A menu entry says what its view shows and how many
+
+Each row of `CnSavedViewMenuSettings` SHALL say what its view shows and how many records that is, as the board does
+("Zaaktype Woo-verzoek, status open · 19 zaken"). The first part SHALL be the view's filters as one sentence-case line
+(`summarizeViewFilters`): each filter's field title from the page schema and its values' display names (the referenced
+record's name, a `oneOf` title, an `x-enum-labels` label, yes or no), else the page title for a view without filters.
+The count SHALL use the page's `countSubtitle`, else "N results"; it SHALL be one request per view with the page's fixed
+filter, cached for the session, and SHALL fill in when it arrives without holding up the list. A choice in the picker
+SHALL carry the same line without the count.
+
+#### Scenario: DqPersoonlijkeInstellingen "Woo-verzoeken"
+
+- **GIVEN** the view "Woo-verzoeken" filters case type Woo-verzoek and status open, and 19 cases match
+- **THEN** its row reads "Zaaktype Woo-verzoek, status open · 19 zaken"
+
+#### Scenario: The count is slow
+
+- **GIVEN** the count request has not answered
+- **THEN** the row shows its filter line, and the count joins it when the answer arrives
+
 ### Requirement: The user settings dialog offers the views in my menu
 
 CnAppRoot's user settings dialog SHALL draw the Views in my menu section (key `views`) after the app's own sections when

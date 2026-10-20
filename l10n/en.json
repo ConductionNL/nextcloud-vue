@@ -1918,7 +1918,11 @@
     "Add view": "Add view",
     "Pick a saved view": "Pick a saved view",
     "You see your own views, the views shared with you and the default views. A new view goes to the bottom.": "You see your own views, the views shared with you and the default views. A new view goes to the bottom.",
-    "Your menu has no views yet.": "Your menu has no views yet."
+    "Your menu has no views yet.": "Your menu has no views yet.",
+    "or": "or",
+    "no value": "no value",
+    "yes": "yes",
+    "no": "no"
   },
   "plurals": {
     "{count} member": [

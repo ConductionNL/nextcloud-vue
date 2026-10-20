@@ -11,3 +11,9 @@
 - **files**: `src/components/CnAppRoot/CnAppRoot.vue`
 - [x] Implement: the `views` key and section, the holder's `set`
 - [x] Test: `tests/components/CnAppRoot.savedViewMenuSection.spec.js`
+
+### Task 3: A menu entry says what its view shows and how many
+- **spec_ref**: `openspec/changes/saved-view-menu-settings/specs/saved-view-menu-settings/spec.md#requirement-a-menu-entry-says-what-its-view-shows-and-how-many`
+- **files**: `src/utils/savedViewSummary.js`, `src/utils/countLine.js`, `src/components/CnSavedViewMenuSettings/CnSavedViewMenuSettings.vue`, `src/components/CnIndexPage/CnIndexPage.vue`
+- [x] Implement: the filter summary helper, the shared count line, a cached count per view
+- [x] Test: `tests/utils/savedViewSummary.spec.js`, `tests/components/CnSavedViewMenuSettings.spec.js`

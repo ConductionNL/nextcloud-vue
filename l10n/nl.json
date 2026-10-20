@@ -2130,7 +2130,11 @@
     "Add view": "Weergave toevoegen",
     "Pick a saved view": "Kies een opgeslagen weergave",
     "You see your own views, the views shared with you and the default views. A new view goes to the bottom.": "Je ziet je eigen weergaven, de weergaven die met je zijn gedeeld en de standaardweergaven. Een nieuwe weergave komt onderaan.",
-    "Your menu has no views yet.": "Je menu heeft nog geen weergaven."
+    "Your menu has no views yet.": "Je menu heeft nog geen weergaven.",
+    "or": "of",
+    "no value": "geen waarde",
+    "yes": "ja",
+    "no": "nee"
   },
   "plurals": {
     "{count} member": [
