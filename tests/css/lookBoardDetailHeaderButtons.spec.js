@@ -33,7 +33,7 @@ describe('look-board-detail.css: header buttons', () => {
 	it('draws the quick actions, Edit and the Meer menu neutral, outranking a theme', () => {
 		for (const needle of ['.cn-detail-page__header-actions > .button-vue--secondary', '.cn-detail-page__header-actions .action-item--secondary .action-item__menutoggle']) {
 			const body = rulesEndingWith(needle)
-			expect(body).toMatch(/border:\s*1px solid var\(--color-border-dark\) !important/)
+			expect(body).toMatch(/border:\s*1px solid var\(--cn-board-control-border\) !important/)
 			expect(body).toMatch(/background:\s*var\(--color-main-background\) !important/)
 			expect(body).toMatch(/color:\s*var\(--color-main-text\) !important/)
 			expect(body).toMatch(/padding:\s*0 14px !important/)

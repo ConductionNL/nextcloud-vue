@@ -60,7 +60,7 @@
 	height: var(--cn-board-control-height) !important;
 	min-height: var(--cn-board-control-height) !important;
 	padding: 0 14px !important;
-	border: 1px solid var(--color-border-dark) !important;
+	border: 1px solid var(--cn-board-control-border) !important;
 	border-radius: var(--cn-board-control-radius) !important;
 	background: var(--color-main-background) !important;
 	color: var(--color-main-text) !important;
@@ -184,7 +184,7 @@
 	min-height: 38px;
 	margin: 0;
 	padding: 0 14px;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: 19px;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -290,7 +290,7 @@
 	--nldesign-component-button-font-weight: 600;
 	--nldesign-component-button-secondary-action-color: var(--color-main-text);
 	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
-	--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);
+	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
 	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
 }
 
@@ -427,7 +427,7 @@
 	height: 40px;
 	padding-block: 0;
 	padding-inline: 38px 12px !important;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: 8px;
 	font-size: 14px;
 }
@@ -804,7 +804,7 @@
 	height: 34px !important;
 	min-height: 34px !important;
 	padding: 0 !important;
-	border: 1px solid var(--color-border-dark) !important;
+	border: 1px solid var(--cn-board-control-border) !important;
 	border-radius: 8px !important;
 	color: var(--cn-board-text-soft) !important;
 }

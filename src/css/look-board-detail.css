@@ -75,7 +75,7 @@
 	height: var(--cn-board-control-height) !important;
 	min-height: var(--cn-board-control-height) !important;
 	padding: 0 14px !important;
-	border: 1px solid var(--color-border-dark) !important;
+	border: 1px solid var(--cn-board-control-border) !important;
 	border-radius: var(--cn-board-control-radius) !important;
 	background: var(--color-main-background) !important;
 	color: var(--color-main-text) !important;
@@ -270,14 +270,14 @@
 	--nldesign-component-button-border-radius: 14px;
 	--nldesign-component-button-secondary-action-color: var(--color-main-text);
 	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
-	--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);
+	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
 	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
 	box-sizing: border-box;
 	height: 28px;
 	min-height: 28px;
 	min-width: 0;
 	padding: 0 10px;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: 14px;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -746,7 +746,7 @@
 .cn-look-board .cn-activity-tab--board .cn-activity-tab__kind {
 	align-items: center;
 	background: var(--color-main-background);
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: 18px;
 	color: var(--color-main-text);
 	cursor: pointer;

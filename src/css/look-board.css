@@ -24,6 +24,10 @@
 	/* Buttons and inputs. */
 	--cn-board-control-height: 40px;
 	--cn-board-control-radius: 8px;
+	/* A control's edge: 3:1 against every ground a control sits on (WCAG
+	   1.4.11). Nextcloud's border-dark is a hairline (#dbdbdb, 1.4:1); its
+	   max-contrast border is the control step, and a theme sets both. */
+	--cn-board-control-border: var(--color-border-maxcontrast);
 	/* Cards. */
 	--cn-board-card-radius: 12px;
 	--cn-board-card-padding: 20px 22px;
@@ -244,7 +248,7 @@
 	--nldesign-component-button-primary-action-font-weight: 600;
 	--nldesign-component-button-secondary-action-color: var(--color-main-text);
 	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
-	--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);
+	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
 	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
 }
 
@@ -258,7 +262,7 @@
 	min-height: var(--cn-board-control-height);
 	padding: 0 14px;
 	gap: 8px;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -290,7 +294,7 @@
 	height: var(--cn-board-control-height);
 	min-height: var(--cn-board-control-height);
 	padding: 0 14px;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -344,7 +348,7 @@
    body ink onto every span (thematiq). */
 .cn-look-board .action-item.action-item--secondary .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *) {
 	--nldesign-color-on-surface: var(--color-main-text);
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
