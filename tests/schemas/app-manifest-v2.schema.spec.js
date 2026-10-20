@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.135.0', () => {
+	it('the manifest schema version reads 2.136.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1412,7 +1412,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.133.0 adds the field override keys placeholderFrom, requiredWhen, warnWhen, clearWhenHidden, stored, initialWhen, sectionCollapsed, optionSwatches and optionIcons, optionsFrom groupField, where, itemsPath and hideWhenEmpty, and a source that follows another field through @answer (object-list-edit-in-place), the decision-list, retention, plan and work-queue widgets (widgets), and config.searchRefusalHint (index-page).
 		// 2.134.0 adds headerPill.resolve colorField and iconField, a default saved view's icon, and resolve on the board card's pill and the record card's pills (pill-color-field-cards).
 		// 2.135.0 adds endpoint and formProperties on an action: an open-form edit form over a record behind an endpoint (open-form-endpoint).
-		expect(schema.version).toBe('2.135.0')
+		// 2.136.0 adds POST to an open-form endpoint: a create form posted to an endpoint (grouped-cards-group-action).
+		expect(schema.version).toBe('2.136.0')
 	})
 
 	it('accepts the 2.133.0 widgets and searchRefusalHint, and refuses malformed ones', () => {

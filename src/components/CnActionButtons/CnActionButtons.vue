@@ -250,7 +250,8 @@ import { CnIcon } from '../CnIcon/index.js'
  *    With `endpoint: { url, method?, loadUrl?, responsePath? }` and
  *    `formProperties` (JSON-schema properties) it edits a record that is not a
  *    register object instead: it reads the record from the endpoint, shows the
- *    declared fields filled in, and sends them back with PATCH (or PUT).
+ *    declared fields filled in, and sends them back with PATCH (or PUT). With
+ *    `method: "POST"` it creates one: an empty form, posted to the endpoint.
  *  - **`toggle`** — a two-way state button: `GET`s `stateSource` on mount,
  *    renders `labelOn` / `labelOff`, and on click `writes` the flipped
  *    value OPTIMISTICALLY, reverting on failure.
@@ -1042,6 +1043,10 @@ export default {
 		 */
 		async openEndpointForm(entry) {
 			const properties = entry.formProperties && typeof entry.formProperties === 'object' && !Array.isArray(entry.formProperties) ? entry.formProperties : {}
+			if (String(entry.endpoint.method || '').toUpperCase() === 'POST') {
+				this.formSchema = { type: 'object', properties }
+				return
+			}
 			const loadUrl = entry.endpoint.loadUrl || entry.endpoint.url
 			const record = await fetchEndpointSource({ url: loadUrl, responsePath: entry.endpoint.responsePath || '' }, this.tokenCtx, { force: true })
 				.catch(() => null)
@@ -1071,7 +1076,8 @@ export default {
 			const dialog = this.$refs.formDialog
 			const keys = Object.keys(this.formSchema?.properties || {})
 			const body = Object.fromEntries(keys.filter((key) => key in formData).map((key) => [key, formData[key]]))
-			const method = String(entry.endpoint.method || 'PATCH').toUpperCase() === 'PUT' ? 'put' : 'patch'
+			const verb = String(entry.endpoint.method || 'PATCH').toUpperCase()
+			const method = verb === 'PUT' ? 'put' : (verb === 'POST' ? 'post' : 'patch')
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),

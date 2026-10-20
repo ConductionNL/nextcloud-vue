@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.135.0",
+	"version": "2.136.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3197,10 +3197,10 @@
 				},
 				"endpoint": {
 					"type": "object",
-					"description": "open-form only: edit a record that is not a register object through an endpoint (an OpenRegister organisation). `url` is where the save goes (token-interpolated, app-relative or absolute), `method` is PATCH (default) or PUT, `loadUrl` reads the record when it differs from `url`, `responsePath` plucks it from the answer. The fields are `formProperties`. Without `endpoint` the action is the schema-driven create form.",
+					"description": "open-form only: edit a record that is not a register object through an endpoint (an OpenRegister organisation). `url` is where the save goes (token-interpolated, app-relative or absolute), `method` is PATCH (default) or PUT, or POST to create a record with an empty form, `loadUrl` reads the record when it differs from `url`, `responsePath` plucks it from the answer. The fields are `formProperties`. Without `endpoint` the action is the schema-driven create form.",
 					"properties": {
 						"url": { "type": "string" },
-						"method": { "type": "string", "enum": ["PATCH", "PUT"] },
+						"method": { "type": "string", "enum": ["PATCH", "PUT", "POST"] },
 						"loadUrl": { "type": "string" },
 						"responsePath": { "type": "string" }
 					},

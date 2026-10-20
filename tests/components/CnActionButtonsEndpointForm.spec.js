@@ -18,7 +18,7 @@ import { fetchEndpointSource } from '../../src/composables/useEndpointSource.js'
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
-	default: { get: jest.fn(), put: jest.fn(), patch: jest.fn() },
+	default: { get: jest.fn(), put: jest.fn(), patch: jest.fn(), post: jest.fn() },
 }))
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: jest.fn((p) => `/nc${p}`) }))
 jest.mock('../../src/composables/useEndpointSource.js', () => ({
@@ -66,6 +66,7 @@ describe('open-form with an endpoint', () => {
 		fetchEndpointSource.mockResolvedValue({ id: 'org-1', name: 'Waterland', description: 'Gemeente', slug: 'waterland' })
 		axios.put.mockResolvedValue({ data: { id: 'org-1' } })
 		axios.patch.mockResolvedValue({ data: { id: 'org-1' } })
+		axios.post.mockResolvedValue({ data: { outcome: 'added' } })
 	})
 
 	it('reads the record from the endpoint and shows the declared fields filled in', async () => {
@@ -101,6 +102,19 @@ describe('open-form with an endpoint', () => {
 		expect(axios.patch).toHaveBeenCalled()
 	})
 
+	it('creates with POST from an empty form, reading nothing first', async () => {
+		const wrapper = mountBar({ ...EDIT, endpoint: { url: '/apps/dossiq/api/phases/s1/steps', method: 'POST' } })
+		await flush()
+		await wrapper.find('[data-testid="cn-action-organisation-edit"]').trigger('click')
+		await flush()
+		expect(fetchEndpointSource).not.toHaveBeenCalled()
+		const dialog = wrapper.findComponent({ name: 'CnFormDialog' })
+		expect(dialog.props('item')).toBeNull()
+		dialog.vm.$emit('confirm', { name: 'Welstandsadvies vragen' })
+		await flush()
+		expect(axios.post).toHaveBeenCalledWith('/nc/apps/dossiq/api/phases/s1/steps', { name: 'Welstandsadvies vragen' })
+	})
+
 	it('opens nothing when the record cannot be read', async () => {
 		fetchEndpointSource.mockResolvedValue(null)
 		const wrapper = mountBar(EDIT)
@@ -117,7 +131,7 @@ describe('the manifest schema', () => {
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
 		const action = (schema.$defs || schema.definitions).action.properties
 		expect(action.endpoint.required).toEqual(['url'])
-		expect(action.endpoint.properties.method.enum).toEqual(['PATCH', 'PUT'])
+		expect(action.endpoint.properties.method.enum).toEqual(['PATCH', 'PUT', 'POST'])
 		expect(action.formProperties.type).toBe('object')
 	})
 })
