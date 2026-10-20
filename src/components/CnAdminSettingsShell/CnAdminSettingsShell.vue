@@ -63,6 +63,7 @@
 		<CnTabs
 			v-if="tabItems.length > 0"
 			class="cn-admin-settings-shell__tabs"
+			:class="{ 'cn-admin-settings-shell__tabs--bare': openPanelIsEmpty }"
 			:look="isBoard ? 'board' : 'nextcloud'"
 			:variant="tabsVariant"
 			:ariaLabel="resolvedTitle"
@@ -824,6 +825,19 @@ export default {
 		},
 
 		/**
+		 * Whether the open tab has no panel of its own: its content is the
+		 * default slot, drawn below the strip (the first tab of DqInstellingenAlgemeen).
+		 * The strip then keeps no panel spacing, so the first card stands the
+		 * page's section gap below the strip.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/admin-shell-empty-tab-gap/specs/admin-shell-empty-tab-gap/spec.md#requirement-a-tab-without-a-panel-adds-no-space-under-the-strip
+		 */
+		openPanelIsEmpty() {
+			return !this.$slots[`tab-${this.activeTabId}`]
+		},
+
+		/**
 		 * Whether the app's sections come before the version card.
 		 *
 		 * @return {boolean}
@@ -1056,6 +1070,11 @@ export default {
 }
 
 /* The board look lifts the width and lays the header and cards on a grid (look-board.css). */
+
+/* A tab without a panel of its own: the cards below the strip carry the gap. */
+.cn-admin-settings-shell__tabs--bare > :deep(.cn-tabs__content) {
+	padding-top: 0;
+}
 
 .cn-support-info {
 	margin-top: 16px;
