@@ -219,3 +219,22 @@ describe('CnActionDialog fields and a permission read from a list', () => {
 		expect(w.emitted('done')[0][0]).toEqual({ template: 'call-back', title: 'Call someone back', startsAt: '2026-10-21T09:00', reason: '' })
 	})
 })
+
+describe('CnActionDialog opened with an unresolved token', () => {
+	it('takes the record id from the route, and the dispatcher resolves a prop token when it can', async () => {
+		axios.get.mockReset()
+		invalidateEndpointSourceCache()
+		axios.get.mockResolvedValue({ data: CASE })
+		mount(CnActionDialog, {
+			props: { config: { summary: { source: { url: '/apps/dossiq/api/case/@objectId/summary' }, title: '{title}' } }, objectId: '@objectId' },
+			global: { mocks: { $route: { params: { id: 'z-9' } } }, stubs: { CnDialog: { template: '<div><slot /><slot name="actions" /></div>' }, CnIcon: true } },
+		})
+		await flushPromises()
+		expect(axios.get.mock.calls[0][0]).toBe('/nc/apps/dossiq/api/case/z-9/summary')
+
+		const { dispatchAction } = require('../../src/utils/actionsDispatcher.js')
+		const openModal = jest.fn()
+		dispatchAction({ type: 'open-modal', target: 'CnActionDialog', props: { objectId: '@objectId', config: { title: 'Archive' } } }, { registry: {}, openModal, tokenCtx: { objectId: 'z-82' } })
+		expect(openModal).toHaveBeenCalledWith('CnActionDialog', { objectId: 'z-82', config: { title: 'Archive' } })
+	})
+})
