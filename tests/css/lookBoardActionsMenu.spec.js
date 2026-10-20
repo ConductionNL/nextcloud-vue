@@ -37,7 +37,7 @@ describe('look-board.css: the secondary Actions menu trigger', () => {
 	it('draws it neutral: main background, grey border, main text at 600', () => {
 		const rule = rulesFor(trigger)
 		expect(rule).toContain('background: var(--color-main-background)')
-		expect(rule).toContain('border: 1px solid var(--color-border-dark)')
+		expect(rule).toContain('border: 1px solid var(--cn-board-control-border)')
 		expect(rule).toContain('color: var(--color-main-text)')
 		expect(rule).toContain('font-weight: 600')
 	})
