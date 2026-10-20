@@ -10,6 +10,10 @@
   Its action menu drives the shared `useManifestEditor` instance (passed as
   `editor`): Edit page ⇄ Save page, Add widget (disabled unless editing),
   Edit menu…, Edit sidebar…. Save emits `@save(delta)` with the minimal delta.
+
+  Under the board look the menu also carries Open AI chat when an AI companion
+  is on the page, and the companion's floating hex is hidden while the square
+  shows. Without the look, or without the square, the hex stays the launcher.
 -->
 <template>
 	<div v-if="isAvailable" class="cn-buildiq-edit">
@@ -112,6 +116,15 @@
 				{{ t('nextcloud-vue', 'Edit flows…') }}
 			</NcActionButton>
 
+			<!-- Under the board look the AI chat launcher lives here instead
+			     of as the floating hex, which the boards do not draw. -->
+			<NcActionButton v-if="aiChatInMenu" :closeAfterClick="true" @click="onOpenAiChat">
+				<template #icon>
+					<Creation :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Open AI chat') }}
+			</NcActionButton>
+
 			<NcActionButton v-if="isEditing" :closeAfterClick="true" @click="onCancel">
 				<template #icon>
 					<Close :size="20" />
@@ -178,6 +191,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import Creation from 'vue-material-design-icons/Creation.vue'
 import Database from 'vue-material-design-icons/Database.vue'
 import FileMultiple from 'vue-material-design-icons/FileMultiple.vue'
 import GestureTapButton from 'vue-material-design-icons/GestureTapButton.vue'
@@ -197,6 +211,7 @@ import CnEditSidebarModal from '../../dialogs/CnEditSidebarModal.vue'
 import CnEditSupportModal from '../../dialogs/CnEditSupportModal.vue'
 import CnEditWalkthroughModal from '../../dialogs/CnEditWalkthroughModal.vue'
 import CnFlowEditModal from '../../dialogs/CnFlowEditModal.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { getDefaultContent, getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
@@ -209,6 +224,7 @@ export default {
 		NcLoadingIcon,
 		Pencil,
 		ContentSave,
+		Creation,
 		Plus,
 		MenuIcon,
 		Close,
@@ -243,6 +259,8 @@ export default {
 		cnOpenBuildAvailable: { default: false },
 		/** The live (published) manifest published by CnAppRoot — read when not editing. */
 		cnManifest: { default: null },
+		/** The look the app is drawn in (`board` or `nextcloud`), provided by CnAppRoot. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -313,6 +331,8 @@ export default {
 			showSupportModal: false,
 			menuOpen: false,
 			saving: false,
+			hasAiCompanion: false,
+			holdsAiLauncher: false,
 		}
 	},
 
@@ -334,6 +354,21 @@ export default {
 		/** Whether to render — the `available` prop OR the injected availability. */
 		isAvailable() {
 			return Boolean(this.available || this.unref(this.cnOpenBuildAvailable))
+		},
+
+		/**
+		 * Whether the square carries the AI chat launcher: under the board look,
+		 * while the square shows.
+		 *
+		 * @return {boolean}
+		 */
+		carriesAiLauncher() {
+			return this.isAvailable && normalizeLook(this.unref(this.cnLook)) === 'board'
+		},
+
+		/** @return {boolean} Whether the menu lists Open AI chat. */
+		aiChatInMenu() {
+			return this.carriesAiLauncher && this.hasAiCompanion
 		},
 
 		/** Active page id — the `pageId` prop, else the current route name. */
@@ -420,8 +455,79 @@ export default {
 		},
 	},
 
+	watch: {
+		carriesAiLauncher: {
+			immediate: true,
+			handler(carries) {
+				this.setAiLauncherHold(carries)
+			},
+		},
+
+		menuOpen(open) {
+			if (open) {
+				this.refreshAiCompanion()
+			}
+		},
+	},
+
+	created() {
+		this.refreshAiCompanion()
+	},
+
+	beforeUnmount() {
+		this.setAiLauncherHold(false)
+	},
+
 	methods: {
 		t,
+
+		/**
+		 * The page's AI companion, or null. It may come from another bundle
+		 * (a host app's standalone mount), so it is found through the window
+		 * slot every companion claims, not through an import.
+		 *
+		 * @return {object|null}
+		 */
+		aiCompanion() {
+			const companion = typeof window !== 'undefined' ? window.__cnAiCompanionPrimary : null
+			return companion && typeof companion.openPanel === 'function' ? companion : null
+		},
+
+		/** Look again for a companion: its health probe may answer after this mounts. */
+		refreshAiCompanion() {
+			this.hasAiCompanion = this.aiCompanion() !== null
+		},
+
+		/** Open the page's AI chat window. */
+		onOpenAiChat() {
+			const companion = this.aiCompanion()
+			if (companion) {
+				companion.openPanel()
+			}
+		},
+
+		/**
+		 * Take or give back this square's hold on the AI launcher. While any
+		 * square holds it, `<html data-cn-ai-launcher="menu">` hides the
+		 * floating hex (see the unscoped style below). Holds are counted on the
+		 * window because a page can show more than one square.
+		 *
+		 * @param {boolean} hold Whether this square should hold it.
+		 */
+		setAiLauncherHold(hold) {
+			if (typeof window === 'undefined' || typeof document === 'undefined' || hold === this.holdsAiLauncher) {
+				return
+			}
+			this.holdsAiLauncher = hold
+			const count = Math.max(0, (window.__cnAiLauncherHolds || 0) + (hold ? 1 : -1))
+			window.__cnAiLauncherHolds = count
+			if (count > 0) {
+				document.documentElement.dataset.cnAiLauncher = 'menu'
+			} else {
+				delete document.documentElement.dataset.cnAiLauncher
+			}
+		},
+
 		/**
 		 * Read a value that may be a Vue ref or a plain value.
 		 *
@@ -741,6 +847,14 @@ export default {
 	},
 }
 </script>
+
+<style>
+/* The AI chat launcher sits in the buildiq square's menu (board look), so the
+   floating hex stands down. Outranks the hex's own `display: flex !important`. */
+html[data-cn-ai-launcher='menu'] .cn-ai-floating-button.cn-ai-floating-button {
+	display: none !important;
+}
+</style>
 
 <style scoped>
 .cn-buildiq-edit {
