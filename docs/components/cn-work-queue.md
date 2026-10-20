@@ -5,6 +5,7 @@ One list of everything waiting on the reader: tasks, consultations, mentions, ca
 - The component names no source. The server answers the groups, each with a key, a label, a sentence saying what closes it, and its items. A new kind of work needs no change here.
 - A source that could not be read is named at the top ("Calendar could not be read, so this list is incomplete."). It is not folded into "Nothing is waiting on you": those are different sentences.
 - A group can be hidden until tomorrow. The server keeps that choice, so it follows the reader to another device.
+- It reads again on `cn:page:refresh`, so work planned or closed in a dialog shows at once.
 - An item opens by its `route` (through the router), its `href` (like a link, so a ctrl or middle click opens a new tab), or `itemHref`; otherwise the queue emits `open`.
 
 It is also the `work-queue` catalog widget, taking the same `content`.
