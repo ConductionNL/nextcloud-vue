@@ -17,9 +17,10 @@
 -->
 <template>
 	<div
-		v-if="probeSucceeded && !isChatPage && isPrimaryCompanion"
+		v-if="probeSucceeded && !isChatPage && (embedded || isPrimaryCompanion)"
 		class="cn-ai-companion"
-		data-testid="cn-ai-companion">
+		:class="{ 'cn-ai-companion--embedded': embedded }"
+		:data-testid="embedded ? 'cn-ai-companion-embedded' : 'cn-ai-companion'">
 		<!--
 		  The hex is rendered UNCONDITIONALLY and toggles the window.
 
@@ -42,12 +43,14 @@
 		  worth nothing.
 		-->
 		<CnAiFloatingButton
+			v-if="!embedded"
 			:visible="true"
 			:position="position"
 			@click="togglePanel" />
 		<CnAiChatPanel
 			ref="panel"
-			:visible="isPanelOpen"
+			:visible="embedded || isPanelOpen"
+			:embedded="embedded"
 			:streamState="stream.state"
 			:chatAppId="chatAppId"
 			:context="effectiveContext"
@@ -152,6 +155,19 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Render the chat as a panel of the page (a tab, a card) instead of the
+		 * launcher hex and its floating window. An embedded chat is always
+		 * open, has no launcher, and does not take the page's single companion
+		 * slot, so the floating companion keeps working beside it.
+		 *
+		 * @type {boolean}
+		 */
+		embedded: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	data() {
@@ -242,7 +258,7 @@ export default {
 		 * versions, and it costs one timeout.
 		 */
 		yieldToACompanionThatCannotYield() {
-			if (typeof document === 'undefined' || this.isPrimaryCompanion !== true) {
+			if (typeof document === 'undefined' || this.isPrimaryCompanion !== true || this.embedded) {
 				return
 			}
 
@@ -304,7 +320,7 @@ export default {
 			// Claiming late is also why the claim is not in a `watch` on the
 			// window key: the slot is contended exactly once per page, at the
 			// moment each candidate learns it can render.
-			if (this.probeSucceeded !== true || this.isChatPage === true) {
+			if (this.probeSucceeded !== true || this.isChatPage === true || this.embedded) {
 				return
 			}
 

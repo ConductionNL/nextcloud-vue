@@ -403,6 +403,7 @@ export { CnFormPage, CnLinkCardsPage, CnMapPage, CnReportsPage, CnStorePage, CnW
 export {
 	CnAiAgentPicker,
 	CnAiChatPanel,
+	CnAiChatWidget,
 	CnAiCompanion,
 	CnAiFloatingButton,
 	CnAiHistoryList,
