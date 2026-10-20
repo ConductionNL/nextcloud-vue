@@ -1750,3 +1750,31 @@ body:has(.cn-look-board) .v-popper__popper.action-item__popper:has([data-testid^
 	color: var(--color-primary-element-light-text);
 	font-weight: 700;
 }
+
+/* ---- Controls on an admin settings card -------------------------------- */
+/* The boards draw a settings card's text fields and its save and version
+   buttons 40px tall with 14px labels (DqInstellingenAlgemeen "Naam van de
+   organisatie", "Opslaan", "Configuratie opnieuw importeren";
+   DqBeheerinstellingen "Register"), as the board forms do; Nextcloud draws
+   them 34px at 15px. The field wrapper holds the input and its 2px focus
+   ring, as on a board form. The compact version card's title is 18px.
+   @spec openspec/changes/board-settings-card-controls/specs/board-settings-card-controls/spec.md#requirement-a-board-settings-cards-fields-and-save-buttons-are-40px */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__main-wrapper {
+	height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__input {
+	height: var(--cn-field-height, 40px);
+	min-height: var(--cn-field-height, 40px);
+}
+
+.cn-look-board .cn-settings-section__save:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-version-info--board:not(.cn-look-nextcloud *) .cn-version-info__footer-row .button-vue {
+	height: var(--cn-field-height, 40px);
+	min-height: var(--cn-field-height, 40px);
+	font-size: 14px;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(.cn-version-info--compact) > .settings-section__name {
+	font-size: 18px;
+}
