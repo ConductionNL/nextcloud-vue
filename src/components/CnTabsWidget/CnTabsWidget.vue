@@ -969,8 +969,9 @@ export default {
 		 * `columns: 4` (every widget spans a quarter of the row) and/or
 		 * `layout: [{ widgetId, gridWidth }]`, the page grid's width key per
 		 * widget (of 12; a widget it does not name takes the `columns` share, or
-		 * the whole row). Widgets wrap onto the next row. Heights follow the
-		 * content.
+		 * the whole row). Widgets wrap onto the next row. A widget `layout`
+		 * places that ends up alone in its row (its partner hidden for this
+		 * record) takes the whole row. Heights follow the content.
 		 *
 		 * @param {object|string} tab The `content.tabs[]` entry.
 		 * @param {Array<object>} widgets The widgets of the stack, in order.
@@ -989,7 +990,26 @@ export default {
 			if (placed.size === 0 && share === 12) {
 				return null
 			}
-			return widgets.map((widget) => placed.get(widget.id) ?? share)
+			const spans = widgets.map((widget) => placed.get(widget.id) ?? share)
+			// A widget `layout` sets beside a partner fills its row when it is
+			// alone there: the partner is hidden for this record, and half a
+			// row with nothing beside it is a hole, not a layout.
+			const rows = []
+			let used = 12
+			spans.forEach((span, index) => {
+				if (used + span > 12) {
+					rows.push([])
+					used = 0
+				}
+				rows[rows.length - 1].push(index)
+				used += span
+			})
+			rows.forEach((row) => {
+				if (row.length === 1 && placed.has(widgets[row[0]].id)) {
+					spans[row[0]] = 12
+				}
+			})
+			return spans
 		},
 
 		/**
