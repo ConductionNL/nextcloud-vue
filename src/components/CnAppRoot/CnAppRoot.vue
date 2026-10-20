@@ -758,6 +758,7 @@ import { installModalStack, uninstallModalStack } from '../../utils/modalStack.j
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
 import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
@@ -2400,7 +2401,7 @@ export default {
 		 */
 		offersSavedViews() {
 			const pages = this.manifest && Array.isArray(this.manifest.pages) ? this.manifest.pages : []
-			return pages.some((page) => page && page.config && page.config.allowSavedViews === true)
+			return pages.some((page) => page && page.type === 'index' && pageOffersSavedViews(page.config))
 		},
 
 		/**

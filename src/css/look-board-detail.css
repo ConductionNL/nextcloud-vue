@@ -75,7 +75,7 @@
 	height: var(--cn-board-control-height) !important;
 	min-height: var(--cn-board-control-height) !important;
 	padding: 0 14px !important;
-	border: 1px solid var(--color-border-dark) !important;
+	border: 1px solid var(--cn-board-control-border) !important;
 	border-radius: var(--cn-board-control-radius) !important;
 	background: var(--color-main-background) !important;
 	color: var(--color-main-text) !important;
@@ -88,18 +88,29 @@
 	background: var(--color-background-hover) !important;
 }
 
-/* Each header icon is 16px with 8px to its label; NcButton draws 20px in a 30px slot. */
+/* Each header icon is 16px; NcButton draws 20px in a 30px slot. The 8px to
+   the label is the board's icon-and-label gap (look-board.css). */
 .cn-look-board .cn-detail-page .cn-detail-page__header-actions > .button-vue--secondary .button-vue__icon {
 	width: 16px;
 	min-width: 16px;
 	height: 16px;
 	min-height: 16px;
-	margin-inline-end: 8px;
 }
 
 .cn-look-board .cn-detail-page .cn-detail-page__header-actions > .button-vue--secondary .button-vue__icon svg {
 	width: 16px;
 	height: 16px;
+}
+
+/* Row 3: the Follow control under the breadcrumb, on the full width.
+   @spec openspec/changes/board-follow-row/specs/board-follow-row/spec.md#requirement-the-board-follow-control-sits-under-the-breadcrumb */
+.cn-look-board .cn-detail-page__header-row3 {
+	align-items: center;
+	display: flex;
+	flex: 1 0 100%;
+	flex-wrap: wrap;
+	gap: 8px;
+	min-width: 0;
 }
 
 /* Row 2: pills, breadcrumb, dot, meta, chips. */
@@ -259,14 +270,14 @@
 	--nldesign-component-button-border-radius: 14px;
 	--nldesign-component-button-secondary-action-color: var(--color-main-text);
 	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
-	--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);
+	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
 	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
 	box-sizing: border-box;
 	height: 28px;
 	min-height: 28px;
 	min-width: 0;
 	padding: 0 10px;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: 14px;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -404,13 +415,14 @@
 
 /* The Actions button at the end of the strip: at the top, 8px in from the
    end and 8px clear of the card, so the tabs, aligned to the bottom, sit 6px
-   lower than the button (DqZaak "Acties"). */
+   lower than the button, 12px in at both sides (DqZaak "Acties"). */
 .cn-look-board .cn-tabs--board .cn-tabs__nav-end {
 	align-self: flex-start;
 	margin: 0 8px 8px 0;
 }
 
 .cn-look-board .cn-tabs--board .cn-tabs__nav-end .button-vue {
+	--button-padding: 12px;
 	min-height: 34px;
 	block-size: 34px;
 }
@@ -734,7 +746,7 @@
 .cn-look-board .cn-activity-tab--board .cn-activity-tab__kind {
 	align-items: center;
 	background: var(--color-main-background);
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: 18px;
 	color: var(--color-main-text);
 	cursor: pointer;

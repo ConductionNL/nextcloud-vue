@@ -14,8 +14,8 @@ The quick-filter and saved-view chips have the box the boards draw.
 
 ### Requirement: Board quick-filter chips take the board's box
 
-In the board look the selected quick-filter or saved-view chip SHALL have no border, and a chip's count SHALL set its
-figure at the font's normal line height.
+In the board look the selected quick-filter or saved-view chip SHALL have no border. A chip's count SHALL stay on a
+14px line, a 16px bubble with its 1px pads.
 
 #### Scenario: DqZaken "Alles 48"
 

@@ -287,11 +287,11 @@
 			</div>
 		</NcAppSidebarTab>
 
-		<!-- Filters Tab: the page's saved views (save, list, manage, add to menu). -->
+		<!-- Views tab (id filters-tab): the page's saved views (save, list, manage, add to menu). -->
 		<NcAppSidebarTab
 			v-if="savedViews"
 			id="filters-tab"
-			:name="t('nextcloud-vue', 'Filters')"
+			:name="t('nextcloud-vue', 'Views')"
 			:order="3">
 			<template #icon>
 				<BookmarkOutline :size="20" />

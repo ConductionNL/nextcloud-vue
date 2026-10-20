@@ -1379,7 +1379,7 @@ import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, schemaSlug, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
@@ -1500,11 +1500,22 @@ function declaredFilterFields(props) {
  * @return {object} The `{ fieldKey: values }` map, empty when the link carries none.
  */
 function namedFiltersFromRoute(instance, props) {
+	const route = instance && instance.proxy && instance.proxy.$route
+	return namedFiltersFromQuery((route && route.query) || {}, props)
+}
+
+/**
+ * The named-source filters a query carries, as `namedFiltersFromRoute` reads them.
+ *
+ * @param {object} query The route query.
+ * @param {object} props The CnIndexPage props.
+ *
+ * @return {object} The `{ fieldKey: values }` map.
+ */
+function namedFiltersFromQuery(query, props) {
 	if (!props.entitySource) {
 		return {}
 	}
-	const route = instance && instance.proxy && instance.proxy.$route
-	const query = (route && route.query) || {}
 	const properties = declaredFilterFields(props)
 	const out = {}
 
@@ -2947,9 +2958,11 @@ export default {
 		},
 
 		/**
-		 * Opt-in flag for the saved-views control (saved-views-ui) rendered
-		 * in the toolbar. Defaults to `false` — an app must explicitly
-		 * enable it per page. When `true`, a Views dropdown lists the
+		 * Saved views (saved-views-ui). Unset, the sidebar's Views tab is on
+		 * for every page with a sidebar and a source a view can be scoped to
+		 * (register and schema, `entitySource` or `savedViewsScope`); `false`
+		 * turns it off. `true` also forces the sidebar and adds the toolbar
+		 * control, where a Views dropdown lists the
 		 * current user's OpenRegister saved-search views
 		 * (`GET /apps/openregister/api/views`); applying one writes its
 		 * stored filters/search/sort into the route query (reusing the
@@ -2961,7 +2974,7 @@ export default {
 		 */
 		allowSavedViews: {
 			type: Boolean,
-			default: false,
+			default: null,
 		},
 
 		/**
@@ -5523,7 +5536,7 @@ export default {
 		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
 		 */
 		savedViewsForSidebar() {
-			if (!this.allowSavedViews) {
+			if (!this.savedViewsOffered) {
 				return null
 			}
 			return {
@@ -6664,7 +6677,16 @@ export default {
 		 * @return {{ scope: string, register: string, schema: object|string|null }} The page's source.
 		 */
 		savedViewsPage() {
-			return { scope: this.savedViewsScope, register: this.register, schema: this.schema }
+			return { scope: this.savedViewsScope, register: this.register, schema: this.schema, source: this.entitySource }
+		},
+
+		/**
+		 * Whether this page offers saved views in its sidebar.
+		 *
+		 * @return {boolean}
+		 */
+		savedViewsOffered() {
+			return pageOffersSavedViews(this)
 		},
 
 		/**
@@ -8237,7 +8259,7 @@ export default {
 	created() {
 		this.applyViewModeFromRoute()
 		this.pushAiContext()
-		if (this.allowSavedViews) {
+		if (this.savedViewsOffered) {
 			this.fetchSavedViews()
 		}
 		this.selfActions = createSelfModeActions({
@@ -11345,8 +11367,8 @@ export default {
 
 		/**
 		 * Fetch the current user's saved views (own + public) from
-		 * OpenRegister's views API. Called from created() when
-		 * `allowSavedViews` is enabled.
+		 * OpenRegister's views API. Called from created() when the page
+		 * offers saved views.
 		 */
 		async fetchSavedViews() {
 			this.savedViewsLoading = true
@@ -11416,6 +11438,9 @@ export default {
 				query.savedView = this.appliedSavedViewId
 			}
 			const nav = this.$router.replace({ query })
+			if (this.isNamedSource) {
+				this.namedActiveFilters = namedFiltersFromQuery(query, this)
+			}
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
 			if (nav && typeof nav.catch === 'function') {

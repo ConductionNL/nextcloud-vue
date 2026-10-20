@@ -35,7 +35,7 @@ describe('look-board-index.css: toolbar buttons under the nldesign theme', () =>
 		'--nldesign-component-button-font-weight: 600;',
 		'--nldesign-component-button-secondary-action-color: var(--color-main-text);',
 		'--nldesign-component-button-secondary-action-background-color: var(--color-main-background);',
-		'--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);',
+		'--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);',
 		'--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);',
 	])('the bar sets %s', (token) => {
 		expect(bodyOf('.cn-look-board .cn-actions-bar:not(.cn-look-nextcloud *)')).toContain(token)
