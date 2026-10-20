@@ -217,6 +217,9 @@ describe('CnActionDialog fields and a permission read from a list', () => {
 		await flushPromises()
 		expect(axios.post).toHaveBeenCalledWith('/nc/apps/dossiq/api/personal-queue/planned-items', { template: 'call-back', title: 'Call someone back', startsAt: '2026-10-21T09:00' })
 		expect(w.emitted('done')[0][0]).toEqual({ template: 'call-back', title: 'Call someone back', startsAt: '2026-10-21T09:00', reason: '' })
+	})
+})
+
 describe('CnActionDialog opened with an unresolved token', () => {
 	it('takes the record id from the route, and the dispatcher resolves a prop token when it can', async () => {
 		axios.get.mockReset()
