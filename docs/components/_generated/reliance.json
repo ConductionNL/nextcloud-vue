@@ -686,7 +686,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 184,
+			"transitive": 186,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -730,6 +730,7 @@
 				"CnIntegrationWidget",
 				"CnInteractionFormWidget",
 				"CnKbSearchWidget",
+				"CnMacrosWidget",
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
@@ -918,7 +919,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 187,
+			"transitive": 189,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -962,6 +963,7 @@
 				"CnIntegrationWidget",
 				"CnInteractionFormWidget",
 				"CnKbSearchWidget",
+				"CnMacrosWidget",
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
@@ -1460,7 +1462,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 194,
+			"transitive": 196,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1505,6 +1507,7 @@
 				"CnIntegrationWidget",
 				"CnInteractionFormWidget",
 				"CnKbSearchWidget",
+				"CnMacrosWidget",
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
@@ -1761,7 +1764,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 9,
-			"transitive": 191,
+			"transitive": 193,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1805,6 +1808,7 @@
 				"CnIntegrationWidget",
 				"CnInteractionFormWidget",
 				"CnKbSearchWidget",
+				"CnMacrosWidget",
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
@@ -2199,6 +2203,13 @@
 				"CnXwikiPagePicker"
 			],
 			"page": "cn-logs-page"
+		},
+		"CnMacrosWidget": {
+			"direct": 5,
+			"transitive": 1,
+			"tier": "medium",
+			"via": [],
+			"page": null
 		},
 		"CnMailTab": {
 			"direct": 0,
@@ -2822,7 +2833,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 208,
+			"transitive": 210,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2871,6 +2882,7 @@
 				"CnInteractionFormWidget",
 				"CnKbSearchWidget",
 				"CnLogsPage",
+				"CnMacrosWidget",
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
@@ -3249,7 +3261,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 185,
+			"transitive": 187,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3294,6 +3306,7 @@
 				"CnIntegrationWidget",
 				"CnInteractionFormWidget",
 				"CnKbSearchWidget",
+				"CnMacrosWidget",
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
@@ -4280,7 +4293,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 175,
+			"transitive": 177,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4321,6 +4334,7 @@
 				"CnIntegrationWidget",
 				"CnInteractionFormWidget",
 				"CnKbSearchWidget",
+				"CnMacrosWidget",
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",

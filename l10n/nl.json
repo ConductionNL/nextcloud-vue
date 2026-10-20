@@ -2144,7 +2144,12 @@
     "no": "nee",
     "Recompute nomination": "Nominatie herberekenen",
     "Recompute": "Herberekenen",
-    "Task deadline": "Deadline"
+    "Task deadline": "Deadline",
+    "The macro did not run: {error}": "De macro is niet uitgevoerd: {error}",
+    "Last run: {name}, {date}": "Laatst uitgevoerd: {name}, {date}",
+    "This record has no macros": "Er zijn geen macro's voor dit item",
+    "Running …": "Bezig …",
+    "Execute": "Uitvoeren"
   },
   "plurals": {
     "{count} member": [
