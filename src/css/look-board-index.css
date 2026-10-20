@@ -843,6 +843,8 @@
 	margin-inline-start: auto;
 }
 
+/* A page link is a <button>: Nextcloud's `button` rule sets it bold, the
+   boards set the links at the regular weight and only the current page at 600. */
 .cn-look-board .cn-pagination--board .cn-pagination__board-link {
 	box-sizing: border-box;
 	min-width: 34px;
@@ -855,6 +857,7 @@
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 14px;
+	font-weight: 400;
 	cursor: pointer;
 }
 
