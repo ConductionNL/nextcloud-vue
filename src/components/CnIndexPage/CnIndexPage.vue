@@ -1361,6 +1361,7 @@ import {
 	resolveDropValue,
 } from '../../utils/boardReferenceColumns.js'
 import { isColumnSortable } from '../../utils/columnFilters.js'
+import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
@@ -9535,23 +9536,7 @@ export default {
 		 * @return {string} The line, '' for a declaration without both forms.
 		 */
 		countLine(subtitle, total, shown) {
-			const fill = (text) => {
-				const out = String(text).replace('{total}', String(total))
-				return shown === null ? out : out.replace('{shown}', String(shown))
-			}
-			if (typeof subtitle === 'string') {
-				return fill(this.cnTranslate(subtitle))
-			}
-			const singular = subtitle && typeof subtitle.singular === 'string' ? subtitle.singular : ''
-			const plural = subtitle && typeof subtitle.plural === 'string' ? subtitle.plural : ''
-			if (singular === '' || plural === '') {
-				return ''
-			}
-			if (typeof this.cnAppId === 'string' && this.cnAppId !== '') {
-				const vars = shown === null ? { total } : { total, shown }
-				return n(this.cnAppId, singular, plural, total, vars)
-			}
-			return fill(this.cnTranslate(total === 1 ? singular : plural))
+			return countLine(subtitle, total, { shown, translate: this.cnTranslate, appId: this.cnAppId })
 		},
 
 		/**

@@ -563,6 +563,19 @@
 						<!-- @slot user-settings-sections The app's own sections (NcAppSettingsSection children), ADDED to the library's default sections (notifications, credentials, walkthrough, integrations). Place, order or hide the defaults with the `userSettingsSections` prop. -->
 						<slot name="user-settings-sections" />
 					</template>
+					<!--
+						The user's "My views" menu entries: reorder, remove, add
+						(board DqPersoonlijkeInstellingen). Only in an app with a
+						page that offers saved views.
+					-->
+					<NcAppSettingsSection v-else-if="section === 'views' && userSettingsOpen && offersSavedViews"
+						id="cn-saved-view-menu"
+						:name="libraryCopy('Views in my menu')">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<FilterOutline :size="18" />
+						</template>
+						<CnSavedViewMenuSettings />
+					</NcAppSettingsSection>
 					<CnNotificationPreferences v-else-if="section === 'notifications' && userSettingsOpen" />
 					<!--
 						Credential broker (OpenRegister). Lets the user manage the
@@ -703,6 +716,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Play from 'vue-material-design-icons/Play.vue'
@@ -718,6 +732,7 @@ import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnHeaderSearchLabel from '../CnHeaderSearchLabel/CnHeaderSearchLabel.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
+import CnSavedViewMenuSettings from '../CnSavedViewMenuSettings/CnSavedViewMenuSettings.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
@@ -819,7 +834,7 @@ const OR_STORE_LINK = '/index.php/settings/apps/integration/openregister'
  * The sections of the user-settings modal, in their default order. `app`
  * stands for the app's own slot content.
  */
-const USER_SETTINGS_SECTIONS = ['app', 'notifications', 'credentials', 'walkthrough', 'integrations']
+const USER_SETTINGS_SECTIONS = ['app', 'views', 'notifications', 'credentials', 'walkthrough', 'integrations']
 
 export default {
 	name: 'CnAppRoot',
@@ -836,6 +851,7 @@ export default {
 		NcLoadingIcon,
 		NcNoteCard,
 		DatabaseSearchOutline,
+		FilterOutline,
 		KeyOutline,
 		OpenInNew,
 		Play,
@@ -851,6 +867,7 @@ export default {
 		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
+		CnSavedViewMenuSettings,
 		CnUserSettingsDialog,
 		CnCredentials,
 		CnTenantBadge,
@@ -1925,6 +1942,7 @@ export default {
 				entries: [],
 				toggle: (entry) => this.toggleSavedViewMenu(entry),
 				sync: (page, views) => this.syncSavedViewMenu(page, views),
+				set: (entries) => this.setSavedViewMenu(entries),
 			},
 
 			// Nextcloud's own header, present on a server-rendered page; the
@@ -3485,6 +3503,19 @@ export default {
 				return
 			}
 			this.savedViewMenu.entries = next
+			this._hydrateSavedViewMenuCounts()
+			await this.writeSavedViewMenu()
+		},
+
+		/**
+		 * Replace the list (reordered, entries removed or added) and store it.
+		 *
+		 * @param {Array<object>} entries The new list, in menu order.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-view-menu-settings/specs/saved-view-menu-settings/spec.md#requirement-a-user-orders-and-picks-the-views-in-their-menu
+		 */
+		async setSavedViewMenu(entries) {
+			this.savedViewMenu.entries = normalizeSavedViewMenu(entries)
 			this._hydrateSavedViewMenuCounts()
 			await this.writeSavedViewMenu()
 		},
