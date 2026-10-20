@@ -296,12 +296,15 @@
 
 /* Filter: a labelled secondary button, 36px, radius 8, 12px at both sides
    and 14px text, with the active count. NcButton with an icon pads its start
-   4px and sets 15px. */
+   4px and sets 15px. Its secondary border reads the light primary hover,
+   which a theme can set near white; the board draws the control border.
+   @spec openspec/changes/board-index-toolbar-controls/specs/board-index-toolbar-controls/spec.md#requirement-the-filter-button-draws-the-control-border */
 .cn-look-board .cn-actions-bar__filter-button.button-vue,
 .cn-look-board .cn-actions-bar__filter-menu .button-vue {
 	min-height: 36px;
 	height: 36px;
 	padding: 0 12px;
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: 8px;
 	font-size: 14px;
 	font-weight: 600;
@@ -423,8 +426,13 @@
 	max-width: 360px;
 }
 
+/* Nextcloud's input rule (`input:not([type=radio]):not(...)`, nine
+   attribute selectors) outranks this selector and sets the field to the
+   clickable area, 34px, so the height takes `!important`.
+   @spec openspec/changes/board-index-toolbar-controls/specs/board-index-toolbar-controls/spec.md#requirement-the-search-field-is-40px-under-nextclouds-input-rule */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__search .cn-actions-bar__search-input {
-	height: 40px;
+	height: 40px !important;
+	min-height: 40px !important;
 	padding-block: 0;
 	padding-inline: 38px 12px !important;
 	border: 1px solid var(--cn-board-control-border);
