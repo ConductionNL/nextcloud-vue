@@ -2143,7 +2143,8 @@
     "yes": "ja",
     "no": "nee",
     "Recompute nomination": "Nominatie herberekenen",
-    "Recompute": "Herberekenen"
+    "Recompute": "Herberekenen",
+    "Task deadline": "Deadline"
   },
   "plurals": {
     "{count} member": [

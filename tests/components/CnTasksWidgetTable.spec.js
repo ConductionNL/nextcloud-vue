@@ -92,6 +92,17 @@ describe('CnTasksWidget table', () => {
 		expect(rows[0].text()).toContain('3 van 7 nog open')
 	})
 
+	it('heads the deadline column with its own key, so an app can word it apart from a case term', () => {
+		const translate = (key) => ({ Deadline: 'Termijn', 'Task deadline': 'Deadline' })[key] || key
+		const w = mount(CnTasksWidget, {
+			props: { content: CONTENT, objectId: 'case-1', translate },
+			global: { stubs: { NcAvatar: true, NcActions: true, NcActionButton: true } },
+		})
+		const heads = w.findAll('th').map((th) => th.text())
+		expect(heads).toContain('Deadline')
+		expect(heads).not.toContain('Termijn')
+	})
+
 	it('reports the summary and New task for the card header', () => {
 		const header = mountTable().emitted('header').at(-1)[0]
 		expect(header.subtitle).toBe('2 open, 1 done · sorted by deadline')
