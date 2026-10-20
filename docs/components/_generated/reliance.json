@@ -2126,7 +2126,7 @@
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
 			],
-			"page": null
+			"page": "cn-linked-widget"
 		},
 		"CnLinksWidget": {
 			"direct": 0,
@@ -3413,7 +3413,7 @@
 			"transitive": 7,
 			"tier": "medium",
 			"via": [],
-			"page": null
+			"page": "cn-saved-view-menu-settings"
 		},
 		"CnSavedViewPresentationDialog": {
 			"direct": 0,
