@@ -33,8 +33,22 @@ const CnNotesCardAdapter = {
 		// Accepted-and-ignored: forwarded by the surface components.
 		surface: { type: String, default: 'detail-page' },
 		objectType: { type: String, default: '' },
+		// A manifest that wires mentions or per-note actions gets the full
+		// notes tab, which carries both; the card carries neither.
+		mentionUrl: { type: String, default: '' },
+		noteActions: { type: Array, default: () => [] },
 	},
 	render() {
+		if (this.mentionUrl !== '' || this.noteActions.length > 0) {
+			return h(CnNotesTab, {
+				register: this.register,
+				schema: this.schema,
+				objectId: this.objectId ? String(this.objectId) : '',
+				apiBase: this.apiBase,
+				mentionUrl: this.mentionUrl,
+				noteActions: this.noteActions,
+			})
+		}
 		return h(CnNotesCard, {
 			registerId: this.register,
 			schemaId: this.schema,

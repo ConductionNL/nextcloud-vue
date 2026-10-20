@@ -88,6 +88,7 @@
 				:active="index === activeIndex"
 				:title="entry.label"
 				:count="entry.count"
+				:countLabel="entry.unreadLabel"
 				:overflow="entry.overflow"
 				:disabled="entry.pending"
 				lazy
@@ -203,7 +204,7 @@
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionSeparator, NcLoadingIcon } from '@nextcloud/vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
@@ -217,6 +218,7 @@ import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
+import { setSubResourceRead } from '../../utils/recordInteractions.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition } from '../../utils/visibleWhen.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -540,6 +542,9 @@ export default {
 			visibilitySeq: 0,
 			// Totals counted for tabs with `countFrom`, by position in `content.tabs`.
 			widgetCounts: {},
+			// Read-state parts this page has marked read since it opened
+			// (`badgeSource: 'readState'`), so their counts go without a reload.
+			readCleared: {},
 			countSeq: 0,
 			// Tab id named by the route hash that has not appeared yet (still pending).
 			hashTargetId: '',
@@ -661,7 +666,7 @@ export default {
 					? (widgets[0] || null)
 					: (this.availableWidgets.find((w) => w && w.id === ids[0]) || null)
 				const widgetId = widget ? widget.id : ids[0]
-				const declared = resolveTabCount(typeof tab === 'object' ? tab : null, this.objectData)
+				const declared = resolveTabCount(typeof tab === 'object' ? tab : null, this.countObject)
 				const counted = this.widgetCounts[index]
 				const count = declared === null && typeof counted === 'number' ? counted : declared
 				const pinned = pinActivity && isActivityTab(tab)
@@ -694,11 +699,44 @@ export default {
 					isStack: named.length > 1,
 					grid: this.stackGrid(tab, widgets),
 					count,
+					unreadKey: this.unreadKeyOf(tab, widgetId),
+					unreadLabel: this.unreadLabelOf(tab, widgetId),
 					overflow,
 					pending: visibility === 'pending',
 				})
 			})
 			return resolved
+		},
+
+		/**
+		 * Whether the tabs badge what is new on each part of the record and
+		 * mark that part read when it is opened (`content.badgeSource: 'readState'`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		readStateBadges() {
+			return this.content?.badgeSource === 'readState'
+		},
+
+		/**
+		 * The record the tab counts read: the record itself, less the
+		 * read-state parts this page has already marked read.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		countObject() {
+			const record = this.objectData
+			const counts = record && record['@self'] && record['@self'].unreadCounts
+			if (!counts || typeof counts !== 'object' || Object.keys(this.readCleared).length === 0) {
+				return record
+			}
+			const left = { ...counts }
+			for (const key of Object.keys(this.readCleared)) {
+				left[key] = 0
+			}
+			return { ...record, '@self': { ...record['@self'], unreadCounts: left } }
 		},
 
 		/** @return {string} The keys of the tabs in the strip, to notice one appearing or going. */
@@ -827,6 +865,19 @@ export default {
 			this.activeKey = this.resolvedTabs[index]?.key || ''
 		},
 
+		// The open tab's part of the record is now seen: on opening a tab, and
+		// when the record arrives with something new on the open one.
+		'activeTab.key': function() {
+			this.markActiveTabRead()
+		},
+
+		'activeTab.unreadLabel': {
+			immediate: true,
+			handler() {
+				this.markActiveTabRead()
+			},
+		},
+
 		// Tell the detail page which tab is open (side cards per tab).
 		'activeTab.id': {
 			immediate: true,
@@ -925,6 +976,64 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The read-state part a tab counts: `unreadKey`, else its id, else its widget id.
+		 *
+		 * @param {object|string} tab The tab declaration.
+		 * @param {string} widgetId The tab's widget id.
+		 * @return {string} The part, or ''.
+		 */
+		unreadKeyOf(tab, widgetId) {
+			const own = tab && typeof tab === 'object' ? tab : {}
+			return String(own.unreadKey || own.id || widgetId || '')
+		},
+
+		/**
+		 * What a screen reader hears after a tab's name when its part holds
+		 * something unseen ("3 new"), under `badgeSource: 'readState'`. The count
+		 * pill alone is a bare number.
+		 *
+		 * @param {object|string} tab The tab declaration.
+		 * @param {string} widgetId The tab's widget id.
+		 * @return {string} The label, or '' when nothing is new.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		unreadLabelOf(tab, widgetId) {
+			if (!this.readStateBadges || (tab && typeof tab === 'object' && (typeof tab.count === 'number' || tab.countField))) {
+				return ''
+			}
+			const key = this.unreadKeyOf(tab, widgetId)
+			const counts = this.countObject && this.countObject['@self'] && this.countObject['@self'].unreadCounts
+			const count = counts && key ? Number(counts[key]) : 0
+			if (!Number.isFinite(count) || count < 1) {
+				return ''
+			}
+			return n('nextcloud-vue', '{count} new', '{count} new', count, { count })
+		},
+
+		/**
+		 * Mark the open tab's part of the record read (`PUT .../read-state`
+		 * with `subResource`), once, and drop its count. A refused write keeps
+		 * the count: an unseen part that stays marked is the safe direction.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		async markActiveTabRead() {
+			const tab = this.activeTab
+			if (!this.readStateBadges || !tab || !tab.unreadLabel || !this.objectId) {
+				return
+			}
+			const key = tab.unreadKey
+			if (this.readCleared[key]) {
+				return
+			}
+			const outcome = await setSubResourceRead(String(this.register || ''), String(this.schema || ''), String(this.objectId), key)
+			if (outcome && outcome.ok) {
+				this.readCleared = { ...this.readCleared, [key]: true }
+			}
+		},
+
 		/**
 		 * Whether a page control hides a widget of a stack right now: its
 		 * `visibleWhen` (on the widget, its content or its props) is a

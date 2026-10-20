@@ -5,15 +5,37 @@
 
 <template>
 	<div class="cn-facts-widget" data-testid="cn-facts-widget">
-		<p v-if="error" class="cn-facts-widget__muted" data-testid="cn-facts-error">
-			{{ tr('Could not load this information') }}
+		<p v-if="error"
+			class="cn-facts-widget__muted"
+			role="alert"
+			data-testid="cn-facts-error">
+			{{ errorLabel }}
+			<button
+				type="button"
+				class="cn-facts-widget__inline-button"
+				data-testid="cn-facts-retry"
+				@click="load">
+				{{ retryLabel }}
+			</button>
 		</p>
 		<div v-else-if="loading && !record" class="cn-facts-widget__loading">
 			<NcLoadingIcon :size="20" />
 		</div>
-		<p v-else-if="blocks.length === 0" class="cn-facts-widget__muted" data-testid="cn-facts-empty">
-			{{ emptyLabel }}
-		</p>
+		<div v-else-if="blocks.length === 0 && showsEmpty" class="cn-facts-widget__empty">
+			<p class="cn-facts-widget__muted" data-testid="cn-facts-empty">
+				{{ emptyLabel }}
+			</p>
+			<button
+				v-for="(entry, index) in emptyActions"
+				:key="`empty-action-${index}`"
+				type="button"
+				class="cn-facts-widget__action"
+				data-testid="cn-facts-empty-action"
+				@click="runAction(entry.action)">
+				<CnIcon v-if="entry.icon" :name="entry.icon" :size="16" />
+				{{ entry.label }}
+			</button>
+		</div>
 		<template v-else>
 			<template v-for="block in blocks" :key="block.key">
 				<dl
@@ -123,6 +145,23 @@
 						<span class="cn-facts-widget__meter-bar" :style="{ width: `${block.percent}%` }" />
 					</div>
 				</div>
+				<div
+					v-else-if="block.kind === 'progress'"
+					class="cn-facts-widget__progress"
+					:data-testid="`cn-fact-${block.key}`">
+					<span
+						v-if="block.percent !== null"
+						class="cn-facts-widget__meter-track"
+						role="progressbar"
+						:aria-label="block.label || null"
+						:aria-valuenow="block.percent"
+						aria-valuemin="0"
+						aria-valuemax="100"
+						:data-testid="`cn-fact-${block.key}-bar`">
+						<span class="cn-facts-widget__meter-bar" :style="{ width: `${block.percent}%` }" />
+					</span>
+					<span class="cn-facts-widget__line">{{ block.value }}</span>
+				</div>
 				<div v-else-if="block.kind === 'pill'">
 					<CnStatusBadge
 						:label="block.value"
@@ -144,8 +183,11 @@
 			v-if="link && record"
 			:to="link.to || undefined"
 			:href="link.href || undefined"
+			:target="link.target || undefined"
+			:rel="link.target === '_blank' ? 'noopener noreferrer' : undefined"
 			class="cn-facts-widget__link"
 			data-testid="cn-facts-link">
+			<CnIcon v-if="link.icon" :name="link.icon" :size="18" />
 			{{ link.label }}
 		</component>
 		<button
@@ -161,9 +203,10 @@
 </template>
 
 <script>
-import { emit } from '@nextcloud/event-bus'
+import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { formatFileSize } from '@nextcloud/files'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
@@ -175,14 +218,34 @@ import { useRefLabels } from '../../composables/useRefLabels.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
+import { conditionalLine } from '../../utils/conditionalLine.js'
 import { parseDateValue } from '../../utils/dateVariant.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { formatMoney, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 
 /** Kinds of entry a `fields[]` item can be. A labelled item without `as` is a row. */
-const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text', 'meter'])
+const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text', 'meter', 'progress'])
+
+/** The schemes a facts link opens, besides a path on this server. */
+const LINK_SCHEMES = ['http:', 'https:']
+
+/**
+ * A value read as an absolute URL, or null when it is not one (a page path).
+ *
+ * @param {string} value The value.
+ * @return {URL|null}
+ */
+function absoluteUrl(value) {
+	try {
+		return new URL(value)
+	} catch {
+		return null
+	}
+}
 
 /**
  * The label resolver every facts widget on the page shares, made on first use
@@ -408,7 +471,51 @@ export default {
 		 * @return {object|null}
 		 */
 		record() {
-			return this.resolvedSource ? this.fetched : this.objectData
+			if (!this.resolvedSource) {
+				return this.objectData
+			}
+			const path = this.content?.source?.path
+			if (typeof path === 'string' && path !== '' && this.fetched) {
+				const inner = readPath(this.fetched, path)
+				return inner && typeof inner === 'object' && !Array.isArray(inner) ? inner : null
+			}
+			return this.fetched
+		},
+
+		/**
+		 * Whether the empty line shows: when the card declares facts or actions
+		 * for the empty case. A card that is only a link says nothing without one.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-facts-card-can-act-when-it-is-empty
+		 */
+		showsEmpty() {
+			const fields = this.content?.fields
+			return (Array.isArray(fields) && fields.length > 0) || this.emptyActions.length > 0 || (typeof this.content?.emptyText === 'string' && this.content.emptyText !== '')
+		},
+
+		/**
+		 * The actions under the empty text (`emptyActions`), as drawn.
+		 *
+		 * @return {Array<{label: string, icon: string, action: object}>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-facts-card-can-act-when-it-is-empty
+		 */
+		emptyActions() {
+			const list = Array.isArray(this.content?.emptyActions) ? this.content.emptyActions : []
+			return list
+				.map((action) => ({ view: this.actionView(action), action }))
+				.filter((entry) => entry.view)
+				.map((entry) => ({ ...entry.view, action: entry.action }))
+		},
+
+		/** @return {string} The line shown when the source could not be read. */
+		errorLabel() {
+			return this.tr(this.content?.errorText || 'Could not load this information')
+		},
+
+		/** @return {string} The retry button's text. */
+		retryLabel() {
+			return t('nextcloud-vue', 'Try again')
 		},
 
 		/**
@@ -430,6 +537,9 @@ export default {
 				}
 				// `from: "object"` reads the page's own object while the card shows a `source`.
 				const record = field.from === 'object' && this.objectData ? this.objectData : sourceRecord
+				if (field.when && !evaluateVisibleWhenLocal(field.when, record)) {
+					return
+				}
 				const kind = this.kindOf(field)
 				const key = String(field.key || field.path || `${kind}-${index}`).replace(/[^\w-]/g, '-')
 				const value = this.entryValue(record, field, kind)
@@ -455,6 +565,9 @@ export default {
 				}
 				if (kind === 'meter') {
 					Object.assign(block, this.meterOf(record, field))
+				}
+				if (kind === 'progress') {
+					Object.assign(block, this.progressOf(record, field))
 				}
 				if (kind === 'title' && field.route) {
 					block.to = this.resolveRoute(field.route, record)
@@ -491,8 +604,8 @@ export default {
 				return to ? { label: this.tr(link.label), to } : null
 			}
 			if (typeof link.href === 'string' && link.href !== '') {
-				const href = this.resolveTemplate(link.href, this.record)
-				return href ? { label: this.tr(link.label), href } : null
+				const href = this.linkHref(link, this.record)
+				return href ? { label: this.tr(link.label), href, target: link.target === '_blank' ? '_blank' : '', icon: typeof link.icon === 'string' ? link.icon : '' } : null
 			}
 			return null
 		},
@@ -603,7 +716,28 @@ export default {
 		},
 	},
 
+	mounted() {
+		subscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
+	beforeUnmount() {
+		unsubscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
 	methods: {
+		/**
+		 * The page asked every widget to read again (a dialog that changed what
+		 * the source answers, the page's Refresh): read the source again.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-facts-card-can-act-when-it-is-empty
+		 */
+		onPageRefresh() {
+			if (this.resolvedSource) {
+				this.load()
+			}
+		},
+
 		/**
 		 * Translate through the host app.
 		 *
@@ -628,6 +762,58 @@ export default {
 				return field.as
 			}
 			return field.label || field.icon ? 'row' : 'line'
+		},
+
+		/**
+		 * A progress entry: the percentage at `path` (0 to 100) drawn as a bar
+		 * when it is a number, and the sentence that says what it means
+		 * (`lines`, the first that applies; `conditionalLine`), else the
+		 * percentage itself.
+		 *
+		 * @param {object} record The object.
+		 * @param {object} field The entry.
+		 * @return {{label: string, value: string, percent: (number|null)}}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-facts-card-can-show-progress
+		 */
+		progressOf(record, field) {
+			const raw = readPath(record, field.path)
+			const number = raw === null || raw === undefined || raw === '' ? NaN : Number(raw)
+			const barWhen = field.barWhen ? evaluateVisibleWhenLocal(field.barWhen, record) : true
+			const percent = Number.isFinite(number) && barWhen ? Math.max(0, Math.min(100, number)) : null
+			const line = field.lines ? conditionalLine(field.lines, record, (text) => this.tr(text)) : ''
+			return {
+				label: this.tr(field.label || ''),
+				value: line || (percent !== null ? `${percent}%` : ''),
+				percent,
+			}
+		},
+
+		/**
+		 * A link's href: `{field}` tokens filled from the record (and the
+		 * `@source.<field>` grammar), a value that is not a URL put under
+		 * `hrefBase` (a page path in another app), and only http, https and
+		 * paths on this server opened. Anything else is no link.
+		 *
+		 * @param {{href: string, hrefBase?: string}} link The link declaration.
+		 * @param {object|null} record The object shown.
+		 * @return {string} The href, or ''.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-facts-link-can-point-into-another-app
+		 */
+		linkHref(link, record) {
+			let value = link.href.includes('{') ? fillTemplate(link.href, record) : this.resolveTemplate(link.href, record)
+			value = String(value || '').trim()
+			if (value === '') {
+				return ''
+			}
+			const parsed = absoluteUrl(value)
+			if (parsed) {
+				return LINK_SCHEMES.includes(parsed.protocol) ? parsed.href : ''
+			}
+			if (typeof link.hrefBase === 'string' && link.hrefBase !== '') {
+				const path = link.hrefBase.replace(/\/+$/, '') + '/' + value.replace(/^\/+/, '')
+				return generateUrl(path)
+			}
+			return value.startsWith('/') && !value.startsWith('//') ? value : ''
 		},
 
 		/**
@@ -677,6 +863,9 @@ export default {
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-the-facts-card-draws-contact-details-identity-and-a-lead
 		 */
 		entryValue(record, field, kind) {
+			if (kind === 'progress') {
+				return this.progressOf(record, field).value
+			}
 			if (kind === 'lead') {
 				return this.partsValue(record, field.title)
 			}

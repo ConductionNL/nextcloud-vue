@@ -42,7 +42,7 @@
 			ref="mapEl"
 			class="cn-map-widget__leaflet"
 			role="application"
-			:aria-label="ariaLabel"
+			:aria-label="resolvedAriaLabel"
 			tabindex="0" />
 		<div v-else class="cn-map-widget__fallback">
 			<!--
@@ -56,6 +56,14 @@
 				</p>
 			</slot>
 		</div>
+		<p
+			v-if="markerStatusText"
+			class="cn-map-widget__note cn-map-widget__note--status"
+			:class="{ 'cn-map-widget__note--error': markersFailed }"
+			:role="markersFailed ? 'alert' : null"
+			:data-testid="markersFailed ? 'cn-map-markers-failed' : 'cn-map-markers-empty'">
+			{{ markerStatusText }}
+		</p>
 		<p v-if="unplottedCount > 0" class="cn-map-widget__note" data-testid="cn-map-unplotted">
 			{{ unplottedLabel }}
 		</p>
@@ -72,11 +80,13 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { objectToGeoFeature } from '../../utils/geo.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { objectDisplayName } from '../../utils/objectName.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { fromImagePoint, hasImagePosition, imageBounds, paddedImageBounds, toImagePoint } from './imageCoordinates.js'
@@ -214,6 +224,10 @@ function controlIcon(path) {
  */
 export default {
 	name: 'CnMapWidget',
+
+	inject: {
+		cnTranslate: { default: () => (key) => key },
+	},
 
 	props: {
 		/**
@@ -395,6 +409,28 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The record of the page the map sits on: `@objectId` and
+		 * `@object.<field>` in `markers.dataSource.filter` resolve against it, so
+		 * a record's page can plot only the objects that point at it.
+		 *
+		 * @type {string|number}
+		 */
+		objectId: {
+			type: [String, Number],
+			default: '',
+		},
+
+		/**
+		 * The loaded record, for `@object.<field>` filter tokens.
+		 *
+		 * @type {object|null}
+		 */
+		objectData: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	/**
@@ -425,6 +461,11 @@ export default {
 			boundsTimer: null,
 			// Rows of an image map with no usable x and y, counted in a note.
 			unplottedCount: 0,
+			// Whether the marker source has answered, and with how many markers.
+			markersLoaded: false,
+			markerCount: 0,
+			// Whether the marker source could not be read (not: read and empty).
+			markersFailed: false,
 			// Set once the user has framed the view themselves; stops autoFit.
 			userFramedView: false,
 			// A raw gesture has been seen; the next real view change is theirs.
@@ -481,6 +522,58 @@ export default {
 			return { url: safeHref(def.url), width: Number(def.width), height: Number(def.height) }
 		},
 
+		/**
+		 * The map's accessible name: `content.ariaLabel` through the app's
+		 * translate, else the prop.
+		 *
+		 * @return {string}
+		 */
+		resolvedAriaLabel() {
+			const own = this.content && typeof this.content.ariaLabel === 'string' ? this.content.ariaLabel : ''
+			return own !== '' ? this.cnTranslate(own) : this.ariaLabel
+		},
+
+		/**
+		 * The line under the map that says why it shows no markers: the source
+		 * failed (`content.errorText`, else a default) or answered nothing
+		 * (`content.emptyText`; without one an empty map says nothing). Only
+		 * for a map that reads its markers from a source.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-map-can-plot-the-objects-that-point-at-a-record
+		 */
+		markerStatusText() {
+			const markers = this.cfg.markers
+			if (!markers || !markers.dataSource || !this.markersLoaded) {
+				return ''
+			}
+			const own = (key) => (this.content && typeof this.content[key] === 'string' && this.content[key] !== '' ? this.cnTranslate(this.content[key]) : '')
+			if (this.markersFailed) {
+				return own('errorText') || t('nextcloud-vue', 'The places could not be loaded.')
+			}
+			return this.markerCount === 0 ? own('emptyText') : ''
+		},
+
+		/**
+		 * The token context a `markers.dataSource.filter` resolves against.
+		 *
+		 * @return {{objectId: string, object: object}}
+		 */
+		filterContext() {
+			return { objectId: this.objectId ? String(this.objectId) : '', object: this.objectData || {} }
+		},
+
+		/**
+		 * The data-source filter with its tokens resolved, serialised so a new
+		 * record re-reads the markers.
+		 *
+		 * @return {string}
+		 */
+		filterKey() {
+			const ds = this.cfg.markers && this.cfg.markers.dataSource
+			return ds && ds.filter ? JSON.stringify(this.sourceFilter(ds)) : ''
+		},
+
 		unplottedLabel() {
 			return t('nextcloud-vue', '{count} places have no position', { count: this.unplottedCount })
 		},
@@ -531,6 +624,13 @@ export default {
 			}
 		},
 
+		// A filter on the record's id or fields: another record, other markers.
+		filterKey() {
+			if (this.map) {
+				this.renderMarkers()
+			}
+		},
+
 		// Re-plot when the centre moves, but only while the centre pin is on —
 		// otherwise the centre is an initial-view concern, not a marker one.
 		'cfg.center': {
@@ -543,6 +643,10 @@ export default {
 	},
 
 	async mounted() {
+		this.refreshEvent = typeof this.content?.refreshOn === 'string' ? this.content.refreshOn : ''
+		if (this.refreshEvent !== '') {
+			subscribe(this.refreshEvent, this.onRefreshEvent)
+		}
 		try {
 			// Leaflet is loaded as a runtime dep. Default-export the namespace.
 			const mod = await import('leaflet')
@@ -559,6 +663,9 @@ export default {
 	},
 
 	beforeUnmount() {
+		if (this.refreshEvent) {
+			unsubscribe(this.refreshEvent, this.onRefreshEvent)
+		}
 		clearTimeout(this.boundsTimer)
 		clearTimeout(this.resizeTimer)
 		if (this.$refs.mapEl) {
@@ -855,7 +962,10 @@ export default {
 			if (!this.imageLayer) {
 				this.unplottedCount = 0
 			}
+			this.markersFailed = false
 			const features = await this.collectFeatures()
+			this.markerCount = Array.isArray(features) ? features.length : 0
+			this.markersLoaded = true
 			if (!features || features.length === 0) {
 				return
 			}
@@ -1205,6 +1315,39 @@ export default {
 		},
 
 		/**
+		 * A data source's `filter` with its `@objectId` / `@object.<field>`
+		 * tokens resolved against the page's record.
+		 *
+		 * @param {{filter?: object}} ds The data source.
+		 * @return {object} The query parameters.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-map-can-plot-the-objects-that-point-at-a-record
+		 */
+		sourceFilter(ds) {
+			if (!ds || !ds.filter || typeof ds.filter !== 'object') {
+				return {}
+			}
+			return resolveFilterTokens(ds.filter, this.filterContext)
+		},
+
+		/**
+		 * The `content.refreshOn` event fired: read the markers again. With
+		 * `content.refreshMatch` only when the payload's field names this record.
+		 *
+		 * @param {object} payload The event payload.
+		 * @return {void}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-map-can-plot-the-objects-that-point-at-a-record
+		 */
+		onRefreshEvent(payload) {
+			const match = this.content && typeof this.content.refreshMatch === 'string' ? this.content.refreshMatch : ''
+			if (match !== '' && String(payload?.[match] ?? '') !== String(this.objectId ?? '')) {
+				return
+			}
+			if (this.map) {
+				this.renderMarkers()
+			}
+		},
+
+		/**
 		 * Resolve the features set for the current `markers` config.
 		 *
 		 * Returns the inline `features[]` when set; otherwise fetches
@@ -1263,10 +1406,11 @@ export default {
 				if (ds.register && ds.schema) {
 					const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
 					const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: ds.register, schema: ds.schema })
-					const res = await axios.get(url, { params: { _limit: ds.limit || 500 } })
+					const res = await axios.get(url, { params: { ...this.sourceFilter(ds), _limit: ds.limit || 500 } })
 					return (res && res.data && res.data.results) || []
 				}
 			} catch (err) {
+				this.markersFailed = true
 				// eslint-disable-next-line no-console
 				console.warn('[CnMapWidget] Failed to load markers', ds, err)
 			}
@@ -1323,6 +1467,7 @@ export default {
 					const json = await response.json()
 					return this.normaliseFeatures(json)
 				} catch (err) {
+					this.markersFailed = true
 					// eslint-disable-next-line no-console
 					console.warn('[CnMapWidget] Failed to fetch markers', ds.url, err)
 					return []
@@ -1375,16 +1520,18 @@ export default {
 					'/apps/openregister/api/objects/{register}/{schema}',
 					{ register: ds.register, schema: ds.schema },
 				)
-				const res = await axios.get(url, { params: { _limit: ds.limit || 500 } })
+				const res = await axios.get(url, { params: { ...this.sourceFilter(ds), _limit: ds.limit || 500 } })
 				const rows = (res && res.data && res.data.results) || []
 
 				const latField = this.cfg.markers && this.cfg.markers.latField
 				const lngField = this.cfg.markers && this.cfg.markers.lngField
 
+				// (0, 0) is where an unset pair of numbers lands, not a place.
 				return rows
 					.map((row) => objectToGeoFeature(row, { latField, lngField }))
-					.filter(Boolean)
+					.filter((feature) => feature && !(feature.geometry.coordinates[0] === 0 && feature.geometry.coordinates[1] === 0))
 			} catch (err) {
+				this.markersFailed = true
 				// eslint-disable-next-line no-console
 				console.warn('[CnMapWidget] Failed to load objects for the map', ds, err)
 				return []
@@ -1443,6 +1590,15 @@ export default {
 	margin: 4px 0 0;
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Why the map shows no markers: the card's own text size, on its inset. */
+.cn-map-widget__note--status {
+	font-size: 14px;
+}
+
+.cn-map-widget__note--error {
+	color: var(--color-error-text, var(--color-error));
 }
 
 .cn-map-widget__fallback {

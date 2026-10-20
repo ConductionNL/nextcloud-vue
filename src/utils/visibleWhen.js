@@ -46,6 +46,7 @@
  * @module utils/visibleWhen
  */
 
+import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
 import { isAppInstalled } from './appInstalled.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
@@ -192,8 +193,10 @@ export function evaluateWorkspaceCondition(cond, workspace) {
  * modes). Throws on unusable conditions and failed fetches — callers that
  * want the fail-safe boolean use {@link evaluateVisibleWhen}.
  *
- * A `source` may carry `order` (`{ field: "asc" | "desc" }`), so "the first
- * row" is the first of an ordered query. A caller that wants that row, not
+ * An `endpoint` may name the page's record (`@objectId`, `@object.<field>`),
+ * and its whole answer is the row a `sink` receives. A `source` may carry `order` (`{ field: "asc" | "desc" }`), so "the first
+ * row" is the first of an ordered query, and `extend` (OpenRegister
+ * `_extend[]` names) to inline the row's related objects. A caller that wants that row, not
  * just the value, passes `sink`: the first result is written to `sink.row`.
  *
  * @param {{endpoint?: string, source?: {register: string, schema: string, filter?: object, order?: object}, field?: string}} cond The visibleWhen condition.
@@ -204,11 +207,20 @@ export function evaluateWorkspaceCondition(cond, workspace) {
  */
 export async function readVisibleWhenValue(cond, ctx, sink) {
 	if (cond.endpoint) {
-		const response = await fetch(prefixUrl(cond.endpoint), { headers: buildHeaders() })
+		// `@objectId` / `@object.<field>` in the endpoint name the page's
+		// record; until it is known there is nothing to ask.
+		if (/@object/.test(cond.endpoint) && !(ctx && ctx.objectId)) {
+			throw new Error('visibleWhen endpoint waits for the record')
+		}
+		const url = interpolateUrlTokens(cond.endpoint, ctx || {})
+		const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 		if (!response.ok) {
 			throw new Error(`endpoint returned ${response.status}`)
 		}
 		const data = await response.json()
+		if (sink && typeof sink === 'object') {
+			sink.row = data && typeof data === 'object' && !Array.isArray(data) ? data : undefined
+		}
 		return readVisibleWhenPath(data, cond.field)
 	}
 	const src = cond.source
@@ -218,7 +230,10 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
 		for (const [field, dir] of Object.entries(src.order && typeof src.order === 'object' ? src.order : {})) {
 			order[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'
 		}
-		const qs = buildQueryString({ ...filter, ...order, _limit: 1 })
+		// `extend` inlines related objects on the row (`_extend[]`), so the
+		// subject can name its type rather than its type's id.
+		const extend = Array.isArray(src.extend) ? { _extend: src.extend.filter((name) => typeof name === 'string' && name !== '') } : {}
+		const qs = buildQueryString({ ...filter, ...order, ...extend, _limit: 1 })
 		const url = prefixUrl(`/apps/openregister/api/objects/${src.register}/${src.schema}${qs}`)
 		const response = await fetch(url, { headers: buildHeaders() })
 		if (!response.ok) {
