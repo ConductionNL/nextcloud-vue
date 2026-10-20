@@ -36,6 +36,7 @@ import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedO
 import CnRetentionWidget from '../CnRetentionWidget/CnRetentionWidget.vue'
 import CnSavedViewWidget2 from '../CnSavedViewWidget/CnSavedViewWidget.vue'
 import CnSavedViewWidgetForm2 from '../CnSavedViewWidgetForm/CnSavedViewWidgetForm.vue'
+import CnSchemaRulesWidget from '../CnSchemaRulesWidget/CnSchemaRulesWidget.vue'
 import CnStackedBarWidget from '../CnStackedBarWidget/CnStackedBarWidget.vue'
 import CnStackedBarWidgetForm from '../CnStackedBarWidgetForm/CnStackedBarWidgetForm.vue'
 import CnStagesWidget from '../CnStagesWidget/CnStagesWidget.vue'
@@ -305,6 +306,15 @@ registerDashboardWidget('retention', {
 	icon: 'ArchiveOutline',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
+})
+
+registerDashboardWidget('schema-rules', {
+	renderer: CnSchemaRulesWidget,
+	form: null,
+	defaultContent: { register: '', schema: '', objectId: '' },
+	displayName: 'Schema rules',
+	icon: 'ScaleBalance',
+	surfaces: ['detail-page'],
 })
 
 registerDashboardWidget('plan', {
