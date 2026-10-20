@@ -40,14 +40,16 @@ Every app can open it by name with an `open-modal` action, without registering i
 
 | Key | Description |
 |-----|-------------|
-| `title`, `eyebrow`, `subtitle`, `doneText` | Texts, through the app's translate. `doneText` replaces the body once the act ran. |
+| `title`, `subtitle`, `doneText` | Texts, through the app's translate. `doneText` replaces the body once the act ran. |
+| `eyebrow` | The line above the title, a template filled from the record once it is read (`Close off · {identifier}`). |
 | `summary` | `{ source?, title, meta?, badge?, icon? }`: the record in one row. The templates fill from the record, read from `source` (an endpoint source) or the `object` prop. |
 | `facts` | `[{ title?, items: [{ label, value }] }]`: groups of facts about the record; a `value` template that fills to nothing reads "Not set". |
 | `checklist` | `{ title?, source, itemsPath?, labels?, required? }`: items `{ id, met, label?, detail? }` read from `source` (at `itemsPath`). `labels[id]` names an item (`label`, `detail`, `unmetDetail`, templates filled from the item). `met: null` reads "Could not be read". The ids in `required` must be met before the act can run; the rest inform. |
-| `permission` | `{ source, allowedPath, reasonPath? }`: the act runs only while `allowedPath` reads `true`; `reasonPath` says why not. |
+| `permission` | `{ source, listPath?, match?, allowedPath, reasonPath? }`: the act runs only while `allowedPath` reads `true`; `reasonPath` says why not. With `listPath`, both paths read the entry of that list whose fields equal `match`, for an endpoint that answers a list of acts (`{ listPath: 'acts', match: { act: 'archive' } }`). |
+| `fields` | `[{ field, type?, label?, required?, options? }]`: inputs the act asks for, sent beside the reason under their `field`. `type` is `text` (default), `date`, `datetime` or `select`; each is required unless `required: false`. A select's `options` are `[{ value, label, fills? }]`, and choosing one sets the fields in `fills` that are still empty (a template that suggests a title). |
 | `reason` | `{ label?, hint?, required?, field? }`: a text area, required unless `required: false`, sent as `field` (default `reason`). |
 | `note` | `{ variant?, title?, text }`: a read-only note (`info`, `warning`, `error`, `success`). |
-| `confirm` | `{ label, icon?, request?, action? }`: `request` (`{ method?, url, body? }`) is sent by the dialog, `body` templates filled from the record and `{reason}`; else `action`, a manifest action, is dispatched through the page with `{ reason }` as its last argument. |
+| `confirm` | `{ label, icon?, request?, action? }`: `request` (`{ method?, url, body? }`) is sent by the dialog, `body` templates filled from the record and `{reason}`; else `action`, a manifest action, is dispatched through the page with the field values and `reason` as its last argument. |
 
 Every url takes `@objectId` and `@object.<field>`. After the act the page refreshes (`cn:page:refresh`).
 
@@ -64,4 +66,4 @@ Every url takes `@objectId` and `@object.<field>`. After the act the page refres
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `close` | none | The dialog was closed |
-| `done` | `{ reason }` | The act ran |
+| `done` | the field values and `reason` | The act ran |
