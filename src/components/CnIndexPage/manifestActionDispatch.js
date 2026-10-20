@@ -1,4 +1,5 @@
 import { isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { readPath } from '../../utils/readPath.js'
 
 /**
  * Substitute `{field}` row tokens in a single manifest param value.
@@ -132,7 +133,8 @@ export function resolveActionTarget(action, row, ctx, warn = false) {
  *   - `navigate` → `action.target` is a URL. External/absolute URLs open in a
  *     new tab (`window.open`, `noopener`); in-app paths go through `$router.push`.
  *   - `open-page` → `action.target` is a named route; `$router.push({ name, params:{ id } })`.
- *   - `open-modal` → not wired for index actions; falls back to `@action`.
+ *   - `open-modal` → `ctx.openModal(target, { object: row, objectId, ...props })`,
+ *     the app root's `cnOpenModal`; without it, falls back to `@action`.
  *
  * Handler dispatch (`type: 'handler'`, the default) reads `action.handler`:
  *   - `navigate` → $router.push to `action.route` with `{ id: row[rowKey] }`
@@ -182,10 +184,21 @@ export function resolveActionHandler(action, ctx) {
 	}
 
 	if (type === 'open-modal') {
-		// eslint-disable-next-line no-console
-		console.warn(`[CnIndexPage] action "${action.id}" type:"open-modal" is not `
-			+ 'supported for index-page actions; falling back to @action-only.')
-		return null
+		// The row's modal opens through the app root's `cnOpenModal`, with the
+		// row as `object` and its key as `objectId` unless the action names
+		// its own. A modal that acts (CnActionDialog) signals the page refresh
+		// itself, so the list reloads after it.
+		if (typeof ctx.openModal !== 'function' || typeof action.target !== 'string' || action.target === '') {
+			// eslint-disable-next-line no-console
+			console.warn(`[CnIndexPage] action "${action.id}" type:"open-modal" needs a target and an app root `
+				+ 'to open it in; falling back to @action-only.')
+			return null
+		}
+		return (row) => ctx.openModal(action.target, {
+			object: row,
+			objectId: row && ctx.rowKey ? readPath(row, ctx.rowKey) : undefined,
+			...(action.props && typeof action.props === 'object' ? action.props : {}),
+		})
 	}
 
 	// type === 'handler' (default): the v1.3.0 handler-string path.

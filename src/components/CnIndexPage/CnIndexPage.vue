@@ -7226,6 +7226,8 @@ export default {
 				customComponents: this.effectiveCustomComponents,
 				// So a row action's toasts translate like the labels around it.
 				translate: this.cnTranslate,
+				// A row action of `type: "open-modal"` opens its modal here.
+				openModal: typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null,
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the

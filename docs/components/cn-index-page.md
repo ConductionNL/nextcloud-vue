@@ -1011,6 +1011,18 @@ export default {
 }
 ```
 
+### A row action that opens a modal
+
+A row action of `type: "open-modal"` opens its `target` (a registry modal, or a built-in such as `CnActionDialog`) through the app root's `cnOpenModal`, with the row as `object` and its key as `objectId`; the action's own `props` win. An entity-sourced list reads its rows again on `cn:page:refresh`, which CnActionDialog signals after it acted, so a confirmed POST on a row is configuration: the dialog posts `confirm.request`, shows the server's refusal sentence when the server refuses, and the list refreshes when it did not. Without an app root the action falls back to emitting `@action`.
+
+```jsonc
+"actions": [
+  { "id": "restore", "label": "Restore", "type": "open-modal", "target": "CnActionDialog",
+    "props": { "config": { "title": "Restore this record?", "reason": { "required": false },
+      "confirm": { "label": "Restore", "request": { "url": "/apps/myapp/api/records/@objectId/restore" } } } } }
+]
+```
+
 ### Registry-name handler
 
 Manifest declaration:
