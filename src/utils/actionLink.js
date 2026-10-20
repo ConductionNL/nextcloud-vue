@@ -27,7 +27,7 @@ const ROUTED_PATH = /^\/(?:index\.php|remote\.php|public\.php|ocs)(?:[/?#]|$)/
 /** Bad hrefs already warned about, so a recomputing page warns once per value. */
 const warnedHrefs = new Set()
 
-/** Ids of entries whose function handler was dropped for their href, warned about once. */
+/** Ids of entries whose function handler was dropped for their href, warned about once; an entry without an id warns every time. */
 const warnedHandlers = new Set()
 
 /**
@@ -103,8 +103,10 @@ export function headerActionAsLink(entry) {
 		}
 		return typeof entry.handler === 'function' ? withoutHref : rest
 	}
-	if (typeof entry.handler === 'function' && !warnedHandlers.has(entry.id)) {
-		warnedHandlers.add(entry.id)
+	if (typeof entry.handler === 'function' && !(entry.id && warnedHandlers.has(entry.id))) {
+		if (entry.id) {
+			warnedHandlers.add(entry.id)
+		}
 		// eslint-disable-next-line no-console
 		console.warn(`headerActions[].id "${entry.id}": an entry with href never runs a handler, so its function handler is dropped`)
 	}
