@@ -2282,6 +2282,10 @@
     "%n passage found. Review each one.": [
       "%n passage gevonden. Beoordeel elke passage.",
       "%n passages gevonden. Beoordeel elke passage."
+    ],
+    "{count} change: {list}": [
+      "{count} wijziging: {list}",
+      "{count} wijzigingen: {list}"
     ]
   }
 }
