@@ -67,7 +67,8 @@ import { emit } from '@nextcloud/event-bus'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcNoteCard } from '@nextcloud/vue'
-import { declaredMacros } from '../../utils/declaredMacros.js'
+import { declaredMacros, pickMacros } from '../../utils/declaredMacros.js'
+import { readVisibleWhenPath } from '../../utils/visibleWhen.js'
 
 export default {
 	name: 'CnMacrosWidget',
@@ -79,12 +80,16 @@ export default {
 
 	inject: {
 		cnTranslate: { default: null },
+		/** The records the detail page's `visibilityContext` names (a case's case type), as `@context.<name>`. */
+		cnDetailVisibilityRows: { default: null },
 	},
 
 	props: {
 		/**
 		 * The widget's content: `description` (the line under the title),
-		 * `emptyText`, both translated.
+		 * `emptyText`, both translated, and `macrosFrom`, a path on the record
+		 * (`@context.caseType.macros`) to the list of macro keys it shows, in
+		 * that order; a record that lists none shows none.
 		 */
 		content: {
 			type: Object,
@@ -106,7 +111,7 @@ export default {
 
 	data() {
 		return {
-			macros: [],
+			declared: [],
 			loading: false,
 			running: '',
 			error: '',
@@ -115,6 +120,23 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The macros this record shows: the schema's, narrowed to the list
+		 * `macrosFrom` names on the record.
+		 *
+		 * @return {Array<{key: string, name: string, description: string}>}
+		 * @spec openspec/changes/macros-per-record/specs/macros-widget/spec.md#requirement-a-record-can-choose-which-macros-it-shows
+		 */
+		macros() {
+			const path = typeof this.content?.macrosFrom === 'string' ? this.content.macrosFrom : ''
+			if (path === '') {
+				return this.declared
+			}
+			const rows = this.cnDetailVisibilityRows ? this.cnDetailVisibilityRows.value : undefined
+			const data = { ...(this.objectData || {}), ...(rows ? { '@context': rows } : {}) }
+			return pickMacros(this.declared, readVisibleWhenPath(data, path), true)
+		},
+
 		/** @return {{register: string, schema: string, id: string}} Where the record lives. */
 		target() {
 			const self = this.objectData?.['@self'] || {}
@@ -157,19 +179,19 @@ export default {
 		async load() {
 			const { register, schema, id } = this.target
 			if (schema === '' || id === '') {
-				this.macros = []
+				this.declared = []
 				return
 			}
 			this.loading = true
 			try {
 				const res = await axios.get(generateUrl('/apps/openregister/api/schemas/{schema}', { schema }), register ? { params: { register } } : undefined)
-				this.macros = declaredMacros(res?.data || null)
+				this.declared = declaredMacros(res?.data || null)
 			} catch {
-				this.macros = []
+				this.declared = []
 			} finally {
 				this.loading = false
 			}
-			if (this.macros.length > 0) {
+			if (this.declared.length > 0) {
 				await this.loadLastRun()
 			}
 		},
@@ -190,7 +212,7 @@ export default {
 				)
 				const entry = (res?.data?.results || [])[0]
 				const key = entry?.changed?.declaredAction
-				const macro = this.macros.find((candidate) => candidate.key === key)
+				const macro = this.declared.find((candidate) => candidate.key === key)
 				const changes = Array.isArray(entry?.changed?.changes)
 					? entry.changed.changes.map((change) => (change && typeof change.step === 'string' ? change.step : '')).filter(Boolean)
 					: []

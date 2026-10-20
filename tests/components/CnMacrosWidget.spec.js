@@ -22,7 +22,7 @@ jest.mock('@nextcloud/event-bus', () => ({
 const axios = require('@nextcloud/axios').default
 const { emit } = require('@nextcloud/event-bus')
 const CnMacrosWidget = require('../../src/components/CnMacrosWidget/CnMacrosWidget.vue').default
-const { declaredMacros } = require('../../src/utils/declaredMacros.js')
+const { declaredMacros, pickMacros } = require('../../src/utils/declaredMacros.js')
 const { DASHBOARD_CATALOG_WIDGET_KEYS } = require('../../src/utils/libraryWidgetKeys.js')
 
 const SCHEMA = {
@@ -47,6 +47,22 @@ beforeEach(() => {
 		? { data: { results: [{ created: '2026-10-06T10:00:00Z', changed: { declaredAction: 'suspend', changes: [{ step: 'termijn opgeschort', kind: 'write' }, { step: 'bericht verstuurd', kind: 'message' }] } }] } }
 		: { data: SCHEMA }))
 	axios.post.mockResolvedValue({ data: { run: 'r-1', outcome: 'completed' } })
+})
+
+describe('pickMacros', () => {
+	const declared = declaredMacros(SCHEMA)
+
+	it('keeps every macro when the widget reads no list', () => {
+		expect(pickMacros(declared, undefined, false)).toBe(declared)
+	})
+
+	it('keeps the listed keys in the list\'s order, skipping unknown ones', () => {
+		expect(pickMacros(declared, ['suspend', 'nope', 'woo-finish'], true).map((m) => m.key)).toEqual(['suspend', 'woo-finish'])
+	})
+
+	it('keeps none when the record lists none', () => {
+		expect(pickMacros(declared, undefined, true)).toEqual([])
+	})
 })
 
 describe('declaredMacros', () => {
@@ -109,6 +125,24 @@ describe('CnMacrosWidget', () => {
 		})
 		await flushPromises()
 		expect(w.findAll('.cn-macros-widget__name')[0].text()).toBe('Finish the Woo request')
+	})
+
+	it('shows only the macros the record lists through macrosFrom, in its order', async () => {
+		const w = mount(CnMacrosWidget, {
+			props: { objectData: OBJECT, objectId: 'c-1', content: { macrosFrom: '@context.caseType.macros' } },
+			global: { provide: { cnDetailVisibilityRows: { value: { caseType: { macros: ['suspend', 'publish', 'woo-finish'] } } } } },
+		})
+		await flushPromises()
+		expect(w.findAll('.cn-macros-widget__name').map((n) => n.text())).toEqual(['Opschorten voor aanvulling', 'Woo-verzoek afronden'])
+	})
+
+	it('shows none for a record that lists none', async () => {
+		const w = mount(CnMacrosWidget, {
+			props: { objectData: OBJECT, objectId: 'c-1', content: { macrosFrom: '@context.caseType.macros' } },
+			global: { provide: { cnDetailVisibilityRows: { value: { caseType: {} } } } },
+		})
+		await flushPromises()
+		expect(w.find('[data-testid="cn-macros-widget-empty"]').exists()).toBe(true)
 	})
 
 	it('is a library widget key', () => {
