@@ -313,6 +313,7 @@ import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
+import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
@@ -450,8 +451,11 @@ export default {
 		 *
 		 * `footnote` is a line under the table, through the host translate.
 		 *
+		 * `endpointSource` (`{ url, method?, params?, responsePath? }`) reads the
+		 * rows from an app endpoint instead of `register` + `schema`.
+		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}}}
 		 */
 		content: {
 			type: Object,
@@ -1390,6 +1394,9 @@ export default {
 		 */
 		async fetchRows() {
 			const c = this.content || {}
+			if (c.endpointSource && typeof c.endpointSource === 'object' && c.endpointSource.url) {
+				return this.fetchEndpointRows(c.endpointSource)
+			}
 			if (!c.register || !c.schema) {
 				this.rows = []
 				this.error = ''
@@ -1464,6 +1471,42 @@ export default {
 				// debugging, surface only the quiet `loadErrorLabel` line.
 				// eslint-disable-next-line no-console
 				console.warn('[CnObjectListWidget] failed to load objects:', e)
+				this.error = (e && e.message) || 'error'
+				this.rows = []
+				this.total = 0
+			} finally {
+				this.loading = false
+			}
+		},
+
+		/**
+		 * Read the rows from an app endpoint (`content.endpointSource`, the
+		 * vocabulary every endpoint-bound widget shares) instead of an
+		 * OpenRegister list: for rows an app serves under its own read rules,
+		 * such as hermiq's AI oversight records of one case. The payload at
+		 * `responsePath` is the row list, or `{ results, total }`. Tokens in the
+		 * url and params resolve as in `filter`; a required one that is not set
+		 * yet waits instead of fetching.
+		 *
+		 * @param {{url: string, method?: string, params?: object, responsePath?: string}} source The endpoint.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-endpoint-source/specs/object-list-widget/spec.md#requirement-a-list-can-read-its-rows-from-an-app-endpoint
+		 */
+		async fetchEndpointRows(source) {
+			this.loading = true
+			this.error = ''
+			try {
+				const payload = await fetchEndpointSource(source, this.tokenCtx, { force: true })
+				const rows = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.results) ? payload.results : [])
+				this.rows = rows
+				this.total = payload && !Array.isArray(payload) && typeof payload.total === 'number' ? payload.total : rows.length
+				this.$nextTick(() => {
+					this.measureFit()
+					this.measureWidthFit()
+				})
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectListWidget] failed to load rows from the endpoint:', e)
 				this.error = (e && e.message) || 'error'
 				this.rows = []
 				this.total = 0
