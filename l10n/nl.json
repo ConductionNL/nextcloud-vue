@@ -2161,7 +2161,13 @@
     "This record holds special categories of personal data. It opens once your purpose is recorded.": "Hierin staan bijzondere persoonsgegevens. Het opent zodra je doel is vastgelegd.",
     "State a purpose": "Doel opgeven",
     "This page cannot record a purpose, so the record stays closed.": "Deze pagina kan geen doel vastleggen, dus het blijft gesloten.",
-    "Your purpose could not be recorded, so the record stays closed.": "Je doel kon niet worden vastgelegd, dus het blijft gesloten."
+    "Your purpose could not be recorded, so the record stays closed.": "Je doel kon niet worden vastgelegd, dus het blijft gesloten.",
+    "Hand back": "Teruggeven",
+    "Pick up": "Oppakken",
+    "Task completed": "Taak afgerond",
+    "This could not be done. Try again.": "Dit lukte niet. Probeer het opnieuw.",
+    "{done} of {total} done": "{done} van {total} klaar",
+    "Nothing to check off": "Niets af te vinken"
   },
   "plurals": {
     "{count} member": [

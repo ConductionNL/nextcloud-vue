@@ -152,6 +152,13 @@ describe('detailActionModel', () => {
 				.toEqual({ label: 'Woo request', colorKey: 'Woo request', colorMap: null, variant: 'error' })
 		})
 
+		// @spec openspec/changes/detail-pill-values/specs/detail-pill-values/spec.md#requirement-a-header-pill-can-be-limited-to-some-values
+		it('draws a pill with `values` only for those raw values (DqTaak: priority only when high)', () => {
+			const config = { field: 'priority', values: ['high', 'urgent'], labels: { high: 'High' } }
+			expect(resolvePill(config, { priority: 'high' })).toMatchObject({ label: 'High', colorKey: 'high' })
+			expect(resolvePill(config, { priority: 'normal' })).toBeNull()
+		})
+
 		it('renders nothing for an empty field or no config', () => {
 			expect(resolvePill({ field: 'status' }, { status: '' })).toBeNull()
 			expect(resolvePill({ field: 'status' }, null)).toBeNull()

@@ -264,6 +264,22 @@
 					@click="onPrimaryActionClick">
 					{{ effectivePrimaryLabel }}
 				</NcButton>
+				<!-- The record source's own verbs (a task's claim, hand back,
+				     complete), offered from the record's state. The ones a source
+				     marks `menu` join the Actions menu instead. -->
+				<NcButton
+					v-for="verb in sourceVerbButtons"
+					:key="`verb-${verb.id}`"
+					variant="secondary"
+					:disabled="sourceVerbBusy"
+					:data-testid="`cn-detail-page-verb-${verb.id}`"
+					@click="runSourceVerb(verb)">
+					<template v-if="verb.icon" #icon>
+						<CnIcon v-if="typeof verb.icon === 'string'" :name="verb.icon" :size="20" />
+						<component :is="verb.icon" v-else :size="20" />
+					</template>
+					{{ verb.label }}
+				</NcButton>
 				<!-- Quick actions (manifest `config.quickActions`): the few
 				     actions a handler reaches for on every record, always
 				     visible. At most three, so the row cannot grow back into
@@ -1595,6 +1611,7 @@ export default {
 		const isBoard = computed(() => this.isBoard)
 		const tabsLabel = computed(() => this.resolvedTabsLabel)
 		const visibilityRows = computed(() => (this.visibilityRowsPending ? null : this.visibilityRows))
+		const canCheckItems = computed(() => this.recordCanCheckItems)
 		return {
 			// The page's own look reaches the tabs, the cards and the activity
 			// below it, also when it came from the `look` prop and not the app.
@@ -1603,6 +1620,15 @@ export default {
 				get value() {
 					return tabsLabel.value
 				},
+			},
+
+			// The record source's checklist writes, for a `checklist` widget.
+			cnRecordChecklist: {
+				get canCheck() {
+					return canCheckItems.value
+				},
+
+				check: (itemId, checked) => this.checkSourceItem(itemId, checked),
 			},
 
 			// The open body tab, reported by a `tabs` widget, so a side entry
@@ -2000,6 +2026,20 @@ export default {
 		entitySource: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * App routes that replace a record source's own route for a verb, by
+		 * verb id (manifest `config.verbEndpoints`), such as
+		 * `{ "complete": "/apps/dossiq/api/case-tasks/{id}/complete" }` for an
+		 * app that checks something of its own before the engine completes the
+		 * task. `{id}` is the record id. Only read with `entitySource`.
+		 *
+		 * @type {object|null}
+		 */
+		verbEndpoints: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -2565,9 +2605,11 @@ export default {
 		 * shows nothing at 0. With `resolve: { register, schema, labelField?,
 		 * colorField?, iconField? }` the pill shows the referenced record's
 		 * label, takes its tone from that record's colour (an NL Design System
-		 * hue such as `red`, or a badge role) and shows its icon.
+		 * hue such as `red`, or a badge role) and shows its icon. `values`
+		 * draws a `field` pill only for those raw values (a priority pill for
+		 * `high` and `urgent` only).
 		 *
-		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string, resolve?: object}|null}
+		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string, resolve?: object, values?: Array<string>}|null}
 		 */
 		typePill: {
 			type: Object,
@@ -3067,6 +3109,8 @@ export default {
 			 * menu dispatches without reaching back into that component.
 			 */
 			menuHeaderActions: [],
+			/** Whether a record-source verb is in flight, so a double click cannot run it twice. */
+			sourceVerbBusy: false,
 			/** Lifecycle transitions CnLifecycleActions hands the Actions menu. */
 			lifecycleMenuEntries: [],
 			/** Whether the per-widget style/config editor modal is open. */
@@ -4064,7 +4108,70 @@ export default {
 			const inMenu = pinned.size > 0
 				? this.menuHeaderActions.filter((entry) => !pinned.has(entry.id))
 				: this.menuHeaderActions
-			return [...lifecycle, ...inMenu]
+			return [...this.sourceVerbMenuEntries, ...lifecycle, ...inMenu]
+		},
+
+		/**
+		 * The verbs the record source offers on the record in view, read off
+		 * the record's own state by the source. Empty without a source that
+		 * offers verbs, before the record is read, and when it was not found.
+		 *
+		 * @return {Array<object>} The verbs.
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		sourceVerbs() {
+			const source = this.recordSource
+			if (!source || typeof source.verbs !== 'function' || typeof source.runVerb !== 'function') {
+				return []
+			}
+			if (this.objectNotFound || !this.currentObject) {
+				return []
+			}
+			const verbs = source.verbs(this.currentObject)
+			return Array.isArray(verbs) ? verbs.filter((verb) => verb && typeof verb.id === 'string' && verb.id !== '') : []
+		},
+
+		/**
+		 * Whether the record source can tick the checklist of the record in
+		 * view: it writes items, and says this record can still be ticked.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		recordCanCheckItems() {
+			const source = this.recordSource
+			if (!source || typeof source.checkItem !== 'function' || !this.currentObject || this.objectNotFound) {
+				return false
+			}
+			return typeof source.canCheckItems !== 'function' || source.canCheckItems(this.currentObject) === true
+		},
+
+		/**
+		 * The source verbs drawn as header buttons.
+		 *
+		 * @return {Array<object>} The verbs.
+		 */
+		sourceVerbButtons() {
+			return this.sourceVerbs.filter((verb) => verb.menu !== true)
+		},
+
+		/**
+		 * The source verbs listed in the Actions menu, as menu entries.
+		 *
+		 * @return {Array<object>} Menu-ready entries.
+		 */
+		sourceVerbMenuEntries() {
+			return this.sourceVerbs
+				.filter((verb) => verb.menu === true)
+				.map((verb) => ({
+					id: `cn-source-verb-${verb.id}`,
+					label: verb.label,
+					testid: `cn-detail-page-verb-${verb.id}`,
+					iconName: typeof verb.icon === 'string' ? verb.icon : '',
+					disabled: this.sourceVerbBusy,
+					pressed: null,
+					run: () => this.runSourceVerb(verb),
+				}))
 		},
 
 		/**
@@ -5741,6 +5848,65 @@ export default {
 			 * @type {{ action: string, to: string, object: object }}
 			 */
 			this.$emit('transitioned', payload)
+		},
+
+		/**
+		 * Tick or untick one checklist item through the record source. The
+		 * source replaces its record with the answer; a refusal is shown with
+		 * the server's message and leaves the item as it was.
+		 *
+		 * @param {string} itemId The item id.
+		 * @param {boolean} checked The new state.
+		 * @return {Promise<boolean>} Whether the write was taken.
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		async checkSourceItem(itemId, checked) {
+			const source = this.recordSource
+			const objectId = this.objectId
+			if (!this.recordCanCheckItems || !objectId) {
+				return false
+			}
+			const outcome = await source.checkItem(String(objectId), String(itemId), checked === true)
+			if (!outcome || outcome.ok !== true) {
+				const { showError } = await import('@nextcloud/dialogs')
+				showError(String(outcome?.message || '').trim() || t('nextcloud-vue', 'This could not be done. Try again.'))
+				return false
+			}
+			return true
+		},
+
+		/**
+		 * Run a record-source verb on the record in view. The source keeps its
+		 * record in step with the answer, so the header, pills and widgets
+		 * redraw from it. A refusal is shown with the server's own message,
+		 * which names the verb and the reason.
+		 *
+		 * @param {{id: string, label: string, successMessage?: string}} verb The verb.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		async runSourceVerb(verb) {
+			const source = this.recordSource
+			const objectId = this.objectId
+			if (!source || !objectId || this.sourceVerbBusy) {
+				return
+			}
+			this.sourceVerbBusy = true
+			try {
+				const url = this.verbEndpoints && typeof this.verbEndpoints[verb.id] === 'string' ? this.verbEndpoints[verb.id] : undefined
+				const outcome = await source.runVerb(String(objectId), verb.id, url ? { url } : {})
+				const { showError, showSuccess } = await import('@nextcloud/dialogs')
+				if (!outcome || outcome.ok !== true) {
+					showError(String(outcome?.message || '').trim() || t('nextcloud-vue', 'This could not be done. Try again.'))
+					return
+				}
+				if (verb.successMessage) {
+					showSuccess(verb.successMessage)
+				}
+				this.$emit('transitioned', { action: verb.id, to: String(outcome.record?.state ?? ''), object: outcome.record || null })
+			} finally {
+				this.sourceVerbBusy = false
+			}
 		},
 
 		/**

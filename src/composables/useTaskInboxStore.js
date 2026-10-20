@@ -224,6 +224,91 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 		},
 
 		/**
+		 * Run one lifecycle verb on a task read for a detail page, and keep
+		 * that record in step with the engine's answer.
+		 *
+		 * `url` replaces the engine's own verb route for an app that puts a
+		 * step of its own in front of the engine (dossiq completes a task
+		 * through its own endpoint, which checks the case type's form first).
+		 * `{id}` in it is the task uuid. A refusal is returned with the
+		 * server's message as-is and leaves the record as it was.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {string} verb The verb.
+		 * @param {{url?: string}} [options] An app route to post the verb to instead.
+		 * @return {Promise<{ok: boolean, status: (number|null), record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		async runRecordVerb(uuid, verb, options = {}) {
+			const key = String(uuid || '').trim()
+			const name = String(verb || '').trim()
+			if (key === '' || name === '') {
+				return { ok: false, status: null, record: null, message: '' }
+			}
+			const route = typeof options.url === 'string' && options.url !== ''
+				? options.url.replace('{id}', encodeURIComponent(key))
+				: `${FLOW_TASKS_URL}/${encodeURIComponent(key)}/${encodeURIComponent(name)}`
+			try {
+				const response = await axios.post(generateUrl(route), {})
+				return { ok: true, status: response.status || 200, record: await this.keepRecord(key, response.data), message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, record: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Tick or untick one checklist item on a task read for a detail page
+		 * (`PATCH /flow-tasks/{uuid}/checklist/{itemId}?checked=`). The engine
+		 * answers with the whole task, which replaces the record, so a refused
+		 * tick leaves the item as it was on screen.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {string} itemId The checklist item id.
+		 * @param {boolean} checked The new state.
+		 * @return {Promise<{ok: boolean, status: (number|null), record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		async checkRecordItem(uuid, itemId, checked) {
+			const key = String(uuid || '').trim()
+			const item = String(itemId || '').trim()
+			if (key === '' || item === '') {
+				return { ok: false, status: null, record: null, message: '' }
+			}
+			try {
+				const response = await axios.patch(
+					generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(key)}/checklist/${encodeURIComponent(item)}`),
+					null,
+					{ params: { checked: checked === true ? 'true' : 'false' } },
+				)
+				return { ok: true, status: response.status || 200, record: await this.keepRecord(key, response.data), message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, record: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Store the task a write answered with as the detail record. An answer
+		 * that carries no task (an app route that returns only a status) is
+		 * followed by a fresh read, so the page never shows the state from
+		 * before the write.
+		 *
+		 * @param {string} key The task uuid.
+		 * @param {unknown} data The response body.
+		 * @return {Promise<object|null>} The task now held.
+		 */
+		async keepRecord(key, data) {
+			const body = data && typeof data === 'object' ? data : null
+			const task = body && (body.results || body.task) && typeof (body.results || body.task) === 'object' && !Array.isArray(body.results || body.task)
+				? (body.results || body.task)
+				: body
+			if (task && typeof task === 'object' && !Array.isArray(task) && String(task.uuid || '') === key) {
+				this.records = { ...this.records, [key]: task }
+				return task
+			}
+			return this.fetchRecord(key)
+		},
+
+		/**
 		 * Load one inbox page.
 		 *
 		 * Defaults are the inbox's resting shape: the viewer's ASSIGNED tasks,
