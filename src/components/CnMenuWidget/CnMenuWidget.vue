@@ -206,7 +206,7 @@ import { translate as t } from '@nextcloud/l10n'
 import CnMenuItemIcon from './CnMenuItemIcon.vue'
 import CnMenuTreeNode from './CnMenuTreeNode.vue'
 import { followLinkClick } from '../../utils/linkNavigation.js'
-import { computeActivePath, isActiveItem, isRouterPath, menuLinkAttrs } from './menuActive.js'
+import { computeActivePath, isActiveItem, isRouterPath, menuLinkAttrs, routerBase, toRoutePath } from './menuActive.js'
 
 const VALID_STYLES = ['dropdown', 'megamenu', 'tree']
 const VALID_ORIENTATIONS = ['horizontal', 'vertical']
@@ -406,6 +406,7 @@ export default {
 			return computeActivePath({
 				items: this.items,
 				currentLocation: this.currentLocation,
+				base: routerBase(this.$router),
 			})
 		},
 
@@ -698,7 +699,7 @@ export default {
 			}
 			this.closeAll()
 			if (isRouterPath(item.url)) {
-				followLinkClick(event, item.url, this.$router)
+				followLinkClick(event, toRoutePath(item.url, this.$router), this.$router)
 			}
 		},
 
@@ -758,7 +759,7 @@ export default {
 			}
 			if (isRouterPath(url) && this.$router && typeof this.$router.push === 'function') {
 				try {
-					this.$router.push(url)
+					this.$router.push(toRoutePath(url, this.$router))
 					return
 				} catch {
 					// Fall through to location assignment.
@@ -798,7 +799,7 @@ export default {
 		 * @return {boolean} true when active.
 		 */
 		__isActive(itemUrl) {
-			return isActiveItem(itemUrl, this.currentLocation)
+			return isActiveItem(itemUrl, this.currentLocation, routerBase(this.$router))
 		},
 	},
 }
