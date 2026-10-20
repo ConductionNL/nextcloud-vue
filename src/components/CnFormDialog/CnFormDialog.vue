@@ -2,7 +2,7 @@
 	<CnDialog
 		:look="look"
 		:width="width"
-		defaultWidth="form"
+		:defaultWidth="columns === 2 ? 'wizard' : 'form'"
 		:eyebrow="eyebrow"
 		:subtitle="subtitle"
 		:name="resolvedTitle"

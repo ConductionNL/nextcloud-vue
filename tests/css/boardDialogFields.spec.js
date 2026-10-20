@@ -45,9 +45,9 @@ describe('dialog.css: text fields in a board dialog', () => {
 	it('draws the control 40px with a solid 1px grey border and radius 8, label outside or not', () => {
 		expect(rulesFor(`${content} .input-field__main-wrapper`)).toContain('var(--cn-field-height, 40px)')
 		const control = rulesFor(`${content} .input-field__input`)
-		expect(control).toContain('box-shadow: 0 0 0 1px var(--color-border-dark)')
+		expect(control).toContain('border: 1px solid var(--color-border-maxcontrast)')
 		expect(control).toContain('border-radius: 8px')
-		expect(rulesFor(`${content} .textarea__input`)).toContain('box-shadow: 0 0 0 1px var(--color-border-dark)')
+		expect(rulesFor(`${content} .textarea__input`)).toContain('border: 1px solid var(--color-border-maxcontrast)')
 	})
 
 	it('only reaches a board dialog', () => {

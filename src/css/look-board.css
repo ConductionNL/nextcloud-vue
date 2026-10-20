@@ -214,6 +214,16 @@
 	height: 16px;
 }
 
+/* ---- A single select -------------------------------------------------- */
+/* NcSelect draws a single select as its search field with the clear and
+   open buttons laid over its end. A legacy vue-select rule that Nextcloud
+   still loads caps the field at the width less one clickable area, which
+   left those buttons outside the field's border (DqNieuweZaak "Zaaktype",
+   "Intakekanaal"). */
+.cn-look-board .nc-select.v-select.select.vs--single .vs__selected-options {
+	max-width: none;
+}
+
 /* ---- The header button ------------------------------------------------- */
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
