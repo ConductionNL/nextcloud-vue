@@ -347,12 +347,14 @@
 				<label
 					v-else
 					class="cn-dashboard-page__page-filter">
-					<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ pf.label }}</span>
+					<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ effectiveTranslate(pf.label) }}</span>
 					<NcSelect
 						:modelValue="selectedPageFilterOption(pf)"
-						:options="pf.options || []"
-						:clearable="false"
-						:inputLabel="pf.label || pf.key"
+						:options="pageFilterSegments(pf)"
+						:clearable="pf.clearable === true"
+						:placeholder="pf.placeholder ? effectiveTranslate(pf.placeholder) : undefined"
+						:loading="pageFilterLoading[pf.key] === true"
+						:inputLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
 						label="label"
 						:data-testid="'cn-page-filter-' + pf.key"
 						@update:modelValue="onPageFilterChange(pf, $event)" />
@@ -1044,6 +1046,7 @@ import { headerActionAsLink } from '../../utils/actionLink.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
+import { isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
@@ -1107,6 +1110,9 @@ const CHART_PROP_KEYS = [
 	'highlight',
 	'cellSource',
 	'emptyCellLabel',
+	// A norm line and month categories on a line chart (DqDoorlooptijd).
+	'referenceLines',
+	'categoryFormat',
 ]
 
 /**
@@ -1175,6 +1181,7 @@ const CHART_PROP_KEYS = [
  * }]
  * ```
  */
+
 export default {
 	name: 'CnDashboardPage',
 
@@ -1688,8 +1695,8 @@ export default {
 		 * create dialog), `api-call` (POST/PUT + toast + refresh), `toggle`
 		 * (two-way state button), `navigate` / `open-modal` / `refresh`, each
 		 * with an optional `visibleWhen` predicate. An entry with `href` is a
-		 * link button, never dispatched: an absolute `http(s)`, `mailto:` or
-		 * `tel:` URL as written, an instance path (leading `/`) through
+		 * link button, never dispatched: an absolute `http(s)`, `mailto:`,
+		 * `tel:` or `//host/...` URL as written, an instance path (leading `/`) through
 		 * `generateUrl()`, in a new tab with `target: '_blank'`. Empty (the
 		 * default) renders nothing; the `#header-actions` slot still works
 		 * alongside it for bespoke buttons.
@@ -1716,10 +1723,16 @@ export default {
 		 * group on the header's description line, after the period group
 		 * (DqProcesanalyse "Gemiddeld | Mediaan"). An endpoint widget can read
 		 * the value in its `responsePath` too (`phaseDays.@workspace.measure`).
-		 * Empty (the default) renders no controls and leaves the context
-		 * untouched.
+		 * `optionsFrom` reads the options instead of listing them: `{ url,
+		 * params?, responsePath?, valueField?, labelField? }` from an app
+		 * endpoint, or `{ register, schema, filter?, valueField?, labelField? }`
+		 * from OpenRegister objects (value `id`, label `title` or `name` by
+		 * default; tokens resolve). `clearable: true` lets the reader clear the
+		 * select back to "all" (`placeholder`, e.g. "All case types"), which
+		 * writes null and seeds nothing. Empty (the default) renders no
+		 * controls and leaves the context untouched.
 		 *
-		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options: Array<{value: (string|number), label: string}>, default?: (string|number)}>}
+		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
 		 */
 		pageFilters: {
 			type: Array,
@@ -1982,6 +1995,10 @@ export default {
 
 	data() {
 		return {
+			/** Options read through a page filter's `optionsFrom`, by filter key. */
+			pageFilterFetched: {},
+			/** Whether a page filter's `optionsFrom` read is in flight, by filter key. */
+			pageFilterLoading: {},
 			isEditing: false,
 			/**
 			 * This user's arranged layout, when `userLayout` is on.
@@ -2093,6 +2110,7 @@ export default {
 		 * The header actions handed to CnActionButtons, an entry with `href`
 		 * in its link form (resolved URL, anchor target, no handler).
 		 *
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 * @return {Array<object>}
 		 */
 		linkedHeaderActions() {
@@ -2851,6 +2869,7 @@ export default {
 		this.pushAiContext()
 		this.initDateRange()
 		this.initPageFilters()
+		this.loadPageFilterOptions()
 		this.evaluateWidgetConditions()
 		this.loadUserLayout()
 	},
@@ -2880,7 +2899,7 @@ export default {
 				if (this.workspaceContext[pf.key] !== undefined) {
 					continue
 				}
-				const fallback = (pf.options && pf.options.length) ? pf.options[0].value : undefined
+				const fallback = (pf.options && pf.options.length && pf.clearable !== true) ? pf.options[0].value : undefined
 				const value = pf.default !== undefined ? pf.default : fallback
 				if (value !== undefined) {
 					this.workspaceContext[pf.key] = value
@@ -2900,19 +2919,52 @@ export default {
 				return null
 			}
 			const current = this.workspaceContext[pf.key]
-			return (pf.options || []).find((o) => o.value === current) || null
+			return this.pageFilterSegments(pf).find((o) => o.value === current) || null
 		},
 
 		/**
-		 * A page filter's options as segments, labels through the host
-		 * translate.
+		 * A page filter's options, labels through the host translate: the
+		 * segments of a segmented filter and the options of a select.
 		 *
 		 * @spec openspec/changes/dashboard-board-termijnen/specs/dashboard-page/spec.md#requirement-a-page-filter-as-a-segmented-group-on-the-description-line
 		 * @param {object} pf The page-filter descriptor.
 		 * @return {Array<{value: (string|number), label: string}>}
 		 */
 		pageFilterSegments(pf) {
-			return (pf.options || []).map((o) => ({ value: o.value, label: o.label ? this.effectiveTranslate(o.label) : String(o.value) }))
+			const options = Array.isArray(pf.options) ? pf.options : (this.pageFilterFetched[pf.key] || [])
+			return options.map((o) => ({ value: o.value, label: o.label ? this.effectiveTranslate(o.label) : String(o.value) }))
+		},
+
+		/**
+		 * Read the options of every page filter with `optionsFrom`, then seed
+		 * a filter that is not clearable with its first option when it has no
+		 * value yet.
+		 *
+		 * @spec openspec/changes/page-filter-options-from/specs/dashboard-page/spec.md#requirement-a-page-filter-can-read-its-options
+		 * @return {Promise<void>}
+		 */
+		async loadPageFilterOptions() {
+			const ctx = { workspace: this.workspaceContext || {} }
+			await Promise.all((this.pageFilters || [])
+				.filter((pf) => pf && pf.key && !Array.isArray(pf.options) && pf.optionsFrom && typeof pf.optionsFrom === 'object')
+				.map(async (pf) => {
+					const from = pf.optionsFrom
+					if (!isOptionsFrom(from)) {
+						return
+					}
+					this.pageFilterLoading = { ...this.pageFilterLoading, [pf.key]: true }
+					let options
+					try {
+						options = (await loadOptionsFrom(from, ctx)).map((o) => ({ value: o.id, label: o.label }))
+					} catch {
+						options = []
+					}
+					this.pageFilterFetched = { ...this.pageFilterFetched, [pf.key]: options }
+					this.pageFilterLoading = { ...this.pageFilterLoading, [pf.key]: false }
+					if (pf.clearable !== true && pf.default === undefined && this.workspaceContext[pf.key] === undefined && options.length > 0) {
+						this.workspaceContext[pf.key] = options[0].value
+					}
+				}))
 		},
 
 		/**
@@ -2927,7 +2979,7 @@ export default {
 			if (!pf || !pf.key) {
 				return
 			}
-			const value = option && typeof option === 'object' ? option.value : option
+			const value = option && typeof option === 'object' ? option.value : (option ?? null)
 			this.workspaceContext[pf.key] = value
 			/**
 			 * @event page-filter-change Emitted when a page-level filter selection changes.

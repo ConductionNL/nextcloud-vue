@@ -343,6 +343,8 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 | `legendPosition` | String | `''` | Legend placement override: `top \| bottom \| left \| right`. Empty keeps the automatic placement (bottom for pie-family, top otherwise). |
 | `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
 | `footnote` | String | `''` | A line under the chart, through the host's translate: under the rows of a `bar-list` or `matrix`, under the plot of a `line`, `area` or `bar` chart |
+| `referenceLines` | Array | `[]` | Dashed horizontal reference lines on the value axis of a line, area or bar chart, such as a norm: `[{ value, label?, color? }]`. The label goes through the host's translate; the colour defaults to the theme's error colour (board DqDoorlooptijd). |
+| `categoryFormat` | String | `''` | How date categories read on the x-axis: `month` ("jan") or `month-year` ("jan 2026"), in the user's language. Categories that are not dates are left as is. |
 | `emptyCellLabel` | String | `''` | `matrix`: the text of a cell without a value ("geen"), through the host's translate. Empty leaves the cell blank |
 | `highlight` | Object | `null` | `matrix`: the cell to outline, `{ row, column, columnKeys? }`, tokens such as `@object.behaviour` resolved |
 | `cellSource` | Object | `null` | `matrix`: read the cells from records that each hold one cell (`{ register, schema, filter?, rowField, columnField, valueField, … }`), or with `cellsPath` from the cells inside one record, see [Bar list and matrix](#bar-list-and-matrix) |

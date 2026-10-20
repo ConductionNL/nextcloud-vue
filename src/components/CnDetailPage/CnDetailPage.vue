@@ -126,20 +126,13 @@
 							</component>
 							<!-- The one Follow control beside the title (manifest `config.follow`):
 							     shown when the object carries `@self.watching`. There is no star:
-							     a favourite is a follow with notifications off. -->
+							     a favourite is a follow with notifications off. The board look
+							     draws it on a row of its own under the breadcrumb. -->
 							<span
-								v-if="showFollowToggle"
+								v-if="showFollowToggle && !isBoard"
 								class="cn-detail-page__interactions"
 								data-testid="cn-detail-page-interactions">
-								<CnFollowToggle
-									:register="register"
-									:schema="schema"
-									:objectId="String(objectId)"
-									:watching="resolvedSelf.watching === true"
-									:notify="typeof resolvedSelf.watchNotify === 'boolean' ? resolvedSelf.watchNotify : null"
-									:watcherCount="typeof resolvedSelf.watcherCount === 'number' ? resolvedSelf.watcherCount : null"
-									:canManage="!!(resolvedSelf.can && resolvedSelf.can.manage === true)"
-									:notifies="followNotifies" />
+								<CnFollowToggle v-bind="followToggleProps" />
 							</span>
 						</div>
 						<!--
@@ -516,6 +509,17 @@
 					:object="resolvedObject"
 					:schema="currentSchema"
 					:register="register" />
+			</div>
+			<!-- Row 3 of the board look's header: the Follow control under the
+			     breadcrumb, clear of the title row and its actions (DqZaak
+			     "Volgen"). -->
+			<div
+				v-if="isBoard && showFollowToggle"
+				class="cn-detail-page__header-row3"
+				data-testid="cn-detail-page-header-row3">
+				<span class="cn-detail-page__interactions" data-testid="cn-detail-page-interactions">
+					<CnFollowToggle v-bind="followToggleProps" />
+				</span>
 			</div>
 			<!-- A widget inside the header (manifest `config.headerWidget`), on
 			     a row of its own under the title and the actions: the stages
@@ -1267,6 +1271,7 @@ import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
+import { saveEdited } from '../../utils/saveEdited.js'
 import { slotRenders } from '../../utils/slotContent.js'
 import { evaluateVisibleWhen, isLocallyDecidableVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import {
@@ -1539,6 +1544,12 @@ export default {
 				get value() {
 					return tabsLabel.value
 				},
+			},
+
+			// The open body tab, reported by a `tabs` widget, so a side entry
+			// with `tabs` shows only beside those tabs.
+			cnDetailReportTab: (id) => {
+				this.activeBodyTab = typeof id === 'string' ? id : ''
 			},
 
 			// The records `visibilityContext` names, keyed `@context.<name>`, so a tab's
@@ -2201,7 +2212,7 @@ export default {
 		 * Empty (the default) renders nothing.
 		 *
 		 * An entry with `href` is a link, never dispatched: an absolute
-		 * `http(s)`, `mailto:` or `tel:` URL as written, or an instance path
+		 * `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written, or an instance path
 		 * (leading `/`) through `generateUrl()`, opening in place unless
 		 * `target` is `'_blank'`.
 		 *
@@ -2468,8 +2479,12 @@ export default {
 
 		/**
 		 * The "what now" card (manifest `config.nextStep`):
-		 * `{ field?, stages: { <stage>: { title?, checklist, after? } } }`.
+		 * `{ field?, stagesFrom?, stages: { <stage>: { title?, checklist, after? } } }`.
 		 * Each checklist item is `{ label, doneField?, doneWhen?, hint? }`.
+		 * `stagesFrom` is a field path read like a `visibleWhen` field
+		 * (`@context.caseType.nextStep`): when it holds a stages map (or an
+		 * object with `stages`), that map replaces `stages` for this record, so
+		 * a case type keeps its own stage texts. Otherwise `stages` stays.
 		 * Rendered above the body for a stage that declares a checklist, with
 		 * the primary button inside it. See `CnNextStepCard`.
 		 *
@@ -2574,12 +2589,30 @@ export default {
 		},
 
 		/**
+		 * A field path whose value picks the tabs of the page's `tabs` widgets
+		 * and their order for this record (manifest `config.tabsFrom`), read
+		 * like a `visibleWhen` field: `@context.caseType.tabs` reads the list a
+		 * case type keeps. A non-empty list of tab ids (a tab's `id`, else its
+		 * `widgetId`, or the string entry itself) keeps those tabs in that
+		 * order and leaves the rest out. Any other value keeps the declared
+		 * tabs. Edit mode shows them all.
+		 *
+		 * @spec openspec/changes/detail-tabs-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-tabs-and-their-order
+		 */
+		tabsFrom: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * A column of cards beside the body (manifest `config.sideColumn`),
 		 * for the record's facts: deadline, requester, handler, links. Each
 		 * entry is a widget definition (`{ id?, type, title?, content? }`) or
 		 * the id of a widget declared in `widgets`. The column stacks under
 		 * the body on a narrow page. Empty (the default) leaves the layout as
-		 * it is.
+		 * it is. An entry with `tabs` (tab ids of the body's `tabs` widget)
+		 * shows only while one of those tabs is open (DqZaaktypeVelden: the
+		 * option list beside Velden).
 		 *
 		 * @type {Array<string|object>}
 		 */
@@ -2892,6 +2925,8 @@ export default {
 
 	data() {
 		return {
+			/** The id of the open body tab a `tabs` widget reported, '' before one did. */
+			activeBodyTab: '',
 			/**
 			 * The records `visibilityContext` names, keyed `@context.<name>`: the row,
 			 * `null` when it could not be read, absent while it is on its way.
@@ -3393,13 +3428,32 @@ export default {
 		},
 
 		/**
+		 * `nextStep` with its stages read from the record when `stagesFrom`
+		 * names a stages map there (a case type's own texts), else as declared.
+		 *
+		 * @spec openspec/changes/detail-next-step-from-record/specs/detail-page/spec.md#requirement-the-next-step-stages-can-come-from-the-record
+		 * @return {object|null}
+		 */
+		effectiveNextStep() {
+			const config = this.nextStep
+			if (!config || typeof config !== 'object' || typeof config.stagesFrom !== 'string' || config.stagesFrom === '' || !this.widgetVisibilityData) {
+				return config
+			}
+			const found = readVisibleWhenPath(this.widgetVisibilityData, config.stagesFrom)
+			const stages = found && typeof found === 'object' && !Array.isArray(found)
+				? (found.stages && typeof found.stages === 'object' && !Array.isArray(found.stages) ? found.stages : found)
+				: null
+			return stages && Object.keys(stages).length > 0 ? { ...config, stages } : config
+		},
+
+		/**
 		 * The "what now" card for the record's stage, labels translated.
 		 *
 		 * @return {{stage: string, title: string, items: Array<object>, after: string}|null} The card, or null when the stage declares no checklist.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
 		 */
 		nextStepCard() {
-			const card = resolveNextStep(this.nextStep, this.currentObject, this.stageField)
+			const card = resolveNextStep(this.effectiveNextStep, this.currentObject, this.stageField)
 			if (!card) {
 				return null
 			}
@@ -3514,7 +3568,7 @@ export default {
 		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
 		 */
 		sideColumnWidgets() {
-			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetVisible(widget))
+			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetOnTab(widget) && this.sideWidgetVisible(widget))
 			if (!this.isBoard) {
 				return resolved
 			}
@@ -3877,6 +3931,7 @@ export default {
 		 * in. Edit goes LAST so it reads after the app's own actions in the
 		 * Actions menu — the page's affordance yields to the app's.
 		 *
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 * @return {Array<object>} The action descriptors.
 		 */
 		effectiveHeaderActions() {
@@ -4280,6 +4335,26 @@ export default {
 		},
 
 		/**
+		 * The props of the Follow control, wherever the header draws it.
+		 *
+		 * @return {object} The CnFollowToggle props.
+		 * @spec openspec/changes/board-follow-row/specs/board-follow-row/spec.md#requirement-the-board-follow-control-sits-under-the-breadcrumb
+		 */
+		followToggleProps() {
+			const self = this.resolvedSelf
+			return {
+				register: this.register,
+				schema: this.schema,
+				objectId: String(this.objectId),
+				watching: self.watching === true,
+				notify: typeof self.watchNotify === 'boolean' ? self.watchNotify : null,
+				watcherCount: typeof self.watcherCount === 'number' ? self.watcherCount : null,
+				canManage: !!(self.can && self.can.manage === true),
+				notifies: this.followNotifies,
+			}
+		},
+
+		/**
 		 * The `_extend[]` values of the object read: the page's own, plus
 		 * `@self.can` while the Follow toggle can render (OpenRegister returns
 		 * the rights only on request, and the picker needs `manage`).
@@ -4359,7 +4434,7 @@ export default {
 				first.icon = crumb.icon
 			}
 			if (crumb.route) {
-				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}) }
+				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}), ...(crumb.query ? { query: crumb.query } : {}) }
 			} else if (crumb.href) {
 				first.href = crumb.href
 			}
@@ -4561,12 +4636,27 @@ export default {
 		 */
 		bodyGridWidgets() {
 			if (this.hasGridLayout) {
-				return this.widgets
+				return this.pickTabs(this.widgets)
 			}
 			if (this.shouldRenderAutoBody) {
 				return this.autoBodyWidgets || []
 			}
 			return []
+		},
+
+		/**
+		 * The tab ids `tabsFrom` reads off this record, or null when it reads
+		 * no non-empty list (or the body is being edited).
+		 *
+		 * @spec openspec/changes/detail-tabs-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-tabs-and-their-order
+		 * @return {Array<string>|null}
+		 */
+		pickedTabIds() {
+			if (!this.tabsFrom || this.editingBody || !this.widgetVisibilityData) {
+				return null
+			}
+			const ids = readVisibleWhenPath(this.widgetVisibilityData, this.tabsFrom)
+			return Array.isArray(ids) && ids.length > 0 ? ids.map((id) => String(id)) : null
 		},
 
 		/**
@@ -4987,6 +5077,33 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The widget definitions with each `tabs` widget's tabs narrowed and
+		 * ordered by `pickedTabIds`; the definitions as given without a pick.
+		 * A new definition is returned for a changed widget; the declared one
+		 * is never mutated.
+		 *
+		 * @spec openspec/changes/detail-tabs-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-tabs-and-their-order
+		 * @param {Array<object>} widgets The widget definitions.
+		 * @return {Array<object>}
+		 */
+		pickTabs(widgets) {
+			const ids = this.pickedTabIds
+			if (!ids || !Array.isArray(widgets)) {
+				return widgets
+			}
+			const idOf = (tab) => String(typeof tab === 'string' ? tab : (tab && (tab.id ?? tab.widgetId)) ?? '')
+			return widgets.map((widget) => {
+				if (!widget || widget.type !== 'tabs' || !Array.isArray(widget.content?.tabs)) {
+					return widget
+				}
+				const tabs = ids
+					.map((id) => widget.content.tabs.find((tab) => idOf(tab) === id))
+					.filter(Boolean)
+				return tabs.length > 0 ? { ...widget, content: { ...widget.content, tabs } } : widget
+			})
+		},
+
 		/**
 		 * The tag after an admin-only entry in the board look ("beheerder",
 		 * DqZaakMeer), or null for any other entry or look. It is drawn by
@@ -5871,7 +5988,9 @@ export default {
 				const store = this.effectiveObjectStore
 				let saved = null
 				if (store && typeof store.saveObject === 'function' && this.resolvedObjectType) {
-					saved = await store.saveObject(this.resolvedObjectType, payload)
+					// Only the keys the form changed are written (a PATCH), so keys
+					// the edit form does not show keep their stored value.
+					saved = await saveEdited(store, this.resolvedObjectType, this.currentObject || null, payload)
 					if (!saved) {
 						const err = store.getError?.(this.resolvedObjectType)
 						const error = (err && err.message) || t('nextcloud-vue', 'Save failed')
@@ -6169,6 +6288,22 @@ export default {
 			}
 
 			return compactLayoutRows(drawable)
+		},
+
+		/**
+		 * Whether a side entry belongs beside the open body tab: an entry with
+		 * `tabs` (tab ids) shows only while one of them is open; an entry
+		 * without shows beside every tab. Edit mode shows them all.
+		 *
+		 * @spec openspec/changes/detail-side-cards-per-tab/specs/detail-page/spec.md#requirement-a-side-card-can-follow-the-open-tab
+		 * @param {object} widget The side entry's definition.
+		 * @return {boolean}
+		 */
+		sideWidgetOnTab(widget) {
+			if (this.editingBody || !Array.isArray(widget.tabs) || widget.tabs.length === 0) {
+				return true
+			}
+			return widget.tabs.map((id) => String(id)).includes(this.activeBodyTab)
 		},
 
 		/**

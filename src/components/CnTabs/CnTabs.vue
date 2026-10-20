@@ -947,7 +947,16 @@ export default defineComponent({
 	overflow: visible;
 }
 
+/* `margin: 0`: a tab is a <button>, and Nextcloud's core stylesheet gives
+   every plain button a 3px margin, which put the tabs 7px apart and 3px low
+   (DqInstellingen: 4px apart, on the strip's top). The nldesign theme sets a
+   button's weight, corner and border width with `!important` through its
+   button tokens, which drew every tab bold with a 1px underline; the tab
+   hands its own values to those tokens. */
 .cn-tabs--underline .cn-tabs__nav-item {
+	--nldesign-component-button-font-weight: 500;
+	--nldesign-component-button-border-radius: 0;
+	--nldesign-component-button-border-width: 0 0 3px;
 	background-color: transparent;
 	border: 0;
 	border-bottom: 3px solid transparent;
@@ -956,6 +965,7 @@ export default defineComponent({
 	font-size: 14px;
 	font-weight: 500;
 	gap: 8px;
+	margin: 0;
 	min-height: 44px;
 	padding: 0 9px;
 }
@@ -975,6 +985,7 @@ export default defineComponent({
 .cn-tabs--underline .cn-tabs__nav-item--active,
 .cn-tabs--underline .cn-tabs__nav-item--active:hover,
 .cn-tabs--underline .cn-tabs__nav-item--active:focus-visible {
+	--nldesign-component-button-font-weight: 700;
 	border-bottom: 3px solid var(--color-primary-element);
 	color: var(--color-main-text);
 	font-weight: 700;

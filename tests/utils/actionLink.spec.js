@@ -142,20 +142,27 @@ describe('headerActionAsLink', () => {
 		expect(headerActionAsLink(null)).toBeNull()
 	})
 
-	it('returns an entry with a function handler as is, href and all', () => {
-		const entry = { id: 'js', label: 'JS', href: '/apps/x', handler: () => {} }
-		expect(headerActionAsLink(entry)).toBe(entry)
+	it('makes an entry with a function handler a link too, dropping the handler with one warning per id', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const handler = jest.fn()
+		expect(headerActionAsLink({ id: 'js', label: 'JS', href: '/apps/x', handler }))
+			.toEqual({ id: 'js', label: 'JS', href: '/nc/index.php/apps/x', target: '_self' })
+		headerActionAsLink({ id: 'js', label: 'JS', href: '/apps/x', handler })
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn.mock.calls[0][0]).toContain('"js"')
+		expect(handler).not.toHaveBeenCalled()
+		warn.mockRestore()
 	})
 
-	it('still resolves the children of a function-handler entry, without touching the input', () => {
-		const handler = () => {}
+	it('resolves the children of a function-handler entry, without touching the input', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const child = { id: 'sub', label: 'Sub', href: '/apps/sub' }
-		const entry = { id: 'js', label: 'JS', href: '/index.php/apps/x', handler, children: [child] }
+		const entry = { id: 'js-parent', label: 'JS', href: '/index.php/apps/x', handler: () => {}, children: [child] }
 		const out = headerActionAsLink(entry)
-		expect(out).not.toBe(entry)
-		expect(out).toEqual({ id: 'js', label: 'JS', href: '/index.php/apps/x', handler, children: [{ id: 'sub', label: 'Sub', href: '/nc/index.php/apps/sub', target: '_self' }] })
+		expect(out).toEqual({ id: 'js-parent', label: 'JS', href: '/nc/index.php/apps/x', target: '_self', children: [{ id: 'sub', label: 'Sub', href: '/nc/index.php/apps/sub', target: '_self' }] })
 		expect(entry.children[0]).toBe(child)
 		expect(child.href).toBe('/apps/sub')
+		warn.mockRestore()
 	})
 
 	it('resolves href, drops the handler and opens in place unless target is _blank', () => {

@@ -330,8 +330,8 @@ export default {
 		 * that URL in a new tab. Every click also emits `header-action`
 		 * `{ action, id }`, except for `handler: "none"`. An entry with `href`
 		 * makes its button a real link that runs and emits nothing: an
-		 * absolute `http(s)`, `mailto:` or `tel:` URL as written, an instance
-		 * path (leading `/`) through `generateUrl()`, in a new tab with
+		 * absolute `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written,
+		 * an instance path (leading `/`) through `generateUrl()`, in a new tab with
 		 * `target: '_blank'`.
 		 *
 		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
@@ -462,6 +462,7 @@ export default {
 		 * header action with `href` carries that `link`.
 		 *
 		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, link: ({href: string, target: string}|null)}>} The buttons.
 		 */
 		resolvedHeaderButtons() {
@@ -479,8 +480,7 @@ export default {
 						action: button.action,
 						variant: button.variant === 'primary' ? 'primary' : 'secondary',
 						icon: typeof button.icon === 'string' ? button.icon : '',
-						// A function handler (JS composition) keeps the button dispatching.
-						link: entry && entry.href && typeof entry.handler !== 'function' ? { href: entry.href, target: entry.target } : null,
+						link: entry && typeof entry.href === 'string' && entry.href !== '' ? { href: entry.href, target: entry.target } : null,
 					}
 				})
 		},

@@ -10,12 +10,16 @@
 
 /* ------------------------------------------------------------------ header */
 
-/* Row 1: the h1 and the buttons at its end. Row 2: the count line, 6px under. */
+/* Row 1: the h1 and the buttons at its end, both at the row's top. Row 2:
+   the count line, 6px under. The header starts 4px under the content's top
+   (DqZaken: the title at 96, the count line at 142).
+   @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top */
 .cn-look-board .cn-index-page .cn-page-header {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
-	align-items: center;
+	align-items: start;
 	row-gap: 6px;
+	padding-top: 4px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 }
 
@@ -56,7 +60,7 @@
 	height: var(--cn-board-control-height) !important;
 	min-height: var(--cn-board-control-height) !important;
 	padding: 0 14px !important;
-	border: 1px solid var(--color-border-dark) !important;
+	border: 1px solid var(--cn-board-control-border) !important;
 	border-radius: var(--cn-board-control-radius) !important;
 	background: var(--color-main-background) !important;
 	color: var(--color-main-text) !important;
@@ -163,8 +167,15 @@
 	gap: 8px;
 }
 
+/* A chip is a <button>: the nldesign theme sets every button's radius and
+   weight with `!important` through its button tokens, which drew the chips
+   as 8px boxes at 700 (DqTeamwachtrij), so the chip hands its pill radius and
+   600 to those tokens.
+   @spec openspec/changes/board-chips-theme/specs/board-chips-theme/spec.md#requirement-board-chips-stay-pills-under-a-theme */
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab {
+	--nldesign-component-button-border-radius: 19px;
+	--nldesign-component-button-font-weight: 600;
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
@@ -173,7 +184,7 @@
 	min-height: 38px;
 	margin: 0;
 	padding: 0 14px;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: 19px;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -215,20 +226,22 @@
 	padding: 1px 7px;
 	border: 0;
 	border-radius: 10px;
+	--nldesign-color-on-surface: var(--cn-board-text-soft);
 	background: var(--color-border);
 	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 600;
-	line-height: 1.4;
+	/* 16px tall on its 1px pad, as the boards draw it (DqTaken, DqWerkbord).
+	   @spec openspec/changes/board-pill-tones/specs/board-pill-tones/spec.md#requirement-a-board-count-is-16px-tall */
+	line-height: 14px;
 }
 
 .cn-look-board .cn-saved-views__chip--selected .cn-saved-views__chip-count,
-/* On the selected chip the count is a lighter bubble on the dark chip
-   (DqZaken: #3d4047 on #1b1c1d); --cn-board-text-soft resolves to the main
-   text, the chip's own colour, which hid the bubble. */
+/* On the selected chip the count is the soft ink as a lighter bubble on the
+   dark chip (DqZaken: #3d4047 on #1b1c1d). */
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active .cn-quick-filter-bar__count {
 	--nldesign-color-on-surface: var(--color-primary-element-text);
-	background: color-mix(in srgb, var(--color-main-background) 15%, var(--color-main-text));
+	background: var(--cn-board-text-soft);
 	color: var(--color-primary-element-text);
 }
 
@@ -267,12 +280,30 @@
 	padding: 0;
 }
 
-/* Filter: a labelled secondary button, 36px, radius 8, with the active count. */
+/* The toolbar's buttons are the board's neutral control (DqTeamwachtrij
+   "Filter"): the main text at 600 on the main background with a grey border.
+   The nldesign theme paints a secondary button in the primary colour with
+   `!important` through its button tokens, so the bar hands the board's values
+   to those tokens.
+   @spec openspec/changes/board-toolbar-buttons-theme/specs/board-toolbar-buttons-theme/spec.md#requirement-board-toolbar-buttons-are-neutral-under-a-theme */
+.cn-look-board .cn-actions-bar:not(.cn-look-nextcloud *) {
+	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-secondary-action-color: var(--color-main-text);
+	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
+	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
+	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
+}
+
+/* Filter: a labelled secondary button, 36px, radius 8, 12px at both sides
+   and 14px text, with the active count. NcButton with an icon pads its start
+   4px and sets 15px. */
 .cn-look-board .cn-actions-bar__filter-button.button-vue,
 .cn-look-board .cn-actions-bar__filter-menu .button-vue {
 	min-height: 36px;
 	height: 36px;
+	padding: 0 12px;
 	border-radius: 8px;
+	font-size: 14px;
 	font-weight: 600;
 }
 
@@ -286,6 +317,8 @@
 	margin-inline-start: 6px;
 	padding: 0 6px;
 	border-radius: 10px;
+	/* A theme that forces the body ink onto every span reads it from here. */
+	--nldesign-color-on-surface: var(--color-primary-element-text);
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
 	font-size: 12px;
@@ -394,7 +427,7 @@
 	height: 40px;
 	padding-block: 0;
 	padding-inline: 38px 12px !important;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: 8px;
 	font-size: 14px;
 }
@@ -513,9 +546,18 @@
 
 /* The header row is near-white on the boards (#fafbfc), not the hover grey,
    its labels 14px muted. The ink also goes to --nldesign-color-on-surface,
-   which a theme that forces the body ink onto every span (thematiq) reads. */
+   which a theme that forces the body ink onto every span (thematiq) reads.
+   The nldesign theme paints every `th` with `!important` through its table
+   header tokens, and the sort button in it through its button weight token
+   (bold), so the cell hands the board's ground, ink and weight to those
+   tokens too.
+   @spec openspec/changes/board-table-head-theme/specs/board-table-head-theme/spec.md#requirement-a-board-table-header-keeps-the-boards-ground-ink-and-weight-under-a-theme */
 .cn-look-board .cn-table-container--board .cn-data-table th {
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-font-weight: 600;
+	--nldesign-component-button-font-weight: 600;
 	padding: 12px 16px;
 	border-bottom: 0;
 	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
@@ -722,14 +764,16 @@
 	line-height: 16px;
 }
 
-/* A status pill: 3px 10px, radius 12, 13px weight 600. The colours stay the
-   status colour map's. */
+/* A status pill: 3px 10px, radius 12, 13px weight 600, 21px tall on a
+   normal line (a 1.4 line made it 24.2). The colours stay the status colour
+   map's.
+   @spec openspec/changes/board-tags-shape/specs/board-tags-shape/spec.md#requirement-a-board-tag-is-a-21px-rounded-rectangle */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-status-badge {
 	padding: 3px 10px;
 	border-radius: 12px;
 	font-size: 13px;
 	font-weight: 600;
-	line-height: 1.4;
+	line-height: normal;
 }
 
 /* The row menu column holds one 34px button between 16px of padding, so 66px
@@ -760,7 +804,7 @@
 	height: 34px !important;
 	min-height: 34px !important;
 	padding: 0 !important;
-	border: 1px solid var(--color-border-dark) !important;
+	border: 1px solid var(--cn-board-control-border) !important;
 	border-radius: 8px !important;
 	color: var(--cn-board-text-soft) !important;
 }
@@ -1021,6 +1065,85 @@
 	margin-inline-start: auto;
 	padding: 0 12px;
 	border-radius: 8px;
+}
+
+/* The record layout (`config.cardLayout`, DqAanMijToegewezen): a 20px 22px
+   inset, 10px between its parts; the head pill at the start and the number
+   in 13px muted at the end; a 17px bold title, not underlined; a 14px muted
+   meta line; a footer over a hairline with a pill and the 14px semibold date.
+   @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config */
+.cn-look-board .cn-object-card.cn-object-card--board:has(> .cn-object-card__record) {
+	padding: 20px 22px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record {
+	gap: 10px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 24px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-number {
+	margin-inline-start: auto;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record .cn-object-card__title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.3;
+	text-decoration: none;
+	white-space: normal;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-meta {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: auto;
+	padding-top: 10px;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-date {
+	margin-inline-start: auto;
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-date--error {
+	color: var(--color-error-text);
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-date--warning {
+	color: var(--color-warning-text);
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-description {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
 }
 
 /* The catalogue card of the store page. */

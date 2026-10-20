@@ -24,12 +24,19 @@
 	/* Buttons and inputs. */
 	--cn-board-control-height: 40px;
 	--cn-board-control-radius: 8px;
+	/* A control's edge: 3:1 against every ground a control sits on (WCAG
+	   1.4.11). Nextcloud's border-dark is a hairline (#dbdbdb, 1.4:1); its
+	   max-contrast border is the control step, and a theme sets both. */
+	--cn-board-control-border: var(--color-border-maxcontrast);
 	/* Cards. */
 	--cn-board-card-radius: 12px;
 	--cn-board-card-padding: 20px 22px;
-	/* Hairline inside a card, and the soft secondary text. */
+	/* The side inset of a dashboard card: its title and its rows. */
+	--cn-board-dashboard-card-inset: 24px;
+	/* Hairline inside a card, and the soft secondary text: the boards' #3d4047,
+	   between the main text and the muted text, so it follows a theme's pair. */
 	--cn-board-hairline: var(--color-border);
-	--cn-board-text-soft: var(--color-main-text);
+	--cn-board-text-soft: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
 }
 
 /*
@@ -56,6 +63,23 @@
 	margin-inline: 0;
 }
 
+/* The page shows the content area's ground (the theme's content surface,
+   light grey on the boards) and draws none of its own; only its cards are
+   white. A theme rule that paints every `[class*="panel"]` with the main
+   background (the nldesign theme's element overrides) caught an index page
+   with a side panel (`cn-index-page--with-side-panel`) and drew the whole
+   page white (DqTeamwachtrij). That rule carries an id through
+   `:not(#header *)`, so this one names an id in `:not()` to outrank it.
+   @spec openspec/changes/board-page-ground/specs/board-page-ground/spec.md#requirement-a-board-page-draws-no-ground-of-its-own */
+.cn-look-board .cn-index-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-dashboard-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-store-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-admin-settings-shell:not(#cn-board-page-ground):not(.cn-look-nextcloud *) {
+	background-color: transparent;
+}
+
 .cn-look-board .cn-index-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page:not(.cn-look-nextcloud *) {
 	gap: var(--cn-board-section-gap);
@@ -80,6 +104,15 @@
 .cn-look-board .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
 	margin-bottom: var(--cn-board-section-gap);
+}
+
+/* The boards start a page's header 4px under the content's top, so the title
+   sits at 96 (DqZaak, DqMijnWerk), not 92. The index page's header carries
+   the same inset in look-board-index.css.
+   @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top */
+.cn-look-board .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
+	padding-top: 4px;
 }
 
 /* The 56px inset clears the navigation toggle, which overlays the content
@@ -121,7 +154,7 @@
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__title-row {
 	grid-column: 1;
 	grid-row: 1;
-	align-self: center;
+	align-self: start;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header-left > :not(.cn-dashboard-page__title-row) {
@@ -143,6 +176,49 @@
 	padding: 0;
 }
 
+/* ---- Button weight ------------------------------------------------------ */
+/* The boards draw a labelled button at 600 (DqZaken "Downloaden", DqZaak's
+   header, dialog footers, toolbar and row actions). An NcButton reads its
+   weight from --font-weight-element, which Nextcloud sets to 500; the board
+   look sets 600 on each button, so every NcButton on a board page draws the
+   board's weight without a rule per surface. Breadcrumb buttons keep the
+   crumb weight.
+   @spec openspec/changes/board-button-weight/specs/board-button-weight/spec.md#requirement-a-board-button-draws-at-600 */
+.cn-look-board .button-vue:not(.cn-look-nextcloud *):not(.vue-crumb *) {
+	--font-weight-element: 600;
+}
+
+/* ---- A button with an icon and a label --------------------------------- */
+/* The boards draw it 14px in at both sides with 14px text and a 16px icon
+   8px from its label (DqZaakEmail "Notitie toevoegen", DqVthInstellingen
+   "Regel toevoegen"). NcButton pads its start 4px and its end 12px, and puts
+   a 20px icon in a 30px slot. The rules hold the condition in `:where()`, so
+   they weigh (0,3,0): enough to outrank NcButton's own (0,2,0), and less than
+   any surface rule (header, toolbar, follow pill, Meer chevron, tab strip),
+   which keeps its own value. The padding goes through NcButton's
+   `--button-padding`, so a surface that sets `padding` is never contested.
+   @spec openspec/changes/board-icon-label-button/specs/board-icon-label-button/spec.md#requirement-a-board-button-with-an-icon-and-a-label-is-padded-as-the-boards-draw-it */
+.cn-look-board .button-vue.button-vue:where(:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-look-nextcloud *):not(.vue-crumb *)) {
+	--button-padding: 14px;
+	font-size: 14px;
+}
+
+.cn-look-board :where(.button-vue:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-look-nextcloud *):not(.vue-crumb *)) .button-vue__wrapper.button-vue__wrapper {
+	gap: 8px;
+}
+
+.cn-look-board :where(.button-vue:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-look-nextcloud *):not(.vue-crumb *)) .button-vue__icon.button-vue__icon {
+	width: 16px;
+	min-width: 16px;
+	height: 16px;
+	min-height: 16px;
+}
+
+.cn-look-board :where(.button-vue:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-look-nextcloud *):not(.vue-crumb *)) .button-vue__icon svg {
+	width: 16px;
+	height: 16px;
+}
+
 /* ---- The header button ------------------------------------------------- */
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
@@ -155,6 +231,27 @@
 	gap: 10px;
 }
 
+/* The nldesign theme paints every primary and secondary button with
+   `!important` through its button tokens: weight 700, and a secondary in
+   the primary colour with a primary border on no ground. The board draws
+   header buttons at 600, the secondary on the main background with a grey
+   border (DqMijnWerk, DqZaak, DqZaken). The look hands the theme those values
+   through the same tokens, so the theme's own rules draw the board's button.
+   @spec openspec/changes/board-header-buttons-theme/specs/board-header-buttons-theme/spec.md#requirement-board-header-buttons-keep-the-boards-weight-and-ground-under-a-theme */
+.cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
+.cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-page__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *),
+.cn-look-board .cn-action-buttons:not(.cn-look-nextcloud *) {
+	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-primary-action-font-weight: 600;
+	--nldesign-component-button-secondary-action-color: var(--color-main-text);
+	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
+	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
+	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
+}
+
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-dashboard-page__header-actions:not(.cn-look-nextcloud *) .button-vue,
@@ -165,7 +262,7 @@
 	min-height: var(--cn-board-control-height);
 	padding: 0 14px;
 	gap: 8px;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -197,7 +294,7 @@
 	height: var(--cn-board-control-height);
 	min-height: var(--cn-board-control-height);
 	padding: 0 14px;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -205,8 +302,9 @@
 	font-weight: 600;
 }
 
-/* Buttons 10px apart, each icon 16px with 8px to its label (DqZaak's header,
-   DqZaken's "Downloaden"); NcButton draws a 20px icon in a 30px slot. */
+/* Buttons 10px apart, each icon 16px (DqZaak's header, DqZaken's
+   "Downloaden"); NcButton draws a 20px icon in a 30px slot. The 8px to the
+   label is the board's icon-and-label gap above. */
 .cn-look-board .cn-action-buttons:not(.cn-look-nextcloud *) {
 	gap: 10px;
 }
@@ -216,7 +314,6 @@
 	min-width: 16px;
 	height: 16px;
 	min-height: 16px;
-	margin-inline-end: 8px;
 }
 
 .cn-look-board .cn-action-buttons .button-vue .button-vue__icon:not(.cn-look-nextcloud *) svg {
@@ -251,7 +348,7 @@
    body ink onto every span (thematiq). */
 .cn-look-board .action-item.action-item--secondary .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *) {
 	--nldesign-color-on-surface: var(--color-main-text);
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -610,6 +707,7 @@
 }
 
 .cn-look-board .cn-admin-settings-shell__title:not(.cn-look-nextcloud *) {
+	min-height: var(--cn-board-control-height);
 	margin: 0;
 	font-size: 28px;
 	font-weight: 700;
@@ -622,8 +720,21 @@
 	align-items: center;
 	gap: 8px;
 	margin-top: 6px;
-	font-size: 15px;
+	font-size: 14px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
+}
+
+/* The admin settings header as the board draws it (DqInstellingen): 4px
+   under the content's top and 8px above the grid's gap, the crumbs 6px under
+   the 40px title row in 14px, and the tab strip 20px under the header (at
+   187). The shell is a grid whose gap already spaces its rows, so the
+   header's own 20px bottom margin came on top of it and the strip sat at 194.
+   @spec openspec/changes/board-admin-settings-header-rhythm/specs/board-admin-settings-header-rhythm/spec.md#requirement-the-board-admin-settings-header-keeps-the-boards-rhythm */
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header,
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header {
+	margin-bottom: 0;
+	padding: 4px 0 8px;
 }
 
 .cn-look-board .cn-admin-settings-shell__crumb-list:not(.cn-look-nextcloud *) {
@@ -1021,14 +1132,26 @@
 	color: var(--cn-status-badge-ink);
 }
 
-/* Every board pill is 13px at 600 on a 3px 10px pad with a 12px corner
-   (DqZaak's header pills, DqZaken's status column). */
-.cn-look-board .cn-status-badge:not(.cn-status-badge--small):not(.cn-look-nextcloud *) {
+/* Every board tag is 13px at 600 on a 3px 10px pad with a 12px corner, 21px
+   tall (DqZaak's header pills, DqZaken's status column, DqZaaktype's version
+   tag). The boards draw one tag size, so a small badge takes it too: it was
+   a 17.8px full pill at 500.
+   @spec openspec/changes/board-tags-shape/specs/board-tags-shape/spec.md#requirement-a-board-tag-is-a-21px-rounded-rectangle */
+.cn-look-board .cn-status-badge:not(.cn-look-nextcloud *) {
 	padding: 3px 10px;
 	border-radius: 12px;
 	font-size: 13px;
 	font-weight: 600;
 	line-height: normal;
+}
+
+/* A neutral board tag ("Normaal", "Uit") is the soft text on the chip ground,
+   not the main text on the darker background a Nextcloud tag takes.
+   @spec openspec/changes/board-pill-tones/specs/board-pill-tones/spec.md#requirement-a-neutral-board-tag-is-soft-text-on-the-chip-ground */
+.cn-look-board .cn-status-badge--default:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
+	--cn-status-badge-ink: var(--cn-board-text-soft);
+	background-color: var(--color-background-hover);
+	color: var(--cn-status-badge-ink);
 }
 
 /* A pill paints its own pairing of ink and fill. A theme that forces the body
@@ -1158,6 +1281,20 @@
 	line-height: 1.3;
 }
 
+/* The board draws no rule under a dashboard card's title (DqMijnWerk,
+   DqDashboard, PqMijnWerk): the title sits 20px from the card's top and on
+   the card's 24px side inset, the line its rows start on, 12px above the
+   content. A borderless card has no edge to inset from and keeps the
+   wrapper's padding.
+   @spec openspec/changes/board-dashboard-card-header/specs/board-dashboard-card-header/spec.md#requirement-a-board-dashboard-card-draws-no-header-rule */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard) .cn-widget-wrapper__header {
+	border-bottom: none;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless) .cn-widget-wrapper__header {
+	padding: 20px var(--cn-board-dashboard-card-inset) 12px;
+}
+
 /* ---- Record list on a dashboard card (PtDashboard) ---------------------- */
 /* The dashboard's card body is flush, so the rows carry their own inset: the
    board's card pads 24px at the sides and each row 14px, a soft hairline
@@ -1274,6 +1411,47 @@
 	display: none;
 }
 
+/* ---- Widgets that drew their rows on the card's edge -------------------- */
+/* The card body is flush, so a widget carries the card's side inset itself,
+   as the record list and saved views do. Without it the task list's
+   checkboxes, the step bar and its legend, the week strip's days, the bar
+   list and the activity items started on the card's edge, and a table's
+   first column 16px in (DqMijnWerk "Mijn taken", "Mijn 14 zaken per stap",
+   "Termijnen deze week", "Recente activiteit"; DqDashboard "Zaken per
+   status", "Vastgelopen zaken"). The top inset is 4px: with the header's
+   12px it is the board's 16px from title to bar. This also replaces the
+   step bar's and week strip's opt-in `content.inset` on a board dashboard.
+   A borderless card stands on the page ground and keeps its rows flush.
+   @spec openspec/changes/board-dashboard-widget-inset/specs/board-dashboard-widget-inset/spec.md#requirement-a-board-dashboard-widget-keeps-the-cards-side-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-tasks-widget {
+	padding: 0 var(--cn-board-dashboard-card-inset) 10px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-stacked-bar,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-week-strip {
+	box-sizing: border-box;
+	padding: 4px var(--cn-board-dashboard-card-inset) 22px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-chart-widget__html {
+	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
+}
+
+/* An activity item pads itself 4px, so the body takes 4px less. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-nc-widget-widget__body {
+	padding: 0 calc(var(--cn-board-dashboard-card-inset) - 4px) 16px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table th:first-child,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table td:first-child {
+	padding-inline-start: var(--cn-board-dashboard-card-inset);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table th:last-child,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table td:last-child {
+	padding-inline-end: var(--cn-board-dashboard-card-inset);
+}
+
 /* ---- Week strip (DqMijnWerk "Termijnen deze week") ---------------------- */
 /* The days wrap inside the card instead of scrolling sideways: a row holds
    as many days of at least 120px as the card fits, and the rest go to the
@@ -1293,23 +1471,13 @@
 	flex-wrap: wrap;
 }
 
-/* ---- Bar-list and matrix cards (DqDashboard) ----------------------------- */
-/* The board draws no rule under the title of a card holding a bar list or a
-   matrix. Other cards, plain stat tiles among them, keep theirs.
-   @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-board-bar-list-and-matrix-cards-draw-no-header-rule */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-chart-widget__html) .cn-widget-wrapper__header {
-	border-bottom: none;
-}
-
 /* ---- A card of boxed stat tiles (DcRapportages "Vergaderingen en efficiëntie") -- */
 /* The board draws this card 22px from its edge on every side but the bottom
-   (20px), the header 14px above the tiles, and no rule under the header. The
-   card-fit cell padding (8px 14px) plus the grid's own 24px came to 38px at
-   the sides, with the wrapper's divider under the title.
+   (20px) and the header 14px above the tiles. The card-fit cell padding
+   (8px 14px) plus the grid's own 24px came to 38px at the sides.
    @spec openspec/changes/stats-box-card-inset/specs/stats-box-card-inset/spec.md#requirement-a-card-of-boxed-stat-tiles-keeps-the-boards-inset */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-stats-block-widget--tiles-box) .cn-widget-wrapper__header {
 	padding: 20px 22px 0;
-	border-bottom: none;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(.cn-stats-block-widget--tiles-box) .cn-widget-wrapper__content {

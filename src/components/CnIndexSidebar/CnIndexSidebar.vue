@@ -37,6 +37,42 @@
 						@update:modelValue="$emit('search', $event)" />
 				</div>
 
+				<!-- Sort (list, card and map views; the table sorts by its headers):
+				     the field, the direction and the order the list has now. -->
+				<div v-if="sortOptions.length > 0" class="cn-index-sidebar__section cn-index-sidebar__sort" data-testid="cn-index-sidebar-sort">
+					<h3>{{ t('nextcloud-vue', 'Sort') }}</h3>
+					<NcSelect
+						:modelValue="sortSelected"
+						:options="sortOptions"
+						label="label"
+						:clearable="false"
+						:inputLabel="t('nextcloud-vue', 'Sort by')"
+						@update:modelValue="onSortField" />
+					<div class="cn-index-sidebar__sort-direction" role="radiogroup" :aria-label="t('nextcloud-vue', 'Direction')">
+						<NcCheckboxRadioSwitch
+							type="radio"
+							name="cn-index-sidebar-sort-direction"
+							value="asc"
+							:modelValue="sortDirection"
+							:disabled="!sortSelected || sortSelected.fixed === true"
+							@update:modelValue="onSortDirection">
+							{{ t('nextcloud-vue', 'Ascending') }}
+						</NcCheckboxRadioSwitch>
+						<NcCheckboxRadioSwitch
+							type="radio"
+							name="cn-index-sidebar-sort-direction"
+							value="desc"
+							:modelValue="sortDirection"
+							:disabled="!sortSelected || sortSelected.fixed === true"
+							@update:modelValue="onSortDirection">
+							{{ t('nextcloud-vue', 'Descending') }}
+						</NcCheckboxRadioSwitch>
+					</div>
+					<p class="cn-index-sidebar__sort-current" data-testid="cn-index-sidebar-sort-current">
+						{{ currentSortText }}
+					</p>
+				</div>
+
 				<div v-if="hasActiveFilters" class="cn-index-sidebar__section">
 					<NcButton variant="tertiary" @click="onClearAll">
 						<template #icon>
@@ -251,6 +287,32 @@
 			</div>
 		</NcAppSidebarTab>
 
+		<!-- Views tab (id filters-tab): the page's saved views (save, list, manage, add to menu). -->
+		<NcAppSidebarTab
+			v-if="savedViews"
+			id="filters-tab"
+			:name="t('nextcloud-vue', 'Views')"
+			:order="3">
+			<template #icon>
+				<BookmarkOutline :size="20" />
+			</template>
+
+			<div class="cn-index-sidebar__tab-content">
+				<div class="cn-index-sidebar__section">
+					<CnSavedViewsPanel
+						v-bind="savedViewsPanelProps"
+						@apply="onSavedView('apply', $event)"
+						@saveRequest="onSavedView('save', null)"
+						@editRequest="onSavedView('edit', $event)"
+						@shareRequest="onSavedView('share', $event)"
+						@updateRequest="onSavedView('update', $event)"
+						@copyRequest="onSavedView('copy', $event)"
+						@menuToggle="onSavedView('menu', $event)"
+						@deleteRequest="onSavedView('delete', $event)" />
+				</div>
+			</div>
+		</NcAppSidebarTab>
+
 		<!-- Extra tabs injected by the consumer -->
 		<slot name="tabs" />
 	</NcAppSidebar>
@@ -259,6 +321,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab, NcButton, NcCheckboxRadioSwitch, NcPopover, NcSelect, NcTextField } from '@nextcloud/vue'
+import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
@@ -269,10 +332,12 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
+import CnSavedViewsPanel from '../CnSavedViewsPanel/CnSavedViewsPanel.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptions } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
+import { reverseSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
 import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 
@@ -295,6 +360,8 @@ export default {
 	components: {
 		NcAppSidebar,
 		NcAppSidebarTab,
+		CnSavedViewsPanel,
+		BookmarkOutline,
 		NcTextField,
 		NcSelect,
 		CnDateRangePicker,
@@ -364,6 +431,35 @@ export default {
 		pinnedCount: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * The orders the Sort section offers, `[{ value, label, keys, fixed? }]`,
+		 * each `keys` a `[{ key, order }]` list read as its ascending form. An
+		 * option with `fixed: true` is an order of its own (the rows an endpoint
+		 * ranks): it is chosen by its value, has no direction, and its keys are
+		 * not matched against the current order. Empty draws no Sort section
+		 * (the table view sorts by its headers).
+		 */
+		sortOptions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** The list's current order, `[{ key, order }]`. */
+		currentSort: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The Sort option chosen by its value, for an order that is not a list
+		 * of sort keys (an option with `fixed: true`, such as one whose rows an
+		 * endpoint ranks). Wins over matching `currentSort`.
+		 */
+		currentSortValue: {
+			type: String,
+			default: '',
 		},
 
 		/** Current search term */
@@ -499,6 +595,26 @@ export default {
 		},
 
 		/**
+		 * Switch to a tab while the sidebar is mounted, e.g. `'filters-tab'`
+		 * after a view was saved from the toolbar. Empty leaves the tab alone.
+		 */
+		activeTab: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The page's saved views, shown in the Filters tab:
+		 * `{ views, loading, currentUserId, counts, selectedViewId, maxDepth, menuIds }`
+		 * as `CnSavedViewsPanel` takes them. `null` shows no saved views.
+		 * Every intent comes back as one `saved-view` event.
+		 */
+		savedViews: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Whether the current user is an admin.
 		 * When false, schema properties with `adminOnly: true` are hidden from filters.
 		 */
@@ -508,7 +624,7 @@ export default {
 		},
 	},
 
-	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'search', 'tab-change', 'update:open'],
+	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'saved-view', 'search', 'sort-change', 'tab-change', 'update:open'],
 
 	data() {
 		return {
@@ -535,6 +651,87 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The Sort option the current order matches, as declared or reversed.
+		 *
+		 * @return {{option: object, direction: string}|null} The match, or null.
+		 */
+		sortMatch() {
+			if (this.currentSortValue) {
+				const chosen = this.sortOptions.find((o) => o.value === this.currentSortValue)
+				if (chosen) {
+					return { option: chosen, direction: 'asc' }
+				}
+			}
+			const current = Array.isArray(this.currentSort) ? this.currentSort : []
+			for (const option of this.sortOptions) {
+				if (option.fixed === true) {
+					continue
+				}
+				const keys = Array.isArray(option.keys) ? option.keys : []
+				if (sameSortKeys(keys, current)) {
+					return { option, direction: 'asc' }
+				}
+				if (sameSortKeys(reverseSortKeys(keys), current)) {
+					return { option, direction: 'desc' }
+				}
+			}
+			return null
+		},
+
+		/** @return {object|null} The Sort option shown as chosen. */
+		sortSelected() {
+			return this.sortMatch ? this.sortMatch.option : null
+		},
+
+		/** @return {string} The chosen direction, `asc` or `desc`. */
+		sortDirection() {
+			return this.sortMatch ? this.sortMatch.direction : 'asc'
+		},
+
+		/**
+		 * The order the list has now, in words: "Current order: Created,
+		 * descending", or that it is not sorted.
+		 *
+		 * @return {string} The sentence.
+		 */
+		currentSortText() {
+			if (this.sortMatch && this.sortMatch.option.fixed === true) {
+				return t('nextcloud-vue', 'Current order: {order}', { order: this.sortMatch.option.label })
+			}
+			const current = Array.isArray(this.currentSort) ? this.currentSort : []
+			if (current.length === 0) {
+				return t('nextcloud-vue', 'Not sorted')
+			}
+			const labelOf = (key) => {
+				const single = this.sortOptions.find((o) => Array.isArray(o.keys) && o.keys.length === 1 && o.keys[0].key === key)
+				return single ? single.label : key
+			}
+			const order = this.sortMatch && this.sortMatch.option.keys.length > 1
+				? `${this.sortMatch.option.label}, ${this.sortDirection === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`
+				: current.map((entry) => `${labelOf(entry.key)}, ${entry.order === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`).join('; ')
+			return t('nextcloud-vue', 'Current order: {order}', { order })
+		},
+
+		/**
+		 * The panel's props, from `savedViews`.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+		 */
+		savedViewsPanelProps() {
+			const f = this.savedViews || {}
+			return {
+				views: Array.isArray(f.views) ? f.views : [],
+				loading: f.loading === true,
+				currentUserId: f.currentUserId || '',
+				counts: f.counts || null,
+				selectedViewId: f.selectedViewId || '',
+				maxDepth: typeof f.maxDepth === 'number' ? f.maxDepth : 3,
+				menuIds: Array.isArray(f.menuIds) ? f.menuIds : null,
+			}
+		},
+
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			return this.icon || this.schema?.icon || ''
@@ -657,6 +854,12 @@ export default {
 	},
 
 	watch: {
+		activeTab(tab) {
+			if (tab) {
+				this.internalActiveTab = tab
+			}
+		},
+
 		open(val) {
 			this.internalOpen = val
 		},
@@ -692,6 +895,66 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * A field chosen in the Sort section: its order, in the direction
+		 * already chosen.
+		 *
+		 * @param {object|null} option The chosen option.
+		 * @return {void}
+		 */
+		onSortField(option) {
+			const chosen = option && this.sortOptions.find((o) => o.value === option.value)
+			if (!chosen) {
+				return
+			}
+			this.emitSort(chosen, this.sortDirection)
+		},
+
+		/**
+		 * A direction chosen in the Sort section, for the chosen field.
+		 *
+		 * @param {string} direction `asc` or `desc`.
+		 * @return {void}
+		 */
+		onSortDirection(direction) {
+			if (!this.sortSelected) {
+				return
+			}
+			this.emitSort(this.sortSelected, direction === 'desc' ? 'desc' : 'asc')
+		},
+
+		/**
+		 * Emit the order an option stands for in a direction.
+		 *
+		 * @param {object} option The Sort option.
+		 * @param {string} direction `asc` or `desc`.
+		 * @return {void}
+		 */
+		emitSort(option, direction) {
+			const keys = Array.isArray(option.keys) ? option.keys : []
+			/**
+			 * @event sort-change The Sort section chose an order. Payload: `[{ key, order }]`,
+			 *   and the chosen option's value, which names an order that is not keys (`fixed`).
+			 */
+			this.$emit('sort-change', direction === 'desc' ? reverseSortKeys(keys) : keys.map((k) => ({ key: k.key, order: k.order || 'asc' })), option.value)
+		},
+
+		/**
+		 * Hand a saved-view intent to the page.
+		 *
+		 * @param {'apply'|'save'|'edit'|'share'|'presentation'|'update'|'copy'|'menu'|'delete'} action The intent.
+		 * @param {object|null} view The view, or null for save.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+		 */
+		onSavedView(action, view) {
+			/**
+			 * @event saved-view A saved-view intent from the Filters tab. Payload: `{ action, view }`.
+			 * @type {{action: string, view: (object|null)}}
+			 */
+			this.$emit('saved-view', { action, view })
+		},
 
 		/**
 		 * A manifest label through the injected lookup, or as written.

@@ -963,6 +963,61 @@ const baseActions = {
 	},
 
 	/**
+	 * Update only some keys of an object: a PATCH carrying `changes`, so every
+	 * key the caller did not send keeps its stored value. The saved object
+	 * replaces the cached one.
+	 *
+	 * @param {string} type The registered type slug
+	 * @param {string} id The object id
+	 * @param {object} changes The keys to write, with their new values
+	 * @return {Promise<object|null>} The saved object or null on error
+	 * @spec openspec/changes/forms-save-edited-keys/specs/object-store/spec.md#requirement-an-edit-writes-only-the-keys-it-changed
+	 */
+	async patchObject(type, id, changes) {
+		this.loading = { ...this.loading, [type]: true }
+		this.errors = { ...this.errors, [type]: null }
+
+		try {
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => this._buildUrl(type, id, schema),
+				{
+					method: 'PATCH',
+					headers: this._buildHeaders(),
+					body: JSON.stringify(changes || {}),
+				},
+			)
+
+			if (!response.ok) {
+				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
+				console.error(`Error saving ${type}:`, this.errors[type])
+				return null
+			}
+
+			const data = await response.json()
+			const savedId = data.id || id
+			this.objects = {
+				...this.objects,
+				[type]: { ...(this.objects[type] || {}), [savedId]: data },
+			}
+			return data
+		} catch (error) {
+			this.errors = {
+				...this.errors,
+				[type]: error.name === 'TypeError'
+					? networkError(error)
+					: genericError(error),
+			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
+			console.error(`Error saving ${type}:`, error)
+			return null
+		} finally {
+			this.loading = { ...this.loading, [type]: false }
+		}
+	},
+
+	/**
 	 * Create or update an object. Uses POST for new objects, PUT for updates.
 	 *
 	 * @param {string} type The registered type slug

@@ -161,7 +161,7 @@ describe('Wave 3 — headerActions action types', () => {
 
 	it('rejects a visibleWhen with an unknown operator', () => {
 		const result = validateManifest(withHeaderActions([
-			{ id: 'x', label: 'X', type: 'refresh', visibleWhen: { field: 'a', op: 'contains', value: 1 } },
+			{ id: 'x', label: 'X', type: 'refresh', visibleWhen: { field: 'a', op: 'startsWith', value: 1 } },
 		]))
 		expect(result.valid).toBe(false)
 	})

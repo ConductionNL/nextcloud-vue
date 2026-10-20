@@ -51,6 +51,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
 import { routeHref } from './actionLink.js'
+import { resolveModalEntry } from './builtInModals.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -836,8 +837,7 @@ export function dispatchAction(action, context = {}) {
 
 		case 'open-modal': {
 			const target = action.target
-			const registry = context.registry || {}
-			const entry = registry[target]
+			const entry = resolveModalEntry(context.registry, target)
 
 			if (!entry) {
 			// eslint-disable-next-line no-console
@@ -857,7 +857,10 @@ export function dispatchAction(action, context = {}) {
 				return
 			}
 
-			context.openModal(target, action.props ?? {})
+			// A prop that is exactly a token (`"objectId": "@objectId"`) resolves
+			// against the page's object; one the page cannot answer stays as written.
+			const props = context.tokenCtx ? resolveDeepTokens(action.props ?? {}, context.tokenCtx) : (action.props ?? {})
+			context.openModal(target, props)
 			break
 		}
 
@@ -1021,7 +1024,12 @@ export function dispatchAction(action, context = {}) {
 			if (op === 'delete') {
 				return store.deleteObject(type, id)
 			}
-			// patch: the row's object merged with the action's values.
+			// patch: only the action's values, as a PATCH, so every other key
+			// keeps its stored value. A store without patchObject writes the
+			// row's object merged with the values.
+			if (typeof store.patchObject === 'function') {
+				return store.patchObject(type, id, { ...(action.values || {}) })
+			}
 			return store.saveObject(type, { ...row, ...(action.values || {}), id })
 		}
 

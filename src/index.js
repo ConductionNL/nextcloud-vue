@@ -32,8 +32,10 @@ export { default as NcSelectTags } from './components/NcSelectTags/NcSelectTags.
 // Components
 export {
 	CnActionButtons,
+	CnActionDialog,
 	CnActionsBar,
 	CnActionsMenu,
+	CnAddressSearch,
 	CnAddWidgetModal,
 	CnAdminActionCard,
 	CnAdminSettingsShell,
@@ -42,6 +44,7 @@ export {
 	CnAppLoading,
 	CnAppNav,
 	CnAppRoot,
+	CnAssignDialog,
 	CnAuditTrailCard,
 	CnAuditTrailWidget,
 	CnBannerWidget,
@@ -90,6 +93,7 @@ export {
 	CnDataTable,
 	CnDateAxisView,
 	CnDateRangePicker,
+	CnDecisionListWidget,
 	CnDeckCardCreate,
 	CnDeckCardPicker,
 	CnDeleteDialog,
@@ -107,6 +111,7 @@ export {
 	CnDividerWidgetForm,
 	CnDocumentReviewList,
 	CnDocumentReviewWidget,
+	CnDuplicateWarning,
 	CnDurationField,
 	CnEditActionsModal,
 	CnEditDataModal,
@@ -195,6 +200,7 @@ export {
 	CnLockedBanner,
 	CnLockIndicator,
 	CnLogsPage,
+	CnMailTab,
 	CnMapWidget,
 	CnMarkdownEditor,
 	CnMarkdownWidget,
@@ -209,6 +215,7 @@ export {
 	CnMenuWidgetForm,
 	CnMetadataTab,
 	CnNavCardGrid,
+	CnNcDashboardList,
 	CnNcDashboardWidgetForm,
 	CnNcWidgetGridPicker,
 	CnNcWidgetWidget,
@@ -220,6 +227,7 @@ export {
 	CnNotepadWidget,
 	CnNotepadWidgetForm,
 	CnNotesCard,
+	CnNoticeWidget,
 	CnNotificationMatrix,
 	CnNotificationPreferences,
 	CnObjectAccessTab,
@@ -243,8 +251,10 @@ export {
 	CnPageRenderer,
 	CnPagination,
 	CnPartyActionsWidget,
+	CnPartyPicker,
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
+	CnPlanWidget,
 	CnPresenceAvatars,
 	CnProcessSteps,
 	CnProgressBar,
@@ -256,6 +266,7 @@ export {
 	CnQuicklinksWidgetForm,
 	CnRadioCardsWidget,
 	CnRecordListWidget,
+	CnRedactionEditor,
 	CnReferencePreview,
 	CnRegisterMapping,
 	CnRegisterSchemaSelect,
@@ -265,14 +276,17 @@ export {
 	CnRelationLinkModal,
 	CnRelationshipGraph,
 	CnResourceSelect,
+	CnRetentionWidget,
 	CnRichSubmitDialog,
 	CnRoadmapItem,
 	CnRoadmapTab,
 	CnRowActions,
+	CnSavedViewEditDialog,
 	CnSavedViewPresentationDialog,
 	CnSavedViewsControl,
 	CnSavedViewShareDialog,
 	CnSavedViewShareFields,
+	CnSavedViewsPanel,
 	CnSavedViewsWidget,
 	CnSavedViewWidget,
 	CnSavedViewWidgetForm,
@@ -349,6 +363,7 @@ export {
 	CnWidgetWrapper,
 	CnWizardDialog,
 	CnWorkingCalendarWidget,
+	CnWorkQueue,
 	CnWorkspaceFilterWidget,
 	DEFAULT_DATE_RANGE_PRESETS,
 	defaultPageTypes,
@@ -375,7 +390,7 @@ export { createOpenRegisterSource } from './components/index.js'
 // Workplace dashboard primitives (openspec: workplace-dashboard-primitives):
 // the week strip and stacked bar widgets with their forms, the segmented
 // control, and the brand stripe.
-export { CnBrandStripe, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidgetForm, CnWeekStripWidget, CnWeekStripWidgetForm } from './components/index.js'
+export { CnBrandStripe, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidgetForm, CnTeamWorkloadWidget, CnWeekStripWidget, CnWeekStripWidgetForm } from './components/index.js'
 
 // Page components the page renderer mounts by `pages[].type` that were missing
 // from this entry. A component reachable from a manifest but not importable
@@ -612,6 +627,9 @@ export { followLinkClick, isModifiedClick, isNewTabHandled, isRowMiddleClick, op
 export { resolveImageUrl } from './utils/index.js'
 export { resolveDateVariant } from './utils/index.js'
 export { actionLink, dispatchAction } from './utils/actionsDispatcher.js'
+export { candidateWithoutBlanks, duplicateAffordances } from './utils/duplicateWarning.js'
+export { openDuplicateWarning } from './utils/openDuplicateWarning.js'
+export { registerNcDashboardWidgets } from './utils/registerNcDashboardWidgets.js'
 // Nested-modal stacking. `CnAppRoot` installs this itself; apps that do not
 // mount `CnAppRoot` should call `installModalStack()` once from `main.js`, or
 // two open dialogs tie on z-index and the lower one intercepts the clicks.

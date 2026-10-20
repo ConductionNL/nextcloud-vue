@@ -27,6 +27,9 @@ const ROUTED_PATH = /^\/(?:index\.php|remote\.php|public\.php|ocs)(?:[/?#]|$)/
 /** Bad hrefs already warned about, so a recomputing page warns once per value. */
 const warnedHrefs = new Set()
 
+/** Ids of entries whose function handler was dropped for their href, warned about once. */
+const warnedHandlers = new Set()
+
 /**
  * The URL a manifest `href` points at: an absolute `http(s)`, `mailto:` or
  * `tel:` URL as written, `//host/...` as written, an instance path that
@@ -34,6 +37,7 @@ const warnedHrefs = new Set()
  * `/ocs/`) under `getRootUrl()` (as written when it already starts with the
  * root), any other instance path (leading `/`) through `generateUrl()`.
  *
+ * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-href-resolves-to-a-url-on-this-instance-or-an-allowed-scheme
  * @param {unknown} href The manifest `href`.
  * @return {string} The URL, or '' for anything else (a relative path, another scheme).
  */
@@ -66,10 +70,10 @@ export function resolveManifestHref(href) {
  * dropped with a warning, along with the handler, so the page renders its
  * usual button for the entry (an index or reports page still emits
  * `header-action` for it). An entry with nothing to resolve, a
- * function-valued `href` included, is returned as is. An entry with a
- * function `handler` (JS composition) keeps its own `href` and handler as
- * given; only its `children` are resolved.
+ * function-valued `href` included, is returned as is. A function `handler`
+ * (JS composition) is dropped like any other, with a one-time warning.
  *
+ * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
  * @param {object} entry The manifest header action.
  * @return {object} The entry, or a copy in link form.
  */
@@ -84,8 +88,13 @@ export function headerActionAsLink(entry) {
 			resolved = { ...entry, children }
 		}
 	}
-	if (typeof entry.handler === 'function' || typeof entry.href !== 'string' || entry.href === '') {
+	if (typeof entry.href !== 'string' || entry.href === '') {
 		return resolved
+	}
+	if (typeof entry.handler === 'function' && !warnedHandlers.has(entry.id)) {
+		warnedHandlers.add(entry.id)
+		// eslint-disable-next-line no-console
+		console.warn(`headerActions[].id "${entry.id}": an entry with href never runs a handler, so its function handler is dropped`)
 	}
 	const { handler: _handler, href: declared, ...rest } = resolved
 	const href = resolveManifestHref(declared)

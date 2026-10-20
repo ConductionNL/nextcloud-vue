@@ -36,7 +36,7 @@ describe('look-board.css: CnActionButtons', () => {
 	it('draws a secondary action neutral: main background, grey border, main text at 600', () => {
 		const rule = rulesFor(button)
 		expect(rule).toContain('background: var(--color-main-background)')
-		expect(rule).toContain('border: 1px solid var(--color-border-dark)')
+		expect(rule).toContain('border: 1px solid var(--cn-board-control-border)')
 		expect(rule).toContain('color: var(--color-main-text)')
 		expect(rule).toContain('font-weight: 600')
 	})
@@ -56,10 +56,9 @@ describe('look-board.css: CnActionButtons', () => {
 		expect(rulesFor('.cn-look-board .cn-action-buttons .button-vue--vue-secondary:not(.cn-look-nextcloud *)')).toContain('background: var(--color-main-background)')
 	})
 
-	it('puts the buttons 10px apart, each icon 16px with 8px to its label', () => {
+	it('puts the buttons 10px apart, each icon 16px', () => {
 		expect(rulesFor('.cn-look-board .cn-action-buttons:not(.cn-look-nextcloud *)')).toContain('gap: 10px')
 		const icon = rulesFor('.cn-look-board .cn-action-buttons .button-vue .button-vue__icon:not(.cn-look-nextcloud *)')
 		expect(icon).toContain('width: 16px')
-		expect(icon).toContain('margin-inline-end: 8px')
 	})
 })

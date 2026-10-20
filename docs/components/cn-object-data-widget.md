@@ -214,3 +214,7 @@ widget's **dirty values winning** — picking a new caseType immediately scopes
 the status options to it, before any save. Entries whose token stays
 unresolved are dropped (an unfiltered picker beats an empty one). Options
 reload on every edit start for the same reason.
+
+## A key inside an object
+
+An `overrides` key or an `include` entry can be a dotted path such as `handling.teams`: the widget shows and edits that key inside the `handling` object, and saves `handling` with its other keys kept. See [`CnFormDialog`](./cn-form-dialog.md#a-key-inside-an-object-handlingteams).

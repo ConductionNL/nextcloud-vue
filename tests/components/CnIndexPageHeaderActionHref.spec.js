@@ -9,6 +9,7 @@
  * `header-action` (nextcloud-vue#1314).
  */
 import { mount } from '@vue/test-utils'
+import CnActionsBar from '../../src/components/CnActionsBar/CnActionsBar.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 
 jest.mock('@nextcloud/router', () => ({
@@ -108,15 +109,28 @@ describe('CnIndexPage: a header action with href', () => {
 		expect(wrapper.emitted('header-action')).toBeFalsy()
 	})
 
-	it('lets a function handler win over href, as before, so a JS entry keeps its link and its handler', async () => {
+	it('makes a JS entry with a function handler the same link on the bar, the board menu and a header button', async () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const run = jest.fn()
-		const wrapper = mountPage({ headerActions: [{ id: 'js', label: 'JS link', href: '/index.php/apps/x', handler: run }] })
-		expect(wrapper.vm.mergedHeaderActions[0]).toMatchObject({ href: '/index.php/apps/x' })
-		const link = byText(wrapper, 'a.entry', 'JS link')
-		expect(link.attributes('href')).toBe('/index.php/apps/x')
-		await link.trigger('click')
-		expect(run).toHaveBeenCalledTimes(1)
-		expect(wrapper.emitted('header-action')).toEqual([[{ action: 'js', id: 'js' }]])
+		const headerActions = [{ id: 'js', label: 'JS link', href: '/apps/x', handler: run }]
+		// The bar's Actions menu gives way to the header buttons, so the bar needs its own mount.
+		const plain = mountPage({ headerActions })
+		const board = mountPage({ headerActions, headerButtons: [{ action: 'actions-menu' }, { action: 'js', label: 'JS link' }] }, { cnLook: 'board' })
+		const links = [
+			byText(plain.findComponent(CnActionsBar), 'a.entry', 'JS link'),
+			board.find('[data-testid="cn-index-header-menu-js"]'),
+			board.find('[data-testid="cn-index-header-button-js"]'),
+		]
+		for (const link of links) {
+			expect(link.element.tagName).toBe('A')
+			expect(link.attributes('href')).toBe('/nc/index.php/apps/x')
+			expect(link.attributes('target')).toBe('_self')
+			await link.trigger('click')
+		}
+		expect(run).not.toHaveBeenCalled()
+		expect(plain.emitted('header-action')).toBeFalsy()
+		expect(board.emitted('header-action')).toBeFalsy()
+		warn.mockRestore()
 	})
 })
 

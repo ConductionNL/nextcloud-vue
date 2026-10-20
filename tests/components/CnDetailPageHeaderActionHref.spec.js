@@ -92,11 +92,13 @@ describe('CnDetailPage: a header action with href', () => {
 		expect(dispatch).not.toHaveBeenCalled()
 	})
 
-	it('hands a JS entry with a function handler over unchanged', async () => {
-		const headerActions = [{ id: 'js', label: 'JS', href: '/index.php/apps/x', handler: () => {} }]
+	it('makes a JS entry with a function handler and href a link without the handler', async () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const headerActions = [{ id: 'detail-js', label: 'JS', href: '/index.php/apps/x', handler: () => {} }]
 		const wrapper = mountPage({ headerActions })
 		await wrapper.vm.$nextTick()
-		expect(wrapper.findComponent(CnActionButtons).props('actions')).toBe(wrapper.props('headerActions'))
+		expect(wrapper.findComponent(CnActionButtons).props('actions')[0]).toEqual({ id: 'detail-js', label: 'JS', href: '/nc/index.php/apps/x', target: '_self' })
+		warn.mockRestore()
 	})
 
 	it('resolves the href of a header action child through generateUrl', async () => {

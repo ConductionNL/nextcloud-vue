@@ -749,6 +749,7 @@ import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { appShownName } from '../../utils/appShownName.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { resolveModalEntry } from '../../utils/builtInModals.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
@@ -757,6 +758,8 @@ import { installModalStack, uninstallModalStack } from '../../utils/modalStack.j
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
+import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 /**
@@ -892,6 +895,10 @@ export default {
 				return self.userPreferences
 			},
 
+			// The saved views this user added to the menu, and the way to
+			// change them, for an index page's sidebar.
+			cnSavedViewMenu: self.savedViewMenu,
+
 			// The same manifest as a REF. The getter above is NOT enough on its
 			// own: Options-API `inject` resolves a provided value once, at the
 			// descendant's creation, so a renderer created before edit mode gets
@@ -968,7 +975,7 @@ export default {
 			 * @param {object} props Props forwarded to the modal component.
 			 */
 			cnOpenModal: (key, props = {}) => {
-				const entry = this.registry[key]
+				const entry = resolveModalEntry(this.registry, key)
 				if (!entry || entry.kind !== 'modal') {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnAppRoot] cnOpenModal: "${key}" is not a registered modal (kind must be "modal").`)
@@ -1910,6 +1917,16 @@ export default {
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
+			// Saved views this user added to the menu (per-user preference).
+			// One object for the whole session, so the provide hands out a
+			// live reference: `entries` changes, the holder does not.
+			savedViewMenuLoaded: false,
+			savedViewMenu: {
+				entries: [],
+				toggle: (entry) => this.toggleSavedViewMenu(entry),
+				sync: (page, views) => this.syncSavedViewMenu(page, views),
+			},
+
 			// Nextcloud's own header, present on a server-rendered page; the
 			// brand block goes into it (CnBrandBar). Read once at creation so
 			// the navigation never draws a block that then moves.
@@ -2378,6 +2395,16 @@ export default {
 		},
 
 		/**
+		 * Whether any page of the manifest offers saved views.
+		 *
+		 * @return {boolean}
+		 */
+		offersSavedViews() {
+			const pages = this.manifest && Array.isArray(this.manifest.pages) ? this.manifest.pages : []
+			return pages.some((page) => page && page.type === 'index' && pageOffersSavedViews(page.config))
+		},
+
+		/**
 		 * The manifest the default `<CnAppNav>` renders — the editor's working
 		 * `source` while in-app editing, else the live `manifest` prop. Passed to
 		 * CnAppNav as a REACTIVE prop (not left to the provide/inject fallback):
@@ -2407,6 +2434,12 @@ export default {
 			// prop for async backend-merge updates — see the reactive-menu tests).
 			if (this.manifestEditor && this.manifestEditor.editing.value && m && typeof m === 'object') {
 				return { ...m }
+			}
+			// An app that offers saved views ends its menu with the "My views"
+			// group: the user's pinned views, or one line saying how to add one.
+			// Any other app gets its live manifest by identity.
+			if (m && typeof m === 'object' && Array.isArray(m.menu) && (this.savedViewMenu.entries.length > 0 || this.offersSavedViews)) {
+				return { ...m, menu: withSavedViewMenu(m.menu, this.savedViewMenu.entries, { showEmpty: this.offersSavedViews }) }
 			}
 			return m
 		},
@@ -3245,12 +3278,24 @@ export default {
 			if (!this.activeModalKey) {
 				return null
 			}
-			const entry = (this.registry || {})[this.activeModalKey]
+			const entry = resolveModalEntry(this.registry, this.activeModalKey)
 			return (entry && entry.component) ? entry.component : null
 		},
 	},
 
 	watch: {
+		// Only an app with a page that offers saved views reads the list,
+		// once, when such a page first appears in the manifest.
+		offersSavedViews: {
+			immediate: true,
+			handler(offers) {
+				if (offers && !this.savedViewMenuLoaded) {
+					this.savedViewMenuLoaded = true
+					this.loadSavedViewMenu()
+				}
+			},
+		},
+
 		/**
 		 * Close a registry modal when the route changes.
 		 *
@@ -3392,6 +3437,66 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the saved views this user added to the menu.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		async loadSavedViewMenu() {
+			const read = this.userPreferences && this.userPreferences.read
+			if (typeof read !== 'function') {
+				return
+			}
+			try {
+				this.savedViewMenu.entries = normalizeSavedViewMenu(await read(SAVED_VIEW_MENU_KEY, []))
+			} catch {
+				// No menu entries; the views themselves are unaffected.
+				return
+			}
+			this._hydrateSavedViewMenuCounts()
+		},
+
+		/**
+		 * Add a saved view to the menu, or remove it, and store the list.
+		 *
+		 * @param {{id: string, page: string, name: string, badge?: object}} entry The view.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		async toggleSavedViewMenu(entry) {
+			this.savedViewMenu.entries = toggleSavedViewMenuEntry(this.savedViewMenu.entries, entry)
+			this._hydrateSavedViewMenuCounts()
+			await this.writeSavedViewMenu()
+		},
+
+		/**
+		 * Bring one page's menu entries in line with the views it lists, and
+		 * store the list only when that changed something.
+		 *
+		 * @param {string} page The page's route name.
+		 * @param {Array<object>} views The views the page lists.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		async syncSavedViewMenu(page, views) {
+			const next = syncSavedViewMenu(this.savedViewMenu.entries, page, views)
+			if (JSON.stringify(next) === JSON.stringify(this.savedViewMenu.entries)) {
+				return
+			}
+			this.savedViewMenu.entries = next
+			this._hydrateSavedViewMenuCounts()
+			await this.writeSavedViewMenu()
+		},
+
+		/** @return {Promise<void>} Store the list in the user's preferences. */
+		async writeSavedViewMenu() {
+			const write = this.userPreferences && this.userPreferences.write
+			if (typeof write === 'function') {
+				await write(SAVED_VIEW_MENU_KEY, this.savedViewMenu.entries)
+			}
+		},
+
 		/** Listen for the host's `diagnostics` function while it is set; adds this root's page id. */
 		syncDiagnostics() {
 			if (this.removeDiagnostics) {
@@ -4254,10 +4359,37 @@ export default {
 				}
 				return out
 			}
-			for (const item of collect(this.manifest?.menu)) {
+			for (const item of [...collect(this.manifest?.menu), ...this._savedViewMenuCountItems()]) {
 				if ((register === null || item.count.register === register) && (schema === null || item.count.schema === schema)) {
 					this._fetchMenuItemCount(item)
 				}
+			}
+		},
+
+		/**
+		 * The "My views" menu entries whose view asks for a filtered count
+		 * (`overrides.badge`), as `{ id, count }` under the menu entry's id.
+		 *
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 * @return {Array<{id: string, count: {register: string, schema: string, filter?: object}}>}
+		 * @private
+		 */
+		_savedViewMenuCountItems() {
+			return (this.savedViewMenu?.entries || [])
+				.filter((e) => e.badge && e.badge.count && typeof e.badge.count === 'object')
+				.map((e) => ({ id: `${SAVED_VIEW_MENU_PREFIX}${e.id}`, count: e.badge.count }))
+		},
+
+		/**
+		 * Fetch the count of every "My views" entry that shows one.
+		 *
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateSavedViewMenuCounts() {
+			for (const item of this._savedViewMenuCountItems()) {
+				this._fetchMenuItemCount(item)
 			}
 		},
 

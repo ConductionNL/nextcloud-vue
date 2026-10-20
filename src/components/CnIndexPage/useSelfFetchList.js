@@ -9,7 +9,7 @@ import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 
-function resolveInitialQuickFilterIndex(quickFilters) {
+export function resolveInitialQuickFilterIndex(quickFilters) {
 	const tabs = Array.isArray(quickFilters) ? quickFilters : null
 	if (!tabs || tabs.length === 0) {
 		return null
@@ -35,6 +35,24 @@ function resolveInitialQuickFilterIndex(quickFilters) {
  * @type {number}
  */
 export const BOARD_PAGE_SIZE = 500
+
+/** How many rows `mapConfig.plotAll: true` plots at most. */
+export const MAP_PLOT_ALL_LIMIT = 500
+
+/**
+ * How many rows a map that plots every matching row loads (`mapConfig.plotAll`:
+ * `true` for {@link MAP_PLOT_ALL_LIMIT}, or a number), 0 when it plots the page.
+ *
+ * @param {object} [mapConfig] The page's map config.
+ * @return {number} The limit.
+ */
+export function mapPlotAllLimitOf(mapConfig) {
+	const plotAll = mapConfig && mapConfig.plotAll
+	if (plotAll === true) {
+		return MAP_PLOT_ALL_LIMIT
+	}
+	return typeof plotAll === 'number' && Number.isFinite(plotAll) && plotAll > 0 ? Math.floor(plotAll) : 0
+}
 
 /**
  * The sort a quick filter sets while it is active (`sort: { key, order }`, or a
@@ -171,7 +189,8 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		const objCtx = unwrapCtx(objectCtxRaw)
 		const base = (objCtx && typeof objCtx === 'object') ? { ...objCtx } : {}
 		base.workspace = unwrapCtx(workspaceCtxRaw) || {}
-		base.config = unwrapCtx(appConfigRaw) || {}
+		// The page's own `appConfig` prop wins over a config an ancestor provides.
+		base.config = { ...(unwrapCtx(appConfigRaw) || {}), ...(props.appConfig || {}) }
 		return base
 	}
 
@@ -183,7 +202,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// never again. Stringified (like CnDeltaWidget's `sourceKey`) so the
 	// watcher fires on real content changes only, not object identity.
 	const workspaceSignature = computed(() => JSON.stringify(unwrapCtx(workspaceCtxRaw) || {}))
-	const appConfigSignature = computed(() => JSON.stringify(unwrapCtx(appConfigRaw) || {}))
+	const appConfigSignature = computed(() => JSON.stringify({ ...(unwrapCtx(appConfigRaw) || {}), ...(props.appConfig || {}) }))
 
 	// Pass register/schema in their positional id slots (not as a {register, schema} object as
 	// second arg) — that previously made fetch URLs go to `/api/objects/undefined/[object Object]`.
@@ -227,6 +246,22 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		? props.sortKeys
 		: (props.sortKey ? [{ key: props.sortKey, order: props.sortOrder || 'asc' }] : defaultOrderKeys)
 	// The lens that is active on mount may set its own order.
+	/**
+	 * The tabs the strip shows, so the fetch filters by the chip that is
+	 * lit: the page's `effectiveQuickFilters` (declared, generated from
+	 * `quickFiltersFrom`, or a named source's), else the prop while the
+	 * page's computeds do not exist yet (setup).
+	 *
+	 * @return {Array<object>|null} The tabs, or null when there are none.
+	 */
+	function shownQuickFilters() {
+		const shown = instance && instance.proxy ? instance.proxy.effectiveQuickFilters : undefined
+		if (shown !== undefined) {
+			return shown
+		}
+		return withPersonalLenses(props.quickFilters, props.personalLenses)
+	}
+
 	const initialTabs = withPersonalLenses(props.quickFilters, props.personalLenses)
 	const initialTabSort = (!isMultiQuickFilter && Array.isArray(initialTabs))
 		? quickFilterSortKeys(initialTabs[activeQuickFilterIndex.value])
@@ -250,7 +285,9 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		defaultSortKeys: initialSortKeys,
 		defaultActiveFilters: initialActiveFilters,
 		defaultSearchTerm: initialSearchTerm,
-		defaultPageSize: props.viewMode === 'board' ? BOARD_PAGE_SIZE : ((props.pagination && props.pagination.limit) || undefined),
+		defaultPageSize: props.viewMode === 'board'
+			? BOARD_PAGE_SIZE
+			: ((props.viewMode === 'map' && mapPlotAllLimitOf(props.mapConfig)) || (props.pagination && props.pagination.limit) || undefined),
 		defaultVisibleColumns: configuredColumnKeys.length ? configuredColumnKeys : null,
 		// `pages[].config.extend` → OpenRegister's repeated `_extend[]`. A
 		// getter so a reactive change re-scopes the next fetch, matching how
@@ -274,7 +311,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 			// The visible calendar month, only while the page is in calendar mode.
 			const month = (instance && instance.proxy && instance.proxy.calendarRangeFilter) || {}
 			const scope = { ...(widen ? { ...scopeBase, _content_search: 'true' } : scopeBase), ...month }
-			const lensed = withPersonalLenses(props.quickFilters, props.personalLenses)
+			const lensed = shownQuickFilters()
 			const tabs = Array.isArray(lensed) ? lensed : null
 			if (!tabs) {
 				return { ...queryFilters, ...scope, ...base }
@@ -289,7 +326,9 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 
 			// Single mode: the active tab's filter spread last so it wins
 			// over a colliding props.filter entry.
-			const activeIdx = activeQuickFilterIndex.value
+			// Tabs that arrived after setup (`quickFiltersFrom`) have no index
+			// yet: the default tab is the one in force, as the strip shows.
+			const activeIdx = activeQuickFilterIndex.value ?? resolveInitialQuickFilterIndex(tabs)
 			const tabFilter = (activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
 			return { ...queryFilters, ...scope, ...base, ...resolveFilterMap(tabFilter, params, ctx) }
 		},
@@ -309,7 +348,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		// for a lens without goes back to the page's own order. A column the
 		// person sorts by afterwards still wins until the next switch.
 		if (!isMultiQuickFilter && before && now[0] !== before[0]) {
-			const tabs = withPersonalLenses(props.quickFilters, props.personalLenses) || []
+			const tabs = shownQuickFilters() || []
 			const keys = quickFilterSortKeys(tabs[now[0]]) || (quickFilterSortKeys(tabs[before[0]]) ? pageSortKeys : null)
 			if (keys && list.sortKeys) {
 				list.sortKeys.value = keys
@@ -318,6 +357,20 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 			}
 		}
 		if (list && typeof list.refresh === 'function') {
+			list.refresh(1)
+		}
+	})
+
+	// Another chip set (a saved view's `overrides.quickFilters`, or the page's
+	// own again when the view is left): the selection indexed the old set, so
+	// it starts over on the new set's default chip.
+	const quickFiltersSignature = computed(() => JSON.stringify(props.quickFilters ?? null))
+	watch(quickFiltersSignature, () => {
+		const nextIndex = resolveInitialQuickFilterIndex(withPersonalLenses(props.quickFilters, props.personalLenses))
+		const changed = activeQuickFilterIndex.value !== nextIndex || selectedQuickFilterIndices.value.length > 0
+		activeQuickFilterIndex.value = nextIndex
+		selectedQuickFilterIndices.value = []
+		if (!changed && list && typeof list.refresh === 'function') {
 			list.refresh(1)
 		}
 	})

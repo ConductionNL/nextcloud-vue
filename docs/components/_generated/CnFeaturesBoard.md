@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 0 direct references, 21 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 22 files reached through imports.
 
 Through: `CnBuildiqEditButton`, `CnDataTable`, `CnFkResolveCell`, `CnFlowDetail`, `CnGraphCanvas`, `CnIndexPage`, `CnRoadmapTab`.
 
@@ -16,6 +16,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `categories`          | `object`  |          | `\{\}`    | Category key to caption; sets the order of the groups.                                                                                                                    |
 | `layout`              | `string`  |          | `'cards'` | `cards`: a section per category with two-up feature cards. `rows`: one card per category with a row per feature.                                                          |
 | `tabs`                | `boolean` |          | `true`    | Show the Features and Roadmap folder tabs.                                                                                                                                |
+| `actionsMenu`         | `boolean` |          | `true`    | Show the Actions menu (suggest, buildiq, AI skills, support), in the header or the tab row; false draws none.                                                             |
 | `filter`              | `string`  |          | `'chips'` | `chips`: pill buttons with a count. `segmented`: a segmented control without counts.                                                                                      |
 | `statusLabels`        | `object`  |          | `\{\}`    | Overrides of the status labels, by key (`all`, `available`, `beta`, `in_progress`, `planned`).                                                                            |
 | `next`                | `number`  |          | `3`       | How many issues the Next card lists; 0 hides the card.                                                                                                                    |

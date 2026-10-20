@@ -128,7 +128,7 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `doneLabel` | String | `'Done'` | Label for the done button |
 | `emptyLabel` | String | `'No widgets configured'` | Empty state message |
 | `unavailableLabel` | String | `'Widget not available'` | Fallback for unknown widget IDs |
-| `headerActions` | Array | `[]` | Declarative header actions (manifest `config.headerActions`) rendered as buttons through `CnActionButtons`. An entry with `href` is a link button, never dispatched: an absolute `http(s)`, `mailto:` or `tel:` URL as written, an instance path through `generateUrl()`, in a new tab with `target: "_blank"` — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href). |
+| `headerActions` | Array | `[]` | Declarative header actions (manifest `config.headerActions`) rendered as buttons through `CnActionButtons`. An entry with `href` is a link button, never dispatched: an absolute `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written, an instance path through `generateUrl()`, in a new tab with `target: "_blank"` — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href). |
 | `dateRange` | Object | `null` | Optional date-range header descriptor — see [Date-range header](#date-range-header) |
 | `pageFilters` | Array | `[]` | Optional page-level filter controls rendered in the header — see [Page filters](#page-filters). Each entry `\{ key, label?, type?: 'select', options: [\{ value, label \}], default? \}`. The selection is written into the reactive workspace context, so widgets can read it via a `@page.<key>` / `@workspace.<key>` token. |
 
@@ -363,7 +363,18 @@ A widget then binds its data to the selected value. With an endpoint-bound [`sta
 }
 ```
 
-Each entry: `key` (the context key written on change), optional `label`, `type` (only `'select'` today), `options` (`[{ value, label }]`), and an optional `default` (else the first option seeds the context on mount). Omitting `pageFilters` renders nothing and leaves the context untouched (backwards-compatible).
+Each entry: `key` (the context key written on change), optional `label`, `type` (only `'select'` today), `options` (`[{ value, label }]`), and an optional `default` (else the first option seeds the context on mount). Omitting `pageFilters` renders nothing and leaves the context untouched (backwards-compatible). The label and the option labels go through the app's translate.
+
+### Options read from a source (`optionsFrom`)
+
+A filter can read its options instead of listing them, as the case-type filter of a reporting dashboard does:
+
+```json
+{ "key": "caseType", "label": "Filter by case type", "clearable": true, "placeholder": "All case types",
+  "optionsFrom": { "register": "dossiq", "schema": "caseType", "filter": { "hasSla": true } } }
+```
+
+`optionsFrom` is `{ register, schema, filter? }` (OpenRegister objects; tokens in `filter` resolve) or `{ url, params?, responsePath? }` (an app endpoint). `valueField` and `labelField` pick the option's value and label (default the `id` or uuid, and `title` or `name`). `clearable: true` lets the reader clear the select back to all: the context key becomes `null` and nothing is seeded on mount, and `placeholder` says what an empty select means. A filter that is not clearable is seeded with the first option read.
 
 ## Built-in page-level Actions menu
 

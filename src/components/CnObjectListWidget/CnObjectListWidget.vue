@@ -166,6 +166,7 @@
 			</div>
 			<div v-else class="cn-object-list-widget__table">
 				<CnDataTable
+					:reorderable="reorderField !== ''"
 					:columns="resolvedColumns"
 					:rows="facetedRows"
 					:loading="loading"
@@ -181,7 +182,8 @@
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
 					@select="onSelect"
-					@sort="onSort">
+					@sort="onSort"
+					@rowMove="onRowMove">
 					<!-- Declarative per-row actions (`content.rowActions`).
 					     CnDataTable only paints the trailing actions column
 					     when this slot is supplied, so a widget without
@@ -205,6 +207,11 @@
 			  more than the widget is showing, pager or no pager — a widget is
 			  a summary, and the index is where the list actually lives.
 			-->
+			<!-- A reorder's outcome, read out: the row's new place, or why the
+			     server refused it. -->
+			<p class="hidden-visually cn-object-list-widget__reorder-status" aria-live="polite" data-testid="cn-object-list-reorder-status">
+				{{ reorderStatus }}
+			</p>
 			<CnPagination
 				v-if="showPager"
 				compact
@@ -279,20 +286,20 @@
 			data-testid="object-list-upload-input"
 			@change="onUploadFilesSelected">
 		<CnFormDialog
-			v-if="showCreate && createSchema"
+			v-if="(showCreate || editingRow) && createSchema"
 			ref="createDialog"
 			:schema="createSchema"
-			:item="null"
+			:item="editingRow"
 			:register="content.register || ''"
-			:initialData="createInitialData"
+			:initialData="editingRow ? null : createInitialData"
 			:lockedFields="createLockedFields"
 			:size="formSize"
 			:columns="formColumns"
 			:includeFields="formIncludeFields"
 			:excludeFields="formExcludeFields"
 			:fieldOverrides="formFieldOverrides"
-			@confirm="onCreateConfirm"
-			@close="showCreate = false" />
+			@confirm="editingRow ? onEditConfirm($event) : onCreateConfirm($event)"
+			@close="closeForm" />
 	</div>
 </template>
 
@@ -310,8 +317,10 @@ import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
+import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { changedKeys } from '../../utils/saveEdited.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 
@@ -450,10 +459,12 @@ export default {
 		},
 	},
 
-	emits: ['created', 'row-click', 'row-aux-click', 'view-all', 'files-dropped'],
+	emits: ['created', 'updated', 'row-click', 'row-aux-click', 'view-all', 'files-dropped'],
 
 	data() {
 		return {
+			/** What the last reorder did, for the live region: the new place, or the server's refusal. */
+			reorderStatus: '',
 			rows: [],
 			loading: false,
 			error: '',
@@ -474,6 +485,8 @@ export default {
 			fitStage: 0,
 			/** Whether the create dialog is open. */
 			showCreate: false,
+			/** The row the form edits (`content.editable`), or null while it creates. */
+			editingRow: null,
 			/**
 			 * The list's own schema definition, once fetched.
 			 *
@@ -712,7 +725,7 @@ export default {
 		 */
 		mappedRowActions() {
 			const declared = Array.isArray(this.content.rowActions) ? this.content.rowActions : []
-			return declared
+			const mapped = declared
 				.filter((a) => a && typeof a === 'object')
 				.map((action) => ({
 					label: action.label,
@@ -722,6 +735,34 @@ export default {
 					...this.rowActionLink(action),
 					handler: (row) => this.runRowAction(action, row),
 				}))
+			if (this.content.editable === true) {
+				mapped.unshift({ label: t('nextcloud-vue', 'Edit'), icon: 'Pencil', handler: (row) => this.openEdit(row) })
+			}
+			if (this.content.deletable === true) {
+				mapped.push({ label: t('nextcloud-vue', 'Delete'), icon: 'TrashCanOutline', destructive: true, handler: (row) => this.deleteRow(row) })
+			}
+			if (this.reorderField === '') {
+				return mapped
+			}
+			// The keyboard half of the drag: one place up or down.
+			return [
+				...mapped,
+				{ label: t('nextcloud-vue', 'Move up'), icon: 'ArrowUp', handler: (row) => this.moveRowBy(row, -1) },
+				{ label: t('nextcloud-vue', 'Move down'), icon: 'ArrowDown', handler: (row) => this.moveRowBy(row, 1) },
+			]
+		},
+
+		/**
+		 * The field a reorderable list is ordered by (`content.reorder.field`),
+		 * or '' when the list does not reorder. A grouped list does not.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		reorderField() {
+			const reorder = this.content && this.content.reorder
+			const field = reorder && typeof reorder === 'object' ? reorder.field : ''
+			return typeof field === 'string' && field !== '' && !this.isGrouped ? field : ''
 		},
 
 		/**
@@ -1095,8 +1136,14 @@ export default {
 		createInitialData() {
 			const props = (this.createSchema && this.createSchema.properties) || {}
 			const out = { ...this.filterSeed }
-			const defaults = this.content && this.content.createDefaults
-			if (defaults && typeof defaults === 'object' && !Array.isArray(defaults)) {
+			// A new row of a reorderable list goes last.
+			if (this.reorderField !== '' && this.reorderField in props) {
+				out[this.reorderField] = Math.max(this.total, this.rows.length) + 1
+			}
+			const declared = this.content && this.content.createDefaults
+			// Tokens resolve as the filter's do: `@objectId` is the page's object.
+			const defaults = declared && typeof declared === 'object' && !Array.isArray(declared) ? resolveFilterTokens(declared, this.tokenCtx) : null
+			if (defaults) {
 				for (const [key, value] of Object.entries(defaults)) {
 					if (key in props && value !== undefined) {
 						out[key] = value
@@ -1272,6 +1319,69 @@ export default {
 
 	methods: {
 		/**
+		 * Move a row one place up or down (the row actions).
+		 *
+		 * @param {object} row The row.
+		 * @param {number} delta -1 for up, 1 for down.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		moveRowBy(row, delta) {
+			const from = this.rows.findIndex((r) => rowIdOf(r) === rowIdOf(row))
+			return this.reorderTo(from, from + delta)
+		},
+
+		/**
+		 * A row dragged to another place in the table.
+		 *
+		 * @param {{from: number, to: number}} move The old and new index.
+		 * @return {Promise<void>}
+		 */
+		onRowMove({ from, to } = {}) {
+			return this.reorderTo(from, to)
+		},
+
+		/**
+		 * Put the row at `from` at `to`, renumber the rows from this page's
+		 * first place, and write the order field on the rows whose number
+		 * changed, as a PATCH of that field only. A refusal is read out and the
+		 * list is read again.
+		 *
+		 * @param {number} from The index moved from.
+		 * @param {number} to The index moved to.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		async reorderTo(from, to) {
+			const field = this.reorderField
+			if (field === '' || from < 0 || to < 0 || from >= this.rows.length || to >= this.rows.length || from === to) {
+				return
+			}
+			const moved = this.rows[from]
+			const { rows, changes } = renumberRows(moveIndex(this.rows, from, to), field, (this.page - 1) * this.pageSize + 1)
+			this.rows = rows
+			const c = this.content || {}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				for (const change of changes) {
+					await axios.patch(
+						generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id: change.id }),
+						{ [field]: change.value },
+					)
+				}
+				this.reorderStatus = t('nextcloud-vue', '{name} moved to place {place} of {total}', {
+					name: objectDisplayName(moved || {}) || t('nextcloud-vue', 'Row'),
+					place: (this.page - 1) * this.pageSize + to + 1,
+					total: Math.max(this.total, this.rows.length),
+				})
+			} catch (e) {
+				const data = e && e.response && e.response.data
+				this.reorderStatus = (data && (data.message || data.error)) || t('nextcloud-vue', 'The new order could not be saved.')
+				await this.fetchRows()
+			}
+		},
+
+		/**
 		 * Fetch the object rows from OpenRegister. Lazily imports the
 		 * axios/router helpers (the library never hard-depends on them at module
 		 * load — same pattern as CnStatWidget / CnFilesWidget).
@@ -1309,7 +1419,10 @@ export default {
 				// the pager's "1–25 of 137" is the server's arithmetic and not a
 				// client-side count of an already-capped window.
 				const params = { _limit: this.pageSize, _page: this.page }
-				if (this.localSort && this.localSort.field) {
+				if (this.reorderField !== '') {
+					// A reorderable list is always shown in its stored order.
+					params[`_order[${this.reorderField}]`] = 'asc'
+				} else if (this.localSort && this.localSort.field) {
 					params[`_order[${this.localSort.field}]`] = (this.localSort.dir === 'desc' ? 'desc' : 'asc')
 				}
 				// `content.extend` → OpenRegister's repeated `_extend[]`. axios
@@ -1442,6 +1555,7 @@ export default {
 		forgetCreateSchema() {
 			this.createSchema = null
 			this.showCreate = false
+			this.editingRow = null
 		},
 
 		/**
@@ -1452,6 +1566,97 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * Edit a row in the list's own form (`content.editable`): the form the
+		 * Add button opens, filled with the row.
+		 *
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async openEdit(row) {
+			try {
+				await this.ensureSchema()
+				this.showCreate = false
+				this.editingRow = row ? { ...row } : null
+			} catch (e) {
+				this.error = (e && e.message) || 'error'
+			}
+		},
+
+		/**
+		 * Delete a row of the list's own schema (`content.deletable`). The
+		 * toast offers Undo; a refusal toasts the server's message.
+		 *
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async deleteRow(row) {
+			const c = this.content || {}
+			const id = rowIdOf(row)
+			if (id === '') {
+				return
+			}
+			const pending = (async () => {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				try {
+					await axios.delete(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }))
+				} catch (e) {
+					const data = e && e.response && e.response.data
+					const refusal = data && (data.message || data.error)
+					throw new Error((typeof refusal === 'string' && refusal) || (e && e.message) || t('nextcloud-vue', 'The delete failed'), { cause: e })
+				}
+				return true
+			})()
+			await this.reportDelete(row, pending)
+			await pending.catch(() => {})
+			this.fetchRows()
+		},
+
+		/** Close the form, whether it created or edited. */
+		closeForm() {
+			this.showCreate = false
+			this.editingRow = null
+		},
+
+		/**
+		 * Save an edited row: a PATCH of the keys the form changed, so every
+		 * key it does not show keeps its stored value; nothing when nothing
+		 * changed. A refusal shows the server's message in the dialog.
+		 *
+		 * @param {object} formData The edited values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async onEditConfirm(formData) {
+			const c = this.content || {}
+			const row = this.editingRow
+			const id = rowIdOf(row)
+			const changes = changedKeys(row, formData)
+			try {
+				if (id !== '' && Object.keys(changes).length > 0) {
+					const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+					await axios.patch(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }), changes)
+				}
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ success: true })
+				}
+				/**
+				 * @event updated Emitted after a row was edited, with the keys that changed.
+				 * @type {object}
+				 */
+				this.$emit('updated', { id, changes })
+				this.fetchRows()
+			} catch (e) {
+				const data = e && e.response && e.response.data
+				const refusal = data && (data.message || data.error)
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ error: (typeof refusal === 'string' && refusal) || (e && e.message) || 'error' })
+				}
+			}
+		},
+
 		async openCreate() {
 			const c = this.content || {}
 			if (!c.schema) {
@@ -1560,8 +1765,12 @@ export default {
 				this.$emit('created', payload)
 				this.fetchRows()
 			} catch (e) {
+				// The server's own refusal ("a case type keeps one final status")
+				// says more than the transport's "Request failed with status 422".
+				const data = e && e.response && e.response.data
+				const refusal = data && (data.message || data.error)
 				if (this.$refs.createDialog) {
-					this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' })
+					this.$refs.createDialog.setResult({ error: (typeof refusal === 'string' && refusal) || (e && e.message) || 'error' })
 				}
 			}
 		},

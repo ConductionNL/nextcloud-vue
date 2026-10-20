@@ -35,13 +35,13 @@
 				<div class="cn-version-info__details">
 					<!-- Application Name (the board card can leave it to its description: `showAppName`) -->
 					<div v-if="!isBoard || (showAppName && !compact)" class="cn-version-info__item" data-testid="cn-version-info-app-name">
-						<span class="cn-version-info__label">{{ fieldLabels.appName }}:</span>
+						<span class="cn-version-info__label">{{ fieldLabels.appName }}{{ labelColon }}</span>
 						<span class="cn-version-info__value">{{ appName }}</span>
 					</div>
 
 					<!-- Version -->
 					<div class="cn-version-info__item">
-						<span class="cn-version-info__label">{{ fieldLabels.version }}:</span>
+						<span class="cn-version-info__label">{{ fieldLabels.version }}{{ labelColon }}</span>
 						<span class="cn-version-info__value">{{ appVersion }}</span>
 					</div>
 
@@ -49,13 +49,13 @@
 					     which draws the row ("Unknown" until the app reports it) with the
 					     up-to-date state inline ("0.4.47, bijgewerkt"). -->
 					<div v-if="configuredVersion || isBoard" class="cn-version-info__item" data-testid="cn-version-info-configured">
-						<span class="cn-version-info__label">{{ fieldLabels.configuredVersion }}:</span>
+						<span class="cn-version-info__label">{{ fieldLabels.configuredVersion }}{{ labelColon }}</span>
 						<span class="cn-version-info__value">{{ isBoard ? boardConfiguredText : configuredVersion }}</span>
 					</div>
 
 					<!-- Additional items -->
 					<div v-for="item in additionalItems" :key="item.label" class="cn-version-info__item">
-						<span class="cn-version-info__label">{{ item.label }}:</span>
+						<span class="cn-version-info__label">{{ item.label }}{{ labelColon }}</span>
 						<span class="cn-version-info__value" :class="item.statusClass">{{ item.value }}</span>
 					</div>
 
@@ -320,6 +320,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The colon after each label: none on the compact board card, which
+		 * sets each label beside its value ("Versie 0.4.47", DqInstellingenAlgemeen);
+		 * one otherwise, PqBeheer's card included.
+		 *
+		 * @return {string} The colon, or ''.
+		 */
+		labelColon() {
+			return this.isBoard && this.compact ? '' : ':'
+		},
+
 		/**
 		 * The field labels: the app's, else the library's in the reader's language.
 		 *

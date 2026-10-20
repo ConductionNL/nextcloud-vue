@@ -51,4 +51,29 @@ describe('CnDashboardPage: a header action with href', () => {
 
 		expect(wrapper.find('[data-testid="cn-action-new-lead"]').element.tagName).toBe('BUTTON')
 	})
+
+	it('renders a link child in the action dropdown as an anchor with the resolved href', async () => {
+		const wrapper = mount(CnDashboardPage, {
+			propsData: {
+				title: 'Dash',
+				headerActions: [{ id: 'more', label: 'More', handler: 'more', children: [{ id: 'docs', label: 'Docs', href: '/apps/x/docs' }] }],
+			},
+			global: {
+				stubs: {
+					CnDashboardGrid: true,
+					CnBuildiqEditButton: true,
+					NcActions: { template: '<div><slot /></div>' },
+					NcActionButton: { emits: ['click'], template: '<button @click="$emit(\'click\', $event)"><slot /></button>' },
+					NcActionLink: { props: ['href', 'target'], emits: ['click'], template: '<a :href="href" :target="target" @click="$emit(\'click\', $event)"><slot /></a>' },
+				},
+			},
+		})
+		const dispatch = jest.spyOn(wrapper.findComponent(CnActionButtons).vm, 'onActionClick').mockImplementation(() => {})
+		const child = wrapper.find('[data-testid="cn-action-docs"]')
+		expect(child.element.tagName).toBe('A')
+		expect(child.attributes('href')).toBe('/nc/index.php/apps/x/docs')
+		expect(child.attributes('target')).toBe('_self')
+		await child.trigger('click')
+		expect(dispatch).not.toHaveBeenCalled()
+	})
 })

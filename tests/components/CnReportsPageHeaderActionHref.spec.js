@@ -55,7 +55,8 @@ describe('CnReportsPage: a header button naming an href action', () => {
 		expect(wrapper.emitted('header-action')).toEqual([[{ action: 'download', id: 'download' }]])
 	})
 
-	it('keeps a button naming a function-handler entry a button that runs it, href or not', async () => {
+	it('makes a button naming a function-handler entry with href a link that does not run it', async () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const run = jest.fn()
 		const wrapper = mount(CnReportsPage, {
 			props: {
@@ -67,12 +68,19 @@ describe('CnReportsPage: a header button naming an href action', () => {
 			global: {
 				provide: { cnLook: 'nextcloud' },
 				mocks: { $router: { push: jest.fn(), resolve: ({ name }) => ({ href: `/r/${name}` }) } },
-				stubs: { CnIcon: true, CnBuildiqEditButton: true },
+				stubs: {
+					CnIcon: true,
+					CnBuildiqEditButton: true,
+					NcButton: { props: ['href', 'target', 'variant'], emits: ['click'], template: '<component :is="href ? \'a\' : \'button\'" :href="href" :target="target" v-bind="$attrs" @click="$emit(\'click\', $event)"><slot /></component>' },
+				},
 			},
 		})
 		const button = wrapper.find('[data-testid="cn-reports-header-button-run"]')
-		expect(button.attributes('href')).toBeUndefined()
+		expect(button.element.tagName).toBe('A')
+		expect(button.attributes('href')).toBe('/nc/index.php/apps/x')
 		await button.trigger('click')
-		expect(run).toHaveBeenCalledWith({ actionId: 'run' })
+		expect(run).not.toHaveBeenCalled()
+		expect(wrapper.emitted('header-action')).toBeFalsy()
+		warn.mockRestore()
 	})
 })

@@ -82,9 +82,9 @@ describe('look-board.css: admin settings', () => {
 		expect(rulesFor('.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section')).toMatch(/background: var\(--color-main-background\)/)
 	})
 
-	it('draws the path line muted at 15px', () => {
+	it('draws the path line muted at 14px (DqInstellingen)', () => {
 		const rule = rulesFor('.cn-look-board .cn-admin-settings-shell__crumbs:not(.cn-look-nextcloud *)')
-		expect(rule).toMatch(/font-size: 15px/)
+		expect(rule).toMatch(/font-size: 14px/)
 		expect(rule).toMatch(/color: var\(--color-text-maxcontrast\)/)
 	})
 })

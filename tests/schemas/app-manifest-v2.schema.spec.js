@@ -946,7 +946,7 @@ describe('app-manifest-v2 — form logic: fields[].visibleWhen (REQ-MFL-2, manif
 		const manifest = manifestWithFormPage({
 			fields: [
 				{ key: 'kind', label: 'Kind', type: 'string' },
-				{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { field: 'kind', op: 'contains', value: 'x' } },
+				{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { field: 'kind', op: 'startsWith', value: 'x' } },
 			],
 		})
 		const result = validateManifestV2(manifest)
@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.128.0', () => {
+	it('the manifest schema version reads 2.134.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1404,11 +1404,17 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.125.0 adds chart emptyCellLabel and the footnote under line, area and bar charts (chart-widget), config.bulkBandAlways (actions-bar), config.quickFilterPlacement (index-page), config.rowClass rules on an index page (index-page) and sourceConfig.limit for a paging source (index-page).
 		// 2.126.0 adds the setup choice step's display "rows" and default (setup-wizard), visibleWhen op anyOf and the record-list footerAction (record-list), and documents folderSidebar.pane and the fieldOverrides search look (index-page, form-dialog).
 		// 2.127.0 adds config.sideColumnFrom on a detail page (detail-page), headerButtons[].run, config.search, searchPlacement, defaultOrder, listConfig leading / trailing / subtitleTemplate and folderSidebar heading / countText on an index page (index-page, object-row), and the object-table pageSize (object-table).
-		// 2.128.0 adds $defs.headerAction / headerLinkAction: href with target "_blank" / "_self" on header actions, their children, quick actions and stage actions, a header action that is a real link (actions-bar, nextcloud-vue#1314).
-		expect(schema.version).toBe('2.128.0')
+		// 2.128.0 adds the setup step's noteStyle (setup-wizard), chart referenceLines and categoryFormat (chart-widget), visibleWhen op contains (visible-when), config.tabsFrom on a detail page (detail-page) and the notice widget (notice-widget).
+		// 2.129.0 adds config.cardLayout on an index page, the board record card's layout, with a meta part that names its own formatter (card-layout-part-formatter); also quickFilterPlacement row (index-page), nextStep.stagesFrom, side-column entry tabs and folderSidebar.scopeViews (detail-page, index-page), and the record-list dot / flags, related groupByRelation / layout / groupActions and nc-widget excludeApps / excludeTypes content (widgets).
+		// 2.130.0 adds config.defaultSavedViews on an index page, views the app ships, read-only and copyable, with savedViewTree.seeded deprecated (saved-views-manage-and-defaults), and a dashboard page filter's optionsFrom, clearable and placeholder, with options required only without optionsFrom (dashboard-page).
+		// 2.131.0 adds mapConfig markerColor, plotAll and count on an index page (index-map-parity).
+		// 2.132.0 adds sortSelectOptions[].source, a sidebar sort order whose rows come from an app endpoint (sidebar-sort-endpoint-source), saved-view overrides with locked filters, profile patches and card parts (saved-view-overrides-v2), and the forms work: a field's optionsFrom, dotted-path fields, the sub-objects editor, list reorder by an order field and the smaller form features (form-small-features).
+		// 2.133.0 adds the field override keys placeholderFrom, requiredWhen, warnWhen, clearWhenHidden, stored, initialWhen, sectionCollapsed, optionSwatches and optionIcons, optionsFrom groupField, where, itemsPath and hideWhenEmpty, and a source that follows another field through @answer (object-list-edit-in-place), the decision-list, retention, plan and work-queue widgets (widgets), and config.searchRefusalHint (index-page).
+		// 2.134.0 adds $defs.headerAction / headerLinkAction: href with target "_blank" / "_self" on header actions, their children, quick actions and stage actions, a header action that is a real link (actions-bar, nextcloud-vue#1314).
+		expect(schema.version).toBe('2.134.0')
 	})
 
-	it('accepts the 2.128.0 header action href and refuses it with a handler, another type or a bad URL', () => {
+	it('accepts the 2.134.0 header action href and refuses it with a handler, another type or a bad URL', () => {
 		const withAction = (action) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config: { register: 'r', schema: 's', headerActions: [{ id: 'add', label: 'Add integration', ...action }] } }] })
 		expect(validateManifestV2(withAction({ href: '/apps/integriq/connections?app=stackiq' })).valid).toBe(true)
 		expect(validateManifestV2(withAction({ href: 'https://example.org/docs', target: '_blank' })).valid).toBe(true)
@@ -1447,6 +1453,108 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(index({ bulkActions: [{ id: 'a', label: 'A', type: 'object-op' }] })).valid).toBe(false)
 		expect(validateManifestV2(index({ headerActions: [{ id: 'a', label: 'A', type: 'api-call' }] })).valid).toBe(false)
 		expect(validateManifestV2(index({ headerActions: [{ id: 'a', label: 'A', type: 'api-call', url: '/apps/x/api' }] })).valid).toBe(true)
+	})
+
+	it('accepts the 2.133.0 widgets and searchRefusalHint, and refuses malformed ones', () => {
+		const page = (widgets, config = {}) => ({ ...MINIMAL_V2, pages: [{ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', ...config }, widgets }] })
+		const widget = (widgetKey, content) => ({ id: widgetKey, widgetKey, slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, props: { content } })
+		expect(validateManifestV2(page([
+			widget('decision-list', { source: { url: '/apps/x/api/signoffs' }, answers: [{ value: 'ok', label: 'Approve', fields: [{ field: 'until', type: 'date' }] }], reason: false, submit: { request: { method: 'POST', url: '/apps/x/api/signoffs/{id}' } } }),
+			widget('retention', { statusField: 'archiveStatus', archivedValues: ['archived'], archivistGroups: ['archivaris'], recompute: false }),
+			widget('plan', { emptyText: 'No plan yet' }),
+			widget('work-queue', { source: { url: '/apps/x/api/queue' }, hide: '/apps/x/api/queue/{group}/hide', waitingParties: { applicant: 'the applicant' } }),
+		])).valid).toBe(true)
+		expect(validateManifestV2(page([widget('decision-list', { answers: [{ value: 'ok' }] })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('decision-list', { reason: true })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('decision-list', { submit: { request: { method: 'POST' } } })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('retention', { recompute: 'no' })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('work-queue', { waitingParties: { applicant: 1 } })])).valid).toBe(false)
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', ...config } }] })
+		expect(validateManifestV2(index({ searchRefusalHint: 'Use AND, OR or NOT between words.' })).valid).toBe(true)
+		expect(validateManifestV2(index({ searchRefusalHint: 3 })).valid).toBe(false)
+	})
+
+	it('accepts the 2.131.0 map keys and refuses malformed ones', () => {
+		const index = (mapConfig) => ({ ...MINIMAL_V2, pages: [{ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', mapConfig: { latField: 'lat', lngField: 'lng', ...mapConfig } } }] })
+		expect(validateManifestV2(index({ markerColor: { field: 'status', colorMap: { open: 'var(--color-success)' } }, plotAll: true, count: true })).valid).toBe(true)
+		expect(validateManifestV2(index({ markerColor: { field: 'caseType', source: { register: 'r', schema: 'caseType', colorField: 'colour' } }, plotAll: 200, count: '{located} of {total}' })).valid).toBe(true)
+		expect(validateManifestV2(index({ markerColor: { colorMap: {} } })).valid).toBe(false)
+		expect(validateManifestV2(index({ markerColor: { field: 'caseType', source: { register: 'r' } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ plotAll: 0 })).valid).toBe(false)
+		expect(validateManifestV2(index({ count: 3 })).valid).toBe(false)
+	})
+
+	it('accepts the 2.132.0 sort option with an endpoint source and refuses malformed ones', () => {
+		const index = (sortSelectOptions) => ({ ...MINIMAL_V2, pages: [{ id: 'mine', route: '/mine', type: 'index', title: 'Mine', config: { register: 'r', schema: 's', sortSelectOptions } }] })
+		const urgency = { value: 'urgency', label: 'Urgency', default: true, order: 'deadline', source: { url: '/apps/x/api/queue', rowsPath: 'items', rowPath: 'case', carry: ['deadlineTier'], annotate: true, failedNote: 'Ordered by deadline.' } }
+		expect(validateManifestV2(index([urgency, { value: 'newest', label: 'Newest', order: '-startDate' }])).valid).toBe(true)
+		expect(validateManifestV2(index([{ ...urgency, source: { rowsPath: 'items' } }])).valid).toBe(false)
+		expect(validateManifestV2(index([{ ...urgency, source: { url: '/x', rows: 'items' } }])).valid).toBe(false)
+		expect(validateManifestV2(index([{ label: 'No value' }])).valid).toBe(false)
+	})
+
+	it('a page filter takes its options or optionsFrom, and refuses neither or a malformed optionsFrom', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'trend', route: '/trend', type: 'dashboard', title: 'Trend', config: { pageFilters: [filter] } }] })
+		const options = [{ value: 'mean', label: 'Gemiddeld' }]
+		expect(validateManifestV2(withFilter({ key: 'measure', options })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { register: 'dossiq', schema: 'caseType', labelField: 'name' }, clearable: true, placeholder: 'All case types' })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { url: '/apps/dossiq/api/case-types', responsePath: 'results' } })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'caseType' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', clearable: true, placeholder: 'All' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { labelField: 'name' } })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { register: 'dossiq', schema: 'caseType', source: 'x' } })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', options, clearable: 'yes' })).valid).toBe(false)
+	})
+
+	it('accepts the 2.128.0 keys and refuses malformed ones', () => {
+		const withPage = (page) => ({ ...MINIMAL_V2, pages: [page] })
+		const notice = (content, visibleWhen) => withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', tabsFrom: '@context.caseType.tabs' }, widgets: [{ id: 'special', widgetKey: 'notice', slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 1, props: { content }, ...(visibleWhen ? { visibleWhen } : {}) }] })
+		expect(validateManifestV2(notice({ variant: 'warning', title: 'Special category data', text: 'Every view is logged.' }, { field: 'overviewCards', op: 'contains', value: 'special' })).valid).toBe(true)
+		expect(validateManifestV2(notice({ variant: 'loud', text: 'x' })).valid).toBe(false)
+		expect(validateManifestV2(notice({ text: 'x' }, { field: 'overviewCards', op: 'includes', value: 'special' })).valid).toBe(false)
+		expect(validateManifestV2(withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', tabsFrom: '' } })).valid).toBe(false)
+	})
+
+	it('accepts the other 2.129.0 keys and refuses malformed ones', () => {
+		const withPage = (page) => ({ ...MINIMAL_V2, pages: [page] })
+		const detail = (config, widgets = []) => withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', ...config }, widgets })
+		const widget = (widgetKey, content) => ({ id: widgetKey, widgetKey, slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2, props: { content } })
+		expect(validateManifestV2(detail({ nextStep: { stagesFrom: '@context.caseType.nextStep' }, sideColumn: [{ type: 'facts', tabs: ['fields'] }] }, [
+			widget('record-list', { dot: { field: 'colour', colorMap: { open: 'green' } }, flags: [{ field: 'isStart', label: 'Start' }] }),
+			widget('related', { groupByRelation: true, layout: 'sections', groupActions: { followUp: { type: 'open-form' } } }),
+			widget('nc-widget', { excludeApps: ['systemtags'] }),
+		])).valid).toBe(true)
+		expect(validateManifestV2(detail({ nextStep: { title: 'Next' } })).valid).toBe(false)
+		expect(validateManifestV2(detail({ sideColumn: [{ type: 'facts', tabs: [] }] })).valid).toBe(false)
+		expect(validateManifestV2(detail({}, [widget('record-list', { flags: [{ field: 'isStart' }] })])).valid).toBe(false)
+		expect(validateManifestV2(detail({}, [widget('related', { layout: 'grid' })])).valid).toBe(false)
+		expect(validateManifestV2(detail({}, [widget('nc-widget', { excludeApps: 'systemtags' })])).valid).toBe(false)
+		const index = (config) => withPage({ id: 'work', route: '/work', type: 'index', title: 'Work', config: { register: 'r', schema: 's', ...config } })
+		expect(validateManifestV2(index({ quickFilterPlacement: 'row', folderSidebar: { scopeViews: ['table', 'list'] } })).valid).toBe(true)
+		expect(validateManifestV2(index({ folderSidebar: { scopeViews: [] } })).valid).toBe(false)
+	})
+
+	it('accepts the 2.129.0 meta part with its own formatter and refuses one without a field', () => {
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'mine', route: '/mine', type: 'index', title: 'Mine', config: { register: 'r', schema: 's', ...config } }] })
+		expect(validateManifestV2(index({ cardLayout: { meta: [{ field: 'caseType', formatter: 'caseTypeName' }, 'assignee'] } })).valid).toBe(true)
+		expect(validateManifestV2(index({ cardLayout: { meta: [{ formatter: 'caseTypeName' }] } })).valid).toBe(false)
+	})
+
+	it('accepts the 2.129.0 cardLayout and refuses malformed ones', () => {
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'mine', route: '/mine', type: 'index', title: 'Mine', config: { register: 'r', schema: 's', ...config } }] })
+		const cardLayout = {
+			headPill: { field: 'urgency', colorMap: { late: 'error' }, labels: { late: 'Te laat' } },
+			number: 'identifier',
+			title: 'title',
+			meta: ['caseTypeName', 'assignee'],
+			footerPill: { field: 'statusName', colorMap: { 'in behandeling': 'purple' } },
+			footerDate: { field: 'deadline', label: 'Termijn' },
+		}
+		expect(validateManifestV2(index({ cardLayout })).valid).toBe(true)
+		expect(validateManifestV2(index({ cardLayout: { headPill: { colorMap: {} } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ cardLayout: { footerPill: { field: 's', colorMap: { x: 'lilac' } } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ cardLayout: { footerDate: { label: 'Termijn' } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ cardLayout: { badge: 'x' } })).valid).toBe(false)
 	})
 
 	it('accepts the 2.127.0 keys and refuses malformed ones', () => {

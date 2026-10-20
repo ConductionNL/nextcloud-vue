@@ -16,11 +16,13 @@
 
 import CnAuditTrailWidget from '../CnAuditTrailWidget/CnAuditTrailWidget.vue'
 import CnBannerWidget from '../CnBannerWidget/CnBannerWidget.vue'
+import CnDecisionListWidget from '../CnDecisionListWidget/CnDecisionListWidget.vue'
 import CnDividerWidget from '../CnDividerWidget/CnDividerWidget.vue'
 import CnExportsWidget from '../CnExportsWidget/CnExportsWidget.vue'
 import CnHeaderWidget from '../CnHeaderWidget/CnHeaderWidget.vue'
 import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
 import CnNavCardGrid from '../CnNavCardGrid/CnNavCardGrid.vue'
+import CnNoticeWidget from '../CnNoticeWidget/CnNoticeWidget.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
@@ -86,6 +88,8 @@ export const BUILT_IN_WIDGETS = {
 	related: CnRelatedObjectsWidget,
 	integration: CnIntegrationWidget,
 	banner: CnBannerWidget,
+	notice: CnNoticeWidget,
+	'decision-list': CnDecisionListWidget,
 	'audit-trail': CnAuditTrailWidget,
 	timeline: CnTimelineWidget,
 	header: CnHeaderWidget,
