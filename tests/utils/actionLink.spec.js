@@ -154,10 +154,11 @@ describe('headerActionAsLink', () => {
 		warn.mockRestore()
 	})
 
-	it('warns about every dropped handler of an entry without an id', () => {
+	it('warns once per entry without an id, not once for all of them', () => {
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		headerActionAsLink({ label: 'First', href: '/apps/x', handler: () => {} })
 		headerActionAsLink({ label: 'Second', href: '/apps/x', handler: () => {} })
+		headerActionAsLink({ label: 'First', href: '/apps/x', handler: () => {} })
 		expect(warn).toHaveBeenCalledTimes(2)
 		warn.mockRestore()
 	})
