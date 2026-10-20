@@ -400,13 +400,16 @@ export default {
 		 * `layout: [{ widgetId, gridWidth }]` sets a width (of 12) per widget, as
 		 * the page grid does. Widgets wrap onto the next row.
 		 *
+		 * A tab with `default: true` is the one the strip opens on, unless a
+		 * route hash names another tab or the marked tab sits under "More".
+		 *
 		 * `maxVisibleTabs` caps the strip: later tabs go under "More" (in the
 		 * board look: into the Actions menu, with History kept in the strip).
 		 * `hideEmpty: true` moves a tab whose count is 0 there too.
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}), overflow?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -696,6 +699,7 @@ export default {
 					count,
 					overflow,
 					pending: visibility === 'pending',
+					opensFirst: Boolean(tab && typeof tab === 'object' && tab.default === true),
 				})
 			})
 			return resolved
@@ -881,9 +885,9 @@ export default {
 	},
 
 	/**
-	 * Open on the first tab that is in the strip. Tab 0 is the default, and
-	 * when tab 0 sits under "More" the strip would open on a tab the author
-	 * chose to tuck away.
+	 * Open on the tab marked `default: true`, else on the first tab that is in
+	 * the strip. Tab 0 is not enough: when tab 0 sits under "More" the strip
+	 * would open on a tab the author chose to tuck away.
 	 *
 	 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
 	 */
@@ -899,8 +903,9 @@ export default {
 			if (named >= 0) {
 				this.hashTargetId = wanted
 			}
+			const marked = this.resolvedTabs.findIndex((tab) => tab.opensFirst && !tab.overflow && !tab.pending)
 			const first = this.resolvedTabs.findIndex((tab) => !tab.overflow && !tab.pending)
-			const fallback = first >= 0 ? first : this.resolvedTabs.findIndex((tab) => !tab.overflow)
+			const fallback = marked >= 0 ? marked : first >= 0 ? first : this.resolvedTabs.findIndex((tab) => !tab.overflow)
 			if (fallback > 0) {
 				this.activeIndex = fallback
 			}

@@ -67,6 +67,7 @@
 		<CnWidgetWrapper
 			v-if="missingApp"
 			:title="widgetTitle"
+			:subtitle="widgetSubtitle"
 			:chromeless="isBare"
 			titleIconPosition="left"
 			:showRefresh="false"
@@ -207,7 +208,7 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isContentOnly && !isBare"
 			:title="widget.title || ''"
-			:subtitle="rendererHeader.subtitle"
+			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			titleIconPosition="left"
 			:showActions="actionsShown || catalogAddEnabled"
 			:showRefresh="false"
@@ -248,6 +249,7 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isCard && !isBare"
 			:title="widget.title || content.title || ''"
+			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
 			flush
@@ -270,7 +272,7 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsConsumerWidget"
 			:title="widget.title || ''"
-			:subtitle="rendererHeader.subtitle"
+			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
 			:showActions="false"
@@ -752,6 +754,17 @@ export default {
 		 */
 		widgetTitle() {
 			return widgetTitleOf(this.widget) || ''
+		},
+
+		/**
+		 * The muted line under a card's title (`subtitle` on the widget or in
+		 * its content), translated by the card. Empty when neither sets one.
+		 *
+		 * @return {string} The subtitle.
+		 */
+		widgetSubtitle() {
+			const subtitle = (this.widget && this.widget.subtitle) || this.content.subtitle || ''
+			return typeof subtitle === 'string' ? subtitle : ''
 		},
 
 		/**

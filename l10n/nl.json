@@ -2150,6 +2150,24 @@
     "This record has no macros": "Er zijn geen macro's voor dit item",
     "Running …": "Bezig …",
     "Execute": "Uitvoeren",
+    "The note could not be recorded. It is kept here; try again.": "De notitie kon niet worden vastgelegd. Ze blijft hier staan; probeer het opnieuw.",
+    "This field is not available here.": "Dit veld is hier niet beschikbaar.",
+    "filled in, not recorded yet": "ingevuld, nog niet vastgelegd",
+    "Why are you opening this?": "Waarom open je dit?",
+    "This record holds special categories of personal data. Your purpose is recorded with your name and the time.": "Hierin staan bijzondere persoonsgegevens. Je doel wordt vastgelegd met je naam en het tijdstip.",
+    "Purpose": "Doel",
+    "Describe your purpose": "Beschrijf je doel",
+    "State a purpose to open this": "Geef een doel op om dit te openen",
+    "This record holds special categories of personal data. It opens once your purpose is recorded.": "Hierin staan bijzondere persoonsgegevens. Het opent zodra je doel is vastgelegd.",
+    "State a purpose": "Doel opgeven",
+    "This page cannot record a purpose, so the record stays closed.": "Deze pagina kan geen doel vastleggen, dus het blijft gesloten.",
+    "Your purpose could not be recorded, so the record stays closed.": "Je doel kon niet worden vastgelegd, dus het blijft gesloten.",
+    "Hand back": "Teruggeven",
+    "Pick up": "Oppakken",
+    "Task completed": "Taak afgerond",
+    "This could not be done. Try again.": "Dit lukte niet. Probeer het opnieuw.",
+    "{done} of {total} done": "{done} van {total} klaar",
+    "Nothing to check off": "Niets af te vinken",
     "Export CSV": "CSV exporteren",
     "Not every record could be read, so these figures may be incomplete.": "Niet alle gegevens konden worden gelezen, dus deze cijfers zijn mogelijk onvolledig.",
     "Download CSV": "CSV downloaden",
@@ -2286,6 +2304,10 @@
     "%n passage found. Review each one.": [
       "%n passage gevonden. Beoordeel elke passage.",
       "%n passages gevonden. Beoordeel elke passage."
+    ],
+    "{count} change: {list}": [
+      "{count} wijziging: {list}",
+      "{count} wijzigingen: {list}"
     ]
   }
 }

@@ -225,9 +225,10 @@ export function resolveNextStep(config, object, stageField = 'status') {
  *
  * A pill with `field` reads it off the record; one without `field` and with
  * `text` is a constant. A count pill (`countFrom`) is resolved by
- * {@link resolveCountPill} once its count is known.
+ * {@link resolveCountPill} once its count is known. `values` limits a field
+ * pill to those raw values: a priority pill drawn only for high and urgent.
  *
- * @param {{field?: string, text?: string, colorMap?: object, labels?: object, variant?: string}|null} config The pill config.
+ * @param {{field?: string, text?: string, colorMap?: object, labels?: object, variant?: string, values?: Array<string>}|null} config The pill config.
  * @param {object|null} object The record.
  * @return {{label: string, colorKey: string, colorMap: object|null, variant: string}|null} What CnStatusBadge needs, or null when the field is empty.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-header-pills
@@ -250,6 +251,9 @@ export function resolvePill(config, object) {
 	}
 	const raw = stageOf(object, config.field)
 	if (raw === '') {
+		return null
+	}
+	if (Array.isArray(config.values) && !config.values.map(String).includes(raw)) {
 		return null
 	}
 	const mapped = stageEntry(config.labels, raw)

@@ -1413,8 +1413,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.134.0 adds headerPill.resolve colorField and iconField, a default saved view's icon, and resolve on the board card's pill and the record card's pills (pill-color-field-cards).
 		// 2.135.0 adds $defs.headerAction / headerLinkAction: href with target "_blank" / "_self" on header actions, their children, quick actions and stage actions, a header action that is a real link (header-action-href, nextcloud-vue#1314).
 		// 2.136.0 lets nextStep's title and a stage's title and after be a list of candidates, each naming record fields as {path} tokens (board-case-page).
-		// 2.137.0 adds the quarter and year page filter types, with their count.
-		// 2.138.0 adds endpointSource loadOn / requestLabel / requestHint / truncatedText and a chart series namePath.
+		// 2.137.0 lets open-form edit and create through an endpoint (open-form-endpoint), a grouped-cards group carry an action (grouped-cards-group-action), a detail page ask for a purpose before it opens a record (detail-access-purpose), an api-call GET a download (api-call-get-download) and headerPill.values limit a pill to some values (detail-pill-values).
+		// 2.138.0 adds the quarter and year page filter types with their count, endpointSource loadOn / requestLabel / requestHint / truncatedText and a chart series namePath.
 		expect(schema.version).toBe('2.138.0')
 	})
 
