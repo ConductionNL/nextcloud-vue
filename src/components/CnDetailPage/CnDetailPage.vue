@@ -44,7 +44,7 @@
 		<!-- Breadcrumb line (manifest `config.breadcrumb`): the list the record
 		     belongs to, then the record itself as the current crumb. -->
 		<CnBreadcrumbs
-			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound && !isBoard"
+			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound && !contentWithheld && !isBoard"
 			class="cn-detail-page__breadcrumbs"
 			:crumbs="breadcrumbCrumbs"
 			:rootText="breadcrumbCrumbs[0].icon === undefined"
@@ -52,7 +52,7 @@
 			data-testid="cn-detail-page-breadcrumbs" />
 		<!-- Header -->
 		<div
-			v-if="!objectNotFound"
+			v-if="!objectNotFound && !contentWithheld"
 			class="cn-detail-page__header"
 			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null, 'cn-detail-page__header--board': isBoard }"
 			data-testid="cn-detail-page-header">
@@ -263,6 +263,22 @@
 					data-testid="cn-detail-page-primary-action"
 					@click="onPrimaryActionClick">
 					{{ effectivePrimaryLabel }}
+				</NcButton>
+				<!-- The record source's own verbs (a task's claim, hand back,
+				     complete), offered from the record's state. The ones a source
+				     marks `menu` join the Actions menu instead. -->
+				<NcButton
+					v-for="verb in sourceVerbButtons"
+					:key="`verb-${verb.id}`"
+					variant="secondary"
+					:disabled="sourceVerbBusy"
+					:data-testid="`cn-detail-page-verb-${verb.id}`"
+					@click="runSourceVerb(verb)">
+					<template v-if="verb.icon" #icon>
+						<CnIcon v-if="typeof verb.icon === 'string'" :name="verb.icon" :size="20" />
+						<component :is="verb.icon" v-else :size="20" />
+					</template>
+					{{ verb.label }}
 				</NcButton>
 				<!-- Quick actions (manifest `config.quickActions`): the few
 				     actions a handler reaches for on every record, always
@@ -657,6 +673,32 @@
 					</template>
 				</NcEmptyContent>
 			</slot>
+		</div>
+
+		<!-- Access purpose (`accessPurpose`): nothing of the record shows until
+		     the reader has stated why they open it and the purpose is recorded. -->
+		<div v-else-if="contentWithheld" class="cn-detail-page__access-purpose" data-testid="cn-detail-page-access-purpose">
+			<CnAccessPurposeDialog
+				v-if="accessPurposeAsking"
+				:title="accessPurposeText('title')"
+				:description="accessPurposeText('description')"
+				:options="accessPurposeOptions"
+				:loading="accessPurposeBusy"
+				:error="accessPurposeError"
+				@submit="recordAccessPurpose"
+				@cancel="accessPurposeAsking = false" />
+			<NcEmptyContent
+				v-else-if="accessPurposeRequired"
+				:name="t('nextcloud-vue', 'State a purpose to open this')"
+				:description="t('nextcloud-vue', 'This record holds special categories of personal data. It opens once your purpose is recorded.')"
+				data-testid="cn-detail-page-access-purpose-refused">
+				<template #action>
+					<NcButton variant="primary" data-testid="cn-detail-page-access-purpose-ask" @click="accessPurposeAsking = true">
+						{{ t('nextcloud-vue', 'State a purpose') }}
+					</NcButton>
+				</template>
+			</NcEmptyContent>
+			<NcLoadingIcon v-else :size="32" :name="loadingLabel" />
 		</div>
 
 		<!-- Loading state -->
@@ -1231,6 +1273,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Restore from 'vue-material-design-icons/Restore.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
+import CnAccessPurposeDialog from '../../dialogs/CnAccessPurposeDialog.vue'
 import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
@@ -1280,6 +1323,7 @@ import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
@@ -1374,6 +1418,25 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
+/** The session storage key that lists the records whose access purpose is recorded. */
+const ACCESS_PURPOSE_SESSION_KEY = 'cn-access-purposes'
+
+/**
+ * The records whose access purpose this browser session recorded. Empty when
+ * session storage cannot be read (a private window, blocked site data).
+ *
+ * @return {Array<string>} The record keys.
+ */
+function readGrantedPurposes() {
+	try {
+		const raw = window.sessionStorage.getItem(ACCESS_PURPOSE_SESSION_KEY)
+		const list = raw ? JSON.parse(raw) : []
+		return Array.isArray(list) ? list.filter((key) => typeof key === 'string') : []
+	} catch {
+		return []
+	}
+}
+
 /**
  * CnDetailPage — Generic detail/overview page.
  *
@@ -1450,6 +1513,7 @@ export default {
 
 	components: {
 		ChevronLeft,
+		CnAccessPurposeDialog,
 		ChevronRight,
 		NcActionButton,
 		NcActionCaption,
@@ -1547,6 +1611,7 @@ export default {
 		const isBoard = computed(() => this.isBoard)
 		const tabsLabel = computed(() => this.resolvedTabsLabel)
 		const visibilityRows = computed(() => (this.visibilityRowsPending ? null : this.visibilityRows))
+		const canCheckItems = computed(() => this.recordCanCheckItems)
 		return {
 			// The page's own look reaches the tabs, the cards and the activity
 			// below it, also when it came from the `look` prop and not the app.
@@ -1555,6 +1620,15 @@ export default {
 				get value() {
 					return tabsLabel.value
 				},
+			},
+
+			// The record source's checklist writes, for a `checklist` widget.
+			cnRecordChecklist: {
+				get canCheck() {
+					return canCheckItems.value
+				},
+
+				check: (itemId, checked) => this.checkSourceItem(itemId, checked),
 			},
 
 			// The open body tab, reported by a `tabs` widget, so a side entry
@@ -1952,6 +2026,20 @@ export default {
 		entitySource: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * App routes that replace a record source's own route for a verb, by
+		 * verb id (manifest `config.verbEndpoints`), such as
+		 * `{ "complete": "/apps/dossiq/api/case-tasks/{id}/complete" }` for an
+		 * app that checks something of its own before the engine completes the
+		 * task. `{id}` is the record id. Only read with `entitySource`.
+		 *
+		 * @type {object|null}
+		 */
+		verbEndpoints: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -2517,9 +2605,11 @@ export default {
 		 * shows nothing at 0. With `resolve: { register, schema, labelField?,
 		 * colorField?, iconField? }` the pill shows the referenced record's
 		 * label, takes its tone from that record's colour (an NL Design System
-		 * hue such as `red`, or a badge role) and shows its icon.
+		 * hue such as `red`, or a badge role) and shows its icon. `values`
+		 * draws a `field` pill only for those raw values (a priority pill for
+		 * `high` and `urgent` only).
 		 *
-		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string, resolve?: object}|null}
+		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string, resolve?: object, values?: Array<string>}|null}
 		 */
 		typePill: {
 			type: Object,
@@ -2695,6 +2785,28 @@ export default {
 		visibilityContext: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * Ask why the reader opens the record before the page shows it, and
+		 * record the answer (manifest `config.accessPurpose`). `{ when, options,
+		 * url, title?, description? }`: `when` is a condition in the
+		 * `visibleWhen` grammar on the record and its `visibilityContext`
+		 * records (DqSociaalDomein: the case type lists special categories of
+		 * personal data); `options` the purposes offered (`{ value, label }`,
+		 * "Other" with a written purpose is always added); `url` the app
+		 * endpoint that records the purpose (POST `{ purpose, note }`, `{objectId}`
+		 * filled in). The page shows nothing of the record until the endpoint
+		 * accepts, and does not ask again for the same record in the same
+		 * browser session. A refusal keeps the record closed. `null` (the
+		 * default) asks nothing.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @type {object|null}
+		 */
+		accessPurpose: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -2939,6 +3051,14 @@ export default {
 
 	data() {
 		return {
+			/** The session keys of the records whose access purpose is recorded. */
+			accessPurposeGranted: readGrantedPurposes(),
+			/** Whether the purpose dialog is open; closing it without a purpose keeps the record closed. */
+			accessPurposeAsking: true,
+			/** Whether a purpose is being recorded. */
+			accessPurposeBusy: false,
+			/** Why the last purpose was refused. */
+			accessPurposeError: '',
 			/** The id of the open body tab a `tabs` widget reported, '' before one did. */
 			activeBodyTab: '',
 			/**
@@ -2989,6 +3109,8 @@ export default {
 			 * menu dispatches without reaching back into that component.
 			 */
 			menuHeaderActions: [],
+			/** Whether a record-source verb is in flight, so a double click cannot run it twice. */
+			sourceVerbBusy: false,
 			/** Lifecycle transitions CnLifecycleActions hands the Actions menu. */
 			lifecycleMenuEntries: [],
 			/** Whether the per-widget style/config editor modal is open. */
@@ -3440,7 +3562,64 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
 		 */
 		showsBody() {
-			return !this.objectNotFound && !this.showLoadingState && !this.error && !this.empty
+			return !this.objectNotFound && !this.contentWithheld && !this.showLoadingState && !this.error && !this.empty
+		},
+
+		/**
+		 * Whether the loaded record asks for a purpose before it opens
+		 * (`accessPurpose.when` holds for it). Undecided, and so withheld,
+		 * while the record or the records its condition reads are on their way.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @return {boolean}
+		 */
+		accessPurposeRequired() {
+			const gate = this.accessPurpose
+			if (!gate || typeof gate !== 'object' || !gate.when || !this.widgetVisibilityData || this.visibilityRowsPending) {
+				return false
+			}
+			return detailWidgetVisible({ visibleWhen: gate.when }, this.widgetVisibilityData)
+		},
+
+		/**
+		 * Whether the page holds the record back: it asks for a purpose and
+		 * none is recorded for this record in this session yet, or it cannot
+		 * tell yet whether it asks.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @return {boolean}
+		 */
+		contentWithheld() {
+			const gate = this.accessPurpose
+			if (!gate || typeof gate !== 'object' || !gate.when || this.objectNotFound) {
+				return false
+			}
+			if (this.accessPurposeGranted.includes(this.accessPurposeKey)) {
+				return false
+			}
+			const undecided = !this.widgetVisibilityData || this.visibilityRowsPending
+			return undecided || this.accessPurposeRequired
+		},
+
+		/**
+		 * The session key of the purpose recorded for this record.
+		 *
+		 * @return {string}
+		 */
+		accessPurposeKey() {
+			return `cn-access-purpose:${this.resolvedObjectType || ''}:${this.objectId || ''}`
+		},
+
+		/**
+		 * The purposes offered, through the app's translate.
+		 *
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		accessPurposeOptions() {
+			const options = Array.isArray(this.accessPurpose?.options) ? this.accessPurpose.options : []
+			return options
+				.filter((option) => option && typeof option.value === 'string' && option.value !== '')
+				.map((option) => ({ value: option.value, label: this.cnTranslate(option.label || option.value) }))
 		},
 
 		/**
@@ -3929,7 +4108,70 @@ export default {
 			const inMenu = pinned.size > 0
 				? this.menuHeaderActions.filter((entry) => !pinned.has(entry.id))
 				: this.menuHeaderActions
-			return [...lifecycle, ...inMenu]
+			return [...this.sourceVerbMenuEntries, ...lifecycle, ...inMenu]
+		},
+
+		/**
+		 * The verbs the record source offers on the record in view, read off
+		 * the record's own state by the source. Empty without a source that
+		 * offers verbs, before the record is read, and when it was not found.
+		 *
+		 * @return {Array<object>} The verbs.
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		sourceVerbs() {
+			const source = this.recordSource
+			if (!source || typeof source.verbs !== 'function' || typeof source.runVerb !== 'function') {
+				return []
+			}
+			if (this.objectNotFound || !this.currentObject) {
+				return []
+			}
+			const verbs = source.verbs(this.currentObject)
+			return Array.isArray(verbs) ? verbs.filter((verb) => verb && typeof verb.id === 'string' && verb.id !== '') : []
+		},
+
+		/**
+		 * Whether the record source can tick the checklist of the record in
+		 * view: it writes items, and says this record can still be ticked.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		recordCanCheckItems() {
+			const source = this.recordSource
+			if (!source || typeof source.checkItem !== 'function' || !this.currentObject || this.objectNotFound) {
+				return false
+			}
+			return typeof source.canCheckItems !== 'function' || source.canCheckItems(this.currentObject) === true
+		},
+
+		/**
+		 * The source verbs drawn as header buttons.
+		 *
+		 * @return {Array<object>} The verbs.
+		 */
+		sourceVerbButtons() {
+			return this.sourceVerbs.filter((verb) => verb.menu !== true)
+		},
+
+		/**
+		 * The source verbs listed in the Actions menu, as menu entries.
+		 *
+		 * @return {Array<object>} Menu-ready entries.
+		 */
+		sourceVerbMenuEntries() {
+			return this.sourceVerbs
+				.filter((verb) => verb.menu === true)
+				.map((verb) => ({
+					id: `cn-source-verb-${verb.id}`,
+					label: verb.label,
+					testid: `cn-detail-page-verb-${verb.id}`,
+					iconName: typeof verb.icon === 'string' ? verb.icon : '',
+					disabled: this.sourceVerbBusy,
+					pressed: null,
+					run: () => this.runSourceVerb(verb),
+				}))
 		},
 
 		/**
@@ -4919,6 +5161,16 @@ export default {
 			this.syncSidebarState()
 		},
 
+		contentWithheld() {
+			this.syncSidebarState()
+		},
+
+		/** Another record asks its own purpose: the dialog opens again for it. */
+		accessPurposeKey() {
+			this.accessPurposeAsking = true
+			this.accessPurposeError = ''
+		},
+
 		// Deep, like `sidebarTabs` / `sidebarProps` below: the manifest editors
 		// mutate `page.config.sidebar` IN PLACE, so the reference CnPageRenderer
 		// forwards never changes. A shallow watcher missed every such edit —
@@ -5095,6 +5347,52 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A text of the access purpose gate through the app's translate, '' when unset.
+		 *
+		 * @param {string} key `title` or `description`.
+		 * @return {string}
+		 */
+		accessPurposeText(key) {
+			const text = this.accessPurpose && this.accessPurpose[key]
+			return typeof text === 'string' && text !== '' ? this.cnTranslate(text) : ''
+		},
+
+		/**
+		 * Record the reader's purpose with the app's endpoint, then open the
+		 * record and remember it for this browser session. A refusal (or a
+		 * failure to record) keeps the record closed and says why.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @param {{purpose: string, note: string}} answer The chosen purpose.
+		 * @return {Promise<void>}
+		 */
+		async recordAccessPurpose(answer) {
+			const url = String(this.accessPurpose?.url || '').replace(/\{objectId\}/g, encodeURIComponent(String(this.objectId || '')))
+			if (url === '') {
+				this.accessPurposeError = t('nextcloud-vue', 'This page cannot record a purpose, so the record stays closed.')
+				return
+			}
+			this.accessPurposeBusy = true
+			this.accessPurposeError = ''
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				await axios.post(prefixUrl(url), { purpose: answer.purpose, note: answer.note })
+				const key = this.accessPurposeKey
+				this.accessPurposeGranted = [...new Set([...this.accessPurposeGranted, key])]
+				try {
+					window.sessionStorage.setItem(ACCESS_PURPOSE_SESSION_KEY, JSON.stringify(this.accessPurposeGranted))
+				} catch {
+					// Without session storage the purpose is asked again on the next visit.
+				}
+			} catch (error) {
+				const data = error?.response?.data
+				this.accessPurposeError = (data && (data.message || data.error)) || t('nextcloud-vue', 'Your purpose could not be recorded, so the record stays closed.')
+			} finally {
+				this.accessPurposeBusy = false
+			}
+		},
+
 		/**
 		 * The widget definitions with each `tabs` widget's tabs narrowed and
 		 * ordered by `pickedTabIds`; the definitions as given without a pick.
@@ -5550,6 +5848,65 @@ export default {
 			 * @type {{ action: string, to: string, object: object }}
 			 */
 			this.$emit('transitioned', payload)
+		},
+
+		/**
+		 * Tick or untick one checklist item through the record source. The
+		 * source replaces its record with the answer; a refusal is shown with
+		 * the server's message and leaves the item as it was.
+		 *
+		 * @param {string} itemId The item id.
+		 * @param {boolean} checked The new state.
+		 * @return {Promise<boolean>} Whether the write was taken.
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		async checkSourceItem(itemId, checked) {
+			const source = this.recordSource
+			const objectId = this.objectId
+			if (!this.recordCanCheckItems || !objectId) {
+				return false
+			}
+			const outcome = await source.checkItem(String(objectId), String(itemId), checked === true)
+			if (!outcome || outcome.ok !== true) {
+				const { showError } = await import('@nextcloud/dialogs')
+				showError(String(outcome?.message || '').trim() || t('nextcloud-vue', 'This could not be done. Try again.'))
+				return false
+			}
+			return true
+		},
+
+		/**
+		 * Run a record-source verb on the record in view. The source keeps its
+		 * record in step with the answer, so the header, pills and widgets
+		 * redraw from it. A refusal is shown with the server's own message,
+		 * which names the verb and the reason.
+		 *
+		 * @param {{id: string, label: string, successMessage?: string}} verb The verb.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		async runSourceVerb(verb) {
+			const source = this.recordSource
+			const objectId = this.objectId
+			if (!source || !objectId || this.sourceVerbBusy) {
+				return
+			}
+			this.sourceVerbBusy = true
+			try {
+				const url = this.verbEndpoints && typeof this.verbEndpoints[verb.id] === 'string' ? this.verbEndpoints[verb.id] : undefined
+				const outcome = await source.runVerb(String(objectId), verb.id, url ? { url } : {})
+				const { showError, showSuccess } = await import('@nextcloud/dialogs')
+				if (!outcome || outcome.ok !== true) {
+					showError(String(outcome?.message || '').trim() || t('nextcloud-vue', 'This could not be done. Try again.'))
+					return
+				}
+				if (verb.successMessage) {
+					showSuccess(verb.successMessage)
+				}
+				this.$emit('transitioned', { action: verb.id, to: String(outcome.record?.state ?? ''), object: outcome.record || null })
+			} finally {
+				this.sourceVerbBusy = false
+			}
 		},
 
 		/**
@@ -6328,15 +6685,24 @@ export default {
 
 		/**
 		 * Whether a side entry belongs beside the open body tab: an entry with
-		 * `tabs` (tab ids) shows only while one of them is open; an entry
-		 * without shows beside every tab. Edit mode shows them all.
+		 * `tabs` (tab ids) shows only while one of them is open; an entry with
+		 * `notTabs` stands aside while one of those is open (a tab that draws
+		 * the side column as its own, DqZaakAssistent); an entry with neither
+		 * shows beside every tab. Edit mode shows them all.
 		 *
 		 * @spec openspec/changes/detail-side-cards-per-tab/specs/detail-page/spec.md#requirement-a-side-card-can-follow-the-open-tab
+		 * @spec openspec/changes/side-card-not-on-tabs/specs/detail-page/spec.md#requirement-a-side-card-can-stand-aside-for-a-tab
 		 * @param {object} widget The side entry's definition.
 		 * @return {boolean}
 		 */
 		sideWidgetOnTab(widget) {
-			if (this.editingBody || !Array.isArray(widget.tabs) || widget.tabs.length === 0) {
+			if (this.editingBody) {
+				return true
+			}
+			if (Array.isArray(widget.notTabs) && widget.notTabs.map((id) => String(id)).includes(this.activeBodyTab)) {
+				return false
+			}
+			if (!Array.isArray(widget.tabs) || widget.tabs.length === 0) {
 				return true
 			}
 			return widget.tabs.map((id) => String(id)).includes(this.activeBodyTab)
@@ -6772,7 +7138,8 @@ export default {
 				return
 			}
 			const r = this.resolvedSidebar
-			const hasRecord = !this.objectNotFound && !this.awaitingObject
+			// A record held back for its access purpose shows nothing in the sidebar either.
+			const hasRecord = !this.objectNotFound && !this.awaitingObject && !this.contentWithheld
 			if (this.sidebarActive && hasRecord && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
 				// Seed `open` only on the inactive→active edge (first activation

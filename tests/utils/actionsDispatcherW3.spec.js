@@ -32,7 +32,7 @@ jest.mock('@nextcloud/dialogs', () => ({
 }))
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
-	default: { post: jest.fn(), put: jest.fn() },
+	default: { post: jest.fn(), put: jest.fn(), get: jest.fn() },
 }))
 jest.mock('@nextcloud/router', () => ({
 	__esModule: true,
@@ -293,6 +293,31 @@ describe('dispatchAction — Wave 3 types (#91)', () => {
 				expect(triggerBlobDownload).toHaveBeenCalledWith(blob, 'invoice-42.pdf')
 				expect(showSuccess).toHaveBeenCalledWith('Document generated')
 				expect(emit).not.toHaveBeenCalled()
+				expect(result.ok).toBe(true)
+			})
+
+			// @spec openspec/changes/api-call-get-download/specs/api-call-get-download/spec.md#requirement-an-api-call-can-get-a-download
+			it('GETs with the resolved params as the query string, dropping an unresolved optional one', async () => {
+				const blob = new Blob(['"Zaaktype"'])
+				axios.get.mockResolvedValue({ data: blob, headers: { 'content-disposition': 'attachment; filename="doorlooptijd.csv"' } })
+				const result = await dispatchAction(
+					{
+						type: 'api-call',
+						method: 'GET',
+						url: '/apps/dossiq/api/doorlooptijd/metrics',
+						params: { format: 'csv', period: '@workspace.datePreset', caseType: '@workspace.caseType?' },
+						download: true,
+					},
+					{ tokenCtx: { workspace: { datePreset: '3m' } } },
+				)
+				await flush()
+
+				expect(axios.get).toHaveBeenCalledWith(
+					'/nc/apps/dossiq/api/doorlooptijd/metrics',
+					{ params: { format: 'csv', period: '3m' }, responseType: 'blob' },
+				)
+				expect(axios.post).not.toHaveBeenCalled()
+				expect(triggerBlobDownload).toHaveBeenCalledWith(blob, 'doorlooptijd.csv')
 				expect(result.ok).toBe(true)
 			})
 

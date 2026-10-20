@@ -460,6 +460,13 @@
 			],
 			"page": "cn-checklist-run-widget"
 		},
+		"CnChecklistWidget": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-checklist-widget"
+		},
 		"CnChildRecordsField": {
 			"direct": 1,
 			"transitive": 112,
@@ -686,7 +693,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 186,
+			"transitive": 187,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -919,7 +926,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 189,
+			"transitive": 190,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1687,9 +1694,49 @@
 		},
 		"CnGroupedCardsWidget": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 114,
+			"tier": "heavy",
+			"via": [
+				"CnActionButtons",
+				"CnAnalyticsReportPicker",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnChildRecordsField",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnEmailPicker",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnFormDialog",
+				"CnIndexPage",
+				"CnMapPoiPicker",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnResourceSelect",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnVersionHistory",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
+			],
 			"page": "cn-grouped-cards-widget"
 		},
 		"CnGuardianHome": {
@@ -2589,7 +2636,7 @@
 		},
 		"CnObjectListWidget": {
 			"direct": 7,
-			"transitive": 113,
+			"transitive": 114,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3113,10 +3160,43 @@
 		},
 		"CnRecordListWidget": {
 			"direct": 1,
-			"transitive": 5,
-			"tier": "medium",
+			"transitive": 100,
+			"tier": "heavy",
 			"via": [
-				"CnIndexPage"
+				"CnAnalyticsReportPicker",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnEmailPicker",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnIndexPage",
+				"CnMapPoiPicker",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnVersionHistory",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
 			],
 			"page": "cn-record-list-widget"
 		},
@@ -3150,7 +3230,7 @@
 		},
 		"CnRelatedCollections": {
 			"direct": 0,
-			"transitive": 114,
+			"transitive": 115,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -3261,7 +3341,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 187,
+			"transitive": 188,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3451,7 +3531,7 @@
 		},
 		"CnSavedViewWidget": {
 			"direct": 0,
-			"transitive": 115,
+			"transitive": 116,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -4293,7 +4373,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 177,
+			"transitive": 178,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",

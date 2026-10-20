@@ -149,6 +149,15 @@ describe('Wave 3 — headerActions action types', () => {
 		expect(result.valid).toBe(true)
 	})
 
+	// @spec openspec/changes/api-call-get-download/specs/api-call-get-download/spec.md#requirement-an-api-call-can-get-a-download
+	it('accepts an api-call that GETs a download', () => {
+		const result = validateManifest(withHeaderActions([
+			{ id: 'download', label: 'Download', type: 'api-call', method: 'GET', url: '/apps/dossiq/api/doorlooptijd/metrics', params: { format: 'csv' }, download: true },
+		]))
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
 	it('rejects an open-form without a schema', () => {
 		const result = validateManifest(withHeaderActions([{ id: 'x', label: 'X', type: 'open-form' }]))
 		expect(result.valid).toBe(false)

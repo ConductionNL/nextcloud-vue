@@ -110,11 +110,12 @@ A tab can show a count, and a strip can keep to a few tabs and put the rest unde
 | `countField` | a tab | Reads the count off the record. A list counts its items, a number is used as is, a missing field counts as 0. |
 | `countFrom` | a tab | Counts a list on the server when the record does not carry the number: `"widget"` counts the child widget's own list (its `content.register`, `content.schema` and `content.filter`, with `@objectId` and other tokens resolved), an object with `register`, `schema` and an optional `filter` names the list. One request per tab (`_limit=1`, the response's `total`), again when the record changes or the page refreshes. `count` and `countField` win over it; a failed count shows no number. |
 | `overflow` | a tab | Lists the tab under "More". |
+| `default` | a tab | `true` opens the strip on this tab, so an Overview tab can stay first while the page opens on another. A route hash naming a tab wins over it, and a marked tab under "More" is not opened. |
 | `maxVisibleTabs` | `content` | The most tabs the strip shows. Later tabs go under "More". A tab that is already there does not use up a place. |
 | `hideEmpty` | `content` | Moves a tab whose count is 0 under "More". A tab without a count is never moved. |
 | `moreLabel` | `content` | Names the menu. Defaults to "More". |
 
-The strip opens on the first tab that is in it. None of these keys is required, and a strip that sets none renders as before.
+The strip opens on the tab marked `default`, else on the first tab that is in it. None of these keys is required, and a strip that sets none renders as before.
 
 Tab titles are separately configurable for a reason: "Files and attachments" reads fine on a card and is too long once six tabs share the width. [`CnTabsWidgetForm`](./cn-tabs-widget-form.md) edits them in Buildiq edit mode.
 

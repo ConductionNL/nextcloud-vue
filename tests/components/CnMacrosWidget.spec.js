@@ -44,7 +44,7 @@ function mountWidget() {
 beforeEach(() => {
 	jest.clearAllMocks()
 	axios.get.mockImplementation((url) => Promise.resolve(url.includes('/audit-trails')
-		? { data: { results: [{ created: '2026-10-06T10:00:00Z', changed: { declaredAction: 'suspend' } }] } }
+		? { data: { results: [{ created: '2026-10-06T10:00:00Z', changed: { declaredAction: 'suspend', changes: [{ step: 'termijn opgeschort', kind: 'write' }, { step: 'bericht verstuurd', kind: 'message' }] } }] } }
 		: { data: SCHEMA }))
 	axios.post.mockResolvedValue({ data: { run: 'r-1', outcome: 'completed' } })
 })
@@ -68,13 +68,18 @@ describe('CnMacrosWidget', () => {
 		expect(axios.get.mock.calls[0][0]).toContain('/apps/openregister/api/schemas/9')
 		expect(w.findAll('.cn-macros-widget__name').map((n) => n.text())).toEqual(['Woo-verzoek afronden', 'Opschorten voor aanvulling'])
 		expect(w.find('[data-testid="cn-macros-widget-last-run"]').text()).toContain('Opschorten voor aanvulling')
+		expect(w.find('[data-testid="cn-macros-widget-last-run"]').text()).toContain('2 changes: termijn opgeschort, bericht verstuurd')
 	})
 
 	it('runs a macro through the declared-action endpoint and refreshes the page', async () => {
 		const w = mountWidget()
 		await flushPromises()
+		axios.get.mockImplementation((url) => Promise.resolve(url.includes('/audit-trails')
+			? { data: { results: [{ created: '2026-10-07T10:00:00Z', changed: { declaredAction: 'woo-finish', changes: [{ step: 'status naar Besluit', kind: 'write' }] } }] } }
+			: { data: SCHEMA }))
 		await w.find('[data-testid="cn-macros-widget-run-woo-finish"]').trigger('click')
 		await flushPromises()
+		expect(w.find('[data-testid="cn-macros-widget-last-run"]').text()).toContain('1 change: status naar Besluit')
 		expect(axios.post.mock.calls[0][0]).toContain('/apps/openregister/api/objects/5/9/c-1/actions/woo-finish')
 		expect(emit).toHaveBeenCalledWith('cn:page:refresh', expect.any(Object))
 		expect(w.find('[data-testid="cn-macros-widget-last-run"]').text()).toContain('Woo-verzoek afronden')
@@ -95,6 +100,15 @@ describe('CnMacrosWidget', () => {
 		const w = mountWidget()
 		await flushPromises()
 		expect(w.find('[data-testid="cn-macros-widget-empty"]').exists()).toBe(true)
+	})
+
+	it('names a macro in the app\'s language', async () => {
+		const w = mount(CnMacrosWidget, {
+			props: { objectData: OBJECT, objectId: 'c-1', content: {} },
+			global: { provide: { cnTranslate: (key) => ({ 'Woo-verzoek afronden': 'Finish the Woo request' }[key] ?? key) } },
+		})
+		await flushPromises()
+		expect(w.findAll('.cn-macros-widget__name')[0].text()).toBe('Finish the Woo request')
 	})
 
 	it('is a library widget key', () => {

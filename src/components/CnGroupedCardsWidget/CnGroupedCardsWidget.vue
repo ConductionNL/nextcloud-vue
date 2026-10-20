@@ -43,6 +43,13 @@
 				<p v-else class="cn-grouped-cards__group-empty">
 					{{ groupEmptyLabel }}
 				</p>
+				<!-- `groupAction`: one action per group ("Add a task" on a phase),
+				     its `@group.<path>` tokens filled from the group. -->
+				<CnActionButtons
+					v-if="group.action"
+					class="cn-grouped-cards__group-action"
+					:actions="[group.action]"
+					data-testid="cn-grouped-cards-group-action" />
 			</section>
 			<section
 				v-if="extra"
@@ -71,6 +78,7 @@ import { fillTemplate } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { languageMapText } from '../../utils/languageMapText.js'
 import { readPath } from '../../utils/readPath.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 
 let uid = 0
 
@@ -121,7 +129,7 @@ function readable(row) {
 export default {
 	name: 'CnGroupedCardsWidget',
 
-	components: { NcLoadingIcon },
+	components: { CnActionButtons, NcLoadingIcon },
 
 	inject: {
 		/** The host app's translate function. */
@@ -147,6 +155,11 @@ export default {
 		 * - `extraGroup` (`{ title, path, itemText, join? }`) closes the grid with a
 		 *   dashed box whose entries, read at `path` of the payload, are one line.
 		 * - `columns` (default 2) is the number of groups side by side.
+		 * - `groupAction` is an action drawn at the foot of every group (as
+		 *   CnActionButtons draws it), with `@group.<path>` in its strings read
+		 *   from that group: `{ type: "open-form", endpoint: { url:
+		 *   "/apps/x/api/phases/@group.id/steps", method: "POST" }, ... }`
+		 *   adds a card to the group.
 		 *
 		 * A language map (`{ nl, en }`) reads in the user's language, and a list
 		 * of plain values reads joined with ", ". Texts go through the app's
@@ -231,6 +244,7 @@ export default {
 					title: this.fill(c.groupTitle || '{name}', group),
 					count: this.countOf(items.length),
 					items,
+					action: this.groupActionFor(raw, index),
 				}
 			})
 		},
@@ -285,6 +299,46 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The `groupAction` for one group, with every `@group.<path>` token in
+		 * its strings read from that group, and its id made unique per group.
+		 * Null without a `groupAction`, or for a group missing a value a token
+		 * names (the action would address no group).
+		 *
+		 * @param {object} raw The group as read.
+		 * @param {number} index The group's position.
+		 * @return {object|null} The action.
+		 * @spec openspec/changes/grouped-cards-group-action/specs/grouped-cards-group-action/spec.md#requirement-every-group-can-carry-an-action
+		 */
+		groupActionFor(raw, index) {
+			const action = this.content?.groupAction
+			if (!action || typeof action !== 'object') {
+				return null
+			}
+			let missing = false
+			const fill = (value) => {
+				if (typeof value === 'string') {
+					return value.replace(/@group\.([\w.]+)/g, (token, path) => {
+						const found = readPath(raw, path)
+						if (found === undefined || found === null || found === '') {
+							missing = true
+							return ''
+						}
+						return encodeURIComponent(String(found))
+					})
+				}
+				if (Array.isArray(value)) {
+					return value.map(fill)
+				}
+				if (value && typeof value === 'object') {
+					return Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, fill(inner)]))
+				}
+				return value
+			}
+			const filled = fill(action)
+			return missing ? null : { ...filled, id: `${action.id || 'group-action'}-${index}` }
+		},
+
 		/**
 		 * Translate a text through the host app's catalogue.
 		 *
@@ -380,6 +434,10 @@ export default {
 	font-size: 15px;
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+.cn-grouped-cards__group-action {
+	margin-top: 8px;
 }
 
 .cn-grouped-cards__count {
