@@ -152,7 +152,8 @@
 }
 
 /* Saved-view chips: one 38px pill each, the selected one filled with the main
-   text colour. The quick-filter tabs take the same chip. */
+   text colour and drawn without a border. The quick-filter tabs take the same
+   chip. */
 .cn-look-board .cn-saved-views__chips,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tabs {
 	display: flex;
@@ -214,7 +215,7 @@
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active:hover {
 	--nldesign-color-on-surface: var(--color-main-background);
-	border-color: transparent;
+	border: 0;
 	background: var(--color-main-text);
 	color: var(--color-main-background);
 }
