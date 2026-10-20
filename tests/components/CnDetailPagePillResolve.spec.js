@@ -68,3 +68,26 @@ describe('CnDetailPage header pill resolve', () => {
 		expect(typePill(w).label).toBe('uuid-woo')
 	})
 })
+
+describe('CnDetailPage header pill colour and icon (pill-color-field)', () => {
+	beforeEach(() => {
+		mockResolve.mockImplementation(async (register, schema, ids, field, options = {}) => {
+			const row = { title: 'Woo-verzoek', colour: 'red', icon: 'FileDocumentOutline' }
+			return Object.fromEntries(ids.map((id) => [id, options.strict ? (row[field] ?? null) : row.title]))
+		})
+	})
+
+	it('takes the tone and icon of the referenced record', async () => {
+		const w = mountPage({ field: 'caseType', variant: 'info', resolve: { register: 'dossiq', schema: 'caseType', labelField: 'title', colorField: 'colour', iconField: 'icon' } })
+		await flushPromises()
+		expect(mockResolve).toHaveBeenCalledWith('dossiq', 'caseType', ['uuid-woo'], 'colour', { strict: true })
+		expect(typePill(w)).toMatchObject({ label: 'Woo-verzoek', variant: 'error', colorMap: null, icon: 'FileDocumentOutline' })
+	})
+
+	it('keeps the declared variant without a colour field', async () => {
+		const w = mountPage({ field: 'caseType', variant: 'info', resolve: { register: 'dossiq', schema: 'caseType', labelField: 'title' } })
+		await flushPromises()
+		expect(typePill(w).variant).toBe('info')
+		expect(typePill(w).icon).toBeUndefined()
+	})
+})

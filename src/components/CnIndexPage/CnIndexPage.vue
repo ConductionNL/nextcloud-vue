@@ -1047,7 +1047,7 @@
 					v-else-if="currentViewMode === 'list'"
 					:objects="displayObjects"
 					:schema="effectiveSchema"
-					:config="listConfig"
+					:config="renderedListConfig"
 					:selectable="selectable"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
@@ -4108,6 +4108,8 @@ export default {
 			boardPrevPageSize: this.viewMode === 'board' ? ((this.pagination && this.pagination.limit) || 20) : null,
 			/** Resolved labels of reference columns: `{ [columnKey]: { [id]: label|null } }`. */
 			refLabels: {},
+			/** Colour and icon names of the records badge columns point at: `{ [columnKey]: { [id]: { color, icon } } }`. */
+			refLooks: {},
 			/** Count per tab-strip index, for the entries that asked for one; null = none. */
 			tabCounts: null,
 			// The counts of the `filterStrip` pills, by pill key ('all', 'v0', ...).
@@ -6022,6 +6024,12 @@ export default {
 		 */
 		renderedColumns() {
 			let cols = this.tableColumns
+			if (this.refLookSpecs.length > 0) {
+				const lookKeys = new Set(this.refLookSpecs.map((spec) => spec.key))
+				cols = cols.map((col) => (col && typeof col === 'object' && lookKeys.has(col.key)
+					? { ...col, widgetProps: { ...(col.widgetProps || {}), looks: this.refLooks[col.key] || {} } }
+					: col))
+			}
 			if (this.refLabelSpecs.length > 0) {
 				const byKey = new Map(this.refLabelSpecs.map((s) => [s.key, s]))
 				cols = cols.map((col) => {
@@ -6092,6 +6100,92 @@ export default {
 		 *
 		 * @return {Object<string, string[]>} Distinct ids per column key.
 		 */
+		/**
+		 * The badge columns (table columns and the list view's leading and
+		 * trailing cells) that take their tone and icon from the record they
+		 * point at (`widget: 'badge'`, `widgetProps.resolve: { colorField?,
+		 * iconField?, register?, schema? }`). Register and schema default to the
+		 * column's reference in the schema.
+		 *
+		 * @return {Array<{key: string, register: string, schema: string, colorField: string, iconField: string}>} The specs.
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-badge-cell-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		refLookSpecs() {
+			const list = this.listConfig || {}
+			const listCells = [list.leading, ...(Array.isArray(list.trailing) ? list.trailing : [list.trailing])]
+			const seen = new Set()
+			const cols = [...this.tableColumns, ...listCells].filter((c) => {
+				const wanted = c && typeof c === 'object' && c.widget === 'badge' && c.widgetProps && c.widgetProps.resolve
+					&& (c.widgetProps.resolve.colorField || c.widgetProps.resolve.iconField) && !seen.has(c.key)
+				if (wanted) {
+					seen.add(c.key)
+				}
+				return wanted
+			})
+			if (cols.length === 0) {
+				return []
+			}
+			const fields = this.effectiveSchema ? fieldsFromSchema(this.effectiveSchema, { includeReadOnly: true }) : []
+			const specs = []
+			for (const col of cols) {
+				const resolve = col.widgetProps.resolve
+				const field = fields.find((f) => f.key === col.key)
+				const ref = (field && field.reference) || {}
+				const register = resolve.register || ref.register || (typeof this.register === 'string' ? this.register : '')
+				const schema = resolve.schema || (ref.schema !== undefined && ref.schema !== null ? String(ref.schema) : '')
+				if (!register || !schema) {
+					continue
+				}
+				specs.push({ key: col.key, register, schema, colorField: resolve.colorField || '', iconField: resolve.iconField || '' })
+			}
+			return specs
+		},
+
+		/**
+		 * `listConfig` with the referenced records' looks on its badge cells,
+		 * as `renderedColumns` does for the table.
+		 *
+		 * @return {object} The list view's config.
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-badge-cell-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		renderedListConfig() {
+			const list = this.listConfig
+			if (!list || this.refLookSpecs.length === 0) {
+				return list
+			}
+			const lookKeys = new Set(this.refLookSpecs.map((spec) => spec.key))
+			const withLooks = (cell) => (cell && typeof cell === 'object' && lookKeys.has(cell.key)
+				? { ...cell, widgetProps: { ...(cell.widgetProps || {}), looks: this.refLooks[cell.key] || {} } }
+				: cell)
+			return {
+				...list,
+				...(list.leading ? { leading: withLooks(list.leading) } : {}),
+				...(list.trailing ? { trailing: Array.isArray(list.trailing) ? list.trailing.map(withLooks) : withLooks(list.trailing) } : {}),
+			}
+		},
+
+		/**
+		 * The ids each `refLookSpecs` column shows on screen.
+		 *
+		 * @return {{[key: string]: Array<string>}} Sorted ids by column key.
+		 */
+		refLookIds() {
+			const out = {}
+			for (const spec of this.refLookSpecs) {
+				const ids = new Set()
+				for (const row of this.displayObjects) {
+					const v = row ? row[spec.key] : undefined
+					;(Array.isArray(v) ? v : [v]).forEach((id) => {
+						if (id !== null && id !== undefined && id !== '' && typeof id !== 'object') {
+							ids.add(String(id))
+						}
+					})
+				}
+				out[spec.key] = [...ids].sort()
+			}
+			return out
+		},
+
 		refLabelIds() {
 			const out = {}
 			const facets = this.storeFacets || this.resolvedSidebar.facets || {}
@@ -7980,6 +8074,15 @@ export default {
 			},
 		},
 
+		// Read the colour and icon of the records badge columns point at.
+		refLookIds: {
+			immediate: true,
+			deep: true,
+			handler() {
+				this.loadRefLooks()
+			},
+		},
+
 		// The Active line names a referenced value, not its id.
 		activeFilterRefIds: {
 			deep: true,
@@ -8428,6 +8531,45 @@ export default {
 				}
 				const found = await this._refLabelResolver.resolve(spec.register, spec.schema, ids, spec.labelField)
 				this.refLabels = { ...this.refLabels, [spec.key]: { ...(this.refLabels[spec.key] || {}), ...found } }
+			}))
+		},
+
+		/**
+		 * Read the colour and icon names `refLookSpecs` columns need, for the
+		 * rows on screen, with the same resolver as the labels. A failure
+		 * leaves the badge as declared.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-badge-cell-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		async loadRefLooks() {
+			if (this.refLookSpecs.length === 0) {
+				return
+			}
+			if (!this._refLabelResolver) {
+				this._refLabelResolver = createRefLabelResolver(() => {
+					try {
+						return (this.list && this.list.objectStore) || useObjectStore()
+					} catch {
+						return null
+					}
+				})
+			}
+			const read = (spec, ids, name) => (name
+				? this._refLabelResolver.resolve(spec.register, spec.schema, ids, name, { strict: true }).catch(() => ({}))
+				: Promise.resolve({}))
+			await Promise.all(this.refLookSpecs.map(async (spec) => {
+				const known = this.refLooks[spec.key] || {}
+				const ids = (this.refLookIds[spec.key] || []).filter((id) => !Object.hasOwn(known, id))
+				if (ids.length === 0) {
+					return
+				}
+				const [colors, icons] = await Promise.all([read(spec, ids, spec.colorField), read(spec, ids, spec.iconField)])
+				const found = {}
+				ids.forEach((id) => {
+					found[id] = { color: (colors && colors[id]) || null, icon: (icons && icons[id]) || null }
+				})
+				this.refLooks = { ...this.refLooks, [spec.key]: { ...(this.refLooks[spec.key] || {}), ...found } }
 			}))
 		},
 
@@ -11589,7 +11731,7 @@ export default {
 				return
 			}
 			const badge = this.savedViewMenuBadge(view)
-			menu.toggle({ id: String(view.id || view.slug), page: this.savedViewPage, name: view.name, ...(badge ? { badge } : {}) })
+			menu.toggle({ id: String(view.id || view.slug), page: this.savedViewPage, name: view.name, ...(typeof view.icon === 'string' && view.icon !== '' ? { icon: view.icon } : {}), ...(badge ? { badge } : {}) })
 		},
 
 		/**
@@ -12124,7 +12266,9 @@ export default {
 			if (resultData && resultData.success && this._refLabelResolver) {
 				this._refLabelResolver.invalidate()
 				this.refLabels = {}
+				this.refLooks = {}
 				this.loadRefLabels()
+				this.loadRefLooks()
 			}
 		},
 
