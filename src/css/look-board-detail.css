@@ -451,10 +451,19 @@
 }
 
 /* A CnTabsWidget panel is the card itself: the same full border, so it joins
-   the open tab the same way. The top-left stays square under the first tab. */
+   the open tab the same way. The top-left stays square under the first tab.
+   Being the card, it is padded as one (DqZaakHistorie, DqZaakDocumenten:
+   20px 22px), not with the 12px of the Nextcloud look. */
 .cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content {
 	border: 1px solid var(--color-border);
 	border-radius: 0 12px 12px 12px;
+	padding: var(--cn-board-card-padding);
+}
+
+/* A list's footer Add bleeds to the panel's edges, so it bleeds the card
+   padding (CnTabsWidget bleeds the Nextcloud look's 12px). */
+.cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content > .cn-tab > .cn-detail-widget-host--bare .cn-object-list-widget__add {
+	margin: auto -22px -20px;
 }
 
 /* A panel of CnTabsWidget is the content block itself: the open tab flows
