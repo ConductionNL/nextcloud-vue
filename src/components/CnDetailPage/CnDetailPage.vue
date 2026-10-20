@@ -104,7 +104,11 @@
 								:colorKey="pill.colorKey"
 								:colorMap="pill.colorMap"
 								:variant="pill.variant"
-								:data-testid="`cn-detail-page-pill-${pill.key}`" />
+								:data-testid="`cn-detail-page-pill-${pill.key}`">
+								<template v-if="pill.icon" #icon>
+									<CnIcon :name="pill.icon" :size="14" class="cn-detail-page__pill-icon" />
+								</template>
+							</CnStatusBadge>
 						</div>
 						<!-- Type name as a small eyebrow above the record name, so
 						     the header reads "the record" not "the kind of record"
@@ -492,7 +496,11 @@
 						:colorKey="pill.colorKey"
 						:colorMap="pill.colorMap"
 						:variant="pill.variant"
-						:data-testid="`cn-detail-page-pill-${pill.key}`" />
+						:data-testid="`cn-detail-page-pill-${pill.key}`">
+						<template v-if="pill.icon" #icon>
+							<CnIcon :name="pill.icon" :size="14" class="cn-detail-page__pill-icon" />
+						</template>
+					</CnStatusBadge>
 				</div>
 				<CnBreadcrumbs
 					v-if="breadcrumbCrumbs.length > 0"
@@ -1253,6 +1261,7 @@ import {
 	MAX_QUICK_ACTIONS,
 	normalisePinnedAction,
 	pillCountSource,
+	pillLook,
 	resolveCountPill,
 	resolveNextStep,
 	resolvePill,
@@ -2493,9 +2502,12 @@ export default {
 		 * `field`: `text`, a constant ("Inwoner"), or `countFrom`
 		 * (`{ register, schema, filter? }`) with `countLabel` (`{ one, other }`
 		 * with `{count}`), a count of a related list ("1 lopende zaak") that
-		 * shows nothing at 0.
+		 * shows nothing at 0. With `resolve: { register, schema, labelField?,
+		 * colorField?, iconField? }` the pill shows the referenced record's
+		 * label, takes its tone from that record's colour (an NL Design System
+		 * hue such as `red`, or a badge role) and shows its icon.
 		 *
-		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string}|null}
+		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string, resolve?: object}|null}
 		 */
 		typePill: {
 			type: Object,
@@ -2936,6 +2948,8 @@ export default {
 			pillCountSeq: 0,
 			/** The labels of the records pills with `resolve` point at, by pill key. */
 			pillRefLabels: {},
+			/** The colour and icon names read off the records pills with `resolve` point at, by pill key. */
+			pillRefLooks: {},
 			/** Sequence of the last pill label lookup, so a late answer for another record is dropped. */
 			pillRefSeq: 0,
 			/** `register/schema/id` the read-state call was last made for, so it is sent once per load. */
@@ -3484,10 +3498,11 @@ export default {
 					// `resolve`: the referenced record's label replaces the id, and
 					// keys the colour too ("Woo-verzoek", not a uuid).
 					const resolved = this.pillRefLabels[key]
+					const look = pillLook(this.pillRefLooks[key])
 					if (typeof resolved === 'string' && resolved !== '') {
-						return { ...pill, key, label: this.effectiveTranslate(resolved), colorKey: resolved }
+						return { ...pill, ...look, key, label: this.effectiveTranslate(resolved), colorKey: resolved }
 					}
-					return { ...pill, key, label: this.effectiveTranslate(pill.label) }
+					return { ...pill, ...look, key, label: this.effectiveTranslate(pill.label) }
 				})
 				.filter(Boolean)
 		},
@@ -3522,7 +3537,8 @@ export default {
 				.filter(([, config]) => config && config.resolve && config.resolve.register && config.resolve.schema && typeof config.field === 'string')
 				.map(([key, config]) => {
 					const pill = resolvePill({ field: config.field }, this.resolvedObject)
-					return pill ? [key, config.resolve.register, config.resolve.schema, config.resolve.labelField || '', pill.colorKey] : null
+					const { register, schema, labelField, colorField, iconField } = config.resolve
+					return pill ? [key, register, schema, labelField || '', pill.colorKey, colorField || '', iconField || ''] : null
 				})
 				.filter(Boolean)
 		},
@@ -5316,6 +5332,7 @@ export default {
 			const seq = ++this.pillRefSeq
 			if (targets.length === 0) {
 				this.pillRefLabels = {}
+				this.pillRefLooks = {}
 				return
 			}
 			if (!this._pillRefResolver) {
@@ -5328,14 +5345,30 @@ export default {
 				})
 			}
 			const labels = {}
-			await Promise.all(targets.map(async ([key, register, schema, labelField, id]) => {
-				const found = await this._pillRefResolver.resolve(register, schema, [id], labelField).catch(() => ({}))
+			const looks = {}
+			const field = async (register, schema, id, name) => {
+				if (!name) {
+					return null
+				}
+				const found = await this._pillRefResolver.resolve(register, schema, [id], name, { strict: true }).catch(() => ({}))
+				return found && typeof found[id] === 'string' ? found[id] : null
+			}
+			await Promise.all(targets.map(async ([key, register, schema, labelField, id, colorField, iconField]) => {
+				const [found, color, icon] = await Promise.all([
+					this._pillRefResolver.resolve(register, schema, [id], labelField).catch(() => ({})),
+					field(register, schema, id, colorField),
+					field(register, schema, id, iconField),
+				])
 				if (found && typeof found[id] === 'string') {
 					labels[key] = found[id]
+				}
+				if (color || icon) {
+					looks[key] = { color, icon }
 				}
 			}))
 			if (seq === this.pillRefSeq) {
 				this.pillRefLabels = labels
+				this.pillRefLooks = looks
 			}
 		},
 

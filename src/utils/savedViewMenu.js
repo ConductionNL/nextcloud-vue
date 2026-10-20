@@ -64,6 +64,9 @@ export function normalizeSavedViewMenu(entries) {
 		}
 		seen.add(`${page}|${id}`)
 		const entry = { id, page, name: e && typeof e.name === 'string' && e.name !== '' ? e.name : id }
+		if (typeof e.icon === 'string' && e.icon !== '') {
+			entry.icon = e.icon
+		}
 		const badge = normalizeBadge(e.badge)
 		if (badge) {
 			entry.badge = badge
@@ -87,12 +90,12 @@ export function toggleSavedViewMenuEntry(entries, entry) {
 	if (present) {
 		return list.filter((e) => !(e.id === id && e.page === entry.page))
 	}
-	return normalizeSavedViewMenu([...list, { id, page: entry.page, name: entry.name, badge: entry.badge }])
+	return normalizeSavedViewMenu([...list, { id, page: entry.page, name: entry.name, icon: entry.icon, badge: entry.badge }])
 }
 
 /**
  * Bring one page's entries in line with the views that page can show:
- * current names and badges, and no entry for a view that was deleted or is
+ * current names, icons and badges, and no entry for a view that was deleted or is
  * no longer shared with the user. Other pages' entries are left alone. A
  * view's badge is read from its `menuBadge` (see `withSavedViewMenu`).
  *
@@ -110,9 +113,10 @@ export function syncSavedViewMenu(entries, page, views) {
 				return e
 			}
 			const view = byId.get(e.id)
-			const { badge, ...rest } = e
+			const { badge, icon, ...rest } = e
 			const next = normalizeBadge(view.menuBadge)
-			return normalizeSavedViewMenu([{ ...rest, name: view.name || e.name, ...(next ? { badge: next } : {}) }])[0]
+			const nextIcon = typeof view.icon === 'string' && view.icon !== '' ? view.icon : icon
+			return normalizeSavedViewMenu([{ ...rest, name: view.name || e.name, ...(nextIcon ? { icon: nextIcon } : {}), ...(next ? { badge: next } : {}) }])[0]
 		})
 }
 
@@ -126,6 +130,9 @@ export const SAVED_VIEW_MENU_EMPTY = 'saved-views-empty'
  * Advanced), which CnAppNav draws apart. Every app gets the same group in the
  * same place (Ruben's design rule, 19 Oct); it replaces app-specific groups
  * such as dossiq's "My case types".
+ *
+ * An entry shows its view's `icon` (a registered icon name; a case type's
+ * own icon, say), else the filter icon.
  *
  * An entry with a badge carries it as the menu entry's `count` (and
  * `counterVariant`), which CnAppRoot fetches like any filtered menu count.
@@ -154,7 +161,7 @@ export function withSavedViewMenu(menu, entries, options = {}) {
 					label: e.name,
 					route: e.page,
 					query: { savedView: e.id },
-					icon: 'FilterOutline',
+					icon: e.icon || 'FilterOutline',
 					...(e.badge || {}),
 				}))
 			: [{ id: SAVED_VIEW_MENU_EMPTY, type: 'hint', label: t('nextcloud-vue', 'Add a view to the menu from Filters') }]),
