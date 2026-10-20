@@ -172,6 +172,13 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
 		cnLook: { default: 'nextcloud' },
+		/**
+		 * The detail page's object context (`{ objectId, object }`), provided by
+		 * CnDetailPage: a `visibleWhen.source` filter's `@objectId` and
+		 * `@object.<field>` tokens read it, so a notice on a record's page can
+		 * count that record's related rows. Null elsewhere.
+		 */
+		cnObjectContext: { default: null },
 	},
 
 	props: {
@@ -388,6 +395,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The page record's id, so the condition is asked again once it is known.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/notice-scoped-to-the-record/specs/notice-scoped-to-the-record/spec.md#requirement-a-banners-source-may-be-scoped-to-the-pages-record
+		 */
+		tokenContextKey() {
+			const ctx = this.tokenContext()
+			return ctx && ctx.objectId ? String(ctx.objectId) : ''
+		},
+
 		/** The effective variant (prop → content → 'info'). */
 		resolvedVariant() {
 			const v = this.variant || (this.content && this.content.variant) || 'info'
@@ -659,6 +677,11 @@ export default {
 		resolvedConditionOutcome() {
 			this.evaluateCondition()
 		},
+
+		/** The page's record arrived or changed: a token-scoped source asks again. */
+		tokenContextKey() {
+			this.evaluateCondition()
+		},
 	},
 
 	methods: {
@@ -753,6 +776,22 @@ export default {
 		},
 
 		/**
+		 * The token context a `visibleWhen.source` filter resolves against: the
+		 * detail page's record, when the banner sits on one.
+		 *
+		 * @return {{objectId?: string, object?: object}|undefined}
+		 * @spec openspec/changes/notice-scoped-to-the-record/specs/notice-scoped-to-the-record/spec.md#requirement-a-banners-source-may-be-scoped-to-the-pages-record
+		 */
+		tokenContext() {
+			const raw = this.cnObjectContext
+			const ctx = raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
+			if (!ctx || typeof ctx !== 'object' || !ctx.objectId) {
+				return undefined
+			}
+			return { objectId: ctx.objectId, object: ctx.object || undefined }
+		},
+
+		/**
 		 * Resolve the `visibleWhen` verdict. A host-injected
 		 * `conditionOutcome` wins outright — the host already ran the
 		 * predicate, so re-fetching would double the request and flash the
@@ -789,7 +828,7 @@ export default {
 			}
 			try {
 				const sink = {}
-				const value = await readVisibleWhenValue(cond, undefined, sink)
+				const value = await readVisibleWhenValue(cond, this.tokenContext(), sink)
 				this.conditionRow = sink.row || null
 				this.conditionValue = value
 				this.conditionMet = compareVisibleWhen(value, cond.op || 'eq', cond.value)
