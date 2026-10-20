@@ -219,9 +219,12 @@
 	color: var(--color-main-background);
 }
 
-/* The count badge: grey on an idle chip, soft text colour on the selected one. */
+/* The count badge: grey on an idle chip, soft text colour on the selected one.
+   Its ink also goes to --nldesign-color-on-surface, which a theme that forces
+   the body ink onto every span (thematiq) reads. */
 .cn-look-board .cn-saved-views__chip .cn-saved-views__chip-count,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__count {
+	--nldesign-color-on-surface: var(--cn-board-text-soft);
 	min-width: 0;
 	padding: 1px 7px;
 	border: 0;
@@ -244,8 +247,10 @@
 }
 
 /* Save view: a ghost button, 34px, radius 17, no border, on the light primary
-   tint, a 14px icon 6px before the label, on one line. */
+   tint, a 14px icon 6px before the label, on one line. The label is a span,
+   so its ink also goes to --nldesign-color-on-surface. */
 .cn-look-board .cn-saved-views__save .button-vue {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	min-height: 34px;
 	height: 34px;
 	padding: 0 12px;
@@ -433,7 +438,10 @@
 	font-size: 14px;
 }
 
+/* An active filter: the light primary tint, its label (a span) in the tint's
+   ink through --nldesign-color-on-surface too. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__filter-chip {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
