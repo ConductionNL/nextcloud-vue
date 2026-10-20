@@ -96,3 +96,40 @@ the server's `reason` else the action's message. The notes integration widget SH
 
 The `redaction` page type SHALL mount CnRedactionEditor with the page config as props. Without a `crumbs` slot the
 editor SHALL draw `breadcrumbs`, each label filled from the record read through `recordSource`, else its `fallback`.
+
+### Requirement: A record shows its parties by role
+
+The `parties` widget SHALL read a record's parties from OpenRegister's party model (`rolesSource`, default the
+record's `/parties`) and draw them grouped by role, the group holding the primary party first and the primary party
+first within it, each role labelled by `roleLabels`, else the listing's label, else its key. Each party SHALL show its
+kind, whom it is represented by (role rows from `rolesObjects`), its `extraLines` (the first applying candidate per
+line, coded values labelled by `valueLabels`) and its correspondence counts. Every indicator SHALL carry its verdict,
+and a blocking verdict (`refuse-publication`, `refuse-send`) SHALL also show as a note above the list. A kind outside
+the accepted kinds SHALL be marked only when the kinds came from the `kindsSource.enforce` source. A failed listing
+SHALL say so and SHALL NOT show as an empty list.
+
+### Requirement: A record list can act on its rows and link onwards
+
+With `requiresApp` naming an app that is not installed, the record list SHALL show `absentText` and read nothing.
+`rowActions` SHALL draw an actions menu on each row that opens nothing, named by `rowActionsLabel`; an entry with an
+`endpoint` SHALL call it with the page's `@objectId` and the row's `{field}` tokens filled in and read the list again,
+showing the server's refusal as an alert; any other entry SHALL be dispatched as `rowAction` is. `links` SHALL draw a
+line naming the records at its field, each linked by `route` and labelled from `labelSource`. A `count` badge SHALL
+count a list or number on the row and show nothing at 0. `intro` SHALL draw a line above the list. A template MAY be a
+list of candidates.
+
+### Requirement: Grouped cards can join a flat list and flag a card
+
+With `itemsPath` and `itemGroupField`, the grouped cards SHALL read the cards from one flat list and put each under
+the group whose `id` it names; cards naming no group SHALL gather under `ungroupedTitle`. `groupLines` SHALL draw the
+lines that fill under a group's title. `itemFlag` SHALL mark a card in words. A failed read SHALL offer Try again. A
+nested record SHALL stay readable by path (only a map of language codes reads as one text).
+
+### Requirement: Related objects can read extra sections from endpoints
+
+`extraSources` SHALL add sections read from app endpoints, one per source or, with `groupBy`, one per group label.
+`requireLabel` SHALL leave out a row whose label is empty or only an id. A `static` row SHALL open nothing; a
+`rowRoute` row SHALL open its route. `rowActions` SHALL be buttons under a row whose `when` holds, calling their
+endpoint and reading the sources again, the server's refusal shown as an alert. `children` SHALL list links under a
+row. `referenceSections` SHALL name the record a field points at, only with a readable title. `footerActions` SHALL be
+dispatched with the record's tokens resolved. A source that fails SHALL be logged and leave the rest alone.

@@ -68,6 +68,25 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 - It is a manifest action plus a `label`: `open-page` opens that page for the row's id, `navigate` reads `@object.<field>` and `@objectId` off the row (`"/votes/@object.id"`). Both render as links. Any other type is a button that runs through the page's dispatcher: a `handler` gets the row as its last argument, `open-modal` gets it as the `row` prop.
 - `labels: { field, map }` picks the label per row: `{ "field": "status", "map": { "open": "Starten" } }` reads "Starten" for an open item and `label` ("Afronden") for the rest.
 
+### Several actions per row, and links onwards
+
+`rowActions` ends every `rows` row that opens nothing with an actions menu (named by `rowActionsLabel`). An entry is a
+page action plus a `label`, dispatched as `rowAction` is (an `open-modal` gets the row as its `row` prop and its own
+`props` with `@objectId` resolved), or `{ label, endpoint, method? }`: an app URL with the page's `@objectId` and the
+row's `{field}` tokens filled in. After an endpoint call the list reads again; a refusal shows the server's sentence as
+an alert (else `errorText`).
+
+`links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
+("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
+(`{ register, schema, template }`) reads their labels, ten at most, and `fallback` stands in until then.
+
+A badge with `kind: "count"` (`{ field, one, other }`, `{count}` filled in) counts a list or a number on the row, and
+shows nothing at 0.
+
+`requiresApp` names the app the rows come from. When it is not installed the list says `absentText` and reads nothing,
+so "not installed" is never shown as "nothing yet". `intro` is a line above the list. A template may be a list of
+candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
+
 ### An action under the list
 
 `footerAction` ends the card with one secondary button, also under the empty text, as board DqBezwaar draws "Beroep registreren" in its Beroep card. It is a manifest action plus a `label` and an optional `icon`, run through the page's dispatcher with the page's record as `@object`. `disabledWhen` is a visibleWhen condition (a `field` on the page's record, the workspace, an endpoint or a source; `total` reads the list's total): while it holds the button is disabled and `disabledReason` shows under it, tied to the button with `aria-describedby`. Label and reason go through the app's translate.

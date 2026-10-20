@@ -5,8 +5,14 @@
 
 <template>
 	<div class="cn-grouped-cards" data-testid="cn-grouped-cards">
-		<p v-if="error" class="cn-grouped-cards__state" data-testid="cn-grouped-cards-error">
+		<p v-if="error"
+			class="cn-grouped-cards__state"
+			role="alert"
+			data-testid="cn-grouped-cards-error">
 			{{ errorLabel }}
+			<NcButton variant="tertiary" data-testid="cn-grouped-cards-retry" @click="retry">
+				{{ retryLabel }}
+			</NcButton>
 		</p>
 		<div v-else-if="loading && groups.length === 0" class="cn-grouped-cards__loading">
 			<NcLoadingIcon :size="20" :name="loadingLabel" />
@@ -30,6 +36,13 @@
 					</h4>
 					<span v-if="group.count" class="cn-grouped-cards__count" data-testid="cn-grouped-cards-count">{{ group.count }}</span>
 				</header>
+				<p
+					v-for="(line, lineIndex) in group.lines"
+					:key="`line-${lineIndex}`"
+					class="cn-grouped-cards__group-line"
+					data-testid="cn-grouped-cards-group-line">
+					{{ line }}
+				</p>
 				<ul v-if="group.items.length > 0" class="cn-grouped-cards__items">
 					<li
 						v-for="item in group.items"
@@ -38,6 +51,7 @@
 						data-testid="cn-grouped-cards-item">
 						<span class="cn-grouped-cards__item-title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-grouped-cards__item-meta">{{ item.meta }}</span>
+						<span v-if="item.flag" class="cn-grouped-cards__item-flag" data-testid="cn-grouped-cards-flag">{{ item.flag }}</span>
 					</li>
 				</ul>
 				<p v-else class="cn-grouped-cards__group-empty">
@@ -64,10 +78,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
-import { fillTemplate } from '../../utils/fillTemplate.js'
+import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { languageMapText } from '../../utils/languageMapText.js'
 import { readPath } from '../../utils/readPath.js'
@@ -82,6 +96,22 @@ let uid = 0
  */
 function unwrap(value) {
 	return value && typeof value === 'object' && 'value' in value ? value.value : value
+}
+
+/**
+ * Whether a value is a language map (`{ nl: "…", en: "…" }`): an object whose
+ * keys are all language codes and whose values are all strings. A nested
+ * record such as `{ displayName, telephone }` is not one.
+ *
+ * @param {unknown} value The value.
+ * @return {boolean}
+ */
+function isLanguageMap(value) {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return false
+	}
+	const entries = Object.entries(value)
+	return entries.length > 0 && entries.every(([key, entry]) => /^[a-z]{2}([_-][A-Za-z]{2})?$/.test(key) && typeof entry === 'string')
 }
 
 /**
@@ -101,7 +131,7 @@ function readable(row) {
 		if (Array.isArray(value)) {
 			const plain = value.filter((entry) => typeof entry === 'string' || typeof entry === 'number')
 			out[key] = plain.length === value.length ? plain.join(', ') : value
-		} else if (value && typeof value === 'object' && Object.values(value).every((entry) => typeof entry === 'string')) {
+		} else if (isLanguageMap(value)) {
 			out[key] = languageMapText(value)
 		} else {
 			out[key] = value
@@ -121,7 +151,7 @@ function readable(row) {
 export default {
 	name: 'CnGroupedCardsWidget',
 
-	components: { NcLoadingIcon },
+	components: { NcButton, NcLoadingIcon },
 
 	inject: {
 		/** The host app's translate function. */
@@ -147,6 +177,12 @@ export default {
 		 * - `extraGroup` (`{ title, path, itemText, join? }`) closes the grid with a
 		 *   dashed box whose entries, read at `path` of the payload, are one line.
 		 * - `columns` (default 2) is the number of groups side by side.
+		 * - `groupLines` lists templates drawn under a group's title, each left out when it does not fill
+		 *   (a list in place of a template is candidates, the first that fills).
+		 * - `itemFlag` (`{ field, label }`) marks a card whose `field` is true with `label` ("Overdue").
+		 * - `itemsPath` with `itemGroupField` reads the cards from one flat list of the payload instead of
+		 *   from each group: a card belongs to the group whose `id` its `itemGroupField` names. Cards
+		 *   naming no group gather under `ungroupedTitle`; without that title they are left out.
 		 *
 		 * A language map (`{ nl, en }`) reads in the user's language, and a list
 		 * of plain values reads joined with ", ". Texts go through the app's
@@ -176,7 +212,7 @@ export default {
 		const objectCtxRaw = inject('cnObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', null)
 		const appConfigRaw = inject('cnAppConfig', ref({}))
-		const { data, loading, error } = useEndpointSource(
+		const { data, loading, error, refetch } = useEndpointSource(
 			() => props.content?.endpointSource || null,
 			{
 				ctx: () => {
@@ -192,7 +228,7 @@ export default {
 			},
 		)
 		uid += 1
-		return { payload: data, loading, error, idPrefix: `cn-grouped-cards-${uid}` }
+		return { payload: data, loading, error, refetch, idPrefix: `cn-grouped-cards-${uid}` }
 	},
 
 	computed: {
@@ -210,29 +246,42 @@ export default {
 		 */
 		groups() {
 			const c = this.content || {}
-			const list = readPath(this.payload, c.groupsPath || 'groups')
-			if (!Array.isArray(list)) {
-				return []
-			}
-			return list.filter((group) => group && typeof group === 'object').map((raw, index) => {
+			const listed = readPath(this.payload, c.groupsPath || 'groups')
+			const list = Array.isArray(listed) ? listed.filter((group) => group && typeof group === 'object') : []
+			const flat = typeof c.itemsPath === 'string' && c.itemsPath !== '' ? readPath(this.payload, c.itemsPath) : null
+			const groupField = typeof c.itemGroupField === 'string' && c.itemGroupField !== '' ? c.itemGroupField : ''
+			const flatItems = Array.isArray(flat) && groupField ? flat.filter((item) => item && typeof item === 'object') : null
+			const groupIds = new Set(list.map((group) => String(group.id ?? '')).filter((id) => id !== ''))
+			const out = list.map((raw, index) => {
 				const group = readable(raw)
-				const itemList = Array.isArray(raw[c.itemsKey || 'items']) ? raw[c.itemsKey || 'items'] : []
-				const items = itemList.filter((item) => item && typeof item === 'object').map((rawItem, itemIndex) => {
-					const item = readable(rawItem)
-					return {
-						key: String(rawItem.id ?? `item-${itemIndex}`),
-						title: this.fill(c.itemTitle || '{title}', item),
-						meta: this.metaOf(item),
-					}
-				})
+				const itemList = flatItems
+					? flatItems.filter((item) => String(item[groupField] ?? '') !== '' && String(item[groupField]) === String(raw.id ?? ''))
+					: (Array.isArray(raw[c.itemsKey || 'items']) ? raw[c.itemsKey || 'items'] : [])
+				const items = this.itemsOf(itemList)
 				return {
 					key: String(raw.id ?? `group-${index}`),
 					headingId: `${this.idPrefix}-group-${index}`,
 					title: this.fill(c.groupTitle || '{name}', group),
+					lines: this.linesOf(group),
 					count: this.countOf(items.length),
 					items,
 				}
 			})
+			if (flatItems && typeof c.ungroupedTitle === 'string' && c.ungroupedTitle !== '') {
+				const loose = flatItems.filter((item) => !groupIds.has(String(item[groupField] ?? '')))
+				if (loose.length > 0) {
+					const items = this.itemsOf(loose)
+					out.push({
+						key: 'ungrouped',
+						headingId: `${this.idPrefix}-ungrouped`,
+						title: this.translate(c.ungroupedTitle),
+						lines: [],
+						count: this.countOf(items.length),
+						items,
+					})
+				}
+			}
+			return out
 		},
 
 		/**
@@ -278,6 +327,11 @@ export default {
 			return this.content?.errorText ? this.translate(this.content.errorText) : t('nextcloud-vue', 'This list could not be loaded.')
 		},
 
+		/** @return {string} The retry button's text. */
+		retryLabel() {
+			return t('nextcloud-vue', 'Try again')
+		},
+
 		/** @return {string} The loading label. */
 		loadingLabel() {
 			return t('nextcloud-vue', 'Loading')
@@ -304,10 +358,59 @@ export default {
 		 * @return {string} The text, '' when a token is empty.
 		 */
 		fill(template, row) {
+			if (Array.isArray(template)) {
+				return firstFilled(template, row, (text) => this.translate(text), new Date(), { config: unwrapAppConfig(this.cnAppConfig) })
+			}
 			if (typeof template !== 'string' || template === '') {
 				return ''
 			}
 			return fillTemplate(this.translate(template), row, new Date(), { config: unwrapAppConfig(this.cnAppConfig) })
+		},
+
+		/**
+		 * The cards ready to draw.
+		 *
+		 * @param {Array<object>} list The raw cards.
+		 * @return {Array<{key: string, title: string, meta: string, flag: string}>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-grouped-cards-can-join-a-flat-list-and-flag-a-card
+		 */
+		itemsOf(list) {
+			const c = this.content || {}
+			return list.filter((item) => item && typeof item === 'object').map((rawItem, itemIndex) => {
+				const item = readable(rawItem)
+				const flag = c.itemFlag && typeof c.itemFlag === 'object' && c.itemFlag.field && rawItem[c.itemFlag.field] === true
+					? this.translate(c.itemFlag.label || '')
+					: ''
+				return {
+					key: String(rawItem.id ?? `item-${itemIndex}`),
+					title: this.fill(c.itemTitle || '{title}', item),
+					meta: this.metaOf(item),
+					flag,
+				}
+			})
+		},
+
+		/**
+		 * The lines under a group's title (`groupLines`), the empty ones left out.
+		 *
+		 * @param {object} group The group's row.
+		 * @return {Array<string>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-grouped-cards-can-join-a-flat-list-and-flag-a-card
+		 */
+		linesOf(group) {
+			const spec = this.content?.groupLines
+			return (Array.isArray(spec) ? spec : []).map((line) => this.fill(line, group)).filter((text) => text !== '')
+		},
+
+		/**
+		 * Read the endpoint again after a failed read.
+		 *
+		 * @return {void}
+		 */
+		retry() {
+			if (typeof this.refetch === 'function') {
+				this.refetch(true)
+			}
 		},
 
 		/**
@@ -414,6 +517,18 @@ export default {
 .cn-grouped-cards__item-title {
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+.cn-grouped-cards__item-flag {
+	color: var(--color-text-error, var(--color-error-text, var(--color-error)));
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-grouped-cards__group-line {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-grouped-cards__item-meta,
