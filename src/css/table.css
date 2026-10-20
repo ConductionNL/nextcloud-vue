@@ -277,7 +277,11 @@
 	white-space: nowrap;
 }
 
+/* The label inside a header's sort button is a span, which a theme that
+   forces the body ink onto every span (thematiq) colours from
+   --nldesign-color-on-surface, so the header hands it its muted ink. */
 .cn-data-table th {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	background: var(--color-background-dark);
 	font-weight: 500;
 	color: var(--color-text-maxcontrast);
@@ -290,6 +294,7 @@
 }
 
 .cn-data-table td.cn-cell--muted {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	color: var(--color-text-maxcontrast);
 }
 
