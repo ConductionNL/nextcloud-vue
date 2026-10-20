@@ -3204,10 +3204,10 @@
 				},
 				"endpoint": {
 					"type": "object",
-					"description": "open-form only: edit a record that is not a register object through an endpoint (an OpenRegister organisation). `url` is where the save goes (token-interpolated, app-relative or absolute), `method` is PATCH (default) or PUT, `loadUrl` reads the record when it differs from `url`, `responsePath` plucks it from the answer. The fields are `formProperties`. Without `endpoint` the action is the schema-driven create form.",
+					"description": "open-form only: edit a record that is not a register object through an endpoint (an OpenRegister organisation). `url` is where the save goes (token-interpolated, app-relative or absolute), `method` is PATCH (default) or PUT, or POST to create a record with an empty form, `loadUrl` reads the record when it differs from `url`, `responsePath` plucks it from the answer. The fields are `formProperties`. Without `endpoint` the action is the schema-driven create form.",
 					"properties": {
 						"url": { "type": "string" },
-						"method": { "type": "string", "enum": ["PATCH", "PUT"] },
+						"method": { "type": "string", "enum": ["PATCH", "PUT", "POST"] },
 						"loadUrl": { "type": "string" },
 						"responsePath": { "type": "string" }
 					},
