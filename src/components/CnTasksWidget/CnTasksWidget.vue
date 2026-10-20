@@ -30,7 +30,7 @@
 				<NcTextField
 					:modelValue="newDue"
 					type="date"
-					:label="tr('Deadline')"
+					:label="tr('Task deadline')"
 					data-testid="cn-tasks-widget-create-due"
 					@update:modelValue="(value) => (newDue = String(value ?? ''))" />
 				<NcButton
@@ -54,7 +54,7 @@
 							{{ tr('Handler') }}
 						</th>
 						<th scope="col">
-							{{ tr('Deadline') }}
+							{{ tr('Task deadline') }}
 						</th>
 						<th scope="col">
 							{{ tr('Status') }}

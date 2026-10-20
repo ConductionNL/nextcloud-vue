@@ -111,7 +111,7 @@
 				<!-- A stack (`widgetIds`): every widget is a titled card; the
 				     first joins the open tab, the next ones stand below it. -->
 				<div
-					v-if="entry.widget && entry.stack.length"
+					v-if="entry.widget && entry.isStack"
 					class="cn-tabs-widget__stack"
 					:class="{ 'cn-tabs-widget__stack--grid': !!entry.grid }"
 					data-testid="cn-tabs-widget-stack">
@@ -211,7 +211,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import CnTabs from '../CnTabs/CnTabs.vue'
 import { normalizeLook } from '../../composables/useLook.js'
-import { headerLinkTarget, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
+import { headerLinkTarget, resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
 import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
@@ -653,10 +653,10 @@ export default {
 				// A stack (`widgetIds`) resolves every id; one that names no
 				// widget is skipped. The first that resolves is the panel's.
 				const ids = this.tabWidgetIds(tab)
-				const widgets = ids.length > 1
-					? ids.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null)
-							.filter((w) => w && !this.hiddenByWorkspace(w) && !this.hiddenByRecord(w))
+				const named = ids.length > 1
+					? ids.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null).filter(Boolean)
 					: []
+				const widgets = named.filter((w) => !this.hiddenByWorkspace(w) && !this.hiddenByRecord(w))
 				const widget = ids.length > 1
 					? (widgets[0] || null)
 					: (this.availableWidgets.find((w) => w && w.id === ids[0]) || null)
@@ -687,6 +687,11 @@ export default {
 					icon: (tab && tab.icon) || widget?.icon || '',
 					widget,
 					stack: widgets.slice(1),
+					// A stack of two or more widgets stays a stack of titled cards
+					// when conditions leave one of them showing (DqSociaalDomein
+					// "De melding"): the record decides which cards show, not
+					// whether the panel is a card.
+					isStack: named.length > 1,
 					grid: this.stackGrid(tab, widgets),
 					count,
 					overflow,
@@ -762,7 +767,7 @@ export default {
 		 * @return {object|null}
 		 */
 		activeHeaderLink() {
-			return widgetHeaderLink(this.activeTab?.widget)
+			return resolveHeaderLink(widgetHeaderLink(this.activeTab?.widget), { objectId: this.objectId, object: this.objectData })
 		},
 
 		/**

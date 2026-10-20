@@ -269,6 +269,19 @@ describe('CnSetupWizard', () => {
 			expect(axios.post).toHaveBeenCalledWith('/index.php/apps/procest/api/setup/config', { legal_region: 'nl' })
 		})
 
+		it('writes nothing for a config-fields step left alone, and only the fields filled in', async () => {
+			// "Leave a field empty to keep what is there" (board DqInstellen): a
+			// step the person did not touch must not overwrite what is stored.
+			axios.post.mockResolvedValue({ data: {} })
+			const org = [{ id: 'organisation', type: 'config-fields', configKeys: ['organisation_name', 'organisation_logo'] }]
+			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'dossiq', steps: org } })
+			await expect(wrapper.vm.validateStep('organisation')).resolves.toBe(true)
+			expect(axios.post).not.toHaveBeenCalled()
+			wrapper.vm.configModel.organisation_name = 'Gemeente Zuiddrecht'
+			await expect(wrapper.vm.validateStep('organisation')).resolves.toBe(true)
+			expect(axios.post).toHaveBeenCalledWith('/index.php/apps/dossiq/api/setup/config', { organisation_name: 'Gemeente Zuiddrecht' })
+		})
+
 		it('allows an optional choice to be skipped', async () => {
 			const optional = [{ id: 'flavour', type: 'choice', configKey: 'flavour', options: [] }]
 			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'procest', steps: optional } })

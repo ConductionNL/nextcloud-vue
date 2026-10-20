@@ -83,7 +83,7 @@ describe('the organisations record source', () => {
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 
 		expect(typeof resolveRecordSource('organisations').loadRecord).toBe('function')
-		expect(resolveRecordSource('tasks')).toBeNull()
+		expect(resolveRecordSource('flows')).toBeNull()
 		expect(warn).toHaveBeenCalled()
 		warn.mockRestore()
 	})

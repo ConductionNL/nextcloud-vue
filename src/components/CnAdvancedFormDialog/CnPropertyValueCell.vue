@@ -251,7 +251,7 @@ export default {
 		/** Full JSON schema object */
 		schema: { type: Object, default: null },
 		/** Resolved current value (formData[key] ?? objectValue) */
-		value: { type: [Boolean, String, Number, Object, Array], default: null },
+		value: { type: [String, Number, Boolean, Object, Array], default: null }, // eslint-disable-line vue/prefer-prop-type-boolean-first -- an empty field value must stay a string
 		/** Whether this property is editable at all */
 		isEditable: { type: Boolean, default: true },
 		/** Whether this row is currently selected for editing */

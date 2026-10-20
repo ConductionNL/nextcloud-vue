@@ -8,7 +8,7 @@ A `tasks` widget with `objectUuid` SHALL list every task on that record (with `i
 open ones). With `variant: 'table'` it SHALL draw task, handler, deadline, status and the row's verbs (claim on a pooled
 task; complete on the viewer's own task, or on any open task with `completeAny`; cancel with `cancel`), and SHALL report
 its summary as the card's subtitle and, with `create`, a primary "New task" action that opens a form posting an open task
-on the record. `@objectId` in its view-all link's query SHALL read the page's record.
+on the record. `@objectId` in its view-all link's query SHALL read the page's record. The deadline column SHALL be headed by its own key, `Task deadline`, so an app can word it apart from a record's term.
 
 #### Scenario: DqZaakTaken
 
