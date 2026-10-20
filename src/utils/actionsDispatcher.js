@@ -857,7 +857,10 @@ export function dispatchAction(action, context = {}) {
 				return
 			}
 
-			context.openModal(target, action.props ?? {})
+			// A prop that is exactly a token (`"objectId": "@objectId"`) resolves
+			// against the page's object; one the page cannot answer stays as written.
+			const props = context.tokenCtx ? resolveDeepTokens(action.props ?? {}, context.tokenCtx) : (action.props ?? {})
+			context.openModal(target, props)
 			break
 		}
 

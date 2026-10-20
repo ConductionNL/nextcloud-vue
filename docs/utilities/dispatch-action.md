@@ -22,7 +22,7 @@ function dispatchAction(
         handler?: string,           // type='handler'; type='export' — confirm handler name
         args?: any[],               // type='handler'
         target?: string,            // type='open-modal' | 'open-page' | 'navigate'
-        props?: object,             // type='open-modal'
+        props?: object,             // type='open-modal'; a prop that is exactly a token (`@objectId`) resolves against `context.tokenCtx`
         op?: 'patch' | 'delete' | 'create',  // type='object-op'
         values?: object,            // type='object-op' — patch merge / create payload
         confirm?: boolean,          // type='object-op' — confirm-gating intent (host-consumed)
