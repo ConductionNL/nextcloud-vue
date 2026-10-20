@@ -1431,6 +1431,7 @@ import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
 import { applyManualOrder, dropInOrder, manualOrderKey, moveInOrder, visibleIdsOf } from './manualOrder.js'
 import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './personalColumns.js'
+import { rowsToCsv } from './rowsToCsv.js'
 import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
@@ -9510,6 +9511,8 @@ export default {
 					this.onHeaderAction({ action: button.run, id: button.run })
 				} else if (this.register && this.exportSchemaSlug) {
 					this.onExportClick(button.format)
+				} else if (this.isNamedSource && !this.hasMassExportListener()) {
+					this.downloadNamedRows()
 				} else {
 					this.showExportDialog = true
 				}
@@ -9536,11 +9539,44 @@ export default {
 		 * @return {boolean}
 		 */
 		headerExportAvailable(button) {
-			if (!this.isNamedSource || (button && button.run)) {
+			if (!this.isNamedSource || (button && button.run) || this.hasMassExportListener()) {
 				return true
 			}
+			// A named source exports the rows it holds as CSV (downloadNamedRows).
+			return this.renderedColumns.some((col) => col && typeof col.key === 'string' && col.key !== '')
+		},
+
+		/**
+		 * Whether the consumer listens to `@mass-export`.
+		 *
+		 * @return {boolean}
+		 */
+		hasMassExportListener() {
 			const props = this.$ && this.$.vnode && this.$.vnode.props
 			return Boolean(props && typeof props.onMassExport === 'function')
+		},
+
+		/**
+		 * Download the rows of a named or endpoint source as CSV: every row the
+		 * source holds for the current query, with the table's columns. Such a
+		 * source has no server export, and a Download that does nothing is
+		 * worse than none.
+		 *
+		 * @spec openspec/changes/index-named-source-export/specs/index-named-source-export/spec.md#requirement-a-named-source-list-downloads-its-rows
+		 * @return {void}
+		 */
+		downloadNamedRows() {
+			const csv = rowsToCsv(this.namedRows, this.renderedColumns)
+			const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+			const url = URL.createObjectURL(blob)
+			const link = document.createElement('a')
+			const name = String(this.title || this.entitySource || 'export').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'export'
+			link.href = url
+			link.download = `${name}.csv`
+			document.body.appendChild(link)
+			link.click()
+			link.remove()
+			URL.revokeObjectURL(url)
 		},
 
 		/**

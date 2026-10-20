@@ -5,9 +5,11 @@
  * A header Export on a page whose rows are not OpenRegister objects (a named
  * or endpoint source) used to open the export dialog and emit `mass-export`
  * to nobody. It is drawn only when it can export: a `run` naming one of the
- * page's header actions, or a `@mass-export` listener (DqTeamwachtrij).
+ * page's header actions, a `@mass-export` listener (DqTeamwachtrij), or,
+ * without either, a CSV of the rows the source holds (DqTaken, DqPostvak).
  *
  * @spec openspec/changes/index-header-export-source/specs/index-page/spec.md#requirement-a-header-export-is-drawn-only-when-it-can-export
+ * @spec openspec/changes/index-named-source-export/specs/index-named-source-export/spec.md#requirement-a-named-source-list-downloads-its-rows
  */
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(() => Promise.resolve({ data: { results: [] } })), post: jest.fn() } }))
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (p) => p, generateOcsUrl: (p) => p }))
@@ -39,9 +41,29 @@ const endpoint = { entitySource: 'endpoint', sourceConfig: { url: '/apps/dossiq/
 const keys = (w) => w.vm.resolvedHeaderButtons.map((b) => b.action)
 
 describe('CnIndexPage header Export on a non-OpenRegister source', () => {
-	it('is not drawn without a run or a mass-export listener', () => {
+	it('is drawn without a run or a listener, and downloads the source\'s rows as CSV', async () => {
 		const w = mountPage({ ...endpoint, headerButtons: [EXPORT, { action: 'add', variant: 'primary' }] })
-		expect(keys(w)).toEqual(['add'])
+		expect(keys(w)).toEqual(['export', 'add'])
+		w.vm.namedRows.splice(0, w.vm.namedRows.length, { title: 'Dakkapel, Kerkstraat 12' }, { title: '=1+1' })
+		const blobs = []
+		global.URL.createObjectURL = jest.fn((blob) => {
+			blobs.push(blob)
+			return 'blob:x'
+		})
+		global.URL.revokeObjectURL = jest.fn()
+		const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+		w.vm.onHeaderButton(w.vm.resolvedHeaderButtons.find((b) => b.action === 'export'))
+		expect(click).toHaveBeenCalled()
+		expect(w.vm.showExportDialog).toBe(false)
+		const text = await new Promise((resolve) => {
+			const reader = new FileReader()
+			reader.onload = () => resolve(reader.result)
+			reader.readAsText(blobs[0])
+		})
+		// FileReader drops the byte order mark that lets a spreadsheet read UTF-8.
+		expect(text).toBe('Title\r\n"Dakkapel, Kerkstraat 12"\r\n\'=1+1\r\n')
+		expect(blobs[0].type).toBe('text/csv;charset=utf-8')
+		click.mockRestore()
 	})
 
 	it('runs the header action its run names', () => {

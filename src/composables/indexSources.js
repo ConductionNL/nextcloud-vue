@@ -497,6 +497,23 @@ function tasksSource() {
 		[priorityLabels.urgent]: 'error',
 	}
 
+	/**
+	 * A task with the display fields a list row and a detail page read. Keyed
+	 * on its uuid, the identity of the task contract.
+	 *
+	 * @param {object} task The task as the engine returned it.
+	 * @return {object} The task with `id`, `title` and the labels.
+	 */
+	const taskRow = (task) => ({
+		...task,
+		id: task.uuid,
+		title: task.displayTitle || task.title || task.uuid,
+		subjectLabel: (task.subject && task.subject.title) || '',
+		stateLabel: stateLabels[task.state] || String(task.state || ''),
+		priorityLabel: priorityLabels[task.priority] || String(task.priority || ''),
+		dueLabel: taskDueLabel(task),
+	})
+
 	return {
 		store,
 
@@ -513,17 +530,32 @@ function tasksSource() {
 		/**
 		 * @return {Array<object>} The rows, with the display fields resolved.
 		 */
-		rows: () => (store.tasks || []).map((task) => ({
-			...task,
-			// CnIndexPage keys rows on `id` by default; the row contract's
-			// identity is the uuid.
-			id: task.uuid,
-			title: task.displayTitle || task.title || task.uuid,
-			subjectLabel: (task.subject && task.subject.title) || '',
-			stateLabel: stateLabels[task.state] || String(task.state || ''),
-			priorityLabel: priorityLabels[task.priority] || String(task.priority || ''),
-			dueLabel: taskDueLabel(task),
-		})),
+		rows: () => (store.tasks || []).map(taskRow),
+
+		/**
+		 * Read one task for a detail page (`type: "detail"` with
+		 * `entitySource: "tasks"`).
+		 *
+		 * @param {string} id The task uuid.
+		 * @return {Promise<object|null>} The task, or null when it could not be read.
+		 * @spec openspec/changes/tasks-record-source/specs/tasks-record-source/spec.md#requirement-the-tasks-source-reads-one-task
+		 */
+		loadRecord: (id) => store.fetchRecord(id),
+
+		/**
+		 * @param {string} id The task uuid.
+		 * @return {object|null} The task read for this id, with the row's display fields, or null.
+		 */
+		record: (id) => {
+			const task = store.records?.[String(id)]
+			return task ? taskRow(task) : null
+		},
+
+		/**
+		 * @param {string} id The task uuid.
+		 * @return {number|null} The HTTP status of a failed read of this id, or null.
+		 */
+		recordError: (id) => store.recordErrors?.[String(id)] ?? null,
 
 		/**
 		 * @return {boolean} Whether a load is in flight.

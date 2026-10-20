@@ -78,8 +78,11 @@
 					<NcNoteCard v-else-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
+					<!-- In the board look the step's title is the dialog's heading,
+					     so the cards' legend is kept for assistive tech only. -->
 					<CnChoiceCards
 						v-if="isCardChoice(step)"
+						:class="{ 'cn-setup-step__choices--titled': isBoard }"
 						:layout="step.display === 'rows' ? 'rows' : 'cards'"
 						:label="stepTitle(step)"
 						:options="optionsFor(step)"
@@ -1134,7 +1137,9 @@ export default {
 		/**
 		 * CnWizardDialog `validate` hook — intercepts Next/Submit to persist
 		 * the active step before advancing. `choice`/`config-fields` steps
-		 * POST their value via the setup contract; required `choice` steps
+		 * POST their value via the setup contract (a `config-fields` step only
+		 * the fields the person filled in, and nothing when they filled in
+		 * none); required `choice` steps
 		 * block advance until a value is picked; required `run-action` steps
 		 * block until the action has succeeded. Returns `true` to advance or
 		 * an error string to surface above the step and block navigation.
@@ -1168,11 +1173,18 @@ export default {
 				}
 			}
 			if (step.type === 'config-fields') {
-				try {
-					const patch = {}
-					for (const field of this.fieldsFor(step)) {
+				// Only what the person filled in is written: a field left alone
+				// keeps what is stored, and a step left alone writes nothing.
+				const patch = {}
+				for (const field of this.fieldsFor(step)) {
+					if (Object.hasOwn(this.configModel, field.key)) {
 						patch[field.key] = this.configModel[field.key]
 					}
+				}
+				if (Object.keys(patch).length === 0) {
+					return true
+				}
+				try {
 					await this.saveConfig(patch)
 					this.localDone[step.id] = true
 					return true
@@ -1455,6 +1467,18 @@ export default {
 	margin: 0;
 	font-size: 15px;
 	line-height: 1.5;
+}
+
+.cn-setup-step__choices--titled :deep(.cn-choice-cards__legend) {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
 }
 
 .cn-setup-step__note {
