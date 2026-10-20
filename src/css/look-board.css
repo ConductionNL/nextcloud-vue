@@ -282,6 +282,52 @@
 	color: var(--color-primary-element-text);
 }
 
+/* A button that is a link (`href`, such as "Documentatie" or a settings card's
+   "Activiteit koppelen") keeps the button's ink and draws no underline, as
+   the boards draw it (DqInstellingenAlgemeen, DqVthInstellingen). The
+   nldesign theme paints every `<a>` in its link colour with an underline,
+   with `!important`, through its link tokens and the surface ink; the button
+   hands it the values those rules read.
+   @spec openspec/changes/board-link-buttons-keep-button-ink/specs/board-link-buttons-keep-button-ink/spec.md#requirement-a-board-button-that-is-a-link-keeps-the-button-ink */
+.cn-look-board a.button-vue:not(.cn-look-nextcloud *):not(.vue-crumb *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
+	text-decoration: none;
+}
+
+.cn-look-board a.button-vue--primary:not(.cn-look-nextcloud *):not(.vue-crumb *),
+.cn-look-board a.button-vue--vue-primary:not(.cn-look-nextcloud *):not(.vue-crumb *) {
+	--nldesign-color-on-surface: var(--color-primary-element-text);
+	--nldesign-component-link-color: var(--color-primary-element-text);
+}
+
+/* A settings card's actions ("Checklist toevoegen") are neutral secondary
+   buttons, as on a page header: the main ink at 14px/600 on the main
+   background with the control border, not Nextcloud's primary tint.
+   @spec openspec/changes/board-link-buttons-keep-button-ink/specs/board-link-buttons-keep-button-ink/spec.md#requirement-a-settings-cards-actions-are-neutral-buttons */
+.cn-look-board .cn-settings-section__actions:not(.cn-look-nextcloud *) {
+	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-secondary-action-color: var(--color-main-text);
+	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
+	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
+}
+
+.cn-look-board .cn-settings-section__actions .button-vue--secondary:not(.cn-look-nextcloud *),
+.cn-look-board .cn-settings-section__actions .button-vue--vue-secondary:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+	border: 1px solid var(--cn-board-control-border);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-settings-section__actions .button-vue--secondary:not(.cn-look-nextcloud *):hover,
+.cn-look-board .cn-settings-section__actions .button-vue--vue-secondary:not(.cn-look-nextcloud *):hover {
+	background: var(--color-background-hover);
+}
+
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
 /* The board draws a page's secondary actions as neutral 40px buttons: the
    main background, a grey border, the main text at 600 (DqZaak "Bericht",
