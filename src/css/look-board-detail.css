@@ -218,24 +218,27 @@
    widget's 4px pad is room for the 32px circles, which the bars variant does
    not draw), the label 8px under its bar and the date 8px under the label at
    the normal line height, open steps muted and the done and current ones in
-   the main text. Each hands its ink to --nldesign-color-on-surface, which a
-   theme that forces the body ink onto every span (thematiq) reads instead. */
+   the main text. Each sets its ink as `color`, and also hands it to
+   --nldesign-color-on-surface for a theme that still forces the body ink. */
 .cn-look-board .cn-stages-widget:has(> .cn-stages-widget__bars):not(.cn-look-nextcloud *) {
 	padding: 0;
 }
 
 .cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-label:not(.cn-look-nextcloud *) {
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	color: var(--color-text-maxcontrast);
 	line-height: normal;
 }
 
 .cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-step--done .cn-stages-widget__bar-label:not(.cn-look-nextcloud *),
 .cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-step--current .cn-stages-widget__bar-label:not(.cn-look-nextcloud *) {
 	--nldesign-color-on-surface: var(--color-main-text);
+	color: var(--color-main-text);
 }
 
 .cn-look-board .cn-stages-widget__bars .cn-stages-widget__bar-date:not(.cn-look-nextcloud *) {
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	color: var(--color-text-maxcontrast);
 	line-height: normal;
 }
 
@@ -701,21 +704,24 @@
 	font-size: 13px;
 }
 
-/* Done and open steps are muted, the current one in the main text. Each hands
-   its ink to --nldesign-color-on-surface, which a theme that forces the body
-   ink onto every li and span (thematiq) reads instead. */
+/* Done and open steps are muted, the current one in the main text. Each sets
+   its ink as `color`, and also hands it to --nldesign-color-on-surface for a
+   theme that still forces the body ink. */
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__item,
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__hint,
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__after {
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__item--current {
 	--nldesign-color-on-surface: var(--color-main-text);
+	color: var(--color-main-text);
 }
 
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__item--current .cn-next-step-card__hint {
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	color: var(--color-text-maxcontrast);
 }
 
 /* ---- History: the activity tab ------------------------------------------ */

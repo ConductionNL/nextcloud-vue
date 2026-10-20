@@ -292,6 +292,7 @@
    @spec openspec/changes/board-toolbar-buttons-theme/specs/board-toolbar-buttons-theme/spec.md#requirement-board-toolbar-buttons-are-neutral-under-a-theme */
 .cn-look-board .cn-actions-bar:not(.cn-look-nextcloud *) {
 	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-color: var(--color-main-text);
 	--nldesign-component-button-secondary-action-color: var(--color-main-text);
 	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
 	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
