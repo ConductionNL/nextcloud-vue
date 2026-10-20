@@ -1064,6 +1064,7 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
+import { generatedPageFilterOptions } from '../../utils/periodOptions.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
@@ -1747,8 +1748,10 @@ export default {
 		 * from OpenRegister objects (value `id`, label `title` or `name` by
 		 * default; tokens resolve). `clearable: true` lets the reader clear the
 		 * select back to "all" (`placeholder`, e.g. "All case types"), which
-		 * writes null and seeds nothing. Empty (the default) renders no
-		 * controls and leaves the context untouched.
+		 * writes null and seeds nothing. `type: 'quarter'` generates its
+		 * options: the current quarter first, then `count - 1` (default 7)
+		 * before it, valued `YYYY-Qn` and seeded with the current one. Empty
+		 * (the default) renders no controls and leaves the context untouched.
 		 *
 		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
 		 */
@@ -2933,7 +2936,8 @@ export default {
 				if (this.workspaceContext[pf.key] !== undefined) {
 					continue
 				}
-				const fallback = (pf.options && pf.options.length && pf.clearable !== true) ? pf.options[0].value : undefined
+				const listed = Array.isArray(pf.options) ? pf.options : generatedPageFilterOptions(pf)
+				const fallback = (listed && listed.length && pf.clearable !== true) ? listed[0].value : undefined
 				const value = pf.default !== undefined ? pf.default : fallback
 				if (value !== undefined) {
 					this.workspaceContext[pf.key] = value
@@ -2965,7 +2969,7 @@ export default {
 		 * @return {Array<{value: (string|number), label: string}>}
 		 */
 		pageFilterSegments(pf) {
-			const options = Array.isArray(pf.options) ? pf.options : (this.pageFilterFetched[pf.key] || [])
+			const options = Array.isArray(pf.options) ? pf.options : (generatedPageFilterOptions(pf) || this.pageFilterFetched[pf.key] || [])
 			return options.map((o) => ({ value: o.value, label: o.label ? this.effectiveTranslate(o.label) : String(o.value) }))
 		},
 

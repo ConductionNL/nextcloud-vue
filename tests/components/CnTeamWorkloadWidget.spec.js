@@ -57,9 +57,9 @@ const CONTENT = {
  * @param {object} [content] The content.
  * @return {Promise<object>} The wrapper.
  */
-async function mountWidget(content = CONTENT) {
+async function mountWidget(content = CONTENT, router = undefined) {
 	const { default: CnTeamWorkloadWidget } = await import('../../src/components/CnTeamWorkloadWidget/CnTeamWorkloadWidget.vue')
-	const w = mount(CnTeamWorkloadWidget, { props: { content }, global: { provide: { cnTranslate: (s) => s } } })
+	const w = mount(CnTeamWorkloadWidget, { props: { content }, global: { provide: { cnTranslate: (s) => s }, mocks: router ? { $router: router } : {} } })
 	await flushPromises()
 	return w
 }
@@ -101,6 +101,42 @@ describe('CnTeamWorkloadWidget', () => {
 	it('measures the bar against the highest count without a capacity', async () => {
 		const w = await mountWidget({ ...CONTENT, capacity: undefined })
 		expect(rows(w)[1].find('.cn-team-workload__bar-fill').attributes('style')).toContain('width: 100%')
+	})
+
+	it('has no buttons without a rowRoute', async () => {
+		const w = await mountWidget()
+		expect(w.find('button.cn-team-workload__row').exists()).toBe(false)
+	})
+
+	it('opens a person\'s work from their row with a rowRoute name', async () => {
+		const router = { push: jest.fn() }
+		const w = await mountWidget({ ...CONTENT, rowRoute: 'Cases' }, router)
+		const fatma = rows(w)[1].find('button.cn-team-workload__row')
+		expect(fatma.attributes('type')).toBe('button')
+		await fatma.trigger('click')
+		expect(router.push).toHaveBeenCalledWith({ name: 'Cases', query: { assignee: 'fatma' } })
+	})
+
+	it('fills {user} in a rowRoute location', async () => {
+		const { routeForMember } = await import('../../src/components/CnTeamWorkloadWidget/CnTeamWorkloadWidget.vue')
+		expect(routeForMember({ name: 'Cases', query: { assignee: '{user}', isFinalStatus: 'false' } }, undefined, 'tim'))
+			.toEqual({ name: 'Cases', params: {}, query: { assignee: 'tim', isFinalStatus: 'false' } })
+		expect(routeForMember('Cases', 'handler', 'tim')).toEqual({ name: 'Cases', query: { handler: 'tim' } })
+		expect(routeForMember(null, undefined, 'tim')).toBeNull()
+	})
+
+	it('renders nothing for a refused read when hideWhenEmpty is set', async () => {
+		mockGet.mockImplementation(async (url) => {
+			if (url.includes('/apps/dossiq/api/work-queue/workload')) {
+				throw Object.assign(new Error('403'), { response: { status: 403 } })
+			}
+			return { data: { ocs: { data: [] } } }
+		})
+		const hidden = await mountWidget({ ...CONTENT, hideWhenEmpty: true })
+		expect(hidden.find('[data-testid="cn-team-workload"]').exists()).toBe(false)
+
+		const shown = await mountWidget(CONTENT)
+		expect(shown.find('[data-testid="cn-team-workload"]').text()).toBe('No one in the team')
 	})
 
 	it('is registered as the team-workload widget type', async () => {

@@ -388,7 +388,8 @@
 								"properties": {
 									"key": { "type": "string", "description": "Workspace-context key written on change (the `@page.<key>` / `@workspace.<key>` token name)." },
 									"label": { "type": "string", "description": "Optional control label (i18n key or plain text)." },
-									"type": { "type": "string", "enum": ["select"], "default": "select", "description": "Control type. Closed enum — \"select\" only for now." },
+									"type": { "type": "string", "enum": ["select", "quarter"], "default": "select", "description": "Control type. \"quarter\" generates its options: the current quarter first, then `count - 1` before it, valued YYYY-Qn." },
+									"count": { "type": "integer", "minimum": 1, "description": "With type \"quarter\": how many quarters to offer (default 8)." },
 									"default": { "type": ["string", "number"], "description": "Initial value seeded into the context on mount. Defaults to the first option's value when omitted." },
 									"options": {
 										"type": "array",

@@ -73,6 +73,16 @@ describe('CnDashboardPage — pageFilters', () => {
 		expect(wrapper.vm.workspaceContext.period).toBe('last-30')
 	})
 
+	it('offers a quarter filter the current quarter first and seeds it', () => {
+		const wrapper = mountDash({ pageFilters: [{ key: 'quarter', label: 'Quarter', type: 'quarter', count: 4 }] })
+		const now = new Date()
+		const current = `${now.getFullYear()}-Q${Math.floor(now.getMonth() / 3) + 1}`
+		expect(wrapper.vm.workspaceContext.quarter).toBe(current)
+		const values = wrapper.findAll('[data-testid="cn-page-filter-quarter"] .opt').map((o) => o.attributes('data-value'))
+		expect(values).toHaveLength(4)
+		expect(values[0]).toBe(current)
+	})
+
 	it('seeds from the first option when no default is given', () => {
 		const wrapper = mountDash({ pageFilters: [{ key: 'scope', options: [{ value: 'mine', label: 'Mine' }, { value: 'all', label: 'All' }] }] })
 		expect(wrapper.vm.workspaceContext.scope).toBe('mine')

@@ -25,7 +25,15 @@
 		:is="hideWrapper ? 'CnWidgetHostShell' : 'CnWidgetWrapper'"
 		v-bind="hideWrapper ? {} : { title, widgetId, documentationUrl, flush: true, refreshing: epLoading }">
 		<div class="cn-widget-object-table">
-			<CnDataTable ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
+			<!-- An endpoint read that was refused, failed or came back short
+			     says so; a refused or failed read shows no table, so it is
+			     never mistaken for an empty one. -->
+			<CnEndpointNotice
+				v-if="endpointActive"
+				:error="epError"
+				:refused="epRefused"
+				:truncated="epTruncated" />
+			<CnDataTable v-if="!(endpointActive && epError)" ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
 				     (#footer { total, shown }, #empty, #column-<key>, …). The
 				     #row-actions slot is NOT forwarded while the widget renders
@@ -42,6 +50,19 @@
 			<!-- Widget-scoped object-op create affordance: `create` has no row
 			     to mutate, so it renders in the list footer, never inside the
 			     per-row actions menu (ADR-049 / list-widget-enrichment). -->
+			<div v-if="exportCsv && !(endpointActive && epError)" class="cn-widget-object-table__footer">
+				<NcButton
+					variant="tertiary"
+					data-testid="cn-widget-export-csv"
+					:disabled="csvRows.length === 0"
+					@click="downloadCsv">
+					<template #icon>
+						<DownloadIcon :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Export CSV') }}
+				</NcButton>
+			</div>
+
 			<div v-if="createActions.length > 0" class="cn-widget-object-table__footer">
 				<NcButton
 					v-for="action in createActions"
@@ -80,6 +101,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
+import DownloadIcon from 'vue-material-design-icons/Download.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
@@ -90,7 +112,9 @@ import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { compileRowClass } from '../../utils/rowClassRules.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
+import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { rowsToCsv } from '../CnIndexPage/rowsToCsv.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 // Chrome-less pass-through used when `hideWrapper` is set (see hostShell.js
@@ -140,7 +164,7 @@ import { CnWidgetHostShell } from './hostShell.js'
 export default {
 	name: 'CnWidgetObjectTable',
 
-	components: { CnDataTable, CnWidgetWrapper, CnWidgetHostShell, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
+	components: { CnDataTable, CnEndpointNotice, DownloadIcon, CnWidgetWrapper, CnWidgetHostShell, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
 
 	inject: {
 		/**
@@ -345,6 +369,26 @@ export default {
 		},
 
 		/**
+		 * Show an "Export CSV" button under the table that downloads the rows
+		 * it holds, one column per table column headed by its label. The
+		 * values are the row values, not the formatted cell text, so a
+		 * spreadsheet can compute with them.
+		 */
+		exportCsv: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The downloaded file's name without `.csv`. Defaults to the title,
+		 * slugged, else `export`.
+		 */
+		exportFileName: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Route NAME for row-click navigation. Mapped onto CnDataTable's
 		 * `rowClickRoute` as `{ name: rowRoute, params: { id } }` with the
 		 * row's `id` (or `@self.id`). Empty (the default) = no navigation.
@@ -468,7 +512,7 @@ export default {
 		// External rows always win — and suppress the request entirely (the
 		// pre-existing "when rows are provided, no API calls are made"
 		// contract), so the getter resolves to null while `rows` are supplied.
-		const { data, loading, error, refetch } = useEndpointSource(
+		const { data, loading, error, refused, truncated, refetch } = useEndpointSource(
 			() => ((props.rows && props.rows.length > 0) ? null : props.endpointSource),
 			{
 				ctx: () => ({
@@ -479,7 +523,7 @@ export default {
 				widgetId: () => props.widgetId,
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
+		return { epData: data, epLoading: loading, epError: error, epRefused: refused, epTruncated: truncated, epRefetch: refetch }
 	},
 
 	data() {
@@ -577,6 +621,16 @@ export default {
 		 */
 		endpointRows() {
 			return Array.isArray(this.epData) ? this.epData : []
+		},
+
+		/**
+		 * The rows the CSV export writes: the endpoint rows, else the
+		 * external rows.
+		 *
+		 * @return {Array<object>}
+		 */
+		csvRows() {
+			return this.endpointActive ? this.endpointRows : (this.rows || [])
 		},
 
 		/**
@@ -729,7 +783,7 @@ export default {
 		 * @return {object}
 		 */
 		innerProps() {
-			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, schema, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, schema, exportCsv, exportFileName, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) {
@@ -873,6 +927,30 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Download the rows as CSV with the table's columns (#exportCsv).
+		 *
+		 * @return {void}
+		 */
+		downloadCsv() {
+			const columns = (this.innerProps.columns || this.columns || [])
+				.map((col) => (typeof col === 'string' ? { key: col, label: col } : col))
+			const csv = rowsToCsv(this.csvRows, columns)
+			const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+			const url = URL.createObjectURL(blob)
+			const link = document.createElement('a')
+			const name = String(this.exportFileName || this.title || 'export').trim().toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'export'
+			link.href = url
+			link.download = `${name}.csv`
+			document.body.appendChild(link)
+			link.click()
+			link.remove()
+			URL.revokeObjectURL(url)
+		},
+
 		/**
 		 * Entry point for every declarative action trigger (row menu or
 		 * footer create button). `object-op` `delete` ALWAYS confirms;

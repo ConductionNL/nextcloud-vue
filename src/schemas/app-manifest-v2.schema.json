@@ -5179,7 +5179,8 @@
 								"properties": {
 									"key": { "type": "string", "minLength": 1, "description": "Workspace-context key written on change (the `@page.<key>` / `@workspace.<key>` token name)." },
 									"label": { "type": "string", "description": "Control label (i18n key or plain text)." },
-									"type": { "type": "string", "enum": ["select"], "default": "select", "description": "Control type, carried over from v1." },
+									"type": { "type": "string", "enum": ["select", "quarter"], "default": "select", "description": "Control type, carried over from v1. \"quarter\" generates its options: the current quarter first, then `count - 1` before it, valued YYYY-Qn." },
+									"count": { "type": "integer", "minimum": 1, "description": "With type \"quarter\": how many quarters to offer (default 8)." },
 									"control": { "type": "string", "enum": ["select", "segmented"], "default": "select", "description": "How the filter is drawn: a select, or a compact segmented group." },
 									"clearable": { "type": "boolean", "default": false, "description": "Lets the reader clear the select back to all; `placeholder` names that state (2.130.0)." },
 									"placeholder": { "type": "string", "description": "What a cleared select shows, e.g. \"All case types\", through the app's translate (2.130.0)." },

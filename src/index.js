@@ -393,7 +393,7 @@ export { createOpenRegisterSource } from './components/index.js'
 // Workplace dashboard primitives (openspec: workplace-dashboard-primitives):
 // the week strip and stacked bar widgets with their forms, the segmented
 // control, and the brand stripe.
-export { CnBrandStripe, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidgetForm, CnTeamWorkloadWidget, CnWeekStripWidget, CnWeekStripWidgetForm } from './components/index.js'
+export { CnBrandStripe, CnCountTablesReport, CnEndpointNotice, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidgetForm, CnTeamWorkloadWidget, CnWeekStripWidget, CnWeekStripWidgetForm } from './components/index.js'
 
 // Page components the page renderer mounts by `pages[].type` that were missing
 // from this entry. A component reachable from a manifest but not importable

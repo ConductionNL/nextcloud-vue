@@ -32,7 +32,16 @@
 				{{ view.label ? hostTranslate(view.label) : view.key }}
 			</button>
 		</div>
-		<div v-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
+		<!-- A refused or failed endpoint read shows its sentence instead of
+		     the chart; a short one keeps the chart and says it is short. -->
+		<CnEndpointNotice
+			v-if="!epError && epTruncated"
+			:truncated="true" />
+		<CnEndpointNotice
+			v-if="epError"
+			:error="epError"
+			:refused="epRefused" />
+		<div v-else-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
 			{{ emptyLabel }}
 		</div>
 		<!-- Sizing box for the apexcharts mount. apexcharts resolves a
@@ -150,6 +159,7 @@ import { safeCurrencyCode } from '../../utils/formatMetric.js'
 import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
+import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
 
 /**
  * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
@@ -340,6 +350,8 @@ function formatterFor(vf) {
 
 export default {
 	name: 'CnChartWidget',
+
+	components: { CnEndpointNotice },
 
 	inject: {
 		/**
@@ -860,7 +872,7 @@ export default {
 			() => props.endpointSource,
 			{ ctx: chartTokenCtx },
 		)
-		return { dsData: data, dsRefetch: refetch, epData: ep.data, epRefetch: ep.refetch, chartTokenCtx }
+		return { dsData: data, dsRefetch: refetch, epData: ep.data, epError: ep.error, epRefused: ep.refused, epTruncated: ep.truncated, epRefetch: ep.refetch, chartTokenCtx }
 	},
 
 	data() {

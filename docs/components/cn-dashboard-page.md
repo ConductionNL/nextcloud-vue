@@ -376,6 +376,14 @@ A filter can read its options instead of listing them, as the case-type filter o
 
 `optionsFrom` is `{ register, schema, filter? }` (OpenRegister objects; tokens in `filter` resolve) or `{ url, params?, responsePath? }` (an app endpoint). `valueField` and `labelField` pick the option's value and label (default the `id` or uuid, and `title` or `name`). `clearable: true` lets the reader clear the select back to all: the context key becomes `null` and nothing is seeded on mount, and `placeholder` says what an empty select means. A filter that is not clearable is seeded with the first option read.
 
+### A quarter filter (`type: "quarter"`)
+
+```json
+{ "key": "quarter", "label": "Quarter", "type": "quarter", "count": 8 }
+```
+
+The filter generates its own options: the current quarter first, then the `count - 1` quarters before it (default 8 in all). Each is valued `YYYY-Qn`, the form a quarterly report endpoint reads, and labelled "Q2 2026". The current quarter is seeded on mount, so a widget reading `@workspace.quarter` has a value on its first read.
+
 ## Built-in page-level Actions menu
 
 The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu.md) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — next to the edit toggle. This is the **page-level** menu, distinct from each widget's own menu (the per-widget ones emit `@widget-refresh` / `@widget-request-feature`).

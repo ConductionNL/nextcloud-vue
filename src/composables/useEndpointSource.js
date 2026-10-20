@@ -336,6 +336,44 @@ export async function fetchEndpointSource(config, ctx, opts) {
 }
 
 /**
+ * The sentence a failed endpoint read is shown with: the server's own
+ * `message` (a refusal says why), else the transport error's message.
+ *
+ * @param {unknown} err The rejected request's error.
+ * @return {string} The message, 'error' when nothing says more.
+ */
+export function endpointErrorMessage(err) {
+	const serverMessage = err?.response?.data?.message
+	if (typeof serverMessage === 'string' && serverMessage.trim() !== '') {
+		return serverMessage
+	}
+	return (err && err.message) || 'error'
+}
+
+/**
+ * Whether a failed endpoint read was a refusal (401 or 403) rather than a
+ * failure, so a widget can say the reader may not see it instead of "error".
+ *
+ * @param {unknown} err The rejected request's error.
+ * @return {boolean} True for a 401 or 403 answer.
+ */
+export function isEndpointRefusal(err) {
+	const status = err?.response?.status
+	return status === 401 || status === 403
+}
+
+/**
+ * Whether a response body says it is short: a top-level `truncated: true`,
+ * which an endpoint sends when it stopped reading at a limit.
+ *
+ * @param {unknown} body The raw response body.
+ * @return {boolean} True when the body declares itself truncated.
+ */
+export function isTruncatedBody(body) {
+	return Boolean(body && typeof body === 'object' && body.truncated === true)
+}
+
+/**
  * Unwrap a value that may be a plain value, a ref, or a getter function.
  *
  * @param {unknown} v The wrapped value.
@@ -349,7 +387,10 @@ function read(v) {
  * Reactive endpoint data binding.
  *
  * Resolves the `endpointSource` block into reactive
- * `{ data, loading, error, refetch }`. The request signature (url + resolved
+ * `{ data, loading, error, refused, truncated, refetch }`. `error` carries the
+ * server's `message` when it sent one, `refused` is true when the read was
+ * answered 401/403, and `truncated` mirrors a top-level `truncated: true` in
+ * the response body. The request signature (url + resolved
  * params + method) is watched, so a change in the page-level workspace
  * context (the dashboard date-range pills publishing `dateFrom` / `dateTo` /
  * `datePreset`, a page filter publishing `period`, …) re-resolves the tokens
@@ -368,13 +409,15 @@ function read(v) {
  * @param {object|import('vue').Ref<object>|(() => object)} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
  * @param {string|import('vue').Ref<string>|(() => string)} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
  * @param {import('vue').Ref<unknown>|(() => unknown)} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
- * @return {{data: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
+ * @return {{data: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refused: import('vue').Ref<boolean>, truncated: import('vue').Ref<boolean>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
  */
 export function useEndpointSource(source, options) {
 	const opts = options || {}
 	const data = ref(null)
 	const loading = ref(false)
 	const error = ref('')
+	const refused = ref(false)
+	const truncated = ref(false)
 	// Whether the last read was not attempted because a required token is
 	// unset. The three refs above cannot express it: a blocked read looks
 	// exactly like the instant before the first request.
@@ -415,6 +458,8 @@ export function useEndpointSource(source, options) {
 	async function load(force, refresh) {
 		const cfg = read(source)
 		const seq = ++fetchSeq
+		refused.value = false
+		truncated.value = false
 		if (!cfg || !cfg.url) {
 			data.value = null
 			error.value = ''
@@ -442,11 +487,13 @@ export function useEndpointSource(source, options) {
 			}
 			const payload = getByPath(body, request.responsePath)
 			data.value = payload === undefined ? null : payload
+			truncated.value = isTruncatedBody(body)
 		} catch (e) {
 			if (seq !== fetchSeq) {
 				return
 			}
-			error.value = (e && e.message) || 'error'
+			error.value = endpointErrorMessage(e)
+			refused.value = isEndpointRefusal(e)
 			data.value = null
 		} finally {
 			if (seq === fetchSeq) {
@@ -511,5 +558,5 @@ export function useEndpointSource(source, options) {
 		})
 	}
 
-	return { data, loading, error, blocked, refetch }
+	return { data, loading, error, refused, truncated, blocked, refetch }
 }

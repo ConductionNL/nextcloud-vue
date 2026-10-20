@@ -2149,7 +2149,14 @@
     "Last run: {name}, {date}": "Laatst uitgevoerd: {name}, {date}",
     "This record has no macros": "Er zijn geen macro's voor dit item",
     "Running …": "Bezig …",
-    "Execute": "Uitvoeren"
+    "Execute": "Uitvoeren",
+    "Export CSV": "CSV exporteren",
+    "Not every record could be read, so these figures may be incomplete.": "Niet alle gegevens konden worden gelezen, dus deze cijfers zijn mogelijk onvolledig.",
+    "Download CSV": "CSV downloaden",
+    "Count": "Aantal",
+    "The report could not be read.": "De rapportage kon niet worden gelezen.",
+    "Nothing to count": "Niets om te tellen",
+    "Q{quarter} {year}": "K{quarter} {year}"
   },
   "plurals": {
     "{count} member": [

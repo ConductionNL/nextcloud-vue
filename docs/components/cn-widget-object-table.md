@@ -118,6 +118,10 @@ REST endpoint computes (e.g. a per-source performance report):
 - `columns` / formatters / `rowRoute` / `actions` apply unchanged on
   top of endpoint rows.
 
+### Refused, failed and short answers
+
+An endpoint read that is refused (401/403) shows the server's `message` as a warning and no table; a failed read shows its message as an error. A table is never drawn empty for a read that did not answer, so "no rows" keeps meaning no rows. A response body with a top-level `truncated: true` keeps the table and adds a note that the figures may be incomplete. All three come from [CnEndpointNotice](./cn-endpoint-notice.md).
+
 ## Declarative actions
 
 `actions[]` (default `[]`) takes the unified manifest action shape
@@ -154,6 +158,8 @@ REST endpoint computes (e.g. a per-source performance report):
 | `hideHeader` | `Boolean` | Hide the column-header row (compact list surface, default `false`). |
 | `borderless` | `Boolean` | Drop CnDataTable's card chrome (default `false`). |
 | `fitWidth` | `Boolean` | Fit the table to the tile (default `true`): the title column (a column's `grow: true`, else `title` or `name`, else the first) shrinks and ends in an ellipsis, so trailing columns such as a date stay visible. Pass `false` for the table's own auto layout. |
+| `exportCsv` | `Boolean` | Show an "Export CSV" button under the table that downloads the rows it holds, one column per table column headed by its label. Values are the row values, not the formatted cell text. Default `false`. |
+| `exportFileName` | `String` | The downloaded file's name without `.csv`. Defaults to the title, slugged, else `export`. |
 | `rowRoute` | `String` | Route NAME for row-click navigation — mapped to CnDataTable's `rowClickRoute` with `{ params: { id } }`. |
 | `viewAllRoute` | `Object` | vue-router location for the "View all" footer link (default `null`). |
 | `pageSize` | `Number` | Rows per page: the board's pager under the table ("4 of 7", page buttons, Next), forwarded to CnDataTable. It pages the rows the widget holds; with a `source`, `source.limit` sets how many are read. `0` (default) shows no pager. |

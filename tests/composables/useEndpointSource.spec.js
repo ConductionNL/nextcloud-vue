@@ -394,6 +394,45 @@ describe('useEndpointSource — reactive binding', () => {
 		expect(data.value).toBeNull()
 	})
 
+	it('shows the server refusal sentence on a 403 and says it was refused', async () => {
+		const err = Object.assign(new Error('Request failed with status code 403'), {
+			response: { status: 403, data: { message: 'This report covers every case.' } },
+		})
+		axios.get.mockRejectedValue(err)
+		const { data, error, refused } = useEndpointSource({ url: '/api/report' })
+		await flush()
+		expect(error.value).toBe('This report covers every case.')
+		expect(refused.value).toBe(true)
+		expect(data.value).toBeNull()
+	})
+
+	it('keeps a failure apart from a refusal', async () => {
+		const err = Object.assign(new Error('Request failed with status code 500'), {
+			response: { status: 500, data: { message: 'Report generation failed' } },
+		})
+		axios.get.mockRejectedValue(err)
+		const { error, refused } = useEndpointSource({ url: '/api/report' })
+		await flush()
+		expect(error.value).toBe('Report generation failed')
+		expect(refused.value).toBe(false)
+	})
+
+	it('says the answer is short when the body declares truncated: true', async () => {
+		axios.get.mockResolvedValue({ data: { truncated: true, rows: [{ id: 1 }] } })
+		const { data, truncated } = useEndpointSource({ url: '/api/report', responsePath: 'rows' })
+		await flush()
+		expect(data.value).toEqual([{ id: 1 }])
+		expect(truncated.value).toBe(true)
+	})
+
+	it('is not truncated for a body that does not say so', async () => {
+		axios.get.mockResolvedValue({ data: { rows: [] } })
+		const { truncated, refused } = useEndpointSource({ url: '/api/report', responsePath: 'rows' })
+		await flush()
+		expect(truncated.value).toBe(false)
+		expect(refused.value).toBe(false)
+	})
+
 	it('force-refetches past the cache on cn:page:refresh', async () => {
 		axios.get.mockResolvedValue({ data: { v: 1 } })
 		useEndpointSource({ url: '/api/x' })
