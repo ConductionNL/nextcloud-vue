@@ -315,6 +315,7 @@ import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
+import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
@@ -322,6 +323,7 @@ import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { changedKeys } from '../../utils/saveEdited.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
+import { getCurrentUserGroups } from '../../utils/widgetVisibility.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 
 /**
@@ -450,8 +452,11 @@ export default {
 		 *
 		 * `footnote` is a line under the table, through the host translate.
 		 *
+		 * `export` (`{ label?, format?, group? }`) offers the filtered list as a
+		 * download in the card's header; `group` shows it to one group only.
+		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
 		 */
 		content: {
 			type: Object,
@@ -459,7 +464,7 @@ export default {
 		},
 	},
 
-	emits: ['created', 'updated', 'row-click', 'row-aux-click', 'view-all', 'files-dropped'],
+	emits: ['created', 'updated', 'row-click', 'row-aux-click', 'view-all', 'files-dropped', 'header'],
 
 	data() {
 		return {
@@ -1268,6 +1273,7 @@ export default {
 	mounted() {
 		this.fetchRows()
 		this.loadHeadingsIfNeeded()
+		this.offerExport()
 		// A table wider than the widget fits its columns to the width instead of
 		// scrolling sideways (no inner scrollbars).
 		if (typeof ResizeObserver !== 'undefined') {
@@ -1318,6 +1324,48 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Offer `content.export` as a button in the card's header: the list as
+		 * it is filtered here, through OpenRegister's export (which applies its
+		 * own read rights to every row). `group` keeps the button to the members
+		 * of one Nextcloud group, a role such as AI oversight; it hides the
+		 * button, and the export endpoint still decides what anyone may read.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/widget-subtitle-and-list-export/specs/object-list-widget/spec.md#requirement-a-list-can-offer-its-rows-as-an-export
+		 */
+		/**
+		 * The export URL for this list as it is filtered here.
+		 *
+		 * @param {'csv'|'excel'} format The export format.
+		 * @return {string} The URL.
+		 */
+		exportUrl(format) {
+			return buildExportUrl(this.content.register, this.content.schema, this.resolvedFilter, format)
+		},
+
+		async offerExport() {
+			const config = this.content && this.content.export
+			if (!config || typeof config !== 'object' || !this.content.register || !this.content.schema) {
+				return
+			}
+			if (typeof config.group === 'string' && config.group !== '') {
+				const groups = await getCurrentUserGroups().catch(() => [])
+				if (!groups.includes(config.group)) {
+					return
+				}
+			}
+			const format = config.format === 'excel' ? 'excel' : 'csv'
+			const label = typeof config.label === 'string' && config.label !== '' ? (typeof this.cnTranslate === 'function' ? this.cnTranslate(config.label) : config.label) : t('nextcloud-vue', 'Download')
+			this.$emit('header', {
+				action: {
+					label,
+					icon: 'Download',
+					run: () => window.location.assign(this.exportUrl(format)),
+				},
+			})
+		},
+
 		/**
 		 * Move a row one place up or down (the row actions).
 		 *
