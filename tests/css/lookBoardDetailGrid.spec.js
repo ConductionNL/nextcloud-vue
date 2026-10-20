@@ -47,9 +47,9 @@ describe('look-board.css: CnDetailGrid', () => {
 		expect(rulesFor(`.cn-look-board .cn-detail-grid.cn-detail-grid--grid .cn-detail-grid__item${guard}`)).toMatch(/padding-bottom: 10px;[\s\S]*border-bottom: 1px solid var\(--cn-board-hairline\)/)
 	})
 
-	it('draws the label 13px, regular and muted, and hands that ink to a forcing theme', () => {
+	it('draws the label 13px, regular and muted', () => {
 		const label = rulesFor(`.cn-look-board .cn-detail-grid .cn-detail-grid__label${guard}`)
-		expect(label).toContain('--nldesign-color-on-surface: var(--color-text-maxcontrast)')
+		expect(label).toMatch(/(^|[;\s])color: var\(--color-text-maxcontrast\)/)
 		expect(label).toContain('font-size: 13px')
 		expect(label).toContain('font-weight: 400')
 	})

@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.134.0', () => {
+	it('the manifest schema version reads 2.135.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1411,7 +1411,49 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.132.0 adds sortSelectOptions[].source, a sidebar sort order whose rows come from an app endpoint (sidebar-sort-endpoint-source), saved-view overrides with locked filters, profile patches and card parts (saved-view-overrides-v2), and the forms work: a field's optionsFrom, dotted-path fields, the sub-objects editor, list reorder by an order field and the smaller form features (form-small-features).
 		// 2.133.0 adds the field override keys placeholderFrom, requiredWhen, warnWhen, clearWhenHidden, stored, initialWhen, sectionCollapsed, optionSwatches and optionIcons, optionsFrom groupField, where, itemsPath and hideWhenEmpty, and a source that follows another field through @answer (object-list-edit-in-place), the decision-list, retention, plan and work-queue widgets (widgets), and config.searchRefusalHint (index-page).
 		// 2.134.0 adds headerPill.resolve colorField and iconField, a default saved view's icon, and resolve on the board card's pill and the record card's pills (pill-color-field-cards).
-		expect(schema.version).toBe('2.134.0')
+		// 2.135.0 adds $defs.headerAction / headerLinkAction: href with target "_blank" / "_self" on header actions, their children, quick actions and stage actions, a header action that is a real link (header-action-href, nextcloud-vue#1314).
+		expect(schema.version).toBe('2.135.0')
+	})
+
+	it('accepts the 2.135.0 header action href and refuses it with a handler, another type or a bad URL', () => {
+		const withAction = (action) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config: { register: 'r', schema: 's', headerActions: [{ id: 'add', label: 'Add integration', ...action }] } }] })
+		expect(validateManifestV2(withAction({ href: '/apps/integriq/connections?app=stackiq' })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ href: 'https://example.org/docs', target: '_blank' })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ href: 'mailto:support@example.org', target: '_self' })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ href: '/apps/x', handler: 'openConnections' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: '/apps/x', type: 'navigate' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: '/apps/x', target: 'connections' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: 'javascript:alert(1)' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: 'apps/x' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: 'HTTPS://example.org' })).valid).toBe(false)
+		// Without href, `target` keeps naming a destination.
+		expect(validateManifestV2(withAction({ type: 'open-modal', target: 'connections' })).valid).toBe(true)
+	})
+
+	it('takes href on header action children, quick actions and stage actions, but not on row, bulk or navigation actions', () => {
+		const link = { id: 'go', label: 'Go', href: '/apps/x' }
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config: { register: 'r', schema: 's', ...config } }] })
+		const detail = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', ...config } }] })
+		expect(validateManifestV2(index({ headerActions: [{ id: 'more', label: 'More', handler: 'emit', children: [link] }] })).valid).toBe(true)
+		expect(validateManifestV2(index({ headerActions: [{ ...link, children: [{ ...link, id: 'sub' }] }] })).valid).toBe(true)
+		expect(validateManifestV2(index({ headerActions: [{ id: 'more', label: 'More', children: [{ ...link, handler: 'x' }] }] })).valid).toBe(false)
+		expect(validateManifestV2(detail({ quickActions: [link], primaryActionByStage: { open: link } })).valid).toBe(true)
+		expect(validateManifestV2(index({ bulkActions: [link] })).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', actions: [link] }] }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: link } } }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: { id: 'go', label: 'Go', type: 'navigate', target: '/x' } } } }).valid).toBe(true)
+		// Children: a header action's take href, a row, bulk or navigation action's do not.
+		const parent = (children) => ({ id: 'more', label: 'More', handler: 'emit', children })
+		expect(validateManifestV2(index({ bulkActions: [parent([link])] })).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', actions: [parent([link])] }] }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: parent([link]) } } }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: parent([{ id: 'sub', label: 'Sub', handler: 'emit' }]) } } }).valid).toBe(true)
+		expect(validateManifestV2(index({ headerActions: [parent([{ id: 'sub', label: 'Sub', handler: 'emit', unknownKey: 1 }])] })).valid).toBe(false)
+		// Both action defs stay closed and keep the per-type rules.
+		expect(validateManifestV2(index({ bulkActions: [{ id: 'a', label: 'A', unknownKey: 1 }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ bulkActions: [{ id: 'a', label: 'A', type: 'object-op' }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ headerActions: [{ id: 'a', label: 'A', type: 'api-call' }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ headerActions: [{ id: 'a', label: 'A', type: 'api-call', url: '/apps/x/api' }] })).valid).toBe(true)
 	})
 
 	it('accepts the 2.133.0 widgets and searchRefusalHint, and refuses malformed ones', () => {

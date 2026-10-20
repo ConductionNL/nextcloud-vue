@@ -28,7 +28,7 @@ A card names a route by name. A card without a route or a label is left out. Wit
 
 ### Buttons beside the title
 
-`headerButtons` puts buttons beside the title, as board DcRapportages draws "Downloaden". Each is `{ label, action, variant?, icon?, id? }`, and `action` is the id of a `headerActions` entry, in the shape an index page uses: a registry `handler`, `navigate` with a `route`, `type: "navigate"` with a `target` URL (a new tab), `emit`, or `none`. Every click also emits `header-action` `{ action, id }`, except for `none`. Under the board look the buildiq square sits between the secondary buttons and the primary one. Without `headerButtons` the header is unchanged.
+`headerButtons` puts buttons beside the title, as board DcRapportages draws "Downloaden". Each is `{ label, action, variant?, icon?, id? }`, and `action` is the id of a `headerActions` entry, in the shape an index page uses: a registry `handler`, `navigate` with a `route`, `type: "navigate"` with a `target` URL (a new tab), `emit`, or `none`. Every click also emits `header-action` `{ action, id }`, except for `none`. A button naming an entry with `href` is a real link instead, which runs and emits nothing (see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href)). Under the board look the buildiq square sits between the secondary buttons and the primary one. Without `headerButtons` the header is unchanged.
 
 ```json
 "config": {

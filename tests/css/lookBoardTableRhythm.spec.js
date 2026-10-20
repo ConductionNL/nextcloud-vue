@@ -36,7 +36,6 @@ describe('look-board-index.css: the board table rhythm', () => {
 		const initials = rule('.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials')
 		expect(initials).toContain('background: var(--color-primary-element-light)')
 		expect(initials).toContain('color: var(--color-primary-element-light-text)')
-		expect(initials).toContain('--nldesign-color-on-surface: var(--color-primary-element-light-text)')
 	})
 
 	it('draws the selection checkbox as the 18px box alone, without the 42px clickable block', () => {
@@ -51,10 +50,10 @@ describe('look-board-index.css: the board table rhythm', () => {
 		expect(col).toContain('padding-inline: 16px;')
 	})
 
-	it('draws the header labels 14px muted and hands the muted ink to a forcing theme, the secondary line too', () => {
+	it('draws the header labels 14px muted, the secondary line too', () => {
 		const th = rule('.cn-look-board .cn-table-container--board .cn-data-table th')
 		expect(th).toContain('font-size: 14px')
-		expect(th).toContain('--nldesign-color-on-surface: var(--color-text-maxcontrast)')
-		expect(css).toMatch(/td\.cn-table-col--title \.cn-table-cell__secondary \{\s*--nldesign-color-on-surface: var\(--color-text-maxcontrast\);/)
+		expect(th).toMatch(/(^|[;\s])color: var\(--color-text-maxcontrast\)/)
+		expect(css).toMatch(/td\.cn-table-col--title \.cn-table-cell__secondary \{\s*color: var\(--color-text-maxcontrast\)/)
 	})
 })

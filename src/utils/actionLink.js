@@ -9,10 +9,113 @@
  * The rendering component turns it into an `<a href>`; a plain click on an
  * in-app `to` is routed through the router, anything else is the browser's.
  *
+ * A manifest `headerActions[]` entry may carry `href` too; the page turns it
+ * into the final URL with {@link headerActionAsLink} before it renders.
+ *
  * @module utils/actionLink
  */
 
+import { generateUrl, getRootUrl } from '@nextcloud/router'
 import { followLinkClick } from './linkNavigation.js'
+
+/** An absolute URL a manifest link may name, matching the schema's lowercase pattern. */
+const ABSOLUTE_HREF = /^(?:https?:\/\/|mailto:|tel:)/
+
+/** An instance path that already names a Nextcloud entry point, so generateUrl() must not add `/index.php`. */
+const ROUTED_PATH = /^\/(?:index\.php|remote\.php|public\.php|ocs)(?:[/?#]|$)/
+
+/** Bad hrefs already warned about, so a recomputing page warns once per value. */
+const warnedHrefs = new Set()
+
+/**
+ * Entries whose function handler was dropped for their href, warned about
+ * once. Keyed by `id`, else by the declared href and label (behind a NUL, so
+ * no real id collides), so entries without an id each get their own warning
+ * and a recomputing page does not repeat it.
+ */
+const warnedHandlers = new Set()
+
+/**
+ * The URL a manifest `href` points at: an absolute `http(s)`, `mailto:` or
+ * `tel:` URL as written, `//host/...` as written, an instance path that
+ * names an entry point (`/index.php/`, `/remote.php/`, `/public.php/`,
+ * `/ocs/`) under `getRootUrl()` (as written when it already starts with the
+ * root), any other instance path (leading `/`) through `generateUrl()`.
+ *
+ * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-href-resolves-to-a-url-on-this-instance-or-an-allowed-scheme
+ * @param {unknown} href The manifest `href`.
+ * @return {string} The URL, or '' for anything else (a relative path, another scheme).
+ */
+export function resolveManifestHref(href) {
+	if (typeof href !== 'string') {
+		return ''
+	}
+	const value = href.trim()
+	if (ABSOLUTE_HREF.test(value) || value.startsWith('//')) {
+		return value
+	}
+	const root = getRootUrl()
+	if (root && value.startsWith(root) && ROUTED_PATH.test(value.slice(root.length))) {
+		return value
+	}
+	if (ROUTED_PATH.test(value)) {
+		return root + value
+	}
+	if (value.startsWith('/')) {
+		return generateUrl(value)
+	}
+	return ''
+}
+
+/**
+ * A manifest header action in its link form. An entry with `href` gets the
+ * resolved URL and an anchor `target` (`_blank` when the manifest says so,
+ * else `_self`), and loses its `handler`: a link only navigates. Its
+ * `children` are resolved the same way. An `href` that resolves to nothing is
+ * dropped with a warning, along with a handler name, so the page renders its
+ * usual button for the entry (an index or reports page still emits
+ * `header-action` for it); a function `handler` (JS composition) is kept
+ * then and still runs. An entry with nothing to resolve, a function-valued
+ * `href` included, is returned as is. When the `href` does resolve, a
+ * function `handler` is dropped like any other, with a one-time warning.
+ *
+ * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+ * @param {object} entry The manifest header action.
+ * @return {object} The entry, or a copy in link form.
+ */
+export function headerActionAsLink(entry) {
+	if (!entry || typeof entry !== 'object') {
+		return entry
+	}
+	let resolved = entry
+	if (Array.isArray(entry.children)) {
+		const children = entry.children.map(headerActionAsLink)
+		if (children.some((child, index) => child !== entry.children[index])) {
+			resolved = { ...entry, children }
+		}
+	}
+	if (typeof entry.href !== 'string' || entry.href === '') {
+		return resolved
+	}
+	const { href: declared, ...withoutHref } = resolved
+	const { handler: _handler, ...rest } = withoutHref
+	const href = resolveManifestHref(declared)
+	if (!href) {
+		if (!warnedHrefs.has(declared)) {
+			warnedHrefs.add(declared)
+			// eslint-disable-next-line no-console
+			console.warn(`headerActions[].id "${entry.id}": href "${declared}" is neither an http(s), mailto or tel URL nor an instance path starting with "/"; the entry renders without a link`)
+		}
+		return typeof entry.handler === 'function' ? withoutHref : rest
+	}
+	const handlerKey = entry.id ?? `\u0000${declared}|${entry.label ?? ''}`
+	if (typeof entry.handler === 'function' && !warnedHandlers.has(handlerKey)) {
+		warnedHandlers.add(handlerKey)
+		// eslint-disable-next-line no-console
+		console.warn(`headerActions[].id "${entry.id}": an entry with href never runs a handler, so its function handler is dropped`)
+	}
+	return { ...rest, href, target: entry.target === '_blank' ? '_blank' : '_self' }
+}
 
 /**
  * The href of an in-app router location. A string is a route PATH and goes
