@@ -995,6 +995,7 @@
 					:swimlaneField="board.swimlaneField || ''"
 					:dueRule="board.dueRule || null"
 					:cardRoles="board.card || null"
+					:pillLooks="refLooks"
 					:colorField="board.colorField || ''"
 					:sumField="board.sumField || ''"
 					:sumFormat="boardSumFormat"
@@ -1107,6 +1108,7 @@
 					:clickToView="rowClickOpens"
 					:cardFields="resolvedCardFields"
 					:cardLayout="cardLayout"
+					:pillLooks="refLooks"
 					:cardFieldColumns="cardFieldColumns"
 					:accentOf="cardAccent"
 					:selectedIds="internalSelectedIds"
@@ -6101,11 +6103,12 @@ export default {
 		 * @return {Object<string, string[]>} Distinct ids per column key.
 		 */
 		/**
-		 * The badge columns (table columns and the list view's leading and
-		 * trailing cells) that take their tone and icon from the record they
-		 * point at (`widget: 'badge'`, `widgetProps.resolve: { colorField?,
-		 * iconField?, register?, schema? }`). Register and schema default to the
-		 * column's reference in the schema.
+		 * The pills that take their tone and icon from the record they point at
+		 * (`resolve: { colorField?, iconField?, register?, schema? }`): badge
+		 * columns and the list view's leading and trailing cells
+		 * (`widgetProps.resolve`), the board card's pill (`board.card.resolve`)
+		 * and the record card's pills (`cardLayout` headPill, footerPill, chips).
+		 * Register and schema default to the field's reference in the schema.
 		 *
 		 * @return {Array<{key: string, register: string, schema: string, colorField: string, iconField: string}>} The specs.
 		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-badge-cell-takes-its-tone-and-icon-from-the-referenced-record
@@ -6113,10 +6116,21 @@ export default {
 		refLookSpecs() {
 			const list = this.listConfig || {}
 			const listCells = [list.leading, ...(Array.isArray(list.trailing) ? list.trailing : [list.trailing])]
+			const badgeSources = [...this.tableColumns, ...listCells]
+				.filter((c) => c && typeof c === 'object' && c.widget === 'badge' && c.widgetProps)
+				.map((c) => ({ key: c.key, resolve: c.widgetProps.resolve }))
+			// The board card's pill (`board.card.pill` with `board.card.resolve`)
+			// and the record card's pills (`cardLayout` headPill, footerPill,
+			// chips, each with its own `resolve`).
+			const card = this.board && this.board.card && typeof this.board.card === 'object' ? this.board.card : {}
+			const layout = this.cardLayout && typeof this.cardLayout === 'object' ? this.cardLayout : {}
+			const layoutPills = [layout.headPill, layout.footerPill, ...(Array.isArray(layout.chips) ? layout.chips : [])]
+				.filter((def) => def && typeof def === 'object')
+				.map((def) => ({ key: def.field, resolve: def.resolve }))
 			const seen = new Set()
-			const cols = [...this.tableColumns, ...listCells].filter((c) => {
-				const wanted = c && typeof c === 'object' && c.widget === 'badge' && c.widgetProps && c.widgetProps.resolve
-					&& (c.widgetProps.resolve.colorField || c.widgetProps.resolve.iconField) && !seen.has(c.key)
+			const cols = [...badgeSources, { key: card.pill, resolve: card.resolve }, ...layoutPills].filter((c) => {
+				const wanted = typeof c.key === 'string' && c.key !== '' && c.resolve && typeof c.resolve === 'object'
+					&& (c.resolve.colorField || c.resolve.iconField) && !seen.has(c.key)
 				if (wanted) {
 					seen.add(c.key)
 				}
@@ -6128,7 +6142,7 @@ export default {
 			const fields = this.effectiveSchema ? fieldsFromSchema(this.effectiveSchema, { includeReadOnly: true }) : []
 			const specs = []
 			for (const col of cols) {
-				const resolve = col.widgetProps.resolve
+				const resolve = col.resolve
 				const field = fields.find((f) => f.key === col.key)
 				const ref = (field && field.reference) || {}
 				const register = resolve.register || ref.register || (typeof this.register === 'string' ? this.register : '')

@@ -17,3 +17,9 @@
 - **files**: `src/utils/savedViewMenu.js`, `src/components/CnIndexPage/CnIndexPage.vue`
 - [x] Implement: entries keep and sync `icon`; the menu shows it
 - [x] Test: `tests/utils/pillColorField.spec.js`
+
+### Task 4: A card pill takes its tone and icon from the referenced record
+- **spec_ref**: `openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-card-pill-takes-its-tone-and-icon-from-the-referenced-record`
+- **files**: `src/components/CnBoardView/CnBoardView.vue`, `src/components/CnObjectCard/CnObjectCard.vue`, `src/components/CnCardGrid/CnCardGrid.vue`, `src/components/CnIndexPage/CnIndexPage.vue`, `src/schemas/app-manifest-v2.schema.json`
+- [x] Implement: `board.card.resolve`, `cardLayout` pill `resolve`, `pillLooks` handed down; schema 2.135.0
+- [x] Test: `tests/components/CnCardPillLooks.spec.js`, `tests/schemas/app-manifest-v2.schema.spec.js`

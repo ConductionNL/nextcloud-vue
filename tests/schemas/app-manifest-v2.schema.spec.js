@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.134.0', () => {
+	it('the manifest schema version reads 2.135.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1411,7 +1411,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.132.0 adds sortSelectOptions[].source, a sidebar sort order whose rows come from an app endpoint (sidebar-sort-endpoint-source), saved-view overrides with locked filters, profile patches and card parts (saved-view-overrides-v2), and the forms work: a field's optionsFrom, dotted-path fields, the sub-objects editor, list reorder by an order field and the smaller form features (form-small-features).
 		// 2.133.0 adds the field override keys placeholderFrom, requiredWhen, warnWhen, clearWhenHidden, stored, initialWhen, sectionCollapsed, optionSwatches and optionIcons, optionsFrom groupField, where, itemsPath and hideWhenEmpty, and a source that follows another field through @answer (object-list-edit-in-place), the decision-list, retention, plan and work-queue widgets (widgets), and config.searchRefusalHint (index-page).
 		// 2.134.0 adds headerPill.resolve colorField and iconField, and a default saved view's icon (pill-color-field).
-		expect(schema.version).toBe('2.134.0')
+		// 2.135.0 adds resolve on the board card's pill and on the record card's pills (pill-color-field).
+		expect(schema.version).toBe('2.135.0')
 	})
 
 	it('accepts the 2.133.0 widgets and searchRefusalHint, and refuses malformed ones', () => {
@@ -2548,5 +2549,23 @@ describe('app-manifest-v2 — pill colour and icon (pill-color-field)', () => {
 
 	it('refuses an empty colorField', () => {
 		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq', schema: 'caseType', colorField: '' } }, [])).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — card pill resolve (pill-color-field)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'dossiq', schema: 'case', ...config } }] })
+	const resolve = { colorField: 'colour', iconField: 'icon' }
+
+	it('accepts resolve on the record card pills and the board card pill', () => {
+		const result = validateManifestV2(page({
+			cardLayout: { headPill: { field: 'caseType', resolve }, footerPill: { field: 'caseType', resolve }, chips: [{ field: 'caseType', resolve }] },
+			board: { statusField: 'status', card: { title: 'title', pill: 'caseType', resolve } },
+		}))
+		expect(result.errors || []).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('refuses an unknown resolve key on a card pill', () => {
+		expect(validateManifestV2(page({ cardLayout: { headPill: { field: 'caseType', resolve: { colour: 'red' } } } })).valid).toBe(false)
 	})
 })

@@ -37,6 +37,17 @@ the column's `variant` and `colorMap`.
 - **GIVEN** a case list with a `caseType` badge column resolving `colour` and `icon`
 - **THEN** each row's type tag has its case type's tone and icon
 
+### Requirement: A card pill takes its tone and icon from the referenced record
+
+The board card's pill (`board.card.pill` with `board.card.resolve`) and the record card's head, footer and chip pills
+(`cardLayout`, each with `resolve`) SHALL take the tone and icon of the record their field points at, read by the index
+page in the same batch as its badge columns. A pill without `resolve` SHALL stay as declared.
+
+#### Scenario: a case on the board
+
+- **GIVEN** a case board whose card pill is `caseType` with `resolve: { colorField: colour, iconField: icon }`
+- **THEN** each card's type pill has its case type's tone and icon
+
 ### Requirement: A saved view's icon shows in the My views menu
 
 A saved view with an `icon` SHALL show that icon on its My views menu entry; a view without one SHALL keep the filter

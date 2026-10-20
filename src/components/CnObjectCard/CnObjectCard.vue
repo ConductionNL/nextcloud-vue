@@ -24,7 +24,11 @@
 					class="cn-object-card__record-pill"
 					:label="recordHeadPill.label"
 					:variant="recordHeadPill.variant"
-					data-testid="cn-object-card-head-pill" />
+					data-testid="cn-object-card-head-pill">
+					<template v-if="recordHeadPill.icon" #icon>
+						<CnIcon :name="recordHeadPill.icon" :size="14" />
+					</template>
+				</CnStatusBadge>
 				<span v-if="recordNumber" class="cn-object-card__record-number" data-testid="cn-object-card-number">{{ recordNumber }}</span>
 				<div
 					v-if="$slots.actions"
@@ -63,7 +67,11 @@
 					:key="chip.field"
 					class="cn-object-card__record-pill"
 					:label="chip.label"
-					:variant="chip.variant" />
+					:variant="chip.variant">
+					<template v-if="chip.icon" #icon>
+						<CnIcon :name="chip.icon" :size="14" />
+					</template>
+				</CnStatusBadge>
 			</div>
 			<div v-if="$slots.badges" class="cn-object-card__badges">
 				<slot name="badges" :object="object" />
@@ -74,7 +82,11 @@
 					class="cn-object-card__record-pill"
 					:label="recordFootPill.label"
 					:variant="recordFootPill.variant"
-					data-testid="cn-object-card-foot-pill" />
+					data-testid="cn-object-card-foot-pill">
+					<template v-if="recordFootPill.icon" #icon>
+						<CnIcon :name="recordFootPill.icon" :size="14" />
+					</template>
+				</CnStatusBadge>
 				<span
 					v-if="recordDate"
 					class="cn-object-card__record-date"
@@ -207,6 +219,7 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
 import { resolveDateVariant } from '../../utils/dateVariant.js'
+import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
 import { readPath } from '../../utils/readPath.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
@@ -373,6 +386,20 @@ export default {
 		layout: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * The referenced records' colour and icon names, by field and id
+		 * (`{ [field]: { [id]: { color, icon } } }`, CnIndexPage reads them).
+		 * A record layout pill with `resolve: { colorField?, iconField? }` takes
+		 * its record's tone and icon from here.
+		 *
+		 * @type {object}
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-card-pill-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		pillLooks: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/**
@@ -588,7 +615,7 @@ export default {
 					const labels = def.labels && typeof def.labels === 'object' ? def.labels : {}
 					const shown = typeof labels[String(raw)] === 'string' ? this.cnTranslate(labels[String(raw)]) : label
 					const variant = mapped || def.variant
-					return { field: def.field, label: shown, variant: isBadgeVariant(variant) ? variant : 'default' }
+					return this.withLook({ field: def.field, label: shown, variant: isBadgeVariant(variant) ? variant : 'default' }, def)
 				})
 				.filter(Boolean)
 		},
@@ -838,7 +865,26 @@ export default {
 			const colorMap = def.colorMap && typeof def.colorMap === 'object' ? def.colorMap : {}
 			const key = Object.keys(colorMap).find((k) => k.toLowerCase() === value.toLowerCase())
 			const variant = key !== undefined ? colorMap[key] : def.variant
-			return { label, variant: isBadgeVariant(variant) ? variant : 'default' }
+			return this.withLook({ label, variant: isBadgeVariant(variant) ? variant : 'default' }, def)
+		},
+
+		/**
+		 * Lay the referenced record's tone and icon over a layout pill that
+		 * declares `resolve` (see `pillLooks`).
+		 *
+		 * @param {{label: string, variant: string}} pill The pill as declared.
+		 * @param {object} def The pill's definition.
+		 * @return {{label: string, variant: string, icon?: string}} The pill.
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-card-pill-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		withLook(pill, def) {
+			if (!def || !def.resolve || !this.pillLooks || typeof this.pillLooks !== 'object') {
+				return pill
+			}
+			const looks = this.pillLooks[def.field]
+			const raw = readPath(this.object, def.field)
+			const look = pillLook(looks && raw !== null && raw !== undefined ? looks[String(raw)] : null)
+			return { ...pill, ...(look.variant ? { variant: look.variant } : {}), ...(look.icon ? { icon: look.icon } : {}) }
 		},
 
 		/**
