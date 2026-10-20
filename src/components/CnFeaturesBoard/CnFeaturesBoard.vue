@@ -715,9 +715,11 @@ export default {
 	gap: 10px;
 }
 
+/* The board's meta line: 14px muted, also under a theme that inks every <p>. */
 .cn-features-board__subtitle {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	margin: 0;
-	font-size: 15px;
+	font-size: 14px;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -830,16 +832,21 @@ export default {
 	background: var(--color-background-dark);
 }
 
+/* `margin: 0`: Nextcloud's core sheet gives every plain button a 3px margin,
+   which set the options 5px apart instead of the board's 2px. An option at
+   rest is in the board's softer ink, the open one in the main ink. */
 .cn-features-board__filter--segmented .cn-features-board__filter-option {
 	height: 34px;
+	margin: 0;
 	padding: 0 14px;
 	border: 0;
 	border-radius: 6px;
 	background: transparent;
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft, var(--color-main-text));
 }
 
 .cn-features-board__filter--segmented .cn-features-board__filter-option--active {
+	color: var(--color-main-text);
 	background: var(--color-main-background);
 	box-shadow: 0 1px 2px rgba(27, 28, 29, 0.12);
 }
@@ -895,6 +902,7 @@ export default {
 
 .cn-features-board__groups--rows .cn-features-board__group-title {
 	font-size: 17px;
+	line-height: normal;
 }
 
 .cn-features-board__group-caption {
