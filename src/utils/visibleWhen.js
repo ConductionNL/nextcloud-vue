@@ -18,7 +18,8 @@
  * The value itself comes from one of THREE evaluation modes (first match wins):
  *
  *  1. `endpoint` — GET a same-origin JSON endpoint; `field` is a dot-path
- *     into the response body.
+ *     into the response body. `@objectId` and `@object.<field>` in the
+ *     endpoint resolve against the caller's record.
  *  2. `source` — `{ register, schema, filter? }`, an OpenRegister object
  *     query (`filter` supports the shared @-token grammar). `field` is a
  *     dot-path into the FIRST result; omit it — or use `@total` — to
@@ -48,6 +49,7 @@
 
 import { isAppInstalled } from './appInstalled.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
+import { interpolateUrlTokens } from './interpolateUrlTokens.js'
 import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
 
 /** Supported visibleWhen comparison operators. */
@@ -204,7 +206,12 @@ export function evaluateWorkspaceCondition(cond, workspace) {
  */
 export async function readVisibleWhenValue(cond, ctx, sink) {
 	if (cond.endpoint) {
-		const response = await fetch(prefixUrl(cond.endpoint), { headers: buildHeaders() })
+		// `@objectId` / `@object.<field>` name the record the condition sits on;
+		// without that record there is nothing to ask about.
+		if (/@object(Id|\.)/.test(cond.endpoint) && (ctx?.objectId === undefined || ctx?.objectId === null || ctx?.objectId === '')) {
+			throw new Error('endpoint names the record, and there is none')
+		}
+		const response = await fetch(prefixUrl(interpolateUrlTokens(cond.endpoint, ctx)), { headers: buildHeaders() })
 		if (!response.ok) {
 			throw new Error(`endpoint returned ${response.status}`)
 		}
