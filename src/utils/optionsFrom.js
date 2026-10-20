@@ -113,7 +113,7 @@ export async function loadOptionsFrom(from, ctx = {}) {
 		return []
 	}
 	const data = await fetchEndpointSource(source, ctx, { force: true })
-	const rows = Array.isArray(data) ? data : []
+	const rows = narrowRows(Array.isArray(data) ? data : [], from)
 	const seen = new Set()
 	const out = []
 	for (const row of rows) {
@@ -129,6 +129,73 @@ export async function loadOptionsFrom(from, ctx = {}) {
 		return order.flatMap((group) => out.filter((o) => (o.group || '') === group))
 	}
 	return out
+}
+
+/**
+ * The rows a source answers, narrowed: `where` keeps the rows whose fields
+ * equal its values (`{ type: 'string' }`), and `itemsPath` replaces each
+ * remaining row by the list at that path (the formats of one property type).
+ *
+ * @param {Array<unknown>} rows The rows.
+ * @param {{where?: object, itemsPath?: string}} from The `optionsFrom` block.
+ * @return {Array<unknown>} The rows the options are read from.
+ */
+function narrowRows(rows, from) {
+	let out = rows
+	if (isPlainObject(from.where)) {
+		out = out.filter((row) => row && typeof row === 'object' && Object.entries(from.where).every(([key, value]) => String(readPath(row, key)) === String(value)))
+	}
+	if (typeof from.itemsPath === 'string' && from.itemsPath !== '') {
+		out = out.flatMap((row) => {
+			const items = readPath(row, from.itemsPath)
+			return Array.isArray(items) ? items : []
+		})
+	}
+	return out
+}
+
+/**
+ * An `optionsFrom` block with every `@answer.<key>` string replaced by that
+ * form value, so a source can depend on another field (`where: { type:
+ * '@answer.propertyType' }`). A value the form does not hold becomes ''.
+ *
+ * @param {unknown} value The block, or a part of it.
+ * @param {object} formData The form values.
+ * @return {unknown} The block with the form values filled in.
+ */
+export function resolveFormTokens(value, formData) {
+	if (typeof value === 'string' && value.startsWith('@answer.')) {
+		const held = (formData || {})[value.slice('@answer.'.length)]
+		return held === undefined || held === null ? '' : held
+	}
+	if (Array.isArray(value)) {
+		return value.map((v) => resolveFormTokens(v, formData))
+	}
+	if (isPlainObject(value)) {
+		return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, resolveFormTokens(v, formData)]))
+	}
+	return value
+}
+
+/**
+ * The form fields an `optionsFrom` block reads through `@answer.<key>`.
+ *
+ * @param {unknown} from The block.
+ * @return {Array<string>} The keys.
+ */
+export function formTokenKeys(from) {
+	const keys = new Set()
+	const walk = (v) => {
+		if (typeof v === 'string' && v.startsWith('@answer.')) {
+			keys.add(v.slice('@answer.'.length))
+		} else if (Array.isArray(v)) {
+			v.forEach(walk)
+		} else if (isPlainObject(v)) {
+			Object.values(v).forEach(walk)
+		}
+	}
+	walk(from)
+	return [...keys]
 }
 
 /**

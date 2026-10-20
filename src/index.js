@@ -35,6 +35,7 @@ export {
 	CnActionDialog,
 	CnActionsBar,
 	CnActionsMenu,
+	CnAddressSearch,
 	CnAddWidgetModal,
 	CnAdminActionCard,
 	CnAdminSettingsShell,
@@ -43,6 +44,7 @@ export {
 	CnAppLoading,
 	CnAppNav,
 	CnAppRoot,
+	CnAssignDialog,
 	CnAuditTrailCard,
 	CnAuditTrailWidget,
 	CnBannerWidget,
@@ -91,6 +93,7 @@ export {
 	CnDataTable,
 	CnDateAxisView,
 	CnDateRangePicker,
+	CnDecisionListWidget,
 	CnDeckCardCreate,
 	CnDeckCardPicker,
 	CnDeleteDialog,
@@ -108,6 +111,7 @@ export {
 	CnDividerWidgetForm,
 	CnDocumentReviewList,
 	CnDocumentReviewWidget,
+	CnDuplicateWarning,
 	CnDurationField,
 	CnEditActionsModal,
 	CnEditDataModal,
@@ -211,6 +215,7 @@ export {
 	CnMenuWidgetForm,
 	CnMetadataTab,
 	CnNavCardGrid,
+	CnNcDashboardList,
 	CnNcDashboardWidgetForm,
 	CnNcWidgetGridPicker,
 	CnNcWidgetWidget,
@@ -249,6 +254,7 @@ export {
 	CnPartyPicker,
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
+	CnPlanWidget,
 	CnPresenceAvatars,
 	CnProcessSteps,
 	CnProgressBar,
@@ -260,6 +266,7 @@ export {
 	CnQuicklinksWidgetForm,
 	CnRadioCardsWidget,
 	CnRecordListWidget,
+	CnRedactionEditor,
 	CnReferencePreview,
 	CnRegisterMapping,
 	CnRegisterSchemaSelect,
@@ -269,6 +276,7 @@ export {
 	CnRelationLinkModal,
 	CnRelationshipGraph,
 	CnResourceSelect,
+	CnRetentionWidget,
 	CnRichSubmitDialog,
 	CnRoadmapItem,
 	CnRoadmapTab,
@@ -355,6 +363,7 @@ export {
 	CnWidgetWrapper,
 	CnWizardDialog,
 	CnWorkingCalendarWidget,
+	CnWorkQueue,
 	CnWorkspaceFilterWidget,
 	DEFAULT_DATE_RANGE_PRESETS,
 	defaultPageTypes,
@@ -618,6 +627,9 @@ export { followLinkClick, isModifiedClick, isNewTabHandled, isRowMiddleClick, op
 export { resolveImageUrl } from './utils/index.js'
 export { resolveDateVariant } from './utils/index.js'
 export { actionLink, dispatchAction } from './utils/actionsDispatcher.js'
+export { candidateWithoutBlanks, duplicateAffordances } from './utils/duplicateWarning.js'
+export { openDuplicateWarning } from './utils/openDuplicateWarning.js'
+export { registerNcDashboardWidgets } from './utils/registerNcDashboardWidgets.js'
 // Nested-modal stacking. `CnAppRoot` installs this itself; apps that do not
 // mount `CnAppRoot` should call `installModalStack()` once from `main.js`, or
 // two open dialogs tie on z-index and the lower one intercepts the clicks.

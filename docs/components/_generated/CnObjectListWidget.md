@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 5 direct references, 113 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 7 direct references, 113 files reached through imports.
 
 Through: `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnVersionHistory`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 
@@ -19,6 +19,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | Name            | Payload     | Description                                                                                                                                                                                            |
 | --------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `created`       | —           | Emitted after a successful create with the sent payload.                                                                                                                                               |
+| `updated`       | —           | Emitted after a row was edited, with the keys that changed.                                                                                                                                            |
 | `row-click`     | `undefined` | Emitted with the clicked object (for hosts that want to handle navigation themselves). Payload: `(row, event)`, the second being the native click event. A middle click emits `row-aux-click` instead. |
 | `row-aux-click` | `undefined` | Emitted with the middle-clicked object, for opening it in a new tab. Payload: `(row, event)`, the second being the native auxclick event.                                                              |
 | `view-all`      | —           | Emitted when the "View all (N)" footer is clicked.                                                                                                                                                     |

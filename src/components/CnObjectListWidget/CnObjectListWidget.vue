@@ -286,20 +286,20 @@
 			data-testid="object-list-upload-input"
 			@change="onUploadFilesSelected">
 		<CnFormDialog
-			v-if="showCreate && createSchema"
+			v-if="(showCreate || editingRow) && createSchema"
 			ref="createDialog"
 			:schema="createSchema"
-			:item="null"
+			:item="editingRow"
 			:register="content.register || ''"
-			:initialData="createInitialData"
+			:initialData="editingRow ? null : createInitialData"
 			:lockedFields="createLockedFields"
 			:size="formSize"
 			:columns="formColumns"
 			:includeFields="formIncludeFields"
 			:excludeFields="formExcludeFields"
 			:fieldOverrides="formFieldOverrides"
-			@confirm="onCreateConfirm"
-			@close="showCreate = false" />
+			@confirm="editingRow ? onEditConfirm($event) : onCreateConfirm($event)"
+			@close="closeForm" />
 	</div>
 </template>
 
@@ -320,6 +320,7 @@ import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { changedKeys } from '../../utils/saveEdited.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 
@@ -458,7 +459,7 @@ export default {
 		},
 	},
 
-	emits: ['created', 'row-click', 'row-aux-click', 'view-all', 'files-dropped'],
+	emits: ['created', 'updated', 'row-click', 'row-aux-click', 'view-all', 'files-dropped'],
 
 	data() {
 		return {
@@ -484,6 +485,8 @@ export default {
 			fitStage: 0,
 			/** Whether the create dialog is open. */
 			showCreate: false,
+			/** The row the form edits (`content.editable`), or null while it creates. */
+			editingRow: null,
 			/**
 			 * The list's own schema definition, once fetched.
 			 *
@@ -732,6 +735,12 @@ export default {
 					...this.rowActionLink(action),
 					handler: (row) => this.runRowAction(action, row),
 				}))
+			if (this.content.editable === true) {
+				mapped.unshift({ label: t('nextcloud-vue', 'Edit'), icon: 'Pencil', handler: (row) => this.openEdit(row) })
+			}
+			if (this.content.deletable === true) {
+				mapped.push({ label: t('nextcloud-vue', 'Delete'), icon: 'TrashCanOutline', destructive: true, handler: (row) => this.deleteRow(row) })
+			}
 			if (this.reorderField === '') {
 				return mapped
 			}
@@ -1546,6 +1555,7 @@ export default {
 		forgetCreateSchema() {
 			this.createSchema = null
 			this.showCreate = false
+			this.editingRow = null
 		},
 
 		/**
@@ -1556,6 +1566,97 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * Edit a row in the list's own form (`content.editable`): the form the
+		 * Add button opens, filled with the row.
+		 *
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async openEdit(row) {
+			try {
+				await this.ensureSchema()
+				this.showCreate = false
+				this.editingRow = row ? { ...row } : null
+			} catch (e) {
+				this.error = (e && e.message) || 'error'
+			}
+		},
+
+		/**
+		 * Delete a row of the list's own schema (`content.deletable`). The
+		 * toast offers Undo; a refusal toasts the server's message.
+		 *
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async deleteRow(row) {
+			const c = this.content || {}
+			const id = rowIdOf(row)
+			if (id === '') {
+				return
+			}
+			const pending = (async () => {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				try {
+					await axios.delete(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }))
+				} catch (e) {
+					const data = e && e.response && e.response.data
+					const refusal = data && (data.message || data.error)
+					throw new Error((typeof refusal === 'string' && refusal) || (e && e.message) || t('nextcloud-vue', 'The delete failed'), { cause: e })
+				}
+				return true
+			})()
+			await this.reportDelete(row, pending)
+			await pending.catch(() => {})
+			this.fetchRows()
+		},
+
+		/** Close the form, whether it created or edited. */
+		closeForm() {
+			this.showCreate = false
+			this.editingRow = null
+		},
+
+		/**
+		 * Save an edited row: a PATCH of the keys the form changed, so every
+		 * key it does not show keeps its stored value; nothing when nothing
+		 * changed. A refusal shows the server's message in the dialog.
+		 *
+		 * @param {object} formData The edited values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async onEditConfirm(formData) {
+			const c = this.content || {}
+			const row = this.editingRow
+			const id = rowIdOf(row)
+			const changes = changedKeys(row, formData)
+			try {
+				if (id !== '' && Object.keys(changes).length > 0) {
+					const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+					await axios.patch(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }), changes)
+				}
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ success: true })
+				}
+				/**
+				 * @event updated Emitted after a row was edited, with the keys that changed.
+				 * @type {object}
+				 */
+				this.$emit('updated', { id, changes })
+				this.fetchRows()
+			} catch (e) {
+				const data = e && e.response && e.response.data
+				const refusal = data && (data.message || data.error)
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ error: (typeof refusal === 'string' && refusal) || (e && e.message) || 'error' })
+				}
+			}
+		},
+
 		async openCreate() {
 			const c = this.content || {}
 			if (!c.schema) {
