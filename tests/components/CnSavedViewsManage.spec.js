@@ -93,7 +93,7 @@ describe('the saved-views panel', () => {
 })
 
 describe('the sidebar carries the panel', () => {
-	it('renders the panel in its own Filters tab and hands every intent back as saved-view', async () => {
+	it('renders the panel in its own Views tab and hands every intent back as saved-view', async () => {
 		const w = mount(CnIndexSidebar, { props: { open: true, savedViews: { views: [own], currentUserId: 'alice', menuIds: [] } } })
 		expect(w.find('#filters-tab [data-testid="cn-saved-views-panel"]').exists()).toBe(true)
 		expect(w.find('#search-tab [data-testid="cn-saved-views-panel"]').exists()).toBe(false)

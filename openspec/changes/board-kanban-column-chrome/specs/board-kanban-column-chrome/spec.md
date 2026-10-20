@@ -14,8 +14,8 @@ A kanban column's heading, count and show-more button look as the boards draw th
 
 ### Requirement: A kanban column has the board's heading, count and show-more
 
-In the board look a column heading SHALL use the font's normal line height and its count SHALL be a 12px figure at
-weight 700 at the normal line height. In every look the show-more button of a cut column SHALL be the dashed 13px
+In the board look a column heading SHALL use the font's normal line height; its count stays a 12px figure at weight
+700 on a 14px line. In every look the show-more button of a cut column SHALL be the dashed 13px
 button, not Nextcloud's default button.
 
 #### Scenario: DqWerkbord "Ontvangen 14"

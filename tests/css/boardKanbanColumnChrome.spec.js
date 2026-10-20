@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * The boards draw a kanban column's heading at the font's normal line height
- * (18px), its count as a 16px bubble with the figure at 700, and a cut
- * column's "Toon 12 meer" as a dashed 13px button (DqWerkbord). Nextcloud's
+ * (18px) and a cut column's "Toon 12 meer" as a dashed 13px button
+ * (DqWerkbord); the count's 16px at 700 is board-pill-tones'. Nextcloud's
  * `button:not(.button-vue)` rule outranked the single-class show-more rule
  * and drew it borderless, primary-tinted, bold and 15px. Read from the
  * stylesheet text.
@@ -33,10 +33,10 @@ describe('board.css: kanban column chrome', () => {
 			.toMatch(/line-height: normal;/)
 	})
 
-	it('sets the count figure at 700 and the normal line height', () => {
+	it('keeps the count on a 14px line at 700', () => {
 		const rule = ruleEndingWith('.cn-board-view.cn-board-view--board .cn-board-view__badge')
 		expect(rule).toMatch(/font-weight: 700;/)
-		expect(rule).toMatch(/line-height: normal;/)
+		expect(rule).toMatch(/line-height: 14px;/)
 	})
 
 	it('scopes the show-more button under the board so it outranks the server button rule', () => {

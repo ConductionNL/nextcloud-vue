@@ -24,14 +24,19 @@
 	/* Buttons and inputs. */
 	--cn-board-control-height: 40px;
 	--cn-board-control-radius: 8px;
+	/* A control's edge: 3:1 against every ground a control sits on (WCAG
+	   1.4.11). Nextcloud's border-dark is a hairline (#dbdbdb, 1.4:1); its
+	   max-contrast border is the control step, and a theme sets both. */
+	--cn-board-control-border: var(--color-border-maxcontrast);
 	/* Cards. */
 	--cn-board-card-radius: 12px;
 	--cn-board-card-padding: 20px 22px;
 	/* The side inset of a dashboard card: its title and its rows. */
 	--cn-board-dashboard-card-inset: 24px;
-	/* Hairline inside a card, and the soft secondary text. */
+	/* Hairline inside a card, and the soft secondary text: the boards' #3d4047,
+	   between the main text and the muted text, so it follows a theme's pair. */
 	--cn-board-hairline: var(--color-border);
-	--cn-board-text-soft: var(--color-main-text);
+	--cn-board-text-soft: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
 }
 
 /*
@@ -183,6 +188,37 @@
 	--font-weight-element: 600;
 }
 
+/* ---- A button with an icon and a label --------------------------------- */
+/* The boards draw it 14px in at both sides with 14px text and a 16px icon
+   8px from its label (DqZaakEmail "Notitie toevoegen", DqVthInstellingen
+   "Regel toevoegen"). NcButton pads its start 4px and its end 12px, and puts
+   a 20px icon in a 30px slot. The rules hold the condition in `:where()`, so
+   they weigh (0,3,0): enough to outrank NcButton's own (0,2,0), and less than
+   any surface rule (header, toolbar, follow pill, Meer chevron, tab strip),
+   which keeps its own value. The padding goes through NcButton's
+   `--button-padding`, so a surface that sets `padding` is never contested.
+   @spec openspec/changes/board-icon-label-button/specs/board-icon-label-button/spec.md#requirement-a-board-button-with-an-icon-and-a-label-is-padded-as-the-boards-draw-it */
+.cn-look-board .button-vue.button-vue:where(:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-look-nextcloud *):not(.vue-crumb *)) {
+	--button-padding: 14px;
+	font-size: 14px;
+}
+
+.cn-look-board :where(.button-vue:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-look-nextcloud *):not(.vue-crumb *)) .button-vue__wrapper.button-vue__wrapper {
+	gap: 8px;
+}
+
+.cn-look-board :where(.button-vue:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-look-nextcloud *):not(.vue-crumb *)) .button-vue__icon.button-vue__icon {
+	width: 16px;
+	min-width: 16px;
+	height: 16px;
+	min-height: 16px;
+}
+
+.cn-look-board :where(.button-vue:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-look-nextcloud *):not(.vue-crumb *)) .button-vue__icon svg {
+	width: 16px;
+	height: 16px;
+}
+
 /* ---- The header button ------------------------------------------------- */
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
@@ -212,7 +248,7 @@
 	--nldesign-component-button-primary-action-font-weight: 600;
 	--nldesign-component-button-secondary-action-color: var(--color-main-text);
 	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
-	--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);
+	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
 	--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);
 }
 
@@ -226,7 +262,7 @@
 	min-height: var(--cn-board-control-height);
 	padding: 0 14px;
 	gap: 8px;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -258,7 +294,7 @@
 	height: var(--cn-board-control-height);
 	min-height: var(--cn-board-control-height);
 	padding: 0 14px;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -266,8 +302,9 @@
 	font-weight: 600;
 }
 
-/* Buttons 10px apart, each icon 16px with 8px to its label (DqZaak's header,
-   DqZaken's "Downloaden"); NcButton draws a 20px icon in a 30px slot. */
+/* Buttons 10px apart, each icon 16px (DqZaak's header, DqZaken's
+   "Downloaden"); NcButton draws a 20px icon in a 30px slot. The 8px to the
+   label is the board's icon-and-label gap above. */
 .cn-look-board .cn-action-buttons:not(.cn-look-nextcloud *) {
 	gap: 10px;
 }
@@ -277,7 +314,6 @@
 	min-width: 16px;
 	height: 16px;
 	min-height: 16px;
-	margin-inline-end: 8px;
 }
 
 .cn-look-board .cn-action-buttons .button-vue .button-vue__icon:not(.cn-look-nextcloud *) svg {
@@ -312,7 +348,7 @@
    body ink onto every span (thematiq). */
 .cn-look-board .action-item.action-item--secondary .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *) {
 	--nldesign-color-on-surface: var(--color-main-text);
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
@@ -1107,6 +1143,15 @@
 	font-size: 13px;
 	font-weight: 600;
 	line-height: normal;
+}
+
+/* A neutral board tag ("Normaal", "Uit") is the soft text on the chip ground,
+   not the main text on the darker background a Nextcloud tag takes.
+   @spec openspec/changes/board-pill-tones/specs/board-pill-tones/spec.md#requirement-a-neutral-board-tag-is-soft-text-on-the-chip-ground */
+.cn-look-board .cn-status-badge--default:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
+	--cn-status-badge-ink: var(--cn-board-text-soft);
+	background-color: var(--color-background-hover);
+	color: var(--cn-status-badge-ink);
 }
 
 /* A pill paints its own pairing of ink and fill. A theme that forces the body

@@ -52,17 +52,17 @@
 	border-radius: 50%;
 }
 
-/* The count: a 16px white bubble, its 12px figure at 700 and the font's
-   normal line height (DqWerkbord "Ontvangen 14"). */
 .cn-board-view.cn-board-view--board .cn-board-view__badge {
 	margin-inline-start: auto;
 	padding: 1px 8px;
 	border-radius: 10px;
+	--nldesign-color-on-surface: var(--cn-board-text-soft, var(--color-main-text));
 	background-color: var(--color-main-background);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft, var(--color-main-text));
 	font-size: 12px;
 	font-weight: 700;
-	line-height: normal;
+	/* 16px tall on its 1px pad (DqWerkbord's column counts). */
+	line-height: 14px;
 }
 
 /* A column at its limit: the count in the error colour; "full" is said in words too. */
