@@ -245,6 +245,7 @@ export {
 	CnObjectListWidgetForm,
 	CnObjectMetadataModal,
 	CnObjectMetadataWidget,
+	CnObjectPermissionsTab,
 	CnObjectPresenceWidget,
 	CnObjectRow,
 	CnObjectSidebar,

@@ -158,6 +158,7 @@ The `tabs` prop opens up the closed-enum tab set so apps can drive `CnObjectSide
 | `metadata` | [`CnObjectMetadataWidget`](./cn-object-metadata-widget.md) | `objectData` |
 | `audit` / `audit-trail` | [`CnAuditTrailTab`](./cn-object-sidebar.md) | — (register / schema / objectId flow from the shared context) |
 | `object-table` | [`CnWidgetObjectTable`](./cn-widget-object-table.md) | `source` **or** `endpointSource`, `columns` (forward via per-widget `props`) |
+| `object-permissions` | [`CnObjectPermissionsTab`](./cn-object-permissions-tab.md) | optional `fieldRules`, `historyEnabled`, `sourceLabels` (read-only grants with provenance and history) |
 
 Any other `type` value resolves against the `customComponents` registry — the explicit `customComponents` prop wins over the injected `cnCustomComponents` (mirroring `CnPageRenderer`'s pattern).
 
