@@ -13,6 +13,8 @@
  * @spec openspec/changes/integration-leaf-card/specs/integration-leaf-card/spec.md#requirement-a-mount-mode-leaf-can-take-the-library-card
  */
 import { mount } from '@vue/test-utils'
+import fs from 'fs'
+import path from 'path'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { integrations } from '../../src/integrations/registry.js'
 
@@ -111,5 +113,11 @@ describe('CnDetailWidgetHost: a mount-mode leaf in the library card', () => {
 
 		expect(wrapper.find('[data-testid="cn-widget-empty-state"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-detail-widget-header-count"]').text()).toBe('2')
+	})
+
+	it('wraps the title row in a narrow cell instead of squeezing the title out', () => {
+		const sfc = fs.readFileSync(path.join(__dirname, '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'), 'utf8')
+		expect(sfc).toMatch(/\.cn-detail-page__leaf-card :deep\(\.cn-widget-wrapper__header\) \{\s*flex-wrap: wrap;/)
+		expect(sfc).toMatch(/\.cn-detail-page__leaf-card :deep\(\.cn-widget-wrapper__header-left\) \{\s*flex: 1 0 auto;/)
 	})
 })

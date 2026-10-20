@@ -1442,6 +1442,16 @@ export default {
 	white-space: nowrap;
 }
 
+/* A leaf card in a narrow cell keeps its title and count: the title row
+   wraps and the actions move under it instead of squeezing the title out. */
+.cn-detail-page__leaf-card :deep(.cn-widget-wrapper__header) {
+	flex-wrap: wrap;
+}
+
+.cn-detail-page__leaf-card :deep(.cn-widget-wrapper__header-left) {
+	flex: 1 0 auto;
+}
+
 /* The count beside a card title: the grey 20px badge of the tab strip. */
 .cn-detail-page__catalog-count {
 	background-color: var(--color-border);
