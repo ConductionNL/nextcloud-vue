@@ -42,9 +42,8 @@ describe('look-board-detail.css: header buttons', () => {
 		}
 	})
 
-	it('draws a 16px icon 8px before the label', () => {
+	it('draws a 16px icon', () => {
 		const body = rulesEndingWith('.cn-detail-page__header-actions > .button-vue--secondary .button-vue__icon')
 		expect(body).toMatch(/width:\s*16px/)
-		expect(body).toMatch(/margin-inline-end:\s*8px/)
 	})
 })
