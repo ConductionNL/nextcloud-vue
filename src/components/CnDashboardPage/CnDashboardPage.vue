@@ -1750,7 +1750,8 @@ export default {
 		 * select back to "all" (`placeholder`, e.g. "All case types"), which
 		 * writes null and seeds nothing. `type: 'quarter'` generates its
 		 * options: the current quarter first, then `count - 1` (default 7)
-		 * before it, valued `YYYY-Qn` and seeded with the current one. Empty
+		 * before it, valued `YYYY-Qn` and seeded with the current one;
+		 * `type: 'year'` does the same for years (default 5, valued `YYYY`). Empty
 		 * (the default) renders no controls and leaves the context untouched.
 		 *
 		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}

@@ -388,8 +388,8 @@
 								"properties": {
 									"key": { "type": "string", "description": "Workspace-context key written on change (the `@page.<key>` / `@workspace.<key>` token name)." },
 									"label": { "type": "string", "description": "Optional control label (i18n key or plain text)." },
-									"type": { "type": "string", "enum": ["select", "quarter"], "default": "select", "description": "Control type. \"quarter\" generates its options: the current quarter first, then `count - 1` before it, valued YYYY-Qn." },
-									"count": { "type": "integer", "minimum": 1, "description": "With type \"quarter\": how many quarters to offer (default 8)." },
+									"type": { "type": "string", "enum": ["select", "quarter", "year"], "default": "select", "description": "Control type. \"quarter\" and \"year\" generate their options: the current quarter or year first, then `count - 1` before it, valued YYYY-Qn or YYYY." },
+									"count": { "type": "integer", "minimum": 1, "description": "With type \"quarter\" or \"year\": how many to offer (default 8 quarters, 5 years)." },
 									"default": { "type": ["string", "number"], "description": "Initial value seeded into the context on mount. Defaults to the first option's value when omitted." },
 									"options": {
 										"type": "array",

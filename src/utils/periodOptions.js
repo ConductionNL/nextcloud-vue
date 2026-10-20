@@ -46,8 +46,23 @@ export function quarterOptions(count = 8, today = new Date()) {
 }
 
 /**
+ * The years a year page filter offers: the current one first, then
+ * `count - 1` before it, valued and labelled `YYYY`.
+ *
+ * @param {number} [count] How many years to offer (default 5).
+ * @param {Date} [today] The reference day (default now).
+ * @return {Array<{value: string, label: string}>} The options, newest first.
+ */
+export function yearOptions(count = 5, today = new Date()) {
+	const total = Number.isInteger(count) && count > 0 ? count : 5
+	const year = today.getFullYear()
+	return Array.from({ length: total }, (_, i) => ({ value: String(year - i), label: String(year - i) }))
+}
+
+/**
  * The options a page filter generates from its `type`, or null when its
- * type generates none. `type: 'quarter'` offers the last `count` quarters.
+ * type generates none. `type: 'quarter'` offers the last `count` quarters,
+ * `type: 'year'` the last `count` years.
  *
  * @param {{type?: string, count?: number}} filter The page-filter descriptor.
  * @param {Date} [today] The reference day (default now).
@@ -56,6 +71,9 @@ export function quarterOptions(count = 8, today = new Date()) {
 export function generatedPageFilterOptions(filter, today = new Date()) {
 	if (filter && filter.type === 'quarter') {
 		return quarterOptions(filter.count, today)
+	}
+	if (filter && filter.type === 'year') {
+		return yearOptions(filter.count, today)
 	}
 	return null
 }

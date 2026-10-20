@@ -382,7 +382,7 @@ A filter can read its options instead of listing them, as the case-type filter o
 { "key": "quarter", "label": "Quarter", "type": "quarter", "count": 8 }
 ```
 
-The filter generates its own options: the current quarter first, then the `count - 1` quarters before it (default 8 in all). Each is valued `YYYY-Qn`, the form a quarterly report endpoint reads, and labelled "Q2 2026". The current quarter is seeded on mount, so a widget reading `@workspace.quarter` has a value on its first read.
+The filter generates its own options: the current quarter first, then the `count - 1` quarters before it (default 8 in all). Each is valued `YYYY-Qn`, the form a quarterly report endpoint reads, and labelled "Q2 2026". The current quarter is seeded on mount, so a widget reading `@workspace.quarter` has a value on its first read. `type: "year"` does the same for years: the current year first, `count` years in all (default 5), valued `YYYY`.
 
 ## Built-in page-level Actions menu
 

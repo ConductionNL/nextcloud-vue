@@ -6,7 +6,7 @@
  * it, valued the way a quarterly report endpoint reads them.
  */
 
-import { generatedPageFilterOptions, quarterKey, quarterOptions } from '../../src/utils/periodOptions.js'
+import { generatedPageFilterOptions, quarterKey, quarterOptions, yearOptions } from '../../src/utils/periodOptions.js'
 
 describe('periodOptions', () => {
 	const today = new Date(2026, 1, 15)
@@ -27,6 +27,12 @@ describe('periodOptions', () => {
 	it('offers eight quarters by default', () => {
 		expect(quarterOptions(undefined, today)).toHaveLength(8)
 		expect(quarterOptions(0, today)).toHaveLength(8)
+	})
+
+	it('offers the current year first, five by default', () => {
+		expect(yearOptions(2, today)).toEqual([{ value: '2026', label: '2026' }, { value: '2025', label: '2025' }])
+		expect(yearOptions(undefined, today)).toHaveLength(5)
+		expect(generatedPageFilterOptions({ type: 'year', count: 1 }, today)).toEqual([{ value: '2026', label: '2026' }])
 	})
 
 	it('generates options only for a quarter filter', () => {
