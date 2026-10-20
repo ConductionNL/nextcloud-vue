@@ -29,9 +29,10 @@
 	--cn-board-card-padding: 20px 22px;
 	/* The side inset of a dashboard card: its title and its rows. */
 	--cn-board-dashboard-card-inset: 24px;
-	/* Hairline inside a card, and the soft secondary text. */
+	/* Hairline inside a card, and the soft secondary text: the boards' #3d4047,
+	   between the main text and the muted text, so it follows a theme's pair. */
 	--cn-board-hairline: var(--color-border);
-	--cn-board-text-soft: var(--color-main-text);
+	--cn-board-text-soft: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
 }
 
 /*
@@ -1107,6 +1108,15 @@
 	font-size: 13px;
 	font-weight: 600;
 	line-height: normal;
+}
+
+/* A neutral board tag ("Normaal", "Uit") is the soft text on the chip ground,
+   not the main text on the darker background a Nextcloud tag takes.
+   @spec openspec/changes/board-pill-tones/specs/board-pill-tones/spec.md#requirement-a-neutral-board-tag-is-soft-text-on-the-chip-ground */
+.cn-look-board .cn-status-badge--default:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
+	--cn-status-badge-ink: var(--cn-board-text-soft);
+	background-color: var(--color-background-hover);
+	color: var(--cn-status-badge-ink);
 }
 
 /* A pill paints its own pairing of ink and fill. A theme that forces the body

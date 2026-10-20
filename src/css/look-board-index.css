@@ -226,11 +226,14 @@
 	padding: 1px 7px;
 	border: 0;
 	border-radius: 10px;
+	--nldesign-color-on-surface: var(--cn-board-text-soft);
 	background: var(--color-border);
 	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 600;
-	line-height: 1.4;
+	/* 16px tall on its 1px pad, as the boards draw it (DqTaken, DqWerkbord).
+	   @spec openspec/changes/board-pill-tones/specs/board-pill-tones/spec.md#requirement-a-board-count-is-16px-tall */
+	line-height: 14px;
 }
 
 .cn-look-board .cn-saved-views__chip--selected .cn-saved-views__chip-count,
@@ -315,6 +318,8 @@
 	margin-inline-start: 6px;
 	padding: 0 6px;
 	border-radius: 10px;
+	/* A theme that forces the body ink onto every span reads it from here. */
+	--nldesign-color-on-surface: var(--color-primary-element-text);
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
 	font-size: 12px;
