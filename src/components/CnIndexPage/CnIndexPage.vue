@@ -1369,6 +1369,7 @@ import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { labelsByField } from '../../utils/labelsByField.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
@@ -2201,14 +2202,16 @@ export default {
 		/**
 		 * Quick filters made from the values a field holds in this list
 		 * (manifest `config.quickFiltersFrom`): `{ field, register?, schema?,
-		 * labelField?, allLabel? }`. The page asks OpenRegister for the
+		 * valueField?, labelField?, allLabel? }`. The page asks OpenRegister for the
 		 * distinct values of `field` with their counts (within `filter`) and
 		 * draws "All" plus one tab per value, the most frequent first, each
 		 * with its count. With `register` and `schema` the values are ids of
 		 * records of that schema and each tab shows the record's `labelField`
-		 * (else its title or name). Ignored when `quickFilters` is set.
+		 * (else its title or name). With `valueField` as well, the values are
+		 * matched on that field of those records instead of their id (a slug).
+		 * Ignored when `quickFilters` is set.
 		 *
-		 * @type {{field: string, register?: string, schema?: string, labelField?: string, allLabel?: string}|null}
+		 * @type {{field: string, register?: string, schema?: string, valueField?: string, labelField?: string, allLabel?: string}|null}
 		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
 		 */
 		quickFiltersFrom: {
@@ -8689,7 +8692,9 @@ export default {
 				groups = []
 			}
 			let labels = {}
-			if (from.register && from.schema && groups.length > 0) {
+			if (from.register && from.schema && from.valueField && groups.length > 0) {
+				labels = await labelsByField({ register: from.register, schema: from.schema, field: from.valueField, values: groups.map((g) => g.key), labelField: from.labelField || '' }).catch(() => ({}))
+			} else if (from.register && from.schema && groups.length > 0) {
 				if (!this._quickFilterLabelResolver) {
 					this._quickFilterLabelResolver = createRefLabelResolver(() => {
 						try {
