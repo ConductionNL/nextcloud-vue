@@ -171,7 +171,7 @@
 			v-if="formEntry && formSchema && !formEntry.advanced"
 			ref="formDialog"
 			:schema="formSchema"
-			:item="null"
+			:item="formItem"
 			:register="formRegister"
 			:initialData="formInitialValues || {}"
 			:dialogTitle="tr(formEntry.formTitle) || ''"
@@ -247,6 +247,10 @@ import { CnIcon } from '../CnIcon/index.js'
  *    `excludeFields` / `fieldOverrides` narrow what the button asks for, which
  *    is how one schema serves both a full editor and a quick-create button.
  *    `advanced: true` swaps in the properties/JSON table for a power user.
+ *    With `endpoint: { url, method?, loadUrl?, responsePath? }` and
+ *    `formProperties` (JSON-schema properties) it edits a record that is not a
+ *    register object instead: it reads the record from the endpoint, shows the
+ *    declared fields filled in, and sends them back with PATCH (or PUT).
  *  - **`toggle`** — a two-way state button: `GET`s `stateSource` on mount,
  *    renders `labelOn` / `labelOff`, and on click `writes` the flipped
  *    value OPTIMISTICALLY, reverting on failure.
@@ -430,6 +434,8 @@ export default {
 			formEntry: null,
 			/** The fetched schema object for the open-form dialog (null until loaded). */
 			formSchema: null,
+			/** The record an endpoint form edits (null for a create form). */
+			formItem: null,
 			/** The run-node action currently in flight / showing its dialog (null = closed). */
 			runNodeEntry: null,
 			/** The target node's declared config-form fields, from the describe GET. */
@@ -995,6 +1001,11 @@ export default {
 		async openForm(entry) {
 			this.formEntry = entry
 			this.formSchema = null
+			this.formItem = null
+			if (entry.endpoint && typeof entry.endpoint.url === 'string' && entry.endpoint.url !== '') {
+				await this.openEndpointForm(entry)
+				return
+			}
 			const register = entry.register || this.objectCtx.register || ''
 			const schema = entry.schema || ''
 			if (!schema) {
@@ -1014,6 +1025,76 @@ export default {
 					showError(t('nextcloud-vue', 'Could not open the form.'))
 				}
 				this.formEntry = null
+			}
+		},
+
+		/**
+		 * Open an `open-form` action with an `endpoint` as an edit form over a
+		 * record that is not a register object (an OpenRegister organisation):
+		 * the fields are the action's `formProperties`, the values are read from
+		 * `endpoint.loadUrl` (else `endpoint.url`) at `endpoint.responsePath`,
+		 * and the save sends the changed fields to `endpoint.url`. A failed
+		 * read toasts and opens nothing.
+		 *
+		 * @param {object} entry The open-form action with `endpoint` and `formProperties`.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/open-form-endpoint/specs/open-form-endpoint/spec.md#requirement-an-open-form-action-can-edit-a-record-through-an-endpoint
+		 */
+		async openEndpointForm(entry) {
+			const properties = entry.formProperties && typeof entry.formProperties === 'object' && !Array.isArray(entry.formProperties) ? entry.formProperties : {}
+			const loadUrl = entry.endpoint.loadUrl || entry.endpoint.url
+			const record = await fetchEndpointSource({ url: loadUrl, responsePath: entry.endpoint.responsePath || '' }, this.tokenCtx, { force: true })
+				.catch(() => null)
+			if (!record || typeof record !== 'object') {
+				const { showError } = await import('@nextcloud/dialogs')
+				if (typeof showError === 'function') {
+					showError(t('nextcloud-vue', 'Could not open the form.'))
+				}
+				this.formEntry = null
+				return
+			}
+			this.formItem = record
+			this.formSchema = { type: 'object', properties }
+		},
+
+		/**
+		 * Save an endpoint form: send the declared fields to `endpoint.url`
+		 * with `endpoint.method` (`PATCH` by default, or `PUT`), then toast and
+		 * refresh the page as an object save does.
+		 *
+		 * @param {object} entry The open-form action.
+		 * @param {object} formData The form's values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/open-form-endpoint/specs/open-form-endpoint/spec.md#requirement-an-open-form-action-can-edit-a-record-through-an-endpoint
+		 */
+		async saveEndpointForm(entry, formData) {
+			const dialog = this.$refs.formDialog
+			const keys = Object.keys(this.formSchema?.properties || {})
+			const body = Object.fromEntries(keys.filter((key) => key in formData).map((key) => [key, formData[key]]))
+			const method = String(entry.endpoint.method || 'PATCH').toUpperCase() === 'PUT' ? 'put' : 'patch'
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = interpolateActionTarget(entry.endpoint.url, this.tokenCtx)
+				const response = await axios[method](/^https?:\/\//i.test(url) ? url : generateUrl(url), body)
+				if (dialog && typeof dialog.setResult === 'function') {
+					dialog.setResult({ success: true })
+				}
+				const { showSuccess } = await import('@nextcloud/dialogs')
+				if (typeof showSuccess === 'function') {
+					showSuccess(this.tr(entry.successMessage) || t('nextcloud-vue', 'Saved.'))
+				}
+				const { emit } = await import('@nextcloud/event-bus')
+				emit('cn:page:refresh', {})
+				this.$emit('created', response && response.data)
+			} catch (error) {
+				const serverMessage = error && error.response && error.response.data
+					&& (error.response.data.error || error.response.data.message)
+				if (dialog && typeof dialog.setResult === 'function') {
+					dialog.setResult({ error: serverMessage || this.tr(entry.errorMessage) || t('nextcloud-vue', 'Save failed.') })
+				}
 			}
 		},
 
@@ -1127,6 +1208,10 @@ export default {
 		 */
 		async onFormConfirm(formData, dynamic = null) {
 			const entry = this.formEntry
+			if (entry && entry.endpoint) {
+				await this.saveEndpointForm(entry, formData)
+				return
+			}
 			const dialog = this.$refs.formDialog
 			const register = this.formRegister
 			const schema = (entry && entry.schema) || ''
@@ -1269,6 +1354,7 @@ export default {
 		closeForm() {
 			this.formEntry = null
 			this.formSchema = null
+			this.formItem = null
 		},
 	},
 }

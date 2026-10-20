@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.134.0",
+	"version": "2.135.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3194,6 +3194,23 @@
 					"enum": [1, 2],
 					"default": 1,
 					"description": "open-form: how many columns the fields flow into. 2 pairs them up, which halves the scrolling on a longer form. Textareas and JSON editors still span the full width, and the layout collapses to one column below 700px. Widen the dialog with size: 'large' as well, or two columns are merely two narrow ones."
+				},
+				"endpoint": {
+					"type": "object",
+					"description": "open-form only: edit a record that is not a register object through an endpoint (an OpenRegister organisation). `url` is where the save goes (token-interpolated, app-relative or absolute), `method` is PATCH (default) or PUT, `loadUrl` reads the record when it differs from `url`, `responsePath` plucks it from the answer. The fields are `formProperties`. Without `endpoint` the action is the schema-driven create form.",
+					"properties": {
+						"url": { "type": "string" },
+						"method": { "type": "string", "enum": ["PATCH", "PUT"] },
+						"loadUrl": { "type": "string" },
+						"responsePath": { "type": "string" }
+					},
+					"required": ["url"],
+					"additionalProperties": false
+				},
+				"formProperties": {
+					"type": "object",
+					"description": "open-form with `endpoint` only: the fields the form shows and sends, as JSON-schema properties (`{ \"name\": { \"type\": \"string\", \"title\": \"Name\" } }`).",
+					"additionalProperties": { "type": "object" }
 				},
 				"handler": {
 					"type": "string",
