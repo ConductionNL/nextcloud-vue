@@ -1258,6 +1258,7 @@ import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
+import { headerActionAsLink } from '../../utils/actionLink.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
@@ -2220,6 +2221,11 @@ export default {
 		 * (approve, send, archive). The page's object context drives
 		 * `@objectId` / `@object.<field>` token + local-predicate resolution.
 		 * Empty (the default) renders nothing.
+		 *
+		 * An entry with `href` is a link, never dispatched: an absolute
+		 * `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written, or an instance path
+		 * (leading `/`) through `generateUrl()`, opening in place unless
+		 * `target` is `'_blank'`.
 		 *
 		 * The menu, not a row of buttons: that is what the manifest schema has
 		 * always said this key is, and what CnIndexPage already does with it.
@@ -3943,6 +3949,7 @@ export default {
 		 * in. Edit goes LAST so it reads after the app's own actions in the
 		 * Actions menu — the page's affordance yields to the app's.
 		 *
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 * @return {Array<object>} The action descriptors.
 		 */
 		effectiveHeaderActions() {
@@ -3951,12 +3958,16 @@ export default {
 			// written out in place) join the list CnActionButtons dispatches,
 			// so they get the same dialogs, toasts and `visibleWhen` gating as
 			// any header action. An id that is already declared is not added
-			// twice. With nothing pinned inline this is `headerActions` itself.
+			// twice. With nothing pinned inline and no `href` entry this is
+			// `headerActions` itself.
 			const known = new Set(authored.map((action) => action && action.id))
 			const inline = [this.stagePrimary, ...this.pinnedQuickActions]
 				.filter((pinned) => pinned && pinned.inline && !known.has(pinned.id))
 				.map((pinned) => pinned.inline)
-			const declared = inline.length > 0 ? [...authored, ...inline] : authored
+			const combined = inline.length > 0 ? [...authored, ...inline] : authored
+			// An entry (or child) with `href` becomes a link CnActionButtons renders as an anchor.
+			const linked = combined.map(headerActionAsLink)
+			const declared = linked.some((action, index) => action !== combined[index]) ? linked : combined
 			if (!(this.foldsEditIntoActions && this.canEditRecord)) {
 				return declared
 			}
@@ -5200,17 +5211,21 @@ export default {
 		 *
 		 * A stage's action is dispatched the way a header action is, through
 		 * the `run()` CnActionButtons bound for it, and announced to the host
-		 * with its declaration. A link action is left to the browser. Without
-		 * a stage action this is the page's `primaryAction`, announced as
-		 * before.
+		 * with its declaration. A link action is left to the browser and
+		 * announces nothing. Without a stage action this is the page's
+		 * `primaryAction`, announced as before.
 		 *
 		 * @return {void}
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 */
 		onPrimaryActionClick() {
 			const entry = this.stagePrimaryEntry
 			if (!entry) {
 				this.$emit('primary-action', this.primaryAction)
+				return
+			}
+			if (entry.href) {
 				return
 			}
 			this.$emit('primary-action', this.headerActionsById[entry.id] || { id: entry.id, label: entry.label })
