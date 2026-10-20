@@ -36,7 +36,7 @@ const TOKENS = [
 	'--nldesign-component-button-primary-action-font-weight: 600;',
 	'--nldesign-component-button-secondary-action-color: var(--color-main-text);',
 	'--nldesign-component-button-secondary-action-background-color: var(--color-main-background);',
-	'--nldesign-component-button-secondary-action-border-color: var(--color-border-dark);',
+	'--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);',
 	'--nldesign-component-button-secondary-action-hover-background-color: var(--color-background-hover);',
 ]
 

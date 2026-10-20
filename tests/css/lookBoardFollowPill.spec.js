@@ -35,7 +35,7 @@ describe('look-board-detail.css: the follow pill', () => {
 	it.each([
 		'height: 28px;',
 		'padding: 0 10px;',
-		'border: 1px solid var(--color-border-dark);',
+		'border: 1px solid var(--cn-board-control-border);',
 		'border-radius: 14px;',
 		'background: var(--color-main-background);',
 		'color: var(--color-main-text);',

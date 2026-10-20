@@ -55,7 +55,7 @@ describe('look-board-index.css: table rows', () => {
 			/min-width:\s*34px !important/,
 			/height:\s*34px !important/,
 			/padding:\s*0 !important/,
-			/border:\s*1px solid var\(--color-border-dark\) !important/,
+			/border:\s*1px solid var\(--cn-board-control-border\) !important/,
 			/border-radius:\s*8px !important/,
 			/background:\s*var\(--color-main-background\) !important/,
 		]) {
