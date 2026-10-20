@@ -102,7 +102,7 @@
 			v-else
 			:id="inputId"
 			:label="label"
-			:type="kind === 'password' ? 'password' : 'text'"
+			:type="inputType"
 			:modelValue="stringValue"
 			:placeholder="field.placeholder || ''"
 			:readonly="field.readOnly"
@@ -132,7 +132,10 @@ import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 let fieldUid = 0
 
 /** Field types and the names CnSettingsPage's manifest uses for them. */
-const KIND_ALIASES = { enum: 'select', string: 'text' }
+const KIND_ALIASES = { enum: 'select', string: 'text', datetime: 'datetime-local', 'date-time': 'datetime-local' }
+
+/** The kinds drawn as a text field with their own input type. */
+const INPUT_TYPES = ['password', 'date', 'datetime-local', 'email', 'url']
 
 /**
  * CnSettingsField - one settings field: the control for its type with its
@@ -145,7 +148,9 @@ const KIND_ALIASES = { enum: 'select', string: 'text' }
  * (replace-only: the input stays empty, and with `secretSet` says a value is
  * stored; the host sends it only when something is typed), and `image` (a
  * preview tile, the initials without an image, and an upload button that
- * posts the file to `uploadUrl` at once and emits `uploaded`).
+ * posts the file to `uploadUrl` at once and emits `uploaded`). `date`,
+ * `datetime-local` (also `datetime`, `date-time`), `email` and `url` are text
+ * fields of that input type; the value stays the text the input holds.
  *
  * ```vue
  * <CnSettingsField
@@ -211,6 +216,11 @@ export default {
 		kind() {
 			const type = String(this.field.type || 'text')
 			return KIND_ALIASES[type] || type
+		},
+
+		/** @return {string} The input type of a text-like field. */
+		inputType() {
+			return INPUT_TYPES.includes(this.kind) ? this.kind : 'text'
 		},
 
 		/** @return {string} The label. */

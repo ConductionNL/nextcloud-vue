@@ -248,7 +248,7 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown" #after-search>
+			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown || relatedFieldFilters" #after-search>
 				<!-- Board view controls, after the search (screens-board-reference-columns):
 				     the narrowing select ("Case type:"), the column switch ("Columns:
 				     status | type | assignee") and the board's hint sentence. -->
@@ -304,6 +304,11 @@
 					@update:modelValue="onContentSearchToggle">
 					{{ t('nextcloud-vue', 'Also search inside files') }}
 				</NcCheckboxRadioSwitch>
+				<CnRelatedFieldFilters
+					v-if="relatedFieldFilters"
+					:definitions="relatedFieldFilters.definitions || {}"
+					:related="relatedFieldFilters.related || {}"
+					:storeKey="objectType || selfObjectType || ''" />
 				<slot name="after-search" />
 			</template>
 			<template
@@ -1340,6 +1345,7 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
@@ -1678,6 +1684,7 @@ export default {
 
 	components: {
 		CnIndexPageWidgets,
+		CnRelatedFieldFilters,
 		CnStatusBadge,
 		NcNoteCard,
 		CnBuildiqEditButton,
@@ -2384,6 +2391,17 @@ export default {
 		searchInFiles: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Filters over a type's own declared fields, beside the search
+		 * (CnRelatedFieldFilters): `{ definitions: { register, schema, filter },
+		 * related: { schema, backref, definitionKey?, valueKey? } }`.
+		 * Manifest: `config.relatedFieldFilters`.
+		 */
+		relatedFieldFilters: {
+			type: Object,
+			default: null,
 		},
 
 		/** Object/row data array */

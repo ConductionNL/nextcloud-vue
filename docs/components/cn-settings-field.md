@@ -13,6 +13,7 @@ One settings field: the control for its type with its label, and under it an err
 |------|---------|
 | `text` (default), `string` | NcTextField |
 | `password` | NcTextField, masked, showing its value back |
+| `date`, `datetime-local` (also `datetime`, `date-time`), `email`, `url` | NcTextField of that input type; the value stays the text the input holds |
 | `secret` | NcTextField, masked and replace-only; with `secretSet` it says a value is stored |
 | `number` | NcTextField of type number (`min`, `max`) |
 | `textarea` | NcTextArea (`rows`) |
