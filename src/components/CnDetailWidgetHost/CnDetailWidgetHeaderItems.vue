@@ -13,20 +13,35 @@
 			v-if="header.note"
 			class="cn-detail-page__catalog-note"
 			data-testid="cn-detail-widget-header-note">{{ header.note }}</span>
-		<button
-			v-for="(action, index) in header.actions"
-			:key="`${index}-${action.label}`"
-			type="button"
-			class="cn-detail-page__catalog-action"
-			data-testid="cn-detail-widget-header-action"
-			@click="action.run()">
-			<CnIcon v-if="action.icon" :name="action.icon" :size="16" />
-			{{ action.label }}
-		</button>
+		<template v-for="(action, index) in header.actions" :key="`${index}-${action.label}`">
+			<!-- `variant: 'primary'`: the card's main action as a filled button
+			     (a task table's "New task"); otherwise the quiet header link. -->
+			<NcButton
+				v-if="action.variant === 'primary'"
+				variant="primary"
+				class="cn-detail-widget-header-items__primary"
+				data-testid="cn-detail-widget-header-action"
+				@click="action.run()">
+				<template v-if="action.icon" #icon>
+					<CnIcon :name="action.icon" :size="20" />
+				</template>
+				{{ action.label }}
+			</NcButton>
+			<button
+				v-else
+				type="button"
+				class="cn-detail-page__catalog-action"
+				data-testid="cn-detail-widget-header-action"
+				@click="action.run()">
+				<CnIcon v-if="action.icon" :name="action.icon" :size="16" />
+				{{ action.label }}
+			</button>
+		</template>
 	</span>
 </template>
 
 <script>
+import { NcButton } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 
@@ -38,10 +53,10 @@ import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 export default {
 	name: 'CnDetailWidgetHeaderItems',
 
-	components: { CnIcon, CnStatusBadge },
+	components: { CnIcon, CnStatusBadge, NcButton },
 
 	props: {
-		/** The reported header: `{ pill, note, actions: [{ label, icon?, run }] }`. */
+		/** The reported header: `{ pill, note, actions: [{ label, icon?, variant?, run }] }`. */
 		header: {
 			type: Object,
 			required: true,

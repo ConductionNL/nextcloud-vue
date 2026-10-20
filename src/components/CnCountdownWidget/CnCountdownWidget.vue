@@ -495,6 +495,14 @@ export default {
 	padding: 0 12px;
 }
 
+/* The board draws the term card's action as a 34px chip with 13px text and
+   a 17px radius (DqZaak "Termijn opschorten"); Nextcloud's pill radius is
+   100px and its text 15px. */
+.cn-countdown-widget--board .cn-countdown-widget__action {
+	border-radius: 17px;
+	font-size: 13px;
+}
+
 .cn-countdown-widget__action--primary {
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);

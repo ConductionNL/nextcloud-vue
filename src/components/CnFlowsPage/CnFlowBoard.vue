@@ -708,11 +708,12 @@ export default {
 </script>
 
 <style scoped>
+/* The board page's padding, so the title stands where every board page puts it (DqFlow). */
 .cn-flow-board {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
-	padding: 20px 24px;
+	padding: var(--cn-board-content-padding, 24px 28px);
 	min-height: 100%;
 	box-sizing: border-box;
 }
@@ -859,7 +860,10 @@ export default {
 	list-style: none;
 }
 
+/* A step is a plain 400 label (DqFlow "Status zetten"); the nldesign theme
+   sets every button's weight with `!important` through its token. */
 .cn-flow-board__palette-step {
+	--nldesign-component-button-font-weight: 400;
 	width: 100%;
 	min-height: 34px;
 	padding: 6px 10px;
@@ -867,6 +871,7 @@ export default {
 	border-radius: 8px;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
+	font-weight: 400;
 	text-align: start;
 	cursor: pointer;
 }

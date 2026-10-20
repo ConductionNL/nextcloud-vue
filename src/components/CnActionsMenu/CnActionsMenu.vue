@@ -26,6 +26,7 @@
 			:forceName="true"
 			:menuName="actionsMenuLabel"
 			:variant="variant || undefined"
+			:placement="placement"
 			:open="menuOpen"
 			:data-testid="`${testidBase}-actions`"
 			@update:open="menuOpen = $event">
@@ -498,6 +499,16 @@ export default {
 		trailingChevron: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Where the menu opens against its trigger: NcActions' `bottom`
+		 * (centred under it), or `bottom-end`, the board's "Meer" menu, whose
+		 * right edge lines up with the trigger's (DqZaakMeer).
+		 */
+		placement: {
+			type: String,
+			default: 'bottom',
 		},
 
 		/** Pre-translated aria-label / tooltip for the overflow trigger. */

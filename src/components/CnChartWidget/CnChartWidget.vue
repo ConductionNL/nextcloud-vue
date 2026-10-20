@@ -2868,8 +2868,9 @@ export default {
 }
 
 /* A cell is a span: its ink also goes to --nldesign-color-on-surface, which a
-   theme that forces the body ink onto every span (thematiq) reads. Level 3
-   leaves the theme's body ink in place: white on its tint is below 4.5:1. */
+   theme that forces the body ink onto every span (thematiq) reads. The light
+   levels (1 to 3) take a dark ink; white only on level 4, the full primary,
+   where it reaches 4.5:1 (on level 3's 65% tint it is about 2.9:1). */
 .cn-chart-widget__matrix-cell--1 {
 	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	background: var(--color-primary-element-light);
@@ -2882,8 +2883,9 @@ export default {
 }
 
 .cn-chart-widget__matrix-cell--3 {
+	--nldesign-color-on-surface: var(--color-main-text);
 	background: color-mix(in srgb, var(--color-primary-element) 65%, var(--color-main-background));
-	color: var(--color-primary-element-text);
+	color: var(--color-main-text);
 }
 
 .cn-chart-widget__matrix-cell--4 {
