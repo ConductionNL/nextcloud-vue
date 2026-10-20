@@ -156,6 +156,7 @@ export function logsPlugin(options = {}) {
 
 	if (autoRefreshOnItemChange) {
 		plugin.setup = function setup(store) {
+			// Detached: the store outlives the component whose setup first used it.
 			store.$onAction(({ name, after }) => {
 				if (name !== 'setItem') {
 					return
@@ -170,7 +171,7 @@ export function logsPlugin(options = {}) {
 						store.clearLogs()
 					}
 				})
-			})
+			}, true)
 		}
 	}
 
