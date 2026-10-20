@@ -330,6 +330,92 @@
 	gap: 6px;
 }
 
+/* ---- Menus (NcActions popovers) ----------------------------------------- */
+/* An NcActions menu opens in a popover on <body>, outside CnAppRoot, so no
+   `.cn-look-board` rule reaches it. The rules key on a body that holds a
+   board-look root, which an app without the look never renders. The board
+   menu (DqZaakMeer "Meer"): a white card with a hairline, a 10px radius and
+   a soft drop shadow, 6px in; rows of 36px, 10px in, 6px rounded, 14px text
+   at 400 with an 18px icon 10px before it; group captions in 12px bold
+   capitals; separators 4px clear, 6px in. The theme's button tokens are
+   handed the row's weight and radius, because nldesign forces both onto
+   every button. */
+body:has(.cn-look-board) .v-popper__popper.action-item__popper .v-popper__wrapper .v-popper__inner {
+	padding: 6px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	box-shadow: 0 12px 32px color-mix(in srgb, var(--color-main-text) 18%, transparent);
+}
+
+body:has(.cn-look-board) .v-popper__popper.action-item__popper ul[role="menu"] {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.action > .action-button,
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.action > .action-link {
+	--font-weight-element: 400;
+	--nldesign-component-button-font-weight: 400;
+	--nldesign-component-button-border-radius: 6px;
+	align-items: center;
+	gap: 10px;
+	min-height: 36px;
+	padding: 0 10px;
+	border-radius: 6px;
+	font-size: 14px;
+	font-weight: 400;
+	line-height: 20px;
+}
+
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.action > .action-button > .material-design-icon,
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.action > .action-link > .material-design-icon {
+	flex: none;
+	align-self: center;
+	width: 18px;
+	height: 18px;
+}
+
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.action .material-design-icon__svg {
+	width: 18px;
+	height: 18px;
+}
+
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.action .action-button__longtext-wrapper,
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.action .action-button__longtext,
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.action .action-link__longtext-wrapper,
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.action .action-link__longtext {
+	max-width: none;
+	padding: 0;
+	line-height: 20px;
+}
+
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.app-navigation-caption {
+	height: auto;
+	margin: 0;
+	padding: 6px 10px 2px;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	line-height: 1.2;
+	text-transform: uppercase;
+}
+
+body:has(.cn-look-board) .v-popper__popper.action-item__popper li.action-separator {
+	margin: 4px 6px;
+	border-bottom-color: var(--color-border);
+}
+
+/* A detail page's header menu is the board's wide menu, 344px, so a long
+   action and its admin tag stay on one line. Its rows carry the page's
+   `cn-detail-page-` test ids. */
+body:has(.cn-look-board) .v-popper__popper.action-item__popper:has([data-testid^="cn-detail-page-"]) .v-popper__wrapper .v-popper__inner {
+	box-sizing: border-box;
+	width: 344px;
+	max-width: calc(100vw - 32px);
+}
+
 /* ---- The navigation ---------------------------------------------------- */
 .cn-look-board .app-navigation[data-testid="cn-nav"] {
 	--app-navigation-padding: 0px;
