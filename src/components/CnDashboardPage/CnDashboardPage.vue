@@ -37,7 +37,7 @@
 				<CnHeaderTrail
 					:breadcrumb="breadcrumb"
 					:current="title ? resolvedTitle : ''"
-					:meta="headerMeta ? effectiveTranslate(headerMeta) : ''" />
+					:meta="resolvedHeaderMeta" />
 				<!-- `dateRange.placement: "description"`: the segmented period
 				     group ends the description line ("Week 41 · alle teams ·
 				     [Deze week | Dit kwartaal | Dit jaar]"). -->
@@ -2145,6 +2145,31 @@ export default {
 		 * @spec openspec/changes/dashboard-greeting-label/specs/dashboard-page/spec.md#requirement-the-header-subtitle-can-lead-with-a-label-or-the-date
 		 * @return {string}
 		 */
+		/**
+		 * `headerMeta` through the host translate, with `{today}` written out as
+		 * today's date (DqDagAfsluiten "Dag afsluiten, woensdag 7 oktober").
+		 *
+		 * @spec openspec/changes/record-list-notes/specs/record-list-notes/spec.md#requirement-a-dashboard-header-meta-can-name-today
+		 * @return {string}
+		 */
+		resolvedHeaderMeta() {
+			if (!this.headerMeta) {
+				return ''
+			}
+			const meta = this.effectiveTranslate(this.headerMeta)
+			if (!meta.includes('{today}')) {
+				return meta
+			}
+			const options = { weekday: 'long', day: 'numeric', month: 'long' }
+			let today
+			try {
+				today = new Intl.DateTimeFormat(getCanonicalLocale() || undefined, options).format(new Date())
+			} catch {
+				today = new Intl.DateTimeFormat(undefined, options).format(new Date())
+			}
+			return meta.split('{today}').join(today)
+		},
+
 		subtitleText() {
 			const description = this.description ? this.resolvedDescription : ''
 			const dateOnly = this.greeting === 'date'

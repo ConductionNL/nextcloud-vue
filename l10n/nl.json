@@ -2126,7 +2126,10 @@
     "Use \"{name}\"": "\"{name}\" gebruiken",
     "It was not handed over.": "Het is niet overgedragen.",
     "This search could not be read.": "Deze zoekopdracht kon niet worden gelezen.",
-    "{source} could not be searched, so this list may be incomplete.": "{source} kon niet worden doorzocht, dus deze lijst is mogelijk niet compleet."
+    "{source} could not be searched, so this list may be incomplete.": "{source} kon niet worden doorzocht, dus deze lijst is mogelijk niet compleet.",
+    "The note could not be recorded. It is kept here; try again.": "De notitie kon niet worden vastgelegd. Ze blijft hier staan; probeer het opnieuw.",
+    "This field is not available here.": "Dit veld is hier niet beschikbaar.",
+    "filled in, not recorded yet": "ingevuld, nog niet vastgelegd"
   },
   "plurals": {
     "{count} member": [
