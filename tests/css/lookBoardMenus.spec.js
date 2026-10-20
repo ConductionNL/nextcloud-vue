@@ -29,7 +29,7 @@ function rulesFor(selector) {
 	return out.join('\n')
 }
 
-const popper = 'body:has(.cn-look-board) .v-popper__popper.action-item__popper'
+const popper = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper'
 
 describe('look-board.css: the board menu', () => {
 	it('draws the menu as a card: 6px in, a hairline, a 10px radius and a drop shadow', () => {
@@ -92,6 +92,6 @@ describe('look-board.css: the board menu', () => {
 		const selectors = css.match(/[^{}]+(?=\{)/g).join(',').split(',').map((s) => s.trim())
 		const menu = selectors.filter((s) => s.includes('action-item__popper'))
 		expect(menu.length).toBeGreaterThan(0)
-		menu.forEach((s) => expect(s.startsWith('body:has(.cn-look-board)')).toBe(true))
+		menu.forEach((s) => expect(s.startsWith('body:has(.cn-look-board):not(:has(.cn-look-nextcloud))')).toBe(true))
 	})
 })
