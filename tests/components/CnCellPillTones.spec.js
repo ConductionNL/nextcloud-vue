@@ -44,10 +44,11 @@ describe('pill tones', () => {
 	})
 
 	it('draws purple and teal from tokens that hold the board colours', () => {
-		expect(badgeCss).toMatch(/--cn-status-purple-bg:\s*#e8e6f6/)
-		expect(badgeCss).toMatch(/--cn-status-purple-text:\s*#4a3f8f/)
-		expect(badgeCss).toMatch(/--cn-status-teal-bg:\s*#e3f1f3/)
-		expect(badgeCss).toMatch(/--cn-status-teal-text:\s*#1d5e66/)
+		// A theme's NL Design System hue tokens first, the board colours as the fallback (status-badge-hue-tokens).
+		expect(badgeCss).toMatch(/--cn-status-purple-bg:\s*var\(--nl-color-purple-light,\s*#e8e6f6\)/)
+		expect(badgeCss).toMatch(/--cn-status-purple-text:\s*var\(--nl-color-purple-text,\s*#4a3f8f\)/)
+		expect(badgeCss).toMatch(/--cn-status-teal-bg:\s*var\(--nl-color-teal-light,\s*#e3f1f3\)/)
+		expect(badgeCss).toMatch(/--cn-status-teal-text:\s*var\(--nl-color-teal-text,\s*#1d5e66\)/)
 		expect(badgeCss).toMatch(/\.cn-status-badge--purple\s*\{[^}]*--cn-status-badge-ink:\s*var\(--cn-status-purple-text\)[^}]*background-color:\s*var\(--cn-status-purple-bg\)[^}]*color:\s*var\(--cn-status-badge-ink\)/)
 		expect(badgeCss).toMatch(/\.cn-status-badge--teal\s*\{[^}]*--cn-status-badge-ink:\s*var\(--cn-status-teal-text\)[^}]*background-color:\s*var\(--cn-status-teal-bg\)[^}]*color:\s*var\(--cn-status-badge-ink\)/)
 	})
