@@ -164,12 +164,33 @@ export function isChecklistItemDone(item, object) {
 }
 
 /**
+ * A text or its candidates: a string, or a list of strings to fill in order.
+ *
+ * @param {unknown} value The configured value.
+ * @return {string|string[]|null} The text or the candidates, or null.
+ */
+function templateOf(value) {
+	if (typeof value === 'string' && value !== '') {
+		return value
+	}
+	if (Array.isArray(value)) {
+		const list = value.filter((item) => typeof item === 'string' && item !== '')
+		return list.length > 0 ? list : null
+	}
+	return null
+}
+
+/**
  * Resolve the "what now" card for the record's stage.
  *
- * @param {{stages?: object, title?: string}|null} config The `nextStep` config.
+ * The title and `after` may name record fields as `{path}` tokens, and may be
+ * a list of candidates: the page fills the first whose fields all have a value
+ * (`["What now? Step 2: {statusPublicLabel|lower}", "What now? Handle the case"]`).
+ *
+ * @param {{stages?: object, title?: (string|string[])}|null} config The `nextStep` config.
  * @param {object|null} object The record.
  * @param {string} [stageField] Dot-path to the stage.
- * @return {{stage: string, title: string, items: Array<{label: string, done: boolean, hint: string}>, after: string}|null} The card, or null when this stage declares no checklist.
+ * @return {{stage: string, title: (string|string[]), items: Array<{label: string, done: boolean, hint: string}>, after: (string|string[])}|null} The card, or null when this stage declares no checklist.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
  */
 export function resolveNextStep(config, object, stageField = 'status') {
@@ -193,9 +214,9 @@ export function resolveNextStep(config, object, stageField = 'status') {
 	}
 	return {
 		stage,
-		title: typeof declared.title === 'string' ? declared.title : (typeof config.title === 'string' ? config.title : ''),
+		title: templateOf(declared.title) || templateOf(config.title) || '',
 		items,
-		after: typeof declared.after === 'string' ? declared.after : '',
+		after: templateOf(declared.after) || '',
 	}
 }
 
