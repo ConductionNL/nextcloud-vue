@@ -2341,7 +2341,7 @@
 		},
 		"CnNavCardGrid": {
 			"direct": 1,
-			"transitive": 1,
+			"transitive": 2,
 			"tier": "light",
 			"via": [
 				"CnActionsMenu"
@@ -2541,7 +2541,7 @@
 		},
 		"CnObjectGeoWidget": {
 			"direct": 3,
-			"transitive": 3,
+			"transitive": 4,
 			"tier": "medium",
 			"via": [
 				"CnActionsMenu",
@@ -3353,9 +3353,9 @@
 			"page": "cn-resource-select"
 		},
 		"CnRetentionWidget": {
-			"direct": 3,
+			"direct": 4,
 			"transitive": 0,
-			"tier": "light",
+			"tier": "medium",
 			"via": [],
 			"page": "cn-retention-widget"
 		},
@@ -4373,8 +4373,8 @@
 		},
 		"CnWidgetMapViewer": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
+			"transitive": 4,
+			"tier": "medium",
 			"via": [
 				"CnActionsMenu",
 				"CnMapWidget"
@@ -4411,7 +4411,7 @@
 		},
 		"CnWidgetWrapper": {
 			"direct": 0,
-			"transitive": 1,
+			"transitive": 2,
 			"tier": "light",
 			"via": [
 				"CnActionsMenu"

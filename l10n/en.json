@@ -1929,7 +1929,9 @@
     "or": "or",
     "no value": "no value",
     "yes": "yes",
-    "no": "no"
+    "no": "no",
+    "Recompute nomination": "Recompute nomination",
+    "Recompute": "Recompute"
   },
   "plurals": {
     "{count} member": [

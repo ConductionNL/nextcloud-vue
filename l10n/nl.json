@@ -2141,7 +2141,9 @@
     "or": "of",
     "no value": "geen waarde",
     "yes": "ja",
-    "no": "nee"
+    "no": "nee",
+    "Recompute nomination": "Nominatie herberekenen",
+    "Recompute": "Herberekenen"
   },
   "plurals": {
     "{count} member": [
