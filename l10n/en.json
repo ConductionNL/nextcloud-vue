@@ -1914,7 +1914,16 @@
     "Use \"{name}\"": "Use \"{name}\"",
     "It was not handed over.": "It was not handed over.",
     "This search could not be read.": "This search could not be read.",
-    "{source} could not be searched, so this list may be incomplete.": "{source} could not be searched, so this list may be incomplete."
+    "{source} could not be searched, so this list may be incomplete.": "{source} could not be searched, so this list may be incomplete.",
+    "Why are you opening this?": "Why are you opening this?",
+    "This record holds special categories of personal data. Your purpose is recorded with your name and the time.": "This record holds special categories of personal data. Your purpose is recorded with your name and the time.",
+    "Purpose": "Purpose",
+    "Describe your purpose": "Describe your purpose",
+    "State a purpose to open this": "State a purpose to open this",
+    "This record holds special categories of personal data. It opens once your purpose is recorded.": "This record holds special categories of personal data. It opens once your purpose is recorded.",
+    "State a purpose": "State a purpose",
+    "This page cannot record a purpose, so the record stays closed.": "This page cannot record a purpose, so the record stays closed.",
+    "Your purpose could not be recorded, so the record stays closed.": "Your purpose could not be recorded, so the record stays closed."
   },
   "plurals": {
     "{count} member": [

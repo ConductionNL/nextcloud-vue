@@ -44,7 +44,7 @@
 		<!-- Breadcrumb line (manifest `config.breadcrumb`): the list the record
 		     belongs to, then the record itself as the current crumb. -->
 		<CnBreadcrumbs
-			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound && !isBoard"
+			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound && !contentWithheld && !isBoard"
 			class="cn-detail-page__breadcrumbs"
 			:crumbs="breadcrumbCrumbs"
 			:rootText="breadcrumbCrumbs[0].icon === undefined"
@@ -52,7 +52,7 @@
 			data-testid="cn-detail-page-breadcrumbs" />
 		<!-- Header -->
 		<div
-			v-if="!objectNotFound"
+			v-if="!objectNotFound && !contentWithheld"
 			class="cn-detail-page__header"
 			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null, 'cn-detail-page__header--board': isBoard }"
 			data-testid="cn-detail-page-header">
@@ -658,6 +658,32 @@
 			</slot>
 		</div>
 
+		<!-- Access purpose (`accessPurpose`): nothing of the record shows until
+		     the reader has stated why they open it and the purpose is recorded. -->
+		<div v-else-if="contentWithheld" class="cn-detail-page__access-purpose" data-testid="cn-detail-page-access-purpose">
+			<CnAccessPurposeDialog
+				v-if="accessPurposeAsking"
+				:title="accessPurposeText('title')"
+				:description="accessPurposeText('description')"
+				:options="accessPurposeOptions"
+				:loading="accessPurposeBusy"
+				:error="accessPurposeError"
+				@submit="recordAccessPurpose"
+				@cancel="accessPurposeAsking = false" />
+			<NcEmptyContent
+				v-else-if="accessPurposeRequired"
+				:name="t('nextcloud-vue', 'State a purpose to open this')"
+				:description="t('nextcloud-vue', 'This record holds special categories of personal data. It opens once your purpose is recorded.')"
+				data-testid="cn-detail-page-access-purpose-refused">
+				<template #action>
+					<NcButton variant="primary" data-testid="cn-detail-page-access-purpose-ask" @click="accessPurposeAsking = true">
+						{{ t('nextcloud-vue', 'State a purpose') }}
+					</NcButton>
+				</template>
+			</NcEmptyContent>
+			<NcLoadingIcon v-else :size="32" :name="loadingLabel" />
+		</div>
+
 		<!-- Loading state -->
 		<div v-else-if="showLoadingState" class="cn-detail-page__loading">
 			<NcLoadingIcon :size="32" />
@@ -1230,6 +1256,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Restore from 'vue-material-design-icons/Restore.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
+import CnAccessPurposeDialog from '../../dialogs/CnAccessPurposeDialog.vue'
 import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
@@ -1277,6 +1304,7 @@ import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
@@ -1371,6 +1399,25 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
+/** The session storage key that lists the records whose access purpose is recorded. */
+const ACCESS_PURPOSE_SESSION_KEY = 'cn-access-purposes'
+
+/**
+ * The records whose access purpose this browser session recorded. Empty when
+ * session storage cannot be read (a private window, blocked site data).
+ *
+ * @return {Array<string>} The record keys.
+ */
+function readGrantedPurposes() {
+	try {
+		const raw = window.sessionStorage.getItem(ACCESS_PURPOSE_SESSION_KEY)
+		const list = raw ? JSON.parse(raw) : []
+		return Array.isArray(list) ? list.filter((key) => typeof key === 'string') : []
+	} catch {
+		return []
+	}
+}
+
 /**
  * CnDetailPage — Generic detail/overview page.
  *
@@ -1447,6 +1494,7 @@ export default {
 
 	components: {
 		ChevronLeft,
+		CnAccessPurposeDialog,
 		ChevronRight,
 		NcActionButton,
 		NcActionCaption,
@@ -2690,6 +2738,28 @@ export default {
 		},
 
 		/**
+		 * Ask why the reader opens the record before the page shows it, and
+		 * record the answer (manifest `config.accessPurpose`). `{ when, options,
+		 * url, title?, description? }`: `when` is a condition in the
+		 * `visibleWhen` grammar on the record and its `visibilityContext`
+		 * records (DqSociaalDomein: the case type lists special categories of
+		 * personal data); `options` the purposes offered (`{ value, label }`,
+		 * "Other" with a written purpose is always added); `url` the app
+		 * endpoint that records the purpose (POST `{ purpose, note }`, `{objectId}`
+		 * filled in). The page shows nothing of the record until the endpoint
+		 * accepts, and does not ask again for the same record in the same
+		 * browser session. A refusal keeps the record closed. `null` (the
+		 * default) asks nothing.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @type {object|null}
+		 */
+		accessPurpose: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Whether the current user administers this instance. Shows the
 		 * `adminOnly` header actions. `null` (the default) reads it from
 		 * `getCurrentUser()`. Visibility only, never an authorization
@@ -2931,6 +3001,14 @@ export default {
 
 	data() {
 		return {
+			/** The session keys of the records whose access purpose is recorded. */
+			accessPurposeGranted: readGrantedPurposes(),
+			/** Whether the purpose dialog is open; closing it without a purpose keeps the record closed. */
+			accessPurposeAsking: true,
+			/** Whether a purpose is being recorded. */
+			accessPurposeBusy: false,
+			/** Why the last purpose was refused. */
+			accessPurposeError: '',
 			/** The id of the open body tab a `tabs` widget reported, '' before one did. */
 			activeBodyTab: '',
 			/**
@@ -3432,7 +3510,64 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
 		 */
 		showsBody() {
-			return !this.objectNotFound && !this.showLoadingState && !this.error && !this.empty
+			return !this.objectNotFound && !this.contentWithheld && !this.showLoadingState && !this.error && !this.empty
+		},
+
+		/**
+		 * Whether the loaded record asks for a purpose before it opens
+		 * (`accessPurpose.when` holds for it). Undecided, and so withheld,
+		 * while the record or the records its condition reads are on their way.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @return {boolean}
+		 */
+		accessPurposeRequired() {
+			const gate = this.accessPurpose
+			if (!gate || typeof gate !== 'object' || !gate.when || !this.widgetVisibilityData || this.visibilityRowsPending) {
+				return false
+			}
+			return detailWidgetVisible({ visibleWhen: gate.when }, this.widgetVisibilityData)
+		},
+
+		/**
+		 * Whether the page holds the record back: it asks for a purpose and
+		 * none is recorded for this record in this session yet, or it cannot
+		 * tell yet whether it asks.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @return {boolean}
+		 */
+		contentWithheld() {
+			const gate = this.accessPurpose
+			if (!gate || typeof gate !== 'object' || !gate.when || this.objectNotFound) {
+				return false
+			}
+			if (this.accessPurposeGranted.includes(this.accessPurposeKey)) {
+				return false
+			}
+			const undecided = !this.widgetVisibilityData || this.visibilityRowsPending
+			return undecided || this.accessPurposeRequired
+		},
+
+		/**
+		 * The session key of the purpose recorded for this record.
+		 *
+		 * @return {string}
+		 */
+		accessPurposeKey() {
+			return `cn-access-purpose:${this.resolvedObjectType || ''}:${this.objectId || ''}`
+		},
+
+		/**
+		 * The purposes offered, through the app's translate.
+		 *
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		accessPurposeOptions() {
+			const options = Array.isArray(this.accessPurpose?.options) ? this.accessPurpose.options : []
+			return options
+				.filter((option) => option && typeof option.value === 'string' && option.value !== '')
+				.map((option) => ({ value: option.value, label: this.cnTranslate(option.label || option.value) }))
 		},
 
 		/**
@@ -4906,6 +5041,16 @@ export default {
 			this.syncSidebarState()
 		},
 
+		contentWithheld() {
+			this.syncSidebarState()
+		},
+
+		/** Another record asks its own purpose: the dialog opens again for it. */
+		accessPurposeKey() {
+			this.accessPurposeAsking = true
+			this.accessPurposeError = ''
+		},
+
 		// Deep, like `sidebarTabs` / `sidebarProps` below: the manifest editors
 		// mutate `page.config.sidebar` IN PLACE, so the reference CnPageRenderer
 		// forwards never changes. A shallow watcher missed every such edit —
@@ -5082,6 +5227,52 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A text of the access purpose gate through the app's translate, '' when unset.
+		 *
+		 * @param {string} key `title` or `description`.
+		 * @return {string}
+		 */
+		accessPurposeText(key) {
+			const text = this.accessPurpose && this.accessPurpose[key]
+			return typeof text === 'string' && text !== '' ? this.cnTranslate(text) : ''
+		},
+
+		/**
+		 * Record the reader's purpose with the app's endpoint, then open the
+		 * record and remember it for this browser session. A refusal (or a
+		 * failure to record) keeps the record closed and says why.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @param {{purpose: string, note: string}} answer The chosen purpose.
+		 * @return {Promise<void>}
+		 */
+		async recordAccessPurpose(answer) {
+			const url = String(this.accessPurpose?.url || '').replace(/\{objectId\}/g, encodeURIComponent(String(this.objectId || '')))
+			if (url === '') {
+				this.accessPurposeError = t('nextcloud-vue', 'This page cannot record a purpose, so the record stays closed.')
+				return
+			}
+			this.accessPurposeBusy = true
+			this.accessPurposeError = ''
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				await axios.post(prefixUrl(url), { purpose: answer.purpose, note: answer.note })
+				const key = this.accessPurposeKey
+				this.accessPurposeGranted = [...new Set([...this.accessPurposeGranted, key])]
+				try {
+					window.sessionStorage.setItem(ACCESS_PURPOSE_SESSION_KEY, JSON.stringify(this.accessPurposeGranted))
+				} catch {
+					// Without session storage the purpose is asked again on the next visit.
+				}
+			} catch (error) {
+				const data = error?.response?.data
+				this.accessPurposeError = (data && (data.message || data.error)) || t('nextcloud-vue', 'Your purpose could not be recorded, so the record stays closed.')
+			} finally {
+				this.accessPurposeBusy = false
+			}
+		},
+
 		/**
 		 * The widget definitions with each `tabs` widget's tabs narrowed and
 		 * ordered by `pickedTabIds`; the definitions as given without a pick.
@@ -6755,7 +6946,8 @@ export default {
 				return
 			}
 			const r = this.resolvedSidebar
-			const hasRecord = !this.objectNotFound && !this.awaitingObject
+			// A record held back for its access purpose shows nothing in the sidebar either.
+			const hasRecord = !this.objectNotFound && !this.awaitingObject && !this.contentWithheld
 			if (this.sidebarActive && hasRecord && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
 				// Seed `open` only on the inactive→active edge (first activation
