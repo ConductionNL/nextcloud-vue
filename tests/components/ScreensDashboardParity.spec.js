@@ -38,7 +38,7 @@ const pageStubs = {
 	CnStatsBlockWidget: { template: '<div />' },
 	CnWidgetRefItem: { template: '<div />' },
 	CnBuildiqEditButton: { template: '<button class="buildiq-stub">buildiq</button>' },
-	CnActionButtons: { template: '<div class="header-actions-stub"><button class="primary-stub">New publication</button></div>' },
+	CnActionButtons: { props: ['actions'], template: '<div class="header-actions-stub"><button v-for="a in actions" :key="a.id">{{ a.label }}</button></div>' },
 	CnActionsMenu: { template: '<button class="actions-menu-stub">Actions</button>' },
 	NcButton: { template: '<button class="edit-stub"><slot /></button>' },
 	NcEmptyContent: { template: '<div />' },
@@ -176,7 +176,7 @@ describe('CnStatsBlock: board KPI tile', () => {
 
 describe('CnDashboardPage: board header', () => {
 	it('renders an h1 and the greeting as the subtitle, with the primary rightmost', () => {
-		const w = mountPage({ title: 'Dashboard', description: 'Good morning, Pieter', allowEdit: true, headerActions: [{ id: 'new', label: 'New publication' }] }, board)
+		const w = mountPage({ title: 'Dashboard', description: 'Good morning, Pieter', allowEdit: true, headerActions: [{ id: 'new', label: 'New publication', variant: 'primary' }] }, board)
 		const h1 = w.find('h1.cn-dashboard-page__title')
 		expect(h1.exists()).toBe(true)
 		expect(h1.text()).toBe('Dashboard')
@@ -184,6 +184,26 @@ describe('CnDashboardPage: board header', () => {
 		expect(w.find('.cn-dashboard-page__description').text()).toBe('Good morning, Pieter')
 		const order = w.findAll('.cn-dashboard-page__header-actions > *').map((el) => el.text().trim())
 		expect(order).toEqual(['Edit', 'Actions', 'buildiq', 'New publication'])
+	})
+
+	it('draws the secondary header actions first and the buildiq square just before the primary (PtDashboard)', () => {
+		const headerActions = [
+			{ id: 'site', label: 'View website' },
+			{ id: 'new', label: 'New notice', variant: 'primary' },
+		]
+		const w = mountPage({ title: 'Dashboard', allowEdit: true, headerActions }, board)
+		const order = w.findAll('.cn-dashboard-page__header-actions > *').map((el) => el.text().trim())
+		expect(order).toEqual(['View website', 'Edit', 'Actions', 'buildiq', 'New notice'])
+	})
+
+	it('keeps the declared order of the header actions without the board look', () => {
+		const headerActions = [
+			{ id: 'site', label: 'View website' },
+			{ id: 'new', label: 'New notice', variant: 'primary' },
+		]
+		const w = mountPage({ title: 'Dashboard', allowEdit: true, headerActions })
+		const order = w.findAll('.cn-dashboard-page__header-actions > *').map((el) => el.text().trim())
+		expect(order).toEqual(['View websiteNew notice', 'Edit', 'buildiq', 'Actions'])
 	})
 
 	it('keeps the h2 and today\'s order without the board look', () => {
