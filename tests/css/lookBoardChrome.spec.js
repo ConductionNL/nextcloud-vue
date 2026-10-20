@@ -101,7 +101,7 @@ describe('look-board.css: the header button', () => {
 		expect(button).toContain('border-radius: var(--cn-board-control-radius)')
 		expect(button).toContain('font-size: 14px')
 		expect(button).toContain('font-weight: 600')
-		expect(button).toContain('border: 1px solid var(--color-border-dark)')
+		expect(button).toContain('border: 1px solid var(--cn-board-control-border)')
 		expect(button).toContain('padding: 0 14px')
 	})
 
