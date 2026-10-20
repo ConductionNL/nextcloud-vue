@@ -1932,7 +1932,10 @@
     "no": "no",
     "Recompute nomination": "Recompute nomination",
     "Recompute": "Recompute",
-    "Task deadline": "Deadline"
+    "Task deadline": "Deadline",
+    "The note could not be recorded. It is kept here; try again.": "The note could not be recorded. It is kept here; try again.",
+    "This field is not available here.": "This field is not available here.",
+    "filled in, not recorded yet": "filled in, not recorded yet"
   },
   "plurals": {
     "{count} member": [

@@ -2149,7 +2149,10 @@
     "Last run: {name}, {date}": "Laatst uitgevoerd: {name}, {date}",
     "This record has no macros": "Er zijn geen macro's voor dit item",
     "Running …": "Bezig …",
-    "Execute": "Uitvoeren"
+    "Execute": "Uitvoeren",
+    "The note could not be recorded. It is kept here; try again.": "De notitie kon niet worden vastgelegd. Ze blijft hier staan; probeer het opnieuw.",
+    "This field is not available here.": "Dit veld is hier niet beschikbaar.",
+    "filled in, not recorded yet": "ingevuld, nog niet vastgelegd"
   },
   "plurals": {
     "{count} member": [
