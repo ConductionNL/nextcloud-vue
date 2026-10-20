@@ -63,7 +63,7 @@ export function formatLongDate(value, now = new Date(), withYear = false) {
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `currency`, `relative`, `relativetime`, `days` or '' (as is).
+ * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `currency`, `relative`, `relativetime`, `days`, `lower` or '' (as is).
  * @param {Date} now The reference moment.
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
@@ -106,6 +106,9 @@ function formatValue(value, format, now, arg = '', object = null, config = null)
 	if (format === 'relativetime') {
 		return formatRelativeDate(value, { now, withTime: true })
 	}
+	if (format === 'lower') {
+		return String(value).toLocaleLowerCase()
+	}
 	if (format === 'days') {
 		// Whole days from the date to now (0 for today; negative for a future date).
 		const date = parseDateValue(value)
@@ -130,7 +133,9 @@ function formatValue(value, format, now, arg = '', object = null, config = null)
  * the row field is empty, the app's reporting currency), `{path|relative}` and
  * `{path|relativetime}` say "today", "yesterday" and then the short date
  * ("vandaag, 09.42"), and `{path|days}` is the
- * whole days since that date ("has waited {createdAt|days} days"). A token without a
+ * whole days since that date ("has waited {createdAt|days} days"), and
+ * `{path|lower}` writes the value in lower case ("Step 2: {statusLabel|lower}"
+ * reads "Step 2: in progress" mid-sentence). A token without a
  * value empties the WHOLE template, because "Termijn " is worse than nothing.
  * A template without tokens is returned as written (a constant label).
  *
