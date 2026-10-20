@@ -2221,7 +2221,10 @@
     "{count} skipped": "{count} overgeslagen",
     "{count} you may not write": "{count} mag je niet schrijven",
     "{field}, from": "{field}, vanaf",
-    "{field}, up to": "{field}, tot en met"
+    "{field}, up to": "{field}, tot en met",
+    "Withheld": "Afgeschermd",
+    "This value is not shown.": "Deze waarde wordt niet getoond.",
+    "You may not open the linked object, so its value is not shown.": "U mag het gekoppelde object niet openen, daarom wordt de waarde niet getoond."
   },
   "plurals": {
     "{count} member": [
@@ -2356,9 +2359,6 @@
       "{count} wijziging: {list}",
       "{count} wijzigingen: {list}"
     ],
-    "Withheld": "Afgeschermd",
-    "You may not open the linked object, so its value is not shown.": "U mag het gekoppelde object niet openen, daarom wordt de waarde niet getoond.",
-    "This value is not shown.": "Deze waarde wordt niet getoond.",
     "The %n item matching this search is selected.": [
       "Het %n item dat bij deze zoekopdracht hoort is geselecteerd.",
       "Alle %n items die bij deze zoekopdracht horen zijn geselecteerd."
