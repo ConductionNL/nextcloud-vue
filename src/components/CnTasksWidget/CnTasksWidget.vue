@@ -80,6 +80,16 @@
 							<CircleOutline v-else :size="20" class="cn-tasks-widget__state-icon" />
 							<span class="cn-tasks-widget__body">
 								<button
+									v-if="expandRows"
+									type="button"
+									class="cn-tasks-widget__name"
+									:aria-expanded="task.uuid === expandedId ? 'true' : 'false'"
+									:data-testid="`cn-tasks-widget-expand-${task.uuid}`"
+									@click="toggleExpanded(task)">
+									{{ titleOf(task) }}
+								</button>
+								<button
+									v-else
 									type="button"
 									class="cn-tasks-widget__name"
 									@click="onRowClick(task, $event)"
@@ -148,6 +158,95 @@
 					</tr>
 				</tbody>
 			</table>
+			<!-- The opened row's task to work on in place (`expandRows`). -->
+			<CnTaskWorkCard
+				v-if="expandedTask"
+				:task="expandedTask"
+				:values="answersFor(expandedTask)"
+				:claimable="canClaim(expandedTask)"
+				:claimAvailable="claimAvailable"
+				:cancelable="content.cancel === true"
+				:busy="busy"
+				:openRoute="openRouteFor(expandedTask)"
+				:tr="tr"
+				@answer="recordAnswer(expandedTask, $event)"
+				@claim="claim(expandedTask)"
+				@complete="completeInPlace(expandedTask)"
+				@cancel="cancel(expandedTask)" />
+		</template>
+		<!-- `variant: "focus"`: the first open task to work on in place, the
+		     other open tasks listed under it. -->
+		<template v-else-if="isFocus">
+			<CnTaskWorkCard
+				v-if="focusTask"
+				:task="focusTask"
+				:values="answersFor(focusTask)"
+				:claimable="canClaim(focusTask)"
+				:claimAvailable="claimAvailable"
+				:cancelable="content.cancel === true"
+				:busy="busy"
+				:openRoute="openRouteFor(focusTask)"
+				:tr="tr"
+				@answer="recordAnswer(focusTask, $event)"
+				@claim="claim(focusTask)"
+				@complete="completeInPlace(focusTask)"
+				@cancel="cancel(focusTask)" />
+			<p v-else class="cn-tasks-widget__empty" data-testid="cn-tasks-widget-empty">
+				{{ emptyLabel }}
+			</p>
+			<div v-if="otherOpenTasks.length > 0" class="cn-tasks-widget__others" data-testid="cn-tasks-widget-others">
+				<h5 class="cn-tasks-widget__others-title">
+					{{ tr('Other open tasks') }}
+				</h5>
+				<ul class="cn-tasks-widget__others-list">
+					<li
+						v-for="task in otherOpenTasks"
+						:key="task.uuid"
+						class="cn-tasks-widget__others-row"
+						:data-testid="`cn-tasks-widget-other-${task.uuid}`">
+						<span class="cn-tasks-widget__body">
+							<router-link v-if="openRouteFor(task) && $router" :to="openRouteFor(task)" class="cn-tasks-widget__name">
+								{{ titleOf(task) }}
+							</router-link>
+							<span v-else class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
+							<span class="cn-tasks-widget__meta">{{ dueLabel(task) || tr('No due date') }}</span>
+						</span>
+						<span class="cn-tasks-widget__others-actions">
+							<NcButton
+								v-if="canClaim(task)"
+								:disabled="busy"
+								variant="tertiary"
+								:data-testid="`cn-tasks-widget-claim-${task.uuid}`"
+								@click="claim(task)">
+								{{ tr('Claim') }}
+							</NcButton>
+							<NcButton
+								v-else
+								:disabled="busy"
+								variant="tertiary"
+								:data-testid="`cn-tasks-widget-complete-${task.uuid}`"
+								@click="complete(task, 'done')">
+								{{ tr('Complete') }}
+							</NcButton>
+							<NcButton
+								v-if="content.cancel === true"
+								:disabled="busy"
+								variant="tertiary"
+								:data-testid="`cn-tasks-widget-cancel-${task.uuid}`"
+								@click="cancel(task)">
+								{{ tr('Cancel task') }}
+							</NcButton>
+						</span>
+					</li>
+				</ul>
+			</div>
+			<router-link
+				v-if="focusViewAll && $router"
+				class="cn-tasks-widget__view-all"
+				:to="focusViewAll.to"
+				data-testid="cn-tasks-widget-view-all">
+				{{ focusViewAll.label }}
+			</router-link>
 		</template>
 		<p v-else-if="rows.length === 0" class="cn-tasks-widget__empty">
 			{{ emptyLabel }}
@@ -242,13 +341,21 @@
 				{{ moreLabel }}
 			</p>
 		</template>
+		<!-- A task that asks for a form is completed through it. -->
+		<CnTaskFormDialog
+			v-if="formTask"
+			:task="formTask"
+			:outcome="formOutcome"
+			:completeUrl="content.completeUrl || ''"
+			@completed="onFormCompleted"
+			@close="formTask = null" />
 	</div>
 </template>
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
-import { showError } from '@nextcloud/dialogs'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcActionButton, NcActions, NcAvatar, NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
@@ -256,9 +363,12 @@ import { inject, ref } from 'vue'
 import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
 import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import CnTaskFormDialog from '../CnTaskFormDialog/CnTaskFormDialog.vue'
+import CnTaskWorkCard from './CnTaskWorkCard.vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
+import { missingRequiredTaskField, taskForm } from '../../utils/flowTask.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
@@ -331,6 +441,8 @@ export default {
 		CheckCircle,
 		CircleOutline,
 		CnStatusBadge,
+		CnTaskFormDialog,
+		CnTaskWorkCard,
 		NcActions,
 		NcActionButton,
 		NcAvatar,
@@ -378,8 +490,23 @@ export default {
 		 *   task is posted as an open task on `objectUuid`.
 		 * - `completeAny` — offer Complete on every open row, not only the
 		 *   viewer's own (the server still decides); `cancel` — offer Cancel.
+		 * - `variant: 'focus'` — the first open task to work on in place: its
+		 *   number, handler, deadline, lock, who it is offered to, its form
+		 *   inline and its verbs, with the other open tasks listed under it.
+		 * - `expandRows` — in the table, a row's title opens that task to work
+		 *   on in place under the table instead of following `rowRoute`; the
+		 *   opened task's title links to `rowRoute`.
+		 * - `completeUrl` — the route Complete posts to instead of the engine's
+		 *   own (`{id}` is the task uuid), for an app that checks something of
+		 *   its own before the engine completes the task.
+		 * - `claimCapabilityUrl` — a URL answering `{ claim: true|false }`;
+		 *   Claim is offered only when it answers true. Without it Claim is
+		 *   offered on every pooled task.
 		 *
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean}}
+		 * A task that carries a form is completed through CnTaskFormDialog, or
+		 * with its form inline in the focus and opened-row cards.
+		 *
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, claimCapabilityUrl?: string}}
 		 */
 		content: {
 			type: Object,
@@ -471,6 +598,17 @@ export default {
 			newDue: '',
 			/** Whether the new task is being posted. */
 			creating: false,
+			/** The engine's answer to `claimCapabilityUrl`: true, false, or null while unasked. */
+			claimCapable: null,
+			/** The table row opened to work on in place, by uuid. */
+			expandedId: '',
+			/** One answer set per task, keyed by uuid, for the inline forms. */
+			answers: {},
+			/** Whether a verb from a work card is in flight. */
+			busy: false,
+			/** The task whose form dialog is open, and the outcome it completes with. */
+			formTask: null,
+			formOutcome: 'done',
 		}
 	},
 
@@ -492,6 +630,81 @@ export default {
 		 */
 		isTable() {
 			return this.content.variant === 'table'
+		},
+
+		/**
+		 * Whether the widget shows the first open task to work on in place
+		 * (`variant: 'focus'`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/task-widget-on-the-record/specs/task-widget-on-the-record/spec.md#requirement-the-first-open-task-can-be-worked-on-in-place
+		 */
+		isFocus() {
+			return this.content.variant === 'focus'
+		},
+
+		/** @return {boolean} Whether a table row's title opens it in place. */
+		expandRows() {
+			return this.content.expandRows === true
+		},
+
+		/** @return {Array<object>} The open tasks, in due order. */
+		openTasks() {
+			return this.rows.filter((task) => task.isTerminal !== true)
+		},
+
+		/** @return {object|null} The task the focus card shows: the first open one. */
+		focusTask() {
+			return this.openTasks[0] ?? null
+		},
+
+		/** @return {Array<object>} The open tasks after the focus card's. */
+		otherOpenTasks() {
+			return this.openTasks.slice(1)
+		},
+
+		/**
+		 * The focus card's "View all" link: `viewAllRoute` with `@objectId`
+		 * in its query read from the page's record.
+		 *
+		 * @return {{to: object, label: string}|null}
+		 */
+		focusViewAll() {
+			const link = this.recordLink(this.headerLink)
+			if (!link || typeof link.route !== 'string' || link.route === '') {
+				return null
+			}
+			const to = { name: link.route }
+			if (link.params) {
+				to.params = link.params
+			}
+			if (link.query) {
+				to.query = link.query
+			}
+			return { to, label: this.tr(link.label) }
+		},
+
+		/** @return {object|null} The opened table row, while it is still open. */
+		expandedTask() {
+			if (this.expandedId === '') {
+				return null
+			}
+			return this.openTasks.find((task) => String(task.uuid) === this.expandedId) ?? null
+		},
+
+		/**
+		 * Whether this instance can claim: true without a
+		 * `claimCapabilityUrl`, else what it answered (false until it did).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/task-widget-on-the-record/specs/task-widget-on-the-record/spec.md#requirement-claim-follows-a-capability
+		 */
+		claimAvailable() {
+			const url = this.content.claimCapabilityUrl
+			if (typeof url !== 'string' || url === '') {
+				return true
+			}
+			return this.claimCapable === true
 		},
 
 		/**
@@ -527,7 +740,9 @@ export default {
 		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
 		 */
 		header() {
-			const header = { link: this.recordLink(this.headerLink), note: '' }
+			// The focus card draws its "View all" under the list itself, so it
+			// shows inside a tab panel too, where no card header is drawn.
+			const header = { link: this.isFocus ? null : this.recordLink(this.headerLink), note: '' }
 			if (!this.isTable) {
 				return header
 			}
@@ -671,6 +886,7 @@ export default {
 	},
 
 	mounted() {
+		this.loadClaimCapability()
 		this.startPolling()
 		document.addEventListener('visibilitychange', this.onVisibilityChange)
 	},
@@ -811,7 +1027,7 @@ export default {
 		 * @return {boolean} True when claim is offered.
 		 */
 		canClaim(task) {
-			return !task.assignee && task.isTerminal !== true
+			return !task.assignee && task.isTerminal !== true && this.claimAvailable
 		},
 
 		/**
@@ -1019,6 +1235,11 @@ export default {
 		 * @return {Promise<void>} Resolves when the verb settled.
 		 */
 		complete(task, outcome) {
+			if (this.formOf(task)) {
+				this.formOutcome = outcome || 'done'
+				this.formTask = task
+				return Promise.resolve()
+			}
 			return this.postVerb(task, 'complete', { outcome })
 		},
 
@@ -1040,14 +1261,143 @@ export default {
 			if (uuid === '') {
 				return
 			}
+			const completeUrl = this.content.completeUrl
+			const route = verb === 'complete' && typeof completeUrl === 'string' && completeUrl !== ''
+				? completeUrl.replace('{id}', encodeURIComponent(uuid))
+				: `${FLOW_TASKS_URL}/${uuid}/${verb}`
 			try {
-				await axios.post(generateUrl(`${FLOW_TASKS_URL}/${uuid}/${verb}`), body)
+				await axios.post(generateUrl(route), body)
+				if (verb === 'complete') {
+					showSuccess(this.tr('Task {title} finished').replace('{title}', this.titleOf(task)))
+				} else if (verb === 'claim') {
+					showSuccess(this.tr('Task {title} is yours').replace('{title}', this.titleOf(task)))
+				}
 			} catch (error) {
-				const message = error?.response?.data?.error
+				const data = error?.response?.data
+				const message = data?.error || data?.message
 				showError(typeof message === 'string' && message !== ''
 					? message
 					: this.tr('The task action was refused'))
 			}
+			this.refetch(true)
+		},
+
+		/**
+		 * Ask `claimCapabilityUrl` once whether this instance can claim. A
+		 * failure leaves Claim off: a button that silently assigns a task is
+		 * worse than none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/task-widget-on-the-record/specs/task-widget-on-the-record/spec.md#requirement-claim-follows-a-capability
+		 */
+		async loadClaimCapability() {
+			const url = this.content.claimCapabilityUrl
+			if (typeof url !== 'string' || url === '') {
+				return
+			}
+			try {
+				const response = await axios.get(generateUrl(url))
+				this.claimCapable = response?.data?.claim === true
+			} catch {
+				this.claimCapable = false
+			}
+		},
+
+		/**
+		 * The form a task asks for, when it is one to fill in here.
+		 *
+		 * @param {object} task The task row.
+		 * @return {object|null}
+		 */
+		formOf(task) {
+			const form = taskForm(task)
+			return form && form.kind === 'fields' ? form : null
+		},
+
+		/**
+		 * One task's answer set, empty until something was typed.
+		 *
+		 * @param {object} task The task row.
+		 * @return {object} The answers.
+		 */
+		answersFor(task) {
+			return this.answers[String(task.uuid || '')] || {}
+		},
+
+		/**
+		 * Keep one answer an inline form emitted.
+		 *
+		 * @param {object} task The task row.
+		 * @param {{field: string, value: string}} answer The answer.
+		 * @return {void}
+		 */
+		recordAnswer(task, answer) {
+			const uuid = String(task.uuid || '')
+			this.answers = { ...this.answers, [uuid]: { ...this.answersFor(task), [String(answer?.field ?? '')]: answer?.value } }
+		},
+
+		/**
+		 * Complete the task in a work card with its inline answers. A required
+		 * field left empty is named before the round trip; the server refuses
+		 * it again for every other client.
+		 *
+		 * @param {object} task The task row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/task-widget-on-the-record/specs/task-widget-on-the-record/spec.md#requirement-the-first-open-task-can-be-worked-on-in-place
+		 */
+		async completeInPlace(task) {
+			if (this.busy) {
+				return
+			}
+			const answers = this.answersFor(task)
+			const missing = missingRequiredTaskField(taskForm(task), answers)
+			if (missing !== '') {
+				showError(this.tr('Fill in {field} before completing this task').replace('{field}', missing))
+				return
+			}
+			this.busy = true
+			try {
+				await this.postVerb(task, 'complete', taskForm(task) ? { outcome: 'done', data: answers } : { outcome: 'done' })
+			} finally {
+				this.busy = false
+			}
+		},
+
+		/**
+		 * Open or close a table row's task in place.
+		 *
+		 * @param {object} task The task row.
+		 * @return {void}
+		 */
+		toggleExpanded(task) {
+			const uuid = String(task.uuid || '')
+			this.expandedId = this.expandedId === uuid ? '' : uuid
+		},
+
+		/**
+		 * The route a task's title links to (`rowRoute`), or null.
+		 *
+		 * @param {object} task The task row.
+		 * @return {object|null}
+		 */
+		openRouteFor(task) {
+			const rowRoute = this.content.rowRoute
+			const uuid = String(task?.uuid || '')
+			if (typeof rowRoute !== 'string' || rowRoute === '' || uuid === '') {
+				return null
+			}
+			return { name: rowRoute, params: { id: uuid } }
+		},
+
+		/**
+		 * The form dialog completed its task.
+		 *
+		 * @return {void}
+		 */
+		onFormCompleted() {
+			const title = this.formTask ? this.titleOf(this.formTask) : ''
+			this.formTask = null
+			showSuccess(this.tr('Task {title} finished').replace('{title}', title))
 			this.refetch(true)
 		},
 
@@ -1229,6 +1579,43 @@ function recordUuid(configured, objectId) {
 	display: flex;
 	justify-content: center;
 	padding: 8px 0;
+}
+
+.cn-tasks-widget__view-all {
+	display: inline-block;
+	margin-top: 8px;
+	color: var(--color-primary-element-text, var(--color-primary-element));
+	text-decoration: underline;
+}
+
+.cn-tasks-widget__others {
+	margin-top: 12px;
+}
+
+.cn-tasks-widget__others-title {
+	margin: 0 0 6px;
+	font-size: 14px;
+}
+
+.cn-tasks-widget__others-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-tasks-widget__others-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 6px 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-tasks-widget__others-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
 }
 
 .cn-tasks-widget__empty,
