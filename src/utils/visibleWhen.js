@@ -225,12 +225,12 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
 			throw new Error(`source returned ${response.status}`)
 		}
 		const data = await response.json()
-		if (!cond.field || cond.field === '@total') {
-			return data.total ?? (Array.isArray(data.results) ? data.results.length : 0)
-		}
 		const first = Array.isArray(data.results) ? data.results[0] : data
 		if (sink && typeof sink === 'object') {
 			sink.row = first && typeof first === 'object' ? first : undefined
+		}
+		if (!cond.field || cond.field === '@total') {
+			return data.total ?? (Array.isArray(data.results) ? data.results.length : 0)
 		}
 		return readVisibleWhenPath(first, cond.field)
 	}
