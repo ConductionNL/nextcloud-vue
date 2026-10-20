@@ -55,7 +55,7 @@ describe('a widget-reported card header', () => {
 describe('look-board-detail.css', () => {
 	it('titles the archiving card 17px over a 14px line, facts at 15px/500 above a hairline', () => {
 		expect(bodyOf('.cn-look-board .cn-retention .cn-retention__title')).toContain('font-size: var(--cn-board-heading-size, 17px);')
-		expect(bodyOf('.cn-look-board .cn-retention .cn-retention__head .cn-retention__muted')).toContain('font-size: 14px;')
+		expect(bodyOf('.cn-look-board .cn-retention .cn-retention__head-text .cn-retention__muted')).toContain('font-size: 14px;')
 		expect(bodyOf('.cn-look-board .cn-retention .cn-retention__fact')).toContain('border-bottom: 1px solid var(--color-border);')
 		expect(bodyOf('.cn-look-board .cn-retention .cn-retention__fact dd')).toContain('font-weight: 500;')
 	})

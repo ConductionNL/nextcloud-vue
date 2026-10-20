@@ -894,9 +894,10 @@
 /* ---- The archiving card (CnRetentionWidget, DqZaakArchivering) ----------- */
 /* The board titles it 17px at 1.2 with a 14px muted line 3px under it, and
    draws each fact as a 13px label over a 15px value at 500 above a hairline.
-   The inset is the board card's own, from the panel around it.
+   "Recompute nomination" sits at the header's end. The inset is the board
+   card's own, from the panel around it.
    @spec openspec/changes/board-retention-card/specs/board-retention-card/spec.md#requirement-the-archiving-card-is-drawn-as-the-board-draws-it */
-.cn-look-board .cn-retention .cn-retention__head {
+.cn-look-board .cn-retention .cn-retention__head-text {
 	gap: 3px;
 }
 
@@ -905,7 +906,7 @@
 	line-height: 1.2;
 }
 
-.cn-look-board .cn-retention .cn-retention__head .cn-retention__muted {
+.cn-look-board .cn-retention .cn-retention__head-text .cn-retention__muted {
 	font-size: 14px;
 }
 

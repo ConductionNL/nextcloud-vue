@@ -41,6 +41,7 @@ const STUBS = {
 	NcNoteCard: { props: ['type'], template: '<div class="note"><slot /></div>' },
 	NcTextField: { props: ['modelValue', 'label'], emits: ['update:modelValue'], template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)">' },
 	NcLoadingIcon: true,
+	CnDialog: { name: 'CnDialog', template: '<div data-testid="cn-retention-recompute-dialog"><slot /><slot name="actions" /></div>' },
 }
 
 /**
@@ -102,18 +103,28 @@ describe('CnRetentionWidget', () => {
 		expect(w.find('[data-testid="cn-retention-facts"]').exists()).toBe(true)
 	})
 
-	it('lets an archivist recompute with a reason, and shows others the role it needs', async () => {
+	it('lets an archivist recompute from the header, asking the reason in a dialog, and shows others the role it needs', async () => {
 		axios.post.mockResolvedValue({ data: {} })
 		const w = await mountWidget()
+		// The button sits in the card header, beside the title (board DqZaakArchivering).
+		expect(w.find('.cn-retention__head [data-testid="cn-retention-recompute-open"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-retention-recompute-dialog"]').exists()).toBe(false)
+		await w.find('[data-testid="cn-retention-recompute-open"]').trigger('click')
+		await flushPromises()
+		expect(w.find('[data-testid="cn-retention-recompute-dialog"]').exists()).toBe(true)
+		// The reason stays required.
 		expect(w.find('[data-testid="cn-retention-recompute"]').attributes('disabled')).toBeDefined()
 		await w.find('[data-testid="cn-retention-reason"]').setValue('Selection list changed')
 		await w.find('[data-testid="cn-retention-recompute"]').trigger('click')
 		await flushPromises()
 		expect(axios.post).toHaveBeenCalledWith('/nc/apps/openregister/api/archival/objects/z-82/nomination/recompute', { reason: 'Selection list changed' })
 		expect(axios.get).toHaveBeenCalledTimes(2)
+		expect(w.find('[data-testid="cn-retention-recompute-dialog"]').exists()).toBe(false)
 
 		getCurrentUser.mockReturnValue({ uid: 'piet', isAdmin: false, groups: ['kcc'] })
 		const other = await mountWidget()
-		expect(other.find('[data-testid="cn-retention-recompute-denied"]').exists()).toBe(true)
+		const denied = other.find('[data-testid="cn-retention-recompute-denied"]')
+		expect(denied.attributes('disabled')).toBeDefined()
+		expect(denied.attributes('title')).toBe('Recomputing needs the archivist role')
 	})
 })

@@ -5,13 +5,35 @@
 <template>
 	<div class="cn-retention" data-testid="cn-retention">
 		<header class="cn-retention__head">
-			<h3 class="cn-retention__title">
-				{{ text(content.title) || t('nextcloud-vue', 'Archiving') }}
-			</h3>
-			<p class="cn-retention__muted">
-				{{ text(content.subtitle) || t('nextcloud-vue', 'What happens to this record once it is closed') }}
-			</p>
+			<div class="cn-retention__head-text">
+				<h3 class="cn-retention__title">
+					{{ text(content.title) || t('nextcloud-vue', 'Archiving') }}
+				</h3>
+				<p class="cn-retention__muted">
+					{{ text(content.subtitle) || t('nextcloud-vue', 'What happens to this record once it is closed') }}
+				</p>
+			</div>
+			<!-- Recompute starts in the header (board DqZaakArchivering); the
+			     dialog asks for the reason OpenRegister records with it. -->
+			<NcButton
+				v-if="content.recompute !== false && !loading && !error"
+				:disabled="!mayRecompute || busy"
+				:title="mayRecompute ? undefined : t('nextcloud-vue', 'Recomputing needs the archivist role')"
+				:aria-description="mayRecompute ? undefined : t('nextcloud-vue', 'Recomputing needs the archivist role')"
+				:data-testid="mayRecompute ? 'cn-retention-recompute-open' : 'cn-retention-recompute-denied'"
+				@click="recomputeOpen = true">
+				<template #icon>
+					<Refresh :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Recompute nomination') }}
+			</NcButton>
 		</header>
+		<CnRetentionRecomputeDialog
+			v-if="recomputeOpen"
+			:user="currentUid"
+			:busy="busy"
+			@close="recomputeOpen = false"
+			@confirm="recompute" />
 
 		<NcLoadingIcon v-if="loading" :size="24" />
 		<NcEmptyContent v-else-if="error"
@@ -65,23 +87,6 @@
 				</p>
 			</div>
 
-			<div v-if="content.recompute !== false" class="cn-retention__recompute">
-				<NcButton v-if="!mayRecompute" disabled data-testid="cn-retention-recompute-denied">
-					{{ t('nextcloud-vue', 'Recomputing needs the archivist role') }}
-				</NcButton>
-				<template v-else>
-					<NcTextField :modelValue="reason"
-						:label="t('nextcloud-vue', 'Why are you recomputing this?')"
-						data-testid="cn-retention-reason"
-						@update:modelValue="(v) => (reason = String(v ?? ''))" />
-					<p class="cn-retention__muted">
-						{{ t('nextcloud-vue', 'This is recorded against {user}.', { user: currentUid }) }}
-					</p>
-					<NcButton :disabled="busy || reason.trim() === ''" data-testid="cn-retention-recompute" @click="recompute">
-						{{ t('nextcloud-vue', 'Recompute the nomination') }}
-					</NcButton>
-				</template>
-			</div>
 		</template>
 	</div>
 </template>
@@ -91,7 +96,9 @@ import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
+import CnRetentionRecomputeDialog from './CnRetentionRecomputeDialog.vue'
 import { readPath } from '../../utils/readPath.js'
 
 /**
@@ -120,7 +127,7 @@ import { readPath } from '../../utils/readPath.js'
 export default {
 	name: 'CnRetentionWidget',
 
-	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextField },
+	components: { CnRetentionRecomputeDialog, NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, Refresh },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -176,7 +183,8 @@ export default {
 			loading: true,
 			error: '',
 			record: null,
-			reason: '',
+			/** Whether the recompute dialog is open. */
+			recomputeOpen: false,
 			busy: false,
 		}
 	},
@@ -338,19 +346,22 @@ export default {
 		},
 
 		/**
-		 * Ask OpenRegister to derive the nomination again, then read it back.
+		 * Ask OpenRegister to derive the nomination again with the reason the
+		 * dialog asked for, then read it back.
 		 *
-		 * @spec openspec/changes/retention-widget/specs/retention-widget/spec.md#requirement-a-record-shows-its-stored-retention
+		 * @spec openspec/changes/retention-recompute-header/specs/retention-recompute-header/spec.md#requirement-recomputing-the-nomination-starts-in-the-card-header-and-asks-for-a-reason
+		 * @param {string} reason Why it is recomputed.
 		 * @return {Promise<void>}
 		 */
-		async recompute() {
-			if (this.busy || this.reason.trim() === '') {
+		async recompute(reason) {
+			const why = String(reason ?? '').trim()
+			if (this.busy || why === '') {
 				return
 			}
 			this.busy = true
 			try {
-				await axios.post(generateUrl(`/apps/openregister/api/archival/objects/${encodeURIComponent(this.id)}/nomination/recompute`), { reason: this.reason.trim() })
-				this.reason = ''
+				await axios.post(generateUrl(`/apps/openregister/api/archival/objects/${encodeURIComponent(this.id)}/nomination/recompute`), { reason: why })
+				this.recomputeOpen = false
 				await this.load()
 			} catch (failure) {
 				const body = failure && failure.response && failure.response.data
@@ -372,8 +383,18 @@ export default {
 
 .cn-retention__head {
 	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px 16px;
+}
+
+.cn-retention__head-text {
+	display: flex;
+	flex: 1 1 260px;
 	flex-direction: column;
 	gap: 2px;
+	min-width: 0;
 }
 
 .cn-retention__title {
@@ -404,10 +425,4 @@ export default {
 	font-weight: 600;
 }
 
-.cn-retention__recompute {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	max-width: 480px;
-}
 </style>
