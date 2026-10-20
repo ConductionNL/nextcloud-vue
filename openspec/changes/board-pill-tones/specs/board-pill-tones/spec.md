@@ -25,7 +25,7 @@ CnStatusBadge SHALL draw in that soft text on `--color-background-hover`.
 ### Requirement: A board count is 16px tall
 
 In the board look the quick-filter count, the saved-view count and the board view's column count SHALL sit on a 14px
-line, 16px tall on their 1px pad, in the soft ink handed to `--nldesign-color-on-surface` as well, and the filter button's count SHALL hand its ink to `--nldesign-color-on-surface`.
+line, 16px tall on their 1px pad, in the soft ink handed to `--nldesign-color-on-surface` as well, the count on the selected quick-filter chip SHALL be a bubble in the soft text, and the filter button's count SHALL hand its ink to `--nldesign-color-on-surface`.
 
 #### Scenario: dossiq's Woo-verzoek board
 
