@@ -211,7 +211,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import CnTabs from '../CnTabs/CnTabs.vue'
 import { normalizeLook } from '../../composables/useLook.js'
-import { headerLinkTarget, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
+import { headerLinkTarget, resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
 import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
@@ -762,7 +762,7 @@ export default {
 		 * @return {object|null}
 		 */
 		activeHeaderLink() {
-			return widgetHeaderLink(this.activeTab?.widget)
+			return resolveHeaderLink(widgetHeaderLink(this.activeTab?.widget), { objectId: this.objectId, object: this.objectData })
 		},
 
 		/**
