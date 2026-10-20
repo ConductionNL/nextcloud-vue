@@ -1932,7 +1932,10 @@
     "no": "no",
     "Recompute nomination": "Recompute nomination",
     "Recompute": "Recompute",
-    "Task deadline": "Deadline"
+    "Task deadline": "Deadline",
+    "{field} must be a whole number.": "{field} must be a whole number.",
+    "Show the explanations": "Show the explanations",
+    "Hide the explanations": "Hide the explanations"
   },
   "plurals": {
     "{count} member": [

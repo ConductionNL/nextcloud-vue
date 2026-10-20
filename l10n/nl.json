@@ -2149,7 +2149,10 @@
     "Last run: {name}, {date}": "Laatst uitgevoerd: {name}, {date}",
     "This record has no macros": "Er zijn geen macro's voor dit item",
     "Running …": "Bezig …",
-    "Execute": "Uitvoeren"
+    "Execute": "Uitvoeren",
+    "{field} must be a whole number.": "{field} moet een geheel getal zijn.",
+    "Show the explanations": "Uitleg tonen",
+    "Hide the explanations": "Uitleg verbergen"
   },
   "plurals": {
     "{count} member": [
