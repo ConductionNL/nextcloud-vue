@@ -72,6 +72,7 @@ calls the suggestion `nested-interactive` when you try it.
 | `rows` | `Array` | `[]` | The rows the list holds. |
 | `statusFieldSchema` | `Object` | `null` | The status field's schema: its `enum` or its lifecycle `states`. |
 | `statusField` | `String` | `'status'` | The property a row's status lives on. |
+| `pillLooks` | `Object` | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`, read by CnIndexPage). With `cardRoles.resolve: { colorField?, iconField? }` the card's pill takes its record's tone and icon from here. |
 | `cardFields` | `Array` | `[]` | The fields a card shows. Keep it short: a card is scanned, not read. |
 | `swimlaneField` | `String` | `''` | A second field to group the board into rows by. |
 | `rowKey` | `String` | `'id'` | The row key. |

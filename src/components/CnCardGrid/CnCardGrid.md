@@ -107,6 +107,7 @@ Custom card slot — replace the default CnObjectCard with your own rendering:
 | `selectable` | `Boolean` | `false` | When `true`, each card shows a selection checkbox and the grid emits `select` events |
 | `selectedIds` | `Array` | `[]` | Array of currently selected object IDs (matched against `object[rowKey]`) |
 | `accentOf` | `Function` | `null` | `(object) => { variant, icon?, label? } \| null`, each card's status accent (see CnObjectCard `accent`) |
+| `pillLooks` | `Object` | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`), passed to each CnObjectCard for the record layout's pills that declare `resolve`. |
 
 ## Board look props
 
