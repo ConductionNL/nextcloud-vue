@@ -222,6 +222,13 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* A note the named source read off its answer, above the rows. */
+.cn-index-page__source-note {
+	margin: 0 0 8px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
 .cn-index-page__scope-heading {
 	display: flex;
 	flex-direction: column;

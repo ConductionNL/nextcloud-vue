@@ -674,6 +674,14 @@ function readRowsPath(body, path) {
 }
 
 /**
+ * The `sourceConfig` keys the endpoint source reads itself; every other key
+ * goes along as a query parameter.
+ *
+ * @type {Array<string>}
+ */
+const ENDPOINT_SOURCE_KEYS = ['url', 'rowsPath', 'totalPath', 'searchParam', 'notePath', 'noteText', 'refusedText']
+
+/**
  * The endpoint source: rows from an app's own endpoint
  * (`entitySource: "endpoint"`), for a list that is not OpenRegister objects,
  * such as dossiq's postvak.
@@ -695,25 +703,41 @@ function readRowsPath(body, path) {
  * request with that tab's filter, its total read at `sourceConfig.totalPath`
  * (`total` by default), else the number of rows the answer holds.
  *
+ * Three more keys shape what the page says around the rows:
+ * - `searchParam`: the page's search box sends its term as this parameter
+ *   (`sender`), so the endpoint does the searching.
+ * - `notePath` and `noteText`: a value read off the answer (`filterOrder`) and
+ *   the sentence it is said in ("Filters run in this order: {order}", its one
+ *   placeholder taking the value); a list
+ *   is joined with commas. Shown above the rows.
+ * - `refusedText`: what a refused load (403) says when the endpoint gave no
+ *   `message` of its own. A refusal is not an empty list, so the page shows it
+ *   instead of the rows, and a failed load is not one either.
+ *
+ * @param {object} [declared] The page's `sourceConfig`, for `searchParam`.
+ * @param {object} [context] The page's helpers; `translate` is the app's catalogue.
  * @return {object} The source adapter.
  * @spec openspec/changes/index-endpoint-source/specs/index-page/spec.md#requirement-an-index-page-can-list-rows-from-an-app-endpoint
  */
-function endpointSource() {
-	const state = reactive({ rows: [], loading: false })
+function endpointSource(declared = {}, context = {}) {
+	const state = reactive({ rows: [], loading: false, refusal: '', failed: false, note: '' })
+	const translate = typeof context.translate === 'function' ? context.translate : (text) => text
+	const searchParam = typeof declared.searchParam === 'string' && declared.searchParam !== '' ? declared.searchParam : null
 	let seq = 0
 	let warned = false
 
 	/**
-	 * The query parameters for a config: every key but the url and the paths,
-	 * empty values left out, a list joined by commas.
+	 * The query parameters for a config: every key but the source's own
+	 * (`url`, the paths, the texts), empty values left out, a list joined by
+	 * commas.
 	 *
-	 * @param {object} rest The config without `url`, `rowsPath` and `totalPath`.
+	 * @param {object} config The config.
 	 * @return {object} The parameters.
 	 */
-	const paramsOf = (rest) => {
+	const paramsOf = (config) => {
 		const params = {}
-		for (const [key, value] of Object.entries(rest)) {
-			if (value === undefined || value === null || value === '') {
+		for (const [key, value] of Object.entries(config)) {
+			if (ENDPOINT_SOURCE_KEYS.includes(key) || value === undefined || value === null || value === '') {
 				continue
 			}
 			params[key] = Array.isArray(value) ? value.join(',') : (typeof value === 'object' ? JSON.stringify(value) : value)
@@ -733,15 +757,56 @@ function endpointSource() {
 		return typeof url === 'string' && url !== '' && !Object.hasOwn(config, 'entitySource')
 	}
 
+	/**
+	 * The note read off an answer, in the page's sentence.
+	 *
+	 * @param {object} body The response body.
+	 * @param {string} [path] Where the value sits.
+	 * @param {string} [text] The sentence, with one `{placeholder}` where the value goes.
+	 * @return {string} The note, or '' when there is nothing to say.
+	 */
+	const noteOf = (body, path, text) => {
+		if (!path || !body || typeof body !== 'object' || Array.isArray(body)) {
+			return ''
+		}
+		const raw = readRowsPath(body, path)
+		const value = Array.isArray(raw) ? raw.filter((v) => v !== null && v !== undefined && v !== '').join(', ') : (raw === null || raw === undefined ? '' : String(raw))
+		if (value === '') {
+			return ''
+		}
+		return text ? translate(text).replace(/\{\w+\}/, value) : value
+	}
+
+	/**
+	 * The sentence a refused load is said in: the endpoint's own, else the
+	 * page's, else the library's.
+	 *
+	 * @param {object} body The refusal's body.
+	 * @param {string} [text] The page's `refusedText`.
+	 * @return {string} The sentence.
+	 */
+	const refusalOf = (body, text) => {
+		if (body && typeof body.message === 'string' && body.message.trim() !== '') {
+			return body.message
+		}
+		return text ? translate(text) : t('nextcloud-vue', 'You may not read this list.')
+	}
+
 	return {
+		/**
+		 * The parameter the page's search term is sent as, or null when this
+		 * endpoint takes no search.
+		 */
+		searchParam,
+
 		/**
 		 * Fetch the rows.
 		 *
 		 * @param {object} config The page's source config with the tab filter merged in.
-		 * @return {Promise<void>} Resolves when loaded; a failed request leaves no rows and rethrows.
+		 * @return {Promise<void>} Resolves when loaded or refused; a failed request leaves no rows and rethrows.
 		 */
 		load: async (config) => {
-			const { url, rowsPath, totalPath, ...rest } = config || {}
+			const { url, rowsPath, notePath, noteText, refusedText } = config || {}
 			const mine = ++seq
 			if (!requestable(config)) {
 				state.rows = []
@@ -753,7 +818,7 @@ function endpointSource() {
 				}
 				return
 			}
-			const params = paramsOf(rest)
+			const params = paramsOf(config)
 			state.loading = true
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
@@ -762,12 +827,22 @@ function endpointSource() {
 				const rows = Array.isArray(body) ? body : readRowsPath(body, rowsPath || 'results')
 				if (mine === seq) {
 					state.rows = Array.isArray(rows) ? rows : []
+					state.refusal = ''
+					state.failed = false
+					state.note = noteOf(body, notePath, noteText)
 				}
 			} catch (error) {
-				if (mine === seq) {
-					state.rows = []
+				if (mine !== seq) {
+					return
 				}
-				throw error
+				state.rows = []
+				state.note = ''
+				const refused = error && error.response && error.response.status === 403
+				state.refusal = refused ? refusalOf(error.response.data, refusedText) : ''
+				state.failed = !refused
+				if (!refused) {
+					throw error
+				}
 			} finally {
 				if (mine === seq) {
 					state.loading = false
@@ -786,9 +861,9 @@ function endpointSource() {
 			if (!requestable(config)) {
 				return Number.NaN
 			}
-			const { url, rowsPath, totalPath, ...rest } = config
+			const { url, rowsPath, totalPath } = config
 			const { default: axios } = await import('@nextcloud/axios')
-			const res = await axios.get(generateUrl(url), { params: paramsOf(rest) })
+			const res = await axios.get(generateUrl(url), { params: paramsOf(config) })
 			const body = res ? res.data : null
 			const total = body && typeof body === 'object' && !Array.isArray(body) ? readRowsPath(body, totalPath || 'total') : undefined
 			if (typeof total === 'number' && Number.isFinite(total)) {
@@ -807,6 +882,21 @@ function endpointSource() {
 		 * @return {boolean} Whether a load is in flight.
 		 */
 		loading: () => state.loading,
+
+		/**
+		 * @return {string} The sentence the last load was refused with, or ''.
+		 */
+		refusal: () => state.refusal,
+
+		/**
+		 * @return {boolean} Whether the last load failed for another reason than a refusal.
+		 */
+		failed: () => state.failed,
+
+		/**
+		 * @return {string} The note read off the last answer, or ''.
+		 */
+		note: () => state.note,
 	}
 }
 

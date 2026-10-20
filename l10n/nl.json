@@ -2149,7 +2149,8 @@
     "Last run: {name}, {date}": "Laatst uitgevoerd: {name}, {date}",
     "This record has no macros": "Er zijn geen macro's voor dit item",
     "Running …": "Bezig …",
-    "Execute": "Uitvoeren"
+    "Execute": "Uitvoeren",
+    "You may not read this list.": "Je mag deze lijst niet lezen."
   },
   "plurals": {
     "{count} member": [

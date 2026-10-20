@@ -1932,7 +1932,8 @@
     "no": "no",
     "Recompute nomination": "Recompute nomination",
     "Recompute": "Recompute",
-    "Task deadline": "Deadline"
+    "Task deadline": "Deadline",
+    "You may not read this list.": "You may not read this list."
   },
   "plurals": {
     "{count} member": [

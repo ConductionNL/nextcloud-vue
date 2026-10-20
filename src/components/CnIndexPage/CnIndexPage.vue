@@ -210,7 +210,7 @@
 			:mapLabel="mapLabel"
 			:mapIcon="mapIcon"
 			:listIcon="listIcon"
-			:showSearch="search !== false && (inlineSearch || isBoardLook)"
+			:showSearch="search !== false && (inlineSearch || isBoardLook) && !sourceRefusal"
 			:searchPlacement="searchPlacement"
 			:searchValue="effectiveSearchValue"
 			:searchPlaceholder="presented('searchPlaceholder') ? cnTranslate(presented('searchPlaceholder')) : presented('searchPlaceholder')"
@@ -740,10 +740,29 @@
 					<span v-if="scopeHeading.subtitle" class="cn-index-page__scope-subtitle" data-testid="cn-index-page-scope-subtitle">{{ scopeHeading.subtitle }}</span>
 				</div>
 
+				<!-- A note the named source read off its answer ("Filters run in
+				     this order: ..."). -->
+				<p v-if="sourceNote && !sourceRefusal"
+					class="cn-index-page__source-note"
+					data-testid="cn-index-page-source-note">
+					{{ sourceNote }}
+				</p>
+
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
 				<div v-if="showInitialLoader" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
 					<NcLoadingIcon :size="32" :name="loadingText" />
+				</div>
+
+				<!-- The named source's server refused this reader: its sentence
+				     instead of the rows, never an empty list. -->
+				<div v-else-if="sourceRefusal"
+					class="cn-index-page__source-refusal"
+					role="status"
+					data-testid="cn-index-page-source-refusal">
+					<NcNoteCard type="error">
+						{{ sourceRefusal }}
+					</NcNoteCard>
 				</div>
 
 				<!-- A search the server refused for its grammar: the term with the
@@ -769,7 +788,7 @@
 				</div>
 
 				<!-- Error state: the latest self-fetch failed (e.g. a search term the server rejects) -->
-				<div v-else-if="selfFetchFailed"
+				<div v-else-if="selfFetchFailed || sourceFailed"
 					class="cn-index-page__empty"
 					role="status"
 					data-testid="cn-index-page-fetch-error">
@@ -4073,6 +4092,8 @@ export default {
 		const namedPageSize = Number(props.sourceConfig && props.sourceConfig.limit) > 0 ? Number(props.sourceConfig.limit) : 20
 		const namedPaging = ref({ page: 1, limit: namedPageSize })
 		const namedActiveFilters = ref(namedFiltersFromRoute(getCurrentInstance(), props))
+		// The search term on a named source that searches (`searchParam`).
+		const namedSearchTerm = ref('')
 
 		const {
 			isNamedSource,
@@ -4080,7 +4101,7 @@ export default {
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
-		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging })
+		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging, searchTerm: namedSearchTerm })
 
 		return {
 			isBoard: isBoardLook,
@@ -4093,6 +4114,7 @@ export default {
 			namedQuickFilters,
 			namedActiveFilters,
 			namedPaging,
+			namedSearchTerm,
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
@@ -4500,6 +4522,46 @@ export default {
 		 */
 		searchRefusal() {
 			return this.selfFetchFailed ? readSearchRefusal(this.list.error.value, this.effectiveSearchValue) : null
+		},
+
+		/**
+		 * Whether the named source sends the search term to its server.
+		 *
+		 * @return {boolean}
+		 */
+		namedSourceSearches() {
+			return this.isNamedSource && !!this.namedSource && typeof this.namedSource.searchParam === 'string' && this.namedSource.searchParam !== ''
+		},
+
+		/**
+		 * The sentence the named source's server refused this reader with, or ''.
+		 * While it holds the page shows it instead of the rows, the search and
+		 * the tabs: a list nobody may read is not an empty list.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
+		 */
+		sourceRefusal() {
+			return this.isNamedSource && this.namedSource && typeof this.namedSource.refusal === 'function' ? (this.namedSource.refusal() || '') : ''
+		},
+
+		/**
+		 * Whether the named source's last load failed (not refused).
+		 *
+		 * @return {boolean}
+		 */
+		sourceFailed() {
+			return this.isNamedSource && !!this.namedSource && typeof this.namedSource.failed === 'function' && this.namedSource.failed() === true
+		},
+
+		/**
+		 * The note the named source read off its last answer, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
+		 */
+		sourceNote() {
+			return this.isNamedSource && this.namedSource && typeof this.namedSource.note === 'function' ? (this.namedSource.note() || '') : ''
 		},
 
 		/** @return {string} What to do after a refused search. */
@@ -5787,6 +5849,9 @@ export default {
 		},
 
 		tabStripEntries() {
+			if (this.sourceRefusal) {
+				return []
+			}
 			if (this.lensTabs.length > 0) {
 				return this.lensTabs
 			}
@@ -6882,6 +6947,9 @@ export default {
 
 		/** Search term / visible columns / active facet filters for the embedded sidebar. */
 		effectiveSearchValue() {
+			if (this.namedSourceSearches) {
+				return this.namedSearchTerm || ''
+			}
 			return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '')
 		},
 
@@ -9650,6 +9718,9 @@ export default {
 		 * @return {void}
 		 */
 		onSearchEvent(value) {
+			if (this.namedSourceSearches) {
+				this.namedSearchTerm = value || ''
+			}
 			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') {
 				this.list.onSearch(value)
 				this.persistViewStateToRoute(this.currentViewState())
