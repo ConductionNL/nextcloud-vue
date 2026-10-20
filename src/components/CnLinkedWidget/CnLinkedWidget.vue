@@ -280,11 +280,8 @@ export default {
 
 a.cn-linked-widget__link,
 button.cn-linked-widget__link {
+	color: var(--color-primary-element);
 	cursor: pointer;
-}
-
-a.cn-linked-widget__link:hover,
-button.cn-linked-widget__link:hover {
 	text-decoration: underline;
 }
 
@@ -311,9 +308,6 @@ button.cn-linked-widget__link:hover {
 	margin: 0;
 	min-height: 0;
 	padding: 0;
-}
-
-.cn-linked-widget__action:hover {
 	text-decoration: underline;
 }
 </style>
