@@ -1692,3 +1692,61 @@ body:has(.cn-look-board) .v-popper__popper.action-item__popper:has([data-testid^
 .cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell:not(.cn-chart-widget__matrix-cell--current) {
 	font-weight: 600;
 }
+
+/* ---- A tree menu on a card (DqCatalogus "Zaaktypen, Attributen ...") ---- */
+/* The board draws a card of folders: 14px inside the card, rows 2px apart,
+   each 8px 10px with an 8px corner at 15px, the open folder on the primary
+   tint in the deep primary at 700. A row's label is a link that keeps the
+   row's ink, without an underline under a theme that paints every link.
+   The tree draws no caret column when no row has children. Global rules: the
+   rows are a child component's, which the widget's scoped highlight never
+   reached.
+   @spec openspec/changes/board-menu-tree-rows/specs/board-menu-tree-rows/spec.md#requirement-a-board-tree-menu-draws-the-boards-folder-rows */
+.cn-look-board .cn-widget-wrapper:not(.cn-look-nextcloud *):has(.cn-menu-widget--style-tree) .cn-widget-wrapper__content {
+	padding: 14px;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-widget__tree,
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-tree-node__children {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-tree-node__row {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
+	padding-block: 8px;
+	padding-inline-end: 10px;
+	border-radius: 8px;
+	color: var(--color-main-text);
+	font-size: 15px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-tree-node--depth-1 > .cn-menu-tree-node__row {
+	padding-inline-start: 10px !important;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-tree-node__label-button {
+	padding: 0;
+	color: inherit;
+	font-size: inherit;
+	font-weight: inherit;
+	text-decoration: none;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-widget__tree:not(:has(.cn-menu-tree-node__caret)) .cn-menu-tree-node__caret-spacer {
+	display: none;
+}
+
+.cn-look-board .cn-menu-widget--style-tree.cn-menu-widget--highlight-background:not(.cn-look-nextcloud *) .cn-menu-tree-node__row.cn-menu-widget__item--active {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
+	--nldesign-component-link-color: var(--color-primary-element-light-text);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-weight: 700;
+}
