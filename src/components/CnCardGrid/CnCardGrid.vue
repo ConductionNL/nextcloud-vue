@@ -38,6 +38,7 @@
 						:selected="isSelected(object)"
 						:cardFields="cardFields"
 						:layout="cardLayout"
+						:pillLooks="pillLooks"
 						:cardFieldColumns="cardFieldColumns"
 						:status="statusOf ? statusOf(object) : null"
 						:leading="leadingOf ? leadingOf(object) : null"
@@ -177,6 +178,16 @@ export default {
 		cardLayout: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * The referenced records' colour and icon names, by field and id
+		 * (`{ [field]: { [id]: { color, icon } } }`), passed through to
+		 * CnObjectCard for the record layout's pills that declare `resolve`.
+		 */
+		pillLooks: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/** The page's columns by key, passed through to CnObjectCard. */

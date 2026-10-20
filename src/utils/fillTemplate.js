@@ -7,7 +7,7 @@ import { formatMoney } from './formatMetric.js'
 import { readPath } from './readPath.js'
 import { userDisplayName } from './userDisplayName.js'
 
-const TOKEN = /\{([^{}\s|]+)(?:\|([a-z]+)(?::([^{}\s]+))?)?\}/g
+const TOKEN = /\{([^{}\s|]+)(?:\|([A-Za-z]+)(?::([^{}\s]+))?)?\}/g
 
 /**
  * A moment in the board's short form with the time: "4 okt, 10:52", or
@@ -68,11 +68,17 @@ export function formatLongDate(value, now = new Date(), withYear = false) {
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
  * @param {object|null} [config] The app config map, for the reporting currency.
+ * @param {object|null} [formatters] The app's named formatters (`cnFormatters`), for any other format name.
  * @return {string} The text, '' when nothing can be shown.
+ * @spec openspec/changes/map-list-formatters/specs/map-list-formatters/spec.md#requirement-a-map-list-reads-display-names-through-the-apps-formatters
  */
-function formatValue(value, format, now, arg = '', object = null, config = null) {
+function formatValue(value, format, now, arg = '', object = null, config = null, formatters = null) {
 	if (value === null || value === undefined || value === '' || typeof value === 'object') {
 		return ''
+	}
+	if (format !== '' && formatters && typeof formatters[format] === 'function') {
+		const shown = formatters[format](value, object)
+		return shown === null || shown === undefined ? '' : String(shown)
 	}
 	if (format === 'date') {
 		return formatBoardDate(value, now)
@@ -130,14 +136,16 @@ function formatValue(value, format, now, arg = '', object = null, config = null)
  * the row field is empty, the app's reporting currency), `{path|relative}` and
  * `{path|relativetime}` say "today", "yesterday" and then the short date
  * ("vandaag, 09.42"), and `{path|days}` is the
- * whole days since that date ("has waited {createdAt|days} days"). A token without a
+ * whole days since that date ("has waited {createdAt|days} days"). Any other
+ * name is one of the app's formatters, passed as `context.formatters`
+ * (`{id|caseAddress}`). A token without a
  * value empties the WHOLE template, because "Termijn " is worse than nothing.
  * A template without tokens is returned as written (a constant label).
  *
  * @param {string} template The template, already translated.
  * @param {object|null} object The object to read.
  * @param {Date} [now] The reference moment for dates.
- * @param {{config?: object}|null} [context] The app config map, for the reporting currency of a money token.
+ * @param {{config?: object, formatters?: object}|null} [context] The app config map, for the reporting currency of a money token, and the app's named formatters.
  * @return {string} The filled text, or ''.
  * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-record-list-shows-the-objects-that-point-at-this-record
  */
@@ -148,7 +156,7 @@ export function fillTemplate(template, object, now = new Date(), context = null)
 	let missing = false
 	const text = template.replace(TOKEN, (_match, path, format, arg) => {
 		const value = object && typeof object === 'object' ? readPath(object, path) : undefined
-		const shown = formatValue(value, format || '', now, arg || '', object, context && context.config ? context.config : null)
+		const shown = formatValue(value, format || '', now, arg || '', object, context && context.config ? context.config : null, context && context.formatters ? context.formatters : null)
 		if (shown === '') {
 			missing = true
 		}

@@ -2830,6 +2830,7 @@ export default {
 }
 
 .cn-chart-widget__matrix-head {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	color: var(--color-text-maxcontrast);
 	padding: 6px;
 }
@@ -2866,7 +2867,11 @@ export default {
 	outline-offset: -3px;
 }
 
+/* A cell is a span: its ink also goes to --nldesign-color-on-surface, which a
+   theme that forces the body ink onto every span (thematiq) reads. Level 3
+   leaves the theme's body ink in place: white on its tint is below 4.5:1. */
 .cn-chart-widget__matrix-cell--1 {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
 }
@@ -2882,6 +2887,7 @@ export default {
 }
 
 .cn-chart-widget__matrix-cell--4 {
+	--nldesign-color-on-surface: var(--color-primary-element-text);
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
 }

@@ -67,11 +67,12 @@ export function resolveManifestHref(href) {
  * resolved URL and an anchor `target` (`_blank` when the manifest says so,
  * else `_self`), and loses its `handler`: a link only navigates. Its
  * `children` are resolved the same way. An `href` that resolves to nothing is
- * dropped with a warning, along with the handler, so the page renders its
+ * dropped with a warning, along with a handler name, so the page renders its
  * usual button for the entry (an index or reports page still emits
- * `header-action` for it). An entry with nothing to resolve, a
- * function-valued `href` included, is returned as is. A function `handler`
- * (JS composition) is dropped like any other, with a one-time warning.
+ * `header-action` for it); a function `handler` (JS composition) is kept
+ * then and still runs. An entry with nothing to resolve, a function-valued
+ * `href` included, is returned as is. When the `href` does resolve, a
+ * function `handler` is dropped like any other, with a one-time warning.
  *
  * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
  * @param {object} entry The manifest header action.
@@ -91,12 +92,8 @@ export function headerActionAsLink(entry) {
 	if (typeof entry.href !== 'string' || entry.href === '') {
 		return resolved
 	}
-	if (typeof entry.handler === 'function' && !warnedHandlers.has(entry.id)) {
-		warnedHandlers.add(entry.id)
-		// eslint-disable-next-line no-console
-		console.warn(`headerActions[].id "${entry.id}": an entry with href never runs a handler, so its function handler is dropped`)
-	}
-	const { handler: _handler, href: declared, ...rest } = resolved
+	const { href: declared, ...withoutHref } = resolved
+	const { handler: _handler, ...rest } = withoutHref
 	const href = resolveManifestHref(declared)
 	if (!href) {
 		if (!warnedHrefs.has(declared)) {
@@ -104,7 +101,12 @@ export function headerActionAsLink(entry) {
 			// eslint-disable-next-line no-console
 			console.warn(`headerActions[].id "${entry.id}": href "${declared}" is neither an http(s), mailto or tel URL nor an instance path starting with "/"; the entry renders without a link`)
 		}
-		return rest
+		return typeof entry.handler === 'function' ? withoutHref : rest
+	}
+	if (typeof entry.handler === 'function' && !warnedHandlers.has(entry.id)) {
+		warnedHandlers.add(entry.id)
+		// eslint-disable-next-line no-console
+		console.warn(`headerActions[].id "${entry.id}": an entry with href never runs a handler, so its function handler is dropped`)
 	}
 	return { ...rest, href, target: entry.target === '_blank' ? '_blank' : '_self' }
 }

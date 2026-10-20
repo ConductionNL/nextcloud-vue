@@ -3,12 +3,14 @@
    ======================================== */
 
 /* The two board tones without a Nextcloud colour role (screens-cell-pill-parity).
-   A theme may redefine them; the six role variants below use Nextcloud's own. */
+   A theme may redefine them, or name the NL Design System hue tint and pill
+   text (`--nl-color-<hue>-light`, `--nl-color-<hue>-text`), which the tones
+   and the four role variants below read first (status-badge-hue-tokens). */
 :root {
-	--cn-status-purple-bg: #e8e6f6;
-	--cn-status-purple-text: #4a3f8f;
-	--cn-status-teal-bg: #e3f1f3;
-	--cn-status-teal-text: #1d5e66;
+	--cn-status-purple-bg: var(--nl-color-purple-light, #e8e6f6);
+	--cn-status-purple-text: var(--nl-color-purple-text, #4a3f8f);
+	--cn-status-teal-bg: var(--nl-color-teal-light, #e3f1f3);
+	--cn-status-teal-text: var(--nl-color-teal-text, #1d5e66);
 }
 
 .cn-status-badge {
@@ -43,26 +45,26 @@
 }
 
 .cn-status-badge--success {
-	--cn-status-badge-ink: var(--color-success-text, var(--color-success));
-	background-color: var(--color-success-light, rgba(70, 186, 97, 0.15));
+	--cn-status-badge-ink: var(--nl-color-green-text, var(--color-success-text, var(--color-success)));
+	background-color: var(--nl-color-green-light, var(--color-success-light, rgba(70, 186, 97, 0.15)));
 	color: var(--cn-status-badge-ink);
 }
 
 .cn-status-badge--warning {
-	--cn-status-badge-ink: var(--color-warning-text, var(--color-warning));
-	background-color: var(--color-warning-light, rgba(232, 163, 39, 0.15));
+	--cn-status-badge-ink: var(--nl-color-orange-text, var(--color-warning-text, var(--color-warning)));
+	background-color: var(--nl-color-orange-light, var(--color-warning-light, rgba(232, 163, 39, 0.15)));
 	color: var(--cn-status-badge-ink);
 }
 
 .cn-status-badge--error {
-	--cn-status-badge-ink: var(--color-error-text, var(--color-error));
-	background-color: var(--color-error-light, rgba(224, 68, 68, 0.15));
+	--cn-status-badge-ink: var(--nl-color-red-text, var(--color-error-text, var(--color-error)));
+	background-color: var(--nl-color-red-light, var(--color-error-light, rgba(224, 68, 68, 0.15)));
 	color: var(--cn-status-badge-ink);
 }
 
 .cn-status-badge--info {
-	--cn-status-badge-ink: var(--color-info-text, var(--color-info, #0082c9));
-	background-color: var(--color-info-light, rgba(0, 130, 201, 0.15));
+	--cn-status-badge-ink: var(--nl-color-blue-text, var(--color-info-text, var(--color-info, #0082c9)));
+	background-color: var(--nl-color-blue-light, var(--color-info-light, rgba(0, 130, 201, 0.15)));
 	color: var(--cn-status-badge-ink);
 }
 

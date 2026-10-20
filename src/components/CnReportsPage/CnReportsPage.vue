@@ -703,6 +703,7 @@ export default {
 		 * button that is a link is left to the browser.
 		 *
 		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 * @param {{action: string, link?: object}} button The resolved button.
 		 * @return {void}
 		 */

@@ -124,7 +124,7 @@ describe('the board card anatomy rules', () => {
 	it('draws a CnDetailCard as the board card wherever it sits, a chromeless one excepted', () => {
 		expect(css).not.toContain('.cn-look-board .cn-detail-page .cn-detail-card')
 		expect(rule('.cn-look-board .cn-detail-card .cn-detail-card__title')).toBeTruthy()
-		expect(rule('.cn-look-board .cn-detail-card .cn-detail-card__content')).toMatch(/padding: 12px 22px 20px/)
+		expect(rule('.cn-look-board .cn-detail-card .cn-detail-card__content')).toMatch(/padding: calc\(12px - var\(--cn-board-first-line-leading\)\) 22px 20px/)
 	})
 
 	it('keeps the side card heading muted under a theme that colours every h3', () => {

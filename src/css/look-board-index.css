@@ -205,15 +205,11 @@
 	outline-offset: 2px;
 }
 
-/* The selected chip is light on dark, so it hands its ink to
-   --nldesign-color-on-surface: thematiq forces the body ink onto every span
-   with `!important` and reads it from that property, which left the label
-   dark on dark. */
+/* The selected chip is light on dark. */
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected,
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip--selected:hover,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active:hover {
-	--nldesign-color-on-surface: var(--color-main-background);
 	border-color: transparent;
 	background: var(--color-main-text);
 	color: var(--color-main-background);
@@ -226,7 +222,6 @@
 	padding: 1px 7px;
 	border: 0;
 	border-radius: 10px;
-	--nldesign-color-on-surface: var(--cn-board-text-soft);
 	background: var(--color-border);
 	color: var(--cn-board-text-soft);
 	font-size: 12px;
@@ -240,14 +235,15 @@
 /* On the selected chip the count is the soft ink as a lighter bubble on the
    dark chip (DqZaken: #3d4047 on #1b1c1d). */
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab--active .cn-quick-filter-bar__count {
-	--nldesign-color-on-surface: var(--color-primary-element-text);
 	background: var(--cn-board-text-soft);
 	color: var(--color-primary-element-text);
 }
 
 /* Save view: a ghost button, 34px, radius 17, no border, on the light primary
-   tint, a 14px icon 6px before the label, on one line. */
+   tint, a 14px icon 6px before the label, on one line. The label is a span,
+   so its ink also goes to --nldesign-color-on-surface. */
 .cn-look-board .cn-saved-views__save .button-vue {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	min-height: 34px;
 	height: 34px;
 	padding: 0 12px;
@@ -288,6 +284,7 @@
    @spec openspec/changes/board-toolbar-buttons-theme/specs/board-toolbar-buttons-theme/spec.md#requirement-board-toolbar-buttons-are-neutral-under-a-theme */
 .cn-look-board .cn-actions-bar:not(.cn-look-nextcloud *) {
 	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-color: var(--color-main-text);
 	--nldesign-component-button-secondary-action-color: var(--color-main-text);
 	--nldesign-component-button-secondary-action-background-color: var(--color-main-background);
 	--nldesign-component-button-secondary-action-border-color: var(--cn-board-control-border);
@@ -317,8 +314,6 @@
 	margin-inline-start: 6px;
 	padding: 0 6px;
 	border-radius: 10px;
-	/* A theme that forces the body ink onto every span reads it from here. */
-	--nldesign-color-on-surface: var(--color-primary-element-text);
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
 	font-size: 12px;
@@ -437,7 +432,10 @@
 	font-size: 14px;
 }
 
+/* An active filter: the light primary tint, its label (a span) in the tint's
+   ink through --nldesign-color-on-surface too. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__filter-chip {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -545,15 +543,13 @@
 }
 
 /* The header row is near-white on the boards (#fafbfc), not the hover grey,
-   its labels 14px muted. The ink also goes to --nldesign-color-on-surface,
-   which a theme that forces the body ink onto every span (thematiq) reads.
+   its labels 14px muted.
    The nldesign theme paints every `th` with `!important` through its table
    header tokens, and the sort button in it through its button weight token
    (bold), so the cell hands the board's ground, ink and weight to those
    tokens too.
    @spec openspec/changes/board-table-head-theme/specs/board-table-head-theme/spec.md#requirement-a-board-table-header-keeps-the-boards-ground-ink-and-weight-under-a-theme */
 .cn-look-board .cn-table-container--board .cn-data-table th {
-	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
 	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
 	--nldesign-component-table-header-font-weight: 600;
@@ -581,9 +577,13 @@
 	line-height: normal;
 }
 
+/* The sort button is the bare label, square (the boards draw no box round
+   it); the funnel after it is a 22px button with a 4px radius. Both outrank
+   the 8px element radius the table and Nextcloud's `button` rule give them. */
 .cn-look-board .cn-table-container--board .cn-data-table th .cn-table-header__sort {
 	min-height: 0;
 	height: auto;
+	border-radius: 0;
 	line-height: inherit;
 }
 
@@ -639,6 +639,7 @@
 	min-width: 22px;
 	height: 22px;
 	min-height: 22px;
+	border-radius: 4px;
 	margin-inline-start: 4px;
 }
 
@@ -682,7 +683,6 @@
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title .cn-table-cell__secondary {
-	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
 	font-weight: 400;
@@ -727,7 +727,6 @@
 /* The initials sit on the light primary tint in the primary ink, the board's
    person chip (DqZaken's Behandelaar, and most boards' people). */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials {
-	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
 	font-size: 12px;
@@ -847,6 +846,8 @@
 	margin-inline-start: auto;
 }
 
+/* A page link is a <button>: Nextcloud's `button` rule sets it bold, the
+   boards set the links at the regular weight and only the current page at 600. */
 .cn-look-board .cn-pagination--board .cn-pagination__board-link {
 	box-sizing: border-box;
 	min-width: 34px;
@@ -859,6 +860,7 @@
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 14px;
+	font-weight: 400;
 	cursor: pointer;
 }
 
@@ -1278,4 +1280,54 @@
 .cn-look-board .cn-index-page__scope-title {
 	font-size: 20px;
 	font-weight: 700;
+}
+
+/* ---- Side panel cards --------------------------------------------------- */
+/* A card beside the list is the board's side card (DqTeamwachtrij "Team
+   vandaag", "Werkvoorraad per zaaktype"): no rule under the header, the
+   title a 15px muted label on the card's 20px 22px inset, 12px above the
+   body, 20px between cards. The wrapper drew the Nextcloud panel: a 14px
+   dark title on a 12px 16px header over a rule, 16px between cards. The
+   tone carries `!important` against a theme that colours every h3.
+   @spec openspec/changes/board-index-side-panel-cards/specs/board-index-side-panel-cards/spec.md#requirement-a-board-index-side-panel-card-is-the-boards-side-card */
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) {
+	gap: var(--cn-board-section-gap, 20px);
+}
+
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-widget-wrapper__header {
+	border-bottom: none;
+	padding: 20px 22px 0;
+}
+
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-widget-wrapper__title {
+	color: var(--color-text-maxcontrast) !important;
+	font-size: var(--cn-board-side-heading-size, 15px);
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-widget-wrapper__content {
+	padding: calc(12px - var(--cn-board-first-line-leading, 0.15em)) 22px 20px;
+}
+
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-index-page-widgets__note {
+	font-size: 13px;
+}
+
+/* A record list drawn as a table (DqTeamwachtrij "Werkvoorraad per
+   zaaktype") is the board's compact grid: a 13px muted header at regular
+   weight, rows 8px apart, no rules between them. Line heights differ from
+   the board's normal ones, so the cell padding sets the board's row pitch.
+   One class more than the component's scoped rules, which load later.
+   @spec openspec/changes/board-index-side-panel-cards/specs/board-index-side-panel-cards/spec.md#requirement-a-board-record-list-table-is-the-boards-compact-grid */
+.cn-look-board .cn-record-list--table .cn-record-list__table th {
+	border-bottom: none;
+	font-size: 13px;
+	font-weight: 400;
+	padding-block: 0 2px;
+}
+
+.cn-look-board .cn-record-list--table .cn-record-list__table td {
+	border-bottom: none;
+	padding-block: 2px;
 }

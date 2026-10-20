@@ -154,6 +154,15 @@ describe('headerActionAsLink', () => {
 		warn.mockRestore()
 	})
 
+	it('keeps a function handler when the href does not resolve, warning only about the href', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const handler = jest.fn()
+		expect(headerActionAsLink({ id: 'js-bad', label: 'JS', href: 'apps/js-bad', handler })).toEqual({ id: 'js-bad', label: 'JS', handler })
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn.mock.calls[0][0]).toContain('href "apps/js-bad"')
+		warn.mockRestore()
+	})
+
 	it('resolves the children of a function-handler entry, without touching the input', () => {
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const child = { id: 'sub', label: 'Sub', href: '/apps/sub' }

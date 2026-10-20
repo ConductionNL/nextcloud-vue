@@ -30,12 +30,13 @@ An `http(s)://`, `mailto:` or `tel:` URL and a protocol-relative `//host/...` UR
 
 #### Scenario: A script URL
 
+- **GIVEN** a page with header actions
 - **WHEN** a header action has `href: "javascript:alert(1)"`
 - **THEN** it renders without a link and a warning names its id
 
 ### Requirement: A header action with href is a link that runs and emits nothing
 
-A `headerActions[]` entry with a non-empty string `href` SHALL render as an `<a href>` with the resolved URL, opening in place unless `target` is `"_blank"`, on every surface that renders header actions: the actions bar overflow menu and the board header's Actions menu and header buttons on an index page, the Actions menu and the quick and stage-primary buttons on a detail page, the header buttons on a dashboard page and the header buttons on a reports page. Clicking it SHALL run no handler and SHALL emit no `header-action` or `primary-action`. A function `handler` on such an entry (JS composition) SHALL be dropped with a one-time warning naming the id. A header action's `children[]` SHALL be resolved the same way where children render, which is the dashboard header.
+A `headerActions[]` entry with a non-empty string `href` SHALL render as an `<a href>` with the resolved URL, opening in place unless `target` is `"_blank"`, on every surface that renders header actions: the actions bar overflow menu and the board header's Actions menu and header buttons on an index page, the Actions menu and the quick and stage-primary buttons on a detail page, the header buttons on a dashboard page and the header buttons on a reports page. Clicking it SHALL run no handler and SHALL emit no `header-action` or `primary-action`. A function `handler` on such an entry (JS composition) SHALL be dropped with a one-time warning naming the id; when the `href` resolves to nothing, a function `handler` SHALL be kept and run as without `href`. A header action's `children[]` SHALL be resolved the same way where children render, which is the dashboard header.
 
 #### Scenario: The same entry on every index page surface
 
@@ -46,4 +47,5 @@ A `headerActions[]` entry with a non-empty string `href` SHALL render as an `<a 
 #### Scenario: A link child on the dashboard header
 
 - **GIVEN** a dashboard header action with a child `{ id: "docs", href: "/apps/x/docs" }`
+- **WHEN** the reader opens the action's dropdown
 - **THEN** the child renders as an anchor to the resolved URL in the action's dropdown

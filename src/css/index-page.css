@@ -102,11 +102,17 @@
 	overflow-y: auto;
 }
 
+/* The list scrolls inside the side column and the card for the rows without
+   a place stays under it, as the board draws it (DqZakenKaart). Scrolling the
+   column as a whole pushed that card below a page's worth of rows. */
 .cn-index-page__map-list {
 	display: flex;
+	flex: 0 1 auto;
 	flex-direction: column;
+	min-height: 0;
 	margin: 0;
 	padding: 0;
+	overflow-y: auto;
 	border: 1px solid var(--color-border);
 	border-radius: 10px;
 	list-style: none;
@@ -114,6 +120,7 @@
 
 .cn-index-page__map-item {
 	display: flex;
+	flex: none;
 	gap: 12px;
 	padding: 12px 14px;
 }
@@ -152,11 +159,22 @@
 	min-width: 0;
 }
 
-.cn-index-page__map-title {
+/* The title is a button for the keyboard but reads as the row's title text.
+   Nextcloud styles every `button:not(.button-vue, ...)` (specificity 0,2,1)
+   as a 34px tinted pill with a 3px margin, which outranked a single class and
+   turned each title into a blue block (DqZakenKaart rows 111px against 89).
+   Three classes outrank it, and the box properties it sets are reset.
+   @spec openspec/changes/map-list-title-button/specs/map-list-title-button/spec.md#requirement-a-map-list-title-reads-as-text-not-as-a-button */
+.cn-index-page__map-list .cn-index-page__map-item .cn-index-page__map-title {
+	width: auto;
+	height: auto;
+	min-height: 0;
 	margin: 0;
 	padding: 0;
 	border: 0;
+	border-radius: 0;
 	background: none;
+	box-shadow: none;
 	color: var(--color-main-text);
 	font: inherit;
 	font-size: 15px;
@@ -164,6 +182,12 @@
 	line-height: 1.35;
 	text-align: start;
 	cursor: pointer;
+}
+
+.cn-index-page__map-list .cn-index-page__map-item .cn-index-page__map-title:hover,
+.cn-index-page__map-list .cn-index-page__map-item .cn-index-page__map-title:focus {
+	background: none;
+	color: var(--color-main-text);
 }
 
 .cn-index-page__map-sub,
@@ -181,6 +205,7 @@
 
 .cn-index-page__map-missing {
 	display: flex;
+	flex: none;
 	flex-direction: column;
 	align-items: flex-start;
 	gap: 8px;

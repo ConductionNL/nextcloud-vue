@@ -12,4 +12,4 @@ nextcloud-vue#1314. A manifest `headerActions[]` entry could only be a button, s
 
 - `src/utils/actionLink.js`: `resolveManifestHref` (URL resolution) and `headerActionAsLink` (an entry in its link form).
 - `src/components/CnIndexPage/CnIndexPage.vue`, `CnDetailPage`, `CnDashboardPage`, `CnReportsPage`, `CnActionButtons`: hand the link form to their header surfaces.
-- `src/schemas/app-manifest-v2.schema.json` 2.134.0: `$defs/headerAction` and `$defs/headerLinkAction`.
+- `src/schemas/app-manifest-v2.schema.json` 2.135.0: `$defs/headerAction` and `$defs/headerLinkAction`.

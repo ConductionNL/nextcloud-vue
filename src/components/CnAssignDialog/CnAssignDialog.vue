@@ -34,6 +34,7 @@
 					v-model="note"
 					:label="noteLabel"
 					:labelOutside="false"
+					:rows="noteConfig.rows || 3"
 					resize="vertical"
 					data-testid="cn-assign-dialog-note" />
 				<span v-if="noteConfig.hint" class="cn-assign-dialog__hint">{{ text(noteConfig.hint) }}</span>
@@ -139,8 +140,9 @@ export function withTypedAssignee(found, typed, label) {
  *   by `currentAs`) says so, in place of `hint`; `allowTyped`
  *   offers what was typed as a choice; the id is sent as `field` (default
  *   `assignee`) and its kind as `kindField` when set.
- * - `note`: `{ label?, hint?, required?, field? }`, required by default and
- *   sent as `field` (default `note`); `false` drops it.
+ * - `note`: `{ label?, hint?, required?, field?, rows? }`, required by default and
+ *   sent as `field` (default `note`); `false` drops it. `rows` is the text
+ *   area's height in lines (default 3, as board DqOverdragen draws it).
  * - `toggles`: `[{ field, label, note? }]`: switches that start off and are
  *   sent as booleans.
  * - `confirm`: `{ label?, icon?, request?: { method?, url, body? }, action? }`.

@@ -219,6 +219,16 @@
 	height: 16px;
 }
 
+/* ---- A single select -------------------------------------------------- */
+/* NcSelect draws a single select as its search field with the clear and
+   open buttons laid over its end. A legacy vue-select rule that Nextcloud
+   still loads caps the field at the width less one clickable area, which
+   left those buttons outside the field's border (DqNieuweZaak "Zaaktype",
+   "Intakekanaal"). */
+.cn-look-board .nc-select.v-select.select.vs--single .vs__selected-options {
+	max-width: none;
+}
+
 /* ---- The header button ------------------------------------------------- */
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
@@ -343,11 +353,8 @@
    end of a tab strip) is the board's neutral control: the main background, a
    grey border, the main text at 600 (DqZaak), not Nextcloud's primary tint.
    NcActions marks a secondary menu `action-item--secondary` on its root and
-   keeps a class given to it off, so the rule reads that marker. The label
-   hands its ink to --nldesign-color-on-surface for a theme that forces the
-   body ink onto every span (thematiq). */
+   keeps a class given to it off, so the rule reads that marker. */
 .cn-look-board .action-item.action-item--secondary .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *) {
-	--nldesign-color-on-surface: var(--color-main-text);
 	border: 1px solid var(--cn-board-control-border);
 	border-radius: var(--cn-board-control-radius);
 	background: var(--color-main-background);
@@ -1154,14 +1161,6 @@
 	color: var(--cn-status-badge-ink);
 }
 
-/* A pill paints its own pairing of ink and fill. A theme that forces the body
-   ink onto every span (thematiq's text rule, `!important` at id level) reads
-   that ink from --nldesign-color-on-surface when the surface sets it, so the
-   pill hands it its own ink: "In behandeling" stays purple on purple. */
-.cn-look-board .cn-status-badge:not(.cn-look-nextcloud *) {
-	--nldesign-color-on-surface: var(--cn-status-badge-ink);
-}
-
 /* ---- Info notes (NcNoteCard type="info") -------------------------------- */
 /* The board's info note is a light-blue rounded box: no edge bar, 12px 14px
    of padding, radius 8, an 18px icon 10px before the text, 14px text in the
@@ -1213,9 +1212,7 @@
    hairline under each pair (DqZaak "Zaakgegevens"), the horizontal layout as
    two columns of 14px text, the label column as wide as its longest label
    (the side cards). Both at the board's line height, 1.2, not Nextcloud's 1.5:
-   a pair is 47px tall on the board. The muted label also hands its ink to
-   --nldesign-color-on-surface, which a theme that forces the body ink onto
-   every div (thematiq) reads. */
+   a pair is 47px tall on the board. */
 .cn-look-board .cn-detail-grid.cn-detail-grid--grid:not(.cn-look-nextcloud *) {
 	gap: 12px 24px;
 	font-size: 15px;
@@ -1246,7 +1243,6 @@
 }
 
 .cn-look-board .cn-detail-grid .cn-detail-grid__label:not(.cn-look-nextcloud *) {
-	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	min-width: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
@@ -1278,7 +1274,7 @@
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard) .cn-widget-wrapper__title {
 	font-size: var(--cn-board-heading-size, 17px);
 	font-weight: 700;
-	line-height: 1.3;
+	line-height: normal;
 }
 
 /* The board draws no rule under a dashboard card's title (DqMijnWerk,
@@ -1292,7 +1288,7 @@
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless) .cn-widget-wrapper__header {
-	padding: 20px var(--cn-board-dashboard-card-inset) 12px;
+	padding: 20px var(--cn-board-dashboard-card-inset) calc(12px - var(--cn-board-first-line-leading, 0.15em));
 }
 
 /* ---- Record list on a dashboard card (PtDashboard) ---------------------- */
@@ -1486,4 +1482,22 @@
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stats-block-widget--tiles-box {
 	padding: 14px 22px 20px;
+}
+
+/* ---- Matrix chart (DqProcesanalyse "Dagen per fase") -------------------- */
+/* The board sets the matrix at 14px and the font's normal line height: the
+   column heads and the cell figures at 600, a cell 37px with its 10px
+   padding. Nextcloud's 15px at 1.5 made each row 42.5px.
+   @spec openspec/changes/board-matrix-cells/specs/board-matrix-cells/spec.md#requirement-a-board-matrix-takes-the-boards-type */
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-head {
+	font-weight: 600;
+}
+
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell:not(.cn-chart-widget__matrix-cell--current) {
+	font-weight: 600;
 }

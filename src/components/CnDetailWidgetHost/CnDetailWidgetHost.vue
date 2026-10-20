@@ -147,6 +147,39 @@
 			hidden
 			data-testid="cn-detail-widget-props-pending" />
 
+		<!-- A mount-mode leaf whose descriptor asks for the library card
+		     (`chrome: "card"`): the host draws the card, its title with the
+		     count the leaf reports, the leaf's actions in the title row and the
+		     library empty state. The leaf reports them through the `onHeader`
+		     mount prop and renders only its rows. -->
+		<CnWidgetWrapper
+			v-else-if="wrapsMountLeaf"
+			:title="leafCardTitle"
+			titleIconPosition="left"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__leaf-card"
+			data-testid="cn-detail-widget-leaf-card">
+			<template v-if="leafCardIcon" #title-icon>
+				<CnIcon :name="leafCardIcon" :size="20" />
+			</template>
+			<template v-if="rendererHeader.count !== null" #title-meta>
+				<span class="cn-detail-page__catalog-count" data-testid="cn-detail-widget-header-count">{{ rendererHeader.count }}</span>
+			</template>
+			<template v-if="hasRendererHeaderItems" #actions>
+				<CnDetailWidgetHeaderItems :header="rendererHeader" />
+			</template>
+			<CnWidgetEmptyState
+				v-if="rendererHeader.empty"
+				:name="rendererHeader.empty.name"
+				:description="rendererHeader.empty.description" />
+			<CnLeafMountHost
+				:provider="integrationProvider"
+				:mountProps="integrationMountProps" />
+		</CnWidgetWrapper>
+
 		<CnLeafMountHost
 			v-else-if="isMountIntegration"
 			:provider="integrationProvider"
@@ -293,6 +326,7 @@ import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectFilesWidget from '../CnObjectFilesWidget/CnObjectFilesWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import CnDetailWidgetHeaderItems from './CnDetailWidgetHeaderItems.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
@@ -373,6 +407,7 @@ export default {
 		CnObjectDataWidget,
 		CnObjectGeoWidget,
 		CnRelatedObjectsWidget,
+		CnWidgetEmptyState,
 		CnWidgetWrapper,
 		NcActionButton,
 		CnEmptyContent,
@@ -628,7 +663,7 @@ export default {
 			 * `header` event (screens-relation-pages): a link and a note,
 			 * with the list's total already filled in.
 			 */
-			rendererHeader: { link: null, note: '', actions: [], pill: null },
+			rendererHeader: { link: null, note: '', actions: [], pill: null, count: null, empty: null },
 		}
 	},
 
@@ -845,6 +880,34 @@ export default {
 		},
 
 		/**
+		 * Whether a mount-mode leaf gets the library card: on a card surface,
+		 * grid cell included, when its descriptor asks for it (`chrome:
+		 * "card"`). Opt-in, because a leaf that draws its own card would
+		 * otherwise sit in two.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/integration-leaf-card/specs/integration-leaf-card/spec.md#requirement-a-mount-mode-leaf-can-take-the-library-card
+		 */
+		wrapsMountLeaf() {
+			return !this.isBare && this.isMountIntegration && this.integrationProvider.chrome === 'card'
+		},
+
+		/**
+		 * The leaf card's title: the manifest's, else the descriptor's label.
+		 *
+		 * @return {string} The title in the user's language.
+		 */
+		leafCardTitle() {
+			const title = widgetTitleOf(this.widget)
+			return title ? this.translateLabel(title) : (this.integrationProvider?.label || '')
+		},
+
+		/** @return {string} The leaf card's icon: the manifest's, else the descriptor's. */
+		leafCardIcon() {
+			return this.widget?.icon || this.integrationProvider?.icon || ''
+		},
+
+		/**
 		 * Whether this render is using a provider's widget as its bare surface.
 		 *
 		 * @return {boolean} True when bare AND the provider opted in.
@@ -1017,6 +1080,8 @@ export default {
 				// one that reads `objectId`.
 				integrationContext: this.widgetIntegrationContext,
 				...this.resolvedWidgetProps,
+				// A carded leaf reports its title row and empty state here.
+				...(this.wrapsMountLeaf ? { onHeader: this.onRendererHeader } : {}),
 			}
 		},
 
@@ -1221,11 +1286,12 @@ export default {
 
 	methods: {
 		/**
-		 * Take the header a content-only renderer, or an app widget in the
-		 * titled card, reports.
+		 * Take the header a content-only renderer, an app widget in the
+		 * titled card, or a carded mount-mode leaf (`onHeader`) reports.
 		 *
-		 * @param {{link?: object|null, note?: string, action?: {label: string, icon?: string, run: () => unknown}|null, actions?: Array<{label: string, icon?: string, run: () => unknown}>}} header The header parts.
+		 * @param {{link?: object|null, note?: string, action?: {label: string, icon?: string, run: () => unknown}|null, actions?: Array<{label: string, icon?: string, run: () => unknown}>, count?: number, empty?: {name: string, description?: string}|null}} header The header parts.
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-record-list-shows-the-objects-that-point-at-this-record
+		 * @spec openspec/changes/integration-leaf-card/specs/integration-leaf-card/spec.md#requirement-a-carded-leaf-reports-its-count-actions-and-empty-state
 		 */
 		onRendererHeader(header) {
 			const link = header && header.link && typeof header.link === 'object' ? header.link : null
@@ -1234,7 +1300,11 @@ export default {
 			// `action` (one) and `actions` (several) both count, `action` first.
 			const actions = [header && header.action, ...((header && Array.isArray(header.actions)) ? header.actions : [])].filter(usable)
 			const pill = header && header.pill && typeof header.pill.label === 'string' && header.pill.label !== '' ? header.pill : null
-			this.rendererHeader = { link, note, actions, pill }
+			const count = header && Number.isFinite(header.count) ? header.count : null
+			const empty = header && header.empty && typeof header.empty.name === 'string' && header.empty.name !== ''
+				? { name: header.empty.name, description: typeof header.empty.description === 'string' ? header.empty.description : '' }
+				: null
+			this.rendererHeader = { link, note, actions, pill, count, empty }
 		},
 
 		/**
@@ -1370,6 +1440,31 @@ export default {
 	min-height: 32px;
 	padding: 0 14px;
 	white-space: nowrap;
+}
+
+/* A leaf card in a narrow cell keeps its title and count: the title row
+   wraps and the actions move under it instead of squeezing the title out. */
+.cn-detail-page__leaf-card :deep(.cn-widget-wrapper__header) {
+	flex-wrap: wrap;
+}
+
+.cn-detail-page__leaf-card :deep(.cn-widget-wrapper__header-left) {
+	flex: 1 0 auto;
+}
+
+/* The count beside a card title: the grey 20px badge of the tab strip. */
+.cn-detail-page__catalog-count {
+	background-color: var(--color-border);
+	border-radius: 10px;
+	box-sizing: border-box;
+	color: var(--color-main-text);
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+	min-width: 20px;
+	padding: 0 6px;
+	text-align: center;
 }
 
 .cn-detail-page__catalog-note {

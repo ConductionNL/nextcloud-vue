@@ -1759,7 +1759,7 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 8,
+			"direct": 9,
 			"transitive": 191,
 			"tier": "heavy",
 			"via": [
