@@ -1363,6 +1363,11 @@
 					"minLength": 1,
 					"description": "Dot-path to the value on the record."
 				},
+				"values": {
+					"type": "array",
+					"items": { "type": "string" },
+					"description": "With `field`: draw the pill only when the raw value is one of these (a priority pill for high and urgent only)."
+				},
 				"text": {
 					"type": "string",
 					"minLength": 1,

@@ -2549,9 +2549,11 @@ export default {
 		 * shows nothing at 0. With `resolve: { register, schema, labelField?,
 		 * colorField?, iconField? }` the pill shows the referenced record's
 		 * label, takes its tone from that record's colour (an NL Design System
-		 * hue such as `red`, or a badge role) and shows its icon.
+		 * hue such as `red`, or a badge role) and shows its icon. `values`
+		 * draws a `field` pill only for those raw values (a priority pill for
+		 * `high` and `urgent` only).
 		 *
-		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string, resolve?: object}|null}
+		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string, resolve?: object, values?: Array<string>}|null}
 		 */
 		typePill: {
 			type: Object,
