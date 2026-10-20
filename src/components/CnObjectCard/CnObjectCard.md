@@ -138,6 +138,7 @@ export default {
 |---|---|---|---|
 | `maxMetadata` | `Number` | `4` | Maximum number of schema properties to show in the metadata section. Properties are sorted by their `order` value before slicing |
 | `accent` | `Object` | `null` | Status accent `{ variant, icon?, label? }`: a colored start border and, with `icon`, a colored icon before the title. `variant` is `success`, `warning`, `error`, `info` or `primary`; `label` is the icon's tooltip and accessible name |
+| `pillLooks` | `Object` | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`, read by CnIndexPage). A record layout pill with `resolve: { colorField?, iconField? }` takes its record's tone and icon from here. |
 
 ## Slots
 

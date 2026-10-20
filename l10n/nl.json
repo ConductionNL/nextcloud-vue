@@ -2124,7 +2124,9 @@
     "New team": "Nieuw team",
     "Why it is moving": "Waarom het overgaat",
     "Use \"{name}\"": "\"{name}\" gebruiken",
-    "It was not handed over.": "Het is niet overgedragen."
+    "It was not handed over.": "Het is niet overgedragen.",
+    "This search could not be read.": "Deze zoekopdracht kon niet worden gelezen.",
+    "{source} could not be searched, so this list may be incomplete.": "{source} kon niet worden doorzocht, dus deze lijst is mogelijk niet compleet."
   },
   "plurals": {
     "{count} member": [

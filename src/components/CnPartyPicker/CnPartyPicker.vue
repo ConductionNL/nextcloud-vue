@@ -3,24 +3,39 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<CnSearchSelect
-		class="cn-party-picker"
-		:modelValue="selectedOption"
-		:options="options"
-		:inputLabel="inputLabel"
-		:labelOutside="labelOutside"
-		:placeholder="placeholder ? cnTranslate(placeholder) : ''"
-		:loading="searching"
-		:filterable="false"
-		:clearable="clearable"
-		:disabled="disabled"
-		data-testid="cn-party-picker"
-		@search="onSearch"
-		@update:modelValue="onPick" />
+	<div class="cn-party-picker">
+		<CnSearchSelect
+			:modelValue="selectedOption"
+			:options="options"
+			:inputLabel="inputLabel"
+			:labelOutside="labelOutside"
+			:placeholder="placeholder ? cnTranslate(placeholder) : ''"
+			:loading="searching"
+			:filterable="false"
+			:clearable="clearable"
+			:disabled="disabled"
+			data-testid="cn-party-picker"
+			@search="onSearch"
+			@update:modelValue="onPick" />
+		<p v-if="refusal"
+			class="cn-party-picker__refusal"
+			role="alert"
+			data-testid="cn-party-picker-refusal">
+			{{ t('nextcloud-vue', 'This search could not be read.') }} {{ refusal }}
+		</p>
+		<p v-for="name in unavailable"
+			:key="name"
+			class="cn-party-picker__unavailable"
+			role="status"
+			data-testid="cn-party-picker-unavailable">
+			{{ t('nextcloud-vue', '{source} could not be searched, so this list may be incomplete.', { source: name }) }}
+		</p>
+	</div>
 </template>
 
 <script>
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { CnSearchSelect } from '../CnSearchSelect/index.js'
@@ -142,6 +157,8 @@ export default {
 			known: null,
 			timer: null,
 			searchSeq: 0,
+			refusal: '',
+			unavailable: [],
 		}
 	},
 
@@ -185,6 +202,8 @@ export default {
 	},
 
 	methods: {
+		t,
+
 		/**
 		 * A source's row as a picker option.
 		 *
@@ -244,7 +263,9 @@ export default {
 		},
 
 		/**
-		 * Search every source at once; a source that fails adds nothing.
+		 * Search every source at once. A term a source refused (400) is said
+		 * under the field in its words; a source that could not be searched at
+		 * all is named, so an empty list never hides a missing source.
 		 *
 		 * @spec openspec/changes/party-picker/specs/party-picker/spec.md#requirement-one-search-field-over-several-kinds-of-party
 		 * @param {string} term The search term.
@@ -253,6 +274,8 @@ export default {
 		async search(term) {
 			const seq = ++this.searchSeq
 			this.searching = true
+			let refusal = ''
+			const unavailable = []
 			const sets = await Promise.all((this.sources || []).map(async (source) => {
 				try {
 					if (source.type === 'contacts') {
@@ -264,7 +287,16 @@ export default {
 					}
 					const { data } = await axios.get(generateUrl(`/apps/openregister/api/objects/${source.register}/${source.schema}`), { params: { _search: term, _limit: source.limit || 8 } })
 					return (data && Array.isArray(data.results) ? data.results : []).map((row) => this.optionOf(source, row))
-				} catch {
+				} catch (failure) {
+					// OpenRegister refuses a term it cannot parse with a 400 rather
+					// than answering nothing, so that refusal is said, not hidden.
+					const response = failure && failure.response
+					if (response && response.status === 400) {
+						const body = response.data
+						refusal = String((body && (body.message || body.error)) || (typeof body === 'string' ? body : '') || refusal)
+					} else {
+						unavailable.push(source.label ? this.cnTranslate(source.label) : String(source.id || ''))
+					}
 					return []
 				}
 			}))
@@ -272,6 +304,8 @@ export default {
 				return
 			}
 			this.options = sets.flat().filter(Boolean)
+			this.refusal = refusal
+			this.unavailable = unavailable.filter(Boolean)
 			this.searching = false
 		},
 
@@ -315,3 +349,15 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+.cn-party-picker__refusal {
+	margin: 4px 0 0;
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-party-picker__unavailable {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
+}
+</style>

@@ -67,3 +67,20 @@ describe('pickRefLabel', () => {
 		expect(pickRefLabel({}, 'title')).toBeNull()
 	})
 })
+
+describe('createRefLabelResolver strict field', () => {
+	it('reads exactly the field, with no fallback to the title', async () => {
+		const store = makeStore([{ id: 't1', title: 'Woo', colour: 'red' }, { id: 't2', title: 'Bezwaar' }])
+		const resolver = createRefLabelResolver(() => store)
+		const out = await resolver.resolve('dossiq', 'caseType', ['t1', 't2'], 'colour', { strict: true })
+		expect(out).toEqual({ t1: 'red', t2: null })
+		expect(store.fetchCollectionForOptions.mock.calls[0][1]._fields).toBe('colour')
+	})
+
+	it('caches a strict read apart from a label read of the same field', async () => {
+		const store = makeStore([{ id: 't2', title: 'Bezwaar' }])
+		const resolver = createRefLabelResolver(() => store)
+		expect(await resolver.resolve('dossiq', 'caseType', ['t2'], 'colour', { strict: true })).toEqual({ t2: null })
+		expect(await resolver.resolve('dossiq', 'caseType', ['t2'], 'colour')).toEqual({ t2: 'Bezwaar' })
+	})
+})

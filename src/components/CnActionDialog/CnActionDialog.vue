@@ -31,7 +31,7 @@
 					{{ section.title }}
 				</h3>
 				<dl class="cn-action-dialog__facts">
-					<div v-for="fact in section.facts" :key="fact.label">
+					<div v-for="fact in section.facts" :key="fact.label" class="cn-action-dialog__fact">
 						<dt>{{ fact.label }}</dt>
 						<dd>{{ fact.value }}</dd>
 					</div>
@@ -87,6 +87,7 @@
 					v-model="reason"
 					:label="reasonLabel"
 					:labelOutside="false"
+					:rows="config.reason.rows || 2"
 					resize="vertical"
 					data-testid="cn-action-dialog-reason" />
 				<span v-if="config.reason.hint" class="cn-action-dialog__muted">{{ text(config.reason.hint) }}</span>
@@ -176,8 +177,9 @@ let reasonSeq = 0
  *   required?, options?: [{ value, label, fills? }] }]`: inputs sent beside
  *   the reason, required by default; a select option's `fills` sets other
  *   fields that are still empty.
- * - `reason`: `{ label?, hint?, required?, field? }`: a text area; required by
- *   default; sent as `field` (default `reason`).
+ * - `reason`: `{ label?, hint?, required?, field?, rows? }`: a text area; required by
+ *   default; sent as `field` (default `reason`). `rows` is its height in lines
+ *   (default 2; board DqBesluit draws 4).
  * - `note`: `{ variant?, title?, text }`: a read-only note.
  * - `confirm`: `{ label, icon?, request?: { method?, url, body? }, action? }`.
  *   `request` posts itself (`body` templates filled with the record and
@@ -604,15 +606,25 @@ export default {
 
 .cn-action-dialog__title {
 	margin: 0 0 8px;
-	font-size: 15px;
-	font-weight: 700;
+	font-size: 14px;
+	font-weight: 600;
 }
 
+/* Facts in columns of at least 200px, each a label over its value above a
+   hairline (DqArchiveren "Bewaring volgens het zaaktype"). */
 .cn-action-dialog__facts {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-	gap: 8px 16px;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 12px 24px;
 	margin: 0;
+}
+
+.cn-action-dialog__fact {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--color-border);
 }
 
 .cn-action-dialog__facts dt {
@@ -622,12 +634,15 @@ export default {
 
 .cn-action-dialog__facts dd {
 	margin: 0;
+	font-size: 15px;
+	font-weight: 500;
 }
 
+/* Checklist rows divided by hairlines, the detail at the row's end
+   (DqArchiveren "Klaar om te archiveren"). */
 .cn-action-dialog__checks {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -637,7 +652,15 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 8px;
+	gap: 2px 12px;
+	padding: 10px 0;
+	border-top: 1px solid var(--color-border);
+	font-size: 15px;
+}
+
+.cn-action-dialog__check-label {
+	flex: 1 1 auto;
+	font-weight: 600;
 }
 
 .cn-action-dialog__check-icon {

@@ -26,6 +26,7 @@ The compact list a Nextcloud Dashboard widget shows: a bold name, a muted traili
 | `itemsPath` | The rows' path in the response, when it is not `results` or `responsePath` |
 | `limit` | The most rows shown (default 7); also sent as `_limit` to OpenRegister |
 | `title`, `subtitle` | Templates filled from a row (default `{title}` and none), through the app's translate |
+| `due` | `{ field, ...due config }`: the trailing line says how the row's date stands, in place of `subtitle`: "3 days overdue", "Due today", the date of a day to come, or the days left with `upcomingLabel`, and `emptyText` without a date. The same config as a record-list's due date (`todayLabel`, `overdueLabel`, `upcomingLabel`, `emptyText`), through the app's translate |
 | `href` | A template for a row's page; an app path goes through `generateUrl` |
 | `viewAll` | `{ href, label? }` for the footer link |
 | `emptyText` | Text for an empty list |
