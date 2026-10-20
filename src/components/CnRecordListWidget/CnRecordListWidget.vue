@@ -58,6 +58,14 @@
 				</tr>
 			</tbody>
 		</table>
+		<!-- notes: a field per row for what happened, recorded on the row's
+		     own notes endpoint (DqDagAfsluiten "Nog open van vandaag"). -->
+		<CnRecordNoteRows
+			v-else-if="presentation === 'notes' && noteAction"
+			:items="items"
+			:action="noteAction"
+			:recordAll="noteRecordAll"
+			:leaf="content.rowLeaf || null" />
 		<ul v-else class="cn-record-list__list">
 			<li
 				v-for="item in items"
@@ -277,6 +285,7 @@ import { inject, ref } from 'vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import CnRecordNoteRows from './CnRecordNoteRows.vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { actionLink, dispatchAction, interpolateActionTarget } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
@@ -295,7 +304,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /** Gives each list's footer reason its own element id. */
 let footerSeq = 0
-const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice', 'table']
+const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice', 'table', 'notes']
 
 /** The tones a `notice` list takes. */
 const NOTICE_VARIANTS = ['info', 'warning', 'error']
@@ -348,7 +357,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { ChevronRight, CnIcon, CnStatusBadge, NcButton, NcLoadingIcon },
+	components: { ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -446,6 +455,8 @@ export default {
 			/** Whether `footerAction.disabledWhen` holds. */
 			footerDisabled: false,
 			footerReasonId: `cn-record-list-footer-reason-${++footerSeq}`,
+			/** The first `emptyTexts` entry whose condition holds, translated; '' for none. */
+			conditionalEmptyText: '',
 		}
 	},
 
@@ -731,9 +742,57 @@ export default {
 		},
 
 		/** @return {string} The empty line. */
+		/**
+		 * `noteAction` with its labels through the host translate, or null
+		 * (`presentation: "notes"`).
+		 *
+		 * @spec openspec/changes/record-list-notes/specs/record-list-notes/spec.md#requirement-a-record-list-can-collect-and-record-a-note-per-row
+		 * @return {object|null}
+		 */
+		noteAction() {
+			const action = this.content?.noteAction
+			if (!action || typeof action !== 'object' || (!action.urlField && !action.url)) {
+				return null
+			}
+			const tr = (text) => (typeof text === 'string' && text !== '' ? this.translate(text) : '')
+			return {
+				...action,
+				label: tr(action.label),
+				fieldLabel: tr(action.fieldLabel),
+				placeholder: tr(action.placeholder),
+				readyLabel: tr(action.readyLabel),
+				errorText: tr(action.errorText),
+			}
+		},
+
+		/**
+		 * `noteAction.recordAll` translated, its cancel link as a route, or null.
+		 *
+		 * @return {object|null}
+		 */
+		noteRecordAll() {
+			const all = this.content?.noteAction?.recordAll
+			if (!all || typeof all !== 'object' || !all.label) {
+				return null
+			}
+			const cancel = all.cancel && all.cancel.label && all.cancel.route
+				? { label: this.translate(all.cancel.label), to: typeof all.cancel.route === 'string' ? { name: all.cancel.route } : all.cancel.route }
+				: null
+			return {
+				label: this.translate(all.label),
+				title: all.title ? this.translate(all.title) : '',
+				text: all.text ? this.translate(all.text) : '',
+				icon: all.icon || '',
+				cancel,
+			}
+		},
+
 		emptyLabel() {
 			if (this.lensReasonText !== '') {
 				return this.lensReasonText
+			}
+			if (this.conditionalEmptyText !== '') {
+				return this.conditionalEmptyText
 			}
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
@@ -752,6 +811,10 @@ export default {
 	watch: {
 		requestKey() {
 			this.fetchRows()
+		},
+
+		rows() {
+			this.evaluateEmptyTexts()
 		},
 
 		footerDisabledKey: {
@@ -839,6 +902,38 @@ export default {
 		 * @spec openspec/changes/record-list-footer-action/specs/record-list/spec.md#requirement-a-record-list-can-end-with-an-action-that-says-why-it-is-disabled
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * Pick the empty text (`emptyTexts`: `[{ when, text }]`, the first whose
+		 * visibleWhen condition holds), for a list that is empty for more than
+		 * one reason ("Everything you opened today has a note" or "You have not
+		 * opened anything today"). `emptyText` stays the fallback.
+		 *
+		 * @spec openspec/changes/record-list-notes/specs/record-list-notes/spec.md#requirement-a-record-list-can-say-why-it-is-empty
+		 * @return {Promise<void>}
+		 */
+		async evaluateEmptyTexts() {
+			const options = Array.isArray(this.content?.emptyTexts) ? this.content.emptyTexts : []
+			if (options.length === 0 || this.rows.length > 0) {
+				this.conditionalEmptyText = ''
+				return
+			}
+			const run = this.emptyRun = (this.emptyRun || 0) + 1
+			for (const option of options) {
+				if (!option || typeof option.text !== 'string' || !option.when) {
+					continue
+				}
+				const holds = await evaluateVisibleWhen(option.when, this.tokenCtx)
+				if (run !== this.emptyRun) {
+					return
+				}
+				if (holds) {
+					this.conditionalEmptyText = this.translate(option.text)
+					return
+				}
+			}
+			this.conditionalEmptyText = ''
+		},
+
 		async evaluateFooterDisabled() {
 			const cond = this.content?.footerAction?.disabledWhen
 			if (!cond) {
@@ -1103,7 +1198,10 @@ export default {
 		},
 
 		rowLink(row) {
-			const route = this.content?.rowRoute
+			// `rowRouteField`: the route name read from the row, for a list
+			// whose rows open different pages (a case and a task).
+			const byField = this.content?.rowRouteField ? readPath(row, this.content.rowRouteField) : null
+			const route = (typeof byField === 'string' && byField !== '') ? byField : this.content?.rowRoute
 			if (!route || !this.$router || !row) {
 				return null
 			}

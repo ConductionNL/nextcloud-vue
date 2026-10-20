@@ -19,7 +19,8 @@ off a schema.
 
 Additive. It adds no rights: OpenRegister checks the action's own right on every run.
 
-## Not covered
+## The run's changes
 
-The board's "2 wijzigingen: termijn opgeschort, bericht verstuurd" needs the changes a run made; the audit entry names
-the run but not its writes. Listed for OpenRegister rather than computed here.
+The last-run line adds "2 wijzigingen: termijn opgeschort, bericht verstuurd" from the `changes` OpenRegister writes on
+the `action.macro` audit entry (openregister macro-run-changes); after a run the widget reads that entry again. An
+OpenRegister without `changes` gives the line without the count.

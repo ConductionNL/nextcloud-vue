@@ -20,6 +20,7 @@ const WIDGETS = [
 	{ id: 'option-list', type: 'record-list', title: 'Option list', tabs: ['fields'] },
 	{ id: 'parent-type', type: 'facts', title: 'Parent type', tabs: ['fields', 'statuses'] },
 	{ id: 'audit', type: 'audit-trail', title: 'History' },
+	{ id: 'deadline', type: 'facts', title: 'Deadline', notTabs: ['ai-oversight'] },
 ]
 
 /**
@@ -44,7 +45,7 @@ async function mountPage() {
 			},
 			widgets: WIDGETS,
 			layout: [{ id: '0', widgetId: 'overview', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 2 }],
-			sideColumn: ['option-list', 'parent-type', 'audit'],
+			sideColumn: ['option-list', 'parent-type', 'audit', 'deadline'],
 		},
 		global: { mocks: { t: (_a, s) => s, $route: { params: {}, query: {}, name: 'ct' }, $router: { push: jest.fn(), replace: jest.fn() } } },
 	})
@@ -56,17 +57,27 @@ const sideIds = (w) => w.vm.sideColumnWidgets.map((widget) => widget.id)
 
 describe('CnDetailPage side cards per tab', () => {
 	it('shows only the entries without tabs before a tab reports', async () => {
-		expect(sideIds(await mountPage())).toEqual(['audit'])
+		expect(sideIds(await mountPage())).toEqual(['audit', 'deadline'])
 	})
 
 	it('shows the entries of the open tab, and follows a switch', async () => {
 		const w = await mountPage()
 		w.vm.$.provides.cnDetailReportTab('fields')
 		await nextTick()
-		expect(sideIds(w)).toEqual(['option-list', 'parent-type', 'audit'])
+		expect(sideIds(w)).toEqual(['option-list', 'parent-type', 'audit', 'deadline'])
 		w.vm.$.provides.cnDetailReportTab('statuses')
 		await nextTick()
-		expect(sideIds(w)).toEqual(['parent-type', 'audit'])
+		expect(sideIds(w)).toEqual(['parent-type', 'audit', 'deadline'])
+	})
+
+	it('leaves out an entry with notTabs while one of those tabs is open', async () => {
+		const w = await mountPage()
+		w.vm.$.provides.cnDetailReportTab('ai-oversight')
+		await nextTick()
+		expect(sideIds(w)).toEqual(['audit'])
+		w.vm.$.provides.cnDetailReportTab('fields')
+		await nextTick()
+		expect(sideIds(w)).toContain('deadline')
 	})
 })
 
