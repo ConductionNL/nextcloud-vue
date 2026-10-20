@@ -42,6 +42,7 @@
 	margin: 0;
 	font-size: 15px;
 	font-weight: 700;
+	line-height: normal;
 }
 
 .cn-board-view.cn-board-view--board .cn-board-view__dot {
@@ -51,6 +52,8 @@
 	border-radius: 50%;
 }
 
+/* The count: a 16px white bubble, its 12px figure at 700 and the font's
+   normal line height (DqWerkbord "Ontvangen 14"). */
 .cn-board-view.cn-board-view--board .cn-board-view__badge {
 	margin-inline-start: auto;
 	padding: 1px 8px;
@@ -58,7 +61,8 @@
 	background-color: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 12px;
-	font-weight: 400;
+	font-weight: 700;
+	line-height: normal;
 }
 
 /* A column at its limit: the count in the error colour; "full" is said in words too. */
@@ -255,8 +259,10 @@
 	background-color: var(--color-background-hover);
 }
 
-/* A column cut by `columnLimit`: a dashed, full-width, 34px button. */
-.cn-board-view__show-more {
+/* A column cut by `columnLimit`: a dashed, full-width, 34px button. Scoped
+   under the board so it outranks Nextcloud's `button:not(.button-vue)` rule,
+   which drew it as a borderless primary-tinted button in bold 15px. */
+.cn-board-view .cn-board-view__show-more {
 	width: 100%;
 	height: 34px;
 	margin: 0;
@@ -270,11 +276,11 @@
 	cursor: pointer;
 }
 
-.cn-board-view__show-more:hover {
+.cn-board-view .cn-board-view__show-more:hover {
 	background-color: var(--color-background-hover);
 }
 
-.cn-board-view__show-more:focus-visible {
+.cn-board-view .cn-board-view__show-more:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
 }
