@@ -1,6 +1,6 @@
 # useEndpointSource
 
-ONE coherent endpoint data binding shared by the abstract widgets (Wave 2, [#91](https://github.com/ConductionNL/nextcloud-vue/issues/91)). Resolves a manifest-authored `endpointSource` block — an arbitrary app REST endpoint OpenRegister's aggregations can't express (a bespoke analytics controller, a summary payload) — into reactive `{ data, loading, error, refused, truncated, refetch }`.
+ONE coherent endpoint data binding shared by the abstract widgets (Wave 2, [#91](https://github.com/ConductionNL/nextcloud-vue/issues/91)). Resolves a manifest-authored `endpointSource` block — an arbitrary app REST endpoint OpenRegister's aggregations can't express (a bespoke analytics controller, a summary payload) — into reactive `{ data, body, loading, error, refused, truncated, refetch }` (`body` is the whole response before `responsePath`).
 
 Consumed by [`CnStatWidget`](../../components/cn-stat-widget.md), [`CnDeltaWidget`](../../components/cn-delta-widget.md), [`CnChartWidget`](../../components/cn-chart-widget.md), and [`CnWidgetObjectTable`](../../components/cn-widget-object-table.md); usable directly by consumer apps.
 

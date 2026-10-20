@@ -765,7 +765,10 @@ export default {
 		 * page publishes `dateFrom` / `dateTo` / `datePreset` into the
 		 * workspace context).
 		 *
-		 * @type {{url: string, method?: string, params?: object, responsePath?: string, labelsPath?: string, series?: Array<{name?: string, path: string}>}|null}
+		 * `series[].namePath` names a series from the whole response (before
+		 * `responsePath`), for an endpoint that says what its numbers measure.
+		 *
+		 * @type {{url: string, method?: string, params?: object, responsePath?: string, labelsPath?: string, series?: Array<{name?: string, namePath?: string, path: string}>}|null}
 		 */
 		endpointSource: {
 			type: Object,
@@ -872,7 +875,7 @@ export default {
 			() => props.endpointSource,
 			{ ctx: chartTokenCtx },
 		)
-		return { dsData: data, dsRefetch: refetch, epData: ep.data, epError: ep.error, epRefused: ep.refused, epTruncated: ep.truncated, epRefetch: ep.refetch, chartTokenCtx }
+		return { dsData: data, dsRefetch: refetch, epData: ep.data, epBody: ep.body, epError: ep.error, epRefused: ep.refused, epTruncated: ep.truncated, epRefetch: ep.refetch, chartTokenCtx }
 	},
 
 	data() {
@@ -965,7 +968,7 @@ export default {
 					})
 				}
 				mapped = seriesDefs.map((s) => ({
-					name: s.name || s.path,
+					name: this.endpointSeriesName(s),
 					data: payload.map((pt) => Number(getByPath(pt, s.path)) || 0),
 				}))
 			} else {
@@ -976,7 +979,7 @@ export default {
 				mapped = seriesDefs.map((s) => {
 					const values = getByPath(payload, s.path)
 					return {
-						name: s.name || s.path,
+						name: this.endpointSeriesName(s),
 						data: Array.isArray(values) ? values.map((v) => Number(v) || 0) : [],
 					}
 				})
@@ -1875,6 +1878,24 @@ export default {
 		 * @param {string} key The label.
 		 * @return {string} The translated label.
 		 */
+		/**
+		 * The name of an endpoint series: the text at its `namePath` in the
+		 * whole response (so an endpoint can name what its numbers measure),
+		 * else its `name`, else its `path`.
+		 *
+		 * @param {{name?: string, namePath?: string, path: string}} def The series definition.
+		 * @return {string} The name.
+		 */
+		endpointSeriesName(def) {
+			if (def.namePath) {
+				const named = getByPath(this.epBody, def.namePath)
+				if (typeof named === 'string' && named !== '') {
+					return named
+				}
+			}
+			return def.name || def.path
+		},
+
 		hostTranslate(key) {
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : null
 			const out = translate ? translate(key) : key

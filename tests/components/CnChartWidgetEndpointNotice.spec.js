@@ -71,6 +71,14 @@ describe('CnChartWidget: endpoint notices', () => {
 		expect(wrapper.vm.resolvedSeries).toEqual([{ name: 'Cases', data: [2] }])
 	})
 
+	it('names a series from the response at namePath', async () => {
+		axios.get.mockResolvedValue({ data: { labels: { workingHours: 'Working hours' }, distribution: [{ label: 'Intake', count: 4 }] } })
+		const wrapper = mountChart({ endpointSource: { ...endpointSource, series: [{ name: 'Hours', namePath: 'labels.workingHours', path: 'count' }] } })
+		await flush()
+
+		expect(wrapper.vm.resolvedSeries).toEqual([{ name: 'Working hours', data: [4] }])
+	})
+
 	it('words the empty state through the app translate', async () => {
 		axios.get.mockResolvedValue({ data: { distribution: [] } })
 		const wrapper = mountChart()

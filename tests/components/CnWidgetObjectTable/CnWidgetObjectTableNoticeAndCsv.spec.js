@@ -91,6 +91,21 @@ describe('CnWidgetObjectTable: notices and CSV export', () => {
 		expect(wrapper.find('[data-testid="cn-endpoint-notice-refused"]').text()).toContain('Not for you.')
 	})
 
+	it('heads a column with the label the response names at labelPath', async () => {
+		axios.get.mockResolvedValue({ data: { labels: { workingHours: 'Working hours (working days x 8)' }, rows: [{ id: 'a', hours: 8 }] } })
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: {
+				endpointSource,
+				columns: [{ key: 'hours', label: 'Hours', labelPath: 'labels.workingHours' }, { key: 'id', label: 'Id', labelPath: 'labels.missing' }],
+			},
+		})
+		await flush()
+
+		const columns = wrapper.findComponent({ name: 'CnDataTable' }).props('columns')
+		expect(columns[0].label).toBe('Working hours (working days x 8)')
+		expect(columns[1].label).toBe('Id')
+	})
+
 	it('has no CSV button unless asked', async () => {
 		axios.get.mockResolvedValue({ data: { rows: [] } })
 		const wrapper = shallowMount(CnWidgetObjectTable, { propsData: { endpointSource, columns: ['name'] } })

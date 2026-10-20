@@ -104,7 +104,7 @@ import { inject, ref } from 'vue'
 import DownloadIcon from 'vue-material-design-icons/Download.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
-import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
@@ -512,7 +512,7 @@ export default {
 		// External rows always win — and suppress the request entirely (the
 		// pre-existing "when rows are provided, no API calls are made"
 		// contract), so the getter resolves to null while `rows` are supplied.
-		const { data, loading, error, refused, truncated, refetch } = useEndpointSource(
+		const { data, body, loading, error, refused, truncated, refetch } = useEndpointSource(
 			() => ((props.rows && props.rows.length > 0) ? null : props.endpointSource),
 			{
 				ctx: () => ({
@@ -523,7 +523,7 @@ export default {
 				widgetId: () => props.widgetId,
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefused: refused, epTruncated: truncated, epRefetch: refetch }
+		return { epData: data, epBody: body, epLoading: loading, epError: error, epRefused: refused, epTruncated: truncated, epRefetch: refetch }
 	},
 
 	data() {
@@ -802,6 +802,9 @@ export default {
 			if (this.refLabelColumns.length > 0) {
 				inner.columns = this.renderedColumns
 			}
+			if (this.endpointActive && this.columns.some((col) => col && typeof col === 'object' && col.labelPath)) {
+				inner.columns = this.labelledColumns(inner.columns || this.columns)
+			}
 			if (this.selfFetchActive) {
 				inner.register = this.source.register
 				inner.schemaId = this.source.schema
@@ -928,6 +931,25 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Columns whose `labelPath` names their heading in the endpoint's
+		 * whole response, so an endpoint can say what a column measures (a
+		 * working-hours column counted on the calendar or approximated). The
+		 * `label` stays the heading until the response names one.
+		 *
+		 * @param {Array<object|string>} columns The columns.
+		 * @return {Array<object|string>} The columns with response-named headings.
+		 */
+		labelledColumns(columns) {
+			return columns.map((col) => {
+				if (!col || typeof col !== 'object' || !col.labelPath) {
+					return col
+				}
+				const named = getByPath(this.epBody, col.labelPath)
+				return (typeof named === 'string' && named !== '') ? { ...col, label: named } : col
+			})
+		},
 
 		/**
 		 * Download the rows as CSV with the table's columns (#exportCsv).

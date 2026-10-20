@@ -387,7 +387,9 @@ function read(v) {
  * Reactive endpoint data binding.
  *
  * Resolves the `endpointSource` block into reactive
- * `{ data, loading, error, refused, truncated, refetch }`. `error` carries the
+ * `{ data, body, loading, error, refused, truncated, refetch }`. `body` is the
+ * whole response before `responsePath`, so a widget can read a label the
+ * endpoint sends beside its rows. `error` carries the
  * server's `message` when it sent one, `refused` is true when the read was
  * answered 401/403, and `truncated` mirrors a top-level `truncated: true` in
  * the response body. The request signature (url + resolved
@@ -409,7 +411,7 @@ function read(v) {
  * @param {object|import('vue').Ref<object>|(() => object)} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
  * @param {string|import('vue').Ref<string>|(() => string)} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
  * @param {import('vue').Ref<unknown>|(() => unknown)} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
- * @return {{data: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refused: import('vue').Ref<boolean>, truncated: import('vue').Ref<boolean>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
+ * @return {{data: import('vue').Ref<unknown>, body: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refused: import('vue').Ref<boolean>, truncated: import('vue').Ref<boolean>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
  */
 export function useEndpointSource(source, options) {
 	const opts = options || {}
@@ -418,6 +420,7 @@ export function useEndpointSource(source, options) {
 	const error = ref('')
 	const refused = ref(false)
 	const truncated = ref(false)
+	const body = ref(null)
 	// Whether the last read was not attempted because a required token is
 	// unset. The three refs above cannot express it: a blocked read looks
 	// exactly like the instant before the first request.
@@ -461,6 +464,7 @@ export function useEndpointSource(source, options) {
 		refused.value = false
 		truncated.value = false
 		if (!cfg || !cfg.url) {
+			body.value = null
 			data.value = null
 			error.value = ''
 			loading.value = false
@@ -471,6 +475,7 @@ export function useEndpointSource(source, options) {
 		if (request.blocked) {
 			// A required context token is unset — wait, don't error.
 			data.value = null
+			body.value = null
 			error.value = ''
 			loading.value = false
 			blocked.value = true
@@ -481,13 +486,14 @@ export function useEndpointSource(source, options) {
 		loading.value = true
 		error.value = ''
 		try {
-			const body = await fetchSharedResponse(request, { force: force === true, refresh })
+			const answer = await fetchSharedResponse(request, { force: force === true, refresh })
 			if (seq !== fetchSeq) {
 				return
 			}
-			const payload = getByPath(body, request.responsePath)
+			const payload = getByPath(answer, request.responsePath)
 			data.value = payload === undefined ? null : payload
-			truncated.value = isTruncatedBody(body)
+			body.value = answer === undefined ? null : answer
+			truncated.value = isTruncatedBody(answer)
 		} catch (e) {
 			if (seq !== fetchSeq) {
 				return
@@ -495,6 +501,7 @@ export function useEndpointSource(source, options) {
 			error.value = endpointErrorMessage(e)
 			refused.value = isEndpointRefusal(e)
 			data.value = null
+			body.value = null
 		} finally {
 			if (seq === fetchSeq) {
 				// Forced refetches hold `loading` to MIN_FORCED_LOADING_MS so
@@ -558,5 +565,5 @@ export function useEndpointSource(source, options) {
 		})
 	}
 
-	return { data, loading, error, refused, truncated, blocked, refetch }
+	return { data, body, loading, error, refused, truncated, blocked, refetch }
 }

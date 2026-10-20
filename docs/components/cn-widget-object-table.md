@@ -118,6 +118,14 @@ REST endpoint computes (e.g. a per-source performance report):
 - `columns` / formatters / `rowRoute` / `actions` apply unchanged on
   top of endpoint rows.
 
+### A heading the endpoint names (`labelPath`)
+
+A column with `labelPath` takes its heading from the endpoint's whole response (before `responsePath`), so the endpoint can say what the column measures: a report that sends `labels.workingHours` as "Working hours (working days x 8)" heads its column with it. `label` stays the heading until the response names one.
+
+```json
+{ "key": "workingHours", "label": "Working hours", "labelPath": "labels.workingHours" }
+```
+
 ### Refused, failed and short answers
 
 An endpoint read that is refused (401/403) shows the server's `message` as a warning and no table; a failed read shows its message as an error. A table is never drawn empty for a read that did not answer, so "no rows" keeps meaning no rows. A response body with a top-level `truncated: true` keeps the table and adds a note that the figures may be incomplete. All three come from [CnEndpointNotice](./cn-endpoint-notice.md).
