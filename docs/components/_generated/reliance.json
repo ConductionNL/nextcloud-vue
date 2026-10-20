@@ -75,6 +75,13 @@
 			"via": [],
 			"page": "cn-actions-menu"
 		},
+		"CnAddressSearch": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-address-search"
+		},
 		"CnAdminActionCard": {
 			"direct": 0,
 			"transitive": 0,
@@ -242,6 +249,13 @@
 				"CnXwikiPagePicker"
 			],
 			"page": "cn-app-root"
+		},
+		"CnAssignDialog": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-assign-dialog"
 		},
 		"CnAuditTrailCard": {
 			"direct": 1,
@@ -671,7 +685,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 182,
+			"transitive": 184,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -731,11 +745,13 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -794,6 +810,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-date-range-picker"
+		},
+		"CnDecisionListWidget": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-decision-list-widget"
 		},
 		"CnDeckCardCreate": {
 			"direct": 1,
@@ -894,7 +917,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 185,
+			"transitive": 187,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -954,11 +977,13 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -1139,6 +1164,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-document-review-list"
+		},
+		"CnDuplicateWarning": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-duplicate-warning"
 		},
 		"CnDurationField": {
 			"direct": 0,
@@ -1427,7 +1459,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 192,
+			"transitive": 194,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1488,11 +1520,13 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -1726,7 +1760,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 189,
+			"transitive": 191,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1786,11 +1820,13 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -2269,6 +2305,17 @@
 			],
 			"page": "cn-nav-card-grid"
 		},
+		"CnNcDashboardList": {
+			"direct": 1,
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnIndexPage"
+			],
+			"page": "cn-nc-dashboard-list"
+		},
 		"CnNcDashboardWidgetForm": {
 			"direct": 0,
 			"transitive": 0,
@@ -2487,7 +2534,7 @@
 			"page": "cn-object-list"
 		},
 		"CnObjectListWidget": {
-			"direct": 5,
+			"direct": 7,
 			"transitive": 113,
 			"tier": "heavy",
 			"via": [
@@ -2732,7 +2779,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 206,
+			"transitive": 208,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2797,12 +2844,14 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterMapping",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnRoadmapTab",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
@@ -2930,6 +2979,13 @@
 			"via": [],
 			"page": null
 		},
+		"CnPlanWidget": {
+			"direct": 3,
+			"transitive": 0,
+			"tier": "light",
+			"via": [],
+			"page": "cn-plan-widget"
+		},
 		"CnPollCreate": {
 			"direct": 0,
 			"transitive": 0,
@@ -3008,6 +3064,13 @@
 				"CnIndexPage"
 			],
 			"page": "cn-record-list-widget"
+		},
+		"CnRedactionEditor": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-redaction-editor"
 		},
 		"CnReferencePreview": {
 			"direct": 0,
@@ -3143,7 +3206,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 183,
+			"transitive": 185,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3204,11 +3267,13 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -3243,6 +3308,13 @@
 			"tier": "medium",
 			"via": [],
 			"page": "cn-resource-select"
+		},
+		"CnRetentionWidget": {
+			"direct": 3,
+			"transitive": 0,
+			"tier": "light",
+			"via": [],
+			"page": "cn-retention-widget"
 		},
 		"CnRichSubmitDialog": {
 			"direct": 0,
@@ -4158,7 +4230,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 173,
+			"transitive": 175,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4215,11 +4287,13 @@
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
+				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnRetentionWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -4307,6 +4381,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-wizard-dialog"
+		},
+		"CnWorkQueue": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-work-queue"
 		},
 		"CnWorkingCalendarWidget": {
 			"direct": 2,

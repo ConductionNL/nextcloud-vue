@@ -79,6 +79,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `emptyText` | String | `'No items found'` | Empty state message |
 | `lenses` | Object \| null | `null` | Personal-lens report (`@self.lenses`) of the list on screen, for a host that fetches itself; self-fetch mode reads it from the store. A lens with `available: false` makes the empty state say why ("This server does not keep track of what you open.", "Log in to see what you opened recently.", "Your recent items are not available right now."). Needs openregister#4514. |
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable lens, keyed `<lens>.<reason>` or `<reason>`. |
+| `searchRefusalHint` | String | `''` | Self-fetch only. What to do after a search the server refused for its grammar, through the app's translate; the default explains AND, OR, NOT and quotes. See [A refused search](#a-refused-search). |
 | `rowClass` | Function \| Array | `null` | CSS class(es) for a row: a function `(row) => string`, or (manifest `config.rowClass`) rules `[{ when: { field, op?, value }, class }]`, each adding its class to a row whose field compares to the value with the `visibleWhen` operators; two dates compare as moments, so `{ when: { field: "dueAt", op: "lt", value: "@today" }, class: "cn-row--overdue" }` marks an overdue task (DqTaken). The class is the app's to style. |
 | `addLabel` | String | `''` | Add button label |
 | `inlineActionCount` | Number | `2` | Number of inline action buttons before overflow menu |
@@ -770,7 +771,15 @@ Form save (create/edit), **mass export**, and **mass import** are also self-hand
 
 ### A failed fetch
 
-When the latest fetch fails (OpenRegister answers a search term it cannot parse, such as an unbalanced bracket in `verzoek (2026`, with HTTP 400), the page shows an error state ("An error occurred") where the empty state would be, instead of the rows and "Showing X of Y" counter of the previous query, which the object store keeps on a failure. The server's own message is not shown; the state instead suggests changing the search or trying again when a search term is set, and trying again later when none is. The next successful fetch, for example after the search term is corrected, brings the results back, and so does a successful [live-update](#live-updates--collection-subscription) refetch, so a transient failure does not outlast the next background fetch. Only the most recently started fetch decides whether the error state shows, judged by that request's own response, so an older response that settles late cannot turn it on or off. That holds when an older failure lands while a newer request is still in flight, and for a refresh that joins an identical request already in flight. The `#empty` slot is not used for this state, and consumer-managed mode (`objects` supplied) is unaffected.
+When the latest fetch fails (OpenRegister answers a search term it cannot parse, such as an unbalanced bracket in `verzoek (2026`, with HTTP 400), the page shows an error state ("An error occurred") where the empty state would be, instead of the rows and "Showing X of Y" counter of the previous query, which the object store keeps on a failure. The server's own message is not shown (a search refused with a position is the exception, see [A refused search](#a-refused-search)); the state instead suggests changing the search or trying again when a search term is set, and trying again later when none is. The next successful fetch, for example after the search term is corrected, brings the results back, and so does a successful [live-update](#live-updates--collection-subscription) refetch, so a transient failure does not outlast the next background fetch. Only the most recently started fetch decides whether the error state shows, judged by that request's own response, so an older response that settles late cannot turn it on or off. That holds when an older failure lands while a newer request is still in flight, and for a refresh that joins an identical request already in flight. The `#empty` slot is not used for this state, and consumer-managed mode (`objects` supplied) is unaffected.
+
+### A refused search
+
+OpenRegister refuses a `_search` term it cannot parse, such as an unclosed bracket or quote, with `400 { error, position, term }` rather than running it as a literal. A literal would return nothing and read as an honest empty result. When the failed fetch is such a refusal (a 400 with a term typed and a position, carried on the store's error or read from the message's "at position N"), the page shows the term with the character it stopped at marked, the server's reason, and what to do next (`searchRefusalHint`), instead of the generic error state.
+
+```vue
+<CnIndexPage register="dossiq" schema="case" search-refusal-hint="Search for a case number or plain words." />
+```
 
 ### Scoping a list to a parent — `config.filter`
 

@@ -59,6 +59,7 @@ export const BUILT_IN_WIDGET_KEYS = Object.freeze([
 	'form-renderer',
 	'map-viewer',
 	'notice',
+	'decision-list',
 	'object-geo',
 	'card-grid',
 	'nav-card-grid',
@@ -134,10 +135,12 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'object-table',
 	'party-actions',
 	'people',
+	'plan',
 	'quicklinks',
 	'radio-cards',
 	'record-list',
 	'related',
+	'retention',
 	'saved-view',
 	'saved-views',
 	'sections',
@@ -159,6 +162,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'video',
 	'week-strip',
 	'working-calendar',
+	'work-queue',
 	'workspace-filter',
 ])
 
