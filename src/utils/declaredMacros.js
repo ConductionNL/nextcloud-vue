@@ -26,3 +26,26 @@ export function declaredMacros(schema) {
 			description: typeof entry.description === 'string' ? entry.description : '',
 		}))
 }
+
+/**
+ * The macros a record shows: every declared one, or, when the record names a
+ * list (`macrosFrom`, a case type's own choice), those keys in its order.
+ * A named list that is absent or empty shows none: a case type that chose no
+ * macros has none, rather than every macro the shared schema declares.
+ *
+ * @param {Array<{key: string}>} declared The schema's macros (declaredMacros()).
+ * @param {unknown} keys The list the record names, or undefined when it names none.
+ * @param {boolean} named Whether the widget reads a list at all (`macrosFrom` is set).
+ * @return {Array<{key: string, name: string, description: string}>} The macros to show.
+ */
+export function pickMacros(declared, keys, named) {
+	if (!named) {
+		return declared
+	}
+	if (!Array.isArray(keys)) {
+		return []
+	}
+	return keys
+		.map((key) => declared.find((macro) => macro.key === String(key)))
+		.filter(Boolean)
+}

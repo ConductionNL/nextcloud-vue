@@ -14,6 +14,7 @@ run it asks the page to refresh (`cn:page:refresh`). The last run is read from t
 |---|---|---|
 | `description` | `string` | The line under the title, translated. |
 | `emptyText` | `string` | Shown when the schema declares no macros, translated. |
+| `macrosFrom` | `string` | A path on the record (`@context.caseType.macros`) to the macro keys it shows, in that order. A record that lists none shows none. Without it every declared macro shows. |
 
 ## Example
 
