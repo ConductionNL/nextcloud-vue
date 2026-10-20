@@ -121,6 +121,26 @@ describe('CnTabsWidget stack grid', () => {
 		expect(spans(w)).toEqual(['grid-column: span 3;', 'grid-column: span 9;', 'grid-column: span 12;'])
 	})
 
+	it('lets a widget `layout` sets beside a partner fill its row when it is alone there', async () => {
+		// DqZaakLocatie: Priority is hidden for this case type, so Locations,
+		// laid out at half width beside it, is alone between two full rows.
+		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', layout: [{ widgetId: 'w-cases', gridWidth: 6 }] }])
+		await flush()
+		expect(spans(w)).toEqual(['grid-column: span 12;', 'grid-column: span 12;', 'grid-column: span 12;'])
+	})
+
+	it('keeps a widget at its `layout` width when its partner shares the row', async () => {
+		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', layout: [{ widgetId: 'w-cases', gridWidth: 6 }, { widgetId: 'w-moments', gridWidth: 6 }] }])
+		await flush()
+		expect(spans(w)).toEqual(['grid-column: span 12;', 'grid-column: span 6;', 'grid-column: span 6;'])
+	})
+
+	it('leaves a `columns` share as it is on a short last row', async () => {
+		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', columns: 2 }])
+		await flush()
+		expect(spans(w)).toEqual(['grid-column: span 6;', 'grid-column: span 6;', 'grid-column: span 6;'])
+	})
+
 	it('clamps a width to 1..12 and ignores a bad columns value', async () => {
 		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', columns: 'x', layout: [{ widgetId: 'w-card', gridWidth: 40 }] }])
 		await flush()
