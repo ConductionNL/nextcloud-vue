@@ -129,7 +129,8 @@ describe('open-form with an endpoint', () => {
 describe('the manifest schema', () => {
 	it('accepts endpoint and formProperties on an action', () => {
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		const action = (schema.$defs || schema.definitions).action.properties
+		// $defs.action takes its fields from $defs.actionFields, as header actions do.
+		const action = (schema.$defs || schema.definitions).actionFields.properties
 		expect(action.endpoint.required).toEqual(['url'])
 		expect(action.endpoint.properties.method.enum).toEqual(['PATCH', 'PUT', 'POST'])
 		expect(action.formProperties.type).toBe('object')
