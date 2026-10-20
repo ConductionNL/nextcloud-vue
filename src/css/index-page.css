@@ -102,11 +102,17 @@
 	overflow-y: auto;
 }
 
+/* The list scrolls inside the side column and the card for the rows without
+   a place stays under it, as the board draws it (DqZakenKaart). Scrolling the
+   column as a whole pushed that card below a page's worth of rows. */
 .cn-index-page__map-list {
 	display: flex;
+	flex: 0 1 auto;
 	flex-direction: column;
+	min-height: 0;
 	margin: 0;
 	padding: 0;
+	overflow-y: auto;
 	border: 1px solid var(--color-border);
 	border-radius: 10px;
 	list-style: none;
@@ -114,6 +120,7 @@
 
 .cn-index-page__map-item {
 	display: flex;
+	flex: none;
 	gap: 12px;
 	padding: 12px 14px;
 }
@@ -181,6 +188,7 @@
 
 .cn-index-page__map-missing {
 	display: flex;
+	flex: none;
 	flex-direction: column;
 	align-items: flex-start;
 	gap: 8px;

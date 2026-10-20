@@ -1752,6 +1752,8 @@ export default {
 
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/** The app's named formatters, provided by CnAppRoot, for the map list's pills and template tokens. */
+		cnFormatters: { default: () => ({}) },
 		/** The permissions the user holds, provided by CnAppRoot; for gated page tabs. */
 		cnPermissions: { default: () => [] },
 		/** The app config an ancestor provides, for `@config.<key>` in quick-filter labels. */
@@ -6359,13 +6361,14 @@ export default {
 			const translated = {
 				...list,
 				title: this.cnTranslate(list.title),
-				sub: list.sub ? this.cnTranslate(list.sub) : '',
+				sub: Array.isArray(list.sub) ? list.sub.map((s) => this.cnTranslate(s)) : (list.sub ? this.cnTranslate(list.sub) : ''),
 				due: list.due ? this.cnTranslate(list.due) : '',
 			}
 			return mapListItems(this.displayObjects, translated, {
 				rowKey: this.rowKey,
 				located: (row) => Boolean(this.resolveRowGeometry(row)),
 				translate: (text) => this.cnTranslate(text),
+				formatters: this.cnFormatters,
 			})
 		},
 
