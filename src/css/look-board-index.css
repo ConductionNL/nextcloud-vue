@@ -229,7 +229,6 @@
 	padding: 1px 7px;
 	border: 0;
 	border-radius: 10px;
-	--nldesign-color-on-surface: var(--cn-board-text-soft);
 	background: var(--color-border);
 	color: var(--cn-board-text-soft);
 	font-size: 12px;
