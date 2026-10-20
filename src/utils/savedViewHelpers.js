@@ -284,15 +284,18 @@ export function schemaSlug(schema) {
  * it: three case indexes share their views, the organisations index does
  * not. `savedViewsScope` on a page overrides that, for pages that should
  * share views although they read different sources, or keep them apart
- * although they read the same one.
+ * although they read the same one. A page over a named source
+ * (`entitySource`) and no schema shares its views with the pages over that
+ * source.
  *
  * @param {object} page The page.
  * @param {string} [page.scope] The explicit `savedViewsScope`, when set.
  * @param {string} [page.register] The page's register.
  * @param {object|string} [page.schema] The page's schema, slug or object.
+ * @param {string} [page.source] The page's `entitySource`, when it reads one.
  * @return {string} The scope key, or the empty string for a page with no source.
  */
-export function savedViewScope({ scope, register, schema } = {}) {
+export function savedViewScope({ scope, register, schema, source } = {}) {
 	if (typeof scope === 'string' && scope !== '') {
 		return scope
 	}
@@ -300,7 +303,41 @@ export function savedViewScope({ scope, register, schema } = {}) {
 	if (typeof register === 'string' && register !== '' && slug !== '') {
 		return `${register}/${slug}`
 	}
+	if (typeof source === 'string' && source !== '') {
+		return `source:${source}`
+	}
 	return ''
+}
+
+/**
+ * Whether an index page offers saved views in its sidebar.
+ *
+ * `allowSavedViews` decides when it is set. Unset, every index page that has
+ * a sidebar and a source a view can be scoped to (a register and schema, a
+ * named source, or `savedViewsScope`) offers them, so managing views is
+ * there on every list without each page opting in.
+ *
+ * @param {object} config The page's index config, or CnIndexPage's props.
+ * @param {boolean|null} [config.allowSavedViews] The explicit choice, when made.
+ * @param {object} [config.sidebar] The sidebar config.
+ * @param {string} [config.savedViewsScope] The explicit scope.
+ * @param {string} [config.register] The register.
+ * @param {object|string} [config.schema] The schema.
+ * @param {string} [config.entitySource] The named source.
+ * @return {boolean}
+ */
+export function pageOffersSavedViews(config) {
+	if (!config || typeof config !== 'object') {
+		return false
+	}
+	if (typeof config.allowSavedViews === 'boolean') {
+		return config.allowSavedViews
+	}
+	const sidebar = config.sidebar
+	if (!sidebar || typeof sidebar !== 'object' || sidebar.enabled !== true || sidebar.show === false) {
+		return false
+	}
+	return savedViewScope({ scope: config.savedViewsScope, register: config.register, schema: config.schema, source: config.entitySource }) !== ''
 }
 
 /**

@@ -126,20 +126,13 @@
 							</component>
 							<!-- The one Follow control beside the title (manifest `config.follow`):
 							     shown when the object carries `@self.watching`. There is no star:
-							     a favourite is a follow with notifications off. -->
+							     a favourite is a follow with notifications off. The board look
+							     draws it on a row of its own under the breadcrumb. -->
 							<span
-								v-if="showFollowToggle"
+								v-if="showFollowToggle && !isBoard"
 								class="cn-detail-page__interactions"
 								data-testid="cn-detail-page-interactions">
-								<CnFollowToggle
-									:register="register"
-									:schema="schema"
-									:objectId="String(objectId)"
-									:watching="resolvedSelf.watching === true"
-									:notify="typeof resolvedSelf.watchNotify === 'boolean' ? resolvedSelf.watchNotify : null"
-									:watcherCount="typeof resolvedSelf.watcherCount === 'number' ? resolvedSelf.watcherCount : null"
-									:canManage="!!(resolvedSelf.can && resolvedSelf.can.manage === true)"
-									:notifies="followNotifies" />
+								<CnFollowToggle v-bind="followToggleProps" />
 							</span>
 						</div>
 						<!--
@@ -516,6 +509,17 @@
 					:object="resolvedObject"
 					:schema="currentSchema"
 					:register="register" />
+			</div>
+			<!-- Row 3 of the board look's header: the Follow control under the
+			     breadcrumb, clear of the title row and its actions (DqZaak
+			     "Volgen"). -->
+			<div
+				v-if="isBoard && showFollowToggle"
+				class="cn-detail-page__header-row3"
+				data-testid="cn-detail-page-header-row3">
+				<span class="cn-detail-page__interactions" data-testid="cn-detail-page-interactions">
+					<CnFollowToggle v-bind="followToggleProps" />
+				</span>
 			</div>
 			<!-- A widget inside the header (manifest `config.headerWidget`), on
 			     a row of its own under the title and the actions: the stages
@@ -4317,6 +4321,26 @@ export default {
 			return this.follow !== false
 				&& typeof this.resolvedSelf.watching === 'boolean'
 				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
+		},
+
+		/**
+		 * The props of the Follow control, wherever the header draws it.
+		 *
+		 * @return {object} The CnFollowToggle props.
+		 * @spec openspec/changes/board-follow-row/specs/board-follow-row/spec.md#requirement-the-board-follow-control-sits-under-the-breadcrumb
+		 */
+		followToggleProps() {
+			const self = this.resolvedSelf
+			return {
+				register: this.register,
+				schema: this.schema,
+				objectId: String(this.objectId),
+				watching: self.watching === true,
+				notify: typeof self.watchNotify === 'boolean' ? self.watchNotify : null,
+				watcherCount: typeof self.watcherCount === 'number' ? self.watcherCount : null,
+				canManage: !!(self.can && self.can.manage === true),
+				notifies: this.followNotifies,
+			}
 		},
 
 		/**
