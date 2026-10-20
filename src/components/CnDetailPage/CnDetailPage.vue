@@ -6328,15 +6328,24 @@ export default {
 
 		/**
 		 * Whether a side entry belongs beside the open body tab: an entry with
-		 * `tabs` (tab ids) shows only while one of them is open; an entry
-		 * without shows beside every tab. Edit mode shows them all.
+		 * `tabs` (tab ids) shows only while one of them is open; an entry with
+		 * `notTabs` stands aside while one of those is open (a tab that draws
+		 * the side column as its own, DqZaakAssistent); an entry with neither
+		 * shows beside every tab. Edit mode shows them all.
 		 *
 		 * @spec openspec/changes/detail-side-cards-per-tab/specs/detail-page/spec.md#requirement-a-side-card-can-follow-the-open-tab
+		 * @spec openspec/changes/side-card-not-on-tabs/specs/detail-page/spec.md#requirement-a-side-card-can-stand-aside-for-a-tab
 		 * @param {object} widget The side entry's definition.
 		 * @return {boolean}
 		 */
 		sideWidgetOnTab(widget) {
-			if (this.editingBody || !Array.isArray(widget.tabs) || widget.tabs.length === 0) {
+			if (this.editingBody) {
+				return true
+			}
+			if (Array.isArray(widget.notTabs) && widget.notTabs.map((id) => String(id)).includes(this.activeBodyTab)) {
+				return false
+			}
+			if (!Array.isArray(widget.tabs) || widget.tabs.length === 0) {
 				return true
 			}
 			return widget.tabs.map((id) => String(id)).includes(this.activeBodyTab)
