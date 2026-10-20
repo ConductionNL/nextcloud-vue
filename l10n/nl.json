@@ -2124,7 +2124,13 @@
     "New team": "Nieuw team",
     "Why it is moving": "Waarom het overgaat",
     "Use \"{name}\"": "\"{name}\" gebruiken",
-    "It was not handed over.": "Het is niet overgedragen."
+    "It was not handed over.": "Het is niet overgedragen.",
+    "Views in my menu": "Weergaven in mijn menu",
+    "These saved views are at the bottom of your menu under My views, in this order. Drag a row or use the arrow keys. You put a view in the menu with Add to menu in the side panel of a list.": "Deze opgeslagen weergaven staan onderaan je menu onder Mijn weergaven, in deze volgorde. Sleep een regel of gebruik de pijltjestoetsen. Een weergave zet je in het menu met Toevoegen aan menu in het zijpaneel van een lijst.",
+    "Add view": "Weergave toevoegen",
+    "Pick a saved view": "Kies een opgeslagen weergave",
+    "You see your own views, the views shared with you and the default views. A new view goes to the bottom.": "Je ziet je eigen weergaven, de weergaven die met je zijn gedeeld en de standaardweergaven. Een nieuwe weergave komt onderaan.",
+    "Your menu has no views yet.": "Je menu heeft nog geen weergaven."
   },
   "plurals": {
     "{count} member": [

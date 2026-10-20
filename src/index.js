@@ -282,6 +282,7 @@ export {
 	CnRoadmapTab,
 	CnRowActions,
 	CnSavedViewEditDialog,
+	CnSavedViewMenuSettings,
 	CnSavedViewPresentationDialog,
 	CnSavedViewsControl,
 	CnSavedViewShareDialog,

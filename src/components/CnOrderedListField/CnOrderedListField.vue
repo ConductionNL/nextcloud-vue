@@ -76,12 +76,16 @@
 					<button
 						type="button"
 						class="cn-ordered-list-field__button"
+						:class="{ 'cn-ordered-list-field__button--text': removeLabel }"
 						:disabled="disabled"
-						:aria-label="t('nextcloud-vue', 'Remove {item}', { item: row.label })"
+						:aria-label="removeLabel ? `${removeLabel}: ${row.label}` : t('nextcloud-vue', 'Remove {item}', { item: row.label })"
 						:data-testid="`cn-ordered-list-remove-${row.value}`"
 						:aria-describedby="row.description ? descriptionId(row) : null"
 						@click="remove(index)">
-						<Close :size="20" />
+						<template v-if="removeLabel">
+							{{ removeLabel }}
+						</template>
+						<Close v-else :size="20" />
 					</button>
 				</span>
 			</li>
@@ -114,6 +118,9 @@
 					</span>
 				</template>
 			</NcSelect>
+			<p v-if="addHint" class="cn-ordered-list-field__hint" data-testid="cn-ordered-list-hint">
+				{{ addHint }}
+			</p>
 		</div>
 		<p class="hidden-visually" aria-live="polite" data-testid="cn-ordered-list-live">
 			{{ announcement }}
@@ -193,6 +200,21 @@ export default {
 
 		/** Placeholder in the picker. */
 		addPlaceholder: {
+			type: String,
+			default: '',
+		},
+
+		/** A hint under the picker. */
+		addHint: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The remove action as words ("Remove from menu") instead of the
+		 * cross icon; its accessible name is these words and the row's label.
+		 */
+		removeLabel: {
 			type: String,
 			default: '',
 		},
@@ -554,6 +576,13 @@ export default {
 	cursor: pointer;
 }
 
+.cn-ordered-list-field__button--text {
+	width: auto;
+	padding: 0 10px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
 .cn-ordered-list-field__button:hover:not(:disabled) {
 	background: var(--color-background-hover);
 }
@@ -566,6 +595,12 @@ export default {
 .cn-ordered-list-field__button:disabled {
 	opacity: 0.4;
 	cursor: default;
+}
+
+.cn-ordered-list-field__hint {
+	margin: 6px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-ordered-list-field__empty {

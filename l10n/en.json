@@ -1912,7 +1912,13 @@
     "New team": "New team",
     "Why it is moving": "Why it is moving",
     "Use \"{name}\"": "Use \"{name}\"",
-    "It was not handed over.": "It was not handed over."
+    "It was not handed over.": "It was not handed over.",
+    "Views in my menu": "Views in my menu",
+    "These saved views are at the bottom of your menu under My views, in this order. Drag a row or use the arrow keys. You put a view in the menu with Add to menu in the side panel of a list.": "These saved views are at the bottom of your menu under My views, in this order. Drag a row or use the arrow keys. You put a view in the menu with Add to menu in the side panel of a list.",
+    "Add view": "Add view",
+    "Pick a saved view": "Pick a saved view",
+    "You see your own views, the views shared with you and the default views. A new view goes to the bottom.": "You see your own views, the views shared with you and the default views. A new view goes to the bottom.",
+    "Your menu has no views yet.": "Your menu has no views yet."
   },
   "plurals": {
     "{count} member": [
