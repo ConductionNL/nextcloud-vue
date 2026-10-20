@@ -21,6 +21,7 @@ import CnConversationWidget from '../CnConversationThread/CnConversationWidget.v
 import CnCountdownWidget from '../CnCountdownWidget/CnCountdownWidget.vue'
 import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'
 import CnDocumentReviewWidget from '../CnDocumentReviewList/CnDocumentReviewWidget.vue'
+import CnMacrosWidget from '../CnMacrosWidget/CnMacrosWidget.vue'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
 import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
 import CnMarkdownWidget2 from '../CnMarkdownWidget/CnMarkdownWidget.vue'
@@ -329,6 +330,17 @@ registerDashboardWidget('document-review', {
 	icon: 'FileDocumentCheckOutline',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
+})
+
+// The macros the record's schema declares, each run by a button
+// (DqZaakAssistent "Macro's").
+registerDashboardWidget('macros', {
+	renderer: CnMacrosWidget,
+	form: null,
+	defaultContent: { description: '', emptyText: '' },
+	displayName: 'Macros',
+	icon: 'PlayBoxMultipleOutline',
+	surfaces: ['detail-page'],
 })
 
 registerDashboardWidget('conversation', {
