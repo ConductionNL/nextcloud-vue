@@ -30,6 +30,9 @@ const CnNotesCardAdapter = {
 		schema: { type: String, default: '' },
 		objectId: { type: [String, Number], default: '' },
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		// Notes of something that is not an object (`{ kind: 'flow-task', id }`), or a URL of their own.
+		source: { type: Object, default: null },
+		endpoint: { type: String, default: '' },
 		// Accepted-and-ignored: forwarded by the surface components.
 		surface: { type: String, default: 'detail-page' },
 		objectType: { type: String, default: '' },
@@ -40,6 +43,8 @@ const CnNotesCardAdapter = {
 			schemaId: this.schema,
 			objectId: this.objectId ? String(this.objectId) : '',
 			apiBase: this.apiBase,
+			source: this.source,
+			endpoint: this.endpoint,
 		})
 	},
 }

@@ -18,7 +18,9 @@ import { CnAuditTrailWidget } from '@conduction/nextcloud-vue'
 | `title` | `string` | `''` | Card title override. Defaults to the card's translated label. |
 | `maxDisplay` | `number` | `0` | Most audit rows shown. `0` uses the card default. |
 | `scope` | `string` | `''` | `object` (default) is one object's trail. `app` lists the app-wide feed, narrowed to `register` / `schema` when set, and needs no object. Also read from `content.scope`. |
-| `content` | `object` | `{}` | The stored widget content: `{ title, maxDisplay, scope?, register?, schema?, objectId? }`. |
+| `source` | `object` | `null` | Read the trail of something that is not an object, such as `{ kind: 'flow-task' }` for the page's task (see [CnAuditTrailCard](./cn-audit-trail-card.md)). Also read from `content.source`. |
+| `endpoint` | `string` | `''` | A trail URL of its own. Also read from `content.endpoint`. |
+| `content` | `object` | `{}` | The stored widget content: `{ title, maxDisplay, scope?, register?, schema?, objectId?, source?, endpoint?, emptyText? }`. `emptyText` replaces the empty line and goes through the app's translate. |
 
 ## Reference (auto-generated)
 
