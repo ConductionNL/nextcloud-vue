@@ -2124,7 +2124,8 @@
     "New team": "Nieuw team",
     "Why it is moving": "Waarom het overgaat",
     "Use \"{name}\"": "\"{name}\" gebruiken",
-    "It was not handed over.": "Het is niet overgedragen."
+    "It was not handed over.": "Het is niet overgedragen.",
+    "{things}: nothing linked": "{things}: niets gekoppeld"
   },
   "plurals": {
     "{count} member": [

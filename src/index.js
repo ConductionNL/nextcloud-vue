@@ -195,6 +195,7 @@ export {
 	CnLifecycleActions,
 	CnLinkButtonWidget,
 	CnLinkButtonWidgetForm,
+	CnLinkedWidget,
 	CnLinksWidget,
 	CnLinksWidgetForm,
 	CnLockedBanner,

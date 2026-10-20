@@ -1912,7 +1912,8 @@
     "New team": "New team",
     "Why it is moving": "Why it is moving",
     "Use \"{name}\"": "Use \"{name}\"",
-    "It was not handed over.": "It was not handed over."
+    "It was not handed over.": "It was not handed over.",
+    "{things}: nothing linked": "{things}: nothing linked"
   },
   "plurals": {
     "{count} member": [
