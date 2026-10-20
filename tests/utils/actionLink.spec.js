@@ -154,6 +154,15 @@ describe('headerActionAsLink', () => {
 		warn.mockRestore()
 	})
 
+	it('warns once per entry without an id, not once for all of them', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		headerActionAsLink({ label: 'First', href: '/apps/x', handler: () => {} })
+		headerActionAsLink({ label: 'Second', href: '/apps/x', handler: () => {} })
+		headerActionAsLink({ label: 'First', href: '/apps/x', handler: () => {} })
+		expect(warn).toHaveBeenCalledTimes(2)
+		warn.mockRestore()
+	})
+
 	it('keeps a function handler when the href does not resolve, warning only about the href', () => {
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const handler = jest.fn()
