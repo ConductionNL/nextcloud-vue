@@ -1950,7 +1950,48 @@
     "Task completed": "Task completed",
     "This could not be done. Try again.": "This could not be done. Try again.",
     "{done} of {total} done": "{done} of {total} done",
-    "Nothing to check off": "Nothing to check off"
+    "Nothing to check off": "Nothing to check off",
+    "Actions for state {name}": "Actions for state {name}",
+    "Add state": "Add state",
+    "Add step": "Add step",
+    "Arrow keys on a focused state": "Arrow keys on a focused state",
+    "At least one state must stay final": "At least one state must stay final",
+    "Click a state, a step or a transition to see its properties.": "Click a state, a step or a transition to see its properties.",
+    "Close state properties": "Close state properties",
+    "Close step properties": "Close step properties",
+    "Close transition properties": "Close transition properties",
+    "Connect states by dragging from one port to another, by pressing c on one state and then on another, or through a state's actions menu.": "Connect states by dragging from one port to another, by pressing c on one state and then on another, or through a state's actions menu.",
+    "Connect to {name}": "Connect to {name}",
+    "Controls": "Controls",
+    "Cycle with no way out to a final state: {names}": "Cycle with no way out to a final state: {names}",
+    "Delete state": "Delete state",
+    "Delete state \"{name}\"? Its steps and transitions go with it.": "Delete state \"{name}\"? Its steps and transitions go with it.",
+    "Delete the transition {name}?": "Delete the transition {name}?",
+    "Delete transition": "Delete transition",
+    "Disconnect from {name}": "Disconnect from {name}",
+    "Dismiss": "Dismiss",
+    "Drag a state onto the canvas to add it, or use the add button.": "Drag a state onto the canvas to add it, or use the add button.",
+    "Drag the empty canvas": "Drag the empty canvas",
+    "Duplicate transition from \"{from}\" to \"{to}\"": "Duplicate transition from \"{from}\" to \"{to}\"",
+    "Edit transition to {name}": "Edit transition to {name}",
+    "Elements": "Elements",
+    "Final": "Final",
+    "Final state \"{name}\" cannot be reached from any starting state": "Final state \"{name}\" cannot be reached from any starting state",
+    "Move": "Move",
+    "No state is marked as final": "No state is marked as final",
+    "Pan": "Pan",
+    "Scroll wheel or the zoom buttons": "Scroll wheel or the zoom buttons",
+    "Select a state, a step or a transition to see its properties.": "Select a state, a step or a transition to see its properties.",
+    "State \"{name}\" has no transitions connecting it to the others": "State \"{name}\" has no transitions connecting it to the others",
+    "States and transitions": "States and transitions",
+    "The state could not be deleted": "The state could not be deleted",
+    "Transition": "Transition",
+    "Transition \"{label}\" points at a state that no longer exists": "Transition \"{label}\" points at a state that no longer exists",
+    "Transition from {from} to {to}": "Transition from {from} to {to}",
+    "Warning:": "Warning:",
+    "Zoom": "Zoom",
+    "required": "required",
+    "State: {name}": "State: {name}"
   },
   "plurals": {
     "{count} member": [
@@ -2080,6 +2121,10 @@
     "%n passage found. Review each one.": [
       "%n passage found. Review each one.",
       "%n passages found. Review each one."
+    ],
+    "%n step": [
+      "%n step",
+      "%n steps"
     ]
   }
 }

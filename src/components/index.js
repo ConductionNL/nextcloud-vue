@@ -72,6 +72,7 @@ export { CnRegisterSchemaSelect } from './CnRegisterSchemaSelect/index.js'
 export { CnThemePreview } from './CnThemePreview/index.js'
 export { CnRelationshipGraph } from './CnRelationshipGraph/index.js'
 export { CnGraphCanvas } from './CnGraphCanvas/index.js'
+export { CnStateMachineEditor } from './CnStateMachineEditor/index.js'
 export { CnFlowDetail, CnFlowIndexPage, CnFlowSidebar } from './CnFlowDetail/index.js'
 export { CnIcon, ICON_MAP, registerIcons } from './CnIcon/index.js'
 export {
