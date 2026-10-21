@@ -55,7 +55,7 @@ describe('CnNextStepCard in the board look', () => {
 
 	it('styles the board anatomy from tokens, scoped under the look', () => {
 		expect(rule('.cn-look-board .cn-next-step-card--board')).toMatch(/border-radius: 12px[\s\S]*padding: 20px 24px 20px 28px/)
-		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__title.cn-next-step-card__title')).toMatch(/var\(--color-primary-element-light-text\)[\s\S]*font-size: 13px[\s\S]*letter-spacing: 0\.06em/)
+		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__title.cn-next-step-card__title')).toMatch(/var\(--color-primary-element-light-text\)[\s\S]*font-size: 13px[\s\S]*letter-spacing: 0;/)
 		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__item--done .cn-next-step-card__marker')).toMatch(/var\(--cn-board-success-tint\)[\s\S]*var\(--color-success-text\)/)
 		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__side .button-vue')).toMatch(/block-size: 44px[\s\S]*font-size: 15px[\s\S]*padding: 0 20px/)
 	})
@@ -71,5 +71,14 @@ describe('CnNextStepCard in the board look', () => {
 		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__after')).toBeTruthy()
 		expect(css).toMatch(/\.cn-next-step-card__item,\s*\.cn-look-board \.cn-next-step-card--board \.cn-next-step-card__hint,\s*\.cn-look-board \.cn-next-step-card--board \.cn-next-step-card__after \{\s*--nldesign-color-on-surface: var\(--color-text-maxcontrast\);/)
 		expect(rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__item--current')).toContain('--nldesign-color-on-surface: var(--color-main-text)')
+	})
+})
+
+describe('the board kicker', () => {
+	it('is set in sentence case, as DqZaak and DqSociaalDomein draw "Wat nu? Stap 2"', () => {
+		const kicker = rule('.cn-look-board .cn-next-step-card--board .cn-next-step-card__title.cn-next-step-card__title')
+		expect(kicker).toContain('text-transform: none')
+		expect(kicker).toContain('letter-spacing: 0;')
+		expect(kicker).not.toContain('uppercase')
 	})
 })

@@ -280,7 +280,7 @@
 		     sidebar) is left out, and Show in Files covers it. -->
 		<div v-else
 			class="cn-files-browser__body"
-			:class="{ 'cn-files-browser__body--with-side': sideNode !== null }">
+			:class="{ 'cn-files-browser__body--with-side': sideNode !== null && !sideInPage }">
 			<table class="cn-files-browser__table" data-testid="cn-files-browser-table">
 				<thead>
 					<tr>
@@ -560,43 +560,50 @@
 				</tbody>
 			</table>
 
-			<!-- `sideCards`: cards about the last selected file, beside the list. -->
-			<aside v-if="sideNode !== null"
-				class="cn-files-browser__side"
-				:aria-label="t('nextcloud-vue', 'About {name}', { name: sideNode.basename })"
-				data-testid="cn-files-browser-side">
-				<section v-for="card in sideCardsFor(sideNode)"
-					:key="card.id"
-					class="cn-files-browser__side-card"
-					:data-testid="`cn-files-browser-side-card-${card.id}`">
-					<h3 class="cn-files-browser__side-title">
-						{{ card.title }}
-					</h3>
-					<dl v-if="card.fields.length > 0" class="cn-files-browser__side-facts">
-						<template v-for="field in card.fields" :key="field.key">
-							<dt>{{ field.label }}</dt>
-							<dd :class="field.tone ? `cn-files-browser__tone cn-files-browser__tone--${field.tone}` : ''">
-								<CnCellRenderer
-									:value="field.value"
-									:formatter="field.formatter || null"
-									:formatterOptions="field.formatterOptions || null"
-									:row="sideNode" />
-							</dd>
-						</template>
-					</dl>
-					<div v-if="card.actions.length > 0" class="cn-files-browser__side-actions">
-						<NcButton v-for="action in card.actions"
-							:key="action.id"
-							:data-testid="`cn-files-browser-side-action-${action.id}`"
-							@click="runHostAction(action, sideNode)">
-							<template v-if="action.icon" #icon>
-								<CnIcon :name="action.icon" :size="20" />
+			<!-- `sideCards`: cards about the last selected file, beside the list,
+			     or in the detail page's side column (`sideCardsPlacement`). -->
+			<Teleport v-if="sideNode !== null"
+				:to="pageSideTarget"
+				:disabled="!sideInPage"
+				defer>
+				<aside
+					class="cn-files-browser__side"
+					:class="{ 'cn-files-browser__side--in-page': sideInPage }"
+					:aria-label="t('nextcloud-vue', 'About {name}', { name: sideNode.basename })"
+					data-testid="cn-files-browser-side">
+					<section v-for="card in sideCardsFor(sideNode)"
+						:key="card.id"
+						class="cn-files-browser__side-card"
+						:data-testid="`cn-files-browser-side-card-${card.id}`">
+						<h3 class="cn-files-browser__side-title">
+							{{ card.title }}
+						</h3>
+						<dl v-if="card.fields.length > 0" class="cn-files-browser__side-facts">
+							<template v-for="field in card.fields" :key="field.key">
+								<dt>{{ field.label }}</dt>
+								<dd :class="field.tone ? `cn-files-browser__tone cn-files-browser__tone--${field.tone}` : ''">
+									<CnCellRenderer
+										:value="field.value"
+										:formatter="field.formatter || null"
+										:formatterOptions="field.formatterOptions || null"
+										:row="sideNode" />
+								</dd>
 							</template>
-							{{ hostLabel(action) }}
-						</NcButton>
-					</div>
-				</section>
-			</aside>
+						</dl>
+						<div v-if="card.actions.length > 0" class="cn-files-browser__side-actions">
+							<NcButton v-for="action in card.actions"
+								:key="action.id"
+								:data-testid="`cn-files-browser-side-action-${action.id}`"
+								@click="runHostAction(action, sideNode)">
+								<template v-if="action.icon" #icon>
+									<CnIcon :name="action.icon" :size="20" />
+								</template>
+								{{ hostLabel(action) }}
+							</NcButton>
+						</div>
+					</section>
+				</aside>
+			</Teleport>
 		</div>
 
 		<p v-if="dropHint && canChange && !loading && error === ''"
@@ -819,6 +826,8 @@ export default {
 		// action or column the manifest declares is authored in English as
 		// the catalogue key, and read through this in the user's language.
 		cnTranslate: { default: () => (key) => key },
+		// The detail page's side column (CnDetailPage), for side cards placed there.
+		cnDetailSideColumn: { default: null },
 	},
 
 	props: {
@@ -1214,6 +1223,17 @@ export default {
 		},
 
 		/**
+		 * Where the side cards stand: `beside` (default) next to the list, or
+		 * `page-side` in the detail page's side column, in place of its
+		 * generic cards while a file is selected. Without a page side column
+		 * they stay beside the list.
+		 */
+		sideCardsPlacement: {
+			type: String,
+			default: 'beside',
+		},
+
+		/**
 		 * The key of a declared column to group the files on: a heading row
 		 * per value, in the order each is first met, with its count. Files
 		 * with no value come last under `groupEmptyLabel`; folders stay above.
@@ -1487,6 +1507,21 @@ export default {
 		 * @return {object|null}
 		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-cards-beside-the-list-describe-the-selected-file
 		 */
+		/** @return {boolean} Whether the side cards fill the page's side column now. */
+		sideClaimed() {
+			return this.sideInPage && this.sideNode !== null
+		},
+
+		/** @return {boolean} Whether the side cards stand in the page's side column. */
+		sideInPage() {
+			return this.sideCardsPlacement === 'page-side' && this.cnDetailSideColumn !== null && this.cnDetailSideColumn.available === true
+		},
+
+		/** @return {string} Where the side cards are teleported to in the page. */
+		pageSideTarget() {
+			return this.cnDetailSideColumn?.target || 'body'
+		},
+
 		sideNode() {
 			if (!Array.isArray(this.sideCards) || this.sideCards.length === 0 || this.selectedIds.length === 0) {
 				return null
@@ -1658,6 +1693,17 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Tell the page whether the side cards stand in its side column now,
+		 * so its generic cards stand aside meanwhile.
+		 */
+		sideClaimed: {
+			immediate: true,
+			handler(on) {
+				this.cnDetailSideColumn?.claim?.(this.$.uid, on)
+			},
+		},
+
 		rootPath(next) {
 			this.currentPath = next
 			this.refresh()
@@ -1681,6 +1727,7 @@ export default {
 	},
 
 	beforeUnmount() {
+		this.cnDetailSideColumn?.claim?.(this.$.uid, false)
 		for (const channel of FOLDER_CHANGED_CHANNELS) {
 			unsubscribe(channel, this.onFolderChanged)
 		}
@@ -3070,6 +3117,17 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+}
+
+/* In the detail page's side column the cards take its gap and its card
+   anatomy, as the page's own side cards are drawn. */
+.cn-files-browser__side--in-page {
+	gap: calc(5 * var(--default-grid-baseline));
+}
+
+.cn-files-browser__side--in-page .cn-files-browser__side-card {
+	padding: var(--cn-board-card-padding, 16px 18px);
+	border-radius: var(--cn-board-card-radius, var(--border-radius-large));
 }
 
 .cn-files-browser__side-card {
