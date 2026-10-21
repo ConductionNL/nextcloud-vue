@@ -10,7 +10,7 @@
 		:class="frameClass"
 		:style="frameStyle"
 		@closing="onClosing">
-		<CnDialogHeader v-if="isBoard"
+		<CnDialogHeader v-if="isBoard && !headless"
 			:title="name"
 			:eyebrow="eyebrow"
 			:subtitle="subtitle"
@@ -74,6 +74,11 @@ export default {
 		eyebrow: { type: String, default: '' },
 		/** Sentence under the title (board look). */
 		subtitle: { type: String, default: '' },
+		/**
+		 * Leave out the board header: the body draws its own title and close
+		 * button (CnUserSettingsDialog). `name` stays the accessible name.
+		 */
+		headless: { type: Boolean, default: false },
 	},
 
 	emits: ['closing'],

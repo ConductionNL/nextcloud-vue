@@ -30,6 +30,14 @@
 	background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent);
 }
 
+/* Any modal of a board-look app (an app's own NcDialog or NcModal, not
+   opened through CnDialog) dims the page the same way. A page that takes the
+   Nextcloud look keeps Nextcloud's backdrop.
+   @spec openspec/changes/board-modal-backdrop/specs/board-modal-backdrop/spec.md#requirement-every-modal-in-a-board-app-dims-the-page-as-the-boards-do */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
+	background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent);
+}
+
 /* Width by role, capped at the viewport minus a 16px gutter each side. The
    shadow carries `!important`: the nldesign theme removes every
    `.modal-container`'s shadow with `!important` and offers no token for it. */
@@ -68,6 +76,21 @@
 	clip-path: inset(50%);
 	white-space: nowrap;
 	border: 0;
+}
+
+/* The user settings dialog (CnUserSettingsDialog, DqPersoonlijkeInstellingen
+   board): the frame takes the navigation's tint and the body fills it edge
+   to edge; the white pane and the navigation are drawn by the component.
+   @spec openspec/changes/user-settings-dialog-dq-board/specs/user-settings-dialog-dq-board/spec.md#requirement-the-user-settings-dialog-follows-the-dq-board */
+.modal-mask.cn-dialog-board.cn-user-settings-dialog .modal-wrapper .modal-container {
+	overflow: hidden;
+	background: var(--color-primary-element-light);
+}
+
+.modal-mask.cn-dialog-board.cn-user-settings-dialog .dialog__content {
+	gap: 0;
+	padding: 0;
+	overflow: hidden;
 }
 
 /* Header: padding 22px 24px 0. */
