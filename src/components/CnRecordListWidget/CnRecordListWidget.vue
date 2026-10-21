@@ -374,7 +374,7 @@ export default {
 
 	props: {
 		/**
-		 * The list config: `{ register, schema, filter?, sort?, limit?, extend?,
+		 * The list config: `{ register, schema, filter?, sort?, limit?, offset?, extend?,
 		 * presentation?, variant?, lead?, title?, meta?, text?, label?, pill?, trailing?, icon?,
 		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
 		 * valueLabels?, endpointSource?, bar? }`. `bar` (`{ valueField, maxField?,
@@ -603,10 +603,16 @@ export default {
 			return Number.isFinite(value) && value > 0 ? Math.floor(value) : 5
 		},
 
+		/** @return {number} How many rows of the list to skip first (`content.offset`), 0 by default. */
+		offset() {
+			const value = Number(this.content?.offset)
+			return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0
+		},
+
 		/** @return {string} What a fetch depends on; a change fetches again. */
 		requestKey() {
 			const c = this.content || {}
-			return JSON.stringify([c.register, c.schema, this.resolvedFilter, this.effectiveSort, this.limit, c.extend, this.waiting])
+			return JSON.stringify([c.register, c.schema, this.resolvedFilter, this.effectiveSort, this.limit, this.offset, c.extend, this.waiting])
 		},
 
 		/** @return {Array<object>} The rows ready to draw. */
@@ -1485,6 +1491,9 @@ export default {
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
 				const sort = this.effectiveSort
 				const params = { _limit: this.limit }
+				if (this.offset > 0) {
+					params._offset = this.offset
+				}
 				// A rank sort (`sort.rank`) cannot be one `_order`: the list endpoint
 				// orders a text field alphabetically. It is read group by group below.
 				const rank = this.rankOf(sort)

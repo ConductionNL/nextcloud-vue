@@ -120,6 +120,10 @@
 					<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
 					<slot name="actions" />
 				</template>
+				<CnActionButtons
+					v-else-if="boardSecondaryHeaderActions.length"
+					:actions="boardSecondaryHeaderActions"
+					data-testid="cn-dashboard-page-header-actions-secondary" />
 				<NcButton
 					v-if="allowEdit"
 					:variant="isEditing ? 'primary' : 'secondary'"
@@ -179,14 +183,14 @@
 						<slot name="action-items" />
 					</template>
 				</CnActionsMenu>
-				<!-- Board look: the row reads Edit layout, Actions, the buildiq
-				     square, then the manifest's header actions with the primary
-				     rightmost (screens-dashboard-parity). -->
+				<!-- Board look: the row reads the secondary header actions, Edit
+				     layout, Actions, the buildiq square, then the primary header
+				     actions rightmost (screens-dashboard-parity). -->
 				<template v-if="isBoardLook">
 					<CnBuildiqEditButton />
 					<CnActionButtons
-						v-if="headerActions && headerActions.length"
-						:actions="linkedHeaderActions"
+						v-if="boardPrimaryHeaderActions.length"
+						:actions="boardPrimaryHeaderActions"
 						data-testid="cn-dashboard-page-header-actions" />
 					<slot name="header-actions" />
 					<slot name="actions" />
@@ -2133,6 +2137,24 @@ export default {
 		 */
 		linkedHeaderActions() {
 			return (this.headerActions || []).map(headerActionAsLink)
+		},
+
+		/**
+		 * Under the board look the header reads the secondary actions, the
+		 * edit toggle and Actions menu, the buildiq square, then the primary
+		 * actions, as on an index page (PtDashboard, DqDashboard).
+		 *
+		 * @return {Array<object>} The header actions that are not `variant: "primary"`.
+		 */
+		boardSecondaryHeaderActions() {
+			return this.linkedHeaderActions.filter((entry) => entry?.variant !== 'primary')
+		},
+
+		/**
+		 * @return {Array<object>} The `variant: "primary"` header actions, drawn after the buildiq square.
+		 */
+		boardPrimaryHeaderActions() {
+			return this.linkedHeaderActions.filter((entry) => entry?.variant === 'primary')
 		},
 
 		/**

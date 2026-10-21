@@ -62,6 +62,7 @@ must be checked; whitespace does not count).
 |------|------|---------|-------------|
 | `transition` | `Object` | — (required) | The transition being applied: `{ action, label, inputs: [{ field, required, label?, options? }] }`. `label` doubles as dialog title + confirm label. |
 | `schema` | `Object \| null` | `null` | The object's JSON Schema (with `properties`) used to resolve labels/widgets. Optional — undeclared fields render as plain text inputs. |
+| `context` | `Object` | `{}` | What an input's `optionsSource` and the transition's `summary` read. |
 
 ## Events
 
@@ -91,6 +92,10 @@ lifecycle provider declares them.
   { value: '9c1d…', label: 'Refused' },
 ] }
 ```
+
+## Declared widgets, choices from the context, previews
+
+The inputs are drawn by [`CnTransitionInputFields`](./cn-transition-input-fields.md), so an input may also declare `widget` (`text`, `textarea`, `number`, `date`, `template`), `optionsSource` (choices read off `context`), `other` (an "Other" entry that falls back to a free-text input, sent as `''`), `helperFrom`, `preview` and `default`. The transition may carry `columns`, `summary` and `notice` for the layout around the inputs. A hidden input is neither asked nor sent. See that page for every key.
 
 ## Reference inputs and object inputs
 

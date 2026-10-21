@@ -217,7 +217,7 @@ import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
-import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition } from '../../utils/visibleWhen.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
@@ -392,7 +392,9 @@ export default {
 		 * counts a list on the server: `"widget"` counts the child widget's
 		 * own list (`content.register`, `schema`, `filter`, tokens such as
 		 * `@objectId` resolved), an object `{ register, schema, filter? }`
-		 * names the list; `count` and `countField` win over it. `overflow: true`
+		 * names the list, and `{ endpoint, field? }` counts the list (or reads
+		 * the number) an endpoint answers with, `@objectId` resolved; `count`
+		 * and `countField` win over it. `overflow: true`
 		 * lists the tab under "More".
 		 *
 		 * A tab with `widgetIds` can lay them out in a grid instead of one under
@@ -409,7 +411,7 @@ export default {
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -1166,7 +1168,7 @@ export default {
 		 * no list.
 		 *
 		 * @param {object|string} tab The `content.tabs[]` entry.
-		 * @return {{register: string, schema: string, filter: object}|null} The list.
+		 * @return {{register: string, schema: string, filter: object}|{endpoint: string, field: string}|null} The list, or the endpoint to count.
 		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
 		 */
 		countSourceOf(tab) {
@@ -1182,6 +1184,9 @@ export default {
 					.filter((content) => content && content.register && content.schema)
 				source = lists.length ? lists[0] : null
 			} else if (from && typeof from === 'object') {
+				if (typeof from.endpoint === 'string' && from.endpoint !== '') {
+					return { endpoint: from.endpoint, field: typeof from.field === 'string' ? from.field : '' }
+				}
 				source = from
 			}
 			if (!source || typeof source.register !== 'string' || source.register === '' || typeof source.schema !== 'string' || source.schema === '') {
@@ -1208,11 +1213,36 @@ export default {
 				if (!source) {
 					return
 				}
-				const total = await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
+				const total = source.endpoint
+					? await this.countEndpoint(source, ctx)
+					: await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
 				if (seq === this.countSeq) {
 					this.widgetCounts = { ...this.widgetCounts, [index]: total }
 				}
 			}))
+		},
+
+		/**
+		 * Count what an endpoint answers: the list at `field` (or the body),
+		 * or the number there. Null when the request fails or nothing countable
+		 * comes back.
+		 *
+		 * @param {{endpoint: string, field: string}} source The endpoint and the path to read.
+		 * @param {object} ctx The record context its tokens resolve against.
+		 * @return {Promise<number|null>} The count.
+		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
+		 */
+		async countEndpoint(source, ctx) {
+			try {
+				const value = await readVisibleWhenValue({ endpoint: source.endpoint, field: source.field }, ctx)
+				if (Array.isArray(value)) {
+					return value.length
+				}
+				const number = Number(value)
+				return value !== null && value !== '' && Number.isFinite(number) ? number : null
+			} catch {
+				return null
+			}
 		},
 
 		/** @return {string} The route hash without its `#`, or ''. */

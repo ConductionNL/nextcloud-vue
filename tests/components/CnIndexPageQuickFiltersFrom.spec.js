@@ -21,6 +21,9 @@ jest.mock('../../src/composables/useRefLabels.js', () => {
 	return { ...actual, createRefLabelResolver: () => ({ resolve: (...a) => mockResolve(...a), invalidate: jest.fn() }) }
 })
 
+const mockByField = jest.fn()
+jest.mock('../../src/utils/labelsByField.js', () => ({ labelsByField: (...a) => mockByField(...a) }))
+
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 
 const FROM = { field: 'caseType', register: 'dossiq', schema: 'caseType', labelField: 'title', allLabel: 'Alle typen' }
@@ -60,6 +63,18 @@ describe('CnIndexPage quickFiltersFrom', () => {
 		])
 		expect(w.vm.effectiveQuickFilters[1].filter).toEqual({ caseType: 'ct-woo' })
 		expect(w.vm.effectiveQuickFilters[0]).toMatchObject({ filter: {}, default: true })
+	})
+
+	it('labels the tabs by a record matched on valueField, not on its id', async () => {
+		mockGrouped.mockResolvedValue([{ key: 'zuiddrecht', count: 24 }, { key: 'mijn-zuiddrecht', count: 7 }])
+		mockByField.mockReset()
+		mockByField.mockResolvedValue({ zuiddrecht: 'Gemeente Zuiddrecht', 'mijn-zuiddrecht': 'Mijn Zuiddrecht' })
+		const w = mountPage({ quickFiltersFrom: { field: 'portal', register: 'portaliq', schema: 'portal', valueField: 'slug', labelField: 'title', allLabel: 'Alles' } })
+		await flushPromises()
+		expect(mockByField).toHaveBeenCalledWith({ register: 'portaliq', schema: 'portal', field: 'slug', values: ['zuiddrecht', 'mijn-zuiddrecht'], labelField: 'title' })
+		expect(mockResolve).not.toHaveBeenCalled()
+		expect(w.vm.effectiveQuickFilters.map((tab) => [tab.label, tab.count])).toEqual([['Alles', 31], ['Gemeente Zuiddrecht', 24], ['Mijn Zuiddrecht', 7]])
+		expect(w.vm.effectiveQuickFilters[1].filter).toEqual({ portal: 'zuiddrecht' })
 	})
 
 	it('shows the raw value without a register to look labels up in', async () => {
