@@ -126,7 +126,7 @@ When using the `fields` prop (manual field definitions), each field object suppo
 | `enum` | Array \| Function | Options for `select` widget. Static array or async function (see below) |
 | `items` | Object | For `multiselect`: `{ enum: [...] }` or `{ enum: asyncFn }` |
 | `debounce` | Number | Debounce delay in ms for async enum search (default: 300) |
-| `validation` | Object | `{ minLength, maxLength, minimum, maximum, pattern }` |
+| `validation` | Object | `{ minLength, maxLength, minimum, maximum, pattern, patternMessage }`; `patternMessage` replaces "Invalid format." for a value that does not match `pattern`, translated through the host app ("Invalid email format"). Set it through `fieldOverrides[key].validation`. |
 | `language` | String | For `code`: `'json' \| 'xml' \| 'html' \| 'text' \| 'auto'` (default `'auto'`) |
 
 ## JSON and code fields
