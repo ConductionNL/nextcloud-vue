@@ -2236,7 +2236,13 @@
     "How this app compares": "How this app compares",
     "This field is required": "This field is required",
     "Creating…": "Creating…",
-    "This could not be created. Try again.": "This could not be created. Try again."
+    "This could not be created. Try again.": "This could not be created. Try again.",
+    "Previous week": "Previous week",
+    "Next week": "Next week",
+    "Previous day": "Previous day",
+    "Next day": "Next day",
+    "Back to today": "Back to today",
+    "Week": "Week"
   },
   "plurals": {
     "{count} member": [

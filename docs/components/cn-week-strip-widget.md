@@ -84,3 +84,48 @@ With static items:
 ## `content.inset`
 
 `inset: true` draws the strip inside the board's inset (16px above, 24px at the sides, 22px below; theme hook `--cn-widget-board-inset`) instead of from card edge to card edge. Off by default.
+
+## As a week view
+
+With an `endpointSource` the strip reads its items from an app endpoint for the days it shows, and becomes a timetable: previous, next and back to today, a Today / Week switch, times, status badges and actions per item.
+
+```json
+{
+  "type": "week-strip",
+  "content": {
+    "heading": "My timetable",
+    "endpointSource": { "url": "/apps/learniq/api/timetable/mine", "params": { "from": "@range.from", "to": "@range.to" } },
+    "itemsPath": "sessions",
+    "dateField": "startsAt",
+    "titleTemplate": ["{title}", "Untitled lesson"],
+    "metaTemplates": ["{room.name}"],
+    "timeFields": { "start": "startsAt", "end": "endsAt" },
+    "badgeField": "lifecycle",
+    "variantMap": { "cancelled": { "label": "Cancelled", "variant": "error", "muted": true } },
+    "itemActions": [
+      { "id": "join", "label": "Join", "href": "@item.onlineMeetingUrl", "target": "_blank", "visibleWhen": { "field": "item.onlineMeetingUrl", "op": "notEmpty" } },
+      { "id": "note", "label": "Add note", "type": "open-modal", "target": "LessonNoteDialog", "props": { "session": "@item" } }
+    ],
+    "itemLists": [{ "path": "standby", "dateField": "date", "titleTemplate": "Standby", "timeFields": { "start": "startsAt", "end": "endsAt" } }],
+    "navigation": true,
+    "modes": true,
+    "notices": [{ "path": "source", "equals": "planninq", "text": "These lessons come from the school timetable." }],
+    "summary": { "title": "Today's changes", "path": "changes", "itemTitle": "{title}", "itemMeta": ["{changeReason}"] },
+    "weekEmptyText": "No lessons this week"
+  }
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `endpointSource` | `{ url, params?, responsePath? }`. `@range.from` is the first day shown and `@range.to` the day after the last (`YYYY-MM-DD`). Read again when the shown days change and on a page refresh. |
+| `itemsPath`, `itemLists` | The list of items in the answer (default `items`), and more lists of the same answer, each with its own item keys (`path`, `dateField`, `titleTemplate`, `timeFields`, ...). |
+| `titleTemplate`, `metaTemplates` | Templates as in a record list; a list in place of a template is candidates, the first that fills. |
+| `timeFields` | `{ start, end }`: an ISO moment or `HH:MM`, drawn as "09:00–09:50" in the Nextcloud locale. A day's items sort by start. |
+| `badgeField`, `variantMap` | A badge from the item's value: `{ <value>: { label, variant: info, success, warning or error, muted? } }`. `muted` strikes the title through. |
+| `itemActions` | Actions per item as CnActionButtons draws them. `@item` and `@item.<path>` fill from the item (see [fillItemTokens](../utilities/fill-item-tokens.md)); `visibleWhen` is a local condition over `item.<path>`. |
+| `itemRoute`, `itemRouteWhen` | The detail route an item links to, and a local condition on the item for the link. |
+| `navigation`, `modes`, `defaultMode`, `heading` | Previous / next / back to today; a Today / Week switch, starting on `defaultMode`; a heading. |
+| `notices` | `[{ path, equals?, notEquals?, missing?, type?, text }]`: notes when the rule holds on the answer. The `notice` slot takes more. |
+| `summary` | `{ title, path, itemTitle, itemMeta?, badgeField?, variantMap? }`: a list above the days of the answer's entries at `path`. |
+| `weekEmptyText` | Drawn in place of the days when none has an item. |
