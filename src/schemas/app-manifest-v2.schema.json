@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.138.0",
+	"version": "2.139.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -669,6 +669,14 @@
 					"type": "string",
 					"minLength": 1,
 					"description": "The indicator applies while the field holds a readable date before this moment: `now` or an ISO date."
+				},
+				"lt": {
+					"type": "number",
+					"description": "The indicator applies while the field holds a number below this one."
+				},
+				"gt": {
+					"type": "number",
+					"description": "The indicator applies while the field holds a number above this one."
 				},
 				"icon": {
 					"type": "string",
@@ -1422,6 +1430,17 @@
 				}
 			}
 		},
+		"rowClassCondition": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["field", "value"],
+			"description": "One condition of a row-class rule: the row's `field` compared to `value` with `op`.",
+			"properties": {
+				"field": { "type": "string", "description": "Dot-path into the row." },
+				"op": { "type": "string", "enum": ["eq", "neq", "gt", "gte", "lt", "lte"], "default": "eq", "description": "Comparison operator (default eq)." },
+				"value": { "description": "Literal right-hand side of the comparison; tokens such as `@today` resolve." }
+			}
+		},
 		"dueRule": {
 			"type": "object",
 			"additionalProperties": false,
@@ -2090,15 +2109,11 @@
 											"required": ["when", "class"],
 											"properties": {
 												"when": {
-													"type": "object",
-													"additionalProperties": false,
-													"required": ["field", "value"],
-													"description": "The predicate evaluated against the row (shared visibleWhen grammar, LOCAL form).",
-													"properties": {
-														"field": { "type": "string", "description": "Dot-path into the row." },
-														"op": { "type": "string", "enum": ["eq", "neq", "gt", "gte", "lt", "lte"], "default": "eq", "description": "Comparison operator (default eq)." },
-														"value": { "description": "Literal right-hand side of the comparison." }
-													}
+													"description": "The predicate evaluated against the row (shared visibleWhen grammar, LOCAL form), or a list of them that must all hold.",
+													"oneOf": [
+														{ "$ref": "#/$defs/rowClassCondition" },
+														{ "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/rowClassCondition" } }
+													]
 												},
 												"class": { "type": "string", "description": "CSS class added to the row when `when` holds." }
 											}
@@ -4126,35 +4141,19 @@
 								],
 								"properties": {
 									"when": {
-										"type": "object",
-										"additionalProperties": false,
-										"required": [
-											"field",
-											"value"
-										],
-										"description": "The predicate evaluated against the row (shared visibleWhen grammar, LOCAL form).",
-										"properties": {
-											"field": {
-												"type": "string",
-												"description": "Dot-path into the row."
+										"description": "The predicate evaluated against the row (shared visibleWhen grammar, LOCAL form), or a list of them that must all hold.",
+										"oneOf": [
+											{
+												"$ref": "#/$defs/rowClassCondition"
 											},
-											"op": {
-												"type": "string",
-												"enum": [
-													"eq",
-													"neq",
-													"gt",
-													"gte",
-													"lt",
-													"lte"
-												],
-												"default": "eq",
-												"description": "Comparison operator (default eq)."
-											},
-											"value": {
-												"description": "Literal right-hand side of the comparison."
+											{
+												"type": "array",
+												"minItems": 1,
+												"items": {
+													"$ref": "#/$defs/rowClassCondition"
+												}
 											}
-										}
+										]
 									},
 									"class": {
 										"type": "string",
@@ -4601,7 +4600,7 @@
 						},
 						"rowIndicators": {
 							"type": "array",
-							"description": "type='index': state indicators the page declares for its rows. Each entry names a `field` (a dotted path on the row), a condition (`equals`, `in`, a date `after` or `before` a moment, or plain truthiness when none is given), an `icon` (a CnIcon name) and a `text` (the text alternative, required). An entry without `text` does not render, because an icon with no text is colour and shape alone. The page declares which indicators exist; a record cannot add one the page has not declared. Maps to CnIndexPage `rowIndicators`.",
+							"description": "type='index': state indicators the page declares for its rows. Each entry names a `field` (a dotted path on the row), a condition (`equals`, `in`, a date `after` or `before` a moment, a number `lt` or `gt` a bound, or plain truthiness when none is given), an `icon` (a CnIcon name) and a `text` (the text alternative, required). An entry without `text` does not render, because an icon with no text is colour and shape alone. The page declares which indicators exist; a record cannot add one the page has not declared. Maps to CnIndexPage `rowIndicators`.",
 							"items": {
 								"$ref": "#/$defs/rowIndicator"
 							}
