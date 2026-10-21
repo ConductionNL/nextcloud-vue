@@ -466,6 +466,7 @@ export default {
 		 * @param {{label: string}} col The column.
 		 * @param {number} index The row.
 		 * @return {string}
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-short-rows-are-edited-in-the-row
 		 */
 		cellLabel(col, index) {
 			return t('nextcloud-vue', '{column}, {row}', { column: col.label, row: this.rowName(index) })
@@ -476,6 +477,7 @@ export default {
 		 *
 		 * @param {unknown} value The value.
 		 * @return {string}
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-short-rows-are-edited-in-the-row
 		 */
 		cellText(value) {
 			return value === null || value === undefined ? '' : String(value)
@@ -486,6 +488,7 @@ export default {
 		 *
 		 * @param {string} value The text.
 		 * @return {number|null}
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-short-rows-are-edited-in-the-row
 		 */
 		toNumber(value) {
 			const number = Number(value)
@@ -497,6 +500,7 @@ export default {
 		 *
 		 * @param {number} index The row.
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-short-rows-are-edited-in-the-row
 		 */
 		async focusCell(index) {
 			await this.$nextTick()

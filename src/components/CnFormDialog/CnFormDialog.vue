@@ -5048,6 +5048,7 @@ export default {
 		 *
 		 * @return {boolean} True if all fields pass validation
 		 * @public
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-a-row-rule-names-the-row-that-breaks-it
 		 */
 		validate() {
 			const newErrors = {}
