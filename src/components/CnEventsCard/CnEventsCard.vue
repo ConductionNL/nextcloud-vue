@@ -8,7 +8,9 @@
   (`type: "events"`). Each row is a calendar event as OpenRegister answers
   it: `summary`, `dtstart` / `dtend` and `location`. It reads a `source`
   (`{ kind: "flow-task" }` reads `/api/flow-tasks/{id}/events`) or a plain
-  `endpoint`; it lists and does not create.
+  `endpoint`. With `content.headerActions` (`link`, `create`) it reports
+  "Bestaande koppelen" and "Afspraak maken" for its card's title row and runs
+  the calendar leaf's own flows against that same address.
 -->
 <template>
 	<div class="cn-events-card" data-testid="cn-events-card">
@@ -34,12 +36,34 @@
 		<p v-else class="cn-events-card__muted" data-testid="cn-events-card-empty">
 			{{ emptyText }}
 		</p>
+		<p
+			v-if="linkError"
+			class="cn-events-card__muted"
+			role="alert"
+			data-testid="cn-events-card-link-error">
+			{{ linkError }}
+		</p>
+		<CnCalendarEventPicker
+			v-if="showPicker"
+			:apiBase="apiBase"
+			@link="onPickerLink"
+			@close="showPicker = false" />
+		<CnCalendarEventCreate
+			v-if="showCreate"
+			:objectId="String(objectId)"
+			:apiBase="apiBase"
+			:eventsUrl="url"
+			@created="onEventCreated"
+			@close="showCreate = false" />
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import CnCalendarEventCreate from '../CnCalendarEventCreate/CnCalendarEventCreate.vue'
+import CnCalendarEventPicker from '../CnCalendarEventPicker/CnCalendarEventPicker.vue'
+import { linkCalendarEvent } from '../../integrations/builtin/calendar/calendarEventLink.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
 import { userLocale } from '../../utils/userLocale.js'
@@ -63,7 +87,7 @@ import { userLocale } from '../../utils/userLocale.js'
 export default {
 	name: 'CnEventsCard',
 
-	components: { NcLoadingIcon },
+	components: { CnCalendarEventCreate, CnCalendarEventPicker, NcLoadingIcon },
 
 	inject: {
 		/** The host app's translate function (CnAppRoot `cnTranslate`). */
@@ -91,9 +115,10 @@ export default {
 
 		/**
 		 * The widget's manifest content: `source`, `endpoint`, `emptyText`
-		 * (translated through the host).
+		 * (translated through the host) and `headerActions` (`link`, `create`):
+		 * the buttons it reports for its card's title row.
 		 *
-		 * @type {{source?: object, endpoint?: string, emptyText?: string}}
+		 * @type {{source?: object, endpoint?: string, emptyText?: string, headerActions?: Array<string>}}
 		 */
 		content: { type: Object, default: () => ({}) },
 
@@ -104,11 +129,16 @@ export default {
 		failedLabel: { type: String, default: '' },
 	},
 
+	emits: ['header'],
+
 	data() {
 		return {
 			events: [],
 			loading: false,
 			failed: false,
+			showCreate: false,
+			showPicker: false,
+			linkError: '',
 		}
 	},
 
@@ -148,11 +178,54 @@ export default {
 			immediate: true,
 			handler() {
 				this.load()
+				this.reportHeader()
 			},
 		},
 	},
 
 	methods: {
+		/**
+		 * Report the title-row buttons (`content.headerActions`) to the host
+		 * card: "Bestaande koppelen" opens the event picker, "Afspraak maken"
+		 * the meeting form. Nothing while the record is not known yet.
+		 *
+		 * @return {void}
+		 */
+		reportHeader() {
+			const asked = Array.isArray(this.content?.headerActions) ? this.content.headerActions : []
+			const known = {
+				link: { label: t('nextcloud-vue', 'Link an existing one'), icon: 'LinkVariant', run: () => { this.showPicker = true } },
+				create: { label: t('nextcloud-vue', 'Make an appointment'), icon: 'Plus', variant: 'primary', run: () => { this.showCreate = true } },
+			}
+			const actions = this.url === '' ? [] : asked.filter((key, index) => known[key] && asked.indexOf(key) === index).map((key) => known[key])
+			this.$emit('header', { actions })
+		},
+
+		/**
+		 * A meeting was made on the record: close the form, read the list again.
+		 *
+		 * @return {void}
+		 */
+		onEventCreated() {
+			this.showCreate = false
+			this.load()
+		},
+
+		/**
+		 * Link the picked meeting to the record, then read the list again, or say why not.
+		 *
+		 * @param {{calendarUri: string, eventUid: string}} payload The picked event.
+		 * @return {Promise<void>}
+		 */
+		async onPickerLink(payload) {
+			this.showPicker = false
+			const result = await linkCalendarEvent(prefixUrl(this.url), payload)
+			this.linkError = result.ok ? '' : result.error
+			if (result.ok) {
+				this.load()
+			}
+		},
+
 		/**
 		 * Read the events. A refused or failed read says so, rather than
 		 * showing an empty list.
