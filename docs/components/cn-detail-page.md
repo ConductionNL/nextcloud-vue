@@ -209,7 +209,7 @@ The column drops under the body when the page is too narrow for both. That is de
 
 ## A body widget's own cards in the side column
 
-A widget in the body can show cards about what is selected in it in the side column, in place of the generic side cards (DqDocumentenBeheer: "Wie mag dit zien: <file>" and "Controlegetal" while files are ticked). The page provides `cnDetailSideColumn`:
+A widget in the body can show cards about what is selected in it in the side column, in place of the generic side cards (DqDocumentenBeheer: `Wie mag dit zien: <file>` and "Controlegetal" while files are ticked). The page provides `cnDetailSideColumn`:
 
 | Member | Meaning |
 |---|---|
