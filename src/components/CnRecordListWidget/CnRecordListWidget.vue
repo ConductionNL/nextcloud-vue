@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="`cn-record-list--${presentation}`"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact' }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -451,6 +451,8 @@ export default {
 		 * per value, headed by the field's `valueLabels` entry; `groupOrder`
 		 * (values) orders the groups and `groupEmptyLabel` heads the rows
 		 * without a value.
+		 * `density: "compact"` draws the rows 10px above and below, at least
+		 * 56px tall, with the title at 500 (DqProcesanalyse).
 		 *
 		 * @type {object}
 		 */
@@ -2029,6 +2031,16 @@ export default {
 .cn-record-list__title {
 	font-size: 15px;
 	font-weight: 700;
+}
+
+.cn-record-list--compact .cn-record-list__row {
+	box-sizing: border-box;
+	min-height: 56px;
+	padding: 10px 0;
+}
+
+.cn-record-list--compact .cn-record-list__title {
+	font-weight: 500;
 }
 
 .cn-record-list__meta {
