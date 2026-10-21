@@ -179,12 +179,14 @@
 						:emptyText="runTab === 'step' && !store.selectedNodeId ? t('nextcloud-vue', 'Select a step on the canvas to see what it did.') : ''" />
 				</template>
 				<template v-else-if="store.selectedNode">
-					<p class="cn-flow-board__eyebrow">
-						{{ stepTypeLabel }}
-					</p>
 					<h3 class="cn-flow-board__card-title" data-testid="flow-board-step-name">
 						{{ stepName }}
 					</h3>
+					<!-- The step type as a pill under the name (DqFlow "Beslistabel van OpenRegister"). -->
+					<CnStatusBadge :label="stepTypeLabel"
+						variant="purple"
+						class="cn-flow-board__step-type"
+						data-testid="flow-board-step-type" />
 					<dl v-if="stepSettings.length > 0" class="cn-flow-board__settings">
 						<div v-for="setting in stepSettings"
 							:key="setting.key"
@@ -822,10 +824,8 @@ export default {
 	font-weight: 600;
 }
 
-.cn-flow-board__eyebrow {
-	margin: 0;
-	color: var(--color-text-maxcontrast);
-	font-size: 13px;
+.cn-flow-board__step-type {
+	align-self: flex-start;
 }
 
 .cn-flow-board__validity,
