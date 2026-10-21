@@ -1432,6 +1432,46 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-primary-element-light-text);
 }
 
+/* ---- Warning and error banners (CnBannerWidget) ------------------------- */
+/* The boards draw a warning or error banner as a tinted box with a 1px edge
+   in its own tone, radius 10, 12px 14px of padding, the text in the main ink
+   (PtInzending "De ontvangstbevestiging kwam niet aan.", PtAccounts
+   "aanmeldingen wachten op goedkeuring"), not NcNoteCard's 4px edge bar.
+   @spec openspec/changes/board-banner-note-tone/specs/board-banner-note-tone/spec.md#requirement-a-board-warning-or-error-banner-is-a-tinted-box-with-an-edge-in-its-tone */
+.cn-look-board .cn-banner-widget .notecard.notecard--warning:not(.cn-look-nextcloud *) {
+	--cn-banner-ground: color-mix(in srgb, var(--color-warning) 13%, var(--color-main-background));
+	--cn-banner-edge: color-mix(in srgb, var(--color-warning) 50%, var(--color-main-background));
+}
+
+.cn-look-board .cn-banner-widget .notecard.notecard--error:not(.cn-look-nextcloud *) {
+	--cn-banner-ground: color-mix(in srgb, var(--color-error) 7%, var(--color-main-background));
+	--cn-banner-edge: color-mix(in srgb, var(--color-error) 30%, var(--color-main-background));
+}
+
+.cn-look-board .cn-banner-widget .notecard.notecard--warning:not(.cn-look-nextcloud *),
+.cn-look-board .cn-banner-widget .notecard.notecard--error:not(.cn-look-nextcloud *) {
+	--note-card-icon-size: 18px;
+	gap: 10px;
+	margin: 0;
+	padding: 12px 14px;
+	border: 1px solid var(--cn-banner-edge);
+	border-radius: 10px;
+	background-color: var(--cn-banner-ground) !important;
+	color: var(--color-main-text) !important;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+/* A stat-row cell that holds only a banner is the banner: no card around it. */
+.cn-look-board .cn-index-page-widgets__cell .cn-widget-wrapper:has(.cn-banner-widget):not(:has(.cn-widget-wrapper__header)):not(.cn-look-nextcloud *) {
+	border: none;
+	background: transparent;
+}
+
+.cn-look-board .cn-index-page-widgets__cell .cn-widget-wrapper:has(.cn-banner-widget):not(:has(.cn-widget-wrapper__header)):not(.cn-look-nextcloud *) > .cn-widget-wrapper__content {
+	padding: 0;
+}
+
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
 /* The board sets every waiting time ("3 dagen", "4 uur") in weight 600; a
    late one is red through its variant class. */
