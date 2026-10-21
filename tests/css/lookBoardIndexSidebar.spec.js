@@ -60,6 +60,16 @@ describe('look-board-index.css: the board index sidebar', () => {
 		expect(body).toMatch(/font-size: 14px;/)
 	})
 
+	it('draws the pressed Filter button on the light primary ground with a primary edge', () => {
+		const body = bodyOf('.cn-look-board .cn-actions-bar__filter-button.button-vue[aria-pressed=\'true\']')
+		expect(body).toMatch(/border-color: var\(--color-primary-element\);/)
+		expect(body).toMatch(/background-color: var\(--color-primary-element-light\);/)
+		expect(body).toMatch(/(^|[\s;])color: var\(--cn-filter-pressed-ink\);/)
+		expect(body).toMatch(/--nldesign-component-button-primary-action-color: var\(--cn-filter-pressed-ink\);/)
+		expect(bodyOf('.cn-look-board .cn-actions-bar')).toMatch(/--cn-filter-pressed-ink: var\(--color-main-text\);/)
+		expect(bodyOf('.cn-look-board .cn-actions-bar__filter-button.button-vue[aria-pressed=\'true\']:hover')).toMatch(/background-color: var\(--color-primary-element-light-hover\);/)
+	})
+
 	it('marks the open tab with the light primary ink and a 2px full-width underline', () => {
 		expect(bodyOf(`${TAB}[aria-selected='true']`)).toMatch(/color: var\(--color-primary-element-light-text\);/)
 		const line = bodyOf(`${TAB}[aria-selected='true']::after`)

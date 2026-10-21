@@ -321,6 +321,29 @@
 	font-weight: 600;
 }
 
+/* With the sidebar open the Filter button is pressed: the board draws it on
+   the light primary ground with a primary edge and the main ink, not as a
+   filled primary button (DqFilterBeheren). Its count badge stays the filled
+   primary pill. NcButton redefines the main text inside the button, so the ink is taken
+   on the bar; the theme's forced primary ink and edge read the button's own
+   properties.
+   @spec openspec/changes/board-index-sidebar/specs/board-index-sidebar/spec.md#requirement-the-pressed-filter-button-is-the-boards-light-toggle */
+.cn-look-board .cn-actions-bar {
+	--cn-filter-pressed-ink: var(--color-main-text);
+}
+
+.cn-look-board .cn-actions-bar__filter-button.button-vue[aria-pressed='true'] {
+	--nldesign-component-button-primary-action-color: var(--cn-filter-pressed-ink);
+	--nldesign-component-button-primary-action-border-color: var(--color-primary-element);
+	border-color: var(--color-primary-element);
+	background-color: var(--color-primary-element-light);
+	color: var(--cn-filter-pressed-ink);
+}
+
+.cn-look-board .cn-actions-bar__filter-button.button-vue[aria-pressed='true']:hover {
+	background-color: var(--color-primary-element-light-hover);
+}
+
 .cn-look-board .cn-actions-bar__filter-badge {
 	display: inline-flex;
 	align-items: center;

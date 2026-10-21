@@ -15,3 +15,13 @@ underline without a tinted ground.
 - **THEN** the sidebar is 360px wide
 - **AND** "Zoeken", "Kolommen" and "Weergaven" sit in one row, each icon beside its label, 40px high
 - **AND** the open tab carries a 2px underline in the primary colour and no tinted ground
+
+### Requirement: The pressed Filter button is the board's light toggle
+
+In the board look the Filter button that opens the index sidebar SHALL, while the sidebar is open, draw the light
+primary ground with a primary edge and the main ink instead of a filled primary button.
+
+#### Scenario: DqFilterBeheren Filter
+
+- **GIVEN** the Cases index page of a board-look app with the sidebar open
+- **THEN** "Filter" sits on the light primary ground with a primary edge and its count in the filled primary pill
