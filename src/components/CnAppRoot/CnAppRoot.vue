@@ -3336,6 +3336,10 @@ export default {
 		 */
 		'$route.query.setup': {
 			immediate: true,
+			/**
+			 * @param {string|undefined} value The `setup` query value.
+			 * @spec openspec/changes/setup-wizard-opens-from-the-address/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard
+			 */
 			handler(value) {
 				const setup = this.manifest && this.manifest.setup
 				if (value === 'open' && setup && setup.enabled !== false && Array.isArray(setup.steps) && setup.steps.length > 0) {
