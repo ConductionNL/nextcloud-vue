@@ -1416,7 +1416,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.137.0 lets open-form edit and create through an endpoint (open-form-endpoint), a grouped-cards group carry an action (grouped-cards-group-action), a detail page ask for a purpose before it opens a record (detail-access-purpose), an api-call GET a download (api-call-get-download) and headerPill.values limit a pill to some values (detail-pill-values).
 		// 2.138.0 adds after and before on a row indicator, a date bound that is now or an ISO date (cell-config-growth).
 		// 2.139.0 adds the redaction page type (dq-abstract-record-widgets), quarter and year page filters with count, and loadOn, requestLabel, requestHint, truncatedText and namePath on endpoint widgets (dq-abstract-dash).
-		// 2.140.0 lets an index page follow live changes (pl4-index-live).
+		// 2.140.0 lets an index page follow live changes (pl4-index-live), gives a row indicator lt and gt (pl4-cells), the export launcher its entity types (pl4-export-action), a board columns read from a list on a referenced row with itemsPath, keyField and closedField (pl4-board), card cells and card actions (pl4-board-cells, pl4-board-card-actions), and a select-or-create reference its createModal (pl4-form-create-modal).
 		expect(schema.version).toBe('2.140.0')
 	})
 
