@@ -1035,7 +1035,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionInput, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
-import { provide, ref, watch } from 'vue'
+import { inject, provide, ref, watch } from 'vue'
 import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
@@ -1070,6 +1070,7 @@ import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
 import { generatedPageFilterOptions } from '../../utils/periodOptions.js'
+import { isOptionalUnresolved, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
@@ -1204,6 +1205,60 @@ const CHART_PROP_KEYS = [
  * }]
  * ```
  */
+
+/**
+ * A widget's content with each `@config.<key>` string (at any depth) filled
+ * from the app config; an unset optional token (`@config.<key>?`) becomes ''
+ * and an unset required one stays as written. Content without a token comes
+ * back as the same object, so the widget is not handed a new one each render.
+ *
+ * @param {unknown} value The content, or a part of it.
+ * @param {object} config The app config.
+ * @return {unknown} The content with the config values in.
+ * @spec openspec/changes/pl4-dashboard-config/specs/pl4-dashboard-config/spec.md#requirement-a-dashboard-widget-can-name-an-app-setting
+ */
+function fillConfigTokens(value, config) {
+	if (typeof value === 'string') {
+		if (!value.startsWith('@config.')) {
+			return value
+		}
+		const resolved = resolveFilterValue(value, { config })
+		return isOptionalUnresolved(resolved) ? '' : resolved
+	}
+	if (Array.isArray(value)) {
+		const filled = value.map((entry) => fillConfigTokens(entry, config))
+		return filled.some((entry, index) => entry !== value[index]) ? filled : value
+	}
+	if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+		const entries = Object.entries(value).map(([key, entry]) => [key, fillConfigTokens(entry, config)])
+		return entries.some(([key, entry]) => entry !== value[key]) ? Object.fromEntries(entries) : value
+	}
+	return value
+}
+
+const filledByContent = new WeakMap()
+
+/**
+ * `fillConfigTokens` once per content object and config, so a widget whose
+ * content names a setting keeps one content object between renders.
+ *
+ * @param {object} content The widget content.
+ * @param {object} config The app config.
+ * @return {object} The filled content.
+ */
+function filledContent(content, config) {
+	if (!content || typeof content !== 'object') {
+		return content
+	}
+	const key = JSON.stringify(config)
+	const cached = filledByContent.get(content)
+	if (cached && cached.key === key) {
+		return cached.value
+	}
+	const value = fillConfigTokens(content, config)
+	filledByContent.set(content, { key, value })
+	return value
+}
 
 export default {
 	name: 'CnDashboardPage',
@@ -2000,12 +2055,20 @@ export default {
 		// wizard captures). Provided ALWAYS (like cnWorkspaceContext) and kept in
 		// sync with the `appConfig` prop so a late-loaded config re-resolves
 		// downstream tokens. Descendants `inject('cnAppConfig', ref({}))`.
-		const appConfigRef = ref({ ...(props.appConfig || {}) })
+		// The config an ancestor provides (the app root) is the base; the
+		// page's own `appConfig` wins key by key.
+		const inheritedConfig = inject('cnAppConfig', null)
+		const unwrapConfig = (value) => {
+			const raw = value && typeof value === 'object' && 'value' in value ? value.value : value
+			return raw && typeof raw === 'object' ? raw : {}
+		}
+		const mergedConfig = () => ({ ...unwrapConfig(inheritedConfig), ...(props.appConfig || {}) })
+		const appConfigRef = ref(mergedConfig())
 		provide('cnAppConfig', appConfigRef)
 		watch(
-			() => props.appConfig,
-			(next) => {
-				appConfigRef.value = { ...(next || {}) }
+			[() => props.appConfig, () => unwrapConfig(inheritedConfig)],
+			() => {
+				appConfigRef.value = mergedConfig()
 			},
 			{ deep: true },
 		)
@@ -4006,7 +4069,7 @@ export default {
 		 * @return {object}
 		 */
 		registryWidgetBindings(item) {
-			const content = this.collectionContent(this.getWidgetContent(item))
+			const content = filledContent(this.collectionContent(this.getWidgetContent(item)), this.appConfigRef || {})
 			const def = this.getWidgetDef(item.widgetId)
 			if (!this.isBannerDef(def)) {
 				return content
