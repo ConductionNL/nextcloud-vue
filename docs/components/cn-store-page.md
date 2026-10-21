@@ -21,7 +21,7 @@ every key below can be written in the manifest.
 | `title` | String | `''` | Page heading. Falls back to the page title, then to "Store". |
 | `description` | String | `''` | Lead paragraph: what this app's store offers. |
 | `kinds` | `Array<string>` | ADR-080 vocabulary | Kind quick-filters. Kinds the engine serves win over this prop. |
-| `builtIn` | `Array<object>` | `[]` | Items the app ships itself, shown when the registry is not configured, does not answer, or offers nothing. Items the engine serves win over this prop. |
+| `builtIn` | `Array<object>` | `[]` | Items the app ships itself, shown when the registry is not configured, does not answer, or offers nothing. Items the engine serves win over this prop. Each item's `title` and `description` go through the app's translate, so a manifest writes them in English and the app's catalogue translates them. |
 | `canInstall` | `Boolean\|null` | `null` | Whether the signed-in user sees Install on the remote cards, as the app resolved it. `true` shows it, `false` hides it from everyone, administrators included. `null` keeps the default: administrators only. |
 | `canPublish` | `Boolean\|null` | `null` | Whether the signed-in user sees Publish, as the app resolved it. `null` means administrators only. Needs `publishRoute` as well. |
 | `publishRoute` | `String\|Object` | `''` | Where Publish takes the user. A string is a route name; an object is a vue-router location. Empty means no Publish button. |

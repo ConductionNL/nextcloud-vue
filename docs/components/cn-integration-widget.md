@@ -32,3 +32,17 @@ See the [Pluggable Integration Registry](../integrations/registry.md) section fo
 | `objectType` | String | `''` | Object type/schema the widget is bound to. |
 | `documentation-url` | `String` | `''` | Documentation link for the overflow Actions menu. |
 | `widget-id` | `String` | `''` | Stable id forwarded to the menu. |
+| `objectLabel` | `String` | `''` | The record's display name, handed to the leaf as `objectLabel`. |
+| `leafSurface` | `String` | `''` | The surface the leaf is told it renders on when it differs from `surface` (a leaf in a dialog that keeps its `sidebar-tab` look). |
+| `appName` | `String` | `''` | The app that provides the `only` leaf. When that leaf is not registered, the widget shows "{App} not available" with the install hint instead of the plain line. |
+| `appIcon` | `String` | `''` | The icon of that empty state. |
+
+## Mount-mode leaves
+
+In single mode (`only`) a leaf that mounts its own framework (`renderMode: 'mount'`, ADR-066) is mounted through [CnLeafMountHost](./cn-leaf-mount-host.md) with the record context, `integrationContext` and `objectLabel`, the same way a detail page mounts it:
+
+```vue
+<CnIntegrationWidget only="decidiq-approval-chain" surface="detail-page" leafSurface="sidebar-tab" register="dossiq" schema="informatieobject" :objectId="documentId" :objectLabel="documentTitle" appName="Decidiq" />
+```
+
+On a detail page an `integration` widget whose leaf is not registered shows the same "{App} not available" state, named after the widget's `appName` (or its `requiredApp`), instead of nothing.

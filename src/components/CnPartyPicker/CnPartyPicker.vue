@@ -54,7 +54,9 @@ const SEARCH_DELAY = 250
  * `sources`: each `{ id, register, schema, label?, title?, secondary?,
  * limit?, icon? }` searches OpenRegister with `_search`; `title` and
  * `secondary` are templates filled from the row (default `{name}` / none),
- * `label` names the kind ("Resident") and starts the second line. A source
+ * `label` names the kind ("Resident") and starts the second line; `label`
+ * and `secondary` go through the host translate, so a manifest can write
+ * `"CoC {kvkNumber}"` and a Dutch reader sees "KvK 24157431". A source
  * `{ id, type: "contacts", label? }` searches the reader's Nextcloud contacts.
  *
  * `update:modelValue` emits the chosen row's id (a contact has none and
@@ -217,7 +219,7 @@ export default {
 				return null
 			}
 			const title = (source.title ? fillTemplate(source.title, row) : (row.name || row.title || row.displayName || '')).trim() || String(id)
-			const detail = source.secondary ? fillTemplate(source.secondary, row).trim() : ''
+			const detail = source.secondary ? fillTemplate(this.cnTranslate(source.secondary), row).trim() : ''
 			const kind = source.label ? this.cnTranslate(source.label) : ''
 			return {
 				id,
