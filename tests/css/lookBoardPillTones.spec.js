@@ -42,9 +42,9 @@ function bodiesOf(css, selector) {
 }
 
 describe('board pill tones', () => {
-	it('mixes the soft ink from the main and the muted text', () => {
+	it('takes the theme\'s grey text for the soft ink, else mixes the main and the muted text', () => {
 		const body = bodiesOf(sheet('look-board.css'), '.cn-look-board')
-		expect(body).toContain('--cn-board-text-soft: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));')
+		expect(body).toContain('--cn-board-text-soft: var(--nl-color-grey-text, color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast)));')
 	})
 
 	it('draws a neutral tag in the soft ink on the chip ground', () => {

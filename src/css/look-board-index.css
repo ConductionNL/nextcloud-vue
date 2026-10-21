@@ -1293,7 +1293,7 @@
 	box-sizing: border-box;
 	border-radius: 10px;
 	background: var(--color-background-dark);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 600;
 }

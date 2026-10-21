@@ -33,10 +33,11 @@
 	--cn-board-card-padding: 20px 22px;
 	/* The side inset of a dashboard card: its title and its rows. */
 	--cn-board-dashboard-card-inset: 24px;
-	/* Hairline inside a card, and the soft secondary text: the boards' #3d4047,
-	   between the main text and the muted text, so it follows a theme's pair. */
+	/* Hairline inside a card, and the soft secondary text: the boards' #3d4047.
+	   A theme names it `--nl-color-grey-text`; without one it is mixed between
+	   the main text and the muted text, so it follows the theme's pair. */
 	--cn-board-hairline: var(--color-border);
-	--cn-board-text-soft: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
+	--cn-board-text-soft: var(--nl-color-grey-text, color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast)));
 }
 
 /*
@@ -219,6 +220,14 @@
 	.cn-look-board .cn-dashboard-page__switch-row .cn-page-view-switch .cn-segmented-control__option--checked:not(.cn-look-nextcloud *) {
 		border-color: CanvasText;
 	}
+}
+
+/* ---- Segmented options --------------------------------------------------- */
+/* The boards draw an option that is not chosen in the grey text and the
+   chosen one, raised, in the main text (DqDoorlooptijd "Maand", DqContracten,
+   DqTermijnen): the choice reads from the ink as well as the surface. */
+.cn-look-board .cn-segmented-control .cn-segmented-control__option:not(.cn-segmented-control__option--checked):not(.cn-look-nextcloud *) {
+	color: var(--cn-board-text-soft);
 }
 
 /* ---- Button weight ------------------------------------------------------ */
