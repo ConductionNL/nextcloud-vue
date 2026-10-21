@@ -33,15 +33,15 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 | Name                | Payload | Description                                                                                                                                                      |
 | ------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `step-update`       | —       |                                                                                                                                                                  |
-| `transition-update` | —       |                                                                                                                                                                  |
-| `state-update`      | —       |                                                                                                                                                                  |
 | `state-add`         | —       | A state should be added at `position`. The host creates it and calls `done(id)`; the editor then selects it when it was added from the keyboard.                 |
 | `state-move`        | —       | A state was moved: `{ id, x, y }`.                                                                                                                               |
+| `state-update`      | —       | The edited state, complete, as the panel returns it.                                                                                                             |
 | `state-remove`      | —       | A state should be removed: `{ id, done }`. The host removes the state with its steps and transitions and calls `done(true)`, or `done(false)` when it could not. |
 | `transition-add`    | —       | A transition should be added: `{ from, to }`.                                                                                                                    |
+| `transition-update` | —       | The edited transition, complete, as the panel returns it.                                                                                                        |
 | `transition-remove` | —       | A transition should be removed, by id.                                                                                                                           |
 | `step-add`          | —       | A step should be added to a state: `{ state, done }`. The host calls `done(id)` and the editor opens the new step.                                               |
+| `step-update`       | —       | The edited step, complete, as the panel returns it.                                                                                                              |
 | `step-remove`       | —       | A step should be removed, by id.                                                                                                                                 |
 | `step-reorder`      | —       | The steps of a state in their new order: `{ state, ids }`.                                                                                                       |
 | `validated`         | —       | The issues validate() found.                                                                                                                                     |

@@ -141,7 +141,7 @@
 					:optionSets="optionSets"
 					:translate="tr"
 					:uid="`${uid}-step`"
-					@update="$emit('step-update', $event)"
+					@update="updateStep"
 					@delete="removeStep(selectedStep.id)"
 					@close="clearSelection" />
 
@@ -160,7 +160,7 @@
 					:optionSets="optionSets"
 					:translate="tr"
 					:uid="`${uid}-transition`"
-					@update="$emit('transition-update', $event)"
+					@update="updateTransition"
 					@delete="requestTransitionRemoval(selectedTransition.id)"
 					@close="clearSelection" />
 
@@ -179,7 +179,7 @@
 					:optionSets="optionSets"
 					:translate="tr"
 					:uid="`${uid}-state`"
-					@update="$emit('state-update', $event)"
+					@update="updateState"
 					@delete="requestStateRemoval(selectedState.id)"
 					@close="clearSelection">
 					<NcButton v-if="showSteps && !readOnly" variant="secondary" @click="addStep(selectedState.id)">
@@ -555,6 +555,36 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Hand the panel's edited step to the host.
+		 *
+		 * @param {object} record The edited step, complete.
+		 */
+		updateStep(record) {
+			/** @event step-update The edited step, complete, as the panel returns it. */
+			this.$emit('step-update', record)
+		},
+
+		/**
+		 * Hand the panel's edited transition to the host.
+		 *
+		 * @param {object} record The edited transition, complete.
+		 */
+		updateTransition(record) {
+			/** @event transition-update The edited transition, complete, as the panel returns it. */
+			this.$emit('transition-update', record)
+		},
+
+		/**
+		 * Hand the panel's edited state to the host.
+		 *
+		 * @param {object} record The edited state, complete.
+		 */
+		updateState(record) {
+			/** @event state-update The edited state, complete, as the panel returns it. */
+			this.$emit('state-update', record)
+		},
 
 		/**
 		 * Translate a configured text.
