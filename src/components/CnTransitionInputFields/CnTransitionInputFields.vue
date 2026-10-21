@@ -216,7 +216,7 @@ let uid = 0
  * whether they are complete is `inputFieldsComplete(resolveInputFields(...))`.
  *
  * Next to the schema-resolved widgets an input may declare `widget` (`text`,
- * `textarea`, `number`, `date`, `select`, `template`), `optionsSource` (a dot
+ * `textarea`, `number`, `date`, `password`, `select`, `template`), `optionsSource` (a dot
  * path into `context`), `other`, `helperFrom`, `preview`, `default` and
  * presentation keys; see `resolveInputFields` in `utils/transitionInputs.js`.
  *
@@ -508,7 +508,7 @@ export default {
 		 * @return {string}
 		 */
 		textType(field) {
-			return field.widget === 'number' || field.widget === 'date' ? field.widget : 'text'
+			return ['number', 'date', 'password'].includes(field.widget) ? field.widget : 'text'
 		},
 
 		/**

@@ -26,7 +26,7 @@ import { fieldsFromSchema } from './schema.js'
 export const OTHER_OPTION_VALUE = '__other'
 
 /** Widgets an input may name outright, whatever the schema says. */
-const DECLARED_WIDGETS = ['text', 'textarea', 'number', 'date', 'select', 'template']
+const DECLARED_WIDGETS = ['text', 'textarea', 'number', 'date', 'password', 'select', 'template']
 
 /**
  * A non-empty trimmed string, or null.
@@ -280,7 +280,7 @@ export function fillInputTemplate(template, values, now = new Date()) {
  * The descriptors of the declared inputs, with the context applied.
  *
  * Next to what the schema says, an input may declare:
- * - `widget`: `text`, `textarea`, `number`, `date`, `select` or `template`.
+ * - `widget`: `text`, `textarea`, `number`, `date`, `password`, `select` or `template`.
  * - `optionsSource`: a dot path into `context` holding the rows to pick from,
  *   read through `optionValue` and `optionLabel`. With no rows the input is
  *   hidden and asks nothing.

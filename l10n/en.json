@@ -2178,7 +2178,13 @@
     "When": "When",
     "Who": "Who",
     "Message": "Message",
-    "That change could not be saved.": "That change could not be saved."
+    "That change could not be saved.": "That change could not be saved.",
+    "Running …": "Running …",
+    "The action did not run.": "The action did not run.",
+    "The action is waiting for a next step, such as a task.": "The action is waiting for a next step, such as a task.",
+    "{succeeded} done, {failed} failed": "{succeeded} done, {failed} failed",
+    "The action is still running. You can close this dialog.": "The action is still running. You can close this dialog.",
+    "{action}: done": "{action}: done"
   },
   "plurals": {
     "{count} member": [
@@ -2335,6 +2341,18 @@
     "Also written on %n other record": [
       "Also written on %n other record",
       "Also written on %n other records"
+    ],
+    "Runs on {count} item": [
+      "Runs on {count} item",
+      "Runs on {count} items"
+    ],
+    "{count} step done": [
+      "{count} step done",
+      "{count} steps done"
+    ],
+    "Started on {count} item. You can follow it under bulk jobs.": [
+      "Started on {count} item. You can follow it under bulk jobs.",
+      "Started on {count} items. You can follow it under bulk jobs."
     ]
   }
 }

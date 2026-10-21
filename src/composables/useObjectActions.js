@@ -127,15 +127,22 @@ export function useObjectActions(target, { immediate = true, pollInterval = 1500
 	}
 
 	/**
-	 * After a run that changed something: read the list again and ask the
-	 * page to refresh, since the object, its status and its actions moved.
+	 * After a run that changed something: ask the page to refresh, since the
+	 * object, its status and its actions moved; pass on where the person goes
+	 * next; and read the list again when this composable has read it before.
 	 *
 	 * @param {string} key The action that ran.
+	 * @param {object} result The run's result.
 	 * @return {Promise<void>}
 	 */
-	const afterChange = async (key) => {
+	const afterChange = async (key, result) => {
 		emit('cn:page:refresh', { source: 'object-action', action: key })
-		await refresh()
+		if (result && (result.next === 'next' || result.next === 'list')) {
+			emit('cn:object-action:next', { action: key, next: result.next, object: current() })
+		}
+		if (readCount > 0) {
+			await refresh()
+		}
 	}
 
 	/**
@@ -164,7 +171,7 @@ export function useObjectActions(target, { immediate = true, pollInterval = 1500
 		const finished = run ? { ...result, status: run.status, ok: !run.failed, message: run.error || result.message || '' } : result
 		lastResult.value = finished
 		if (run && run.status === 'completed') {
-			await afterChange(key)
+			await afterChange(key, finished)
 		}
 		return finished
 	}
@@ -197,7 +204,7 @@ export function useObjectActions(target, { immediate = true, pollInterval = 1500
 			progress.value = { action: key, run: result.run, status: result.status, steps: 0, error: '' }
 			return result
 		}
-		await afterChange(key)
+		await afterChange(key, result)
 		return result
 	}
 
@@ -216,6 +223,9 @@ export function useObjectActions(target, { immediate = true, pollInterval = 1500
 		lastResult.value = result
 		if (result.ok) {
 			emit('cn:page:refresh', { source: 'object-action', action: key })
+			if (result.next === 'list') {
+				emit('cn:object-action:next', { action: key, next: 'list', object: current() })
+			}
 		}
 		return result
 	}

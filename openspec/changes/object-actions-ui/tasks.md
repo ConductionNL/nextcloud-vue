@@ -9,8 +9,10 @@
 
 ### Task 2: The inputs dialog
 - **spec_ref**: `#requirement-inputs-are-asked-in-a-dialog-built-from-their-json-schema`, `#requirement-an-async-run-shows-its-progress-and-its-result`
-- **files**: `src/utils/objectActionInputs.js`, `src/dialogs/CnObjectActionDialog.vue`
-- [ ] Test, implement, docs, en/nl
+- **files**: `src/utils/objectActionInputs.js`, `src/dialogs/CnObjectActionDialog.vue`, `src/components/CnTransitionInputFields/CnTransitionInputFields.vue` (a `password` widget)
+- [x] Test: `tests/dialogs/CnObjectActionDialog.spec.js`
+- [x] Implement: inputs from JSON Schema, defaults, run, refusal, async progress, suspended, selection summary, `next`
+- [x] Docs: `docs/components/cn-object-action-dialog.md`; en/nl strings
 
 ### Task 3: Header actions
 - **spec_ref**: `#requirement-a-manifest-runs-a-declared-action`, `#requirement-actionsfrom-renders-the-listed-actions-on-a-surface`, `#requirement-an-unavailable-action-is-shown-disabled-with-its-reason`

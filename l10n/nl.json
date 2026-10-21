@@ -2428,7 +2428,12 @@
     "When": "Wanneer",
     "Who": "Wie",
     "Message": "Bericht",
-    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen."
+    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen.",
+    "The action did not run.": "De actie is niet uitgevoerd.",
+    "The action is waiting for a next step, such as a task.": "De actie wacht op een volgende stap, zoals een taak.",
+    "{succeeded} done, {failed} failed": "{succeeded} gelukt, {failed} mislukt",
+    "The action is still running. You can close this dialog.": "De actie loopt nog. Je kunt dit venster sluiten.",
+    "{action}: done": "{action}: klaar"
   },
   "plurals": {
     "{count} member": [
@@ -2602,6 +2607,18 @@
     "Also written on %n other record": [
       "Staat ook op %n ander dossier",
       "Staat ook op %n andere dossiers"
+    ],
+    "Runs on {count} item": [
+      "Wordt uitgevoerd op {count} item",
+      "Wordt uitgevoerd op {count} items"
+    ],
+    "{count} step done": [
+      "{count} stap gedaan",
+      "{count} stappen gedaan"
+    ],
+    "Started on {count} item. You can follow it under bulk jobs.": [
+      "Gestart op {count} item. Je kunt het volgen onder bulktaken.",
+      "Gestart op {count} items. Je kunt het volgen onder bulktaken."
     ]
   }
 }
