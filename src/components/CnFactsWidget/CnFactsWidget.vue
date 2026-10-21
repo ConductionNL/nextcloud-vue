@@ -708,6 +708,11 @@ export default {
 
 		record: {
 			immediate: true,
+			/**
+			 * Read the labels and settle the action conditions of the record shown.
+			 *
+			 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-carry-declared-actions
+			 */
 			handler() {
 				this.loadLabels()
 				this.evaluateRemoteVisibility()
@@ -729,6 +734,11 @@ export default {
 		},
 	},
 
+	/**
+	 * Read the source again on the page refresh an api-call or a saved form sends.
+	 *
+	 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-carry-declared-actions
+	 */
 	created() {
 		this.onPageRefresh = () => this.load(true)
 		subscribe(PAGE_REFRESH_CHANNEL, this.onPageRefresh)
