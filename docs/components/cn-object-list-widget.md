@@ -202,3 +202,16 @@ The table never scrolls sideways inside its card. When its columns are wider tha
 ## Write feedback
 
 A row action of type `object-op` with `op: "delete"` toasts "Deleted \{title\}" with an Undo for ten seconds; Undo restores the row from the OpenRegister trash (`POST /apps/openregister/api/deleted/{id}/restore`) and refreshes the list, and a failed delete toasts an error. A create through the widget shows one toast, the create dialog's, never a second from the widget. `feedback: false` in the widget `content` suppresses the delete toasts.
+
+## Rows that point at more than one schema
+
+A relationship points at a contact or at an organisation. Three keys handle a list whose rows do that:
+
+| Key | Meaning |
+|-----|---------|
+| `rowRouteField` + `rowRouteMap` | The row opens the page its field names: `{ "toType": ... }` with `{ "client": "ClientDetail", "contact": "ContactDetail" }`. Falls back to `rowRoute`. |
+| `rowRouteIdField` | The row field whose value is the id the page opens (`toContact`), instead of the row's own id. |
+| `createEndpoint` | `{ url, bodyKey?, extra? }`: a new row is posted to this app endpoint instead of OpenRegister. With `bodyKey` the form values (plus the filter values) go under that key, beside `extra`: `{ "objectType": "contact", "object": { ... } }`. |
+
+A column with `widget: "fkResolve"` takes `widgetProps.schemaFrom` (`{ field, map }`) to resolve the reference in the schema the row names.
+

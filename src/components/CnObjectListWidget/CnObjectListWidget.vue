@@ -484,7 +484,7 @@ export default {
 		 * download in the card's header; `group` shows it to one group only.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowRouteField?: string, rowRouteMap?: object, rowRouteIdField?: string, createEndpoint?: {url: string, bodyKey?: string, extra?: object}, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
 		 */
 		content: {
 			type: Object,
@@ -1891,8 +1891,10 @@ export default {
 						payload[k] = v
 					}
 				}
-				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
-				const response = await axios.post(url, payload)
+				const endpoint = c.createEndpoint && typeof c.createEndpoint === 'object' && c.createEndpoint.url ? c.createEndpoint : null
+				const url = endpoint ? generateUrl(endpoint.url) : generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
+				const body = endpoint && endpoint.bodyKey ? { ...(endpoint.extra || {}), [endpoint.bodyKey]: payload } : { ...((endpoint && endpoint.extra) || {}), ...payload }
+				const response = await axios.post(url, body)
 				dispatchObjectCreated({ register: c.register, schema: c.schema, object: (response && response.data) || payload })
 				if (this.$refs.createDialog) {
 					this.$refs.createDialog.setResult({ success: true })
@@ -2002,8 +2004,10 @@ export default {
 		 * @return {void}
 		 */
 		openRowRoute(row, event) {
-			const route = this.content.rowRoute
-			const id = row && (row.id || (row['@self'] && row['@self'].id))
+			const byField = this.content.rowRouteField && row ? (this.content.rowRouteMap || {})[String(row[this.content.rowRouteField])] : undefined
+			const route = byField || this.content.rowRoute
+			const idField = this.content.rowRouteIdField
+			const id = row && (idField ? row[idField] : (row.id || (row['@self'] && row['@self'].id)))
 			if (route && id && this.$router) {
 				markNewTabHandled(event, openRowTarget(event, { name: route, params: { id } }, this.$router))
 			}

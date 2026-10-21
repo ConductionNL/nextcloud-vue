@@ -72,13 +72,14 @@
 
 		<!-- Built-in "fkResolve" widget — resolves a reference uuid to the related
 		     object's display label via the object store (per-schema caching).
-		     Config: widgetProps { register, schema, labelField }. -->
+		     Config: widgetProps { register, schema, labelField }, or
+		     schemaFrom { field, map } to read the schema off the row. -->
 		<template v-else-if="widget === 'fkResolve'">
 			<CnFkResolveCell
 				v-if="hasValue"
 				:value="value"
 				:register="(widgetProps && widgetProps.register) || ''"
-				:schema="(widgetProps && widgetProps.schema) || ''"
+				:schema="fkSchema"
 				:labelField="(widgetProps && widgetProps.labelField) || 'name'" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
@@ -650,6 +651,25 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The schema an `fkResolve` cell reads: `widgetProps.schema`, or the one
+		 * `widgetProps.schemaFrom` (`{ field, map }`) names for this row, for a
+		 * reference that points at objects of more than one schema.
+		 *
+		 * @return {string}
+		 */
+		fkSchema() {
+			const props = this.widgetProps || {}
+			const from = props.schemaFrom
+			if (from && typeof from === 'object' && from.field && this.row) {
+				const mapped = (from.map || {})[String(this.row[from.field])]
+				if (mapped) {
+					return mapped
+				}
+			}
+			return props.schema || ''
+		},
+
 		/**
 		 * The `actions` widget's buttons for this row: the page's resolved
 		 * `widgetProps.items` (a list, or a function of the row returning
