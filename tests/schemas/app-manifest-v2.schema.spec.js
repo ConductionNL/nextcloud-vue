@@ -1628,6 +1628,14 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(stale('@today-{config.x}d')).valid).toBe(false)
 	})
 
+	it('accepts an export action entity that names its OpenRegister objects (pl4-export-action)', () => {
+		const withAction = (action) => ({ ...MINIMAL_V2, pages: [{ id: 'ops', route: '/ops', type: 'dashboard', title: 'Ops', config: { headerActions: [action] } }] })
+		const entity = { id: 'requests', label: 'Requests', register: 'pipelinq', schema: 'ticket', filter: { ticketType: 'request' } }
+		expect(validateManifestV2(withAction({ id: 'export-report', label: 'Export', type: 'export', entities: [entity], formats: ['excel', 'csv'] })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ id: 'export-report', label: 'Export', type: 'export', entities: [{ ...entity, register: '' }] })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ id: 'export-report', label: 'Export', type: 'export', entities: [{ ...entity, path: 'x' }] })).valid).toBe(false)
+	})
+
 	it('accepts a dashboard page filter drawn as a segmented group on the description line, and refuses unknown keys', () => {
 		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'trend', route: '/trend', type: 'dashboard', title: 'Trend', config: { pageFilters: [filter] } }] })
 		const options = [{ value: 'mean', label: 'Gemiddeld' }, { value: 'median', label: 'Mediaan' }]

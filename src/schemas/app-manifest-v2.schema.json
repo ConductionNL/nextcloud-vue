@@ -3263,14 +3263,17 @@
 				},
 				"entities": {
 					"type": "array",
-					"description": "export only: selectable entity types offered by the export launcher (e.g. Leads / Requests). Optional — when absent the dialog shows only the format picker. Each entry needs an id + pre-translated label.",
+					"description": "export only: selectable entity types offered by the export launcher (e.g. Leads / Requests). Optional — when absent the dialog shows only the format picker. Each entry needs an id + label (run through the app's translate). Without a `handler`, an entry naming `register` and `schema` downloads those OpenRegister objects, `filter` applied (pl4-export-action).",
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
 						"required": ["id", "label"],
 						"properties": {
 							"id": { "type": "string", "description": "Entity id handed to the confirm handler." },
-							"label": { "type": "string", "description": "Pre-translated display label." }
+							"label": { "type": "string", "description": "Display label, run through the app's translate." },
+							"register": { "type": "string", "minLength": 1, "description": "OpenRegister register this entity exports from when the action has no handler." },
+							"schema": { "type": "string", "minLength": 1, "description": "OpenRegister schema this entity exports from when the action has no handler." },
+							"filter": { "type": "object", "description": "Filters sent with the export, as a list filter takes them." }
 						}
 					}
 				},
