@@ -5218,7 +5218,7 @@
 							"items": {
 								"type": "object",
 								"required": ["key"],
-								"anyOf": [{ "required": ["options"] }, { "required": ["optionsFrom"] }],
+								"anyOf": [{ "required": ["options"] }, { "required": ["optionsFrom"] }, { "required": ["type"], "properties": { "type": { "enum": ["quarter", "year"] } } }],
 								"additionalProperties": false,
 								"properties": {
 									"key": { "type": "string", "minLength": 1, "description": "Workspace-context key written on change (the `@page.<key>` / `@workspace.<key>` token name)." },

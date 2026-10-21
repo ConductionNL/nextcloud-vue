@@ -1510,6 +1510,15 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(withFilter({ key: 'caseType', options, clearable: 'yes' })).valid).toBe(false)
 	})
 
+	it('accepts the 2.138.0 generated quarter and year filters without options, and the endpoint request keys', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'report', route: '/report', type: 'dashboard', title: 'Report', config: { pageFilters: [filter] } }] })
+		expect(validateManifestV2(withFilter({ key: 'quarter', type: 'quarter', count: 8 })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'year', type: 'year' })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'week', type: 'fortnight' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'quarter', type: 'quarter', count: 0 })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'pick', type: 'select' })).valid).toBe(false)
+	})
+
 	it('accepts the 2.128.0 keys and refuses malformed ones', () => {
 		const withPage = (page) => ({ ...MINIMAL_V2, pages: [page] })
 		const notice = (content, visibleWhen) => withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', tabsFrom: '@context.caseType.tabs' }, widgets: [{ id: 'special', widgetKey: 'notice', slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 1, props: { content }, ...(visibleWhen ? { visibleWhen } : {}) }] })
