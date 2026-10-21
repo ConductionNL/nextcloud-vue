@@ -19,6 +19,21 @@ sidebar tab is required.**
 dashboard / index page can adopt the same primitive later by passing its own
 `context`.
 
+## A library widget as a section
+
+A section can name a library widget `type` instead of a host `component`. It renders that widget with its `content` and the page's record (`objectId`, `objectData`), with the section's title, placement and card. A `component` wins when both are set; an unknown type shows the inline error.
+
+```json
+{
+  "id": "case",
+  "type": "handoff",
+  "title": "Case",
+  "placement": "after-data",
+  "card": true,
+  "content": { "availability": { "url": "/apps/pipelinq/api/handoff/request/@objectId/availability" }, "canPath": "canConvert" }
+}
+```
+
 ## Registering a host component for in-body use
 
 Register the component in the app's v2 registry under any kind that exposes a

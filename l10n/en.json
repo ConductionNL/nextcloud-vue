@@ -1975,7 +1975,9 @@
     "Task {title} finished": "Task {title} finished",
     "Task {title} is yours": "Task {title} is yours",
     "Fill in {field} before completing this task": "Fill in {field} before completing this task",
-    "Search in this list": "Search in this list"
+    "Search in this list": "Search in this list",
+    "Could not copy": "Could not copy",
+    "The action failed.": "The action failed."
   },
   "plurals": {
     "{count} member": [

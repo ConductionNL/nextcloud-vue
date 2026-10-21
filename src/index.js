@@ -131,6 +131,7 @@ export {
 	CnExportWizard,
 	CnFacetSidebar,
 	CnFactsWidget,
+	CnHandoffAction,
 	CnFavouriteToggle,
 	CnFeaturesAndRoadmapLink,
 	CnFeaturesAndRoadmapPage,
