@@ -129,6 +129,8 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 
 `valueLabels` maps a field's stored values to labels the templates show: `"valueLabels": { "channel": { "phone": "Phone", "telefoon": "Phone", "email": "Email" } }` makes `"{channel}"` read the translated label ("Telefoon" for both spellings). A value the map does not name is shown as stored. The pill, the badges and the sort keep the stored value.
 
+`groupBy` (a field path) draws the rows in groups, each under a heading (DqZaakGerelateerd: "Onderwerp van deze zaak", "Wacht op", "Gepland vervolg"). A heading is the field's `valueLabels` entry for the value, else the value, through the host translate. The groups come in `groupOrder` (a list of values) first, then in the order the rows bring them; the rows without a value come last, headed by `groupEmptyLabel` or not at all. Each group is its own list, named by its heading. Grouping applies to the list presentations (`rows`, `cards`, `feed`, `inline`); `table`, `notice` and `notes` ignore it.
+
 ## Props
 
 | Prop | Type | Default | Description |
