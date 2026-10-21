@@ -50,4 +50,7 @@ describe('look-board.css: a select is the board control', () => {
 	it('makes a page filter\'s select 36px', () => {
 		expect(bodyOf('.cn-look-board .cn-dashboard-page__page-filter:not(.cn-look-nextcloud *)')).toContain('--cn-board-select-height: 36px;')
 	})
+	it('makes the timeline\'s filter select 36px (DqZaakHistorie)', () => {
+		expect(bodyOf('.cn-look-board .cn-timeline-manage__controls:not(.cn-look-nextcloud *)')).toContain('--cn-board-select-height: 36px;')
+	})
 })
