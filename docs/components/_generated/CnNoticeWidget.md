@@ -2,12 +2,14 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**light**: this component touches OpenRegister lightly. 0 direct references, 1 file reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name      | Type                                                               | Required | Default | Description                                      |
-| --------- | ------------------------------------------------------------------ | -------- | ------- | ------------------------------------------------ |
-| `content` | `{variant?: string, title?: string, text?: string, icon?: string}` |          | `\{\}`  | The notice: `{ variant?, title?, text, icon? }`. |
+| Name         | Type                                                                                                                                                                | Required | Default | Description                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | ---------------------------------------------------------- |
+| `content`    | `{variant?: string, title?: string, text?: string, icon?: string, link?: {route?: string, params?: object, href?: string, label?: string, fallbackLabel?: string}}` |          | `\{\}`  | The notice: `{ variant?, title?, text, icon?, link? }`.    |
+| `objectData` | `object`                                                                                                                                                            |          | `null`  | The page's record, for `@object.&lt;path&gt;` in the link. |
+| `objectId`   | `string&#124;number`                                                                                                                                                |          | `''`    | The page's record id, for `@objectId` in the link.         |

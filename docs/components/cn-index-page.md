@@ -126,6 +126,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`). Under the board look on a page without a filter sidebar it is the toolbar's Filter button, which carries the number of active filters as a badge while any is active |
 | `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a visibility checkbox — the in-table equivalent of the sidebar's Columns tab (manifest: `config.columnMenu`). See [Filter and columns: table header vs sidebar](#filter-and-columns-table-header-vs-sidebar). |
 | `searchInFiles` | Boolean | `false` | Show an "Also search inside files" switch beside the search box (manifest: `config.searchInFiles`). On, a search that has a term also sends `_content_search=true` (OpenRegister file-content search, capped at 50 candidates, noted under the list), and a row found through a file shows "Found in \{file\}" from `@self.matchedFile`. The switch is kept in the route as `contentSearch=1`. |
+| `relatedFieldFilters` | Object | `null` | Filters over a type's own declared fields beside the search ([CnRelatedFieldFilters](./cn-related-field-filters.md)): `{ definitions: { register, schema, filter }, related: { schema, backref, definitionKey?, valueKey? } }`. Manifest: `config.relatedFieldFilters`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest: `config.searchPlaceholder`) |
 | `cardsLabel` / `tableLabel` | String | `''` | View-toggle option labels, e.g. "Tiles" / "List" (manifest: `config.cardsLabel` / `config.tableLabel`) |
 | `cardsIcon` / `tableIcon` | String | `''` | MDI icon names for the view-toggle options (manifest: `config.cardsIcon` / `config.tableIcon`) |
@@ -1011,6 +1012,18 @@ export default {
 }
 ```
 
+### A row action that opens a modal
+
+A row action of `type: "open-modal"` opens its `target` (a registry modal, or a built-in such as `CnActionDialog`) through the app root's `cnOpenModal`, with the row as `object` and its key as `objectId`; the action's own `props` win. An entity-sourced list reads its rows again on `cn:page:refresh`, which CnActionDialog signals after it acted, so a confirmed POST on a row is configuration: the dialog posts `confirm.request`, shows the server's refusal sentence when the server refuses, and the list refreshes when it did not. Without an app root the action falls back to emitting `@action`.
+
+```jsonc
+"actions": [
+  { "id": "restore", "label": "Restore", "type": "open-modal", "target": "CnActionDialog",
+    "props": { "config": { "title": "Restore this record?", "reason": { "required": false },
+      "confirm": { "label": "Restore", "request": { "url": "/apps/myapp/api/records/@objectId/restore" } } } } }
+]
+```
+
 ### Registry-name handler
 
 Manifest declaration:
@@ -1330,7 +1343,7 @@ A column object over a `$ref` property can name the field of the referenced obje
 | `showFollowColumn` | Boolean | `false` | Adds a first column with a compact [`CnFollowToggle`](./cn-follow-toggle.md) per row, bound to the row's `@self.watching`. Clicking it does not open the row. |
 | `showFavouriteColumn` | Boolean | `false` | Deprecated alias of `showFollowColumn`. |
 
-The `personalLenses` value `unread` adds the quick filter Unread (`_unread=true`). Rows whose `@self.unread` is true show a [`CnUnreadMarker`](./cn-unread-marker.md) in the first cell and read in bold, with no prop needed.
+The `personalLenses` value `unread` adds the quick filter Unread (`_unread=true`). Rows whose `@self.unread` is true show a [`CnUnreadMarker`](./cn-unread-marker.md) in the first cell and read in bold, with no prop needed. Under the board look only a page offering that lens marks them, as the boards draw every row alike; `showUnreadRows: true` (manifest `config.showUnreadRows`) marks them in every look, for a page whose Unread chip is one of its own quick filters, and `false` never marks them.
 
 ## Shared saved views
 

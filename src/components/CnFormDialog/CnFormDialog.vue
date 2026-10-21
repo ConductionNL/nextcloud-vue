@@ -211,10 +211,62 @@
 
 						<!-- Auto-generated field -->
 						<template v-else>
+							<!-- A party (widget: 'party'): CnPartyPicker over the field's
+							     `sources`; the form stores the chosen row's id only. -->
+							<div v-if="field.widget === 'party'" class="cn-form-dialog__party-wrapper">
+								<CnPartyPicker
+									:modelValue="formData[field.key] != null ? formData[field.key] : null"
+									:sources="field.sources || []"
+									:inputLabel="fieldLabelText(field)"
+									:labelOutside="true"
+									:placeholder="field.placeholder || ''"
+									:clearable="!field.required"
+									:disabled="!!field.readOnly"
+									:data-testid="field.testid || undefined"
+									@update:modelValue="value => updateField(field.key, value)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- A scoped object pick (widget: 'resource'): CnResourceSelect
+							     over `field.resource` ({ register, schema, labelField,
+							     scope }), its scope value token-resolved against the page's
+							     object (`@object.<field>`). -->
+							<div v-else-if="field.widget === 'resource' && field.resource" class="cn-form-dialog__select-wrapper">
+								<CnResourceSelect
+									:inputId="'cn-form-' + field.key"
+									:inputLabel="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									:register="String(field.resource.register || '')"
+									:schema="String(field.resource.schema || '')"
+									:labelField="field.resource.labelField || 'name'"
+									:scope="resourceScope(field)"
+									:failedText="field.resource.failedText ? cnTranslate(field.resource.failedText) : ''"
+									:allowCreate="false"
+									:preload="true"
+									:placeholder="field.placeholder || ''"
+									:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
+									:clearable="!field.required"
+									:disabled="!!field.readOnly"
+									@update:modelValue="value => updateField(field.key, value || null)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
 							<!-- Text / Email / URL. The helper line lives outside the
 							     input (rather than on `helper-text`) so an over-long
 							     description can hang its info popover off it. -->
-							<template v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
+							<template v-else-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
 								<NcTextField
 									:id="fieldControlId(field)"
 									:label="fieldLabelText(field)"
@@ -928,6 +980,7 @@ import CnFormField from '../CnFormField/CnFormField.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import CnPartyPicker from '../CnPartyPicker/CnPartyPicker.vue'
 import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnSearchSelect from '../CnSearchSelect/CnSearchSelect.vue'
@@ -1013,6 +1066,8 @@ const BUILT_IN_WIDGETS = new Set([
 	'icon',
 	'language',
 	'timezone',
+	'party',
+	'resource',
 ])
 
 /** Largest file carried inline in the saved payload; bigger ones upload after save. */
@@ -1221,6 +1276,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		CnJsonViewer,
 		CnIconBrowser,
+		CnPartyPicker,
 		CnResourceSelect,
 		CnFieldHelper,
 		Plus,
@@ -2228,6 +2284,29 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A `resource` field's scope with its `value` token read against the
+		 * page's object: `@object.caseType` on a case's page is that case's type,
+		 * by id when it is a relation. An unreadable token leaves the value
+		 * empty, which offers every row rather than none.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} The scope for CnResourceSelect.
+		 */
+		resourceScope(field) {
+			const scope = field && field.resource && field.resource.scope
+			if (!scope || typeof scope !== 'object' || !scope.field) {
+				return null
+			}
+			const ctx = resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext) || {}
+			let value = typeof scope.value === 'string' ? resolveFilterValue(scope.value, ctx) : scope.value
+			if (value && typeof value === 'object') {
+				value = value.id || (value['@self'] && value['@self'].id) || ''
+			}
+			value = typeof value === 'string' && !value.startsWith('@') ? value : (typeof value === 'number' ? String(value) : '')
+			return { ...scope, value }
+		},
+
 		/**
 		 * Resolve the registered component a field's `widget` names: the v2
 		 * registry (any entry with a `component`) first, then the legacy

@@ -15,13 +15,31 @@
 			:name="resolvedIcon"
 			:size="18"
 			aria-hidden="true" />
-		<p class="cn-notice-widget__text">
-			<strong v-if="resolvedTitle" class="cn-notice-widget__title" data-testid="cn-notice-widget-title">{{ resolvedTitle }}</strong>{{ resolvedTitle && resolvedText ? ' ' : '' }}{{ resolvedText }}
-		</p>
+		<div class="cn-notice-widget__body">
+			<p class="cn-notice-widget__text">
+				<strong v-if="resolvedTitle" class="cn-notice-widget__title" data-testid="cn-notice-widget-title">{{ resolvedTitle }}</strong>{{ resolvedTitle && resolvedText ? ' ' : '' }}{{ resolvedText }}
+			</p>
+			<router-link
+				v-if="resolvedLink && resolvedLink.to && $router"
+				class="cn-notice-widget__link"
+				:to="resolvedLink.to"
+				data-testid="cn-notice-widget-link">
+				{{ resolvedLink.label }}
+			</router-link>
+			<a
+				v-else-if="resolvedLink && resolvedLink.href"
+				class="cn-notice-widget__link"
+				:href="resolvedLink.href"
+				data-testid="cn-notice-widget-link">
+				{{ resolvedLink.label }}
+			</a>
+		</div>
 	</section>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /** The tones a notice takes, and the icon each shows by default. */
@@ -33,6 +51,17 @@ const VARIANT_ICONS = Object.freeze({
 })
 
 /**
+ * @param {unknown} value A token-resolved value.
+ * @return {boolean} Whether it holds a value and no token that failed to resolve.
+ */
+function isResolved(value) {
+	if (typeof value === 'number') {
+		return true
+	}
+	return typeof value === 'string' && value.trim() !== '' && value.charAt(0) !== '@'
+}
+
+/**
  * CnNoticeWidget — a toned notice box: an icon, a bold title and a line of
  * text in one rounded box, as the boards draw a warning beside a record
  * (DqSociaalDomein "Bijzondere persoonsgegevens: gezondheid. Elke inzage
@@ -40,9 +69,14 @@ const VARIANT_ICONS = Object.freeze({
  * body grid and on a dashboard as widget type `notice`; the surface applies
  * the widget's `visibleWhen`.
  *
- * `content`: `{ variant?, title?, text, icon? }`. `variant` is `info`
+ * `content`: `{ variant?, title?, text, icon?, link? }`. `variant` is `info`
  * (default), `warning`, `error` or `success`; `title` and `text` go through
  * the host's translate; `icon` names a CnIcon instead of the variant's own.
+ * `link` adds a link under the text: `{ route, params?, label, fallbackLabel? }`
+ * (a route name) or `{ href, label }`. `@objectId` and `@object.<path>` in
+ * `params` and `label` read the page's record; a link whose params do not
+ * resolve is left out, and a label that does not resolve takes
+ * `fallbackLabel`.
  *
  * ```vue
  * <CnNoticeWidget :content="{ variant: 'warning', title: 'Special category data: health.', text: 'Every view is logged with its purpose.' }" />
@@ -60,13 +94,25 @@ export default {
 
 	props: {
 		/**
-		 * The notice: `{ variant?, title?, text, icon? }`.
+		 * The notice: `{ variant?, title?, text, icon?, link? }`.
 		 *
-		 * @type {{variant?: string, title?: string, text?: string, icon?: string}}
+		 * @type {{variant?: string, title?: string, text?: string, icon?: string, link?: {route?: string, params?: object, href?: string, label?: string, fallbackLabel?: string}}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/** The page's record, for `@object.<path>` in the link. */
+		objectData: {
+			type: Object,
+			default: null,
+		},
+
+		/** The page's record id, for `@objectId` in the link. */
+		objectId: {
+			type: [String, Number],
+			default: '',
 		},
 	},
 
@@ -91,6 +137,34 @@ export default {
 		/** @return {string} The text through the host translate. */
 		resolvedText() {
 			return this.translate(this.content && this.content.text)
+		},
+
+		/**
+		 * The link under the text, with its tokens read from the page's
+		 * record, or null when there is none or its params do not resolve.
+		 *
+		 * @return {{to?: object, href?: string, label: string}|null}
+		 * @spec openspec/changes/notice-link/specs/notice-link/spec.md#requirement-a-notice-can-link-to-a-record
+		 */
+		resolvedLink() {
+			const link = this.content && this.content.link
+			if (!link || typeof link !== 'object') {
+				return null
+			}
+			const resolved = resolveDeepTokens(link, { objectId: this.objectId, object: this.objectData || {} })
+			const label = isResolved(resolved.label) ? this.translate(resolved.label) : ''
+			const fallback = this.translate(link.fallbackLabel) || t('nextcloud-vue', 'Open')
+			if (typeof resolved.route === 'string' && resolved.route !== '') {
+				const params = resolved.params && typeof resolved.params === 'object' ? resolved.params : {}
+				if (!Object.values(params).every(isResolved)) {
+					return null
+				}
+				return { to: { name: resolved.route, params }, label: label || fallback }
+			}
+			if (isResolved(resolved.href)) {
+				return { href: resolved.href, label: label || fallback }
+			}
+			return null
 		},
 	},
 
@@ -140,6 +214,19 @@ export default {
 .cn-notice-widget__icon {
 	flex: 0 0 auto;
 	margin-top: 2px;
+}
+
+.cn-notice-widget__body {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.cn-notice-widget__link {
+	color: var(--color-primary-element-text, var(--color-primary-element));
+	font-weight: 600;
+	text-decoration: underline;
 }
 
 .cn-notice-widget__text {
