@@ -17,7 +17,7 @@
 -->
 <template>
 	<div class="cn-sidebar-tab cn-email-tab">
-		<div class="cn-email-tab__actions">
+		<div v-if="showActions" class="cn-email-tab__actions">
 			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
@@ -163,6 +163,12 @@ export default {
 		composeLabel: { type: String, default: () => t('nextcloud-vue', 'Compose in Mail') },
 		/** Base path for the Mail app (for the compose deep-link). */
 		mailAppPath: { type: String, default: '/index.php/apps/mail' },
+		/**
+		 * Whether the tab draws its own "Link existing email" and "Compose in
+		 * Mail" buttons. Off when a host draws them (CnMailTab
+		 * `headerActions`) and opens the picker through `openPicker()`.
+		 */
+		showActions: { type: Boolean, default: true },
 	},
 
 	data() {

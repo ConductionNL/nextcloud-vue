@@ -254,3 +254,89 @@ describe('a card is a container, and its actions are controls', () => {
 		expect(card.attributes('draggable')).toBe('true')
 	})
 })
+
+describe('a closed column (pl4-board-list-stages)', () => {
+	it('starts collapsed with its count, and shows its cards on request', async () => {
+		const field = { states: [{ key: 'open', label: 'Open' }, { key: 'done', label: 'Done', closed: true }] }
+		const rows = [{ id: 1, status: 'done', title: 'Een' }, { id: 2, status: 'done', title: 'Twee' }, { id: 3, status: 'open', title: 'Drie' }]
+		const wrapper = mountBoard({ rows, statusFieldSchema: field })
+		const done = wrapper.find('[data-column="done"]')
+		expect(done.classes()).toContain('cn-board-view__column--closed')
+		expect(done.findAll('[data-testid="cn-board-card"]')).toHaveLength(0)
+		expect(done.find('[data-testid="cn-board-count"]').text()).toContain('2')
+		await done.find('[data-testid="cn-board-show-more"]').trigger('click')
+		expect(wrapper.find('[data-column="done"]').findAll('[data-testid="cn-board-card"]')).toHaveLength(2)
+		expect(wrapper.find('[data-column="open"]').findAll('[data-testid="cn-board-card"]')).toHaveLength(1)
+	})
+})
+
+describe('card cells (pl4-board-card-cells)', () => {
+	it('draws a card field through the cell renderer its config names, and the rest as text', () => {
+		const rows = [{ id: 1, status: 'open', title: 'Een', priority: 'high', value: 1200 }]
+		const wrapper = mount(CnBoardView, {
+			props: {
+				rows,
+				statusFieldSchema: FIELD,
+				statusField: 'status',
+				cardFields: ['title', 'priority', 'value'],
+				cardCells: { priority: { widget: 'badge', widgetProps: { colorMap: { high: 'warning' } } } },
+			},
+			global: { stubs: { CnCellRenderer: { name: 'CnCellRenderer', props: ['value', 'row', 'widget', 'widgetProps', 'formatter'], template: '<span class="cell">{{ widget }}:{{ value }}</span>' } } },
+		})
+		const card = wrapper.find('[data-testid="cn-board-card"]')
+		const cell = card.findComponent({ name: 'CnCellRenderer' })
+		expect(cell.props()).toMatchObject({ value: 'high', widget: 'badge', widgetProps: { colorMap: { high: 'warning' } } })
+		expect(cell.props('row')).toEqual(rows[0])
+		expect(card.text()).toContain('Een')
+		expect(card.text()).toContain('1200')
+	})
+})
+
+describe('card actions (pl4-board-card-actions)', () => {
+	it('puts the row actions on each card and hands them the card', async () => {
+		const assign = jest.fn()
+		const wrapper = mount(CnBoardView, {
+			props: {
+				rows: ROWS,
+				statusFieldSchema: FIELD,
+				statusField: 'status',
+				cardFields: ['title'],
+				cardActions: [{ id: 'assign', label: 'Assign', handler: assign }],
+			},
+			global: { stubs: { CnRowActions: { name: 'CnRowActions', props: ['actions', 'row', 'rowLabel'], emits: ['action'], template: '<button class="row-actions" @click="actions[0].handler(row); $emit(\'action\', { id: actions[0].id })" />' } } },
+		})
+		const menus = wrapper.findAll('.row-actions')
+		expect(menus).toHaveLength(2)
+		await menus[1].trigger('click')
+		expect(assign).toHaveBeenCalledWith(ROWS[1])
+		expect(wrapper.emitted('card-action')[0][0]).toMatchObject({ id: 'assign' })
+	})
+
+	it('draws no menu without card actions', () => {
+		const wrapper = mountBoard()
+		expect(wrapper.findComponent({ name: 'CnRowActions' }).exists()).toBe(false)
+	})
+})
+
+describe('card cells in the board look (pl4-board-card-cells)', () => {
+	it('draws the cell fields as a line of cells', () => {
+		const rows = [{ id: 1, status: 'open', title: 'Een', priority: 'high', qualificationScore: 72 }]
+		const wrapper = mount(CnBoardView, {
+			props: {
+				rows,
+				statusFieldSchema: FIELD,
+				statusField: 'status',
+				cardFields: ['title', 'priority', 'qualificationScore'],
+				cardCells: { qualificationScore: { widget: 'lead-score' } },
+				cardRoles: { title: 'title' },
+			},
+			global: {
+				provide: { cnLook: 'board' },
+				stubs: { CnCellRenderer: { name: 'CnCellRenderer', props: ['value', 'row', 'widget', 'widgetProps', 'formatter'], template: '<span class="cell">{{ widget }}:{{ value }}</span>' } },
+			},
+		})
+		const cells = wrapper.find('[data-testid="cn-board-card-cells"]').findAllComponents({ name: 'CnCellRenderer' })
+		expect(cells).toHaveLength(1)
+		expect(cells[0].props()).toMatchObject({ widget: 'lead-score', value: 72 })
+	})
+})

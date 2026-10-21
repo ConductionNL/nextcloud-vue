@@ -255,7 +255,16 @@
 
 /* Save view: a ghost button, 34px, radius 17, no border, on the light primary
    tint, a 14px icon 6px before the label, on one line. The label is a span,
-   so its ink also goes to --nldesign-color-on-surface. */
+   so its ink also goes to --nldesign-color-on-surface. The tint is read on
+   the wrapper: the control is a tertiary NcButton, and a theme may point
+   --color-primary-element-light at a tertiary's pressed ground on the button
+   itself (thematiq draws #dce6f2 where DqZaken draws #eaf0f7).
+   @spec openspec/changes/board-save-view-ground/specs/board-save-view-ground/spec.md#requirement-save-view-draws-on-the-pages-light-primary */
+.cn-look-board .cn-saved-views__save {
+	--cn-save-view-ground: var(--color-primary-element-light);
+	--cn-save-view-ground-hover: var(--color-primary-element-light-hover);
+}
+
 .cn-look-board .cn-saved-views__save .button-vue {
 	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	min-height: 34px;
@@ -263,7 +272,7 @@
 	padding: 0 12px;
 	border: 0;
 	border-radius: 17px;
-	background: var(--color-primary-element-light);
+	background: var(--cn-save-view-ground);
 	color: var(--color-primary-element-light-text);
 	font-size: 13px;
 	font-weight: 600;
@@ -271,7 +280,7 @@
 }
 
 .cn-look-board .cn-saved-views__save .button-vue:hover {
-	background: var(--color-primary-element-light-hover);
+	background: var(--cn-save-view-ground-hover);
 }
 
 .cn-look-board .cn-saved-views__save .button-vue .button-vue__wrapper {

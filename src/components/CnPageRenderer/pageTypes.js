@@ -87,3 +87,18 @@ export const defaultPageTypes = {
 	flows: defineAsyncComponent(() => import('../CnFlowsPage/CnFlowsPage.vue').then((m) => m.default)),
 	'flow-detail': defineAsyncComponent(() => import('../CnFlowsPage/CnFlowEditorPage.vue').then((m) => m.default)),
 }
+
+const flowSidebar = defineAsyncComponent(() => import('../CnFlowDetail/CnFlowSidebar.vue').then((m) => m.default))
+
+/**
+ * The app-sidebar component a page type mounts when its page names no
+ * `sidebarComponent`. A flow page's controls (name, description, trigger,
+ * steps) live in CnFlowSidebar, so every flow page gets it.
+ *
+ * @type {Record<string, object>}
+ * @spec openspec/changes/pl4-roadmap-flow/specs/pl4-roadmap-flow/spec.md#requirement-a-flow-page-mounts-the-flow-sidebar-by-default
+ */
+export const defaultPageSidebars = {
+	flow: flowSidebar,
+	'flow-detail': flowSidebar,
+}

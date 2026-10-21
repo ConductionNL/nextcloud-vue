@@ -35,14 +35,46 @@
 				@change="$emit('change', $event)" />
 		</template>
 
-		<p v-if="!isBar && label && style !== 'chips' && style !== 'toggle'" class="cn-workspace-filter-widget__label">
+		<!-- An input with a load button (`style: "input"`): the value goes to
+		     the workspace only when it is loaded, and only when it is valid. -->
+		<form
+			v-if="!isBar && style === 'input'"
+			class="cn-workspace-filter-widget__form"
+			novalidate
+			data-testid="cn-workspace-filter-form"
+			@submit.prevent="submitInput">
+			<div class="cn-workspace-filter-widget__field">
+				<label :for="inputId" class="cn-workspace-filter-widget__field-label">{{ tr(label) }}</label>
+				<input
+					:id="inputId"
+					v-model="draft"
+					class="cn-workspace-filter-widget__input"
+					type="text"
+					:inputmode="inputType === 'year' ? 'numeric' : 'text'"
+					:aria-invalid="inputError ? 'true' : 'false'"
+					:aria-describedby="inputError ? `${inputId}-error` : undefined"
+					data-testid="cn-workspace-filter-input">
+				<p
+					v-if="inputError"
+					:id="`${inputId}-error`"
+					class="cn-workspace-filter-widget__input-error"
+					data-testid="cn-workspace-filter-input-error">
+					{{ inputError }}
+				</p>
+			</div>
+			<NcButton type="submit" variant="primary" data-testid="cn-workspace-filter-submit">
+				{{ tr(content.submitLabel || '') || loadLabel }}
+			</NcButton>
+		</form>
+
+		<p v-if="!isBar && label && style !== 'chips' && style !== 'toggle' && style !== 'input'" class="cn-workspace-filter-widget__label">
 			{{ tr(label) }}
 		</p>
 
 		<!-- An object picker (`objectSource`): searches OpenRegister on the
 		     server, so it reaches every object, not a fetched page. -->
 		<CnResourceSelect
-			v-if="!isBar && objectSource"
+			v-if="!isBar && style !== 'input' && objectSource"
 			class="cn-workspace-filter-widget__control"
 			:register="objectSource.register"
 			:schema="objectSource.schema"
@@ -56,7 +88,7 @@
 			data-testid="cn-workspace-filter-object"
 			@update:modelValue="applySelection($event || '')" />
 
-		<div v-else-if="loading" class="cn-workspace-filter-widget__status">
+		<div v-else-if="loading && style !== 'input'" class="cn-workspace-filter-widget__status">
 			{{ loadingLabel }}
 		</div>
 
@@ -98,7 +130,7 @@
 			@update:modelValue="onSelect" />
 
 		<!-- Radio-list style (default) -->
-		<ul v-else-if="!isBar"
+		<ul v-else-if="!isBar && style !== 'input'"
 			class="cn-workspace-filter-widget__list"
 			role="radiogroup"
 			:aria-label="tr(label) || writeKey">
@@ -136,11 +168,12 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { quarterKey } from '../../utils/periodOptions.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
@@ -181,7 +214,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 export default {
 	name: 'CnWorkspaceFilterWidget',
 
-	components: { CnResourceSelect, CnSegmentedControl, NcSelect, NcCheckboxRadioSwitch },
+	components: { CnResourceSelect, CnSegmentedControl, NcButton, NcSelect, NcCheckboxRadioSwitch },
 
 	inject: {
 		/**
@@ -219,7 +252,13 @@ export default {
 		 * with `controls` draws several controls side by side in one row, and
 		 * `align: "end"` pushes a control to the right edge.
 		 *
-		 * @type {{label?: string, controls?: Array<object>, onValue?: unknown, offValue?: unknown, align?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
+		 * Input (workspace-filter-input): `style: "input"` draws a labelled text
+		 * field and a load button (`submitLabel`). The value is written only
+		 * when it is loaded and only when valid: `inputType: "quarter"` reads
+		 * `YYYY-Qn` and `"year"` reads `YYYY`, both seeded with the current one;
+		 * any other input takes a `pattern` (a regular expression) if given.
+		 *
+		 * @type {{label?: string, submitLabel?: string, inputType?: string, pattern?: string, controls?: Array<object>, onValue?: unknown, offValue?: unknown, align?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
 		 */
 		content: {
 			type: Object,
@@ -231,6 +270,10 @@ export default {
 
 	data() {
 		return {
+			/** The input's text before it is loaded (`style: "input"`). */
+			draft: '',
+			/** Why the input's text was refused, or ''. */
+			inputError: '',
 			/** Fetched options (from source / endpointSource); static options use content.options directly. */
 			fetchedOptions: null,
 			/** True while options are being fetched. */
@@ -294,7 +337,7 @@ export default {
 
 		/** Choice style: 'chips', 'select' or 'radio' (default). */
 		style() {
-			return ['select', 'chips', 'toggle'].includes(this.content.style) ? this.content.style : 'radio'
+			return ['select', 'chips', 'toggle', 'input'].includes(this.content.style) ? this.content.style : 'radio'
 		},
 
 		/**
@@ -364,6 +407,45 @@ export default {
 		/** Whether to render per-option counts. */
 		showCounts() {
 			return this.content.showCounts !== false
+		},
+
+		/**
+		 * What an input reads: `quarter`, `year` or `text`.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workspace-filter-input/specs/workspace-filter-input/spec.md#requirement-a-workspace-filter-can-be-an-input-loaded-by-a-button
+		 */
+		inputType() {
+			return ['quarter', 'year'].includes(this.content.inputType) ? this.content.inputType : 'text'
+		},
+
+		/**
+		 * The form an input's text must have, or null for any.
+		 *
+		 * @return {RegExp|null}
+		 */
+		inputPattern() {
+			if (this.inputType === 'quarter') {
+				return /^\d{4}-Q[1-4]$/
+			}
+			if (this.inputType === 'year') {
+				return /^\d{4}$/
+			}
+			try {
+				return this.content.pattern ? new RegExp(this.content.pattern) : null
+			} catch {
+				return null
+			}
+		},
+
+		/** The input's id, unique per key. */
+		inputId() {
+			return `cn-wsf-input-${this.writeKey || 'value'}`
+		},
+
+		/** The load button's label when the content names none. */
+		loadLabel() {
+			return t('nextcloud-vue', 'Load')
 		},
 
 		/** The bare workspace key the selection writes (strips a `@workspace.` / `@page.` prefix). */
@@ -453,6 +535,15 @@ export default {
 		// loaded (handled in loadOptions).
 		const fromAddress = this.readAddress()
 		const existing = this.readWorkspace()
+		if (this.style === 'input') {
+			const seed = existing !== undefined && existing !== null && existing !== '' ? String(existing) : this.inputDefault()
+			this.draft = seed
+			this.selected = seed
+			if (seed !== '' && seed !== existing) {
+				this.writeWorkspace(seed)
+			}
+			return
+		}
 		if (fromAddress !== undefined) {
 			this.selected = fromAddress
 			this.writeWorkspace(fromAddress)
@@ -764,6 +855,42 @@ export default {
 		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
+		/**
+		 * The value an input starts with: `content.default`, else the current
+		 * quarter or year for those types, else empty.
+		 *
+		 * @return {string}
+		 */
+		inputDefault() {
+			if (this.content.default !== undefined && this.content.default !== null) {
+				return String(this.content.default)
+			}
+			const today = new Date()
+			if (this.inputType === 'quarter') {
+				return quarterKey(today)
+			}
+			return this.inputType === 'year' ? String(today.getFullYear()) : ''
+		},
+
+		/**
+		 * Load the input's text into the workspace, or say why it is refused.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/workspace-filter-input/specs/workspace-filter-input/spec.md#requirement-a-workspace-filter-can-be-an-input-loaded-by-a-button
+		 */
+		submitInput() {
+			const value = String(this.draft || '').trim()
+			const pattern = this.inputPattern
+			if (value === '' || (pattern && !pattern.test(value))) {
+				this.inputError = this.inputType === 'quarter'
+					? t('nextcloud-vue', 'Enter a quarter as YYYY-Qn, for example 2026-Q3.')
+					: (this.inputType === 'year' ? t('nextcloud-vue', 'Enter a year as four digits, for example 2026.') : t('nextcloud-vue', 'This value has the wrong form.'))
+				return
+			}
+			this.inputError = ''
+			this.applySelection(value)
+		},
+
 		applySelection(value) {
 			this.selected = value
 			this.writeWorkspace(value)
@@ -828,6 +955,47 @@ export default {
 </script>
 
 <style scoped>
+.cn-workspace-filter-widget__form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 12px 16px;
+}
+
+.cn-workspace-filter-widget__field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-workspace-filter-widget__field-label {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-workspace-filter-widget__input {
+	box-sizing: border-box;
+	min-height: var(--default-clickable-area, 34px);
+	margin: 0;
+	padding: 0 12px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font: inherit;
+}
+
+.cn-workspace-filter-widget__input[aria-invalid='true'] {
+	border-color: var(--color-error);
+}
+
+.cn-workspace-filter-widget__input-error {
+	margin: 0;
+	color: var(--color-error-text, var(--color-error));
+	font-size: 13px;
+}
+
 .cn-workspace-filter-widget {
 	display: flex;
 	flex-direction: column;

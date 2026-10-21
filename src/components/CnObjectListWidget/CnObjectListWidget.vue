@@ -256,6 +256,25 @@
 			data-testid="cn-object-list-widget-footnote">
 			{{ resolvedFootnote }}
 		</p>
+		<!-- `content.footerLinks`: a row of links under the list, each with
+		     an optional muted note ("Objecttypen beheren (alleen voor
+		     beheerders)"). -->
+		<div
+			v-if="footerLinks.length > 0 && !waitingForContext && !error"
+			class="cn-object-list-widget__links"
+			data-testid="cn-object-list-widget-links">
+			<span v-for="link in footerLinks" :key="link.key" class="cn-object-list-widget__link-item">
+				<a
+					class="cn-object-list-widget__link"
+					:href="link.href"
+					data-testid="cn-object-list-widget-link"
+					@click="onFooterLink($event, link)">{{ link.label }}</a>
+				<span
+					v-if="link.note"
+					class="cn-object-list-widget__link-note"
+					data-testid="cn-object-list-widget-link-note">{{ link.note }}</span>
+			</span>
+		</div>
 		<!-- Why the declared create action is withheld on this record
 		     (`content.createAction.hiddenNote`). -->
 		<p
@@ -496,6 +515,8 @@ export default {
 
 	data() {
 		return {
+			/** The current user's groups once a `footerLinks` entry with `group` asked for them; null before. */
+			footerGroups: null,
 			/** What the last reorder did, for the live region: the new place, or the server's refusal. */
 			reorderStatus: '',
 			rows: [],
@@ -702,9 +723,29 @@ export default {
 				const title = prop && typeof prop.title === 'string' ? prop.title.trim() : ''
 				return title !== '' ? title : key
 			}
+			// CnDataTable gets no `:schema` here, so a column takes the
+			// schema property's `format` and enum (with its labels) itself,
+			// unless it says its own or draws a widget or formatter.
+			const withSchemaPresentation = (out) => {
+				const prop = props[out.key]
+				if (!prop || out.widget !== undefined || out.formatter !== undefined) {
+					return out
+				}
+				if (out.format === undefined && typeof prop.format === 'string' && prop.format !== '') {
+					out.format = prop.format
+				}
+				if (out.enum === undefined && Array.isArray(prop.enum) && prop.enum.length > 0) {
+					out.enum = prop.enum
+					const labels = prop.enumLabels || prop['x-enum-labels']
+					if (out.enumLabels === undefined && labels && typeof labels === 'object') {
+						out.enumLabels = labels
+					}
+				}
+				return out
+			}
 			const mapped = cols.map((c) => {
 				if (typeof c === 'string') {
-					return { key: c, label: headingFor(c) }
+					return withSchemaPresentation({ key: c, label: headingFor(c) })
 				}
 				const out = { key: c.key, label: c.label || headingFor(c.key) }
 				// `secondary` (a second, muted line under the cell) rides
@@ -715,6 +756,7 @@ export default {
 						out[k] = c[k]
 					}
 				}
+				withSchemaPresentation(out)
 				// `content.sortable` (bool = every column, array = the listed
 				// keys) fills in `sortable` for a column that did not already
 				// say so on its own definition — an explicit `sortable: false`
@@ -1001,6 +1043,45 @@ export default {
 		resolvedEmptyText() {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 			return this.emptyText ? fn(this.emptyText) : this.emptyText
+		},
+
+		/**
+		 * `content.footerLinks` (`[{ label, route?, query?, href?, note?, group? }]`)
+		 * ready to draw: labels and notes through the host translate, a `route`
+		 * with its token-resolved `query` as a router location and its href, an
+		 * `href` as given. A link with `group` shows only to that group's
+		 * members, and not before the groups are known.
+		 *
+		 * @spec openspec/changes/object-list-footer-links/specs/object-list/spec.md#requirement-an-object-list-can-end-with-a-row-of-links
+		 * @return {Array<{key: string, label: string, note: string, href: string, location: object|null}>}
+		 */
+		footerLinks() {
+			const links = Array.isArray(this.content.footerLinks) ? this.content.footerLinks : []
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			const out = []
+			links.forEach((link, index) => {
+				if (!link || typeof link.label !== 'string' || link.label === '') {
+					return
+				}
+				if (typeof link.group === 'string' && link.group !== '' && !(this.footerGroups || []).includes(link.group)) {
+					return
+				}
+				const location = typeof link.route === 'string' && link.route !== ''
+					? { name: link.route, query: resolveFilterTokens(link.query || {}, this.tokenCtx) }
+					: null
+				const href = location ? resolveHref(location, this.$router) : (typeof link.href === 'string' ? link.href : '')
+				if (!location && href === '') {
+					return
+				}
+				out.push({
+					key: `link-${index}`,
+					label: fn(link.label),
+					note: typeof link.note === 'string' && link.note !== '' ? fn(link.note) : '',
+					href,
+					location,
+				})
+			})
+			return out
 		},
 
 		/**
@@ -1353,6 +1434,7 @@ export default {
 		this.fetchRows()
 		this.loadHeadingsIfNeeded()
 		this.offerExport()
+		this.loadFooterGroups()
 		// A table wider than the widget fits its columns to the width instead of
 		// scrolling sideways (no inner scrollbars).
 		if (typeof ResizeObserver !== 'undefined') {
@@ -1686,6 +1768,7 @@ export default {
 		 */
 		forgetCreateSchema() {
 			this.createSchema = null
+			this.schemaRequest = null
 			this.showCreate = false
 			this.editingRow = null
 		},
@@ -1814,7 +1897,9 @@ export default {
 		 *
 		 * Two readers share it: the create dialog builds its form from the
 		 * properties, and `resolvedColumns` reads each property's `title` to
-		 * label a column the manifest gave only a key for.
+		 * label a column the manifest gave only a key for. A request in flight
+		 * for the same register and schema is shared, and an answer for a list
+		 * that has since been retargeted is dropped.
 		 *
 		 * @return {Promise<void>}
 		 */
@@ -1823,7 +1908,31 @@ export default {
 			if (this.createSchema || !c.schema) {
 				return
 			}
+			const key = `${c.register || ''}/${c.schema}`
+			if (this.schemaRequest && this.schemaRequest.key === key) {
+				return this.schemaRequest.promise
+			}
+			const promise = this.fetchSchema(c)
+			this.schemaRequest = { key, promise }
+			try {
+				const schema = await promise
+				if (this.schemaRequest && this.schemaRequest.promise === promise) {
+					this.createSchema = schema
+				}
+			} finally {
+				if (this.schemaRequest && this.schemaRequest.promise === promise) {
+					this.schemaRequest = null
+				}
+			}
+		},
 
+		/**
+		 * Read a list's schema definition from OpenRegister.
+		 *
+		 * @param {object} c The list config (`register`, `schema`).
+		 * @return {Promise<object|null>} The schema, or null.
+		 */
+		async fetchSchema(c) {
 			const [{ default: axios }, { generateUrl }] = await Promise.all([
 				import('@nextcloud/axios'),
 				import('@nextcloud/router'),
@@ -1839,15 +1948,18 @@ export default {
 			const url = generateUrl('/apps/openregister/api/schemas/{sch}', { sch: c.schema })
 			const params = c.register ? { register: c.register } : undefined
 			const res = await axios.get(url, params ? { params } : undefined)
-			this.createSchema = (res && res.data) || null
+			return (res && res.data) || null
 		},
 
 		/**
-		 * Load the schema when, and only when, a column heading needs it.
+		 * Load the schema when, and only when, a column needs it: for its
+		 * heading (no `label`), or for its presentation (a top-level key
+		 * without its own `format`, `enum`, `widget` or `formatter`, which
+		 * takes the property's format and enum labels).
 		 *
-		 * A widget whose every column carries its own `label` never makes this
-		 * request. One that gave bare keys does, because the alternative is
-		 * printing the key at the user.
+		 * A widget whose every column says its label and presentation, or
+		 * reads a dotted path the list's schema does not hold, never makes
+		 * this request.
 		 *
 		 * Failure is deliberately silent: an unreachable schema costs the nicer
 		 * heading, and the column still renders under its key. It must never
@@ -1857,8 +1969,11 @@ export default {
 		 */
 		async loadHeadingsIfNeeded() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
-			const needsHeadings = cols.some((c) => (typeof c === 'string') || !c.label)
-			if (needsHeadings === false) {
+			const needsSchema = cols.some((c) => (typeof c === 'string')
+				|| !c.label
+				|| (typeof c.key === 'string' && !c.key.includes('.') && !c.key.startsWith('@')
+					&& c.format === undefined && c.enum === undefined && c.widget === undefined && c.formatter === undefined))
+			if (needsSchema === false) {
 				return
 			}
 
@@ -1930,6 +2045,33 @@ export default {
 			}
 			this.page = target
 			this.fetchRows()
+		},
+
+		/**
+		 * Load the current user's groups when a `footerLinks` entry names one.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadFooterGroups() {
+			const links = Array.isArray(this.content.footerLinks) ? this.content.footerLinks : []
+			if (this.footerGroups !== null || !links.some((link) => link && typeof link.group === 'string' && link.group !== '')) {
+				return
+			}
+			this.footerGroups = await getCurrentUserGroups().catch(() => [])
+		},
+
+		/**
+		 * A footer link click: a route link goes through the router (a
+		 * modified click is left to the browser), an `href` is a plain link.
+		 *
+		 * @param {MouseEvent} event The click event.
+		 * @param {{location: object|null}} link The link.
+		 * @return {void}
+		 */
+		onFooterLink(event, link) {
+			if (link.location) {
+				followLinkClick(event, link.location, this.$router)
+			}
 		},
 
 		/**
@@ -2404,6 +2546,24 @@ export default {
 	font-size: 0.85em;
 	margin: 4px 0 0;
 	padding: 4px;
+}
+
+.cn-object-list-widget__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	margin: 12px 0 0;
+	font-size: 14px;
+}
+
+.cn-object-list-widget__link {
+	font-weight: 600;
+}
+
+.cn-object-list-widget__link-note {
+	margin-inline-start: 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-object-list-widget__footnote {

@@ -95,12 +95,13 @@ describe('CnObjectListWidget — column headings', () => {
 	})
 
 	/*
-	 * The request is the cost of this feature, so it is only paid when a
-	 * heading is actually missing. A fully-labelled widget must not make it.
+	 * The request is the cost of this feature, so it is only paid when the
+	 * schema has something to add: a heading, or a column's format and enum
+	 * labels. A widget whose columns say both must not make it.
 	 */
-	it('does not fetch a schema when every column already carries a label', async () => {
+	it('does not fetch a schema when every column carries its label and presentation', async () => {
 		const w = mountWidget({
-			content: { register: 'r', schema: 'repair', columns: [{ key: 'bike', label: 'Bike' }] },
+			content: { register: 'r', schema: 'repair', columns: [{ key: 'bike', label: 'Bike', widget: 'badge' }, { key: 'informatieobject.title', label: 'Document' }] },
 		})
 		let fetched = false
 		w.vm.ensureSchema = async () => {

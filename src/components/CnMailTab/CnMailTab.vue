@@ -14,12 +14,41 @@
 		</CnEmptyContent>
 
 		<template v-else>
-			<h3 v-if="heading" class="cn-mail-tab__title">
-				{{ heading }}
-			</h3>
-			<p v-if="description" class="cn-mail-tab__subtitle">
-				{{ description }}
-			</p>
+			<div v-if="heading || description || hasHeaderActions" class="cn-mail-tab__header" data-testid="cn-mail-tab-header">
+				<div class="cn-mail-tab__heading">
+					<h3 v-if="heading" class="cn-mail-tab__title">
+						{{ heading }}
+					</h3>
+					<p v-if="description" class="cn-mail-tab__subtitle">
+						{{ description }}
+					</p>
+				</div>
+				<div v-if="hasHeaderActions" class="cn-mail-tab__header-actions">
+					<NcButton
+						v-if="showLinkAction"
+						variant="secondary"
+						data-testid="cn-mail-tab-header-link"
+						@click="openLinkPicker">
+						<template #icon>
+							<LinkVariant :size="18" />
+						</template>
+						{{ t('nextcloud-vue', 'Link mail') }}
+					</NcButton>
+					<NcButton
+						v-if="showComposeAction"
+						variant="primary"
+						:disabled="draftEnabled && (closed || drafting)"
+						:href="draftEnabled ? undefined : composeUrl"
+						:target="draftEnabled ? undefined : '_blank'"
+						data-testid="cn-mail-tab-header-compose"
+						@click="onCompose">
+						<template #icon>
+							<EmailEditOutline :size="18" />
+						</template>
+						{{ t('nextcloud-vue', 'Compose mail') }}
+					</NcButton>
+				</div>
+			</div>
 
 			<div v-if="draftEnabled" class="cn-mail-tab__template-row" data-testid="cn-mail-tab-template-row">
 				<NcSelect
@@ -41,6 +70,7 @@
 					{{ t('nextcloud-vue', 'Open draft from template') }}
 				</NcButton>
 				<NcButton
+					v-if="!showComposeAction"
 					:disabled="closed || drafting"
 					data-testid="cn-mail-tab-draft-blank"
 					@click="draftBlank">
@@ -73,7 +103,9 @@
 
 			<CnEmailTab
 				v-if="linkedMail && objectKey"
+				ref="linkedMail"
 				class="cn-mail-tab__linked"
+				:showActions="!hasHeaderActions"
 				:objectId="objectKey"
 				:register="registerKey"
 				:schema="schemaKey" />
@@ -84,11 +116,16 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import EmailEditOutline from 'vue-material-design-icons/EmailEditOutline.vue'
 import EmailOffOutline from 'vue-material-design-icons/EmailOffOutline.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import CnEmailTab from '../../integrations/builtin/email/CnEmailTab.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import { fetchEndpointSource, interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
+
+/** The actions `content.headerActions` can put in the tab's header. */
+const HEADER_ACTIONS = ['compose', 'link']
 
 /**
  * Read a reference that may be a slug, an id or an object carrying either.
@@ -127,7 +164,8 @@ function keyOf(value) {
  *     "noTemplatesText": "No templates for this type yet",
  *     "draft": { "url": "/apps/app/api/records/@objectId/templates/{templateId}/draft", "blankTemplateId": "blank" },
  *     "closedWhen": { "field": "endDate", "op": "notEmpty" },
- *     "linkedMail": true
+ *     "linkedMail": true,
+ *     "headerActions": ["link", "compose"]
  *   }
  * }
  * ```
@@ -138,7 +176,11 @@ function keyOf(value) {
  * the empty draft only; without `draft` there is no row. `closedWhen` is a
  * local visibleWhen condition on the record that disables drafting.
  * `linkedMail: false` leaves the linked mail to a separate `email`
- * integration card. Texts go through the host's translate.
+ * integration card. `headerActions` puts buttons beside the heading:
+ * `compose` opens the empty draft (or Nextcloud Mail's composer when there
+ * is no `draft`) and replaces the row's empty-draft button; `link` opens the
+ * linked mail's picker and needs the linked mail. The linked mail then drops
+ * its own buttons. Texts go through the host's translate.
  */
 export default {
 	name: 'CnMailTab',
@@ -146,7 +188,9 @@ export default {
 	components: {
 		CnEmailTab,
 		CnEmptyContent,
+		EmailEditOutline,
 		EmailOffOutline,
+		LinkVariant,
 		NcButton,
 		NcNoteCard,
 		NcSelect,
@@ -162,7 +206,7 @@ export default {
 	props: {
 		/**
 		 * The widget config: `{ heading?, description?, hint?, templates?,
-		 * noTemplatesText?, draft?, closedWhen?, linkedMail? }`, as in the
+		 * noTemplatesText?, draft?, closedWhen?, linkedMail?, headerActions? }`, as in the
 		 * component description and docs/components/cn-mail-tab.md.
 		 *
 		 * @type {object}
@@ -314,6 +358,39 @@ export default {
 		linkedMail() {
 			return this.content.linkedMail !== false
 		},
+
+		/**
+		 * The known header actions the config asks for.
+		 *
+		 * @return {string[]} `compose` and or `link`.
+		 * @spec openspec/changes/mail-tab-compose-and-link/specs/mail-tab-compose-and-link/spec.md#requirement-the-mail-tab-can-carry-compose-mail-and-link-mail-in-its-header
+		 */
+		headerActions() {
+			const list = Array.isArray(this.content.headerActions) ? this.content.headerActions : []
+			return list.filter((key) => HEADER_ACTIONS.includes(key))
+		},
+
+		/** @return {boolean} Whether the header shows "Compose mail". */
+		showComposeAction() {
+			return this.headerActions.includes('compose')
+		},
+
+		/** @return {boolean} Whether the header shows "Link mail": it opens the linked mail's picker. */
+		showLinkAction() {
+			return this.headerActions.includes('link') && this.linkedMail && this.objectKey !== ''
+		},
+
+		/** @return {boolean} Whether the header holds any button. */
+		hasHeaderActions() {
+			return this.showComposeAction || this.showLinkAction
+		},
+
+		/** @return {string} Nextcloud Mail's composer, for an app without a draft endpoint. */
+		composeUrl() {
+			return (typeof OC !== 'undefined' && typeof OC.generateUrl === 'function')
+				? OC.generateUrl('/apps/mail/box/draft')
+				: '/index.php/apps/mail/box/draft'
+		},
 	},
 
 	watch: {
@@ -365,6 +442,29 @@ export default {
 		/** @return {Promise<void>} */
 		draftFromTemplate() {
 			return this.openDraft(this.selectedTemplate)
+		},
+
+		/**
+		 * "Compose mail": the empty draft through the app's endpoint. Without
+		 * one the button is a link to Mail's composer and needs no handler.
+		 *
+		 * @return {Promise<void>|undefined}
+		 */
+		onCompose() {
+			return this.draftEnabled ? this.draftBlank() : undefined
+		},
+
+		/**
+		 * "Link mail": the linked mail's picker, which links the chosen
+		 * message to the record through its own endpoint.
+		 *
+		 * @return {void}
+		 */
+		openLinkPicker() {
+			const linked = this.$refs.linkedMail
+			if (linked && typeof linked.openPicker === 'function') {
+				linked.openPicker()
+			}
 		},
 
 		/** @return {Promise<void>} */
@@ -438,6 +538,29 @@ export default {
 	flex-direction: column;
 	gap: 16px;
 	padding: 12px;
+}
+
+.cn-mail-tab__header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px 16px;
+}
+
+.cn-mail-tab__heading {
+	display: flex;
+	flex: 1 1 260px;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+
+.cn-mail-tab__header-actions {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .cn-mail-tab__title {

@@ -151,4 +151,74 @@ describe('CnMailTab', () => {
 		expect(wrapper.find('.linked-mail-stub').exists()).toBe(true)
 		wrapper.unmount()
 	})
+
+	describe('header actions', () => {
+		const openPicker = jest.fn()
+		const LINKED_STUB = { name: 'CnEmailTab', props: ['objectId', 'register', 'schema', 'showActions'], template: '<div class="linked-mail-stub" />', methods: { openPicker } }
+
+		/**
+		 * Mount the tab with header actions and the linked mail.
+		 *
+		 * @param {object} content The widget content.
+		 * @return {object} The wrapper.
+		 */
+		function mountWithActions(content) {
+			return mount(CnMailTab, {
+				propsData: { content, objectId: 'c1', objectData: { id: 'c1', caseType: 't1' }, register: 'app', schema: 'case' },
+				global: { stubs: { CnEmailTab: LINKED_STUB } },
+			})
+		}
+
+		beforeEach(() => openPicker.mockReset())
+
+		it('draws "Link mail" and "Compose mail" in the header and drops the row\'s empty draft', async () => {
+			const wrapper = mountWithActions({ heading: 'Email', draft: CONTENT.draft, headerActions: ['compose', 'link'] })
+			await flushPromises()
+			const header = wrapper.find('[data-testid="cn-mail-tab-header"]')
+			expect(header.find('.cn-mail-tab__title').text()).toBe('Email')
+			expect(header.find('[data-testid="cn-mail-tab-header-link"]').text()).toBe('Link mail')
+			expect(header.find('[data-testid="cn-mail-tab-header-compose"]').text()).toBe('Compose mail')
+			expect(wrapper.find('[data-testid="cn-mail-tab-draft-blank"]').exists()).toBe(false)
+			expect(wrapper.findComponent({ name: 'CnEmailTab' }).props('showActions')).toBe(false)
+			wrapper.unmount()
+		})
+
+		it('opens the empty draft from "Compose mail"', async () => {
+			mockPost.mockResolvedValue({ data: {} })
+			const wrapper = mountWithActions({ draft: CONTENT.draft, headerActions: ['compose'] })
+			await flushPromises()
+			await wrapper.find('[data-testid="cn-mail-tab-header-compose"]').trigger('click')
+			await flushPromises()
+			expect(mockPost).toHaveBeenCalledWith('/index.php/apps/app/api/cases/c1/email-templates/blank/draft', {})
+			wrapper.unmount()
+		})
+
+		it('opens the linked mail\'s picker from "Link mail"', async () => {
+			const wrapper = mountWithActions({ headerActions: ['link'] })
+			await flushPromises()
+			await wrapper.find('[data-testid="cn-mail-tab-header-link"]').trigger('click')
+			expect(openPicker).toHaveBeenCalledTimes(1)
+			wrapper.unmount()
+		})
+
+		it('composes in Mail when the app has no draft endpoint', async () => {
+			const wrapper = mountWithActions({ headerActions: ['compose'] })
+			await flushPromises()
+			expect(wrapper.find('[data-testid="cn-mail-tab-header-compose"]').attributes('href')).toContain('/apps/mail/box/draft')
+			wrapper.unmount()
+		})
+
+		it('offers no "Link mail" without the linked mail, and no header without actions', async () => {
+			const linkless = mountWithActions({ headerActions: ['link'], linkedMail: false })
+			await flushPromises()
+			expect(linkless.find('[data-testid="cn-mail-tab-header-link"]').exists()).toBe(false)
+			linkless.unmount()
+			const plain = mountWithActions({ draft: CONTENT.draft })
+			await flushPromises()
+			expect(plain.find('[data-testid="cn-mail-tab-header-compose"]').exists()).toBe(false)
+			expect(plain.find('[data-testid="cn-mail-tab-draft-blank"]').exists()).toBe(true)
+			expect(plain.findComponent({ name: 'CnEmailTab' }).props('showActions')).toBe(true)
+			plain.unmount()
+		})
+	})
 })

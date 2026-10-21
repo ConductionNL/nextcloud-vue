@@ -22,6 +22,8 @@ One settings field: the control for its type with its label, and under it an err
 | `select`, `enum` | NcSelect with `inputLabel`; static `options`, or `optionsUrl` with `optionsPath`, `optionLabel`, `optionValue` and `optionDetail` (a value in brackets after the label) |
 | `radio` | A fieldset named by the label with one NcCheckboxRadioSwitch radio per option; an option's `description` is a line under it |
 | `lines` | NcTextArea, one entry per line (the host turns the list into lines and back) |
+| `checkboxes` | A fieldset named by the label with one NcCheckboxRadioSwitch checkbox per option; the value is the list of checked values in option order. A `select` with `multiple: true` is an NcSelect that takes several values, the value again a list |
+| `pairs` | A fieldset named by the label with one row per `{ key, value }` entry of the value: a key input (`keyLabel`, `keyMaxLength`), a value input (`valueLabel`, `valueType: 'number'`) and a remove button named after the key; an add button (`addLabel`) under the rows |
 | `heading` | The label as a subheading; holds no value |
 | `status` | A read-only NcNoteCard with the host's `text` in its `tone`; holds no value |
 | `action` | A button with the label, emitting `action`; the host passes `actionBusy` and `actionResult` (`{ type, text }`, drawn as a note under it) |

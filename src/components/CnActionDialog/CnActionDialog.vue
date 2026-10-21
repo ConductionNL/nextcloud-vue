@@ -74,6 +74,13 @@
 					:inputLabel="text(field.label) || field.field"
 					:clearable="field.required === false"
 					@update:modelValue="(option) => pick(field, option)" />
+				<NcTextField v-else-if="field.type === 'secret'"
+					:modelValue="values[field.field] || ''"
+					type="password"
+					autocomplete="new-password"
+					:label="text(field.label) || field.field"
+					:placeholder="secretStored(field) ? t('nextcloud-vue', 'Stored. Type a new value to replace it.') : ''"
+					@update:modelValue="(value) => setValue(field.field, value)" />
 				<NcTextField v-else
 					:modelValue="values[field.field] || ''"
 					:type="field.type === 'datetime' ? 'datetime-local' : (field.type === 'date' ? 'date' : 'text')"
@@ -367,7 +374,17 @@ export default {
 		 * @return {boolean}
 		 */
 		fieldsFilled() {
-			return this.fields.every((f) => f.required === false || String(this.values[f.field] ?? '').trim() !== '')
+			return this.fields.every((f) => f.required === false || this.secretStored(f) || String(this.values[f.field] ?? '').trim() !== '')
+		},
+	},
+
+	watch: {
+		record: {
+			handler() {
+				this.startValues()
+			},
+
+			immediate: true,
 		},
 	},
 
@@ -541,6 +558,9 @@ export default {
 						body[this.config.reason.field || 'reason'] = reason
 					}
 					for (const field of this.fields) {
+						if (field.type === 'secret' && String(this.values[field.field] ?? '') === '') {
+							continue
+						}
 						body[field.field] = this.values[field.field] ?? ''
 					}
 					const method = String(request.method || 'POST').toLowerCase()
@@ -558,6 +578,39 @@ export default {
 			} finally {
 				this.busy = false
 			}
+		},
+
+		/**
+		 * Start each field with `valuePath` from the record, unless it was
+		 * already edited.
+		 *
+		 * @spec openspec/changes/action-dialog-secret-field/specs/action-dialog/spec.md#requirement-a-field-can-start-from-the-record-and-a-secret-is-write-only
+		 * @return {void}
+		 */
+		startValues() {
+			if (!this.record) {
+				return
+			}
+			const values = { ...this.values }
+			for (const field of this.fields) {
+				if (field.valuePath && field.type !== 'secret' && !(field.field in values)) {
+					const value = readPath(this.record, field.valuePath)
+					if (value !== null && value !== undefined) {
+						values[field.field] = String(value)
+					}
+				}
+			}
+			this.values = values
+		},
+
+		/**
+		 * Whether a secret field has a value stored: `storedPath` reads true on the record.
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 */
+		secretStored(field) {
+			return field.type === 'secret' && Boolean(field.storedPath && this.record && readPath(this.record, field.storedPath))
 		},
 
 		/** Close the dialog, unless the action is running. */
