@@ -39,6 +39,12 @@
 				:requestHint="endpointText('requestHint')"
 				:requestDisabled="epBlocked"
 				@request="epRequest" />
+			<p
+				v-if="resolvedNote"
+				class="cn-widget-object-table__note"
+				data-testid="cn-widget-object-table-note">
+				{{ resolvedNote }}
+			</p>
 			<CnDataTable
 				v-if="!(endpointActive && (epError || epAwaitingRequest))"
 				ref="dataTable"
@@ -382,6 +388,16 @@ export default {
 		},
 
 		/**
+		 * A line above the table, translated, whose `{path}` placeholders are
+		 * filled from the endpoint answer: "{counts.sent} sent, {counts.refused}
+		 * refused". Nothing shows until the answer is read.
+		 */
+		note: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Show an "Export CSV" button under the table that downloads the rows
 		 * it holds, one column per table column headed by its label. The
 		 * values are the row values, not the formatted cell text, so a
@@ -639,6 +655,22 @@ export default {
 		},
 
 		/**
+		 * The note with its placeholders filled from the endpoint answer, or
+		 * '' while there is no answer or no note.
+		 *
+		 * @return {string}
+		 */
+		resolvedNote() {
+			if (!this.note || !this.epBody) {
+				return ''
+			}
+			return this.cnTranslate(this.note).replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
+				const value = getByPath(this.epBody, path)
+				return value === undefined || value === null ? '' : String(value)
+			})
+		},
+
+		/**
 		 * The endpoint rows in the order of the clicked header: numbers as
 		 * numbers, text in the reader's collation, empty values last. Without a
 		 * header sort, the endpoint's own order.
@@ -825,7 +857,7 @@ export default {
 		 * @return {object}
 		 */
 		innerProps() {
-			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, schema, exportCsv, exportFileName, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, schema, exportCsv, exportFileName, note, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) {
@@ -1254,6 +1286,11 @@ export default {
 </script>
 
 <style scoped>
+.cn-widget-object-table__note {
+	margin: 0 0 8px;
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-widget-object-table {
 	width: 100%;
 }

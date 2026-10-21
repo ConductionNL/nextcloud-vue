@@ -87,3 +87,26 @@ describe('CnWidgetObjectTable — sorting endpoint rows', () => {
 		expect(table.props('rows').map((r) => r.agent)).toEqual(['bob', 'Alice', 'carol', 'dave'])
 	})
 })
+
+describe('CnWidgetObjectTable — a note filled from the endpoint answer', () => {
+	beforeEach(() => {
+		axios.get.mockReset()
+		invalidateEndpointSourceCache()
+	})
+
+	it('fills the translated note from the answer, and shows nothing before it', async () => {
+		axios.get.mockResolvedValue({ data: { results: [], counts: { sent: 146, refused: 9, failed: 1 } } })
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: {
+				endpointSource: { url: '/apps/x/api/journeys/j/runs', responsePath: 'results' },
+				columns: ['contactId'],
+				note: '{counts.sent} sent, {counts.refused} refused, {counts.failed} failed',
+			},
+			global: { provide: { cnTranslate: (s) => s.replace('sent,', 'verstuurd,') } },
+		})
+		expect(wrapper.find('[data-testid="cn-widget-object-table-note"]').exists()).toBe(false)
+		await flush()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('[data-testid="cn-widget-object-table-note"]').text()).toBe('146 verstuurd, 9 refused, 1 failed')
+	})
+})

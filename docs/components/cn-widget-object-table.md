@@ -118,6 +118,10 @@ REST endpoint computes (e.g. a per-source performance report):
 - `columns` / formatters / `rowRoute` / `actions` apply unchanged on
   top of endpoint rows.
 
+### A line above the table (`note`)
+
+`note` is a line above the table whose `{path}` placeholders are filled from the endpoint answer, after the text is translated: `"{counts.sent} sent, {counts.refused} refused, {counts.failed} failed"` over an answer that carries `counts` beside its rows. Nothing shows until the answer is read.
+
 ### Sorting endpoint rows
 
 A `sortable` column sorts the endpoint rows when its header is clicked: numbers as numbers (10 after 9), text in the reader's collation, empty values last. Until a header is clicked, and after the sort is cleared, the rows keep the endpoint's order.
@@ -198,6 +202,7 @@ A row action can name fields of the row it runs on with `@row.<field>` (dot path
 | `hideHeader` | `Boolean` | Hide the column-header row (compact list surface, default `false`). |
 | `borderless` | `Boolean` | Drop CnDataTable's card chrome (default `false`). |
 | `fitWidth` | `Boolean` | Fit the table to the tile (default `true`): the title column (a column's `grow: true`, else `title` or `name`, else the first) shrinks and ends in an ellipsis, so trailing columns such as a date stay visible. Pass `false` for the table's own auto layout. |
+| `note` | `String` | A line above the table, translated, with `{path}` placeholders filled from the endpoint answer (default `''`). |
 | `exportCsv` | `Boolean` | Show an "Export CSV" button under the table that downloads the rows it holds, one column per table column headed by its label. Values are the row values, not the formatted cell text. Default `false`. |
 | `exportFileName` | `String` | The downloaded file's name without `.csv`. Defaults to the title, slugged, else `export`. |
 | `rowRoute` | `String` | Route NAME for row-click navigation — mapped to CnDataTable's `rowClickRoute` with `{ params: { id } }`. |
