@@ -2428,7 +2428,18 @@
     "When": "Wanneer",
     "Who": "Wie",
     "Message": "Bericht",
-    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen."
+    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen.",
+    "Above the norm": "Boven de norm",
+    "{row}, {column}: {value}": "{row}, {column}: {value}",
+    "Only the first {count} records are shown. Narrow the selection to see them all.": "Alleen de eerste {count} records staan erin. Maak de selectie kleiner om ze allemaal te zien.",
+    "Column": "Kolom",
+    "Norm": "Norm",
+    "Total": "Totaal",
+    "This value can no longer be changed here.": "Deze waarde kan hier niet meer worden gewijzigd.",
+    "This grid could not be loaded: {reason}": "Dit raster kon niet worden geladen: {reason}",
+    "Type a number in {column}.": "Vul een getal in bij {column}.",
+    "{action}: {row}": "{action}: {row}",
+    "{row}: {reason}": "{row}: {reason}"
   },
   "plurals": {
     "{count} member": [
@@ -2602,6 +2613,18 @@
     "Also written on %n other record": [
       "Staat ook op %n ander dossier",
       "Staat ook op %n andere dossiers"
+    ],
+    "%n record done.": [
+      "%n record klaar.",
+      "%n records klaar."
+    ],
+    "%n refused:": [
+      "%n geweigerd:",
+      "%n geweigerd:"
+    ],
+    "{action}: %n record. Continue?": [
+      "{action}: %n record. Doorgaan?",
+      "{action}: %n records. Doorgaan?"
     ]
   }
 }

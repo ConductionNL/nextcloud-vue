@@ -2178,7 +2178,18 @@
     "When": "When",
     "Who": "Who",
     "Message": "Message",
-    "That change could not be saved.": "That change could not be saved."
+    "That change could not be saved.": "That change could not be saved.",
+    "Above the norm": "Above the norm",
+    "{row}, {column}: {value}": "{row}, {column}: {value}",
+    "Only the first {count} records are shown. Narrow the selection to see them all.": "Only the first {count} records are shown. Narrow the selection to see them all.",
+    "Column": "Column",
+    "Norm": "Norm",
+    "Total": "Total",
+    "This value can no longer be changed here.": "This value can no longer be changed here.",
+    "This grid could not be loaded: {reason}": "This grid could not be loaded: {reason}",
+    "Type a number in {column}.": "Type a number in {column}.",
+    "{action}: {row}": "{action}: {row}",
+    "{row}: {reason}": "{row}: {reason}"
   },
   "plurals": {
     "{count} member": [
@@ -2335,6 +2346,18 @@
     "Also written on %n other record": [
       "Also written on %n other record",
       "Also written on %n other records"
+    ],
+    "%n record done.": [
+      "%n record done.",
+      "%n records done."
+    ],
+    "%n refused:": [
+      "%n refused:",
+      "%n refused:"
+    ],
+    "{action}: %n record. Continue?": [
+      "{action}: %n record. Continue?",
+      "{action}: %n records. Continue?"
     ]
   }
 }

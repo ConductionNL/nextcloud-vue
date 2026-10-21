@@ -217,6 +217,7 @@ export {
 	CnMassDeleteDialog,
 	CnMassExportDialog,
 	CnMassImportDialog,
+	CnMatrixWidget,
 	CnMenuItemEditor,
 	CnMenuWidget,
 	CnMenuWidgetForm,

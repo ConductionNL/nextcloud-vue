@@ -42,8 +42,20 @@ function onCellEdit({ rowId, colKey, value }) {
   formatter: (v) => …,    // optional custom display formatter
   aggregate: 'sum',       // 'sum' (default) | 'avg' | 'count' | 'none'
   width: '120px',         // optional column width override
+  markBelow: 5.5,         // mark a number below this
+  markLabel: 'Fail',      // and say so in text
 }
 ```
+
+`type: 'text'` edits in a multi-line field that is saved on blur.
+
+## Groups, norms and row actions
+
+- `groupKey` names a row field; a group row is drawn before each new value.
+- `normRow` (`{ label, values: { [colKey]: number } }`) adds a norm row below the totals. A column total above its norm is marked and says "Above the norm".
+- The `#row-actions` slot (scope `{ row }`) adds an actions column headed by `rowActionsHeader`.
+
+The [`matrix` widget](./cn-matrix-widget.md) draws this component from manifest configuration.
 
 ## Props
 
@@ -60,18 +72,29 @@ function onCellEdit({ rowId, colKey, value }) {
 | `showRowTotals` | Boolean | `false` | Render the per-row totals column on the right. |
 | `showColumnTotals` | Boolean | `false` | Render the per-column totals row at the bottom. |
 | `rowTotalsLabel` / `columnTotalsLabel` | String | `'Total'` | Total-row / column labels. |
+| `groupKey` | String | `''` | Row field naming its group; a group row is drawn before each new group. |
+| `normRow` | Object | `null` | `{ label, values }`: a norm per column, checked against the column total. |
+| `rowActionsHeader` | String | `''` | Header of the actions column drawn for the `#row-actions` slot. |
+
+## Slots
+
+| Slot | Scope | Description |
+|------|-------|-------------|
+| `row-actions` | `{ row }` | Actions for one row, in a column of their own. |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `cell-edit` | `{rowId, colKey, value, row}` | Commit (blur or Enter). For `type:'number'` columns the `value` is coerced; unparseable input becomes `null`. |
+| `cell-edit` | `{rowId, colKey, value, raw, row}` | Commit (blur or Enter). For `type:'number'` columns the `value` is coerced; unparseable input becomes `null`. `raw` is the typed text. |
 
 ## Keyboard
 
 | Key | Action |
 |-----|--------|
-| Enter | Commit the active edit. |
+| Tab | Move to the next editable cell. |
+| Enter or F2 | Open the focused cell's editor. |
+| Enter | Commit the active edit (in a text cell, blur commits). |
 | Esc   | Cancel the active edit (no `@cell-edit`). |
 | Blur  | Commit (same as Enter). |
 

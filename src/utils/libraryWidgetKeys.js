@@ -131,6 +131,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'mail',
 	'map',
 	'markdown',
+	'matrix',
 	'menu',
 	'nc-widget',
 	'next-step',
