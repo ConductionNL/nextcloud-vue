@@ -321,9 +321,13 @@
 		},
 		"CnBoardView": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnCellRenderer",
+				"CnFkResolveCell",
+				"CnIndexPage"
+			],
 			"page": "cn-board-view"
 		},
 		"CnBodySections": {
@@ -1308,11 +1312,51 @@
 			"page": "cn-facet-sidebar"
 		},
 		"CnFactsWidget": {
-			"direct": 1,
-			"transitive": 7,
-			"tier": "medium",
+			"direct": 2,
+			"transitive": 118,
+			"tier": "heavy",
 			"via": [
-				"CnIndexPage"
+				"CnActionButtons",
+				"CnAnalyticsReportPicker",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnCellRenderer",
+				"CnChildRecordsField",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnEmailPicker",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnFormDialog",
+				"CnIndexPage",
+				"CnMapPoiPicker",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPartyPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnResourceSelect",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnVersionHistory",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
 			],
 			"page": "cn-facts-widget"
 		},
@@ -1903,7 +1947,7 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 9,
+			"direct": 10,
 			"transitive": 205,
 			"tier": "heavy",
 			"via": [
@@ -2514,15 +2558,29 @@
 		},
 		"CnNcDashboardList": {
 			"direct": 1,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
-				"CnIndexPage"
+				"CnIndexPage",
+				"CnNcDashboardQuickCreate"
 			],
 			"page": "cn-nc-dashboard-list"
+		},
+		"CnNcDashboardQuickCreate": {
+			"direct": 2,
+			"transitive": 13,
+			"tier": "heavy",
+			"via": [
+				"CnCellRenderer",
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnIndexPage",
+				"CnNcDashboardList"
+			],
+			"page": "cn-nc-dashboard-quick-create"
 		},
 		"CnNcDashboardWidgetForm": {
 			"direct": 0,

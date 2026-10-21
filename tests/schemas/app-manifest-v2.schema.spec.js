@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.139.0', () => {
+	it('the manifest schema version reads 2.140.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1416,7 +1416,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.137.0 lets open-form edit and create through an endpoint (open-form-endpoint), a grouped-cards group carry an action (grouped-cards-group-action), a detail page ask for a purpose before it opens a record (detail-access-purpose), an api-call GET a download (api-call-get-download) and headerPill.values limit a pill to some values (detail-pill-values).
 		// 2.138.0 adds after and before on a row indicator, a date bound that is now or an ISO date (cell-config-growth).
 		// 2.139.0 adds the redaction page type (dq-abstract-record-widgets), quarter and year page filters with count, and loadOn, requestLabel, requestHint, truncatedText and namePath on endpoint widgets (dq-abstract-dash).
-		expect(schema.version).toBe('2.139.0')
+		// 2.140.0 lets an index page follow live changes (pl4-index-live), gives a row indicator lt and gt (pl4-cells), the export launcher its entity types (pl4-export-action), a board columns read from a list on a referenced row with itemsPath, keyField and closedField (pl4-board), card cells and card actions (pl4-board-cells, pl4-board-card-actions), and a select-or-create reference its createModal (pl4-form-create-modal).
+		expect(schema.version).toBe('2.140.0')
 	})
 
 	it('accepts the 2.135.0 header action href and refuses it with a handler, another type or a bad URL', () => {
@@ -1613,6 +1614,46 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(withIndex({ rowClass: [{ when: { field: 'dueAt', value: 1 } }] })).valid).toBe(false)
 		expect(validateManifestV2(withIndex({ bulkBandAlways: 'yes' })).valid).toBe(false)
 		expect(validateManifestV2(withIndex({ quickFilterPlacement: 'header' })).valid).toBe(false)
+	})
+
+	it('accepts a row-class rule with a list of conditions and a numeric row indicator (pl4-cell-rules)', () => {
+		const withIndex = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'r', schema: 's', ...config } }] })
+		const overdueOpen = { when: [{ field: 'expectedCloseDate', op: 'lt', value: '@today' }, { field: 'status', value: 'open' }], class: 'cn-row--overdue' }
+		expect(validateManifestV2(withIndex({ rowClass: [overdueOpen] })).valid).toBe(true)
+		expect(validateManifestV2(withIndex({ rowClass: [{ when: [], class: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ rowClass: [{ when: [{ field: 'a', op: 'before', value: 1 }], class: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ rowIndicators: [{ field: 'winProbability', lt: 30, text: 'Low' }] })).valid).toBe(true)
+		expect(validateManifestV2(withIndex({ rowIndicators: [{ field: 'winProbability', lt: 'thirty', text: 'Low' }] })).valid).toBe(false)
+		const stale = (value) => withIndex({ quickFilters: [{ label: 'Out of date', filter: { '@self[updated][lt]': value } }] })
+		expect(validateManifestV2(stale('@today-{@config.lead_stale_threshold_days}d')).valid).toBe(true)
+		expect(validateManifestV2(stale('@today-{config.x}d')).valid).toBe(false)
+	})
+
+	it('accepts an export action entity that names its OpenRegister objects (pl4-export-action)', () => {
+		const withAction = (action) => ({ ...MINIMAL_V2, pages: [{ id: 'ops', route: '/ops', type: 'dashboard', title: 'Ops', config: { headerActions: [action] } }] })
+		const entity = { id: 'requests', label: 'Requests', register: 'pipelinq', schema: 'ticket', filter: { ticketType: 'request' } }
+		expect(validateManifestV2(withAction({ id: 'export-report', label: 'Export', type: 'export', entities: [entity], formats: ['excel', 'csv'] })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ id: 'export-report', label: 'Export', type: 'export', entities: [{ ...entity, register: '' }] })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ id: 'export-report', label: 'Export', type: 'export', entities: [{ ...entity, path: 'x' }] })).valid).toBe(false)
+	})
+
+	it('accepts board columns from a list on a parent row (pl4-board-list-stages)', () => {
+		const withBoard = (source) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'pipelinq', schema: 'lead', viewModes: ['table', 'board'], board: { statusField: 'stage', columnFields: [{ field: 'stage', source }] } } }] })
+		const stages = { schema: 'pipeline', itemsPath: 'stages', keyField: 'name', labelField: 'name', orderField: 'order', colorField: 'color', closedField: 'isClosed', narrowBy: { field: '_parent', rowField: 'pipeline' } }
+		expect(validateManifestV2(withBoard(stages)).valid).toBe(true)
+		expect(validateManifestV2(withBoard({ ...stages, itemsPath: '' })).valid).toBe(false)
+		const withCells = (cardCells) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'pipelinq', schema: 'lead', board: { statusField: 'stage', cardFields: ['priority'], cardCells } } }] })
+		expect(validateManifestV2(withCells({ priority: { widget: 'badge', widgetProps: { colorMap: { high: 'warning' } } } })).valid).toBe(true)
+		expect(validateManifestV2(withCells({ priority: { colour: 'red' } })).valid).toBe(false)
+		const withCardActions = (cardActions) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'pipelinq', schema: 'lead', board: { statusField: 'stage', cardActions } } }] })
+		expect(validateManifestV2(withCardActions(['assign', 'priority'])).valid).toBe(true)
+		expect(validateManifestV2(withCardActions([''])).valid).toBe(false)
+	})
+
+	it('accepts an index page that follows live changes (pl4-index-live)', () => {
+		const withLive = (live) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'r', schema: 's', live } }] })
+		expect(validateManifestV2(withLive(['lead', 'ticket'])).valid).toBe(true)
+		expect(validateManifestV2(withLive([''])).valid).toBe(false)
 	})
 
 	it('accepts a dashboard page filter drawn as a segmented group on the description line, and refuses unknown keys', () => {

@@ -169,6 +169,25 @@ a dialog error — never a silent success.
 }
 ```
 
+Without a `handler`, an export can download OpenRegister objects itself: an
+entity (or the action, when it has no picker) that names a `register` and a
+`schema` is exported through OpenRegister's export endpoint in the chosen
+format, its optional `filter` applied, the same download an index page's
+Export menu starts. Entity labels go through the app's translate.
+
+```jsonc
+{
+  "id": "export-report",
+  "label": "Export",
+  "type": "export",
+  "entities": [
+    { "id": "leads", "label": "Leads", "register": "pipelinq", "schema": "lead" },
+    { "id": "requests", "label": "Requests", "register": "pipelinq", "schema": "ticket", "filter": { "ticketType": "request" } }
+  ],
+  "formats": ["excel", "csv"]
+}
+```
+
 ### `open-form` (Wave 3, #91)
 
 Opens the schema-driven create dialog via `context.openForm(action)` —

@@ -170,6 +170,8 @@ This is the manifest-side equivalent of Vue Router's named-view sidebar pattern.
 |-------|------|---------|-------------|
 | `sidebarComponent` | String | unset | Key in `customComponents`. The resolved component renders inside `CnAppRoot`'s `#sidebar` slot **as default content** — the consumer's `#sidebar` slot override (when supplied) wins via Vue's slot mechanic. Unknown names log a `console.warn` and the holder stays `null` (slot falls through to consumer content). |
 
+A `type: "flow"` (or the older `flow-detail`) page that names no `sidebarComponent` mounts `CnFlowSidebar`, which holds the flow's name, description, trigger and step editor; `sidebar: { show: false }` still hides it, and a named `sidebarComponent` still wins.
+
 Composes with `sidebar.show`:
 
 - `sidebar.show: false` ALWAYS wins — the slot does not render at all and the resolved component is suppressed.

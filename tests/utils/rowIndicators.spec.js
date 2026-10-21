@@ -120,3 +120,25 @@ describe('resolveRowIndicators', () => {
 		expect(resolveRowIndicators(DECLARED, row, 0).overflow.map((i) => i.id)).toEqual(['suspended', 'extended'])
 	})
 })
+
+describe('indicatorApplies numeric bounds', () => {
+	it('holds below `lt` and above `gt`, and never on a value that is not a number', () => {
+		const low = { field: 'winProbability', lt: 30, text: 'Low' }
+		expect(indicatorApplies(low, { winProbability: 12 })).toBe(true)
+		expect(indicatorApplies(low, { winProbability: '29.5' })).toBe(true)
+		expect(indicatorApplies(low, { winProbability: 30 })).toBe(false)
+		expect(indicatorApplies(low, { winProbability: null })).toBe(false)
+		expect(indicatorApplies(low, { winProbability: '' })).toBe(false)
+		expect(indicatorApplies(low, {})).toBe(false)
+		const high = { field: 'score', gt: 80, text: 'Hot' }
+		expect(indicatorApplies(high, { score: 81 })).toBe(true)
+		expect(indicatorApplies(high, { score: 80 })).toBe(false)
+	})
+
+	it('takes both bounds as a range', () => {
+		const band = { field: 'score', gt: 30, lt: 60, text: 'Warm' }
+		expect(indicatorApplies(band, { score: 45 })).toBe(true)
+		expect(indicatorApplies(band, { score: 60 })).toBe(false)
+		expect(indicatorApplies(band, { score: 30 })).toBe(false)
+	})
+})
