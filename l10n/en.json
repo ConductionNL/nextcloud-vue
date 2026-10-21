@@ -2155,7 +2155,30 @@
     "Your version is used. Copied to your clipboard.": "Your version is used. Copied to your clipboard.",
     "Rejected.": "Rejected.",
     "Your version is used.": "Your version is used.",
-    "Used.": "Used."
+    "Used.": "Used.",
+    "Add a note": "Add a note",
+    "Kind": "Kind",
+    "Internal and public": "Internal and public",
+    "Nothing recorded yet": "Nothing recorded yet",
+    "Notes, calls and messages appear here in the order they happened.": "Notes, calls and messages appear here in the order they happened.",
+    "Needs an answer": "Needs an answer",
+    "Unpin": "Unpin",
+    "Pin": "Pin",
+    "Mark as answered": "Mark as answered",
+    "{shown} of {total} events": "{shown} of {total} events",
+    "Goes on the timeline above, internal unless you make it visible": "Goes on the timeline above, internal unless you make it visible",
+    "Standard note": "Standard note",
+    "Write your own": "Write your own",
+    "Write a note on this record": "Write a note on this record",
+    "Add to the timeline": "Add to the timeline",
+    "Visible to the applicant": "Visible to the applicant",
+    "Internal only": "Internal only",
+    "That note could not be saved.": "That note could not be saved.",
+    "The timeline could not be read. Try again, or ask an administrator to check OpenRegister.": "The timeline could not be read. Try again, or ask an administrator to check OpenRegister.",
+    "When": "When",
+    "Who": "Who",
+    "Message": "Message",
+    "That change could not be saved.": "That change could not be saved."
   },
   "plurals": {
     "{count} member": [
@@ -2308,6 +2331,10 @@
     "%n step": [
       "%n step",
       "%n steps"
+    ],
+    "Also written on %n other record": [
+      "Also written on %n other record",
+      "Also written on %n other records"
     ]
   }
 }

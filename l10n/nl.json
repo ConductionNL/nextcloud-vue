@@ -2405,7 +2405,30 @@
     "Your version is used. Copied to your clipboard.": "Jouw versie is gebruikt. Gekopieerd naar je klembord.",
     "Rejected.": "Afgewezen.",
     "Your version is used.": "Jouw versie is gebruikt.",
-    "Used.": "Gebruikt."
+    "Used.": "Gebruikt.",
+    "Add a note": "Een notitie toevoegen",
+    "Kind": "Soort",
+    "Internal and public": "Intern en openbaar",
+    "Nothing recorded yet": "Nog niets vastgelegd",
+    "Notes, calls and messages appear here in the order they happened.": "Notities, gesprekken en berichten staan hier op volgorde.",
+    "Needs an answer": "Vraagt om antwoord",
+    "Unpin": "Losmaken",
+    "Pin": "Vastzetten",
+    "Mark as answered": "Markeer als beantwoord",
+    "{shown} of {total} events": "{shown} van {total} gebeurtenissen",
+    "Goes on the timeline above, internal unless you make it visible": "Komt op de tijdlijn hierboven, intern tenzij u hem zichtbaar maakt",
+    "Standard note": "Standaardnotitie",
+    "Write your own": "Zelf schrijven",
+    "Write a note on this record": "Schrijf een notitie bij dit dossier",
+    "Add to the timeline": "Op de tijdlijn zetten",
+    "Visible to the applicant": "Zichtbaar voor de aanvrager",
+    "Internal only": "Alleen intern",
+    "That note could not be saved.": "Die notitie kon niet worden opgeslagen.",
+    "The timeline could not be read. Try again, or ask an administrator to check OpenRegister.": "De tijdlijn kon niet worden gelezen. Probeer het opnieuw of vraag een beheerder om OpenRegister te controleren.",
+    "When": "Wanneer",
+    "Who": "Wie",
+    "Message": "Bericht",
+    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen."
   },
   "plurals": {
     "{count} member": [
@@ -2575,6 +2598,10 @@
     "%n step": [
       "%n stap",
       "%n stappen"
+    ],
+    "Also written on %n other record": [
+      "Staat ook op %n ander dossier",
+      "Staat ook op %n andere dossiers"
     ]
   }
 }
