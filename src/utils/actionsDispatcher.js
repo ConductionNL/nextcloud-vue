@@ -895,8 +895,8 @@ export function dispatchAction(action, context = {}) {
 			}
 			// A page of the instance outside this app (`/index.php/apps/...`)
 			// is a page load; the app's router does not know it.
-			if (target.startsWith('/index.php/')) {
-				window.location.assign(target)
+			if (typeof target === 'string' && target.startsWith('/index.php/')) {
+				window.open(target, '_self')
 				break
 			}
 			if (!context.router) {

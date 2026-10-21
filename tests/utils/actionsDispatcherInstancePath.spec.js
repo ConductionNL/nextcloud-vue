@@ -12,17 +12,14 @@ import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
 
 describe('dispatchAction navigate to an instance page', () => {
 	it('loads an /index.php/ target in the window instead of pushing it on the router', () => {
-		const assign = jest.fn()
-		const original = window.location
-		delete window.location
-		window.location = { assign }
+		const open = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const router = { push: jest.fn() }
 		try {
 			dispatchAction({ type: 'navigate', target: '/index.php/apps/openregister/schemas' }, { router })
-			expect(assign).toHaveBeenCalledWith('/index.php/apps/openregister/schemas')
+			expect(open).toHaveBeenCalledWith('/index.php/apps/openregister/schemas', '_self')
 			expect(router.push).not.toHaveBeenCalled()
 		} finally {
-			window.location = original
+			open.mockRestore()
 		}
 	})
 
