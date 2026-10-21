@@ -3327,6 +3327,28 @@ export default {
 		},
 
 		/**
+		 * Open the setup wizard again when the address asks for it
+		 * (`?setup=open`), also after it was finished or dismissed, so a menu
+		 * entry or a link can offer "set up again". Ignored for an app without
+		 * setup steps.
+		 *
+		 * @spec openspec/changes/setup-wizard-opens-from-the-address/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard
+		 */
+		'$route.query.setup': {
+			immediate: true,
+			/**
+			 * @param {string|undefined} value The `setup` query value.
+			 * @spec openspec/changes/setup-wizard-opens-from-the-address/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard
+			 */
+			handler(value) {
+				const setup = this.manifest && this.manifest.setup
+				if (value === 'open' && setup && setup.enabled !== false && Array.isArray(setup.steps) && setup.steps.length > 0) {
+					this.setupWizardOpen = true
+				}
+			},
+		},
+
+		/**
 		 * Auto-open the non-gating setup wizard once optional-unmet becomes
 		 * true, unless the user already dismissed this manifest version.
 		 * `immediate: true` so a fresh mount that's already optional-unmet
