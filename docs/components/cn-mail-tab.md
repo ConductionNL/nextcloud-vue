@@ -69,3 +69,7 @@ then says Mail is not available instead of showing the row.
 | Event | Payload | Description |
 |---|---|---|
 | `drafted` | the draft response | A draft was created. |
+
+## Board look
+
+In the board look the draft buttons are 40px high, as DqZaakEmail draws "Leeg concept".

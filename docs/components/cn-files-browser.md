@@ -326,3 +326,7 @@ Exported alongside the component:
 - `crumbsFor(rootPath, currentPath, rootLabel?)` — the whole trail, outermost first; crumbs above the root carry `aboveRoot: true`.
 - `joinPath(dir, name)` — one slash between.
 - `ACTIONS_NEEDING_THE_FILES_PAGE` — the registered action ids that cannot run away from the Files page.
+
+## Board look
+
+In the board look the upload button (`uploadButton`) is 40px high, as DqZaakDocumenten draws "Bestanden toevoegen".

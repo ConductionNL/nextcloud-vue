@@ -136,6 +136,7 @@
 			     (`uploadButton`). It takes the primary place and the New
 			     menu steps back beside it. -->
 			<NcButton v-if="uploadButton && canChange"
+				class="cn-files-browser__upload"
 				variant="primary"
 				:disabled="folder === null"
 				data-testid="cn-files-browser-upload-button"

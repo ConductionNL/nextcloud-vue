@@ -974,3 +974,33 @@
 .cn-look-board .cn-tasks-widget .cn-tasks-widget__cell-actions .button-vue .button-vue__text.button-vue__text {
 	padding-inline: 0;
 }
+
+/* ---- Card buttons at the board's control height ------------------------ */
+/* Sized one component at a time against its own board, never for every
+   button: these draw 40px where Nextcloud's button is 34px. DqZaakTaken
+   "Nieuwe taak" (16px in at both sides; a task row's "Afronden" stays 34px),
+   DqZaakDocumenten "Bestanden toevoegen", DqZaakEmail "Leeg concept" and
+   "Concept openen uit sjabloon". */
+.cn-look-board .button-vue.cn-detail-widget-header-items__primary:not(.cn-look-nextcloud *) {
+	--button-padding: 16px;
+	box-sizing: border-box;
+	height: var(--cn-board-control-height);
+	min-height: var(--cn-board-control-height);
+}
+
+.cn-look-board .button-vue.cn-files-browser__upload:not(.cn-look-nextcloud *),
+.cn-look-board .cn-mail-tab__template-row .button-vue:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	height: var(--cn-board-control-height);
+	min-height: var(--cn-board-control-height);
+}
+
+.cn-look-board .cn-related-files__add-button:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	height: var(--cn-board-control-height);
+	min-height: var(--cn-board-control-height);
+	padding: 0 14px;
+	border-radius: var(--cn-board-control-radius);
+	font-size: 14px;
+	font-weight: 600;
+}

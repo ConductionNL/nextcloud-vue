@@ -79,3 +79,7 @@ A finished task toasts "Task {title} finished", a claim "Task {title} is yours";
 - **Row clicks.** With `rowRoute` set, a click opens that route with the task uuid as `:id`. Without one, the click opens the task's openregister deep link (`/apps/openregister/flow-tasks/{uuid}`), which ships with openregister's `flow-task-inbox-projections`.
 - **Three states.** Loading, a failed read ("Could not load the tasks", never the raw status text) and an empty inbox ("No open tasks", or `emptyText`) render differently.
 - Requires OpenRegister. Without it the endpoint 404s and the widget shows its error line.
+
+## Board look
+
+In the board look the card's "New task" button is 40px high and 16px in at both sides (DqZaakTaken); a row's Complete stays 34px.
