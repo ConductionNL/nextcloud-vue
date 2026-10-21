@@ -4848,6 +4848,7 @@ export default {
 				// by the modal) must still fall through to content.title, which the
 				// form validates as required and so is always populated.
 				title: def.title || c.title,
+				subtitle: c.subtitle ?? def.subtitle,
 				icon: c.icon ?? def.icon,
 				iconType: c.iconType ?? def.iconType,
 				backgroundColor: c.backgroundColor ?? def.backgroundColor,
