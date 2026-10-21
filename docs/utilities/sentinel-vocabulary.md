@@ -25,6 +25,10 @@ as read-only.
 `@today±Nd`, `@monthStart`, `@monthEnd`, `@nextMonthStart`, `@quarterStart` and
 `@yearStart`.
 
+The day count of `@today±Nd` may be an app setting: `@today-{@config.lead_stale_threshold_days}d`
+fills the value from the app config first, and stays as written while the config
+does not hold the key.
+
 `@monthEnd` is the last day of the current month. Use it with `lte` on a date
 field. On a date-time field `lte` stops at midnight of that day, so write
 `lt: "@nextMonthStart"` there: "closes this month" is

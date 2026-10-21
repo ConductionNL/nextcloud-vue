@@ -53,6 +53,12 @@ The **`"date"`** widget takes two more `widgetProps` keys: `showTime: true` adds
 
 `widgetProps: { due: { emptyText: "Geen deadline" } }` reads the date as a due text: "N days overdue" in the error colour, "Due today", "tomorrow" or the short date, and `emptyText` for an empty cell. The keys are those of the record list's `due` (`todayLabel`, `overdueLabel`, `upcomingLabel`, `upcomingWeeksLabel`, `upcomingWeeksFrom`, `emptyText`).
 
+`due.activeWhen` (`{ field, equals? | in? | lt? | gt? }`, the row-indicator grammar) makes the date due only while the condition holds on the row. Otherwise the cell reads the short date with no colour, never overdue or due soon. A won lead's close date is history, not a deadline:
+
+```json
+{ "key": "expectedCloseDate", "widget": "date", "widgetProps": { "due": { "soonWithin": 7, "activeWhen": { "field": "status", "equals": "open" } } } }
+```
+
 The monospace uuid style (`format: "uuid"`) applies only when the value is a uuid and nothing resolves it: a reference a formatter or a widget resolved to its name renders in the normal text style.
 | `user` | `true` when the cell value itself is the user id. |
 | `nameField` | Row field that holds the name to show. Defaults to the cell value. |
@@ -132,7 +138,7 @@ A cell that matched a rule is set in weight 600; under the board look every age 
 | `widgetProps` key | Meaning |
 |-----|---------|
 | `unit` | `{ one, other }` with `{count}`, through the host translate function. Without it the cell shows the number in the user's locale. |
-| `flagWhen` | `{ field, equals?, in?, text, variant? }`: when the row's `field` holds (`equals`, `in`, or truthiness, as a row indicator reads it), a `CnStatusBadge` chip with the translated `text` sits beside the number and the number takes the variant's text colour. `variant` defaults to `warning`. The chip carries the meaning in text, never in colour alone. |
+| `flagWhen` | `{ field, equals?, in?, lt?, gt?, text, variant? }`: when the row's `field` holds (`equals`, `in`, a number below `lt` or above `gt`, or truthiness, as a row indicator reads it), a `CnStatusBadge` chip with the translated `text` sits beside the number and the number takes the variant's text colour. `variant` defaults to `warning`. The chip carries the meaning in text, never in colour alone. |
 
 ## Badge tooltips
 

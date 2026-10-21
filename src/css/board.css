@@ -135,6 +135,13 @@
 	color: var(--color-text-maxcontrast);
 }
 
+.cn-board-view.cn-board-view--board .cn-board-view__card-cells {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
 .cn-board-view.cn-board-view--board .cn-board-view__card-pills {
 	display: flex;
 	flex-wrap: wrap;

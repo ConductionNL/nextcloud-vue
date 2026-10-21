@@ -97,6 +97,7 @@ When `allowDraft` is on and the schema declares `draftField`, a stored draft rec
 | `#field-\{key\}` | field, value, error, updateField | Per-field override |
 | `#field-\{key\}-option` | *option object properties* | Custom dropdown option rendering for a select/multiselect/tags field |
 | `#field-\{key\}-selected-option` | *option object properties* | Custom selected option display for a select/multiselect/tags field |
+| `#field-\{key\}-hint` | field, value, formData | Content under one field, such as a hint that follows its value. Wins over the field's `hintWidget` |
 | `#before-fields` | — | Content before fields |
 | `#after-fields` | — | Content after fields |
 
@@ -293,6 +294,19 @@ products: { type: 'array', items: { $ref: 'product', 'x-allow-create': true }, t
 
 The stored value is still the chosen (or freshly-created) object's UUID, or an array of them. Without the flag, a `$ref` stays a plain select of existing objects. `x-fill-from: { formKey: sourceKey }` copies values off the chosen object into this form.
 
+The form the Create opens is, in this order: the field's own `createModal` (a `fieldOverrides` key naming a `kind: 'modal'` registry dialog), the `createOverride` or `createModal` of the index page that lists the referenced schema, else the schema's generic form. A field `createModal` is mounted on top of this form, not in the app's single modal slot, so a form that is itself a registry modal stays open underneath. It gets `initialData` with the typed term plus its `createModalProps`, where `@answer.<key>` is another answer of this form:
+
+```json
+{
+  "client": { "createModal": "ClientCreateDialog" },
+  "contact": { "createModal": "ContactCreateDialog", "createModalProps": { "client": "@answer.client" } }
+}
+```
+
+The dialog reports the new object (or its id) with `created`; `close` without it leaves the field as it was.
+
+`pickerFilter` scopes the picker's options by other answers: `"contact": { "pickerFilter": { "client": "@answer.client" } }` offers the contacts of the chosen client, and every contact while no client is chosen.
+
 ### Groups, languages and time zones
 
 ```js
@@ -457,6 +471,16 @@ A `widget` that is not one of the form's own widget names is looked up as a regi
 ```js
 fieldOverrides: {
   applicant: { widget: 'ApplicantPicker' },
+}
+```
+
+### `hintWidget`
+
+`hintWidget` names a registered component shown under the field's control. It receives `field`, `value` (the field's value) and `formData` (every answer), so it can follow what the user types, such as a list of colleagues whose skills cover the chosen category. A name nothing answers to shows nothing.
+
+```js
+fieldOverrides: {
+  category: { hintWidget: 'CategoryRoutingHint' },
 }
 ```
 

@@ -80,7 +80,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `lenses` | Object \| null | `null` | Personal-lens report (`@self.lenses`) of the list on screen, for a host that fetches itself; self-fetch mode reads it from the store. A lens with `available: false` makes the empty state say why ("This server does not keep track of what you open.", "Log in to see what you opened recently.", "Your recent items are not available right now."). Needs openregister#4514. |
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable lens, keyed `<lens>.<reason>` or `<reason>`. |
 | `searchRefusalHint` | String | `''` | Self-fetch only. What to do after a search the server refused for its grammar, through the app's translate; the default explains AND, OR, NOT and quotes. See [A refused search](#a-refused-search). |
-| `rowClass` | Function \| Array | `null` | CSS class(es) for a row: a function `(row) => string`, or (manifest `config.rowClass`) rules `[{ when: { field, op?, value }, class }]`, each adding its class to a row whose field compares to the value with the `visibleWhen` operators; two dates compare as moments, so `{ when: { field: "dueAt", op: "lt", value: "@today" }, class: "cn-row--overdue" }` marks an overdue task (DqTaken). The class is the app's to style. |
+| `rowClass` | Function \| Array | `null` | CSS class(es) for a row: a function `(row) => string`, or (manifest `config.rowClass`) rules `[{ when: { field, op?, value }, class }]`, each adding its class to a row whose field compares to the value with the `visibleWhen` operators; two dates compare as moments, so `{ when: { field: "dueAt", op: "lt", value: "@today" }, class: "cn-row--overdue" }` marks an overdue task (DqTaken). A `when` list holds when every condition holds: `[{ field: "expectedCloseDate", op: "lt", value: "@today" }, { field: "status", value: "open" }]` marks an open lead past its date and not a won one. The class is the app's to style. |
 | `addLabel` | String | `''` | Add button label |
 | `inlineActionCount` | Number | `2` | Number of inline action buttons before overflow menu |
 | `showMassImport` | Boolean | `true` | Show mass import action |
@@ -121,7 +121,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`). The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
 | `search` | Boolean | `true` | `false` draws no inline search in the actions bar, also in the board look, which otherwise draws one on every index page (manifest: `config.search`). Wins over `inlineSearch`. |
-| `appConfig` | Object | `{}` | The app config `@config.<key>` tokens resolve against (manifest: `config.appConfig`), as on the dashboard and detail pages, merged over a config an ancestor provides on `cnAppConfig`. A quick filter's `filter` and its `label` / `activeLabel` take the token: `"Residence @config.municipality"` reads "Residence Zuiddrecht" (board DqContacten); the label is translated first, and a key the config does not hold leaves the token as written. |
+| `live` | Array | `[]` | Object types whose live changes the list follows (manifest `config.live`, e.g. `["lead", "ticket"]`): it subscribes through the object store's live updates and reads the list again half a second after the last change, so a card a colleague moved moves here too. It lets go when the page leaves. |
+| `appConfig` | Object | `{}` | The app config `@config.<key>` tokens resolve against (manifest: `config.appConfig`), as on the dashboard and detail pages, merged over a config an ancestor provides on `cnAppConfig`. A quick filter's `filter` and its `label` / `activeLabel` take the token: `"Residence @config.municipality"` reads "Residence Zuiddrecht" (board DqContacten); the label is translated first, and a key the config does not hold leaves the token as written. A date token can take a setting as its day count (`"@today-{@config.lead_stale_threshold_days}d"`), and `footerNote` names `@config.<key>` values the same way. |
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls; forwarded to `CnActionsBar` (manifest: `config.showCountWithSearch`). Only relevant with `inlineSearch` |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`). Under the board look on a page without a filter sidebar it is the toolbar's Filter button, which carries the number of active filters as a badge while any is active |
 | `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a visibility checkbox — the in-table equivalent of the sidebar's Columns tab (manifest: `config.columnMenu`). See [Filter and columns: table header vs sidebar](#filter-and-columns-table-header-vs-sidebar). |
@@ -286,6 +287,24 @@ columns from those rows (since manifest schema 2.97.0):
   sets the page filter, so the cards and the active filter chips follow.
 - **Two or more `columnFields`** draw a "Columns:" switch after the search. The
   entry on `statusField` is the default.
+- **`itemsPath`** takes the columns from a LIST on each referenced row instead
+  of the rows themselves: a lead's `stage` is a name in its pipeline's
+  `stages`. Each item is keyed by `keyField` (default `name`), the value a card
+  stores and a drop writes, and linked to its row under `_parent`, so
+  `narrowBy: { "field": "_parent", "rowField": "pipeline" }` with a `narrow`
+  select on `pipeline` shows the chosen pipeline's stages:
+
+  ```json
+  "board": {
+    "statusField": "stage",
+    "narrow": { "field": "pipeline", "label": "Pipeline", "source": { "schema": "pipeline", "labelField": "title" } },
+    "columnFields": [{ "field": "stage", "source": { "schema": "pipeline", "itemsPath": "stages", "keyField": "name", "orderField": "order", "colorField": "color", "closedField": "isClosed", "narrowBy": { "field": "_parent", "rowField": "pipeline" } } }],
+    "sumField": "value"
+  }
+  ```
+- **`closedField`** names the referenced row's (or item's) flag for a closed
+  stage, a won or lost deal: its column starts collapsed, showing its count and
+  a "Show N more" button, and still takes a drop.
 - **`kind: "values"`** is for a field that references no schema, such as a
   Nextcloud user id. Its columns are the values present on the rows, then one
   column for no value.
@@ -1023,6 +1042,23 @@ A row action of `type: "open-modal"` opens its `target` (a registry modal, or a 
       "confirm": { "label": "Restore", "request": { "url": "/apps/myapp/api/records/@objectId/restore" } } } } }
 ]
 ```
+
+### A row action that calls an endpoint
+
+A row action of `type: "api-call"` posts (or `method: "PUT"`) to its `url` for the row it was picked on: `{objectId}` is the row's key and `{field}` any row field. It toasts `successMessage` or `errorMessage` (the server's sentence when none is set) and reads the list again after a success, unless `refresh: false`. Nothing is sent while the menu is drawn. With `visibleWhen` an Enable and a Disable action can share one row:
+
+```jsonc
+"actions": [
+  { "id": "enable", "label": "Enable", "type": "api-call", "url": "/apps/pipelinq/api/export/jobs/{objectId}/enable",
+    "visibleWhen": { "field": "enabled", "value": false }, "successMessage": "Job enabled" },
+  { "id": "disable", "label": "Disable", "type": "api-call", "url": "/apps/pipelinq/api/export/jobs/{objectId}/disable",
+    "visibleWhen": { "field": "enabled", "value": true }, "successMessage": "Job disabled" }
+]
+```
+
+### A header action that opens a modal
+
+A header action of `type: "open-modal"` opens its registry modal with the list's active filters as `activeFilters` (the pipeline a board is narrowed to), the action's own `props` winning on a colliding key.
 
 ### Registry-name handler
 

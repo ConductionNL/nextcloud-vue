@@ -104,6 +104,8 @@ the page just works.
 | `suggestUrl` | String | `''` | Optional override target for the "Suggest a feature" CTA; when empty the CTA opens the in-product modal. |
 | `documentationUrl` | String | `''` | Per-app documentation site URL surfaced in the docs info card. |
 | `capabilityComparison` | Object | `null` | Optional capability comparison document, forwarded to the view. Manifest config wins, then the `features_roadmap_capabilities` initial state, then null. |
+| `compareUrl` | String \| Object | `''` | The app's comparison on its public site, linked above the page in a new tab with the host named beside it. A URL, or a map from language to URL with a `default` (`{ "default": "https://pipelinq.conduction.nl/compare", "nl": "https://pipelinq.conduction.nl/nl/compare" }`). Only http(s) and same-origin addresses render. Manifest `config.compareUrl`. |
+| `compareLabel` | String | `''` | The compare link's text, through the app's translate. Defaults to "How this app compares". Manifest `config.compareLabel`. |
 | `categories` | Object \| null | `null` | Feature category key to caption (translated through the app's translate function), the order of the groups in the board look. |
 | `board` | Object \| null | `null` | Board look options, see below. Ignored in the default look. |
 | `title` | String | `''` | The page title, lifted from the manifest page's `title`. Shown in the board look. |
@@ -165,6 +167,6 @@ The DqFunctionaliteiten board:
 
 :::warning Deprecated
 
-The in-app capability comparison (`capabilityComparison` on CnFeaturesAndRoadmapView and CnFeaturesAndRoadmapPage, the `features_roadmap_capabilities` initial state key, and CnCapabilityTable) is deprecated. Publish the comparison on the app's docs site and link to it instead, as dossiq #3312 and pipelinq #2195 did. It still renders; removal waits for a major version. A development build warns once per page load when a comparison is given.
+The in-app capability comparison (`capabilityComparison` on CnFeaturesAndRoadmapView and CnFeaturesAndRoadmapPage, the `features_roadmap_capabilities` initial state key, and CnCapabilityTable) is deprecated. Publish the comparison on the app's docs site and link to it with `compareUrl` instead, as dossiq #3312 and pipelinq #2195 did. It still renders; removal waits for a major version. A development build warns once per page load when a comparison is given.
 
 :::
