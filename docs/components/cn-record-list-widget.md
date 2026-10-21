@@ -77,6 +77,18 @@ page action plus a `label`, dispatched as `rowAction` is (an `open-modal` gets t
 row's `{field}` tokens filled in. After an endpoint call the list reads again; a refusal shows the server's sentence as
 an alert (else `errorText`).
 
+An entry can depend on the row. `visibleWhen` is a condition over the row (`{ field, op?, value }`, or `all`/`any`):
+the action shows only on rows where it holds, and a row with no action left has no menu. `{ label, href }` is a link
+instead of a button. `href` is a template over the row (`"{externalUrl}"`). A web address opens in a new tab, and a
+path such as `/apps/forms/s/{token}` opens in place. Any other address hides the action on that row.
+
+```json
+"rowActions": [
+  { "label": "Fill in", "type": "open-modal", "target": "AnswerDialog", "visibleWhen": { "field": "instrumentKind", "value": "internal" } },
+  { "label": "Open the form", "href": "{externalUrl}", "visibleWhen": { "field": "instrumentKind", "value": "external" } }
+]
+```
+
 `links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
 ("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
 (`{ register, schema, template }`) reads their labels, ten at most, and `fallback` stands in until then.
@@ -114,6 +126,28 @@ On a card surface the detail page or the dashboard page draws the titled card. T
 | `headerCount` | `true` reports the list's total, which the dashboard card draws as a chip after its title ("Actiepunten 5"). |
 
 In a tab panel there is no card header, so neither is drawn.
+
+### A table
+
+`presentation: "table"` draws a header row and one row per record. `columns` lists `{ label, value, align?, alertAbove?, sortable?, tone? }`:
+
+| Key | Meaning |
+|-----|---------|
+| `value` | A template over the row, the cell text. |
+| `align` | `"end"` right-aligns the cell, for numbers. |
+| `alertAbove` | A number above it reads bold in the danger colour. |
+| `sortable` | The header becomes a button. The first press sorts the rows up, the next down. Numbers sort as numbers. The header carries `aria-sort`. |
+| `tone` | The cell becomes a coloured label: `{ field?, map, default?, override? }`. The value at `field` (else the cell text) picks a badge variant from `map`, else `default`. `override: { when, tone }` gives the cell `tone` while `when`, a condition over the row, holds. |
+
+`tone.override` keeps a verdict from turning green on its own. This column is green for a compliant feature only when it is verified:
+
+```json
+{ "label": "Verdict", "value": "{verdict}", "tone": { "map": { "compliant": "success", "violates": "error" }, "default": "default", "override": { "when": { "field": "verified", "op": "neq", "value": true }, "tone": "warning" } } }
+```
+
+`indentPath` names a number on the row, its depth in a tree. The first cell moves 16px in per level, so departments read under their school. With `rowRoute` the first cell links to the row's page.
+
+`flattenPath` takes the rows from a list inside each record. With `"flattenPath": "answers"` every entry of a record's `answers` is a row, and `{@parent.<field>}` reads the record it came from. A record without the list adds no row, and `{total}` counts the rows drawn.
 
 ### A meta line of parts
 
