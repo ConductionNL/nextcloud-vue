@@ -154,6 +154,11 @@ describe('CnNcDashboardQuickCreate', () => {
 		expect(axios.post.mock.calls[0][1].client).toBe('c-250')
 	})
 
+	it('shows a list with its heading under the form', async () => {
+		const w = await mountForm({ ...NEW_LEAD, list: { source: { register: 'pipelinq', schema: 'lead' } }, listHeading: 'Recent leads' })
+		expect(w.find('.cn-nc-dashboard-quick-create__list-heading').text()).toBe('Recent leads')
+	})
+
 	it('fills defaults and the heading from the record it was opened on', async () => {
 		axios.post.mockResolvedValue({ data: { id: 'r1' } })
 		const w = await mountForm({

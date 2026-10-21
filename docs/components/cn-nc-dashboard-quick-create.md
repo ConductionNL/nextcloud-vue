@@ -43,7 +43,8 @@ registerNcDashboardWidgets([
 | `submitLabel`, `successText`, `successLinkText`, `againLabel` | Texts, through the app's translate |
 | `successHref` | A template for the created object's page; an app path goes through `generateUrl` |
 | `openAfterCreate` | Go to `successHref` at once instead of showing the success note |
-| `list` | A [CnNcDashboardList](./cn-nc-dashboard-list.md) config shown under the form ("Recent requests"), read again after a create |
+| `list` | A [CnNcDashboardList](./cn-nc-dashboard-list.md) config shown under the form, read again after a create |
+| `listHeading` | The heading above that list ("Recent requests"), through the app's translate |
 
 ## Props
 

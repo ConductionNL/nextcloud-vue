@@ -59,7 +59,12 @@
 				{{ text(config.againLabel) || t('nextcloud-vue', 'Create another') }}
 			</NcButton>
 		</div>
-		<CnNcDashboardList v-if="config.list" :key="listKey" :config="config.list" />
+		<section v-if="config.list" class="cn-nc-dashboard-quick-create__list">
+			<h4 v-if="config.listHeading" class="cn-nc-dashboard-quick-create__list-heading">
+				{{ text(config.listHeading) }}
+			</h4>
+			<CnNcDashboardList :key="listKey" :config="config.list" />
+		</section>
 	</div>
 </template>
 
@@ -110,7 +115,8 @@ function appUrl(url) {
  * - `submitLabel`, `successText`, `successLinkText`, `againLabel`: texts.
  * - `successHref`: a template for the created object's page (`/apps/pipelinq/leads/{id}`).
  * - `openAfterCreate`: go to `successHref` at once instead of the success note.
- * - `list`: a CnNcDashboardList config shown under the form, read again after a create.
+ * - `list`, `listHeading`: a CnNcDashboardList config shown under the form
+ *   with a heading ("Recent requests"), read again after a create.
  *
  * Texts go through the host translate.
  */
@@ -426,6 +432,12 @@ export default {
 
 .cn-nc-dashboard-quick-create__heading {
 	margin: 0;
+	font-weight: 600;
+}
+
+.cn-nc-dashboard-quick-create__list-heading {
+	margin: 8px 0 0;
+	font-size: 1em;
 	font-weight: 600;
 }
 
