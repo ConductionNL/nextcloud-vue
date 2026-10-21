@@ -27,9 +27,9 @@
 				<input
 					type="search"
 					class="cn-actions-bar__search-input"
-					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					:value="searchValue"
-					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					@input="onSearchInput">
 			</div>
 			<!--
@@ -117,9 +117,9 @@
 				<input
 					type="search"
 					class="cn-actions-bar__search-input"
-					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					:value="searchValue"
-					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					@input="onSearchInput">
 			</div>
 			<span v-else-if="showCount && hasTotal" class="cn-actions-bar__count">
@@ -392,9 +392,9 @@
 				<input
 					type="search"
 					class="cn-actions-bar__search-input"
-					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					:value="searchValue"
-					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					@input="onSearchInput">
 			</div>
 			<span v-else-if="showCount && hasTotal && !searchInToolbar" class="cn-actions-bar__count">
