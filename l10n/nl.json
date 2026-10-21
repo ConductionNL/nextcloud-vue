@@ -2609,6 +2609,10 @@
       "{count} open",
       "{count} open"
     ],
+    "%n follower": [
+      "%n volger",
+      "%n volgers"
+    ],
     "%n existing record looks like this one.": [
       "%n bestaand item lijkt hierop.",
       "%n bestaande items lijken hierop."
