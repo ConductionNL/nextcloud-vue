@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.139.0",
+	"version": "2.140.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1962,13 +1962,14 @@
 					"type": "object",
 					"additionalProperties": false,
 					"required": ["label"],
-					"description": "One text link in the widget header's actions group, before the overflow menu (zuiddrecht-pixel-gaps): \"All deadlines\", \"To the board\". A `route` (named page, optional `params` / `query`) is a router link, an `href` a plain anchor. The label is an i18n key. Rendered by CnWidgetWrapper; CnDashboardPage reads it off the layout entry or the widget definition.",
+					"description": "One text link in the widget header's actions group, before the overflow menu (zuiddrecht-pixel-gaps): \"All deadlines\", \"To the board\". A `route` (named page, optional `params` / `query`) is a router link, an `href` a plain anchor, a `tab` a `#<tab>` anchor that opens that tab of the same page (2.140.0, header-link-switches-tab). The label is an i18n key. Rendered by CnWidgetWrapper; CnDashboardPage reads it off the layout entry or the widget definition.",
 					"properties": {
 						"label": { "type": "string", "minLength": 1 },
 						"route": { "type": "string" },
 						"params": { "type": "object", "additionalProperties": true },
 						"query": { "type": "object", "additionalProperties": true },
-						"href": { "type": "string" }
+						"href": { "type": "string" },
+						"tab": { "type": "string", "minLength": 1 }
 					}
 				},
 				"showButtons": {

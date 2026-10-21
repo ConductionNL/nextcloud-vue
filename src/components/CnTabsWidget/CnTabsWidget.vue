@@ -975,14 +975,41 @@ export default {
 		}
 		subscribe('cn:page:refresh', this._onRefresh)
 		subscribe('cn:widget:refresh', this._onRefresh)
+		// A hash that changes on an open page (a header link `{ tab }`) opens that tab.
+		this._onHashChange = () => this.openTabById(decodeURIComponent(window.location.hash.replace(/^#/, '')))
+		window.addEventListener('hashchange', this._onHashChange)
 	},
 
 	beforeUnmount() {
 		unsubscribe('cn:page:refresh', this._onRefresh)
 		unsubscribe('cn:widget:refresh', this._onRefresh)
+		window.removeEventListener('hashchange', this._onHashChange)
 	},
 
 	methods: {
+		/**
+		 * Open the tab with this id; one still pending opens once it appears,
+		 * and an unknown or hidden id changes nothing.
+		 *
+		 * @spec openspec/changes/header-link-switches-tab/specs/header-link/spec.md#requirement-a-header-link-can-open-another-tab-of-the-page
+		 * @param {string} id The tab id.
+		 * @return {void}
+		 */
+		openTabById(id) {
+			if (!id) {
+				return
+			}
+			const index = this.resolvedTabs.findIndex((tab) => tab.id === id)
+			if (index < 0) {
+				return
+			}
+			if (this.resolvedTabs[index].pending) {
+				this.hashTargetId = id
+				return
+			}
+			this.activeIndex = index
+		},
+
 		/**
 		 * The read-state part a tab counts: `unreadKey`, else its id, else its widget id.
 		 *

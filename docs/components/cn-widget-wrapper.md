@@ -225,10 +225,16 @@ The component picks no colour of its own (ADR-003). A theme that says nothing ab
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `headerLink` | `Object \| null` | `null` | One text link in the header's actions group, before the overflow menu: `{ label, route?, params?, query?, href? }`. A `route` is a named router link (needs a router), an `href` a plain anchor. The label goes through the host translate function. In a manifest: `headerLink` on the widget definition or its layout entry. |
+| `headerLink` | `Object \| null` | `null` | One text link in the header's actions group, before the overflow menu: `{ label, tab?, route?, params?, query?, href? }`. A `tab` opens that tab of the same page (a `#<tab>` anchor the tab strip follows), a `route` is a named router link (needs a router), an `href` a plain anchor. The label goes through the host translate function. In a manifest: `headerLink` on the widget definition or its layout entry. |
 
 ```json
 { "id": "week", "type": "custom", "title": "Deadlines this week", "headerLink": { "label": "All deadlines", "route": "Cases", "query": { "due": "7d" } } }
+```
+
+A link to another tab of the same detail page (DqZaaktype: the side Historie card opens the Historie tab):
+
+```json
+{ "id": "history-side", "type": "audit-trail", "headerLink": { "label": "All history", "tab": "history" } }
 ```
 
 Theme hooks: `--cn-widget-header-link-size` (14px), `--cn-widget-header-link-weight` (600).
