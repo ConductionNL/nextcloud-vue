@@ -2184,7 +2184,8 @@
     "The action is waiting for a next step, such as a task.": "The action is waiting for a next step, such as a task.",
     "{succeeded} done, {failed} failed": "{succeeded} done, {failed} failed",
     "The action is still running. You can close this dialog.": "The action is still running. You can close this dialog.",
-    "{action}: done": "{action}: done"
+    "{action}: done": "{action}: done",
+    "{action}: started": "{action}: started"
   },
   "plurals": {
     "{count} member": [

@@ -50,6 +50,7 @@ import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
+import { useObjectActions } from '../composables/useObjectActions.js'
 import { routeHref } from './actionLink.js'
 import { resolveModalEntry } from './builtInModals.js'
 import {
@@ -630,6 +631,61 @@ async function executeAgentAction(action, context) {
 }
 
 /**
+ * The object an `object-action` runs on: the action's own `register`,
+ * `schema` and `objectId` (each may be an @-token), else the page's.
+ *
+ * @param {object} action The object-action.
+ * @param {object} tokenCtx The token context.
+ * @return {{register: string, schema: string, id: string}} The target; a part is '' when unresolved.
+ */
+export function objectActionTarget(action, tokenCtx = {}) {
+	return {
+		register: resolveAgentRef(action.register, tokenCtx.register, tokenCtx),
+		schema: resolveAgentRef(action.schema, tokenCtx.schema, tokenCtx),
+		id: resolveAgentRef(action.objectId, tokenCtx.objectId, tokenCtx),
+	}
+}
+
+/**
+ * Run an `object-action` that asks nothing first (no inputs, no confirm text,
+ * sync) and toast what happened. A host opens `CnObjectActionDialog` for the
+ * others, through `context.openObjectAction`.
+ *
+ * Fail-closed: an unresolved target or an action listed as unavailable runs
+ * nothing. A refusal toasts OpenRegister's sentence. After a run the page is
+ * refreshed and a `next` hint is passed on (see `useObjectActions`).
+ *
+ * @param {object} action The object-action (`action`, `register?`, `schema?`,
+ *   `objectId?`, `objectAction?`, `successMessage?`, `errorMessage?`).
+ * @param {object} context Runtime context; `context.tokenCtx` is the token context.
+ * @param {object} [inputs] The inputs to send.
+ * @return {Promise<object>} The run's result, `{ ok: false }` when nothing ran.
+ * @spec openspec/changes/object-actions-ui/specs/object-actions-ui/spec.md#requirement-a-manifest-runs-a-declared-action
+ */
+export async function executeObjectAction(action, context = {}, inputs = {}) {
+	const target = objectActionTarget(action, context.tokenCtx || {})
+	const key = String(action.action || action.objectAction?.key || '')
+	if (!target.register || !target.schema || !target.id || key === '' || action.objectAction?.available === false) {
+		// eslint-disable-next-line no-console
+		console.warn('[dispatchAction] object-action needs an action key and a resolvable register/schema/objectId, and an available action — skipping.', action)
+		return { ok: false }
+	}
+	const dialogs = await import('@nextcloud/dialogs')
+	const label = translateMessage(action.label, context) || action.objectAction?.label || key
+	const result = await useObjectActions(target, { immediate: false }).run(key, inputs)
+	if (!result.ok) {
+		dialogs.showError(translateMessage(action.errorMessage, context) || result.message || t('nextcloud-vue', 'The action did not run.'))
+	} else if (result.status === 'suspended') {
+		dialogs.showInfo?.(t('nextcloud-vue', 'The action is waiting for a next step, such as a task.'))
+	} else if (result.status === 'queued') {
+		dialogs.showSuccess(t('nextcloud-vue', '{action}: started', { action: label }))
+	} else {
+		dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', '{action}: done', { action: label }))
+	}
+	return result
+}
+
+/**
  * POST the run-node call: `POST /apps/openregister/api/flows/{flowId}/nodes/{nodeId}/run`.
  *
  * This is the SECOND half of `run-node` (manifest-run-node-action / or-flow-run-node) —
@@ -711,7 +767,7 @@ export async function postRunNode(action, context, config = {}) {
  *
  * @param {object} action The action object from the manifest.
  * @param {string} [action.type] Dispatch type: "handler" | "open-modal" | "open-page" | "navigate" |
- *   "object-op" | "export" | "open-form" | "refresh" | "api-call" | "agent".
+ *   "object-op" | "export" | "open-form" | "refresh" | "api-call" | "agent" | "run-node" | "object-action".
  *   When absent, treated as "handler" for v1 backward compatibility.
  * @param {string} [action.handler] Registry key for "handler" type. For "export": the optional
  *   handler invoked by the host with the dialog's confirm payload (`{ format, entity }`).
@@ -789,6 +845,9 @@ export async function postRunNode(action, context, config = {}) {
  *   `{name, paramField?, objectParam?}`) via {@link buildOnSuccessRoute}, which merges
  *   the saved object's id into the route params so the navigation can deep-link to the
  *   created object.
+ * @param {(action: object) => void} [context.openObjectAction] Opens
+ *   CnObjectActionDialog for an "object-action" that asks inputs or confirmation,
+ *   or runs it. Without it an "object-action" runs at once (`executeObjectAction`).
  * @param {(action: object) => void} [context.openRunNode] Opens the
  *   node-config dialog (or runs immediately for an empty config form) and
  *   POSTs to OpenRegister's direct-invoke endpoint on submit. Required for
@@ -949,6 +1008,16 @@ export function dispatchAction(action, context = {}) {
 			}
 			context.openRunNode(action)
 			break
+		}
+
+		case 'object-action': {
+		// A declared OpenRegister action (object-actions-ui): a host that can
+		// open CnObjectActionDialog (CnActionButtons) does so for an action with
+		// inputs, confirm text or an async run; otherwise it runs at once.
+			if (typeof context.openObjectAction === 'function') {
+				return context.openObjectAction(action)
+			}
+			return executeObjectAction(action, context)
 		}
 
 		case 'refresh': {

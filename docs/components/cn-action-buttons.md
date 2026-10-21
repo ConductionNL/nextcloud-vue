@@ -20,6 +20,7 @@ dispatcher — with a confirm gate first when the action asks for it.
 | `api-call` | POST/PUT `url` + success/error toast + page refresh — via `dispatchAction`. `payload` (preferred, deep @-token resolution) or `params` (legacy, shallow) supplies the JSON body; `download: true` requests a blob response and triggers a browser file download instead (no auto-refresh unless `refresh: true`). See [dispatchAction](../utilities/dispatch-action.md#api-call-wave-3-91). |
 | `agent` | Run a governed hermiq agent against the page object (hermiq#41). POSTs `{ register, schema, objectId, resultField?, skill?, prompt? }` to `/apps/hermiq/api/agents/{agent}/run-on-object` — `register` / `schema` / `objectId` default to the page's `@register` / `@schema` / `@objectId` context. A first-class companion to `api-call` (still the fallback for a bespoke body); hermiq is not hard-required — an app-level 404 toasts "Agent runtime unavailable". See [dispatchAction](../utilities/dispatch-action.md#agent-hermiq41). |
 | `navigate` / `open-page` | Rendered as a real link, so it can be middle-clicked, opened in a new tab or copied: an external `navigate` target opens in a new tab, an in-app target (or `open-page` route name) gets the router-resolved `href` and a plain click routes in place. A `confirm: true` action, one carrying an `onSelect` function, or one whose route the router cannot resolve stays a button routed through `dispatchAction`. In `display: "menu"` an in-app link is published as a `run()` entry, not an `href`. |
+| `object-action` | Runs an action OpenRegister declares on the page object, by its `action` key. The label and icon default to the listed ones. An action with inputs, confirm text or `mode: "async"` opens [`CnObjectActionDialog`](./cn-object-action-dialog.md); any other runs at once and toasts. An action OpenRegister does not list is not rendered (the person may not run it); one listed with `available: false` renders disabled with the reason as its title and in its accessible name. See [Object actions](#object-actions). |
 | `open-modal` / `refresh` / `handler` | Routed through `dispatchAction` (the pre-bound `cnDispatchAction` when mounted under `CnPageRenderer`). |
 
 An entry with **`href`** (any type) is a real link and is never dispatched: an anchor button in the bar, an `NcActionLink` in a menu, with `target` as its anchor target. This component uses `href` as given, so it must be a finished URL. A manifest `headerActions[]` entry on a detail or dashboard page may carry `href` too; the page resolves an instance path through `generateUrl()` and sets `target` (`_self` unless the manifest says `_blank`) before handing it over — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href).
@@ -45,6 +46,19 @@ button rather than a form that saves nowhere.
 
 A `confirm: true` action opens `CnConfirmDialog` **before** dispatching
 (the object-op precedent).
+
+## Object actions
+
+The bar reads `GET /api/objects/{register}/{schema}/{id}/actions` for the page object once, when an entry needs it. An entry `{ "id": "case", "actionsFrom": "openregister" }` expands in place into one `object-action` per listed action whose `surfaces` include `header` (or the entry's own `surface`), with ids `case:<key>`. `include: ["claim", "hold"]` keeps those keys in that order. A failed read renders no object action at all, rather than buttons that would be refused.
+
+```json
+"headerActions": [
+  { "id": "case", "actionsFrom": "openregister", "include": ["claim", "hold"] },
+  { "id": "publish", "type": "object-action", "action": "publish", "variant": "primary" }
+]
+```
+
+A run that answers `next: "next"` or `next: "list"` is passed on as `cn:object-action:next`; [CnDetailPage](./cn-detail-page.md) steps to `nextTo` or goes back to the list.
 
 ## Config
 

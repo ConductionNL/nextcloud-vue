@@ -593,3 +593,81 @@ function historyEntry(entry) {
 		changes,
 	}
 }
+
+/**
+ * Whether a manifest action list holds an entry that needs OpenRegister's
+ * list: an `object-action` or an `actionsFrom: "openregister"` entry.
+ *
+ * @param {unknown} entries The manifest actions.
+ * @return {boolean}
+ */
+export function needsObjectActions(entries) {
+	return Array.isArray(entries) && entries.some((entry) => entry && (entry.actionsFrom === 'openregister' || entry.type === 'object-action'))
+}
+
+/**
+ * One listed action as a manifest action entry: `type: "object-action"`,
+ * with the listed label and icon unless the manifest gave its own, and,
+ * when it cannot run now, `disabled` with the reason as `title`.
+ *
+ * @param {object} listed The listed action.
+ * @param {object} base What the manifest declared for it.
+ * @return {object}
+ */
+function objectActionEntry(listed, base) {
+	const entry = {
+		...base,
+		type: 'object-action',
+		action: listed.key,
+		label: base.label || listed.label,
+		icon: base.icon || listed.icon || undefined,
+		objectAction: listed,
+	}
+	if (!listed.available) {
+		entry.disabled = true
+		entry.title = listed.reason
+	}
+	return entry
+}
+
+/**
+ * Expand a manifest action list against OpenRegister's list.
+ *
+ * - `actionsFrom: "openregister"` becomes, in place, one `object-action` per
+ *   listed action offered on `surface` (or the entry's own `surface`),
+ *   narrowed by `include`. Each gets the id `<entry id>:<action key>` and
+ *   keeps the entry's `variant` and `group`.
+ * - `type: "object-action"` gets the listed action, or is left out when
+ *   OpenRegister does not list it: the person may not run it.
+ * - Every other entry passes through.
+ *
+ * @param {Array<object>} entries The manifest actions.
+ * @param {Array<object>} listed The listed actions (normalised).
+ * @param {string} surface `header`, `row`, `bulk` or `detail-menu`.
+ * @return {Array<object>} The entries to render.
+ * @spec openspec/changes/object-actions-ui/specs/object-actions-ui/spec.md#requirement-actionsfrom-renders-the-listed-actions-on-a-surface
+ */
+export function expandObjectActionEntries(entries, listed, surface) {
+	const out = []
+	for (const entry of Array.isArray(entries) ? entries : []) {
+		if (!entry || typeof entry !== 'object') {
+			continue
+		}
+		if (entry.actionsFrom === 'openregister') {
+			const base = { variant: entry.variant, group: entry.group, sourceId: entry.id }
+			for (const action of actionsForSurface(listed, entry.surface || surface, entry.include)) {
+				out.push(objectActionEntry(action, { ...base, id: `${entry.id}:${action.key}` }))
+			}
+			continue
+		}
+		if (entry.type === 'object-action') {
+			const action = (Array.isArray(listed) ? listed : []).find((candidate) => candidate.key === entry.action)
+			if (action) {
+				out.push(objectActionEntry(action, { ...entry, sourceId: entry.id }))
+			}
+			continue
+		}
+		out.push(entry)
+	}
+	return out
+}

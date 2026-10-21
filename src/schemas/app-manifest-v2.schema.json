@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.139.0",
+	"version": "2.140.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3128,8 +3128,8 @@
 		},
 		"actionFields": {
 			"type": "object",
-			"required": ["id", "label"],
-			"description": "The fields of an action, shared by $defs/action and the non-link $defs/headerAction, which close it and constrain `children`. A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore), export (opens the shared CnMassExportDialog export launcher), open-form (schema-driven create dialog — CnActionButtons), refresh (bumps the cn:page:refresh signal), api-call (POST/PUT an app endpoint + toast + refresh — CnActionButtons/dispatchAction), agent (run a governed hermiq agent), run-node (invoke one OpenRegister flow node against the page object, config collected via a dialog sourced from the node's own declared form — CnActionButtons/dispatchAction, or-flow-run-node; distinct from the UNRELATED setup-wizard step type of a similar name, 'run-action'), toggle (two-way state button — CnActionButtons only, NOT dispatchable). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
+			"required": ["id"],
+			"description": "The fields of an action, shared by $defs/action and the non-link $defs/headerAction, which close it and constrain `children`. A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore), export (opens the shared CnMassExportDialog export launcher), open-form (schema-driven create dialog — CnActionButtons), refresh (bumps the cn:page:refresh signal), api-call (POST/PUT an app endpoint + toast + refresh — CnActionButtons/dispatchAction), agent (run a governed hermiq agent), run-node (invoke one OpenRegister flow node against the page object, config collected via a dialog sourced from the node's own declared form — CnActionButtons/dispatchAction, or-flow-run-node; distinct from the UNRELATED setup-wizard step type of a similar name, 'run-action'), object-action (run an action OpenRegister declares on the page object by its `action` key, inputs asked in CnObjectActionDialog, object-actions-ui), toggle (two-way state button — CnActionButtons only, NOT dispatchable). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
 			"properties": {
 				"id": {
 					"type": "string",
@@ -3141,7 +3141,7 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op", "export", "open-form", "refresh", "api-call", "agent", "run-node", "toggle"],
+					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op", "export", "open-form", "refresh", "api-call", "agent", "run-node", "object-action", "toggle"],
 					"default": "handler",
 					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store; export: opens the shared CnMassExportDialog export launcher configured via entities[]/formats[] — the confirm payload ({format, entity?}) routes to the action's `handler` in the manifest actions map (the app's export service does the download). open-form (#91 Wave 3): CnActionButtons opens a schema-driven create dialog (CnAdvancedFormDialog) for the action's register/schema, saves + toasts + refreshes + optionally navigates to onSuccessRoute. refresh (#91 Wave 3): bumps the page-level cn:page:refresh event-bus signal so every endpoint-bound widget refetches. api-call (#91 Wave 3): POST/PUT the token-interpolated url with payload/params (JSON body, payload resolves @-tokens recursively at any depth) + success/error toast + auto page-refresh (unless refresh:false); confirm gating is surface-consumed intent (object-op precedent); download:true requests a binary blob and triggers a browser file download instead (auto-refresh defaults to OFF in that mode). agent (hermiq#41): run a governed hermiq agent against the page object — POSTs { register, schema, objectId, resultField?, skill?, prompt? } to /apps/hermiq/api/agents/{agent}/run-on-object (object-RBAC-scoped; dispatches the governed AgentRunRequestedEvent). register/schema/objectId default to the page's @register/@schema/@objectId object context. A first-class companion to api-call (which remains the fallback for a bespoke body); hermiq is NOT hard-required — an app-level 404 surfaces a graceful 'agent runtime unavailable' toast. toggle (#91 Wave 3): a stateful two-way state button rendered by CnActionButtons (GET stateSource on mount, optimistic write on click) — NOT dispatchable through dispatchAction. object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
 				},
@@ -3350,17 +3350,37 @@
 					"type": "string",
 					"description": "agent only: the object field the agent's result is written back to (falls back to hermiq's default result field when absent)."
 				},
+				"action": {
+					"type": "string",
+					"minLength": 1,
+					"description": "object-action only (REQUIRED): the key of the action OpenRegister declares on the object's schema (x-openregister-action) or a lifecycle transition it lists. Runs through POST /api/objects/{register}/{schema}/{id}/actions/{action} with { inputs }; an action with inputs opens CnObjectActionDialog first. The label and icon default to the listed ones. Not listed (the person may not run it): the entry does not render. Listed with available:false: it renders disabled with the reason (object-actions-ui)."
+				},
+				"actionsFrom": {
+					"type": "string",
+					"enum": ["openregister"],
+					"description": "Expands this entry, in place, into one object-action per action OpenRegister lists for the object (header and row actions) or for the selection (bulk actions) whose surfaces include this place: header actions read 'header', row actions 'row', bulk actions 'bulk'. `surface` overrides it and `include` narrows it. The entry needs no label (object-actions-ui)."
+				},
+				"include": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"description": "actionsFrom only: the action keys to show, in this order. A key OpenRegister does not list is skipped. Absent: every listed action of the surface."
+				},
+				"surface": {
+					"type": "string",
+					"enum": ["header", "row", "bulk", "detail-menu"],
+					"description": "actionsFrom only: the surface whose actions this entry expands into, when it is not the place the entry sits in."
+				},
 				"objectId": {
 					"type": "string",
-					"description": "agent only: the target object id. Defaults to the page object context's @objectId; an unresolved required @objectId BLOCKS the call (fail-closed) rather than sending a literal token. May be an explicit id or an @-token string."
+					"description": "agent / object-action: the target object id. object-action falls back to the page object context's @objectId. agent only: the target object id. Defaults to the page object context's @objectId; an unresolved required @objectId BLOCKS the call (fail-closed) rather than sending a literal token. May be an explicit id or an @-token string."
 				},
 				"register": {
 					"type": "string",
-					"description": "open-form / agent / run-node: OpenRegister register slug. open-form: the create dialog's schema register. agent / run-node: the register the subject object belongs to — falls back to the page object context's @register."
+					"description": "open-form / agent / run-node / object-action: OpenRegister register slug. open-form: the create dialog's schema register. agent / run-node: the register the subject object belongs to — falls back to the page object context's @register."
 				},
 				"schema": {
 					"type": "string",
-					"description": "open-form / agent / run-node: OpenRegister schema slug. open-form: the create dialog fetches this schema and saves the new object against it. agent / run-node: the schema the subject object belongs to — falls back to the page object context's @schema."
+					"description": "open-form / agent / run-node / object-action: OpenRegister schema slug. open-form: the create dialog fetches this schema and saves the new object against it. agent / run-node: the schema the subject object belongs to — falls back to the page object context's @schema."
 				},
 				"onSuccessRoute": {
 					"description": "open-form only: optional post-save navigation target (#91). A bare route NAME (string) navigates with the saved object's id merged into the route params under `id` (harmless when the route has no `:id` segment — backward compatible). The object form { name, paramField?, objectParam? } names the id param (`paramField`, default `id`) and, when `objectParam` is set, also passes the whole saved object under that param key (for a props:true detail route to render without a refetch). The id is read from saved.id, then saved.uuid, then saved['@self'].id.",
@@ -3426,6 +3446,26 @@
 				}
 			},
 			"allOf": [
+				{
+					"description": "An action needs a label, except an object-action (the label OpenRegister lists) and an actionsFrom entry (which expands into listed actions).",
+					"if": {
+						"not": {
+							"anyOf": [
+								{ "required": ["actionsFrom"] },
+								{ "properties": { "type": { "const": "object-action" } }, "required": ["type"] }
+							]
+						}
+					},
+					"then": { "required": ["label"] }
+				},
+				{
+					"description": "object-action actions MUST name the declared action via `action`.",
+					"if": {
+						"properties": { "type": { "const": "object-action" } },
+						"required": ["type"]
+					},
+					"then": { "required": ["action"] }
+				},
 				{
 					"description": "object-op actions MUST declare their mutation verb via `op`.",
 					"if": {
@@ -4604,6 +4644,27 @@
 										"properties": {
 											"label": { "type": "string", "minLength": 1 },
 											"id": { "type": "string", "not": { "pattern": "^builtin:" } },
+											"builtin": false
+										}
+									},
+									{
+										"type": "object",
+										"required": ["id", "actionsFrom"],
+										"additionalProperties": true,
+										"properties": {
+											"id": { "type": "string", "not": { "pattern": "^builtin:" } },
+											"actionsFrom": { "const": "openregister" },
+											"builtin": false
+										}
+									},
+									{
+										"type": "object",
+										"required": ["id", "type", "action"],
+										"additionalProperties": true,
+										"properties": {
+											"id": { "type": "string", "not": { "pattern": "^builtin:" } },
+											"type": { "const": "object-action" },
+											"action": { "type": "string", "minLength": 1 },
 											"builtin": false
 										}
 									},

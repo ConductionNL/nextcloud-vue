@@ -2433,7 +2433,8 @@
     "The action is waiting for a next step, such as a task.": "De actie wacht op een volgende stap, zoals een taak.",
     "{succeeded} done, {failed} failed": "{succeeded} gelukt, {failed} mislukt",
     "The action is still running. You can close this dialog.": "De actie loopt nog. Je kunt dit venster sluiten.",
-    "{action}: done": "{action}: klaar"
+    "{action}: done": "{action}: klaar",
+    "{action}: started": "{action}: gestart"
   },
   "plurals": {
     "{count} member": [

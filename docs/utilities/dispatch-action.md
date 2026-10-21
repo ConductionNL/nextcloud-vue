@@ -17,7 +17,7 @@ import { dispatchAction } from '@conduction/nextcloud-vue'
 function dispatchAction(
     action: {
         type?: 'handler' | 'open-modal' | 'open-page' | 'navigate' | 'object-op'
-             | 'export' | 'open-form' | 'refresh' | 'api-call' | 'agent' | 'run-node' | 'toggle',
+             | 'export' | 'open-form' | 'refresh' | 'api-call' | 'agent' | 'run-node' | 'object-action' | 'toggle',
         // type-specific fields:
         handler?: string,           // type='handler'; type='export' — confirm handler name
         args?: any[],               // type='handler'
@@ -336,6 +336,18 @@ remains the fallback when you need a bespoke body or a non-hermiq endpoint.
 `register` / `schema` / `objectId` are omitted above — they default to the
 detail page's object context. On a page with no object context, declare
 them explicitly.
+
+### `object-action` (object-actions-ui)
+
+Run an action OpenRegister declares on the object (`x-openregister-action`, or a lifecycle transition it lists) by its key:
+
+```jsonc
+{ "id": "publish", "type": "object-action", "action": "publish" }
+```
+
+`register`, `schema` and `objectId` default to the page's `@register`, `@schema` and `@objectId`. With `context.openObjectAction` (the header-actions surface provides it) the dispatcher hands the action over, so an action with inputs opens [`CnObjectActionDialog`](../components/cn-object-action-dialog.md). Without it, `executeObjectAction()` posts `{ inputs: {} }` to `/api/objects/{register}/{schema}/{id}/actions/{action}` and toasts the result: done, started (async), waiting (suspended), or OpenRegister's refusal. An unresolved target runs nothing. The rights are OpenRegister's: the action is checked again on every run.
+
+`actionsFrom: "openregister"` on a header, row or bulk action list expands into one `object-action` per listed action of that surface; see [CnActionButtons](../components/cn-action-buttons.md#object-actions).
 
 ### `run-node` (manifest-run-node-action)
 

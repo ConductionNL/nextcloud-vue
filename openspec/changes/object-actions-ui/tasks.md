@@ -16,8 +16,10 @@
 
 ### Task 3: Header actions
 - **spec_ref**: `#requirement-a-manifest-runs-a-declared-action`, `#requirement-actionsfrom-renders-the-listed-actions-on-a-surface`, `#requirement-an-unavailable-action-is-shown-disabled-with-its-reason`
-- **files**: `src/components/CnActionButtons/CnActionButtons.vue`, `src/utils/actionsDispatcher.js`, `src/schemas/app-manifest-v2.schema.json`
-- [ ] Test, implement, docs, en/nl
+- **files**: `src/components/CnActionButtons/CnActionButtons.vue`, `src/utils/actionsDispatcher.js`, `src/utils/objectActions.js` (`expandObjectActionEntries`), `src/components/CnDetailPage/CnDetailPage.vue` (`next`), `src/schemas/app-manifest-v2.schema.json` (2.140.0)
+- [x] Test: `tests/components/CnActionButtonsObjectActions.spec.js`
+- [x] Implement: `type: "object-action"`, `actionsFrom` on header actions, disabled with reason, dialog or direct run, `next` on the detail page
+- [x] Docs: `cn-action-buttons.md`, `dispatch-action.md`, `cn-detail-page.md`; en/nl strings
 
 ### Task 4: Row and bulk actions
 - **spec_ref**: `#requirement-actionsfrom-renders-the-listed-actions-on-a-surface`

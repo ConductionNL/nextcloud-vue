@@ -291,6 +291,7 @@
 					:href="entry.href || undefined"
 					:target="entry.href ? (entry.linkTarget || undefined) : undefined"
 					:disabled="entry.disabled"
+					:title="entry.title || null"
 					:data-testid="`cn-detail-page-quick-${entry.id}`"
 					@click="onPinnedActionClick(entry)">
 					<template v-if="entry.iconName" #icon>
@@ -441,6 +442,7 @@
 									:key="entry.id"
 									:data-testid="entry.testid"
 									:disabled="entry.disabled"
+									:title="entry.title || null"
 									:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
 									:closeAfterClick="true"
 									:data-cn-admin-tag="adminTagFor(group)"
@@ -2912,6 +2914,12 @@ export default {
 		'next-record',
 		/** The reader asked for the previous record of that same list. Payload as `next-record`. */
 		'previous-record',
+		/**
+		 * An object action that ran on this record says where the person goes
+		 * next (`next` or `list`, object-actions-ui). Payload `{ action, next }`.
+		 * The page steps to `nextTo` or back to the list itself when it can.
+		 */
+		'object-action-next',
 		/** The page's declared primary action was pressed. Payload is the declaration. */
 		'primary-action',
 		/**
@@ -5320,6 +5328,8 @@ export default {
 		// widgets are bound to it.
 		this._onPageRefresh = (payload) => this.onPageRefreshBus(payload)
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+		this._onObjectActionNext = (payload) => this.onObjectActionNext(payload)
+		subscribe('cn:object-action:next', this._onObjectActionNext)
 	},
 
 	updated() {
@@ -5330,6 +5340,10 @@ export default {
 		if (this._onPageRefresh) {
 			unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 			this._onPageRefresh = null
+		}
+		if (this._onObjectActionNext) {
+			unsubscribe('cn:object-action:next', this._onObjectActionNext)
+			this._onObjectActionNext = null
 		}
 		if (this.hasExternalSidebar) {
 			this.objectSidebarState.active = false
@@ -5462,6 +5476,28 @@ export default {
 		// Expose the shared grid helpers to the template (grid mode + auto-body).
 		cnGridCellStyle,
 		hasGridRow,
+
+		/**
+		 * Honour the `next` hint of an object action that ran on this record:
+		 * `next` steps to the next record of the list it was opened from,
+		 * `list` goes back to that list. A record opened without a list stays.
+		 *
+		 * @param {{action: string, next: string, object: {id: string}}} payload The hint.
+		 * @spec openspec/changes/object-actions-ui/specs/object-actions-ui/spec.md#requirement-a-run-reports-what-happened
+		 */
+		onObjectActionNext(payload) {
+			const id = payload?.object?.id
+			if (!id || String(id) !== String(this.objectId ?? '')) {
+				return
+			}
+			this.$emit('object-action-next', { action: payload.action, next: payload.next })
+			if (payload.next === 'next' && this.nextTo && this.$router) {
+				this.$router.push(this.nextTo)
+				this.$emit('next-record', { event: null, to: this.nextTo })
+			} else if (payload.next === 'list' && this.listNavigation?.available && typeof this.$router?.back === 'function') {
+				this.$router.back()
+			}
+		},
 
 		/**
 		 * Emit a list step. When the control is a link it has navigated

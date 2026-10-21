@@ -61,11 +61,15 @@
 			     invalid native type and left `variant` at its "secondary"
 			     default, so `variant: "primary"` / `"error"` had never once
 			     rendered — silently, since an unknown native type is ignored. -->
+			<!-- An object action OpenRegister lists as unavailable stays in
+			     place, disabled, with the reason as its title and name. -->
 			<NcButton
 				v-else
 				:key="entry.id"
 				:variant="entry.variant || 'secondary'"
-				:disabled="Boolean(actionPending[entry.id])"
+				:disabled="Boolean(actionPending[entry.id]) || entry.disabled === true"
+				:title="entry.title || null"
+				:aria-label="unavailableLabel(entry)"
 				:data-testid="`cn-action-${entry.id}`"
 				@click="onActionClick(entry)">
 				<template v-if="entry.icon" #icon>
@@ -103,7 +107,8 @@
 					<NcActionButton
 						v-else
 						:key="child.id"
-						:disabled="Boolean(actionPending[child.id])"
+						:disabled="Boolean(actionPending[child.id]) || child.disabled === true"
+						:title="child.title || null"
 						:data-testid="`cn-action-${child.id}`"
 						@click="onActionClick(child)">
 						<template v-if="child.icon" #icon>
@@ -140,7 +145,8 @@
 				<NcActionButton
 					v-else
 					:key="entry.id"
-					:disabled="Boolean(actionPending[entry.id])"
+					:disabled="Boolean(actionPending[entry.id]) || entry.disabled === true"
+					:title="entry.title || null"
 					:data-testid="`cn-action-${entry.id}`"
 					@click="onActionClick(entry)">
 					<template v-if="entry.icon" #icon>
@@ -207,6 +213,17 @@
 			:translate="effectiveTranslate"
 			@confirm="onRunNodeConfirm"
 			@close="closeRunNode" />
+
+		<!-- An object action's inputs, confirm text or async run (object-actions-ui). -->
+		<CnObjectActionDialog
+			v-if="objectActionEntry"
+			:action="objectActionEntry.objectAction"
+			:register="objectActionTargetData.register"
+			:schema="objectActionTargetData.schema"
+			:objectId="objectActionTargetData.id"
+			:currentObject="objectCtx.object || null"
+			@done="loadObjectActions"
+			@close="objectActionEntry = null" />
 	</div>
 </template>
 
@@ -215,13 +232,15 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcButton } from '@nextcloud/vue'
 import { inject } from 'vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
+import CnObjectActionDialog from '../../dialogs/CnObjectActionDialog.vue'
 import CnRunNodeDialog from '../../dialogs/CnRunNodeDialog.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
-import { actionLink, buildOnSuccessRoute, dispatchAction, interpolateActionTarget, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { actionLink, buildOnSuccessRoute, dispatchAction, executeObjectAction, interpolateActionTarget, isExternalActionTarget, objectActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { usesArrayValues, valueArrayFor, valueRecordsFor } from '../../utils/dynamicProperties.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
+import { expandObjectActionEntries, hasActionInputs, needsObjectActions, readObjectActions } from '../../utils/objectActions.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
@@ -294,7 +313,7 @@ import { CnIcon } from '../CnIcon/index.js'
 export default {
 	name: 'CnActionButtons',
 
-	components: { NcActions, NcActionButton, NcActionLink, NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog, CnRunNodeDialog },
+	components: { NcActions, NcActionButton, NcActionLink, NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog, CnRunNodeDialog, CnObjectActionDialog },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -439,6 +458,12 @@ export default {
 			runNodeEntry: null,
 			/** The target node's declared config-form fields, from the describe GET. */
 			runNodeFields: [],
+			/** The actions OpenRegister lists for the page's object (object-actions-ui). */
+			objectActionsListed: [],
+			/** The object-action whose dialog is open (null = closed). */
+			objectActionEntry: null,
+			/** Where that action runs: `{ register, schema, id }`. */
+			objectActionTargetData: null,
 			/** Default confirm-dialog message. */
 			defaultConfirmMessage: t('nextcloud-vue', 'Are you sure you want to continue?'),
 		}
@@ -503,9 +528,39 @@ export default {
 		 * `toLinkEntry`), keeping its own `target` so a fallback dispatch works.
 		 */
 		visibleActions() {
-			return (this.actions || [])
-				.filter((a) => a && a.id && this.visibility[a.id] !== false)
+			return this.renderedActions
+				.filter((a) => a && a.id && this.visibility[a.sourceId || a.id] !== false)
 				.map((a) => this.toLinkEntry(a))
+		},
+
+		/**
+		 * The actions with `object-action` and `actionsFrom: "openregister"`
+		 * entries expanded against OpenRegister's list for the page's object
+		 * (object-actions-ui). An object-action the list leaves out is not
+		 * rendered: the person may not run it.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/object-actions-ui/specs/object-actions-ui/spec.md#requirement-actionsfrom-renders-the-listed-actions-on-a-surface
+		 */
+		renderedActions() {
+			const actions = this.actions || []
+			return needsObjectActions(actions)
+				? expandObjectActionEntries(actions, this.objectActionsListed, 'header')
+				: actions
+		},
+
+		/**
+		 * The page object the listed actions are read for, as one string so a
+		 * watcher fires only when it changes. Empty when no entry needs the list.
+		 *
+		 * @return {string}
+		 */
+		objectActionsKey() {
+			if (!needsObjectActions(this.actions)) {
+				return ''
+			}
+			const { register, schema, objectId } = this.objectCtx
+			return register && schema && objectId ? `${register}/${schema}/${objectId}` : ''
 		},
 
 		/**
@@ -582,7 +637,9 @@ export default {
 					// having to be duplicated into every host.
 					iconName: this.isMdiIconName(entry.icon) ? entry.icon : '',
 					iconClass: (entry.icon && !this.isMdiIconName(entry.icon)) ? entry.icon : '',
-					disabled: Boolean(isToggle ? this.togglePending[entry.id] : this.actionPending[entry.id]),
+					disabled: Boolean(isToggle ? this.togglePending[entry.id] : this.actionPending[entry.id]) || entry.disabled === true,
+					// Why an object action cannot run now, for the host to show as its title.
+					title: entry.title || '',
 					// null, not false: a non-toggle carries no pressed state at
 					// all, and `aria-pressed="false"` would announce every
 					// action as an un-pressed toggle button.
@@ -639,6 +696,13 @@ export default {
 			handler() {
 				this.evaluateVisibility()
 				this.initToggles()
+			},
+		},
+
+		objectActionsKey: {
+			immediate: true,
+			handler() {
+				this.loadObjectActions()
 			},
 		},
 
@@ -894,6 +958,9 @@ export default {
 		 * @return {void}
 		 */
 		onActionClick(entry) {
+			if (entry.disabled === true) {
+				return
+			}
 			if (entry.confirm === true) {
 				this.confirmEntry = entry
 				return
@@ -947,6 +1014,9 @@ export default {
 			if (entry.type === 'run-node') {
 				await this.openRunNode(entry)
 				return undefined
+			}
+			if (entry.type === 'object-action') {
+				return this.openObjectAction(entry)
 			}
 			this.actionPending[entry.id] = true
 			const result = await this.dispatch(entry)
@@ -1191,6 +1261,64 @@ export default {
 		 */
 		runNodePost(entry, config) {
 			return postRunNode(entry, { tokenCtx: this.tokenCtx, translate: this.effectiveTranslate }, config)
+		},
+
+		/**
+		 * Read the actions OpenRegister lists for the page's object. A failed
+		 * read lists none, so no object action renders rather than one that
+		 * would be refused.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadObjectActions() {
+			if (this.objectActionsKey === '') {
+				this.objectActionsListed = []
+				return
+			}
+			const { register, schema, objectId } = this.objectCtx
+			const key = this.objectActionsKey
+			const { actions } = await readObjectActions({ register, schema, id: objectId })
+			if (key === this.objectActionsKey) {
+				this.objectActionsListed = actions
+			}
+		},
+
+		/**
+		 * Run an object action: open CnObjectActionDialog when it asks inputs,
+		 * carries confirm text or runs async, else run it at once and toast.
+		 *
+		 * @param {object} entry The expanded object-action entry.
+		 * @return {Promise<object|undefined>} The run's result, when it ran here.
+		 * @spec openspec/changes/object-actions-ui/specs/object-actions-ui/spec.md#requirement-a-manifest-runs-a-declared-action
+		 */
+		async openObjectAction(entry) {
+			const listed = entry.objectAction
+			if (!listed || listed.available === false) {
+				return undefined
+			}
+			if (hasActionInputs(listed) || listed.confirm || listed.mode === 'async') {
+				this.objectActionTargetData = objectActionTarget(entry, this.tokenCtx)
+				this.objectActionEntry = entry
+				return undefined
+			}
+			this.actionPending[entry.id] = true
+			const result = await executeObjectAction(entry, { tokenCtx: this.tokenCtx, translate: this.effectiveTranslate })
+			this.actionPending[entry.id] = false
+			if (result.ok) {
+				await this.loadObjectActions()
+			}
+			return result
+		},
+
+		/**
+		 * The accessible name of an unavailable object action: its label and
+		 * the reason, since a disabled button's title is not read out.
+		 *
+		 * @param {object} entry The action.
+		 * @return {string|null}
+		 */
+		unavailableLabel(entry) {
+			return entry.disabled === true && entry.title ? `${this.tr(entry.label)} (${entry.title})` : null
 		},
 
 		/** Close the run-node dialog without running anything. */

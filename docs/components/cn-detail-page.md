@@ -260,6 +260,7 @@ The tabless address is corrected with `replace`, not `push`, so the back button 
 | `widget-config-change` | `object \| null` | A body-grid widget's config was saved via the cog editor (the widget def), or the widget was removed (`null`). |
 | `next-record` | `{ event, to }` \| none | The reader asked for the next record of the list this one was opened from. With `nextTo` set the link has navigated already and the payload is `{ event, to }`; without it there is no payload and the host steps. |
 | `previous-record` | `{ event, to }` \| none | The reader asked for the previous record of that same list. Payload as `next-record`, keyed on `previousTo`. |
+| `object-action-next` | `{ action, next }` | An object action that ran on this record answered `next: "next"` or `next: "list"`. The page itself steps to `nextTo` (and emits `next-record` with `{ event: null, to }`) or goes back when it was opened from a list. |
 | `primary-action` | `object` | The declared primary action was pressed. Payload is the declaration. |
 | `tab-change` | `string` | The active tab changed. Fires whether or not `tabInAddress` is set. |
 
