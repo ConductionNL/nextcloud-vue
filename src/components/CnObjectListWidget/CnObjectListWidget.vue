@@ -334,6 +334,7 @@ import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { createActionState } from '../../utils/listCreateAction.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
+import { readPath } from '../../utils/readPath.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
@@ -478,13 +479,15 @@ export default {
 		 * `hideHeader: true` drops the table's column header row (CnDataTable's
 		 * `hideHeader`), for a short list that reads as rows, not as a table.
 		 *
+		 * `rowIdField` (a dot-path) names the row field holding the id
+		 * `rowRoute` opens, for a row that links to another record.
 		 * `footnote` is a line under the table, through the host translate.
 		 *
 		 * `export` (`{ label?, format?, group? }`) offers the filtered list as a
 		 * download in the card's header; `group` shows it to one group only.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
 		 */
 		content: {
 			type: Object,
@@ -2003,7 +2006,9 @@ export default {
 		 */
 		openRowRoute(row, event) {
 			const route = this.content.rowRoute
-			const id = row && (row.id || (row['@self'] && row['@self'].id))
+			const field = this.content.rowIdField
+			const raw = field ? readPath(row, field) : row && (row.id || (row['@self'] && row['@self'].id))
+			const id = typeof raw === 'string' || typeof raw === 'number' ? String(raw) : ''
 			if (route && id && this.$router) {
 				markNewTabHandled(event, openRowTarget(event, { name: route, params: { id } }, this.$router))
 			}
