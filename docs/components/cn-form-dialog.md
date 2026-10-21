@@ -77,6 +77,8 @@ When `allowDraft` is on and the schema declares `draftField`, a stored draft rec
 | `date` | Date picker |
 | `datetime` | Date-time picker |
 | `json` | JSON editor (CnJsonViewer). formData holds the parsed value; invalid JSON blocks confirm |
+| `party` | One search field over people, organisations and contacts ([CnPartyPicker](cn-party-picker.md)) over `field.sources`, with the label above the field. formData holds the chosen row's id only. `field.testid` lands on the picker |
+| `resource` | An object pick ([CnResourceSelect](cn-resource-select.md)) over `field.resource: { register, schema, labelField?, scope?, failedText? }`. A `scope.value` token such as `@object.caseType` is read from the page's object (by id when it is a relation); an unreadable token offers every row. `failedText` goes through the app's translate. Nothing is created from the search term |
 | `code` | Freeform code editor (CnJsonViewer). formData holds the raw string; syntax highlighting via `field.language` |
 | `icon` | Icon picker ([CnIconPicker](cn-icon-picker.md)). Forwards `field.iconSources` → `sources` (default `['mdi']`), plus `field.catalogues` / `field.searchable` (default on) / `field.allowCustomSvg`. formData holds the selected icon value |
 

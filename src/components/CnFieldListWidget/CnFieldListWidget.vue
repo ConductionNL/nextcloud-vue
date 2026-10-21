@@ -81,11 +81,22 @@
 								:variant="row.cells[index].pill.variant"
 								size="small" />
 							<strong v-else-if="column.strong">{{ row.cells[index].text }}</strong>
+							<code v-else-if="column.code" class="cn-field-list-widget__code">{{ row.cells[index].text }}</code>
 							<template v-else>
 								{{ row.cells[index].text }}
 							</template>
 						</td>
 						<td v-if="hasMenu" class="cn-field-list-widget__td cn-field-list-widget__td--menu">
+							<NcButton
+								v-for="action in inlineActions(row)"
+								:key="action.id"
+								variant="secondary"
+								:disabled="busy !== ''"
+								:aria-label="action.ariaLabel || undefined"
+								:data-testid="`cn-field-list-action-${action.id}-${row.key}`"
+								@click="runAction(action, row)">
+								{{ action.label }}
+							</NcButton>
 							<NcActions
 								v-if="menuItems(row).length > 0"
 								:forceMenu="true"
@@ -271,6 +282,8 @@ export default {
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
+		/** Opens a registered modal (CnAppRoot), for a row action with `dialog`. */
+		cnOpenModal: { default: null },
 	},
 
 	props: {
@@ -282,7 +295,8 @@ export default {
 		 * - `row` — `{ title, titleFallback?, avatar?, meta?: [paths|{ path, map?, format? }], pill?: { path, map?, variantMap? }, aside?: { path, format?, prefix?, fallback? }, detail?: { template, when?, copy?: [{ path, label }] } }`. `detail.copy` puts a copy button beside the detail line for each named value of the row (an empty value gets none), such as a DNS record's name and value.
 		 * - `add` — `{ label?, fields: [{ key, label, type?: 'text'|'select', options?, required?, pattern?, patternMessage? }], unique?, defaults? }`.
 		 * - `remove` — `{ label? }`; omitted = no remove.
-		 * - `rowActions` — `[{ id, label, when?, placement?: 'band', request: { method?, url, payload? } }]`; tokens `@object.<field>`, `@objectId`, `@row.<field>`.
+		 * - `rowActions` — `[{ id, label, ariaLabel?, when?, placement?: 'band'|'inline', request: { method?, url, payload? } }]`, or `{ id, label, dialog, props }` to open a modal registered in the app registry with filled props (shown in `readOnly` too, since it writes nothing, and only when every token in `props` fills); tokens `@object.<field>`, `@objectId`, `@row.<field>`, `@index`. In the table variant `placement: 'inline'` draws the action as a button in the row instead of in the "..." menu; `ariaLabel` is a template filled from the row.
+		 * - `when` (row actions, `detail`) — `{ field: value }`, every field equal; or per field `{ eq?, neq?, set? }`, where a value `@row.<field>` (or `@<field>`) is another field of the same row: `{ deliveredRef: { set: true, neq: '@originalRef' } }`.
 		 * - `rowSource` — `{ url, path?, key }`: live per-row state merged by key.
 		 * - `variant: 'table'` + `columns` — `[{ header, path, map?, format?, strong?, pill?, variantMap? }]`: rows as a table; a per-row "..." menu holds the row actions and remove; `detail` lines become a warning band under the table, with the row actions that have `placement: 'band'`.
 		 * - `add.trigger: 'button'`, `add.placement: 'header' | 'footer'` — the add form opens from a button.
@@ -371,6 +385,7 @@ export default {
 					.join(' · ')
 				return {
 					key,
+					index,
 					item,
 					entry,
 					title,
@@ -380,7 +395,7 @@ export default {
 					aside: spec.aside ? this.asideOf(entry, spec.aside) : '',
 					detail: spec.detail && this.matches(entry, spec.detail.when) ? this.fill(spec.detail.template, entry) : '',
 					copies: spec.detail && this.matches(entry, spec.detail.when) ? this.copiesOf(entry, spec.detail.copy) : [],
-					actions: this.actionsFor(entry),
+					actions: this.actionsFor(entry, index),
 					cells: this.isTable ? this.cellsOf(entry) : [],
 				}
 			})
@@ -435,9 +450,9 @@ export default {
 				.map((column, index) => ({ ...column, key: `${column.path}-${index}`, header: this.tr(column.header || '') }))
 		},
 
-		/** Whether each row has a "more actions" menu (row actions not placed in the band, and remove). */
+		/** Whether each row has an actions cell: inline row actions, or a "more actions" menu (row actions not placed in the band, and remove). */
 		hasMenu() {
-			return this.isTable && !this.readOnly && (this.canRemove || this.rows.some((row) => this.menuItems(row).length > 0))
+			return this.isTable && (this.canRemove || this.rows.some((row) => this.menuItems(row).length > 0 || this.inlineActions(row).length > 0))
 		},
 
 		/** Rows with a detail line: in the table variant it is a warning band under the table. */
@@ -525,12 +540,22 @@ export default {
 		 */
 		menuItems(row) {
 			const items = row.actions
-				.filter((action) => action.placement !== 'band')
+				.filter((action) => action.placement !== 'band' && action.placement !== 'inline')
 				.map((action) => ({ id: action.id, label: action.label, run: () => this.runAction(action, row) }))
 			if (this.canRemove) {
 				items.push({ id: 'remove', label: this.removeLabel, run: () => this.remove(row) })
 			}
 			return items
+		},
+
+		/**
+		 * The row actions drawn as buttons in a table row (`placement: 'inline'`).
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<object>}
+		 */
+		inlineActions(row) {
+			return row.actions.filter((action) => action.placement === 'inline')
 		},
 
 		/**
@@ -612,11 +637,45 @@ export default {
 			}
 			return Object.entries(when).every(([field, expected]) => {
 				const actual = readPath(entry, field)
+				if (expected && typeof expected === 'object' && !Array.isArray(expected)) {
+					return this.matchesOperators(entry, actual, expected)
+				}
 				if (expected === false) {
 					return actual === false || actual === undefined || actual === null || actual === ''
 				}
 				return String(actual) === String(expected)
 			})
+		},
+
+		/**
+		 * Whether a value passes `{ eq?, neq?, set? }`. An operand `@row.<field>`
+		 * or `@<field>` is that field of the same entry.
+		 *
+		 * @param {object} entry The entry.
+		 * @param {unknown} actual The value tested.
+		 * @param {object} ops The operators.
+		 * @return {boolean}
+		 */
+		matchesOperators(entry, actual, ops) {
+			const empty = (v) => v === undefined || v === null || v === ''
+			const operand = (v) => {
+				if (typeof v === 'string' && v.startsWith('@')) {
+					const path = v.startsWith('@row.') ? v.slice('@row.'.length) : v.slice(1)
+					return readPath(entry, path)
+				}
+				return v
+			}
+			const same = (a, b) => (empty(a) && empty(b)) || (!empty(a) && !empty(b) && String(a) === String(b))
+			if (ops.set !== undefined && Boolean(ops.set) !== !empty(actual)) {
+				return false
+			}
+			if (Object.hasOwn(ops, 'eq') && !same(actual, operand(ops.eq))) {
+				return false
+			}
+			if (Object.hasOwn(ops, 'neq') && same(actual, operand(ops.neq))) {
+				return false
+			}
+			return true
 		},
 
 		/**
@@ -642,14 +701,65 @@ export default {
 			return missing ? '' : out
 		},
 
-		actionsFor(entry) {
-			if (this.readOnly) {
-				return []
-			}
+		/**
+		 * The row actions an entry offers: request actions unless the list is
+		 * read-only, and dialog actions always, when their props all fill.
+		 *
+		 * @param {object} entry The entry.
+		 * @param {number} index Its position.
+		 * @return {Array<object>}
+		 */
+		actionsFor(entry, index) {
 			const actions = Array.isArray(this.content.rowActions) ? this.content.rowActions : []
 			return actions
-				.filter((action) => action && action.id && action.request && action.request.url && this.matches(entry, action.when))
-				.map((action) => ({ ...action, label: this.tr(action.label || action.id) }))
+				.filter((action) => action && action.id && this.matches(entry, action.when))
+				.filter((action) => (action.dialog
+					? this.dialogPropsOf(action, entry, index) !== null
+					: !this.readOnly && action.request && action.request.url))
+				.map((action) => ({
+					...action,
+					label: this.tr(action.label || action.id),
+					ariaLabel: action.ariaLabel ? this.fill(action.ariaLabel, entry) : '',
+				}))
+		},
+
+		/**
+		 * A dialog action's props with their tokens filled, `/apps/` paths made
+		 * absolute; null when a token stays empty, so the dialog is not offered
+		 * with half an address.
+		 *
+		 * @param {object} action The action.
+		 * @param {object} entry The entry.
+		 * @param {number} index Its position.
+		 * @return {object|null}
+		 */
+		dialogPropsOf(action, entry, index) {
+			const out = {}
+			for (const [name, value] of Object.entries(action.props || {})) {
+				if (typeof value !== 'string') {
+					out[name] = value
+					continue
+				}
+				let missing = false
+				const object = this.objectData || {}
+				const filled = value
+					.replace(/@index\b/g, () => String(index))
+					.replace(/@objectId\b/g, () => {
+						const id = String(this.objectId || object.id || '')
+						missing = missing || id === ''
+						return encodeURIComponent(id)
+					})
+					.replace(/@(row|object)\.([\w.@]+)/g, (m, scope, path) => {
+						const v = readPath((scope === 'row' ? entry : object) || {}, path)
+						missing = missing || v === undefined || v === null || v === ''
+						return encodeURIComponent(String(v ?? ''))
+					})
+				if (missing) {
+					return null
+				}
+				out[name] = filled.startsWith('/apps/') ? prefixUrl(filled) : filled
+			}
+			return out
 		},
 
 		initials(name) {
@@ -875,6 +985,13 @@ export default {
 		},
 
 		async runAction(action, row) {
+			if (action.dialog) {
+				const props = this.dialogPropsOf(action, row.entry, row.index)
+				if (props !== null && typeof this.cnOpenModal === 'function') {
+					this.cnOpenModal(action.dialog, props)
+				}
+				return
+			}
 			this.busy = row.key
 			this.notice = ''
 			try {
@@ -1032,6 +1149,11 @@ export default {
 }
 
 .cn-field-list-widget__th--menu,
+.cn-field-list-widget__code {
+	font-size: 0.85em;
+	word-break: break-all;
+}
+
 .cn-field-list-widget__td--menu {
 	width: 1%;
 	text-align: end;

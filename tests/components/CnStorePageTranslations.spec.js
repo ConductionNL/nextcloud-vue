@@ -60,4 +60,18 @@ describe('CnStorePage translations', () => {
 		const w = await mountPage({ description: 'Templates and adapters for your start page.' }, (key) => (key === 'Templates and adapters for your start page.' ? 'Sjablonen en koppelingen voor je startpagina.' : key))
 		expect(w.find('.cn-store-page__intro').text()).toBe('Sjablonen en koppelingen voor je startpagina.')
 	})
+
+	// @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-the-stores-own-items-read-in-the-users-language
+	it('runs the built-in items through the app translate', async () => {
+		global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ outcome: 'not_configured', cards: [] }) }))
+		const words = { 'Objection procedure': 'Bezwaarprocedure', 'Intake, hearing and decision.': 'Intake, hoorzitting en besluit.' }
+		const w = mount(CnStorePage, {
+			props: { app: 'dossiq', builtIn: [{ slug: 'objection', title: 'Objection procedure', description: 'Intake, hearing and decision.' }] },
+			global: { provide: { cnTranslate: (key) => words[key] || key } },
+		})
+		await flushPromises()
+		const card = w.find('[data-testid="store-builtin"]')
+		expect(card.find('.cn-store-page__card-title').text()).toBe('Bezwaarprocedure')
+		expect(card.find('.cn-store-page__card-description').text()).toBe('Intake, hoorzitting en besluit.')
+	})
 })
