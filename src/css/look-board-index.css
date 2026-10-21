@@ -1321,21 +1321,13 @@
 }
 
 /* The index sidebar as the board draws it (IndexZijpaneel, DqFilterBeheren):
-   360px wide; the title 20px bold with the line under it 14px muted; a round
-   close button; the tabs a row of icon-and-label tabs, 40px high and 14px,
-   the open one in the light primary ink over a 2px primary underline that
-   sits on the strip's hairline, with no tinted ground. NcAppSidebar draws its
-   own tabs as stacked icon-over-label buttons with a short pill under the
-   open one, and renders as the root's direct child, so the rules reach it
+   360px wide, the line under the title 14px muted, and a round close button.
+   The title and the tab row are the `.cn-index-sidebar-panel` rules.
+   NcAppSidebar renders as the root's direct child, so the rules reach it
    through the root, as the toggle rule above does.
    @spec openspec/changes/board-index-sidebar/specs/board-index-sidebar/spec.md#requirement-the-board-index-sidebar-draws-the-boards-side-panel */
 .cn-look-board:has(.cn-index-page) > .app-sidebar {
 	--app-sidebar-width: 360px;
-}
-
-.cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-header__mainname {
-	font-weight: 700;
-	line-height: 1.2;
 }
 
 .cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-header__subname {
@@ -1346,44 +1338,6 @@
 .cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar__close {
 	border-radius: 50%;
 	color: var(--cn-board-text-soft);
-}
-
-.cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-tabs__nav {
-	gap: 4px;
-	padding: 14px 12px 0;
-}
-
-.cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-tabs__tab {
-	flex: 0 0 auto;
-	flex-direction: row;
-	align-items: center;
-	gap: 6px;
-	height: 40px;
-	margin-block-end: -1px;
-	padding: 0 10px;
-	border-radius: 0;
-	background: transparent;
-	color: var(--cn-board-text-soft);
-	font-size: 14px;
-}
-
-.cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-tabs__tab[aria-selected='true'] {
-	color: var(--color-primary-element-light-text);
-}
-
-.cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-tabs__tab > * {
-	font-size: inherit;
-	color: inherit;
-}
-
-.cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-tabs__tab[aria-selected='true']::after {
-	inset-inline-start: 0;
-	width: 100%;
-	height: 2px;
-	border-radius: 0;
-	background: var(--color-primary-element);
-	transform: none;
-	translate: none;
 }
 
 /* The folder pane as a card (DqAfdelingen): 280px, a hairline border, 12px

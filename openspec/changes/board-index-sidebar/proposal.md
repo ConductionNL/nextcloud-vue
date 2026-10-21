@@ -10,5 +10,5 @@ short 4px pill under the open one (20 flags on the tab strip alone). The board d
 
 ## What changes
 
-In the board look, on a page with an index page, the sidebar is 360px wide, its title 700 on a 1.2 line, the line
-under it 14px muted, its close button round, and its tabs the board's underline strip. Plain Nextcloud is unchanged.
+In the board look, on a page with an index page, the sidebar is 360px wide, the line under its title 14px muted, and
+its close button round. The title and the tab strip come from `board-index-sidebar-tabs`. Plain Nextcloud is unchanged.

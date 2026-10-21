@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * The board look's index sidebar (IndexZijpaneel, DqFilterBeheren): 360px, the
- * board's header and a row of underlined icon-and-label tabs. Read from the
- * stylesheet text.
+ * muted line under the title and a round close button. The title and the tab
+ * row are lookBoardIndexSidebarTabs.spec.js. Read from the stylesheet text.
  *
  * @spec openspec/changes/board-index-sidebar/specs/board-index-sidebar/spec.md#requirement-the-board-index-sidebar-draws-the-boards-side-panel
  */
@@ -32,15 +32,13 @@ function bodyOf(selector) {
 }
 
 const SIDEBAR = '.cn-look-board:has(.cn-index-page) > .app-sidebar'
-const TAB = `${SIDEBAR} .app-sidebar-tabs__tab`
 
 describe('look-board-index.css: the board index sidebar', () => {
 	it('is 360px wide', () => {
 		expect(bodyOf(SIDEBAR)).toMatch(/--app-sidebar-width: 360px;/)
 	})
 
-	it('sets the title bold on a 1.2 line and the line under it 14px muted', () => {
-		expect(bodyOf(`${SIDEBAR} .app-sidebar-header__mainname`)).toMatch(/font-weight: 700;[\s\S]*line-height: 1\.2;/)
+	it('sets the line under the title 14px muted', () => {
 		const sub = bodyOf(`${SIDEBAR} .app-sidebar-header__subname`)
 		expect(sub).toMatch(/color: var\(--color-text-maxcontrast\);/)
 		expect(sub).toMatch(/font-size: 14px;/)
@@ -50,14 +48,9 @@ describe('look-board-index.css: the board index sidebar', () => {
 		expect(bodyOf(`${SIDEBAR} .app-sidebar__close`)).toMatch(/border-radius: 50%;/)
 	})
 
-	it('lays a tab out as icon beside label, 40px high, 14px, in the soft ink on no ground', () => {
-		const body = bodyOf(TAB)
-		expect(body).toMatch(/flex-direction: row;/)
-		expect(body).toMatch(/height: 40px;/)
-		expect(body).toMatch(/padding: 0 10px;/)
-		expect(body).toMatch(/background: transparent;/)
-		expect(body).toMatch(/color: var\(--cn-board-text-soft\);/)
-		expect(body).toMatch(/font-size: 14px;/)
+	it('leaves the title and the tab row to the panel rules', () => {
+		expect(css).not.toContain(`${SIDEBAR} .app-sidebar-tabs__`)
+		expect(css).not.toContain(`${SIDEBAR} .app-sidebar-header__mainname`)
 	})
 
 	it('draws the pressed Filter button on the light primary ground with a primary edge', () => {
@@ -68,14 +61,5 @@ describe('look-board-index.css: the board index sidebar', () => {
 		expect(body).toMatch(/--nldesign-component-button-primary-action-color: var\(--cn-filter-pressed-ink\);/)
 		expect(bodyOf('.cn-look-board .cn-actions-bar')).toMatch(/--cn-filter-pressed-ink: var\(--color-main-text\);/)
 		expect(bodyOf('.cn-look-board .cn-actions-bar__filter-button.button-vue[aria-pressed=\'true\']:hover')).toMatch(/background-color: var\(--color-primary-element-light-hover\);/)
-	})
-
-	it('marks the open tab with the light primary ink and a 2px full-width underline', () => {
-		expect(bodyOf(`${TAB}[aria-selected='true']`)).toMatch(/color: var\(--color-primary-element-light-text\);/)
-		const line = bodyOf(`${TAB}[aria-selected='true']::after`)
-		expect(line).toMatch(/width: 100%;/)
-		expect(line).toMatch(/height: 2px;/)
-		expect(line).toMatch(/border-radius: 0;/)
-		expect(line).toMatch(/background: var\(--color-primary-element\);/)
 	})
 })

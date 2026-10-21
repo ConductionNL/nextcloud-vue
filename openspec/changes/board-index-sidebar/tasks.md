@@ -3,7 +3,7 @@
 ### Task 1: The board index sidebar draws the board's side panel
 - **spec_ref**: `openspec/changes/board-index-sidebar/specs/board-index-sidebar/spec.md#requirement-the-board-index-sidebar-draws-the-boards-side-panel`
 - **files**: `src/css/look-board-index.css`
-- [x] Implement: width, header, close button and underline tabs in the board look
+- [x] Implement: width, the line under the title and the close button in the board look (title and tabs: `board-index-sidebar-tabs`)
 - [x] Test: `tests/css/lookBoardIndexSidebar.spec.js`
 
 ### Task 2: The pressed Filter button is the board's light toggle
