@@ -10,9 +10,21 @@
 		:icon="CommentTextOutline"
 		:collapsible="collapsible"
 		:chromeless="chromeless">
+		<template v-if="composerBehindButton" #actions>
+			<NcButton
+				variant="secondary"
+				:aria-expanded="composerShown ? 'true' : 'false'"
+				data-testid="cn-notes-card-open-composer"
+				@click="composerOpen = !composerOpen">
+				<template #icon>
+					<NotePlusOutline :size="20" />
+				</template>
+				{{ addNoteLabel }}
+			</NcButton>
+		</template>
 		<div class="cn-notes-card">
 			<!-- Add note input -->
-			<div v-if="!unavailable" class="cn-notes-card__add-form">
+			<div v-if="!unavailable && composerShown" class="cn-notes-card__add-form">
 				<!-- Replying: the form says to whom; a reply to a reply goes to the top of its thread. -->
 				<p
 					v-if="replyTo"
@@ -154,6 +166,7 @@ import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import NotePlusOutline from 'vue-material-design-icons/NotePlusOutline.vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnNoteBody from '../CnNoteBody/CnNoteBody.vue'
@@ -227,6 +240,7 @@ export default {
 		NcButton,
 		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
+		NotePlusOutline,
 		Send,
 		Delete,
 	},
@@ -314,6 +328,21 @@ export default {
 		},
 
 		/**
+		 * Where the add form lives: `inline` (default) keeps it open above the
+		 * notes; `button` puts it behind an "Add note" button in the card's
+		 * header (DqTaak "Notities"), and closes it again once the note is
+		 * saved. A reply opens it either way. Without the card's header
+		 * (`chromeless`) the form stays inline.
+		 *
+		 * @spec openspec/changes/notes-card-composer-button/specs/notes-card-composer-button/spec.md#requirement-a-notes-card-can-keep-its-composer-behind-a-header-button
+		 */
+		composer: {
+			type: String,
+			default: 'inline',
+			validator: (v) => ['inline', 'button'].includes(v),
+		},
+
+		/**
 		 * Show a chip on every note reading internal or public. A note without a
 		 * value reads as internal. Off by default, so a host that passes nothing
 		 * renders the card as before. Not used for a file source (file comments
@@ -370,6 +399,8 @@ export default {
 			allNotes: [],
 			loading: false,
 			newNoteText: '',
+			/** Whether the add form is open while `composer` is `button`. */
+			composerOpen: false,
 			/** Visibility the next note is written with (only sent when the caller may set it). */
 			newNoteVisibility: 'internal',
 			noteSaving: false,
@@ -384,6 +415,16 @@ export default {
 	},
 
 	computed: {
+		/** @return {boolean} Whether the add form sits behind the header's button. */
+		composerBehindButton() {
+			return this.composer === 'button' && !this.chromeless && !this.unavailable
+		},
+
+		/** @return {boolean} Whether the add form shows. */
+		composerShown() {
+			return !this.composerBehindButton || this.composerOpen || Boolean(this.replyTo)
+		},
+
 		/** Chips are shown: the host asked for them (or lets the caller set visibility) and the notes are object notes. */
 		visibilityShown() {
 			return (this.showVisibility || this.canSetVisibility) && !this.isFileSource
@@ -664,6 +705,7 @@ export default {
 			if (this.isFileSource) {
 				try {
 					await this.fileComments().add(this.newNoteText.trim())
+					this.composerOpen = false
 					this.newNoteText = ''
 					await this.fetchNotes()
 					this.$emit('note-added')
@@ -696,6 +738,7 @@ export default {
 					}
 					this.emitMentionEvent(body.message, noteId)
 					this.replyTo = null
+					this.composerOpen = false
 					this.newNoteText = ''
 					this.newNoteVisibility = 'internal'
 					await this.fetchNotes()
