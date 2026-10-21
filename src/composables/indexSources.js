@@ -743,7 +743,7 @@ function readRowsPath(body, path) {
  *
  * @type {Array<string>}
  */
-const ENDPOINT_SOURCE_KEYS = ['url', 'rowsPath', 'totalPath', 'searchParam', 'searchFields', 'notePath', 'noteText', 'refusedText']
+const ENDPOINT_SOURCE_KEYS = ['url', 'rowsPath', 'totalPath', 'searchParam', 'searchFields', 'notePath', 'noteText', 'refusedText', 'facets']
 
 /**
  * The endpoint source: rows from an app's own endpoint
@@ -781,6 +781,10 @@ const ENDPOINT_SOURCE_KEYS = ['url', 'rowsPath', 'totalPath', 'searchParam', 'se
  *   registered source declares them (`{ status: { param: 'status', single:
  *   true } }`), so a filter strip or sidebar on the page narrows the
  *   endpoint's query.
+ * - `facets`: the values the endpoint counts in its answer, offered as a
+ *   picker after the search (`[{ field, path, label?, allLabel?, labels? }]`,
+ *   the answer holding `[{ value, count }]` at `path`). A choice is a page
+ *   filter on `field`, so `searchFields` must declare it.
  *
  * @param {object} [declared] The page's `sourceConfig`, for `searchParam` and `searchFields`.
  * @param {object} [context] The page's helpers; `translate` is the app's catalogue.
@@ -788,12 +792,33 @@ const ENDPOINT_SOURCE_KEYS = ['url', 'rowsPath', 'totalPath', 'searchParam', 'se
  * @spec openspec/changes/index-endpoint-source/specs/index-page/spec.md#requirement-an-index-page-can-list-rows-from-an-app-endpoint
  */
 function endpointSource(declared = {}, context = {}) {
-	const state = reactive({ rows: [], loading: false, refusal: '', failed: false, note: '' })
+	const state = reactive({ rows: [], loading: false, refusal: '', failed: false, note: '', facets: {} })
 	const translate = typeof context.translate === 'function' ? context.translate : (text) => text
 	const searchParam = typeof declared.searchParam === 'string' && declared.searchParam !== '' ? declared.searchParam : null
 	const searchFields = declared.searchFields && typeof declared.searchFields === 'object' && !Array.isArray(declared.searchFields) ? declared.searchFields : null
+	const facetDeclarations = Array.isArray(declared.facets)
+		? declared.facets.filter((facet) => facet && typeof facet.field === 'string' && facet.field !== '' && typeof facet.path === 'string' && facet.path !== '')
+		: []
 	let seq = 0
 	let warned = false
+
+	/**
+	 * The declared facets read off an answer: `{ <field>: [{ value, count }] }`.
+	 *
+	 * @param {object} body The response body.
+	 * @return {object} The facets.
+	 */
+	const facetsOf = (body) => {
+		const facets = {}
+		for (const facet of facetDeclarations) {
+			const raw = body && typeof body === 'object' && !Array.isArray(body) ? readRowsPath(body, facet.path) : null
+			facets[facet.field] = Array.isArray(raw)
+				? raw.filter((entry) => entry && entry.value !== undefined && entry.value !== null && entry.value !== '')
+						.map((entry) => ({ value: String(entry.value), count: Number(entry.count) || 0 }))
+				: []
+		}
+		return facets
+	}
 
 	/**
 	 * The query parameters for a config: every key but the source's own
@@ -874,6 +899,11 @@ function endpointSource(declared = {}, context = {}) {
 		searchFields,
 
 		/**
+		 * The facets the page offers as pickers, as declared.
+		 */
+		facetDeclarations,
+
+		/**
 		 * Fetch the rows.
 		 *
 		 * @param {object} config The page's source config with the tab filter merged in.
@@ -904,6 +934,7 @@ function endpointSource(declared = {}, context = {}) {
 					state.refusal = ''
 					state.failed = false
 					state.note = noteOf(body, notePath, noteText)
+					state.facets = facetsOf(body)
 				}
 			} catch (error) {
 				if (mine !== seq) {
@@ -971,6 +1002,11 @@ function endpointSource(declared = {}, context = {}) {
 		 * @return {string} The note read off the last answer, or ''.
 		 */
 		note: () => state.note,
+
+		/**
+		 * @return {object} The declared facets of the last answer, `{ <field>: [{ value, count }] }`.
+		 */
+		facets: () => state.facets,
 	}
 }
 
