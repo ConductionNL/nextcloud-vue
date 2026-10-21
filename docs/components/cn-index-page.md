@@ -1285,6 +1285,7 @@ Some orders the server cannot sort by, such as an urgency it computes per reques
 - `carry` copies entry fields onto each row, so `cardLayout.headPill: { field: "deadlineTier" }` draws them. With `annotate: true` they reach the rows of every other order too, matched on `idPath` (`id` by default).
 - When the endpoint fails, the list orders by the option's `order` and shows `failedNote` above it.
 - `selectSortOption(value)` chooses an option by its value; a saved view's `sortOption` uses it.
+- A quick filter's `sourceParams` go along with the source request while that lens is selected, beside the source's own `params`, and choosing or leaving the lens reads the source again. A lens's `filter` only narrows the object fetch and the rows already loaded; `sourceParams` changes which rows the endpoint answers (`{ "label": "Including work you cover", "sourceParams": { "covering": "1" } }`, DqAanMijToegewezen).
 
 ## Folder sidebar
 

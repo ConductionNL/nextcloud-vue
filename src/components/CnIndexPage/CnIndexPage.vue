@@ -4674,6 +4674,31 @@ export default {
 		},
 
 		/**
+		 * What the selected lenses ask a sort source for: the `sourceParams` of
+		 * each selected quick filter, merged. A lens that changes WHICH rows an
+		 * endpoint answers ("Including work you cover") cannot say so through its
+		 * `filter`, which only narrows the object fetch and the rows already
+		 * loaded.
+		 *
+		 * @return {object} The parameters.
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		lensSourceParams() {
+			const tabs = this.tabStripEntries || []
+			const indices = this.quickFilterMultiple
+				? (this.selectedQuickFilterIndices || [])
+				: [this.activeQuickFilterIndex]
+			const params = {}
+			for (const index of indices) {
+				const tab = typeof index === 'number' ? tabs[index] : null
+				if (tab && tab.sourceParams && typeof tab.sourceParams === 'object' && !Array.isArray(tab.sourceParams)) {
+					Object.assign(params, tab.sourceParams)
+				}
+			}
+			return params
+		},
+
+		/**
 		 * The sort option whose endpoint lists the rows now, or null.
 		 *
 		 * @return {object|null}
@@ -8225,6 +8250,18 @@ export default {
 	},
 
 	watch: {
+		// A lens that asks the source for other rows reads the source again.
+		lensSourceParams(now, before) {
+			if (JSON.stringify(now) === JSON.stringify(before) || !this.isSelfFetchMode) {
+				return
+			}
+			const option = this.activeSortSource || this.sourceSortOptions.find((o) => o.source.annotate === true)
+			if (option) {
+				this.resetSortSourcePage()
+				this.loadSortSource(option)
+			}
+		},
+
 		// A new search or filter starts the source rows at page 1.
 		'list.searchTerm.value': function() {
 			this.resetSortSourcePage()
@@ -8677,7 +8714,7 @@ export default {
 					import('@nextcloud/axios'),
 					import('@nextcloud/router'),
 				])
-				const res = await axios.get(generateUrl(source.url), { params: source.params || {} })
+				const res = await axios.get(generateUrl(source.url), { params: { ...(source.params || {}), ...this.lensSourceParams } })
 				this.sortSource = { ...this.sortSource, rows: rowsFromSourceBody(res ? res.data : null, source), state: 'ready' }
 			} catch (error) {
 				this.sortSource = { ...this.sortSource, rows: [], state: 'failed' }
