@@ -81,17 +81,30 @@
 						<span v-if="field.hint" class="cn-action-dialog__muted">{{ fill(field.hint) }}</span>
 					</span>
 				</NcCheckboxRadioSwitch>
+				<!-- A search field: records of `source` found as the reader
+				     types (DqZaakKoppelen "Zaak koppelen"). -->
+				<CnSearchSelect v-else-if="field.type === 'search'"
+					:modelValue="values[field.field] || null"
+					:options="searchOptions[field.field] || []"
+					:inputLabel="fill(field.label) || field.field"
+					:labelOutside="true"
+					:loading="searching === field.field"
+					:filterable="false"
+					:placeholder="fill(field.placeholder)"
+					@search="(typed) => onSearch(field, typed)"
+					@update:modelValue="(value) => setValue(field.field, value && typeof value === 'object' ? value.id : value)" />
 				<NcSelect v-else-if="field.type === 'select'"
 					:modelValue="selectedOption(field)"
 					:options="optionsOf(field)"
-					:inputLabel="text(field.label) || field.field"
+					:inputLabel="fill(field.label) || field.field"
 					:clearable="field.required === false"
 					@update:modelValue="(option) => pick(field, option)" />
 				<NcTextField v-else
 					:modelValue="values[field.field] || ''"
 					:type="field.type === 'datetime' ? 'datetime-local' : (field.type === 'date' ? 'date' : 'text')"
-					:label="text(field.label) || field.field"
+					:label="fill(field.label) || field.field"
 					@update:modelValue="(value) => setValue(field.field, value)" />
+				<span v-if="field.hint && field.type !== 'checkbox'" class="cn-action-dialog__muted">{{ fill(field.hint) }}</span>
 			</div>
 
 			<div v-if="config.reason" class="cn-action-dialog__field">
@@ -157,6 +170,10 @@ import { fillTemplate } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { CnDialog } from '../CnDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { CnSearchSelect } from '../CnSearchSelect/index.js'
+
+/** How long typing rests before a search field searches, in ms. */
+const SEARCH_DELAY = 250
 
 /** The page refresh channel the built-in widgets listen on. */
 const PAGE_REFRESH = 'cn:page:refresh'
@@ -191,7 +208,12 @@ let reasonSeq = 0
  *   sent beside the reason, required by default; a select option's `fills`
  *   sets other fields that are still empty. A `checkbox` is sent as a boolean,
  *   starts at `default` (false), fills its `label` and `hint` from the record,
- *   and is optional unless `required: true` (then it must be ticked).
+ *   and is optional unless `required: true` (then it must be ticked). A
+ *   `search` field finds records of `source: { register, schema }` as the
+ *   reader types, shows each as `optionLabel` with `optionSecondary` under
+ *   it (templates on the found record), leaves the record in hand out with
+ *   `excludeSelf`, and sends the chosen record's id. Every field's `label`,
+ *   `hint` and `placeholder` are templates filled from the record.
  * - `reason`: `{ label?, hint?, required?, field?, rows? }`: a text area; required by
  *   default; sent as `field` (default `reason`). `rows` is its height in lines
  *   (default 2; board DqBesluit draws 4).
@@ -205,7 +227,7 @@ let reasonSeq = 0
 export default {
 	name: 'CnActionDialog',
 
-	components: { CheckCircle, CircleOutline, CnDialog, CnIcon, HelpCircleOutline, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { CheckCircle, CircleOutline, CnDialog, CnIcon, CnSearchSelect, HelpCircleOutline, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -252,6 +274,10 @@ export default {
 			allowed: true,
 			reason: '',
 			values: {},
+			/** A search field's found options, by field name. */
+			searchOptions: {},
+			/** The search field whose search runs, or ''. */
+			searching: '',
 			busy: false,
 			refusal: '',
 			done: false,
@@ -409,6 +435,10 @@ export default {
 		await Promise.all([this.loadRecord(), this.loadChecklist(), this.loadPermission()])
 	},
 
+	beforeUnmount() {
+		clearTimeout(this.searchTimer)
+	},
+
 	methods: {
 		t,
 
@@ -418,6 +448,54 @@ export default {
 		 * @param {unknown} value The text.
 		 * @return {string}
 		 */
+		/**
+		 * Search a search field's records once typing rests.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} typed What the reader typed.
+		 * @return {void}
+		 * @spec openspec/changes/action-dialog-search-field/specs/action-dialog-search-field/spec.md#requirement-an-action-dialog-field-can-search-records
+		 */
+		onSearch(field, typed) {
+			clearTimeout(this.searchTimer)
+			this.searchTimer = setTimeout(() => this.searchRecords(field, String(typed || '').trim()), SEARCH_DELAY)
+		},
+
+		/**
+		 * Read the records of a search field's `source` that match the term.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} term The term.
+		 * @return {Promise<void>}
+		 */
+		async searchRecords(field, term) {
+			const source = field.source || {}
+			if (!term || !source.register || !source.schema) {
+				this.searchOptions = { ...this.searchOptions, [field.field]: [] }
+				return
+			}
+			this.searching = field.field
+			try {
+				const url = generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(source.register)}/${encodeURIComponent(source.schema)}`)
+				const { data } = await axios.get(url, { params: { _search: term, _limit: 10 } })
+				const rows = Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : [])
+				const self = String(this.recordId || '')
+				const options = rows
+					.map((row) => ({ row, id: String(row.id || (row['@self'] && row['@self'].id) || '') }))
+					.filter(({ id }) => id !== '' && !(field.excludeSelf && id === self))
+					.map(({ row, id }) => {
+						const option = { id, label: this.fill(field.optionLabel || '{title}', row) || id }
+						const secondary = this.fill(field.optionSecondary, row)
+						return secondary ? { ...option, secondary } : option
+					})
+				this.searchOptions = { ...this.searchOptions, [field.field]: options }
+			} catch {
+				this.searchOptions = { ...this.searchOptions, [field.field]: [] }
+			} finally {
+				this.searching = ''
+			}
+		},
+
 		/**
 		 * A checkbox field's state: what was ticked, else its `default`.
 		 *
