@@ -174,6 +174,10 @@ Request a feature / Report a bug / Documentation render on every widget; the sha
 
 `high-contrast` declares that this widget wants a high contrast treatment. The flag reaches the theme; the component picks no colour. See [the reference page](../../../docs/components/cn-widget-wrapper.md#high-contrast).
 
+### A side-card title (`titleTone`)
+
+`titleTone: 'side'` titles the card as a side card in the board look: 15px, weight 600, muted, for a card in a page's right column. In a manifest it is `titleTone: "side"` on the widget definition.
+
 ### A text link in the header (`headerLink`)
 
 `headerLink` (`{ label, route?, params?, query?, href? }`) draws one text link in the header before the overflow menu, such as "All deadlines".
