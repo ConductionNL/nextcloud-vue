@@ -42,7 +42,7 @@ describe('CnUserSettingsDialog: accessibility', () => {
 		await expectAccessible(nav)
 	})
 
-	it('has no WCAG 2.1 AA violations with one section shown and the other hidden', async () => {
+	it('has no WCAG 2.1 AA violations with every section stacked in the pane', async () => {
 		wrapper = mountAttached(CnUserSettingsDialog, {
 			props: { open: true, title: 'User settings', appName: 'Dossiq' },
 			slots: {
@@ -54,7 +54,8 @@ describe('CnUserSettingsDialog: accessibility', () => {
 		})
 		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
-		expect(document.getElementById('settings-section_notify').hidden).toBe(true)
+		expect(document.getElementById('settings-section_menu').hidden).toBe(false)
+		expect(document.getElementById('settings-section_notify').hidden).toBe(false)
 		await expectAccessible(document.querySelector('.cn-user-settings-dialog__body'))
 	})
 })

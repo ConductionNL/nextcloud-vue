@@ -10,7 +10,7 @@
 		sidebar's Filters tab (CnSavedViewsPanel).
 	-->
 	<div
-		v-if="isBoardLook && chipRows.length > 0"
+		v-if="isBoardLook && chips && chipRows.length > 0"
 		class="cn-saved-views__chips"
 		role="group"
 		:aria-label="t('nextcloud-vue', 'Saved views')"
@@ -80,6 +80,18 @@ export default {
 
 	// The chips and the button are two roots under the board look.
 	inheritAttrs: false,
+
+	props: {
+		/**
+		 * Whether the board look draws the saved views as chips. `false`
+		 * leaves only Save view, for a page whose views live in the side
+		 * panel (DqZaken).
+		 */
+		chips: {
+			type: Boolean,
+			default: true,
+		},
+	},
 
 	emits: ['apply', 'save-request'],
 

@@ -115,6 +115,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
+import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { compileRowClass } from '../../utils/rowClassRules.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
@@ -402,6 +403,19 @@ export default {
 		 * row's `id` (or `@self.id`). Empty (the default) = no navigation.
 		 */
 		rowRoute: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The row field (a dot-path) holding the id `rowRoute` opens, for a row
+		 * that links to another record (a payment row opening its case:
+		 * `rowIdField: "case"`). Empty (the default) uses the row's own id; a
+		 * row whose field is empty does not link.
+		 *
+		 * @spec openspec/changes/object-table-row-id-field/specs/object-table/spec.md#requirement-a-row-can-link-to-the-record-a-field-names
+		 */
+		rowIdField: {
 			type: String,
 			default: '',
 		},
@@ -791,7 +805,7 @@ export default {
 		 * @return {object}
 		 */
 		innerProps() {
-			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, schema, exportCsv, exportFileName, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowIdField, rowClass, schema, exportCsv, exportFileName, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) {
@@ -854,8 +868,10 @@ export default {
 		 */
 		rowRouteFn() {
 			return (row) => {
-				const id = row && (row.id || (row['@self'] && row['@self'].id))
-				return id ? { name: this.rowRoute, params: { id: String(id) } } : null
+				const id = this.rowIdField
+					? readPath(row, this.rowIdField)
+					: row && (row.id || (row['@self'] && row['@self'].id))
+				return id !== null && id !== undefined && id !== '' && typeof id !== 'object' ? { name: this.rowRoute, params: { id: String(id) } } : null
 			}
 		},
 
