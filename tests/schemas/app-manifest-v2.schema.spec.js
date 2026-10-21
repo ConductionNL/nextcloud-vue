@@ -1512,6 +1512,24 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(withFilter({ key: 'caseType', options, clearable: 'yes' })).valid).toBe(false)
 	})
 
+	it('accepts a widget headerLink that names a tab, and refuses an empty one (2.140.0)', () => {
+		const page = (headerLink) => ({
+			...MINIMAL_V2,
+			pages: [{
+				id: 'reporting',
+				route: '/reporting',
+				type: 'dashboard',
+				title: 'app.reporting',
+				widgets: [
+					{ widgetKey: 'AnnualStatementWidget', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, headerLink },
+					{ widgetKey: 'AnnualStatementWidget', slot: 'body', gridX: 6, gridY: 0, gridWidth: 6, gridHeight: 4 },
+				],
+			}],
+		})
+		expect(validateManifestV2(page({ label: 'All history', tab: 'history' })).valid).toBe(true)
+		expect(validateManifestV2(page({ label: 'All history', tab: '' })).valid).toBe(false)
+	})
+
 	it('accepts the 2.139.0 generated quarter and year filters without options, and the endpoint request keys', () => {
 		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'report', route: '/report', type: 'dashboard', title: 'Report', config: { pageFilters: [filter] } }] })
 		expect(validateManifestV2(withFilter({ key: 'quarter', type: 'quarter', count: 8 })).valid).toBe(true)
