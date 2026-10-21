@@ -120,6 +120,13 @@
 						data-testid="cn-chart-widget-matrix-cell">{{ cell.text }}</span>
 				</div>
 			</div>
+			<NcNoteCard
+				v-if="matrixNotice"
+				class="cn-chart-widget__notice"
+				:type="matrixNotice.type"
+				data-testid="cn-chart-widget-notice">
+				<strong v-if="matrixNotice.title">{{ matrixNotice.title }}</strong><template v-if="matrixNotice.title && matrixNotice.text">, </template>{{ matrixNotice.text }}
+			</NcNoteCard>
 			<p v-if="footnote" class="cn-chart-widget__footnote">
 				{{ hostTranslate(footnote) }}
 			</p>
@@ -154,6 +161,7 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { NcNoteCard } from '@nextcloud/vue'
 import { inject, markRaw, ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
@@ -358,7 +366,7 @@ function formatterFor(vf) {
 export default {
 	name: 'CnChartWidget',
 
-	components: { CnEndpointNotice },
+	components: { CnEndpointNotice, NcNoteCard },
 
 	inject: {
 		/**
@@ -453,6 +461,22 @@ export default {
 		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
 		 */
 		highlight: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * `matrix`: a notice band under the table, `{ title?, text?, variant? }`
+		 * (`info`, the default, `success`, `warning` or `error`), as
+		 * DqHandhaving's "Advies: last onder dwangsom". Both texts go through
+		 * the host's translate; `{cell}`, `{row}` and `{column}` then take the
+		 * outlined cell's text, row and column, and a notice that names one
+		 * shows only while a cell is outlined.
+		 *
+		 * @type {{title?: string, text?: string, variant?: string}|null}
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		notice: {
 			type: Object,
 			default: null,
 		},
@@ -1561,6 +1585,40 @@ export default {
 				columnIndex = columns.findIndex((c, i) => c === column || String(i + 1) === column)
 			}
 			return rowIndex >= 0 && columnIndex >= 0 ? { row: rowIndex, column: columnIndex } : null
+		},
+
+		/**
+		 * The `notice` band under a matrix, its placeholders filled from the
+		 * outlined cell. Null without a notice, and while a notice that names
+		 * the cell has none outlined.
+		 *
+		 * @return {{type: string, title: string, text: string}|null} The band.
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		matrixNotice() {
+			const notice = this.notice
+			if (!notice || typeof notice !== 'object' || (!notice.title && !notice.text)) {
+				return null
+			}
+			const title = notice.title ? this.hostTranslate(String(notice.title)) : ''
+			const text = notice.text ? this.hostTranslate(String(notice.text)) : ''
+			const placeholder = /\{(cell|row|column)\}/g
+			let values = null
+			const current = this.matrixHighlight
+			if (current !== null) {
+				const row = this.matrix.rows[current.row]
+				values = {
+					cell: row && row.cells[current.column] ? row.cells[current.column].text : '',
+					row: row ? row.label : '',
+					column: String(this.matrix.columns[current.column] ?? ''),
+				}
+			}
+			if (values === null && (title + text).match(placeholder)) {
+				return null
+			}
+			const fill = (value) => (values === null ? value : value.replace(placeholder, (match, name) => values[name]))
+			const type = ['success', 'warning', 'error'].includes(notice.variant) ? notice.variant : 'info'
+			return { type, title: fill(title), text: fill(text) }
 		},
 
 		/** @return {string} The matrix table's accessible name. */

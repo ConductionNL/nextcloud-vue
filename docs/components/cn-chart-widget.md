@@ -300,6 +300,12 @@ When the matrix sits inside ONE record (an array of cells on a versioned matrix 
 }
 ```
 
+A matrix can end in a notice band (`notice: { title?, text?, variant? }`), such as the advice the outlined cell gives (board DqHandhaving, "Advies: last onder dwangsom"). The title is set in bold before the text. Both go through the host's translate, then `{cell}`, `{row}` and `{column}` take the outlined cell's text, its row and its column. A notice that names one of them shows only while a cell is outlined, so a record without a classification gets no half-filled band. `variant` is `info` (the default), `success`, `warning` or `error`; in the board look the info band is the boards' light-blue box:
+
+```json
+"notice": { "title": "Advice: {cell}", "text": "outcome of behaviour {row} and consequence {column}." }
+```
+
 In the board look a dashboard card holding a bar list or a matrix draws no rule under its title; other cards keep theirs.
 
 ## `views` — in-widget display switcher (Wave 3, #91)
@@ -369,6 +375,7 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 | `categoryFormat` | String | `''` | How date categories read on the x-axis: `month` ("jan") or `month-year` ("jan 2026"), in the user's language. Categories that are not dates are left as is. |
 | `emptyCellLabel` | String | `''` | `matrix`: the text of a cell without a value ("geen"), through the host's translate. Empty leaves the cell blank |
 | `highlight` | Object | `null` | `matrix`: the cell to outline, `{ row, column, columnKeys? }`, tokens such as `@object.behaviour` resolved |
+| `notice` | Object | `null` | `matrix`: a notice band under the table, `{ title?, text?, variant? }`; `{cell}`, `{row}` and `{column}` take the outlined cell |
 | `cellSource` | Object | `null` | `matrix`: read the cells from records that each hold one cell (`{ register, schema, filter?, rowField, columnField, valueField, … }`), or with `cellsPath` from the cells inside one record, see [Bar list and matrix](#bar-list-and-matrix) |
 | `valueAxisBaseline` | String | `'auto'` | How the value axis picks its baseline — see [Value-axis baseline](#value-axis-baseline) below. `auto` anchors bar/area at zero and stops line charts over-zooming; `zero` always anchors at zero; `fit` restores plain ApexCharts autoscaling. |
 | `valueFormat` | String \| Object | `null` | Named value formatter applied to the VALUE axis labels AND the tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"` (compact notation, e.g. `€ 1,2K`), `"percent"`. Object form `{ name, currency?, decimals? }` overrides the ISO code (EUR default, guarded) and fraction digits. With `horizontal` bars the formatter moves to the x-axis (the value axis flips). |
