@@ -274,6 +274,14 @@
    primary colour. The theme tokens carry the weight and radius past the
    nldesign theme's `!important`; the follower count takes the same pill.
    @spec openspec/changes/board-follow-pill/specs/board-follow-pill/spec.md#requirement-the-board-follow-control-is-a-pill */
+/* The control is a tertiary NcButton; a theme may point --color-main-text at
+   its button ink on a tertiary itself (thematiq draws the zuiddrecht primary),
+   so the wrapper hands that ink the main text.
+   @spec openspec/changes/board-follow-pill-ink/specs/board-follow-pill-ink/spec.md#requirement-the-follow-pill-label-is-the-main-text-under-a-theme */
+.cn-look-board .cn-detail-page .cn-follow-toggle {
+	--nldesign-component-button-color: var(--color-main-text);
+}
+
 .cn-look-board .cn-detail-page .cn-follow-toggle .button-vue {
 	--nldesign-component-button-font-weight: 600;
 	--nldesign-component-button-border-radius: 14px;
@@ -544,6 +552,12 @@
 	display: none;
 }
 
+/* The same for a CnDetailCard (DqTaak "Notities", DqZaakEmail "E-mail",
+   DqZaakTaken "Afspraken", DqHandhaving "Historie"). */
+.cn-look-board.cn-detail-page .cn-detail-card__header .cn-detail-card__icon {
+	display: none;
+}
+
 .cn-look-board .cn-detail-page .cn-widget-wrapper__title,
 .cn-look-board .cn-detail-card .cn-detail-card__title {
 	font-size: var(--cn-board-heading-size);
@@ -559,6 +573,13 @@
 
 .cn-look-board .cn-detail-card .cn-detail-card__content {
 	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
+}
+
+/* A data card (labels over values) starts 14px below its title (DqZaak
+   "Zaakgegevens", DqContact "Contact"). A side card keeps its 10px.
+   @spec openspec/changes/board-data-card-gap/specs/board-data-card-gap/spec.md#requirement-a-board-data-cards-body-starts-14px-below-its-title */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap):not(.cn-detail-page__side *) {
+	padding-top: calc(14px - var(--cn-board-first-line-leading));
 }
 
 /* A header-less card keeps the full 20px 22px. */

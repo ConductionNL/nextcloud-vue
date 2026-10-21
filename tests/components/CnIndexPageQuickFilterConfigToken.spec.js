@@ -135,3 +135,33 @@ describe('a quick filter naming @config.<key>', () => {
 		expect(wrapper.vm.effectiveQuickFilters[1].label).toBe('Residence @config.municipality')
 	})
 })
+
+describe('a config value inside a date token, and in the footer note (pl4-cell-rules)', () => {
+	const stale = [
+		{ label: 'Open', filter: { status: 'open' }, default: true },
+		{ label: 'Out of date', filter: { status: 'open', '@self[updated][lt]': '@today-{@config.lead_stale_threshold_days}d' } },
+	]
+
+	it('filters on a date the admin setting moves', async () => {
+		const wrapper = mountPage({ title: 'Leads', register: 'pipelinq', schema: 'lead', quickFilters: stale, appConfig: { lead_stale_threshold_days: 21 } })
+		await flush()
+		wrapper.vm.onQuickFilterChange(1)
+		await flush()
+		const expected = new Date()
+		expected.setHours(0, 0, 0, 0)
+		expected.setDate(expected.getDate() - 21)
+		const ymd = `${expected.getFullYear()}-${String(expected.getMonth() + 1).padStart(2, '0')}-${String(expected.getDate()).padStart(2, '0')}`
+		expect(lastParams()['@self[updated][lt]']).toBe(ymd)
+	})
+
+	it('names the admin setting in the footer note, after translation', async () => {
+		const wrapper = mount(CnIndexPage, {
+			propsData: { title: 'Leads', register: 'pipelinq', schema: 'lead', footerNote: 'Stale after @config.lead_stale_threshold_days days.', appConfig: { lead_stale_threshold_days: 21 } },
+			stubs,
+			global: { provide: { cnTranslate: (s) => (s === 'Stale after @config.lead_stale_threshold_days days.' ? 'Verouderd na @config.lead_stale_threshold_days dagen.' : s) } },
+			mocks: { $route: { params: {}, query: {} }, $router: { push: jest.fn(), replace: jest.fn(async () => {}) } },
+		})
+		await flush()
+		expect(wrapper.vm.effectiveFooterNote).toBe('Verouderd na 21 dagen.')
+	})
+})

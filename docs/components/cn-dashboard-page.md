@@ -454,7 +454,7 @@ The `appConfig` prop is a page-level config map exposed to declarative widget / 
 <CnDashboardPage :widgets="WIDGETS" :layout="layout" :app-config="appConfig" />
 ```
 
-A manifest renderer typically seeds `appConfig` from `loadState(appId, 'config', {})`. `@config.<key>` also interpolates into an endpoint source's URL / params and into OpenRegister filter values. It is **backwards-compatible**: a literal `"EUR"` still works, and a required `@config.<key>` that is unset falls back to the format's default (`EUR` for currency, empty for prefix/suffix) rather than rendering the raw token. A trailing `?` marks the token optional (dropped from filters when unset).
+A manifest renderer typically seeds `appConfig` from `loadState(appId, 'config', {})`. `@config.<key>` also interpolates into an endpoint source's URL / params and into OpenRegister filter values. It is **backwards-compatible**: a literal `"EUR"` still works, and a required `@config.<key>` that is unset falls back to the format's default (`EUR` for currency, empty for prefix/suffix) rather than rendering the raw token. A trailing `?` marks the token optional (dropped from filters when unset). The page merges its own `appConfig` over a config an ancestor provides on `cnAppConfig` (an app root's settings), key by key, so an app can provide its settings once. A registry widget's `content` takes the token too, at any depth: `{ "type": "kb-search", "content": { "space": "@config.xwiki_default_space?" } }` searches the admin's default space, and an unset optional token becomes empty.
 
 Each **per-widget** menu also surfaces a **Documentation** item. Its URL resolves to the widget def's own `documentationUrl` when set, otherwise it inherits the page-level `documentationUrl` — so a documented dashboard shows Documentation on every widget without per-widget config.
 
@@ -503,7 +503,7 @@ The `appConfig` prop is a page-level config map exposed to declarative widget / 
 <CnDashboardPage :widgets="WIDGETS" :layout="layout" :app-config="appConfig" />
 ```
 
-A manifest renderer typically seeds `appConfig` from `loadState(appId, 'config', {})`. `@config.<key>` also interpolates into an endpoint source's URL / params and into OpenRegister filter values. It is **backwards-compatible**: a literal `"EUR"` still works, and a required `@config.<key>` that is unset falls back to the format's default (`EUR` for currency, empty for prefix/suffix) rather than rendering the raw token. A trailing `?` marks the token optional (dropped from filters when unset).
+A manifest renderer typically seeds `appConfig` from `loadState(appId, 'config', {})`. `@config.<key>` also interpolates into an endpoint source's URL / params and into OpenRegister filter values. It is **backwards-compatible**: a literal `"EUR"` still works, and a required `@config.<key>` that is unset falls back to the format's default (`EUR` for currency, empty for prefix/suffix) rather than rendering the raw token. A trailing `?` marks the token optional (dropped from filters when unset). The page merges its own `appConfig` over a config an ancestor provides on `cnAppConfig` (an app root's settings), key by key, so an app can provide its settings once. A registry widget's `content` takes the token too, at any depth: `{ "type": "kb-search", "content": { "space": "@config.xwiki_default_space?" } }` searches the admin's default space, and an unset optional token becomes empty.
 
 ## Reference (auto-generated)
 

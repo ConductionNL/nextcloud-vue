@@ -40,7 +40,7 @@
 				:key="group.key"
 				class="cn-work-queue__group"
 				:data-testid="`cn-work-queue-group-${group.key}`">
-				<div class="cn-work-queue__group-head">
+				<div v-if="group.label" class="cn-work-queue__group-head">
 					<h3 class="cn-work-queue__group-title">
 						{{ group.label }}
 						<span class="cn-work-queue__count">{{ group.items.length }}</span>
@@ -60,20 +60,27 @@
 					<li v-for="item in group.items"
 						:key="item.id"
 						class="cn-work-queue__item"
-						:class="{ 'cn-work-queue__item--late': item.deadlineTier === 'overdue' }"
+						:class="{ 'cn-work-queue__item--late': isLate(item) }"
 						:data-testid="`cn-work-queue-item-${item.id}`">
 						<span class="cn-work-queue__avatar" aria-hidden="true">{{ initials(item.title) }}</span>
 						<span class="cn-work-queue__body">
 							<a :href="hrefOf(item) || '#'" class="cn-work-queue__link" @click="onOpen(item, $event)">{{ item.title }}</a>
-							<span v-if="item.covered || waitingText(item)" class="cn-work-queue__sub">
+							<span v-if="item.covered || waitingText(item) || kindText(item) || subText(item)" class="cn-work-queue__sub">
+								<span v-if="kindText(item)" class="cn-work-queue__kind">{{ kindText(item) }}</span>
+								<span v-if="subText(item)">{{ subText(item) }}</span>
 								<span v-if="item.covered">{{ t('nextcloud-vue', 'Covering for {person}', { person: String(item.coveredFor || '') }) }}</span>
 								<span v-if="waitingText(item)" :data-testid="`cn-work-queue-waiting-${item.id}`">{{ waitingText(item) }}</span>
 							</span>
 						</span>
-						<span v-if="item.dueAt" class="cn-work-queue__muted">{{ item.dueAt }}</span>
+						<span v-if="dueOf(item)" class="cn-work-queue__muted">{{ dueOf(item) }}</span>
 					</li>
 				</ul>
 			</section>
+			<a v-if="viewAllShown"
+				:href="viewAllHref || '#'"
+				class="cn-work-queue__view-all"
+				data-testid="cn-work-queue-view-all"
+				@click="onViewAll">{{ viewAllText }}</a>
 		</template>
 
 		<section v-if="content.hide && hidden.length" class="cn-work-queue__group" data-testid="cn-work-queue-hidden">
@@ -102,6 +109,17 @@ import { fillTemplate } from '../../utils/fillTemplate.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 
 /**
+ * Read a dotted path off a value without throwing on a missing segment.
+ *
+ * @param {object} value The value.
+ * @param {string} path A dotted path.
+ * @return {unknown} The value at the path.
+ */
+function readPath(value, path) {
+	return String(path || '').split('.').filter(Boolean).reduce((acc, key) => (acc === null || acc === undefined ? undefined : acc[key]), value)
+}
+
+/**
  * CnWorkQueue — one list of everything waiting on the reader: tasks,
  * consultations, mentions, calendar items, work they cover for a colleague,
  * from as many sources as the server declares. The component names no
@@ -123,6 +141,15 @@ import { openRowTarget } from '../../utils/linkNavigation.js'
  * - `itemHref`: a template filled from an item, when items carry no `route`/`href`.
  * - `waitingParties`: words for `waiting.on` (`{ applicant: "the applicant" }`).
  * - `emptyText`: through the host translate.
+ * - `itemsPath`: read a flat list at this path of the answer as one group
+ *   without a heading, for an endpoint that answers `{ items, total }`. An
+ *   item's `routeName` opens `{ name: routeName, params: { id } }`.
+ * - `totalPath`, `viewAll` (`{ route | href, label }`, `{count}` in the label):
+ *   a "View all" link under the list while the total exceeds what is shown.
+ * - `dueField`, `lateField`: the item fields for the due text (default
+ *   `dueAt`) and a late flag (default `deadlineTier === "overdue"`).
+ * - `subField`, `kind` (`{ field, labels }`): a muted line under the title,
+ *   led by the item's kind through the translated labels ("Lead", "Request").
  */
 export default {
 	name: 'CnWorkQueue',
@@ -161,6 +188,7 @@ export default {
 			groups: [],
 			hidden: [],
 			unavailable: [],
+			total: 0,
 		}
 	},
 
@@ -174,6 +202,38 @@ export default {
 		shownGroups() {
 			const hidden = new Set(this.hidden.map(String))
 			return this.groups.filter((group) => !hidden.has(String(group.key)))
+		},
+
+		/**
+		 * Whether the "View all" link shows: configured, and more items exist than are shown.
+		 *
+		 * @spec openspec/changes/pl4-work-queue/specs/pl4-work-queue/spec.md#requirement-a-queue-can-read-one-flat-list
+		 * @return {boolean}
+		 */
+		viewAllShown() {
+			const viewAll = this.content.viewAll
+			const shown = this.groups.reduce((sum, group) => sum + group.items.length, 0)
+			return Boolean(viewAll && (viewAll.route || viewAll.href)) && this.total > shown
+		},
+
+		/**
+		 * The "View all" link's href.
+		 *
+		 * @return {string}
+		 */
+		viewAllHref() {
+			const viewAll = this.content.viewAll || {}
+			return this.hrefOf({ route: viewAll.route, href: viewAll.href ? generateUrl(viewAll.href) : '' })
+		},
+
+		/**
+		 * The "View all" link's text, with the total.
+		 *
+		 * @return {string}
+		 */
+		viewAllText() {
+			const label = this.text(this.content.viewAll && this.content.viewAll.label) || t('nextcloud-vue', 'View all ({count})')
+			return label.replace(/\{count\}/g, String(this.total))
 		},
 	},
 
@@ -210,9 +270,13 @@ export default {
 			this.error = ''
 			try {
 				const data = (await fetchEndpointSource(this.content.source, {}, { fresh: true })) || {}
-				this.groups = (Array.isArray(data.groups) ? data.groups : [])
-					.filter((g) => g && g.key !== undefined)
-					.map((g) => ({ ...g, items: Array.isArray(g.items) ? g.items : [] }))
+				this.groups = this.content.itemsPath
+					? this.flatGroups(data)
+					: (Array.isArray(data.groups) ? data.groups : [])
+							.filter((g) => g && g.key !== undefined)
+							.map((g) => ({ ...g, items: Array.isArray(g.items) ? g.items : [] }))
+				const total = Number(this.content.totalPath ? readPath(data, this.content.totalPath) : NaN)
+				this.total = Number.isFinite(total) ? total : this.groups.reduce((sum, group) => sum + group.items.length, 0)
 				this.hidden = Array.isArray(data.hiddenGroups) ? data.hiddenGroups.map(String) : []
 				this.unavailable = Array.isArray(data.unavailable) ? data.unavailable.filter((s) => s && s.source) : []
 			} catch (failure) {
@@ -221,6 +285,78 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * One unheaded group from the flat list at `itemsPath`, or none when it
+		 * is empty. An item's `routeName` becomes its route.
+		 *
+		 * @spec openspec/changes/pl4-work-queue/specs/pl4-work-queue/spec.md#requirement-a-queue-can-read-one-flat-list
+		 * @param {object} data The answer.
+		 * @return {Array<object>}
+		 */
+		flatGroups(data) {
+			const list = readPath(data, this.content.itemsPath)
+			const items = (Array.isArray(list) ? list : [])
+				.filter((item) => item && item.id !== undefined)
+				.map((item) => (item.route || !item.routeName ? item : { ...item, route: { name: item.routeName, params: { id: item.id } } }))
+			return items.length === 0 ? [] : [{ key: 'items', label: '', items }]
+		},
+
+		/**
+		 * Whether an item is late: its `lateField`, else its deadline tier.
+		 *
+		 * @param {object} item The item.
+		 * @return {boolean}
+		 */
+		isLate(item) {
+			return this.content.lateField ? Boolean(readPath(item, this.content.lateField)) : item.deadlineTier === 'overdue'
+		},
+
+		/**
+		 * The item's due text, from `dueField` (default `dueAt`).
+		 *
+		 * @param {object} item The item.
+		 * @return {string}
+		 */
+		dueOf(item) {
+			const value = readPath(item, this.content.dueField || 'dueAt')
+			return value === null || value === undefined ? '' : String(value)
+		},
+
+		/**
+		 * The item's kind through the translated `kind.labels`.
+		 *
+		 * @param {object} item The item.
+		 * @return {string}
+		 */
+		kindText(item) {
+			const kind = this.content.kind
+			if (!kind || !kind.field || !kind.labels) {
+				return ''
+			}
+			return this.text(kind.labels[readPath(item, kind.field)])
+		},
+
+		/**
+		 * The item's `subField` value.
+		 *
+		 * @param {object} item The item.
+		 * @return {string}
+		 */
+		subText(item) {
+			const value = this.content.subField ? readPath(item, this.content.subField) : ''
+			return value === null || value === undefined ? '' : String(value)
+		},
+
+		/**
+		 * Open the "View all" target like an item.
+		 *
+		 * @param {MouseEvent} event The click.
+		 */
+		onViewAll(event) {
+			const viewAll = this.content.viewAll || {}
+			this.onOpen({ route: viewAll.route, href: viewAll.href ? generateUrl(viewAll.href) : '' }, event)
 		},
 
 		/**
@@ -459,5 +595,17 @@ export default {
 	gap: 12px;
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
+}
+
+.cn-work-queue__kind {
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.cn-work-queue__view-all {
+	display: inline-block;
+	margin-top: 8px;
+	color: var(--color-primary-element);
 }
 </style>

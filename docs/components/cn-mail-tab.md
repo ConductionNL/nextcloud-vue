@@ -29,7 +29,8 @@ Compose in Mail actions.
       "blankTemplateId": "blank"
     },
     "closedWhen": { "field": "endDate", "op": "notEmpty" },
-    "linkedMail": true
+    "linkedMail": true,
+    "headerActions": ["link", "compose"]
   }
 }
 ```
@@ -44,8 +45,22 @@ Compose in Mail actions.
 | `draft` | `{ url, blankTemplateId? }`: the POST that creates the draft. `{templateId}` in the URL is the chosen template's id, or `blankTemplateId` (default `blank`) for an empty draft. Without it there is no row. |
 | `closedWhen` | A local visibleWhen condition on the record. While it holds, both draft buttons are disabled. |
 | `linkedMail` | Show the linked mail under the row (default `true`). Set `false` when the page places the `email` integration as its own card. |
+| `headerActions` | Buttons beside the heading, in this order: `"link"` (Link mail) and `"compose"` (Compose mail). None by default. See below. |
 
 `heading`, `description`, `hint` and `noTemplatesText` go through the host's translate.
+
+## Header actions
+
+`headerActions` puts the tab's two main actions beside its heading, as the DqZaakEmail board draws them:
+
+- `"compose"`, **Compose mail** (primary): opens the empty draft through `draft`, as the row's empty-draft button did,
+  which then leaves the row. Without `draft` it opens Nextcloud Mail's composer in a new tab. Disabled while
+  `closedWhen` holds.
+- `"link"`, **Link mail** (secondary): opens the linked mail's picker over the reader's mail; the chosen message is
+  linked to the record through OpenRegister's email links, and the list reloads. Needs the linked mail, so it is not
+  offered with `linkedMail: false`.
+
+With either button in the header, the linked mail drops its own Link existing email and Compose in Mail buttons.
 
 ## The draft response
 

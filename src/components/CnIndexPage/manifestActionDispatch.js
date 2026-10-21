@@ -1,4 +1,4 @@
-import { isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { dispatchAction as dispatchSharedAction, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { readPath } from '../../utils/readPath.js'
 
 /**
@@ -135,6 +135,9 @@ export function resolveActionTarget(action, row, ctx, warn = false) {
  *   - `open-page` → `action.target` is a named route; `$router.push({ name, params:{ id } })`.
  *   - `open-modal` → `ctx.openModal(target, { object: row, objectId, ...props })`,
  *     the app root's `cnOpenModal`; without it, falls back to `@action`.
+ *   - `api-call` → the shared api-call (POST by default, toasts) for the row:
+ *     `{objectId}` and `{field}` row tokens fill the url, and on success
+ *     `ctx.refresh` reads the list again (unless `refresh: false`).
  *
  * Handler dispatch (`type: 'handler'`, the default) reads `action.handler`:
  *   - `navigate` → $router.push to `action.route` with `{ id: row[rowKey] }`
@@ -151,8 +154,9 @@ export function resolveActionTarget(action, row, ctx, warn = false) {
  *     wrapped if a function.
  *
  * @param {object} action Manifest action descriptor.
- * @param {{ router: object, rowKey: string, registry?: object, customComponents: object }} ctx Dispatch context (router, rowKey, the v2 registry and the legacy customComponents map).
+ * @param {{ router: object, rowKey: string, registry?: object, customComponents: object, refresh?: (() => Promise<void>), translate?: ((text: string) => string) }} ctx Dispatch context (router, rowKey, the v2 registry, the legacy customComponents map, and for `api-call` the list refresh and translate).
  * @return {((row?: object) => void)|null}
+ * @spec openspec/changes/pl4-index-row-api-call/specs/pl4-index-row-api-call/spec.md#requirement-an-index-row-action-can-call-an-endpoint
  */
 export function resolveActionHandler(action, ctx) {
 	const type = (typeof action.type === 'string' && action.type.length > 0) ? action.type : 'handler'
@@ -202,6 +206,21 @@ export function resolveActionHandler(action, ctx) {
 	}
 
 	// type === 'handler' (default): the v1.3.0 handler-string path.
+	if (type === 'api-call') {
+		return async (row) => {
+			const { value: url } = resolveRowToken(action.url, row)
+			const objectId = row && ctx.rowKey ? readPath(row, ctx.rowKey) : undefined
+			const result = await dispatchSharedAction({ ...action, url, refresh: false }, {
+				translate: ctx.translate,
+				tokenCtx: { objectId, object: row },
+			})
+			if (result && result.ok && action.refresh !== false && typeof ctx.refresh === 'function') {
+				await ctx.refresh()
+			}
+			return result
+		}
+	}
+
 	const name = action.handler
 	if (typeof name !== 'string' || name.length === 0) {
 		return null

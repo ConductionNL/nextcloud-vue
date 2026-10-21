@@ -20,20 +20,20 @@
   Spec: ConductionNL/nextcloud-vue#264.
 -->
 <template>
-	<CnFeaturesAndRoadmapView
-		:repo="resolvedRepo"
-		:forge="resolvedForge"
-		:features="resolvedFeatures"
-		:disabled="resolvedDisabled"
-		:openbuiltUrl="resolvedOpenbuiltUrl"
-		:llmSkillsUrl="resolvedLlmSkillsUrl"
-		:suggestUrl="resolvedSuggestUrl"
-		:documentationUrl="resolvedDocumentationUrl"
-		:capabilityComparison="resolvedCapabilityComparison"
-		:categories="categories || {}"
-		:board="board || {}"
-		:title="title"
-		:appVersion="resolvedAppVersion" />
+	<div v-if="compareHref" class="cn-features-and-roadmap-page">
+		<p class="cn-features-and-roadmap-page__compare" data-testid="cn-roadmap-compare">
+			<a :href="compareHref"
+				class="cn-features-and-roadmap-page__compare-link"
+				target="_blank"
+				rel="noopener noreferrer"
+				:aria-describedby="compareHintId">{{ compareText }}</a>
+			<span :id="compareHintId" class="cn-features-and-roadmap-page__compare-hint">
+				{{ t('nextcloud-vue', 'Opens {host} in a new tab.', { host: compareHost }) }}
+			</span>
+		</p>
+		<CnFeaturesAndRoadmapView v-bind="viewProps" />
+	</div>
+	<CnFeaturesAndRoadmapView v-else v-bind="viewProps" />
 </template>
 
 <script>
@@ -43,9 +43,11 @@
 // has no such function), which meant this helper used to return its fallback
 // unconditionally.
 import { loadState } from '@nextcloud/initial-state'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
 import CnFeaturesAndRoadmapView from '../CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue'
 import { warnCapabilityComparisonDeprecated } from '../../utils/capabilityComparison.js'
 import { DEFAULT_FORGE } from '../../utils/forge.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * Read a key from `@nextcloud/initial-state`, tolerating an unprovisioned
@@ -88,6 +90,11 @@ export default {
 		 */
 		cnFeatureRequestForge: {
 			default: () => ({ ...DEFAULT_FORGE }),
+		},
+
+		/** The host app's translate (CnAppRoot `cnTranslate`). */
+		cnTranslate: {
+			default: () => (key) => key,
 		},
 	},
 
@@ -234,6 +241,27 @@ export default {
 		},
 
 		/**
+		 * The app's comparison with similar products on its public site,
+		 * linked above the page in a new tab. A URL, or a map from language
+		 * to URL with a `default` (`{ default, nl }`). Manifest `config.compareUrl`.
+		 *
+		 * @type {string|object}
+		 */
+		compareUrl: {
+			type: [String, Object],
+			default: '',
+		},
+
+		/**
+		 * The compare link's text, through the app's translate. Manifest
+		 * `config.compareLabel`; defaults to "How this app compares".
+		 */
+		compareLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Override for the appId used to namespace loadState lookups.
 		 * Tests pass an explicit value; production reads it from the
 		 * `cnAiContext` inject populated by CnAppRoot.
@@ -245,6 +273,81 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The compare link for the reader's language, when it is a safe
+		 * http(s) or same-origin address; '' otherwise.
+		 *
+		 * @spec openspec/changes/pl4-roadmap-flow/specs/pl4-roadmap-flow/spec.md#requirement-the-roadmap-page-links-to-the-app-comparison
+		 * @return {string}
+		 */
+		compareHref() {
+			let url = this.compareUrl
+			if (url && typeof url === 'object') {
+				const language = String(getLanguage() || '').toLowerCase()
+				const key = Object.keys(url).find((k) => k !== 'default' && language.startsWith(k.toLowerCase()))
+				url = key ? url[key] : url.default
+			}
+			if (typeof url !== 'string' || url === '' || url.startsWith('mailto:')) {
+				return ''
+			}
+			const href = safeHref(url)
+			return href === '#' ? '' : href
+		},
+
+		/**
+		 * The compare link's text.
+		 *
+		 * @return {string}
+		 */
+		compareText() {
+			return this.compareLabel ? this.cnTranslate(this.compareLabel) : t('nextcloud-vue', 'How this app compares')
+		},
+
+		/**
+		 * The id tying the new-tab hint to the link, so a screen reader hears it.
+		 *
+		 * @return {string}
+		 */
+		compareHintId() {
+			return `cn-roadmap-compare-hint-${this.$.uid}`
+		},
+
+		/**
+		 * The host the compare link opens, for the hint beside it.
+		 *
+		 * @return {string}
+		 */
+		compareHost() {
+			try {
+				return new URL(this.compareHref, window.location.origin).host
+			} catch {
+				return this.compareHref
+			}
+		},
+
+		/**
+		 * The props handed to the view.
+		 *
+		 * @return {object}
+		 */
+		viewProps() {
+			return {
+				repo: this.resolvedRepo,
+				forge: this.resolvedForge,
+				features: this.resolvedFeatures,
+				disabled: this.resolvedDisabled,
+				openbuiltUrl: this.resolvedOpenbuiltUrl,
+				llmSkillsUrl: this.resolvedLlmSkillsUrl,
+				suggestUrl: this.resolvedSuggestUrl,
+				documentationUrl: this.resolvedDocumentationUrl,
+				capabilityComparison: this.resolvedCapabilityComparison,
+				categories: this.categories || {},
+				board: this.board || {},
+				title: this.title,
+				appVersion: this.resolvedAppVersion,
+			}
+		},
+
 		/**
 		 * Effective app id used to namespace `loadState` calls.
 		 * Prop takes precedence over the cnAiContext inject so that
@@ -360,5 +463,29 @@ export default {
 			warnCapabilityComparisonDeprecated('CnFeaturesAndRoadmapPage `capabilityComparison` / the `features_roadmap_capabilities` initial state')
 		}
 	},
+
+	methods: {
+		t,
+	},
 }
 </script>
+
+<style scoped>
+.cn-features-and-roadmap-page__compare {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 12px;
+	margin: 0;
+	padding: 12px 12px 0;
+}
+
+.cn-features-and-roadmap-page__compare-link {
+	color: var(--color-primary-element);
+	text-decoration: underline;
+}
+
+.cn-features-and-roadmap-page__compare-hint {
+	color: var(--color-text-maxcontrast);
+}
+</style>

@@ -438,6 +438,16 @@
 	color: var(--color-main-text);
 }
 
+/* ---- A primary button ---------------------------------------------------- */
+/* The boards draw a primary as its fill alone (DqZaak "Volgende stap",
+   DqOverdragen "Overdragen"); NcButton gives every button a 1px border. The
+   selector weighs (0,3,0), as the secondary rule above.
+   @spec openspec/changes/board-primary-no-edge/specs/board-primary-no-edge/spec.md#requirement-a-board-primary-button-draws-no-edge */
+.cn-look-board .button-vue.button-vue--primary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)),
+.cn-look-board .button-vue.button-vue--vue-primary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)) {
+	border: 0;
+}
+
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
 /* The board draws a page's secondary actions as neutral 40px buttons: the
    main background, a grey border, the main text at 600 (DqZaak "Bericht",
@@ -1395,11 +1405,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* ---- Info notes (NcNoteCard type="info") -------------------------------- */
-/* The board's info note is a light-blue rounded box: no edge bar, 12px 14px
-   of padding, radius 8, an 18px icon 10px before the text, 14px text in the
-   deep primary ink at 1.5, and a bold heading line (DqBesluit and 13 other
-   boards). NcNoteCard paints its ground and ink with `!important`, and a
-   theme forces the body ink onto every p and span (thematiq), so the ground,
+/* The board's info note is a light-blue rounded box: no edge bar, 10px 14px
+   of padding, radius 10, an 18px icon on the first line 10px before the text,
+   14px text (13px in a dialog) in the deep primary ink at 1.5, and a bold
+   heading line (DqBesluit and 16 other boards). NcNoteCard paints its
+   ground and ink with `!important`, and a theme forces the body ink onto every p and span (thematiq), so the ground,
    the ink and the paragraph colour carry `!important` here too, scoped to
    the board look; the ink also goes to --nldesign-color-on-surface. */
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) {
@@ -1407,9 +1417,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	--note-card-icon-size: 18px;
 	--note-theme: var(--color-primary-element-light-text);
 	gap: 10px;
-	padding: 12px 14px;
+	padding: 10px 14px;
 	border-inline-start: 0;
-	border-radius: 8px;
+	border-radius: 10px;
 	background-color: var(--color-primary-element-light) !important;
 	color: var(--color-primary-element-light-text) !important;
 	font-size: 14px;
@@ -1428,8 +1438,30 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__icon {
+	align-self: flex-start;
 	padding-top: 1px;
 	color: var(--color-primary-element-light-text);
+}
+
+/* The icon's wrapper (NcIconSvgWrapper) centres the icon in its own box,
+   which `align-self: flex-start` above keeps one line high.
+   @spec openspec/changes/board-note-icon-first-line/specs/board-note-icon-first-line/spec.md#requirement-a-board-note-sets-its-icon-on-the-first-line */
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__icon svg {
+	width: 18px;
+	height: 18px;
+	max-width: 18px;
+	max-height: 18px;
+}
+
+.cn-look-board.cn-dialog-board .notecard.notecard--info:not(.cn-look-nextcloud *) {
+	font-size: 13px;
+}
+
+/* A record list's notice puts its icon on the first line too: the icon's
+   own `align-self: center` (vue-material-design-icons) overrides the
+   notice's `align-items: flex-start` (DqZaaktypeOverzicht). */
+.cn-look-board .cn-record-list__notice .cn-record-list__notice-icon {
+	align-self: flex-start;
 }
 
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */

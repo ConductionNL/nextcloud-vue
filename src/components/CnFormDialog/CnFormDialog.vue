@@ -377,6 +377,7 @@
 									:clearable="!field.required || !!field.reference.multiple"
 									:disabled="field.readOnly"
 									:preload="true"
+									:filters="pickerFilters(field)"
 									:createHandler="term => openNestedCreate(field, term)"
 									@update:modelValue="value => onReferenceSelected(field, value)"
 									@create="obj => onReferenceCreated(field, obj)" />
@@ -852,6 +853,28 @@
 							</small>
 						</template>
 					</div>
+					<div
+						v-if="!isInFoldedSection(field) && ($slots['field-' + field.key + '-hint'] || resolveHintComponent(field))"
+						class="cn-form-dialog__field-hint"
+						:data-testid="'cn-form-hint-' + field.key">
+						<!-- @slot field-{key}-hint Content under one field, such as a hint that follows its value. -->
+						<!-- @binding {object} field The field definition. -->
+						<!-- @binding {*} value The field's current value. -->
+						<!-- @binding {object} formData Every value of the form. -->
+						<slot
+							v-if="$slots['field-' + field.key + '-hint']"
+							:name="'field-' + field.key + '-hint'"
+							:field="field"
+							:value="formData[field.key]"
+							:formData="formData" />
+						<!-- `hintWidget` names a registered component mounted under the field. -->
+						<component
+							:is="resolveHintComponent(field)"
+							v-else
+							:field="field"
+							:value="formData[field.key]"
+							:formData="formData" />
+					</div>
 					<!-- `warnWhen`: notes under the field that do not block the save. -->
 					<p
 						v-for="(warning, index) in (isInFoldedSection(field) ? [] : fieldWarnings(field))"
@@ -898,6 +921,15 @@
 			data-testid="cn-form-dialog-nested-create"
 			@confirm="onNestedCreateConfirm"
 			@close="onNestedCreateClose" />
+
+		<!-- A field's own `createModal`, mounted here rather than through the
+		     app's single modal slot, so a form that is itself a registry modal
+		     stays open underneath it. -->
+		<component
+			:is="fieldCreate.component"
+			v-if="fieldCreate !== null"
+			v-bind="fieldCreate.props"
+			data-testid="cn-form-dialog-field-create" />
 
 		<CnReplaceValuesDialog
 			v-if="pendingReplace !== null"
@@ -1690,6 +1722,8 @@ export default {
 			 * for the referenced schema.
 			 */
 			nestedCreate: null,
+			// The field `createModal` dialog that is open: `{ component, props }`.
+			fieldCreate: null,
 		}
 	},
 
@@ -2327,6 +2361,66 @@ export default {
 			const legacy = this.cnCustomComponents && this.cnCustomComponents[name]
 			// A bare function in the legacy map is a handler, not a component.
 			return legacy && typeof legacy === 'object' ? legacy : null
+		},
+
+		/**
+		 * The registered component a field shows under its control
+		 * (`hintWidget`), or null.
+		 *
+		 * @spec openspec/changes/pl4-form-field-create-modal/specs/form-dialog/spec.md
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveHintComponent(field) {
+			const name = field && field.hintWidget
+			return typeof name === 'string' && name !== '' ? this.resolveFieldComponent({ widget: name }) : null
+		},
+
+		/**
+		 * The filters a select-or-create picker scopes its options by
+		 * (`pickerFilter`), each `@answer.<key>` replaced by that form value.
+		 * The picker drops empty entries, so an unanswered field scopes to nothing.
+		 *
+		 * @spec openspec/changes/pl4-form-field-create-modal/specs/form-dialog/spec.md
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object} The filters.
+		 */
+		pickerFilters(field) {
+			const filter = field && field.pickerFilter
+			return filter && typeof filter === 'object' && !Array.isArray(filter) ? resolveFormTokens(filter, this.formData) : {}
+		},
+
+		/**
+		 * The dialog a reference field creates its objects with: the component
+		 * of the `kind: 'modal'` registry entry its `createModal` names, or null.
+		 *
+		 * @spec openspec/changes/pl4-form-field-create-modal/specs/form-dialog/spec.md
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} The dialog component, or null.
+		 */
+		fieldCreateModal(field) {
+			const key = field && field.createModal
+			if (typeof key !== 'string' || key === '') {
+				return null
+			}
+			const entry = (this.cnRegistry || {})[key]
+			return entry && entry.kind === 'modal' && entry.component ? entry.component : null
+		},
+
+		/**
+		 * Mount a field's create dialog on top of this form. Its `created`
+		 * or `close` takes it down again.
+		 *
+		 * @param {object} component The dialog component.
+		 * @param {object} props Its props and `onCreated` / `onClose` listeners.
+		 * @return {void}
+		 */
+		mountFieldCreate(component, props) {
+			const done = (handler) => (...args) => {
+				this.fieldCreate = null
+				return handler(...args)
+			}
+			this.fieldCreate = { component, props: { ...props, onCreated: done(props.onCreated), onClose: done(props.onClose) } }
 		},
 
 		/**
@@ -3906,6 +4000,11 @@ export default {
 				store.registerObjectType(slug, schemaRef, register)
 			}
 			const labelField = this.referenceLabelField(field)
+			const fieldModal = this.fieldCreateModal(field)
+			if (fieldModal) {
+				const props = resolveFormTokens(field.createModalProps || {}, this.formData)
+				return this.openAppCreateModal(fieldModal, store, slug, labelField, term, props, (component, all) => this.mountFieldCreate(component, all))
+			}
 			const loadSchema = async () => {
 				try {
 					return await store.fetchSchema(slug)
@@ -4050,14 +4149,16 @@ export default {
 		 * as it was. A reported id is fetched so the picker can label it.
 		 *
 		 * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
-		 * @param {string} key The registry key of the modal.
+		 * @param {string|object} key The registry key of the modal, or the dialog component for `open`.
 		 * @param {object} store The object store.
 		 * @param {string} slug The object type slug.
 		 * @param {string} labelField The property the typed term belongs in.
 		 * @param {string} term The typed search term.
+		 * @param {object} [props] More props for the dialog (a field's `createModalProps`).
+		 * @param {(key: (string|object), props: object) => void} [open] Opens the dialog; the app's modal slot by default.
 		 * @return {Promise<object|null>} The created object, or null.
 		 */
-		openAppCreateModal(key, store, slug, labelField, term) {
+		openAppCreateModal(key, store, slug, labelField, term, props = {}, open = this.cnOpenModal) {
 			return new Promise((resolve) => {
 				let settled = false
 				let reported = false
@@ -4067,7 +4168,8 @@ export default {
 						resolve(value)
 					}
 				}
-				this.cnOpenModal(key, {
+				open(key, {
+					...props,
 					initialData: term ? { [labelField]: term } : {},
 					onCreated: async (created) => {
 						if (created && typeof created === 'object') {
@@ -5560,6 +5662,12 @@ export default {
 	border-inline-start: 3px solid var(--color-warning);
 	background: var(--color-background-hover);
 	color: var(--color-main-text);
+}
+
+.cn-form-dialog__field-hint {
+	grid-column: 1 / -1;
+	margin-top: 4px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-form-dialog__section-toggle {
