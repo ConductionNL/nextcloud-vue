@@ -9,6 +9,7 @@
 		:class="{
 			'cn-sections-widget--cards': cards,
 			'cn-sections-widget--two-column': twoColumn,
+			'cn-sections-widget--plain': plain,
 		}"
 		data-testid="cn-sections-widget">
 		<div
@@ -119,8 +120,10 @@ export default {
 		 *   `label` is accepted as an alias of `title`; `column` is `main` (default) or `side`.
 		 * - `cards` — draw each section as its own card (default false: headings and a rule between sections).
 		 * - `hideEmpty` — hide the heading and the space of a section whose widget drew nothing (default true).
+		 * - `dividers` — draw a rule between sections (default true). `false` stacks them 8px apart with no rule,
+		 *   for a row of strips that each say one thing (a record's banners).
 		 *
-		 * @type {{sections?: Array<object>, cards?: boolean, hideEmpty?: boolean}}
+		 * @type {{sections?: Array<object>, cards?: boolean, hideEmpty?: boolean, dividers?: boolean}}
 		 */
 		content: {
 			type: Object,
@@ -215,6 +218,16 @@ export default {
 		 */
 		cards() {
 			return this.content?.cards === true
+		},
+
+		/**
+		 * Whether the sections stack with no rule between them.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-sections-can-stack-without-dividers
+		 */
+		plain() {
+			return !this.cards && this.content?.dividers === false
 		},
 
 		/**
@@ -448,6 +461,16 @@ export default {
 .cn-sections-widget:not(.cn-sections-widget--cards) .cn-sections-widget__section:not(.cn-sections-widget__section--empty) ~ .cn-sections-widget__section {
 	padding-top: calc(var(--default-grid-baseline, 4px) * 4);
 	border-top: 1px solid var(--color-border);
+}
+
+/* No rule: strips that each say one thing, 8px apart. */
+.cn-sections-widget--plain .cn-sections-widget__column {
+	gap: calc(var(--default-grid-baseline, 4px) * 2);
+}
+
+.cn-sections-widget.cn-sections-widget--plain .cn-sections-widget__section:not(.cn-sections-widget__section--empty) ~ .cn-sections-widget__section {
+	padding-top: 0;
+	border-top: 0;
 }
 
 /*

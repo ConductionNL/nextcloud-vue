@@ -349,6 +349,19 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The record of the page the banner sits on, as a detail-page host
+		 * binds it. A local `visibleWhen` (a `field` with no `endpoint` or
+		 * `source`) reads it when no `cnObjectContext` is provided, and it is
+		 * the card's subject: `{subject.@self.archived.by}` fills from it.
+		 *
+		 * @type {object|null}
+		 */
+		objectData: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -424,9 +437,9 @@ export default {
 			return lead ? this.tl(lead) : ''
 		},
 
-		/** The lead with `{value}` filled in. */
+		/** The lead with `{value}` filled in, else `content.fallbackLead`. */
 		displayLead() {
-			return this.fillValue(this.resolvedLead)
+			return this.withFallback(this.fillValue(this.resolvedLead), this.resolvedLead, 'fallbackLead')
 		},
 
 		/** The effective icon name (prop → content → ''). */
@@ -451,6 +464,31 @@ export default {
 			return this.visibleWhen || (this.content && this.content.visibleWhen) || null
 		},
 
+		/**
+		 * Whether the condition is decided on the page's own record (a `field`
+		 * with no `endpoint` or `source`), which is then the card's subject.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-banner-can-read-the-pages-record
+		 */
+		isLocalCondition() {
+			const cond = this.resolvedVisibleWhen
+			return Boolean(cond) && typeof cond === 'object' && !cond.endpoint && !cond.source && typeof cond.field === 'string' && cond.field !== ''
+		},
+
+		/**
+		 * The page's record, while the condition is a local one.
+		 *
+		 * @return {object|null}
+		 */
+		localSubject() {
+			if (!this.isLocalCondition) {
+				return null
+			}
+			const ctx = this.tokenContext()
+			return (ctx && ctx.object) || null
+		},
+
 		/** The effective injected outcome (prop → content → null). */
 		resolvedConditionOutcome() {
 			return this.conditionOutcome || (this.content && this.content.conditionOutcome) || null
@@ -466,7 +504,7 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		displayText() {
-			return this.fillValue(this.resolvedText)
+			return this.withFallback(this.fillValue(this.resolvedText), this.resolvedText, 'fallbackText')
 		},
 
 		/** The effective click-through route (prop → content → null). */
@@ -525,7 +563,7 @@ export default {
 		displayReason() {
 			const reason = this.reason || (this.content && this.content.reason) || ''
 			if (reason) {
-				return this.fillValue(this.tl(reason))
+				return this.withFallback(this.fillValue(this.tl(reason)), reason, 'fallbackReason')
 			}
 			const title = this.title || (this.content && this.content.title) || ''
 			// A card that sets `text` to the same words as its `title` says
@@ -595,6 +633,10 @@ export default {
 		visible() {
 			const title = this.title || (this.content && this.content.title) || ''
 			if (this.resolvedText === '' && this.resolvedLead === '' && !(this.isAttention && title !== '')) {
+				return false
+			}
+			// Every line emptied by a subject token with no value: nothing to say.
+			if (!this.isAttention && this.displayText === '' && this.displayLead === '') {
 				return false
 			}
 			if (!this.resolvedVisibleWhen) {
@@ -682,6 +724,13 @@ export default {
 		tokenContextKey() {
 			this.evaluateCondition()
 		},
+
+		/** A local condition reads the record itself, so a new record is a new answer. */
+		localSubject() {
+			if (this.isLocalCondition) {
+				this.evaluateCondition()
+			}
+		},
 	},
 
 	methods: {
@@ -710,6 +759,25 @@ export default {
 				out = out.replaceAll('{value}', String(this.conditionValue))
 			}
 			return this.fillSubject(out)
+		},
+
+		/**
+		 * The filled text, or the content's fallback when a subject token left
+		 * the written text empty ("filed it on {subject.@self.archived.at|date}"
+		 * on a record that carries no date). The fallback is filled too.
+		 *
+		 * @param {string} filled The filled text.
+		 * @param {string} written The text as written.
+		 * @param {string} key The content key holding the fallback.
+		 * @return {string} The text to show.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-banner-can-read-the-pages-record
+		 */
+		withFallback(filled, written, key) {
+			if (filled !== '' || !written) {
+				return filled
+			}
+			const fallback = this.content && typeof this.content[key] === 'string' ? this.content[key] : ''
+			return fallback ? this.fillValue(this.tl(fallback)) : ''
 		},
 
 		/**
@@ -785,10 +853,15 @@ export default {
 		tokenContext() {
 			const raw = this.cnObjectContext
 			const ctx = raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
-			if (!ctx || typeof ctx !== 'object' || !ctx.objectId) {
-				return undefined
+			if (ctx && typeof ctx === 'object' && ctx.objectId) {
+				return { objectId: ctx.objectId, object: ctx.object || this.objectData || undefined }
 			}
-			return { objectId: ctx.objectId, object: ctx.object || undefined }
+			const own = this.objectData
+			if (own && typeof own === 'object') {
+				const id = own.id || (own['@self'] && own['@self'].id) || ''
+				return { objectId: id, object: own }
+			}
+			return undefined
 		},
 
 		/**
@@ -828,8 +901,9 @@ export default {
 			}
 			try {
 				const sink = {}
-				const value = await readVisibleWhenValue(cond, this.tokenContext(), sink)
-				this.conditionRow = sink.row || null
+				const ctx = this.tokenContext()
+				const value = await readVisibleWhenValue(cond, ctx, sink)
+				this.conditionRow = sink.row || (this.isLocalCondition && ctx ? ctx.object : null) || null
 				this.conditionValue = value
 				this.conditionMet = compareVisibleWhen(value, cond.op || 'eq', cond.value)
 				this.conditionFailed = false

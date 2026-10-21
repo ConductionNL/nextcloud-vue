@@ -226,6 +226,8 @@ stack child; the widget draws.
 
 A tab that declares neither `count` nor `countField` shows what is new on it, from the object's `@self.unreadCounts[<unreadKey>]` (OpenRegister `object-read-state`, returned on the detail read). `unreadKey` defaults to the tab's `id`, else its `widgetId`. A key absent from the map, or 0, shows no badge. A tab with its own `count` or `countField` keeps it. Opening a tab marks nothing: the backend tracks one moment per record.
 
+With `content.badgeSource: "readState"` opening a tab does mark its part read: the widget sends `PUT .../read-state` with `{ subResource: <unreadKey> }`, once, and drops that tab's count. A refused write keeps the count. A screen reader hears "3 new" after the tab's name, as the count alone is a bare number. The record's own read state stays the detail page's (`markRead`, "Mark as unread").
+
 ```json
 { "tabs": [{ "widgetId": "files" }, { "id": "documents", "widgetId": "docs", "unreadKey": "files" }] }
 ```

@@ -107,6 +107,8 @@ import '../CnTimelineWidget/dashboardRegistration.js'
 import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
 import '../CnBannerWidget/index.js'
+import '../CnAttentionFlagWidget/index.js'
+import '../CnStatusExplainerWidget/index.js'
 import '../CnWorkspaceFilterWidget/index.js'
 
 registerDashboardWidget('chart', {

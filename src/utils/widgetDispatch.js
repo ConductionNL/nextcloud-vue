@@ -45,10 +45,12 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * so it takes the titled wrapper and not the catalog Add action.
  * `record-list` draws bare rows of another schema's objects; the card and its
  * header (link, note) come from the host, and it has no Add.
+ * `parties` draws a record's parties by role and `map` a bare Leaflet map:
+ * on a card surface both need the titled wrapper, and neither has an Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist'])
 
 /**
  * The stored content/config blob for a widget definition.

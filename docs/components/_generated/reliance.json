@@ -266,6 +266,13 @@
 			"via": [],
 			"page": "cn-assign-dialog"
 		},
+		"CnAttentionFlagWidget": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-attention-flag-widget"
+		},
 		"CnAuditTrailCard": {
 			"direct": 1,
 			"transitive": 8,
@@ -2321,7 +2328,7 @@
 		},
 		"CnMacrosWidget": {
 			"direct": 5,
-			"transitive": 1,
+			"transitive": 4,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-macros-widget"
@@ -2337,7 +2344,7 @@
 		},
 		"CnMapPage": {
 			"direct": 0,
-			"transitive": 2,
+			"transitive": 3,
 			"tier": "light",
 			"via": [
 				"CnMapWidget"
@@ -2360,7 +2367,7 @@
 		},
 		"CnMapWidget": {
 			"direct": 3,
-			"transitive": 1,
+			"transitive": 2,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-map-widget"
@@ -2961,7 +2968,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 219,
+			"transitive": 220,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3033,6 +3040,7 @@
 				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
+				"CnRedactionEditor",
 				"CnRegisterMapping",
 				"CnRegisterSchemaSelect",
 				"CnRelatedFieldFilters",
@@ -3292,9 +3300,9 @@
 			"page": "cn-record-list-widget"
 		},
 		"CnRedactionEditor": {
-			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
 			"via": [],
 			"page": "cn-redaction-editor"
 		},
@@ -3997,6 +4005,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-status-badge"
+		},
+		"CnStatusExplainerWidget": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-status-explainer-widget"
 		},
 		"CnStepper": {
 			"direct": 0,

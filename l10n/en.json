@@ -1975,7 +1975,29 @@
     "Task {title} finished": "Task {title} finished",
     "Task {title} is yours": "Task {title} is yours",
     "Fill in {field} before completing this task": "Fill in {field} before completing this task",
-    "Search in this list": "Search in this list"
+    "Search in this list": "Search in this list",
+    "Flagged as needing attention:": "Flagged as needing attention:",
+    "Assessed risk:": "Assessed risk:",
+    "Due for review": "Due for review",
+    "Why this needs attention": "Why this needs attention",
+    "Why it no longer needs attention": "Why it no longer needs attention",
+    "Flag for attention": "Flag for attention",
+    "Clear the flag": "Clear the flag",
+    "Raised": "Raised",
+    "Cleared": "Cleared",
+    "This did not work. Try again.": "This did not work. Try again.",
+    "Waiting on the applicant": "Waiting on the applicant",
+    "Waiting on someone outside the organisation": "Waiting on someone outside the organisation",
+    "Waiting on {reason}": "Waiting on {reason}",
+    "{move} is waiting on {reason}": "{move} is waiting on {reason}",
+    "This moves to {status} once these are on file": "This moves to {status} once these are on file",
+    "longer than this status allows": "longer than this status allows",
+    "What this status asks": "What this status asks",
+    "Fill in: {fields}": "Fill in: {fields}",
+    "Cannot be changed here: {fields}": "Cannot be changed here: {fields}",
+    "Not shown to you here: {fields}": "Not shown to you here: {fields}",
+    "The places could not be loaded.": "The places could not be loaded.",
+    "Nothing was changed": "Nothing was changed"
   },
   "plurals": {
     "{count} member": [
@@ -2108,6 +2130,14 @@
     ],
     "Withheld": "Withheld",
     "You may not open the linked object, so its value is not shown.": "You may not open the linked object, so its value is not shown.",
-    "This value is not shown.": "This value is not shown."
+    "This value is not shown.": "This value is not shown.",
+    "{count} working day in this status": [
+      "{count} working day in this status",
+      "{count} working days in this status"
+    ],
+    "{count} new": [
+      "{count} new",
+      "{count} new"
+    ]
   }
 }

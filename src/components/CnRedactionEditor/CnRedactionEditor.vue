@@ -9,8 +9,10 @@
 				<h1 class="cn-redaction__title">
 					{{ heading }}
 				</h1>
-				<!-- @slot Under the title: a breadcrumb back to the record. -->
-				<slot name="crumbs" />
+				<!-- @slot Under the title: a breadcrumb back to the record. Without it, `breadcrumbs` draws one. -->
+				<slot name="crumbs">
+					<CnBreadcrumbs v-if="crumbs.length > 0" :crumbs="crumbs" data-testid="cn-redaction-crumbs" />
+				</slot>
 			</div>
 			<div v-if="documents.length > 0" class="cn-redaction__buttons">
 				<NcButton data-testid="cn-redaction-previous" :disabled="index === 0 || busy" @click="open(index - 1)">
@@ -150,6 +152,8 @@ import { emit } from '@nextcloud/event-bus'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
+import CnBreadcrumbs from '../CnBreadcrumbs/CnBreadcrumbs.vue'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { redactionSegments } from '../../utils/redactionSegments.js'
 
@@ -201,7 +205,7 @@ function sentenceOf(failure, fallback) {
 export default {
 	name: 'CnRedactionEditor',
 
-	components: { NcButton, NcSelect, NcTextField },
+	components: { CnBreadcrumbs, NcButton, NcSelect, NcTextField },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -224,6 +228,30 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/**
+		 * The trail under the title when no `crumbs` slot is given, root
+		 * first: `[{ label, fallback?, route? }]`. A label may name fields of
+		 * the record (`{identifier}`), read from `recordSource`; while a field
+		 * is unknown the crumb shows its `fallback`. Labels go through the
+		 * host translate, and `{recordId}` in a route param is the record's id.
+		 *
+		 * @type {Array<{label: string, fallback?: string, route?: object}>}
+		 */
+		breadcrumbs: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Where the record a crumb names is read: `{ register, schema }`.
+		 *
+		 * @type {{register: string, schema: string}|null}
+		 */
+		recordSource: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['recorded'],
@@ -231,6 +259,8 @@ export default {
 	data() {
 		return {
 			VERDICTS,
+			/** The record the breadcrumb names, read from `recordSource`. */
+			crumbRecord: null,
 			loading: true,
 			loadError: '',
 			documents: [],
@@ -245,6 +275,32 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The breadcrumb trail, labels filled from the record.
+		 *
+		 * @return {Array<{label: string, to?: object}>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-the-redaction-editor-is-a-page-type
+		 */
+		crumbs() {
+			const record = this.crumbRecord || {}
+			const id = String(this.recordId || '')
+			return (Array.isArray(this.breadcrumbs) ? this.breadcrumbs : [])
+				.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== '')
+				.map((crumb) => {
+					const label = fillTemplate(this.cnTranslate(crumb.label), record) || (crumb.fallback ? this.cnTranslate(crumb.fallback) : '')
+					const out = { label }
+					if (crumb.route && typeof crumb.route === 'object' && crumb.route.name) {
+						const params = {}
+						for (const [key, value] of Object.entries(crumb.route.params || {})) {
+							params[key] = value === '{recordId}' ? id : value
+						}
+						out.to = { name: crumb.route.name, params }
+					}
+					return out
+				})
+				.filter((crumb) => crumb.label !== '')
+		},
+
 		/** @return {object} The open document. */
 		current() {
 			return this.documents[this.index] || {}
@@ -297,6 +353,15 @@ export default {
 		},
 	},
 
+	watch: {
+		recordId: {
+			immediate: true,
+			handler() {
+				this.loadCrumbRecord()
+			},
+		},
+	},
+
 	mounted() {
 		this.load()
 	},
@@ -304,6 +369,27 @@ export default {
 	methods: {
 		t,
 		n,
+
+		/**
+		 * Read the record a breadcrumb names. A failed read leaves the crumbs
+		 * on their fallbacks: the trail still leads back.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadCrumbRecord() {
+			const source = this.recordSource
+			const id = String(this.recordId || '')
+			if (!source || !source.register || !source.schema || id === '') {
+				this.crumbRecord = null
+				return
+			}
+			try {
+				const response = await axios.get(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: source.register, schema: source.schema, id }))
+				this.crumbRecord = response?.data && typeof response.data === 'object' ? response.data : null
+			} catch {
+				this.crumbRecord = null
+			}
+		},
 
 		/**
 		 * A config text through the host translate.

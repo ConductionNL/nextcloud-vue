@@ -2225,7 +2225,29 @@
     "Withheld": "Afgeschermd",
     "This value is not shown.": "Deze waarde wordt niet getoond.",
     "You may not open the linked object, so its value is not shown.": "U mag het gekoppelde object niet openen, daarom wordt de waarde niet getoond.",
-    "Search in this list": "Zoeken in deze lijst"
+    "Search in this list": "Zoeken in deze lijst",
+    "Flagged as needing attention:": "Gemarkeerd als aandacht nodig:",
+    "Assessed risk:": "Ingeschat risico:",
+    "Due for review": "Toe aan herbeoordeling",
+    "Why this needs attention": "Waarom dit aandacht nodig heeft",
+    "Why it no longer needs attention": "Waarom er geen aandacht meer nodig is",
+    "Flag for attention": "Markeer voor aandacht",
+    "Clear the flag": "Markering opheffen",
+    "Raised": "Gezet",
+    "Cleared": "Opgeheven",
+    "This did not work. Try again.": "Dit lukte niet. Probeer het opnieuw.",
+    "Waiting on the applicant": "Wacht op inwoner",
+    "Waiting on someone outside the organisation": "Wacht op iemand buiten de organisatie",
+    "Waiting on {reason}": "Wacht op {reason}",
+    "{move} is waiting on {reason}": "{move} wacht op {reason}",
+    "This moves to {status} once these are on file": "Dit gaat naar {status} zodra dit binnen is",
+    "longer than this status allows": "langer dan deze status toestaat",
+    "What this status asks": "Wat deze status vraagt",
+    "Fill in: {fields}": "Vul in: {fields}",
+    "Cannot be changed here: {fields}": "Kan hier niet worden gewijzigd: {fields}",
+    "Not shown to you here: {fields}": "Hier niet aan u getoond: {fields}",
+    "The places could not be loaded.": "De plaatsen konden niet worden geladen.",
+    "Nothing was changed": "Er is niets gewijzigd"
   },
   "plurals": {
     "{count} member": [
@@ -2375,6 +2397,14 @@
     "Go back to the %n on this page": [
       "Terug naar de %n op deze pagina",
       "Terug naar de %n op deze pagina"
+    ],
+    "{count} working day in this status": [
+      "{count} werkdag in deze status",
+      "{count} werkdagen in deze status"
+    ],
+    "{count} new": [
+      "{count} nieuw",
+      "{count} nieuw"
     ]
   }
 }
