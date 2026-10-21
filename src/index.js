@@ -254,6 +254,7 @@ export {
 	CnObjectSidebar,
 	CnOfflineQueue,
 	CnOrderedListField,
+	CnConditionTreeEditor,
 	CnPageHeader,
 	CnPageRenderer,
 	CnPagination,
