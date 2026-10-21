@@ -2178,7 +2178,16 @@
     "When": "When",
     "Who": "Who",
     "Message": "Message",
-    "That change could not be saved.": "That change could not be saved."
+    "That change could not be saved.": "That change could not be saved.",
+    "Mark for {name}": "Mark for {name}",
+    "Another value": "Another value",
+    "Nothing to mark.": "Nothing to mark.",
+    "The list could not be loaded.": "The list could not be loaded.",
+    "{name}: {state}": "{name}: {state}",
+    "Complete the details of: {names}.": "Complete the details of: {names}.",
+    "The list could not be saved. Try again.": "The list could not be saved. Try again.",
+    "Keys on a row: {keys}. Arrow keys go to the next row.": "Keys on a row: {keys}. Arrow keys go to the next row.",
+    "Arrow keys go to the next row.": "Arrow keys go to the next row."
   },
   "plurals": {
     "{count} member": [
