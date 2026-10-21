@@ -399,6 +399,26 @@
 	background: var(--color-background-hover);
 }
 
+/* ---- A secondary button --------------------------------------------------- */
+/* The boards draw every secondary button neutral: the main background, a 1px
+   control border, the main text, the hover ground on hover (DqFlow "Testen
+   met een zaak", DqFunctionaliteiten "Documentatie", DqTaak "Afronden").
+   NcButton draws its secondary from the primary-light variables, on a 2px
+   bottom edge; the look points those variables at the neutral colours on the
+   button itself. The selector weighs (0,3,0): it outranks NcButton's border
+   (0,2,0), and a surface rule of the same weight later in the cascade (a
+   dialog's cancel) still decides for its surface.
+   @spec openspec/changes/board-secondary-neutral/specs/board-secondary-neutral/spec.md#requirement-a-board-secondary-button-is-neutral */
+.cn-look-board .button-vue.button-vue--secondary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)),
+.cn-look-board .button-vue.button-vue--vue-secondary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)) {
+	--color-primary-element-light: var(--color-main-background);
+	--color-primary-element-light-hover: var(--color-background-hover);
+	--color-primary-element-light-text: var(--color-main-text);
+	--nldesign-color-on-surface: var(--color-main-text);
+	border: 1px solid var(--cn-board-control-border);
+	color: var(--color-main-text);
+}
+
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
 /* The board draws a page's secondary actions as neutral 40px buttons: the
    main background, a grey border, the main text at 600 (DqZaak "Bericht",
