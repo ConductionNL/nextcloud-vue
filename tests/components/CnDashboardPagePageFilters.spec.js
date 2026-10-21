@@ -95,6 +95,20 @@ describe('CnDashboardPage — pageFilters', () => {
 		expect(href).not.toContain('@workspace')
 	})
 
+	it('drops an optional `?` token\'s query parameter while it is empty, and fills it once set', async () => {
+		const wrapper = mountDash({
+			pageFilters: [PERIOD_FILTER],
+			headerActions: [{ id: 'csv', label: 'Download', href: '/apps/app/api/report?format=csv&caseType=@workspace.caseType?&period=@workspace.period?' }],
+		})
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.linkedHeaderActions[0].href).toContain('/apps/app/api/report?format=csv&period=last-30')
+		expect(wrapper.vm.linkedHeaderActions[0].href).not.toContain('caseType')
+		wrapper.vm.workspaceContext.caseType = 'woo verzoek'
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.linkedHeaderActions[0].href).toContain('format=csv&caseType=woo%20verzoek&period=last-30')
+		expect(wrapper.vm.linkedHeaderActions[0].href).not.toContain('?&')
+	})
+
 	it('seeds from the first option when no default is given', () => {
 		const wrapper = mountDash({ pageFilters: [{ key: 'scope', options: [{ value: 'mine', label: 'Mine' }, { value: 'all', label: 'All' }] }] })
 		expect(wrapper.vm.workspaceContext.scope).toBe('mine')
