@@ -53,17 +53,27 @@ const CONTENT = {
 		{ field: 'reasonKind', label: 'Reason', type: 'select', states: ['absent-excused'], options: [{ value: 'illness', label: 'Ill' }, { value: 'other', label: 'Other' }], required: true },
 		{ field: 'note', label: 'Note (optional)', type: 'text', notStates: ['present'], maxlength: 500 },
 	],
-	badges: [{ path: 'markedVia', equals: 'self', text: 'checked in' }],
+	badges: [
+		{ path: 'markedVia', equals: 'self', text: 'checked in' },
+		{ path: 'report.lifecycle', equals: 'approved', text: 'Report approved: {report.reason}' },
+		{ path: 'report.lifecycle', notEquals: 'approved', text: 'Report waiting: {report.reason}' },
+	],
+	heading: 'Register',
+	headingPath: 'groupName',
 	controls: [
 		{ param: 'groupId', type: 'select', label: 'Group', optionsPath: 'groups', valuePath: 'groupId' },
 		{ param: 'date', type: 'date', label: 'Day', valuePath: 'date', maxPath: 'today', todayPath: 'today', resets: ['sessionId'] },
 	],
-	notices: [{ path: 'locked', equals: 'past-saved', type: 'info', text: 'This register is saved.' }],
+	notices: [
+		{ path: 'locked', equals: 'past-saved', type: 'info', text: 'This register is saved.' },
+		{ path: 'sessionId', missing: true, type: 'info', text: 'Saving adds a lesson.' },
+	],
 	incompleteText: 'Check the marks of: {names}.',
 }
 
 const ANSWER = {
 	groupId: 'g-1',
+	groupName: '1A',
 	date: '2026-10-21',
 	today: '2026-10-21',
 	sessionId: 's-1',
@@ -71,7 +81,7 @@ const ANSWER = {
 	groups: [{ id: 'g-1', name: '1A' }, { id: 'g-2', name: '1B' }],
 	people: [
 		{ userId: 'u-1', name: 'Ann', status: null, markedVia: 'self' },
-		{ userId: 'u-2', name: 'Bob', status: 'late', lateMinutes: 10 },
+		{ userId: 'u-2', name: 'Bob', status: 'late', lateMinutes: 10, report: { lifecycle: 'submitted', reason: 'dentist' } },
 	],
 }
 
@@ -116,6 +126,19 @@ describe('CnRowMarkList', () => {
 		expect(row(wrapper, 'u-1').text()).toContain('checked in')
 		expect(row(wrapper, 'u-2').find('input[type="number"]').element.value).toBe('10')
 		expect(wrapper.text()).toContain('Keys on a row: P Present, L Late, X Absent with permission.')
+		expect(wrapper.find('[data-testid="cn-row-mark-list-heading"]').text()).toBe('Register · 1A')
+		expect(row(wrapper, 'u-2').text()).toContain('Report waiting: dentist')
+		expect(row(wrapper, 'u-2').text()).not.toContain('Report approved')
+		expect(row(wrapper, 'u-2').attributes('aria-label')).toBe('Bob: Late, Minutes late 10')
+		expect(wrapper.findAll('[data-testid="cn-row-mark-list-notice"]')).toHaveLength(0)
+	})
+
+	test('a notice shows when the answer is missing a value', async () => {
+		mockGet.mockResolvedValue({ data: { ...ANSWER, sessionId: null } })
+		const { wrapper } = make()
+		await flush()
+
+		expect(wrapper.find('[data-testid="cn-row-mark-list-notice"]').text()).toBe('Saving adds a lesson.')
 	})
 
 	test('a translated key marks the focused row; arrows do not mark', async () => {

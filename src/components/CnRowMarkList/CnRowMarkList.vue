@@ -5,6 +5,9 @@
 
 <template>
 	<div class="cn-row-mark-list" data-testid="cn-row-mark-list">
+		<h2 v-if="heading" class="cn-row-mark-list__heading" data-testid="cn-row-mark-list-heading">
+			{{ heading }}
+		</h2>
 		<div v-if="loading" class="cn-row-mark-list__state" role="status">
 			<NcLoadingIcon :size="20" />
 			<span>{{ t('nextcloud-vue', 'Loading…') }}</span>
@@ -258,12 +261,15 @@ export default {
 		 * - `defaultState` — the mark of a row that has none (default: the first state).
 		 * - `detailFields` — `[{ field, label, type: 'number'|'select'|'text', states?, notStates?,
 		 *   quick?, min?, max?, otherLabel?, options?, maxlength?, required?, default? }]`.
-		 * - `badges` — `[{ path, equals?, text }]`: a line on the row when `path` holds a value
-		 *   (or equals `equals`); `{a.b}` in `text` reads the row.
+		 * - `badges` — `[{ path, equals?, notEquals?, missing?, text }]`: a line on the row when the
+		 *   rule holds; `{a.b}` in `text` reads the row.
 		 * - `controls` — `[{ param, type: 'select'|'date', label, valuePath, optionsPath?, optionValue?,
 		 *   optionLabel?, maxPath?, todayPath?, resets? }]`: choices sent with `load` and kept in the
 		 *   page's query, so a link can open the list on them. `resets` names params a change clears.
-		 * - `notices` — `[{ path, equals?, type?, text }]`: shown when `path` holds a value (or equals `equals`).
+		 * - `notices` — `[{ path, equals?, notEquals?, missing?, type?, text }]`: shown when the rule holds
+		 *   on the answer.
+		 * - `heading`, `headingPath` — a heading above the list, followed by the answer's value at
+		 *   `headingPath` (a group's name).
 		 * - `editablePath` — a boolean in the answer; without it the list is editable.
 		 * - Texts: `emptyText`, `saveLabel`, `savedText`, `incompleteText` (`{names}`), `loadErrorText`,
 		 *   `saveErrorText`, `rowLabel` (`{name}` and `{state}`).
@@ -402,6 +408,15 @@ export default {
 			return t('nextcloud-vue', 'Keys on a row: {keys}. Arrow keys go to the next row.', { keys })
 		},
 
+		heading() {
+			const text = this.tr(this.content.heading || '')
+			const suffix = this.content.headingPath ? readPath(this.answer, this.content.headingPath) : ''
+			if (text && suffix) {
+				return `${text} · ${suffix}`
+			}
+			return text
+		},
+
 		emptyText() {
 			return this.text('emptyText', t('nextcloud-vue', 'Nothing to mark.'))
 		},
@@ -495,10 +510,12 @@ export default {
 		},
 
 		/**
-		 * Whether `data` holds a value at `rule.path`, or the value `rule.equals`.
+		 * Whether a rule holds on `data`: the value at `rule.path` equals
+		 * `equals`, differs from `notEquals` while present, is missing or empty
+		 * (`missing: true`), or else is present.
 		 *
 		 * @param {object} data The object read.
-		 * @param {object} rule `{ path, equals? }`.
+		 * @param {object} rule `{ path, equals?, notEquals?, missing? }`.
 		 * @return {boolean}
 		 */
 		matches(data, rule) {
@@ -506,10 +523,18 @@ export default {
 				return false
 			}
 			const value = readPath(data, rule.path)
+			const present = value !== null && value !== undefined && value !== '' && value !== false
+				&& !(Array.isArray(value) && value.length === 0)
 			if (Object.hasOwn(rule, 'equals')) {
 				return value === rule.equals
 			}
-			return value !== null && value !== undefined && value !== '' && value !== false
+			if (Object.hasOwn(rule, 'notEquals')) {
+				return present && value !== rule.notEquals
+			}
+			if (rule.missing === true) {
+				return !present
+			}
+			return present
 		},
 
 		/**
@@ -690,10 +715,23 @@ export default {
 				}))
 		},
 
+		/**
+		 * What a screen reader hears on a row: the name, the mark and the
+		 * details the mark shows that hold a value.
+		 *
+		 * @param {object} row The row.
+		 * @return {string}
+		 */
 		rowAriaLabel(row) {
 			const state = this.states.find((s) => s.value === row.state)
 			const vars = { name: row.label, state: state ? state.label : row.state }
-			return this.text('rowLabel', t('nextcloud-vue', '{name}: {state}', vars), vars)
+			const details = this.fieldsFor(row)
+				.filter((field) => row.values[field.field] !== '' && row.values[field.field] !== null && row.values[field.field] !== undefined)
+				.map((field) => {
+					const option = field.options.find((o) => o.value === row.values[field.field])
+					return `${field.label} ${option ? option.label : row.values[field.field]}`
+				})
+			return [this.text('rowLabel', t('nextcloud-vue', '{name}: {state}', vars), vars), ...details].join(', ')
 		},
 
 		/**
@@ -794,6 +832,10 @@ export default {
 </script>
 
 <style scoped>
+.cn-row-mark-list__heading {
+	margin: 0 0 calc(var(--default-grid-baseline, 4px) * 3);
+}
+
 .cn-row-mark-list__controls {
 	display: flex;
 	flex-wrap: wrap;
