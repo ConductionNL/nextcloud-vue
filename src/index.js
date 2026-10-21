@@ -470,7 +470,7 @@ export {
 export { useAiChatStream, useAiContext } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { chatApiBase, chatHealthUrl, chatSendUrl, chatStreamUrl, conversationMessagesUrl, conversationsUrl, DEFAULT_CHAT_APP_ID } from './composables/index.js'
-export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useChildRecords, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useFileComments, useFileOpener, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useLook, useManifestEditHistory, useManifestEditor, useNotificationPreferencesStore, useObjectCopy, useObjectLock, useObjectPresence, useObjectSubscription, useRefLabels, useRestoreVersion, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough, useWriteFeedback } from './composables/index.js'
+export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useChildRecords, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useFileComments, useFileOpener, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useLook, useManifestEditHistory, useManifestEditor, useNotificationPreferencesStore, useObjectActions, useObjectCopy, useObjectLock, useObjectPresence, useObjectSubscription, useRefLabels, useRestoreVersion, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough, useWriteFeedback } from './composables/index.js'
 // Deprecated alias kept for consumers: OpenBuild was renamed to Buildiq in the
 // fleet-wide rename of 2026-08-21. `useBuildiqEditAvailability` above is the
 // canonical name; this alias keeps the ~18 consuming apps that still call
@@ -588,6 +588,8 @@ export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 // The words a person reads for a notification rule key (never the raw key).
 export { humaniseRuleKey, notificationRuleLabel } from './utils/notificationRuleLabel.js'
 export { readTransitionInputs } from './utils/transitionInputs.js'
+// The actions OpenRegister lets a person run on an object, read and run through one contract.
+export { actionsForSurface, readObjectActions, runObjectAction } from './utils/objectActions.js'
 // An identifier-shaped key made readable (`shortDescription` → "Short description").
 export { humaniseKey } from './utils/humaniseKey.js'
 
