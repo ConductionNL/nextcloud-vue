@@ -71,6 +71,8 @@ async function onSearch({ query, facets }) {
 | `emptyLabel` / `idleLabel` / `loadingLabel` | String | — | State texts. |
 | `facetsTitle` / `clearFacetsLabel` | String | — | Sidebar labels. |
 | `totalCountLabel` | Function | `(t, s) => …` | "Showing X of Y" formatter. |
+| `sources` | `Array<object>` | `[]` | Lists the page searches itself (see [Searching lists from the manifest](#searching-lists-from-the-manifest)). Empty keeps the page controlled. |
+| `typeLabel` | String | `'Type'` | The Type filter's heading when the page searches `sources`. |
 
 ## Events
 
