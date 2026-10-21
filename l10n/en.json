@@ -2178,7 +2178,9 @@
     "When": "When",
     "Who": "Who",
     "Message": "Message",
-    "That change could not be saved.": "That change could not be saved."
+    "That change could not be saved.": "That change could not be saved.",
+    "Filter by type": "Filter by type",
+    "activities": "activities"
   },
   "plurals": {
     "{count} member": [

@@ -15,6 +15,21 @@
 			{{ resolvedTitle }}
 		</h3>
 
+		<div v-if="typeChips.length > 0"
+			class="cn-timeline-widget__chips"
+			role="toolbar"
+			:aria-label="chipsLabel">
+			<NcButton
+				v-for="chip in typeChips"
+				:key="chip.value"
+				:variant="activeType === chip.value ? 'primary' : 'secondary'"
+				:ariaPressed="activeType === chip.value ? 'true' : 'false'"
+				:data-testid="`cn-timeline-widget-chip-${chip.value || 'all'}`"
+				@click="chooseType(chip.value)">
+				{{ chip.label }}
+			</NcButton>
+		</div>
+
 		<div v-if="loading && events.length === 0" class="cn-timeline-widget__loading">
 			<NcLoadingIcon :size="24" aria-hidden="true" />
 			<span>{{ loadingLabel }}</span>
@@ -52,18 +67,28 @@
 						<p v-if="event.detail" class="cn-timeline-widget__detail">
 							{{ event.detail }}
 						</p>
+						<p v-if="event.meta" class="cn-timeline-widget__meta">
+							{{ event.meta }}
+						</p>
 					</div>
 				</li>
 			</ol>
+			<NcButton v-if="endpointSource && endpointPage < endpointPages && !loading"
+				variant="secondary"
+				data-testid="cn-timeline-widget-more"
+				@click="loadEndpoint(endpointPage + 1)">
+				{{ moreLabel }}
+			</NcButton>
 		</template>
 	</section>
 </template>
 
 <script>
 import { getLanguage, translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnTimelineManage from './CnTimelineManage.vue'
-import { auditEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
+import { readPath } from '../../utils/readPath.js'
+import { auditEvents, endpointEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
 import { userLocale } from '../../utils/userLocale.js'
 
 /**
@@ -112,6 +137,7 @@ export default {
 
 	components: {
 		CnTimelineManage,
+		NcButton,
 		NcLoadingIcon,
 		NcNoteCard,
 	},
@@ -155,6 +181,10 @@ export default {
 			failedSources: [],
 			fetchedObject: null,
 			loadSeq: 0,
+			endpointItems: [],
+			endpointPage: 0,
+			endpointPages: 0,
+			activeType: '',
 		}
 	},
 
@@ -224,6 +254,7 @@ export default {
 				...this.relatedConfig.flatMap((cfg, i) => relatedEvents(this.relatedRows[i] || [], cfg, now)),
 				...auditEvents(this.auditEntries, this.describeAudit, now),
 				...timelineEntryEvents(this.timelineEntries, t('nextcloud-vue', 'Note'), now),
+				...(this.endpointSource ? endpointEvents(this.endpointItems, this.endpointSource, (type) => this.typeLabel(type), t('nextcloud-vue', '(no title)'), now) : []),
 			]
 			return sortEvents(all, this.content.order === 'desc' ? 'desc' : 'asc')
 		},
@@ -241,8 +272,34 @@ export default {
 				related: this.relatedConfig,
 				audit: this.content.auditTrail === true,
 				timeline: this.content.timeline === true,
+				endpoint: this.endpointSource,
 				needObject: this.fieldsConfig.length > 0 && !(this.object || this.ctx.object || this.ctx.objectData),
 			})
+		},
+
+		/** @return {object|null} The `endpointSource` config, or null. */
+		endpointSource() {
+			const source = this.content.endpointSource
+			return source && typeof source === 'object' && typeof source.url === 'string' && source.url !== '' ? source : null
+		},
+
+		/** @return {Array<{value: string, label: string}>} All, then the configured type chips; none without chips. */
+		typeChips() {
+			const chips = Array.isArray(this.content.typeChips) ? this.content.typeChips.filter((chip) => chip && chip.value) : []
+			if (chips.length === 0 || !this.endpointSource) {
+				return []
+			}
+			return [{ value: '', label: t('nextcloud-vue', 'All') }, ...chips.map((chip) => ({ value: String(chip.value), label: this.translate(chip.label || String(chip.value)) }))]
+		},
+
+		/** @return {string} The chip bar's accessible name. */
+		chipsLabel() {
+			return t('nextcloud-vue', 'Filter by type')
+		},
+
+		/** @return {string} The Load more label. */
+		moreLabel() {
+			return t('nextcloud-vue', 'Load more')
 		},
 
 		failedText() {
@@ -287,6 +344,9 @@ export default {
 			}
 			if (source === 'object') {
 				return t('nextcloud-vue', 'dates')
+			}
+			if (source === 'endpoint') {
+				return t('nextcloud-vue', 'activities')
 			}
 			return t('nextcloud-vue', 'related items')
 		},
@@ -334,11 +394,84 @@ export default {
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/timeline-widget/specs/timeline-widget/spec.md#requirement-a-timeline-widget-shows-an-objects-dated-events-in-order
 		 */
+		/**
+		 * The label of an endpoint item type, through `typeLabels`.
+		 *
+		 * @param {string} type The stored type.
+		 * @return {string} The label.
+		 */
+		typeLabel(type) {
+			const labels = this.endpointSource?.typeLabels || {}
+			return Object.hasOwn(labels, type) ? this.translate(labels[type]) : type
+		},
+
+		/**
+		 * Narrow the endpoint to a type ('' for all) and read from page 1.
+		 *
+		 * @spec openspec/changes/timeline-endpoint-source/specs/timeline-widget/spec.md#requirement-a-timeline-can-read-an-app-endpoint-with-type-chips
+		 * @param {string} type The type.
+		 * @return {Promise<void>}
+		 */
+		async chooseType(type) {
+			if (this.activeType === type) {
+				return
+			}
+			this.activeType = type
+			await this.loadEndpoint(1)
+		},
+
+		/**
+		 * Read one page of the endpoint; page 1 replaces, a later page appends.
+		 *
+		 * @spec openspec/changes/timeline-endpoint-source/specs/timeline-widget/spec.md#requirement-a-timeline-can-read-an-app-endpoint-with-type-chips
+		 * @param {number} page The page.
+		 * @return {Promise<void>}
+		 */
+		async loadEndpoint(page) {
+			const source = this.endpointSource
+			const id = this.resolvedObjectId
+			if (!source || !id) {
+				return
+			}
+			const [{ default: axios }, { generateUrl }] = await Promise.all([
+				import('@nextcloud/axios'),
+				import('@nextcloud/router'),
+			])
+			const params = {}
+			for (const [key, value] of Object.entries(source.params || {})) {
+				params[key] = value === '@objectId' ? String(id) : value
+			}
+			params[source.pageParam || '_page'] = page
+			params[source.limitParam || '_limit'] = source.limit || 20
+			if (this.activeType) {
+				params[source.typesParam || 'types[]'] = this.activeType
+			}
+			this.loading = true
+			try {
+				const { data } = await axios.get(generateUrl(source.url), { params })
+				const items = readPath(data || {}, source.itemsPath || 'items')
+				this.endpointItems = page === 1 ? (Array.isArray(items) ? items : []) : [...this.endpointItems, ...(Array.isArray(items) ? items : [])]
+				this.endpointPage = Number(readPath(data || {}, source.pagePath || 'page')) || page
+				this.endpointPages = Number(readPath(data || {}, source.pagesPath || 'pages')) || 1
+				this.failedSources = this.failedSources.filter((part) => part !== 'endpoint')
+			} catch {
+				if (page === 1) {
+					this.endpointItems = []
+				}
+				this.failedSources = [...this.failedSources.filter((part) => part !== 'endpoint'), 'endpoint']
+			} finally {
+				this.loading = false
+			}
+		},
+
 		async load() {
 			const id = this.resolvedObjectId
 			const register = this.resolvedRegister
 			const schema = this.resolvedSchema
 			const seq = ++this.loadSeq
+			if (this.endpointSource && id && !this.manage) {
+				await this.loadEndpoint(1)
+			}
 			if (!id || !register || !schema || this.manage) {
 				return
 			}
@@ -399,7 +532,7 @@ export default {
 			}
 
 			if (jobs.length === 0) {
-				this.failedSources = []
+				this.failedSources = this.failedSources.filter((part) => part === 'endpoint')
 				return
 			}
 			this.loading = true
@@ -408,7 +541,7 @@ export default {
 				return
 			}
 			this.relatedRows = rows
-			this.failedSources = failed
+			this.failedSources = [...failed, ...this.failedSources.filter((part) => part === 'endpoint')]
 			this.loading = false
 		},
 	},
@@ -420,6 +553,18 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+}
+
+.cn-timeline-widget__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.cn-timeline-widget__meta {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
 }
 
 .cn-timeline-widget__title {

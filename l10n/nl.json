@@ -2428,7 +2428,9 @@
     "When": "Wanneer",
     "Who": "Wie",
     "Message": "Bericht",
-    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen."
+    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen.",
+    "Filter by type": "Filteren op soort",
+    "activities": "activiteiten"
   },
   "plurals": {
     "{count} member": [
