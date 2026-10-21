@@ -14,7 +14,13 @@ const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detai
 
 describe('look-board-detail.css: detail card titles', () => {
 	it('hides the title icon of a detail page card in the board look only', () => {
-		const at = css.indexOf('.cn-look-board .cn-detail-page .cn-widget-wrapper__header .cn-widget-wrapper__title-icon {')
+		const at = css.indexOf('.cn-look-board .cn-detail-page .cn-widget-wrapper__header .cn-widget-wrapper__title-icon')
+		expect(at).toBeGreaterThan(-1)
+		expect(css.slice(at, css.indexOf('}', at))).toMatch(/display: none;/)
+	})
+
+	it('hides the icon of a CnDetailCard on a detail page in the board look (PtInzending "Bewijslog")', () => {
+		const at = css.indexOf('.cn-look-board .cn-detail-page .cn-detail-card__header .cn-detail-card__icon')
 		expect(at).toBeGreaterThan(-1)
 		expect(css.slice(at, css.indexOf('}', at))).toMatch(/display: none;/)
 	})

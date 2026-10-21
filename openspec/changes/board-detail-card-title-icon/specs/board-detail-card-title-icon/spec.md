@@ -21,3 +21,8 @@ card's inset. Outside the board look the icon SHALL stay.
 
 - **GIVEN** a contact's detail page in the board look whose "Contact" widget has an icon
 - **THEN** the "Contact" title starts 23px from the card's edge and no icon is drawn before it
+
+#### Scenario: a CnDetailCard in the side column (PtInzending "Bewijslog")
+
+- **GIVEN** a submission's detail page in the board look whose side column holds the audit trail card with its history icon
+- **THEN** the "Bewijslog" title starts 23px from the card's edge and no icon is drawn before it

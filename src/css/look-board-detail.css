@@ -540,7 +540,8 @@
    the widget's icon before the title put it 36px further in. The icon still
    names the widget where the manifest lists it (menus, tabs, pickers).
    @spec openspec/changes/board-detail-card-title-icon/specs/board-detail-card-title-icon/spec.md#requirement-a-board-detail-card-is-titled-without-an-icon */
-.cn-look-board .cn-detail-page .cn-widget-wrapper__header .cn-widget-wrapper__title-icon {
+.cn-look-board .cn-detail-page .cn-widget-wrapper__header .cn-widget-wrapper__title-icon,
+.cn-look-board .cn-detail-page .cn-detail-card__header .cn-detail-card__icon {
 	display: none;
 }
 
