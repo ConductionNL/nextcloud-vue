@@ -1975,7 +1975,8 @@
     "Task {title} finished": "Task {title} finished",
     "Task {title} is yours": "Task {title} is yours",
     "Fill in {field} before completing this task": "Fill in {field} before completing this task",
-    "Search in this list": "Search in this list"
+    "Search in this list": "Search in this list",
+    "View all ({count})": "View all ({count})"
   },
   "plurals": {
     "{count} member": [

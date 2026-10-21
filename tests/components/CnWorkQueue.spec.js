@@ -133,4 +133,57 @@ describe('CnWorkQueue', () => {
 		w.unmount()
 		expect(unsubscribe).toHaveBeenCalledWith('cn:page:refresh', handler)
 	})
+
+	describe('a flat list (pl4-work-queue)', () => {
+		const FLAT = {
+			items: [
+				{ id: 'l1', entityType: 'lead', title: 'Acme renewal', stageOrStatus: 'Proposal', dueDate: '2026-10-01', isOverdue: true, routeName: 'LeadDetail' },
+				{ id: 'r1', entityType: 'request', title: 'Broken link', stageOrStatus: 'new', dueDate: null, isOverdue: false, routeName: 'TicketDetail' },
+			],
+			total: 7,
+		}
+		const FLAT_CONTENT = {
+			source: { url: '/apps/pipelinq/api/worklist/mine', params: { limit: 5 } },
+			itemsPath: 'items',
+			totalPath: 'total',
+			dueField: 'dueDate',
+			lateField: 'isOverdue',
+			subField: 'stageOrStatus',
+			kind: { field: 'entityType', labels: { lead: 'Lead', request: 'Request' } },
+			viewAll: { route: { name: 'MyWork' }, label: 'View all ({count})' },
+			emptyText: 'No items assigned to you',
+		}
+
+		it('reads one list as one group, each item opening its own route', async () => {
+			axios.get.mockResolvedValue({ data: FLAT })
+			const push = jest.fn(() => Promise.resolve())
+			const router = { push, resolve: (route) => ({ href: `/nc/apps/pipelinq/${route.name}/${route.params ? route.params.id : ''}` }) }
+			const w = await mountQueue(FLAT_CONTENT, router)
+			const lead = w.find('[data-testid="cn-work-queue-item-l1"]')
+			expect(lead.classes()).toContain('cn-work-queue__item--late')
+			expect(lead.text()).toContain('Lead')
+			expect(lead.text()).toContain('Proposal')
+			expect(lead.text()).toContain('2026-10-01')
+			expect(w.find('[data-testid="cn-work-queue-item-r1"]').text()).toContain('Request')
+			await w.find('[data-testid="cn-work-queue-item-r1"] a').trigger('click', { button: 0 })
+			expect(push).toHaveBeenCalledWith({ name: 'TicketDetail', params: { id: 'r1' } })
+			const viewAll = w.find('[data-testid="cn-work-queue-view-all"]')
+			expect(viewAll.text()).toBe('View all (7)')
+			expect(viewAll.attributes('href')).toBe('/nc/apps/pipelinq/MyWork/')
+		})
+
+		it('says nothing is waiting for an empty list, and never for a failed read', async () => {
+			axios.get.mockResolvedValue({ data: { items: [], total: 0 } })
+			const empty = await mountQueue(FLAT_CONTENT)
+			expect(empty.find('[data-testid="cn-work-queue-empty"]').text()).toBe('No items assigned to you')
+			expect(empty.find('[data-testid="cn-work-queue-view-all"]').exists()).toBe(false)
+
+			invalidateEndpointSourceCache()
+			axios.get.mockRejectedValueOnce(new Error('down'))
+			const broken = await mountQueue(FLAT_CONTENT)
+			expect(broken.find('[data-testid="cn-work-queue-error"]').exists()).toBe(true)
+			expect(broken.find('[data-testid="cn-work-queue-empty"]').exists()).toBe(false)
+			expect(broken.text()).not.toContain('0')
+		})
+	})
 })
