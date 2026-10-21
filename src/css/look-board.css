@@ -289,6 +289,23 @@
 	height: 16px;
 }
 
+/* ---- A field's edge -------------------------------------------------- */
+/* The boards draw a text field's and a select's edge as a 1px border in the
+   3:1 control colour all round (DqProcesanalyse "Filteren op zaaktype",
+   DqZakenSorteren "Zoek op zaak, nummer of verzoeker"). NcInputField, which
+   is also NcSelect's search box, draws it as a shadow: a dark bottom line and
+   30% grey on the other sides. Focus keeps NcInputField's own ring, which
+   carries `!important`.
+   @spec openspec/changes/board-field-edge/specs/board-field-edge/spec.md#requirement-a-board-field-draws-a-1px-edge-all-round */
+.cn-look-board .input-field__input:not(.cn-look-nextcloud *),
+.cn-look-board .input-field__input:hover:not([disabled]):not(.cn-look-nextcloud *),
+.cn-look-board .textarea__input:not(.cn-look-nextcloud *),
+.cn-look-board .textarea__input:hover:not([disabled]):not(.cn-look-nextcloud *) {
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	box-shadow: none;
+}
+
 /* ---- A single select -------------------------------------------------- */
 /* NcSelect draws a single select as its search field with the clear and
    open buttons laid over its end. A legacy vue-select rule that Nextcloud
