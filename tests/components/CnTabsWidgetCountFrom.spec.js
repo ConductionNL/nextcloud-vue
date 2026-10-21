@@ -95,4 +95,15 @@ describe('CnTabsWidget countFrom', () => {
 		expect(fetchListTotal).toHaveBeenLastCalledWith('dossiq', 'case', { requester: '@objectId' }, expect.objectContaining({ objectId: 'p-2' }))
 		expect(tabTexts(w)[0]).toContain('5')
 	})
+
+	it('counts the list an endpoint answers with', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ proposals: [{ id: 'a' }, { id: 'b' }] }) })
+		const w = mountTabs([{ widgetId: 'w-card' }, { widgetId: 'w-cases', label: 'Proposals', countFrom: { endpoint: '/apps/portaliq/api/proposals?id=@objectId', field: 'proposals' } }])
+		await flush()
+		expect(tabTexts(w)[1]).toContain('Proposals')
+		expect(tabTexts(w)[1]).toContain('2')
+		expect(global.fetch.mock.calls[0][0]).toContain('/apps/portaliq/api/proposals?id=p-1')
+		expect(fetchListTotal).not.toHaveBeenCalled()
+		delete global.fetch
+	})
 })
