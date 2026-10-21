@@ -60,8 +60,20 @@
 						<span class="cn-conversation-thread__author">{{ row.author }}</span>
 						<time v-if="row.timeLabel" :datetime="row.datetime || null">{{ row.timeLabel }}</time>
 						<span v-if="row.channel" class="cn-conversation-thread__channel" data-testid="cn-conversation-channel">{{ row.channel }}</span>
+						<span v-if="row.status" class="cn-conversation-thread__status" data-testid="cn-conversation-status">{{ row.status }}</span>
 					</span>
 					<span class="cn-conversation-thread__text">{{ row.text }}</span>
+					<span v-if="row.actions.length > 0" class="cn-conversation-thread__message-actions">
+						<NcButton
+							v-for="action in row.actions"
+							:key="action.id"
+							variant="secondary"
+							:disabled="action.disabled === true"
+							:data-testid="`cn-conversation-action-${action.id}`"
+							@click="$emit('message-action', { action: action.id, message: row.key })">
+							{{ action.label }}
+						</NcButton>
+					</span>
 				</div>
 			</li>
 		</ol>
@@ -71,6 +83,9 @@
 			class="cn-conversation-thread__reply"
 			data-testid="cn-conversation-reply"
 			@submit.prevent="onSend">
+			<!-- @slot reply-tools Tools above the reply box, for example a template picker. -->
+			<!-- @binding {Function} setDraft Puts a text in the reply box. -->
+			<slot name="reply-tools" :setDraft="setDraft" />
 			<label :for="inputId" class="cn-conversation-thread__reply-label">{{ replyLabel }}</label>
 			<textarea
 				:id="inputId"
@@ -151,7 +166,10 @@ export default {
 
 	props: {
 		/**
-		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel? }`.
+		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, status?, actions? }`.
+		 * `status` is shown after the channel ("Failed"); `actions` are
+		 * `{ id, label, disabled? }` buttons under the text, each emitting
+		 * `message-action`.
 		 * `side` is `us` or `them` (default `them`). `time` is an ISO
 		 * date, or any text to show as is. `channel` is shown after the time
 		 * ("E-mail", "Phone note").
@@ -256,6 +274,8 @@ export default {
 		'sent',
 		/** The endpoint refused the reply. Payload: the error. */
 		'error',
+		/** A message action was pressed. Payload: `{ action, message }`, the action id and the message key. */
+		'message-action',
 	],
 
 	data() {
@@ -297,6 +317,8 @@ export default {
 						timeLabel: time.label,
 						datetime: time.datetime,
 						channel: typeof message.channel === 'string' ? message.channel : '',
+						status: typeof message.status === 'string' ? message.status : '',
+						actions: Array.isArray(message.actions) ? message.actions.filter((action) => action && action.id && action.label) : [],
 						directionLabel: side === 'us' ? t('nextcloud-vue', 'Sent message') : t('nextcloud-vue', 'Received message'),
 					}
 				})
@@ -370,6 +392,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Put a text in the reply box (a template a host tool picked).
+		 *
+		 * @param {string} text The text.
+		 * @return {void}
+		 */
+		setDraft(text) {
+			this.draft = typeof text === 'string' ? text : ''
+		},
+
 		/**
 		 * Narrow the thread to the chip's channel; the All chip (0) clears it.
 		 *
@@ -459,6 +491,18 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: calc(3.5 * var(--default-grid-baseline));
+}
+
+.cn-conversation-thread__status {
+	color: var(--color-text-maxcontrast);
+	font-weight: 700;
+}
+
+.cn-conversation-thread__message-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(2 * var(--default-grid-baseline));
+	margin-top: calc(2 * var(--default-grid-baseline));
 }
 
 .cn-conversation-thread__header {

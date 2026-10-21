@@ -54,6 +54,33 @@ The texts (`title`, `replyLabel`, `placeholder`, `sendLabel`, `emptyText`) go th
 }
 ```
 
+## Several lists, templates, reply options, status and message actions
+
+```json
+{
+  "type": "conversation",
+  "content": {
+    "fields": [{ "field": "portalReplies", "side": "them" }, { "field": "portalAnswers", "side": "us" }],
+    "textField": "message",
+    "timeField": "createdAt",
+    "endpoint": "/apps/pipelinq/api/tickets/@objectId/answer",
+    "templates": { "url": "/apps/pipelinq/api/saved-replies", "params": { "channel": "portal", "ticket": "@objectId" }, "inputLabel": "Saved reply", "textField": "body" },
+    "replyOptions": [{ "key": "waitForCustomer", "label": "Also set the ticket to waiting for the customer", "default": true }],
+    "statusField": "deliveryStatus",
+    "statusMap": { "failed": "Failed" },
+    "messageActions": [{ "id": "resend", "label": "Send again", "endpoint": "/apps/pipelinq/api/messages/{id}/resend", "when": { "field": "deliveryStatus", "in": ["failed"] } }]
+  }
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `fields` | Several lists of the record, each on its `side`, merged by time. Instead of `field` or `source`. |
+| `templates` | A CnTemplateSelect above the reply box over `url` with `params` (tokens resolved). Picking fills the box with the option's `values[textField]` (default `text`). |
+| `replyOptions` | Checkboxes under the reply box. Their values go into the endpoint's body, and as `options` into a `replyAction`'s argument. |
+| `statusField` / `statusMap` | The message's status, shown after its channel; `statusMap` turns a stored value into a label. |
+| `messageActions` | Buttons on the messages that match `when` (`{ field, in }` or `{ field, equals }`). The endpoint gets `@objectId` and the message's `{field}` values; after it the messages are read again, and a failure shows `errorText`. |
+
 ## Reference (auto-generated)
 
 import GeneratedRef from './_generated/CnConversationWidget.md'
