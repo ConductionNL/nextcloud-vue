@@ -52,6 +52,7 @@ export {
 	CnBodySections,
 	CnBreadcrumbs,
 	CnBuildiqEditButton,
+	CnBulkJobProgress,
 	CnCalendarWidget,
 	CnCalendarWidgetForm,
 	CnCameraCapture,
@@ -126,6 +127,7 @@ export {
 	CnEmailCard,
 	CnEmailTab,
 	CnEnvironmentBanner,
+	CnEventsCard,
 	CnExportWizard,
 	CnFacetSidebar,
 	CnFactsWidget,
@@ -274,6 +276,7 @@ export {
 	CnRegisterMapping,
 	CnRegisterSchemaSelect,
 	CnRelatedCollections,
+	CnRelatedFieldFilters,
 	CnRelatedFiles,
 	CnRelatedObjectsWidget,
 	CnRelationLinkModal,
@@ -299,6 +302,7 @@ export {
 	CnSearchPage,
 	CnSearchSelect,
 	CnSectionsWidget,
+	CnSelectionScope,
 	CnSettingsCard,
 	CnSettingsField,
 	CnSettingsFieldsSection,
@@ -331,9 +335,11 @@ export {
 	CnTabsWidgetForm,
 	CnTagsCard,
 	CnTaskFormDialog,
+	CnTaskFormFields,
 	CnTasksCard,
 	CnTasksWidget,
 	CnTasksWidgetForm,
+	CnTemplateSelect,
 	CnTenantBadge,
 	CnTextTableEditor,
 	CnTextWidget,
@@ -600,6 +606,7 @@ export { cnFetch, cnFetchJson, CnHttpError, configureCnFetch } from './utils/cnF
 export { isLockedByCurrentUser, isObjectLocked, lockHolder, readLockPayload, resolveObjectLock } from './utils/objectLock.js'
 export { dispatchObjectsChanged } from './utils/objectSignals.js'
 export { lensUnavailableText, readLensReports } from './utils/lensAvailability.js'
+export { isWithheld, withheldReason } from './utils/withheldValue.js'
 export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, findRepeatingWrite, formatValue, journeyItemTargets, validateValue } from './utils/index.js'
 export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData, usesArrayValues, valueArrayFor, valueRecordsFor } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot

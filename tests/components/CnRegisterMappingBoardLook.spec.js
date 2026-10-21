@@ -168,3 +168,21 @@ describe('CnRegisterMapping fetch', () => {
 		expect(wrapper.vm.schemaSelectOptions(0)).toEqual([{ label: 'Client', value: '40' }])
 	})
 })
+
+describe('CnRegisterMapping titles', () => {
+	it('names registers and schemas through the app\'s translate', async () => {
+		global.fetch = mockFetch()
+		const dutch = { Pipelinq: 'Pijplijn', Client: 'Klant' }
+		const wrapper = mount(CnRegisterMapping, {
+			props: { groups: [GROUPS[0]], configuration: { register: '18' } },
+			global: {
+				provide: { cnLook: 'nextcloud', cnTranslate: (key) => dutch[key] ?? key },
+				stubs: { NcSelect: true, NcNoteCard: { template: '<div class="note"><slot /></div>' } },
+			},
+		})
+		await flush()
+		await flush()
+		expect(wrapper.vm.registerSelectOptions[0]).toEqual({ label: 'Pijplijn', value: '18' })
+		expect(wrapper.vm.schemaSelectOptions(0)[0]).toEqual({ label: 'Klant', value: '40' })
+	})
+})

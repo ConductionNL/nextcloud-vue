@@ -50,13 +50,48 @@ An `image` field shows the current image in a tile (its value is the image url),
 
 A `secret` field is replace-only. The stored value is never put in the input; when the settings hold one, the input says "Stored. Type a new value to replace it." The secret is sent only when something was typed, and after the save the input is empty again. A required secret that is already stored passes the check.
 
+## Fields that depend on another, and stored text
+
+- `visibleWhen: { key, equals }` (or `notEquals`, `in: [...]`, `empty: true`; a list of conditions must all hold) shows a field only while it holds. The key may be another field or any key in the values read. A hidden field is not checked on save.
+- `default` stands in for a stored value that is missing or empty, so a fresh instance shows what the server uses.
+- A switch reads `1`, `true`, `yes` and `on` as on. With `trueValue`/`falseValue` it saves those (`'1'`/`'0'`, `'true'`/`'false'`) instead of a boolean.
+- A `secret` whose stored state the server answers under another key (`tokenSet: true`) names it with `setKey`.
+- A `radio` field offers its options as radio buttons in a fieldset named by the label; an option's `description` is a line under it.
+- A `lines` field edits a list one entry per line and saves it as a list without empty lines or repeats, or as JSON text with `saveAs: 'json'`.
+- `integer: true` refuses a number with a fraction.
+
+```js
+fields: [
+  { key: 'ai_enabled', label: 'Use AI', type: 'switch', trueValue: 'true', falseValue: 'false' },
+  { key: 'ai_model_type', label: 'Model type', type: 'radio', options: [{ value: 'local', label: 'Local' }, { value: 'cloud', label: 'Cloud', description: 'Case data leaves the organisation.' }], visibleWhen: { key: 'ai_enabled', equals: true } },
+  { key: 'ai_api_key', label: 'API key', type: 'secret', setKey: 'ai_api_key_set', visibleWhen: [{ key: 'ai_enabled', equals: true }, { key: 'ai_model_type', equals: 'cloud' }] },
+  { key: 'trigger_words', label: 'Trigger words, one per line', type: 'lines', saveAs: 'json' },
+]
+```
+
+## Notes, headings and actions
+
+Three types hold no value of their own; they are never checked or saved.
+
+- `heading` draws its `label` as a subheading between fields.
+- `status` draws a read-only note. Its text is `text`, or its `textMap` entry for the value read at its key (`'*'` for any other value; with neither, the value itself). `{name}` takes the value of that field or of that key in the values read, `{value}` the field's own. Its tone is `tone` or its `toneMap` entry (`info` by default; `warning` and `error` are announced as alerts). A note whose text is empty is not drawn, so `textMap: { '': '' }` hides it while nothing is wrong.
+- `action` draws a button with its `label`. It posts the fields named in `send` to `url` with `method` (default `POST`) and shows the answer's sentence at `resultPath` (default `message`, else `successText`, else "Done."), as an error when `okPath` reads false. A failed request shows the server's own sentence. With `fill: { key, bytes }` it puts a random hexadecimal value of that many bytes (default 32) in that field instead, to be saved with the section.
+
+```js
+fields: [
+  { key: 'reason', type: 'status', textMap: { disabled: 'The account {userId} is disabled.', '*': '' }, toneMap: { '*': 'warning' }, visibleWhen: { key: 'usable', equals: false } },
+  { key: 'userId', label: 'Nextcloud user name' },
+  { key: 'test', label: 'Test connection', type: 'action', url: '/apps/myapp/api/health', okPath: 'healthy' },
+]
+```
+
 ## Fields
 
 | Key | Description |
 |-----|-------------|
 | `key` | Required. The setting's name; a dotted key reads a nested value. |
 | `label` | The label, through the app's translate function. Every field has one; a select gets it through NcSelect's `inputLabel`. |
-| `type` | `text` (default), `textarea`, `number`, `switch`, `select`, `secret` or `image`. |
+| `type` | `text` (default), `textarea`, `number`, `switch`, `select`, `radio`, `lines`, `secret`, `password`, `image`, `heading`, `status` or `action`. |
 | `url`, `valuePath` | Read this field from another endpoint, at this dotted path. |
 | `saveUrl`, `saveMethod`, `saveKey`, `saveParams` | Save this field to another endpoint (default `url`, `POST`), under this key, with these static fields merged into the body (`{ setting: 'name' }`). |
 | `uploadUrl`, `uploadField`, `uploadParams`, `uploadValuePath`, `previewUrl`, `uploadLabel`, `accept` | An image's upload, see above. |
@@ -65,9 +100,17 @@ A `secret` field is replace-only. The stored value is never put in the input; wh
 | `placeholder` | Placeholder text. |
 | `required`, `pattern`, `patternMessage`, `min`, `max` | The checks Save runs. |
 | `options` | A select's options: strings, or `{ value, label }`. |
-| `optionsUrl`, `optionsPath`, `optionLabel`, `optionValue` | A select whose options are read from an endpoint: the list (or the list at `optionsPath`, or under `results`), each option's label and value read by dotted path. |
+| `optionsUrl`, `optionsPath`, `optionLabel`, `optionValue`, `optionDetail` | A select whose options are read from an endpoint: the list (or the list at `optionsPath`, or under `results`), each option's label and value read by dotted path; `optionDetail` adds a value in brackets after the label when the option has one (`Team (team@example.org)`). |
+| `foldable` | A status note that folds away with the hints under `hintsToggle`. |
 | `rows` | A textarea's rows. |
-| `default` | The value when the settings hold none. |
+| `default` | The value when the settings hold none, or an empty one. |
+| `visibleWhen` | Show the field only while this condition holds, see above. |
+| `trueValue`, `falseValue` | What a switch saves for on and off. |
+| `setKey` | The key that says a secret is stored. |
+| `saveAs` | `'json'`: a lines field saves JSON text. |
+| `integer` | A number must be whole. |
+| `text`, `textMap`, `tone`, `toneMap` | A status note's text and tone. |
+| `method`, `send`, `resultPath`, `okPath`, `successText`, `fill` | An action, see above. |
 | `readOnly` | Shown, not editable. |
 | `wide` | Spans every column. |
 
@@ -77,6 +120,7 @@ A `secret` field is replace-only. The stored value is never put in the input; wh
 |------|------|---------|-------------|
 | `name` | String | required | The section title. |
 | `description` | String | `''` | The line under the title. |
+| `detailedDescription` | String | `''` | A longer explanation in its own block under the title. |
 | `docUrl` | String | `''` | A documentation link beside the title. |
 | `wide` | Boolean | `false` | Span the whole settings grid in the board look. |
 | `fields` | Array | required | The fields, see above. |
@@ -87,6 +131,12 @@ A `secret` field is replace-only. The stored value is never put in the input; wh
 | `saveMethod` | String | `'PUT'` | `PUT`, `POST` or `PATCH`. |
 | `valuesPath` | String | `''` | A dotted path to the values in the read answer. |
 | `saveLabel` | String | `''` | The Save button's label; defaults to "Save". |
+| `savedMessage` | String | `''` | The note after a save, `{name}` filled from the fields and the values read; defaults to "Saved.". |
+| `reloadAfterSave` | Boolean | `false` | Read the values again after a save, for status notes the server works out. |
+| `saveAll` | Boolean | `false` | Send every field on a save, not only the changed ones, for an endpoint that replaces the whole record. |
+| `hintsToggle` | Boolean | `false` | Fold the hints, and status notes marked `foldable`, behind one "Show the explanations" button. |
+| `autoSave` | Boolean | `false` | Save each change at once (typed text after a pause), with no Save button. |
+| `bare` | Boolean | `false` | No card, title or description, for a host that gives the section its own (a settings dialog section). Loading and a failed read still show. |
 
 ## Events
 
@@ -99,5 +149,6 @@ A `secret` field is replace-only. The stored value is never put in the input; wh
 
 - Every control has a visible label tied to it; a select through NcSelect's `inputLabel`.
 - A hint or an error is tied to its control with `aria-describedby`; a failing field carries `aria-invalid`, and the first one takes focus after a failed Save.
-- The notice after a save is a status message, an error an alert.
+- The notice after a save is a status message, an error an alert. A status note in the `warning` or `error` tone is an alert too.
+- Radio choices sit in a fieldset whose legend is the label; an option's description is drawn next to it.
 - In the board look the labels sit above the controls, like every board settings card.

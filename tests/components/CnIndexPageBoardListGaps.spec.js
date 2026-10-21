@@ -81,15 +81,23 @@ describe('CnIndexPage board list: the view switch', () => {
 
 describe('CnIndexPage board list: unread rows', () => {
 	it('does not mark unread rows under the board look', () => {
-		expect(mountPage().vm.showUnreadRows).toBe(false)
+		expect(mountPage().vm.marksUnreadRows).toBe(false)
 	})
 
 	it('marks them on a page that offers the Unread lens', () => {
-		expect(mountPage({ personalLenses: ['unread'] }).vm.showUnreadRows).toBe(true)
+		expect(mountPage({ personalLenses: ['unread'] }).vm.marksUnreadRows).toBe(true)
 	})
 
 	it('marks them under the Nextcloud look', () => {
-		expect(mountPage({}, 'nextcloud').vm.showUnreadRows).toBe(true)
+		expect(mountPage({}, 'nextcloud').vm.marksUnreadRows).toBe(true)
+	})
+
+	it('marks them under the board look when the page asks for them', () => {
+		expect(mountPage({ showUnreadRows: true }).vm.marksUnreadRows).toBe(true)
+	})
+
+	it('never marks them when the page turns them off', () => {
+		expect(mountPage({ showUnreadRows: false }, 'nextcloud').vm.marksUnreadRows).toBe(false)
 	})
 })
 

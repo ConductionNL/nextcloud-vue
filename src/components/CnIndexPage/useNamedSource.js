@@ -3,7 +3,8 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  */
 
-import { computed, inject, onMounted, watch } from 'vue'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { computed, inject, onMounted, onUnmounted, watch } from 'vue'
 import { resolveIndexSource } from '../../composables/indexSources.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -183,6 +184,12 @@ export function useNamedSource(props, options = {}) {
 	}
 
 	onMounted(loadActive)
+
+	// A dialog that acted on a row (CnActionDialog, CnAssignDialog) signals
+	// `cn:page:refresh`; the rows it changed are read again.
+	const onPageRefresh = () => loadActive()
+	onMounted(() => subscribe('cn:page:refresh', onPageRefresh))
+	onUnmounted(() => unsubscribe('cn:page:refresh', onPageRefresh))
 
 	// Registered AFTER the seed above, so only a person switching tabs
 	// reloads. Without tabs there is nothing to watch.
