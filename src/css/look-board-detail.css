@@ -974,3 +974,30 @@
 .cn-look-board .cn-tasks-widget .cn-tasks-widget__cell-actions .button-vue .button-vue__text.button-vue__text {
 	padding-inline: 0;
 }
+
+/* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
+/* Groups 14px apart, each padded 14px with a 10px radius and a bold title; a
+   card in a group is padded 9px 12px with the 8px control radius, its title
+   15px. The doubled class outranks the widget's scoped rules.
+   @spec openspec/changes/board-grouped-cards/specs/board-grouped-cards/spec.md#requirement-board-grouped-cards-take-the-boards-group-and-card-shape */
+.cn-look-board .cn-grouped-cards__grid.cn-grouped-cards__grid {
+	gap: 14px;
+}
+
+.cn-look-board .cn-grouped-cards__group.cn-grouped-cards__group {
+	padding: 14px;
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-grouped-cards__group-title.cn-grouped-cards__group-title {
+	font-weight: 700;
+}
+
+.cn-look-board .cn-grouped-cards__item.cn-grouped-cards__item {
+	padding: 9px 12px;
+	border-radius: var(--cn-board-control-radius, 8px);
+}
+
+.cn-look-board .cn-grouped-cards__item-title.cn-grouped-cards__item-title {
+	font-size: 15px;
+}

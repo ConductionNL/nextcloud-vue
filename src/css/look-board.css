@@ -228,9 +228,15 @@
    look sets 600 on each button, so every NcButton on a board page draws the
    board's weight without a rule per surface. Breadcrumb buttons keep the
    crumb weight.
-   @spec openspec/changes/board-button-weight/specs/board-button-weight/spec.md#requirement-a-board-button-draws-at-600 */
+   The boards also draw a button's text at 14px, against Nextcloud's 15px.
+   NcButton reads its size from --default-font-size, so the look sets that
+   variable on the button: a surface that sets its own `font-size` (the next
+   step card's 15px) keeps it.
+   @spec openspec/changes/board-button-weight/specs/board-button-weight/spec.md#requirement-a-board-button-draws-at-600
+   @spec openspec/changes/board-control-text/specs/board-control-text/spec.md#requirement-a-board-button-draws-its-text-at-14px */
 .cn-look-board .button-vue:not(.cn-look-nextcloud *):not(.vue-crumb *) {
 	--font-weight-element: 600;
+	--default-font-size: 14px;
 }
 
 /* ---- A button with an icon and a label --------------------------------- */
@@ -391,6 +397,26 @@
 .cn-look-board .cn-settings-section__actions .button-vue--secondary:not(.cn-look-nextcloud *):hover,
 .cn-look-board .cn-settings-section__actions .button-vue--vue-secondary:not(.cn-look-nextcloud *):hover {
 	background: var(--color-background-hover);
+}
+
+/* ---- A secondary button --------------------------------------------------- */
+/* The boards draw every secondary button neutral: the main background, a 1px
+   control border, the main text, the hover ground on hover (DqFlow "Testen
+   met een zaak", DqFunctionaliteiten "Documentatie", DqTaak "Afronden").
+   NcButton draws its secondary from the primary-light variables, on a 2px
+   bottom edge; the look points those variables at the neutral colours on the
+   button itself. The selector weighs (0,3,0): it outranks NcButton's border
+   (0,2,0), and a surface rule of the same weight later in the cascade (a
+   dialog's cancel) still decides for its surface.
+   @spec openspec/changes/board-secondary-neutral/specs/board-secondary-neutral/spec.md#requirement-a-board-secondary-button-is-neutral */
+.cn-look-board .button-vue.button-vue--secondary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)),
+.cn-look-board .button-vue.button-vue--vue-secondary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)) {
+	--color-primary-element-light: var(--color-main-background);
+	--color-primary-element-light-hover: var(--color-background-hover);
+	--color-primary-element-light-text: var(--color-main-text);
+	--nldesign-color-on-surface: var(--color-main-text);
+	border: 1px solid var(--cn-board-control-border);
+	color: var(--color-main-text);
 }
 
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */

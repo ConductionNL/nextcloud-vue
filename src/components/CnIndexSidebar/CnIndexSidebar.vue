@@ -1,6 +1,7 @@
 <template>
 	<NcAppSidebar
 		v-model:open="internalOpen"
+		class="cn-index-sidebar-panel"
 		:name="resolvedName"
 		:title="resolvedName"
 		:subname="resolvedSubname"
