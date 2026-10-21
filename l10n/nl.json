@@ -2205,7 +2205,14 @@
     "The rule could not be evaluated.": "De regel kon niet worden beoordeeld.",
     "Only an administrator can read the rules of this schema.": "Alleen een beheerder kan de regels van dit schema lezen.",
     "The rules could not be read. Ask an administrator.": "De regels konden niet worden gelezen. Vraag het een beheerder.",
-    "That object could not be read.": "Dat object kon niet worden gelezen."
+    "That object could not be read.": "Dat object kon niet worden gelezen.",
+    "No shipped set is loaded.": "Er is geen meegeleverde set geladen.",
+    "Remove the set {set}": "De set {set} verwijderen",
+    "Removing…": "Verwijderen…",
+    "Could not read the loaded sets.": "De geladen sets konden niet worden gelezen.",
+    "Remove the set \"{set}\"? Its objects move to the trash, where you can restore them. Anything you made yourself stays.": "De set \"{set}\" verwijderen? De objecten gaan naar de prullenbak, waar u ze kunt terugzetten. Wat u zelf heeft gemaakt, blijft staan.",
+    "The set \"{set}\" was removed.": "De set \"{set}\" is verwijderd.",
+    "The set \"{set}\" was not removed.": "De set \"{set}\" is niet verwijderd."
   },
   "plurals": {
     "{count} member": [

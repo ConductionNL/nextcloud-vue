@@ -1988,7 +1988,14 @@
     "The rule could not be evaluated.": "The rule could not be evaluated.",
     "Only an administrator can read the rules of this schema.": "Only an administrator can read the rules of this schema.",
     "The rules could not be read. Ask an administrator.": "The rules could not be read. Ask an administrator.",
-    "That object could not be read.": "That object could not be read."
+    "That object could not be read.": "That object could not be read.",
+    "No shipped set is loaded.": "No shipped set is loaded.",
+    "Remove the set {set}": "Remove the set {set}",
+    "Removing…": "Removing…",
+    "Could not read the loaded sets.": "Could not read the loaded sets.",
+    "Remove the set \"{set}\"? Its objects move to the trash, where you can restore them. Anything you made yourself stays.": "Remove the set \"{set}\"? Its objects move to the trash, where you can restore them. Anything you made yourself stays.",
+    "The set \"{set}\" was removed.": "The set \"{set}\" was removed.",
+    "The set \"{set}\" was not removed.": "The set \"{set}\" was not removed."
   },
   "plurals": {
     "{count} member": [
