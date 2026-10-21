@@ -23,8 +23,10 @@
 
 ### Task 4: Row and bulk actions
 - **spec_ref**: `#requirement-actionsfrom-renders-the-listed-actions-on-a-surface`
-- **files**: `src/components/CnIndexPage/CnIndexPage.vue`
-- [ ] Test, implement, docs, en/nl
+- **files**: `src/components/CnIndexPage/CnIndexPage.vue`, `src/components/CnActionsBar/CnActionsBar.vue` (reason as title)
+- [x] Test: `tests/components/CnIndexPageObjectActions.spec.js`
+- [x] Implement: per-row list read once per row, row items disabled with reason, selection list, bulk run through the dialog
+- [x] Docs: `cn-index-page.md`; no new strings
 
 ### Task 5: Macros widget over the list
 - **spec_ref**: `#requirement-the-macros-widget-is-a-view-over-the-same-list`

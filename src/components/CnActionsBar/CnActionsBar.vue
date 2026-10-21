@@ -487,6 +487,7 @@
 				:key="entry.id"
 				variant="secondary"
 				:disabled="entry.disabled === true"
+				:title="entry.title || null"
 				:data-testid="`cn-bulk-action-${entry.id}`"
 				:lang="bulkLang(entry)"
 				@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
@@ -553,6 +554,7 @@
 			:key="entry.id"
 			variant="secondary"
 			:disabled="entry.disabled === true || selectedIds.length === 0"
+			:title="entry.title || null"
 			:data-testid="`cn-bulk-action-${entry.id}`"
 			:lang="bulkLang(entry)"
 			@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">

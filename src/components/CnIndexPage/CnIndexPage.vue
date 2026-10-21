@@ -492,6 +492,18 @@
 			</dl>
 		</CnConfirmDialog>
 
+		<!-- An object action from a row menu or the selection strip (object-actions-ui). -->
+		<CnObjectActionDialog
+			v-if="objectActionDialog"
+			:action="objectActionDialog.action"
+			:register="objectActionDialog.register"
+			:schema="objectActionDialog.schema"
+			:objectId="objectActionDialog.objectId"
+			:ids="objectActionDialog.ids"
+			:currentObject="objectActionDialog.currentObject"
+			@done="onObjectActionDone"
+			@close="objectActionDialog = null" />
+
 		<!-- Mass delete dialog -->
 		<CnMassDeleteDialog
 			v-if="showMassDeleteDialog"
@@ -1341,6 +1353,7 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
+import CnObjectActionDialog from '../../dialogs/CnObjectActionDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
@@ -1356,7 +1369,7 @@ import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { followItemActionLink, headerActionAsLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
-import { buildOnSuccessRoute, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { buildOnSuccessRoute, executeObjectAction, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import {
 	buildReferenceStages,
 	buildValueStages,
@@ -1384,9 +1397,11 @@ import { mapListItems } from '../../utils/mapList.js'
 import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { fetchGroups } from '../../utils/nextcloudDirectory.js'
+import { expandObjectActionEntries, hasActionInputs, needsObjectActions, readObjectActions, readSelectionActions } from '../../utils/objectActions.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
+import { readPath } from '../../utils/readPath.js'
 import { resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
@@ -1740,6 +1755,7 @@ export default {
 		CnSavedViewShareDialog,
 		CnSaveViewDialog,
 		CnConfirmDialog,
+		CnObjectActionDialog,
 		CnQuickEditDialog,
 	},
 
@@ -4146,6 +4162,12 @@ export default {
 
 	data() {
 		return {
+			/** The actions OpenRegister lists per row, by `register/schema/id` (object-actions-ui). */
+			rowObjectActions: {},
+			/** The actions OpenRegister offers on a selection of this list. */
+			selectionObjectActions: [],
+			/** The object action whose dialog is open: `{ action, register, schema, objectId, ids, currentObject }`. */
+			objectActionDialog: null,
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -4493,7 +4515,10 @@ export default {
 		mergedBulkActions() {
 			const reserved = new Set(['copy', 'delete'])
 			const merged = []
-			for (const entry of this.bulkActions || []) {
+			const declared = needsObjectActions(this.bulkActions)
+				? expandObjectActionEntries(this.bulkActions, this.selectionObjectActions, 'bulk')
+				: (this.bulkActions || [])
+			for (const entry of declared) {
 				if (!entry || typeof entry !== 'object' || !entry.id || !entry.label) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnIndexPage] Ignoring bulkActions entry ${JSON.stringify(entry)}: a bulk action needs an id and a label.`)
@@ -4507,6 +4532,19 @@ export default {
 				merged.push(entry)
 			}
 			return merged
+		},
+
+		/**
+		 * The list the selection actions are read for, as one string so a
+		 * watcher fires only when it changes. Empty when no bulk action needs them.
+		 *
+		 * @return {string}
+		 */
+		bulkObjectActionsKey() {
+			if (!needsObjectActions(this.bulkActions)) {
+				return ''
+			}
+			return `${this.register || ''}/${schemaSlug(this.schema) || ''}`
 		},
 
 		// ── Self-fetch ↔ consumer-managed: the "effective" source of each
@@ -7288,6 +7326,10 @@ export default {
 					if (!manifestDeclared && a.action === 'open' && typeof a.handler !== 'function') {
 						return { ...a, handler: (row) => this.openSourceRow(row) }
 					}
+					// Expanded per row against OpenRegister's list (rowActionsFor).
+					if (a.actionsFrom === 'openregister' || a.type === 'object-action') {
+						return a
+					}
 					return dispatchAction(a, ctx)
 				},
 			})
@@ -8099,6 +8141,20 @@ export default {
 	},
 
 	watch: {
+		// A reloaded list asks each row's actions again (object-actions-ui).
+		effectiveObjects() {
+			if (Object.keys(this.rowObjectActions).length > 0) {
+				this.rowObjectActions = {}
+			}
+		},
+
+		bulkObjectActionsKey: {
+			immediate: true,
+			handler() {
+				this.loadSelectionObjectActions()
+			},
+		},
+
 		// A new search or filter starts the source rows at page 1.
 		'list.searchTerm.value': function() {
 			this.resetSortSourcePage()
@@ -9309,7 +9365,18 @@ export default {
 			const count = selectedIds.length
 			const entry = this.mergedBulkActions.find((e) => e.id === id)
 
-			if (entry) {
+			if (entry && entry.type === 'object-action') {
+				if (entry.objectAction && entry.objectAction.available !== false && count > 0) {
+					this.objectActionDialog = {
+						action: entry.objectAction,
+						register: String(this.register || ''),
+						schema: String(schemaSlug(this.schema) || ''),
+						objectId: '',
+						ids: selectedIds.map(String),
+						currentObject: null,
+					}
+				}
+			} else if (entry) {
 				const handler = entry.handler
 				const scope = { actionId: id, selectedIds, count }
 
@@ -10525,10 +10592,131 @@ export default {
 		},
 
 		rowActionsFor(row) {
-			return withoutViewWhenRowOpensDetail(
-				availableRowActions(this.mergedActions, row, this.rowActionField),
-				this.rowOpensDetailFor(row),
-			)
+			if (!needsObjectActions(this.mergedActions)) {
+				return withoutViewWhenRowOpensDetail(
+					availableRowActions(this.mergedActions, row, this.rowActionField),
+					this.rowOpensDetailFor(row),
+				)
+			}
+			const isObjectAction = (a) => a && (a.actionsFrom === 'openregister' || a.type === 'object-action')
+			const available = new Set(availableRowActions(this.mergedActions.filter((a) => !isObjectAction(a)), row, this.rowActionField))
+			const kept = this.mergedActions.filter((a) => isObjectAction(a) || available.has(a))
+			const expanded = expandObjectActionEntries(kept, this.rowObjectActionsFor(row), 'row')
+				.map((entry) => (entry.type === 'object-action' ? this.rowObjectActionItem(entry) : entry))
+			return withoutViewWhenRowOpensDetail(expanded, this.rowOpensDetailFor(row))
+		},
+
+		/**
+		 * Where a row's object lives, for its object actions.
+		 *
+		 * @param {object} row The row.
+		 * @return {{register: string, schema: string, id: string}}
+		 */
+		rowObjectTarget(row) {
+			const self = (row && row['@self']) || {}
+			return {
+				register: String(self.register || this.register || ''),
+				schema: String(self.schema || schemaSlug(this.schema) || ''),
+				id: String(self.id || (row && (readPath(row, this.rowKey) ?? row.uuid ?? row.id)) || ''),
+			}
+		},
+
+		/**
+		 * The actions OpenRegister lists for a row, read once per row and
+		 * object and kept until the list reloads. Empty until the answer is in.
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<object>}
+		 * @spec openspec/changes/object-actions-ui/specs/object-actions-ui/spec.md#requirement-actionsfrom-renders-the-listed-actions-on-a-surface
+		 */
+		rowObjectActionsFor(row) {
+			const target = this.rowObjectTarget(row)
+			if (!target.register || !target.schema || !target.id) {
+				return []
+			}
+			const key = `${target.register}/${target.schema}/${target.id}`
+			if (!Object.hasOwn(this.rowObjectActions, key)) {
+				// Kept off the reactive map, so asking during render changes nothing.
+				this._rowActionsPending = this._rowActionsPending || new Set()
+				if (!this._rowActionsPending.has(key)) {
+					this._rowActionsPending.add(key)
+					readObjectActions(target).then(({ actions }) => {
+						this._rowActionsPending.delete(key)
+						this.rowObjectActions = { ...this.rowObjectActions, [key]: actions }
+					})
+				}
+				return []
+			}
+			return this.rowObjectActions[key]
+		},
+
+		/**
+		 * An expanded object-action entry as a row menu item: disabled with
+		 * its reason when it cannot run now, else a handler that runs it.
+		 *
+		 * @param {object} entry The expanded entry.
+		 * @return {object}
+		 */
+		rowObjectActionItem(entry) {
+			return {
+				id: entry.id,
+				label: entry.label,
+				icon: entry.icon || undefined,
+				disabled: entry.disabled === true,
+				title: entry.title || undefined,
+				handler: (row) => this.runRowObjectAction(entry, row),
+			}
+		},
+
+		/**
+		 * Run an object action on one row: through CnObjectActionDialog when it
+		 * asks inputs, carries confirm text or runs async, else at once.
+		 *
+		 * @param {object} entry The expanded entry.
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 */
+		async runRowObjectAction(entry, row) {
+			const listed = entry.objectAction
+			if (!listed || listed.available === false) {
+				return
+			}
+			const target = this.rowObjectTarget(row)
+			if (hasActionInputs(listed) || listed.confirm || listed.mode === 'async') {
+				this.objectActionDialog = { action: listed, register: target.register, schema: target.schema, objectId: target.id, ids: [], currentObject: row }
+				return
+			}
+			const result = await executeObjectAction({ ...entry, register: target.register, schema: target.schema, objectId: target.id }, { translate: this.cnTranslate })
+			if (result.ok) {
+				this.onObjectActionDone()
+			}
+		},
+
+		/**
+		 * After an object action ran: read the rows' actions again and reload
+		 * the list, since the objects and what can be done with them moved.
+		 */
+		onObjectActionDone() {
+			this.rowObjectActions = {}
+			this.loadSelectionObjectActions()
+			this.onRefreshEvent()
+		},
+
+		/**
+		 * Read the actions OpenRegister offers on a selection of this list,
+		 * when a bulk action asks for them.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadSelectionObjectActions() {
+			const register = String(this.register || '')
+			const schema = String(schemaSlug(this.schema) || '')
+			if (!needsObjectActions(this.bulkActions) || register === '' || schema === '') {
+				this.selectionObjectActions = []
+				return
+			}
+			const { actions } = await readSelectionActions({ register, schema })
+			this.selectionObjectActions = actions
 		},
 
 		/**

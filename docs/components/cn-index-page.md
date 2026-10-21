@@ -1012,6 +1012,20 @@ export default {
 }
 ```
 
+### Row and bulk actions OpenRegister declares (`actionsFrom`)
+
+A row action or a bulk action may come from OpenRegister instead of being written per verb. `{ "id": "case", "actionsFrom": "openregister" }` in `actions` expands, per row, into the actions OpenRegister lists for that row's object (`GET /api/objects/{register}/{schema}/{id}/actions`) whose `surfaces` include `row`. In `bulkActions` it expands into the actions offered on a selection (`GET /api/object-actions/{register}/{schema}`, surface `bulk`). `include` keeps the named keys in that order, and `{ "type": "object-action", "action": "<key>" }` places one.
+
+```json
+"actions": [{ "id": "case", "actionsFrom": "openregister", "include": ["claim", "hold"] }],
+"bulkActions": [{ "id": "case", "actionsFrom": "openregister" }]
+```
+
+- A row's list is read once per row, when its menu first renders, and again after the list reloads.
+- An action the person may not run is absent. One that cannot run now is disabled with the reason as its title.
+- A row action with inputs, confirm text or `mode: "async"` opens [`CnObjectActionDialog`](./cn-object-action-dialog.md); any other runs at once and toasts. A bulk action always opens the dialog on the selection, which shows the per-object summary, or that a bulk job started above 100 objects.
+- After a run the rows' actions are read again and the list reloads.
+
 ### A row action that opens a modal
 
 A row action of `type: "open-modal"` opens its `target` (a registry modal, or a built-in such as `CnActionDialog`) through the app root's `cnOpenModal`, with the row as `object` and its key as `objectId`; the action's own `props` win. An entity-sourced list reads its rows again on `cn:page:refresh`, which CnActionDialog signals after it acted, so a confirmed POST on a row is configuration: the dialog posts `confirm.request`, shows the server's refusal sentence when the server refuses, and the list refreshes when it did not. Without an app root the action falls back to emitting `@action`.
