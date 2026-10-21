@@ -305,6 +305,32 @@
 				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
+		<!-- A titled `sections` widget in the side column or a tab stack: its
+		     sections stack inside one titled card, as the other cards there
+		     are drawn. A grid cell has its own card, and `content.cards` makes
+		     every section a card of its own, so both stay as they are. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsSections"
+			:title="widget.title"
+			:subtitle="widgetSubtitle"
+			:showTitle="effectiveShowCardTitle"
+			titleIconPosition="left"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__sections-card"
+			data-testid="cn-detail-widget-sections-card">
+			<template v-if="widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
+		</CnWidgetWrapper>
+
 		<!-- Every other content-driven catalog widget, and every bare-mode
 		     catalog widget. These self-fetch from OpenRegister. The object
 		     context is forwarded too (the same shape CnWidgetGrid merges on the
@@ -855,6 +881,19 @@ export default {
 				return false
 			}
 			return typeof entry === 'object' && entry.chrome === 'card'
+		},
+
+		/**
+		 * Whether a `sections` widget gets one titled card: on a card surface
+		 * outside a body grid cell, with a title, and not in `cards` mode.
+		 *
+		 * @return {boolean}
+		 */
+		wrapsSections() {
+			if (this.isBare || this.inGridCell || !this.widget || this.widget.type !== 'sections' || !this.widget.title) {
+				return false
+			}
+			return !(this.widget.content && this.widget.content.cards)
 		},
 
 		/** @return {boolean} true when the registry entry declares `card`. */

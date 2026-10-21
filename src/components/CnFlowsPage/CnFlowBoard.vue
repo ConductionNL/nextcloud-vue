@@ -101,10 +101,10 @@
 		</NcNoteCard>
 
 		<div class="cn-flow-board__body">
-			<aside v-if="showPalette" class="cn-flow-board__card cn-flow-board__palette" data-testid="flow-board-palette">
-				<h3 class="cn-flow-board__card-title">
-					{{ t('nextcloud-vue', 'Steps') }}
-				</h3>
+			<aside v-if="showPalette"
+				class="cn-flow-board__card cn-flow-board__palette"
+				:aria-label="t('nextcloud-vue', 'Steps')"
+				data-testid="flow-board-palette">
 				<section v-for="group in paletteGroups"
 					:key="group.app"
 					class="cn-flow-board__palette-group">
@@ -132,6 +132,8 @@
 				<CnFlowDetail :id="id"
 					:app="app"
 					:run="run"
+					:layoutDirection="flowDirection === 'down' ? 'down' : 'right'"
+					:fitMaxZoom="flowDirection === 'down' ? 1 : 0"
 					:toolbarActions="false"
 					:addStep="!showPalette"
 					@save="$emit('save')"
@@ -177,12 +179,14 @@
 						:emptyText="runTab === 'step' && !store.selectedNodeId ? t('nextcloud-vue', 'Select a step on the canvas to see what it did.') : ''" />
 				</template>
 				<template v-else-if="store.selectedNode">
-					<p class="cn-flow-board__eyebrow">
-						{{ stepTypeLabel }}
-					</p>
 					<h3 class="cn-flow-board__card-title" data-testid="flow-board-step-name">
 						{{ stepName }}
 					</h3>
+					<!-- The step type as a pill under the name (DqFlow "Beslistabel van OpenRegister"). -->
+					<CnStatusBadge :label="stepTypeLabel"
+						variant="purple"
+						class="cn-flow-board__step-type"
+						data-testid="flow-board-step-type" />
 					<dl v-if="stepSettings.length > 0" class="cn-flow-board__settings">
 						<div v-for="setting in stepSettings"
 							:key="setting.key"
@@ -285,6 +289,8 @@ export default {
 		palette: { type: String, default: 'picker' },
 		/** Free text under the path in the palette card. */
 		paletteFootnote: { type: String, default: '' },
+		/** `down` runs the steps top to bottom and opens them at their own size (DqFlow); default `right`, left to right and fitted. */
+		flowDirection: { type: String, default: 'right' },
 		/** An info notice under the path. */
 		notice: { type: String, default: '' },
 		/** The pill beside the title ("Case type flow"). */
@@ -769,8 +775,9 @@ export default {
 	min-height: 520px;
 }
 
+/* Palette, canvas and inspector at 220 / rest / 280 (DqFlow). */
 .cn-flow-board--with-palette .cn-flow-board__body {
-	grid-template-columns: 240px minmax(0, 1fr) 340px;
+	grid-template-columns: 220px minmax(0, 1fr) 280px;
 }
 
 .cn-flow-board__card {
@@ -784,12 +791,20 @@ export default {
 	background: var(--color-main-background);
 }
 
+/* The canvas is the white card with the dot grid; the palette beside it sits
+   on the page ground (DqFlow). */
 .cn-flow-board__canvas {
 	padding: 0;
 	overflow: hidden;
-	background-color: var(--color-background-hover);
-	background-image: radial-gradient(var(--color-border-dark) 1px, transparent 1px);
+	background-color: var(--color-main-background);
+	background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
 	background-size: 16px 16px;
+}
+
+.cn-flow-board__palette {
+	gap: 14px;
+	padding: 14px;
+	background: transparent;
 }
 
 .cn-flow-board__canvas > :first-child {
@@ -809,10 +824,8 @@ export default {
 	font-weight: 600;
 }
 
-.cn-flow-board__eyebrow {
-	margin: 0;
-	color: var(--color-text-maxcontrast);
-	font-size: 13px;
+.cn-flow-board__step-type {
+	align-self: flex-start;
 }
 
 .cn-flow-board__validity,
@@ -841,20 +854,23 @@ export default {
 .cn-flow-board__palette-group {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 6px;
 }
 
+/* The providing app as a small caps label, no title row above the groups. */
 .cn-flow-board__palette-app {
 	margin: 0;
 	color: var(--color-text-maxcontrast);
-	font-size: 13px;
+	font-size: 12px;
 	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
 }
 
 .cn-flow-board__palette-list {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 6px;
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -866,11 +882,12 @@ export default {
 	--nldesign-component-button-font-weight: 400;
 	width: 100%;
 	min-height: 34px;
-	padding: 6px 10px;
+	padding: 8px 10px;
 	border: 1px solid var(--color-border);
 	border-radius: 8px;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
+	font-size: 14px;
 	font-weight: 400;
 	text-align: start;
 	cursor: pointer;

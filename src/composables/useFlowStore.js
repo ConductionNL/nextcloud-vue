@@ -101,6 +101,10 @@ export const useFlowStore = defineStore('cnFlow', {
 		flow: emptyFlow(),
 		flows: [],
 
+		// How the automatic layout runs: `right` (left to right) or `down`
+		// (top to bottom). Set by the editor that hosts the canvas.
+		layoutDirection: 'right',
+
 		// Snapshots of `flow`, oldest first, for Ctrl+Z.
 		//
 		// A canvas is direct manipulation: a mis-drag or a mis-aimed Delete
@@ -1659,7 +1663,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				return
 			}
 
-			this.flow.nodes = layoutFlowNodes(this.nodes, this.canvasEdges, this.startNodeIds)
+			this.flow.nodes = layoutFlowNodes(this.nodes, this.canvasEdges, this.startNodeIds, { direction: this.layoutDirection })
 			this.dirty = true
 		},
 
@@ -1693,12 +1697,12 @@ export const useFlowStore = defineStore('cnFlow', {
 			}
 
 			if (needsFullLayout(nodes)) {
-				this.flow.nodes = layoutFlowNodes(nodes, this.canvasEdges, this.startNodeIds)
+				this.flow.nodes = layoutFlowNodes(nodes, this.canvasEdges, this.startNodeIds, { direction: this.layoutDirection })
 				return true
 			}
 
 			if (nodes.some((node) => !this.hasPosition(node))) {
-				this.flow.nodes = placeLooseNodes(nodes, this.canvasEdges, this.startNodeIds)
+				this.flow.nodes = placeLooseNodes(nodes, this.canvasEdges, this.startNodeIds, { direction: this.layoutDirection })
 				return true
 			}
 
