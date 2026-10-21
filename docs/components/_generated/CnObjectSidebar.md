@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 16 direct references, 116 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 16 direct references, 119 files reached through imports.
 
-Through: `CnActionsMenu`, `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectDataWidget`, `CnObjectMetadataWidget`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnTranslatedBadge`, `CnVersionHistory`, `CnWidgetObjectTable`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
+Through: `CnActionsMenu`, `CnAiFeaturesWidget`, `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectDataWidget`, `CnObjectMetadataWidget`, `CnObjectPermissionsTab`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnTranslatedBadge`, `CnVersionHistory`, `CnWidgetObjectTable`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 

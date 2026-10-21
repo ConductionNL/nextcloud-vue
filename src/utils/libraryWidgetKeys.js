@@ -75,6 +75,7 @@ export const BUILT_IN_WIDGET_KEYS = Object.freeze([
 	'divider',
 	'saved-view-alert',
 	'exports',
+	'object-translations',
 ])
 
 /**
