@@ -36,7 +36,7 @@
 					v-for="column in lane.columns"
 					:key="`col-${lane.key}-${column.key}`"
 					class="cn-board-view__column"
-					:class="{ 'cn-board-view__column--unreachable': isUnreachable(column), 'cn-board-view__column--full': isFull(column), 'cn-board-view__column--reason': dragReason(column) !== '' }"
+					:class="{ 'cn-board-view__column--unreachable': isUnreachable(column), 'cn-board-view__column--full': isFull(column), 'cn-board-view__column--reason': dragReason(column) !== '', 'cn-board-view__column--closed': column.closed === true }"
 					role="listitem"
 					data-testid="cn-board-column"
 					:data-column="column.key"
@@ -1206,19 +1206,24 @@ export default {
 
 		/**
 		 * The cards a column draws: all of them, or the first `columnLimit`
-		 * until the reader shows the rest.
+		 * until the reader shows the rest. A closed column (a won or lost
+		 * stage) draws none until the reader opens it.
 		 *
 		 * @param {object} lane The lane.
 		 * @param {object} column The column.
 		 * @return {Array<object>} The cards.
 		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-a-long-column-is-cut-with-a-show-more-button
+		 * @spec openspec/changes/pl4-board-list-stages/specs/pl4-board-list-stages/spec.md#requirement-a-closed-stage-starts-collapsed
 		 */
 		visibleCards(lane, column) {
-			const limit = Number(this.columnLimit)
-			if (!(limit > 0) || this.expanded.includes(this.expandKey(lane, column))) {
+			if (this.expanded.includes(this.expandKey(lane, column))) {
 				return column.cards
 			}
-			return column.cards.slice(0, limit)
+			if (column.closed === true) {
+				return []
+			}
+			const limit = Number(this.columnLimit)
+			return limit > 0 ? column.cards.slice(0, limit) : column.cards
 		},
 
 		/**

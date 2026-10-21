@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.138.0', () => {
+	it('the manifest schema version reads 2.139.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1415,7 +1415,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.136.0 lets nextStep's title and a stage's title and after be a list of candidates, each naming record fields as {path} tokens (board-case-page).
 		// 2.137.0 lets open-form edit and create through an endpoint (open-form-endpoint), a grouped-cards group carry an action (grouped-cards-group-action), a detail page ask for a purpose before it opens a record (detail-access-purpose), an api-call GET a download (api-call-get-download) and headerPill.values limit a pill to some values (detail-pill-values).
 		// 2.138.0 adds after and before on a row indicator, a date bound that is now or an ISO date (cell-config-growth).
-		expect(schema.version).toBe('2.138.0')
+		// 2.139.0 lets a board column field read its columns from a list on a parent row and collapse a closed stage (pl4-board-list-stages).
+		expect(schema.version).toBe('2.139.0')
 	})
 
 	it('accepts the 2.135.0 header action href and refuses it with a handler, another type or a bad URL', () => {
@@ -1603,6 +1604,13 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(withIndex({ rowClass: [{ when: { field: 'dueAt', value: 1 } }] })).valid).toBe(false)
 		expect(validateManifestV2(withIndex({ bulkBandAlways: 'yes' })).valid).toBe(false)
 		expect(validateManifestV2(withIndex({ quickFilterPlacement: 'header' })).valid).toBe(false)
+	})
+
+	it('accepts board columns from a list on a parent row (pl4-board-list-stages)', () => {
+		const withBoard = (source) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'pipelinq', schema: 'lead', viewModes: ['table', 'board'], board: { statusField: 'stage', columnFields: [{ field: 'stage', source }] } } }] })
+		const stages = { schema: 'pipeline', itemsPath: 'stages', keyField: 'name', labelField: 'name', orderField: 'order', colorField: 'color', closedField: 'isClosed', narrowBy: { field: '_parent', rowField: 'pipeline' } }
+		expect(validateManifestV2(withBoard(stages)).valid).toBe(true)
+		expect(validateManifestV2(withBoard({ ...stages, itemsPath: '' })).valid).toBe(false)
 	})
 
 	it('accepts a dashboard page filter drawn as a segmented group on the description line, and refuses unknown keys', () => {

@@ -254,3 +254,18 @@ describe('a card is a container, and its actions are controls', () => {
 		expect(card.attributes('draggable')).toBe('true')
 	})
 })
+
+describe('a closed column (pl4-board-list-stages)', () => {
+	it('starts collapsed with its count, and shows its cards on request', async () => {
+		const field = { states: [{ key: 'open', label: 'Open' }, { key: 'done', label: 'Done', closed: true }] }
+		const rows = [{ id: 1, status: 'done', title: 'Een' }, { id: 2, status: 'done', title: 'Twee' }, { id: 3, status: 'open', title: 'Drie' }]
+		const wrapper = mountBoard({ rows, statusFieldSchema: field })
+		const done = wrapper.find('[data-column="done"]')
+		expect(done.classes()).toContain('cn-board-view__column--closed')
+		expect(done.findAll('[data-testid="cn-board-card"]')).toHaveLength(0)
+		expect(done.find('[data-testid="cn-board-count"]').text()).toContain('2')
+		await done.find('[data-testid="cn-board-show-more"]').trigger('click')
+		expect(wrapper.find('[data-column="done"]').findAll('[data-testid="cn-board-card"]')).toHaveLength(2)
+		expect(wrapper.find('[data-column="open"]').findAll('[data-testid="cn-board-card"]')).toHaveLength(1)
+	})
+})

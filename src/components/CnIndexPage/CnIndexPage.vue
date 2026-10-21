@@ -1363,6 +1363,7 @@ import {
 	columnFieldsOf,
 	columnKeyOfRow,
 	fetchReferenceObjects,
+	flattenItemRefs,
 	fullTargetOf,
 	referenceTargetOf,
 	refIdOf,
@@ -4994,6 +4995,7 @@ export default {
 				capacityField: source.capacityField || '',
 				neutralColor: typeof source.neutralColor === 'string' ? source.neutralColor : '',
 				colorMap: source.colorMap && typeof source.colorMap === 'object' ? source.colorMap : null,
+				closedField: source.closedField || '',
 			})
 		},
 
@@ -10020,6 +10022,9 @@ export default {
 						rows = await fetchReferenceObjects({ ...target, filter: active.source?.filter || {} })
 					} catch {
 						rows = []
+					}
+					if (active.source?.itemsPath) {
+						rows = flattenItemRefs(rows, { itemsPath: active.source.itemsPath, keyField: active.source.keyField || 'name' })
 					}
 					this.boardRefs = { ...this.boardRefs, [active.field]: rows }
 				}

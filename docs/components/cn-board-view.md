@@ -91,6 +91,13 @@ calls the suggestion `nested-interactive` when you try it.
 | `selectedIds` | `Array` | `[]` | The selected cards, by row key. |
 | `allowedMoves` | `Function` | `null` | `(card) => Promise<Array<string>\|null>`: the column keys a card can reach, `null` for all. See below. |
 
+## Closed columns
+
+A state with `closed: true` (from a reference column's `closedField`, a won or
+lost stage) draws its column collapsed: the header and count, no cards, and the
+"Show N more" button that opens it. It still takes a drop, so a card can be
+moved into a closed stage without opening it first.
+
 ## Late cards
 
 Give the board a `dueRule` and it marks the cards that are late:
