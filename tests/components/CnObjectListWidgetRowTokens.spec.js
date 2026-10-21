@@ -18,7 +18,7 @@ jest.mock('@nextcloud/axios', () => ({
 	default: { get: () => Promise.resolve({ status: 200, data: { results: [], total: 0 } }) },
 }))
 
-const ROW = { id: 'obj-7', name: 'Lichtmast 15', location: { code: 'LM-0015' } }
+const ROW = { id: 'obj-7', name: 'Lichtmast 15', location: { code: 'LM-0015' }, objectUrl: 'https://or.example/api/objects/7?register=a&schema=b' }
 
 describe('fillRowTokens', () => {
 	it('fills @row.<field> and {field} from the row, dot paths included', () => {
@@ -34,6 +34,12 @@ describe('fillRowTokens', () => {
 	it('fills a missing field as empty and walks objects and arrays', () => {
 		expect(fillRowTokens('@row.nope', ROW)).toBe('')
 		expect(fillRowTokens({ query: { object: '@row.id' }, list: ['{name}'] }, ROW)).toEqual({ query: { object: 'obj-7' }, list: ['Lichtmast 15'] })
+	})
+})
+
+describe('fillRowTokens encoding', () => {
+	it('URL-encodes a row value in a target or url', () => {
+		expect(fillRowTokens('/cases?object={objectUrl}', ROW, { encode: true })).toBe('/cases?object=https%3A%2F%2For.example%2Fapi%2Fobjects%2F7%3Fregister%3Da%26schema%3Db')
 	})
 })
 
@@ -61,8 +67,25 @@ describe('CnObjectListWidget row tokens', () => {
 		expect(action.to(ROW)).toBeNull()
 	})
 
+	it('makes a navigate action with route and a row-token query a per-row router location', () => {
+		const w = mountList([{ label: 'Alle zaken op dit object', type: 'navigate', route: 'Cases', query: { '_related[caseObject][case][objectUrl]': '{objectUrl}' } }])
+		const [action] = w.vm.mappedRowActions
+		expect(action.to(ROW)).toEqual({ name: 'Cases', query: { '_related[caseObject][case][objectUrl]': ROW.objectUrl } })
+		expect(action.href(ROW)).toBe('')
+	})
+
+	it('encodes a row value that lands in a navigate target', () => {
+		const w = mountList([{ label: 'Zaken', type: 'navigate', target: '/cases?object={objectUrl}' }])
+		const [action] = w.vm.mappedRowActions
+		expect(action.to(ROW)).toBe('/cases?object=' + encodeURIComponent(ROW.objectUrl))
+	})
+
 	it('fills the row into an action it dispatches', () => {
 		const dispatch = jest.fn()
+		const encoded = mountList([{ label: 'Koppelen', type: 'api-call', url: '/apps/dossiq/api/link?object={objectUrl}' }], { provide: { cnDispatchAction: dispatch } })
+		encoded.vm.runRowAction(encoded.vm.content.rowActions[0], ROW)
+		expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ url: '/apps/dossiq/api/link?object=' + encodeURIComponent(ROW.objectUrl) }))
+		dispatch.mockClear()
 		const w = mountList([{ label: 'Koppelen', type: 'api-call', url: '/apps/dossiq/api/objects/{id}/link', payload: { name: '@row.name' } }], { provide: { cnDispatchAction: dispatch } })
 		w.vm.runRowAction(w.vm.content.rowActions[0], ROW)
 		expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ url: '/apps/dossiq/api/objects/obj-7/link', payload: { name: 'Lichtmast 15' } }))

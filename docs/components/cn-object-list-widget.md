@@ -110,6 +110,12 @@ A row action reads the row it runs on: `@row.<field>` and `{field}` (dot paths) 
 ]
 ```
 
+A value filled into a `target` or `url` is URL-encoded (an object URL holds `?` and `&`). A `navigate` action can also name a page by `route` with a `query`; the query's row tokens fill raw, because the router encodes them:
+
+```json
+{ "label": "All cases on this object", "type": "navigate", "route": "Cases", "query": { "_related[caseObject][case][objectUrl]": "{objectUrl}" } }
+```
+
 ### Drop zone
 
 `content.dropZone` is one action of that same shape, dispatched when files are

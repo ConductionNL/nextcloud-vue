@@ -2085,6 +2085,18 @@ export default {
 		 * @return {object} `{ href, linkTarget }`, `{ to }`, or `{}`.
 		 */
 		rowActionLink(action) {
+			// A route with a query: a router location per row, the query's row
+			// tokens filled raw (the router encodes) and its page tokens resolved.
+			if (action && action.type === 'navigate' && !action.confirm && typeof action.route === 'string' && action.route !== '') {
+				const locationFor = (row) => ({
+					name: action.route,
+					query: resolveFilterTokens(actionForRow(action, row).query || {}, this.tokenCtx),
+				})
+				return {
+					href: () => '',
+					to: (row) => locationFor(row),
+				}
+			}
 			if (action && action.type === 'navigate' && !action.confirm && hasRowTokens(action.target)) {
 				const linkFor = (row) => actionLink(actionForRow(action, row), { router: this.$router || null, tokenCtx: this.tokenCtx })
 				// An in-app link answers `to` (followed by the router), an external one `href`.
