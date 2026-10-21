@@ -39,7 +39,11 @@
 				:requestHint="endpointText('requestHint')"
 				:requestDisabled="epBlocked"
 				@request="epRequest" />
-			<CnDataTable v-if="!(endpointActive && (epError || epAwaitingRequest))" ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
+			<CnDataTable
+				v-if="!(endpointActive && (epError || epAwaitingRequest))"
+				ref="dataTable"
+				v-bind="{ ...innerProps, ...$attrs }"
+				@sort="onSort">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
 				     (#footer { total, shown }, #empty, #column-<key>, …). The
 				     #row-actions slot is NOT forwarded while the widget renders
@@ -545,6 +549,8 @@ export default {
 			confirmRow: null,
 			/** Where each label column's references point, read off the source schema, by column key. */
 			refTargets: {},
+			/** @type {{key: string, order: ('asc'|'desc')}|null} The header sort of endpoint rows (null = the endpoint's order). */
+			endpointSort: null,
 		}
 	},
 
@@ -630,6 +636,33 @@ export default {
 		 */
 		endpointRows() {
 			return Array.isArray(this.epData) ? this.epData : []
+		},
+
+		/**
+		 * The endpoint rows in the order of the clicked header: numbers as
+		 * numbers, text in the reader's collation, empty values last. Without a
+		 * header sort, the endpoint's own order.
+		 *
+		 * @return {Array<object>}
+		 */
+		sortedEndpointRows() {
+			const sort = this.endpointSort
+			if (!sort || !sort.key) {
+				return this.endpointRows
+			}
+			const direction = sort.order === 'desc' ? -1 : 1
+			const empty = (v) => v === null || v === undefined || v === ''
+			return [...this.endpointRows].sort((left, right) => {
+				const a = getByPath(left, sort.key)
+				const b = getByPath(right, sort.key)
+				if (empty(a) || empty(b)) {
+					return empty(a) === empty(b) ? 0 : (empty(a) ? 1 : -1)
+				}
+				if (typeof a === 'number' && typeof b === 'number') {
+					return (a - b) * direction
+				}
+				return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }) * direction
+			})
 		},
 
 		/**
@@ -823,8 +856,12 @@ export default {
 				}
 			}
 			if (this.endpointActive) {
-				inner.rows = this.endpointRows
+				inner.rows = this.sortedEndpointRows
 				inner.loading = this.epLoading || this.loading
+				if (this.endpointSort) {
+					inner.sortKey = this.endpointSort.key
+					inner.sortOrder = this.endpointSort.order
+				}
 			}
 			if (this.rowRoute) {
 				inner.rowClickRoute = this.rowRouteFn
@@ -992,6 +1029,18 @@ export default {
 			link.click()
 			link.remove()
 			URL.revokeObjectURL(url)
+		},
+
+		/**
+		 * A header sort: endpoint rows are sorted here, since CnDataTable only
+		 * reports the click for rows it did not fetch itself.
+		 *
+		 * @param {{key: (string|null), order: (string|null)}} event The sort state.
+		 */
+		onSort(event) {
+			if (this.endpointActive) {
+				this.endpointSort = event && event.key ? { key: event.key, order: event.order || 'asc' } : null
+			}
 		},
 
 		/**

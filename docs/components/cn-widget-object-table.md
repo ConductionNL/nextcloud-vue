@@ -118,6 +118,10 @@ REST endpoint computes (e.g. a per-source performance report):
 - `columns` / formatters / `rowRoute` / `actions` apply unchanged on
   top of endpoint rows.
 
+### Sorting endpoint rows
+
+A `sortable` column sorts the endpoint rows when its header is clicked: numbers as numbers (10 after 9), text in the reader's collation, empty values last. Until a header is clicked, and after the sort is cleared, the rows keep the endpoint's order.
+
 ### A heading the endpoint names (`labelPath`)
 
 A column with `labelPath` takes its heading from the endpoint's whole response (before `responsePath`), so the endpoint can say what the column measures: a report that sends `labels.workingHours` as "Working hours (working days x 8)" heads its column with it. `label` stays the heading until the response names one.
