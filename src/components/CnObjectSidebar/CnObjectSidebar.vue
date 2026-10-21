@@ -231,6 +231,7 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
+import { CnAiFeaturesWidget } from '../CnAiFeaturesWidget/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
@@ -255,6 +256,8 @@ import { CnObjectPermissionsTab } from '../CnObjectPermissionsTab/index.js'
  * customComponents registry (prop, then injected `cnCustomComponents`).
  */
 const BUILTIN_WIDGETS = {
+	// The hermiq AI features a record's type switches on (CnAiFeaturesWidget).
+	'ai-features': CnAiFeaturesWidget,
 	data: CnObjectDataWidget,
 	metadata: CnObjectMetadataWidget,
 	audit: CnAuditTrailTab,

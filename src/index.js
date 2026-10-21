@@ -422,6 +422,7 @@ export {
 	CnAiChatPanel,
 	CnAiChatWidget,
 	CnAiCompanion,
+	CnAiFeaturesWidget,
 	CnAiFloatingButton,
 	CnAiHistoryList,
 	CnAiInput,

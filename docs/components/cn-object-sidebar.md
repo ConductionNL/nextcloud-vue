@@ -154,6 +154,7 @@ The `tabs` prop opens up the closed-enum tab set so apps can drive `CnObjectSide
 
 | Widget `type` | Resolved component | Required props |
 |---------------|--------------------|---------------|
+| `ai-features` | [`CnAiFeaturesWidget`](./cn-ai-features-widget.md) | `declaration`, `featuresEndpoint` and the optional prompt / ask / decision endpoints (hermiq AI features on the record) |
 | `data` | [`CnObjectDataWidget`](./cn-object-data-widget.md) | `schema`, `objectData` (forward via per-widget `props`) |
 | `metadata` | [`CnObjectMetadataWidget`](./cn-object-metadata-widget.md) | `objectData` |
 | `audit` / `audit-trail` | [`CnAuditTrailTab`](./cn-object-sidebar.md) | — (register / schema / objectId flow from the shared context) |
