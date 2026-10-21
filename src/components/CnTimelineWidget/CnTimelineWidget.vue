@@ -313,6 +313,9 @@ export default {
 		},
 
 		emptyLabel() {
+			if (typeof this.content?.emptyText === 'string' && this.content.emptyText !== '') {
+				return this.translate(this.content.emptyText)
+			}
 			return t('nextcloud-vue', 'Nothing has happened yet.')
 		},
 

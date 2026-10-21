@@ -93,3 +93,12 @@ describe('CnTimelineWidget: endpointSource', () => {
 		expect(w.find('[data-testid="cn-timeline-widget-error"]').exists()).toBe(true)
 	})
 })
+
+describe('CnTimelineWidget: emptyText', () => {
+	it('says the configured sentence when there is nothing to show', async () => {
+		axios.get.mockResolvedValue({ data: { items: [], page: 1, pages: 1 } })
+		const w = mountWidget({ ...CONTENT, emptyText: 'Activities will appear here once contact moments, tasks, emails or calendar entries are linked to this record.' })
+		await flushPromises()
+		expect(w.find('[data-testid="cn-timeline-widget-empty"]').text()).toBe('Activities will appear here once contact moments, tasks, emails or calendar entries are linked to this record.')
+	})
+})

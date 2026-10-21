@@ -9,3 +9,11 @@ A timeline's `endpointSource` SHALL read its endpoint for the record, a page at 
 #### Scenario: Only the tasks
 - **WHEN** the user presses the Tasks chip
 - **THEN** the endpoint is read with `types[]=task` from page 1
+
+### Requirement: A timeline says what will appear when it is empty
+
+`content.emptyText` SHALL replace the default empty sentence, translated.
+
+#### Scenario: an empty client history
+- GIVEN a client without activities and `emptyText` "Activities will appear here once ..."
+- THEN the timeline reads that sentence
