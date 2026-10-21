@@ -21,17 +21,22 @@ function block(selector) {
 
 describe('look-board.css: warning and error banners', () => {
 	it('tints each tone from its own Nextcloud colour', () => {
-		expect(block('.cn-look-board .cn-banner-widget .notecard.notecard--warning:not(.cn-look-nextcloud *) {')).toMatch(/--cn-banner-edge: color-mix\(in srgb, var\(--color-warning\)/)
-		expect(block('.cn-look-board .cn-banner-widget .notecard.notecard--error:not(.cn-look-nextcloud *) {')).toMatch(/--cn-banner-edge: color-mix\(in srgb, var\(--color-error\)/)
+		expect(block('.cn-look-board .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *) {')).toMatch(/--cn-banner-edge: color-mix\(in srgb, var\(--color-warning\)/)
+		expect(block('.cn-look-board .settings-section .notecard.notecard--error:not(.cn-look-nextcloud *) {')).toMatch(/--cn-banner-edge: color-mix\(in srgb, var\(--color-error\)/)
 	})
 
 	it('draws the box: 1px edge in its tone, radius 10, 12px 14px, no margin', () => {
-		const rule = block('.cn-look-board .cn-banner-widget .notecard.notecard--warning:not(.cn-look-nextcloud *),')
+		const rule = block('.cn-look-board .cn-banner-widget .notecard.notecard--warning:not(.cn-look-nextcloud *),\n.cn-look-board .cn-banner-widget .notecard.notecard--error')
 		expect(rule).toMatch(/border: 1px solid var\(--cn-banner-edge\);/)
 		expect(rule).toMatch(/border-radius: 10px;/)
 		expect(rule).toMatch(/padding: 12px 14px;/)
 		expect(rule).toMatch(/margin: 0;/)
 		expect(rule).toMatch(/background-color: var\(--cn-banner-ground\) !important;/)
+	})
+
+	it('gives a settings card\'s success note the same box in the success tone', () => {
+		expect(block('.cn-look-board .settings-section .notecard.notecard--success:not(.cn-look-nextcloud *) {')).toMatch(/var\(--color-success\)/)
+		expect(css).toMatch(/\.cn-look-board \.settings-section \.notecard\.notecard--success:not\(\.cn-look-nextcloud \*\) \{\n\t--note-card-icon-size/)
 	})
 
 	it('draws no card around a stat-row banner', () => {
