@@ -57,6 +57,66 @@
 				</p>
 			</template>
 		</fieldset>
+		<fieldset v-else-if="kind === 'checkboxes'"
+			class="cn-settings-field__radio"
+			:disabled="field.readOnly"
+			:aria-describedby="describedBy">
+			<legend class="cn-settings-field__radio-legend" :class="{ 'hidden-visually': field.hideLabel === true }">
+				{{ label }}
+			</legend>
+			<template v-for="option in normalizedOptions" :key="String(option.value)">
+				<NcCheckboxRadioSwitch
+					type="checkbox"
+					:modelValue="listValue.some((entry) => String(entry) === String(option.value))"
+					:data-testid="`cn-settings-field-option-${field.key}-${option.value}`"
+					@update:modelValue="toggleOption(option.value, $event)">
+					{{ option.label }}
+				</NcCheckboxRadioSwitch>
+				<p v-if="option.description" class="cn-settings-field__option-description">
+					{{ option.description }}
+				</p>
+			</template>
+		</fieldset>
+		<fieldset v-else-if="kind === 'pairs'"
+			class="cn-settings-field__pairs"
+			:disabled="field.readOnly"
+			:aria-describedby="describedBy">
+			<legend class="cn-settings-field__radio-legend" :class="{ 'hidden-visually': field.hideLabel === true }">
+				{{ label }}
+			</legend>
+			<div v-for="(row, index) in pairRows"
+				:key="index"
+				class="cn-settings-field__pair"
+				:data-testid="`cn-settings-field-pair-${field.key}`">
+				<NcTextField
+					:label="pairKeyLabel"
+					:modelValue="row.key"
+					:maxlength="field.keyMaxLength"
+					@update:modelValue="setPair(index, 'key', $event)" />
+				<NcTextField
+					:label="pairValueLabel"
+					:type="field.valueType === 'number' ? 'number' : 'text'"
+					:modelValue="row.value === null || row.value === undefined ? '' : String(row.value)"
+					@update:modelValue="setPair(index, 'value', $event)" />
+				<NcButton
+					variant="tertiary"
+					:ariaLabel="t('nextcloud-vue', 'Remove {name}', { name: row.key || pairKeyLabel })"
+					:data-testid="`cn-settings-field-pair-remove-${field.key}`"
+					@click="removePair(index)">
+					<template #icon>
+						<Close :size="20" />
+					</template>
+				</NcButton>
+			</div>
+			<NcButton
+				:data-testid="`cn-settings-field-pair-add-${field.key}`"
+				@click="addPair">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ field.addLabel || t('nextcloud-vue', 'Add a row') }}
+			</NcButton>
+		</fieldset>
 		<NcCheckboxRadioSwitch
 			v-else-if="kind === 'switch' || kind === 'boolean'"
 			:type="kind === 'switch' ? 'switch' : 'checkbox'"
@@ -105,8 +165,9 @@
 		<NcSelect
 			v-else-if="kind === 'select'"
 			:inputId="inputId"
-			:modelValue="selectedOption"
+			:modelValue="field.multiple ? selectedOptions : selectedOption"
 			:options="normalizedOptions"
+			:multiple="!!field.multiple"
 			:inputLabel="label"
 			:placeholder="field.placeholder || ''"
 			:loading="optionsLoading"
@@ -114,7 +175,7 @@
 			:clearable="!field.required"
 			label="label"
 			:aria-describedby="describedBy"
-			@update:modelValue="emitValue(optionValue($event))" />
+			@update:modelValue="emitValue(field.multiple ? optionValues($event) : optionValue($event))" />
 		<NcTextArea
 			v-else-if="kind === 'textarea' || kind === 'lines'"
 			:id="inputId"
@@ -177,6 +238,8 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
+import Close from 'vue-material-design-icons/Close.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import { buildHeaders, prefixUrl } from '../../utils/headers.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
@@ -202,7 +265,10 @@ const INPUT_TYPES = ['password', 'date', 'datetime-local', 'email', 'url']
  * preview tile, the initials without an image, and an upload button that
  * posts the file to `uploadUrl` at once and emits `uploaded`), `radio` (one
  * choice from `options`, each with an optional `description` under it),
- * `lines` (a textarea, one entry per line). Three types hold no value of their
+ * `lines` (a textarea, one entry per line), `checkboxes` (several choices
+ * from `options`, the value a list; `select` with `multiple` is the same as a
+ * multi-select) and `pairs` (key-to-value rows with add and remove, the value
+ * a list of `{ key, value }` rows). Three types hold no value of their
  * own: `heading` (a subheading between fields), `status` (a read-only note:
  * the host passes its `text` and `tone`) and `action` (a button that emits
  * `action`; the host passes `actionBusy` and the `actionResult` note).
@@ -218,7 +284,7 @@ const INPUT_TYPES = ['password', 'date', 'datetime-local', 'email', 'url']
 export default {
 	name: 'CnSettingsField',
 
-	components: { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { Close, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField, Plus },
 
 	props: {
 		/**
@@ -331,6 +397,32 @@ export default {
 				: { label: String(option), value: option }))
 		},
 
+		/** @return {Array} The value as a list, for a multi-choice field. */
+		listValue() {
+			return Array.isArray(this.modelValue) ? this.modelValue : []
+		},
+
+		/** @return {Array<object>} The options a multi-select's value selects. */
+		selectedOptions() {
+			return this.listValue.map((value) => this.normalizedOptions.find((option) => String(option.value) === String(value))
+				|| { label: String(value), value })
+		},
+
+		/** @return {Array<{key: string, value: unknown}>} A pairs field's rows. */
+		pairRows() {
+			return Array.isArray(this.modelValue) ? this.modelValue : []
+		},
+
+		/** @return {string} The label of a pair's key. */
+		pairKeyLabel() {
+			return String(this.field.keyLabel || t('nextcloud-vue', 'Key'))
+		},
+
+		/** @return {string} The label of a pair's value. */
+		pairValueLabel() {
+			return String(this.field.valueLabel || t('nextcloud-vue', 'Value'))
+		},
+
 		/** @return {object|null} The option the value selects, for NcSelect. */
 		selectedOption() {
 			if (this.modelValue === null || this.modelValue === undefined || this.modelValue === '') {
@@ -413,6 +505,63 @@ export default {
 			 * @event update:modelValue The value changed. Payload: the new value.
 			 */
 			this.$emit('update:modelValue', value)
+		},
+
+		/**
+		 * Check or uncheck one choice of a `checkboxes` field; the list keeps
+		 * the order of the options.
+		 *
+		 * @param {string|number} value The option's value.
+		 * @param {boolean} checked Whether it is now checked.
+		 * @return {void}
+		 */
+		toggleOption(value, checked) {
+			const chosen = new Set(this.listValue.map(String))
+			if (checked) {
+				chosen.add(String(value))
+			} else {
+				chosen.delete(String(value))
+			}
+			this.emitValue(this.normalizedOptions.filter((option) => chosen.has(String(option.value))).map((option) => option.value))
+		},
+
+		/**
+		 * Change a pair's key or value.
+		 *
+		 * @param {number} index The row.
+		 * @param {string} part `key` or `value`.
+		 * @param {string} text What was typed.
+		 * @return {void}
+		 */
+		setPair(index, part, text) {
+			const rows = this.pairRows.map((row) => ({ ...row }))
+			rows[index] = { ...rows[index], [part]: part === 'value' && this.field.valueType === 'number' && text !== '' ? Number(text) : text }
+			this.emitValue(rows)
+		},
+
+		/** Add an empty pair. */
+		addPair() {
+			this.emitValue([...this.pairRows, { key: '', value: '' }])
+		},
+
+		/**
+		 * Remove a pair.
+		 *
+		 * @param {number} index The row.
+		 * @return {void}
+		 */
+		removePair(index) {
+			this.emitValue(this.pairRows.filter((_row, at) => at !== index))
+		},
+
+		/**
+		 * The storable values of what a multi-select emits.
+		 *
+		 * @param {Array|null} emitted The chosen options.
+		 * @return {Array}
+		 */
+		optionValues(emitted) {
+			return (Array.isArray(emitted) ? emitted : []).map((option) => this.optionValue(option))
 		},
 
 		/**
@@ -539,6 +688,29 @@ export default {
 	margin: 0;
 	padding: 0;
 	border: 0;
+}
+
+.cn-settings-field__pairs {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.cn-settings-field__pair {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 8px;
+	width: 100%;
+}
+
+.cn-settings-field__pair > :not(button) {
+	flex: 1 1 140px;
+	min-width: 0;
 }
 
 .cn-settings-field__radio-legend {

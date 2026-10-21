@@ -66,4 +66,15 @@ describe('CnFlowBoard right panel', () => {
 		const rows = w.findAll('[data-testid="flow-board-step-setting"]').map((row) => [row.find('dt').text(), row.find('dd').text()])
 		expect(rows).toEqual([['Decision table', 'Welstand areas'], ['Input', 'Case location'], ['Stop on no match', 'Yes']])
 	})
+
+	it('names the step, then its type as a purple pill under the name (DqFlow)', async () => {
+		const w = await mountBoard({ selectedNodeId: 'n1' })
+		const name = w.find('[data-testid="flow-board-step-name"]')
+		const pill = w.find('[data-testid="flow-board-step-type"]')
+		expect(name.text()).toBe('Welstand needed?')
+		expect(pill.text()).toBe(w.vm.stepTypeLabel)
+		expect(pill.classes().join(' ')).toContain('purple')
+		expect(name.element.compareDocumentPosition(pill.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+		expect(w.find('.cn-flow-board__eyebrow').exists()).toBe(false)
+	})
 })

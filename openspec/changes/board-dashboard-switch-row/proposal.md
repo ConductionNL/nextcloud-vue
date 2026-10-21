@@ -13,6 +13,6 @@ The switch row under a board dashboard's header (DqMijnWerk, DqMijnTeam) did not
 
 ## What changes
 
-In the board look the link pills take the light primary text mixed 60/40 toward the main text, also as the theme's
+In the board look the link pills take the light primary text, also as the theme's
 on-surface ink, and the page view switch in the switch row has 14px labels in the soft ink, the chosen one in the main
 ink without an edge (kept in forced-colours mode) and a 10px track corner.

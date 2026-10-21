@@ -36,7 +36,7 @@
 					v-for="column in lane.columns"
 					:key="`col-${lane.key}-${column.key}`"
 					class="cn-board-view__column"
-					:class="{ 'cn-board-view__column--unreachable': isUnreachable(column), 'cn-board-view__column--full': isFull(column), 'cn-board-view__column--reason': dragReason(column) !== '' }"
+					:class="{ 'cn-board-view__column--unreachable': isUnreachable(column), 'cn-board-view__column--full': isFull(column), 'cn-board-view__column--reason': dragReason(column) !== '', 'cn-board-view__column--closed': column.closed === true }"
 					role="listitem"
 					data-testid="cn-board-column"
 					:data-column="column.key"
@@ -158,6 +158,13 @@
 										@auxclick="onCardAuxClick(card, $event)">
 										{{ roleText(card, roles.title) || cardKey(card) }}
 									</a>
+									<CnRowActions
+										v-if="cardActions.length > 0"
+										class="cn-board-view__card-actions"
+										:actions="cardActions"
+										:row="card"
+										:rowLabel="cardLabel(card, column)"
+										@action="onCardAction" />
 									<span class="cn-board-view__menu-wrap">
 										<button
 											type="button"
@@ -235,6 +242,19 @@
 									</CnStatusBadge>
 								</span>
 								<span
+									v-if="cellFieldsOf().length > 0"
+									class="cn-board-view__card-cells"
+									data-testid="cn-board-card-cells">
+									<CnCellRenderer
+										v-for="field in cellFieldsOf()"
+										:key="`c-${cardKey(card)}-${field}`"
+										:value="readPath(card, field)"
+										:row="card"
+										:widget="cellOf(field).widget || null"
+										:widgetProps="cellOf(field).widgetProps || {}"
+										:formatter="cellOf(field).formatter || null" />
+								</span>
+								<span
 									v-if="dueText(card) !== '' || ownerName(card) !== ''"
 									class="cn-board-view__card-footer"
 									data-testid="cn-board-card-footer">
@@ -277,7 +297,14 @@
 									v-for="field in cardFields"
 									:key="`f-${cardKey(card)}-${field}`"
 									class="cn-board-view__card-field">
-									{{ card[field] }}
+									<CnCellRenderer
+										v-if="cellOf(field)"
+										:value="readPath(card, field)"
+										:row="card"
+										:widget="cellOf(field).widget || null"
+										:widgetProps="cellOf(field).widgetProps || {}"
+										:formatter="cellOf(field).formatter || null" />
+									<template v-else>{{ card[field] }}</template>
 								</span>
 
 								<!--
@@ -297,6 +324,13 @@
 									@auxclick="onCardAuxClick(card, $event)">
 									{{ openLabel }}
 								</button>
+								<CnRowActions
+									v-if="cardActions.length > 0"
+									class="cn-board-view__card-actions"
+									:actions="cardActions"
+									:row="card"
+									:rowLabel="cardLabel(card, column)"
+									@action="onCardAction" />
 
 								<!--
 								The keyboard's way to do what a drag does. A board
@@ -356,7 +390,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import CnCellRenderer from '../CnCellRenderer/CnCellRenderer.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import CnRowActions from '../CnRowActions/CnRowActions.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
@@ -399,7 +435,7 @@ import '../../css/board.css'
 export default {
 	name: 'CnBoardView',
 
-	components: { CnIcon, CnStatusBadge },
+	components: { CnCellRenderer, CnIcon, CnRowActions, CnStatusBadge },
 
 	inject: {
 		/**
@@ -438,6 +474,32 @@ export default {
 		cardFields: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The actions each card offers in its own menu, as the index page's
+		 * row actions (`{ id, label, icon?, handler(card), visibleWhen? }`):
+		 * assign a lead, set its priority. Empty draws no menu. Manifest
+		 * `config.board.cardActions` names them by id.
+		 *
+		 * @type {Array<object>}
+		 */
+		cardActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * How a card field is drawn: `{ [field]: { widget?, widgetProps?, formatter? } }`,
+		 * the cell config a table column takes (a priority badge, a value with its
+		 * currency, a close date with its due text). A field without one is text.
+		 * Manifest `config.board.cardCells`.
+		 *
+		 * @type {object|null}
+		 */
+		cardCells: {
+			type: Object,
+			default: null,
 		},
 
 		/** A second field to group the board into rows by. */
@@ -639,7 +701,7 @@ export default {
 		},
 	},
 
-	emits: ['card-click', 'card-aux-click', 'moved', 'refused', 'stale', 'load-more', 'select'],
+	emits: ['card-click', 'card-aux-click', 'moved', 'refused', 'stale', 'load-more', 'select', 'card-action'],
 
 	data() {
 		return {
@@ -787,6 +849,42 @@ export default {
 	},
 
 	methods: {
+		readPath,
+
+		/**
+		 * A card action was picked: tell the host, as a row action does.
+		 *
+		 * @param {object} payload What CnRowActions reports.
+		 * @spec openspec/changes/pl4-board-card-actions/specs/pl4-board-card-actions/spec.md#requirement-a-card-carries-the-row-actions
+		 */
+		onCardAction(payload) {
+			/** @event card-action A card action was picked. Payload: what CnRowActions reports. */
+			this.$emit('card-action', payload)
+		},
+
+		/**
+		 * The card fields with a cell config, in `cardFields` order: the board
+		 * look draws them as a line of cells under the pill.
+		 *
+		 * @return {Array<string>}
+		 * @spec openspec/changes/pl4-board-card-cells/specs/pl4-board-card-cells/spec.md#requirement-a-card-field-can-be-a-cell
+		 */
+		cellFieldsOf() {
+			return (Array.isArray(this.cardFields) ? this.cardFields : []).filter((field) => this.cellOf(field) !== null)
+		},
+
+		/**
+		 * The cell config of a card field, or null to draw it as text.
+		 *
+		 * @param {string} field The card field.
+		 * @return {object|null}
+		 * @spec openspec/changes/pl4-board-card-cells/specs/pl4-board-card-cells/spec.md#requirement-a-card-field-can-be-a-cell
+		 */
+		cellOf(field) {
+			const cell = this.cardCells && this.cardCells[field]
+			return cell && typeof cell === 'object' ? cell : null
+		},
+
 		t,
 
 		preventMiddleClickAutoscroll,
@@ -1206,19 +1304,24 @@ export default {
 
 		/**
 		 * The cards a column draws: all of them, or the first `columnLimit`
-		 * until the reader shows the rest.
+		 * until the reader shows the rest. A closed column (a won or lost
+		 * stage) draws none until the reader opens it.
 		 *
 		 * @param {object} lane The lane.
 		 * @param {object} column The column.
 		 * @return {Array<object>} The cards.
 		 * @spec openspec/changes/screens-kanban-parity/specs/board-view/spec.md#requirement-a-long-column-is-cut-with-a-show-more-button
+		 * @spec openspec/changes/pl4-board-list-stages/specs/pl4-board-list-stages/spec.md#requirement-a-closed-stage-starts-collapsed
 		 */
 		visibleCards(lane, column) {
-			const limit = Number(this.columnLimit)
-			if (!(limit > 0) || this.expanded.includes(this.expandKey(lane, column))) {
+			if (this.expanded.includes(this.expandKey(lane, column))) {
 				return column.cards
 			}
-			return column.cards.slice(0, limit)
+			if (column.closed === true) {
+				return []
+			}
+			const limit = Number(this.columnLimit)
+			return limit > 0 ? column.cards.slice(0, limit) : column.cards
 		},
 
 		/**

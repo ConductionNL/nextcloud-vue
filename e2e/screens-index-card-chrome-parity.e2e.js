@@ -70,10 +70,18 @@ test.describe('the cards view (card task 3)', () => {
 		expect(Math.round(cards.toolbar.width)).toBe(Math.round(table.toolbar.width))
 		expect(Math.round(cards.toolbar.height)).toBe(Math.round(table.toolbar.height))
 		// The table's footer sits inside the card's 1px border, the cards'
-		// footer under the grid: the same box to within that border.
+		// footer under the grid: the same line to within that border. Under
+		// the grid the footer is a plain row, 4px 0 without the hairline
+		// (DqAanMijToegewezen, BqAgents, BqStore), so it is lower than the
+		// table card's footer.
 		expect(Math.abs(cards.footer.left - table.footer.left)).toBeLessThanOrEqual(1.5)
 		expect(Math.abs(cards.footer.width - table.footer.width)).toBeLessThanOrEqual(2.5)
-		expect(Math.round(cards.footer.height)).toBe(Math.round(table.footer.height))
+		const cardsFooter = await page.locator('.cn-pagination--board').first().evaluate((el) => {
+			const cs = getComputedStyle(el)
+			return { padding: `${cs.paddingTop} ${cs.paddingBottom}`, borderTop: cs.borderTopWidth }
+		})
+		expect(cardsFooter).toEqual({ padding: '4px 4px', borderTop: '0px' })
+		expect(cards.footer.height).toBeLessThan(table.footer.height)
 	})
 })
 

@@ -340,6 +340,7 @@
 					:currentUserId="currentSavedViewsUserId"
 					:counts="savedViewCounts"
 					:selectedViewId="appliedSavedViewId"
+					:chips="savedViewChips"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
@@ -1022,6 +1023,8 @@
 					:selectedIds="internalSelectedIds"
 					:allowedMoves="boardAllowedMoves"
 					:cardFields="board.cardFields || []"
+					:cardCells="board.cardCells || null"
+					:cardActions="boardCardActions"
 					:swimlaneField="board.swimlaneField || ''"
 					:dueRule="board.dueRule || null"
 					:cardRoles="board.card || null"
@@ -1037,7 +1040,8 @@
 					@loadMore="onBoardLoadMore"
 					@cardClick="onRowClick"
 					@cardAuxClick="onRowAuxClick"
-					@moved="onBoardMoved" />
+					@moved="onBoardMoved"
+					@cardAction="onRowAction" />
 
 				<!--
 					Date axis. Reads only: nothing here reschedules, because a
@@ -1382,6 +1386,7 @@ import {
 	columnFieldsOf,
 	columnKeyOfRow,
 	fetchReferenceObjects,
+	flattenItemRefs,
 	fullTargetOf,
 	referenceTargetOf,
 	refIdOf,
@@ -2313,6 +2318,19 @@ export default {
 		},
 
 		/**
+		 * Whether the board look draws the saved views as chips in the toolbar
+		 * (manifest `config.savedViewChips`). `false` keeps only Save view,
+		 * for a page whose views live in the side panel's Weergaven tab
+		 * (DqZaken, DqZakenSorteren, DqZakenKaart, DqWerkbord, DqFilterBeheren).
+		 *
+		 * @spec openspec/changes/saved-view-chips-switch/specs/saved-views/spec.md#requirement-an-index-page-can-leave-the-saved-view-chips-out-of-the-toolbar
+		 */
+		savedViewChips: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * Where the quick-filter chips sit (manifest `config.quickFilterPlacement`).
 		 * `''` (the default) as before. `'toolbar'` keeps them on one row with
 		 * the Filter button and the view switch, in whatever width that row has
@@ -2939,6 +2957,19 @@ export default {
 		loadingText: {
 			type: String,
 			default: 'Loading…',
+		},
+
+		/**
+		 * Object types whose live changes this list follows (manifest
+		 * `config.live`): it subscribes to them through the object store and
+		 * reads the list again shortly after a change, so a card a colleague
+		 * moved moves here too. Empty (the default) subscribes to nothing.
+		 *
+		 * @type {Array<string>}
+		 */
+		live: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -4181,6 +4212,9 @@ export default {
 			boardColumnFieldChoice: '',
 			/** The rows a reference column field is built from, by field. */
 			boardRefs: {},
+			liveHandles: [],
+			liveTimer: null,
+			liveUnwatch: null,
 			/** The options of the board's narrowing select (`board.narrow`). */
 			boardNarrowOptions: [],
 			/** The menu entries CnActionButtons reports for the dialog header actions, each with its `run()`. */
@@ -4218,6 +4252,8 @@ export default {
 			appliedSavedViewId: '',
 			// The sort option the applied view's `overrides.sortOption` selected, so leaving the view can undo it.
 			viewSortOption: '',
+			// The applied view's filters as one comparable key, so the address keeps naming the view until they change.
+			appliedViewFiltersKey: '',
 			/**
 			 * The non-`_` query keys this page owns, i.e. may clear on the next
 			 * persist. Seeded with what it adopted from the query on load, and
@@ -4438,9 +4474,13 @@ export default {
 		 * The header actions that open a dialog: `type: "open-form"` (the
 		 * schema-driven create form, as the navigation's primary action opens
 		 * it) or `type: "open-modal"`, without a `handler` or `href` of their own.
-		 * Reserved ids are left out, as in `mergedHeaderActions`.
+		 * Reserved ids are left out, as in `mergedHeaderActions`. A modal
+		 * opened from here also gets the list's active filters as
+		 * `activeFilters`, so it knows what the list shows (the pipeline a
+		 * board is narrowed to); the action's own props win.
 		 *
 		 * @spec openspec/changes/index-header-open-form/specs/index-header/spec.md#requirement-an-index-header-action-can-open-the-create-form
+		 * @spec openspec/changes/pl4-board-card-actions/specs/pl4-board-card-actions/spec.md#requirement-a-header-modal-knows-the-lists-filters
 		 * @return {Array<object>}
 		 */
 		dialogHeaderActions() {
@@ -4451,6 +4491,9 @@ export default {
 				&& (entry.handler === undefined || entry.handler === null || entry.handler === '')
 				&& !entry.href
 				&& (entry.type === 'open-form' || entry.type === 'open-modal'))
+				.map((entry) => (entry.type === 'open-modal'
+					? { ...entry, props: { activeFilters: { ...this.effectiveActiveFilters }, ...(entry.props || {}) } }
+					: entry))
 		},
 
 		/**
@@ -5056,7 +5099,20 @@ export default {
 				capacityField: source.capacityField || '',
 				neutralColor: typeof source.neutralColor === 'string' ? source.neutralColor : '',
 				colorMap: source.colorMap && typeof source.colorMap === 'object' ? source.colorMap : null,
+				closedField: source.closedField || '',
 			})
+		},
+
+		/**
+		 * The row actions the board's cards offer, by the ids in
+		 * `board.cardActions`, in that order.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/pl4-board-card-actions/specs/pl4-board-card-actions/spec.md#requirement-a-card-carries-the-row-actions
+		 */
+		boardCardActions() {
+			const ids = Array.isArray(this.board?.cardActions) ? this.board.cardActions : []
+			return ids.map((id) => this.mergedActions.find((action) => action && action.id === id)).filter(Boolean)
 		},
 
 		/**
@@ -7335,6 +7391,8 @@ export default {
 				translate: this.cnTranslate,
 				// A row action of `type: "open-modal"` opens its modal here.
 				openModal: typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null,
+				// A row action of `type: "api-call"` reads the list again after it.
+				refresh: () => this.onRefreshEvent(),
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
@@ -7465,7 +7523,7 @@ export default {
 			const scoped = this.activeScopePresentation ? this.activeScopePresentation.footerNote : undefined
 			const footerNote = scoped !== undefined ? scoped : this.footerNote
 			if (footerNote) {
-				return this.cnTranslate(footerNote)
+				return this.fillConfigTokens(this.cnTranslate(footerNote))
 			}
 			const source = this.isNamedSource ? this.namedSource : null
 			return (source && source.footerNote) || footerNote
@@ -8506,6 +8564,7 @@ export default {
 			window.addEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
 		}
 		this.loadManualOrder()
+		this.startLive()
 		this.loadPersonalColumns()
 		this.publishHoistedSidebar()
 		this.pushAiContext()
@@ -8563,6 +8622,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	beforeUnmount() {
+		this.stopLive()
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('resize', this.measureSplitViewport)
 			window.removeEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
@@ -9862,14 +9922,24 @@ export default {
 			if (!hasToken(tab.label) && !hasToken(tab.activeLabel)) {
 				return tab
 			}
-			const config = this.effectiveAppConfig
-			const fill = (value) => (hasToken(value)
-				? this.cnTranslate(value).replace(/@config\.([A-Za-z0-9_.-]*[A-Za-z0-9_])/g, (token, key) => {
-						const found = this.getByPath(config, key)
-						return found === undefined || found === null || found === '' ? token : String(found)
-					})
-				: value)
+			const fill = (value) => (hasToken(value) ? this.fillConfigTokens(this.cnTranslate(value)) : value)
 			return { ...tab, label: fill(tab.label), activeLabel: fill(tab.activeLabel) }
+		},
+
+		/**
+		 * A text with each `@config.<key>` replaced by the app config's value;
+		 * a key the config does not hold leaves its token in place.
+		 *
+		 * @param {string} text The text, already translated.
+		 * @return {string} The text with the config values in.
+		 * @spec openspec/changes/pl4-cell-rules/specs/pl4-cell-rules/spec.md#requirement-a-token-can-take-a-config-value
+		 */
+		fillConfigTokens(text) {
+			const config = this.effectiveAppConfig
+			return String(text).replace(/@config\.([A-Za-z0-9_.-]*[A-Za-z0-9_])/g, (token, key) => {
+				const found = this.getByPath(config, key)
+				return found === undefined || found === null || found === '' ? token : String(found)
+			})
 		},
 
 		/**
@@ -9957,14 +10027,23 @@ export default {
 		 * (same resulting path/query) is swallowed.
 		 *
 		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string, sortKeys?: Array<{key: string, order: string}>}} state Current view state.
-		 * @param {{savedView?: string}} [options] The saved view the address keeps naming, or none.
+		 * Without `savedView` the address keeps the applied view it names while
+		 * the filters are still the view's: a sort, a search or the view's own
+		 * sort option shows the same view's records.
+		 *
+		 * @param {{savedView?: string}} [options] The saved view the address keeps naming, or `''` for none.
 		 * @return {void}
+		 * @spec openspec/changes/saved-view-kept-in-route/specs/saved-view-kept-in-route/spec.md#requirement-the-address-keeps-naming-the-applied-view
 		 */
-		persistViewStateToRoute(state, { savedView = '' } = {}) {
+		persistViewStateToRoute(state, { savedView } = {}) {
 			if (!this.$router || !this.$route) {
 				return
 			}
 			const query = { ...this.$route.query }
+			if (savedView === undefined) {
+				const named = this.appliedSavedViewId !== '' && query.savedView === this.appliedSavedViewId
+				savedView = named && this.viewFiltersKey(state.filters) === this.appliedViewFiltersKey ? this.appliedSavedViewId : ''
+			}
 			// The menu entry of a saved view is active while the address names
 			// it; any other change to the filters is no longer that view.
 			if (savedView !== '') {
@@ -10003,6 +10082,26 @@ export default {
 				delete query._order
 			}
 			this.$router.replace({ query }).catch(() => {})
+		},
+
+		/**
+		 * Filters as one comparable key: empty values dropped, every value a
+		 * sorted list of strings, the keys sorted.
+		 *
+		 * @param {object} filters The filters.
+		 * @return {string}
+		 * @spec openspec/changes/saved-view-kept-in-route/specs/saved-view-kept-in-route/spec.md#requirement-the-address-keeps-naming-the-applied-view
+		 */
+		viewFiltersKey(filters) {
+			const out = {}
+			for (const key of Object.keys(filters || {}).sort()) {
+				const value = filters[key]
+				const values = (Array.isArray(value) ? value : [value]).filter((v) => v !== undefined && v !== null && v !== '').map(String).sort()
+				if (values.length > 0) {
+					out[key] = values
+				}
+			}
+			return JSON.stringify(out)
 		},
 
 		/**
@@ -10091,6 +10190,9 @@ export default {
 						rows = await fetchReferenceObjects({ ...target, filter: active.source?.filter || {} })
 					} catch {
 						rows = []
+					}
+					if (active.source?.itemsPath) {
+						rows = flattenItemRefs(rows, { itemsPath: active.source.itemsPath, keyField: active.source.keyField || 'name' })
 					}
 					this.boardRefs = { ...this.boardRefs, [active.field]: rows }
 				}
@@ -11028,6 +11130,62 @@ export default {
 			this.onRefreshEvent()
 		},
 
+		/**
+		 * The object store live updates come through.
+		 *
+		 * @return {object} The store.
+		 */
+		liveStore() {
+			return (this.list && this.list.objectStore) || useObjectStore()
+		},
+
+		/**
+		 * Subscribe to the `live` object types and read the list again after a change.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/pl4-index-live/specs/pl4-index-live/spec.md#requirement-an-index-page-follows-live-changes
+		 */
+		async startLive() {
+			const types = Array.isArray(this.live) ? this.live.filter((type) => typeof type === 'string' && type !== '') : []
+			const store = types.length > 0 ? this.liveStore() : null
+			if (!store || typeof store.subscribe !== 'function') {
+				return
+			}
+			const handles = []
+			for (const type of types) {
+				try {
+					handles.push(await store.subscribe(type))
+				} catch {
+					// A type the store cannot follow; the list still reads on refresh.
+				}
+			}
+			this.liveHandles = handles
+			this.liveUnwatch = this.$watch(() => store.liveLastEventAt, () => this.onLiveEvent())
+		},
+
+		/**
+		 * Read the list again once changes stop arriving for half a second.
+		 */
+		onLiveEvent() {
+			clearTimeout(this.liveTimer)
+			this.liveTimer = setTimeout(() => this.onRefreshEvent(), 500)
+		},
+
+		/**
+		 * Let go of the live subscriptions.
+		 */
+		stopLive() {
+			clearTimeout(this.liveTimer)
+			if (typeof this.liveUnwatch === 'function') {
+				this.liveUnwatch()
+			}
+			const store = this.liveHandles.length > 0 ? this.liveStore() : null
+			if (store && typeof store.unsubscribe === 'function') {
+				this.liveHandles.forEach((handle) => store.unsubscribe(handle))
+			}
+			this.liveHandles = []
+		},
+
 		/** @return {Promise<void>} */
 		async onRefreshEvent() {
 			this.$emit('refresh')
@@ -11755,6 +11913,7 @@ export default {
 				const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
 				state.filters = resolveFilterTokens(state.filters, ctx)
 			}
+			this.appliedViewFiltersKey = this.viewFiltersKey(state.filters)
 			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
 			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []
 			this.appliedViewColumns = viewColumns.length > 0 ? viewColumns : null

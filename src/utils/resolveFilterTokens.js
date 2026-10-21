@@ -111,6 +111,30 @@ function ymd(d) {
 }
 
 /**
+ * Fill each `{@config.<key>}` inside a token from `ctx.config`, so a token can
+ * take an admin setting (`@today-{@config.lead_stale_threshold_days}d`). The
+ * token comes back unchanged when any key is missing from the config.
+ *
+ * @param {string} token The token.
+ * @param {object} [ctx] The token context.
+ * @return {string} The token with the config values in.
+ * @spec openspec/changes/pl4-cell-rules/specs/pl4-cell-rules/spec.md#requirement-a-token-can-take-a-config-value
+ */
+function fillConfigInToken(token, ctx) {
+	const config = (ctx && ctx.config) || {}
+	let missing = false
+	const filled = token.replace(/\{@config\.([A-Za-z0-9_.-]+)\}/g, (whole, key) => {
+		const value = config[key]
+		if (value === undefined || value === null || value === '') {
+			missing = true
+			return whole
+		}
+		return String(value)
+	})
+	return missing ? token : filled
+}
+
+/**
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
  * @param {unknown} v The candidate value.
@@ -123,6 +147,10 @@ function ymd(d) {
 export function resolveFilterValue(v, ctx) {
 	if (typeof v !== 'string' || v.charAt(0) !== '@') {
 		return v
+	}
+	if (v.includes('{@config.')) {
+		const filled = fillConfigInToken(v, ctx)
+		return filled === v ? v : resolveFilterValue(filled, ctx)
 	}
 	const now = new Date()
 	if (v === MY_GROUPS_TOKEN) {

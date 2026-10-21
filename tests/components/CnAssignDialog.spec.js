@@ -105,6 +105,17 @@ describe('CnAssignDialog', () => {
 		expect(nobody.text()).not.toContain('Now with')
 	})
 
+	/**
+	 * @spec openspec/changes/assign-dialog-toggle-from-record/specs/assign-dialog-toggle-from-record/spec.md#requirement-an-assign-dialog-toggle-is-filled-from-the-record
+	 */
+	it('fills a toggle\'s label and note from the record (DqOverdragen)', async () => {
+		axios.get.mockResolvedValue({ data: { identifier: '2026-0082', initiatorDisplayName: 'Sanne de Vries' } })
+		const w = await mountDialog({ ...HANDOVER, toggles: [{ field: 'doorzending', label: 'Tell the applicant ({identifier})', note: '{initiatorDisplayName} then gets a message that the case moves.' }] })
+		const toggle = w.find('[data-testid="cn-assign-dialog-toggle-doorzending"]')
+		expect(toggle.text()).toContain('Tell the applicant (2026-0082)')
+		expect(toggle.text()).toContain('Sanne de Vries then gets a message that the case moves.')
+	})
+
 	it('searches the configured kinds and offers what was typed when allowed', async () => {
 		const w = await mountDialog()
 		await type(w, 'Jur')

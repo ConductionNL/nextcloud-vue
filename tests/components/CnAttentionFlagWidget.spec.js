@@ -151,3 +151,35 @@ describe('CnAttentionFlagWidget', () => {
 		expect(wrapper.find('[data-testid="cn-attention-flag-review-due"]').exists()).toBe(true)
 	})
 })
+
+describe('CnAttentionFlagWidget behind a button', () => {
+	const BEHIND = { ...CONTENT, behindButton: true, labels: { hintRaise: 'Flag the case with a reason.' } }
+
+	it('shows the act as a heading, a hint and one button, as DqZaak draws the Status card', async () => {
+		const wrapper = await mountFlag({ raised: false, flag: {}, history: [] }, { id: 'r-1' }, BEHIND)
+		expect(wrapper.find('[data-testid="cn-attention-flag-heading"]').text()).toBe('Why this needs attention')
+		expect(wrapper.find('[data-testid="cn-attention-flag-hint"]').text()).toBe('Flag the case with a reason.')
+		expect(wrapper.find('[data-testid="cn-attention-flag-compose"]').text()).toContain('Flag for attention')
+		expect(wrapper.find('[data-testid="cn-attention-flag-reason"]').exists()).toBe(false)
+	})
+
+	it('opens the reason field from the button, still asks a reason, and closes it after the act', async () => {
+		const wrapper = await mountFlag({ raised: false, flag: {}, history: [] }, { id: 'r-1' }, BEHIND)
+		await wrapper.find('[data-testid="cn-attention-flag-compose"]').trigger('click')
+		const raise = wrapper.find('[data-testid="cn-attention-flag-raise"]')
+		expect(raise.attributes('disabled')).toBeDefined()
+		mockPost.mockResolvedValue({ data: { raised: true, flag: { reason: 'Threat' }, history: [] } })
+		await wrapper.find('[data-testid="cn-attention-flag-reason"]').setValue('Threat')
+		await wrapper.find('[data-testid="cn-attention-flag-raise"]').trigger('click')
+		await flush()
+		expect(mockPost).toHaveBeenCalledWith('/index.php/apps/x/api/item/r-1/attention/raise', { reason: 'Threat' })
+		expect(wrapper.find('[data-testid="cn-attention-flag-reason"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-attention-flag-compose"]').text()).toContain('Clear the flag')
+	})
+
+	it('keeps the field in view without the option', async () => {
+		const wrapper = await mountFlag({ raised: false, flag: {}, history: [] })
+		expect(wrapper.find('[data-testid="cn-attention-flag-reason"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-attention-flag-compose"]').exists()).toBe(false)
+	})
+})

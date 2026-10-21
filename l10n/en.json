@@ -2222,7 +2222,24 @@
     "The checklist could not be read.": "The checklist could not be read.",
     "Switch from {name}": "Switch from {name}",
     "Switch": "Switch",
-    "Could not switch. Try again.": "Could not switch. Try again."
+    "Could not switch. Try again.": "Could not switch. Try again.",
+    "Flag it with a reason, so it stands out to everyone who works on it.": "Flag it with a reason, so it stands out to everyone who works on it.",
+    "Clear the flag with a reason once it no longer needs attention.": "Clear the flag with a reason once it no longer needs attention.",
+    "Compose mail": "Compose mail",
+    "Link mail": "Link mail",
+    "Enter a quarter as YYYY-Qn, for example 2026-Q3.": "Enter a quarter as YYYY-Qn, for example 2026-Q3.",
+    "Enter a year as four digits, for example 2026.": "Enter a year as four digits, for example 2026.",
+    "This value has the wrong form.": "This value has the wrong form.",
+    "The value for {key} must be above {min}.": "The value for {key} must be above {min}.",
+    "Add a row": "Add a row",
+    "Key": "Key",
+    "{field} holds {key} twice.": "{field} holds {key} twice.",
+    "View all ({count})": "View all ({count})",
+    "Opens {host} in a new tab.": "Opens {host} in a new tab.",
+    "How this app compares": "How this app compares",
+    "This field is required": "This field is required",
+    "Creating…": "Creating…",
+    "This could not be created. Try again.": "This could not be created. Try again."
   },
   "plurals": {
     "{count} member": [

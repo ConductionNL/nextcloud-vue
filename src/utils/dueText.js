@@ -15,8 +15,9 @@
  */
 
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
-import { ageInDays, formatRelativeDate } from './boardDate.js'
+import { ageInDays, formatBoardDate, formatRelativeDate } from './boardDate.js'
 import { parseDateValue } from './dateVariant.js'
+import { indicatorApplies } from './rowIndicators.js'
 
 /**
  * The text and tone of a due date.
@@ -29,21 +30,30 @@ import { parseDateValue } from './dateVariant.js'
  * `upcomingWeeksLabel` `{ one, other }` (from `upcomingWeeksFrom` days left,
  * default 35, it reads the weeks left, rounded). Texts go through `translate`
  * before `{count}` is filled. Tones: `danger` (overdue), `today`, `upcoming`,
- * `empty`. With `soonWithin` (days), today and a date at most that many days
- * ahead also carry `soon: true`, drawn in the warning colour.
+ * `empty`, `plain`. With `soonWithin` (days), today and a date at most that many days
+ * ahead also carry `soon: true`, drawn in the warning colour. With
+ * `activeWhen` (`{ field, equals | in | lt | gt }`, the row-indicator grammar)
+ * the date is only due while that holds on the row: otherwise it reads as the
+ * short date in the `plain` tone, never overdue or soon (a won lead's close
+ * date is history, not a deadline).
  *
  * @param {unknown} value A Date, a timestamp or an ISO string.
  * @param {object} [config] The `due` config.
  * @param {(text: string) => string} [translate] The host's translate.
  * @param {Date} [now] The reference moment.
+ * @param {object} [row] The row the date belongs to, for `activeWhen`.
  * @return {{text: string, tone: string}|null} The text and tone, or null when there is nothing to show.
+ * @spec openspec/changes/pl4-cell-rules/specs/pl4-cell-rules/spec.md#requirement-a-due-date-is-due-only-while-a-row-condition-holds
  */
-export function resolveDue(value, config, translate = (text) => text, now = new Date()) {
+export function resolveDue(value, config, translate = (text) => text, now = new Date(), row = null) {
 	const cfg = config && typeof config === 'object' ? config : {}
 	const date = parseDateValue(value)
 	if (date === null) {
 		const empty = typeof cfg.emptyText === 'string' && cfg.emptyText !== '' ? translate(cfg.emptyText) : ''
 		return empty === '' ? null : { text: empty, tone: 'empty' }
+	}
+	if (cfg.activeWhen && typeof cfg.activeWhen === 'object' && !indicatorApplies(cfg.activeWhen, row || {}, now)) {
+		return { text: formatBoardDate(date, now), tone: 'plain' }
 	}
 	const days = ageInDays(date, now)
 	if (days > 0) {
