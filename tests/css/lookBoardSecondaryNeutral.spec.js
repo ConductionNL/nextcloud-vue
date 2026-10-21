@@ -41,5 +41,6 @@ describe('look-board.css: secondary button', () => {
 		expect(body).toContain('--color-primary-element-light-hover: var(--color-background-hover);')
 		expect(body).toContain('--color-primary-element-light-text: var(--color-main-text);')
 		expect(body).toContain('border: 1px solid var(--cn-board-control-border);')
+		expect(body).toContain('color: var(--color-main-text);')
 	})
 })

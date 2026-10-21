@@ -410,6 +410,7 @@
 	--color-primary-element-light-text: var(--color-main-text);
 	--nldesign-color-on-surface: var(--color-main-text);
 	border: 1px solid var(--cn-board-control-border);
+	color: var(--color-main-text);
 }
 
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
