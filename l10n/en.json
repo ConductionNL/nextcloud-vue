@@ -2236,7 +2236,13 @@
     "How this app compares": "How this app compares",
     "This field is required": "This field is required",
     "Creating…": "Creating…",
-    "This could not be created. Try again.": "This could not be created. Try again."
+    "This could not be created. Try again.": "This could not be created. Try again.",
+    "Scan barcode": "Scan barcode",
+    "Camera preview for reading a barcode. The camera is on.": "Camera preview for reading a barcode. The camera is on.",
+    "Point the camera at the barcode.": "Point the camera at the barcode.",
+    "Type the code": "Type the code",
+    "Use this code": "Use this code",
+    "This browser cannot read barcodes. Type the code instead.": "This browser cannot read barcodes. Type the code instead."
   },
   "plurals": {
     "{count} member": [

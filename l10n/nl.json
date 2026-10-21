@@ -2486,7 +2486,13 @@
     "How this app compares": "Hoe deze app zich verhoudt",
     "This field is required": "Dit veld is verplicht",
     "Creating…": "Aanmaken…",
-    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw."
+    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw.",
+    "Scan barcode": "Barcode scannen",
+    "Camera preview for reading a barcode. The camera is on.": "Cameravoorbeeld om een barcode te lezen. De camera staat aan.",
+    "Point the camera at the barcode.": "Richt de camera op de barcode.",
+    "Type the code": "Typ de code",
+    "Use this code": "Deze code gebruiken",
+    "This browser cannot read barcodes. Type the code instead.": "Deze browser kan geen barcodes lezen. Typ de code in."
   },
   "plurals": {
     "{count} member": [
