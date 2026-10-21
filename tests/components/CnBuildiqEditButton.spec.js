@@ -77,6 +77,11 @@ describe('CnBuildiqEditButton', () => {
 		expect(wrapper.find('.cn-buildiq-edit__glyph').exists()).toBe(true)
 	})
 
+	it('names the square buildiq, as the boards do', () => {
+		const wrapper = mountButton({ available: true })
+		expect(wrapper.find('.nc-actions').attributes('aria-label')).toBe('buildiq')
+	})
+
 	it('enters edit mode on the toggle when not editing', async () => {
 		const editor = makeEditor(false)
 		const wrapper = mountButton({ editor })

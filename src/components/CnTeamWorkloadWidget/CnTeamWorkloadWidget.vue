@@ -3,7 +3,7 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-team-workload" data-testid="cn-team-workload">
+	<div v-if="!(content.hideWhenEmpty && members.length === 0)" class="cn-team-workload" data-testid="cn-team-workload">
 		<p v-if="loading && members.length === 0" class="cn-team-workload__state-line" role="status">
 			{{ loadingLabel }}
 		</p>
@@ -16,7 +16,13 @@
 				:key="member.id"
 				class="cn-team-workload__member"
 				data-testid="cn-team-workload-member">
-				<div class="cn-team-workload__row">
+				<component
+					:is="content.rowRoute ? 'button' : 'div'"
+					:type="content.rowRoute ? 'button' : null"
+					class="cn-team-workload__row"
+					:class="{ 'cn-team-workload__row--link': content.rowRoute }"
+					data-testid="cn-team-workload-row"
+					@click="content.rowRoute ? openMember(member.id) : null">
 					<span class="cn-team-workload__avatar" aria-hidden="true">{{ member.initials }}</span>
 					<span class="cn-team-workload__who">
 						<strong class="cn-team-workload__name">{{ member.name }}</strong>
@@ -25,7 +31,7 @@
 							:class="{ 'cn-team-workload__state--away': !member.available }">{{ member.line }}</span>
 					</span>
 					<span class="cn-team-workload__count">{{ member.countText }}</span>
-				</div>
+				</component>
 				<span class="cn-team-workload__bar" aria-hidden="true">
 					<span
 						class="cn-team-workload__bar-fill"
@@ -259,6 +265,22 @@ export default {
 		 * @param {number} count The open count.
 		 * @return {string} The text.
 		 */
+		/**
+		 * Open the route `content.rowRoute` names for one person. A string is a
+		 * route name, given the person as `query[rowRouteParam]` (default
+		 * `assignee`); an object is a route location whose `params` and
+		 * `query` values may hold `{user}`.
+		 *
+		 * @param {string} userId The person's user id.
+		 * @return {void}
+		 */
+		openMember(userId) {
+			const location = routeForMember(this.content?.rowRoute, this.content?.rowRouteParam, userId)
+			if (location && this.$router) {
+				this.$router.push(location)
+			}
+		},
+
 		countText(count) {
 			const label = this.content?.countLabel
 			if (label && typeof label === 'object' && typeof label.one === 'string' && typeof label.other === 'string') {
@@ -275,6 +297,25 @@ export default {
  * @param {string} name The name.
  * @return {string} The initials, upper case.
  */
+/**
+ * The route location a person's row opens.
+ *
+ * @param {string|object} rowRoute A route name, or a location with `{user}` in its params or query.
+ * @param {string} [param] The query key a route name receives the user id under.
+ * @param {string} userId The person's user id.
+ * @return {object|null} The location, or null without a usable route.
+ */
+export function routeForMember(rowRoute, param, userId) {
+	if (typeof rowRoute === 'string' && rowRoute !== '') {
+		return { name: rowRoute, query: { [param || 'assignee']: userId } }
+	}
+	if (!rowRoute || typeof rowRoute !== 'object' || !rowRoute.name) {
+		return null
+	}
+	const fill = (values) => Object.fromEntries(Object.entries(values || {}).map(([key, value]) => [key, typeof value === 'string' ? value.replace('{user}', userId) : value]))
+	return { ...rowRoute, params: fill(rowRoute.params), query: fill(rowRoute.query) }
+}
+
 function initialsOf(name) {
 	const parts = String(name || '').trim().split(/\s+/).filter(Boolean)
 	if (parts.length === 0) {
@@ -315,6 +356,28 @@ function isPresent(status) {
 	display: flex;
 	align-items: center;
 	gap: 10px;
+}
+
+.cn-team-workload__row--link {
+	width: 100%;
+	margin: 0;
+	padding: 2px 4px;
+	border: none;
+	border-radius: var(--border-radius-element, 8px);
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-team-workload__row--link:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-team-workload__row--link:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 
 .cn-team-workload__avatar {

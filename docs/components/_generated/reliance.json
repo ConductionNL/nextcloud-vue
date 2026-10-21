@@ -266,6 +266,13 @@
 			"via": [],
 			"page": "cn-assign-dialog"
 		},
+		"CnAttentionFlagWidget": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-attention-flag-widget"
+		},
 		"CnAuditTrailCard": {
 			"direct": 1,
 			"transitive": 8,
@@ -659,6 +666,13 @@
 			"via": [],
 			"page": null
 		},
+		"CnCountTablesReport": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-count-tables-report"
+		},
 		"CnCountdownWidget": {
 			"direct": 0,
 			"transitive": 5,
@@ -712,7 +726,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 193,
+			"transitive": 194,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -771,6 +785,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -952,7 +967,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 196,
+			"transitive": 197,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1011,6 +1026,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -1237,6 +1253,13 @@
 			"tier": "none",
 			"via": [],
 			"page": null
+		},
+		"CnEndpointNotice": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-endpoint-notice"
 		},
 		"CnEnvironmentBanner": {
 			"direct": 0,
@@ -1516,7 +1539,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 204,
+			"transitive": 205,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1576,6 +1599,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -1868,7 +1892,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 9,
-			"transitive": 201,
+			"transitive": 202,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1927,6 +1951,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -2321,7 +2346,7 @@
 		},
 		"CnMacrosWidget": {
 			"direct": 5,
-			"transitive": 1,
+			"transitive": 4,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-macros-widget"
@@ -2337,7 +2362,7 @@
 		},
 		"CnMapPage": {
 			"direct": 0,
-			"transitive": 2,
+			"transitive": 3,
 			"tier": "light",
 			"via": [
 				"CnMapWidget"
@@ -2360,7 +2385,7 @@
 		},
 		"CnMapWidget": {
 			"direct": 3,
-			"transitive": 1,
+			"transitive": 2,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-map-widget"
@@ -2854,6 +2879,13 @@
 			],
 			"page": "cn-object-metadata-widget"
 		},
+		"CnObjectPartiesWidget": {
+			"direct": 4,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-object-parties-widget"
+		},
 		"CnObjectPresenceWidget": {
 			"direct": 0,
 			"transitive": 1,
@@ -2961,7 +2993,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 219,
+			"transitive": 221,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3025,6 +3057,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -3033,6 +3066,7 @@
 				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
+				"CnRedactionEditor",
 				"CnRegisterMapping",
 				"CnRegisterSchemaSelect",
 				"CnRelatedFieldFilters",
@@ -3249,7 +3283,7 @@
 			"page": "cn-radio-cards-widget"
 		},
 		"CnRecordListWidget": {
-			"direct": 1,
+			"direct": 2,
 			"transitive": 102,
 			"tier": "heavy",
 			"via": [
@@ -3292,9 +3326,9 @@
 			"page": "cn-record-list-widget"
 		},
 		"CnRedactionEditor": {
-			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
 			"via": [],
 			"page": "cn-redaction-editor"
 		},
@@ -3383,7 +3417,7 @@
 			"page": "cn-related-files"
 		},
 		"CnRelatedObjectsWidget": {
-			"direct": 7,
+			"direct": 8,
 			"transitive": 109,
 			"tier": "heavy",
 			"via": [
@@ -3442,7 +3476,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 194,
+			"transitive": 195,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3502,6 +3536,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -3997,6 +4032,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-status-badge"
+		},
+		"CnStatusExplainerWidget": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-status-explainer-widget"
 		},
 		"CnStepper": {
 			"direct": 0,
@@ -4567,7 +4609,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 184,
+			"transitive": 185,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4623,6 +4665,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",

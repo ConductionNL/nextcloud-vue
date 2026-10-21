@@ -116,6 +116,22 @@ export function setReadState(register, schema, id, read) {
 }
 
 /**
+ * Mark one part of a record read (`PUT .../read-state` with `subResource`):
+ * OpenRegister stamps only that part, so its unread count goes and the rest
+ * of the record keeps theirs.
+ *
+ * @param {string} register    Register slug.
+ * @param {string} schema      Schema slug.
+ * @param {string} id          Object id.
+ * @param {string} subResource The part, as `@self.unreadCounts` names it (`files`, `notes`).
+ * @return {Promise<object>} The outcome (see `call`).
+ * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+ */
+export function setSubResourceRead(register, schema, id, subResource) {
+	return call('PUT', interactionUrl(register, schema, id, 'read-state'), { subResource })
+}
+
+/**
  * List the followers of a record (needs `update` on it).
  *
  * @param {string} register Register slug.

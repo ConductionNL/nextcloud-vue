@@ -2,16 +2,18 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 1 direct reference, 3 files reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name       | Type                 | Required | Default | Description                                                |
-| ---------- | -------------------- | -------- | ------- | ---------------------------------------------------------- |
-| `recordId` | `string&#124;number` |          | `''`    | The record whose documents are redacted, for `{recordId}`. |
-| `config`   | `object`             |          | `\{\}`  | The editor's configuration (see the component docs).       |
+| Name           | Type                                                        | Required | Default | Description                                                                                                                                                                                                                                                                                                                                    |
+| -------------- | ----------------------------------------------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recordId`     | `string&#124;number`                                        |          | `''`    | The record whose documents are redacted, for `{recordId}`.                                                                                                                                                                                                                                                                                     |
+| `config`       | `object`                                                    |          | `\{\}`  | The editor's configuration (see the component docs).                                                                                                                                                                                                                                                                                           |
+| `breadcrumbs`  | `Array<{label: string, fallback?: string, route?: object}>` |          | `[]`    | The trail under the title when no `crumbs` slot is given, root first: `[{ label, fallback?, route? }]`. A label may name fields of the record (`{identifier}`), read from `recordSource`; while a field is unknown the crumb shows its `fallback`. Labels go through the host translate, and `{recordId}` in a route param is the record's id. |
+| `recordSource` | `{register: string, schema: string}&#124;null`              |          | `null`  | Where the record a crumb names is read: `{ register, schema }`.                                                                                                                                                                                                                                                                                |
 
 ### Events
 
@@ -21,6 +23,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Slots
 
-| Name     | Bindings | Description                                       |
-| -------- | -------- | ------------------------------------------------- |
-| `crumbs` | —        | Under the title: a breadcrumb back to the record. |
+| Name     | Bindings | Description                                                                            |
+| -------- | -------- | -------------------------------------------------------------------------------------- |
+| `crumbs` | —        | Under the title: a breadcrumb back to the record. Without it, `breadcrumbs` draws one. |

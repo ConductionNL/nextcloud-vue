@@ -1,6 +1,6 @@
 # useEndpointSource
 
-ONE coherent endpoint data binding shared by the abstract widgets (Wave 2, [#91](https://github.com/ConductionNL/nextcloud-vue/issues/91)). Resolves a manifest-authored `endpointSource` block — an arbitrary app REST endpoint OpenRegister's aggregations can't express (a bespoke analytics controller, a summary payload) — into reactive `{ data, loading, error, refetch }`.
+ONE coherent endpoint data binding shared by the abstract widgets (Wave 2, [#91](https://github.com/ConductionNL/nextcloud-vue/issues/91)). Resolves a manifest-authored `endpointSource` block — an arbitrary app REST endpoint OpenRegister's aggregations can't express (a bespoke analytics controller, a summary payload) — into reactive `{ data, body, loading, error, refused, truncated, refetch }` (`body` is the whole response before `responsePath`).
 
 Consumed by [`CnStatWidget`](../../components/cn-stat-widget.md), [`CnDeltaWidget`](../../components/cn-delta-widget.md), [`CnChartWidget`](../../components/cn-chart-widget.md), and [`CnWidgetObjectTable`](../../components/cn-widget-object-table.md); usable directly by consumer apps.
 
@@ -29,6 +29,7 @@ const { data, loading, error, refetch } = useEndpointSource(endpointSource, {
 }
 ```
 
+- **Refusal, failure and truncation** — `error` carries the server's own `message` when the failed response had one (a 403 says why), else the transport message. `refused` is `true` when the read was answered 401 or 403, so a widget can show the refusal as a refusal rather than as a fault. `truncated` is `true` when the response body carries a top-level `truncated: true`, which an endpoint sends when it stopped reading at a limit. [CnEndpointNotice](../../components/cn-endpoint-notice.md) renders all three.
 - **Token resolution** — `params` values pass through `resolveFilterTokens`, exactly like widget filters: `@me`, `@now`, `@today`, `@today±Nd`, `@monthStart`/`@quarterStart`/`@yearStart`, `@objectId`/`@object.<field>` (detail context), `@workspace.<key>`/`@config.<key>`, and `@range.from`/`@range.to`/`@range.preset` (the active date range the caller puts in `ctx.range`; CnStatWidget passes its own picker's choice, else the dashboard's). A trailing `?` marks a value OPTIONAL (dropped when unresolved); a REQUIRED token that stays unresolved **blocks** the fetch (no request, no error) until the page context provides it. The `url` itself may interpolate `@page.*`/`@workspace.*`/`@config.*`/`@range.*`/`@objectId`/`@object.*` inline. An unresolved URL token collapses to an empty string, and when that empties a **path segment** the fetch is blocked too, on the same terms as an unresolved `params` token. `/cases/x/progress/@object.caseType` would otherwise be sent as `/cases/x/progress/` on the first render, before the record arrives — a 404 that renders identically to a real zero.
 - **Shared cache + dedup** — one in-flight promise + short-TTL (5 min) cache entry per `(method, url, resolved params)`, module-wide. Four KPI tiles reading the same overview endpoint issue ONE request per render pass — the same per-period semantics pipelinq's `dashboardData.js` used. `responsePath` plucking happens per subscriber, after the shared response resolves.
 - **Reactivity** — the resolved request signature is watched: when the page-level workspace context changes (the dashboard date-range pills publish `dateFrom`/`dateTo`/`datePreset`; page filters publish their keys), params re-resolve and the widget refetches automatically.
@@ -52,3 +53,20 @@ Grounded in the library's own event-bus channels (what `CnActionsMenu` broadcast
 ## Validation
 
 In manifests, `endpointSource` is **exactly-one-of** with the widget's OpenRegister binding (`source` on stat/delta/object-table, `dataSource` on chart) — enforced by `validateManifestV2()` as a post-schema check (schema v2.14.0, `$defs/endpointSource` / `$defs/chartEndpointSource`).
+
+### Reading only when asked (`loadOn: "request"`)
+
+An endpoint whose every read is recorded (an audit trail per read, say) should not be read because somebody opened the page. With `loadOn: "request"` in the `endpointSource` block the widget reads nothing on mount: it shows a button (`requestLabel`, default "Show") with an optional `requestHint` sentence above it, and reads only when the reader presses it. When the request changes (another period from the page filters), the last answer is dropped and the widget waits for the next press. Page and widget refreshes do not read a widget that is waiting. Each press is a fresh read, past the shared cache.
+
+```json
+"endpointSource": {
+  "url": "/apps/dossiq/api/woo/reports/throughput",
+  "params": { "from": "@workspace.from", "to": "@workspace.to" },
+  "responsePath": "rows",
+  "loadOn": "request",
+  "requestLabel": "Show",
+  "requestHint": "Every time you open this report, it is recorded."
+}
+```
+
+`CnWidgetObjectTable`, `CnChartWidget` and `CnStatWidget` all honour it; the labels go through the app's translate.
