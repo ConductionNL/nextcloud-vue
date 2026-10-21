@@ -65,6 +65,7 @@ Enter-activatable for free.
 | `description` | `string` | Optional explanatory text, wired via `aria-describedby` — never `aria-label`. |
 | `icon` | `string` | MDI icon name, resolved via `CnIcon`. |
 | `route` | `string` | Vue-router route name (a `pages[].id`). Mutually exclusive with `href`. |
+| `query` | `object` | Query passed along with `route`, e.g. `{ "dimensionType": "cost-center" }` to land on a filtered index. Ignored without `route`. |
 | `href` | `string` | External URL, opened in a new tab. Mutually exclusive with `route`. |
 | `count` | `integer \| "auto"` | Badge count. `"auto"` resolves from `cnMenuCounts` (see below). |
 | `order` | `integer` | Display order; entries without one render last, keeping relative order. |

@@ -1158,6 +1158,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.errors).toEqual([])
 	})
 
+	it('a navCardEntry route may carry a flat query (2.140.0), and a nested one fails', () => {
+		const withEntry = (entry) => validateManifestV2({ ...MINIMAL_V2, pages: [navCardGridPage([entry])] })
+		expect(withEntry({ id: 'cost-centers', label: 'Cost centers', route: 'Dimensions', query: { dimensionType: 'cost-center', page: 1, open: true } }).valid).toBe(true)
+		expect(withEntry({ id: 'cost-centers', label: 'Cost centers', route: 'Dimensions', query: { dimensionType: { nested: true } } }).valid).toBe(false)
+	})
+
 	it('a navCardEntry with both route and href fails (mutually exclusive)', () => {
 		const manifest = {
 			...MINIMAL_V2,
@@ -1312,7 +1318,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.139.0', () => {
+	it('the manifest schema version reads 2.140.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1416,7 +1422,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.137.0 lets open-form edit and create through an endpoint (open-form-endpoint), a grouped-cards group carry an action (grouped-cards-group-action), a detail page ask for a purpose before it opens a record (detail-access-purpose), an api-call GET a download (api-call-get-download) and headerPill.values limit a pill to some values (detail-pill-values).
 		// 2.138.0 adds after and before on a row indicator, a date bound that is now or an ISO date (cell-config-growth).
 		// 2.139.0 adds the redaction page type (dq-abstract-record-widgets), quarter and year page filters with count, and loadOn, requestLabel, requestHint, truncatedText and namePath on endpoint widgets (dq-abstract-dash).
-		expect(schema.version).toBe('2.139.0')
+		// 2.140.0 adds query on a nav-card-grid entry (sh-abstract-sh4).
+		expect(schema.version).toBe('2.140.0')
 	})
 
 	it('accepts the 2.135.0 header action href and refuses it with a handler, another type or a bad URL', () => {

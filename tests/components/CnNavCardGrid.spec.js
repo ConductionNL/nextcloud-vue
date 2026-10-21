@@ -77,6 +77,26 @@ describe('CnNavCardGrid — route vs href are mutually exclusive in rendered out
 		expect(wrapper.find('a[href]').exists()).toBe(false)
 	})
 
+	it('a route entry with a query carries the query into the route', () => {
+		const wrapper = mountGrid({
+			entries: [{ id: 'cost-centers', label: 'Cost centers', route: 'Dimensions', query: { dimensionType: 'cost-center' } }],
+		}, {
+			provide: { cnManifest: { pages: [{ id: 'Dimensions', type: 'index' }] } },
+		})
+		const to = JSON.parse(wrapper.find('[data-test="router-link"]').attributes('data-to'))
+		expect(to).toEqual({ name: 'Dimensions', query: { dimensionType: 'cost-center' } })
+	})
+
+	it('a route entry without a query adds no query to the route', () => {
+		const wrapper = mountGrid({
+			entries: [{ id: 'levels', label: 'Levels', route: 'Levels' }],
+		}, {
+			provide: { cnManifest: { pages: [{ id: 'Levels', type: 'index' }] } },
+		})
+		const to = JSON.parse(wrapper.find('[data-test="router-link"]').attributes('data-to'))
+		expect(to).toEqual({ name: 'Levels' })
+	})
+
 	it('an href entry renders a plain anchor, not a router-link', () => {
 		const wrapper = mountGrid({
 			entries: [{ id: 'docs', label: 'Documentation', href: 'https://example.org/docs' }],

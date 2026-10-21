@@ -314,6 +314,9 @@ export default {
 		 */
 		cardAttrs(entry) {
 			if (entry.route && !this.isDisabled(entry)) {
+				if (entry.query && Object.keys(entry.query).length > 0) {
+					return { to: { name: entry.route, query: entry.query } }
+				}
 				return { to: { name: entry.route } }
 			}
 			if (entry.href) {
