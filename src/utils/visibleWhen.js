@@ -82,6 +82,27 @@ function isDateLike(value) {
 }
 
 /**
+ * Whether a value is a clock time, `HH:MM` or `HH:MM:SS`.
+ *
+ * @param {unknown} value The value.
+ * @return {boolean}
+ */
+function isClockTime(value) {
+	return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value)
+}
+
+/**
+ * A clock time as seconds since midnight.
+ *
+ * @param {string} value `HH:MM` or `HH:MM:SS`.
+ * @return {number}
+ */
+function clockSeconds(value) {
+	const [h, m, sec] = value.split(':').map(Number)
+	return h * 3600 + m * 60 + (sec || 0)
+}
+
+/**
  * Apply a visibleWhen comparison operator. Ordering operators coerce both
  * sides to Number; equality compares loosely-normalized primitives
  * (`String(a) === String(b)` when types differ) so `"3" eq 3` holds for
@@ -94,6 +115,7 @@ function isDateLike(value) {
  *   context for the right-hand side, so `@object.<field>` and `@workspace.<key>` resolve
  *   as well as `@me`. Omitted, only the context-free tokens resolve.
  * @return {boolean} Whether the comparison holds.
+ * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-a-row-rule-names-the-row-that-breaks-it
  */
 export function compareVisibleWhen(actual, op, expected, ctx) {
 	const operator = VISIBLE_WHEN_OPS.includes(op) ? op : 'eq'
@@ -142,6 +164,11 @@ export function compareVisibleWhen(actual, op, expected, ctx) {
 	if ((!Number.isFinite(a) || !Number.isFinite(b)) && isDateLike(actual) && isDateLike(right)) {
 		a = Date.parse(actual)
 		b = Date.parse(right)
+	}
+	// Two clock times ("09:00" against "17:30") compare as seconds of the day.
+	if (isClockTime(actual) && isClockTime(right)) {
+		a = clockSeconds(actual)
+		b = clockSeconds(right)
 	}
 	if (!Number.isFinite(a) || !Number.isFinite(b)) {
 		return false

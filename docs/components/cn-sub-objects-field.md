@@ -27,6 +27,10 @@ For rows that are their own records, use an object-list widget instead.
 | `newItem` | Object | `null` | The values a new row starts with; the row schema's defaults fill the rest. |
 | `itemLabel` | String | `''` | What one row is called: "Checklist item" names the rows "Checklist item 1", "Checklist item 2" for the row actions and the edit dialog. Defaults to "Row". |
 | `emptyText` | String | `''` | Shown while there are no rows. Defaults to "No rows yet.". |
+| `inline` | Boolean | `false` | Edit the cells in the row, without a row dialog, for two to four short columns. An `enum` column is a select (labels from `x-enum-labels`), a boolean a switch, `integer`/`number` a number field, `format: time` or `date` a time or date field, anything else a text field. Each cell is named after its column and row ("Opens, Hours 2"). Add appends a row with `newItem` and focuses its first cell. |
+| `summary` | String | `''` | A line under the table: `{count}` rows, `{sum:<path>}` the sum of a number field, `{@object.<path>}` a field of `parentData`. Shown while there are rows. |
+| `rowRules` | Array | `[]` | `{ when, message }`: when the local `visibleWhen` condition `when` holds for a row, the row is wrong. The first broken rule shows under the table as "Hours 2: message". `@row.<field>` names another field of the same row; two clock times (`09:00`) compare as times of the day. |
+| `parentData` | Object | `null` | The object the rows belong to, for `{@object.<path>}` in `summary`. |
 
 ## Events
 
@@ -41,6 +45,17 @@ Each row's actions are named after the row ("Actions for Checklist item 2"). Aft
 ## In a form
 
 `CnFormDialog` passes these from the field's override: `itemOverrides` (the row form's field overrides), `newItem`, `itemLabel`, `emptyText` and `addLabel`. `pruneWhen` tidies the rows before the form is saved: strings are trimmed, optional keys left empty are omitted, a row whose `blank` key is empty is dropped, and with `invalid: true` so is a row missing a required key. Those rows are not checked when the form validates.
+
+`inline`, `summary` (translated) and `rowRules` (messages translated) pass through as well, and `parentData` is the form's data. A broken row rule blocks the save like a missing required value.
+
+```json
+"workingHours": {
+  "inline": true,
+  "itemLabel": "Working hours",
+  "rowRules": [{ "when": { "all": [{ "field": "openTime", "op": "notEmpty" }, { "field": "openTime", "op": "gte", "value": "@row.closeTime" }] }, "message": "Open time must be before close time." }]
+},
+"multiStep": { "summary": "{sum:durationMinutes} of {@object.durationMinutes} min" }
+```
 
 ```json
 "checklist": { "itemLabel": "Checklist item", "emptyText": "No checklist items yet.", "newItem": { "required": false }, "pruneWhen": { "blank": ["title"] } }

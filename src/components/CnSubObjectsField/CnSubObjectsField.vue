@@ -19,12 +19,42 @@
 			:rows="tableRows"
 			rowKey="__row"
 			:emptyText="emptyText || t('nextcloud-vue', 'No rows yet.')">
+			<template v-for="col in inlineColumns" #[`column-${col.key}`]="{ row }" :key="col.key">
+				<NcSelect
+					v-if="col.kind === 'select'"
+					:modelValue="list[row.__index][col.key] ?? null"
+					:options="col.options"
+					:reduce="(option) => option.value"
+					label="label"
+					:clearable="!col.required"
+					:inputLabel="cellLabel(col, row.__index)"
+					:labelOutside="true"
+					:disabled="disabled"
+					:data-testid="`cn-sub-objects-cell-${col.key}-${row.__index}`"
+					@update:modelValue="(value) => setCell(row.__index, col.key, value)" />
+				<NcCheckboxRadioSwitch
+					v-else-if="col.kind === 'boolean'"
+					:modelValue="list[row.__index][col.key] === true"
+					:disabled="disabled"
+					:aria-label="cellLabel(col, row.__index)"
+					:data-testid="`cn-sub-objects-cell-${col.key}-${row.__index}`"
+					@update:modelValue="(value) => setCell(row.__index, col.key, value)" />
+				<NcTextField
+					v-else
+					:modelValue="cellText(list[row.__index][col.key])"
+					:type="col.kind"
+					:label="cellLabel(col, row.__index)"
+					:labelOutside="true"
+					:disabled="disabled"
+					:data-testid="`cn-sub-objects-cell-${col.key}-${row.__index}`"
+					@update:modelValue="(value) => setCell(row.__index, col.key, col.kind === 'number' ? toNumber(value) : value)" />
+			</template>
 			<template v-if="!disabled" #row-actions="{ row }">
 				<NcActions
 					class="cn-sub-objects-field__row-actions"
 					:data-row-index="row.__index"
 					:ariaLabel="t('nextcloud-vue', 'Actions for {row}', { row: rowName(row.__index) })">
-					<NcActionButton @click="openEdit(row.__index)">
+					<NcActionButton v-if="!inline" @click="openEdit(row.__index)">
 						{{ t('nextcloud-vue', 'Edit') }}
 					</NcActionButton>
 					<NcActionButton @click="duplicateRow(row.__index)">
@@ -42,8 +72,14 @@
 				</NcActions>
 			</template>
 		</CnDataTable>
-		<p v-if="error" class="cn-sub-objects-field__error" role="alert">
-			{{ error }}
+		<p v-if="summaryText" class="cn-sub-objects-field__summary" data-testid="cn-sub-objects-summary">
+			{{ summaryText }}
+		</p>
+		<p v-if="error || ruleMessage"
+			class="cn-sub-objects-field__error"
+			role="alert"
+			data-testid="cn-sub-objects-error">
+			{{ error || ruleMessage }}
 		</p>
 		<CnFormDialog
 			v-if="editing !== null"
@@ -60,9 +96,50 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActions, NcButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import { defineAsyncComponent } from 'vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
+import { readPath } from '../../utils/readPath.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
+
+/**
+ * The rows that break a row rule, the first problem per row.
+ *
+ * A rule is `{ when, message }`: `when` is a local `visibleWhen` condition on
+ * the row, and when it holds the row is wrong. `@row.<field>` on its right-hand
+ * side names another field of the same row (open time against close time).
+ *
+ * @param {object[]} rows The rows.
+ * @param {object[]} rules The rules.
+ * @return {Array<{index: number, message: string}>} The problems.
+ * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-a-row-rule-names-the-row-that-breaks-it
+ */
+export function rowRuleProblems(rows, rules) {
+	if (!Array.isArray(rows) || !Array.isArray(rules) || rules.length === 0) {
+		return []
+	}
+	const withRow = (node, row) => {
+		if (typeof node === 'string' && node.startsWith('@row.')) {
+			return readPath(row, node.slice(5))
+		}
+		if (Array.isArray(node)) {
+			return node.map((entry) => withRow(entry, row))
+		}
+		if (node && typeof node === 'object') {
+			return Object.fromEntries(Object.entries(node).map(([key, value]) => [key, withRow(value, row)]))
+		}
+		return node
+	}
+	const problems = []
+	rows.forEach((row, index) => {
+		const broken = rules.find((rule) => rule && rule.when && typeof rule.message === 'string'
+			&& evaluateVisibleWhenLocal(withRow(rule.when, row || {}), row || {}))
+		if (broken) {
+			problems.push({ index, message: broken.message })
+		}
+	})
+	return problems
+}
 
 /**
  * CnSubObjectsField — edits an array of objects embedded in one object as a
@@ -89,6 +166,9 @@ export default {
 		NcActionButton,
 		NcActions,
 		NcButton,
+		NcCheckboxRadioSwitch,
+		NcSelect,
+		NcTextField,
 	},
 
 	props: {
@@ -168,6 +248,44 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Edit the cells in the row itself, without a row dialog: for two to four
+		 * short columns (a day and two times). An `enum` column is a select, a
+		 * boolean a switch, `integer`/`number` a number field, `format: time` or
+		 * `date` a time or date field, anything else a text field.
+		 */
+		inline: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * A line under the table: `{count}` is the number of rows, `{sum:<path>}`
+		 * the sum of a number field over the rows, `{@object.<path>}` a field of
+		 * the object the rows belong to (`parentData`). Pass it translated.
+		 */
+		summary: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Rules a row must not break, `{ when, message }`: when the local
+		 * `visibleWhen` condition `when` holds for a row, the row is wrong and
+		 * the message shows under the table, naming the row. `@row.<field>`
+		 * names another field of the same row. Pass the messages translated.
+		 */
+		rowRules: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** The object the rows belong to, for `{@object.<path>}` in `summary`. */
+		parentData: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['update:modelValue'],
@@ -188,6 +306,74 @@ export default {
 		columns() {
 			const props = (this.items && this.items.properties) || {}
 			return this.propertyKeys.slice(0, this.maxColumns).map((key) => ({ key, label: props[key].title || key }))
+		},
+
+		/**
+		 * The columns edited in the row, with the control each one takes.
+		 *
+		 * @return {Array<{key: string, label: string, kind: string, options?: Array, required: boolean}>}
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-short-rows-are-edited-in-the-row
+		 */
+		inlineColumns() {
+			if (!this.inline) {
+				return []
+			}
+			const props = (this.items && this.items.properties) || {}
+			const required = Array.isArray(this.items && this.items.required) ? this.items.required : []
+			return this.columns.map(({ key, label }) => {
+				const prop = props[key] || {}
+				let kind = 'text'
+				if (Array.isArray(prop.enum)) {
+					kind = 'select'
+				} else if (prop.type === 'boolean') {
+					kind = 'boolean'
+				} else if (prop.type === 'integer' || prop.type === 'number') {
+					kind = 'number'
+				} else if (prop.format === 'time' || prop.format === 'date') {
+					kind = prop.format
+				}
+				const labels = prop['x-enum-labels'] && typeof prop['x-enum-labels'] === 'object' ? prop['x-enum-labels'] : {}
+				const options = kind === 'select' ? prop.enum.map((value) => ({ value, label: labels[value] || String(value) })) : undefined
+				return { key, label, kind, options, required: required.includes(key) }
+			})
+		},
+
+		/**
+		 * The first broken row rule, as a message naming the row ("Row 2: …").
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-a-row-rule-names-the-row-that-breaks-it
+		 */
+		ruleMessage() {
+			const [first] = rowRuleProblems(this.list, this.rowRules)
+			return first ? t('nextcloud-vue', '{row}: {message}', { row: this.rowName(first.index), message: first.message }) : ''
+		},
+
+		/**
+		 * The summary line with its placeholders filled.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-a-summary-adds-up-the-rows
+		 */
+		summaryText() {
+			if (!this.summary || this.list.length === 0) {
+				return ''
+			}
+			return this.summary.replace(/\{([^{}]+)\}/g, (match, token) => {
+				if (token === 'count') {
+					return String(this.list.length)
+				}
+				if (token.startsWith('sum:')) {
+					const path = token.slice(4)
+					const total = this.list.reduce((sum, row) => sum + (Number(readPath(row, path)) || 0), 0)
+					return String(Math.round(total * 100) / 100)
+				}
+				if (token.startsWith('@object.')) {
+					const value = this.parentData ? readPath(this.parentData, token.slice(8)) : undefined
+					return value === undefined || value === null ? '' : String(value)
+				}
+				return match
+			})
 		},
 
 		tableRows() {
@@ -244,8 +430,80 @@ export default {
 			}
 		},
 
+		/**
+		 * Add a row: a dialog, or inline a new row with the start values and its
+		 * first cell focused.
+		 *
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-short-rows-are-edited-in-the-row
+		 */
 		openAdd() {
+			if (this.inline) {
+				const rows = [...this.list, { ...(this.newItem || {}) }]
+				this.commit(rows)
+				this.focusCell(rows.length - 1)
+				return
+			}
 			this.editing = { index: null, row: null }
+		},
+
+		/**
+		 * Write one cell of a row edited inline.
+		 *
+		 * @param {number} index The row.
+		 * @param {string} key The field.
+		 * @param {unknown} value The value.
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-short-rows-are-edited-in-the-row
+		 */
+		setCell(index, key, value) {
+			const rows = [...this.list]
+			rows[index] = { ...rows[index], [key]: value }
+			this.commit(rows)
+		},
+
+		/**
+		 * The accessible name of an inline cell: "Day, Row 2".
+		 *
+		 * @param {{label: string}} col The column.
+		 * @param {number} index The row.
+		 * @return {string}
+		 */
+		cellLabel(col, index) {
+			return t('nextcloud-vue', '{column}, {row}', { column: col.label, row: this.rowName(index) })
+		},
+
+		/**
+		 * A stored value as a text field shows it.
+		 *
+		 * @param {unknown} value The value.
+		 * @return {string}
+		 */
+		cellText(value) {
+			return value === null || value === undefined ? '' : String(value)
+		},
+
+		/**
+		 * A number field's text as a number, or null when empty or not a number.
+		 *
+		 * @param {string} value The text.
+		 * @return {number|null}
+		 */
+		toNumber(value) {
+			const number = Number(value)
+			return value === '' || value === null || !Number.isFinite(number) ? null : number
+		},
+
+		/**
+		 * Focus the first cell of a row added inline.
+		 *
+		 * @param {number} index The row.
+		 * @return {Promise<void>}
+		 */
+		async focusCell(index) {
+			await this.$nextTick()
+			const cell = this.$el && this.$el.querySelector(`[data-testid^="cn-sub-objects-cell-"][data-testid$="-${index}"] input, input[data-testid^="cn-sub-objects-cell-"][data-testid$="-${index}"]`)
+			if (cell && typeof cell.focus === 'function') {
+				cell.focus()
+			}
 		},
 
 		openEdit(index) {
@@ -302,6 +560,11 @@ export default {
 
 .cn-sub-objects-field__label {
 	font-weight: bold;
+}
+
+.cn-sub-objects-field__summary {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-sub-objects-field__error {

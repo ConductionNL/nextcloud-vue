@@ -76,3 +76,34 @@ describe('CnFormDialog validation', () => {
 		expect(w.vm.validate()).toBe(true)
 	})
 })
+
+describe('CnFormDialog sub-objects row rules', () => {
+	const hours = {
+		properties: {
+			workingHours: {
+				type: 'array',
+				'x-widget': 'sub-objects',
+				title: 'Working hours',
+				items: { type: 'object', properties: { openTime: { type: 'string', format: 'time' }, closeTime: { type: 'string', format: 'time' } } },
+			},
+		},
+	}
+	const rowRules = [{ when: { field: 'openTime', op: 'gte', value: '@row.closeTime' }, message: 'Open time must be before close time.' }]
+
+	it('blocks save naming the row that breaks a rule, and passes the inline, summary and rule config to the field', async () => {
+		const w = mount(CnFormDialog, {
+			props: { schema: hours, item: null, fieldOverrides: { workingHours: { inline: true, summary: '{count} days', rowRules } } },
+			global: { stubs },
+		})
+		await flush()
+		const field = w.findComponent({ name: 'CnSubObjectsField' })
+		expect(field.props('inline')).toBe(true)
+		expect(field.props('summary')).toBe('{count} days')
+		expect(field.props('rowRules')).toEqual(rowRules)
+		w.vm.updateField('workingHours', [{ openTime: '09:00', closeTime: '17:00' }, { openTime: '18:00', closeTime: '12:00' }])
+		expect(w.vm.validate()).toBe(false)
+		expect(w.vm.errors.workingHours).toBe('Row 2: Open time must be before close time.')
+		w.vm.updateField('workingHours', [{ openTime: '09:00', closeTime: '17:00' }])
+		expect(w.vm.validate()).toBe(true)
+	})
+})

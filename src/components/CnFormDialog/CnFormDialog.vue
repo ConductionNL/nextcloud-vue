@@ -771,6 +771,10 @@
 									:itemLabel="field.itemLabel ? cnTranslate(field.itemLabel) : ''"
 									:emptyText="field.emptyText ? cnTranslate(field.emptyText) : ''"
 									:addLabel="field.addLabel ? cnTranslate(field.addLabel) : undefined"
+									:inline="field.inline === true"
+									:summary="field.summary ? cnTranslate(field.summary) : ''"
+									:rowRules="translatedRowRules(field)"
+									:parentData="formData"
 									@update:modelValue="value => updateField(field.key, value)" />
 								<CnFieldHelper
 									:text="field.description"
@@ -984,7 +988,7 @@ import CnPartyPicker from '../CnPartyPicker/CnPartyPicker.vue'
 import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnSearchSelect from '../CnSearchSelect/CnSearchSelect.vue'
-import CnSubObjectsField from '../CnSubObjectsField/CnSubObjectsField.vue'
+import CnSubObjectsField, { rowRuleProblems } from '../CnSubObjectsField/CnSubObjectsField.vue'
 import { describeRowProblem, useChildRecords } from '../../composables/useChildRecords.js'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { clearAnonymousDrafts, draftIndicatorText, draftKey, formDraftMixin, hasDraftChanges, readDraft, resolveDraftUserId } from '../../composables/useFormDraft.js'
@@ -2284,6 +2288,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A sub-objects field's row rules with their messages translated.
+		 *
+		 * @param {object} field The field.
+		 * @return {Array<{when: object, message: string}>}
+		 * @spec openspec/changes/sub-objects-inline-and-summary/specs/sub-objects-field/spec.md#requirement-a-row-rule-names-the-row-that-breaks-it
+		 */
+		translatedRowRules(field) {
+			const rules = Array.isArray(field.rowRules) ? field.rowRules : []
+			return rules
+				.filter((rule) => rule && rule.when && typeof rule.message === 'string')
+				.map((rule) => ({ when: rule.when, message: this.cnTranslate(rule.message) }))
+		},
+
 		/**
 		 * A `resource` field's scope with its `value` token read against the
 		 * page's object: `@object.caseType` on a case's page is that case's type,
@@ -5062,12 +5080,14 @@ export default {
 					continue
 				}
 
-				// Sub-objects: every row must carry the row schema's required values.
-				if (field.widget === 'sub-objects' && Array.isArray(value) && field.items && Array.isArray(field.items.required)) {
+				// Sub-objects: every row must carry the row schema's required values,
+				// and break none of the field's row rules.
+				if (field.widget === 'sub-objects' && Array.isArray(value) && field.items) {
 					// Rows that `pruneWhen` drops on save are not checked.
 					const rows = pruneRows(value, field.items, field.pruneWhen)
+					const required = Array.isArray(field.items.required) ? field.items.required : []
 					for (let i = 0; i < rows.length; i++) {
-						const missing = field.items.required.find((k) => {
+						const missing = required.find((k) => {
 							const cell = rows[i] ? rows[i][k] : undefined
 							return cell === undefined || cell === null || cell === ''
 						})
@@ -5075,6 +5095,10 @@ export default {
 							newErrors[field.key] = t('nextcloud-vue', 'Row {n}: {field} is required.', { n: i + 1, field: missing })
 							break
 						}
+					}
+					const [broken] = newErrors[field.key] ? [] : rowRuleProblems(rows, this.translatedRowRules(field))
+					if (broken) {
+						newErrors[field.key] = t('nextcloud-vue', 'Row {n}: {message}', { n: broken.index + 1, message: broken.message })
 					}
 					continue
 				}
