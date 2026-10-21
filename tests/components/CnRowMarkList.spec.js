@@ -56,7 +56,7 @@ const CONTENT = {
 	badges: [
 		{ path: 'markedVia', equals: 'self', text: 'checked in' },
 		{ path: 'report.lifecycle', equals: 'approved', text: 'Report approved: {report.reason}' },
-		{ path: 'report.lifecycle', notEquals: 'approved', text: 'Report waiting: {report.reason}' },
+		{ path: 'report.lifecycle', notEquals: 'approved', text: 'Report waiting: {reason}', vars: { reason: 'report.reason' } },
 	],
 	heading: 'Register',
 	headingPath: 'groupName',

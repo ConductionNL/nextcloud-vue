@@ -261,8 +261,8 @@ export default {
 		 * - `defaultState` — the mark of a row that has none (default: the first state).
 		 * - `detailFields` — `[{ field, label, type: 'number'|'select'|'text', states?, notStates?,
 		 *   quick?, min?, max?, otherLabel?, options?, maxlength?, required?, default? }]`.
-		 * - `badges` — `[{ path, equals?, notEquals?, missing?, text }]`: a line on the row when the
-		 *   rule holds; `{a.b}` in `text` reads the row.
+		 * - `badges` — `[{ path, equals?, notEquals?, missing?, text, vars? }]`: a line on the row when
+		 *   the rule holds; `vars` maps a placeholder to a path in the row, any other `{a.b}` reads the row.
 		 * - `controls` — `[{ param, type: 'select'|'date', label, valuePath, optionsPath?, optionValue?,
 		 *   optionLabel?, maxPath?, todayPath?, resets? }]`: choices sent with `load` and kept in the
 		 *   page's query, so a link can open the list on them. `resets` names params a change clears.
@@ -706,13 +706,27 @@ export default {
 			}
 		},
 
+		/**
+		 * The badge lines of a row. `vars` maps a placeholder to a path in the
+		 * row; any other `{a.b}` in the text reads the row directly.
+		 *
+		 * @param {object} row The row.
+		 * @return {string[]}
+		 */
 		rowBadges(row) {
+			const read = (path) => {
+				const value = readPath(row.source, path)
+				return value === null || value === undefined ? '' : String(value)
+			}
 			return (Array.isArray(this.content.badges) ? this.content.badges : [])
 				.filter((badge) => this.matches(row.source, badge))
-				.map((badge) => this.tr(badge.text || '').replace(/\{([\w.]+)\}/g, (match, path) => {
-					const value = readPath(row.source, path)
-					return value === null || value === undefined ? '' : String(value)
-				}))
+				.map((badge) => {
+					const vars = {}
+					for (const [name, path] of Object.entries(badge.vars || {})) {
+						vars[name] = read(path)
+					}
+					return this.tr(badge.text || '', vars).replace(/\{([\w.]+)\}/g, (match, path) => read(path))
+				})
 		},
 
 		/**
