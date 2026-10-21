@@ -70,6 +70,21 @@
 	border: 0;
 }
 
+/* The user settings dialog (CnUserSettingsDialog, DqPersoonlijkeInstellingen
+   board): the frame takes the navigation's tint and the body fills it edge
+   to edge; the white pane and the navigation are drawn by the component.
+   @spec openspec/changes/user-settings-dialog-dq-board/specs/user-settings-dialog-dq-board/spec.md#requirement-the-user-settings-dialog-follows-the-dq-board */
+.modal-mask.cn-dialog-board.cn-user-settings-dialog .modal-wrapper .modal-container {
+	overflow: hidden;
+	background: var(--color-primary-element-light);
+}
+
+.modal-mask.cn-dialog-board.cn-user-settings-dialog .dialog__content {
+	gap: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
 /* Header: padding 22px 24px 0. */
 .cn-dialog-header {
 	display: flex;
