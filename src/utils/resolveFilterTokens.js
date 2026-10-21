@@ -121,6 +121,7 @@ function ymd(d) {
  *   `@workspace.<key>` (page-level workspace state), and `@config.<key>`
  *   (page-level app config) tokens.
  * @return {unknown} The resolved value.
+ * @spec openspec/changes/actions-time-windows-and-endpoint-routes/specs/declarative-actions/spec.md#requirement-a-condition-can-compare-against-an-instant-relative-to-now
  */
 export function resolveFilterValue(v, ctx) {
 	if (typeof v !== 'string' || v.charAt(0) !== '@') {

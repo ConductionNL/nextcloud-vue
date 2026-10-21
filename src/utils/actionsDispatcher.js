@@ -282,6 +282,7 @@ export function resolveCreateOverrideHandler(name, registry, customComponents) {
  * @param {(string|{name: string, paramField?: string, objectParam?: string, idPath?: string})} onSuccessRoute The action's onSuccessRoute config.
  * @param {object} saved The saved OpenRegister object.
  * @return {{name: string, params: object}|null} The router push location, or null.
+ * @spec openspec/changes/actions-time-windows-and-endpoint-routes/specs/declarative-actions/spec.md#requirement-an-endpoint-form-can-open-the-record-the-endpoint-answers
  */
 export function buildOnSuccessRoute(onSuccessRoute, saved) {
 	const spec = typeof onSuccessRoute === 'string'
