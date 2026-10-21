@@ -42,6 +42,18 @@ Pass pre-translated labels when your app handles i18n:
 | `collapsible` | Boolean | `false` | Whether the card collapses. |
 | `actionLabel` (`action-label`) | String | `t('nextcloud-vue', 'Change')` | Pre-translated fallback action label. |
 | `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL. |
+| `refusedLabel` (`refused-label`) | String | `t('nextcloud-vue', '(refused)')` | Shown on an entry the server refused (`authorized: false`). |
+| `failedLabel` (`failed-label`) | String | `t('nextcloud-vue', 'The history could not be loaded')` | Shown when a `source` or `endpoint` read failed. |
+
+## A flow task, or another source
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `source` | Object | `null` | `{ kind: 'flow-task', id }` reads `{apiBase}/flow-tasks/{id}/audit`, the task engine's own trail. `id` may be left out or written `@objectId`. |
+| `endpoint` | String | `''` | A trail URL of its own; `{id}` is filled with the source's id or `objectId`. |
+| `order` | String | `''` | `newest` or `oldest` first. Empty reads a source oldest first and an object newest first. |
+
+A row shows the action with the state it led to (`stateAfter`), the actor, the kind of performer when it is not a person (`performerType`), on whose behalf (`onBehalfOf`), "(refused)" for `authorized: false`, and the entry's `reason`. A failed read says so instead of showing an empty trail.
 
 ## Reference
 

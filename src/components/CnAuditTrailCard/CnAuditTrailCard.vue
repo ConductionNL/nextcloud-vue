@@ -17,6 +17,12 @@
 		:collapsible="collapsible"
 		:data-surface="surface">
 		<NcLoadingIcon v-if="loading" />
+		<p v-else-if="failed"
+			class="cn-audit-card__empty"
+			role="alert"
+			data-testid="cn-audit-card-failed">
+			{{ failedLabel }}
+		</p>
 		<div v-else-if="entries.length === 0" class="cn-audit-card__empty">
 			{{ noEntriesLabel }}
 		</div>
@@ -26,12 +32,19 @@
 				:key="entry.id"
 				class="cn-audit-card__row">
 				<div class="cn-audit-card__row-head">
-					<strong class="cn-audit-card__action">{{ entry.action || entry.event || actionLabel }}</strong>
+					<strong class="cn-audit-card__action">{{ formatAction(entry) }}</strong>
 					<span class="cn-audit-card__when">{{ formatWhen(entry) }}</span>
 				</div>
 				<div class="cn-audit-card__row-body">
 					<span class="cn-audit-card__actor">{{ formatActor(entry) }}</span>
+					<span
+						v-if="entry.authorized === false"
+						class="cn-audit-card__refused"
+						data-testid="cn-audit-card-refused">{{ refusedLabel }}</span>
 				</div>
+				<p v-if="entry.reason" class="cn-audit-card__reason">
+					{{ entry.reason }}
+				</p>
 			</li>
 		</ul>
 		<template v-if="entries.length > maxDisplay" #footer>
@@ -49,7 +62,17 @@ import { markRaw } from 'vue'
 import History from 'vue-material-design-icons/History.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
 import { userLocale } from '../../utils/userLocale.js'
+
+/**
+ * @param {object} entry An audit entry.
+ * @return {number} When it happened, in ms; 0 when unreadable.
+ */
+function entryTime(entry) {
+	const time = new Date(entry.creationDateTime || entry.created || entry.timestamp || 0).getTime()
+	return Number.isNaN(time) ? 0 : time
+}
 
 /**
  * CnAuditTrailCard — compact audit-trail widget rendered by the
@@ -100,6 +123,26 @@ export default {
 
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+
+		/**
+		 * Read the trail of something that is not an OpenRegister object:
+		 * `{ kind: 'flow-task', id }` reads `${apiBase}/flow-tasks/{id}/audit`,
+		 * oldest first. `id` may be left out or written `@objectId`.
+		 *
+		 * @type {{kind: string, id?: (string|number)}|null}
+		 */
+		source: { type: Object, default: null },
+
+		/** A trail URL that replaces the object's own; `{id}` is filled with the source's id or `objectId`. */
+		endpoint: { type: String, default: '' },
+
+		/** `newest` first (the object trail's order) or `oldest` first; empty takes `oldest` for a source and `newest` otherwise. */
+		order: {
+			type: String,
+			default: '',
+			validator: (value) => ['', 'newest', 'oldest'].includes(value),
+		},
+
 		/** Maximum rows to render. */
 		maxDisplay: { type: Number, default: 5 },
 		/** Whether the card collapses. */
@@ -112,6 +155,10 @@ export default {
 		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
 		/** Pre-translated fallback action label. */
 		actionLabel: { type: String, default: () => t('nextcloud-vue', 'Change') },
+		/** Shown on an entry the server refused (`authorized: false`). */
+		refusedLabel: { type: String, default: () => t('nextcloud-vue', '(refused)') },
+		/** Shown when a `source` or `endpoint` read failed. */
+		failedLabel: { type: String, default: () => t('nextcloud-vue', 'The history could not be loaded') },
 	},
 
 	emits: ['show-all'],
@@ -121,6 +168,8 @@ export default {
 			History: markRaw(History),
 			entries: [],
 			loading: false,
+			/** A `source` or `endpoint` read failed: said, rather than shown as an empty trail. */
+			failed: false,
 		}
 	},
 
@@ -130,7 +179,24 @@ export default {
 		},
 
 		displayedEntries() {
-			return this.entries.slice(0, this.maxDisplay)
+			const entries = this.oldestFirst ? [...this.entries].sort((a, b) => entryTime(a) - entryTime(b)) : this.entries
+			return entries.slice(0, this.maxDisplay)
+		},
+
+		/**
+		 * The trail URL a `source` or `endpoint` names, '' while its record id
+		 * is unknown, or null when the card reads an object.
+		 *
+		 * @return {string|null}
+		 * @spec openspec/changes/leaf-cards-read-a-source/specs/leaf-cards-read-a-source/spec.md#requirement-a-leaf-card-reads-a-source-or-an-endpoint
+		 */
+		sourceUrl() {
+			return leafSourceUrl({ source: this.source, endpoint: this.endpoint, apiBase: this.apiBase, objectId: this.objectId }, 'audit')
+		},
+
+		/** @return {boolean} Whether the entries read oldest first. */
+		oldestFirst() {
+			return this.order === 'oldest' || (this.order === '' && this.sourceUrl !== null)
 		},
 
 		/**
@@ -142,6 +208,9 @@ export default {
 		 * @return {string}
 		 */
 		fetchUrl() {
+			if (this.sourceUrl !== null) {
+				return this.sourceUrl
+			}
 			const params = new URLSearchParams({ limit: String(this.maxDisplay) })
 			if (this.scope === 'app') {
 				if (this.register) {
@@ -184,6 +253,7 @@ export default {
 				return
 			}
 			this.loading = true
+			this.failed = false
 			try {
 				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (response.ok) {
@@ -192,18 +262,47 @@ export default {
 					this.entries = Array.isArray(list) ? list : []
 				} else {
 					this.entries = []
+					this.failed = this.sourceUrl !== null
 				}
 			} catch (err) {
 				// eslint-disable-next-line no-console
 				console.error('[CnAuditTrailCard] failed to fetch audit trail', err)
 				this.entries = []
+				this.failed = this.sourceUrl !== null
 			} finally {
 				this.loading = false
 			}
 		},
 
+		/**
+		 * What happened: the action, with the state it led to when the entry
+		 * names one (a flow task's `stateAfter`).
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string} The line.
+		 */
+		formatAction(entry) {
+			const action = entry.action || entry.event || this.actionLabel
+			return entry.stateAfter ? `${action} (${entry.stateAfter})` : action
+		},
+
+		/**
+		 * Who did it: the actor, the kind of performer when it is not a
+		 * person (a flow, the system), and on whose behalf.
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string} The line.
+		 */
 		formatActor(entry) {
-			return entry.actorDisplayName || entry.actor || entry.userId || entry.user || ''
+			const actor = entry.actorDisplayName || entry.actor || entry.userId || entry.user || ''
+			const parts = [actor]
+			if (entry.performerType && entry.performerType !== 'user') {
+				parts.push(`(${entry.performerType})`)
+			}
+			if (entry.onBehalfOf) {
+				parts.push(t('nextcloud-vue', 'on behalf of {name}', { name: entry.onBehalfOf }))
+			}
+			return parts.filter((part) => part !== '').join(' ')
 		},
 
 		formatWhen(entry) {
@@ -256,6 +355,18 @@ export default {
 .cn-audit-card__row-body {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
+}
+
+.cn-audit-card__refused {
+	margin-inline-start: 6px;
+	font-weight: 700;
+	color: var(--color-error-text, var(--color-main-text));
+}
+
+.cn-audit-card__reason {
+	margin: 2px 0 0;
+	font-size: 0.9em;
+	overflow-wrap: anywhere;
 }
 
 .cn-audit-card__empty {
