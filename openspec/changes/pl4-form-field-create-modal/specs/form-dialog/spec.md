@@ -16,6 +16,16 @@ A select-or-create reference field with `createModal` naming a `kind: 'modal'` r
 - **THEN** ContactCreateDialog opens with `client: 'c-1'` and `initialData: { name: 'Jan' }`
 - **AND** the contact it creates is selected
 
+### Requirement: A select-or-create picker can follow another answer
+
+A select-or-create reference field with `pickerFilter` SHALL scope its options by those filters, each `@answer.<key>` replaced by that form value. An unanswered value SHALL scope to nothing.
+
+#### Scenario: The contacts of the chosen client
+
+- **GIVEN** a contact field with `pickerFilter: { client: '@answer.client' }`
+- **WHEN** the user chooses client `c-1`
+- **THEN** the contact picker is scoped to `{ client: 'c-1' }`
+
 ### Requirement: A field can show content under its control
 
 A field with `hintWidget` naming a registered component SHALL show that component under its control, with the field, its value and every answer of the form as props. A host's `#field-{key}-hint` slot SHALL be shown instead when given. A name nothing answers to SHALL show nothing.

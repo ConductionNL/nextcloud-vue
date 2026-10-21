@@ -377,6 +377,7 @@
 									:clearable="!field.required || !!field.reference.multiple"
 									:disabled="field.readOnly"
 									:preload="true"
+									:filters="pickerFilters(field)"
 									:createHandler="term => openNestedCreate(field, term)"
 									@update:modelValue="value => onReferenceSelected(field, value)"
 									@create="obj => onReferenceCreated(field, obj)" />
@@ -2362,6 +2363,20 @@ export default {
 		resolveHintComponent(field) {
 			const name = field && field.hintWidget
 			return typeof name === 'string' && name !== '' ? this.resolveFieldComponent({ widget: name }) : null
+		},
+
+		/**
+		 * The filters a select-or-create picker scopes its options by
+		 * (`pickerFilter`), each `@answer.<key>` replaced by that form value.
+		 * The picker drops empty entries, so an unanswered field scopes to nothing.
+		 *
+		 * @spec openspec/changes/pl4-form-field-create-modal/specs/form-dialog/spec.md
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object} The filters.
+		 */
+		pickerFilters(field) {
+			const filter = field && field.pickerFilter
+			return filter && typeof filter === 'object' && !Array.isArray(filter) ? resolveFormTokens(filter, this.formData) : {}
 		},
 
 		/**

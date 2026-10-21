@@ -551,6 +551,7 @@
 				"widget": { "type": "string", "minLength": 1 },
 				"createModal": { "type": "string", "minLength": 1, "description": "A select-or-create reference: the registry key of the `kind: 'modal'` dialog its Create opens, ahead of the page that lists the referenced schema. The dialog gets `initialData` with the typed term and reports the new object with `created`." },
 				"createModalProps": { "type": "object", "additionalProperties": true, "description": "More props for the createModal dialog. A string `@answer.<key>` is that form value, so a contact dialog can carry the chosen client." },
+				"pickerFilter": { "type": "object", "additionalProperties": true, "description": "A select-or-create reference: filters its options are scoped by. A string `@answer.<key>` is that form value, so a contact picker can follow the chosen client." },
 				"hintWidget": { "type": "string", "minLength": 1, "description": "The registered component shown under the field, with `field`, `value` and `formData` as props, such as a hint that follows the field's value." },
 				"look": { "type": "string", "enum": ["search"], "description": "`search` draws a single select as CnSearchSelect: a magnifier instead of the chevron, and rows with initials or an icon, the name, a secondary line and a check on the chosen one (DqOverdragen \"Nieuw team\")." },
 				"optionSecondary": { "type": "string", "description": "look 'search': the row's secondary line, a template filled from each option (\"{members} leden · {focus}\")." },

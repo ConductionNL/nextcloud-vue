@@ -7,8 +7,9 @@ pipelinq's lead form creates a client or a contact from the picker with the app'
 ## What changes
 
 - A field (or `fieldOverrides` entry) can declare `createModal`: the registry key of a `kind: 'modal'` dialog the select-or-create picker opens, ahead of the page that lists the referenced schema. `createModalProps` adds props, where `@answer.<key>` is another answer of the form.
+- A select-or-create field can declare `pickerFilter`: filters its options are scoped by, with `@answer.<key>` tokens.
 - A field can declare `hintWidget`: a registered component mounted under its control with `field`, `value` and `formData`. The slot `#field-{key}-hint` does the same from a host template and wins over the widget.
-- Manifest schema 2.141.0 declares `createModal`, `createModalProps` and `hintWidget` on a field override.
+- Manifest schema 2.141.0 declares `createModal`, `createModalProps`, `pickerFilter` and `hintWidget` on a field override.
 
 ## Impact
 

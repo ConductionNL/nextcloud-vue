@@ -119,6 +119,20 @@ describe('CnFormDialog: a reference field creates through its own registry modal
 	})
 })
 
+describe('CnFormDialog: a select-or-create picker follows another answer', () => {
+	it('scopes the picker by its pickerFilter, filled from the answers', async () => {
+		const wrapper = mount(CnFormDialog, {
+			props: { schema: lead, item: null, register: 'pipelinq', fieldOverrides: { contact: { pickerFilter: { client: '@answer.client' } } } },
+			global: { stubs, provide: { cnRegistry: {} } },
+		})
+		const picker = () => wrapper.findAllComponents({ name: 'CnResourceSelect' }).find((c) => c.props('schema') === 'contact')
+		expect(picker().props('filters')).toEqual({ client: '' })
+		wrapper.vm.updateField('client', 'c-1')
+		await wrapper.vm.$nextTick()
+		expect(picker().props('filters')).toEqual({ client: 'c-1' })
+	})
+})
+
 describe('CnFormDialog: content under a field', () => {
 	const Hint = {
 		name: 'CategoryHint',

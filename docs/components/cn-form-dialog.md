@@ -305,6 +305,8 @@ The form the Create opens is, in this order: the field's own `createModal` (a `f
 
 The dialog reports the new object (or its id) with `created`; `close` without it leaves the field as it was.
 
+`pickerFilter` scopes the picker's options by other answers: `"contact": { "pickerFilter": { "client": "@answer.client" } }` offers the contacts of the chosen client, and every contact while no client is chosen.
+
 ### Groups, languages and time zones
 
 ```js
