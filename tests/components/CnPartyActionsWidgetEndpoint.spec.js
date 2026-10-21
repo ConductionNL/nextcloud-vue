@@ -178,3 +178,25 @@ describe('CnPartyActionsWidget: a source that fails, actions beside the list, re
 		expect(mockGet).toHaveBeenCalledTimes(2)
 	})
 })
+
+describe('contactHref: numbers, mail and addresses as typed', () => {
+	it.each([
+		['06 12 34 56 78', 'tel:0612345678'],
+		['+31 6-1234 5678', 'tel:+31612345678'],
+		['0031 20 123 4567', 'tel:+31201234567'],
+		['020/123.45.67', 'tel:0201234567'],
+	])('dials %s as %s', (typed, href) => {
+		expect(contactHref('tel', typed)).toBe(href)
+	})
+
+	it.each([null, '', 'n.v.t.'])('makes no call link for %s', (typed) => {
+		expect(contactHref('tel', typed)).toBeNull()
+	})
+
+	it('mails an address, ignores something that is not one, and maps an address one line per comma', () => {
+		expect(contactHref('mailto', ' info@bakkerijdejong.nl ')).toBe('mailto:info@bakkerijdejong.nl')
+		expect(contactHref('mailto', 'bakkerij')).toBeNull()
+		expect(contactHref('geo', 'Dorpsstraat 1\n1234 AB Utrecht')).toBe('geo:0,0?q=' + encodeURIComponent('Dorpsstraat 1, 1234 AB Utrecht'))
+		expect(contactHref('geo', '   ')).toBeNull()
+	})
+})
