@@ -434,6 +434,18 @@ export default {
 		},
 
 		/**
+		 * Resolved header buttons, `[{ key, label, icon, variant, run }]`,
+		 * from a host that draws several cards and cannot provide them per
+		 * card (CnDashboardPage). A detail host's provided list wins.
+		 *
+		 * @spec openspec/changes/dashboard-widget-header-actions/specs/dashboard-widget-header-actions/spec.md#requirement-a-dashboard-card-draws-its-widgets-header-actions
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * One text link in the header's actions group, before the overflow
 		 * menu: `{ label, route?, params?, query?, href? }`. A `route` is a
 		 * named router link (needs a router), an `href` a plain anchor. The
@@ -703,7 +715,10 @@ export default {
 		declaredHeaderActions() {
 			const provided = this.cnWidgetHeaderActions
 			const list = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
-			return Array.isArray(list) ? list : []
+			if (Array.isArray(list) && list.length > 0) {
+				return list
+			}
+			return Array.isArray(this.headerActions) ? this.headerActions : []
 		},
 
 		displayTitle() {

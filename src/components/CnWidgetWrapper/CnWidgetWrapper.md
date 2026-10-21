@@ -189,3 +189,7 @@ Subtitle: `subtitle` is a muted line under the title, the counterpart of `eyebro
   <p>…</p>
 </CnWidgetWrapper>
 ```
+
+### Header buttons from a host (`headerActions`)
+
+`headerActions` takes resolved buttons, `[{ key, label, icon, variant, run }]`, for the title row. A host that draws several cards and so cannot provide them per card passes them as this prop (CnDashboardPage, from each widget's manifest `headerActions`). A list a detail host provides wins over the prop.
