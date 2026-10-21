@@ -2428,7 +2428,8 @@
     "When": "Wanneer",
     "Who": "Wie",
     "Message": "Bericht",
-    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen."
+    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen.",
+    "You may not read this list.": "Je mag deze lijst niet lezen."
   },
   "plurals": {
     "{count} member": [

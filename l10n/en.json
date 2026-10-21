@@ -2178,7 +2178,8 @@
     "When": "When",
     "Who": "Who",
     "Message": "Message",
-    "That change could not be saved.": "That change could not be saved."
+    "That change could not be saved.": "That change could not be saved.",
+    "You may not read this list.": "You may not read this list."
   },
   "plurals": {
     "{count} member": [
