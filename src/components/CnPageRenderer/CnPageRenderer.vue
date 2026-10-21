@@ -305,6 +305,7 @@ import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/action
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
 import { reportDiagnostic, reportDiagnosticOnce } from '../../utils/diagnostics.js'
+import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
 import { applyQueryPreset, matchQueryPreset } from '../../utils/queryPresets.js'
@@ -748,6 +749,7 @@ export default {
 			return entities
 				.map((e) => (typeof e === 'string' ? { id: e, label: e } : e))
 				.filter((e) => e && e.id)
+				.map((e) => ({ id: e.id, label: this.tr(e.label || e.id) }))
 		},
 
 		/**
@@ -1851,15 +1853,42 @@ export default {
 		},
 
 		/**
+		 * The OpenRegister objects an export action downloads without a
+		 * handler: the picked entity's `register` / `schema` / `filter`, else
+		 * the action's own. Null when neither names a register and a schema.
+		 *
+		 * @param {object} action The export action.
+		 * @param {{entity?: string}} payload The dialog's confirm payload.
+		 * @return {{register: string, schema: string, filter: object}|null}
+		 * @spec openspec/changes/pl4-export-action/specs/pl4-export-action/spec.md#requirement-an-export-action-can-export-openregister-objects
+		 */
+		exportObjectSource(action, payload) {
+			if (!action) {
+				return null
+			}
+			const entities = Array.isArray(action.entities) ? action.entities : []
+			const picked = entities.find((e) => e && typeof e === 'object' && payload && e.id === payload.entity)
+			const source = picked && picked.register && picked.schema ? picked : action
+			if (!source.register || !source.schema) {
+				return null
+			}
+			return { register: source.register, schema: source.schema, filter: source.filter || {} }
+		},
+
+		/**
 		 * Route the export launcher's confirm payload (`{ format, entity? }`)
 		 * to the export action's `handler` (resolved against the manifest
 		 * actions map — the same registry `type:"handler"` actions use). The
 		 * handler does the actual download (e.g. an app's ExportService) and
 		 * its resolved/rejected promise drives the dialog's result phase. A
 		 * missing handler surfaces as a dialog error (never a silent success).
+		 * Without a handler, an entity (or the action itself) that names an
+		 * OpenRegister `register` and `schema` downloads those objects, its
+		 * `filter` applied, through OpenRegister's export.
 		 *
 		 * @param {{format: string, entity?: string}} payload The dialog's confirm payload.
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/pl4-export-action/specs/pl4-export-action/spec.md#requirement-an-export-action-can-export-openregister-objects
 		 */
 		async onExportConfirm(payload) {
 			const action = this.exportAction
@@ -1871,6 +1900,12 @@ export default {
 			}
 			const handlers = this.effectiveManifest?.actions ?? {}
 			const fn = action && action.handler && handlers[action.handler]
+			const source = typeof fn === 'function' ? null : this.exportObjectSource(action, payload)
+			if (source) {
+				window.location.assign(buildExportUrl(source.register, source.schema, source.filter, payload && payload.format))
+				setResult({ success: true })
+				return
+			}
 			if (typeof fn !== 'function') {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] export action "${action && action.id}" has no resolvable handler "${action && action.handler}" in the manifest actions map.`)

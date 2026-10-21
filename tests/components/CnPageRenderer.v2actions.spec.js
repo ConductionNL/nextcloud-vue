@@ -161,3 +161,74 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		expect(wrapper.findComponent({ name: 'CnMassExportDialog' }).exists()).toBe(false)
 	})
 })
+
+describe('CnPageRenderer v2 — export action over OpenRegister objects (pl4-export-action)', () => {
+	const { stubLocationMethod } = require('../support/stubLocation.js')
+	const objectExport = {
+		id: 'export-report',
+		label: 'Export',
+		type: 'export',
+		entities: [
+			{ id: 'leads', label: 'Leads', register: 'pipelinq', schema: 'lead' },
+			{ id: 'requests', label: 'Requests', register: 'pipelinq', schema: 'ticket', filter: { ticketType: 'request' } },
+		],
+		formats: ['excel', 'csv'],
+	}
+	let assignSpy
+
+	beforeEach(() => {
+		assignSpy = stubLocationMethod('assign')
+	})
+	afterEach(() => assignSpy.mockRestore())
+
+	/**
+	 * Mount, open the export dialog for an action, and stub its result setter.
+	 *
+	 * @param {object} action The export action.
+	 * @return {Promise<{wrapper: object, setResult: Function}>}
+	 */
+	async function openExport(action) {
+		const wrapper = shallowMount(CnPageRenderer, {
+			propsData: { manifest: v2Manifest },
+			mocks: { $route: { name: 'home', params: {} } },
+		})
+		wrapper.vm.$.provides.cnDispatchAction(action)
+		await vueNextTick()
+		const setResult = jest.fn()
+		wrapper.vm.$.refs.exportDialog = { setResult }
+		return { wrapper, setResult }
+	}
+
+	it('downloads the chosen entity from OpenRegister when no handler is named', async () => {
+		const { wrapper, setResult } = await openExport(objectExport)
+		await wrapper.vm.onExportConfirm({ format: 'csv', entity: 'requests' })
+		const url = assignSpy.mock.calls[0][0]
+		expect(url).toContain('/apps/openregister/api/objects/pipelinq/ticket/export')
+		expect(url).toContain('format=csv')
+		expect(url).toContain('ticketType=request')
+		expect(setResult).toHaveBeenCalledWith({ success: true })
+	})
+
+	it('takes the action\'s own register and schema when it has no entity picker', async () => {
+		const { wrapper } = await openExport({ id: 'x', label: 'Export', type: 'export', register: 'pipelinq', schema: 'lead' })
+		await wrapper.vm.onExportConfirm({ format: 'excel' })
+		expect(assignSpy.mock.calls[0][0]).toContain('/apps/openregister/api/objects/pipelinq/lead/export?format=excel')
+	})
+
+	it('hands the dialog only id and label, translated', async () => {
+		const { wrapper } = await openExport(objectExport)
+		expect(wrapper.findComponent({ name: 'CnMassExportDialog' }).props('entities')).toEqual([
+			{ id: 'leads', label: 'Leads' },
+			{ id: 'requests', label: 'Requests' },
+		])
+	})
+
+	it('still reports an error when neither a handler nor an object source is named', async () => {
+		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const { wrapper, setResult } = await openExport({ id: 'x', label: 'Export', type: 'export', entities: [{ id: 'a', label: 'A' }] })
+		await wrapper.vm.onExportConfirm({ format: 'csv', entity: 'a' })
+		expect(assignSpy).not.toHaveBeenCalled()
+		expect(setResult).toHaveBeenCalledWith({ error: expect.any(String) })
+		warnSpy.mockRestore()
+	})
+})
