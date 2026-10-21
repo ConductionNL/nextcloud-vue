@@ -438,6 +438,16 @@
 	color: var(--color-main-text);
 }
 
+/* ---- A primary button ---------------------------------------------------- */
+/* The boards draw a primary as its fill alone (DqZaak "Volgende stap",
+   DqOverdragen "Overdragen"); NcButton gives every button a 1px border. The
+   selector weighs (0,3,0), as the secondary rule above.
+   @spec openspec/changes/board-primary-no-edge/specs/board-primary-no-edge/spec.md#requirement-a-board-primary-button-draws-no-edge */
+.cn-look-board .button-vue.button-vue--primary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)),
+.cn-look-board .button-vue.button-vue--vue-primary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)) {
+	border: 0;
+}
+
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
 /* The board draws a page's secondary actions as neutral 40px buttons: the
    main background, a grey border, the main text at 600 (DqZaak "Bericht",
