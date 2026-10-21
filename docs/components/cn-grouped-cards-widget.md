@@ -35,7 +35,7 @@ at `GET /api/case-types/{id}/phases`; the widget is generic and reads any payloa
 | `groupsPath` | Where the list of groups sits in the payload (default `groups`). |
 | `itemsKey` | The list of cards in each group (default `items`). |
 | `groupTitle`, `itemTitle` | Templates (`{path}` tokens, as in a record list). |
-| `itemMeta` | A template, or a list joined with " · "; a part whose token is empty is left out. A part `{ count, one, other }` is the number at the card's `count` path in the singular or plural text, `{count}` filled in ("1 free place", "3 free places"). |
+| `itemMeta` | A template, or a list joined with " · "; a part whose token is empty is left out. A part `{ count, one, other }` is the number at the card's `count` path in the singular or plural text, `{count}` filled in ("1 free place", "3 free places"); a part `{ text, when }` shows only when the local condition holds on the card ("You are signed up"). |
 | `groupCount` | `{ one, other }` with `{count}`: a count pill in the group header. |
 | `extraGroup` | `{ title, path, itemText, join? }`: a dashed box of entries read at `path`, on one line. |
 | `columns` | Groups side by side (1 to 4, default 2); one column on a narrow screen. |

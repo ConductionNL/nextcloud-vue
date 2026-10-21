@@ -49,7 +49,7 @@ const CONTENT = {
 	groupLines: [{ text: 'Sign-up is open.', when: { field: 'open', op: 'eq', value: true } }, { text: 'Sign-up has closed.', when: { field: 'open', op: 'eq', value: false } }],
 	groupProgress: { valuePath: 'done', label: '{done}% done' },
 	itemTitle: '{name}',
-	itemMeta: [{ count: 'free', one: '{count} free place', other: '{count} free places' }, '{members}'],
+	itemMeta: [{ count: 'free', one: '{count} free place', other: '{count} free places' }, '{members}', { text: 'yours', when: { field: 'mine', value: true } }],
 	itemActions: [
 		{ id: 'leave', label: 'Leave', type: 'api-call', url: '/apps/school/api/work-groups/@item.id/leave', visibleWhen: { all: [{ field: 'group.open', value: true }, { field: 'item.mine', value: true }] } },
 		{ id: 'join', label: 'Join', type: 'api-call', url: '/apps/school/api/work-groups/@item.id/join', payload: { free: '@item.free', set: 'set @group.setName' }, visibleWhen: { all: [{ field: 'group.open', value: true }, { field: 'item.mine', value: false }, { field: 'item.free', op: 'gt', value: 0 }, { field: 'group.joined', value: false }] } },
@@ -110,6 +110,8 @@ describe('CnGroupedCardsWidget itemActions', () => {
 		await flush()
 		const [first, second] = w.findAll('[data-testid="cn-grouped-cards-group"]')
 		expect(first.findAll('[data-testid="cn-grouped-cards-item"]')[0].text()).toContain('1 free place · Ann')
+		expect(first.findAll('[data-testid="cn-grouped-cards-item"]')[0].text()).toContain('Ann · yours')
+		expect(first.findAll('[data-testid="cn-grouped-cards-item"]')[1].text()).not.toContain('yours')
 		expect(first.findAll('[data-testid="cn-grouped-cards-item"]')[1].text()).toContain('2 free places')
 		expect(first.find('[data-testid="cn-grouped-cards-group-line"]').text()).toBe('Sign-up is open.')
 		expect(second.find('[data-testid="cn-grouped-cards-group-line"]').text()).toBe('Sign-up has closed.')

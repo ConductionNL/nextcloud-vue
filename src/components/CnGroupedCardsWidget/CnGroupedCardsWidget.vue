@@ -234,7 +234,8 @@ export default {
 		 *   `target` and `href`; a value that is exactly one token keeps its type); `visibleWhen` (the
 		 *   local form, `all` / `any` included) reads `item.<path>` and `group.<path>`.
 		 * - `itemMeta` parts may be `{ count, one, other }`: the number at the card's `count` path in
-		 *   the singular or plural text, `{count}` filled in.
+		 *   the singular or plural text, `{count}` filled in; or `{ text, when }`: the text only when the
+		 *   local condition `when` holds on the card.
 		 * - `groupLines` entries may be `{ text, when }`: the line only when the local condition
 		 *   `when` holds on the group.
 		 * - `groupProgress` (`{ valuePath, label? }`) draws a progress bar of the group's value (0 to
@@ -649,7 +650,13 @@ export default {
 		metaOf(item, rawItem = item, spec = this.content?.itemMeta) {
 			const parts = Array.isArray(spec) ? spec : (typeof spec === 'string' ? [spec] : [])
 			return parts
-				.map((part) => (part && typeof part === 'object' && !Array.isArray(part) && part.count ? this.countText(part, rawItem) : this.fill(part, item)))
+				.filter((part) => !part || typeof part !== 'object' || Array.isArray(part) || !part.when || evaluateVisibleWhenLocal(part.when, rawItem))
+				.map((part) => {
+					if (part && typeof part === 'object' && !Array.isArray(part)) {
+						return part.count ? this.countText(part, rawItem) : this.fill(part.text, item)
+					}
+					return this.fill(part, item)
+				})
 				.filter((text) => text !== '')
 				.join(' · ')
 		},
