@@ -2219,7 +2219,10 @@
     "Nothing to check.": "Nothing to check.",
     "This could not be read: {reason}": "This could not be read: {reason}",
     "Still open": "Still open",
-    "The checklist could not be read.": "The checklist could not be read."
+    "The checklist could not be read.": "The checklist could not be read.",
+    "Switch from {name}": "Switch from {name}",
+    "Switch": "Switch",
+    "Could not switch. Try again.": "Could not switch. Try again."
   },
   "plurals": {
     "{count} member": [

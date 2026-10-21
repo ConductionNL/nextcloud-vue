@@ -42,6 +42,45 @@ export default {
 | `organisations` | `Array \| null` | `null` | Full list of organisations the current user belongs to. When supplied, the badge hides if `organisations.length <= 1`. When `null` (length unknown), the badge renders whenever an active organisation exists. |
 | `size` | `'sm' \| 'md'` | `'sm'` | Visual size. `'sm'` is intended for the top-bar slot; `'md'` is a larger variant for dashboard headers. |
 | `fallbackName` | `string` | `''` | Name shown when only the active UUID is known and the full organisation entity has not yet been resolved. |
+| `switchSource` | `object \| null` | `null` | Makes the badge a switcher: `{ url, itemsPath, activePath, idField, labelTemplate }`. See [Switcher](#switcher). |
+| `switchUrl` | `string` | `''` | `POST` target of a switch. |
+| `switchParam` | `string` | `'id'` | Body key the chosen id is posted under. |
+| `reloadAfterSwitch` | `boolean` | `false` | Reload the page after a switch, so every view reads the new scope. |
+
+## Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `switched` | `id` | A switch was accepted by `switchUrl`. |
+
+## Switcher
+
+With `switchSource` the badge lists the scopes the user may work in (administrations, organisations, workspaces) and switches between them. It is the header's one place to choose the scope.
+
+- `GET switchSource.url` answers the scopes at `itemsPath` and the active id at `activePath` (dot paths).
+- `idField` (default `id`) names each scope's id. `labelTemplate` is one template or a list of candidates with `{field}` tokens; the first that fills is the label, else the id.
+- Choosing a scope posts `{ [switchParam]: id }` to `switchUrl`. A refused switch shows an alert and keeps the active scope.
+- It hides with one scope or none, and when the source cannot be read.
+
+```vue
+<CnAppRoot :manifest="manifest">
+	<template #tenant-badge>
+		<CnTenantBadge
+			:switch-source="{
+				url: '/apps/books/api/administrations/context',
+				itemsPath: 'administrations',
+				activePath: 'activeAdministrationId',
+				idField: 'administrationId',
+				labelTemplate: ['{administrationCode} · {name}', '{name}'],
+			}"
+			switch-url="/apps/books/api/administrations/switch"
+			switch-param="administrationId"
+			reload-after-switch />
+	</template>
+</CnAppRoot>
+```
+
+The menu is an `NcActions` with a visible name (the active scope), so it is reachable by keyboard and its button names the active scope to a screen reader.
 
 ## Reactive context
 
