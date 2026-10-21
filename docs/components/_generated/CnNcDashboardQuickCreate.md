@@ -18,7 +18,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name      | Payload | Description |
-| --------- | ------- | ----------- |
-| `cancel`  | —       |             |
-| `created` | —       |             |
+| Name      | Payload | Description                                                         |
+| --------- | ------- | ------------------------------------------------------------------- |
+| `created` | —       | The object was created. Payload: the created object, with its `id`. |
+| `cancel`  | —       | The form was closed without creating anything.                      |

@@ -853,14 +853,14 @@
 							</small>
 						</template>
 					</div>
-					<!-- @slot field-{key}-hint Content under one field, such as a hint that follows its value. -->
-					<!-- @binding {object} field The field definition. -->
-					<!-- @binding {*} value The field's current value. -->
-					<!-- @binding {object} formData Every value of the form. -->
 					<div
 						v-if="!isInFoldedSection(field) && ($slots['field-' + field.key + '-hint'] || resolveHintComponent(field))"
 						class="cn-form-dialog__field-hint"
 						:data-testid="'cn-form-hint-' + field.key">
+						<!-- @slot field-{key}-hint Content under one field, such as a hint that follows its value. -->
+						<!-- @binding {object} field The field definition. -->
+						<!-- @binding {*} value The field's current value. -->
+						<!-- @binding {object} formData Every value of the form. -->
 						<slot
 							v-if="$slots['field-' + field.key + '-hint']"
 							:name="'field-' + field.key + '-hint'"

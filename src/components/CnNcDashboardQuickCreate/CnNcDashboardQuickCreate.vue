@@ -45,7 +45,7 @@
 					data-testid="cn-quick-create-submit">
 					{{ submitting ? t('nextcloud-vue', 'Creating…') : (text(config.submitLabel) || t('nextcloud-vue', 'Create')) }}
 				</NcButton>
-				<NcButton v-if="cancelable" variant="secondary" @click="$emit('cancel')">
+				<NcButton v-if="cancelable" variant="secondary" @click="cancel">
 					{{ t('nextcloud-vue', 'Cancel') }}
 				</NcButton>
 			</div>
@@ -213,6 +213,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Give up the form without creating anything.
+		 */
+		cancel() {
+			/**
+			 * @event cancel The form was closed without creating anything.
+			 */
+			this.$emit('cancel')
+		},
+
 		t,
 
 		/**
@@ -384,6 +394,9 @@ export default {
 				const { data } = await axios.post(generateUrl(`/apps/openregister/api/objects/${this.config.register}/${this.config.schema}`), this.buildBody())
 				const id = (data && (data.id || data.uuid || (data['@self'] && data['@self'].id))) || ''
 				const created = { ...(data || {}), id }
+				/**
+				 * @event created The object was created. Payload: the created object, with its `id`.
+				 */
 				this.$emit('created', created)
 				if (this.config.openAfterCreate && this.config.successHref) {
 					window.location.assign(appUrl(fillTemplate(this.config.successHref, created)))
