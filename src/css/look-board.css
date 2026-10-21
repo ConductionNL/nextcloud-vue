@@ -289,6 +289,26 @@
 	height: 16px;
 }
 
+/* ---- A dashboard's page filters ---------------------------------------- */
+/* The boards draw a dashboard's page filters 36px tall (DqProcesanalyse,
+   DqDoorlooptijd "Filteren op zaaktype", "Periode"); NcInputField, also
+   NcSelect's search box, draws 30px. The wrapper holds the input and its
+   2px focus ring. A multiple select's search box sits beside its chips and
+   keeps its own height.
+   @spec openspec/changes/board-field-heights/specs/board-field-heights/spec.md#requirement-side-panel-fields-and-page-filters-are-as-tall-as-the-boards-draw-them */
+.cn-look-board .cn-dashboard-page__page-filter:not(.cn-look-nextcloud *) {
+	--cn-field-height: 36px;
+}
+
+.cn-look-board .cn-dashboard-page__page-filter:not(.cn-look-nextcloud *) .input-field__main-wrapper:not(.vs--multiple *) {
+	height: calc(var(--cn-field-height) + 2 * var(--border-width-input-focused, 2px));
+}
+
+.cn-look-board .cn-dashboard-page__page-filter:not(.cn-look-nextcloud *) .input-field__input:not(.vs--multiple *) {
+	height: var(--cn-field-height);
+	min-height: var(--cn-field-height);
+}
+
 /* ---- A single select -------------------------------------------------- */
 /* NcSelect draws a single select as its search field with the clear and
    open buttons laid over its end. A legacy vue-select rule that Nextcloud

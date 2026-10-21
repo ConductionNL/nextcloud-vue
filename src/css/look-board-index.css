@@ -1508,6 +1508,24 @@
 	display: none;
 }
 
+/* The panel's fields are 40px tall (DqZakenSorteren "Sorteren op", the
+   search field); NcInputField, also NcSelect's search box, draws 30px. The
+   wrapper holds the input and its 2px focus ring, as on a board form. A
+   multiple select's search box sits beside its chips and keeps its height.
+   @spec openspec/changes/board-field-heights/specs/board-field-heights/spec.md#requirement-side-panel-fields-and-page-filters-are-as-tall-as-the-boards-draw-them */
+.cn-look-board .cn-index-sidebar-panel {
+	--cn-field-height: 40px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .input-field__main-wrapper:not(.vs--multiple *) {
+	height: calc(var(--cn-field-height) + 2 * var(--border-width-input-focused, 2px));
+}
+
+.cn-look-board .cn-index-sidebar-panel .input-field__input:not(.vs--multiple *) {
+	height: var(--cn-field-height);
+	min-height: var(--cn-field-height);
+}
+
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__nav[role="tablist"] {
 	justify-content: flex-start;
 	gap: 4px;
