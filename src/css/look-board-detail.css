@@ -554,7 +554,7 @@
 
 /* The same for a CnDetailCard (DqTaak "Notities", DqZaakEmail "E-mail",
    DqZaakTaken "Afspraken", DqHandhaving "Historie"). */
-.cn-look-board .cn-detail-page .cn-detail-card__header .cn-detail-card__icon {
+.cn-look-board.cn-detail-page .cn-detail-card__header .cn-detail-card__icon {
 	display: none;
 }
 

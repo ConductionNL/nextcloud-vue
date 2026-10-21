@@ -21,7 +21,7 @@ describe('look-board-detail.css: detail card titles', () => {
 	})
 
 	it('hides the icon of a CnDetailCard on a detail page in the board look only', () => {
-		const at = css.indexOf('.cn-look-board .cn-detail-page .cn-detail-card__header .cn-detail-card__icon {')
+		const at = css.indexOf('.cn-look-board.cn-detail-page .cn-detail-card__header .cn-detail-card__icon {')
 		expect(at).toBeGreaterThan(-1)
 		expect(css.slice(at, css.indexOf('}', at))).toMatch(/display: none;/)
 	})
