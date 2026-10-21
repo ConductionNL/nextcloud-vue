@@ -617,6 +617,7 @@
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -701,6 +702,7 @@
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -782,6 +784,7 @@
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -810,6 +813,7 @@
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -849,6 +853,7 @@
 						:showActions="widgetShowActions(item)"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
@@ -881,6 +886,7 @@
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -1065,6 +1071,7 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
 import { headerActionAsLink } from '../../utils/actionLink.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
@@ -1072,6 +1079,7 @@ import { isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
 import { generatedPageFilterOptions } from '../../utils/periodOptions.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { resolveWidgetHeaderActions } from '../../utils/widgetHeaderActions.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -4649,6 +4657,22 @@ export default {
 				return []
 			}
 			return def?.buttons || []
+		},
+
+		/**
+		 * The widget's manifest `headerActions`, resolved for its card's title
+		 * row; a click goes through the action dispatcher with the page's
+		 * router.
+		 *
+		 * @spec openspec/changes/dashboard-widget-header-actions/specs/dashboard-widget-header-actions/spec.md#requirement-a-dashboard-card-draws-its-widgets-header-actions
+		 * @param {object} item Layout placement entry.
+		 * @return {Array<object>} The buttons, or none.
+		 */
+		getWidgetHeaderActions(item) {
+			return resolveWidgetHeaderActions(this.getWidgetDef(item.widgetId), {
+				translate: (key) => this.effectiveTranslate(key),
+				dispatch: (action) => dispatchAction(action, { router: this.$router || null }),
+			})
 		},
 
 		/**
