@@ -68,7 +68,20 @@
 				:key="field.field"
 				class="cn-action-dialog__field"
 				:data-testid="`cn-action-dialog-field-${field.field}`">
-				<NcSelect v-if="field.type === 'select'"
+				<!-- A checkbox field: a tinted box, the label filled from the
+				     record, a hint under it (DqArchiveren "Sanne de Vries laten
+				     weten..."). -->
+				<NcCheckboxRadioSwitch v-if="field.type === 'checkbox'"
+					class="cn-action-dialog__checkbox"
+					:modelValue="checkboxValue(field)"
+					type="checkbox"
+					@update:modelValue="(on) => setChecked(field.field, on)">
+					<span class="cn-action-dialog__checkbox-text">
+						<strong class="cn-action-dialog__checkbox-label">{{ fill(field.label) || field.field }}</strong>
+						<span v-if="field.hint" class="cn-action-dialog__muted">{{ fill(field.hint) }}</span>
+					</span>
+				</NcCheckboxRadioSwitch>
+				<NcSelect v-else-if="field.type === 'select'"
 					:modelValue="selectedOption(field)"
 					:options="optionsOf(field)"
 					:inputLabel="text(field.label) || field.field"
@@ -135,7 +148,7 @@ import axios from '@nextcloud/axios'
 import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
 import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
@@ -173,10 +186,12 @@ let reasonSeq = 0
  *   the action runs only while `allowedPath` reads true; `reasonPath` says
  *   why not. With `listPath` the paths read the entry of that list whose
  *   fields equal `match` (`{ act: "archive" }`).
- * - `fields`: `[{ field, type?: "text"|"date"|"datetime"|"select", label?,
- *   required?, options?: [{ value, label, fills? }] }]`: inputs sent beside
- *   the reason, required by default; a select option's `fills` sets other
- *   fields that are still empty.
+ * - `fields`: `[{ field, type?: "text"|"date"|"datetime"|"select"|"checkbox", label?,
+ *   required?, options?: [{ value, label, fills? }], hint?, default? }]`: inputs
+ *   sent beside the reason, required by default; a select option's `fills`
+ *   sets other fields that are still empty. A `checkbox` is sent as a boolean,
+ *   starts at `default` (false), fills its `label` and `hint` from the record,
+ *   and is optional unless `required: true` (then it must be ticked).
  * - `reason`: `{ label?, hint?, required?, field?, rows? }`: a text area; required by
  *   default; sent as `field` (default `reason`). `rows` is its height in lines
  *   (default 2; board DqBesluit draws 4).
@@ -190,7 +205,7 @@ let reasonSeq = 0
 export default {
 	name: 'CnActionDialog',
 
-	components: { CheckCircle, CircleOutline, CnDialog, CnIcon, HelpCircleOutline, NcButton, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { CheckCircle, CircleOutline, CnDialog, CnIcon, HelpCircleOutline, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -355,6 +370,20 @@ export default {
 			return this.record ? this.fill(this.config.eyebrow) || this.text(this.config.eyebrow) : this.text(this.config.eyebrow)
 		},
 
+		/**
+		 * The value of every field as sent: a checkbox as a boolean, the
+		 * others as entered ('' when empty).
+		 *
+		 * @return {object} Values by field name.
+		 */
+		fieldValues() {
+			const out = { ...this.values }
+			for (const field of this.fields) {
+				out[field.field] = field.type === 'checkbox' ? this.checkboxValue(field) : (this.values[field.field] ?? '')
+			}
+			return out
+		},
+
 		/** @return {Array<object>} The fields with a name. */
 		fields() {
 			return (Array.isArray(this.config.fields) ? this.config.fields : []).filter((f) => f && f.field)
@@ -367,7 +396,12 @@ export default {
 		 * @return {boolean}
 		 */
 		fieldsFilled() {
-			return this.fields.every((f) => f.required === false || String(this.values[f.field] ?? '').trim() !== '')
+			return this.fields.every((f) => {
+				if (f.type === 'checkbox') {
+					return f.required !== true || this.checkboxValue(f)
+				}
+				return f.required === false || String(this.values[f.field] ?? '').trim() !== ''
+			})
 		},
 	},
 
@@ -384,6 +418,28 @@ export default {
 		 * @param {unknown} value The text.
 		 * @return {string}
 		 */
+		/**
+		 * A checkbox field's state: what was ticked, else its `default`.
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 * @spec openspec/changes/action-dialog-checkbox-field/specs/action-dialog-checkbox-field/spec.md#requirement-an-action-dialog-field-can-be-a-checkbox
+		 */
+		checkboxValue(field) {
+			return field.field in this.values ? this.values[field.field] === true : field.default === true
+		},
+
+		/**
+		 * Tick or untick a checkbox field.
+		 *
+		 * @param {string} name The field.
+		 * @param {boolean} on Ticked.
+		 * @return {void}
+		 */
+		setChecked(name, on) {
+			this.values = { ...this.values, [name]: on === true }
+		},
+
 		text(value) {
 			return typeof value === 'string' && value !== '' ? this.cnTranslate(value) : ''
 		},
@@ -540,18 +596,16 @@ export default {
 					if (this.config.reason) {
 						body[this.config.reason.field || 'reason'] = reason
 					}
-					for (const field of this.fields) {
-						body[field.field] = this.values[field.field] ?? ''
-					}
+					Object.assign(body, this.fieldValues)
 					const method = String(request.method || 'POST').toLowerCase()
 					await axios[['post', 'put', 'patch', 'delete'].includes(method) ? method : 'post'](/^https?:\/\//i.test(url) ? url : generateUrl(url), body)
 				} else if (this.confirmConfig.action && typeof this.cnDispatchAction === 'function') {
-					await this.cnDispatchAction({ ...this.confirmConfig.action, args: [...(this.confirmConfig.action.args || []), { ...this.values, reason }] })
+					await this.cnDispatchAction({ ...this.confirmConfig.action, args: [...(this.confirmConfig.action.args || []), { ...this.fieldValues, reason }] })
 				}
 				this.done = true
 				emit(PAGE_REFRESH, {})
 				/** @event done The action ran. Payload: the field values and `reason`. */
-				this.$emit('done', { ...this.values, reason })
+				this.$emit('done', { ...this.fieldValues, reason })
 			} catch (failure) {
 				const data = failure && failure.response && failure.response.data
 				this.refusal = String((data && (data.message || data.error)) || t('nextcloud-vue', 'The action could not be completed.'))
@@ -674,6 +728,30 @@ export default {
 .cn-action-dialog__muted {
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
+}
+
+/* A checkbox field is a tinted box with a 2px edge, its label bold and its
+   hint under it (DqArchiveren). */
+.cn-action-dialog__checkbox {
+	padding: 12px 14px;
+	border: 2px solid var(--color-primary-element);
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--color-primary-element-light);
+}
+
+.cn-action-dialog__checkbox-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cn-action-dialog__checkbox-label {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-action-dialog__checkbox .cn-action-dialog__muted {
+	font-size: 13px;
 }
 
 .cn-action-dialog__field {
