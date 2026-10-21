@@ -88,6 +88,19 @@ A container that stacks several widgets in one cell should set it on each child
 rather than leaving it to each manifest author: the next list moved below
 another one is the one that forgets.
 
+### Footer links: `footerLinks`
+
+`footerLinks` ends the list with a row of links, each with an optional muted note (DqZaakGerelateerd):
+
+```json
+"footerLinks": [
+  { "label": "All cases on this object", "route": "Cases", "query": { "object": "@objectId" } },
+  { "label": "Manage object types", "href": "/index.php/settings/admin/dossiq", "note": "(administrators only)", "group": "admin" }
+]
+```
+
+A `route` link names a page id; its `query` values are token-resolved as `viewAllQuery`'s are, and it follows the router (a modified click opens a new tab). An `href` link is a plain link. Labels and notes go through the host translate. A link with `group` shows only to members of that group.
+
 ### Row actions
 
 `content.rowActions[]` takes entries in the unified manifest action shape
