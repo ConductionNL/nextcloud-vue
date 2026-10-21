@@ -1379,8 +1379,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 /* The board's info note is a light-blue rounded box: no edge bar, 10px 14px
    of padding, radius 10, an 18px icon on the first line 10px before the text,
    14px text (13px in a dialog) in the deep primary ink at 1.5, and a bold
-   heading line (DqBesluit and 16 other boards). NcNoteCard paints its ground and ink with `!important`, and a
-   theme forces the body ink onto every p and span (thematiq), so the ground,
+   heading line (DqBesluit and 16 other boards). NcNoteCard paints its
+   ground and ink with `!important`, and a theme forces the body ink onto every p and span (thematiq), so the ground,
    the ink and the paragraph colour carry `!important` here too, scoped to
    the board look; the ink also goes to --nldesign-color-on-surface. */
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) {
@@ -1414,9 +1414,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-primary-element-light-text);
 }
 
-/* The icon wrapper stretched to the note's height and centred the icon in
-   it, so on a note of two lines or more the icon sat beside the second. */
-/* @spec openspec/changes/board-note-icon-first-line/specs/board-note-icon-first-line/spec.md#requirement-a-board-note-sets-its-icon-on-the-first-line */
+/* The icon's wrapper (NcIconSvgWrapper) centres the icon in its own box,
+   which `align-self: flex-start` above keeps one line high.
+   @spec openspec/changes/board-note-icon-first-line/specs/board-note-icon-first-line/spec.md#requirement-a-board-note-sets-its-icon-on-the-first-line */
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__icon svg {
 	width: 18px;
 	height: 18px;
@@ -1429,7 +1429,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* A record list's notice puts its icon on the first line too: the icon's
-   own `align-self: center` (vue-material-design-icons) outranked the
+   own `align-self: center` (vue-material-design-icons) overrides the
    notice's `align-items: flex-start` (DqZaaktypeOverzicht). */
 .cn-look-board .cn-record-list__notice .cn-record-list__notice-icon {
 	align-self: flex-start;
