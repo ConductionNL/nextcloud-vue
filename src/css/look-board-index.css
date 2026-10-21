@@ -634,16 +634,36 @@
 	width: 18%;
 }
 
-/* The board's data cells sit 12px apart (PqTickets), the first one 18px from
-   the selection column; the selection and menu columns keep 16px. */
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th:not(.cn-table-col--checkbox):not(.cn-table-col--actions):not(.cn-table-col--icon),
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td:not(.cn-table-col--checkbox):not(.cn-table-col--actions):not(.cn-table-col--icon) {
+/* An index table pads every cell 16px at the sides (DqZaken). The plain-title
+   table (`rowTitle: "plain"`: PqTickets, OcPublicaties) sets its data cells
+   12px apart and its title column 18px from the selection column; the
+   selection and menu columns keep 16px. The title column is left out of the
+   12px rule, which would otherwise outrank the 18px one.
+   @spec openspec/changes/board-table-density/specs/board-table-density/spec.md#requirement-a-board-table-pads-its-cells-as-the-boards-draw-them */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board.cn-table-container--title-plain .cn-data-table th:not(.cn-table-col--checkbox):not(.cn-table-col--actions):not(.cn-table-col--icon):not(.cn-table-head--title),
+.cn-look-board .cn-index-page__main--table .cn-table-container--board.cn-table-container--title-plain .cn-data-table td:not(.cn-table-col--checkbox):not(.cn-table-col--actions):not(.cn-table-col--icon):not(.cn-table-col--title) {
 	padding-inline: 12px;
 }
 
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th.cn-table-head--title,
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td.cn-table-col--title {
-	padding-inline-start: 18px;
+.cn-look-board .cn-index-page__main--table .cn-table-container--board.cn-table-container--title-plain .cn-data-table th.cn-table-head--title,
+.cn-look-board .cn-index-page__main--table .cn-table-container--board.cn-table-container--title-plain .cn-data-table td.cn-table-col--title {
+	padding-inline: 18px 12px;
+}
+
+/* A table that is not an index page's main list sits in a card and is the
+   compact one: 10px 12px in the header, 11px 12px in the cells
+   (DqInstellingen, DqVthInstellingen, DqZaaktype, DqTermijnen). The selection
+   column keeps its 16px, so it stays 60px wide. */
+.cn-look-board .cn-table-container--board:not(.cn-index-page__main--table > *) .cn-data-table th {
+	padding: 10px 12px;
+}
+
+.cn-look-board .cn-table-container--board:not(.cn-index-page__main--table > *) .cn-data-table td {
+	padding: 11px 12px;
+}
+
+.cn-look-board .cn-table-container--board:not(.cn-index-page__main--table > *) .cn-data-table .cn-table-col--checkbox {
+	padding-inline: 16px;
 }
 
 .cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td > .cn-cell-renderer {
