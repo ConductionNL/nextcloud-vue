@@ -2271,7 +2271,48 @@
     "Count": "Aantal",
     "The report could not be read.": "De rapportage kon niet worden gelezen.",
     "Nothing to count": "Niets om te tellen",
-    "Q{quarter} {year}": "K{quarter} {year}"
+    "Q{quarter} {year}": "K{quarter} {year}",
+    "Actions for state {name}": "Acties voor status {name}",
+    "Add state": "Status toevoegen",
+    "Add step": "Stap toevoegen",
+    "Arrow keys on a focused state": "Pijltjestoetsen op een status met focus",
+    "At least one state must stay final": "Er moet minstens één eindstatus blijven",
+    "Click a state, a step or a transition to see its properties.": "Klik op een status, een stap of een overgang om de eigenschappen te zien.",
+    "Close state properties": "Eigenschappen van de status sluiten",
+    "Close step properties": "Eigenschappen van de stap sluiten",
+    "Close transition properties": "Eigenschappen van de overgang sluiten",
+    "Connect states by dragging from one port to another, by pressing c on one state and then on another, or through a state's actions menu.": "Verbind statussen door van de ene poort naar de andere te slepen, door op c te drukken op de ene status en daarna op de andere, of via het actiemenu van een status.",
+    "Connect to {name}": "Verbinden met {name}",
+    "Controls": "Bediening",
+    "Cycle with no way out to a final state: {names}": "Kringloop zonder uitweg naar een eindstatus: {names}",
+    "Delete state": "Status verwijderen",
+    "Delete state \"{name}\"? Its steps and transitions go with it.": "Status \"{name}\" verwijderen? De stappen en overgangen gaan mee.",
+    "Delete the transition {name}?": "De overgang {name} verwijderen?",
+    "Delete transition": "Overgang verwijderen",
+    "Disconnect from {name}": "Verbinding met {name} verbreken",
+    "Dismiss": "Sluiten",
+    "Drag a state onto the canvas to add it, or use the add button.": "Sleep een status naar het canvas om hem toe te voegen, of gebruik de knop Toevoegen.",
+    "Drag the empty canvas": "Sleep het lege canvas",
+    "Duplicate transition from \"{from}\" to \"{to}\"": "Dubbele overgang van \"{from}\" naar \"{to}\"",
+    "Edit transition to {name}": "Overgang naar {name} bewerken",
+    "Elements": "Elementen",
+    "Final": "Eind",
+    "Final state \"{name}\" cannot be reached from any starting state": "Eindstatus \"{name}\" is vanuit geen enkele beginstatus te bereiken",
+    "Move": "Verplaatsen",
+    "No state is marked as final": "Geen enkele status is een eindstatus",
+    "Pan": "Schuiven",
+    "Scroll wheel or the zoom buttons": "Scrollwiel of de zoomknoppen",
+    "Select a state, a step or a transition to see its properties.": "Kies een status, een stap of een overgang om de eigenschappen te zien.",
+    "State \"{name}\" has no transitions connecting it to the others": "Status \"{name}\" heeft geen overgangen naar de andere statussen",
+    "States and transitions": "Statussen en overgangen",
+    "The state could not be deleted": "De status kon niet worden verwijderd",
+    "Transition": "Overgang",
+    "Transition \"{label}\" points at a state that no longer exists": "Overgang \"{label}\" wijst naar een status die niet meer bestaat",
+    "Transition from {from} to {to}": "Overgang van {from} naar {to}",
+    "Warning:": "Waarschuwing:",
+    "Zoom": "Zoomen",
+    "required": "verplicht",
+    "State: {name}": "Status: {name}"
   },
   "plurals": {
     "{count} member": [
@@ -2437,6 +2478,10 @@
     "%n document received": [
       "%n document ontvangen",
       "%n documenten ontvangen"
+    ],
+    "%n step": [
+      "%n stap",
+      "%n stappen"
     ]
   }
 }
