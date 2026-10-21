@@ -40,7 +40,26 @@
 				data-testid="cn-attention-flag-review-due">{{ label('reviewDue') }}</span>
 		</p>
 
-		<div class="cn-attention-flag__act">
+		<template v-if="behindButton && !composing">
+			<h4 class="cn-attention-flag__heading" data-testid="cn-attention-flag-heading">
+				{{ reasonLabel }}
+			</h4>
+			<p class="cn-attention-flag__hint" data-testid="cn-attention-flag-hint">
+				{{ raised ? label('hintClear') : label('hintRaise') }}
+			</p>
+			<NcButton
+				variant="secondary"
+				wide
+				data-testid="cn-attention-flag-compose"
+				@click="composing = true">
+				<template #icon>
+					<FlagOutline :size="20" />
+				</template>
+				{{ raised ? label('clear') : label('raise') }}
+			</NcButton>
+		</template>
+
+		<div v-else class="cn-attention-flag__act">
 			<NcTextField
 				:modelValue="reason"
 				:label="reasonLabel"
@@ -84,6 +103,7 @@ import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcTextField } from '@nextcloud/vue'
+import FlagOutline from 'vue-material-design-icons/FlagOutline.vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { dispatchObjectsChanged } from '../../utils/objectSignals.js'
 import { readPath } from '../../utils/readPath.js'
@@ -100,6 +120,8 @@ function defaultLabels() {
 		reviewDue: t('nextcloud-vue', 'Due for review'),
 		reasonRaise: t('nextcloud-vue', 'Why this needs attention'),
 		reasonClear: t('nextcloud-vue', 'Why it no longer needs attention'),
+		hintRaise: t('nextcloud-vue', 'Flag it with a reason, so it stands out to everyone who works on it.'),
+		hintClear: t('nextcloud-vue', 'Clear the flag with a reason once it no longer needs attention.'),
 		raise: t('nextcloud-vue', 'Flag for attention'),
 		clear: t('nextcloud-vue', 'Clear the flag'),
 		raised: t('nextcloud-vue', 'Raised'),
@@ -130,7 +152,8 @@ const LEVELS = {
  *     "clearPath": "/clear",
  *     "markersPath": "attentionMarkers",
  *     "panelLabels": { "item-files": "Files" },
- *     "assessment": { "path": "riskAssessment", "levelMap": { "high": "High" }, "reviewDateField": "reviewDate" }
+ *     "assessment": { "path": "riskAssessment", "levelMap": { "high": "High" }, "reviewDateField": "reviewDate" },
+ *     "behindButton": true
  *   }
  * }
  * ```
@@ -142,7 +165,9 @@ const LEVELS = {
  * as written. Markers and the assessment are read off the record the page
  * already holds. An assessment the reader may not see is absent from the
  * record, so it is absent here rather than blank. A failed read draws
- * nothing. After a raise or a clear the widget emits `object-changed`, says
+ * nothing. With `behindButton` the strip shows the act as a heading, a hint
+ * (`labels.hintRaise` / `labels.hintClear`) and one button, and the reason
+ * field opens when that button is pressed. After a raise or a clear the widget emits `object-changed`, says
  * so to every list (`dispatchObjectsChanged`) and asks the page to refresh.
  *
  * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-can-carry-an-attention-flag
@@ -150,7 +175,7 @@ const LEVELS = {
 export default {
 	name: 'CnAttentionFlagWidget',
 
-	components: { NcButton, NcTextField },
+	components: { FlagOutline, NcButton, NcTextField },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -162,7 +187,8 @@ export default {
 		 * `raisePath` (default `/raise`), `clearPath` (default `/clear`),
 		 * `labels` (overrides of the default words), `markersPath`,
 		 * `panelLabels` (marker tab id to label) and `assessment`
-		 * (`{ path, levelMap?, levelField?, groundField?, reviewDateField? }`).
+		 * (`{ path, levelMap?, levelField?, groundField?, reviewDateField? }`)
+		 * and `behindButton` (the reason field opens from a button).
 		 */
 		content: {
 			type: Object,
@@ -205,6 +231,7 @@ export default {
 			history: [],
 			reason: '',
 			refusal: '',
+			composing: false,
 		}
 	},
 
@@ -220,6 +247,11 @@ export default {
 				return ''
 			}
 			return interpolateUrlTokens(raw, { objectId: this.objectId, object: this.objectData || {} })
+		},
+
+		/** @return {boolean} Whether the reason field waits behind a button. */
+		behindButton() {
+			return this.content?.behindButton === true
 		},
 
 		/** @return {string} What the raise or clear was for, in the flag's own words. */
@@ -370,6 +402,7 @@ export default {
 				const response = await axios.post(generateUrl(this.endpoint + tail), { reason })
 				this.apply(response?.data)
 				this.reason = ''
+				this.composing = false
 				this.announce()
 			} catch (error) {
 				const said = String(error?.response?.data?.error ?? error?.response?.data?.message ?? '')
@@ -448,6 +481,18 @@ function hasPassed(date) {
 
 .cn-attention-flag__lead {
 	font-weight: bold;
+}
+
+.cn-attention-flag__heading {
+	margin: 0;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+.cn-attention-flag__hint {
+	margin: 0 0 8px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-attention-flag__muted {

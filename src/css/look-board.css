@@ -187,8 +187,8 @@
 /* ---- Dashboard switch row --------------------------------------------- */
 /* The switch row under a board dashboard's header (DqMijnWerk, DqMijnTeam).
    The link pills take the deep primary ink of the boards' primary pills: the
-   light primary text mixed toward the main text, which only raises its
-   contrast on the light primary ground. A theme that forces the link ink onto
+   light primary text, the ink a theme pairs with the light primary ground
+   (DqMijnWerk #234a78 on #eaf0f7, 8:1). A theme that forces the link ink onto
    every `a` reads it from --nldesign-color-on-surface, so the pill hands it
    its own. The view switch is the board's segmented control: 14px labels, the
    others in the soft ink, the chosen one raised on white without an edge;
@@ -196,7 +196,7 @@
    @spec openspec/changes/board-dashboard-switch-row/specs/board-dashboard-switch-row/spec.md#requirement-the-link-pills-take-the-deep-primary-ink
    @spec openspec/changes/board-dashboard-switch-row/specs/board-dashboard-switch-row/spec.md#requirement-the-view-switch-is-the-boards-segmented-control */
 .cn-look-board .cn-dashboard-page__switch-row .cn-dashboard-page__view-link:not(.cn-look-nextcloud *) {
-	--cn-view-link-ink: color-mix(in srgb, var(--color-primary-element-light-text) 60%, var(--color-main-text));
+	--cn-view-link-ink: var(--color-primary-element-light-text);
 	--nldesign-color-on-surface: var(--cn-view-link-ink);
 	color: var(--cn-view-link-ink);
 }
@@ -221,6 +221,25 @@
 	}
 }
 
+/* ---- Period group ------------------------------------------------------- */
+/* The boards' compact segmented group (the period switch on DqDoorlooptijd
+   and DqTermijnen, Gemiddeld / Mediaan on DqProcesanalyse) pads a label 14px
+   on each side and draws the options not chosen in the soft ink; the chosen
+   one is raised on white in the main ink. An icon-only option stays square.
+   @spec openspec/changes/board-period-group-soft-ink/specs/board-period-group-soft-ink/spec.md#requirement-a-board-period-group-draws-the-options-not-chosen-in-the-soft-ink */
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option:not(.cn-look-nextcloud *) {
+	padding: 0 14px;
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--checked:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--icon-only:not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
 /* ---- Button weight ------------------------------------------------------ */
 /* The boards draw a labelled button at 600 (DqZaken "Downloaden", DqZaak's
    header, dialog footers, toolbar and row actions). An NcButton reads its
@@ -228,9 +247,15 @@
    look sets 600 on each button, so every NcButton on a board page draws the
    board's weight without a rule per surface. Breadcrumb buttons keep the
    crumb weight.
-   @spec openspec/changes/board-button-weight/specs/board-button-weight/spec.md#requirement-a-board-button-draws-at-600 */
+   The boards also draw a button's text at 14px, against Nextcloud's 15px.
+   NcButton reads its size from --default-font-size, so the look sets that
+   variable on the button: a surface that sets its own `font-size` (the next
+   step card's 15px) keeps it.
+   @spec openspec/changes/board-button-weight/specs/board-button-weight/spec.md#requirement-a-board-button-draws-at-600
+   @spec openspec/changes/board-control-text/specs/board-control-text/spec.md#requirement-a-board-button-draws-its-text-at-14px */
 .cn-look-board .button-vue:not(.cn-look-nextcloud *):not(.vue-crumb *) {
 	--font-weight-element: 600;
+	--default-font-size: 14px;
 }
 
 /* ---- A button with an icon and a label --------------------------------- */
@@ -391,6 +416,36 @@
 .cn-look-board .cn-settings-section__actions .button-vue--secondary:not(.cn-look-nextcloud *):hover,
 .cn-look-board .cn-settings-section__actions .button-vue--vue-secondary:not(.cn-look-nextcloud *):hover {
 	background: var(--color-background-hover);
+}
+
+/* ---- A secondary button --------------------------------------------------- */
+/* The boards draw every secondary button neutral: the main background, a 1px
+   control border, the main text, the hover ground on hover (DqFlow "Testen
+   met een zaak", DqFunctionaliteiten "Documentatie", DqTaak "Afronden").
+   NcButton draws its secondary from the primary-light variables, on a 2px
+   bottom edge; the look points those variables at the neutral colours on the
+   button itself. The selector weighs (0,3,0): it outranks NcButton's border
+   (0,2,0), and a surface rule of the same weight later in the cascade (a
+   dialog's cancel) still decides for its surface.
+   @spec openspec/changes/board-secondary-neutral/specs/board-secondary-neutral/spec.md#requirement-a-board-secondary-button-is-neutral */
+.cn-look-board .button-vue.button-vue--secondary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)),
+.cn-look-board .button-vue.button-vue--vue-secondary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)) {
+	--color-primary-element-light: var(--color-main-background);
+	--color-primary-element-light-hover: var(--color-background-hover);
+	--color-primary-element-light-text: var(--color-main-text);
+	--nldesign-color-on-surface: var(--color-main-text);
+	border: 1px solid var(--cn-board-control-border);
+	color: var(--color-main-text);
+}
+
+/* ---- A primary button ---------------------------------------------------- */
+/* The boards draw a primary as its fill alone (DqZaak "Volgende stap",
+   DqOverdragen "Overdragen"); NcButton gives every button a 1px border. The
+   selector weighs (0,3,0), as the secondary rule above.
+   @spec openspec/changes/board-primary-no-edge/specs/board-primary-no-edge/spec.md#requirement-a-board-primary-button-draws-no-edge */
+.cn-look-board .button-vue.button-vue--primary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)),
+.cn-look-board .button-vue.button-vue--vue-primary:where(:not(.cn-look-nextcloud *):not(.vue-crumb *)) {
+	border: 0;
 }
 
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
@@ -1350,11 +1405,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* ---- Info notes (NcNoteCard type="info") -------------------------------- */
-/* The board's info note is a light-blue rounded box: no edge bar, 12px 14px
-   of padding, radius 8, an 18px icon 10px before the text, 14px text in the
-   deep primary ink at 1.5, and a bold heading line (DqBesluit and 13 other
-   boards). NcNoteCard paints its ground and ink with `!important`, and a
-   theme forces the body ink onto every p and span (thematiq), so the ground,
+/* The board's info note is a light-blue rounded box: no edge bar, 10px 14px
+   of padding, radius 10, an 18px icon on the first line 10px before the text,
+   14px text (13px in a dialog) in the deep primary ink at 1.5, and a bold
+   heading line (DqBesluit and 16 other boards). NcNoteCard paints its
+   ground and ink with `!important`, and a theme forces the body ink onto every p and span (thematiq), so the ground,
    the ink and the paragraph colour carry `!important` here too, scoped to
    the board look; the ink also goes to --nldesign-color-on-surface. */
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) {
@@ -1362,9 +1417,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	--note-card-icon-size: 18px;
 	--note-theme: var(--color-primary-element-light-text);
 	gap: 10px;
-	padding: 12px 14px;
+	padding: 10px 14px;
 	border-inline-start: 0;
-	border-radius: 8px;
+	border-radius: 10px;
 	background-color: var(--color-primary-element-light) !important;
 	color: var(--color-primary-element-light-text) !important;
 	font-size: 14px;
@@ -1383,8 +1438,30 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__icon {
+	align-self: flex-start;
 	padding-top: 1px;
 	color: var(--color-primary-element-light-text);
+}
+
+/* The icon's wrapper (NcIconSvgWrapper) centres the icon in its own box,
+   which `align-self: flex-start` above keeps one line high.
+   @spec openspec/changes/board-note-icon-first-line/specs/board-note-icon-first-line/spec.md#requirement-a-board-note-sets-its-icon-on-the-first-line */
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__icon svg {
+	width: 18px;
+	height: 18px;
+	max-width: 18px;
+	max-height: 18px;
+}
+
+.cn-look-board.cn-dialog-board .notecard.notecard--info:not(.cn-look-nextcloud *) {
+	font-size: 13px;
+}
+
+/* A record list's notice puts its icon on the first line too: the icon's
+   own `align-self: center` (vue-material-design-icons) overrides the
+   notice's `align-items: flex-start` (DqZaaktypeOverzicht). */
+.cn-look-board .cn-record-list__notice .cn-record-list__notice-icon {
+	align-self: flex-start;
 }
 
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
@@ -1525,6 +1602,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600;
 }
 
+/* A compact list (`density: "compact"`) draws its rows 10px above and below,
+   at least 56px tall, 6px between lines, the title at 500 (DqProcesanalyse
+   "Waar zaken blijven hangen").
+   @spec openspec/changes/record-list-density/specs/record-list/spec.md#requirement-a-record-list-can-draw-compact-rows */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__row {
+	box-sizing: border-box;
+	min-height: 56px;
+	padding: 10px 0;
+	gap: 6px 16px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__title {
+	font-weight: 500;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__main {
+	gap: 2px;
+}
+
 /* Hover: the whole row takes the hover ground, 8px beyond the text so the
    text does not move. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--link {
@@ -1611,6 +1707,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0 var(--cn-board-dashboard-card-inset) 10px;
 }
 
+/* DqMijnWerk "Mijn archiefbeoordelingen": its rows and its empty line. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-decision-list {
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-stacked-bar,
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-week-strip {
 	box-sizing: border-box;
@@ -1656,6 +1757,29 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding-inline-end: var(--cn-board-dashboard-card-inset);
 }
 
+/* ---- A card of cards (DqDoorlooptijd "Naleving") ------------------------- */
+/* A sections widget laid out in columns on a dashboard card keeps the card's
+   side inset and 20px below. Each section is a small card: a hairline edge,
+   a 10px corner, 14px 16px of padding and its heading at 15px 700, 10px above
+   the content.
+   @spec openspec/changes/sections-card-grid/specs/sections-card-grid/spec.md#requirement-a-board-card-of-cards-draws-the-boards-small-cards */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget--grid {
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+}
+
+.cn-look-board .cn-sections-widget--grid.cn-sections-widget--cards .cn-sections-widget__section:not(.cn-look-nextcloud *) {
+	padding: 14px 16px;
+	border: 1px solid var(--cn-board-hairline);
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-sections-widget--grid.cn-sections-widget--cards .cn-sections-widget__heading:not(.cn-look-nextcloud *) {
+	margin: 0 0 10px;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: normal;
+}
+
 /* ---- Week strip (DqMijnWerk "Termijnen deze week") ---------------------- */
 /* The days wrap inside the card instead of scrolling sideways: a row holds
    as many days of at least 120px as the card fits, and the rest go to the
@@ -1673,6 +1797,45 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 .cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__head {
 	flex-wrap: wrap;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--cn-board-text-soft);
+}
+
+/* A board day is a tinted box without an edge, at least 132px high so a week
+   of empty days still reads as a week (DqMijnWerk "Termijnen deze week"): the
+   workspace grey, and today the light primary ground in its own ink. Forced
+   colours drop the grounds, so the box keeps an edge there. */
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__day {
+	min-height: 132px;
+	padding: 12px;
+	border-color: transparent;
+	border-radius: 10px;
+	background: var(--nldesign-component-content-surface-background-color, var(--color-background-hover));
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__day--today {
+	background: var(--color-primary-element-light);
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__day--today .cn-week-strip__head {
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__today {
+	border-radius: 10px;
+	font-size: 11px;
+	line-height: 13px;
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__empty {
+	font-size: 13px;
+}
+
+@media (forced-colors: active) {
+	.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__day {
+		border-color: CanvasText;
+	}
 }
 
 /* ---- A card of boxed stat tiles (DcRapportages "Vergaderingen en efficiëntie") -- */

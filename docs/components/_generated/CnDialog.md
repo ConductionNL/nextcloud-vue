@@ -8,16 +8,17 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name           | Type      | Required | Default     | Description                                                 |
-| -------------- | --------- | -------- | ----------- | ----------------------------------------------------------- |
-| `name`         | `string`  | ✓        | —           | Dialog title; also the accessible name.                     |
-| `size`         | `string`  |          | `'small'`   | NcDialog size, used in the Nextcloud look only.             |
-| `noClose`      | `boolean` |          | `false`     | Block closing while an operation runs.                      |
-| `look`         | `string`  |          | `undefined` | The look; unset follows the injected `cnLook`.              |
-| `width`        | `string`  |          | `''`        | Width role in the board look (`confirm`, `form`, `wizard`). |
-| `defaultWidth` | `string`  |          | `'form'`    | The component's own default width role.                     |
-| `eyebrow`      | `string`  |          | `''`        | Context line above the title (board look).                  |
-| `subtitle`     | `string`  |          | `''`        | Sentence under the title (board look).                      |
+| Name           | Type      | Required | Default     | Description                                                                                                                         |
+| -------------- | --------- | -------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `name`         | `string`  | ✓        | —           | Dialog title; also the accessible name.                                                                                             |
+| `size`         | `string`  |          | `'small'`   | NcDialog size, used in the Nextcloud look only.                                                                                     |
+| `noClose`      | `boolean` |          | `false`     | Block closing while an operation runs.                                                                                              |
+| `look`         | `string`  |          | `undefined` | The look; unset follows the injected `cnLook`.                                                                                      |
+| `width`        | `string`  |          | `''`        | Width role in the board look (`confirm`, `form`, `wizard`).                                                                         |
+| `defaultWidth` | `string`  |          | `'form'`    | The component's own default width role.                                                                                             |
+| `eyebrow`      | `string`  |          | `''`        | Context line above the title (board look).                                                                                          |
+| `subtitle`     | `string`  |          | `''`        | Sentence under the title (board look).                                                                                              |
+| `headless`     | `boolean` |          | `false`     | Leave out the board header: the body draws its own title and close button (CnUserSettingsDialog). `name` stays the accessible name. |
 
 ### Events
 

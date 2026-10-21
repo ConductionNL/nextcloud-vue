@@ -1690,9 +1690,10 @@ export default {
 		},
 
 		/**
-		 * Board look: the line above the user-settings title. Empty uses
-		 * the library's "Your account".
+		 * Deprecated and ignored: the board user-settings dialog draws no
+		 * line above its title (DqPersoonlijkeInstellingen).
 		 *
+		 * @deprecated
 		 * @type {string}
 		 */
 		userSettingsEyebrow: {
@@ -1701,10 +1702,10 @@ export default {
 		},
 
 		/**
-		 * Board look: the sentence under the user-settings title. Empty
-		 * uses the library's "Only for you. Colleagues keep their own
-		 * settings."
+		 * Deprecated and ignored: the board user-settings dialog draws no
+		 * sentence under its title (DqPersoonlijkeInstellingen).
 		 *
+		 * @deprecated
 		 * @type {string}
 		 */
 		userSettingsSubtitle: {
@@ -2278,6 +2279,7 @@ export default {
 				getManifest: () => (this.manifestEditor ? this.manifestEditor.source.value : this.manifest),
 				getLanguage: () => this.language || getLanguage(),
 				translate: (text, vars) => this.translate(text, vars),
+				library: (text, vars) => t('nextcloud-vue', text, vars),
 			})
 		},
 
@@ -3204,8 +3206,8 @@ export default {
 
 		/**
 		 * The props of the user-settings dialog: `NcAppSettingsDialog`'s, or
-		 * under the board look CnUserSettingsDialog's (eyebrow, subtitle and
-		 * the app's name for the footer note).
+		 * under the board look CnUserSettingsDialog's (title, the app's name
+		 * for the note under the sections, and the Nextcloud links).
 		 *
 		 * @spec openspec/changes/user-settings-board-dialog/specs/user-settings-board-dialog/spec.md#requirement-the-user-settings-dialog-takes-the-board-look
 		 * @return {object}

@@ -9,7 +9,7 @@
 			:edges="edges"
 			:minZoom="minZoom"
 			:maxZoom="maxZoom"
-			:fitViewOnInit="fitView"
+			:fitViewOnInit="fitView && !fitMaxZoom"
 			:snapToGrid="snapToGrid"
 			:snapGrid="snapGrid"
 			:nodesDraggable="interactive"
@@ -21,7 +21,8 @@
 			@connect="onConnect"
 			@nodeClick="onNodeClick"
 			@edgeClick="onEdgeClick"
-			@paneClick="onPaneClick">
+			@paneClick="onPaneClick"
+			@nodesInitialized="onNodesInitialized">
 			<!-- Per-type node components, Vue Flow's convention. A host that
 			     registers `type: 'trigger'` gets `#node-trigger`; anything
 			     unregistered falls back to CnFlowNode, which carries the
@@ -206,6 +207,15 @@ export default {
 			default: true,
 		},
 
+		/**
+		 * The most that first frame may zoom in. 0 lets it go to `maxZoom`;
+		 * 1 keeps a graph that fits at its own size.
+		 */
+		fitMaxZoom: {
+			type: Number,
+			default: 0,
+		},
+
 		/** Snap dragged nodes to the grid. */
 		snapToGrid: {
 			type: Boolean,
@@ -293,6 +303,13 @@ export default {
 		return { project, zoomIn, zoomOut, zoomTo, fitViewNow, viewport }
 	},
 
+	data() {
+		return {
+			// Whether the capped first frame (`fitMaxZoom`) has been taken.
+			framedOnce: false,
+		}
+	},
+
 	computed: {
 		/**
 		 * @return {boolean} Whether the canvas accepts interaction at all.
@@ -315,6 +332,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Frame the graph once its nodes have a size, no closer than
+		 * `fitMaxZoom`. Only the first time: a step added later must not move
+		 * the view the author is working in.
+		 *
+		 * @return {void}
+		 */
+		onNodesInitialized() {
+			if (!this.fitView || !this.fitMaxZoom || this.framedOnce) {
+				return
+			}
+			this.framedOnce = true
+			this.fitViewNow({ maxZoom: this.fitMaxZoom, padding: 0.1 })
+		},
+
 		/**
 		 * Forward Vue Flow's node changes.
 		 *

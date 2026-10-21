@@ -8,14 +8,15 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name             | Type                                   | Required | Default | Description                                                                                  |
-| ---------------- | -------------------------------------- | -------- | ------- | -------------------------------------------------------------------------------------------- |
-| `views`          | `array`                                |          | `[]`    | Views to list (View API objects from `GET /apps/openregister/api/views`, defaults included). |
-| `loading`        | `boolean`                              |          | `false` | True while the parent is fetching the view list.                                             |
-| `currentUserId`  | `string`                               |          | `''`    | The signed-in NC user id; a view without `@self.access` is the owner's when it matches.      |
-| `maxDepth`       | `number`                               |          | `3`     | How deep the tree indents before it flattens (`savedViewTree.maxDepth`).                     |
-| `counts`         | `{[viewId: string]: number}&#124;null` |          | `null`  | How many records each view matches, keyed by view id (or slug). `null` shows no counts.      |
-| `selectedViewId` | `string`                               |          | `''`    | The id (or slug) of the applied view.                                                        |
+| Name             | Type                                   | Required | Default | Description                                                                                                                                    |
+| ---------------- | -------------------------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `views`          | `array`                                |          | `[]`    | Views to list (View API objects from `GET /apps/openregister/api/views`, defaults included).                                                   |
+| `loading`        | `boolean`                              |          | `false` | True while the parent is fetching the view list.                                                                                               |
+| `currentUserId`  | `string`                               |          | `''`    | The signed-in NC user id; a view without `@self.access` is the owner's when it matches.                                                        |
+| `maxDepth`       | `number`                               |          | `3`     | How deep the tree indents before it flattens (`savedViewTree.maxDepth`).                                                                       |
+| `counts`         | `{[viewId: string]: number}&#124;null` |          | `null`  | How many records each view matches, keyed by view id (or slug). `null` shows no counts.                                                        |
+| `selectedViewId` | `string`                               |          | `''`    | The id (or slug) of the applied view.                                                                                                          |
+| `chips`          | `boolean`                              |          | `true`  | Whether the board look draws the saved views as chips. `false` leaves only Save view, for a page whose views live in the side panel (DqZaken). |
 
 ### Events
 

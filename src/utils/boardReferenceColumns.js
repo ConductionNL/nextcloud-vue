@@ -132,8 +132,11 @@ export function referenceTargetOf(source, { register = '', property = null } = {
  *   has another. Compared as written: "Grey" is not "grey", and a hex value is not a name.
  * @param {object} [options.colorMap] A stored colour to the CSS colour a column is drawn in,
  *   applied after the merge. A colour it does not map is kept as stored.
- * @return {{states: Array<{key: string, label: string, color: string, capacity?: (number|null)}>, keyByValue: Map<string, string>, refsByKey: Map<string, Array<object>>}} The stages.
+ * @param {string} [options.closedField] The row field that marks a stage closed (a won or
+ *   lost deal): its column starts collapsed. A merged column is closed when all its rows are.
+ * @return {{states: Array<{key: string, label: string, color: string, capacity?: (number|null), closed?: boolean}>, keyByValue: Map<string, string>, refsByKey: Map<string, Array<object>>}} The stages.
  * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-columns-can-be-the-rows-a-field-references
+ * @spec openspec/changes/pl4-board-list-stages/specs/pl4-board-list-stages/spec.md#requirement-a-closed-stage-starts-collapsed
  */
 export function buildReferenceStages({
 	refs = [],
@@ -146,6 +149,7 @@ export function buildReferenceStages({
 	capacityField = '',
 	neutralColor = '',
 	colorMap = null,
+	closedField = '',
 } = {}) {
 	const list = (Array.isArray(refs) ? refs : []).filter((ref) => ref && typeof ref === 'object' && refIdOf(ref) !== '')
 	const narrowed = narrowBy && narrowBy.field && narrowValue !== ''
@@ -188,8 +192,42 @@ export function buildReferenceStages({
 			state.color = mergedColumnColor(rows.map((ref) => colorOfRef(ref, colorField)), neutralColor, state.color)
 		}
 		state.color = mappedColor(state.color, colorMap)
+		if (closedField) {
+			state.closed = rows.every((ref) => Boolean(readPath(ref, closedField)))
+		}
 	}
 	return { states, keyByValue, refsByKey }
+}
+
+/**
+ * The items of a list on each parent row (a pipeline's `stages`) as rows a
+ * reference column can be built from: each keyed by its `keyField` value, the
+ * value a card stores, and linked to its parent under `_parent`, so
+ * `narrowBy: { field: "_parent", rowField }` narrows the columns to the parent
+ * the page filters on. An item without a key is dropped.
+ *
+ * @param {Array<object>} rows The parent rows.
+ * @param {object} options The call.
+ * @param {string} options.itemsPath Where each parent holds its list.
+ * @param {string} options.keyField The item field a card stores.
+ * @return {Array<object>} The items as rows.
+ * @spec openspec/changes/pl4-board-list-stages/specs/pl4-board-list-stages/spec.md#requirement-columns-can-be-a-list-on-a-parent-row
+ */
+export function flattenItemRefs(rows, { itemsPath, keyField } = {}) {
+	const out = []
+	for (const parent of Array.isArray(rows) ? rows : []) {
+		const items = readPath(parent, itemsPath)
+		if (!Array.isArray(items)) {
+			continue
+		}
+		for (const item of items) {
+			const key = item && typeof item === 'object' ? textOf(readPath(item, keyField)) : ''
+			if (key !== '') {
+				out.push({ ...item, id: key, _parent: refIdOf(parent) })
+			}
+		}
+	}
+	return out
 }
 
 /**

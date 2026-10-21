@@ -1,6 +1,6 @@
 # registerNcDashboardWidgets
 
-Register an app's Nextcloud Dashboard widgets from configuration. Each widget is registered with `OCA.Dashboard.register(id, …)` and, when the Dashboard opens it, mounted as its own Vue app: [CnNcDashboardList](../components/cn-nc-dashboard-list.md) with the widget's `config`, or the widget's own `component` with its `props` and the widget's title. The app's translate is provided as `cnTranslate`, so config texts are translated in the app's catalogue.
+Register an app's Nextcloud Dashboard widgets from configuration. Each widget is registered with `OCA.Dashboard.register(id, …)` and, when the Dashboard opens it, mounted as its own Vue app: [CnNcDashboardList](../components/cn-nc-dashboard-list.md) with the widget's `config` ([CnNcDashboardQuickCreate](../components/cn-nc-dashboard-quick-create.md) when the widget's `type` is `quick-create`), or the widget's own `component` with its `props` and the widget's title. The app's translate is provided as `cnTranslate`, so config texts are translated in the app's catalogue.
 
 The server side stays the app's: each id is what the app's PHP `IWidget::getId()` returns, and its `load()` adds the one script that calls this.
 
@@ -14,7 +14,7 @@ import { registerNcDashboardWidgets } from '@conduction/nextcloud-vue'
 
 ```ts
 function registerNcDashboardWidgets(
-    widgets: Array<{ id: string, config?: object, component?: object, props?: object }>,
+    widgets: Array<{ id: string, type?: 'quick-create', config?: object, component?: object, props?: object }>,
     options: { appId: string, setup?: (app: object) => void, dashboard?: object },
 ): string[]
 ```

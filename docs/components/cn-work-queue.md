@@ -57,6 +57,34 @@ An item with `deadlineTier: "overdue"` is drawn as late. `waiting` reads "Waitin
 | `itemHref` | A template filled from an item, for items with no `route` or `href` |
 | `waitingParties` | Words for `waiting.on` beyond the library's applicant, third party and us, through the app's translate |
 | `emptyText` | Text when nothing is waiting, through the app's translate |
+| `itemsPath` | Read a flat list at this path of the answer (`{ items, total }`) as one group without a heading. An item's `routeName` opens `{ name: routeName, params: { id } }` |
+| `totalPath` | Where the answer holds the full count, for `viewAll` |
+| `viewAll` | `{ route \| href, label }`: a link under the list while the total exceeds what is shown; `{count}` in the label is the total (default "View all ({count})") |
+| `dueField` | The item field shown as its due text (default `dueAt`) |
+| `lateField` | An item field that marks it late when true (default: `deadlineTier` is `overdue`) |
+| `subField` | An item field shown under the title |
+| `kind` | `{ field, labels }`: the item's kind ahead of the sub line, through the app's translate (`{ field: "entityType", labels: { lead: "Lead", request: "Request" } }`) |
+
+A flat list, as pipelinq's worklist answers it:
+
+```json
+{
+  "type": "work-queue",
+  "content": {
+    "source": { "url": "/apps/pipelinq/api/worklist/mine", "params": { "limit": 5 } },
+    "itemsPath": "items",
+    "totalPath": "total",
+    "dueField": "dueDate",
+    "lateField": "isOverdue",
+    "subField": "stageOrStatus",
+    "kind": { "field": "entityType", "labels": { "lead": "Lead", "request": "Request" } },
+    "viewAll": { "route": { "name": "MyWork" }, "label": "View all ({count})" },
+    "emptyText": "No items assigned to you"
+  }
+}
+```
+
+A failed read shows the error with a retry, never the empty text and never a count of 0.
 
 ## Props
 

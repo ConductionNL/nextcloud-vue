@@ -199,10 +199,16 @@
 			<CnIcon v-if="action.icon" :name="action.icon" :size="16" />
 			{{ action.label }}
 		</button>
+		<CnActionButtons
+			v-if="drawnActions.length > 0"
+			class="cn-facts-widget__actions"
+			:actions="drawnActions"
+			data-testid="cn-facts-actions" />
 	</div>
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { formatFileSize } from '@nextcloud/files'
 import { translate as t } from '@nextcloud/l10n'
@@ -211,9 +217,10 @@ import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
+import CnActionButtons from '../CnActionButtons/CnActionButtons.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
-import { resolveEndpointRequest } from '../../composables/useEndpointSource.js'
+import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
 import { useRefLabels } from '../../composables/useRefLabels.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
@@ -221,11 +228,48 @@ import { formatBoardDate } from '../../utils/boardDate.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import { parseDateValue } from '../../utils/dateVariant.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
-import { formatMoney, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { formatMoney, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
-import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
+
+/** Event-bus channel of the page-level Refresh, which an api-call or a saved form also sends. */
+const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
+/**
+ * Replace every `@source.<field>` in a declaration with the field of the
+ * record shown, deeply.
+ *
+ * @param {unknown} value The declaration.
+ * @param {object} record The record shown.
+ * @return {{value: unknown, unresolved: boolean}} The resolved copy, and whether a token named an empty field.
+ * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-carry-declared-actions
+ */
+function resolveSourceTokens(value, record) {
+	let unresolved = false
+	const walk = (node) => {
+		if (typeof node === 'string') {
+			return node.replace(/@source\.([\w.@]+)/g, (match, path) => {
+				const read = path === 'id' ? (record.id ?? readPath(record, '@self.id')) : readPath(record, path)
+				if (read === undefined || read === null || read === '' || typeof read === 'object') {
+					unresolved = true
+					return match
+				}
+				return String(read)
+			})
+		}
+		if (Array.isArray(node)) {
+			return node.map(walk)
+		}
+		if (node && typeof node === 'object') {
+			return Object.fromEntries(Object.entries(node).map(([key, entry]) => [key, walk(entry)]))
+		}
+		return node
+	}
+	const resolved = walk(value)
+	return { value: resolved, unresolved }
+}
 
 /** Kinds of entry a `fields[]` item can be. A labelled item without `as` is a row. */
 const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text', 'meter', 'progress'])
@@ -336,7 +380,7 @@ export const FACTS_REVEAL_CHANNEL = 'cn:facts:reveal'
 export default {
 	name: 'CnFactsWidget',
 
-	components: { Check, CnIcon, CnStatusBadge, ContentCopy, EyeOutline, NcLoadingIcon, NcNoteCard },
+	components: { Check, CnActionButtons, CnIcon, CnStatusBadge, ContentCopy, EyeOutline, NcLoadingIcon, NcNoteCard },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -359,12 +403,17 @@ export default {
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
+		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path`; it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty.
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
+		 * - `actions` — action buttons under the facts in the `headerActions` shape (`api-call`, `open-form`, `navigate`, `open-modal`, ...; `confirm`, `variant`). `@source.<field>` names a field of the record shown, and an action whose token names an empty field is not drawn. `visibleWhen` reads the record shown; `adminOnly: true` draws the action for an instance admin only (visibility, never authorisation). An api-call or a saved form refreshes the page, and the facts read their source again.
+		 * - `rowsPath` — a path to a list of `{ label, value }` the record holds, drawn as rows after `fields` (a preview the server builds).
 		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
 		 * - `notice` — `{ text, variant? }`, a note band inside the card under the facts (`info` by default; `success`, `warning` or `error`); the text is translated.
-		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
-		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
+		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
+		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
+		 * - `emptyWhen` — a path; when the record's value there is truthy the card shows `emptyText` (an endpoint that answers `empty: true`).
 		 * - `link` — `{ label, route? | href? }` at the foot.
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row).
@@ -406,6 +455,10 @@ export default {
 			copied: '',
 			/** Labels of the referenced objects read so far, by `refKey`. */
 			labels: {},
+			/** The outcome of each `actions[]` condition that needs a request, by action id. */
+			remoteVisibility: {},
+			/** Sequence of the source reads, so an older answer never replaces a newer one. */
+			loadSeq: 0,
 		}
 	},
 
@@ -460,26 +513,47 @@ export default {
 		 * A stable key of the resolved source, so the widget refetches only when it changes.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-read-an-app-endpoint
 		 */
 		sourceKey() {
+			if (this.endpointRequest) {
+				return JSON.stringify(this.endpointRequest)
+			}
 			return this.resolvedSource ? JSON.stringify(this.resolvedSource) : ''
+		},
+
+		/**
+		 * The `endpointSource` request with its tokens resolved, or null without one.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-read-an-app-endpoint
+		 */
+		endpointRequest() {
+			const config = this.content?.endpointSource
+			if (!config || typeof config !== 'object' || typeof config.url !== 'string' || config.url === '') {
+				return null
+			}
+			return resolveEndpointRequest(config, this.tokenCtx)
 		},
 
 		/**
 		 * The object the facts are read from.
 		 *
 		 * @return {object|null}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-read-an-app-endpoint
 		 */
 		record() {
-			if (!this.resolvedSource) {
-				return this.objectData
-			}
+			let record = this.endpointRequest || this.resolvedSource ? this.fetched : this.objectData
 			const path = this.content?.source?.path
-			if (typeof path === 'string' && path !== '' && this.fetched) {
-				const inner = readPath(this.fetched, path)
-				return inner && typeof inner === 'object' && !Array.isArray(inner) ? inner : null
+			if (this.resolvedSource && !this.endpointRequest && typeof path === 'string' && path !== '' && record) {
+				const inner = readPath(record, path)
+				record = inner && typeof inner === 'object' && !Array.isArray(inner) ? inner : null
 			}
-			return this.fetched
+			const emptyWhen = this.content?.emptyWhen
+			if (record && typeof emptyWhen === 'string' && emptyWhen !== '' && readPath(record, emptyWhen)) {
+				return null
+			}
+			return record
 		},
 
 		/**
@@ -519,9 +593,48 @@ export default {
 		},
 
 		/**
+		 * The `actions[]` to draw: `@source.<field>` resolved against the record
+		 * shown, `adminOnly` and `visibleWhen` settled here, so the buttons do
+		 * not judge them again against the page's object.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-carry-declared-actions
+		 */
+		drawnActions() {
+			const record = this.record
+			const actions = Array.isArray(this.content?.actions) ? this.content.actions : []
+			if (!record || actions.length === 0) {
+				return []
+			}
+			const admin = this.viewerIsAdmin()
+			const out = []
+			actions.forEach((action, index) => {
+				if (!action || typeof action !== 'object' || (action.adminOnly === true && !admin)) {
+					return
+				}
+				const id = this.actionId(action, index)
+				const condition = action.visibleWhen
+				if (condition && isLocallyDecidableVisibleWhen(condition) && !evaluateVisibleWhenLocal(condition, record)) {
+					return
+				}
+				if (condition && !isLocallyDecidableVisibleWhen(condition) && this.remoteVisibility[id] !== true) {
+					return
+				}
+				const { value, unresolved } = resolveSourceTokens(action, record)
+				if (unresolved) {
+					return
+				}
+				const { visibleWhen, adminOnly, ...drawn } = value
+				out.push({ ...drawn, id })
+			})
+			return out
+		},
+
+		/**
 		 * The entries to draw, consecutive rows grouped into one list.
 		 *
 		 * @return {Array<object>}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-draw-the-rows-the-source-answers
 		 */
 		blocks() {
 			const sourceRecord = this.record
@@ -580,11 +693,20 @@ export default {
 					const keys = field.resolve && typeof field.resolve === 'object'
 						? [toneSpec(field) ? this.refLabels(raw, toneSpec(field))[0] : undefined, this.refLabels(raw, field)[0], raw]
 						: [raw]
-					const hit = colours ? keys.find((candidate) => (typeof candidate === 'string' || typeof candidate === 'number') && Object.hasOwn(colours, candidate)) : undefined
+					// A boolean looks its tone up as "true" / "false", as `map` reads it.
+					const hit = colours ? keys.map((candidate) => (typeof candidate === 'boolean' ? String(candidate) : candidate)).find((candidate) => (typeof candidate === 'string' || typeof candidate === 'number') && Object.hasOwn(colours, candidate)) : undefined
 					const variant = hit !== undefined ? colours[hit] : field.variant
 					block.variant = isBadgeVariant(variant) ? variant : 'default'
 				}
 				out.push(block)
+			})
+			this.answeredRows(sourceRecord, hideEmpty).forEach((row) => {
+				const last = out[out.length - 1]
+				if (last && last.kind === 'rows') {
+					last.rows.push(row)
+				} else {
+					out.push({ kind: 'rows', key: 'rows-answered', rows: [row] })
+				}
 			})
 			return out
 		},
@@ -696,8 +818,14 @@ export default {
 
 		record: {
 			immediate: true,
+			/**
+			 * Read the labels and settle the action conditions of the record shown.
+			 *
+			 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-carry-declared-actions
+			 */
 			handler() {
 				this.loadLabels()
+				this.evaluateRemoteVisibility()
 			},
 		},
 
@@ -717,11 +845,11 @@ export default {
 	},
 
 	mounted() {
-		subscribe('cn:page:refresh', this.onPageRefresh)
+		subscribe(PAGE_REFRESH_CHANNEL, this.onPageRefresh)
 	},
 
 	beforeUnmount() {
-		unsubscribe('cn:page:refresh', this.onPageRefresh)
+		unsubscribe(PAGE_REFRESH_CHANNEL, this.onPageRefresh)
 	},
 
 	methods: {
@@ -733,8 +861,8 @@ export default {
 		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-facts-card-can-act-when-it-is-empty
 		 */
 		onPageRefresh() {
-			if (this.resolvedSource) {
-				this.load()
+			if (this.resolvedSource || this.endpointRequest) {
+				this.load(true)
 			}
 		},
 
@@ -861,13 +989,31 @@ export default {
 		 * @param {string} kind The entry's kind.
 		 * @return {string}
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-the-facts-card-draws-contact-details-identity-and-a-lead
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
 		 */
 		entryValue(record, field, kind) {
+			const value = this.bareEntryValue(record, field, kind)
+			return value !== '' && typeof field.suffix === 'string' ? `${value}${field.suffix}` : value
+		},
+
+		/**
+		 * An entry's text before its `suffix`.
+		 *
+		 * @param {object} record The object.
+		 * @param {object} field The entry.
+		 * @param {string} kind The entry's kind.
+		 * @return {string}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
+		 */
+		bareEntryValue(record, field, kind) {
 			if (kind === 'progress') {
 				return this.progressOf(record, field).value
 			}
 			if (kind === 'lead') {
 				return this.partsValue(record, field.title)
+			}
+			if (typeof field.template === 'string' && field.template !== '') {
+				return this.templateValue(record, field.template)
 			}
 			if ((kind === 'line' || kind === 'text' || kind === 'row') && Array.isArray(field.parts)) {
 				return this.lineValue(record, field)
@@ -876,6 +1022,103 @@ export default {
 				return this.tr(field.text)
 			}
 			return this.valueOf(record, field)
+		},
+
+		/**
+		 * Fill a template's `{path}` placeholders from the record: "{available} {unit}"
+		 * reads "12 pcs". Empty when every placeholder is empty.
+		 *
+		 * @param {object} record The object.
+		 * @param {string} template The template.
+		 * @return {string}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
+		 */
+		templateValue(record, template) {
+			let filled = false
+			const text = this.tr(template).replace(/\{([\w.@]+)\}/g, (match, path) => {
+				const value = this.format(readPath(record, path), {}, record)
+				filled = filled || value !== ''
+				return value
+			})
+			return filled ? text.trim() : ''
+		},
+
+		/**
+		 * The rows the record answers at `rowsPath`: `{ label, value }` items
+		 * drawn after the declared fields.
+		 *
+		 * @param {object} record The object.
+		 * @param {boolean} hideEmpty Whether an empty value drops its row.
+		 * @return {Array<object>}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-draw-the-rows-the-source-answers
+		 */
+		answeredRows(record, hideEmpty) {
+			const path = this.content?.rowsPath
+			const items = typeof path === 'string' && path !== '' ? readPath(record, path) : null
+			if (!Array.isArray(items)) {
+				return []
+			}
+			return items
+				.filter((item) => item && typeof item === 'object')
+				.map((item, index) => ({ item, index, value: this.format(item.value, { format: item.format }, record) }))
+				.filter(({ value }) => !(hideEmpty && value === ''))
+				.map(({ item, index, value }) => ({
+					key: `answered-${index}`,
+					label: typeof item.label === 'string' ? item.label : '',
+					value,
+					...this.rowExtras(item, { path: 'value' }, value),
+				}))
+		},
+
+		/**
+		 * Whether the viewer administers this instance, for `adminOnly` actions.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-carry-declared-actions
+		 */
+		viewerIsAdmin() {
+			try {
+				return getCurrentUser()?.isAdmin === true
+			} catch {
+				return false
+			}
+		},
+
+		/**
+		 * The id an `actions[]` entry is drawn and tested by.
+		 *
+		 * @param {object} action The declaration.
+		 * @param {number} index Its place in `actions`.
+		 * @return {string}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-carry-declared-actions
+		 */
+		actionId(action, index) {
+			return typeof action.id === 'string' && action.id !== '' ? action.id : `action-${index}`
+		},
+
+		/**
+		 * Settle the `actions[]` conditions that need a request (an `endpoint` or
+		 * a `source`), against the record shown.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-carry-declared-actions
+		 */
+		async evaluateRemoteVisibility() {
+			const record = this.record
+			const actions = Array.isArray(this.content?.actions) ? this.content.actions : []
+			const remote = actions
+				.map((action, index) => ({ action, index }))
+				.filter(({ action }) => action && action.visibleWhen && !isLocallyDecidableVisibleWhen(action.visibleWhen))
+			if (!record || remote.length === 0) {
+				return
+			}
+			const ctx = { ...this.tokenCtx, object: record }
+			const outcomes = await Promise.all(remote.map(({ action }) => evaluateVisibleWhen(action.visibleWhen, ctx)))
+			const next = {}
+			remote.forEach(({ action, index }, at) => {
+				next[this.actionId(action, index)] = outcomes[at]
+			})
+			this.remoteVisibility = next
 		},
 
 		/**
@@ -1164,40 +1407,88 @@ export default {
 		},
 
 		/**
-		 * Read the source object.
+		 * Read the source object: by id or url, the first match of a query, or
+		 * an app endpoint.
 		 *
+		 * @param {boolean} [force] Read past the shared endpoint cache (a page refresh).
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-show-the-first-match-of-a-query
 		 */
-		async load() {
+		async load(force = false) {
+			const seq = ++this.loadSeq
 			const source = this.resolvedSource
+			const endpoint = this.endpointRequest
 			this.error = false
-			if (!source) {
-				this.fetched = null
-				return
-			}
-			const url = this.sourceUrl(source)
-			if (!url) {
+			const url = source && !endpoint ? this.sourceUrl(source) : ''
+			if ((!endpoint || endpoint.blocked) && !url) {
 				this.fetched = null
 				return
 			}
 			this.loading = true
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const full = url.startsWith('/apps/') || url.startsWith('/ocs/') ? generateUrl(url) : url
-				const response = await axios.get(full)
-				const data = response && response.data
-				this.fetched = data && typeof data === 'object' && !Array.isArray(data) ? data : null
+				const data = endpoint
+					? await fetchEndpointSource(this.content.endpointSource, this.tokenCtx, { force })
+					: await this.readSource(source, url)
+				if (seq === this.loadSeq) {
+					this.fetched = data && typeof data === 'object' && !Array.isArray(data) ? data : null
+				}
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.warn('[CnFactsWidget] the source could not be read:', e?.message || e)
-				this.fetched = null
-				this.error = true
+				if (seq === this.loadSeq) {
+					this.fetched = null
+					this.error = true
+				}
 			} finally {
-				this.loading = false
+				if (seq === this.loadSeq) {
+					this.loading = false
+				}
 			}
+		},
+
+		/**
+		 * GET a `source`: the object itself, or the first match of its `filter`.
+		 *
+		 * @param {object} source The resolved source.
+		 * @param {string} url Its URL.
+		 * @return {Promise<unknown>} The object read, or null.
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-show-the-first-match-of-a-query
+		 */
+		async readSource(source, url) {
+			const [{ default: axios }, { generateUrl }] = await Promise.all([
+				import('@nextcloud/axios'),
+				import('@nextcloud/router'),
+			])
+			const full = url.startsWith('/apps/') || url.startsWith('/ocs/') ? generateUrl(url) : url
+			const params = this.sourceQuery(source)
+			const response = params ? await axios.get(full, { params }) : await axios.get(full)
+			const data = response && response.data
+			if (!params) {
+				return data
+			}
+			const first = data && Array.isArray(data.results) ? data.results[0] : null
+			return first ?? null
+		},
+
+		/**
+		 * The query of a source that names no `id`: its `filter`, its `sort` as
+		 * `_order`, and one result. Null for a source read by id or url.
+		 *
+		 * @param {object} source The resolved source.
+		 * @return {object|null}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-show-the-first-match-of-a-query
+		 */
+		sourceQuery(source) {
+			if (typeof source.url === 'string' || Object.hasOwn(source, 'id')) {
+				return null
+			}
+			const params = { ...(source.filter && typeof source.filter === 'object' ? source.filter : {}) }
+			const sort = source.sort
+			if (sort && typeof sort === 'object' && typeof sort.field === 'string' && sort.field !== '') {
+				params[`_order[${sort.field}]`] = sort.dir === 'desc' || sort.direction === 'desc' ? 'desc' : 'asc'
+			}
+			params._limit = 1
+			return params
 		},
 
 		/**
@@ -1205,6 +1496,7 @@ export default {
 		 *
 		 * @param {object} source The resolved source.
 		 * @return {string}
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-show-the-first-match-of-a-query
 		 */
 		sourceUrl(source) {
 			if (typeof source.url === 'string') {
@@ -1214,6 +1506,9 @@ export default {
 				return ''
 			}
 			const { register, schema, id } = source
+			if (register && schema && this.sourceQuery(source)) {
+				return `/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(schema)}`
+			}
 			if (!register || !schema || id === undefined || id === null || id === '' || typeof id === 'object') {
 				return ''
 			}
@@ -1272,6 +1567,7 @@ export default {
 		 * @return {string} The text, '' when empty.
 		 * @spec openspec/changes/facts-currency-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-money-amount
 		 * @spec openspec/changes/facts-user-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-user-by-name
+		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
 		 */
 		format(raw, spec, record = null) {
 			if (raw === null || raw === undefined || raw === '') {
@@ -1304,6 +1600,14 @@ export default {
 			}
 			if (format === 'user') {
 				return userDisplayName(raw)
+			}
+			if (format === 'number') {
+				const number = Number(raw)
+				if (typeof raw === 'object' || !Number.isFinite(number)) {
+					return typeof raw === 'object' ? '' : String(raw)
+				}
+				const digits = Number.isInteger(spec.decimals) && spec.decimals >= 0 ? { minimumFractionDigits: spec.decimals, maximumFractionDigits: spec.decimals } : {}
+				return new Intl.NumberFormat(metricLocale(), digits).format(number)
 			}
 			if (format === 'currency') {
 				const money = formatMoney(raw, { currency: spec.currency, currencyField: spec.currencyField, decimals: spec.decimals }, record, unwrapAppConfig(this.cnAppConfig))

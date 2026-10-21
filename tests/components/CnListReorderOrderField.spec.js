@@ -88,7 +88,8 @@ describe('CnObjectListWidget with reorder', () => {
 		await flush()
 		await w.vm.moveRowBy(w.vm.rows[2], -1)
 		expect(w.vm.reorderStatus).toBe('A case type keeps one final status.')
-		expect(axios.get).toHaveBeenCalledTimes(2)
+		const listReads = axios.get.mock.calls.filter(([url]) => !String(url).includes('/api/schemas/'))
+		expect(listReads).toHaveLength(2)
 	})
 
 	it('puts a new row last', async () => {

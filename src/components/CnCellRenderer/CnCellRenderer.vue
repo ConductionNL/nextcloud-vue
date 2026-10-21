@@ -909,7 +909,7 @@ export default {
 			if (this.widget !== 'date' || !due || typeof due !== 'object') {
 				return null
 			}
-			return resolveDue(this.value, due, (text) => this.cnTranslate(text))
+			return resolveDue(this.value, due, (text) => this.cnTranslate(text), new Date(), this.row)
 		},
 
 		/**

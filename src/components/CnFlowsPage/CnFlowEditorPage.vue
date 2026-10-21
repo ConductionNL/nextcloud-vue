@@ -9,6 +9,7 @@
 		:listLabel="listLabel ? cnTranslate(listLabel) : ''"
 		:palette="palette"
 		:paletteFootnote="paletteFootnote ? cnTranslate(paletteFootnote) : ''"
+		:flowDirection="flowDirection"
 		:notice="notice ? cnTranslate(notice) : ''"
 		:pill="pill ? cnTranslate(pill) : ''"
 		:testSubject="testSubject ? { ...testSubject, label: testSubject.label ? cnTranslate(testSubject.label) : '' } : null"
@@ -121,6 +122,16 @@ export default {
 		paletteFootnote: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: `down` lays the steps out top to bottom and opens them
+		 * at their own size instead of zoomed to fit; `right` (default) lays
+		 * them left to right. Manifest key `config.flowDirection`.
+		 */
+		flowDirection: {
+			type: String,
+			default: 'right',
 		},
 
 		/**

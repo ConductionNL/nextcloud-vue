@@ -2469,7 +2469,24 @@
     "Nothing to check.": "Er is niets te controleren.",
     "This could not be read: {reason}": "Dit kon niet worden gelezen: {reason}",
     "Still open": "Nog open",
-    "The checklist could not be read.": "De lijst kon niet worden gelezen."
+    "The checklist could not be read.": "De lijst kon niet worden gelezen.",
+    "Flag it with a reason, so it stands out to everyone who works on it.": "Markeer het met een reden, zodat het opvalt bij iedereen die eraan werkt.",
+    "Clear the flag with a reason once it no longer needs attention.": "Haal de markering weg met een reden zodra het geen aandacht meer nodig heeft.",
+    "Compose mail": "Mail opstellen",
+    "Link mail": "Mail koppelen",
+    "Enter a quarter as YYYY-Qn, for example 2026-Q3.": "Vul een kwartaal in als JJJJ-Qn, bijvoorbeeld 2026-Q3.",
+    "Enter a year as four digits, for example 2026.": "Vul een jaar in met vier cijfers, bijvoorbeeld 2026.",
+    "This value has the wrong form.": "Deze waarde heeft niet de goede vorm.",
+    "The value for {key} must be above {min}.": "De waarde voor {key} moet hoger zijn dan {min}.",
+    "Add a row": "Een rij toevoegen",
+    "Key": "Sleutel",
+    "{field} holds {key} twice.": "{field} bevat {key} twee keer.",
+    "View all ({count})": "Alles bekijken ({count})",
+    "Opens {host} in a new tab.": "Opent {host} in een nieuw tabblad.",
+    "How this app compares": "Hoe deze app zich verhoudt",
+    "This field is required": "Dit veld is verplicht",
+    "Creating…": "Aanmaken…",
+    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw."
   },
   "plurals": {
     "{count} member": [
