@@ -58,6 +58,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `'field-' + field.key`                      | `name`, `field`, `value`, `error`, `updateField` | field-\{key\} Replace one auto-generated field with your own control.                                                              |
 | `'field-' + field.key + '-option'`          | `name`                                           | field-\{key\}-option Render one dropdown option for a select, multiselect or tags field.                                           |
 | `'field-' + field.key + '-selected-option'` | `name`                                           | field-\{key\}-selected-option Render the chosen option of a select, multiselect or tags field.                                     |
+| `'field-' + field.key + '-hint'`            | `name`, `field`, `value`, `formData`             |                                                                                                                                    |
 | `after-fields`                              | —                                                | after-fields Content below the last auto-generated field.                                                                          |
 
 ### Methods
