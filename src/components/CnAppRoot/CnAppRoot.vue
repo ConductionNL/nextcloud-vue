@@ -2278,6 +2278,7 @@ export default {
 				getManifest: () => (this.manifestEditor ? this.manifestEditor.source.value : this.manifest),
 				getLanguage: () => this.language || getLanguage(),
 				translate: (text, vars) => this.translate(text, vars),
+				library: (text, vars) => t('nextcloud-vue', text, vars),
 			})
 		},
 
