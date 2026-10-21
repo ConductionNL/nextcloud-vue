@@ -8,7 +8,13 @@
 		class="cn-record-list"
 		:class="`cn-record-list--${presentation}`"
 		data-testid="cn-record-list">
-		<p v-if="error" class="cn-record-list__error" data-testid="cn-record-list-error">
+		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
+			{{ intro }}
+		</p>
+		<p v-if="absent" class="cn-record-list__empty" data-testid="cn-record-list-absent">
+			{{ absentLabel }}
+		</p>
+		<p v-else-if="error" class="cn-record-list__error" data-testid="cn-record-list-error">
 			{{ errorLabel }}
 		</p>
 		<div v-else-if="loading && rows.length === 0" class="cn-record-list__loading">
@@ -146,6 +152,13 @@
 					<span class="cn-record-list__main">
 						<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
+						<span v-if="item.links.length > 0" class="cn-record-list__meta" data-testid="cn-record-list-links">
+							{{ linksLabel }}
+							<template v-for="(link, linkIndex) in item.links" :key="link.id">
+								<router-link v-if="link.to" :to="link.to">{{ link.label }}</router-link>
+								<span v-else>{{ link.label }}</span><span v-if="linkIndex < item.links.length - 1">, </span>
+							</template>
+						</span>
 					</span>
 					<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing || item.flag" class="cn-record-list__aside">
 						<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
@@ -173,6 +186,19 @@
 						class="cn-record-list__chevron"
 						:size="18"
 						aria-hidden="true" />
+					<NcActions
+						v-if="item.tag === 'div' && rowActions.length > 0"
+						:aria-label="rowActionsLabel"
+						data-testid="cn-record-list-row-actions">
+						<NcActionButton
+							v-for="(action, actionIndex) in rowActions"
+							:key="`row-action-${actionIndex}`"
+							:closeAfterClick="true"
+							:data-testid="`cn-record-list-row-action-${actionIndex}`"
+							@click="runRowActionEntry(action, item.row)">
+							{{ action.label }}
+						</NcActionButton>
+					</NcActions>
 				</component>
 
 				<!-- cards: a framed card per row, the icon and title with the pill
@@ -246,7 +272,14 @@
 				</span>
 			</li>
 		</ul>
-		<p v-if="footnote && !error" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
+		<p
+			v-if="actionError"
+			class="cn-record-list__error"
+			role="alert"
+			data-testid="cn-record-list-action-error">
+			{{ actionError }}
+		</p>
+		<p v-if="footnote && !error && !absent && rows.length > 0" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
 		</p>
 		<!-- `footerAction`: one action under the list, also under the empty
@@ -280,14 +313,15 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnRecordNoteRows from './CnRecordNoteRows.vue'
-import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { interpolateUrlTokens, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { actionLink, dispatchAction, interpolateActionTarget } from '../../utils/actionsDispatcher.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays } from '../../utils/boardDate.js'
 import { resolveDue } from '../../utils/dueText.js'
@@ -297,7 +331,7 @@ import { initialsOf } from '../../utils/initials.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
-import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { dropOptionalUnresolved, hasUnresolvedTokens, resolveDeepTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
@@ -357,7 +391,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcButton, NcLoadingIcon },
+	components: { ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcActionButton, NcActions, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -374,7 +408,7 @@ export default {
 
 	props: {
 		/**
-		 * The list config: `{ register, schema, filter?, sort?, limit?, extend?,
+		 * The list config: `{ register, schema, filter?, sort?, limit?, offset?, extend?,
 		 * presentation?, variant?, lead?, title?, meta?, text?, label?, pill?, trailing?, icon?,
 		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
 		 * valueLabels?, endpointSource?, bar? }`. `bar` (`{ valueField, maxField?,
@@ -426,8 +460,11 @@ export default {
 		const objectCtxRaw = inject('cnObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', null)
 		const appConfigRaw = inject('cnAppConfig', ref({}))
-		const { data, loading, error } = useEndpointSource(
-			() => props.content?.endpointSource || null,
+		const { data, loading, error, refetch } = useEndpointSource(
+			() => {
+				const app = props.content?.requiresApp
+				return typeof app === 'string' && app !== '' && !isAppInstalled(app) ? null : (props.content?.endpointSource || null)
+			},
 			{
 				ctx: () => {
 					const injected = unwrap(objectCtxRaw) || {}
@@ -441,7 +478,7 @@ export default {
 				},
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error }
+		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
 	},
 
 	data() {
@@ -457,6 +494,10 @@ export default {
 			footerReasonId: `cn-record-list-footer-reason-${++footerSeq}`,
 			/** The first `emptyTexts` entry whose condition holds, translated; '' for none. */
 			conditionalEmptyText: '',
+			/** The refusal of the last row action, as the server said it. */
+			actionError: '',
+			/** Labels of the records a `links` line names, by id. */
+			linkLabels: {},
 		}
 	},
 
@@ -603,10 +644,16 @@ export default {
 			return Number.isFinite(value) && value > 0 ? Math.floor(value) : 5
 		},
 
+		/** @return {number} How many rows of the list to skip first (`content.offset`), 0 by default. */
+		offset() {
+			const value = Number(this.content?.offset)
+			return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0
+		},
+
 		/** @return {string} What a fetch depends on; a change fetches again. */
 		requestKey() {
 			const c = this.content || {}
-			return JSON.stringify([c.register, c.schema, this.resolvedFilter, this.effectiveSort, this.limit, c.extend, this.waiting])
+			return JSON.stringify([c.register, c.schema, this.resolvedFilter, this.effectiveSort, this.limit, this.offset, c.extend, this.waiting])
 		},
 
 		/** @return {Array<object>} The rows ready to draw. */
@@ -635,6 +682,7 @@ export default {
 					bar: this.barOf(row, barScale),
 					dot: this.dotOf(row),
 					flag: this.flagOf(row),
+					links: this.linksOf(row),
 				}
 			})
 		},
@@ -787,6 +835,74 @@ export default {
 			}
 		},
 
+		/**
+		 * Whether the app the rows come from is absent (`requiresApp`): the
+		 * list then says so (`absentText`) instead of reading anything.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-list-can-act-on-its-rows-and-link-onwards
+		 */
+		absent() {
+			const app = this.content?.requiresApp
+			return typeof app === 'string' && app !== '' && !isAppInstalled(app)
+		},
+
+		/** @return {string} The line shown when the source app is absent. */
+		absentLabel() {
+			return this.content?.absentText ? this.translate(this.content.absentText) : t('nextcloud-vue', 'The app these come from is not installed')
+		},
+
+		/** @return {string} The line above the list (`intro`), translated. */
+		intro() {
+			const text = this.content?.intro
+			return typeof text === 'string' && text !== '' ? this.translate(text) : ''
+		},
+
+		/**
+		 * The row actions (`rowActions`), labels translated. Each is a page
+		 * action (`type`, dispatched with the row) or `{ endpoint, method? }`,
+		 * an app URL called for the row.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-list-can-act-on-its-rows-and-link-onwards
+		 */
+		rowActions() {
+			const list = Array.isArray(this.content?.rowActions) ? this.content.rowActions : []
+			return list
+				.filter((action) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
+				.map((action) => ({ ...action, label: this.translate(action.label) }))
+		},
+
+		/** @return {string} The accessible name of a row's actions menu. */
+		rowActionsLabel() {
+			const own = this.content?.rowActionsLabel
+			return typeof own === 'string' && own !== '' ? this.translate(own) : t('nextcloud-vue', 'Actions for this row')
+		},
+
+		/** @return {string} The words in front of a `links` line. */
+		linksLabel() {
+			const label = this.content?.links?.label
+			return typeof label === 'string' && label !== '' ? this.translate(label) : ''
+		},
+
+		/** @return {string} The ids a `links` line names, to label them when they change. */
+		linkIdsKey() {
+			const field = this.content?.links?.field
+			if (!field) {
+				return ''
+			}
+			const ids = new Set()
+			for (const row of this.rows.slice(0, this.limit)) {
+				const list = readPath(row, field)
+				for (const id of Array.isArray(list) ? list : []) {
+					if (typeof id === 'string' && id !== '') {
+						ids.add(id)
+					}
+				}
+			}
+			return [...ids].join('|')
+		},
+
 		emptyLabel() {
 			if (this.lensReasonText !== '') {
 				return this.lensReasonText
@@ -826,6 +942,10 @@ export default {
 
 		endpointKey() {
 			this.fetchRows()
+		},
+
+		linkIdsKey() {
+			this.loadLinkLabels()
 		},
 	},
 
@@ -1015,6 +1135,10 @@ export default {
 		 * @return {string} The text, '' when a token is empty.
 		 */
 		fill(template, row) {
+			// A list is candidates: the first that fills ("{summary}", else "{subject}").
+			if (Array.isArray(template)) {
+				return firstFilled(template, this.labelledRow(row), (text) => this.translate(text), new Date(), this.templateContext)
+			}
 			return typeof template === 'string' && template !== '' ? fillTemplate(this.translate(template), this.labelledRow(row), new Date(), this.templateContext) : ''
 		},
 
@@ -1231,6 +1355,140 @@ export default {
 		},
 
 		/**
+		 * A `count` badge: how many entries a row's field holds (a list counts
+		 * its items, a number is itself), as `one` or `other` with `{count}`.
+		 * Nothing at 0.
+		 *
+		 * @param {object} row The row.
+		 * @param {{field: string, one?: string, other?: string, variant?: string}} badge The declaration.
+		 * @param {number} index The badge's place, for its key.
+		 * @return {object|null} The badge.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-list-can-act-on-its-rows-and-link-onwards
+		 */
+		countBadgeOf(row, badge, index) {
+			const raw = readPath(row, badge.field)
+			const count = Array.isArray(raw) ? raw.length : Number(raw)
+			if (!Number.isFinite(count) || count < 1) {
+				return null
+			}
+			const template = count === 1 ? (badge.one || badge.other) : (badge.other || badge.one)
+			if (typeof template !== 'string' || template === '') {
+				return null
+			}
+			return {
+				key: `count-${index}`,
+				kind: 'count',
+				label: this.translate(template).replace(/\{count\}/g, String(count)),
+				variant: isBadgeVariant(badge.variant) ? badge.variant : 'default',
+			}
+		},
+
+		/**
+		 * A row's `links` line: the ids at `links.field`, each labelled from
+		 * `links.labelSource` (`{ register, schema, template }`) once read, else
+		 * `links.fallback`, and routed by `links.route` with `{value}` the id.
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<{id: string, label: string, to: (object|null)}>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-list-can-act-on-its-rows-and-link-onwards
+		 */
+		linksOf(row) {
+			const spec = this.content?.links
+			if (!spec || typeof spec !== 'object' || !spec.field) {
+				return []
+			}
+			const list = readPath(row, spec.field)
+			if (!Array.isArray(list)) {
+				return []
+			}
+			const fallback = typeof spec.fallback === 'string' ? this.translate(spec.fallback) : ''
+			return list.filter((id) => typeof id === 'string' && id !== '').map((id) => {
+				let to = null
+				if (spec.route && typeof spec.route === 'object' && spec.route.name && this.$router) {
+					const params = {}
+					for (const [key, value] of Object.entries(spec.route.params || {})) {
+						params[key] = value === '{value}' ? id : value
+					}
+					to = { name: spec.route.name, params }
+				}
+				return { id, label: this.linkLabels[id] || fallback || id, to }
+			})
+		},
+
+		/**
+		 * Read the labels of the records the `links` lines name, ten at most.
+		 * A record that cannot be read keeps the fallback; its link still opens.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadLinkLabels() {
+			const spec = this.content?.links?.labelSource
+			if (!spec || !spec.register || !spec.schema || this.linkIdsKey === '') {
+				return
+			}
+			const wanted = this.linkIdsKey.split('|').filter((id) => !this.linkLabels[id]).slice(0, 10)
+			const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+			await Promise.all(wanted.map(async (id) => {
+				try {
+					const { data } = await axios.get(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: spec.register, schema: spec.schema, id }))
+					const label = fillTemplate(this.translate(spec.template || '{title}'), data || {})
+					if (label !== '') {
+						this.linkLabels = { ...this.linkLabels, [id]: label }
+					}
+				} catch {
+					// The link still opens; only its text stays the fallback.
+				}
+			}))
+		},
+
+		/**
+		 * Run one of `rowActions` for a row: an `endpoint` is called with the
+		 * row's `{field}` tokens and the page's `@objectId` filled in, then the
+		 * list reads again; a refusal shows the server's sentence. Any other
+		 * entry is a page action, dispatched as `rowAction` is.
+		 *
+		 * @param {object} action The entry.
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-list-can-act-on-its-rows-and-link-onwards
+		 */
+		async runRowActionEntry(action, row) {
+			this.actionError = ''
+			if (typeof action.endpoint !== 'string' || action.endpoint === '') {
+				const { label, ...declared } = action
+				const type = declared.type || 'handler'
+				let wrapped = declared
+				if (type === 'handler') {
+					wrapped = { ...declared, args: [...(declared.args || []), row] }
+				} else if (type === 'open-modal') {
+					wrapped = { ...declared, props: { ...resolveDeepTokens(declared.props || {}, this.tokenCtx), row } }
+				}
+				if (typeof this.cnDispatchAction === 'function') {
+					this.cnDispatchAction(wrapped)
+					return
+				}
+				dispatchAction(wrapped, { router: this.$router || null, row, tokenCtx: this.rowTokenCtx(row) })
+				return
+			}
+			const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+			const path = interpolateUrlTokens(action.endpoint, this.tokenCtx).replace(/\{([\w.@]+)\}/g, (_match, field) => encodeURIComponent(String(readPath(row, field) ?? '')))
+			const method = typeof action.method === 'string' ? action.method.toLowerCase() : 'post'
+			try {
+				await axios.request({ method, url: generateUrl(path) })
+				if (typeof this.epRefetch === 'function' && this.endpointActive) {
+					await this.epRefetch(true)
+				} else {
+					await this.fetchRows()
+				}
+			} catch (error) {
+				const said = error?.response?.data?.error ?? error?.response?.data?.message
+				this.actionError = typeof said === 'string' && said !== ''
+					? said
+					: (action.errorText ? this.translate(action.errorText) : t('nextcloud-vue', 'This did not work. Try again.'))
+			}
+		},
+
+		/**
 		 * The row's extra badges (`badges`): a coloured badge from a field
 		 * (`{ field, labels?, colorMap?, variant?, hideValues? }`, the value
 		 * shown unless `hideValues` lists it) and an age badge
@@ -1247,6 +1505,13 @@ export default {
 			const out = []
 			declared.forEach((badge, index) => {
 				if (!badge || typeof badge !== 'object' || !badge.field) {
+					return
+				}
+				if (badge.kind === 'count') {
+					const made = this.countBadgeOf(row, badge, index)
+					if (made) {
+						out.push(made)
+					}
 					return
 				}
 				if (badge.kind === 'stale') {
@@ -1463,6 +1728,12 @@ export default {
 		 */
 		async fetchRows() {
 			const c = this.content || {}
+			if (this.absent) {
+				this.rows = []
+				this.total = 0
+				this.error = false
+				return
+			}
 			if (this.endpointActive) {
 				this.takeEndpointRows()
 				return
@@ -1485,6 +1756,9 @@ export default {
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
 				const sort = this.effectiveSort
 				const params = { _limit: this.limit }
+				if (this.offset > 0) {
+					params._offset = this.offset
+				}
 				// A rank sort (`sort.rank`) cannot be one `_order`: the list endpoint
 				// orders a text field alphabetically. It is read group by group below.
 				const rank = this.rankOf(sort)
@@ -1733,6 +2007,11 @@ export default {
 .cn-record-list__table .cn-record-list__cell--alert {
 	color: var(--color-text-error, var(--color-error-text));
 	font-weight: 700;
+}
+
+.cn-record-list__intro {
+	margin: 0 0 8px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-record-list__footnote {

@@ -248,7 +248,7 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown" #after-search>
+			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown || relatedFieldFilters" #after-search>
 				<!-- Board view controls, after the search (screens-board-reference-columns):
 				     the narrowing select ("Case type:"), the column switch ("Columns:
 				     status | type | assignee") and the board's hint sentence. -->
@@ -304,6 +304,11 @@
 					@update:modelValue="onContentSearchToggle">
 					{{ t('nextcloud-vue', 'Also search inside files') }}
 				</NcCheckboxRadioSwitch>
+				<CnRelatedFieldFilters
+					v-if="relatedFieldFilters"
+					:definitions="relatedFieldFilters.definitions || {}"
+					:related="relatedFieldFilters.related || {}"
+					:storeKey="objectType || selfObjectType || ''" />
 				<slot name="after-search" />
 			</template>
 			<template
@@ -821,7 +826,7 @@
 					:columnOverrides="columnOverrides"
 					:rowClass="compiledRowClass"
 					:rowTitle="rowTitle"
-					:showUnread="showUnreadRows"
+					:showUnread="marksUnreadRows"
 					:filterable="tableHeaderFilters"
 					:activeFilters="tableActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
@@ -1340,6 +1345,7 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
@@ -1369,6 +1375,7 @@ import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { labelsByField } from '../../utils/labelsByField.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
@@ -1678,6 +1685,7 @@ export default {
 
 	components: {
 		CnIndexPageWidgets,
+		CnRelatedFieldFilters,
 		CnStatusBadge,
 		NcNoteCard,
 		CnBuildiqEditButton,
@@ -2201,14 +2209,16 @@ export default {
 		/**
 		 * Quick filters made from the values a field holds in this list
 		 * (manifest `config.quickFiltersFrom`): `{ field, register?, schema?,
-		 * labelField?, allLabel? }`. The page asks OpenRegister for the
+		 * valueField?, labelField?, allLabel? }`. The page asks OpenRegister for the
 		 * distinct values of `field` with their counts (within `filter`) and
 		 * draws "All" plus one tab per value, the most frequent first, each
 		 * with its count. With `register` and `schema` the values are ids of
 		 * records of that schema and each tab shows the record's `labelField`
-		 * (else its title or name). Ignored when `quickFilters` is set.
+		 * (else its title or name). With `valueField` as well, the values are
+		 * matched on that field of those records instead of their id (a slug).
+		 * Ignored when `quickFilters` is set.
 		 *
-		 * @type {{field: string, register?: string, schema?: string, labelField?: string, allLabel?: string}|null}
+		 * @type {{field: string, register?: string, schema?: string, valueField?: string, labelField?: string, allLabel?: string}|null}
 		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
 		 */
 		quickFiltersFrom: {
@@ -2230,6 +2240,19 @@ export default {
 		personalLenses: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Whether the table marks unread rows (`@self.unread`) in bold with the
+		 * unread marker: `true` in every look, `false` never. Unset (null)
+		 * keeps the look's default (see `marksUnreadRows`). Manifest
+		 * `config.showUnreadRows`.
+		 *
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-page-can-ask-for-its-unread-rows
+		 */
+		showUnreadRows: {
+			type: Boolean,
+			default: null,
 		},
 
 		/**
@@ -2384,6 +2407,17 @@ export default {
 		searchInFiles: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Filters over a type's own declared fields, beside the search
+		 * (CnRelatedFieldFilters): `{ definitions: { register, schema, filter },
+		 * related: { schema, backref, definitionKey?, valueKey? } }`.
+		 * Manifest: `config.relatedFieldFilters`.
+		 */
+		relatedFieldFilters: {
+			type: Object,
+			default: null,
 		},
 
 		/** Object/row data array */
@@ -6693,14 +6727,19 @@ export default {
 		},
 
 		/**
-		 * Whether the table marks unread rows. The boards draw every row alike,
-		 * so under the board look only a page that offers the Unread lens
+		 * Whether the table marks unread rows. `showUnreadRows` decides when
+		 * the page sets it. Otherwise the boards draw every row alike, so under
+		 * the board look only a page that offers the Unread lens
 		 * (`personalLenses`) marks them; the Nextcloud look always does.
 		 *
 		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-unread-rows-are-marked-only-where-the-reader-asked-for-them
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-page-can-ask-for-its-unread-rows
 		 * @return {boolean} True when unread rows read in bold with the dot.
 		 */
-		showUnreadRows() {
+		marksUnreadRows() {
+			if (typeof this.showUnreadRows === 'boolean') {
+				return this.showUnreadRows
+			}
 			if (!this.isBoardLook) {
 				return true
 			}
@@ -7226,6 +7265,8 @@ export default {
 				customComponents: this.effectiveCustomComponents,
 				// So a row action's toasts translate like the labels around it.
 				translate: this.cnTranslate,
+				// A row action of `type: "open-modal"` opens its modal here.
+				openModal: typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null,
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
@@ -8689,7 +8730,9 @@ export default {
 				groups = []
 			}
 			let labels = {}
-			if (from.register && from.schema && groups.length > 0) {
+			if (from.register && from.schema && from.valueField && groups.length > 0) {
+				labels = await labelsByField({ register: from.register, schema: from.schema, field: from.valueField, values: groups.map((g) => g.key), labelField: from.labelField || '' }).catch(() => ({}))
+			} else if (from.register && from.schema && groups.length > 0) {
 				if (!this._quickFilterLabelResolver) {
 					this._quickFilterLabelResolver = createRefLabelResolver(() => {
 						try {

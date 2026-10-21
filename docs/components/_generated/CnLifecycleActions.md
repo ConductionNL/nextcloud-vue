@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 0 direct references, 13 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 14 files reached through imports.
 
-Through: `CnResourceSelect`.
+Through: `CnResourceSelect`, `CnTemplateSelect`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 

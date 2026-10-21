@@ -39,6 +39,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 | `filter` | Field filters, with the `@objectId`, `@object.<field>` and `@workspace.<key>` tokens. While a required token has no value the widget sends nothing. An operator is an object: `{ "status": { "ne": "closed" } }`. |
 | `sort` | `{ field, dir }`, sent as `_order[field]`. |
 | `limit` | How many rows to fetch and draw. Default 5. |
+| `offset` | How many rows of the list to skip first. Default 0. Two cards over one list read "next" (`limit: 1`) and "after that" (`offset: 1`) without a row twice. Not applied to a `rank` sort. |
 | `extend` | OpenRegister `_extend[]` values, so `{assignee.name}` reads a referenced object. |
 | `rowRoute` | A named route; each row links to it with `params.id`. |
 | `rowIdField` | Dot path of the id the route receives. Default: the row's own id. A relation row links to its target with `"to.id"`. |
@@ -67,6 +68,25 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 - It is a manifest action plus a `label`: `open-page` opens that page for the row's id, `navigate` reads `@object.<field>` and `@objectId` off the row (`"/votes/@object.id"`). Both render as links. Any other type is a button that runs through the page's dispatcher: a `handler` gets the row as its last argument, `open-modal` gets it as the `row` prop.
 - `labels: { field, map }` picks the label per row: `{ "field": "status", "map": { "open": "Starten" } }` reads "Starten" for an open item and `label` ("Afronden") for the rest.
+
+### Several actions per row, and links onwards
+
+`rowActions` ends every `rows` row that opens nothing with an actions menu (named by `rowActionsLabel`). An entry is a
+page action plus a `label`, dispatched as `rowAction` is (an `open-modal` gets the row as its `row` prop and its own
+`props` with `@objectId` resolved), or `{ label, endpoint, method? }`: an app URL with the page's `@objectId` and the
+row's `{field}` tokens filled in. After an endpoint call the list reads again; a refusal shows the server's sentence as
+an alert (else `errorText`).
+
+`links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
+("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
+(`{ register, schema, template }`) reads their labels, ten at most, and `fallback` stands in until then.
+
+A badge with `kind: "count"` (`{ field, one, other }`, `{count}` filled in) counts a list or a number on the row, and
+shows nothing at 0.
+
+`requiresApp` names the app the rows come from. When it is not installed the list says `absentText` and reads nothing,
+so "not installed" is never shown as "nothing yet". `intro` is a line above the list. A template may be a list of
+candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
 
 ### An action under the list
 

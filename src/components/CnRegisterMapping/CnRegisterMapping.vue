@@ -390,6 +390,8 @@ export default {
 	inject: {
 		/** The look CnAppRoot or CnAdminSettingsShell provides. */
 		cnLook: { default: 'nextcloud' },
+		/** The app's translate, for register and schema titles; identity outside CnAppRoot. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -552,7 +554,7 @@ export default {
 		/** Register options for NcSelect */
 		registerSelectOptions() {
 			return this.registers.map((r) => ({
-				label: r.title || r.slug || t('nextcloud-vue', 'Register {id}', { id: r.id }),
+				label: (r.title && this.cnTranslate(r.title)) || r.slug || t('nextcloud-vue', 'Register {id}', { id: r.id }),
 				value: String(r.id),
 			}))
 		},
@@ -863,7 +865,7 @@ export default {
 			}
 			const schemas = this.schemasByRegister[reg.value] || []
 			return schemas.map((s) => ({
-				label: s.title || s.slug || t('nextcloud-vue', 'Schema {id}', { id: s.id }),
+				label: (s.title && this.cnTranslate(s.title)) || s.slug || t('nextcloud-vue', 'Schema {id}', { id: s.id }),
 				value: String(s.id),
 			}))
 		},

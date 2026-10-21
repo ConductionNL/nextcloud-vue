@@ -108,3 +108,25 @@ Custom clear label — override the default "Clear filters" text via `clearAllLa
   @search="search = $event"
   @clear-all="search = ''" />
 ```
+
+Filters only, with a number range and a date range. Each bound has its own accessible name ("Cost, from", "Cost, up to"), and `filter-change` carries the whole range `{ gte, lte }`. `showSearch: false` drops the search field:
+
+```vue
+<template>
+  <CnFilterBar
+    :show-search="false"
+    :show-clear-all="false"
+    :filters="[
+      { key: 'cost', label: 'Cost', type: 'range', value: cost },
+      { key: 'due', label: 'Due', type: 'dateRange', value: due },
+    ]"
+    @filter-change="({ key, value }) => (key === 'cost' ? (cost = value) : (due = value))" />
+</template>
+<script>
+export default {
+  data() {
+    return { cost: { gte: '', lte: '' }, due: { gte: '', lte: '' } }
+  },
+}
+</script>
+```

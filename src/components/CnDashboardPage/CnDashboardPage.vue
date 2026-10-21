@@ -120,6 +120,10 @@
 					<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
 					<slot name="actions" />
 				</template>
+				<CnActionButtons
+					v-else-if="boardSecondaryHeaderActions.length"
+					:actions="boardSecondaryHeaderActions"
+					data-testid="cn-dashboard-page-header-actions-secondary" />
 				<NcButton
 					v-if="allowEdit"
 					:variant="isEditing ? 'primary' : 'secondary'"
@@ -179,14 +183,14 @@
 						<slot name="action-items" />
 					</template>
 				</CnActionsMenu>
-				<!-- Board look: the row reads Edit layout, Actions, the buildiq
-				     square, then the manifest's header actions with the primary
-				     rightmost (screens-dashboard-parity). -->
+				<!-- Board look: the row reads the secondary header actions, Edit
+				     layout, Actions, the buildiq square, then the primary header
+				     actions rightmost (screens-dashboard-parity). -->
 				<template v-if="isBoardLook">
 					<CnBuildiqEditButton />
 					<CnActionButtons
-						v-if="headerActions && headerActions.length"
-						:actions="linkedHeaderActions"
+						v-if="boardPrimaryHeaderActions.length"
+						:actions="boardPrimaryHeaderActions"
 						data-testid="cn-dashboard-page-header-actions" />
 					<slot name="header-actions" />
 					<slot name="actions" />
@@ -1055,6 +1059,7 @@ import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
+import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
@@ -1064,6 +1069,7 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
+import { generatedPageFilterOptions } from '../../utils/periodOptions.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
@@ -1747,8 +1753,11 @@ export default {
 		 * from OpenRegister objects (value `id`, label `title` or `name` by
 		 * default; tokens resolve). `clearable: true` lets the reader clear the
 		 * select back to "all" (`placeholder`, e.g. "All case types"), which
-		 * writes null and seeds nothing. Empty (the default) renders no
-		 * controls and leaves the context untouched.
+		 * writes null and seeds nothing. `type: 'quarter'` generates its
+		 * options: the current quarter first, then `count - 1` (default 7)
+		 * before it, valued `YYYY-Qn` and seeded with the current one;
+		 * `type: 'year'` does the same for years (default 5, valued `YYYY`). Empty
+		 * (the default) renders no controls and leaves the context untouched.
 		 *
 		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
 		 */
@@ -2126,13 +2135,40 @@ export default {
 
 		/**
 		 * The header actions handed to CnActionButtons, an entry with `href`
-		 * in its link form (resolved URL, anchor target, no handler).
+		 * in its link form (resolved URL, anchor target, no handler). An
+		 * `href` may carry `@workspace.<key>` / `@page.<key>` tokens, filled
+		 * (URL-encoded) from the page filters, so a download link asks for
+		 * what the page shows.
 		 *
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 * @return {Array<object>}
 		 */
 		linkedHeaderActions() {
-			return (this.headerActions || []).map(headerActionAsLink)
+			const workspace = Object.fromEntries(Object.entries(this.workspaceContext || {})
+				.map(([key, value]) => [key, (value === undefined || value === null) ? value : encodeURIComponent(String(value))]))
+			return (this.headerActions || [])
+				.map((entry) => ((entry && typeof entry.href === 'string' && entry.href.includes('@'))
+					? { ...entry, href: interpolateUrlTokens(entry.href, { workspace }) }
+					: entry))
+				.map(headerActionAsLink)
+		},
+
+		/**
+		 * Under the board look the header reads the secondary actions, the
+		 * edit toggle and Actions menu, the buildiq square, then the primary
+		 * actions, as on an index page (PtDashboard, DqDashboard).
+		 *
+		 * @return {Array<object>} The header actions that are not `variant: "primary"`.
+		 */
+		boardSecondaryHeaderActions() {
+			return this.linkedHeaderActions.filter((entry) => entry?.variant !== 'primary')
+		},
+
+		/**
+		 * @return {Array<object>} The `variant: "primary"` header actions, drawn after the buildiq square.
+		 */
+		boardPrimaryHeaderActions() {
+			return this.linkedHeaderActions.filter((entry) => entry?.variant === 'primary')
 		},
 
 		/**
@@ -2958,7 +2994,8 @@ export default {
 				if (this.workspaceContext[pf.key] !== undefined) {
 					continue
 				}
-				const fallback = (pf.options && pf.options.length && pf.clearable !== true) ? pf.options[0].value : undefined
+				const listed = Array.isArray(pf.options) ? pf.options : generatedPageFilterOptions(pf)
+				const fallback = (listed && listed.length && pf.clearable !== true) ? listed[0].value : undefined
 				const value = pf.default !== undefined ? pf.default : fallback
 				if (value !== undefined) {
 					this.workspaceContext[pf.key] = value
@@ -2990,7 +3027,7 @@ export default {
 		 * @return {Array<{value: (string|number), label: string}>}
 		 */
 		pageFilterSegments(pf) {
-			const options = Array.isArray(pf.options) ? pf.options : (this.pageFilterFetched[pf.key] || [])
+			const options = Array.isArray(pf.options) ? pf.options : (generatedPageFilterOptions(pf) || this.pageFilterFetched[pf.key] || [])
 			return options.map((o) => ({ value: o.value, label: o.label ? this.effectiveTranslate(o.label) : String(o.value) }))
 		},
 

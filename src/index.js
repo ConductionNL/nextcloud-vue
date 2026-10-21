@@ -45,6 +45,7 @@ export {
 	CnAppNav,
 	CnAppRoot,
 	CnAssignDialog,
+	CnAttentionFlagWidget,
 	CnAuditTrailCard,
 	CnAuditTrailWidget,
 	CnBannerWidget,
@@ -52,6 +53,7 @@ export {
 	CnBodySections,
 	CnBreadcrumbs,
 	CnBuildiqEditButton,
+	CnBulkJobProgress,
 	CnCalendarWidget,
 	CnCalendarWidgetForm,
 	CnCameraCapture,
@@ -126,6 +128,7 @@ export {
 	CnEmailCard,
 	CnEmailTab,
 	CnEnvironmentBanner,
+	CnEventsCard,
 	CnExportWizard,
 	CnFacetSidebar,
 	CnFactsWidget,
@@ -245,6 +248,7 @@ export {
 	CnObjectListWidgetForm,
 	CnObjectMetadataModal,
 	CnObjectMetadataWidget,
+	CnObjectPartiesWidget,
 	CnObjectPresenceWidget,
 	CnObjectRow,
 	CnObjectSidebar,
@@ -274,6 +278,7 @@ export {
 	CnRegisterMapping,
 	CnRegisterSchemaSelect,
 	CnRelatedCollections,
+	CnRelatedFieldFilters,
 	CnRelatedFiles,
 	CnRelatedObjectsWidget,
 	CnRelationLinkModal,
@@ -301,6 +306,7 @@ export {
 	CnSearchPage,
 	CnSearchSelect,
 	CnSectionsWidget,
+	CnSelectionScope,
 	CnSettingsCard,
 	CnSettingsField,
 	CnSettingsFieldsSection,
@@ -319,6 +325,7 @@ export {
 	CnStatsBlockWidgetForm,
 	CnStatsPanel,
 	CnStatusBadge,
+	CnStatusExplainerWidget,
 	CnStatWidget,
 	CnStatWidgetForm,
 	CnStructuredDocReview,
@@ -334,9 +341,11 @@ export {
 	CnTabsWidgetForm,
 	CnTagsCard,
 	CnTaskFormDialog,
+	CnTaskFormFields,
 	CnTasksCard,
 	CnTasksWidget,
 	CnTasksWidgetForm,
+	CnTemplateSelect,
 	CnTenantBadge,
 	CnTextTableEditor,
 	CnTextWidget,
@@ -347,6 +356,7 @@ export {
 	CnTimelineView,
 	CnTimelineWidget,
 	CnToggleTableWidget,
+	CnTransitionInputFields,
 	CnTranslatedBadge,
 	CnTreeView,
 	CnUnreadMarker,
@@ -397,7 +407,7 @@ export { createOpenRegisterSource } from './components/index.js'
 // Workplace dashboard primitives (openspec: workplace-dashboard-primitives):
 // the week strip and stacked bar widgets with their forms, the segmented
 // control, and the brand stripe.
-export { CnBrandStripe, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidgetForm, CnTeamWorkloadWidget, CnWeekStripWidget, CnWeekStripWidgetForm } from './components/index.js'
+export { CnBrandStripe, CnCountTablesReport, CnEndpointNotice, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidgetForm, CnTeamWorkloadWidget, CnWeekStripWidget, CnWeekStripWidgetForm } from './components/index.js'
 
 // Page components the page renderer mounts by `pages[].type` that were missing
 // from this entry. A component reachable from a manifest but not importable
@@ -576,6 +586,7 @@ export { currentTheme, useCurrentTheme } from './composables/useCurrentTheme.js'
 export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 // The words a person reads for a notification rule key (never the raw key).
 export { humaniseRuleKey, notificationRuleLabel } from './utils/notificationRuleLabel.js'
+export { readTransitionInputs } from './utils/transitionInputs.js'
 // An identifier-shaped key made readable (`shortDescription` → "Short description").
 export { humaniseKey } from './utils/humaniseKey.js'
 
@@ -603,6 +614,7 @@ export { cnFetch, cnFetchJson, CnHttpError, configureCnFetch } from './utils/cnF
 export { isLockedByCurrentUser, isObjectLocked, lockHolder, readLockPayload, resolveObjectLock } from './utils/objectLock.js'
 export { dispatchObjectsChanged } from './utils/objectSignals.js'
 export { lensUnavailableText, readLensReports } from './utils/lensAvailability.js'
+export { isWithheld, withheldReason } from './utils/withheldValue.js'
 export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, findRepeatingWrite, formatValue, journeyItemTargets, validateValue } from './utils/index.js'
 export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData, usesArrayValues, valueArrayFor, valueRecordsFor } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot

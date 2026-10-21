@@ -1,9 +1,20 @@
 <template>
 	<span class="cn-cell-renderer" :class="cellClass">
+		<!-- OpenRegister's withheld marker ({ "@withheld": true, reason }),
+		     before every other path: a lock and "Withheld", the reason as the
+		     tooltip. The icon is decoration; the text carries the meaning. -->
+		<span v-if="withheld"
+			class="cn-cell-renderer__withheld"
+			:title="withheldHint"
+			data-testid="cn-cell-withheld">
+			<Lock :size="14" class="cn-cell-renderer__withheld-icon" aria-hidden="true" />
+			<span class="cn-cell-renderer__withheld-text">{{ withheldText }}</span>
+		</span>
+
 		<!-- Consumer-registered cell widget (cnCellWidgets[column.widget]) -->
 		<component
 			:is="widgetComponent"
-			v-if="widgetComponent"
+			v-else-if="widgetComponent"
 			:value="value"
 			:row="row"
 			:property="property"
@@ -50,7 +61,8 @@
 				:label="labelledValue"
 				:variant="badgeVariant"
 				:colorMap="badgeColorMap"
-				:colorKey="badgeColorKey">
+				:colorKey="badgeColorKey"
+				:title="badgeTitle">
 				<template v-if="badgeLook.icon" #icon>
 					<CnIcon :name="badgeLook.icon" :size="14" class="cn-cell-renderer__badge-icon" />
 				</template>
@@ -230,6 +242,25 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
+		<!-- Built-in "number" widget: the value with its unit
+		     (widgetProps.unit { one, other }) and, when widgetProps.flagWhen
+		     holds on the row, a chip with text beside it. An empty value is an
+		     empty cell, never 0. -->
+		<template v-else-if="widget === 'number'">
+			<span v-if="numberLabel !== ''"
+				class="cn-cell-renderer__number"
+				:class="numberFlag ? 'cn-cell-renderer__number--' + numberFlag.variant : null"
+				data-testid="cn-cell-number">
+				{{ numberLabel }}
+				<CnStatusBadge v-if="numberFlag"
+					class="cn-cell-renderer__number-flag"
+					:label="numberFlag.text"
+					:variant="numberFlag.variant"
+					size="small"
+					data-testid="cn-cell-number-flag" />
+			</span>
+		</template>
+
 		<!-- Built-in "progress" widget: a bar with the percentage beside it,
 		     toned by widgetProps.thresholds, and an optional age badge
 		     ("Out of date 12 days") from widgetProps.badge. -->
@@ -374,10 +405,12 @@
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcButton, NcCheckboxRadioSwitch, NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
+import Lock from 'vue-material-design-icons/Lock.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeDate, formatTimeOfDay, resolveAgeVariant } from '../../utils/boardDate.js'
 import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { pillLook } from '../../utils/detailActionModel.js'
@@ -385,8 +418,10 @@ import { resolveDue } from '../../utils/dueText.js'
 import { formatMoney } from '../../utils/formatMetric.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
+import { indicatorApplies } from '../../utils/rowIndicators.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue, isGroupProp } from '../../utils/schema.js'
+import { isWithheld, withheldReason } from '../../utils/withheldValue.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /** A uuid in any version, the shape OpenRegister ids take. */
@@ -420,6 +455,7 @@ export default {
 		CnFkResolveCell,
 		CnGroupNameCell,
 		CheckBold,
+		Lock,
 		NcAvatar,
 		NcButton,
 		NcDateTime,
@@ -1095,6 +1131,93 @@ export default {
 		/** True when the cell has a renderable value (not null/undefined/empty string). */
 		hasValue() {
 			return this.value !== null && this.value !== undefined && this.value !== ''
+		},
+
+		/**
+		 * Whether the value is OpenRegister's withheld marker, which every
+		 * other path would stringify to `[object Object]`.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-withheld-value-reads-as-withheld
+		 */
+		withheld() {
+			return isWithheld(this.value)
+		},
+
+		/**
+		 * The text a withheld value reads as.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-withheld-value-reads-as-withheld
+		 */
+		withheldText() {
+			return t('nextcloud-vue', 'Withheld')
+		},
+
+		/**
+		 * Why a value is withheld, as the cell's tooltip.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-withheld-value-reads-as-withheld
+		 */
+		withheldHint() {
+			return withheldReason(this.value) === 'access'
+				? t('nextcloud-vue', 'You may not open the linked object, so its value is not shown.')
+				: t('nextcloud-vue', 'This value is not shown.')
+		},
+
+		/**
+		 * `number` widget: the value with `widgetProps.unit` (`{ one, other }`
+		 * with `{count}`, through the app's translate), else the number in the
+		 * user's locale. '' for an empty or unreadable value.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-number-cell-reads-with-its-unit-and-a-flag
+		 */
+		numberLabel() {
+			if (!this.hasValue || typeof this.value === 'object' || typeof this.value === 'boolean') {
+				return ''
+			}
+			const count = Number(this.value)
+			if (!Number.isFinite(count)) {
+				return ''
+			}
+			const unit = this.widgetProps && this.widgetProps.unit
+			if (unit && typeof unit === 'object' && (unit.one || unit.other)) {
+				const template = this.cnTranslate((count === 1 ? unit.one : unit.other) || unit.other || unit.one)
+				return template.replace(/\{count\}/g, String(count))
+			}
+			return count.toLocaleString(getCanonicalLocale() || undefined)
+		},
+
+		/**
+		 * `number` widget: the chip `widgetProps.flagWhen` asks for on this
+		 * row (`{ field, equals | in, text, variant }`), or null.
+		 *
+		 * @return {{text: string, variant: string}|null}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-number-cell-reads-with-its-unit-and-a-flag
+		 */
+		numberFlag() {
+			const flag = this.widgetProps && this.widgetProps.flagWhen
+			if (!flag || typeof flag !== 'object' || typeof flag.text !== 'string' || flag.text === '' || !indicatorApplies(flag, this.row || {})) {
+				return null
+			}
+			return { text: this.cnTranslate(flag.text), variant: isBadgeVariant(flag.variant) ? flag.variant : 'warning' }
+		},
+
+		/**
+		 * Built-in `badge`: the tooltip `widgetProps.titleWhen`
+		 * (`{ field, equals | in, text }`) asks for on this row, or undefined.
+		 *
+		 * @return {string|undefined}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-badge-cell-can-carry-a-tooltip
+		 */
+		badgeTitle() {
+			const when = this.widgetProps && this.widgetProps.titleWhen
+			if (!when || typeof when !== 'object' || typeof when.text !== 'string' || when.text === '' || !indicatorApplies(when, this.row || {})) {
+				return undefined
+			}
+			return this.cnTranslate(when.text)
 		},
 
 		/**
@@ -1903,6 +2026,41 @@ export default {
 
 .cn-cell-renderer__due--empty {
 	color: var(--color-text-maxcontrast);
+}
+
+/* A withheld value: the lock and the word in the muted text colour. */
+.cn-cell-renderer__withheld {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-cell-renderer__withheld-icon {
+	flex: 0 0 auto;
+}
+
+.cn-cell-renderer__withheld-text {
+	font-style: italic;
+}
+
+/* A number cell: the flagged number reads in its variant's text colour, with
+   the chip saying why (never colour alone). */
+.cn-cell-renderer__number {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	white-space: nowrap;
+}
+
+.cn-cell-renderer__number--warning {
+	color: var(--color-text-warning, var(--color-warning-text));
+	font-weight: 600;
+}
+
+.cn-cell-renderer__number--error {
+	color: var(--color-text-error, var(--color-error-text));
+	font-weight: 600;
 }
 
 .cn-cell-renderer__date--success {

@@ -113,6 +113,39 @@ A cell that matched a rule is set in weight 600; under the board look every age 
 | `lowerIsBetter` | Turn the scale around (a risk score). |
 | `badge` | `{ label, dateField?, afterDays, when?, tone? }`: shown when the row's `dateField` (default `@self.updated`) lies `afterDays` or more calendar days back and every `when` field equals its value (an empty field does not block). `label` goes through the host translate function and takes `{days}`. `tone` is `error` (default), `warning` or `success`. |
 
+## Number cells
+
+`widget: "number"` shows a count with its unit, and a chip with text when a row field says the count is a problem. An empty value is an empty cell, never 0.
+
+```json
+{
+  "key": "currentStatusDwellDays",
+  "label": "Days in status",
+  "widget": "number",
+  "widgetProps": {
+    "unit": { "one": "{count} working day", "other": "{count} working days" },
+    "flagWhen": { "field": "statusDwellBreached", "equals": true, "text": "stuck", "variant": "warning" }
+  }
+}
+```
+
+| `widgetProps` key | Meaning |
+|-----|---------|
+| `unit` | `{ one, other }` with `{count}`, through the host translate function. Without it the cell shows the number in the user's locale. |
+| `flagWhen` | `{ field, equals?, in?, text, variant? }`: when the row's `field` holds (`equals`, `in`, or truthiness, as a row indicator reads it), a `CnStatusBadge` chip with the translated `text` sits beside the number and the number takes the variant's text colour. `variant` defaults to `warning`. The chip carries the meaning in text, never in colour alone. |
+
+## Badge tooltips
+
+The built-in `badge` takes `widgetProps.titleWhen: { field, equals?, in?, text }`: when the row's `field` holds, the pill carries the translated `text` as its tooltip ("Priority set by hand"). A column can show one row field and sort on another with the column's `valueField` (see [CnDataTable](./cn-data-table.md)), so a priority column sorts on its stored order and shows the word:
+
+```json
+{ "key": "priorityOrder", "valueField": "priority", "label": "Priority", "widget": "badge", "colorMap": { "low": "default", "normal": "info", "high": "warning", "urgent": "error" }, "widgetProps": { "titleWhen": { "field": "priorityOverride", "text": "Priority set by hand" } } }
+```
+
+## Withheld values
+
+OpenRegister sends a value the reader may not see as `{ "@withheld": true, "reason": "access" }`. Every cell checks for that marker before any other path, a registered cell widget included, and shows a lock (hidden from assistive technology) with "Withheld". The tooltip says the reader may not open the linked object when the reason is `access`, and that the value is not shown otherwise. No configuration: a lens column reads right without a widget. `isWithheld(value)` and `withheldReason(value)` are exported for other surfaces.
+
 ## Group cells
 
 A Nextcloud group id is not something a person should read. A column whose

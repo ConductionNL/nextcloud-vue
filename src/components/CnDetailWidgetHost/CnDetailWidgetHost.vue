@@ -196,6 +196,14 @@
 			v-else-if="isIntegration && integrationComponent"
 			v-bind="integrationProps" />
 
+		<!-- An integration whose leaf is not registered (its app is absent or
+		     its bundle did not load) says so, as CnIntegrationWidget does. -->
+		<CnIntegrationWidgetEmpty
+			v-else-if="integrationAbsent"
+			:provider="absentIntegrationProvider"
+			:reason="absentIntegrationProvider.appName ? 'missing-app' : 'unknown'"
+			data-testid="cn-detail-widget-integration-absent" />
+
 		<!-- Content-only catalog widgets (object-list / table / files) render
 		     bare tables. On a card surface they get the titled wrapper (ADR-062:
 		     every body widget has chrome and its manifest title); inside a tab
@@ -325,6 +333,7 @@ import { NcActionButton } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import CnIntegrationWidgetEmpty from '../CnIntegrationWidget/CnIntegrationWidgetEmpty.vue'
 import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectFilesWidget from '../CnObjectFilesWidget/CnObjectFilesWidget.vue'
@@ -339,6 +348,7 @@ import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLi
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
+import { createActionState, listCreateAction } from '../../utils/listCreateAction.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import {
@@ -407,6 +417,7 @@ export default {
 	components: {
 		CnDetailWidgetHeaderItems,
 		CnIcon,
+		CnIntegrationWidgetEmpty,
 		CnLeafMountHost,
 		CnObjectDataWidget,
 		CnObjectGeoWidget,
@@ -881,6 +892,33 @@ export default {
 		},
 
 		/**
+		 * Whether an `integration` widget names a leaf the registry does not
+		 * hold. Only asked when the host can look leaves up at all.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/integration-widget-mounts-leaves/specs/integration-widget-mounts-leaves/spec.md#requirement-an-absent-leaf-says-it-is-not-available
+		 */
+		integrationAbsent() {
+			return this.isIntegration && typeof this.getRegistryProvider === 'function' && !this.integrationProvider
+		},
+
+		/**
+		 * The stand-in descriptor the empty state of an absent leaf draws: the
+		 * widget's `appName` (else its `requiredApp`), icon and title.
+		 *
+		 * @return {{id: string, appName: string, label: string, icon: string}}
+		 */
+		absentIntegrationProvider() {
+			const widget = this.widget || {}
+			return {
+				id: widget.integrationId || '',
+				appName: widget.appName || (this.requiredApp ? this.requiredAppLabel : ''),
+				label: this.translateLabel(widgetTitleOf(widget) || '') || widget.integrationId || '',
+				icon: widget.icon || '',
+			}
+		},
+
+		/**
 		 * Whether the integration is a mount-mode leaf (ADR-066), rendered
 		 * through CnLeafMountHost rather than as a component.
 		 *
@@ -1217,7 +1255,12 @@ export default {
 			if (!['object-list', 'table'].includes(this.widget?.type)) {
 				return false
 			}
-			return this.content.allowCreate !== false
+			if (this.content.allowCreate === false) {
+				return false
+			}
+			// A declared `createAction` shows only where its visibleWhen holds,
+			// the same answer the list gives for its own Add buttons.
+			return createActionState(this.content, this.object).visible
 		},
 
 		/**
@@ -1248,6 +1291,10 @@ export default {
 
 		/** @return {string} Label for the catalog Add action. */
 		addLabel() {
+			const action = listCreateAction(this.content)
+			if (action && typeof action.label === 'string' && action.label !== '') {
+				return typeof this.cnTranslate === 'function' ? this.cnTranslate(action.label) : action.label
+			}
 			return t('nextcloud-vue', 'Add')
 		},
 

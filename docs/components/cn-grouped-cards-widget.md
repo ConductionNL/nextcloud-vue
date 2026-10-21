@@ -39,7 +39,13 @@ at `GET /api/case-types/{id}/phases`; the widget is generic and reads any payloa
 | `groupCount` | `{ one, other }` with `{count}`: a count pill in the group header. |
 | `extraGroup` | `{ title, path, itemText, join? }`: a dashed box of entries read at `path`, on one line. |
 | `columns` | Groups side by side (1 to 4, default 2); one column on a narrow screen. |
-| `emptyText`, `groupEmptyText`, `errorText` | The texts of an empty grid, an empty group and a failed read. |
+| `emptyText`, `groupEmptyText`, `errorText` | The texts of an empty grid, an empty group and a failed read. A failed read offers Try again. |
+| `groupLines` | Templates drawn under a group's title, each left out when it does not fill. |
+| `itemFlag` | `{ field, label }`: a card whose `field` is true carries `label` ("Overdue") in the error colour. |
+| `itemsPath`, `itemGroupField` | Read the cards from one flat list of the payload: a card joins the group whose `id` its `itemGroupField` names. |
+| `ungroupedTitle` | With `itemsPath`, the group of the cards that name no group. Without it they are left out. |
+
+A template, or a part of `itemMeta`, may be a list of candidates: the first that fills (`["{provider.name}", "No provider recorded"]`).
 
 A language map (`{ "nl": "Ontvangst", "en": "Intake" }`) reads in the user's Nextcloud language, then Dutch, then
 English. A list of plain values reads joined with ", ". Every text goes through the app's translate.

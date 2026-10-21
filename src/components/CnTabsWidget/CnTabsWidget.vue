@@ -88,6 +88,7 @@
 				:active="index === activeIndex"
 				:title="entry.label"
 				:count="entry.count"
+				:countLabel="entry.unreadLabel"
 				:overflow="entry.overflow"
 				:disabled="entry.pending"
 				lazy
@@ -203,7 +204,7 @@
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionSeparator, NcLoadingIcon } from '@nextcloud/vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
@@ -217,7 +218,8 @@ import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
-import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition } from '../../utils/visibleWhen.js'
+import { setSubResourceRead } from '../../utils/recordInteractions.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
@@ -392,7 +394,9 @@ export default {
 		 * counts a list on the server: `"widget"` counts the child widget's
 		 * own list (`content.register`, `schema`, `filter`, tokens such as
 		 * `@objectId` resolved), an object `{ register, schema, filter? }`
-		 * names the list; `count` and `countField` win over it. `overflow: true`
+		 * names the list, and `{ endpoint, field? }` counts the list (or reads
+		 * the number) an endpoint answers with, `@objectId` resolved; `count`
+		 * and `countField` win over it. `overflow: true`
 		 * lists the tab under "More".
 		 *
 		 * A tab with `widgetIds` can lay them out in a grid instead of one under
@@ -409,7 +413,7 @@ export default {
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -543,6 +547,9 @@ export default {
 			visibilitySeq: 0,
 			// Totals counted for tabs with `countFrom`, by position in `content.tabs`.
 			widgetCounts: {},
+			// Read-state parts this page has marked read since it opened
+			// (`badgeSource: 'readState'`), so their counts go without a reload.
+			readCleared: {},
 			countSeq: 0,
 			// Tab id named by the route hash that has not appeared yet (still pending).
 			hashTargetId: '',
@@ -664,7 +671,7 @@ export default {
 					? (widgets[0] || null)
 					: (this.availableWidgets.find((w) => w && w.id === ids[0]) || null)
 				const widgetId = widget ? widget.id : ids[0]
-				const declared = resolveTabCount(typeof tab === 'object' ? tab : null, this.objectData)
+				const declared = resolveTabCount(typeof tab === 'object' ? tab : null, this.countObject)
 				const counted = this.widgetCounts[index]
 				const count = declared === null && typeof counted === 'number' ? counted : declared
 				const pinned = pinActivity && isActivityTab(tab)
@@ -697,12 +704,45 @@ export default {
 					isStack: named.length > 1,
 					grid: this.stackGrid(tab, widgets),
 					count,
+					unreadKey: this.unreadKeyOf(tab, widgetId),
+					unreadLabel: this.unreadLabelOf(tab, widgetId),
 					overflow,
 					pending: visibility === 'pending',
 					opensFirst: Boolean(tab && typeof tab === 'object' && tab.default === true),
 				})
 			})
 			return resolved
+		},
+
+		/**
+		 * Whether the tabs badge what is new on each part of the record and
+		 * mark that part read when it is opened (`content.badgeSource: 'readState'`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		readStateBadges() {
+			return this.content?.badgeSource === 'readState'
+		},
+
+		/**
+		 * The record the tab counts read: the record itself, less the
+		 * read-state parts this page has already marked read.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		countObject() {
+			const record = this.objectData
+			const counts = record && record['@self'] && record['@self'].unreadCounts
+			if (!counts || typeof counts !== 'object' || Object.keys(this.readCleared).length === 0) {
+				return record
+			}
+			const left = { ...counts }
+			for (const key of Object.keys(this.readCleared)) {
+				left[key] = 0
+			}
+			return { ...record, '@self': { ...record['@self'], unreadCounts: left } }
 		},
 
 		/** @return {string} The keys of the tabs in the strip, to notice one appearing or going. */
@@ -831,6 +871,19 @@ export default {
 			this.activeKey = this.resolvedTabs[index]?.key || ''
 		},
 
+		// The open tab's part of the record is now seen: on opening a tab, and
+		// when the record arrives with something new on the open one.
+		'activeTab.key': function() {
+			this.markActiveTabRead()
+		},
+
+		'activeTab.unreadLabel': {
+			immediate: true,
+			handler() {
+				this.markActiveTabRead()
+			},
+		},
+
 		// Tell the detail page which tab is open (side cards per tab).
 		'activeTab.id': {
 			immediate: true,
@@ -930,6 +983,64 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The read-state part a tab counts: `unreadKey`, else its id, else its widget id.
+		 *
+		 * @param {object|string} tab The tab declaration.
+		 * @param {string} widgetId The tab's widget id.
+		 * @return {string} The part, or ''.
+		 */
+		unreadKeyOf(tab, widgetId) {
+			const own = tab && typeof tab === 'object' ? tab : {}
+			return String(own.unreadKey || own.id || widgetId || '')
+		},
+
+		/**
+		 * What a screen reader hears after a tab's name when its part holds
+		 * something unseen ("3 new"), under `badgeSource: 'readState'`. The count
+		 * pill alone is a bare number.
+		 *
+		 * @param {object|string} tab The tab declaration.
+		 * @param {string} widgetId The tab's widget id.
+		 * @return {string} The label, or '' when nothing is new.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		unreadLabelOf(tab, widgetId) {
+			if (!this.readStateBadges || (tab && typeof tab === 'object' && (typeof tab.count === 'number' || tab.countField))) {
+				return ''
+			}
+			const key = this.unreadKeyOf(tab, widgetId)
+			const counts = this.countObject && this.countObject['@self'] && this.countObject['@self'].unreadCounts
+			const count = counts && key ? Number(counts[key]) : 0
+			if (!Number.isFinite(count) || count < 1) {
+				return ''
+			}
+			return n('nextcloud-vue', '{count} new', '{count} new', count, { count })
+		},
+
+		/**
+		 * Mark the open tab's part of the record read (`PUT .../read-state`
+		 * with `subResource`), once, and drop its count. A refused write keeps
+		 * the count: an unseen part that stays marked is the safe direction.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		async markActiveTabRead() {
+			const tab = this.activeTab
+			if (!this.readStateBadges || !tab || !tab.unreadLabel || !this.objectId) {
+				return
+			}
+			const key = tab.unreadKey
+			if (this.readCleared[key]) {
+				return
+			}
+			const outcome = await setSubResourceRead(String(this.register || ''), String(this.schema || ''), String(this.objectId), key)
+			if (outcome && outcome.ok) {
+				this.readCleared = { ...this.readCleared, [key]: true }
+			}
+		},
+
 		/**
 		 * Whether a page control hides a widget of a stack right now: its
 		 * `visibleWhen` (on the widget, its content or its props) is a
@@ -1166,7 +1277,7 @@ export default {
 		 * no list.
 		 *
 		 * @param {object|string} tab The `content.tabs[]` entry.
-		 * @return {{register: string, schema: string, filter: object}|null} The list.
+		 * @return {{register: string, schema: string, filter: object}|{endpoint: string, field: string}|null} The list, or the endpoint to count.
 		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
 		 */
 		countSourceOf(tab) {
@@ -1182,6 +1293,9 @@ export default {
 					.filter((content) => content && content.register && content.schema)
 				source = lists.length ? lists[0] : null
 			} else if (from && typeof from === 'object') {
+				if (typeof from.endpoint === 'string' && from.endpoint !== '') {
+					return { endpoint: from.endpoint, field: typeof from.field === 'string' ? from.field : '' }
+				}
 				source = from
 			}
 			if (!source || typeof source.register !== 'string' || source.register === '' || typeof source.schema !== 'string' || source.schema === '') {
@@ -1208,11 +1322,36 @@ export default {
 				if (!source) {
 					return
 				}
-				const total = await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
+				const total = source.endpoint
+					? await this.countEndpoint(source, ctx)
+					: await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
 				if (seq === this.countSeq) {
 					this.widgetCounts = { ...this.widgetCounts, [index]: total }
 				}
 			}))
+		},
+
+		/**
+		 * Count what an endpoint answers: the list at `field` (or the body),
+		 * or the number there. Null when the request fails or nothing countable
+		 * comes back.
+		 *
+		 * @param {{endpoint: string, field: string}} source The endpoint and the path to read.
+		 * @param {object} ctx The record context its tokens resolve against.
+		 * @return {Promise<number|null>} The count.
+		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
+		 */
+		async countEndpoint(source, ctx) {
+			try {
+				const value = await readVisibleWhenValue({ endpoint: source.endpoint, field: source.field }, ctx)
+				if (Array.isArray(value)) {
+					return value.length
+				}
+				const number = Number(value)
+				return value !== null && value !== '' && Number.isFinite(number) ? number : null
+			} catch {
+				return null
+			}
 		},
 
 		/** @return {string} The route hash without its `#`, or ''. */

@@ -22,6 +22,7 @@ import CnConversationWidget from '../CnConversationThread/CnConversationWidget.v
 import CnCountdownWidget from '../CnCountdownWidget/CnCountdownWidget.vue'
 import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'
 import CnDocumentReviewWidget from '../CnDocumentReviewList/CnDocumentReviewWidget.vue'
+import CnEventsCard from '../CnEventsCard/CnEventsCard.vue'
 import CnMacrosWidget from '../CnMacrosWidget/CnMacrosWidget.vue'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
 import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
@@ -107,6 +108,9 @@ import '../CnTimelineWidget/dashboardRegistration.js'
 import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
 import '../CnBannerWidget/index.js'
+import '../CnAttentionFlagWidget/index.js'
+import '../CnStatusExplainerWidget/index.js'
+import '../CnObjectPartiesWidget/index.js'
 import '../CnWorkspaceFilterWidget/index.js'
 
 registerDashboardWidget('chart', {
@@ -365,6 +369,17 @@ registerDashboardWidget('macros', {
 	defaultContent: { description: '', emptyText: '' },
 	displayName: 'Macros',
 	icon: 'PlayBoxMultipleOutline',
+	surfaces: ['detail-page'],
+})
+
+// The appointments booked on a record that is not an object (a flow task),
+// read from a source or an endpoint.
+registerDashboardWidget('events', {
+	renderer: CnEventsCard,
+	form: null,
+	defaultContent: { source: null, endpoint: '', emptyText: '' },
+	displayName: 'Appointments',
+	icon: 'CalendarClock',
 	surfaces: ['detail-page'],
 })
 

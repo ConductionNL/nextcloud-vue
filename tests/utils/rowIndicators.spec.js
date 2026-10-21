@@ -43,6 +43,35 @@ describe('indicatorApplies', () => {
 	it('refuses an entry that names no field', () => {
 		expect(indicatorApplies({ text: 'Nowhere' }, { anything: true })).toBe(false)
 	})
+
+	describe('a date bound', () => {
+		const NOW = new Date(2026, 9, 20, 14, 0)
+		const held = { id: 'held', field: 'heldUntil', after: 'now', text: 'On hold' }
+
+		it('applies while the date is after now', () => {
+			expect(indicatorApplies(held, { heldUntil: '2026-10-27' }, NOW)).toBe(true)
+			expect(indicatorApplies(held, { heldUntil: '2026-10-21T09:00:00Z' }, NOW)).toBe(true)
+		})
+
+		it('does not apply once the date has passed, or without a readable date', () => {
+			expect(indicatorApplies(held, { heldUntil: '2026-10-13' }, NOW)).toBe(false)
+			expect(indicatorApplies(held, { heldUntil: '2026-10-20' }, NOW)).toBe(false)
+			expect(indicatorApplies(held, { heldUntil: '' }, NOW)).toBe(false)
+			expect(indicatorApplies(held, { heldUntil: 'soon' }, NOW)).toBe(false)
+			expect(indicatorApplies(held, {}, NOW)).toBe(false)
+		})
+
+		it('takes an ISO date as the bound, and before as well as after', () => {
+			const window = { field: 'due', after: '2026-10-01', before: '2026-11-01', text: 'This month' }
+			expect(indicatorApplies(window, { due: '2026-10-15' }, NOW)).toBe(true)
+			expect(indicatorApplies(window, { due: '2026-11-15' }, NOW)).toBe(false)
+			expect(indicatorApplies({ field: 'due', before: 'now', text: 'Past' }, { due: '2026-10-01' }, NOW)).toBe(true)
+		})
+
+		it('refuses a bound that is not a date', () => {
+			expect(indicatorApplies({ field: 'due', after: 'later', text: 'Later' }, { due: '2026-10-27' }, NOW)).toBe(false)
+		})
+	})
 })
 
 describe('indicatorText', () => {
