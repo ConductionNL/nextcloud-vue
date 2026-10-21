@@ -603,11 +603,11 @@ export default {
 		 * @param {unknown} value The new value.
 		 */
 		setValue(key, value) {
+			this.latest = { ...this.latest, [key]: value }
 			/**
 			 * @event update:modelValue The values with this one changed.
 			 * @type {object}
 			 */
-			this.latest = { ...this.latest, [key]: value }
 			this.$emit('update:modelValue', this.latest)
 		},
 
@@ -622,6 +622,7 @@ export default {
 			const next = applyTemplateText(this.latest, field.input.applyTo, option)
 			if (next !== this.latest) {
 				this.latest = next
+				/** @event update:modelValue The values with the template's text filled in. */
 				this.$emit('update:modelValue', next)
 			}
 		},

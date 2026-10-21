@@ -27,6 +27,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                | Payload | Description |
-| ------------------- | ------- | ----------- |
-| `update:modelValue` | —       |             |
+| Name                                                               | Payload | Description |
+| ------------------------------------------------------------------ | ------- | ----------- |
+| `update:modelValue`                                                | —       |             |
+| `update:modelValue The values with this one changed.`              | —       |             |
+| `update:modelValue The values with the template's text filled in.` | —       |             |
