@@ -228,9 +228,15 @@
    look sets 600 on each button, so every NcButton on a board page draws the
    board's weight without a rule per surface. Breadcrumb buttons keep the
    crumb weight.
-   @spec openspec/changes/board-button-weight/specs/board-button-weight/spec.md#requirement-a-board-button-draws-at-600 */
+   The boards also draw a button's text at 14px, against Nextcloud's 15px.
+   NcButton reads its size from --default-font-size, so the look sets that
+   variable on the button: a surface that sets its own `font-size` (the next
+   step card's 15px) keeps it.
+   @spec openspec/changes/board-button-weight/specs/board-button-weight/spec.md#requirement-a-board-button-draws-at-600
+   @spec openspec/changes/board-control-text/specs/board-control-text/spec.md#requirement-a-board-button-draws-its-text-at-14px */
 .cn-look-board .button-vue:not(.cn-look-nextcloud *):not(.vue-crumb *) {
 	--font-weight-element: 600;
+	--default-font-size: 14px;
 }
 
 /* ---- A button with an icon and a label --------------------------------- */
