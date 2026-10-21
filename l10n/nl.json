@@ -2476,7 +2476,10 @@
     "{field} holds {key} twice.": "{field} bevat {key} twee keer.",
     "View all ({count})": "Alles bekijken ({count})",
     "Opens {host} in a new tab.": "Opent {host} in een nieuw tabblad.",
-    "How this app compares": "Hoe deze app zich verhoudt"
+    "How this app compares": "Hoe deze app zich verhoudt",
+    "This field is required": "Dit veld is verplicht",
+    "Creating…": "Aanmaken…",
+    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw."
   },
   "plurals": {
     "{count} member": [

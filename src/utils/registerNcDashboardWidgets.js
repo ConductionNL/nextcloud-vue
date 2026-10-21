@@ -10,10 +10,12 @@
 import { translate } from '@nextcloud/l10n'
 import { createApp } from 'vue'
 import CnNcDashboardList from '../components/CnNcDashboardList/CnNcDashboardList.vue'
+import CnNcDashboardQuickCreate from '../components/CnNcDashboardQuickCreate/CnNcDashboardQuickCreate.vue'
 
 /**
  * Register each widget with `OCA.Dashboard.register(id, …)`. A widget mounts
- * CnNcDashboardList with its `config`, or its own `component` with `props`
+ * CnNcDashboardList with its `config` (CnNcDashboardQuickCreate when its
+ * `type` is `quick-create`), or its own `component` with `props`
  * and the widget's `title`, as its own Vue app with the app's translate provided as `cnTranslate`. The
  * Dashboard host draws the widget's title, so the component must not.
  *
@@ -21,7 +23,8 @@ import CnNcDashboardList from '../components/CnNcDashboardList/CnNcDashboardList
  * server side stays the app's.
  *
  * @spec openspec/changes/nc-dashboard-widgets/specs/nc-dashboard-widgets/spec.md#requirement-dashboard-widgets-are-configuration
- * @param {Array<{id: string, config?: object, component?: object, props?: object}>} widgets The widgets.
+ * @spec openspec/changes/pl4-nc-dashboard/specs/pl4-nc-dashboard/spec.md#requirement-a-dashboard-widget-can-create-an-object
+ * @param {Array<{id: string, type?: string, config?: object, component?: object, props?: object}>} widgets The widgets.
  * @param {object} options Options.
  * @param {string} options.appId The app id, for its translations.
  * @param {(app: object) => void} [options.setup] Called on each widget's Vue app before mounting (to `use` a pinia, say).
@@ -44,7 +47,7 @@ export function registerNcDashboardWidgets(widgets, options = {}) {
 			const title = context.widget && context.widget.title ? context.widget.title : ''
 			const app = widget.component
 				? createApp(widget.component, { ...(widget.props || {}), title })
-				: createApp(CnNcDashboardList, { config: widget.config || {} })
+				: createApp(widget.type === 'quick-create' ? CnNcDashboardQuickCreate : CnNcDashboardList, { config: widget.config || {} })
 			app.provide('cnTranslate', cnTranslate)
 			if (typeof options.setup === 'function') {
 				options.setup(app)

@@ -130,6 +130,140 @@ describe('CnNcDashboardList', () => {
 	})
 })
 
+describe('CnNcDashboardList growth (pl4-nc-dashboard)', () => {
+	const TableWithActions = {
+		name: 'CnDataTable',
+		props: ['rows', 'columns', 'loading', 'emptyText', 'hideHeader', 'borderless'],
+		emits: ['row-click', 'row-aux-click'],
+		template: '<div class="table"><div v-for="row in rows" :key="row.id" class="row" :data-id="row.id">{{ row.mainText }}|{{ row.subText }}<slot name="row-actions" :row="row" /></div><slot name="footer" /></div>',
+	}
+	const QuickCreate = { name: 'CnNcDashboardQuickCreate', props: { config: Object, context: Object, cancelable: Boolean }, emits: ['created', 'cancel'], template: '<div class="qc" />' }
+	const Actions = { name: 'NcActions', template: '<div class="actions"><slot /></div>' }
+	const ActionButton = { name: 'NcActionButton', emits: ['click'], template: '<button class="action" @click="$emit(\'click\')"><slot /></button>' }
+	const ActionLink = { name: 'NcActionLink', props: ['href'], template: '<a class="link" :href="href"><slot /></a>' }
+	const TextField = { name: 'NcTextField', props: ['modelValue', 'label'], emits: ['update:modelValue'], template: '<input class="search" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)">' }
+	const stubs = { CnDataTable: TableWithActions, CnNcDashboardQuickCreate: QuickCreate, NcActions: Actions, NcActionButton: ActionButton, NcActionLink: ActionLink, NcTextField: TextField }
+
+	const FIND_CLIENT = {
+		source: { register: 'pipelinq', schema: 'client' },
+		limit: 20,
+		title: '{name}',
+		subtitle: ['{email}', '{phone}'],
+		href: '/apps/pipelinq/clients/{id}',
+		search: { label: 'Search clients', placeholder: 'Search clients…' },
+		rowActions: [
+			{ id: 'request', label: 'Create request', create: { register: 'pipelinq', schema: 'ticket', heading: 'New request for {name}', fields: [{ key: 'title', label: 'Title', required: true }], defaults: { client: '{id}' } } },
+			{ id: 'copy', label: 'Copy email', copy: 'email' },
+		],
+		create: { label: 'New client', register: 'pipelinq', schema: 'client', fields: [{ key: 'name', label: 'Name', required: true }] },
+	}
+
+	/**
+	 * Mount with the growth stubs.
+	 *
+	 * @param {object} config The config.
+	 * @return {Promise<import('@vue/test-utils').VueWrapper>}
+	 */
+	async function mountGrown(config) {
+		const w = mount(CnNcDashboardList, { props: { config }, global: { stubs } })
+		await flushPromises()
+		return w
+	}
+
+	beforeEach(() => {
+		axios.get.mockReset()
+		invalidateEndpointSourceCache()
+		axios.get.mockResolvedValue({ data: { results: [
+			{ id: 'c1', name: 'Acme', email: 'info@acme.nl', phone: '' },
+			{ id: 'c2', name: 'Bakker', email: '', phone: '010 123' },
+		] } })
+	})
+
+	it('joins a subtitle list and drops an empty part with its separator', async () => {
+		const w = await mountGrown(FIND_CLIENT)
+		expect(w.findComponent(TableWithActions).props('rows').map((r) => r.subText)).toEqual(['info@acme.nl', '010 123'])
+	})
+
+	it('searches on the server as the user types', async () => {
+		jest.useFakeTimers()
+		const w = await mountGrown(FIND_CLIENT)
+		await w.find('input.search').setValue('acme')
+		jest.advanceTimersByTime(300)
+		jest.useRealTimers()
+		await flushPromises()
+		const [, { params }] = axios.get.mock.calls.at(-1)
+		expect(params._search).toBe('acme')
+		expect(params._limit).toBe(20)
+	})
+
+	it('opens a create form on a row, prefilled from that row, and hides an action whose field is empty', async () => {
+		const w = await mountGrown(FIND_CLIENT)
+		const rows = w.findAll('.row')
+		expect(rows[0].findAll('button.action').map((b) => b.text())).toEqual(['Create request', 'Copy email'])
+		expect(rows[1].findAll('button.action').map((b) => b.text())).toEqual(['Create request'])
+		await rows[0].findAll('button.action')[0].trigger('click')
+		const form = w.findComponent(QuickCreate)
+		expect(form.props('context')).toMatchObject({ id: 'c1', name: 'Acme' })
+		expect(form.props('config').heading).toBe('New request for {name}')
+		expect(form.props('cancelable')).toBe(true)
+		form.vm.$emit('cancel')
+		await flushPromises()
+		expect(w.findComponent(QuickCreate).exists()).toBe(false)
+	})
+
+	it('copies a row field to the clipboard', async () => {
+		const writeText = jest.fn().mockResolvedValue()
+		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+		const w = await mountGrown(FIND_CLIENT)
+		await w.findAll('.row')[0].findAll('button.action')[1].trigger('click')
+		await flushPromises()
+		expect(writeText).toHaveBeenCalledWith('info@acme.nl')
+		expect(w.find('[data-testid="cn-nc-dashboard-list-copied"]').exists()).toBe(true)
+	})
+
+	it('opens a new-record form from its create button and reads again after a create', async () => {
+		const w = await mountGrown(FIND_CLIENT)
+		await w.find('[data-testid="cn-nc-dashboard-list-create"]').trigger('click')
+		const form = w.findComponent(QuickCreate)
+		expect(form.props('config').schema).toBe('client')
+		const calls = axios.get.mock.calls.length
+		form.vm.$emit('created', { id: 'c3' })
+		await flushPromises()
+		expect(axios.get.mock.calls.length).toBe(calls + 1)
+	})
+
+	it('names a stored value by its label, and adds the due text to the subtitle on request', async () => {
+		const past = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10)
+		axios.get.mockResolvedValue({ data: { results: [{ id: 'l1', title: 'Acme', priority: 'high', stage: 'New', expectedCloseDate: past }] } })
+		const w = await mountGrown({
+			source: { register: 'pipelinq', schema: 'lead' },
+			subtitle: ['{priority}', '{stage}'],
+			valueLabels: { priority: { high: 'High', low: 'Low' } },
+			due: { field: 'expectedCloseDate', withSubtitle: true },
+		})
+		expect(w.findComponent(TableWithActions).props('rows')[0].subText).toBe('High · New · 3 days overdue')
+	})
+
+	it('merges several sources, newest first, each row opening its own page', async () => {
+		axios.get.mockImplementation((url) => Promise.resolve({ data: { results: url.endsWith('/lead')
+			? [{ id: 'l1', title: 'Lead one', '@self': { updated: '2026-10-20T10:00:00Z' } }]
+			: [{ id: 't1', title: 'Ticket one', '@self': { updated: '2026-10-21T10:00:00Z' } }, { id: 't2', title: 'Old ticket', '@self': { updated: '2026-10-01T10:00:00Z' } }] } }))
+		const w = await mountGrown({
+			sources: [
+				{ register: 'pipelinq', schema: 'lead', kind: 'Lead', href: '/apps/pipelinq/leads/{id}' },
+				{ register: 'pipelinq', schema: 'ticket', kind: 'Request', href: '/apps/pipelinq/tickets/{id}' },
+			],
+			sortBy: '@self.updated',
+			limit: 2,
+			subtitle: ['{_kind}', '{@self.updated|relative}'],
+		})
+		const rows = w.findComponent(TableWithActions).props('rows')
+		expect(rows.map((r) => r.mainText)).toEqual(['Ticket one', 'Lead one'])
+		expect(rows.map((r) => r.href)).toEqual(['/index.php/apps/pipelinq/tickets/t1', '/index.php/apps/pipelinq/leads/l1'])
+		expect(rows[1].subText.startsWith('Lead · ')).toBe(true)
+	})
+})
+
 describe('registerNcDashboardWidgets', () => {
 	beforeEach(() => {
 		axios.get.mockReset()
@@ -170,6 +304,20 @@ describe('registerNcDashboardWidgets', () => {
 		const el = document.createElement('div')
 		callbacks.dossiq_start_case_widget(el, { widget: { title: 'Start a case' } })
 		expect(el.querySelector('.own').textContent).toBe('Start a case quick')
+	})
+
+	it('mounts a quick-create widget from configuration', async () => {
+		const callbacks = {}
+		const dashboard = {
+			register: (id, cb) => {
+				callbacks[id] = cb
+			},
+		}
+		registerNcDashboardWidgets([{ id: 'pipelinq_create_lead_widget', type: 'quick-create', config: { register: 'pipelinq', schema: 'lead', fields: [{ key: 'title', label: 'Title' }] } }], { appId: 'pipelinq', dashboard })
+		const el = document.createElement('div')
+		callbacks.pipelinq_create_lead_widget(el, { widget: { title: 'New lead' } })
+		await flushPromises()
+		expect(el.querySelector('[data-testid="cn-nc-dashboard-quick-create"]')).not.toBeNull()
 	})
 
 	it('does nothing without the Dashboard', () => {
