@@ -7,3 +7,4 @@ An app's own create form says what a wrong value is ("Invalid email format", "In
 ## What changes
 
 - `validation.patternMessage` on a field replaces "Invalid format.", translated through the host app.
+- `fieldOverrides[key].hidden: false` puts a `visible: false` property on a form, as it already does for a tenant property.
