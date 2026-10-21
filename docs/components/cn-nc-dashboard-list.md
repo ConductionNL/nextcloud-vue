@@ -31,6 +31,8 @@ The compact list a Nextcloud Dashboard widget shows: a bold name, a muted traili
 | `viewAll` | `{ href, label? }` for the footer link |
 | `emptyText` | Text for an empty list |
 | `sources` | Several sources in place of `source`, each `{ ...source, href?, kind? }`; the rows merge, sorted newest first by `sortBy`, each opening its own source's `href`, and `kind` (through the app's translate) fills `{_kind}` |
+| `valueLabels` | `{ field: { value: label } }`: a stored value shown by its label, through the app's translate, wherever a template names the field (`{ priority: { high: "High" } }`) |
+| `due.withSubtitle` | Put the due text after the `subtitle` parts instead of in their place |
 | `sortBy` | A dot-path to the date `sources` rows sort on (`@self.updated`) |
 | `subtitle` (list) | A list of templates joined with a middle dot; an empty part drops out with its separator: `["{client.name}", "{value\|currency}", "{stage}"]` |
 | `search` | `{ label?, placeholder?, param?, emptyText? }`: a search box; the server searches (`_search`, or `param`) as the user types, and `emptyText` with `{query}` says when it found nothing |

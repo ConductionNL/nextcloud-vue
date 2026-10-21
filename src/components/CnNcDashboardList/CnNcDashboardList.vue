@@ -120,9 +120,11 @@ function appUrl(url) {
  * - `title`, `subtitle`: templates filled from a row (default `{title}`, none).
  *   A `subtitle` list joins its filled parts with a middle dot, an empty part
  *   dropping out with its separator.
- * - `due`: `{ field, ...dueText config }`: the trailing line says how a date
- *   stands ("3 days overdue", "Due today", the date or the days left), in
- *   place of `subtitle` (see `resolveDue`).
+ * - `due`: `{ field, withSubtitle?, ...dueText config }`: the trailing line says
+ *   how a date stands ("3 days overdue", "Due today", the date or the days
+ *   left), in place of `subtitle`, or after it with `withSubtitle` (see `resolveDue`).
+ * - `valueLabels`: `{ field: { value: label } }`: a stored value shown by its
+ *   label (through the translate) wherever a template names the field.
  * - `href`: a template for a row's page (`/apps/dossiq/cases/{id}`).
  * - `viewAll`: `{ href, label? }`.
  * - `emptyText`: text for an empty list; `search.emptyText` with `{query}`
@@ -257,14 +259,15 @@ export default {
 		 */
 		subtitleOf(item) {
 			const due = this.config.due
+			const parts = Array.isArray(this.config.subtitle)
+				? this.config.subtitle.map((part) => this.fill(part, item))
+				: [this.fill(this.config.subtitle, item)]
 			if (due && typeof due === 'object' && due.field) {
 				const resolved = resolveDue(readPath(item, due.field), due, (text) => this.cnTranslate(text))
-				return resolved ? resolved.text : ''
+				const dueText = resolved ? resolved.text : ''
+				return due.withSubtitle ? [...parts, dueText].filter(Boolean).join(' · ') : dueText
 			}
-			if (Array.isArray(this.config.subtitle)) {
-				return this.config.subtitle.map((part) => this.fill(part, item)).filter(Boolean).join(' · ')
-			}
-			return this.fill(this.config.subtitle, item)
+			return parts.filter(Boolean).join(' · ')
 		},
 
 		/**
@@ -275,7 +278,28 @@ export default {
 		 * @return {string}
 		 */
 		fill(template, item) {
-			return typeof template === 'string' && template !== '' ? fillTemplate(this.cnTranslate(template), item).trim() : ''
+			return typeof template === 'string' && template !== '' ? fillTemplate(this.cnTranslate(template), this.labelled(item)).trim() : ''
+		},
+
+		/**
+		 * The row with each `valueLabels` field replaced by its translated label.
+		 *
+		 * @param {object} item The row.
+		 * @return {object}
+		 */
+		labelled(item) {
+			const labels = this.config.valueLabels
+			if (!labels || typeof labels !== 'object') {
+				return item
+			}
+			const out = { ...item }
+			for (const [field, map] of Object.entries(labels)) {
+				const label = map && map[item[field]]
+				if (typeof label === 'string' && label !== '') {
+					out[field] = this.cnTranslate(label)
+				}
+			}
+			return out
 		},
 
 		/**

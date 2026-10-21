@@ -232,6 +232,18 @@ describe('CnNcDashboardList growth (pl4-nc-dashboard)', () => {
 		expect(axios.get.mock.calls.length).toBe(calls + 1)
 	})
 
+	it('names a stored value by its label, and adds the due text to the subtitle on request', async () => {
+		const past = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10)
+		axios.get.mockResolvedValue({ data: { results: [{ id: 'l1', title: 'Acme', priority: 'high', stage: 'New', expectedCloseDate: past }] } })
+		const w = await mountGrown({
+			source: { register: 'pipelinq', schema: 'lead' },
+			subtitle: ['{priority}', '{stage}'],
+			valueLabels: { priority: { high: 'High', low: 'Low' } },
+			due: { field: 'expectedCloseDate', withSubtitle: true },
+		})
+		expect(w.findComponent(TableWithActions).props('rows')[0].subText).toBe('High · New · 3 days overdue')
+	})
+
 	it('merges several sources, newest first, each row opening its own page', async () => {
 		axios.get.mockImplementation((url) => Promise.resolve({ data: { results: url.endsWith('/lead')
 			? [{ id: 'l1', title: 'Lead one', '@self': { updated: '2026-10-20T10:00:00Z' } }]
