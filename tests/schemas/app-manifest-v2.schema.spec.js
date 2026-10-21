@@ -1644,6 +1644,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		const withCells = (cardCells) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'pipelinq', schema: 'lead', board: { statusField: 'stage', cardFields: ['priority'], cardCells } } }] })
 		expect(validateManifestV2(withCells({ priority: { widget: 'badge', widgetProps: { colorMap: { high: 'warning' } } } })).valid).toBe(true)
 		expect(validateManifestV2(withCells({ priority: { colour: 'red' } })).valid).toBe(false)
+		const withCardActions = (cardActions) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'pipelinq', schema: 'lead', board: { statusField: 'stage', cardActions } } }] })
+		expect(validateManifestV2(withCardActions(['assign', 'priority'])).valid).toBe(true)
+		expect(validateManifestV2(withCardActions([''])).valid).toBe(false)
 	})
 
 	it('accepts a dashboard page filter drawn as a segmented group on the description line, and refuses unknown keys', () => {

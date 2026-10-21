@@ -1212,6 +1212,11 @@
 					"items": { "type": "string" },
 					"description": "The fields a card shows. Keep it short: a card is scanned, not read."
 				},
+				"cardActions": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"description": "pl4-board-card-actions: the ids of the page's row `actions` each card offers in its own menu (assign, priority), in this order."
+				},
 				"cardCells": {
 					"type": "object",
 					"description": "pl4-board-card-cells: how a card field is drawn, as a table column's cell config: `{ [field]: { widget?, widgetProps?, formatter? } }` (a priority badge, a value with its currency, a close date with its due text). A field without one is text.",

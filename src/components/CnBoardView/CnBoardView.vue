@@ -158,6 +158,13 @@
 										@auxclick="onCardAuxClick(card, $event)">
 										{{ roleText(card, roles.title) || cardKey(card) }}
 									</a>
+									<CnRowActions
+										v-if="cardActions.length > 0"
+										class="cn-board-view__card-actions"
+										:actions="cardActions"
+										:row="card"
+										:rowLabel="cardLabel(card, column)"
+										@action="onCardAction" />
 									<span class="cn-board-view__menu-wrap">
 										<button
 											type="button"
@@ -235,6 +242,19 @@
 									</CnStatusBadge>
 								</span>
 								<span
+									v-if="cellFieldsOf().length > 0"
+									class="cn-board-view__card-cells"
+									data-testid="cn-board-card-cells">
+									<CnCellRenderer
+										v-for="field in cellFieldsOf()"
+										:key="`c-${cardKey(card)}-${field}`"
+										:value="readPath(card, field)"
+										:row="card"
+										:widget="cellOf(field).widget || null"
+										:widgetProps="cellOf(field).widgetProps || {}"
+										:formatter="cellOf(field).formatter || null" />
+								</span>
+								<span
 									v-if="dueText(card) !== '' || ownerName(card) !== ''"
 									class="cn-board-view__card-footer"
 									data-testid="cn-board-card-footer">
@@ -304,6 +324,13 @@
 									@auxclick="onCardAuxClick(card, $event)">
 									{{ openLabel }}
 								</button>
+								<CnRowActions
+									v-if="cardActions.length > 0"
+									class="cn-board-view__card-actions"
+									:actions="cardActions"
+									:row="card"
+									:rowLabel="cardLabel(card, column)"
+									@action="onCardAction" />
 
 								<!--
 								The keyboard's way to do what a drag does. A board
@@ -365,6 +392,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import CnCellRenderer from '../CnCellRenderer/CnCellRenderer.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import CnRowActions from '../CnRowActions/CnRowActions.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
@@ -407,7 +435,7 @@ import '../../css/board.css'
 export default {
 	name: 'CnBoardView',
 
-	components: { CnCellRenderer, CnIcon, CnStatusBadge },
+	components: { CnCellRenderer, CnIcon, CnRowActions, CnStatusBadge },
 
 	inject: {
 		/**
@@ -444,6 +472,19 @@ export default {
 
 		/** The fields a card shows. */
 		cardFields: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The actions each card offers in its own menu, as the index page's
+		 * row actions (`{ id, label, icon?, handler(card), visibleWhen? }`):
+		 * assign a lead, set its priority. Empty draws no menu. Manifest
+		 * `config.board.cardActions` names them by id.
+		 *
+		 * @type {Array<object>}
+		 */
+		cardActions: {
 			type: Array,
 			default: () => [],
 		},
@@ -660,7 +701,7 @@ export default {
 		},
 	},
 
-	emits: ['card-click', 'card-aux-click', 'moved', 'refused', 'stale', 'load-more', 'select'],
+	emits: ['card-click', 'card-aux-click', 'moved', 'refused', 'stale', 'load-more', 'select', 'card-action'],
 
 	data() {
 		return {
@@ -809,6 +850,28 @@ export default {
 
 	methods: {
 		readPath,
+
+		/**
+		 * A card action was picked: tell the host, as a row action does.
+		 *
+		 * @param {object} payload What CnRowActions reports.
+		 * @spec openspec/changes/pl4-board-card-actions/specs/pl4-board-card-actions/spec.md#requirement-a-card-carries-the-row-actions
+		 */
+		onCardAction(payload) {
+			/** @event card-action A card action was picked. Payload: what CnRowActions reports. */
+			this.$emit('card-action', payload)
+		},
+
+		/**
+		 * The card fields with a cell config, in `cardFields` order: the board
+		 * look draws them as a line of cells under the pill.
+		 *
+		 * @return {Array<string>}
+		 * @spec openspec/changes/pl4-board-card-cells/specs/pl4-board-card-cells/spec.md#requirement-a-card-field-can-be-a-cell
+		 */
+		cellFieldsOf() {
+			return (Array.isArray(this.cardFields) ? this.cardFields : []).filter((field) => this.cellOf(field) !== null)
+		},
 
 		/**
 		 * The cell config of a card field, or null to draw it as text.

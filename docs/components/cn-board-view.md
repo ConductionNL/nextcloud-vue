@@ -74,7 +74,8 @@ calls the suggestion `nested-interactive` when you try it.
 | `statusField` | `String` | `'status'` | The property a row's status lives on. |
 | `pillLooks` | `Object` | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`, read by CnIndexPage). With `cardRoles.resolve: { colorField?, iconField? }` the card's pill takes its record's tone and icon from here. |
 | `cardFields` | `Array` | `[]` | The fields a card shows. Keep it short: a card is scanned, not read. |
-| `cardCells` | `Object` | `null` | How a card field is drawn: `{ [field]: { widget?, widgetProps?, formatter? } }`, the cell config a table column takes, through CnCellRenderer with the card as its row (a priority badge, a value with its currency, a close date with its due text). A field without one is text. Manifest `config.board.cardCells`. |
+| `cardActions` | `Array` | `[]` | The actions each card offers in its own menu, as the index page's row actions (`{ id, label, icon?, handler(card), visibleWhen? }`). The index page passes the row actions named in `config.board.cardActions`. A pick emits `card-action`. |
+| `cardCells` | `Object` | `null` | How a card field is drawn: `{ [field]: { widget?, widgetProps?, formatter? } }`, the cell config a table column takes, through CnCellRenderer with the card as its row (a priority badge, a value with its currency, a close date with its due text). A field without one is text. In the board look the cell fields are drawn as a line of cells under the pill. Manifest `config.board.cardCells`. |
 | `swimlaneField` | `String` | `''` | A second field to group the board into rows by. |
 | `rowKey` | `String` | `'id'` | The row key. |
 | `runTransition` | `Function` | `null` | `({ card, toKey }) => Promise`. The only way the status changes. |
