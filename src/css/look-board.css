@@ -1948,6 +1948,22 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	min-height: var(--cn-field-height, 40px);
 }
 
+/* Any labelled button on the card is 40px, a text-only one 16px in at both
+   sides (DqBeheerinstellingen "Opslaan", "Verbinding testen";
+   PtBeheerinstellingen "Adres opslaan"), not only the card's own save row.
+   @spec openspec/changes/board-settings-section-buttons/specs/board-settings-section-buttons/spec.md#requirement-a-labelled-button-on-a-board-settings-card-is-40px */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+	--button-size: var(--cn-field-height, 40px);
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(:has(> .button-vue__wrapper > .button-vue__icon:not(:empty))) {
+	--button-padding: 16px;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .button-vue:not(:has(> .button-vue__wrapper > .button-vue__icon:not(:empty))) .button-vue__text.button-vue__text {
+	padding-inline: 0;
+}
+
 .cn-look-board .cn-settings-section__save:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-version-info--board:not(.cn-look-nextcloud *) .cn-version-info__footer-row .button-vue {
 	height: var(--cn-field-height, 40px);
