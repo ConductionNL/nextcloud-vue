@@ -763,9 +763,10 @@ function readRowsPath(body, path) {
  * @spec openspec/changes/index-endpoint-source/specs/index-page/spec.md#requirement-an-index-page-can-list-rows-from-an-app-endpoint
  */
 function endpointSource() {
-	const state = reactive({ rows: [], loading: false })
+	const state = reactive({ rows: [], loading: false, records: {}, recordErrors: {} })
 	let seq = 0
 	let warned = false
+	let recordConfig = null
 
 	/**
 	 * The query parameters for a config: every key but the url and the paths,
@@ -871,6 +872,69 @@ function endpointSource() {
 		 * @return {boolean} Whether a load is in flight.
 		 */
 		loading: () => state.loading,
+
+		/**
+		 * Take the detail page's source config: `url` names one record, with
+		 * `{id}` for the record id (`/apps/pipelinq/api/audit/{id}`), and
+		 * `recordPath` where the record sits in the answer (the whole answer
+		 * by default).
+		 *
+		 * @param {object|null} config The detail page's `sourceConfig`.
+		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-detail-page-can-read-its-record-from-an-app-endpoint
+		 */
+		configure: (config) => {
+			recordConfig = config && typeof config === 'object' ? config : null
+		},
+
+		/**
+		 * Read one record for a detail page from `sourceConfig.url`.
+		 *
+		 * @param {string} id The record id.
+		 * @return {Promise<object|null>} The record, or null when it could not be read.
+		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-detail-page-can-read-its-record-from-an-app-endpoint
+		 */
+		loadRecord: async (id) => {
+			const key = String(id)
+			const template = recordConfig && typeof recordConfig.url === 'string' ? recordConfig.url : ''
+			if (template === '' || !template.includes('{id}')) {
+				// eslint-disable-next-line no-console
+				console.error('[CnDetailPage] entitySource "endpoint" needs a sourceConfig url with {id}; no record is read.')
+				state.recordErrors = { ...state.recordErrors, [key]: 404 }
+				return null
+			}
+			state.loading = true
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const res = await axios.get(generateUrl(template.replace(/\{id\}/g, encodeURIComponent(key))))
+				const body = res ? res.data : null
+				const record = recordConfig.recordPath ? readRowsPath(body, recordConfig.recordPath) : body
+				if (!record || typeof record !== 'object' || Array.isArray(record)) {
+					state.recordErrors = { ...state.recordErrors, [key]: 404 }
+					return null
+				}
+				state.records = { ...state.records, [key]: record }
+				const { [key]: dropped, ...rest } = state.recordErrors
+				state.recordErrors = rest
+				return record
+			} catch (error) {
+				state.recordErrors = { ...state.recordErrors, [key]: error?.response?.status ?? 500 }
+				return null
+			} finally {
+				state.loading = false
+			}
+		},
+
+		/**
+		 * @param {string} id The record id.
+		 * @return {object|null} The record read for this id, or null.
+		 */
+		record: (id) => state.records[String(id)] ?? null,
+
+		/**
+		 * @param {string} id The record id.
+		 * @return {number|null} The HTTP status of a failed read of this id, or null.
+		 */
+		recordError: (id) => state.recordErrors[String(id)] ?? null,
 	}
 }
 

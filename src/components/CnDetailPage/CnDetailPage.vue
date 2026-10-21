@@ -2029,6 +2029,19 @@ export default {
 		},
 
 		/**
+		 * The config of a record source that needs one (manifest
+		 * `config.sourceConfig`). With `entitySource: "endpoint"`: `url`, an
+		 * app path with `{id}` for the record id, and optional `recordPath`,
+		 * where the record sits in the answer.
+		 *
+		 * @type {object|null}
+		 */
+		sourceConfig: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * App routes that replace a record source's own route for a verb, by
 		 * verb id (manifest `config.verbEndpoints`), such as
 		 * `{ "complete": "/apps/dossiq/api/case-tasks/{id}/complete" }` for an
@@ -4039,16 +4052,22 @@ export default {
 
 		/**
 		 * The record source named by `entitySource`, or null. An unknown name,
-		 * or a source that cannot read one record, is null with a warning.
+		 * or a source that cannot read one record, is null with a warning. A
+		 * source that takes a config gets `sourceConfig`.
 		 *
 		 * @return {object|null}
+		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-detail-page-can-read-its-record-from-an-app-endpoint
 		 */
 		recordSource() {
 			if (!this.entitySource) {
 				return null
 			}
 			try {
-				return resolveRecordSource(this.entitySource)
+				const source = resolveRecordSource(this.entitySource)
+				if (source && typeof source.configure === 'function') {
+					source.configure(this.sourceConfig)
+				}
+				return source
 			} catch (err) {
 				// eslint-disable-next-line no-console -- the console is the only channel a host app can read the detail on
 				console.warn('[CnDetailPage] the record source could not start; no record is shown.', err)

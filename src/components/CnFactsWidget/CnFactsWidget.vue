@@ -1272,6 +1272,7 @@ export default {
 		 * @return {string} The text, '' when empty.
 		 * @spec openspec/changes/facts-currency-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-money-amount
 		 * @spec openspec/changes/facts-user-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-user-by-name
+		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-facts-amount-can-be-stored-in-cents
 		 */
 		format(raw, spec, record = null) {
 			if (raw === null || raw === undefined || raw === '') {
@@ -1306,7 +1307,9 @@ export default {
 				return userDisplayName(raw)
 			}
 			if (format === 'currency') {
-				const money = formatMoney(raw, { currency: spec.currency, currencyField: spec.currencyField, decimals: spec.decimals }, record, unwrapAppConfig(this.cnAppConfig))
+				// `minorUnits: true`: the value is stored in cents.
+				const amount = spec.minorUnits === true && raw !== '' && Number.isFinite(Number(raw)) ? Number(raw) / 100 : raw
+				const money = formatMoney(amount, { currency: spec.currency, currencyField: spec.currencyField, decimals: spec.decimals }, record, unwrapAppConfig(this.cnAppConfig))
 				if (money !== '') {
 					return money
 				}
