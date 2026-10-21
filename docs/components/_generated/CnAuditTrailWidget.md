@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 8 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 9 files reached through imports.
 
 Through: `CnAuditTrailCard`.
 
@@ -18,4 +18,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `title`      | `string` |          | `''`    | Optional card title override (defaults to the card's translated label).                                                                                                                                         |
 | `maxDisplay` | `number` |          | `0`     | Maximum audit rows to render (0 falls back to the card default).                                                                                                                                                |
 | `scope`      | `string` |          | `''`    | `app` lists the app-wide feed (every object the caller may read, narrowed to `register` / `schema` when set) and needs no object; `object` (the default) is one object's trail. Also read from `content.scope`. |
-| `content`    | `object` |          | `\{\}`  | Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId? }`.                                                                                           |
+| `source`     | `object` |          | `null`  | Read the trail of something that is not an object (`{ kind: 'flow-task', id? }`); also read from `content.source`.                                                                                              |
+| `endpoint`   | `string` |          | `''`    | A trail URL of its own; also read from `content.endpoint`.                                                                                                                                                      |
+| `content`    | `object` |          | `\{\}`  | Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText? }`.                                                           |

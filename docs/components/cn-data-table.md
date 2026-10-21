@@ -96,7 +96,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `pinnedCount` | Number | `0` | How many data columns are pinned to the start of the table. They, and the selection and icon columns, stay in view when the table scrolls sideways. |
 | `fixedLayout` | Boolean | `false` | Switch to `table-layout: fixed`, making each column's `width` authoritative instead of a hint the browser may override from cell content. Opt in when content would otherwise dictate the layout: a long unbreakable value (a PHP FQCN, a UUID) widens its own column under the default auto layout and can paint past the cell box into its neighbour, while a column left unsized soaks up all remaining width. Cells break long words rather than overflowing. Columns with no `width` share what is left, so size every column when you want exact control — percentages summing to 100 are the easiest to reason about. |
 | `fitWidth` | Boolean | `false` | Fit the table to its container instead of growing past it. One column takes the room that is left and cuts its text with an ellipsis (the full value stays in the tooltip); every other column keeps its content on one line at its own width, so trailing columns stay visible in a narrow tile. The column that grows is the first with `grow: true`, else the one keyed `title` or `name`, else the first. `CnWidgetObjectTable` turns it on. |
-| `rowIndicators` | Array | `[]` | State indicators the page declares for its rows. Each entry is `{ id, field, equals?, in?, icon, text, tooltip? }`: `field` is a dotted path on the row, the condition is `equals`, `in`, or plain truthiness when neither is given, `icon` is a CnIcon name, and `text` is the text alternative. An entry without `text` does not render, because an icon with no text is colour and shape alone (WCAG 2.2 SC 1.4.1). The page decides which indicators exist: a record cannot add one the page has not declared, and a page declaring none renders its rows exactly as before. |
+| `rowIndicators` | Array | `[]` | State indicators the page declares for its rows. Each entry is `{ id, field, equals?, in?, after?, before?, icon, text, tooltip? }`: `field` is a dotted path on the row, the condition is `equals`, `in`, a date `after` or `before` a moment (`"now"` or an ISO date; a field without a readable date does not apply), or plain truthiness when none is given, `icon` is a CnIcon name, and `text` is the text alternative. An entry without `text` does not render, because an icon with no text is colour and shape alone (WCAG 2.2 SC 1.4.1). The page decides which indicators exist: a record cannot add one the page has not declared, and a page declaring none renders its rows exactly as before. |
 | `rowIndicatorCap` | Number | `3` | How many declared indicators render on the row itself. The rest stay available from `indicatorsFor(row).overflow`, for the row menu. |
 | `fillHeight` | Boolean | `false` | Fill the parent's height (a flex-column card / widget content area) so an optional `#footer` is pushed to the bottom instead of floating under a short list; the footer stays pinned via its sticky rule when the list overflows. No-op outside a height-constrained parent — opt-in so ordinary in-flow tables are unaffected. |
 
@@ -226,6 +226,14 @@ A placeholder can carry a format, the same ones a widget row template takes: `{s
 ```
 
 Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.
+
+## Show one field, sort on another (`columns[].valueField`)
+
+A column sorts and filters on its `key`. With `valueField` its cell shows another row field instead, with that field's schema property (labels, enum, format), while the header keeps sorting on the key. A priority stored as a word sorts as high, low, normal, urgent; sorting on the stored order and showing the word reads right:
+
+```json
+{ "key": "priorityOrder", "valueField": "priority", "label": "Priority", "widget": "badge" }
+```
 
 ## A system date as a column (`@self.created`)
 

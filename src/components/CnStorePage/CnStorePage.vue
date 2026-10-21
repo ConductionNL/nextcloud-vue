@@ -216,11 +216,11 @@
 					v-for="item in visibleBuiltIn"
 					:key="item.slug"
 					class="cn-store-page__card">
-					<h4 class="cn-store-page__card-title">
-						{{ item.title || item.slug }}
+					<h4 class="cn-store-page__card-title" :lang="langOf(item.title)">
+						{{ shown(item.title) || item.slug }}
 					</h4>
-					<p class="cn-store-page__card-description">
-						{{ item.description }}
+					<p class="cn-store-page__card-description" :lang="langOf(item.description)">
+						{{ shown(item.description) }}
 					</p>
 				</li>
 			</ul>
@@ -805,8 +805,10 @@ export default {
 		},
 
 		/**
-		 * A manifest label through the injected lookup, or as written.
+		 * A manifest label through the injected lookup, or as written. The
+		 * built-in items' titles and descriptions read through it too.
 		 *
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-the-stores-own-items-read-in-the-users-language
 		 * @param {string} text The label as written.
 		 * @return {string} The label in the user's language.
 		 */

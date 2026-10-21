@@ -83,6 +83,17 @@ describe('CnPartyPicker', () => {
 		expect(w.findComponent(SearchSelect).props('placeholder')).toBe('Name, BSN, trade name or KvK number')
 	})
 
+	it('puts the second line template through the host translate before filling it', async () => {
+		const w = mount(CnPartyPicker, {
+			props: { sources: [{ id: 'company', register: 'dossiq', schema: 'kvkCompany', label: 'Organisation', title: '{tradeName}', secondary: 'CoC {sourceId}' }], inputLabel: 'Requester' },
+			global: { stubs: { CnSearchSelect: SearchSelect }, provide: { cnTranslate: (k) => ({ Organisation: 'Organisatie', 'CoC {sourceId}': 'KvK {sourceId}' })[k] ?? k } },
+		})
+		w.findComponent(SearchSelect).vm.$emit('search', 'Visser')
+		jest.advanceTimersByTime(300)
+		await flushPromises()
+		expect(w.findComponent(SearchSelect).props('options').map((o) => o.secondary)).toEqual(['Organisatie · KvK 24157431'])
+	})
+
 	it('does not search below the minimum length', async () => {
 		const w = mountPicker()
 		w.findComponent(SearchSelect).vm.$emit('search', 'V')
