@@ -78,3 +78,20 @@ message's `channel` is shown after its time:
     { id: 1, author: 'Sanne de Vries', time: '2026-10-04T10:52:00', side: 'them', channel: 'Message box', text: 'Thank you.' },
   ]" />
 ```
+
+The `reply-tools` slot puts tools above the reply box; its `setDraft(text)` fills the box. A message's `status` shows
+after its channel, and its `actions` are buttons that emit `message-action`:
+
+```vue
+<CnConversationThread
+  title="Messages"
+  :messages="[
+    { id: 'm-2', time: '2026-10-04T10:52:00', side: 'us', status: 'Failed', text: 'Are you there?',
+      actions: [{ id: 'resend', label: 'Send again' }] },
+  ]"
+  @message-action="({ action, message }) => resend(message)">
+  <template #reply-tools="{ setDraft }">
+    <NcButton @click="setDraft('Thank you for your message.')">Use the thank-you text</NcButton>
+  </template>
+</CnConversationThread>
+```
