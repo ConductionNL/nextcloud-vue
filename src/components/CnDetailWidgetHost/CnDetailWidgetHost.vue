@@ -388,6 +388,7 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
+import { HOST_WIDGET_ID } from '../../utils/widgetSelection.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
@@ -495,6 +496,9 @@ export default {
 	provide() {
 		const sink = this.panelActionSink
 		return {
+			// The hosted widget's id, read at call time, so a list can publish its
+			// rows under it for a card that follows them (side-card-follows-row).
+			[HOST_WIDGET_ID]: () => (this.widget && this.widget.id) || '',
 			[PANEL_ACTION_SINK]: sink
 				? {
 						set: (...args) => sink.set(...this.narrowPanelArgs(args, 'set')),
