@@ -45,6 +45,7 @@ async function mountDialog(propsData) {
 		propsData,
 		stubs: {
 			CnFormDialog: FormDialogStub,
+			CnTaskFormFields: false,
 			NcDialog: { template: '<div class="nc-dialog"><slot /><slot name="actions" /></div>' },
 			NcNoteCard: { template: '<div class="note"><slot /></div>' },
 			NcButton: { props: ['disabled'], template: '<button :disabled="disabled"><slot /></button>' },

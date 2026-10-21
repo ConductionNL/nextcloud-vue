@@ -248,7 +248,7 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown" #after-search>
+			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown || relatedFieldFilters" #after-search>
 				<!-- Board view controls, after the search (screens-board-reference-columns):
 				     the narrowing select ("Case type:"), the column switch ("Columns:
 				     status | type | assignee") and the board's hint sentence. -->
@@ -304,6 +304,11 @@
 					@update:modelValue="onContentSearchToggle">
 					{{ t('nextcloud-vue', 'Also search inside files') }}
 				</NcCheckboxRadioSwitch>
+				<CnRelatedFieldFilters
+					v-if="relatedFieldFilters"
+					:definitions="relatedFieldFilters.definitions || {}"
+					:related="relatedFieldFilters.related || {}"
+					:storeKey="objectType || selfObjectType || ''" />
 				<slot name="after-search" />
 			</template>
 			<template
@@ -821,7 +826,7 @@
 					:columnOverrides="columnOverrides"
 					:rowClass="compiledRowClass"
 					:rowTitle="rowTitle"
-					:showUnread="showUnreadRows"
+					:showUnread="marksUnreadRows"
 					:filterable="tableHeaderFilters"
 					:activeFilters="tableActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
@@ -1340,6 +1345,7 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
@@ -1678,6 +1684,7 @@ export default {
 
 	components: {
 		CnIndexPageWidgets,
+		CnRelatedFieldFilters,
 		CnStatusBadge,
 		NcNoteCard,
 		CnBuildiqEditButton,
@@ -2233,6 +2240,19 @@ export default {
 		},
 
 		/**
+		 * Whether the table marks unread rows (`@self.unread`) in bold with the
+		 * unread marker: `true` in every look, `false` never. Unset (null)
+		 * keeps the look's default (see `marksUnreadRows`). Manifest
+		 * `config.showUnreadRows`.
+		 *
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-page-can-ask-for-its-unread-rows
+		 */
+		showUnreadRows: {
+			type: Boolean,
+			default: null,
+		},
+
+		/**
 		 * Add a first column with a follow toggle per row (`CnFollowToggle`,
 		 * compact), bound to each row's `@self.watching`. Clicking it does not
 		 * open the row. Manifest `config.showFollowColumn`.
@@ -2384,6 +2404,17 @@ export default {
 		searchInFiles: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Filters over a type's own declared fields, beside the search
+		 * (CnRelatedFieldFilters): `{ definitions: { register, schema, filter },
+		 * related: { schema, backref, definitionKey?, valueKey? } }`.
+		 * Manifest: `config.relatedFieldFilters`.
+		 */
+		relatedFieldFilters: {
+			type: Object,
+			default: null,
 		},
 
 		/** Object/row data array */
@@ -6693,14 +6724,19 @@ export default {
 		},
 
 		/**
-		 * Whether the table marks unread rows. The boards draw every row alike,
-		 * so under the board look only a page that offers the Unread lens
+		 * Whether the table marks unread rows. `showUnreadRows` decides when
+		 * the page sets it. Otherwise the boards draw every row alike, so under
+		 * the board look only a page that offers the Unread lens
 		 * (`personalLenses`) marks them; the Nextcloud look always does.
 		 *
 		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-unread-rows-are-marked-only-where-the-reader-asked-for-them
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-page-can-ask-for-its-unread-rows
 		 * @return {boolean} True when unread rows read in bold with the dot.
 		 */
-		showUnreadRows() {
+		marksUnreadRows() {
+			if (typeof this.showUnreadRows === 'boolean') {
+				return this.showUnreadRows
+			}
 			if (!this.isBoardLook) {
 				return true
 			}
@@ -7226,6 +7262,8 @@ export default {
 				customComponents: this.effectiveCustomComponents,
 				// So a row action's toasts translate like the labels around it.
 				translate: this.cnTranslate,
+				// A row action of `type: "open-modal"` opens its modal here.
+				openModal: typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null,
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the

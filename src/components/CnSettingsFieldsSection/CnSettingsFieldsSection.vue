@@ -4,32 +4,42 @@
 -->
 
 <template>
-	<CnSettingsSection
-		:name="name"
-		:description="description"
-		:docUrl="docUrl"
-		:wide="wide"
-		:loading="loading"
-		:error="loadError !== ''"
-		:errorMessage="loadError"
-		:onRetry="load"
+	<component
+		:is="bare ? 'div' : 'CnSettingsSection'"
+		v-bind="bare ? { class: 'cn-settings-fields-section--bare' } : sectionProps"
 		data-testid="cn-settings-fields-section">
+		<template v-if="bare">
+			<NcLoadingIcon v-if="loading" :size="24" data-testid="cn-settings-fields-loading" />
+			<NcNoteCard v-else-if="loadError !== ''" type="error" data-testid="cn-settings-fields-load-error">
+				{{ loadError }}
+			</NcNoteCard>
+		</template>
 		<form v-if="!loading && loadError === ''"
 			class="cn-settings-fields"
 			novalidate
 			@submit.prevent="save">
+			<div v-if="hintsToggle" class="cn-settings-fields__hints-toggle">
+				<NcButton
+					variant="tertiary"
+					:aria-expanded="showHints ? 'true' : 'false'"
+					data-testid="cn-settings-fields-hints-toggle"
+					@click="showHints = !showHints">
+					{{ showHints ? t('nextcloud-vue', 'Hide the explanations') : t('nextcloud-vue', 'Show the explanations') }}
+				</NcButton>
+			</div>
 			<div class="cn-settings-fields__grid" :class="`cn-settings-fields__grid--${columnCount}`">
 				<CnSettingsField
-					v-for="field in resolvedFields"
+					v-for="field in visibleFields"
 					:key="field.key"
 					class="cn-settings-fields__field"
-					:class="{ 'cn-settings-fields__field--wide': field.wide }"
+					:class="{ 'cn-settings-fields__field--wide': field.wide || isFullWidth(field) }"
 					:field="field"
 					:modelValue="form[field.key]"
 					:error="errors[field.key] || unreadable[field.key] || ''"
 					:hint="field.hint"
 					@update:modelValue="setValue(field, $event)"
-					@uploaded="onUploaded(field, $event)" />
+					@uploaded="onUploaded(field, $event)"
+					@action="runAction(field)" />
 			</div>
 
 			<NcNoteCard v-if="notice"
@@ -39,7 +49,7 @@
 				{{ notice.text }}
 			</NcNoteCard>
 
-			<div class="cn-settings-section__save cn-settings-fields__save">
+			<div v-if="!autoSave && hasInputs" class="cn-settings-section__save cn-settings-fields__save">
 				<span v-if="dirty" class="cn-settings-fields__dirty" data-testid="cn-settings-fields-dirty">
 					{{ t('nextcloud-vue', 'Unsaved changes') }}
 				</span>
@@ -55,7 +65,7 @@
 				</NcButton>
 			</div>
 		</form>
-	</CnSettingsSection>
+	</component>
 </template>
 
 <script>
@@ -94,6 +104,103 @@ function ocsConfig(url) {
 	return /^\/ocs\//.test(String(url)) ? { headers: { 'OCS-APIRequest': 'true' } } : {}
 }
 
+/** Types that hold no value of their own: never read into the form's dirty state, checked or saved. */
+const VALUELESS_TYPES = ['heading', 'status', 'action']
+
+/** Types drawn across the whole grid. */
+const FULL_WIDTH_TYPES = ['heading', 'status']
+
+/**
+ * Whether a stored value reads as on: a boolean, or `1`, `true`, `yes` or `on`.
+ *
+ * @param {unknown} value The stored value.
+ * @return {boolean}
+ */
+function isOn(value) {
+	if (typeof value === 'boolean') {
+		return value
+	}
+	return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase())
+}
+
+/**
+ * @param {unknown} value A value.
+ * @return {boolean} Whether it is null, undefined or an empty string.
+ */
+function isEmpty(value) {
+	return value === null || value === undefined || value === ''
+}
+
+/**
+ * Put `{name}` placeholders' values in a text; an unknown name stays as written.
+ *
+ * @param {string} text The text.
+ * @param {(name: string) => unknown} lookup The value of a name.
+ * @return {string}
+ */
+function interpolate(text, lookup) {
+	return String(text || '').replace(/\{([A-Za-z0-9_.-]+)\}/g, (whole, name) => {
+		const value = lookup(name)
+		return isEmpty(value) || typeof value === 'object' ? whole : String(value)
+	})
+}
+
+/**
+ * A random value of `bytes` bytes as hexadecimal, from the browser's
+ * cryptographic random source.
+ *
+ * @param {number} bytes How many bytes.
+ * @return {string}
+ */
+function randomHex(bytes) {
+	const values = new Uint8Array(Math.max(1, Number(bytes) || 32))
+	globalThis.crypto.getRandomValues(values)
+	return Array.from(values, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * The text of a lines field: one entry per line, from a list or a JSON list.
+ *
+ * @param {unknown} raw The stored value.
+ * @return {string}
+ */
+function linesText(raw) {
+	let list = raw
+	if (typeof raw === 'string') {
+		try {
+			list = JSON.parse(raw)
+		} catch {
+			return raw
+		}
+	}
+	return Array.isArray(list) ? list.map((entry) => String(entry).trim()).filter(Boolean).join('\n') : ''
+}
+
+/**
+ * The entries of a lines field's text, trimmed, without empty lines or repeats.
+ *
+ * @param {unknown} text The text.
+ * @return {Array<string>}
+ */
+function linesList(text) {
+	return [...new Set(String(text || '').split('\n').map((line) => line.trim()).filter(Boolean))]
+}
+
+/**
+ * The sentence a refused request came back with: the body's `message` when
+ * there is one (a refusal names its rule under `error` and says it under
+ * `message`), else the clearest message available.
+ *
+ * @param {unknown} error The rejected value.
+ * @return {string}
+ */
+function refusalMessage(error) {
+	const message = error?.response?.data?.message
+	return typeof message === 'string' && message.trim() !== '' && message.length <= 400 && !/^\s*</.test(message)
+		? message.trim()
+		: serverErrorMessage(error)
+}
+
 /**
  * Up to two initials of a name, for an image field without an image.
  *
@@ -117,8 +224,16 @@ function initialsOf(name) {
  * stored value: it says a value is stored, and is sent only when something
  * was typed.
  *
+ * Besides value fields a section can hold a `heading`, a read-only `status`
+ * note (static `text`, or `textMap` by the value read at its key, with `tone`
+ * or `toneMap`) and an `action` button (it posts to its `url`, or with `fill`
+ * puts a random value in another field, and shows the server's sentence). A
+ * field with `visibleWhen` shows only while its condition holds. With
+ * `hintsToggle` the hints fold away behind one button.
+ *
  * It renders inside CnAdminSettingsShell and CnSettingsPage, in the default
- * and the board look.
+ * and the board look; with `bare` it draws no card of its own (for a host
+ * that already gives the section its title, such as a settings dialog).
  *
  * ```vue
  * <CnSettingsFieldsSection
@@ -156,6 +271,12 @@ export default {
 			default: '',
 		},
 
+		/** A longer explanation in its own block under the title. */
+		detailedDescription: {
+			type: String,
+			default: '',
+		},
+
 		/** A documentation link beside the title. */
 		docUrl: {
 			type: String,
@@ -170,12 +291,26 @@ export default {
 
 		/**
 		 * The fields: `[{ key, label, type?, hint?, placeholder?, required?,
-		 * pattern?, patternMessage?, min?, max?, rows?, options?, optionsUrl?,
+		 * pattern?, patternMessage?, min?, max?, integer?, rows?, options?, optionsUrl?,
 		 * optionsPath?, optionLabel?, optionValue?, default?, readOnly?, wide?,
 		 * url?, valuePath?, saveUrl?, saveMethod?, saveKey?, saveParams?, uploadUrl?,
-		 * uploadField?, uploadParams?, uploadValuePath?, initials?, initialsFrom? }]`.
+		 * uploadField?, uploadParams?, uploadValuePath?, initials?, initialsFrom?,
+		 * visibleWhen?, trueValue?, falseValue?, setKey?, saveAs?, text?, textMap?,
+		 * tone?, toneMap?, method?, send?, resultPath?, okPath?, successText?, fill? }]`.
 		 * `type` is `text` (default), `textarea`, `number`, `switch`, `select`,
-		 * `secret` or `image`. `key` names the setting; a dotted key reads a
+		 * `radio`, `lines`, `secret`, `image`, `heading`, `status` or `action`.
+		 * `default` stands in for a value that is missing or empty. A switch
+		 * reads `1`/`true`/`yes`/`on` as on and saves `trueValue`/`falseValue`
+		 * when declared. A secret says it is stored from `setKey` when the
+		 * server answers that under another key. A `lines` field edits a list
+		 * one entry per line and saves it as a list, or as JSON text with
+		 * `saveAs: 'json'`. `visibleWhen` is `{ key, equals?, notEquals?, in?,
+		 * empty? }` (or a list of them, all of which must hold) over the form
+		 * and the values read; a hidden field is not checked. An action posts
+		 * the `send` fields to `url` with `method` (default POST) and shows the
+		 * answer at `resultPath` (default `message`), as an error when `okPath`
+		 * reads false; with `fill: { key, bytes }` it puts a random value in
+		 * that field instead. `key` names the setting; a dotted key reads a
 		 * nested value and is written as written. A field with its own `url`
 		 * is read there (at `valuePath`, default its key) and saved to its
 		 * `saveUrl` (default that `url`) with `saveMethod` (default POST) under
@@ -236,6 +371,51 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * The note after a save. `{name}` takes the value of that field or of
+		 * that key in the values read. Defaults to "Saved.".
+		 */
+		savedMessage: {
+			type: String,
+			default: '',
+		},
+
+		/** Read the values again after a save, for status notes the server works out. */
+		reloadAfterSave: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Send every field of the section on a save, not only the changed ones,
+		 * for an endpoint that replaces the whole record.
+		 */
+		saveAll: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Fold the hints, and status notes marked `foldable`, away behind one
+		 * "Show the explanations" button, for a long form.
+		 */
+		hintsToggle: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Save each change at once (a typed value after a pause), with no Save button. */
+		autoSave: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Draw no card, title or description: the host already gives the section its own. */
+		bare: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['saved', 'save-error'],
@@ -252,6 +432,11 @@ export default {
 			loadError: '',
 			saving: false,
 			notice: null,
+			// The values the section's own read target answered, for status
+			// notes, visibleWhen and placeholders that name a key no field holds.
+			values: {},
+			actionStates: {},
+			showHints: false,
 		}
 	},
 
@@ -259,6 +444,21 @@ export default {
 		/** @return {number} The column count, 1 to 3. */
 		columnCount() {
 			return [1, 2, 3].includes(this.columns) ? this.columns : 1
+		},
+
+		/** @return {object} The props of the card around the form. */
+		sectionProps() {
+			return {
+				name: this.name,
+				description: this.description,
+				detailedDescription: this.detailedDescription,
+				docUrl: this.docUrl,
+				wide: this.wide,
+				loading: this.loading,
+				error: this.loadError !== '',
+				errorMessage: this.loadError,
+				onRetry: this.load,
+			}
 		},
 
 		/** @return {string} Where the settings are read: `url`, else the app's settings endpoint. */
@@ -282,12 +482,31 @@ export default {
 				.map((field) => ({
 					...field,
 					label: this.tr(field.label || field.key),
-					hint: this.tr(field.hint || ''),
+					hint: this.hintsToggle && !this.showHints ? '' : this.tr(field.hint || ''),
 					placeholder: this.tr(field.placeholder || ''),
+					options: Array.isArray(field.options) ? field.options.map((option) => this.translateOption(option)) : field.options,
 					secretSet: field.type === 'secret' ? !!this.storedSecrets[field.key] : undefined,
 					initials: field.type === 'image' ? initialsOf(field.initialsFrom ? this.form[field.initialsFrom] : field.initials) : undefined,
 					readOnly: field.readOnly || !!this.unreadable[field.key],
+					...(field.type === 'status' ? this.statusOf(field) : {}),
+					...(field.type === 'action' ? { actionBusy: !!this.actionStates[field.key]?.busy, actionResult: this.actionStates[field.key]?.result || null } : {}),
 				}))
+		},
+
+		/**
+		 * The fields shown now: their `visibleWhen` holds, and a status note has text.
+		 *
+		 * @return {Array<object>}
+		 */
+		visibleFields() {
+			return this.resolvedFields.filter((field) => this.isVisible(field)
+				&& !(field.type === 'status' && field.text === '')
+				&& !(field.foldable && this.hintsToggle && !this.showHints))
+		},
+
+		/** @return {boolean} Whether the section holds a field with a value to save. */
+		hasInputs() {
+			return this.resolvedFields.some((field) => !VALUELESS_TYPES.includes(field.type))
 		},
 
 		/**
@@ -297,7 +516,7 @@ export default {
 		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-one-save-per-section-with-a-dirty-state
 		 */
 		dirty() {
-			return this.resolvedFields.some((field) => field.type !== 'image' && !this.same(this.form[field.key], this.baseline[field.key]))
+			return this.resolvedFields.some((field) => field.type !== 'image' && !VALUELESS_TYPES.includes(field.type) && !this.same(this.form[field.key], this.baseline[field.key]))
 		},
 
 		/** @return {string} The Save button's label. */
@@ -310,8 +529,98 @@ export default {
 		this.load()
 	},
 
+	beforeUnmount() {
+		clearTimeout(this.autoSaveTimer)
+	},
+
 	methods: {
 		t,
+
+		/**
+		 * @param {object} field A field.
+		 * @return {boolean} Whether it spans the whole grid.
+		 */
+		isFullWidth(field) {
+			return FULL_WIDTH_TYPES.includes(field.type)
+		},
+
+		/**
+		 * @param {object|string|number} option A declared option.
+		 * @return {object|string|number} It with its label and description translated.
+		 */
+		translateOption(option) {
+			if (!option || typeof option !== 'object') {
+				return option
+			}
+			return {
+				...option,
+				...(typeof option.label === 'string' ? { label: this.tr(option.label) } : {}),
+				...(typeof option.description === 'string' ? { description: this.tr(option.description) } : {}),
+			}
+		},
+
+		/**
+		 * A value by name: the field's form value, else the value read at that key.
+		 *
+		 * @param {string} key The field key or a key in the values read.
+		 * @return {unknown}
+		 */
+		valueOf(key) {
+			return Object.hasOwn(this.form, key) ? this.form[key] : literalFirst(this.values, key)
+		},
+
+		/**
+		 * Whether a field's `visibleWhen` holds; a field without one is always shown.
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-a-field-can-depend-on-another
+		 */
+		isVisible(field) {
+			const conditions = Array.isArray(field.visibleWhen) ? field.visibleWhen : (field.visibleWhen ? [field.visibleWhen] : [])
+			return conditions.every((condition) => {
+				const value = this.valueOf(condition.key)
+				if ('equals' in condition) {
+					return typeof condition.equals === 'boolean' ? isOn(value) === condition.equals : String(value ?? '') === String(condition.equals)
+				}
+				if ('notEquals' in condition) {
+					return typeof condition.notEquals === 'boolean' ? isOn(value) !== condition.notEquals : String(value ?? '') !== String(condition.notEquals)
+				}
+				if (Array.isArray(condition.in)) {
+					return condition.in.map(String).includes(String(value ?? ''))
+				}
+				if ('empty' in condition) {
+					return isEmpty(value) === !!condition.empty
+				}
+				return !isEmpty(value) && value !== false
+			})
+		},
+
+		/**
+		 * A status note's text and tone: its static `text`, else its `textMap`
+		 * entry for the value read at its key (`*` for any other value), with
+		 * `{name}` placeholders filled; an empty text hides the note.
+		 *
+		 * @param {object} field The status field.
+		 * @return {{text: string, tone: string}}
+		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-a-status-note-and-an-action-sit-between-the-fields
+		 */
+		statusOf(field) {
+			const value = this.form[field.key]
+			const key = isEmpty(value) ? '' : String(value)
+			const map = field.textMap && typeof field.textMap === 'object' ? field.textMap : null
+			let text = field.text ?? ''
+			if (!field.text && map) {
+				text = Object.hasOwn(map, key) ? map[key] : (map['*'] ?? '')
+			} else if (!field.text) {
+				text = key
+			}
+			const tones = field.toneMap && typeof field.toneMap === 'object' ? field.toneMap : {}
+			return {
+				text: interpolate(this.tr(text), (name) => (name === 'value' ? value : this.valueOf(name))),
+				tone: field.tone || (Object.hasOwn(tones, key) ? tones[key] : tones['*']) || 'info',
+			}
+		},
 
 		/**
 		 * @param {string} value A declared string.
@@ -348,16 +657,67 @@ export default {
 				this.errors = rest
 			}
 			this.notice = null
+			if (this.autoSave) {
+				clearTimeout(this.autoSaveTimer)
+				const typed = ['text', 'textarea', 'lines', 'number', 'secret', 'password', undefined].includes(field.type)
+				this.autoSaveTimer = setTimeout(() => this.save(), typed ? 600 : 0)
+			}
+		},
+
+		/**
+		 * Run an action field: put a random value in its `fill` field, or post
+		 * its `send` fields to its `url` and show the answer's sentence.
+		 *
+		 * @param {object} field The action field.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-a-status-note-and-an-action-sit-between-the-fields
+		 */
+		async runAction(field) {
+			const setState = (state) => {
+				this.actionStates = { ...this.actionStates, [field.key]: state }
+			}
+			if (field.fill && field.fill.key) {
+				const target = this.fields.find((candidate) => candidate && candidate.key === field.fill.key)
+				if (target) {
+					this.setValue(target, randomHex(field.fill.bytes))
+				}
+				setState({ busy: false, result: field.successText ? { type: 'success', text: this.tr(field.successText) } : null })
+				return
+			}
+			if (!field.url) {
+				return
+			}
+			setState({ busy: true, result: null })
+			const data = {}
+			for (const key of Array.isArray(field.send) ? field.send : []) {
+				const sent = this.fields.find((candidate) => candidate && candidate.key === key)
+				if (!(sent?.type === 'secret' && isEmpty(this.form[key]))) {
+					data[key] = this.form[key]
+				}
+			}
+			try {
+				const response = await axios.request({ url: prefixUrl(field.url), method: String(field.method || 'POST').toLowerCase(), data, ...ocsConfig(field.url) })
+				const answer = response?.data ?? {}
+				const said = literalFirst(answer, field.resultPath || 'message')
+				const ok = field.okPath ? isOn(literalFirst(answer, field.okPath)) : true
+				const text = typeof said === 'string' && said !== '' ? said : (this.tr(field.successText || '') || t('nextcloud-vue', 'Done.'))
+				setState({ busy: false, result: { type: ok ? 'success' : 'error', text } })
+			} catch (error) {
+				setState({ busy: false, result: { type: 'error', text: refusalMessage(error) } })
+			}
 		},
 
 		/**
 		 * Read the settings and fill the fields; a secret's value is never put
 		 * in the form, only whether one is stored.
 		 *
+		 * @param {boolean} quiet Read again without the loading state, keeping the form on screen.
 		 * @return {Promise<void>}
 		 */
-		async load() {
-			this.loading = true
+		async load(quiet = false) {
+			if (quiet !== true) {
+				this.loading = true
+			}
 			this.loadError = ''
 			try {
 				// One GET per distinct read target; the section's own target must
@@ -382,21 +742,25 @@ export default {
 				const form = {}
 				const stored = {}
 				const unreadable = {}
+				const own = this.readTarget ? answers[this.readTarget] : null
+				this.values = (own && this.valuesPath ? literalFirst(own, this.valuesPath) : own) || {}
 				for (const field of this.fields || []) {
-					if (!field || !field.key) {
+					if (!field || !field.key || field.type === 'heading' || field.type === 'action') {
 						continue
 					}
 					const target = this.readUrlOf(field)
 					if (target && failures[target]) {
 						unreadable[field.key] = t('nextcloud-vue', 'This value could not be loaded: {reason}', { reason: serverErrorMessage(failures[target]) })
 					}
-					const raw = this.readValue(field, target ? answers[target] : null)
+					const answer = target ? answers[target] : null
+					const raw = this.readValue(field, answer)
 					if (field.type === 'secret') {
-						stored[field.key] = raw !== null && raw !== undefined && raw !== '' && raw !== false
+						const flag = field.setKey ? this.readValue({ ...field, key: field.setKey, valuePath: field.setKey }, answer) : raw
+						stored[field.key] = field.setKey ? isOn(flag) : !isEmpty(flag) && flag !== false
 						form[field.key] = ''
 						continue
 					}
-					form[field.key] = raw === undefined ? (field.default ?? (field.type === 'switch' ? false : '')) : raw
+					form[field.key] = this.formValue(field, raw)
 				}
 				this.form = form
 				this.baseline = { ...form }
@@ -408,6 +772,44 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * A stored value as the field edits it: `default` for a missing or empty
+		 * value, a switch as on or off, a list as one entry per line.
+		 *
+		 * @param {object} field The field.
+		 * @param {unknown} raw The stored value.
+		 * @return {unknown}
+		 */
+		formValue(field, raw) {
+			const value = isEmpty(raw) && field.default !== undefined ? field.default : raw
+			if (field.type === 'switch' || field.type === 'boolean') {
+				return isEmpty(value) ? false : isOn(value)
+			}
+			if (field.type === 'lines') {
+				return linesText(value)
+			}
+			return value === undefined ? '' : value
+		},
+
+		/**
+		 * A form value as it is saved: a switch as its `trueValue`/`falseValue`,
+		 * a lines field as a list (or JSON text with `saveAs: 'json'`).
+		 *
+		 * @param {object} field The field.
+		 * @param {unknown} value The form value.
+		 * @return {unknown}
+		 */
+		savedValue(field, value) {
+			if ((field.type === 'switch' || field.type === 'boolean') && (field.trueValue !== undefined || field.falseValue !== undefined)) {
+				return value ? (field.trueValue ?? true) : (field.falseValue ?? false)
+			}
+			if (field.type === 'lines') {
+				const list = linesList(value)
+				return field.saveAs === 'json' ? JSON.stringify(list) : list
+			}
+			return value
 		},
 
 		/**
@@ -452,7 +854,7 @@ export default {
 			for (const field of this.resolvedFields) {
 				const value = this.form[field.key]
 				const empty = value === null || value === undefined || value === ''
-				if (field.type === 'switch' || field.type === 'image' || this.unreadable[field.key]) {
+				if (['switch', 'boolean', 'image', ...VALUELESS_TYPES].includes(field.type) || this.unreadable[field.key] || !this.isVisible(field)) {
 					continue
 				}
 				if (field.required && empty && !(field.type === 'secret' && field.secretSet)) {
@@ -470,6 +872,8 @@ export default {
 					const number = Number(value)
 					if (Number.isNaN(number)) {
 						errors[field.key] = t('nextcloud-vue', '{field} must be a number.', { field: field.label })
+					} else if (field.integer && !Number.isInteger(number)) {
+						errors[field.key] = t('nextcloud-vue', '{field} must be a whole number.', { field: field.label })
 					} else if (field.min !== undefined && number < field.min) {
 						errors[field.key] = t('nextcloud-vue', '{field} must be at least {min}.', { field: field.label, min: field.min })
 					} else if (field.max !== undefined && number > field.max) {
@@ -508,7 +912,7 @@ export default {
 			const groups = new Map()
 			for (const field of this.resolvedFields) {
 				const value = this.form[field.key]
-				if (field.type === 'image' || this.unreadable[field.key] || this.same(value, this.baseline[field.key])) {
+				if (field.type === 'image' || VALUELESS_TYPES.includes(field.type) || this.unreadable[field.key] || (!this.saveAll && this.same(value, this.baseline[field.key]))) {
 					continue
 				}
 				if (field.type === 'secret' && (value === '' || value === null || value === undefined)) {
@@ -523,7 +927,7 @@ export default {
 				const group = groups.get(id)
 				group.fields.push(field)
 				Object.assign(group.data, field.saveParams || {})
-				group.data[field.saveKey || field.key] = value
+				group.data[field.saveKey || field.key] = this.savedValue(field, value)
 			}
 			this.saving = true
 			this.notice = null
@@ -538,9 +942,15 @@ export default {
 					failed.push({ group, error })
 				}
 			}
+			if (failed.length === 0 && groups.size > 0 && this.reloadAfterSave) {
+				await this.load(true)
+			}
 			this.saving = false
 			if (failed.length === 0) {
-				this.notice = { type: 'success', text: t('nextcloud-vue', 'Saved.') }
+				if (groups.size === 0) {
+					return
+				}
+				this.notice = { type: 'success', text: this.savedMessage ? interpolate(this.tr(this.savedMessage), (name) => this.valueOf(name)) : t('nextcloud-vue', 'Saved.') }
 				/**
 				 * @event saved The section saved. Payload: what was sent, by save key.
 				 */
@@ -548,8 +958,8 @@ export default {
 				return
 			}
 			const reasons = failed.map(({ group, error }) => (groups.size > 1
-				? t('nextcloud-vue', '{fields}: {reason}', { fields: group.fields.map((field) => field.label).join(', '), reason: serverErrorMessage(error) })
-				: serverErrorMessage(error)))
+				? t('nextcloud-vue', '{fields}: {reason}', { fields: group.fields.map((field) => field.label).join(', '), reason: refusalMessage(error) })
+				: refusalMessage(error)))
 			this.notice = { type: 'error', text: t('nextcloud-vue', 'The settings could not be saved: {reason}', { reason: reasons.join('; ') }) }
 			/**
 			 * @event save-error A save request failed. Payload: the first error.
@@ -625,6 +1035,11 @@ export default {
 
 .cn-settings-fields__field--wide {
 	grid-column: 1 / -1;
+}
+
+.cn-settings-fields__hints-toggle {
+	display: flex;
+	justify-content: flex-end;
 }
 
 .cn-settings-fields__save {

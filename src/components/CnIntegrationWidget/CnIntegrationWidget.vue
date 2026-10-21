@@ -107,12 +107,22 @@
 						v-if="!isAvailable(singleProvider)"
 						:provider="singleProvider"
 						:reason="unavailableReason(singleProvider)" />
+					<CnLeafMountHost
+						v-else-if="isMountLeaf(singleProvider)"
+						:provider="singleProvider"
+						:mountProps="leafMountProps(singleProvider)" />
 					<component
 						:is="leafComponent(singleProvider)"
 						v-else
 						v-bind="leafProps(singleProvider)" />
 				</div>
 			</div>
+			<!-- The leaf is not registered: its app is absent or did not load. -->
+			<CnIntegrationWidgetEmpty
+				v-else-if="appName"
+				:provider="absentProvider"
+				reason="missing-app"
+				data-testid="cn-integration-widget-absent" />
 			<NcEmptyContent v-else :name="unknownLeafLabel" />
 		</template>
 
@@ -185,6 +195,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
 import CnIntegrationWidgetEmpty from './CnIntegrationWidgetEmpty.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { registerIntegrationIcons } from '../../integrations/icons.js'
@@ -206,7 +217,7 @@ const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'singl
 export default {
 	name: 'CnIntegrationWidget',
 
-	components: { NcEmptyContent, CnIcon, CnIntegrationWidgetEmpty, CnActionsMenu },
+	components: { NcEmptyContent, CnIcon, CnIntegrationWidgetEmpty, CnActionsMenu, CnLeafMountHost },
 
 	props: {
 		/**
@@ -285,6 +296,35 @@ export default {
 		 * @type {string}
 		 */
 		widgetId: { type: String, default: '' },
+
+		/**
+		 * The record's display name, handed to the leaf as `objectLabel` (a
+		 * leaf titles its panel or its dialog with it).
+		 *
+		 * @type {string}
+		 */
+		objectLabel: { type: String, default: '' },
+
+		/**
+		 * The surface the leaf itself is told it renders on, when it differs
+		 * from `surface` (a leaf placed in a dialog that draws its sidebar-tab
+		 * look: `sidebar-tab`). Empty passes `surface`.
+		 *
+		 * @type {string}
+		 */
+		leafSurface: { type: String, default: '' },
+
+		/**
+		 * The app that provides the `only` leaf, named in the empty state when
+		 * the leaf is not registered ("Decidiq not available"). Without it an
+		 * unregistered leaf shows the plain "not available" line.
+		 *
+		 * @type {string}
+		 */
+		appName: { type: String, default: '' },
+
+		/** The icon of that empty state (an MDI name). */
+		appIcon: { type: String, default: '' },
 	},
 
 	setup(props) {
@@ -393,6 +433,17 @@ export default {
 
 		noIntegrationsLabel() {
 			return t('nextcloud-vue', 'No integrations available yet.')
+		},
+
+		/**
+		 * The stand-in descriptor the empty state draws for an `only` leaf
+		 * that is not registered.
+		 *
+		 * @return {{id: string, appName: string, icon: string}}
+		 * @spec openspec/changes/integration-widget-mounts-leaves/specs/integration-widget-mounts-leaves/spec.md#requirement-a-single-integration-widget-mounts-a-mount-mode-leaf
+		 */
+		absentProvider() {
+			return { id: this.only, appName: this.appName, icon: this.appIcon }
 		},
 
 		unknownLeafLabel() {
@@ -538,7 +589,38 @@ export default {
 
 				objectType: this.objectType,
 				apiBase: this.apiBase,
-				surface: this.surface,
+				surface: this.leafSurface || this.surface,
+				...(this.objectLabel ? { objectLabel: this.objectLabel } : {}),
+			}
+		},
+
+		/**
+		 * Whether a leaf is a mount-mode leaf (ADR-066): it mounts its own
+		 * framework into a host element instead of being a component.
+		 *
+		 * @param {object} provider The descriptor.
+		 * @return {boolean}
+		 * @spec openspec/changes/integration-widget-mounts-leaves/specs/integration-widget-mounts-leaves/spec.md#requirement-a-single-integration-widget-mounts-a-mount-mode-leaf
+		 */
+		isMountLeaf(provider) {
+			return Boolean(provider)
+				&& provider.renderMode === 'mount'
+				&& typeof provider.mount === 'function'
+				&& typeof provider.unmount === 'function'
+		},
+
+		/**
+		 * What a mount-mode leaf is mounted with: the record context, also as
+		 * `integrationContext`, and the record's label.
+		 *
+		 * @param {object} provider The descriptor.
+		 * @return {object} The mount props.
+		 */
+		leafMountProps(provider) {
+			const props = this.leafProps(provider)
+			return {
+				...props,
+				integrationContext: { register: props.register, schema: props.schema, objectId: props.objectId },
 			}
 		},
 

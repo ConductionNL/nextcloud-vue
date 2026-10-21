@@ -5,13 +5,16 @@
 
 <template>
 	<CnAuditTrailCard
-		v-if="resolvedScope === 'app' || (resolvedRegister && resolvedSchema && resolvedObjectId)"
+		v-if="resolvedScope === 'app' || resolvedSource || resolvedEndpoint || (resolvedRegister && resolvedSchema && resolvedObjectId)"
+		:source="resolvedSource"
+		:endpoint="resolvedEndpoint"
 		:register="resolvedRegister"
 		:schema="resolvedSchema"
 		:objectId="resolvedObjectId"
 		:scope="resolvedScope"
 		:title="resolvedTitle"
-		:maxDisplay="resolvedMaxDisplay" />
+		:maxDisplay="resolvedMaxDisplay"
+		v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
 </template>
 
 <script>
@@ -42,6 +45,8 @@ export default {
 	components: { CnAuditTrailCard },
 
 	inject: {
+		/** The host app's translate function, for `content.emptyText`. */
+		cnTranslate: { default: () => (key) => key },
 		/**
 		 * Detail-page object context (`{ objectId, object, register, schema }`)
 		 * provided by CnDetailPage (raw object or `{ value }` holder).
@@ -80,7 +85,11 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-audit-trail-widget-reads-the-app-wide-feed
 		 */
 		scope: { type: String, default: '' },
-		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId? }`. */
+		/** Read the trail of something that is not an object (`{ kind: 'flow-task', id? }`); also read from `content.source`. */
+		source: { type: Object, default: null },
+		/** A trail URL of its own; also read from `content.endpoint`. */
+		endpoint: { type: String, default: '' },
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 
@@ -141,6 +150,26 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/** @return {object|null} The non-object anchor, from the prop or the content. */
+		resolvedSource() {
+			const source = this.source || this.content.source
+			return source && typeof source === 'object' ? source : null
+		},
+
+		/** @return {string} The trail URL of its own, from the prop or the content. */
+		resolvedEndpoint() {
+			return this.endpoint || (typeof this.content.endpoint === 'string' ? this.content.endpoint : '')
+		},
+
+		/** @return {string} The empty line the content names, through the host's translate, or ''. */
+		emptyText() {
+			const text = this.content.emptyText
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
 		resolvedTitle() {
 			return this.title || this.content.title || ''
 		},

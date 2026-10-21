@@ -67,3 +67,31 @@ An `image` field SHALL show the image at its value's url, or up to two initials 
 
 - **WHEN** the administrator uploads a logo
 - **THEN** it is posted with `key=logo` and the tile shows the new logo
+
+### Requirement: A field can depend on another
+
+A field with `visibleWhen` (`{ key, equals?, notEquals?, in?, empty? }`, or a list of them that must all hold) SHALL show only while its condition holds over the form and the values the section read. A hidden field SHALL not be checked on save. A `default` SHALL stand in for a stored value that is missing or empty. A switch SHALL read `1`, `true`, `yes` and `on` as on and SHALL save its `trueValue`/`falseValue` when declared. A `radio` field SHALL offer its options as radio buttons, each with its `description` under it. A `lines` field SHALL edit a list one entry per line and SHALL save it without empty lines or repeats, as JSON text with `saveAs: 'json'`. A secret with `setKey` SHALL say it is stored from that key.
+
+#### Scenario: A model address only for a cloud model
+
+- **WHEN** the model type is `local`
+- **THEN** the field with `visibleWhen: { key: 'modelType', equals: 'cloud' }` is not drawn and not checked
+
+#### Scenario: A stored "0" is off
+
+- **WHEN** the server answers `'0'` for a switch with `trueValue: '1'` and `falseValue: '0'`
+- **THEN** the switch is off, and switching it on saves `'1'`
+
+### Requirement: A status note and an action sit between the fields
+
+A `status` field SHALL draw a read-only note: its `text`, or its `textMap` entry for the value read at its key (`*` for any other value), with `{name}` filled from the form and the values read, in the `tone` or `toneMap` tone; an empty text SHALL hide it. A `heading` field SHALL draw a subheading. An `action` field SHALL draw a button that posts its `send` fields to its `url` and shows the answer's sentence at `resultPath` (an error when `okPath` reads false, and the server's own sentence when the request fails), or with `fill` SHALL put a random hexadecimal value in that field. None of the three SHALL be saved. A section SHALL show `savedMessage` after a save, read its values again with `reloadAfterSave`, save each change at once with `autoSave`, and draw no card with `bare`. A refused save SHALL show the body's `message` sentence over its rule code.
+
+#### Scenario: A test that fails says why
+
+- **WHEN** the administrator presses "Test connection" and the server answers `{ healthy: false, message: 'Model not reachable' }`
+- **THEN** the field shows "Model not reachable" as an error note
+
+#### Scenario: An unusable account is reported
+
+- **WHEN** the section reads `{ usable: false, reason: 'disabled' }`
+- **THEN** the status note with `textMap.disabled` shows, as a warning

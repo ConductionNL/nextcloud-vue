@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.137.0', () => {
+	it('the manifest schema version reads 2.138.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1414,7 +1414,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.135.0 adds $defs.headerAction / headerLinkAction: href with target "_blank" / "_self" on header actions, their children, quick actions and stage actions, a header action that is a real link (header-action-href, nextcloud-vue#1314).
 		// 2.136.0 lets nextStep's title and a stage's title and after be a list of candidates, each naming record fields as {path} tokens (board-case-page).
 		// 2.137.0 lets open-form edit and create through an endpoint (open-form-endpoint), a grouped-cards group carry an action (grouped-cards-group-action), a detail page ask for a purpose before it opens a record (detail-access-purpose), an api-call GET a download (api-call-get-download) and headerPill.values limit a pill to some values (detail-pill-values).
-		expect(schema.version).toBe('2.137.0')
+		// 2.138.0 adds after and before on a row indicator, a date bound that is now or an ISO date (cell-config-growth).
+		expect(schema.version).toBe('2.138.0')
 	})
 
 	it('accepts the 2.135.0 header action href and refuses it with a handler, another type or a bad URL', () => {

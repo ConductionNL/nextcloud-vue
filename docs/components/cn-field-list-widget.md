@@ -54,7 +54,7 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `rowSource` | `{ url, path?, key }`: live per-row state merged over each entry by key, never written back. |
 | `add` | `{ label?, fields[], unique?, defaults? }`. A field is `{ key, label, type?: "text" \| "select", options?, required?, pattern?, patternMessage?, default? }`. `unique` refuses an entry whose key is already stored. `defaults` are written with every new entry. |
 | `remove` | `{ label? }`: a remove button per row. Omitted: no remove. |
-| `readOnly` | No add form, no remove, no row actions. |
+| `readOnly` | No add form, no remove, no request row actions (dialog row actions stay). |
 | `hint`, `emptyText` | Muted texts. |
 
 `when` is `{ field: value }`, every field equal; `false` also matches an absent value. Labels, map values, templates, hint and empty text go through the host app's `cnTranslate`.
@@ -93,7 +93,10 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `columns[]` | `{ header, path, map?, format?, strong?, pill?, variantMap? }`: a cell reads the entry like a row part (`map`, `format`); `pill` draws a status pill (`variantMap` picks the colour); `strong` makes the cell bold. |
 | menu | Each row gets a "..." menu named after the row with its row actions (not those with `placement: "band"`) and remove. |
 | `row.detail` | In the table variant: a warning band under the table, one per matching row, with the row actions marked `placement: "band"` as buttons. |
-| `rowActions[].placement` | `"band"` puts the action in the warning band instead of the menu. |
+| `rowActions[].placement` | `"band"` puts the action in the warning band instead of the menu; `"inline"` draws it as a button in the row, named by `ariaLabel` (a template filled from the row, such as `"Compare {fileName} with the original"`). |
+| `rowActions[].dialog` | `{ id, label, dialog, props }` opens the modal registered under `dialog` in the app registry (`cnOpenModal`) instead of sending a request. `props` values are templates with `@objectId`, `@object.<field>`, `@row.<field>` and `@index`; a `/apps/...` value becomes an absolute url. A dialog action shows in a `readOnly` list too, since it writes nothing, and only on rows where every token in its props fills. |
+| `rowActions[].when` | Besides `{ field: value }`, a field may take operators `{ eq?, neq?, set? }`, where an operand `@row.<field>` (or `@<field>`) is another field of the same row: `{ deliveredRef: { set: true, neq: '@originalRef' } }`. |
+| `columns[].code` | Draw the cell as code (a hash, an id). |
 | `add.trigger` | `"button"`: the add form shows only after a "+ label" button; it closes after a successful add. |
 | `add.placement` | `"header"` (button above the rows, right-aligned) or `"footer"` (default). |
 
