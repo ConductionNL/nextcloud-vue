@@ -1974,7 +1974,8 @@
     "Other open tasks": "Other open tasks",
     "Task {title} finished": "Task {title} finished",
     "Task {title} is yours": "Task {title} is yours",
-    "Fill in {field} before completing this task": "Fill in {field} before completing this task"
+    "Fill in {field} before completing this task": "Fill in {field} before completing this task",
+    "Search in this list": "Search in this list"
   },
   "plurals": {
     "{count} member": [
