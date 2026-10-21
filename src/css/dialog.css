@@ -282,6 +282,19 @@
 	border-radius: 8px;
 }
 
+/* A field's help line sits right under the control in 13px muted ink, flush
+   with the label, as the boards draw it (PtUitnodigen "De uitnodiging met een
+   eenmalige code gaat naar dit adres.", PtAccountUitgeven). The ink carries
+   `!important` against a theme that colours every span and p (thematiq).
+   @spec openspec/changes/board-dialog-field-help/specs/board-dialog-field-help/spec.md#requirement-a-board-dialog-fields-help-line-is-13px-muted-under-the-control */
+.cn-dialog-board .dialog__content .input-field__helper-text-message,
+.cn-dialog-board .dialog__content .textarea__helper-text-message {
+	padding: 4px 0 0;
+	color: var(--color-text-maxcontrast) !important;
+	font-size: 13px;
+	line-height: 1.3;
+}
+
 .cn-dialog-board .dialog__content .input-field:has(.input-field__label) .input-field__input:not(:focus)::placeholder,
 .cn-dialog-board .dialog__content .textarea__input:not(:focus)::placeholder {
 	opacity: 1 !important;
