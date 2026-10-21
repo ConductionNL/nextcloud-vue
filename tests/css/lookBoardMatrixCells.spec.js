@@ -52,6 +52,6 @@ describe('board matrix chart', () => {
 		expect(ruleEndingWith(widget, '.cn-chart-widget__matrix-cell--1'))
 			.toContain('--nldesign-color-on-surface: var(--color-primary-element-light-text)')
 		expect(ruleEndingWith(widget, '.cn-chart-widget__matrix-cell--4'))
-			.toContain('--nldesign-color-on-surface: var(--color-primary-element-text)')
+			.toContain('--nldesign-color-on-surface: var(--color-primary-element-light)')
 	})
 })
