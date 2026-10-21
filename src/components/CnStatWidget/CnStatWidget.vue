@@ -708,26 +708,7 @@ export default {
 				const zero = count !== null && this.content.captionSource.zeroText
 				return typeof zero === 'string' && zero !== '' ? this.effectiveTranslate(zero) : ''
 			}
-			const translated = this.effectiveTranslate(caption)
-			if (translated.indexOf('{') === -1) {
-				return translated
-			}
-			const payload = this.endpointMode ? this.epData : null
-			return translated.replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
-				// `{count}` is the caption's own count; `{ratio}` the same
-				// for a ratio caption, as a percentage.
-				if ((path === 'count' || (path === 'ratio' && this.isCaptionRatio)) && counted) {
-					return this.isCaptionRatio ? this.formatCaptionRatio(count) : String(count)
-				}
-				// `{value}` is the tile's own number, so a caption can read
-				// "{value} due today" on a register-counted tile that has no
-				// payload to read fields from.
-				if (path === 'value' && (payload === null || getByPath(payload, path) === undefined)) {
-					return this.formattedValue === undefined || this.formattedValue === null ? '' : String(this.formattedValue)
-				}
-				const v = getByPath(payload, path)
-				return (v === undefined || v === null) ? '' : String(v)
-			}).replace(/\s{2,}/g, ' ').trim()
+			return this.fillPlaceholders(this.effectiveTranslate(caption), counted, count)
 		},
 
 		/**
@@ -803,14 +784,15 @@ export default {
 
 		/**
 		 * The second caption line: `content.note` through the host translate
-		 * function, or '' without it.
+		 * function with its `{path}` placeholders filled like the caption's,
+		 * or '' without it.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stat-tile-can-carry-a-second-caption-line
 		 * @return {string}
 		 */
 		resolvedNote() {
 			const note = this.content && this.content.note
-			return typeof note === 'string' && note !== '' ? this.effectiveTranslate(note) : ''
+			return typeof note === 'string' && note !== '' ? this.fillPlaceholders(this.effectiveTranslate(note), false, null) : ''
 		},
 
 		/**
@@ -1659,6 +1641,38 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Fill the `{path}` placeholders of a translated text: `{count}` and
+		 * `{ratio}` from the caption's own count, `{value}` from the tile's
+		 * number, anything else from the endpoint answer.
+		 *
+		 * @param {string} translated The translated text.
+		 * @param {boolean} counted Whether the caption has a count of its own.
+		 * @param {number|null} count That count.
+		 * @return {string}
+		 */
+		fillPlaceholders(translated, counted, count) {
+			if (translated.indexOf('{') === -1) {
+				return translated
+			}
+			const payload = this.endpointMode ? this.epData : null
+			return translated.replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
+				// `{count}` is the caption's own count; `{ratio}` the same
+				// for a ratio caption, as a percentage.
+				if ((path === 'count' || (path === 'ratio' && this.isCaptionRatio)) && counted) {
+					return this.isCaptionRatio ? this.formatCaptionRatio(count) : String(count)
+				}
+				// `{value}` is the tile's own number, so a caption can read
+				// "{value} due today" on a register-counted tile that has no
+				// payload to read fields from.
+				if (path === 'value' && (payload === null || getByPath(payload, path) === undefined)) {
+					return this.formattedValue === undefined || this.formattedValue === null ? '' : String(this.formattedValue)
+				}
+				const v = getByPath(payload, path)
+				return (v === undefined || v === null) ? '' : String(v)
+			}).replace(/\s{2,}/g, ' ').trim()
+		},
+
 		/**
 		 * Step the number's font down until it fits its row, instead of the
 		 * card clipping it ("€ 1.012.4" in a narrow tile). A value that fits
