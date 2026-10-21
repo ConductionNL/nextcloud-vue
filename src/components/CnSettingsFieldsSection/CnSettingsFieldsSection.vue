@@ -354,13 +354,15 @@ export default {
 		 * uploadField?, uploadParams?, uploadValuePath?, initials?, initialsFrom?,
 		 * visibleWhen?, trueValue?, falseValue?, setKey?, saveAs?, text?, textMap?,
 		 * tone?, toneMap?, method?, send?, resultPath?, okPath?, successText?, failureText?, fill?,
-		 * multiple?, keyLabel?, valueLabel?, valueType?, addLabel?, path?, scope? }]`.
+		 * multiple?, keyLabel?, valueLabel?, valueType?, valueAbove?, valueMessage?, addLabel?,
+		 * path?, scope? }]`.
 		 * `type` is `text` (default), `textarea`, `number`, `switch`, `select`,
 		 * `radio`, `checkboxes`, `pairs`, `lines`, `secret`, `image`, `heading`,
 		 * `status` or `action`. A `checkboxes` field (or a `select` with
 		 * `multiple`) saves its choices as a list, or with `saveAs` `json` or
 		 * `csv` as JSON or comma text. A `pairs` field edits key-to-value rows
-		 * and saves them as one object (JSON text with `saveAs: 'json'`). A
+		 * and saves them as one object (JSON text with `saveAs: 'json'`); its
+		 * `pattern` checks each key and `valueAbove` each value. A
 		 * field with `path: 'setting.key'` edits one key inside a JSON-valued
 		 * setting and saves the whole setting back. A field with `scope: true`
 		 * is never saved: its value fills `{key}` in the urls, and a change
@@ -1011,10 +1013,19 @@ export default {
 					continue
 				}
 				if (field.type === 'pairs') {
-					const keys = value.map((row) => String(row?.key ?? '').trim()).filter(Boolean)
+					const rows = value.filter((row) => String(row?.key ?? '').trim() !== '')
+					const keys = rows.map((row) => String(row.key).trim())
 					const twice = keys.find((key, at) => keys.indexOf(key) !== at)
+					const badKey = field.pattern ? keys.find((key) => !new RegExp(field.pattern).test(key)) : undefined
+					const badValue = field.valueAbove !== undefined
+						? rows.find((row) => isEmpty(row.value) || Number.isNaN(Number(row.value)) || Number(row.value) <= field.valueAbove)
+						: undefined
 					if (twice) {
 						errors[field.key] = t('nextcloud-vue', '{field} holds {key} twice.', { field: field.label, key: twice })
+					} else if (badKey !== undefined) {
+						errors[field.key] = field.patternMessage ? this.tr(field.patternMessage) : t('nextcloud-vue', '{field} is not in the right form.', { field: field.label })
+					} else if (badValue) {
+						errors[field.key] = field.valueMessage ? this.tr(field.valueMessage) : t('nextcloud-vue', 'The value for {key} must be above {min}.', { key: String(badValue.key).trim(), min: field.valueAbove })
 					}
 					continue
 				}

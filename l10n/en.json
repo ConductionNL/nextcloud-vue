@@ -1681,6 +1681,7 @@
     "Please make a selection to continue.": "Please make a selection to continue.",
     "Please run this step before continuing.": "Please run this step before continuing.",
     "Stored. Type a new value to replace it.": "Stored. Type a new value to replace it.",
+    "The value for {key} must be above {min}.": "The value for {key} must be above {min}.",
     "Add a row": "Add a row",
     "Key": "Key",
     "{field} holds {key} twice.": "{field} holds {key} twice.",

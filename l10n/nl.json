@@ -1881,6 +1881,7 @@
     "Please make a selection to continue.": "Maak een keuze om verder te gaan.",
     "Please run this step before continuing.": "Voer deze stap uit voor je verdergaat.",
     "Stored. Type a new value to replace it.": "Opgeslagen. Typ een nieuwe waarde om die te vervangen.",
+    "The value for {key} must be above {min}.": "De waarde voor {key} moet hoger zijn dan {min}.",
     "Add a row": "Een rij toevoegen",
     "Key": "Sleutel",
     "{field} holds {key} twice.": "{field} bevat {key} twee keer.",

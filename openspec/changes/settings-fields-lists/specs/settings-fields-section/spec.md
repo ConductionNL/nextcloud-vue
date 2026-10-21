@@ -24,7 +24,7 @@ A `checkboxes` field SHALL draw its `options` as checkboxes in a fieldset whose 
 
 ### Requirement: A field can hold key-to-value rows
 
-A `pairs` field SHALL draw one row per stored key, each with a labelled key input, a labelled value input (a number input with `valueType: 'number'`) and a remove button named after the row's key, and an add button under the rows. It SHALL save the rows with a key as one object, or as JSON text with `saveAs: 'json'`, and refuse two rows with the same key with "<label> holds <key> twice.".
+A `pairs` field SHALL draw one row per stored key, each with a labelled key input, a labelled value input (a number input with `valueType: 'number'`) and a remove button named after the row's key, and an add button under the rows. It SHALL save the rows with a key as one object, or as JSON text with `saveAs: 'json'`, and refuse two rows with the same key with "<label> holds <key> twice.", a key that fails `pattern` with `patternMessage`, and with `valueAbove` a value that is not above it with `valueMessage`.
 
 #### Scenario: Adding an exchange rate
 

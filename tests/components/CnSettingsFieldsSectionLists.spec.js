@@ -162,6 +162,25 @@ describe('CnSettingsFieldsSection key-to-value rows', () => {
 		expect(axios.request).not.toHaveBeenCalled()
 		expect(field(wrapper, 'rates').text()).toContain('Exchange rates holds USD twice.')
 	})
+	it('checks each key against pattern and each value against valueAbove', async () => {
+		axios.get.mockResolvedValue({ data: { rates: { USD: 1 } } })
+		const fields = [{ ...RATES, pattern: '^[A-Z]{3}$', patternMessage: 'Use a three-letter currency code for every rate.', valueAbove: 0, valueMessage: 'Every rate must be a number above zero.' }]
+		const wrapper = await mountSection({ fields })
+		await field(wrapper, 'rates').find('[data-testid="cn-settings-field-pair-add-rates"]').trigger('click')
+		let added = field(wrapper, 'rates').findAll('[data-testid="cn-settings-field-pair-rates"]')[1]
+		await added.findAll('input')[0].setValue('DOLLAR')
+		await added.findAll('input')[1].setValue('2')
+		await submit(wrapper)
+		expect(axios.request).not.toHaveBeenCalled()
+		expect(field(wrapper, 'rates').text()).toContain('Use a three-letter currency code for every rate.')
+
+		added = field(wrapper, 'rates').findAll('[data-testid="cn-settings-field-pair-rates"]')[1]
+		await added.findAll('input')[0].setValue('GBP')
+		await added.findAll('input')[1].setValue('0')
+		await submit(wrapper)
+		expect(axios.request).not.toHaveBeenCalled()
+		expect(field(wrapper, 'rates').text()).toContain('Every rate must be a number above zero.')
+	})
 })
 
 describe('CnSettingsFieldsSection paths and scope', () => {

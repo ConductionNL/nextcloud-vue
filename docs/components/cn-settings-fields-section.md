@@ -72,7 +72,7 @@ fields: [
 ## Lists, rows, a key of a JSON setting, and a scope
 
 - A `checkboxes` field draws its `options` as checkboxes in a fieldset named by the label. Its value is the list of checked values, in option order. A `select` with `multiple: true` is the same as a multi-select. It saves a list, or JSON text with `saveAs: 'json'`, or comma text with `saveAs: 'csv'`, and reads any of the three back. `required` refuses an empty choice.
-- A `pairs` field edits key-to-value rows: a key input (`keyLabel`, `keyMaxLength`), a value input (`valueLabel`; `valueType: 'number'` for a number), a remove button per row and an add button (`addLabel`). It saves the rows that have a key as one object, or JSON text with `saveAs: 'json'`, and refuses a key that appears twice.
+- A `pairs` field edits key-to-value rows: a key input (`keyLabel`, `keyMaxLength`), a value input (`valueLabel`; `valueType: 'number'` for a number), a remove button per row and an add button (`addLabel`). It saves the rows that have a key as one object, or JSON text with `saveAs: 'json'`. It refuses a key that appears twice, a key that fails `pattern` (with `patternMessage`), and with `valueAbove` a value that is not above it (with `valueMessage`).
 - `path: 'vat_rates.high'` edits one key inside a JSON-valued setting. A save sends the whole setting back: the value read, with every field of the section whose `path` lies in it set from the form, as JSON text when it was read as text.
 - A field with `scope: true` picks which record the section edits. Its value (its `default` until changed) fills `{key}` in `url`, `saveUrl` and the fields' urls, and a change reads the section again. It is never saved and never makes the section dirty.
 
@@ -126,7 +126,7 @@ fields: [
 | `setKey` | The key that says a secret is stored. |
 | `saveAs` | `'json'`: a lines, multi-choice or pairs field saves JSON text; `'csv'`: a multi-choice field saves comma text. |
 | `multiple` | A select that takes several values, saved as a list. |
-| `keyLabel`, `valueLabel`, `valueType`, `keyMaxLength`, `addLabel` | A pairs field's inputs and add button. |
+| `keyLabel`, `valueLabel`, `valueType`, `keyMaxLength`, `addLabel`, `valueAbove`, `valueMessage` | A pairs field's inputs, add button and value check. |
 | `path` | `setting.key`: edit one key inside a JSON-valued setting. |
 | `scope` | The value fills `{key}` in the urls and reloads the section; never saved. |
 | `integer` | A number must be whole. |
