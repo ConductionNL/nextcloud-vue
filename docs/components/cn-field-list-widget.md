@@ -57,6 +57,10 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `readOnly` | No add form, no remove, no request row actions (dialog row actions stay). |
 | `hint`, `emptyText` | Muted texts. |
 | `row.href` | Path of a link for the row title. Only http(s) and root-relative links are drawn; an absolute one opens in a new tab. A row with no safe link shows its title as text. |
+| `row.href` as `{ path, scheme }` | `scheme` `mailto` or `tel`: the title links to `mailto:<value>` or `tel:<digits>`. |
+| `edit` | `true` or `{ label?, saveLabel? }`: an Edit button per row (named "Edit: <title>") opens the add form prefilled; saving replaces that entry in the same one PATCH. Not in `readOnly`. |
+| `add.fields[].type: "checkbox"` | A switch; its value is `true` or `false`. |
+| `add.exclusive` | Flags (`["primary"]`) only one entry may hold: an entry added or edited with the flag `true` clears it on every other entry. |
 | `lead` | A bold line above the rows, translated, with `{path}` placeholders filled from the object (`"Question about the dossier \"{subjectReference.title}\""`). |
 | `afterSave` | `{ url, method?, body?, failureText? }`: called after every save that went through, with `@objectId` / `@object.<field>` tokens (a contacts write-back). When it fails, the save stands and `failureText` shows as a warning. |
 
