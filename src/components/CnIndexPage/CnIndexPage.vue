@@ -2510,6 +2510,43 @@ export default {
 		},
 
 		/**
+		 * The page sits on a page without a router, such as an app's admin
+		 * settings page. Opening a row (a click or the View action) never
+		 * navigates: it opens `rowModal` through the host's `cnOpenModal`, else
+		 * the built-in form dialog on the row. A host that listens to
+		 * `row-click` and declares no `rowModal` still hears the click.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/index-page-embedded/specs/index-page/spec.md#requirement-an-embedded-index-page-opens-rows-in-place
+		 */
+		embedded: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The registry modal an embedded page opens on a row, through the
+		 * host's `cnOpenModal`, with `rowModalProps` plus `objectId` and
+		 * `object` (the row).
+		 *
+		 * @type {string}
+		 */
+		rowModal: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Extra props for `rowModal`.
+		 *
+		 * @type {object}
+		 */
+		rowModalProps: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * The page's `splitView` declaration: `{ enabled, breakpoint, paneWidth }`.
 		 * With `enabled`, opening a row renders it beside the list in the
 		 * `#split-pane` slot instead of navigating away, and the list keeps its
@@ -4390,6 +4427,9 @@ export default {
 		 * @return {boolean}
 		 */
 		rowClickOpens() {
+			if (this.embedded && (this.embeddedRowModal || (this.showFormDialog && !this.$.vnode.props?.onRowClick))) {
+				return true
+			}
 			if (!this.rowClickToView) {
 				return false
 			}
@@ -4399,6 +4439,11 @@ export default {
 				return true
 			}
 			return !!this.$.vnode.props?.onRowClick
+		},
+
+		/** @return {boolean} Whether an embedded page opens its rows in `rowModal` through the host. */
+		embeddedRowModal() {
+			return this.embedded && this.rowModal !== '' && typeof this.cnOpenModal === 'function'
 		},
 
 		/**
@@ -11064,6 +11109,9 @@ export default {
 		 * @param {MouseEvent|KeyboardEvent} [event] The originating click event.
 		 */
 		onRowClick(row, event) {
+			if (this.openEmbeddedRow(row)) {
+				return
+			}
 			if (!this.routeClickedRow(row, event)) {
 				return
 			}
@@ -11447,7 +11495,34 @@ export default {
 		 * @param {object} row The row whose View action was triggered
 		 */
 		onView(row) {
+			if (this.openEmbeddedRow(row)) {
+				return
+			}
 			this.$emit('view', row)
+		},
+
+		/**
+		 * Open a row in place on an embedded page: its `rowModal` through the
+		 * host, else the built-in form dialog, unless the host listens to
+		 * `row-click` itself.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean} Whether the row was opened.
+		 * @spec openspec/changes/index-page-embedded/specs/index-page/spec.md#requirement-an-embedded-index-page-opens-rows-in-place
+		 */
+		openEmbeddedRow(row) {
+			if (!this.embedded || !row) {
+				return false
+			}
+			if (this.embeddedRowModal) {
+				this.cnOpenModal(this.rowModal, { ...this.rowModalProps, objectId: row[this.rowKey] ?? row.id, object: row })
+				return true
+			}
+			if (this.showFormDialog && !this.$.vnode.props?.onRowClick) {
+				this.openFormDialog(row)
+				return true
+			}
+			return false
 		},
 
 		/**
