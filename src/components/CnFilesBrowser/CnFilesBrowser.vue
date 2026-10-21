@@ -130,6 +130,19 @@
 				</template>
 				{{ hostLabel(action) }}
 			</NcButton>
+			<!-- New folder as its own button, when the host names it
+			     (`folderButton`): a bar without the New menu still creates
+			     folders. -->
+			<NcButton v-if="folderButton && canChange"
+				variant="secondary"
+				:disabled="folder === null"
+				data-testid="cn-files-browser-new-folder-button"
+				@click="askNewFolder">
+				<template #icon>
+					<FolderPlusOutline :size="20" />
+				</template>
+				{{ newFolderLabel }}
+			</NcButton>
 			<!-- @slot header-actions Buttons in the bar, before the upload button. -->
 			<slot name="header-actions" />
 			<!-- A plain upload as its own button, when the host names it
@@ -750,6 +763,7 @@ import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
+import FolderPlusOutline from 'vue-material-design-icons/FolderPlusOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -796,6 +810,7 @@ export default {
 		Download,
 		FileOutline,
 		FolderOutline,
+		FolderPlusOutline,
 		NcActionButton,
 		NcActionCheckbox,
 		NcActionLink,
@@ -1032,6 +1047,17 @@ export default {
 		newMenu: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Show New folder as a button in the bar, before the host's buttons.
+		 * With `newMenu: false` it keeps folder creation in reach.
+		 *
+		 * @spec openspec/changes/files-browser-toolbar-actions/specs/files-browser/spec.md#requirement-the-host-can-put-new-folder-in-the-bar-as-a-button
+		 */
+		folderButton: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Label of the upload button `uploadButton` shows. */

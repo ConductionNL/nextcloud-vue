@@ -8,7 +8,9 @@ menu entries (`newActions`) and a primary upload button (`uploadButton`), but al
 
 ## What changes
 
-CnFilesBrowser takes `newMenu` (default `true`); `false` leaves the New menu out. CnFilesTab forwards it. A host now
+CnFilesBrowser takes `newMenu` (default `true`); `false` leaves the New menu out. It also takes `folderButton` (default
+`false`), which puts New folder in the bar as a button, so a bar without the menu still creates folders. CnFilesTab
+forwards both. A host now
 chooses each action's place: a button in the bar (`headerActions`), an entry in the New menu (`newActions`), the upload
 as a button (`uploadButton`), and whether the New menu is there at all (`newMenu`).
 
