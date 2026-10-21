@@ -80,6 +80,34 @@ export const FLOW_LAYOUT_MARGIN = 60
 export const FLOW_LAYOUT_TOP = 96
 
 /**
+ * Vertical distance between layers when the run reads top to bottom
+ * (`direction: 'down'`), in canvas pixels: a step card (~62px) plus room for
+ * the line and its arrowhead, as DqFlow draws its steps 100 to 110px apart.
+ *
+ * @type {number}
+ */
+export const FLOW_LAYOUT_LAYER_HEIGHT_DOWN = 110
+
+/**
+ * Where a node sits, from its layer (run order) and its lane (branch).
+ *
+ * `right` (default): layers are columns left to right, lanes are rows.
+ * `down`: layers are rows top to bottom, lanes are columns.
+ *
+ * @param {number} layer Zero-based layer.
+ * @param {number} lane Zero-based lane.
+ * @param {string} direction `right` or `down`.
+ * @param {number} top The y of the first layer or row.
+ * @return {{x: number, y: number}} The point.
+ */
+function cellPoint(layer, lane, direction, top) {
+	if (direction === 'down') {
+		return { x: FLOW_LAYOUT_MARGIN + (lane * FLOW_LAYOUT_COLUMN_WIDTH), y: top + (layer * FLOW_LAYOUT_LAYER_HEIGHT_DOWN) }
+	}
+	return { x: FLOW_LAYOUT_MARGIN + (layer * FLOW_LAYOUT_COLUMN_WIDTH), y: top + (lane * FLOW_LAYOUT_ROW_HEIGHT) }
+}
+
+/**
  * The position a node carries, in either of the two spellings in circulation.
  *
  * The server stores `position: {x, y}`; the editor writes flat `x`/`y` in
@@ -324,9 +352,11 @@ function orderRows(nodes, lines, columns) {
  * @param {Array<object>} nodes The flow's nodes.
  * @param {Array<{source: string, target: string}>} lines The expanded edges.
  * @param {Array<string>} startIds The ids a run enters through.
+ * @param {object} [options] `{ direction }`: `right` (default) runs left to
+ *   right, `down` runs top to bottom with branches side by side.
  * @return {Array<object>} New node objects carrying computed positions.
  */
-export function layoutFlowNodes(nodes, lines, startIds) {
+export function layoutFlowNodes(nodes, lines, startIds, options = {}) {
 	const list = Array.isArray(nodes) ? nodes : []
 	if (!list.length) {
 		return []
@@ -336,8 +366,7 @@ export function layoutFlowNodes(nodes, lines, startIds) {
 	const rows = orderRows(list, lines, columns)
 
 	return list.map((node) => {
-		const x = FLOW_LAYOUT_MARGIN + (columns.get(node.id) * FLOW_LAYOUT_COLUMN_WIDTH)
-		const y = FLOW_LAYOUT_TOP + (rows.get(node.id) * FLOW_LAYOUT_ROW_HEIGHT)
+		const { x, y } = cellPoint(columns.get(node.id), rows.get(node.id), options.direction, FLOW_LAYOUT_TOP)
 		return { ...node, x, y, position: { x, y } }
 	})
 }
@@ -359,9 +388,10 @@ export function layoutFlowNodes(nodes, lines, startIds) {
  * @param {Array<object>} nodes The flow's nodes, some positioned and some not.
  * @param {Array<{source: string, target: string}>} lines The expanded edges.
  * @param {Array<string>} startIds The ids a run enters through.
+ * @param {object} [options] `{ direction }`, as {@link layoutFlowNodes}.
  * @return {Array<object>} The same array shape, loose nodes placed beneath.
  */
-export function placeLooseNodes(nodes, lines, startIds) {
+export function placeLooseNodes(nodes, lines, startIds, options = {}) {
 	const list = Array.isArray(nodes) ? nodes : []
 	const loose = list.filter((node) => readNodePoint(node) === null)
 	if (!loose.length) {
@@ -395,8 +425,7 @@ export function placeLooseNodes(nodes, lines, startIds) {
 		const row = rowsTaken.get(column) || 0
 		rowsTaken.set(column, row + 1)
 
-		const x = FLOW_LAYOUT_MARGIN + (column * FLOW_LAYOUT_COLUMN_WIDTH)
-		const y = top + (row * FLOW_LAYOUT_ROW_HEIGHT)
+		const { x, y } = cellPoint(column, row, options.direction, top)
 		return { ...node, x, y, position: { x, y } }
 	})
 }

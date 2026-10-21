@@ -21,6 +21,8 @@ Pair it with [`CnFlowSidebar`](./cn-flow-sidebar.md), which holds the palette, s
 | `id` | `String` | `null` | The flow uuid to open. The literal `new` starts a flow holding only the manual-trigger start node, so creating and editing share one page **and one look**. |
 | `app` | `String` | `null` | The owning app id. Scopes the list and is stamped on a new flow. |
 | `run` | `String` | `''` | A run to open on the canvas, painting each step's outcome. |
+| `layoutDirection` | `String` | `'right'` | How the automatic layout runs: `right` left to right, `down` top to bottom with branches side by side. |
+| `fitMaxZoom` | `Number` | `0` | The most the first frame may zoom in. `0` allows `maxZoom`; `1` keeps a graph that fits at its own size. |
 | `toolbarActions` | `Boolean` | `true` | Show Save, Run and Check in the toolbar. Off when the host draws them, as the board-look editor does in its header. |
 | `addStep` | `Boolean` | `true` | Show "Add a step" in the toolbar. Off when the host draws a palette beside the canvas. |
 

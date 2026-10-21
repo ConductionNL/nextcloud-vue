@@ -202,6 +202,7 @@
 			:edges="canvasEdgesWithRunState"
 			:minZoom="minZoom"
 			:maxZoom="maxZoom"
+			:fitMaxZoom="fitMaxZoom"
 			@zoomChange="zoom = $event"
 			@nodeSelect="onNodeSelect"
 			@nodeActivate="onNodeActivate"
@@ -446,6 +447,25 @@ export default {
 		run: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Which way the automatic layout runs: `right` (default) left to
+		 * right, `down` top to bottom with branches side by side.
+		 */
+		layoutDirection: {
+			type: String,
+			default: 'right',
+			validator: (value) => ['right', 'down'].includes(value),
+		},
+
+		/**
+		 * The most the first fit may zoom in. 0 lets it zoom to `maxZoom`; 1
+		 * keeps a small graph at its own size instead of blowing it up.
+		 */
+		fitMaxZoom: {
+			type: Number,
+			default: 0,
 		},
 
 		/**
@@ -1523,6 +1543,7 @@ export default {
 	 * @return {void}
 	 */
 	created() {
+		this.store.layoutDirection = this.layoutDirection
 		this.store.beginBootstrap(this.run)
 	},
 
