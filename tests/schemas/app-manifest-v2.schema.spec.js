@@ -1615,6 +1615,19 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(withIndex({ quickFilterPlacement: 'header' })).valid).toBe(false)
 	})
 
+	it('accepts a row-class rule with a list of conditions and a numeric row indicator (pl4-cell-rules)', () => {
+		const withIndex = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'r', schema: 's', ...config } }] })
+		const overdueOpen = { when: [{ field: 'expectedCloseDate', op: 'lt', value: '@today' }, { field: 'status', value: 'open' }], class: 'cn-row--overdue' }
+		expect(validateManifestV2(withIndex({ rowClass: [overdueOpen] })).valid).toBe(true)
+		expect(validateManifestV2(withIndex({ rowClass: [{ when: [], class: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ rowClass: [{ when: [{ field: 'a', op: 'before', value: 1 }], class: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ rowIndicators: [{ field: 'winProbability', lt: 30, text: 'Low' }] })).valid).toBe(true)
+		expect(validateManifestV2(withIndex({ rowIndicators: [{ field: 'winProbability', lt: 'thirty', text: 'Low' }] })).valid).toBe(false)
+		const stale = (value) => withIndex({ quickFilters: [{ label: 'Out of date', filter: { '@self[updated][lt]': value } }] })
+		expect(validateManifestV2(stale('@today-{@config.lead_stale_threshold_days}d')).valid).toBe(true)
+		expect(validateManifestV2(stale('@today-{config.x}d')).valid).toBe(false)
+	})
+
 	it('accepts a dashboard page filter drawn as a segmented group on the description line, and refuses unknown keys', () => {
 		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'trend', route: '/trend', type: 'dashboard', title: 'Trend', config: { pageFilters: [filter] } }] })
 		const options = [{ value: 'mean', label: 'Gemiddeld' }, { value: 'median', label: 'Mediaan' }]

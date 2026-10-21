@@ -670,6 +670,14 @@
 					"minLength": 1,
 					"description": "The indicator applies while the field holds a readable date before this moment: `now` or an ISO date."
 				},
+				"lt": {
+					"type": "number",
+					"description": "The indicator applies while the field holds a number below this one."
+				},
+				"gt": {
+					"type": "number",
+					"description": "The indicator applies while the field holds a number above this one."
+				},
 				"icon": {
 					"type": "string",
 					"description": "CnIcon name (PascalCase). Defaults to InformationOutline."
@@ -872,8 +880,8 @@
 		},
 		"sentinelFilterToken": {
 			"type": "string",
-			"pattern": "^@(?:me(?:\\.(?:displayName|email))?|myGroups|now|today|monthStart|monthEnd|nextMonthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$",
-			"description": "Filter-value context: relative fetch-time tokens resolved by resolveFilterTokens (@me, @me.displayName, @me.email, @myGroups (the current user's group ids, an IN list), @now, @today, @today±Nd, @monthStart, @monthEnd, @nextMonthStart, @quarterStart, @yearStart). Mirrors SENTINEL_TOKEN_PATTERNS.filter in src/utils/sentinelTokens.js (byte-equality enforced by a unit test)."
+			"pattern": "^@(?:me(?:\\.(?:displayName|email))?|myGroups|now|today|monthStart|monthEnd|nextMonthStart|quarterStart|yearStart)$|^@today[+-](?:[0-9]+|\\{@config\\.[A-Za-z][A-Za-z0-9_.]*\\})d$",
+			"description": "Filter-value context: relative fetch-time tokens resolved by resolveFilterTokens (@me, @me.displayName, @me.email, @myGroups (the current user's group ids, an IN list), @now, @today, @today±Nd (N may be {@config.<key>}), @monthStart, @monthEnd, @nextMonthStart, @quarterStart, @yearStart). Mirrors SENTINEL_TOKEN_PATTERNS.filter in src/utils/sentinelTokens.js (byte-equality enforced by a unit test)."
 		},
 		"sentinelConfigToken": {
 			"type": "string",
@@ -1420,6 +1428,17 @@
 					"default": "default",
 					"description": "Badge variant for a value `colorMap` does not name."
 				}
+			}
+		},
+		"rowClassCondition": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["field", "value"],
+			"description": "One condition of a row-class rule: the row's `field` compared to `value` with `op`.",
+			"properties": {
+				"field": { "type": "string", "description": "Dot-path into the row." },
+				"op": { "type": "string", "enum": ["eq", "neq", "gt", "gte", "lt", "lte"], "default": "eq", "description": "Comparison operator (default eq)." },
+				"value": { "description": "Literal right-hand side of the comparison; tokens such as `@today` resolve." }
 			}
 		},
 		"dueRule": {
@@ -2090,15 +2109,11 @@
 											"required": ["when", "class"],
 											"properties": {
 												"when": {
-													"type": "object",
-													"additionalProperties": false,
-													"required": ["field", "value"],
-													"description": "The predicate evaluated against the row (shared visibleWhen grammar, LOCAL form).",
-													"properties": {
-														"field": { "type": "string", "description": "Dot-path into the row." },
-														"op": { "type": "string", "enum": ["eq", "neq", "gt", "gte", "lt", "lte"], "default": "eq", "description": "Comparison operator (default eq)." },
-														"value": { "description": "Literal right-hand side of the comparison." }
-													}
+													"description": "The predicate evaluated against the row (shared visibleWhen grammar, LOCAL form), or a list of them that must all hold.",
+													"oneOf": [
+														{ "$ref": "#/$defs/rowClassCondition" },
+														{ "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/rowClassCondition" } }
+													]
 												},
 												"class": { "type": "string", "description": "CSS class added to the row when `when` holds." }
 											}
@@ -4148,35 +4163,19 @@
 								],
 								"properties": {
 									"when": {
-										"type": "object",
-										"additionalProperties": false,
-										"required": [
-											"field",
-											"value"
-										],
-										"description": "The predicate evaluated against the row (shared visibleWhen grammar, LOCAL form).",
-										"properties": {
-											"field": {
-												"type": "string",
-												"description": "Dot-path into the row."
+										"description": "The predicate evaluated against the row (shared visibleWhen grammar, LOCAL form), or a list of them that must all hold.",
+										"oneOf": [
+											{
+												"$ref": "#/$defs/rowClassCondition"
 											},
-											"op": {
-												"type": "string",
-												"enum": [
-													"eq",
-													"neq",
-													"gt",
-													"gte",
-													"lt",
-													"lte"
-												],
-												"default": "eq",
-												"description": "Comparison operator (default eq)."
-											},
-											"value": {
-												"description": "Literal right-hand side of the comparison."
+											{
+												"type": "array",
+												"minItems": 1,
+												"items": {
+													"$ref": "#/$defs/rowClassCondition"
+												}
 											}
-										}
+										]
 									},
 									"class": {
 										"type": "string",
@@ -4623,7 +4622,7 @@
 						},
 						"rowIndicators": {
 							"type": "array",
-							"description": "type='index': state indicators the page declares for its rows. Each entry names a `field` (a dotted path on the row), a condition (`equals`, `in`, a date `after` or `before` a moment, or plain truthiness when none is given), an `icon` (a CnIcon name) and a `text` (the text alternative, required). An entry without `text` does not render, because an icon with no text is colour and shape alone. The page declares which indicators exist; a record cannot add one the page has not declared. Maps to CnIndexPage `rowIndicators`.",
+							"description": "type='index': state indicators the page declares for its rows. Each entry names a `field` (a dotted path on the row), a condition (`equals`, `in`, a date `after` or `before` a moment, a number `lt` or `gt` a bound, or plain truthiness when none is given), an `icon` (a CnIcon name) and a `text` (the text alternative, required). An entry without `text` does not render, because an icon with no text is colour and shape alone. The page declares which indicators exist; a record cannot add one the page has not declared. Maps to CnIndexPage `rowIndicators`.",
 							"items": {
 								"$ref": "#/$defs/rowIndicator"
 							}
