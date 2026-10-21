@@ -249,6 +249,7 @@ export {
 	CnObjectMetadataModal,
 	CnObjectMetadataWidget,
 	CnObjectPartiesWidget,
+	CnObjectPermissionsTab,
 	CnObjectPresenceWidget,
 	CnObjectRow,
 	CnObjectSidebar,

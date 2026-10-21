@@ -203,7 +203,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 132,
+			"transitive": 134,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -238,6 +238,7 @@
 				"CnNotificationPreferences",
 				"CnObjectDataWidget",
 				"CnObjectMetadataWidget",
+				"CnObjectPermissionsTab",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -2886,6 +2887,13 @@
 			"via": [],
 			"page": "cn-object-parties-widget"
 		},
+		"CnObjectPermissionsTab": {
+			"direct": 5,
+			"transitive": 2,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-object-permissions-tab"
+		},
 		"CnObjectPresenceWidget": {
 			"direct": 0,
 			"transitive": 1,
@@ -2906,7 +2914,7 @@
 		},
 		"CnObjectSidebar": {
 			"direct": 16,
-			"transitive": 116,
+			"transitive": 118,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -2937,6 +2945,7 @@
 				"CnNotesCard",
 				"CnObjectDataWidget",
 				"CnObjectMetadataWidget",
+				"CnObjectPermissionsTab",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPartyPicker",
@@ -3992,6 +4001,15 @@
 				"CnRegisterSchemaSelect"
 			],
 			"page": "cn-stat-widget-form"
+		},
+		"CnStateMachineEditor": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [
+				"CnGraphCanvas"
+			],
+			"page": "cn-state-machine-editor"
 		},
 		"CnStatsBlock": {
 			"direct": 0,
