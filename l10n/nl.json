@@ -2428,7 +2428,9 @@
     "When": "Wanneer",
     "Who": "Wie",
     "Message": "Bericht",
-    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen."
+    "That change could not be saved.": "Die wijziging kon niet worden opgeslagen.",
+    "Remove {item}?": "{item} verwijderen?",
+    "Nothing planned yet.": "Nog niets gepland."
   },
   "plurals": {
     "{count} member": [

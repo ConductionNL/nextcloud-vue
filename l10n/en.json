@@ -2178,7 +2178,9 @@
     "When": "When",
     "Who": "Who",
     "Message": "Message",
-    "That change could not be saved.": "That change could not be saved."
+    "That change could not be saved.": "That change could not be saved.",
+    "Remove {item}?": "Remove {item}?",
+    "Nothing planned yet.": "Nothing planned yet."
   },
   "plurals": {
     "{count} member": [

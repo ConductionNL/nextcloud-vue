@@ -316,6 +316,7 @@ export {
 	CnSettingsSection,
 	CnSetupWizard,
 	CnSignatureCapture,
+	CnSlotGrid,
 	CnSpendAnalyticsWidget,
 	CnSpendAnalyticsWidgetForm,
 	CnStagesWidget,
