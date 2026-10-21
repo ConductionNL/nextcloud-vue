@@ -873,12 +873,15 @@
 }
 
 /* A page link is a <button>: Nextcloud's `button` rule sets it bold, the
-   boards set the links at the regular weight and only the current page at 600. */
+   boards set the links at the regular weight and only the current page at 600.
+   The boards size a link's content box at 34px, so a bordered link is 36px
+   and the borderless current page 34px (DqZaken "2", "Volgende", "1").
+   @spec openspec/changes/board-pagination-links/specs/board-pagination-links/spec.md#requirement-a-board-page-link-is-sized-as-the-boards-draw-it */
 .cn-look-board .cn-pagination--board .cn-pagination__board-link {
 	box-sizing: border-box;
-	min-width: 34px;
-	height: 34px;
-	min-height: 34px;
+	min-width: 36px;
+	height: 36px;
+	min-height: 36px;
 	margin: 0;
 	padding: 0 8px;
 	border: 1px solid var(--color-border);
@@ -903,7 +906,10 @@
 }
 
 .cn-look-board .cn-pagination--board .cn-pagination__board-link--current {
-	border-color: var(--color-primary-element);
+	min-width: 34px;
+	height: 34px;
+	min-height: 34px;
+	border: 0;
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
 	font-weight: 600;
