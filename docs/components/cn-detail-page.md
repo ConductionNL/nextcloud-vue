@@ -207,6 +207,16 @@ The column sits to the right of the body and holds facts: the deadline, the requ
 
 The column drops under the body when the page is too narrow for both. That is decided by the room the page has, not by the viewport, so it also holds beside an open sidebar. A `layout` grid keeps working next to it.
 
+## A body widget's own cards in the side column
+
+A widget in the body can show cards about what is selected in it in the side column, in place of the generic side cards (DqDocumentenBeheer: "Wie mag dit zien: <file>" and "Controlegetal" while files are ticked). The page provides `cnDetailSideColumn`:
+
+| Member | Meaning |
+|---|---|
+| `available` | Whether the page draws a side column. Without one the widget keeps its cards where they were. |
+| `target` | A selector for the slot at the top of the side column, to `<Teleport>` the cards to. |
+| `claim(owner, on)` | Start (`true`) or stop (`false`) showing cards there. While any owner claims, the generic side cards stand aside; they come back when the last one lets go. Release on unmount. |
+
 ## The record as a place
 
 These three are what make a record somewhere a handler stays, rather than somewhere they pass through. Each is off by default, so a page that declares none renders exactly as it does today.
