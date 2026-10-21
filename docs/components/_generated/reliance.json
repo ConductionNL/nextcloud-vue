@@ -3312,6 +3312,13 @@
 			"via": [],
 			"page": "cn-radio-cards-widget"
 		},
+		"CnReadinessChecklist": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-readiness-checklist"
+		},
 		"CnRecordListWidget": {
 			"direct": 2,
 			"transitive": 102,

@@ -275,6 +275,7 @@ export {
 	CnQuicklinksWidget,
 	CnQuicklinksWidgetForm,
 	CnRadioCardsWidget,
+	CnReadinessChecklist,
 	CnRecordListWidget,
 	CnRedactionEditor,
 	CnReferencePreview,

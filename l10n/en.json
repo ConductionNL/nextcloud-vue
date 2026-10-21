@@ -2215,7 +2215,11 @@
     "The rule could not be evaluated.": "The rule could not be evaluated.",
     "Only an administrator can read the rules of this schema.": "Only an administrator can read the rules of this schema.",
     "The rules could not be read. Ask an administrator.": "The rules could not be read. Ask an administrator.",
-    "That object could not be read.": "That object could not be read."
+    "That object could not be read.": "That object could not be read.",
+    "Nothing to check.": "Nothing to check.",
+    "This could not be read: {reason}": "This could not be read: {reason}",
+    "Still open": "Still open",
+    "The checklist could not be read.": "The checklist could not be read."
   },
   "plurals": {
     "{count} member": [
