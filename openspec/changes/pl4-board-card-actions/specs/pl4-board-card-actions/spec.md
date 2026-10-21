@@ -34,3 +34,14 @@ endpoint's arguments, in that declaration's shape, and SHALL NOT send `searchFie
 - **GIVEN** `sourceConfig: { url: "/apps/pipelinq/api/pipeline-items", searchFields: { pipeline: { single: true } } }`
 - **WHEN** the narrow select picks pipeline p1
 - **THEN** the endpoint is asked with `pipeline=p1`
+
+### Requirement: A header modal knows the list's filters
+
+A modal opened by an index page's `open-modal` header action SHALL receive the list's active filters as
+`activeFilters`; the action's own `props` SHALL win on a colliding key.
+
+#### Scenario: Pipeline settings from the board
+
+- **GIVEN** the pipeline board narrowed to pipeline p1 and a header action opening the pipeline settings modal
+- **THEN** the modal receives `activeFilters: { pipeline: ["p1"] }` and edits p1
+

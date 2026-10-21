@@ -1042,6 +1042,10 @@ A row action of `type: "open-modal"` opens its `target` (a registry modal, or a 
 ]
 ```
 
+### A header action that opens a modal
+
+A header action of `type: "open-modal"` opens its registry modal with the list's active filters as `activeFilters` (the pipeline a board is narrowed to), the action's own `props` winning on a colliding key.
+
 ### Registry-name handler
 
 Manifest declaration:

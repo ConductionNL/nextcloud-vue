@@ -4420,9 +4420,13 @@ export default {
 		 * The header actions that open a dialog: `type: "open-form"` (the
 		 * schema-driven create form, as the navigation's primary action opens
 		 * it) or `type: "open-modal"`, without a `handler` or `href` of their own.
-		 * Reserved ids are left out, as in `mergedHeaderActions`.
+		 * Reserved ids are left out, as in `mergedHeaderActions`. A modal
+		 * opened from here also gets the list's active filters as
+		 * `activeFilters`, so it knows what the list shows (the pipeline a
+		 * board is narrowed to); the action's own props win.
 		 *
 		 * @spec openspec/changes/index-header-open-form/specs/index-header/spec.md#requirement-an-index-header-action-can-open-the-create-form
+		 * @spec openspec/changes/pl4-board-card-actions/specs/pl4-board-card-actions/spec.md#requirement-a-header-modal-knows-the-lists-filters
 		 * @return {Array<object>}
 		 */
 		dialogHeaderActions() {
@@ -4433,6 +4437,9 @@ export default {
 				&& (entry.handler === undefined || entry.handler === null || entry.handler === '')
 				&& !entry.href
 				&& (entry.type === 'open-form' || entry.type === 'open-modal'))
+				.map((entry) => (entry.type === 'open-modal'
+					? { ...entry, props: { activeFilters: { ...this.effectiveActiveFilters }, ...(entry.props || {}) } }
+					: entry))
 		},
 
 		/**
