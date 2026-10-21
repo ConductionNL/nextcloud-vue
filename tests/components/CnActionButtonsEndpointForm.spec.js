@@ -169,4 +169,13 @@ describe('the manifest schema', () => {
 		expect(action.endpoint.properties.method.enum).toEqual(['PATCH', 'PUT', 'POST'])
 		expect(action.formProperties.type).toBe('object')
 	})
+
+	it('accepts an endpoint open-form without a create schema, and still asks a schema form for one', () => {
+		const { validateManifestV2 } = require('../../src/utils/validateManifest.js')
+		const page = (actions) => ({ $schema: 'https://conduction.nl/schemas/app-manifest-v2.schema.json', version: '1.0.0', menu: [], pages: [{ id: 'P', route: '/p/:id', type: 'detail', title: 'P', config: { register: 'r', schema: 's', headerActions: actions } }] })
+		const count = { id: 'count', label: 'Count', type: 'open-form', endpoint: { url: '/apps/x/api/shifts/@objectId/count', method: 'POST' }, formProperties: { amount: { type: 'number', required: true } } }
+		expect(validateManifestV2(page([count])).errors).toEqual([])
+		const bare = { id: 'new', label: 'New', type: 'open-form' }
+		expect(validateManifestV2(page([bare])).valid).toBe(false)
+	})
 })

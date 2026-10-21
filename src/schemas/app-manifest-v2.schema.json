@@ -3444,10 +3444,11 @@
 					"then": { "required": ["url"] }
 				},
 				{
-					"description": "open-form actions MUST declare the create schema via `schema`.",
+					"description": "open-form actions MUST declare the create schema via `schema`, unless they edit or post through an `endpoint` with `formProperties` (2.140.0).",
 					"if": {
 						"properties": { "type": { "const": "open-form" } },
-						"required": ["type"]
+						"required": ["type"],
+						"not": { "required": ["endpoint"] }
 					},
 					"then": { "required": ["schema"] }
 				},
