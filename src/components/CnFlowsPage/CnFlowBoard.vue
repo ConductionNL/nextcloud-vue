@@ -40,7 +40,7 @@
 					{{ t('nextcloud-vue', 'Run') }}
 				</NcButton>
 				<NcButton v-if="testSubjectReady"
-					:disabled="store.running || !store.flow.id"
+					:disabled="store.dryRunning || !store.flow.id"
 					data-testid="flow-board-test"
 					@click="testOpen = true">
 					<template #icon>
@@ -63,7 +63,7 @@
 			data-testid="flow-board-test-dialog"
 			@closing="testOpen = false">
 			<p class="cn-flow-board__test-intro">
-				{{ t('nextcloud-vue', 'The saved flow runs once with the record you pick as its subject.') }}
+				{{ t('nextcloud-vue', 'The saved flow is tried with the record you pick. Nothing is changed or sent.') }}
 			</p>
 			<CnResourceSelect v-model="testRecord"
 				:register="testSubject.register"
@@ -76,7 +76,7 @@
 					{{ t('nextcloud-vue', 'Cancel') }}
 				</NcButton>
 				<NcButton variant="primary"
-					:disabled="!testRecord || store.running"
+					:disabled="!testRecord || store.dryRunning"
 					data-testid="flow-board-test-run"
 					@click="runTest">
 					{{ t('nextcloud-vue', 'Run test') }}
@@ -155,7 +155,10 @@
 			</section>
 
 			<aside class="cn-flow-board__card cn-flow-board__inspector" data-testid="flow-board-inspector">
-				<template v-if="store.inRunView">
+				<CnFlowDryRunResult v-if="store.dryRunResult && !store.inRunView"
+					:result="store.dryRunResult"
+					@close="store.clearDryRun()" />
+				<template v-else-if="store.inRunView">
 					<CnFlowRunSummary :run="runRecord"
 						:stepsTotal="store.nodes.length"
 						:canRetry="canRetry"
@@ -254,6 +257,7 @@ import TestTube from 'vue-material-design-icons/TestTube.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
 import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
+import CnFlowDryRunResult from '../CnFlowDetail/CnFlowDryRunResult.vue'
 import CnFlowRunSummary from '../CnFlowDetail/CnFlowRunSummary.vue'
 import CnFlowSidebar from '../CnFlowDetail/CnFlowSidebar.vue'
 import CnFlowStepLog from '../CnFlowDetail/CnFlowStepLog.vue'
@@ -272,7 +276,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowBoard',
 
-	components: { CnBuildiqEditButton, CnDialog, CnFlowDetail, CnResourceSelect, TestTube, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard },
+	components: { CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, TestTube, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard },
 
 	props: {
 		/** The flow uuid, or `new`. */
@@ -298,7 +302,8 @@ export default {
 		/**
 		 * The records a test run can take as its subject: `{ register, schema,
 		 * labelField?, label? }`. Draws a header button ("Testen met een zaak",
-		 * DqFlow) that runs the saved flow once with a picked record.
+		 * DqFlow) that tries the saved flow with a picked record through
+		 * OpenRegister's dry-run, changing and sending nothing.
 		 */
 		testSubject: { type: Object, default: null },
 	},
@@ -609,17 +614,19 @@ export default {
 		},
 
 		/**
-		 * Run the saved flow once with the picked record as its subject, then
-		 * close the dialog; the run shows on the canvas as any run does.
+		 * Try the saved flow with the picked record through OpenRegister's
+		 * dry-run, which changes and sends nothing, then close the dialog; the
+		 * per-step result shows beside the canvas.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/flow-test-with-a-record/specs/flow-test-with-a-record/spec.md#requirement-testing-a-flow-with-a-record-changes-nothing
 		 */
 		async runTest() {
 			const uuid = Array.isArray(this.testRecord) ? this.testRecord[0] : this.testRecord
 			if (!uuid) {
 				return
 			}
-			await this.store.run({ uuid, register: this.testSubject.register, schema: this.testSubject.schema })
+			await this.store.dryRun({ uuid, register: this.testSubject.register, schema: this.testSubject.schema })
 			this.testOpen = false
 			this.testRecord = null
 		},
