@@ -283,7 +283,7 @@ With `kind: "ratio"` the caption is a share: the `numerator` over the `denominat
 
 ## A second caption line (`content.note`)
 
-`content.note` (an i18n key) adds a line under the caption, as "3 deadlines this week" under a count; `content.noteVariant` colours it with the `captionVariant` names. It is static text: a second count source is not supported yet.
+`content.note` (an i18n key) adds a line under the caption, as "3 deadlines this week" under a count; `content.noteVariant` colours it with the `captionVariant` names. On an endpoint tile its `{path}` placeholders are filled from the answer, as the caption's are ("Not delivered: {suppressed} held back, {failed} failed"); a second count source is not supported yet.
 
 ## The board look tile
 
