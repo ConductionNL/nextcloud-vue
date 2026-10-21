@@ -13,6 +13,8 @@ config.
   on the row, the date reads as the short date in no colour, never overdue or due soon.
 - Row conditions (`indicatorApplies`, used by row indicators, `flagWhen` and `titleWhen`) take numeric `lt` and `gt`.
 - A row-class rule's `when` may be a list; the rule applies when every condition holds.
+- A filter token may hold `{@config.<key>}` (`@today-{@config.lead_stale_threshold_days}d`), and an index page's
+  `footerNote` names `@config.<key>` values, so an admin setting moves a chip and the sentence that explains it.
 - The v2 manifest schema takes the `when` list and `lt` / `gt` on a row indicator (2.139.0).
 
 ## Fleet reuse

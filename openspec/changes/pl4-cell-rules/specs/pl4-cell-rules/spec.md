@@ -46,3 +46,16 @@ an empty list SHALL never hold.
 - **GIVEN** the rule `{ when: [{ field: "expectedCloseDate", op: "lt", value: "@today" }, { field: "status", value: "open" }], class: "cn-row--overdue" }`
 - **WHEN** an open lead's close date lies before today
 - **THEN** its row carries `cn-row--overdue`, and a won lead with the same date does not
+
+### Requirement: A token can take a config value
+
+A filter token MAY hold `{@config.<key>}` (`@today-{@config.lead_stale_threshold_days}d`); it SHALL resolve with the
+app config's value filled in, and SHALL stay as written while the config does not hold the key. An index page's
+`footerNote` SHALL name `@config.<key>` values after translation, as its quick-filter labels do.
+
+#### Scenario: An admin moves the stale threshold
+
+- **GIVEN** the Leads chip "Out of date" filters `@self[updated][lt]` on `@today-{@config.lead_stale_threshold_days}d`
+- **WHEN** the admin setting reads 21
+- **THEN** the chip lists the open leads not touched for 21 days, and the footer note says 21 days
+

@@ -7397,7 +7397,7 @@ export default {
 			const scoped = this.activeScopePresentation ? this.activeScopePresentation.footerNote : undefined
 			const footerNote = scoped !== undefined ? scoped : this.footerNote
 			if (footerNote) {
-				return this.cnTranslate(footerNote)
+				return this.fillConfigTokens(this.cnTranslate(footerNote))
 			}
 			const source = this.isNamedSource ? this.namedSource : null
 			return (source && source.footerNote) || footerNote
@@ -9791,14 +9791,24 @@ export default {
 			if (!hasToken(tab.label) && !hasToken(tab.activeLabel)) {
 				return tab
 			}
-			const config = this.effectiveAppConfig
-			const fill = (value) => (hasToken(value)
-				? this.cnTranslate(value).replace(/@config\.([A-Za-z0-9_.-]*[A-Za-z0-9_])/g, (token, key) => {
-						const found = this.getByPath(config, key)
-						return found === undefined || found === null || found === '' ? token : String(found)
-					})
-				: value)
+			const fill = (value) => (hasToken(value) ? this.fillConfigTokens(this.cnTranslate(value)) : value)
 			return { ...tab, label: fill(tab.label), activeLabel: fill(tab.activeLabel) }
+		},
+
+		/**
+		 * A text with each `@config.<key>` replaced by the app config's value;
+		 * a key the config does not hold leaves its token in place.
+		 *
+		 * @param {string} text The text, already translated.
+		 * @return {string} The text with the config values in.
+		 * @spec openspec/changes/pl4-cell-rules/specs/pl4-cell-rules/spec.md#requirement-a-token-can-take-a-config-value
+		 */
+		fillConfigTokens(text) {
+			const config = this.effectiveAppConfig
+			return String(text).replace(/@config\.([A-Za-z0-9_.-]*[A-Za-z0-9_])/g, (token, key) => {
+				const found = this.getByPath(config, key)
+				return found === undefined || found === null || found === '' ? token : String(found)
+			})
 		},
 
 		/**

@@ -1614,6 +1614,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(withIndex({ rowClass: [{ when: [{ field: 'a', op: 'before', value: 1 }], class: 'x' }] })).valid).toBe(false)
 		expect(validateManifestV2(withIndex({ rowIndicators: [{ field: 'winProbability', lt: 30, text: 'Low' }] })).valid).toBe(true)
 		expect(validateManifestV2(withIndex({ rowIndicators: [{ field: 'winProbability', lt: 'thirty', text: 'Low' }] })).valid).toBe(false)
+		const stale = (value) => withIndex({ quickFilters: [{ label: 'Out of date', filter: { '@self[updated][lt]': value } }] })
+		expect(validateManifestV2(stale('@today-{@config.lead_stale_threshold_days}d')).valid).toBe(true)
+		expect(validateManifestV2(stale('@today-{config.x}d')).valid).toBe(false)
 	})
 
 	it('accepts a dashboard page filter drawn as a segmented group on the description line, and refuses unknown keys', () => {
