@@ -430,7 +430,7 @@ export default {
 			// payload: { calendarUri, eventUid }
 			this.closePicker()
 			this.error = ''
-			const result = await linkCalendarEvent(this.baseObjectUrl(), payload)
+			const result = await linkCalendarEvent(`${this.baseObjectUrl()}/events`, payload)
 			if (result.ok) {
 				await this.fetchEvents()
 				this.$emit('linked', payload)

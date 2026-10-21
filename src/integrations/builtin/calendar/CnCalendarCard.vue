@@ -301,7 +301,7 @@ export default {
 		 */
 		async onPickerLink(payload) {
 			this.showPicker = false
-			const result = await linkCalendarEvent(prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}`), payload)
+			const result = await linkCalendarEvent(prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/events`), payload)
 			if (result.ok) {
 				this.error = ''
 				this.refresh()
