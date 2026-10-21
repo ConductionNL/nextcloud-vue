@@ -46,9 +46,9 @@
 				:class="{ 'cn-assign-dialog__toggle--on': flags[toggle.field] }"
 				:data-testid="`cn-assign-dialog-toggle-${toggle.field}`">
 				<NcCheckboxRadioSwitch :modelValue="flags[toggle.field] === true" @update:modelValue="flags[toggle.field] = $event">
-					<span class="cn-assign-dialog__toggle-title">{{ text(toggle.label) }}</span>
+					<span class="cn-assign-dialog__toggle-title">{{ fill(toggle.label) }}</span>
 				</NcCheckboxRadioSwitch>
-				<span v-if="toggle.note" class="cn-assign-dialog__hint cn-assign-dialog__toggle-note">{{ text(toggle.note) }}</span>
+				<span v-if="toggle.note" class="cn-assign-dialog__hint cn-assign-dialog__toggle-note">{{ fill(toggle.note) }}</span>
 			</div>
 
 			<p v-if="refusal"
@@ -144,7 +144,8 @@ export function withTypedAssignee(found, typed, label) {
  *   sent as `field` (default `note`); `false` drops it. `rows` is the text
  *   area's height in lines (default 3, as board DqOverdragen draws it).
  * - `toggles`: `[{ field, label, note? }]`: switches that start off and are
- *   sent as booleans.
+ *   sent as booleans; `label` and `note` are templates filled from the record
+ *   ("{initiatorDisplayName} then gets a message").
  * - `confirm`: `{ label?, icon?, request?: { method?, url, body? }, action? }`.
  *   `request` sends the choice itself (`body` templates filled from the
  *   record); `action` dispatches a manifest action with the choice as its
