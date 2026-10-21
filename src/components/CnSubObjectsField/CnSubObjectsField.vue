@@ -253,7 +253,8 @@ export default {
 		 * Edit the cells in the row itself, without a row dialog: for two to four
 		 * short columns (a day and two times). An `enum` column is a select, a
 		 * boolean a switch, `integer`/`number` a number field, `format: time` or
-		 * `date` a time or date field, anything else a text field.
+		 * `date` (in the row schema or in `fieldOverrides`) a time or date field,
+		 * anything else a text field.
 		 */
 		inline: {
 			type: Boolean,
@@ -305,7 +306,8 @@ export default {
 
 		columns() {
 			const props = (this.items && this.items.properties) || {}
-			return this.propertyKeys.slice(0, this.maxColumns).map((key) => ({ key, label: props[key].title || key }))
+			// A row form override's label names the column too, so a translated label reaches the header.
+			return this.propertyKeys.slice(0, this.maxColumns).map((key) => ({ key, label: (this.fieldOverrides[key] && this.fieldOverrides[key].label) || props[key].title || key }))
 		},
 
 		/**
@@ -321,7 +323,9 @@ export default {
 			const props = (this.items && this.items.properties) || {}
 			const required = Array.isArray(this.items && this.items.required) ? this.items.required : []
 			return this.columns.map(({ key, label }) => {
-				const prop = props[key] || {}
+				// A row form override can name the format the schema leaves out (`openTime: { format: 'time' }`).
+				const override = (this.fieldOverrides && this.fieldOverrides[key]) || {}
+				const prop = { ...(props[key] || {}), ...(override.format ? { format: override.format } : {}) }
 				let kind = 'text'
 				if (Array.isArray(prop.enum)) {
 					kind = 'select'
@@ -332,7 +336,7 @@ export default {
 				} else if (prop.format === 'time' || prop.format === 'date') {
 					kind = prop.format
 				}
-				const labels = prop['x-enum-labels'] && typeof prop['x-enum-labels'] === 'object' ? prop['x-enum-labels'] : {}
+				const labels = { ...(prop['x-enum-labels'] && typeof prop['x-enum-labels'] === 'object' ? prop['x-enum-labels'] : {}), ...(override.enumLabels && typeof override.enumLabels === 'object' ? override.enumLabels : {}) }
 				const options = kind === 'select' ? prop.enum.map((value) => ({ value, label: labels[value] || String(value) })) : undefined
 				return { key, label, kind, options, required: required.includes(key) }
 			})

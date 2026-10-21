@@ -57,6 +57,18 @@ describe('CnSubObjectsField inline', () => {
 		expect(last(w)).toEqual([{ day: 'monday', openTime: '09:00' }, { day: 'tuesday' }])
 	})
 
+	it('takes a format the schema leaves out from the row overrides', () => {
+		const plain = { type: 'object', properties: { openTime: { title: 'Opens', type: 'string' } } }
+		const w = mountField({ inline: true, items: plain, modelValue: [{}], fieldOverrides: { openTime: { format: 'time' } } })
+		expect(w.vm.inlineColumns[0].kind).toBe('time')
+	})
+
+	it('names a column and its options after the row overrides', () => {
+		const w = mountField({ inline: true, modelValue: [{}], fieldOverrides: { day: { label: 'Dag', enumLabels: { monday: 'Maandag' } } } })
+		expect(w.vm.columns[0].label).toBe('Dag')
+		expect(w.vm.inlineColumns[0].options[0]).toEqual({ value: 'monday', label: 'Maandag' })
+	})
+
 	it('keeps the row dialog without inline', () => {
 		const w = mountField({ modelValue: [] })
 		expect(w.vm.inlineColumns).toEqual([])
