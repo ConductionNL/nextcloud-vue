@@ -21,6 +21,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name      | Payload | Description |
-| --------- | ------- | ----------- |
-| `request` | —       |             |
+| Name      | Payload | Description                                         |
+| --------- | ------- | --------------------------------------------------- |
+| `request` | —       | The reader pressed the button: load the source now. |

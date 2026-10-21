@@ -18,6 +18,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name             | Payload | Description |
-| ---------------- | ------- | ----------- |
-| `object-changed` | —       |             |
+| Name             | Payload | Description                                                               |
+| ---------------- | ------- | ------------------------------------------------------------------------- |
+| `object-changed` | —       | The flag was raised or cleared: `{ register, schema, id }` of the record. |

@@ -12,7 +12,7 @@
 				variant="primary"
 				:disabled="requestDisabled"
 				data-testid="cn-endpoint-request"
-				@click="$emit('request')">
+				@click="askToLoad">
 				{{ requestLabel || t('nextcloud-vue', 'Show') }}
 			</NcButton>
 		</div>
@@ -127,7 +127,15 @@ export default {
 		},
 	},
 
-	methods: { t },
+	methods: {
+		t,
+
+		/** Ask the host to load the source now. */
+		askToLoad() {
+			/** @event request The reader pressed the button: load the source now. */
+			this.$emit('request')
+		},
+	},
 }
 </script>
 

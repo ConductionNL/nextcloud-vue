@@ -387,6 +387,7 @@ export default {
 		 */
 		announce() {
 			const id = String(this.objectId || '')
+			/** @event object-changed The flag was raised or cleared: `{ register, schema, id }` of the record. */
 			this.$emit('object-changed', { register: this.register, schema: this.schema, id })
 			dispatchObjectsChanged({ register: typeof this.register === 'string' ? this.register : '', schema: typeof this.schema === 'string' ? this.schema : '', id })
 			emit('cn:page:refresh')
