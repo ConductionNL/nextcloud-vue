@@ -475,6 +475,28 @@
 	margin-block-end: calc(5 * var(--default-grid-baseline));
 }
 
+/* The page filters: a right-aligned row above the band's widgets, a label
+   before each control. */
+.cn-detail-page__page-filters {
+	display: flex;
+	flex: 1 1 100%;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	align-items: center;
+	gap: calc(2 * var(--default-grid-baseline)) calc(4 * var(--default-grid-baseline));
+}
+
+.cn-detail-page__page-filter {
+	display: inline-flex;
+	align-items: center;
+	gap: calc(2 * var(--default-grid-baseline));
+}
+
+.cn-detail-page__page-filter-label {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
 .cn-detail-page__band-item {
 	flex: 1 1 calc(var(--cn-band-span, 12) / 12 * 100% - calc(5 * var(--default-grid-baseline)));
 	min-width: min(220px, 100%);

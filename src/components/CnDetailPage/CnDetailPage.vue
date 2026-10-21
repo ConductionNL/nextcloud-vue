@@ -655,6 +655,39 @@
 			v-if="showsBand"
 			class="cn-detail-page__band"
 			data-testid="cn-detail-page-band">
+			<!-- The page filters (`config.pageFilters`), right-aligned above the
+			     band's widgets; each writes the page's workspace context. -->
+			<div
+				v-if="detailPageFilters.length > 0"
+				class="cn-detail-page__page-filters"
+				data-testid="cn-detail-page-page-filters">
+				<template v-for="pf in detailPageFilters" :key="pf.key">
+					<div v-if="pf.control === 'segmented'" class="cn-detail-page__page-filter">
+						<span v-if="pf.label" class="cn-detail-page__page-filter-label">{{ effectiveTranslate(pf.label) }}</span>
+						<CnSegmentedControl
+							size="compact"
+							mode="toggle"
+							:options="pageFilterSegments(pf)"
+							:modelValue="workspaceContext[pf.key]"
+							:ariaLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
+							:data-testid="'cn-page-filter-' + pf.key"
+							@update:modelValue="onPageFilterChange(pf, $event)" />
+					</div>
+					<label v-else class="cn-detail-page__page-filter">
+						<span v-if="pf.label" class="cn-detail-page__page-filter-label">{{ effectiveTranslate(pf.label) }}</span>
+						<NcSelect
+							:modelValue="selectedPageFilterOption(pf)"
+							:options="pageFilterSegments(pf)"
+							:clearable="pf.clearable === true"
+							:placeholder="pf.placeholder ? effectiveTranslate(pf.placeholder) : undefined"
+							:loading="pageFilterLoading[pf.key] === true"
+							:inputLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
+							label="label"
+							:data-testid="'cn-page-filter-' + pf.key"
+							@update:modelValue="onPageFilterChange(pf, $event)" />
+					</label>
+				</template>
+			</div>
 			<div
 				v-for="entry in bandWidgets"
 				:key="`band-${entry.widget.id}`"
@@ -1313,7 +1346,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { computed, provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
@@ -1356,6 +1389,7 @@ import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
+import { pageFilters } from '../../mixins/pageFilters.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
 import { headerActionAsLink, resolveManifestHref, routeHref } from '../../utils/actionLink.js'
@@ -1598,6 +1632,7 @@ export default {
 		CnFormDialog,
 		CnDashboardGrid,
 		CnSegmentedControl,
+		NcSelect,
 		ViewDashboardOutline,
 		CnLifecycleActions,
 		CnActionButtons,
@@ -1620,7 +1655,7 @@ export default {
 		Restore,
 	},
 
-	mixins: [gridLayout, pageViews],
+	mixins: [gridLayout, pageFilters, pageViews],
 
 	inject: {
 		/**
@@ -2821,6 +2856,21 @@ export default {
 		},
 
 		/**
+		 * Page-level filters (manifest `config.pageFilters`), the same a
+		 * dashboard takes: each writes its choice into the page's workspace
+		 * context, which every widget on the page reads through
+		 * `@page.<key>` / `@workspace.<key>`. Drawn in the band, above its
+		 * widgets (PtPortal "Periode").
+		 *
+		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
+		 * @spec openspec/changes/detail-page-filters/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-page-filters-that-its-widgets-read
+		 */
+		pageFilters: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * A field path whose value picks the side column and its order for
 		 * this record (manifest `config.sideColumnFrom`), read like a
 		 * `visibleWhen` field: `@context.caseType.sideCards` reads the list a
@@ -3137,10 +3187,16 @@ export default {
 			// which no register answers.
 			{ schemaSlug: () => props.schema || sidebarSchema() },
 		)
+		// The page's workspace context, as a dashboard provides it: page
+		// filters write their choice here and a widget reads it through
+		// `@page.<key>` / `@workspace.<key>`.
+		const workspaceContext = ref({})
+		provide('cnWorkspaceContext', workspaceContext)
 		return {
 			...registryExposed,
 			subscriptionStatus: subscription.status,
 			lockState: lock,
+			workspaceContext,
 		}
 	},
 
@@ -4022,7 +4078,17 @@ export default {
 		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
 		 */
 		showsBand() {
-			return this.bandWidgets.length > 0 && this.showsBody
+			return (this.bandWidgets.length > 0 || this.detailPageFilters.length > 0) && this.showsBody
+		},
+
+		/**
+		 * The declared page filters that carry a key.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-page-filters/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-page-filters-that-its-widgets-read
+		 */
+		detailPageFilters() {
+			return (Array.isArray(this.pageFilters) ? this.pageFilters : []).filter((pf) => pf && pf.key)
 		},
 
 		showsSideColumn() {
@@ -5476,6 +5542,10 @@ export default {
 
 	created() {
 		this.pushAiContext()
+		// Seeded before the first render, so a widget's first request already
+		// carries the page filter's value.
+		this.initPageFilters()
+		this.loadPageFilterOptions()
 	},
 
 	mounted() {
