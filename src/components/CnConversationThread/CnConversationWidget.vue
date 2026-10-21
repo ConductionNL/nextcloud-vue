@@ -97,8 +97,10 @@ import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveF
  * endpoint's body and as `options` in a `replyAction`'s argument.
  * `statusField` with `statusMap` shows each message's status, and
  * `messageActions` (`[{ id, label, endpoint, method?, when?, errorText? }]`)
- * are buttons on the messages that match `when` (`{ field, in }` or
- * `{ field, equals }`); `{field}` in the endpoint is read from the message.
+ * are buttons on the messages that match `when` (`{ field, in }`,
+ * `{ field, equals }`, `{ field, empty: true }`, or a list of them that must
+ * all hold); `{field}` in the endpoint is read from the message. `errors`
+ * (`{ path, map, default, ok? }`) names an answer's refusal by its status.
  *
  * `channelChips: true` draws a chip per channel above the thread (every
  * `channelMap` label, in map order, then any other channel a message uses).
@@ -318,15 +320,20 @@ export default {
 		 * @return {boolean}
 		 */
 		actionApplies(action, message) {
-			const when = action.when
-			if (!when || typeof when !== 'object' || typeof when.field !== 'string') {
-				return true
-			}
-			const value = readPath(message, when.field)
-			if (Array.isArray(when.in)) {
-				return when.in.map(String).includes(String(value))
-			}
-			return String(value) === String(when.equals)
+			const conditions = [].concat(action.when || [])
+			return conditions.every((when) => {
+				if (!when || typeof when !== 'object' || typeof when.field !== 'string') {
+					return true
+				}
+				const value = readPath(message, when.field)
+				if (when.empty === true) {
+					return value === undefined || value === null || value === ''
+				}
+				if (Array.isArray(when.in)) {
+					return when.in.map(String).includes(String(value))
+				}
+				return String(value) === String(when.equals)
+			})
 		},
 
 		/**
@@ -377,13 +384,39 @@ export default {
 				const path = action.endpoint
 					.replace(/@objectId/g, encodeURIComponent(String(this.objectId ?? '')))
 					.replace(/\{([\w.]+)\}/g, (_m, field) => encodeURIComponent(String(readPath(stored.message, field) ?? '')))
-				await axios.request({ method: String(action.method || 'POST').toLowerCase(), url: generateUrl(path) })
+				const response = await axios.request({ method: String(action.method || 'POST').toLowerCase(), url: generateUrl(path) })
+				const refusal = this.actionRefusal(action, response?.data)
+				if (refusal) {
+					this.actionError = refusal
+				}
 				await this.loadSource()
-			} catch {
-				this.actionError = this.tr(action.errorText || 'The action failed.')
+			} catch (error) {
+				this.actionError = this.actionRefusal(action, error?.response?.data) || this.tr(action.errorText || 'The action failed.')
 			} finally {
 				this.acting = ''
 			}
+		},
+
+		/**
+		 * The text a message action's answer names, by `errors` (`{ path, map,
+		 * ok? }`): the status at `path` mapped to a text. A status listed in `ok`
+		 * (default `["sent", "ok"]`) is no refusal.
+		 *
+		 * @param {object} action The action.
+		 * @param {object|undefined} answer The response body.
+		 * @return {string} The text, '' for none.
+		 */
+		actionRefusal(action, answer) {
+			const errors = action.errors
+			if (!errors || typeof errors !== 'object' || !answer || typeof answer !== 'object') {
+				return ''
+			}
+			const status = readPath(answer, errors.path || 'status')
+			if (status === undefined || status === null || (errors.ok || ['sent', 'ok']).map(String).includes(String(status))) {
+				return ''
+			}
+			const text = (errors.map || {})[String(status)] || errors.default
+			return text ? this.tr(text) : ''
 		},
 
 		/**

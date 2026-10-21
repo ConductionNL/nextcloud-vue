@@ -171,6 +171,28 @@ describe('CnConversationWidget: message status and actions', () => {
 		expect(mockRequest).toHaveBeenCalledWith({ method: 'post', url: '/nc/apps/pipelinq/api/messages/m-2/resend' })
 	})
 
+	it('needs every condition of a list, and names a refusal by its status', async () => {
+		mockRequest.mockResolvedValue({ data: { status: 'consent-missing' } })
+		const content = {
+			...MESSAGES,
+			messageActions: [{
+				id: 'resend',
+				label: 'Send again',
+				endpoint: '/apps/pipelinq/api/messages/{id}/resend',
+				when: [{ field: 'deliveryStatus', in: ['failed'] }, { field: 'metadata.resentAs', empty: true }],
+				errors: { path: 'status', map: { 'consent-missing': 'Not sent: no consent.' }, default: 'Sending failed again.' },
+			}],
+		}
+		const resentOne = { ...record.messages[1], id: 'm-3', metadata: { resentAs: 'm-4' } }
+		const resent = { ...record, messages: [record.messages[0], resentOne, record.messages[1]] }
+		const w = mountWidget(content, resent)
+		const buttons = w.findAll('[data-testid="cn-conversation-action-resend"]')
+		expect(buttons).toHaveLength(1)
+		await buttons[0].trigger('click')
+		await flushPromises()
+		expect(w.find('[data-testid="cn-conversation-action-error"]').text()).toBe('Not sent: no consent.')
+	})
+
 	it('says so when the action fails', async () => {
 		mockRequest.mockRejectedValue(new Error('down'))
 		const w = mountWidget(MESSAGES, record)

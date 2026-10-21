@@ -80,7 +80,7 @@ The texts (`title`, `replyLabel`, `placeholder`, `sendLabel`, `emptyText`) go th
 | `templates` | A CnTemplateSelect above the reply box over `url` with `params` (tokens resolved). Picking fills the box with the option's `values[textField]` (default `text`). |
 | `replyOptions` | Checkboxes under the reply box. Their values go into the endpoint's body, and as `options` into a `replyAction`'s argument. |
 | `statusField` / `statusMap` | The message's status, shown after its channel; `statusMap` turns a stored value into a label. |
-| `messageActions` | Buttons on the messages that match `when` (`{ field, in }` or `{ field, equals }`). The endpoint gets `@objectId` and the message's `{field}` values; after it the messages are read again, and a failure shows `errorText`. |
+| `messageActions` | Buttons on the messages that match `when` (`{ field, in }`, `{ field, equals }`, `{ field, empty: true }`, or a list that must all hold). `errors` (`{ path, map, default, ok? }`) names the answer's refusal by its status; `ok` (default `sent`, `ok`) lists the statuses that are no refusal. The endpoint gets `@objectId` and the message's `{field}` values; after it the messages are read again, and a failure shows `errorText`. |
 
 ## Reference (auto-generated)
 
