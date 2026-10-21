@@ -55,6 +55,15 @@ describe('createManifestTranslate', () => {
 		expect(make().fn('Overig')).toBe('Overig')
 	})
 
+	it('a text the host leaves untranslated goes to the library catalog before the text itself', () => {
+		const library = (text) => (text === 'Open AI chat' ? 'AI-chat openen' : text)
+		const state = { language: 'nl', manifest: { i18n } }
+		const fn = createManifestTranslate({ getManifest: () => state.manifest, getLanguage: () => state.language, translate: (text) => text, library })
+		expect(fn('Open AI chat')).toBe('AI-chat openen')
+		expect(fn('Vergunningen')).toBe('Vergunningen')
+		expect(createManifestTranslate({ getManifest: () => null, getLanguage: () => 'nl', translate: () => 'Bestemming', library }).lookup('Open AI chat').text).toBe('Bestemming')
+	})
+
 	it('fills placeholders, in a manifest translation and in the host\'s answer', () => {
 		expect(make().fn('Hallo {name}', { name: 'Jan' })).toBe('Hello Jan')
 		expect(make({ language: 'de', translate: (t, v) => t.replace('{name}', v.name) }).fn('Dag {name}', { name: 'Jan' })).toBe('Dag Jan')
