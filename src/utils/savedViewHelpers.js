@@ -213,22 +213,30 @@ export function buildViewCreatePayload({ name, description, isPublic, isDefault,
 }
 
 /**
- * Clean an audience list: keep `{ group, mode }` entries with a group id, and
- * coerce any mode but `write` to `read`.
+ * Clean an audience list: keep `{ group, mode }` and `{ user, mode }` entries
+ * that name exactly one target, drop repeats, and coerce any mode but `write`
+ * to `read`.
  *
  * @param {unknown} sharedWith The audience as given.
- * @return {Array<{group: string, mode: 'read'|'write'}>} The cleaned list.
+ * @return {Array<{group?: string, user?: string, mode: 'read'|'write'}>} The cleaned list.
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-5
  */
 export function normalizeSharedWith(sharedWith) {
 	const seen = new Set()
 	const out = []
 	for (const entry of Array.isArray(sharedWith) ? sharedWith : []) {
 		const group = entry && typeof entry.group === 'string' ? entry.group : ''
-		if (group === '' || seen.has(group)) {
+		const user = entry && typeof entry.user === 'string' ? entry.user : ''
+		if ((group === '') === (user === '')) {
 			continue
 		}
-		seen.add(group)
-		out.push({ group, mode: entry.mode === 'write' ? 'write' : 'read' })
+		const key = user !== '' ? `user:${user}` : `group:${group}`
+		if (seen.has(key)) {
+			continue
+		}
+		seen.add(key)
+		const mode = entry.mode === 'write' ? 'write' : 'read'
+		out.push(user !== '' ? { user, mode } : { group, mode })
 	}
 	return out
 }
@@ -276,15 +284,18 @@ export function schemaSlug(schema) {
  * it: three case indexes share their views, the organisations index does
  * not. `savedViewsScope` on a page overrides that, for pages that should
  * share views although they read different sources, or keep them apart
- * although they read the same one.
+ * although they read the same one. A page over a named source
+ * (`entitySource`) and no schema shares its views with the pages over that
+ * source.
  *
  * @param {object} page The page.
  * @param {string} [page.scope] The explicit `savedViewsScope`, when set.
  * @param {string} [page.register] The page's register.
  * @param {object|string} [page.schema] The page's schema, slug or object.
+ * @param {string} [page.source] The page's `entitySource`, when it reads one.
  * @return {string} The scope key, or the empty string for a page with no source.
  */
-export function savedViewScope({ scope, register, schema } = {}) {
+export function savedViewScope({ scope, register, schema, source } = {}) {
 	if (typeof scope === 'string' && scope !== '') {
 		return scope
 	}
@@ -292,7 +303,41 @@ export function savedViewScope({ scope, register, schema } = {}) {
 	if (typeof register === 'string' && register !== '' && slug !== '') {
 		return `${register}/${slug}`
 	}
+	if (typeof source === 'string' && source !== '') {
+		return `source:${source}`
+	}
 	return ''
+}
+
+/**
+ * Whether an index page offers saved views in its sidebar.
+ *
+ * `allowSavedViews` decides when it is set. Unset, every index page that has
+ * a sidebar and a source a view can be scoped to (a register and schema, a
+ * named source, or `savedViewsScope`) offers them, so managing views is
+ * there on every list without each page opting in.
+ *
+ * @param {object} config The page's index config, or CnIndexPage's props.
+ * @param {boolean|null} [config.allowSavedViews] The explicit choice, when made.
+ * @param {object} [config.sidebar] The sidebar config.
+ * @param {string} [config.savedViewsScope] The explicit scope.
+ * @param {string} [config.register] The register.
+ * @param {object|string} [config.schema] The schema.
+ * @param {string} [config.entitySource] The named source.
+ * @return {boolean}
+ */
+export function pageOffersSavedViews(config) {
+	if (!config || typeof config !== 'object') {
+		return false
+	}
+	if (typeof config.allowSavedViews === 'boolean') {
+		return config.allowSavedViews
+	}
+	const sidebar = config.sidebar
+	if (!sidebar || typeof sidebar !== 'object' || sidebar.enabled !== true || sidebar.show === false) {
+		return false
+	}
+	return savedViewScope({ scope: config.savedViewsScope, register: config.register, schema: config.schema, source: config.entitySource }) !== ''
 }
 
 /**
@@ -375,4 +420,55 @@ export function extractViewState(view) {
  */
 export function isOwnView(view, currentUserId) {
 	return !!view && !!currentUserId && view.owner === currentUserId
+}
+
+/**
+ * The default views an index page declares (`config.defaultSavedViews`), as
+ * read-only views the saved-views control lists. They are never stored: the
+ * manifest installs them, so every user has the same set and none can delete
+ * one. `seeded: true` puts them in the control's default group; the query
+ * keeps its `@`-tokens, which resolve when a default is applied.
+ *
+ * A default's `overrides` (page config laid over the page while it is
+ * active, see `utils/savedViewOverrides.js`) ride in `query.overrides`, so a
+ * copy of the default keeps them.
+ *
+ * @param {Array<object>|null|undefined} defaults The declared entries `{ slug, name, filters, search?, sort?, label?, overrides? }`.
+ * @param {{ scope?: string, register?: string, schema?: object|string|null }} [page] The page, as `savedViewScope` takes it.
+ * @return {Array<object>} The views, in declaration order; entries without a slug or name are left out.
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-4
+ */
+export function defaultFilterViews(defaults, page = {}) {
+	if (!Array.isArray(defaults)) {
+		return []
+	}
+	return defaults
+		.filter((entry) => entry && typeof entry.slug === 'string' && entry.slug !== '' && typeof entry.name === 'string' && entry.name !== '')
+		.map((entry) => {
+			const { query } = buildViewCreatePayload({
+				name: entry.name,
+				state: {
+					filters: (entry.filters && typeof entry.filters === 'object' && !Array.isArray(entry.filters)) ? entry.filters : {},
+					search: typeof entry.search === 'string' ? entry.search : '',
+					sortKeys: Array.isArray(entry.sort) ? entry.sort : [],
+				},
+				scope: savedViewScope(page),
+				register: page.register,
+				schema: page.schema,
+			})
+			if (entry.overrides && typeof entry.overrides === 'object' && !Array.isArray(entry.overrides)) {
+				query.overrides = entry.overrides
+			}
+			return {
+				id: `default:${entry.slug}`,
+				slug: entry.slug,
+				name: entry.name,
+				owner: '',
+				seeded: true,
+				isPublic: false,
+				labels: typeof entry.label === 'string' && entry.label !== '' ? [entry.label] : [],
+				'@self': { access: 'read' },
+				query,
+			}
+		})
 }

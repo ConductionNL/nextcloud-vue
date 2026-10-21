@@ -19,6 +19,7 @@
 		v-if="crumbs.length > 0"
 		:aria-label="ariaLabel"
 		:rootIcon="rootText ? '' : undefined"
+		class="cn-breadcrumbs"
 		:class="{ 'cn-breadcrumbs--text-separator': separator !== '' }"
 		:style="separatorStyle"
 		data-testid="cn-breadcrumbs">

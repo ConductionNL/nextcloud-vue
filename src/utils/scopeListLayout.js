@@ -3,12 +3,23 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+import { QUERY_PRESET_KEYS } from './queryPresets.js'
+
 /**
  * The three list-layout keys a `folderSidebar` scope may carry.
  *
  * @type {string[]}
  */
 const SCOPE_LAYOUT_KEYS = ['columns', 'defaultSort', 'searchFields']
+
+/**
+ * The presentation keys a scope may carry beside its list layout: the keys a
+ * query preset may set (`QUERY_PRESET_KEYS`), less the two the list layout
+ * resolves itself (`columns`, `defaultSort`).
+ *
+ * @type {ReadonlyArray<string>}
+ */
+const SCOPE_PRESENTATION_KEYS = Object.freeze(QUERY_PRESET_KEYS.filter((key) => key !== 'columns' && key !== 'defaultSort'))
 
 /**
  * The key of a column entry, in either of the two shapes the manifest accepts:
@@ -142,11 +153,43 @@ export function resolveScopeLayout({ scope = null, row = null, pageColumns = [] 
 			return
 		}
 		// The page's own entry is used, not the scope's, so the label and
-		// formatter a column was declared with survive being selected.
-		columns.push(byKey.get(key))
+		// formatter a column was declared with survive being selected. A
+		// column the page hides by default shows: the scope asked for it.
+		const own = byKey.get(key)
+		if (own && typeof own === 'object' && own.hidden === true) {
+			const { hidden, ...shown } = own
+			columns.push(shown)
+			return
+		}
+		columns.push(own)
 	})
 
 	return { columns, sortKeys, searchFields }
 }
 
-export { SCOPE_LAYOUT_KEYS }
+/**
+ * The presentation a scope asks for: each of `SCOPE_PRESENTATION_KEYS` the
+ * folder entry declares, else the one its schema row's `x-index` declares.
+ * Only declared keys are in the result, so the page's own value stands for
+ * every other key. These are the keys a query preset sets, under the same
+ * names, and a scope's value wins over a preset's because it is applied on
+ * top of the page config the preset produced.
+ *
+ * @param {object} options Resolution inputs.
+ * @param {(object|null)} [options.scope] The folder entry for the active scope.
+ * @param {(object|null)} [options.row] The schema row the folder derives from.
+ * @return {object} The declared presentation keys.
+ * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
+ */
+export function resolveScopePresentation({ scope = null, row = null } = {}) {
+	const out = {}
+	for (const key of SCOPE_PRESENTATION_KEYS) {
+		const value = declaredOrRow(scope, row, key)
+		if (value !== undefined) {
+			out[key] = value
+		}
+	}
+	return out
+}
+
+export { SCOPE_LAYOUT_KEYS, SCOPE_PRESENTATION_KEYS }

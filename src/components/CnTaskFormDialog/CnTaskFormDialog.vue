@@ -46,17 +46,11 @@
 		@close="$emit('close')">
 		<template #before-fields>
 			<!-- One disabled row per declared field the schema no longer offers. -->
-			<div
-				v-for="field in brokenFields"
-				:key="field.field"
-				class="cn-task-form__broken"
-				data-testid="cn-task-form-broken-row">
-				<NcTextField
-					modelValue=""
-					:label="brokenLabel(field)"
-					:disabled="true"
-					:helperText="brokenReason(field)" />
-			</div>
+			<CnTaskFormFields
+				v-if="form"
+				:form="form"
+				idPrefix="cn-task-form"
+				brokenOnly />
 		</template>
 		<template #after-fields>
 			<NcTextField
@@ -73,6 +67,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import CnTaskFormFields from '../CnTaskFormFields/CnTaskFormFields.vue'
 
 /** Refusal kinds that name no field to mark. */
 const FIELDLESS_KINDS = ['checklist', 'unresolvable', 'no-subject']
@@ -98,7 +93,7 @@ const FIELDLESS_KINDS = ['checklist', 'unresolvable', 'no-subject']
 export default {
 	name: 'CnTaskFormDialog',
 
-	components: { CnFormDialog, NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField },
+	components: { CnFormDialog, CnTaskFormFields, NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField },
 
 	props: {
 		/** UUID of the task. Fetched when `task` is not given. */
@@ -131,6 +126,16 @@ export default {
 
 		/** Dialog title. Defaults to the task title. */
 		dialogTitle: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The route Confirm completes through instead of the engine's own
+		 * `/flow-tasks/{uuid}/complete`, for an app that checks something of
+		 * its own first; `{id}` is the task uuid.
+		 */
+		completeUrl: {
 			type: String,
 			default: '',
 		},
@@ -300,29 +305,6 @@ export default {
 		},
 
 		/**
-		 * The label of a broken row: the field key.
-		 *
-		 * @param {{field: string}} field The declared field.
-		 * @return {string} The label.
-		 */
-		brokenLabel(field) {
-			return field.field
-		},
-
-		/**
-		 * The text under a broken row: the server's reason, plus who fixes it when the field is required.
-		 *
-		 * @param {{reason?: string, required?: boolean}} field The declared field.
-		 * @return {string} The helper text.
-		 */
-		brokenReason(field) {
-			const reason = field.reason || t('nextcloud-vue', 'This field is not available.')
-			return field.required
-				? `${reason} ${t('nextcloud-vue', 'Ask the person who set up this step to fix it.')}`
-				: reason
-		},
-
-		/**
 		 * Confirm: hand the values to the parent or complete the task.
 		 *
 		 * @param {object} formData The values of the rendered fields.
@@ -344,7 +326,10 @@ export default {
 			}
 			const uuid = this.loadedTask?.uuid || this.taskUuid
 			try {
-				const response = await axios.post(generateUrl(`${this.apiBase}/flow-tasks/${encodeURIComponent(uuid)}/complete`), payload)
+				const route = this.completeUrl
+					? this.completeUrl.replace('{id}', encodeURIComponent(uuid))
+					: `${this.apiBase}/flow-tasks/${encodeURIComponent(uuid)}/complete`
+				const response = await axios.post(generateUrl(route), payload)
 				this.$emit('completed', response?.data ?? this.loadedTask)
 				this.$refs.formDialog?.setResult({ success: true })
 			} catch (e) {
@@ -400,10 +385,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-task-form__broken {
-	margin-bottom: 12px;
-}
-
 .cn-task-form__comment {
 	margin-top: 12px;
 }

@@ -36,7 +36,7 @@
 						{{ t('nextcloud-vue', 'Suggest feature') }}
 					</NcButton>
 					<NcActions
-						v-if="!tabs"
+						v-if="!tabs && actionsMenu"
 						:menuName="t('nextcloud-vue', 'Actions')"
 						:forceName="true"
 						data-testid="cn-features-board-actions">
@@ -85,6 +85,7 @@
 				</button>
 			</div>
 			<NcActions
+				v-if="actionsMenu"
 				:menuName="t('nextcloud-vue', 'Actions')"
 				:forceName="true"
 				class="cn-features-board__tab-actions"
@@ -195,7 +196,7 @@
 									data-testid="cn-features-board-feature">
 									<span class="cn-features-board__row-text">
 										<span class="cn-features-board__row-title">{{ feature.title }}</span>
-										<span v-if="feature.summary" class="cn-features-board__row-summary">{{ feature.summary }}</span>
+										<span v-if="summaries && feature.summary" class="cn-features-board__row-summary">{{ feature.summary }}</span>
 									</span>
 									<CnStatusBadge
 										:label="statusText(feature)"
@@ -271,7 +272,16 @@
 					type="info"
 					class="cn-features-board__notice"
 					data-testid="cn-features-board-notice">
-					{{ tr(notice) }}
+					<template v-if="noticeParts.link">
+						{{ noticeParts.before }}<a
+							:href="noticeParts.link.href"
+							target="_blank"
+							rel="noopener noreferrer"
+							data-testid="cn-features-board-notice-link">{{ noticeParts.link.text }}</a>{{ noticeParts.after }}
+					</template>
+					<template v-else>
+						{{ noticeParts.before }}
+					</template>
 				</NcNoteCard>
 			</template>
 		</div>
@@ -366,6 +376,8 @@ export default {
 
 		/** Show the Features and Roadmap folder tabs. */
 		tabs: { type: Boolean, default: true },
+		/** Show the Actions menu (suggest, buildiq, AI skills, support), in the header or the tab row; false draws none. */
+		actionsMenu: { type: Boolean, default: true },
 		/** `chips`: pill buttons with a count. `segmented`: a segmented control without counts. */
 		filter: {
 			type: String,
@@ -397,6 +409,10 @@ export default {
 		suggestUrl: { type: String, default: '' },
 		/** Show the feature-request form as the header's primary button; without it, it is an entry in the Actions menu. */
 		suggestButton: { type: Boolean, default: true },
+		/** In the `rows` layout, draw each feature's summary under its title; false shows the title and status only. */
+		summaries: { type: Boolean, default: true },
+		/** A link inside the notice: `{ text, href }`; the first occurrence of `text` in the translated notice opens `href` in a new tab. Only http(s) and site-relative hrefs link. */
+		noticeLink: { type: Object, default: null },
 		/** Target of the OpenBuilt entry in the Actions menu. */
 		openbuiltUrl: { type: String, default: '' },
 		/** Target of the AI skills entry in the Actions menu. */
@@ -421,8 +437,10 @@ export default {
 			return readerLanguage()
 		},
 
+		/** The groups, their captions through the app's translate function. */
 		groups() {
 			return groupFeatures(this.features, this.categories, this.language)
+				.map((group) => ({ ...group, label: group.label ? this.tr(group.label) : '' }))
 		},
 
 		allFeatures() {
@@ -464,6 +482,27 @@ export default {
 
 		resolvedTitle() {
 			return this.title ? this.tr(this.title) : t('nextcloud-vue', 'Features and roadmap')
+		},
+
+		/**
+		 * The notice split around its link: the text before, the link and the
+		 * text after. Without a usable `noticeLink` (no match in the
+		 * translated notice, or an href that is not http(s) or site-relative)
+		 * `before` is the whole notice.
+		 *
+		 * @return {{before: string, link: ({text: string, href: string}|null), after: string}} The parts.
+		 */
+		noticeParts() {
+			const text = this.notice ? this.tr(this.notice) : ''
+			const link = this.noticeLink
+			const label = link && typeof link.text === 'string' ? this.tr(link.text) : ''
+			const href = link && typeof link.href === 'string' ? link.href.trim() : ''
+			const index = label ? text.indexOf(label) : -1
+			const allowed = (/^https?:\/\//i.test(href) || href.startsWith('/')) && safeHref(href) === href
+			if (index === -1 || !allowed) {
+				return { before: text, link: null, after: '' }
+			}
+			return { before: text.slice(0, index), link: { text: label, href }, after: text.slice(index + label.length) }
 		},
 
 		resolvedSubtitle() {
@@ -676,9 +715,11 @@ export default {
 	gap: 10px;
 }
 
+/* The board's meta line: 14px muted, also under a theme that inks every <p>. */
 .cn-features-board__subtitle {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	margin: 0;
-	font-size: 15px;
+	font-size: 14px;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -791,16 +832,21 @@ export default {
 	background: var(--color-background-dark);
 }
 
+/* `margin: 0`: Nextcloud's core sheet gives every plain button a 3px margin,
+   which set the options 5px apart instead of the board's 2px. An option at
+   rest is in the board's softer ink, the open one in the main ink. */
 .cn-features-board__filter--segmented .cn-features-board__filter-option {
 	height: 34px;
+	margin: 0;
 	padding: 0 14px;
 	border: 0;
 	border-radius: 6px;
 	background: transparent;
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft, var(--color-main-text));
 }
 
 .cn-features-board__filter--segmented .cn-features-board__filter-option--active {
+	color: var(--color-main-text);
 	background: var(--color-main-background);
 	box-shadow: 0 1px 2px rgba(27, 28, 29, 0.12);
 }
@@ -856,6 +902,7 @@ export default {
 
 .cn-features-board__groups--rows .cn-features-board__group-title {
 	font-size: 17px;
+	line-height: normal;
 }
 
 .cn-features-board__group-caption {

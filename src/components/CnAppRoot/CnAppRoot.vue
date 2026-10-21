@@ -180,7 +180,7 @@
 				<div class="cn-app-root__setup">
 					<CnSetupWizard
 						:appId="appId"
-						:appName="appDisplayName || (manifest && manifest.name) || appId"
+						:appName="shownAppName"
 						:steps="manifest.setup.steps"
 						:cancellable="false"
 						:completedStepIds="setupCompletedStepIds"
@@ -193,6 +193,8 @@
 		<template v-else>
 			<!-- The brand block in Nextcloud's own header (board look); teleported, renders nothing here. -->
 			<CnBrandBar v-if="brandInHeader" :brand="resolvedBrandBlock" @unavailable="headerMissing = true" />
+			<!-- The app's own line on the header's search field (board look); renders nothing here. -->
+			<CnHeaderSearchLabel v-if="headerSearchLabel" :label="headerSearchLabel" />
 			<!--
 			  @slot menu
 			  @description Left-rail navigation surface. Default:
@@ -439,7 +441,7 @@
 			<div v-if="setupWizardOpen" class="cn-app-root__setup-optional">
 				<CnSetupWizard
 					:appId="appId"
-					:appName="appDisplayName || (manifest && manifest.name) || appId"
+					:appName="shownAppName"
 					:steps="manifest.setup.steps"
 					:cancellable="true"
 					:completedStepIds="setupCompletedStepIds"
@@ -550,10 +552,9 @@
 			    integrations section are drawn, unless `userSettingsSections`
 			    names more.
 			-->
-			<NcAppSettingsDialog
-				:open="userSettingsOpen"
-				:showNavigation="true"
-				:name="resolvedUserSettingsTitle"
+			<component
+				:is="resolvedLook === 'board' ? 'CnUserSettingsDialog' : 'NcAppSettingsDialog'"
+				v-bind="userSettingsDialogProps"
 				@update:open="userSettingsOpen = $event">
 				<template v-for="section in userSettingsSectionOrder()" :key="section">
 					<template v-if="section === 'app'">
@@ -562,6 +563,19 @@
 						<!-- @slot user-settings-sections The app's own sections (NcAppSettingsSection children), ADDED to the library's default sections (notifications, credentials, walkthrough, integrations). Place, order or hide the defaults with the `userSettingsSections` prop. -->
 						<slot name="user-settings-sections" />
 					</template>
+					<!--
+						The user's "My views" menu entries: reorder, remove, add
+						(board DqPersoonlijkeInstellingen). Only in an app with a
+						page that offers saved views.
+					-->
+					<NcAppSettingsSection v-else-if="section === 'views' && userSettingsOpen && offersSavedViews"
+						id="cn-saved-view-menu"
+						:name="libraryCopy('Views in my menu')">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<FilterOutline :size="18" />
+						</template>
+						<CnSavedViewMenuSettings />
+					</NcAppSettingsSection>
 					<CnNotificationPreferences v-else-if="section === 'notifications' && userSettingsOpen" />
 					<!--
 						Credential broker (OpenRegister). Lets the user manage the
@@ -573,10 +587,13 @@
 					<NcAppSettingsSection v-else-if="section === 'credentials' && userSettingsOpen"
 						id="credentials"
 						:name="libraryCopy('Credentials')">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<KeyOutline :size="18" />
+						</template>
 						<CnCredentials
 							scope="personal"
 							:appId="appId"
-							:appName="appDisplayName || (manifest && manifest.name) || appId"
+							:appName="shownAppName"
 							:appCredentials="(manifest && manifest.credentials) || []" />
 					</NcAppSettingsSection>
 					<!--
@@ -587,6 +604,9 @@
 					<NcAppSettingsSection v-else-if="section === 'walkthrough' && walkthroughEnabled"
 						id="cn-walkthrough"
 						:name="restartWalkthroughSectionName">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<Play :size="18" />
+						</template>
 						<p class="cn-app-root__walkthrough-hint">
 							{{ restartWalkthroughHint }}
 						</p>
@@ -628,6 +648,9 @@
 					<NcAppSettingsSection v-else-if="section === 'integrations' && userSettingsOpen && integrationEntries.length"
 						id="cn-integrations"
 						:name="translate('Integrations')">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<OpenInNew :size="18" />
+						</template>
 						<p class="cn-app-root__integrations-hint">
 							{{ libraryCopy('These open in another app.') }}
 						</p>
@@ -653,7 +676,7 @@
 						</ul>
 					</NcAppSettingsSection>
 				</template>
-			</NcAppSettingsDialog>
+			</component>
 
 			<!--
 			  ADR-079 Step 2: the generic admin-settings modal has been REMOVED.
@@ -693,6 +716,8 @@ import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Play from 'vue-material-design-icons/Play.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
@@ -704,11 +729,14 @@ import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
+import CnHeaderSearchLabel from '../CnHeaderSearchLabel/CnHeaderSearchLabel.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
+import CnSavedViewMenuSettings from '../CnSavedViewMenuSettings/CnSavedViewMenuSettings.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
+import CnUserSettingsDialog from '../CnUserSettingsDialog/CnUserSettingsDialog.vue'
 import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
@@ -734,7 +762,9 @@ import {
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { appShownName } from '../../utils/appShownName.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { resolveModalEntry } from '../../utils/builtInModals.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
@@ -743,6 +773,8 @@ import { installModalStack, uninstallModalStack } from '../../utils/modalStack.j
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
+import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 /**
@@ -802,13 +834,14 @@ const OR_STORE_LINK = '/index.php/settings/apps/integration/openregister'
  * The sections of the user-settings modal, in their default order. `app`
  * stands for the app's own slot content.
  */
-const USER_SETTINGS_SECTIONS = ['app', 'notifications', 'credentials', 'walkthrough', 'integrations']
+const USER_SETTINGS_SECTIONS = ['app', 'views', 'notifications', 'credentials', 'walkthrough', 'integrations']
 
 export default {
 	name: 'CnAppRoot',
 
 	components: {
 		CnBrandBar,
+		CnHeaderSearchLabel,
 		NcAppContent,
 		NcAppSettingsDialog,
 		NcAppSettingsSection,
@@ -818,6 +851,8 @@ export default {
 		NcLoadingIcon,
 		NcNoteCard,
 		DatabaseSearchOutline,
+		FilterOutline,
+		KeyOutline,
 		OpenInNew,
 		Play,
 		Restart,
@@ -832,6 +867,8 @@ export default {
 		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
+		CnSavedViewMenuSettings,
+		CnUserSettingsDialog,
 		CnCredentials,
 		CnTenantBadge,
 	},
@@ -874,6 +911,10 @@ export default {
 			get cnUserPreferences() {
 				return self.userPreferences
 			},
+
+			// The saved views this user added to the menu, and the way to
+			// change them, for an index page's sidebar.
+			cnSavedViewMenu: self.savedViewMenu,
 
 			// The same manifest as a REF. The getter above is NOT enough on its
 			// own: Options-API `inject` resolves a provided value once, at the
@@ -951,7 +992,7 @@ export default {
 			 * @param {object} props Props forwarded to the modal component.
 			 */
 			cnOpenModal: (key, props = {}) => {
-				const entry = this.registry[key]
+				const entry = resolveModalEntry(this.registry, key)
 				if (!entry || entry.kind !== 'modal') {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnAppRoot] cnOpenModal: "${key}" is not a registered modal (kind must be "modal").`)
@@ -1649,6 +1690,44 @@ export default {
 		},
 
 		/**
+		 * Deprecated and ignored: the board user-settings dialog draws no
+		 * line above its title (DqPersoonlijkeInstellingen).
+		 *
+		 * @deprecated
+		 * @type {string}
+		 */
+		userSettingsEyebrow: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Deprecated and ignored: the board user-settings dialog draws no
+		 * sentence under its title (DqPersoonlijkeInstellingen).
+		 *
+		 * @deprecated
+		 * @type {string}
+		 */
+		userSettingsSubtitle: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: Nextcloud's own personal settings, listed first in the
+		 * user-settings navigation as links, `[{ label, section? | href?, icon? }]`
+		 * (`section` is a personal settings section id). With any, the app's
+		 * sections sit under one entry named after the app. Labels go through
+		 * the app's `translate`.
+		 *
+		 * @type {Array<object>}
+		 */
+		userSettingsNextcloudLinks: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * The sections of the user-settings modal, in the order they are
 		 * drawn. Keys: `app` (the content of the `#user-settings-sections`
 		 * and `#user-settings` slots), `notifications`, `credentials`,
@@ -1856,6 +1935,17 @@ export default {
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
+			// Saved views this user added to the menu (per-user preference).
+			// One object for the whole session, so the provide hands out a
+			// live reference: `entries` changes, the holder does not.
+			savedViewMenuLoaded: false,
+			savedViewMenu: {
+				entries: [],
+				toggle: (entry) => this.toggleSavedViewMenu(entry),
+				sync: (page, views) => this.syncSavedViewMenu(page, views),
+				set: (entries) => this.setSavedViewMenu(entries),
+			},
+
 			// Nextcloud's own header, present on a server-rendered page; the
 			// brand block goes into it (CnBrandBar). Read once at creation so
 			// the navigation never draws a block that then moves.
@@ -2161,6 +2251,22 @@ export default {
 		},
 
 		/**
+		 * The line on the search field in Nextcloud's header: the manifest's
+		 * `nav.searchPlaceholder`, translated, under the board look on a page
+		 * with a header. Empty otherwise, and then the field keeps Nextcloud's line.
+		 *
+		 * @spec openspec/changes/screens-board-top-bar-search/specs/layout-components/spec.md#requirement-the-board-look-names-what-the-header-search-finds
+		 * @return {string}
+		 */
+		headerSearchLabel() {
+			const key = this.manifest?.nav?.searchPlaceholder
+			if (this.resolvedLook !== 'board' || !this.headerPresent || typeof key !== 'string' || key === '') {
+				return ''
+			}
+			return this.manifestTranslate(key)
+		},
+
+		/**
 		 * The label lookup provided as `cnTranslate`: the manifest's own
 		 * translations for the language first, then the host `translate`, then the
 		 * text as written. It reads the live manifest (the editor's working copy
@@ -2173,6 +2279,7 @@ export default {
 				getManifest: () => (this.manifestEditor ? this.manifestEditor.source.value : this.manifest),
 				getLanguage: () => this.language || getLanguage(),
 				translate: (text, vars) => this.translate(text, vars),
+				library: (text, vars) => t('nextcloud-vue', text, vars),
 			})
 		},
 
@@ -2308,6 +2415,16 @@ export default {
 		},
 
 		/**
+		 * Whether any page of the manifest offers saved views.
+		 *
+		 * @return {boolean}
+		 */
+		offersSavedViews() {
+			const pages = this.manifest && Array.isArray(this.manifest.pages) ? this.manifest.pages : []
+			return pages.some((page) => page && page.type === 'index' && pageOffersSavedViews(page.config))
+		},
+
+		/**
 		 * The manifest the default `<CnAppNav>` renders — the editor's working
 		 * `source` while in-app editing, else the live `manifest` prop. Passed to
 		 * CnAppNav as a REACTIVE prop (not left to the provide/inject fallback):
@@ -2337,6 +2454,12 @@ export default {
 			// prop for async backend-merge updates — see the reactive-menu tests).
 			if (this.manifestEditor && this.manifestEditor.editing.value && m && typeof m === 'object') {
 				return { ...m }
+			}
+			// An app that offers saved views ends its menu with the "My views"
+			// group: the user's pinned views, or one line saying how to add one.
+			// Any other app gets its live manifest by identity.
+			if (m && typeof m === 'object' && Array.isArray(m.menu) && (this.savedViewMenu.entries.length > 0 || this.offersSavedViews)) {
+				return { ...m, menu: withSavedViewMenu(m.menu, this.savedViewMenu.entries, { showEmpty: this.offersSavedViews }) }
 			}
 			return m
 		},
@@ -3066,6 +3189,51 @@ export default {
 		},
 
 		/**
+		 * The app's name as the reader reads it: `appDisplayName` or the
+		 * manifest's `name` through the app's translate, else the name
+		 * Nextcloud's app menu shows (localised), else the id with a capital.
+		 * Used for the user settings dialog, the setup wizard and the
+		 * credentials section; never for NcContent's `appName`, which also
+		 * keys the stored list-pane width (`pane-list-size-<appName>`).
+		 *
+		 * @spec openspec/changes/app-shown-name-in-chrome/specs/app-root/spec.md#requirement-the-app-chrome-shows-the-apps-localised-name
+		 * @return {string}
+		 */
+		shownAppName() {
+			const given = this.appDisplayName || (this.manifest && this.manifest.name) || ''
+			return appShownName(this.appId, given ? this.translate(given) : '')
+		},
+
+		/**
+		 * The props of the user-settings dialog: `NcAppSettingsDialog`'s, or
+		 * under the board look CnUserSettingsDialog's (title, the app's name
+		 * for the note under the sections, and the Nextcloud links).
+		 *
+		 * @spec openspec/changes/user-settings-board-dialog/specs/user-settings-board-dialog/spec.md#requirement-the-user-settings-dialog-takes-the-board-look
+		 * @return {object}
+		 */
+		userSettingsDialogProps() {
+			if (this.resolvedLook !== 'board') {
+				return { open: this.userSettingsOpen, showNavigation: true, name: this.resolvedUserSettingsTitle }
+			}
+			const props = {
+				open: this.userSettingsOpen,
+				title: this.resolvedUserSettingsTitle,
+				appName: this.shownAppName,
+			}
+			if (this.userSettingsEyebrow) {
+				props.eyebrow = this.translate(this.userSettingsEyebrow)
+			}
+			if (this.userSettingsSubtitle) {
+				props.subtitle = this.translate(this.userSettingsSubtitle)
+			}
+			if (Array.isArray(this.userSettingsNextcloudLinks) && this.userSettingsNextcloudLinks.length > 0) {
+				props.nextcloudLinks = this.userSettingsNextcloudLinks.map((link) => ({ ...link, label: this.translate(link?.label || '') }))
+			}
+			return props
+		},
+
+		/**
 		 * Title for the admin-settings modal. Prop override, else the
 		 * translated "Administration". Mirrors `resolvedUserSettingsTitle`.
 		 *
@@ -3130,12 +3298,24 @@ export default {
 			if (!this.activeModalKey) {
 				return null
 			}
-			const entry = (this.registry || {})[this.activeModalKey]
+			const entry = resolveModalEntry(this.registry, this.activeModalKey)
 			return (entry && entry.component) ? entry.component : null
 		},
 	},
 
 	watch: {
+		// Only an app with a page that offers saved views reads the list,
+		// once, when such a page first appears in the manifest.
+		offersSavedViews: {
+			immediate: true,
+			handler(offers) {
+				if (offers && !this.savedViewMenuLoaded) {
+					this.savedViewMenuLoaded = true
+					this.loadSavedViewMenu()
+				}
+			},
+		},
+
 		/**
 		 * Close a registry modal when the route changes.
 		 *
@@ -3146,6 +3326,28 @@ export default {
 		 */
 		$route() {
 			this.activeModalKey = null
+		},
+
+		/**
+		 * Open the setup wizard again when the address asks for it
+		 * (`?setup=open`), also after it was finished or dismissed, so a menu
+		 * entry or a link can offer "set up again". Ignored for an app without
+		 * setup steps.
+		 *
+		 * @spec openspec/changes/setup-wizard-opens-from-the-address/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard
+		 */
+		'$route.query.setup': {
+			immediate: true,
+			/**
+			 * @param {string|undefined} value The `setup` query value.
+			 * @spec openspec/changes/setup-wizard-opens-from-the-address/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard
+			 */
+			handler(value) {
+				const setup = this.manifest && this.manifest.setup
+				if (value === 'open' && setup && setup.enabled !== false && Array.isArray(setup.steps) && setup.steps.length > 0) {
+					this.setupWizardOpen = true
+				}
+			},
 		},
 
 		/**
@@ -3277,6 +3479,79 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the saved views this user added to the menu.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		async loadSavedViewMenu() {
+			const read = this.userPreferences && this.userPreferences.read
+			if (typeof read !== 'function') {
+				return
+			}
+			try {
+				this.savedViewMenu.entries = normalizeSavedViewMenu(await read(SAVED_VIEW_MENU_KEY, []))
+			} catch {
+				// No menu entries; the views themselves are unaffected.
+				return
+			}
+			this._hydrateSavedViewMenuCounts()
+		},
+
+		/**
+		 * Add a saved view to the menu, or remove it, and store the list.
+		 *
+		 * @param {{id: string, page: string, name: string, badge?: object}} entry The view.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		async toggleSavedViewMenu(entry) {
+			this.savedViewMenu.entries = toggleSavedViewMenuEntry(this.savedViewMenu.entries, entry)
+			this._hydrateSavedViewMenuCounts()
+			await this.writeSavedViewMenu()
+		},
+
+		/**
+		 * Bring one page's menu entries in line with the views it lists, and
+		 * store the list only when that changed something.
+		 *
+		 * @param {string} page The page's route name.
+		 * @param {Array<object>} views The views the page lists.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		async syncSavedViewMenu(page, views) {
+			const next = syncSavedViewMenu(this.savedViewMenu.entries, page, views)
+			if (JSON.stringify(next) === JSON.stringify(this.savedViewMenu.entries)) {
+				return
+			}
+			this.savedViewMenu.entries = next
+			this._hydrateSavedViewMenuCounts()
+			await this.writeSavedViewMenu()
+		},
+
+		/**
+		 * Replace the list (reordered, entries removed or added) and store it.
+		 *
+		 * @param {Array<object>} entries The new list, in menu order.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-view-menu-settings/specs/saved-view-menu-settings/spec.md#requirement-a-user-orders-and-picks-the-views-in-their-menu
+		 */
+		async setSavedViewMenu(entries) {
+			this.savedViewMenu.entries = normalizeSavedViewMenu(entries)
+			this._hydrateSavedViewMenuCounts()
+			await this.writeSavedViewMenu()
+		},
+
+		/** @return {Promise<void>} Store the list in the user's preferences. */
+		async writeSavedViewMenu() {
+			const write = this.userPreferences && this.userPreferences.write
+			if (typeof write === 'function') {
+				await write(SAVED_VIEW_MENU_KEY, this.savedViewMenu.entries)
+			}
+		},
+
 		/** Listen for the host's `diagnostics` function while it is set; adds this root's page id. */
 		syncDiagnostics() {
 			if (this.removeDiagnostics) {
@@ -4139,10 +4414,37 @@ export default {
 				}
 				return out
 			}
-			for (const item of collect(this.manifest?.menu)) {
+			for (const item of [...collect(this.manifest?.menu), ...this._savedViewMenuCountItems()]) {
 				if ((register === null || item.count.register === register) && (schema === null || item.count.schema === schema)) {
 					this._fetchMenuItemCount(item)
 				}
+			}
+		},
+
+		/**
+		 * The "My views" menu entries whose view asks for a filtered count
+		 * (`overrides.badge`), as `{ id, count }` under the menu entry's id.
+		 *
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 * @return {Array<{id: string, count: {register: string, schema: string, filter?: object}}>}
+		 * @private
+		 */
+		_savedViewMenuCountItems() {
+			return (this.savedViewMenu?.entries || [])
+				.filter((e) => e.badge && e.badge.count && typeof e.badge.count === 'object')
+				.map((e) => ({ id: `${SAVED_VIEW_MENU_PREFIX}${e.id}`, count: e.badge.count }))
+		},
+
+		/**
+		 * Fetch the count of every "My views" entry that shows one.
+		 *
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateSavedViewMenuCounts() {
+			for (const item of this._savedViewMenuCountItems()) {
+				this._fetchMenuItemCount(item)
 			}
 		},
 

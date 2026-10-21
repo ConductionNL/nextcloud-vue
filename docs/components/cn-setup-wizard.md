@@ -23,10 +23,73 @@ shell while a `required` step is unmet.
 |--------|---------|--------------|
 | `info` | a note card (`title` + `body`) | — |
 | `config-fields` | fields from a JSON Schema (`fieldsFromSchema`) | `POST /api/setup/config` |
-| `choice` | an `NcSelect` bound to `configKey` (`options[]`, `multiple?`), or cards with `display: "cards"` | `POST /api/setup/config` |
+| `choice` | an `NcSelect` bound to `configKey` (`options[]`, `multiple?`), cards with `display: "cards"`, or radio rows with `display: "rows"` | `POST /api/setup/config` |
 | `run-action` | auto-starts `POST /api/setup/action/{action}` on entry (spinner), result + a "Run again" button | the action itself |
 | `summary` | a recap of step completion | — |
 | `component` | the parent's `#step-<id>` slot (escape hatch) | up to the slot |
+
+## A choice step's intro and footnote
+
+A `choice` step's `body` is its intro. In the board look it is a plain
+paragraph above the options, as the boards draw it; in the Nextcloud look it
+stays an info note card. A `note` (or `footnote`) is a muted line under the
+options, in either look. Both go through the app's own translations.
+
+`noteStyle: "card"` draws the note as an info note card instead of the muted line (board DqInstellen, step 4).
+
+```json
+{
+  "id": "case-types",
+  "type": "choice",
+  "display": "cards",
+  "body": "Which case types do you start with?",
+  "note": "You can add case types later under Case types."
+}
+```
+
+On an admin page `CnAdminSettingsShell` passes its `appName` to the wizard, so
+the title reads "Set up {appName}", and hands it the app's catalog as
+`cnTranslate`.
+
+In the board look the heading is the current step's title, under the eyebrow
+"Set up {appName}, step N of M" ("Dossiq instellen, stap 4 van 5" in Dutch,
+board DqInstellen). The app name goes through the host's translate.
+
+## Radio rows
+
+`display: "rows"` draws a choice as [CnChoiceCards](./cn-choice-cards.md) in its `rows` layout: one option per row, full width, the radio on the left and the description under the label (board DqInstellen, step 4). Use it for a short list of options that each need a sentence; `cards` suits options with stats and tags.
+
+```json
+{
+  "id": "examples",
+  "type": "choice",
+  "display": "rows",
+  "configKey": "example_data",
+  "options": [
+    { "value": "none", "label": "None, I will start empty" },
+    { "value": "demo", "label": "Example data" }
+  ]
+}
+```
+
+## A preselected option
+
+A choice step's `default` is the option chosen when the step opens (board DqInstellen, step 4, opens on "Example data"); with `multiple` it is an array of values. Next saves it like a picked option. A step the server already completed keeps its stored value: the default is not applied there.
+
+```json
+{ "id": "examples", "type": "choice", "display": "cards", "configKey": "example_data", "default": "demo", "options": [ ... ] }
+```
+
+## A step that depends on the app's state
+
+`visibleWhen` offers a step only when the setup status says so: a dotted path
+into the document `GET /api/setup/status` returns, whose value must be truthy,
+or `{ "path": "...", "equals": <value> }` for an exact value. The step stays
+hidden while the status loads, and when the path is not there.
+
+```json
+{ "id": "dwangsom", "type": "config-fields", "visibleWhen": "flags.hasPayouts" }
+```
 
 ## Dataset cards that load themselves
 

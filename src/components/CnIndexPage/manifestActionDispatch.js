@@ -1,4 +1,5 @@
-import { isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { dispatchAction as dispatchSharedAction, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { readPath } from '../../utils/readPath.js'
 
 /**
  * Substitute `{field}` row tokens in a single manifest param value.
@@ -132,7 +133,11 @@ export function resolveActionTarget(action, row, ctx, warn = false) {
  *   - `navigate` → `action.target` is a URL. External/absolute URLs open in a
  *     new tab (`window.open`, `noopener`); in-app paths go through `$router.push`.
  *   - `open-page` → `action.target` is a named route; `$router.push({ name, params:{ id } })`.
- *   - `open-modal` → not wired for index actions; falls back to `@action`.
+ *   - `open-modal` → `ctx.openModal(target, { object: row, objectId, ...props })`,
+ *     the app root's `cnOpenModal`; without it, falls back to `@action`.
+ *   - `api-call` → the shared api-call (POST by default, toasts) for the row:
+ *     `{objectId}` and `{field}` row tokens fill the url, and on success
+ *     `ctx.refresh` reads the list again (unless `refresh: false`).
  *
  * Handler dispatch (`type: 'handler'`, the default) reads `action.handler`:
  *   - `navigate` → $router.push to `action.route` with `{ id: row[rowKey] }`
@@ -149,8 +154,9 @@ export function resolveActionTarget(action, row, ctx, warn = false) {
  *     wrapped if a function.
  *
  * @param {object} action Manifest action descriptor.
- * @param {{ router: object, rowKey: string, registry?: object, customComponents: object }} ctx Dispatch context (router, rowKey, the v2 registry and the legacy customComponents map).
+ * @param {{ router: object, rowKey: string, registry?: object, customComponents: object, refresh?: (() => Promise<void>), translate?: ((text: string) => string) }} ctx Dispatch context (router, rowKey, the v2 registry, the legacy customComponents map, and for `api-call` the list refresh and translate).
  * @return {((row?: object) => void)|null}
+ * @spec openspec/changes/pl4-index-row-api-call/specs/pl4-index-row-api-call/spec.md#requirement-an-index-row-action-can-call-an-endpoint
  */
 export function resolveActionHandler(action, ctx) {
 	const type = (typeof action.type === 'string' && action.type.length > 0) ? action.type : 'handler'
@@ -182,13 +188,39 @@ export function resolveActionHandler(action, ctx) {
 	}
 
 	if (type === 'open-modal') {
-		// eslint-disable-next-line no-console
-		console.warn(`[CnIndexPage] action "${action.id}" type:"open-modal" is not `
-			+ 'supported for index-page actions; falling back to @action-only.')
-		return null
+		// The row's modal opens through the app root's `cnOpenModal`, with the
+		// row as `object` and its key as `objectId` unless the action names
+		// its own. A modal that acts (CnActionDialog) signals the page refresh
+		// itself, so the list reloads after it.
+		if (typeof ctx.openModal !== 'function' || typeof action.target !== 'string' || action.target === '') {
+			// eslint-disable-next-line no-console
+			console.warn(`[CnIndexPage] action "${action.id}" type:"open-modal" needs a target and an app root `
+				+ 'to open it in; falling back to @action-only.')
+			return null
+		}
+		return (row) => ctx.openModal(action.target, {
+			object: row,
+			objectId: row && ctx.rowKey ? readPath(row, ctx.rowKey) : undefined,
+			...(action.props && typeof action.props === 'object' ? action.props : {}),
+		})
 	}
 
 	// type === 'handler' (default): the v1.3.0 handler-string path.
+	if (type === 'api-call') {
+		return async (row) => {
+			const { value: url } = resolveRowToken(action.url, row)
+			const objectId = row && ctx.rowKey ? readPath(row, ctx.rowKey) : undefined
+			const result = await dispatchSharedAction({ ...action, url, refresh: false }, {
+				translate: ctx.translate,
+				tokenCtx: { objectId, object: row },
+			})
+			if (result && result.ok && action.refresh !== false && typeof ctx.refresh === 'function') {
+				await ctx.refresh()
+			}
+			return result
+		}
+	}
+
 	const name = action.handler
 	if (typeof name !== 'string' || name.length === 0) {
 		return null

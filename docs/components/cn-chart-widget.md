@@ -191,6 +191,117 @@ endpointSource: {
 
 Pie-family charts (`pie` / `donut` / `radialBar`) flatten the FIRST mapped series into the flat value array ApexCharts expects. `params` re-resolve + the chart refetches when the dashboard date range changes (the page publishes `dateFrom` / `dateTo` / `datePreset` into the workspace context).
 
+
+### Reading only when asked (`loadOn: "request"`)
+
+An endpoint whose every read is recorded (an audit trail per read, say) should not be read because somebody opened the page. With `loadOn: "request"` in the `endpointSource` block the widget reads nothing on mount: it shows a button (`requestLabel`, default "Show") with an optional `requestHint` sentence above it, and reads only when the reader presses it. When the request changes (another period from the page filters), the last answer is dropped and the widget waits for the next press. Page and widget refreshes do not read a widget that is waiting. Each press is a fresh read, past the shared cache.
+
+```json
+"endpointSource": {
+  "url": "/apps/dossiq/api/woo/reports/throughput",
+  "params": { "from": "@workspace.from", "to": "@workspace.to" },
+  "responsePath": "rows",
+  "loadOn": "request",
+  "requestLabel": "Show",
+  "requestHint": "Every time you open this report, it is recorded."
+}
+```
+
+`CnWidgetObjectTable`, `CnChartWidget` and `CnStatWidget` all honour it; the labels go through the app's translate.
+
+### A series the endpoint names (`namePath`)
+
+`series[].namePath` names a series from the endpoint's whole response (before `responsePath`): `{ "name": "Hours", "namePath": "labels.workingHours", "path": "hours" }` reads the series name the endpoint sends, so the legend and tooltip say which clock the numbers are on. `name` is used until the response names one.
+
+## Bar list and matrix
+
+Two chart kinds are drawn as plain rows instead of an ApexCharts canvas, as the boards draw them.
+
+`chartKind: "bar-list"` draws one row per category: the label, a track filled to the value's share of `barMax` (default the largest value), and the value at the end (boards DqDashboard "Zaken per status", DqTermijnen "Op tijd beslist per zaaktype"). When the `dataSource` declares a `drilldown`, each row is a button that opens the drilldown route. `footnote` adds a line under the rows. A `line`, `area` or `bar` chart takes a `footnote` too and draws it under the plot (board DqDoorlooptijd).
+
+```json
+{
+  "type": "chart",
+  "props": {
+    "chartKind": "bar-list",
+    "barMax": 100,
+    "valueFormat": "percent",
+    "footnote": "Klik een balk om de zaken te zien",
+    "endpointSource": { "url": "/apps/dossiq/api/analytics/on-time", "responsePath": "rows", "labelsPath": "caseType", "series": [{ "name": "Op tijd", "path": "percentage" }] }
+  }
+}
+```
+
+`chartKind: "matrix"` draws one row per series and one column per category, each cell tinted in four steps by its share of the largest value (board DqProcesanalyse "Dagen per fase"). An endpoint with one row per series names them with `rowsPath`, `rowLabelPath` (default `label`) and `rowValuesPath` (default `values`); the columns come from `labelsPath`. `valueFormat: { "name": "number", "suffix": " d" }` reads "9 d". A text value in the rows (dossiq sends `"none"` for a phase a case type never passes) stays a text cell, through the host's translate, never "0 d"; a cell without a value shows `emptyCellLabel` when set, and stays blank otherwise.
+
+```json
+{
+  "type": "chart",
+  "props": {
+    "chartKind": "matrix",
+    "valueFormat": { "name": "number", "suffix": " d" },
+    "endpointSource": { "url": "/apps/dossiq/api/analytics/phase-days", "labelsPath": "phases", "rowsPath": "rows", "rowLabelPath": "caseType", "rowValuesPath": "days" }
+  }
+}
+```
+
+A `matrix` can hold text cells: a static `series` whose data are strings, tinted through `colorMap` (`success`, `warning`, `error`, `danger` or a CSS colour). `highlight: { row, column, columnKeys? }` outlines one cell, usually the record's on a detail page: `row` matches a series `key`, its name or its 1-based position; `column` an entry of `columnKeys`, a category label or a 1-based position. Both take tokens (board DqHandhaving, the enforcement matrix):
+
+```json
+{
+  "chartKind": "matrix",
+  "categories": ["Gevolg A: gering", "Gevolg B: matig", "Gevolg C: ernstig", "Gevolg D: zeer ernstig"],
+  "series": [
+    { "key": "1", "name": "Gedrag 1: welwillend", "data": ["Gesprek", "Gesprek", "Waarschuwing", "Last onder dwangsom"] },
+    { "key": "2", "name": "Gedrag 2: onwetend", "data": ["Gesprek", "Waarschuwing", "Last onder dwangsom", "Last onder dwangsom"] }
+  ],
+  "colorMap": { "Gesprek": "success", "Waarschuwing": "warning", "Last onder dwangsom": "error", "Bestuursdwang en aangifte": "danger" },
+  "highlight": { "row": "@object.behaviour", "column": "@object.consequence", "columnKeys": ["A", "B", "C", "D"] }
+}
+```
+
+A matrix the app keeps as data, one record per cell, is read with `cellSource` instead of written into the manifest, so every install shows its own matrix and the version the app computed with. The records are listed from `register` / `schema` with `filter` (tokens resolved against the record on a detail page; the list waits while a token is unresolved) and laid out by `rowField` and `columnField`, with `valueField` as the cell. Labels come from `rowLabels` / `columnLabels` maps or `rowLabelField` / `columnLabelField`; order from `rowOrder` / `columnOrder`, else `rowOrderField` / `columnOrderField`, else natural order. `valueLabels` maps a stored value to its text; `colorMap` may key on the stored value or the text. `highlight` matches the row key and the column key:
+
+```json
+{
+  "chartKind": "matrix",
+  "cellSource": {
+    "register": "<register>",
+    "schema": "<cell schema>",
+    "filter": { "matrix": "@object.matrixVersion" },
+    "rowField": "behaviourRow",
+    "columnField": "consequenceColumn",
+    "valueField": "interventionStep"
+  },
+  "colorMap": { "talk": "success", "warning": "warning", "order": "error" },
+  "highlight": { "row": "@object.behaviour", "column": "@object.severity" }
+}
+```
+
+When the matrix sits inside ONE record (an array of cells on a versioned matrix record), add `cellsPath`: the chart reads the first record `filter` finds (else `fallbackFilter`), takes the array at `cellsPath`, keeps the cells that match `cellFilter` (tokens allowed, e.g. one slice of a matrix over three axes), and takes the row and column order from `rowOrderPath` / `columnOrderPath` on that record (board DqHandhaving):
+
+```json
+{
+  "chartKind": "matrix",
+  "cellSource": {
+    "register": "dossiq",
+    "schema": "lhsMatrix",
+    "filter": { "version": "@object.matrixVersion" },
+    "fallbackFilter": { "active": true },
+    "cellsPath": "cells",
+    "cellFilter": { "actorType": "@object.actorType" },
+    "rowField": "behaviour",
+    "columnField": "severity",
+    "valueField": "intervention",
+    "rowOrderPath": "behaviourAxis",
+    "columnOrderPath": "severityAxis"
+  },
+  "highlight": { "row": "@object.behaviour", "column": "@object.severity" }
+}
+```
+
+In the board look a dashboard card holding a bar list or a matrix draws no rule under its title; other cards keep theirs.
+
 ## `views` — in-widget display switcher (Wave 3, #91)
 
 An optional `views` array renders a compact pill row above the chart that toggles which named series / value format render — pure display, no series arithmetic (the €/% and hours/% toggles from the Wave-4 evaluation):
@@ -238,7 +349,7 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `type` | String | `'area'` | Chart type: `'area'`, `'line'`, `'bar'`, `'pie'`, `'donut'`, `'radialBar'` |
+| `type` | String | `'area'` | Chart type: `'area'`, `'line'`, `'bar'`, `'pie'`, `'donut'`, `'radialBar'`, `'bar-list'`, `'matrix'` |
 | `series` | Array | `[]` | Data series. Format: `[{ name, data[] }]` for cartesian charts; `number[]` for pie/donut |
 | `categories` | Array | `[]` | X-axis category labels (line, area, bar charts) |
 | `labels` | Array | `[]` | Segment labels (pie, donut charts) |
@@ -252,6 +363,13 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 | `dataSource` | Object | `null` | Optional OpenRegister GraphQL block — see [`dataSource`](#datasource--resolving-series--categories-from-openregister) above |
 | `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars). An explicit `options.plotOptions.bar.horizontal` still wins. |
 | `legendPosition` | String | `''` | Legend placement override: `top \| bottom \| left \| right`. Empty keeps the automatic placement (bottom for pie-family, top otherwise). |
+| `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
+| `footnote` | String | `''` | A line under the chart, through the host's translate: under the rows of a `bar-list` or `matrix`, under the plot of a `line`, `area` or `bar` chart |
+| `referenceLines` | Array | `[]` | Dashed horizontal reference lines on the value axis of a line, area or bar chart, such as a norm: `[{ value, label?, color? }]`. The label goes through the host's translate; the colour defaults to the theme's error colour (board DqDoorlooptijd). |
+| `categoryFormat` | String | `''` | How date categories read on the x-axis: `month` ("jan") or `month-year` ("jan 2026"), in the user's language. Categories that are not dates are left as is. |
+| `emptyCellLabel` | String | `''` | `matrix`: the text of a cell without a value ("geen"), through the host's translate. Empty leaves the cell blank |
+| `highlight` | Object | `null` | `matrix`: the cell to outline, `{ row, column, columnKeys? }`, tokens such as `@object.behaviour` resolved |
+| `cellSource` | Object | `null` | `matrix`: read the cells from records that each hold one cell (`{ register, schema, filter?, rowField, columnField, valueField, … }`), or with `cellsPath` from the cells inside one record, see [Bar list and matrix](#bar-list-and-matrix) |
 | `valueAxisBaseline` | String | `'auto'` | How the value axis picks its baseline — see [Value-axis baseline](#value-axis-baseline) below. `auto` anchors bar/area at zero and stops line charts over-zooming; `zero` always anchors at zero; `fit` restores plain ApexCharts autoscaling. |
 | `valueFormat` | String \| Object | `null` | Named value formatter applied to the VALUE axis labels AND the tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"` (compact notation, e.g. `€ 1,2K`), `"percent"`. Object form `{ name, currency?, decimals? }` overrides the ISO code (EUR default, guarded) and fraction digits. With `horizontal` bars the formatter moves to the x-axis (the value axis flips). |
 | `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie/donut/radialBar slices and bar categories (bars switch to `distributed` rendering so each category gets its colour). Unmapped categories keep the default palette colour. |

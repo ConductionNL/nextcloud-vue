@@ -16,14 +16,19 @@
 
 import CnAuditTrailWidget from '../CnAuditTrailWidget/CnAuditTrailWidget.vue'
 import CnBannerWidget from '../CnBannerWidget/CnBannerWidget.vue'
+import CnDecisionListWidget from '../CnDecisionListWidget/CnDecisionListWidget.vue'
 import CnDividerWidget from '../CnDividerWidget/CnDividerWidget.vue'
+import CnExportsWidget from '../CnExportsWidget/CnExportsWidget.vue'
 import CnHeaderWidget from '../CnHeaderWidget/CnHeaderWidget.vue'
 import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
 import CnNavCardGrid from '../CnNavCardGrid/CnNavCardGrid.vue'
+import CnNoticeWidget from '../CnNoticeWidget/CnNoticeWidget.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import CnObjectTranslationsWidget from '../CnObjectTranslationsWidget/CnObjectTranslationsWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnSavedViewAlertWidget from '../CnSavedViewAlertWidget/CnSavedViewAlertWidget.vue'
 import CnTextWidget from '../CnTextWidget/CnTextWidget.vue'
 import CnTimelineWidget from '../CnTimelineWidget/CnTimelineWidget.vue'
 import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
@@ -70,6 +75,10 @@ import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
  * data — the intended remedy for a deep menu group collapsed into one
  * top-level entry via `menu-layout.json` relocations.
  *
+ * The `object-translations` key places CnObjectTranslationsWidget: the
+ * object's translatable properties per register language, with completeness
+ * chips and one save (register / schema / objectId via the detail-context merge).
+ *
  * @type {Record<string, import('vue').Component>}
  */
 export const BUILT_IN_WIDGETS = {
@@ -84,9 +93,14 @@ export const BUILT_IN_WIDGETS = {
 	related: CnRelatedObjectsWidget,
 	integration: CnIntegrationWidget,
 	banner: CnBannerWidget,
+	notice: CnNoticeWidget,
+	'decision-list': CnDecisionListWidget,
 	'audit-trail': CnAuditTrailWidget,
 	timeline: CnTimelineWidget,
 	header: CnHeaderWidget,
 	text: CnTextWidget,
 	divider: CnDividerWidget,
+	'saved-view-alert': CnSavedViewAlertWidget,
+	exports: CnExportsWidget,
+	'object-translations': CnObjectTranslationsWidget,
 }

@@ -15,12 +15,15 @@
  * @module components/CnWidgetGrid/registerDashboardWidgets
  */
 
+import CnAiChatWidget from '../CnAiCompanion/CnAiChatWidget.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnChartWidgetForm from '../CnChartWidgetForm/CnChartWidgetForm.vue'
 import CnConversationWidget from '../CnConversationThread/CnConversationWidget.vue'
 import CnCountdownWidget from '../CnCountdownWidget/CnCountdownWidget.vue'
 import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'
 import CnDocumentReviewWidget from '../CnDocumentReviewList/CnDocumentReviewWidget.vue'
+import CnEventsCard from '../CnEventsCard/CnEventsCard.vue'
+import CnMacrosWidget from '../CnMacrosWidget/CnMacrosWidget.vue'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
 import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
 import CnMarkdownWidget2 from '../CnMarkdownWidget/CnMarkdownWidget.vue'
@@ -28,10 +31,13 @@ import CnMarkdownWidgetForm2 from '../CnMarkdownWidgetForm/CnMarkdownWidgetForm.
 import CnNextStepWidget from '../CnNextStepCard/CnNextStepWidget.vue'
 import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+import CnPlanWidget from '../CnPlanWidget/CnPlanWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
+import CnRetentionWidget from '../CnRetentionWidget/CnRetentionWidget.vue'
 import CnSavedViewWidget2 from '../CnSavedViewWidget/CnSavedViewWidget.vue'
 import CnSavedViewWidgetForm2 from '../CnSavedViewWidgetForm/CnSavedViewWidgetForm.vue'
+import CnSchemaRulesWidget from '../CnSchemaRulesWidget/CnSchemaRulesWidget.vue'
 import CnStackedBarWidget from '../CnStackedBarWidget/CnStackedBarWidget.vue'
 import CnStackedBarWidgetForm from '../CnStackedBarWidgetForm/CnStackedBarWidgetForm.vue'
 import CnStagesWidget from '../CnStagesWidget/CnStagesWidget.vue'
@@ -40,8 +46,10 @@ import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
 import CnTabsWidget from '../CnTabsWidget/CnTabsWidget.vue'
 import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
+import CnTeamWorkloadWidget from '../CnTeamWorkloadWidget/CnTeamWorkloadWidget.vue'
 import CnWeekStripWidget from '../CnWeekStripWidget/CnWeekStripWidget.vue'
 import CnWeekStripWidgetForm from '../CnWeekStripWidgetForm/CnWeekStripWidgetForm.vue'
+import CnWorkQueue from '../CnWorkQueue/CnWorkQueue.vue'
 // Typed widgets registered with an explicit renderer + config FORM. chart /
 // stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
 // branches and `related` through CnDetailPage's isRelatedWidget() branch — the
@@ -74,6 +82,14 @@ import '../CnFlowRunsWidget/index.js'
 import '../CnTasksWidget/index.js'
 import '../CnSectionsWidget/index.js'
 import '../CnFactsWidget/index.js'
+import '../CnLinkedWidget/index.js'
+import '../CnDeviceFramesWidget/index.js'
+import '../CnGroupedCardsWidget/index.js'
+import '../CnChecklistRunWidget/index.js'
+import '../CnChecklistWidget/index.js'
+import '../CnMailTab/index.js'
+import '../CnWorkingCalendarWidget/index.js'
+import '../CnPartyActionsWidget/index.js'
 import '../CnFieldListWidget/index.js'
 import '../CnSettingsFormWidget/index.js'
 import '../CnSwitchRowsWidget/index.js'
@@ -92,6 +108,9 @@ import '../CnTimelineWidget/dashboardRegistration.js'
 import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
 import '../CnBannerWidget/index.js'
+import '../CnAttentionFlagWidget/index.js'
+import '../CnStatusExplainerWidget/index.js'
+import '../CnObjectPartiesWidget/index.js'
 import '../CnWorkspaceFilterWidget/index.js'
 
 registerDashboardWidget('chart', {
@@ -283,6 +302,43 @@ registerDashboardWidget('next-step', {
 	ownsTitle: true,
 })
 
+registerDashboardWidget('retention', {
+	renderer: CnRetentionWidget,
+	form: null,
+	defaultContent: { statusField: '', archivedValues: [], archivistGroups: ['archivaris'] },
+	displayName: 'Retention',
+	icon: 'ArchiveOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+registerDashboardWidget('schema-rules', {
+	renderer: CnSchemaRulesWidget,
+	form: null,
+	defaultContent: { register: '', schema: '', objectId: '' },
+	displayName: 'Schema rules',
+	icon: 'ScaleBalance',
+	surfaces: ['detail-page'],
+})
+
+registerDashboardWidget('plan', {
+	renderer: CnPlanWidget,
+	form: null,
+	defaultContent: { emptyText: '' },
+	displayName: 'Plan',
+	icon: 'FormatListChecks',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+registerDashboardWidget('work-queue', {
+	renderer: CnWorkQueue,
+	form: null,
+	defaultContent: { source: null },
+	displayName: 'Work queue',
+	icon: 'TrayFull',
+})
+
 registerDashboardWidget('document-review', {
 	renderer: CnDocumentReviewWidget,
 	form: null,
@@ -291,6 +347,40 @@ registerDashboardWidget('document-review', {
 	icon: 'FileDocumentCheckOutline',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
+})
+
+// The AI Chat Companion embedded in the page: the assistant as a tab or card
+// rather than the launcher's floating window (DqZaakAssistent).
+registerDashboardWidget('ai-chat', {
+	renderer: CnAiChatWidget,
+	form: null,
+	defaultContent: { chatAppId: '' },
+	displayName: 'Assistant',
+	icon: 'Creation',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+// The macros the record's schema declares, each run by a button
+// (DqZaakAssistent "Macro's").
+registerDashboardWidget('macros', {
+	renderer: CnMacrosWidget,
+	form: null,
+	defaultContent: { description: '', emptyText: '' },
+	displayName: 'Macros',
+	icon: 'PlayBoxMultipleOutline',
+	surfaces: ['detail-page'],
+})
+
+// The appointments booked on a record that is not an object (a flow task),
+// read from a source or an endpoint.
+registerDashboardWidget('events', {
+	renderer: CnEventsCard,
+	form: null,
+	defaultContent: { source: null, endpoint: '', emptyText: '' },
+	displayName: 'Appointments',
+	icon: 'CalendarClock',
+	surfaces: ['detail-page'],
 })
 
 registerDashboardWidget('conversation', {
@@ -374,6 +464,17 @@ registerDashboardWidget('stacked-bar', {
 	},
 	displayName: 'Stacked bar',
 	icon: 'ChartBar',
+})
+
+// The team today: availability from the Nextcloud user status and each
+// person's open count from the app (DqTeamwachtrij "Team vandaag"). Placed
+// from the manifest: there is no config form yet.
+registerDashboardWidget('team-workload', {
+	renderer: CnTeamWorkloadWidget,
+	form: null,
+	defaultContent: { source: { url: '', responsePath: '', userField: 'userId', nameField: 'displayName', countField: 'count' } },
+	displayName: 'Team workload',
+	icon: 'AccountGroup',
 })
 
 /**

@@ -110,13 +110,18 @@ A tab can show a count, and a strip can keep to a few tabs and put the rest unde
 | `countField` | a tab | Reads the count off the record. A list counts its items, a number is used as is, a missing field counts as 0. |
 | `countFrom` | a tab | Counts a list on the server when the record does not carry the number: `"widget"` counts the child widget's own list (its `content.register`, `content.schema` and `content.filter`, with `@objectId` and other tokens resolved), an object with `register`, `schema` and an optional `filter` names the list. One request per tab (`_limit=1`, the response's `total`), again when the record changes or the page refreshes. `count` and `countField` win over it; a failed count shows no number. |
 | `overflow` | a tab | Lists the tab under "More". |
+| `default` | a tab | `true` opens the strip on this tab, so an Overview tab can stay first while the page opens on another. A route hash naming a tab wins over it, and a marked tab under "More" is not opened. |
 | `maxVisibleTabs` | `content` | The most tabs the strip shows. Later tabs go under "More". A tab that is already there does not use up a place. |
 | `hideEmpty` | `content` | Moves a tab whose count is 0 under "More". A tab without a count is never moved. |
 | `moreLabel` | `content` | Names the menu. Defaults to "More". |
 
-The strip opens on the first tab that is in it. None of these keys is required, and a strip that sets none renders as before.
+The strip opens on the tab marked `default`, else on the first tab that is in it. None of these keys is required, and a strip that sets none renders as before.
 
 Tab titles are separately configurable for a reason: "Files and attachments" reads fine on a card and is too long once six tabs share the width. [`CnTabsWidgetForm`](./cn-tabs-widget-form.md) edits them in Buildiq edit mode.
+
+### A title row for a single widget
+
+A tab that holds one widget draws that widget's own `title` as a heading in its panel, with its `description` on a line under it, both through the app's translate (board DqZaakDocumenten: tab "Documenten", heading "Documenten bij dit verzoek"). A widget without a title or without a description, or whose title the tab already shows, draws no heading: a title alone repeats what the tab names, so the widget stays bare in its panel.
 
 ### A stack of widgets in one tab
 
@@ -160,6 +165,18 @@ with `"visibleWhen": { "workspace": "round", "value": "paused" }` on
 `round-paused`. Off a dashboard there is no workspace, and every widget of the
 stack draws. The tab count still reads the first widget of the stack that has
 a list, whichever one is showing.
+
+On a detail page a widget in a stack also follows its own `visibleWhen` against
+the record, the way a grid widget does: a field of the record, or of a record
+the page's `visibilityContext` names (`@context.<name>`). It is hidden while
+those records load. So a contact-moment card shows only on interaction tickets:
+
+```json
+{ "id": "ticket-interaction", "type": "custom", "visibleWhen": { "field": "kind", "op": "eq", "value": "interaction" } }
+```
+
+A condition that needs a request (`source` or `endpoint`) is not evaluated on a
+stack child; the widget draws.
 
 ## Props
 
@@ -209,6 +226,8 @@ a list, whichever one is showing.
 
 A tab that declares neither `count` nor `countField` shows what is new on it, from the object's `@self.unreadCounts[<unreadKey>]` (OpenRegister `object-read-state`, returned on the detail read). `unreadKey` defaults to the tab's `id`, else its `widgetId`. A key absent from the map, or 0, shows no badge. A tab with its own `count` or `countField` keeps it. Opening a tab marks nothing: the backend tracks one moment per record.
 
+With `content.badgeSource: "readState"` opening a tab does mark its part read: the widget sends `PUT .../read-state` with `{ subResource: <unreadKey> }`, once, and drops that tab's count. A refused write keeps the count. A screen reader hears "3 new" after the tab's name, as the count alone is a bare number. The record's own read state stays the detail page's (`markRead`, "Mark as unread").
+
 ```json
 { "tabs": [{ "widgetId": "files" }, { "id": "documents", "widgetId": "docs", "unreadKey": "files" }] }
 ```
@@ -229,8 +248,28 @@ A tab entry can carry `visibleWhen`, the shared predicate every other surface us
 
 - **Local form** (a `field` of the page object): decided on every change of the object. While the object is still loading the tab shows disabled.
 - **Source form** (`source` with `@total`): counted once on mount, when the record changes, and again when a write is reported on the page (a `cn:page:refresh` or `cn:widget:refresh` broadcast, which the object-list widgets send after they save). While the count is pending the tab shows disabled with a spinner, so the strip does not jump; a refresh keeps the last answer until the new one arrives.
+- **A tab keeps its panel.** A tab is keyed on its `id`, else its place in `content.tabs`, not on the widget it starts with. A stack whose first card turns visible once the record arrives (DqBezwaar) keeps its panel, its place and, when it is open, the open state. Give tabs an `id` when their order can change.
 - **The active tab is always visible.** When the active tab goes, the first visible tab takes over and, if the page was opened with a route hash, the hash follows. A hash naming a hidden tab opens the first visible tab, without an error; a hash naming a visible tab (`#decision`, the tab's `id`) opens it.
 
 ## The board look
 
 In the board look the widget draws no tab icons and no "More" menu, draws its Actions button as a secondary button, and names the tab list from the page's `tabsLabel` (`content.ariaLabel` still wins). A tab holding the record's activity (an `audit-trail` or `timeline` widget, or the `activity` integration) is labelled "History" unless the tab sets a label, and is moved to the end of the strip whatever its place in `content.tabs`.
+
+### Overflow tabs in the Actions menu
+
+In the board look `overflow`, `maxVisibleTabs` and `hideEmpty` still decide which tabs leave the strip, but those tabs are listed at the top of the Actions menu beside the strip instead of under "More" (boards DqZaakMeer and DqZaakBesluiten). The History tab always stays in the strip and holds one of the `maxVisibleTabs` places. A tab picked from the menu opens, takes focus, and is drawn just before the last tab while it is open. With `showActions: false` the menu still renders while there are tabs to list, holding only those tabs.
+
+```json
+{
+  "maxVisibleTabs": 5,
+  "tabs": [
+    { "widgetId": "case-overview", "label": "Overview" },
+    { "widgetId": "case-files", "label": "Files" },
+    { "widgetId": "case-contact", "label": "Contact" },
+    { "widgetId": "case-tasks", "label": "Tasks" },
+    { "widgetId": "case-history", "label": "History" },
+    { "widgetId": "case-notes", "label": "Notes", "overflow": true },
+    { "widgetId": "case-decisions", "label": "Decisions", "overflow": true }
+  ]
+}
+```

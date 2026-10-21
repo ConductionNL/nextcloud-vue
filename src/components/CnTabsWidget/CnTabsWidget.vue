@@ -9,6 +9,7 @@
 			:aria-label="stripLabel"
 			:moreLabel="moreLabel"
 			:variant="stripVariant"
+			:overflowInNavEnd="isBoard"
 			class="cn-tabs-widget__tabs"
 			@update:activeIndex="onTabChange">
 			<!-- One Actions menu for the whole widget, bound to whichever child
@@ -27,10 +28,11 @@
 					{{ cnTranslate(activeHeaderLink.label) }}
 				</component>
 				<CnActionsMenu
-					v-if="showActions"
-					:showRefresh="showRefresh"
-					:showRequestFeature="showRequestFeature"
-					:showDocumentation="showDocumentation"
+					v-if="showActions || menuTabs.length"
+					:showRefresh="showActions && showRefresh"
+					:showRequestFeature="showActions && showRequestFeature"
+					:showDocumentation="showActions && showDocumentation"
+					:showReportBug="showActions"
 					:documentationUrl="documentationUrl"
 					:widgetId="activeWidgetId"
 					:title="activeTitle"
@@ -38,6 +40,20 @@
 					:surface="`widget:${activeWidgetId}`"
 					refreshChannel="cn:widget:refresh"
 					testidBase="cn-tabs-widget">
+					<!-- Board look: the tabs that are not in the strip, at the
+					     top of the menu, in place of a "More" button. -->
+					<template v-if="menuTabs.length" #lead-items>
+						<NcActionButton
+							v-for="entry in menuTabs"
+							:key="entry.key"
+							:disabled="entry.pending || null"
+							:closeAfterClick="true"
+							data-testid="cn-tabs-widget-menu-tab"
+							@click="openMenuTab(entry)">
+							{{ menuTabLabel(entry) }}
+						</NcActionButton>
+						<NcActionSeparator v-if="showActions" />
+					</template>
 					<!-- The open panel's own items, below the built-in trio.
 					     A panel draws no header, so these would otherwise have
 					     nowhere to go: the data widget's Metadata and full edit
@@ -51,7 +67,7 @@
 					     tab mounted, so several panels publish at once and an
 					     unfiltered list would offer actions for a sheet nobody
 					     is looking at. -->
-					<template v-if="activePanelActions.length" #action-items>
+					<template v-if="showActions && activePanelActions.length" #action-items>
 						<NcActionButton
 							v-for="action in activePanelActions"
 							:key="action.key"
@@ -72,6 +88,7 @@
 				:active="index === activeIndex"
 				:title="entry.label"
 				:count="entry.count"
+				:countLabel="entry.unreadLabel"
 				:overflow="entry.overflow"
 				:disabled="entry.pending"
 				lazy
@@ -95,7 +112,7 @@
 				<!-- A stack (`widgetIds`): every widget is a titled card; the
 				     first joins the open tab, the next ones stand below it. -->
 				<div
-					v-if="entry.widget && entry.stack.length"
+					v-if="entry.widget && entry.isStack"
 					class="cn-tabs-widget__stack"
 					:class="{ 'cn-tabs-widget__stack--grid': !!entry.grid }"
 					data-testid="cn-tabs-widget-stack">
@@ -148,24 +165,37 @@
 							@selectObject="onSelectObject" />
 					</div>
 				</div>
-				<CnDetailWidgetHost
-					v-else-if="entry.widget"
-					:widget="entry.widget"
-					chrome="bare"
-					:availableWidgets="availableWidgets"
-					:objectId="objectId"
-					:object="objectData"
-					:objectType="objectType"
-					:schemaObject="schemaObject"
-					:register="register"
-					:schema="schema"
-					:store="store"
-					:surface="surface"
-					:integrationContext="integrationContext"
-					:cnRegistry="cnRegistry"
-					@geoSaved="onGeoSaved"
-					@openIntegration="onOpenIntegration"
-					@selectObject="onSelectObject" />
+				<template v-else-if="entry.widget">
+					<!-- A single widget with a title of its own heads its panel
+					     (DqZaakDocumenten); a title the tab already shows is not
+					     repeated. -->
+					<div
+						v-if="panelHeading(entry)"
+						class="cn-tabs-widget__panel-heading"
+						data-testid="cn-tabs-widget-panel-heading">
+						<h2 class="cn-tabs-widget__panel-title">
+							{{ panelHeading(entry).title }}
+						</h2>
+						<span v-if="panelHeading(entry).subtitle" class="cn-tabs-widget__panel-subtitle">{{ panelHeading(entry).subtitle }}</span>
+					</div>
+					<CnDetailWidgetHost
+						:widget="entry.widget"
+						chrome="bare"
+						:availableWidgets="availableWidgets"
+						:objectId="objectId"
+						:object="objectData"
+						:objectType="objectType"
+						:schemaObject="schemaObject"
+						:register="register"
+						:schema="schema"
+						:store="store"
+						:surface="surface"
+						:integrationContext="integrationContext"
+						:cnRegistry="cnRegistry"
+						@geoSaved="onGeoSaved"
+						@openIntegration="onOpenIntegration"
+						@selectObject="onSelectObject" />
+				</template>
 				<CnEmptyContent v-else :name="missingLabel(entry)" />
 			</CnTab>
 		</CnTabs>
@@ -174,20 +204,22 @@
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { NcActionButton, NcActionSeparator, NcLoadingIcon } from '@nextcloud/vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import CnTabs from '../CnTabs/CnTabs.vue'
 import { normalizeLook } from '../../composables/useLook.js'
-import { headerLinkTarget, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
+import { headerLinkTarget, resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
+import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
-import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition } from '../../utils/visibleWhen.js'
+import { setSubResourceRead } from '../../utils/recordInteractions.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
@@ -251,6 +283,7 @@ export default {
 		CnTab,
 		CnTabs,
 		NcActionButton,
+		NcActionSeparator,
 		CnEmptyContent,
 		NcLoadingIcon,
 	},
@@ -343,6 +376,11 @@ export default {
 		 * label written in the manifest reads in the user's language.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * CnDetailPage's report of the open body tab, so its side column can
+		 * follow the tab (a side entry's `tabs`). Null on any other page.
+		 */
+		cnDetailReportTab: { default: null },
 	},
 
 	props: {
@@ -356,7 +394,9 @@ export default {
 		 * counts a list on the server: `"widget"` counts the child widget's
 		 * own list (`content.register`, `schema`, `filter`, tokens such as
 		 * `@objectId` resolved), an object `{ register, schema, filter? }`
-		 * names the list; `count` and `countField` win over it. `overflow: true`
+		 * names the list, and `{ endpoint, field? }` counts the list (or reads
+		 * the number) an endpoint answers with, `@objectId` resolved; `count`
+		 * and `countField` win over it. `overflow: true`
 		 * lists the tab under "More".
 		 *
 		 * A tab with `widgetIds` can lay them out in a grid instead of one under
@@ -364,12 +404,16 @@ export default {
 		 * `layout: [{ widgetId, gridWidth }]` sets a width (of 12) per widget, as
 		 * the page grid does. Widgets wrap onto the next row.
 		 *
-		 * `maxVisibleTabs` caps the strip: later tabs go under "More".
+		 * A tab with `default: true` is the one the strip opens on, unless a
+		 * route hash names another tab or the marked tab sits under "More".
+		 *
+		 * `maxVisibleTabs` caps the strip: later tabs go under "More" (in the
+		 * board look: into the Actions menu, with History kept in the strip).
 		 * `hideEmpty: true` moves a tab whose count is 0 there too.
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}), overflow?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -503,6 +547,9 @@ export default {
 			visibilitySeq: 0,
 			// Totals counted for tabs with `countFrom`, by position in `content.tabs`.
 			widgetCounts: {},
+			// Read-state parts this page has marked read since it opened
+			// (`badgeSource: 'readState'`), so their counts go without a reload.
+			readCleared: {},
 			countSeq: 0,
 			// Tab id named by the route hash that has not appeared yet (still pending).
 			hashTargetId: '',
@@ -553,15 +600,33 @@ export default {
 		},
 
 		/**
+		 * The tabs the board look lists at the top of the Actions menu: the
+		 * overflow tabs, less the one that is open (it is in the strip).
+		 * Empty outside the board look, where CnTabs draws "More".
+		 *
+		 * @return {object[]} Resolved tabs, in strip order.
+		 * @spec openspec/changes/board-tabs-overflow-in-actions/specs/board-tabs-overflow-in-actions/spec.md#requirement-board-tabs-list-their-overflow-in-the-actions-menu
+		 */
+		menuTabs() {
+			if (!this.isBoard) {
+				return []
+			}
+			return this.resolvedTabs.filter((entry, index) => entry.overflow && index !== this.activeIndex)
+		},
+
+		/**
 		 * The configured tabs, each paired with the widget definition it names.
 		 *
 		 * A tab goes under the strip's "More" menu when it says `overflow`, when
 		 * `content.hideEmpty` is set and its count is 0, or when
 		 * `content.maxVisibleTabs` places are already taken. `count` is a
-		 * literal, or read off the record through `countField`.
+		 * literal, or read off the record through `countField`. In the board
+		 * look those tabs are listed in the Actions menu instead, and the
+		 * activity (History) tab always stays in the strip.
 		 *
 		 * @return {object[]} `{ key, widgetId, label, icon, widget, count, overflow }` per tab.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 * @spec openspec/changes/board-tabs-overflow-in-actions/specs/board-tabs-overflow-in-actions/spec.md#requirement-board-tabs-list-their-overflow-in-the-actions-menu
 		 */
 		resolvedTabs() {
 			const authored = Array.isArray(this.content?.tabs) ? this.content.tabs : []
@@ -580,10 +645,14 @@ export default {
 			const originalIndex = ordered.map(({ index }) => index)
 			const max = Number(this.content?.maxVisibleTabs)
 			const hideEmpty = this.content?.hideEmpty === true
+			// The board keeps its History tab in the strip, so it holds one of
+			// the `maxVisibleTabs` places from the start.
+			const pinActivity = this.isBoard && tabs.some((tab, position) => isActivityTab(tab) && this.tabVisibility(tab, originalIndex[position]) !== 'hidden')
 			// How many tabs have taken a place in the strip so far. A tab that
 			// is already going under "More" does not use one up.
-			let placed = 0
+			let placed = pinActivity ? 1 : 0
 			const resolved = []
+			const usedKeys = new Set()
 			tabs.forEach((tab, position) => {
 				const index = originalIndex[position]
 				// A tab whose condition is false is absent, not empty.
@@ -594,41 +663,86 @@ export default {
 				// A stack (`widgetIds`) resolves every id; one that names no
 				// widget is skipped. The first that resolves is the panel's.
 				const ids = this.tabWidgetIds(tab)
-				const widgets = ids.length > 1
-					? ids.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null)
-							.filter((w) => w && !this.hiddenByWorkspace(w))
+				const named = ids.length > 1
+					? ids.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null).filter(Boolean)
 					: []
+				const widgets = named.filter((w) => !this.hiddenByWorkspace(w) && !this.hiddenByRecord(w))
 				const widget = ids.length > 1
 					? (widgets[0] || null)
 					: (this.availableWidgets.find((w) => w && w.id === ids[0]) || null)
 				const widgetId = widget ? widget.id : ids[0]
-				const declared = resolveTabCount(typeof tab === 'object' ? tab : null, this.objectData)
+				const declared = resolveTabCount(typeof tab === 'object' ? tab : null, this.countObject)
 				const counted = this.widgetCounts[index]
 				const count = declared === null && typeof counted === 'number' ? counted : declared
-				// The board strip has no "More": every tab is in the strip.
-				let overflow = !this.isBoard && ((tab && tab.overflow === true) || (hideEmpty && count === 0))
-				if (!overflow && !this.isBoard) {
+				const pinned = pinActivity && isActivityTab(tab)
+				let overflow = !pinned && ((tab && tab.overflow === true) || (hideEmpty && count === 0))
+				if (!overflow && !pinned) {
 					if (Number.isFinite(max) && max > 0 && placed >= max) {
 						overflow = true
 					} else {
 						placed += 1
 					}
 				}
+				// Keyed on the tab's own id, else its place in `content.tabs`:
+				// never on the widget the panel starts with, which changes when
+				// a stack's first card turns visible and would remount the panel.
+				const ownId = tab && typeof tab === 'object' && typeof tab.id === 'string' ? tab.id : ''
+				const key = ownId !== '' && !usedKeys.has(ownId) ? ownId : `tab-${index}`
+				usedKeys.add(key)
 				resolved.push({
-					key: `${widgetId || 'tab'}-${index}`,
+					key,
 					id: (tab && typeof tab === 'object' && tab.id) || widgetId || '',
 					widgetId,
 					label: this.tabLabel(tab, widget, widgetId),
 					icon: (tab && tab.icon) || widget?.icon || '',
 					widget,
 					stack: widgets.slice(1),
+					// A stack of two or more widgets stays a stack of titled cards
+					// when conditions leave one of them showing (DqSociaalDomein
+					// "De melding"): the record decides which cards show, not
+					// whether the panel is a card.
+					isStack: named.length > 1,
 					grid: this.stackGrid(tab, widgets),
 					count,
+					unreadKey: this.unreadKeyOf(tab, widgetId),
+					unreadLabel: this.unreadLabelOf(tab, widgetId),
 					overflow,
 					pending: visibility === 'pending',
+					opensFirst: Boolean(tab && typeof tab === 'object' && tab.default === true),
 				})
 			})
 			return resolved
+		},
+
+		/**
+		 * Whether the tabs badge what is new on each part of the record and
+		 * mark that part read when it is opened (`content.badgeSource: 'readState'`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		readStateBadges() {
+			return this.content?.badgeSource === 'readState'
+		},
+
+		/**
+		 * The record the tab counts read: the record itself, less the
+		 * read-state parts this page has already marked read.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		countObject() {
+			const record = this.objectData
+			const counts = record && record['@self'] && record['@self'].unreadCounts
+			if (!counts || typeof counts !== 'object' || Object.keys(this.readCleared).length === 0) {
+				return record
+			}
+			const left = { ...counts }
+			for (const key of Object.keys(this.readCleared)) {
+				left[key] = 0
+			}
+			return { ...record, '@self': { ...record['@self'], unreadCounts: left } }
 		},
 
 		/** @return {string} The keys of the tabs in the strip, to notice one appearing or going. */
@@ -697,7 +811,7 @@ export default {
 		 * @return {object|null}
 		 */
 		activeHeaderLink() {
-			return widgetHeaderLink(this.activeTab?.widget)
+			return resolveHeaderLink(widgetHeaderLink(this.activeTab?.widget), { objectId: this.objectId, object: this.objectData })
 		},
 
 		/**
@@ -757,6 +871,29 @@ export default {
 			this.activeKey = this.resolvedTabs[index]?.key || ''
 		},
 
+		// The open tab's part of the record is now seen: on opening a tab, and
+		// when the record arrives with something new on the open one.
+		'activeTab.key': function() {
+			this.markActiveTabRead()
+		},
+
+		'activeTab.unreadLabel': {
+			immediate: true,
+			handler() {
+				this.markActiveTabRead()
+			},
+		},
+
+		// Tell the detail page which tab is open (side cards per tab).
+		'activeTab.id': {
+			immediate: true,
+			handler(id) {
+				if (typeof this.cnDetailReportTab === 'function') {
+					this.cnDetailReportTab(id || '')
+				}
+			},
+		},
+
 		// A tab appeared or went. Keep the same tab active; when it is the active
 		// tab that went, the first visible one takes over and the hash follows.
 		visibleKeys() {
@@ -801,9 +938,9 @@ export default {
 	},
 
 	/**
-	 * Open on the first tab that is in the strip. Tab 0 is the default, and
-	 * when tab 0 sits under "More" the strip would open on a tab the author
-	 * chose to tuck away.
+	 * Open on the tab marked `default: true`, else on the first tab that is in
+	 * the strip. Tab 0 is not enough: when tab 0 sits under "More" the strip
+	 * would open on a tab the author chose to tuck away.
 	 *
 	 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
 	 */
@@ -819,8 +956,9 @@ export default {
 			if (named >= 0) {
 				this.hashTargetId = wanted
 			}
+			const marked = this.resolvedTabs.findIndex((tab) => tab.opensFirst && !tab.overflow && !tab.pending)
 			const first = this.resolvedTabs.findIndex((tab) => !tab.overflow && !tab.pending)
-			const fallback = first >= 0 ? first : this.resolvedTabs.findIndex((tab) => !tab.overflow)
+			const fallback = marked >= 0 ? marked : first >= 0 ? first : this.resolvedTabs.findIndex((tab) => !tab.overflow)
 			if (fallback > 0) {
 				this.activeIndex = fallback
 			}
@@ -846,6 +984,64 @@ export default {
 
 	methods: {
 		/**
+		 * The read-state part a tab counts: `unreadKey`, else its id, else its widget id.
+		 *
+		 * @param {object|string} tab The tab declaration.
+		 * @param {string} widgetId The tab's widget id.
+		 * @return {string} The part, or ''.
+		 */
+		unreadKeyOf(tab, widgetId) {
+			const own = tab && typeof tab === 'object' ? tab : {}
+			return String(own.unreadKey || own.id || widgetId || '')
+		},
+
+		/**
+		 * What a screen reader hears after a tab's name when its part holds
+		 * something unseen ("3 new"), under `badgeSource: 'readState'`. The count
+		 * pill alone is a bare number.
+		 *
+		 * @param {object|string} tab The tab declaration.
+		 * @param {string} widgetId The tab's widget id.
+		 * @return {string} The label, or '' when nothing is new.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		unreadLabelOf(tab, widgetId) {
+			if (!this.readStateBadges || (tab && typeof tab === 'object' && (typeof tab.count === 'number' || tab.countField))) {
+				return ''
+			}
+			const key = this.unreadKeyOf(tab, widgetId)
+			const counts = this.countObject && this.countObject['@self'] && this.countObject['@self'].unreadCounts
+			const count = counts && key ? Number(counts[key]) : 0
+			if (!Number.isFinite(count) || count < 1) {
+				return ''
+			}
+			return n('nextcloud-vue', '{count} new', '{count} new', count, { count })
+		},
+
+		/**
+		 * Mark the open tab's part of the record read (`PUT .../read-state`
+		 * with `subResource`), once, and drop its count. A refused write keeps
+		 * the count: an unseen part that stays marked is the safe direction.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
+		 */
+		async markActiveTabRead() {
+			const tab = this.activeTab
+			if (!this.readStateBadges || !tab || !tab.unreadLabel || !this.objectId) {
+				return
+			}
+			const key = tab.unreadKey
+			if (this.readCleared[key]) {
+				return
+			}
+			const outcome = await setSubResourceRead(String(this.register || ''), String(this.schema || ''), String(this.objectId), key)
+			if (outcome && outcome.ok) {
+				this.readCleared = { ...this.readCleared, [key]: true }
+			}
+		},
+
+		/**
 		 * Whether a page control hides a widget of a stack right now: its
 		 * `visibleWhen` (on the widget, its content or its props) is a
 		 * workspace condition that does not hold. Off a dashboard there is no
@@ -869,13 +1065,34 @@ export default {
 		},
 
 		/**
+		 * Whether the record hides a widget of a stack on a detail page: its
+		 * own `visibleWhen` reads a field of the record or of a record the
+		 * page's `visibilityContext` names (`@context.<name>`), and does not
+		 * hold, as a grid widget's would not. Hidden while those records
+		 * load. Off a detail page (no record), and for a condition that needs
+		 * a request, nothing is hidden here.
+		 *
+		 * @param {object} widget The widget definition.
+		 * @return {boolean} True when the widget must not draw.
+		 * @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition
+		 */
+		hiddenByRecord(widget) {
+			const cond = widget.visibleWhen
+			if (!this.objectData || !cond || typeof cond !== 'object' || isWorkspaceCondition(cond) || !isLocallyDecidableVisibleWhen(cond)) {
+				return false
+			}
+			return !detailWidgetVisible(widget, this.conditionData)
+		},
+
+		/**
 		 * The grid a stack lays its widgets out in, as one column span (of 12)
 		 * per widget in order, or null for the plain vertical stack. A tab says
 		 * `columns: 4` (every widget spans a quarter of the row) and/or
 		 * `layout: [{ widgetId, gridWidth }]`, the page grid's width key per
 		 * widget (of 12; a widget it does not name takes the `columns` share, or
-		 * the whole row). Widgets wrap onto the next row. Heights follow the
-		 * content.
+		 * the whole row). Widgets wrap onto the next row. A widget `layout`
+		 * places that ends up alone in its row (its partner hidden for this
+		 * record) takes the whole row. Heights follow the content.
 		 *
 		 * @param {object|string} tab The `content.tabs[]` entry.
 		 * @param {Array<object>} widgets The widgets of the stack, in order.
@@ -894,7 +1111,26 @@ export default {
 			if (placed.size === 0 && share === 12) {
 				return null
 			}
-			return widgets.map((widget) => placed.get(widget.id) ?? share)
+			const spans = widgets.map((widget) => placed.get(widget.id) ?? share)
+			// A widget `layout` sets beside a partner fills its row when it is
+			// alone there: the partner is hidden for this record, and half a
+			// row with nothing beside it is a hole, not a layout.
+			const rows = []
+			let used = 12
+			spans.forEach((span, index) => {
+				if (used + span > 12) {
+					rows.push([])
+					used = 0
+				}
+				rows[rows.length - 1].push(index)
+				used += span
+			})
+			rows.forEach((row) => {
+				if (row.length === 1 && placed.has(widgets[row[0]].id)) {
+					spans[row[0]] = 12
+				}
+			})
+			return spans
 		},
 
 		/**
@@ -927,6 +1163,33 @@ export default {
 				}
 			}
 			return [tab?.widgetId]
+		},
+
+		/**
+		 * The title row a single widget's panel draws: the widget's own title
+		 * and its description, through the app's translate. None when the
+		 * widget has no title or no description, or the tab already shows the
+		 * title: a title alone names what the tab already names, so the
+		 * widget stays bare in its panel.
+		 *
+		 * @param {object} entry A resolved tab.
+		 * @return {{title: string, subtitle: string}|null} The heading, or null.
+		 */
+		panelHeading(entry) {
+			const widget = entry && entry.widget
+			const raw = widgetTitleOf(widget)
+			if (!raw) {
+				return null
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			const title = translate(raw)
+			if (title === entry.label) {
+				return null
+			}
+			if (!widget || typeof widget.description !== 'string' || widget.description === '') {
+				return null
+			}
+			return { title, subtitle: translate(widget.description) }
 		},
 
 		/**
@@ -1014,7 +1277,7 @@ export default {
 		 * no list.
 		 *
 		 * @param {object|string} tab The `content.tabs[]` entry.
-		 * @return {{register: string, schema: string, filter: object}|null} The list.
+		 * @return {{register: string, schema: string, filter: object}|{endpoint: string, field: string}|null} The list, or the endpoint to count.
 		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
 		 */
 		countSourceOf(tab) {
@@ -1030,6 +1293,9 @@ export default {
 					.filter((content) => content && content.register && content.schema)
 				source = lists.length ? lists[0] : null
 			} else if (from && typeof from === 'object') {
+				if (typeof from.endpoint === 'string' && from.endpoint !== '') {
+					return { endpoint: from.endpoint, field: typeof from.field === 'string' ? from.field : '' }
+				}
 				source = from
 			}
 			if (!source || typeof source.register !== 'string' || source.register === '' || typeof source.schema !== 'string' || source.schema === '') {
@@ -1056,11 +1322,36 @@ export default {
 				if (!source) {
 					return
 				}
-				const total = await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
+				const total = source.endpoint
+					? await this.countEndpoint(source, ctx)
+					: await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
 				if (seq === this.countSeq) {
 					this.widgetCounts = { ...this.widgetCounts, [index]: total }
 				}
 			}))
+		},
+
+		/**
+		 * Count what an endpoint answers: the list at `field` (or the body),
+		 * or the number there. Null when the request fails or nothing countable
+		 * comes back.
+		 *
+		 * @param {{endpoint: string, field: string}} source The endpoint and the path to read.
+		 * @param {object} ctx The record context its tokens resolve against.
+		 * @return {Promise<number|null>} The count.
+		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
+		 */
+		async countEndpoint(source, ctx) {
+			try {
+				const value = await readVisibleWhenValue({ endpoint: source.endpoint, field: source.field }, ctx)
+				if (Array.isArray(value)) {
+					return value.length
+				}
+				const number = Number(value)
+				return value !== null && value !== '' && Number.isFinite(number) ? number : null
+			} catch {
+				return null
+			}
 		},
 
 		/** @return {string} The route hash without its `#`, or ''. */
@@ -1140,6 +1431,39 @@ export default {
 		},
 
 		/**
+		 * Open a tab picked from the Actions menu, then move focus to it in
+		 * the strip, so a keyboard user lands on the tab they chose.
+		 *
+		 * @param {object} entry The resolved tab.
+		 * @return {void}
+		 * @spec openspec/changes/board-tabs-overflow-in-actions/specs/board-tabs-overflow-in-actions/spec.md#requirement-board-tabs-list-their-overflow-in-the-actions-menu
+		 */
+		openMenuTab(entry) {
+			const index = this.resolvedTabs.indexOf(entry)
+			if (index < 0) {
+				return
+			}
+			this.activeIndex = index
+			this.$nextTick(() => {
+				const button = this.$el?.querySelector?.('[role="tab"][aria-selected="true"]')
+				if (button && typeof button.focus === 'function') {
+					button.focus()
+				}
+			})
+		},
+
+		/**
+		 * A menu tab's text: its label, and its count when it has one.
+		 *
+		 * @param {object} entry The resolved tab.
+		 * @return {string} The menu label.
+		 */
+		menuTabLabel(entry) {
+			const hasCount = entry.count !== null && entry.count !== undefined && entry.count !== ''
+			return hasCount ? `${entry.label} (${entry.count})` : entry.label
+		},
+
+		/**
 		 * Empty-state text for a tab whose widget id resolves to nothing.
 		 *
 		 * @param {object} entry The resolved tab.
@@ -1154,6 +1478,24 @@ export default {
 
 <style scoped>
 /* A stack (`widgetIds`): the panel's widget, then cards 20px apart. */
+.cn-tabs-widget__panel-heading {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 16px;
+}
+
+.cn-tabs-widget__panel-title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.cn-tabs-widget__panel-subtitle {
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-tabs-widget__stack {
 	display: flex;
 	flex-direction: column;

@@ -2,25 +2,30 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 0 direct references, 1 file reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 7 files reached through imports.
+
+Through: `CnActionDialog`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name          | Type      | Required | Default                                           | Description                                                                                                                                                      |
-| ------------- | --------- | -------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `messages`    | `array`   |          | `[]`                                              | The messages, oldest first: `{ id?, author?, time?, text, side? }`. `side` is `us` or `them` (default `them`). `time` is an ISO date, or any text to show as is. |
-| `title`       | `string`  |          | `''`                                              | Heading of the thread.                                                                                                                                           |
-| `titleTag`    | `string`  |          | `'h3'`                                            | Element the heading renders as.                                                                                                                                  |
-| `allowReply`  | `boolean` |          | `true`                                            | Whether the reply box renders. Turn it off for a closed or read-only record.                                                                                     |
-| `replyLabel`  | `string`  |          | `() =&gt; t('nextcloud-vue', 'Reply')`            | Label of the reply box.                                                                                                                                          |
-| `placeholder` | `string`  |          | `''`                                              | Placeholder inside the reply box.                                                                                                                                |
-| `sendLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'Send')`             | Label of the send button.                                                                                                                                        |
-| `usLabel`     | `string`  |          | `() =&gt; t('nextcloud-vue', 'You')`              | Author shown on an `us` message that names none.                                                                                                                 |
-| `endpoint`    | `string`  |          | `''`                                              | URL the reply is POSTed to as `{ message }`. Empty means the host handles `send` itself and nothing is requested.                                                |
-| `payload`     | `object`  |          | `\{\}`                                            | Extra fields sent along with `message` when `endpoint` is set.                                                                                                   |
-| `emptyText`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'No messages yet.')` | Shown when there are no messages yet.                                                                                                                            |
+| Name            | Type      | Required | Default                                           | Description                                                                                                                                                                                                                            |
+| --------------- | --------- | -------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `messages`      | `array`   |          | `[]`                                              | The messages, oldest first: `{ id?, author?, time?, text, side?, channel? }`. `side` is `us` or `them` (default `them`). `time` is an ISO date, or any text to show as is. `channel` is shown after the time ("E-mail", "Phone note"). |
+| `title`         | `string`  |          | `''`                                              | Heading of the thread.                                                                                                                                                                                                                 |
+| `titleTag`      | `string`  |          | `'h3'`                                            | Element the heading renders as.                                                                                                                                                                                                        |
+| `allowReply`    | `boolean` |          | `true`                                            | Whether the reply box renders. Turn it off for a closed or read-only record.                                                                                                                                                           |
+| `replyLabel`    | `string`  |          | `() =&gt; t('nextcloud-vue', 'Reply')`            | Label of the reply box.                                                                                                                                                                                                                |
+| `placeholder`   | `string`  |          | `''`                                              | Placeholder inside the reply box.                                                                                                                                                                                                      |
+| `sendLabel`     | `string`  |          | `() =&gt; t('nextcloud-vue', 'Send')`             | Label of the send button.                                                                                                                                                                                                              |
+| `usLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'You')`              | Author shown on an `us` message that names none.                                                                                                                                                                                       |
+| `endpoint`      | `string`  |          | `''`                                              | URL the reply is POSTed to as `{ message }`. Empty means the host handles `send` itself and nothing is requested.                                                                                                                      |
+| `payload`       | `object`  |          | `\{\}`                                            | Extra fields sent along with `message` when `endpoint` is set.                                                                                                                                                                         |
+| `loading`       | `boolean` |          | `false`                                           | Whether the messages are still loading; with none yet the thread says so.                                                                                                                                                              |
+| `channelFilter` | `boolean` |          | `false`                                           | Draw channel chips above the messages: All, then one per channel with its count. Choosing one shows only that channel's messages.                                                                                                      |
+| `channels`      | `array`   |          | `[]`                                              | Channel labels that always get a chip, in this order, also when no message uses them yet. Channels the messages use follow.                                                                                                            |
+| `emptyText`     | `string`  |          | `() =&gt; t('nextcloud-vue', 'No messages yet.')` | Shown when there are no messages yet.                                                                                                                                                                                                  |
 
 ### Events
 
@@ -32,6 +37,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Slots
 
-| Name            | Bindings | Description                                                        |
-| --------------- | -------- | ------------------------------------------------------------------ |
-| `reply-actions` | `draft`  | reply-actions Extra buttons before Send, for example "Save draft". |
+| Name             | Bindings | Description                                                         |
+| ---------------- | -------- | ------------------------------------------------------------------- |
+| `header-actions` | —        | header-actions Buttons beside the title, for example "Log contact". |
+| `reply-actions`  | `draft`  | reply-actions Extra buttons before Send, for example "Save draft".  |

@@ -60,11 +60,11 @@
 		<div
 			v-if="visible"
 			class="cn-ai-chat-window"
-			:class="[`cn-ai-chat-window--${position}`, { 'cn-ai-chat-window--has-mark': assistantMark }]"
-			role="dialog"
+			:class="[embedded ? 'cn-ai-chat-window--embedded' : `cn-ai-chat-window--${position}`, { 'cn-ai-chat-window--has-mark': assistantMark }]"
+			:role="embedded ? 'region' : 'dialog'"
 			:aria-label="agentLabel"
 			data-testid="cn-ai-panel"
-			@keydown.esc="onClose">
+			@keydown.esc="onEscape">
 			<header class="cn-ai-chat-window__titlebar">
 				<!--
 			  Identity FIRST in source order and left-aligned: a long agent name
@@ -195,6 +195,7 @@
 					</NcActions>
 
 					<NcButton
+						v-if="!embedded"
 						:aria-label="cnTranslate('Close')"
 						:title="cnTranslate('Close')"
 						variant="tertiary"
@@ -423,6 +424,16 @@ export default {
 	props: {
 		/** Controls panel visibility */
 		visible: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Draw the window in the page's flow, as a panel of the page (a tab
+		 * of a detail page), instead of floating above it from the launcher:
+		 * no pointer, no close button, and Escape does not close it.
+		 */
+		embedded: {
 			type: Boolean,
 			default: false,
 		},
@@ -1072,6 +1083,18 @@ export default {
 			this.resolvingApprovalId = ''
 		},
 
+		/**
+		 * Escape closes the floating window; an embedded panel is part of the
+		 * page and stays.
+		 *
+		 * @return {void}
+		 */
+		onEscape() {
+			if (!this.embedded) {
+				this.onClose()
+			}
+		},
+
 		onClose() {
 			this.stopSpeaking()
 			this.$emit('close')
@@ -1286,6 +1309,19 @@ export default {
 .cn-ai-chat-window--top-left {
 	top: 108px;
 	left: 44px;
+}
+
+/* Embedded: a panel in the page's flow (a detail page tab), not a window over
+   it. It fills its container's width and takes no pointer, since no position
+   class is set. The doubled class outranks the window's `!important` rules. */
+.cn-ai-chat-window.cn-ai-chat-window--embedded {
+	position: relative !important;
+	z-index: auto !important;
+	width: auto;
+	max-width: none;
+	height: 520px;
+	max-height: none;
+	box-shadow: none;
 }
 
 /* The pointer: a white triangle under the window, aimed at the hex, so the

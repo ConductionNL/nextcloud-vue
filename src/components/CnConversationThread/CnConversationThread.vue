@@ -9,21 +9,45 @@
 		data-testid="cn-conversation-thread"
 		:aria-labelledby="title ? titleId : null"
 		:aria-label="title ? null : fallbackLabel">
-		<component
-			:is="titleTag"
-			v-if="title"
-			:id="titleId"
-			class="cn-conversation-thread__title">
-			{{ title }}
-		</component>
+		<div v-if="title || $slots['header-actions']" class="cn-conversation-thread__header">
+			<component
+				:is="titleTag"
+				v-if="title"
+				:id="titleId"
+				class="cn-conversation-thread__title">
+				{{ title }}
+			</component>
+			<div v-if="$slots['header-actions']" class="cn-conversation-thread__header-actions">
+				<!-- @slot header-actions Buttons beside the title, for example "Log contact". -->
+				<slot name="header-actions" />
+			</div>
+		</div>
 
-		<p v-if="rows.length === 0" class="cn-conversation-thread__empty" data-testid="cn-conversation-empty">
+		<CnQuickFilterBar
+			v-if="channelChips.length > 0"
+			inline
+			class="cn-conversation-thread__channels"
+			:tabs="channelChips"
+			:activeIndex="activeChannelIndex"
+			@update:activeIndex="onChannelChip" />
+
+		<p v-if="loading && rows.length === 0"
+			class="cn-conversation-thread__empty"
+			role="status"
+			data-testid="cn-conversation-loading">
+			{{ loadingText }}
+		</p>
+		<p v-else-if="rows.length === 0" class="cn-conversation-thread__empty" data-testid="cn-conversation-empty">
+			{{ emptyText }}
+		</p>
+
+		<p v-else-if="shownRows.length === 0" class="cn-conversation-thread__empty" data-testid="cn-conversation-channel-empty">
 			{{ emptyText }}
 		</p>
 
 		<ol v-else class="cn-conversation-thread__messages">
 			<li
-				v-for="row in rows"
+				v-for="row in shownRows"
 				:key="row.key"
 				class="cn-conversation-thread__message"
 				:class="`cn-conversation-thread__message--${row.side}`"
@@ -32,8 +56,10 @@
 				<span class="cn-conversation-thread__avatar" aria-hidden="true">{{ row.initials }}</span>
 				<div class="cn-conversation-thread__bubble">
 					<span class="cn-conversation-thread__meta">
+						<span class="hidden-visually">{{ row.directionLabel }}</span>
 						<span class="cn-conversation-thread__author">{{ row.author }}</span>
 						<time v-if="row.timeLabel" :datetime="row.datetime || null">{{ row.timeLabel }}</time>
+						<span v-if="row.channel" class="cn-conversation-thread__channel" data-testid="cn-conversation-channel">{{ row.channel }}</span>
 					</span>
 					<span class="cn-conversation-thread__text">{{ row.text }}</span>
 				</div>
@@ -85,6 +111,7 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import CnQuickFilterBar from '../CnQuickFilterBar/CnQuickFilterBar.vue'
 import { prefixUrl } from '../../utils/headers.js'
 import { userLocale } from '../../utils/userLocale.js'
 
@@ -118,14 +145,16 @@ export default {
 	name: 'CnConversationThread',
 
 	components: {
+		CnQuickFilterBar,
 		NcButton,
 	},
 
 	props: {
 		/**
-		 * The messages, oldest first: `{ id?, author?, time?, text, side? }`.
+		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel? }`.
 		 * `side` is `us` or `them` (default `them`). `time` is an ISO
-		 * date, or any text to show as is.
+		 * date, or any text to show as is. `channel` is shown after the time
+		 * ("E-mail", "Phone note").
 		 */
 		messages: {
 			type: Array,
@@ -189,6 +218,30 @@ export default {
 			default: () => ({}),
 		},
 
+		/** Whether the messages are still loading; with none yet the thread says so. */
+		loading: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Draw channel chips above the messages: All, then one per channel
+		 * with its count. Choosing one shows only that channel's messages.
+		 */
+		channelFilter: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Channel labels that always get a chip, in this order, also when no
+		 * message uses them yet. Channels the messages use follow.
+		 */
+		channels: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Shown when there are no messages yet. */
 		emptyText: {
 			type: String,
@@ -209,6 +262,8 @@ export default {
 		conversationThreadUid += 1
 		return {
 			draft: '',
+			/** The channel the chips narrow the thread to; '' is All. */
+			activeChannel: '',
 			sending: false,
 			errorMessage: '',
 			titleId: `cn-conversation-title-${conversationThreadUid}`,
@@ -221,7 +276,7 @@ export default {
 		/**
 		 * The messages, with author, side, time and initials resolved.
 		 *
-		 * @return {Array<{key: string, author: string, initials: string, side: string, text: string, timeLabel: string, datetime: string}>} The rows.
+		 * @return {Array<{key: string, author: string, initials: string, side: string, text: string, timeLabel: string, datetime: string, channel: string, directionLabel: string}>} The rows.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-conversation-thread
 		 */
 		rows() {
@@ -241,8 +296,51 @@ export default {
 						text: message.text === undefined || message.text === null ? '' : String(message.text),
 						timeLabel: time.label,
 						datetime: time.datetime,
+						channel: typeof message.channel === 'string' ? message.channel : '',
+						directionLabel: side === 'us' ? t('nextcloud-vue', 'Sent message') : t('nextcloud-vue', 'Received message'),
 					}
 				})
+		},
+
+		/**
+		 * The channel labels with a chip: the declared ones, then the ones
+		 * the messages use.
+		 *
+		 * @return {Array<string>} The labels, each once.
+		 */
+		channelLabels() {
+			const declared = (Array.isArray(this.channels) ? this.channels : []).filter((label) => typeof label === 'string' && label !== '')
+			return [...new Set([...declared, ...this.rows.map((row) => row.channel).filter(Boolean)])]
+		},
+
+		/**
+		 * The chips: All, then each channel, each with its count. Empty
+		 * without `channelFilter` or without channels.
+		 *
+		 * @return {Array<{label: string, count: number}>} The chips.
+		 */
+		channelChips() {
+			if (!this.channelFilter || this.channelLabels.length === 0) {
+				return []
+			}
+			return [
+				{ label: t('nextcloud-vue', 'All'), count: this.rows.length },
+				...this.channelLabels.map((label) => ({ label, count: this.rows.filter((row) => row.channel === label).length })),
+			]
+		},
+
+		/** @return {number} The pressed chip: 0 for All. */
+		activeChannelIndex() {
+			const index = this.channelLabels.indexOf(this.activeChannel)
+			return index < 0 ? 0 : index + 1
+		},
+
+		/** @return {Array<object>} The rows on the chosen channel, or all of them. */
+		shownRows() {
+			if (this.channelChips.length === 0 || this.activeChannelIndex === 0) {
+				return this.rows
+			}
+			return this.rows.filter((row) => row.channel === this.activeChannel)
 		},
 
 		/**
@@ -264,9 +362,24 @@ export default {
 		fallbackLabel() {
 			return t('nextcloud-vue', 'Conversation')
 		},
+
+		/** @return {string} What the thread says while its messages load. */
+		loadingText() {
+			return t('nextcloud-vue', 'Loading messages…')
+		},
 	},
 
 	methods: {
+		/**
+		 * Narrow the thread to the chip's channel; the All chip (0) clears it.
+		 *
+		 * @param {number|null} index The chip index.
+		 * @return {void}
+		 */
+		onChannelChip(index) {
+			this.activeChannel = index > 0 ? (this.channelLabels[index - 1] || '') : ''
+		},
+
 		/**
 		 * Up to two initials of a name, for the avatar.
 		 *
@@ -346,6 +459,20 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: calc(3.5 * var(--default-grid-baseline));
+}
+
+.cn-conversation-thread__header {
+	align-items: flex-start;
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(3 * var(--default-grid-baseline));
+	justify-content: space-between;
+}
+
+.cn-conversation-thread__header-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(2 * var(--default-grid-baseline));
 }
 
 .cn-conversation-thread__title {
@@ -454,5 +581,9 @@ export default {
 	flex-wrap: wrap;
 	gap: calc(2.5 * var(--default-grid-baseline));
 	justify-content: flex-end;
+}
+
+.cn-conversation-thread__channel {
+	color: var(--color-text-maxcontrast);
 }
 </style>

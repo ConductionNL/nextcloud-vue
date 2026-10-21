@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 1 direct reference, 11 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 1 direct reference, 12 files reached through imports.
 
-Through: `CnIndexPage`, `CnStatWidget`.
+Through: `CnActionDialog`, `CnIndexPage`, `CnStatWidget`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 

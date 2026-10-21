@@ -3,11 +3,30 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  */
 
-import { computed, inject, onMounted, watch } from 'vue'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { computed, inject, onMounted, onUnmounted, watch } from 'vue'
 import { resolveIndexSource } from '../../composables/indexSources.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { searchFieldParams } from '../../utils/searchFieldParams.js'
+
+/**
+ * The filters a named source turns into its arguments: the source's own
+ * declaration, else the page's `sourceConfig.searchFields`, so an endpoint
+ * source can say which filters it takes (a board's narrow select on `pipeline`
+ * sent as `?pipeline=`).
+ *
+ * @param {object} source The named source.
+ * @param {object} [configSearchFields] The page's `sourceConfig.searchFields`.
+ * @return {object|null} The declaration.
+ * @spec openspec/changes/pl4-board-card-actions/specs/pl4-board-card-actions/spec.md#requirement-an-endpoint-source-takes-declared-filters
+ */
+export function declaredSearchFields(source, configSearchFields) {
+	if (source && source.searchFields) {
+		return source.searchFields
+	}
+	return configSearchFields && typeof configSearchFields === 'object' ? configSearchFields : null
+}
 
 /**
  * Third data mode for CnIndexPage: a NAMED source.
@@ -58,6 +77,9 @@ import { searchFieldParams } from '../../utils/searchFieldParams.js'
  *   chosen values, `{ fieldKey: values }`. Mapped through the source's
  *   `searchFields` declaration into loader arguments and merged into every
  *   load, so a manifest page's sidebar narrows the SERVER's query.
+ * @param {import('vue').Ref<string>} [options.searchTerm] The page's search
+ *   term. A source that names a `searchParam` gets it as that argument, so the
+ *   server searches; a new term reloads from the first page.
  *
  * @return {object} { isNamedSource, namedSource, namedRows, namedLoading, namedQuickFilters }
  */
@@ -75,7 +97,10 @@ export function useNamedSource(props, options = {}) {
 		}
 	}
 
-	const source = resolveIndexSource(props.entitySource)
+	const cnTranslate = inject('cnTranslate', null)
+	const source = resolveIndexSource(props.entitySource, props.sourceConfig, {
+		translate: (text) => (typeof cnTranslate === 'function' ? cnTranslate(text) : text),
+	})
 
 	// An unknown source name resolves to null and was already warned about.
 	// The page then behaves as an empty index rather than throwing.
@@ -102,6 +127,10 @@ export function useNamedSource(props, options = {}) {
 	const tabs = manifestTabs || sourceTabs
 	const activeIndex = options.activeQuickFilterIndex || null
 	const activeFilters = options.activeFilters || null
+	const searchTerm = (typeof source.searchParam === 'string' && source.searchParam !== '') ? (options.searchTerm || null) : null
+	// A source that pages (`pages: true`) gets the page as `limit` and
+	// `offset`, from the pager the page draws for it.
+	const paging = source.pages === true ? (options.paging || null) : null
 
 	// Seed the default tab before the watcher below registers: the mount load
 	// already carries this tab's filter, so the seed must not fire a second
@@ -153,15 +182,18 @@ export function useNamedSource(props, options = {}) {
 		// ("on this case"). On the rare colliding key the field wins, because
 		// it is the thing the person just chose and can see selected. Both
 		// reach the SERVER: nothing here reduces a fetched page.
+		const { searchFields: configSearchFields, ...sourceConfig } = props.sourceConfig || {}
 		const config = resolveFilterTokens(
 			{
-				...(props.sourceConfig || {}),
+				...sourceConfig,
 				...((tab && tab.filter) || {}),
 				...searchFieldParams(
-					source.searchFields,
+					declaredSearchFields(source, configSearchFields),
 					activeFilters ? activeFilters.value : null,
 					props.entitySource,
 				),
+				...(searchTerm && searchTerm.value ? { [source.searchParam]: searchTerm.value } : {}),
+				...(paging ? { limit: paging.value.limit, offset: (paging.value.page - 1) * paging.value.limit } : {}),
 			},
 			tokenCtx(),
 		)
@@ -177,17 +209,47 @@ export function useNamedSource(props, options = {}) {
 
 	onMounted(loadActive)
 
+	// A dialog that acted on a row (CnActionDialog, CnAssignDialog) signals
+	// `cn:page:refresh`; the rows it changed are read again.
+	const onPageRefresh = () => loadActive()
+	onMounted(() => subscribe('cn:page:refresh', onPageRefresh))
+	onUnmounted(() => unsubscribe('cn:page:refresh', onPageRefresh))
+
 	// Registered AFTER the seed above, so only a person switching tabs
 	// reloads. Without tabs there is nothing to watch.
+	/**
+	 * Reload for a new query: on a paging source back to page 1, which
+	 * reloads through the paging watcher below.
+	 *
+	 * @return {void}
+	 */
+	function reloadFromFirstPage() {
+		if (paging && paging.value.page !== 1) {
+			paging.value = { ...paging.value, page: 1 }
+			return
+		}
+		loadActive()
+	}
+
 	if (tabs && activeIndex) {
-		watch(activeIndex, loadActive)
+		watch(activeIndex, reloadFromFirstPage)
 	}
 
 	// A sidebar choice is a new QUERY, not a new view of the page already
 	// fetched, so it reloads. `deep` because the map is rewritten key by key
 	// and a shallow watch misses a second value added to the same field.
 	if (activeFilters) {
-		watch(activeFilters, loadActive, { deep: true })
+		watch(activeFilters, reloadFromFirstPage, { deep: true })
+	}
+
+	if (searchTerm) {
+		watch(searchTerm, reloadFromFirstPage)
+	}
+
+	// A new page, or a new page size, is a new request. A new tab or filter
+	// first returns to page 1, which reloads through here.
+	if (paging) {
+		watch(paging, loadActive, { deep: true })
 	}
 
 	// No manual invalidation tick here on purpose. The adapters read from a

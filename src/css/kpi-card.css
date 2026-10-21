@@ -463,6 +463,16 @@ a.cn-kpi-card--stacked:focus-visible {
 	font-weight: 400;
 }
 
+/* The board sets a tile's label and caption at the font's normal line height
+   (DqTermijnen: the label 17px from the tile's top); Nextcloud's 1.5 added
+   2px of half-leading above the label and grew the tile.
+   @spec openspec/changes/board-stat-tile-inset/specs/board-stat-tile-inset/spec.md#requirement-a-board-stat-tiles-label-and-caption-are-set-at-the-normal-line-height */
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__title,
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__title-text,
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__caption-line {
+	line-height: normal;
+}
+
 /* A caption on a line of its own wraps, up to two lines (DqDashboard: "haalden
    hun termijn, naar doorlooptijd" runs over two lines in a narrow tile). The
    one-line rule of `.cn-kpi-card__label` is for a caption BESIDE the number,

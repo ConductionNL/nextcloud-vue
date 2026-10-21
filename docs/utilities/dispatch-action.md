@@ -22,7 +22,7 @@ function dispatchAction(
         handler?: string,           // type='handler'; type='export' — confirm handler name
         args?: any[],               // type='handler'
         target?: string,            // type='open-modal' | 'open-page' | 'navigate'
-        props?: object,             // type='open-modal'
+        props?: object,             // type='open-modal'; a prop that is exactly a token (`@objectId`) resolves against `context.tokenCtx`
         op?: 'patch' | 'delete' | 'create',  // type='object-op'
         values?: object,            // type='object-op' — patch merge / create payload
         confirm?: boolean,          // type='object-op' — confirm-gating intent (host-consumed)
@@ -166,6 +166,25 @@ a dialog error — never a silent success.
   ],
   "formats": ["excel", "csv", "json"],
   "handler": "exportReport"
+}
+```
+
+Without a `handler`, an export can download OpenRegister objects itself: an
+entity (or the action, when it has no picker) that names a `register` and a
+`schema` is exported through OpenRegister's export endpoint in the chosen
+format, its optional `filter` applied, the same download an index page's
+Export menu starts. Entity labels go through the app's translate.
+
+```jsonc
+{
+  "id": "export-report",
+  "label": "Export",
+  "type": "export",
+  "entities": [
+    { "id": "leads", "label": "Leads", "register": "pipelinq", "schema": "lead" },
+    { "id": "requests", "label": "Requests", "register": "pipelinq", "schema": "ticket", "filter": { "ticketType": "request" } }
+  ],
+  "formats": ["excel", "csv"]
 }
 ```
 

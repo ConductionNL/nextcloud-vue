@@ -25,30 +25,39 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 |------|------|---------|-------------|
 | `title` | String | *(required)* | Page title |
 | `description` | String | `''` | Optional subtitle |
+| `pageTabs` | Array | `null` | Tabs to sibling pages above the toolbar (manifest `config.pageTabs`), each `{ id?, label, route?, params?, query?, href?, countFrom?, adminOnly?, permission? }`; `countFrom: { register, schema, filter? }` adds that list's count. `adminOnly: true` draws the tab for an instance admin only, and `permission` for a user who holds that permission (with no permissions known, the tab shows, as a menu entry does). **This only hides the tab. It is not access control:** the page the tab points to must still refuse a user who may not see it, on the server, because anyone can type its address. The current route's tab is marked, and a click follows the tab on the app's router. Wins over a named source's page tabs (DqPrivacy, DqContracten). |
+| `notice` | Object | `null` | A note card under the list (manifest `config.notice`): `{ text, variant? }` with variant `info` (default), `success` or `warning`; the text goes through the host translate. |
+| `breadcrumb` | Object \| Array | `null` | A breadcrumb under the title (manifest `config.breadcrumb`): one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list; the title follows as the current crumb. Drawn as the detail header's breadcrumb row. |
+| `headerMeta` | String | `''` | A note after the breadcrumb and a middle dot (manifest `config.headerMeta`); `{total}` and `{shown}` are the list's counts, e.g. `"{total} lopend"`, and `{count:<name>}` the total of a list named in `headerMetaCounts`. In the board look a note that carries a count replaces the "{shown} of {total}" line under the title. |
+| `headerMetaCounts` | Object | `null` | The other lists `headerMeta` counts, by name: `{ suppliers: { register, schema, filter? } }`, for `"{total} contracten bij {count:suppliers} leveranciers"`. While a count loads, or when it fails, the note is left out. |
 | `showTitle` | Boolean | `false` | Show the page header (icon, title, description) inline above the table. When `false` (default), the title is shown in the sidebar header instead. |
 | `icon` | String | `''` | MDI icon name for the page header. Defaults to `schema.icon` when a schema is provided. |
 | `cardAccent` | Function | `null` | `(object) => { variant, icon?, label? } \| null`: a status accent per card in the card view, a colored start border and icon (see CnObjectCard `accent`). |
 | `schema` | Object \| String | `null` | OpenRegister schema for auto-generating columns, filters, and form fields. In [self-fetch mode](#self-fetch-mode) a String is the schema **slug** — the resolved schema object then drives column generation. |
 | `objects` | Array | `[]` | Row data. **Omitting this prop** while `register` + `schema` are set switches the page into [self-fetch mode](#self-fetch-mode) — it drives the list off the object store itself. |
-| `entitySource` | String | `''` | Name a registered NON-OBJECT collection to list (e.g. `flows`), instead of `register` + `schema`. The third data mode: a flow definition is deliberately not an OpenRegister object, so an index had nothing to bind to and such lists became bespoke `type: "custom"` pages. Takes precedence over `register`/`schema` and suppresses self-fetch; non-empty `objects` still wins over both. Sources are registered in `indexSources.js`; `tasks` lists the viewer's task inbox from OpenRegister's flow-tasks read, with its own columns, scope tabs, deep-link rows and no Add button. |
+| `entitySource` | String | `''` | Name a registered NON-OBJECT collection to list (e.g. `flows`), instead of `register` + `schema`. The third data mode: a flow definition is deliberately not an OpenRegister object, so an index had nothing to bind to and such lists became bespoke `type: "custom"` pages. Takes precedence over `register`/`schema` and suppresses self-fetch; non-empty `objects` still wins over both. Sources are registered in `indexSources.js`; `tasks` lists the viewer's task inbox from OpenRegister's flow-tasks read, with its own columns, scope tabs, deep-link rows, no Add button and a pager: 20 rows a page (`sourceConfig.limit` sets another), fetched with `limit` and `offset`, and a new tab, filter or page size returns to page 1. A registered source pages the same way when it sets `pages: true` and supplies `total()`. `flows` lists the app's flows with each flow's last run and its runs this week (one `GET /api/flow-runs/summary` request), a status switch that pauses or starts a flow in place, the quick filters All, Active, Paused and With errors (`sourceConfig.state`, counted from the loaded list) and a footer note. `flowRuns` lists this week's runs of the app's flows; a row opens the run on its flow's canvas (`/flows/:flowId?run=:uuid`). Both draw the page tabs Flows and Runs this week, leading to `/flows` and `/flow-runs` (override with `sourceConfig.flowsRoute` / `sourceConfig.runsRoute`). A source can supply `pageTabs()`, `tabCounts()` and `footerNote`; a manifest `quickFilters` or `footerNote` still wins. `endpoint` lists rows from an app's own endpoint: set `sourceConfig` explicitly to `{ url: '/apps/<app>/api/<path>', rowsPath?: 'results', ...params }`; the url is resolved with `generateUrl` and fetched with the reader's session (the endpoint authorizes), the rows are read at `rowsPath` (or the body when it is an array), and the other keys plus the active quick filter's filter go along as query parameters. Declare the `columns` in the manifest. A quick filter with `showCount` is counted by the same request with that tab's filter: its total at `sourceConfig.totalPath` (`total` by default), else the rows in the answer. Without an explicit `sourceConfig.url` (including CnPageRenderer's fallback that hands over the page config) nothing is requested, the list stays empty and one console error names the page: page-config keys never become query parameters. Three more keys: `searchParam` sends the page's search term to the endpoint as that parameter (`sender`), a new term reloading from page 1; `notePath` with `noteText` reads a value off the answer and shows it above the rows in that sentence, its one placeholder taking the value (`{ notePath: 'filterOrder', noteText: 'Filters run in this order: {order}' }`, a list joined by commas); and a load the endpoint refuses with 403 shows the endpoint's `message`, else `refusedText`, else "You may not read this list.", in place of the rows, the search and the tabs. Any other failed load shows the error state rather than an empty list. `searchFields` declares the filters the endpoint takes, as a registered source does (`{ messageKind: { param: 'messageKind', single: true } }`), so a `filterStrip` or sidebar field narrows the endpoint's query. `search` searches one term over several kinds (DqZoekresultaten): `sourceConfig: { term?, termQuery?: 'q', kinds: [...] }`, each kind `{ id, label, register, schema, titleField?, subtitleField?, statusField?, statusResolve?, linkedField?, linkedTemplate?, href?, limit? }` or `{ id, label, files: true }`; objects are searched with OpenRegister's `_search`, files with Nextcloud's unified search, the term defaults to the address's `?q=`, and the source draws All plus one quick filter per kind with its count. A kind's `label` goes through the app's translate. `statusResolve: { register?, schema, labelField? }` shows a referenced status by its label; the status column is a pill coloured by `sourceConfig.statusColorMap`. `linkedField` or `linkedTemplate` fills a "Linked" column (named by `sourceConfig.linkedLabel`). The page title and `countText` take `{term}`, the count line counts the active kind, and Kind and Linked are header filters (with `filterMenu`, the board's Filter button). `users` lists the members of a Nextcloud group (DqAfdelingen) with function (profile `headline`), roles (profile `role`), e-mail and today (an out-of-office period that runs now, `Absent until <date>`, else the user status message, present or away); pair it with `folderSidebar: { source: 'groups', filterField: 'group', groups?: [{ id, parent? }] }`, which lists the groups with their member counts. On All, before a group is picked and without `sourceConfig.group`, it lists every user the reader may list (all users for an admin, the users of their groups for a sub-admin). Listing a group needs an admin or its sub-admin. `organisations` lists the OpenRegister organisations the viewer belongs to (name, status, type, created; rows keyed on the uuid, so pair it with `rowRoute`), and the same name on a CnDetailPage shows one organisation. |
 | `rowRoute` | String | `''` | Route name a clicked row opens on THIS app's router, overriding a named `entitySource`'s own navigation. A source knows where its rows live and navigates itself, which is right when the detail page belongs to another app: `tasks` sends a click to OpenRegister's task page. It is wrong for an app that ships its own page for those rows, and the `@row-click` event cannot recover it, because `openRow` calls `window.location.assign()` and the host's push never lands. Set it and the row pushes `{ name: rowRoute, params: { id } }` instead. Ignored when `entitySource` is not set. |
 | `sourceConfig` | Object | `null` | Config handed to the named `entitySource`'s loader — e.g. `{ app: 'dossiq' }` scopes the `flows` source to one app's flows; `{ scope: 'pooled' }` scopes the `tasks` source. On a manifest page `CnPageRenderer` fills it with the resolved page config when none is set explicitly. Ignored when `entitySource` is not set. |
 | `filter` | Object | `null` | [Self-fetch mode](#self-fetch-mode) only — a base filter map applied to every fetch as a *fixed* filter (the user's facet filters can't override it). String values of the form `"@route.<name>"` or `":<name>"` resolve to `$route.params[<name>]`; other values pass through. Re-resolves when `$route.params` change. Fed from `pages[].config.filter` in the manifest path. No effect in consumer-managed mode. |
 | `quickFilters` | Array | `null` | [Self-fetch mode](#self-fetch-mode) only — array of `\{ label, filter, default?, icon? \}` rendered as a tab strip above the table (see [CnQuickFilterBar](./cn-quick-filter-bar.md)). The active tab's `filter` is merged into every fetch *after* `filter` (the tab wins on a colliding key) and *before* the user's `activeFilters` (which still narrow within the active tab). String values follow the same `"@route.<name>"` resolution as `filter`. First entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change`. Under the board look an entry with `activeLabel` ("Pipeline: Sales") puts a removable chip with that text on the Active line and counts on the Filter badge while selected; removing it returns to the default tab. Fed from `pages[].config.quickFilters`. |
+| `quickFiltersFrom` | Object | `null` | Quick filters made from the values a field holds: `{ field, register?, schema?, labelField?, allLabel? }`. One grouped request reads the distinct values of `field` with their counts (within `filter`); the page draws "All" (or `allLabel`) plus one tab per value, the most frequent first, each with its count. With `register` and `schema` the values are record ids and each tab shows the record's `labelField` (else title or name), as for a case type per install (DqTeamwachtrij). Ignored when `quickFilters` is set. Fed from `pages[].config.quickFiltersFrom`. |
 | `filterStrip` | Object | `null` | A second filter strip under the toolbar on one field: `{ field, label?, allLabel?, options?: [{ value, label }], showCount? }`. All and one pill per value (options, else the schema enum); a pill filters the list on that value, All clears it; with `showCount` each pill counts its rows within the active quick filter (manifest: `config.filterStrip`) |
 | `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`; the empty-filter "All" tab is dropped). Fed from `pages[].config.quickFilterMode`. |
 | `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once. Selected tabs' filters are OR-ed together into the fetch (same field → array value → `field[]=` IN query). Fed from `pages[].config.quickFilterMultiple`. |
 | `viewSwitch` | Array | `null` | Board look only: the segments the view switch draws (`table`, `cards`, `board`, `map`), always in that order. A listed mode the page cannot open (no board config, no `mapConfig`) is drawn disabled with the tooltip "not available on this list". Fed from `pages[].config.viewSwitch`. |
 | `viewSwitchLinks` | Object | `null` | Board look: view switch segments that open another page, by mode (`table`, `cards`, `board`, `map`): `{ board: { route, params?, query? } }` or `{ map: { href } }`. The segment is a link in its place in the switch, for a board or a map that is a page of its own; a mode the page opens in place stays a button (manifest: `config.viewSwitchLinks`) |
 | `quickFilterMaxVisible` | Number | `0` | Chips mode only: how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
+| `quickFilterPlacement` | String | `''` | Where the quick-filter chips sit (`pages[].config.quickFilterPlacement`). `'toolbar'` keeps them on one row with the Filter button and the view switch, in whatever width that row has beside a side panel (DqTeamwachtrij): the chips take the room the buttons leave, and those that do not fit move into the overflow chip. The default leaves the layout as it was. `'row'` puts them on a row of their own above the toolbar, wrapping onto more lines instead of folding into the overflow chip (DqTeamwachtrij); beside a side panel the row sits in the list column. |
+| `searchPlacement` | String | `''` | Where the board look's search field sits (`pages[].config.searchPlacement`). `'toolbar'` puts it on row 1, before the Filter button and the view switch, taking the room they leave (DqTeamwachtrij); the default opens row 2 with it. No effect outside the board look. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
+| `hideTableHeader` | Boolean | `false` | Draw the table without its column-header row (manifest `config.hideTableHeader`), for a list the board draws as plain rows (DqTeamwachtrij). Pair it with `selectable: false` for no checkboxes. |
 | `rowClickToView` | Boolean | `false` | When true, a row/card click emits `row-click` (to open/navigate) even while `selectable` — selection then via the checkbox only. Only takes effect when something can open the row (a `row-click` listener, or a named source that routes its rows); otherwise the click selects, so it is never dead. With `selectable: false` a click always emits `row-click`. Manifest-driven pages set this automatically when a matching detail page, `rowRoute` or split view exists, and ignore an explicit `true` when none does. |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `viewMode` | String | `'table'` | `'table'`, `'cards'`, or `'map'`. The `'map'` mode is only offered when the page opts in — see [Map view mode](#map-view-mode). |
-| `mapConfig` | Object | `\{\}` | Marker geometry mapping for the opt-in [map view mode](#map-view-mode), mirroring manifest `config.map` 1:1: `\{ latField, lngField, geoField?, popupField?, center? \}`. When non-empty (and not excluded by `viewModes`), a third "Map" toggle segment appears. `latField`/`lngField` are object (or `@self`) property paths (dotted paths supported); `geoField` is an alternative GeoJSON Point property that wins over lat/lng; `center` is a `[lat, lng]` fallback for an empty set. |
+| `mapConfig` | Object | `\{\}` | Marker geometry mapping for the opt-in [map view mode](#map-view-mode), mirroring manifest `config.map` 1:1: `\{ latField, lngField, geoField?, popupField?, center? \}`. When non-empty (and not excluded by `viewModes`), a third "Map" toggle segment appears. `latField`/`lngField` are object (or `@self`) property paths (dotted paths supported); `geoField` is an alternative GeoJSON Point property that wins over lat/lng; `center` is a `[lat, lng]` fallback for an empty set. `zoom` is the map's initial zoom. `list: \{ title, sub?, pills?, due? \}` draws a numbered list beside the map, both in one framed card (DqZakenKaart): `title`, `sub` and `due` are field templates per row, a pill is `\{ path?, text?, map?, colorMap? \}`. The pins carry the list's numbers, the row under the pointer is marked on both, the rows without a place are counted under the list with a link to the table, and the count line adds "· N with an address on the map". `plotAll`, `markerColor` and `count` are in [Map view mode](#map-view-mode). |
 | `mapLabel` | String | `''` | Label for the map view-toggle segment (defaults to "Map"). Fed from `pages[].config.mapLabel`. |
 | `mapIcon` | String | `''` | MDI icon name for the map view-toggle segment (defaults to the built-in map-marker icon). |
 | `calendar` | Object | `\{\}` | The opt-in [calendar view mode](#calendar-view-mode), mirroring manifest `config.calendar`: `\{ dateField, endDateField?, titleField? \}`. The segment appears only when `viewModes` lists `calendar` and `dateField` is named. |
@@ -70,7 +79,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `emptyText` | String | `'No items found'` | Empty state message |
 | `lenses` | Object \| null | `null` | Personal-lens report (`@self.lenses`) of the list on screen, for a host that fetches itself; self-fetch mode reads it from the store. A lens with `available: false` makes the empty state say why ("This server does not keep track of what you open.", "Log in to see what you opened recently.", "Your recent items are not available right now."). Needs openregister#4514. |
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable lens, keyed `<lens>.<reason>` or `<reason>`. |
-| `rowClass` | Function | `null` | CSS class provider for rows |
+| `searchRefusalHint` | String | `''` | Self-fetch only. What to do after a search the server refused for its grammar, through the app's translate; the default explains AND, OR, NOT and quotes. See [A refused search](#a-refused-search). |
+| `rowClass` | Function \| Array | `null` | CSS class(es) for a row: a function `(row) => string`, or (manifest `config.rowClass`) rules `[{ when: { field, op?, value }, class }]`, each adding its class to a row whose field compares to the value with the `visibleWhen` operators; two dates compare as moments, so `{ when: { field: "dueAt", op: "lt", value: "@today" }, class: "cn-row--overdue" }` marks an overdue task (DqTaken). A `when` list holds when every condition holds: `[{ field: "expectedCloseDate", op: "lt", value: "@today" }, { field: "status", value: "open" }]` marks an open lead past its date and not a won one. The class is the app's to style. |
 | `addLabel` | String | `''` | Add button label |
 | `inlineActionCount` | Number | `2` | Number of inline action buttons before overflow menu |
 | `showMassImport` | Boolean | `true` | Show mass import action |
@@ -110,10 +120,14 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `subscribe` | Boolean | `true` | [Self-fetch mode](#self-fetch-mode) only — auto-subscribe to live collection updates for the page's register/schema scope and refetch (coalesced) on remote changes. Set `false` (manifest: `config.subscribe: false`) for static views. See [Live updates](#live-updates--collection-subscription). |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`). The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
+| `search` | Boolean | `true` | `false` draws no inline search in the actions bar, also in the board look, which otherwise draws one on every index page (manifest: `config.search`). Wins over `inlineSearch`. |
+| `live` | Array | `[]` | Object types whose live changes the list follows (manifest `config.live`, e.g. `["lead", "ticket"]`): it subscribes through the object store's live updates and reads the list again half a second after the last change, so a card a colleague moved moves here too. It lets go when the page leaves. |
+| `appConfig` | Object | `{}` | The app config `@config.<key>` tokens resolve against (manifest: `config.appConfig`), as on the dashboard and detail pages, merged over a config an ancestor provides on `cnAppConfig`. A quick filter's `filter` and its `label` / `activeLabel` take the token: `"Residence @config.municipality"` reads "Residence Zuiddrecht" (board DqContacten); the label is translated first, and a key the config does not hold leaves the token as written. A date token can take a setting as its day count (`"@today-{@config.lead_stale_threshold_days}d"`), and `footerNote` names `@config.<key>` values the same way. |
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls; forwarded to `CnActionsBar` (manifest: `config.showCountWithSearch`). Only relevant with `inlineSearch` |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`). Under the board look on a page without a filter sidebar it is the toolbar's Filter button, which carries the number of active filters as a badge while any is active |
 | `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a visibility checkbox — the in-table equivalent of the sidebar's Columns tab (manifest: `config.columnMenu`). See [Filter and columns: table header vs sidebar](#filter-and-columns-table-header-vs-sidebar). |
 | `searchInFiles` | Boolean | `false` | Show an "Also search inside files" switch beside the search box (manifest: `config.searchInFiles`). On, a search that has a term also sends `_content_search=true` (OpenRegister file-content search, capped at 50 candidates, noted under the list), and a row found through a file shows "Found in \{file\}" from `@self.matchedFile`. The switch is kept in the route as `contentSearch=1`. |
+| `relatedFieldFilters` | Object | `null` | Filters over a type's own declared fields beside the search ([CnRelatedFieldFilters](./cn-related-field-filters.md)): `{ definitions: { register, schema, filter }, related: { schema, backref, definitionKey?, valueKey? } }`. Manifest: `config.relatedFieldFilters`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest: `config.searchPlaceholder`) |
 | `cardsLabel` / `tableLabel` | String | `''` | View-toggle option labels, e.g. "Tiles" / "List" (manifest: `config.cardsLabel` / `config.tableLabel`) |
 | `cardsIcon` / `tableIcon` | String | `''` | MDI icon names for the view-toggle options (manifest: `config.cardsIcon` / `config.tableIcon`) |
@@ -273,6 +287,24 @@ columns from those rows (since manifest schema 2.97.0):
   sets the page filter, so the cards and the active filter chips follow.
 - **Two or more `columnFields`** draw a "Columns:" switch after the search. The
   entry on `statusField` is the default.
+- **`itemsPath`** takes the columns from a LIST on each referenced row instead
+  of the rows themselves: a lead's `stage` is a name in its pipeline's
+  `stages`. Each item is keyed by `keyField` (default `name`), the value a card
+  stores and a drop writes, and linked to its row under `_parent`, so
+  `narrowBy: { "field": "_parent", "rowField": "pipeline" }` with a `narrow`
+  select on `pipeline` shows the chosen pipeline's stages:
+
+  ```json
+  "board": {
+    "statusField": "stage",
+    "narrow": { "field": "pipeline", "label": "Pipeline", "source": { "schema": "pipeline", "labelField": "title" } },
+    "columnFields": [{ "field": "stage", "source": { "schema": "pipeline", "itemsPath": "stages", "keyField": "name", "orderField": "order", "colorField": "color", "closedField": "isClosed", "narrowBy": { "field": "_parent", "rowField": "pipeline" } } }],
+    "sumField": "value"
+  }
+  ```
+- **`closedField`** names the referenced row's (or item's) flag for a closed
+  stage, a won or lost deal: its column starts collapsed, showing its count and
+  a "Show N more" button, and still takes a drop.
 - **`kind: "values"`** is for a field that references no schema, such as a
   Nextcloud user id. Its columns are the values present on the rows, then one
   column for no value.
@@ -759,7 +791,15 @@ Form save (create/edit), **mass export**, and **mass import** are also self-hand
 
 ### A failed fetch
 
-When the latest fetch fails (OpenRegister answers a search term it cannot parse, such as an unbalanced bracket in `verzoek (2026`, with HTTP 400), the page shows an error state ("An error occurred") where the empty state would be, instead of the rows and "Showing X of Y" counter of the previous query, which the object store keeps on a failure. The server's own message is not shown; the state instead suggests changing the search or trying again when a search term is set, and trying again later when none is. The next successful fetch, for example after the search term is corrected, brings the results back, and so does a successful [live-update](#live-updates--collection-subscription) refetch, so a transient failure does not outlast the next background fetch. Only the most recently started fetch decides whether the error state shows, judged by that request's own response, so an older response that settles late cannot turn it on or off. That holds when an older failure lands while a newer request is still in flight, and for a refresh that joins an identical request already in flight. The `#empty` slot is not used for this state, and consumer-managed mode (`objects` supplied) is unaffected.
+When the latest fetch fails (OpenRegister answers a search term it cannot parse, such as an unbalanced bracket in `verzoek (2026`, with HTTP 400), the page shows an error state ("An error occurred") where the empty state would be, instead of the rows and "Showing X of Y" counter of the previous query, which the object store keeps on a failure. The server's own message is not shown (a search refused with a position is the exception, see [A refused search](#a-refused-search)); the state instead suggests changing the search or trying again when a search term is set, and trying again later when none is. The next successful fetch, for example after the search term is corrected, brings the results back, and so does a successful [live-update](#live-updates--collection-subscription) refetch, so a transient failure does not outlast the next background fetch. Only the most recently started fetch decides whether the error state shows, judged by that request's own response, so an older response that settles late cannot turn it on or off. That holds when an older failure lands while a newer request is still in flight, and for a refresh that joins an identical request already in flight. The `#empty` slot is not used for this state, and consumer-managed mode (`objects` supplied) is unaffected.
+
+### A refused search
+
+OpenRegister refuses a `_search` term it cannot parse, such as an unclosed bracket or quote, with `400 { error, position, term }` rather than running it as a literal. A literal would return nothing and read as an honest empty result. When the failed fetch is such a refusal (a 400 with a term typed and a position, carried on the store's error or read from the message's "at position N"), the page shows the term with the character it stopped at marked, the server's reason, and what to do next (`searchRefusalHint`), instead of the generic error state.
+
+```vue
+<CnIndexPage register="dossiq" schema="case" search-refusal-hint="Search for a case number or plain words." />
+```
 
 ### Scoping a list to a parent — `config.filter`
 
@@ -832,6 +872,22 @@ Alongside `table` and `cards`, CnIndexPage offers an **opt-in `map` view mode** 
 - **Geometry from object metadata.** Marker coordinates are read from each object via `mapConfig`, typically off the OpenRegister `@self` metadata block that the maps-overview leaf populates — not a bespoke per-app endpoint.
 - **Navigation parity.** A marker click resolves back to its source row and emits the same `@row-click` payload as a table row-click, so detail-page navigation is identical across all three modes.
 - **Graceful geometry gaps.** Rows without finite, resolvable coordinates are skipped silently; an empty set falls back to `mapConfig.center` (or a neutral world view).
+- **Every matching row (`plotAll`).** By default the map plots the current page. `mapConfig.plotAll: true` loads every row that matches the filters while the map is open, up to 500 (or `plotAll: <number>`), and restores the page size when the reader leaves the map. When more rows match, a note under the map says the first N are shown and asks to narrow the filters.
+- **Marker colour (`markerColor`).** `{ field, colorMap?, source?, default? }` colours each marker by a field of its row. Without `source` the value is looked up in `colorMap`. With `source: { schema, register?, colorField, filter? }` the field is a reference: the referenced row's `colorField` is the colour, or the key `colorMap` maps to a CSS colour (`"blue": "var(--nl-color-blue, #0b71ab)"`). `var()` is resolved for the SVG marker. Numbered pins (`list`) take the colour too, except the active one.
+- **Count line (`count`).** `true` adds "Showing {located} of {total} located" under the map: the rows it placed against the rows that match. A string is a template with `{located}` and `{total}`, through the app's translate.
+
+```json
+"map": {
+  "geoField": "geometry",
+  "plotAll": true,
+  "count": "Showing {located} of {total} located cases",
+  "markerColor": {
+    "field": "status",
+    "source": { "schema": "statusType", "colorField": "colour" },
+    "colorMap": { "blue": "var(--nl-color-blue, #0b71ab)", "green": "var(--nl-color-green, #39870c)" }
+  }
+}
+```
 
 **Opting in (manifest):**
 
@@ -975,6 +1031,35 @@ export default {
 }
 ```
 
+### A row action that opens a modal
+
+A row action of `type: "open-modal"` opens its `target` (a registry modal, or a built-in such as `CnActionDialog`) through the app root's `cnOpenModal`, with the row as `object` and its key as `objectId`; the action's own `props` win. An entity-sourced list reads its rows again on `cn:page:refresh`, which CnActionDialog signals after it acted, so a confirmed POST on a row is configuration: the dialog posts `confirm.request`, shows the server's refusal sentence when the server refuses, and the list refreshes when it did not. Without an app root the action falls back to emitting `@action`.
+
+```jsonc
+"actions": [
+  { "id": "restore", "label": "Restore", "type": "open-modal", "target": "CnActionDialog",
+    "props": { "config": { "title": "Restore this record?", "reason": { "required": false },
+      "confirm": { "label": "Restore", "request": { "url": "/apps/myapp/api/records/@objectId/restore" } } } } }
+]
+```
+
+### A row action that calls an endpoint
+
+A row action of `type: "api-call"` posts (or `method: "PUT"`) to its `url` for the row it was picked on: `{objectId}` is the row's key and `{field}` any row field. It toasts `successMessage` or `errorMessage` (the server's sentence when none is set) and reads the list again after a success, unless `refresh: false`. Nothing is sent while the menu is drawn. With `visibleWhen` an Enable and a Disable action can share one row:
+
+```jsonc
+"actions": [
+  { "id": "enable", "label": "Enable", "type": "api-call", "url": "/apps/pipelinq/api/export/jobs/{objectId}/enable",
+    "visibleWhen": { "field": "enabled", "value": false }, "successMessage": "Job enabled" },
+  { "id": "disable", "label": "Disable", "type": "api-call", "url": "/apps/pipelinq/api/export/jobs/{objectId}/disable",
+    "visibleWhen": { "field": "enabled", "value": true }, "successMessage": "Job disabled" }
+]
+```
+
+### A header action that opens a modal
+
+A header action of `type: "open-modal"` opens its registry modal with the list's active filters as `activeFilters` (the pipeline a board is narrowed to), the action's own `props` winning on a colliding key.
+
 ### Registry-name handler
 
 Manifest declaration:
@@ -1039,6 +1124,27 @@ Example:
 - Missing handler name in the registry → silent fall-through to `@action`-only (no warning; preserves v1.2 manifests).
 - Non-function entry in the registry (e.g. a Vue component) → console.warn + fall-through to `@action`-only.
 - Function-typed `handler` (passed via the runtime prop, NOT through the manifest) keeps working unchanged — used by the built-in `view` / `edit` / `copy` / `delete` actions.
+
+### Header actions that are links (`href`)
+
+A `headerActions[]` entry that only goes somewhere carries `href` instead of `handler`. It renders as a real link (`<a href>`) in the actions bar's overflow menu, in the board header's Actions menu and as a `headerButtons[]` button naming it, so it can be middle-clicked, opened in a new tab, copied and bookmarked.
+
+- An absolute `http(s)`, `mailto:` or `tel:` URL is used as written, and so is a protocol-relative `//host/...` URL, which leaves the instance; an instance path (a single leading `/`) goes through `generateUrl()`, so `/apps/integriq/connections` works with and without pretty URLs. A path that already names an entry point (`/index.php/`, `/remote.php/`, `/public.php/`, `/ocs/`) is only prefixed with the instance root, and one that already starts with the root and an entry point is used as written. Anything else (a relative path, another scheme) is dropped with a warning.
+- The link opens in place; `target: "_blank"` opens it in a new tab. `NcActionLink` and `NcButton` give every link `rel="nofollow noreferrer noopener"`.
+- A link only navigates: it runs no handler and emits no `@header-action`. The schema (`$defs/headerAction`) refuses `href` together with `handler` or a `type` other than `handler`, and takes `href` on header actions and their `children[]`, and on a detail page's `quickActions[]` / `primaryActionByStage` entries, only; row, bulk and navigation actions and their children do not take it.
+- A JS-composed entry carrying a function `handler` and `href` is a link like any other, on every page type: the `href` is resolved, the handler is dropped and never called, and a one-time `console.warn` names the entry's id. An `href` that does not resolve is dropped instead, and the handler keeps running.
+- A header action's `children[]` render, and so can be links, only in the dashboard header, where `CnActionButtons` draws an action's own dropdown.
+
+```jsonc
+{
+  "headerActions": [
+    { "id": "add-integration", "label": "Add integration", "icon": "Plus", "href": "/apps/integriq/connections?app=stackiq&link=1" },
+    { "id": "guide", "label": "Integration guide", "href": "https://example.org/guide", "target": "_blank" }
+  ]
+}
+```
+
+The same key works on detail, dashboard and reports pages.
 
 ## Bespoke card-grid via `cardComponent`
 
@@ -1145,11 +1251,40 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
 | `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
-| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
-| `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
-| `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
+| `showSortSelect` | Boolean | `false` | Deprecated, without effect: the toolbar draws no sort select. The table sorts by its column headers; the list, card and map views by the Sort section in the index sidebar. |
+| `sortSelectOptions` | Array | `[]` | The orders the index sidebar's Sort section offers in the list, card and map views: `{ value, label, order?, default?, source? }`, the order its `order` or its `value` read as one (`"-createdAt"`, `"priority:desc,title"`). An option with a `source` lists an endpoint's rows in the endpoint's order (see *An order from an endpoint*). Without them the section offers the sortable columns. |
+| `sortSelectValue` | String | `''` | Deprecated, without effect: the Sort section shows the current order. |
+| `defaultOrder` | String, Object or Array | `''` | The order a self-fetch page opens on when neither the address nor `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`): `"-createdAt"`, `"priority:desc,title"`, an `_order` map `{ "priority": "desc" }` or a `[{ key, order }]` list. |
 
 The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
+
+## Sorting
+
+The table view sorts by its column headers and nothing else. The list, card and map views sort through the **Sort** section of the index sidebar (Search tab): a field, Ascending or Descending, and the order the list has now ("Current order: Created, descending"). The fields are `sortSelectOptions` when the page declares them, else the sortable columns. A choice goes the way a header click goes: a self-fetched list orders by it (`_order`, kept in the address) and the page emits `sort` for a host that sorts itself. `defaultOrder` is the order the page opens on. The section is absent in the table view.
+
+### An order from an endpoint
+
+Some orders the server cannot sort by, such as an urgency it computes per request. A `sortSelectOptions` entry can name the endpoint that ranks the rows:
+
+```json
+{
+  "value": "urgency", "label": "Urgency", "default": true, "order": "deadline",
+  "source": {
+    "url": "/apps/dossiq/api/work-queue",
+    "rowsPath": "items", "rowPath": "case",
+    "carry": ["deadlineTier"], "annotate": true,
+    "searchFields": ["title", "identifier"],
+    "failedNote": "Ordered by deadline: the urgency could not be computed."
+  }
+}
+```
+
+- Choosing it in the Sort section (it has no direction) lists the endpoint's rows in their order. The page's search box, sidebar filters and pager run over those rows in the browser, from page 1 after each change.
+- `default: true` opens the page on it unless the address carries an `_order`. A column header click in the table view, or another field in the Sort section, leaves it.
+- `rowsPath` names where the entries sit (`results` by default). `rowPath` names where each entry carries its row; entries without one are left out.
+- `carry` copies entry fields onto each row, so `cardLayout.headPill: { field: "deadlineTier" }` draws them. With `annotate: true` they reach the rows of every other order too, matched on `idPath` (`id` by default).
+- When the endpoint fails, the list orders by the option's `order` and shows `failedNote` above it.
+- `selectSortOption(value)` chooses an option by its value; a saved view's `sortOption` uses it.
 
 ## Folder sidebar
 
@@ -1180,6 +1315,28 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 }
 ```
 
+`scopeViews` limits the scope's look (columns, title, count line and the other scope keys) to the view modes it names, e.g. `["table", "list"]`, so a board view keeps the page's generic look (DqWerkbord) while the scope still filters it.
+
+`pane: false` draws no pane. The folder still comes from the deep-link filter (`/cases?caseType=<uuid>`) and its scope look (title, count line, columns, quick filters, `afterList` from the folder or its row's `x-index`) still applies, so a list narrowed to one case type looks like that case type's list without a folder column (boards DqWooVerzoeken, DqKlachten):
+
+```json
+"folderSidebar": {
+  "source": "register", "register": "dossiq", "schema": "caseType",
+  "idField": "@self.uuid", "nameField": "title",
+  "filterField": "caseType", "pane": false
+}
+```
+
+
+`title` (the pane's caption) and `allLabel` go through the app's translate. On a `groups` pane, or with `heading: true` on any other, the selected folder heads the list: its name as a heading, and under it its parent folder and its count (board DqAfdelingen: "Vergunningen" over "Fysiek domein · 18 members"). `countText` words the count (`"{count} employees"`, through the app's translate); a groups pane says "{count} members" without it. In the board look the pane is a card with each folder's count in a pill.
+
+```json
+"folderSidebar": {
+  "source": "groups", "filterField": "group", "title": "Organisation",
+  "countText": "{count} employees",
+  "groups": [{ "id": "fysiek" }, { "id": "vergunningen", "parent": "fysiek" }]
+}
+```
 
 ## A count in the subtitle (`countSubtitle`)
 
@@ -1191,7 +1348,7 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 
 - `showTitleIcon` (default `true`): `false` drops the icon before the title.
 - `showCount` (default `true`): `false` drops the actions bar's "Showing 20 of 258" line, for a page whose `countSubtitle` already gives the total.
-- `headerButtons` (default `[]`): buttons beside the title, each `{ label?, action, variant?, icon?, format?, id? }`. `action` is `add` (the Add flow; the label defaults to the Add label), `export` (the export leaf in `format`, `csv` by default, else the export dialog), `actions-menu` (the page's header actions as one labelled menu button, absent when there are none), `import`, `refresh`, or the id of a `headerActions` entry. `variant` is `primary` or `secondary` (default). They show only with `showTitle` and without a `#header` slot; when they show, the actions bar drops its Views and Actions menus, and its Add button and Export menu when a button takes that action. The `actions-menu` button takes `items`, the menu's entries in order: `header-actions` (every header action), the id of one header action, or a built-in the actions bar drops while header buttons show: `import`, `export`, `refresh`, `copy-selected`, `delete-selected` (disabled until a row is selected), `documentation` (a link to `documentationUrl`). Without `items` the menu lists the header actions only. A header action with `type: "navigate"` and a `target` URL is a link that opens in a new tab.
+- `headerButtons` (default `[]`): buttons beside the title, each `{ label?, action, variant?, icon?, format?, id? }`. `action` is `add` (the Add flow; the label defaults to the Add label), `export` (the export leaf in `format`, `csv` by default, else the export dialog; with `run: "<id>"` it runs the `headerActions` entry of that id instead, and on an `entitySource` page without `run` and without a `@mass-export` listener it is not drawn, since nothing could export those rows), `actions-menu` (the page's header actions as one labelled menu button, absent when there are none), `import`, `refresh`, `save-view` (the save-current-view dialog, "Zoekopdracht opslaan" on DqZoekresultaten; it reads "Save view" without a label), or the id of a `headerActions` entry. `variant` is `primary` or `secondary` (default). They show only with `showTitle` and without a `#header` slot; when they show, the actions bar drops its Views and Actions menus, and its Add button and Export menu when a button takes that action. The `actions-menu` button takes `items`, the menu's entries in order: `header-actions` (every header action), the id of one header action, or a built-in the actions bar drops while header buttons show: `import`, `export`, `refresh`, `copy-selected`, `delete-selected` (disabled until a row is selected), `documentation` (a link to `documentationUrl`). Without `items` the menu lists the header actions only. A header action with `type: "navigate"` and a `target` URL is a link that opens in a new tab.
 
 ```json
 { "showTitle": true, "showTitleIcon": false, "showCount": false, "countSubtitle": "{total} open cases",
@@ -1222,7 +1379,7 @@ A column object over a `$ref` property can name the field of the referenced obje
 | `showFollowColumn` | Boolean | `false` | Adds a first column with a compact [`CnFollowToggle`](./cn-follow-toggle.md) per row, bound to the row's `@self.watching`. Clicking it does not open the row. |
 | `showFavouriteColumn` | Boolean | `false` | Deprecated alias of `showFollowColumn`. |
 
-The `personalLenses` value `unread` adds the quick filter Unread (`_unread=true`). Rows whose `@self.unread` is true show a [`CnUnreadMarker`](./cn-unread-marker.md) in the first cell and read in bold, with no prop needed.
+The `personalLenses` value `unread` adds the quick filter Unread (`_unread=true`). Rows whose `@self.unread` is true show a [`CnUnreadMarker`](./cn-unread-marker.md) in the first cell and read in bold, with no prop needed. Under the board look only a page offering that lens marks them, as the boards draw every row alike; `showUnreadRows: true` (manifest `config.showUnreadRows`) marks them in every look, for a page whose Unread chip is one of its own quick filters, and `false` never marks them.
 
 ## Shared saved views
 
@@ -1234,7 +1391,7 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 
 - **Header**: no icon; the title (28px), the count line and the buttons. `countText` is a template with `{shown}` (rows on this page), `{total}` and free text, default `"{shown} of {total}"`. The buttons render in a fixed order whatever the manifest declares: `export` (labelled "Download" by default), `actions-menu`, any other secondary button, the buildiq square, the primary button. An `add` button without an `icon` carries a plus. The buttons keep the board's look (a grey-bordered Download, a primary fill without a border) also under a theme that restyles every button.
 - **Toolbar**: no band. Row 1 holds the saved-view chips (with their counts; the selected one filled), a "Save view" button, the labelled Filter button with the number of active filters, and the view switch (icon-only segments in the order table, cards, board, map). Row 2 holds the search field and, when filters are active, "Active:", one removable chip per filter and "Clear all".
-- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected &lt;plural&gt;", the bulk actions and the optional `bulkHint`.
+- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected &lt;plural&gt;", the bulk actions and the optional `bulkHint`. With `bulkBandAlways` (`config.bulkBandAlways`) the band shows before a selection too, its buttons disabled until rows are selected, as DqZaken and DqWerkbord draw it.
 - **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for &lt;title&gt;", a grey-bordered square whatever the theme does to secondary buttons. The title column underlines the title (not its secondary line); `rowTitle: "plain"` draws it as 15px bold text without an underline over a 13px muted secondary line, as the PqTickets board does. The row stays clickable either way.
 - **Footer**: inside the card (and under the card grid): the count text, `footerNote` after it, and numbered page links with Previous and Next. No First, Last or page-size select.
 - **Cards view**: the same header, toolbar and footer; `cardFields` (default: the first four list columns) names the facts shown on each card.
@@ -1249,12 +1406,41 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 
 When a click on a row navigates to the record's detail page, the built-in View is left out of that row's menu (and of the right-click menu): viewing is what the click does. The menu offers Edit (Dutch "Bewerken", pencil icon). A row whose `viewTo` answers `null`, or a page with no row-click target, keeps View. Actions the page declares itself are not touched. The rule applies in every look.
 
-## Stat row and side panel (`statRow`, `sidePanel`)
+## Presentation per scope
+
+While a folder is selected its own filter stays quiet in the table: the table draws no header-filter chip for the `filterField` (the Active chip already names the folder), and a scope that sets its own `columns` does not get the folder's field back as a column, since every row holds the same value there.
+
+A folder in `folderSidebar` (or the `x-index` block of the row a register-derived folder comes from) can carry the
+presentation keys a query preset sets, under the same names: `title`, `quickFilters`, `cardFields`, `countText`,
+`searchPlaceholder`, `footerNote`, `viewSwitch`, `addLabel`, `headerButtons`, `breadcrumb`, `headerMeta` and
+`afterList`. While the folder is selected its value replaces the page's, including a value a query preset set; a key it
+does not carry stays the page's. Its `columns`, `defaultSort` and `searchFields` keep working as before. A page column
+the folder's `columns` names is shown even when the page hides it by default (`hidden: true`), so a column only one
+case type needs stays off the general list (board DqWooVerzoeken: Requester and Received).
+
+```json
+"folders": [{
+  "id": "klacht", "name": "Klachten",
+  "title": "Klachten", "countText": "{total} klachten", "addLabel": "Klacht registreren",
+  "breadcrumb": { "label": "Alle zaken", "route": "Cases" },
+  "afterList": [{ "id": "per-onderwerp", "type": "chart", "title": "Klachten per onderwerp", "content": {} }]
+}]
+```
+
+## Row actions as buttons (`widget: "actions"`)
+
+A column `{ key: "do", label: "Doen", widget: "actions", widgetProps: { actions: ["link-case", "new-case"] } }` shows the page's row actions with those ids (or labels) as buttons on every row, in that order, where the action is visible for the row (`visible`, a locally decidable `visibleWhen`). The first is a secondary button and the rest tertiary, unless the action sets `variant`. A click runs the action as its row menu entry does, emits `action`, and does not open the row. The column does not sort (DqPostvak).
+
+## Stat row, side panel and cards after the list (`statRow`, `sidePanel`, `afterList`)
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `statRow` | `Array` | `[]` | KPI tiles above the list (manifest `config.statRow`): widget definitions `{ id, type, title?, content }`, usually `type: "stat"`, drawn between the header and the toolbar in an auto-fit row (each tile at least 200px), in the listed order. |
+| `afterList` | `Array` | `[]` | Cards after the list (manifest `config.afterList`): widget definitions `{ id, type, title?, content, headerLink? }` stacked full width under the list, in the listed order. A query preset or a folder scope can set its own. |
+| `fixedFilters` | `Object` | `null` | The route query pairs that chose the page's query preset, set by CnPageRenderer. An active filter with one of these keys and values shows no removable chip. |
 | `sidePanel` | `Array` | `[]` | Cards beside the list (manifest `config.sidePanel`): widget definitions `{ id, type, title?, content, headerLink? }` in a 300px column right of the toolbar and the list. Below 1024px the column sits above the toolbar. |
+
+Two built-in widgets are made for the side panel: `saved-view-alert` ([CnSavedViewAlertWidget](./cn-saved-view-alert-widget.md), the applied saved search with its count alert) and `exports` ([CnExportsWidget](./cn-exports-widget.md), the reader's own exports). The page provides `cnIndexList` (`appliedView`, `total`, `replaceSavedView(view)`) for a widget that reads the list.
 
 Types resolve like dashboard widgets: the app's widget registry first, then the dashboard catalog (`stat`, `table`, `people`, `stats-block` and the rest). An entry without an id, or with a type nothing resolves, is skipped with a development warning. As on a dashboard, a widget gets its whole `content` as the `content` prop and, of the individual keys, only the ones it declares as props.
 

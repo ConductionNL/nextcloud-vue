@@ -16,6 +16,64 @@ Each section shows as soon as its own request returns: a fast `/relations` does 
 
 > Earlier builds offered an "open in sidebar" action per tab. That was removed — it only worked when the host mounted `CnObjectSidebar`, and silently did nothing otherwise. Deep-linking to the owning app works regardless of host wiring. (`open-in-sidebar-label` is kept as a deprecated no-op prop.)
 
+## Sections grouped by relation type
+
+`layout="sections"` with `group-by-relation` draws a case's related cases as board DqZaakGerelateerd does: one heading per relation type ("Onderwerp van deze zaak", "Wacht op"), each over its rows, and a host section such as "Gepland vervolg" with its heading action ("Vervolg plannen").
+
+```json
+{ "id": "related", "type": "related", "content": {
+  "layout": "sections",
+  "groupByRelation": true,
+  "groupActions": { "relation:Waits on": { "label": "Link case", "icon": "LinkVariant", "type": "open-modal", "target": "LinkCase" } }
+} }
+```
+
+## Sections read from an app endpoint
+
+Some related content is not an OpenRegister relation: a follow-up that is scheduled but does not exist yet, or a typed
+link an app keeps itself. `extraSources` reads it and adds the sections beside the widget's own:
+
+```json
+{
+  "type": "related",
+  "content": {
+    "showObjects": false,
+    "extraSources": [
+      {
+        "key": "planned",
+        "label": "Planned items",
+        "icon": "CalendarClock",
+        "endpoint": "/apps/myapp/api/item/@objectId/planned",
+        "path": "results",
+        "itemLabel": "{title}, next on {date}",
+        "static": true,
+        "rowActions": [{ "label": "Stop series", "endpoint": "/apps/myapp/api/item/@objectId/planned/{id}/stop", "when": { "field": "recurrence", "op": "neq", "value": "none" } }],
+        "children": { "path": "occurrences", "label": "{title}", "route": { "name": "ItemDetail", "params": { "id": "{id}" } } }
+      },
+      {
+        "key": "relations",
+        "endpoint": "/apps/myapp/api/items/@objectId/relations",
+        "path": "results",
+        "groupBy": ["{displayLabel}", "{kind}"],
+        "groupLabels": { "follow-up": "Follow-up" },
+        "itemLabel": ["{title} ({notes})", "{title}"],
+        "requireLabel": true,
+        "rowRoute": { "name": "ItemDetail", "params": { "id": "{itemId}" } }
+      }
+    ],
+    "referenceSections": [{ "key": "parent", "label": "Parent item", "field": "parentItem", "register": "myapp", "schema": "item", "route": { "name": "ItemDetail", "params": { "id": "{id}" } } }],
+    "footerActions": [{ "label": "Plan follow-up", "icon": "CalendarClock", "type": "open-modal", "target": "PlanFollowUpDialog", "props": { "itemId": "@objectId" } }]
+  }
+}
+```
+
+A template in a list is candidates: the first that fills. `{ "parts": [...], "separator": ", " }` fills each part on
+its own and leaves the empty ones out ("{title}, every year, next on 1 Mar, 2 opened so far"). `valueLabels` maps a
+field's stored values to the words a template shows (`{ "recurrence": { "yearly": "Every year", "none": "" } }`). `static` rows open nothing. A row action calls its endpoint
+(POST unless `method` says otherwise), with `@objectId` and the row's `{field}` tokens filled in, and reads the sources
+again; a refusal shows the server's sentence as an alert. A source that cannot be read is logged and left out, and the
+related content around it stays.
+
 ## Legacy list mode (deprecated)
 
 With `layout="list"` — or when no `register`/`schema` can be resolved — the widget falls back to the original flat sections driven by the object store's `fetchUses` / `fetchUsed` / `fetchContracts` / `fetchFiles` actions, plus the static leaf-integration **Linked apps** list. This path logs a one-time deprecation warning. Prefer the tabbed mode.
@@ -54,7 +112,9 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `object-data` | `Object` | `{}` | The object data — used to derive id/`register`/`schema` (from `@self`) when not passed explicitly |
 | `register` | `String` | `''` | OpenRegister register slug. When omitted, derived from `object-data['@self'].register`. Required (with `schema`) for the tabbed self-fetch path |
 | `schema` | `String` | `''` | OpenRegister schema slug. When omitted, derived from `object-data['@self'].schema`. Required (with `register`) for the tabbed self-fetch path |
-| `layout` | `String` | `'tabs'` | Render mode: `'tabs'` (self-fetch, tab per non-empty group) or `'list'` (deprecated store-action list) |
+| `layout` | `String` | `'tabs'` | Render mode: `'tabs'` (self-fetch, tab per non-empty group), `'sections'` (self-fetch, every group under its own heading in one list) or `'list'` (deprecated store-action list) |
+| `groupByRelation` | `Boolean` | `false` | Split the Objects group into one group per relation type, labelled with the label OpenRegister answers for the direction (`relation.displayLabel` on each uses/used row), through the app's translate; a row without one stays in Objects |
+| `groupActions` | `Object` | `{}` | An action on a group's heading in the sections layout, keyed by group key (`objects`, `files`, an extra section's key, or `relation:<label>`): `{ label, icon?, ...action }`. An `extra-sections` entry may carry its own `action`. Pressing it dispatches the action and emits `group-action` |
 | `store` | `Object` | `null` | Object store instance (legacy list path only). When omitted, the widget tries Pinia auto-detection. |
 | `show-objects` | `Boolean` | `true` | Show the related-objects (uses/used/contracts) section |
 | `show-files` | `Boolean` | `true` | Show the files section |
@@ -65,6 +125,9 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `include-groups` | `Array` | `[]` | Whitelist of relation-group keys to display (tabbed path). When non-empty, ONLY these render (e.g. `['objects', 'files', 'mails']`); empty shows every non-empty group. Lets a detail page carry several Related widgets scoped to different relations. Keys: `objects`, `files`, and the leaf groups (mails, events, contacts, notes, tasks, deck, talk, forms, maps, polls, …). Configurable in-app via the widget's cog. |
 | `exclude-integrations` | `Array` | `[]` | Integration ids to omit from "Linked apps" (on top of the always-omitted core tabs) |
 | `extra-sections` | `Array` | `[]` | Extra related sections the store can't resolve generically. Each: `{ key, label, icon?, items: [] }` |
+| `extra-sources` | `Array` | `[]` | Extra sections the widget reads itself from app endpoints (`extraSources`). See "Sections read from an app endpoint" below |
+| `reference-sections` | `Array` | `[]` | Sections naming the record a field points at (`referenceSections`): `[{ key, label, icon?, field, register, schema, labelField?, route? }]`. Shown only with a readable title, never as a bare id |
+| `footer-actions` | `Array` | `[]` | Buttons under the widget (`footerActions`): `[{ label, icon?, type, ... }]`, page actions dispatched with `@objectId` and `@object.<field>` resolved |
 | `documentation-url` | `String` | `''` | Documentation link for the overflow Actions menu |
 | `widget-id` | `String` | `''` | Stable id forwarded to the widget chrome (falls back to `object-type`) |
 | `objects-label` | `String` | `'Objects'` | Section heading for related objects |
@@ -86,3 +149,4 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `@add` | group key (string) | An Add-footer entry without a built-in flow was activated (e.g. `objects`, `mails`); the host routes it (open a link-object dialog, compose a mail, …) |
 | `@file-uploaded` | `File[]` | Files were uploaded to the object via the Add footer's built-in upload flow |
 | `@note-added` | note message (string) | A note was created on the object via the Add footer's built-in note flow |
+| `@group-action` | `{ group, action }` | A group's heading action was pressed in the sections layout |

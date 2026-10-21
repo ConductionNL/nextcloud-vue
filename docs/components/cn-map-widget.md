@@ -116,7 +116,41 @@ Pick **one** of:
 
 - `markers.features` — inline GeoJSON `Feature[]` (static maps).
 - `markers.dataSource.url` — fetched on mount; the response may be a GeoJSON FeatureCollection OR a flat array of rows (in which case `latField`, `lngField`, `popupField` drive the conversion).
-- `markers.dataSource.{register, schema}` — RESERVED. Round-tripped by validators today, resolver lands in a follow-up change.
+- `markers.dataSource.{register, schema, filter?, limit?}` — plots the objects of an OpenRegister schema. `filter` takes the shared tokens, so a record's page plots the objects that point at it (`{ "case": "@objectId" }`, read from the `objectId` and `objectData` props the detail host binds). An object at (0, 0) is not plotted: that is where an unset pair of numbers lands.
+
+## A record's places
+
+On a detail page the map can say why it shows no markers, and read them again when the app saves one:
+
+```json
+{
+  "type": "map",
+  "content": {
+    "markers": {
+      "dataSource": { "register": "myapp", "schema": "location", "filter": { "item": "@objectId" } },
+      "latField": "latitude",
+      "lngField": "longitude",
+      "popupField": "label"
+    },
+    "height": "260px",
+    "ariaLabel": "Locations on this item",
+    "emptyText": "No locations linked to this item yet",
+    "errorText": "The locations could not be loaded.",
+    "refreshOn": "myapp:location:saved",
+    "refreshMatch": "itemId"
+  }
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `emptyText` | A line under the map when the source answered no markers. Without it an empty map says nothing. |
+| `errorText` | The line, announced as an alert, when the source could not be read. Defaults to "The places could not be loaded." |
+| `refreshOn` | An event-bus event that reads the markers again. |
+| `refreshMatch` | Only when the event payload's field with this name holds the record's id. |
+| `ariaLabel` | The map's accessible name, through the app's translate. |
+
+The `objectId` prop is the record's id and `objectData` the record, for the filter tokens.
 
 `markers.clustering: true` (or the widget-level `clustering` prop) opts in to `leaflet.markercluster`. The cluster bundle lazy-loads only when first enabled — consumers without clustering pay zero extra bytes.
 

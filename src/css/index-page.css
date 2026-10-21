@@ -73,6 +73,180 @@
 	min-height: 300px;
 }
 
+/* The map with its numbered list (`mapConfig.list`, DqZakenKaart): one framed
+   card, the map taking the larger share and the list beside it, stacking
+   under a narrow width. */
+.cn-index-page__map-card {
+	display: flex;
+	flex: 1;
+	flex-wrap: wrap;
+	gap: 16px;
+	min-height: 0;
+	padding: 16px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+}
+
+.cn-index-page__map-card .cn-index-page__map {
+	flex: 3 1 420px;
+	min-width: 0;
+}
+
+.cn-index-page__map-side {
+	display: flex;
+	flex: 2 1 320px;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 0;
+	overflow-y: auto;
+}
+
+/* The list scrolls inside the side column and the card for the rows without
+   a place stays under it, as the board draws it (DqZakenKaart). Scrolling the
+   column as a whole pushed that card below a page's worth of rows. */
+.cn-index-page__map-list {
+	display: flex;
+	flex: 0 1 auto;
+	flex-direction: column;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	overflow-y: auto;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	list-style: none;
+}
+
+.cn-index-page__map-item {
+	display: flex;
+	flex: none;
+	gap: 12px;
+	padding: 12px 14px;
+}
+
+.cn-index-page__map-item + .cn-index-page__map-item {
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-index-page__map-item--active {
+	background: var(--color-primary-element-light);
+}
+
+.cn-index-page__map-number {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 13px;
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.cn-index-page__map-item--active .cn-index-page__map-number {
+	background: var(--color-primary-element-light-text);
+}
+
+.cn-index-page__map-text {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+/* The title is a button for the keyboard but reads as the row's title text.
+   Nextcloud styles every `button:not(.button-vue, ...)` (specificity 0,2,1)
+   as a 34px tinted pill with a 3px margin, which outranked a single class and
+   turned each title into a blue block (DqZakenKaart rows 111px against 89).
+   Three classes outrank it, and the box properties it sets are reset.
+   @spec openspec/changes/map-list-title-button/specs/map-list-title-button/spec.md#requirement-a-map-list-title-reads-as-text-not-as-a-button */
+.cn-index-page__map-list .cn-index-page__map-item .cn-index-page__map-title {
+	width: auto;
+	height: auto;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--color-main-text);
+	font: inherit;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.35;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-index-page__map-list .cn-index-page__map-item .cn-index-page__map-title:hover,
+.cn-index-page__map-list .cn-index-page__map-item .cn-index-page__map-title:focus {
+	background: none;
+	color: var(--color-main-text);
+}
+
+.cn-index-page__map-sub,
+.cn-index-page__map-due {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-index-page__map-pills {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-index-page__map-missing {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	font-size: 14px;
+}
+
+/* The selected folder's heading above the list. */
+/* A sort option whose endpoint failed: the note above the fallen-back list. */
+.cn-index-page__sort-source-note {
+	margin: 0 0 8px;
+	color: var(--color-text-maxcontrast);
+}
+
+/* A note the named source read off its answer, above the rows. */
+.cn-index-page__source-note {
+	margin: 0 0 8px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+.cn-index-page__scope-heading {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 12px;
+}
+
+.cn-index-page__scope-title {
+	margin: 0;
+	font-size: 1.25em;
+	font-weight: 700;
+}
+
+.cn-index-page__scope-subtitle {
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
 /* Opt-in folder navigation pane (left of the list). */
 .cn-index-page__folder-pane {
 	flex: 0 0 240px;
@@ -92,6 +266,30 @@
 .cn-index-page__empty {
 	padding: calc(10 * var(--default-grid-baseline)) calc(5 * var(--default-grid-baseline));
 	text-align: center;
+}
+
+.cn-index-page__search-refusal {
+	padding: calc(3 * var(--default-grid-baseline)) 0;
+}
+
+.cn-index-page__search-refusal-headline {
+	font-weight: bold;
+}
+
+.cn-index-page__search-refusal-term {
+	font-family: var(--font-face-monospace, monospace);
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
+}
+
+.cn-index-page__search-refusal-term mark {
+	background-color: var(--color-warning);
+	color: var(--color-main-text);
+	font-weight: bold;
+}
+
+.cn-index-page__search-refusal-muted {
+	color: var(--color-text-maxcontrast);
 }
 
 /* Explicit `0` rather than dropping the declaration: this element carries both
@@ -115,6 +313,22 @@
 	padding: 12px 16px;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
+}
+
+/* The map's count line and the note when a map that plots every row hit its
+   limit. */
+.cn-index-page__map-count {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+	padding: 12px 16px;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
+.cn-index-page__map-cap {
+	color: var(--color-warning-text, var(--color-main-text));
 }
 
 /* Table view owns both scroll axes. With the page column scrolling instead, the
@@ -275,11 +489,12 @@
 .cn-index-page--with-side-panel {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) var(--cn-index-side-panel-width, 300px);
-	grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+	grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
 	grid-template-areas:
 		"head head"
 		"below below"
 		"stats stats"
+		"chips side"
 		"bar side"
 		"body side"
 		"extra extra";
@@ -308,6 +523,10 @@
 	grid-area: bar;
 }
 
+.cn-index-page--with-side-panel > .cn-index-page__quick-filter-row {
+	grid-area: chips;
+}
+
 .cn-index-page--with-side-panel > .cn-index-page__body {
 	grid-area: body;
 }
@@ -325,15 +544,22 @@
 			"below"
 			"stats"
 			"side"
+			"chips"
 			"bar"
 			"body"
 			"extra";
-		grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
+		grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto;
 	}
 
 	.cn-index-page--with-side-panel > .cn-index-page__side-panel {
 		margin-bottom: 20px;
 	}
+}
+
+/* `quickFilterPlacement: "row"` (DqTeamwachtrij): the chips on a row of
+   their own above the toolbar, wrapping onto more lines. */
+.cn-index-page__quick-filter-row {
+	margin-bottom: 12px;
 }
 
 /* The second filter strip (`filterStrip`, board PqWachtrij "Kanaal"): 34px
@@ -417,4 +643,56 @@
 .cn-index-page__board-hint {
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Page tabs a named source declares: sibling lists drawn as folder tabs
+   above the list, the current one joined to it. */
+.cn-index-page__page-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	border-bottom: 1px solid var(--color-border);
+	margin-bottom: calc(3 * var(--default-grid-baseline));
+}
+
+.cn-index-page__page-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 34px;
+	padding: 8px 12px;
+	margin-bottom: -1px;
+	border: 1px solid var(--color-border);
+	border-bottom: none;
+	border-radius: 8px 8px 0 0;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	text-decoration: none;
+}
+
+.cn-index-page__page-tab:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-index-page__page-tab:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-index-page__page-tab--active,
+.cn-index-page__page-tab--active:hover {
+	background: var(--color-main-background);
+	font-weight: 600;
+}
+
+.cn-index-page__page-tab-count {
+	min-width: 20px;
+	padding: 0 6px;
+	border-radius: 10px;
+	background: var(--color-background-darker);
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+	text-align: center;
 }

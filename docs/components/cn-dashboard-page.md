@@ -115,6 +115,8 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 |------|------|---------|-------------|
 | `title` | String | `''` | Page title |
 | `description` | String | `''` | Description shown below the title |
+| `breadcrumb` | Object \| Array | `null` | A breadcrumb under the title (manifest `config.breadcrumb`): one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list; the title follows as the current crumb. Drawn as the detail header's breadcrumb row. |
+| `headerMeta` | String | `''` | A note after the breadcrumb and a middle dot (manifest `config.headerMeta`). |
 | `widgets` | Array | `[]` | Widget definition objects (see Widget definition below) |
 | `layout` | Array | `[]` | Grid placement objects (see Layout item below) |
 | `loading` | Boolean | `false` | Show loading spinner instead of the grid |
@@ -122,10 +124,11 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `columns` | Number | `12` | Number of grid columns |
 | `cellHeight` | Number | `80` | Grid cell height in pixels |
 | `gridMargin` | Number | `12` | Gap between grid items in pixels |
-| `editLabel` | String | `'Edit'` | Label for the edit button |
+| `editLabel` | String | `'Edit'` | Label for the edit button. A manifest label goes through the app's translate ("Edit layout" reads "Indeling aanpassen" where the app has it), as does `doneLabel`. |
 | `doneLabel` | String | `'Done'` | Label for the done button |
 | `emptyLabel` | String | `'No widgets configured'` | Empty state message |
 | `unavailableLabel` | String | `'Widget not available'` | Fallback for unknown widget IDs |
+| `headerActions` | Array | `[]` | Declarative header actions (manifest `config.headerActions`) rendered as buttons through `CnActionButtons`. An entry with `href` is a link button, never dispatched: an absolute `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written, an instance path through `generateUrl()`, in a new tab with `target: "_blank"`. On a dashboard the `href` may carry `@workspace.<key>` tokens, filled URL-encoded from the page filters, so a download asks for what the page shows (`/apps/dossiq/api/report?format=csv&from=@workspace.dateFrom`) — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href). |
 | `dateRange` | Object | `null` | Optional date-range header descriptor — see [Date-range header](#date-range-header) |
 | `pageFilters` | Array | `[]` | Optional page-level filter controls rendered in the header — see [Page filters](#page-filters). Each entry `\{ key, label?, type?: 'select', options: [\{ value, label \}], default? \}`. The selection is written into the reactive workspace context, so widgets can read it via a `@page.<key>` / `@workspace.<key>` token. |
 
@@ -209,6 +212,7 @@ When the `dateRange` prop is set with `enabled: true`, the dashboard renders a [
 | ------------ | -------------- | -------------------------------------------------------------------------- |
 | `enabled`    | Boolean        | When `true`, renders the picker row. When `false` / omitted, no row appears. |
 | `control`    | String (opt.)  | Header control style: `'picker'` (default — `CnDateRangePicker`: a preset select + two date inputs) or `'pills'` (a compact segmented toggle-button row). |
+| `placement`  | String (opt.)  | `'description'` puts the `segmented` period group at the end of the description line, after a middle dot ("Week 41 · alle teams · [Deze week \| Dit kwartaal]"), instead of in a row of its own. Ignored with a custom range, which keeps its row. |
 | `default`    | Object (opt.)  | Initial `{ from, to, preset? }` when no persisted state is found.          |
 | `persistKey` | String (opt.)  | When set, the chosen range is persisted to `localStorage[persistKey]`.     |
 | `presets`    | Array (opt.)   | Override the preset list. See [`DEFAULT_DATE_RANGE_PRESETS`](../utilities/default-date-range-presets.md). A preset with no numeric `days` / `hours` (other than the manual `custom` entry) — e.g. `{ id: 'all', label: 'All', days: null }` — or one with `clear: true` is an "All" / clear option that removes the window. |
@@ -359,7 +363,26 @@ A widget then binds its data to the selected value. With an endpoint-bound [`sta
 }
 ```
 
-Each entry: `key` (the context key written on change), optional `label`, `type` (only `'select'` today), `options` (`[{ value, label }]`), and an optional `default` (else the first option seeds the context on mount). Omitting `pageFilters` renders nothing and leaves the context untouched (backwards-compatible).
+Each entry: `key` (the context key written on change), optional `label`, `type` (only `'select'` today), `options` (`[{ value, label }]`), and an optional `default` (else the first option seeds the context on mount). Omitting `pageFilters` renders nothing and leaves the context untouched (backwards-compatible). The label and the option labels go through the app's translate.
+
+### Options read from a source (`optionsFrom`)
+
+A filter can read its options instead of listing them, as the case-type filter of a reporting dashboard does:
+
+```json
+{ "key": "caseType", "label": "Filter by case type", "clearable": true, "placeholder": "All case types",
+  "optionsFrom": { "register": "dossiq", "schema": "caseType", "filter": { "hasSla": true } } }
+```
+
+`optionsFrom` is `{ register, schema, filter? }` (OpenRegister objects; tokens in `filter` resolve) or `{ url, params?, responsePath? }` (an app endpoint). `valueField` and `labelField` pick the option's value and label (default the `id` or uuid, and `title` or `name`). `clearable: true` lets the reader clear the select back to all: the context key becomes `null` and nothing is seeded on mount, and `placeholder` says what an empty select means. A filter that is not clearable is seeded with the first option read.
+
+### A quarter filter (`type: "quarter"`)
+
+```json
+{ "key": "quarter", "label": "Quarter", "type": "quarter", "count": 8 }
+```
+
+The filter generates its own options: the current quarter first, then the `count - 1` quarters before it (default 8 in all). Each is valued `YYYY-Qn`, the form a quarterly report endpoint reads, and labelled "Q2 2026". The current quarter is seeded on mount, so a widget reading `@workspace.quarter` has a value on its first read. `type: "year"` does the same for years: the current year first, `count` years in all (default 5), valued `YYYY`.
 
 ## Built-in page-level Actions menu
 
@@ -431,7 +454,7 @@ The `appConfig` prop is a page-level config map exposed to declarative widget / 
 <CnDashboardPage :widgets="WIDGETS" :layout="layout" :app-config="appConfig" />
 ```
 
-A manifest renderer typically seeds `appConfig` from `loadState(appId, 'config', {})`. `@config.<key>` also interpolates into an endpoint source's URL / params and into OpenRegister filter values. It is **backwards-compatible**: a literal `"EUR"` still works, and a required `@config.<key>` that is unset falls back to the format's default (`EUR` for currency, empty for prefix/suffix) rather than rendering the raw token. A trailing `?` marks the token optional (dropped from filters when unset).
+A manifest renderer typically seeds `appConfig` from `loadState(appId, 'config', {})`. `@config.<key>` also interpolates into an endpoint source's URL / params and into OpenRegister filter values. It is **backwards-compatible**: a literal `"EUR"` still works, and a required `@config.<key>` that is unset falls back to the format's default (`EUR` for currency, empty for prefix/suffix) rather than rendering the raw token. A trailing `?` marks the token optional (dropped from filters when unset). The page merges its own `appConfig` over a config an ancestor provides on `cnAppConfig` (an app root's settings), key by key, so an app can provide its settings once. A registry widget's `content` takes the token too, at any depth: `{ "type": "kb-search", "content": { "space": "@config.xwiki_default_space?" } }` searches the admin's default space, and an unset optional token becomes empty.
 
 Each **per-widget** menu also surfaces a **Documentation** item. Its URL resolves to the widget def's own `documentationUrl` when set, otherwise it inherits the page-level `documentationUrl` — so a documented dashboard shows Documentation on every widget without per-widget config.
 
@@ -480,7 +503,7 @@ The `appConfig` prop is a page-level config map exposed to declarative widget / 
 <CnDashboardPage :widgets="WIDGETS" :layout="layout" :app-config="appConfig" />
 ```
 
-A manifest renderer typically seeds `appConfig` from `loadState(appId, 'config', {})`. `@config.<key>` also interpolates into an endpoint source's URL / params and into OpenRegister filter values. It is **backwards-compatible**: a literal `"EUR"` still works, and a required `@config.<key>` that is unset falls back to the format's default (`EUR` for currency, empty for prefix/suffix) rather than rendering the raw token. A trailing `?` marks the token optional (dropped from filters when unset).
+A manifest renderer typically seeds `appConfig` from `loadState(appId, 'config', {})`. `@config.<key>` also interpolates into an endpoint source's URL / params and into OpenRegister filter values. It is **backwards-compatible**: a literal `"EUR"` still works, and a required `@config.<key>` that is unset falls back to the format's default (`EUR` for currency, empty for prefix/suffix) rather than rendering the raw token. A trailing `?` marks the token optional (dropped from filters when unset). The page merges its own `appConfig` over a config an ancestor provides on `cnAppConfig` (an app root's settings), key by key, so an app can provide its settings once. A registry widget's `content` takes the token too, at any depth: `{ "type": "kb-search", "content": { "space": "@config.xwiki_default_space?" } }` searches the admin's default space, and an unset optional token becomes empty.
 
 ## Reference (auto-generated)
 
@@ -545,6 +568,9 @@ A drag or resize in a view's grid while editing is written back into that view's
 
 ### Each view arranged per user (`userLayout`)
 
+> **Deprecated: layout belongs to Buildiq.** Arranging a page is Buildiq's job (Ruben, 18 Oct 2026): its **Indeling aanpassen** edits the layout everybody sees. `userLayout` still works for this release and will be removed after it. While Buildiq edits the page (`cnEditingBody`), the grid shows the manifest layout, and a drag or resize goes into the manifest Buildiq saves, also on a page with `userLayout`. A user arrangement made outside an in-page edit session is saved at once, because no **Done** follows to save it.
+
+
 With `config.userLayout: true` a user arranges each view for themselves, exactly as they arrange the page's own grid:
 
 - In edit mode the view grid is draggable too. A drag moves the user's copy of the view, never the manifest `layout`.
@@ -590,6 +616,11 @@ below changes.
   becomes the last segment and opens the from/to popover. It runs the same
   range change as a pill (persistence, `date-range-change`,
   `cnDashboardDateRange`).
+  With `dateRange.placement: "description"` the group ends the description
+  line instead ("Week 41 · alle teams · [Deze week | Dit kwartaal | Dit jaar]").
+- **Widget subtitle.** A widget definition's `subtitle` is a muted line under
+  the card's title ("Dit kwartaal, beslist binnen de termijn"), the
+  counterpart of `eyebrow` above it.
 - **KPI row.** `config.kpiRow` lists widget ids that render above the grid, in
   that order, in a `CnKpiGrid` with `columns="auto"`
   (`repeat(auto-fit, minmax(200px, 1fr))`, gap 16). They are not GridStack
@@ -626,3 +657,13 @@ In the board look the page view switch (`views`) sits on the same row, left of t
 ## On a phone
 
 Under the board look, below 640px, the grid reflows to one column in reading order (top to bottom, then left to right) and the page does not scroll sideways. A widget that grows when its content wraps, such as a bar of chips, sets `sizeToContent: true` in its layout item. The compact chips wrap and are 44px high, the bar's switch and select are 44px, and record-list rows, KPI tiles and the widget Actions button are at least 44px. Without the board look the grid keeps its fixed columns.
+
+## A title per view (`views[].title`)
+
+A view can carry a `title`: while that view is open, the page heading reads it instead of the page's own title
+(board DqMijnTeam: "Mijn werk" becomes "Mijn team"; manifest schema 2.119.0). It goes through the app's translate. A view without one keeps the
+page title.
+
+```json
+{ "views": [{ "id": "mine", "label": "My work" }, { "id": "team", "label": "My team", "title": "My team" }] }
+```

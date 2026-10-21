@@ -12,15 +12,27 @@
 			:deleteLabel="deleteLabel"
 			:uploadButton="uploadButton"
 			:dropOverlay="dropOverlay"
+			:dropLabel="dropLabel"
+			:dropDetail="dropDetail"
 			:dropHint="dropHint"
 			:rowActions="rowActions"
 			:newActions="newActions"
+			:headerActions="headerActions"
+			:rowButton="rowButton"
+			:reviewSummary="reviewSummary"
+			:footnote="footnote"
+			:nameSecondary="nameSecondary"
 			:linkedItems="linkedItems"
 			:columns="columns"
 			:rowData="rowDataSource"
 			:preferenceApp="preferenceApp"
 			:preferenceKey="preferenceKey"
 			:bulkActions="bulkActions"
+			:selectionLabel="selectionLabel"
+			:selectionLabelOne="selectionLabelOne"
+			:showClearSelection="showClearSelection"
+			:sideCards="sideCards"
+			:sideCardsPlacement="sideCardsPlacement"
 			:groupBy="groupBy"
 			:facets="facets"
 			@changed="onBrowserChanged" />
@@ -338,6 +350,10 @@ export default {
 		uploadButton: { type: Boolean, default: false },
 		/** Forwarded to CnFilesBrowser: the drop state drawn over the list ("Drop to add") and announced. */
 		dropOverlay: { type: Boolean, default: false },
+		/** Forwarded to CnFilesBrowser: the drop state's line ("Laat los om toe te voegen"); the library's own without it. */
+		dropLabel: { type: String, default: undefined },
+		/** Forwarded to CnFilesBrowser: the drop state's second line, `{count}` the files dragged; it also makes the overlay fill the panel. */
+		dropDetail: { type: String, default: '' },
 		/** Forwarded to CnFilesBrowser: "Or drag files onto this list." under the list. */
 		dropHint: { type: Boolean, default: false },
 		/**
@@ -394,6 +410,21 @@ export default {
 		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object}>}
 		 */
 		bulkActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: the bulk bar's count, a template with `{count}`. */
+		selectionLabel: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the bulk bar's count for one file. */
+		selectionLabelOne: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: whether the bulk bar ends in "Clear selection". */
+		showClearSelection: { type: Boolean, default: true },
+		/**
+		 * Forwarded to CnFilesBrowser: cards beside the list about the last
+		 * selected file.
+		 *
+		 * @type {Array<{id: string, title: string, fields?: Array<object>, actions?: Array<object>}>}
+		 */
+		sideCards: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: `page-side` puts the side cards in the detail page's side column. */
+		sideCardsPlacement: { type: String, default: 'beside' },
 		/** Forwarded to CnFilesBrowser: the key of a declared column to group the files on. */
 		groupBy: { type: String, default: '' },
 		/**
@@ -403,6 +434,16 @@ export default {
 		 * @type {string[]}
 		 */
 		facets: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: the host's own buttons in the bar. */
+		headerActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: one visible button on every file row. */
+		rowButton: { type: Object, default: null },
+		/** Forwarded to CnFilesBrowser: the review summary above the list. */
+		reviewSummary: { type: Object, default: null },
+		/** Forwarded to CnFilesBrowser: the host's own line under the list. */
+		footnote: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the second line under each file's name. */
+		nameSecondary: { type: String, default: '' },
 		/** A dotted path to the list of records in the `rowDataUrl` answer; empty reads the answer itself. */
 		rowDataPath: { type: String, default: '' },
 		/** The record field that holds the Nextcloud file id. */

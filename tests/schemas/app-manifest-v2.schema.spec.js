@@ -946,7 +946,7 @@ describe('app-manifest-v2 — form logic: fields[].visibleWhen (REQ-MFL-2, manif
 		const manifest = manifestWithFormPage({
 			fields: [
 				{ key: 'kind', label: 'Kind', type: 'string' },
-				{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { field: 'kind', op: 'contains', value: 'x' } },
+				{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { field: 'kind', op: 'startsWith', value: 'x' } },
 			],
 		})
 		const result = validateManifestV2(manifest)
@@ -1299,13 +1299,20 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
+	it('accepts a setup step note or footnote as a non-empty string', () => {
+		const steps = (extra) => [{ id: 'kind', type: 'choice', options: [{ value: 'a', label: 'A' }], ...extra }]
+		expect(validateManifestV2({ ...MINIMAL_V2, setup: { steps: steps({ note: 'Later.' }) } }).valid).toBe(true)
+		expect(validateManifestV2({ ...MINIMAL_V2, setup: { steps: steps({ footnote: 'Later.' }) } }).valid).toBe(true)
+		expect(validateManifestV2({ ...MINIMAL_V2, setup: { steps: steps({ note: '' }) } }).valid).toBe(false)
+	})
+
 	it('accepts setup.dismissAction as a slug and refuses anything else', () => {
 		const steps = [{ id: 'demo', type: 'run-action', action: 'load-demo-data' }]
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: 'dismiss-setup', steps } }).valid).toBe(true)
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.116.0', () => {
+	it('the manifest schema version reads 2.142.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1386,8 +1393,285 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.102.0 adds columnFields[].source.colorMap on a board (board-column-colour-map).
 		// 2.108.0 adds config.modules, modulesTitle and footnote on a links page (screens-links-module-cards).
 		// 2.111.0 lets config.greeting lead with a label or the date alone (dashboard-greeting-label).
-		// 2.116.0 adds footnote and sideNote on a reports page (screens-reports-page-pq-board).
-		expect(schema.version).toBe('2.116.0')
+		// 2.115.0 lets config.breadcrumb take a list of crumbs, for index, dashboard and settings pages too (page-header-breadcrumb).
+		// 2.118.0 adds nav.searchPlaceholder (screens-board-top-bar-search).
+		// 2.119.0 adds views[].title on a dashboard (view-title).
+		// 2.120.0 adds chart barMax, footnote, highlight, valueFormat 'number' with suffix and endpointSource rowsPath (chart-bar-list-and-matrix).
+		// 2.121.0 lets a query preset or a folder scope set addLabel, headerButtons, breadcrumb, headerMeta and afterList, adds config.afterList, and lets config.entitySource name the flowRuns, endpoint, search and users sources with a described sourceConfig (index-scope-presentation).
+		// 2.122.0 adds headerPill.resolve, a pill that shows a referenced record's label (detail-pill-resolve), chart cellSource, a matrix read from records (matrix-cell-records), and the organisations entitySource (organisations-entity-source).
+		// 2.123.0 adds the setup step's note and footnote, a line under a choice step's options (setup-wizard), config.headerMetaCounts on an index page (index-page), and actionsMenu.showMarkUnread and showOpenSidebar (detail-page).
+		// 2.124.0 adds setup.steps[].visibleWhen (setup-wizard), and the dashboard config.pageFilters with control and placement (dashboard-page).
+		// 2.125.0 adds chart emptyCellLabel and the footnote under line, area and bar charts (chart-widget), config.bulkBandAlways (actions-bar), config.quickFilterPlacement (index-page), config.rowClass rules on an index page (index-page) and sourceConfig.limit for a paging source (index-page).
+		// 2.126.0 adds the setup choice step's display "rows" and default (setup-wizard), visibleWhen op anyOf and the record-list footerAction (record-list), and documents folderSidebar.pane and the fieldOverrides search look (index-page, form-dialog).
+		// 2.127.0 adds config.sideColumnFrom on a detail page (detail-page), headerButtons[].run, config.search, searchPlacement, defaultOrder, listConfig leading / trailing / subtitleTemplate and folderSidebar heading / countText on an index page (index-page, object-row), and the object-table pageSize (object-table).
+		// 2.128.0 adds the setup step's noteStyle (setup-wizard), chart referenceLines and categoryFormat (chart-widget), visibleWhen op contains (visible-when), config.tabsFrom on a detail page (detail-page) and the notice widget (notice-widget).
+		// 2.129.0 adds config.cardLayout on an index page, the board record card's layout, with a meta part that names its own formatter (card-layout-part-formatter); also quickFilterPlacement row (index-page), nextStep.stagesFrom, side-column entry tabs and folderSidebar.scopeViews (detail-page, index-page), and the record-list dot / flags, related groupByRelation / layout / groupActions and nc-widget excludeApps / excludeTypes content (widgets).
+		// 2.130.0 adds config.defaultSavedViews on an index page, views the app ships, read-only and copyable, with savedViewTree.seeded deprecated (saved-views-manage-and-defaults), and a dashboard page filter's optionsFrom, clearable and placeholder, with options required only without optionsFrom (dashboard-page).
+		// 2.131.0 adds mapConfig markerColor, plotAll and count on an index page (index-map-parity).
+		// 2.132.0 adds sortSelectOptions[].source, a sidebar sort order whose rows come from an app endpoint (sidebar-sort-endpoint-source), saved-view overrides with locked filters, profile patches and card parts (saved-view-overrides-v2), and the forms work: a field's optionsFrom, dotted-path fields, the sub-objects editor, list reorder by an order field and the smaller form features (form-small-features).
+		// 2.133.0 adds the field override keys placeholderFrom, requiredWhen, warnWhen, clearWhenHidden, stored, initialWhen, sectionCollapsed, optionSwatches and optionIcons, optionsFrom groupField, where, itemsPath and hideWhenEmpty, and a source that follows another field through @answer (object-list-edit-in-place), the decision-list, retention, plan and work-queue widgets (widgets), and config.searchRefusalHint (index-page).
+		// 2.134.0 adds headerPill.resolve colorField and iconField, a default saved view's icon, and resolve on the board card's pill and the record card's pills (pill-color-field-cards).
+		// 2.135.0 adds $defs.headerAction / headerLinkAction: href with target "_blank" / "_self" on header actions, their children, quick actions and stage actions, a header action that is a real link (header-action-href, nextcloud-vue#1314).
+		// 2.136.0 lets nextStep's title and a stage's title and after be a list of candidates, each naming record fields as {path} tokens (board-case-page).
+		// 2.137.0 lets open-form edit and create through an endpoint (open-form-endpoint), a grouped-cards group carry an action (grouped-cards-group-action), a detail page ask for a purpose before it opens a record (detail-access-purpose), an api-call GET a download (api-call-get-download) and headerPill.values limit a pill to some values (detail-pill-values).
+		// 2.138.0 adds after and before on a row indicator, a date bound that is now or an ISO date (cell-config-growth).
+		// 2.139.0 adds the redaction page type (dq-abstract-record-widgets), quarter and year page filters with count, and loadOn, requestLabel, requestHint, truncatedText and namePath on endpoint widgets (dq-abstract-dash).
+		// 2.140.0 lets an index page follow live changes (pl4-index-live), gives a row indicator lt and gt (pl4-cells), the export launcher its entity types (pl4-export-action), a board columns read from a list on a referenced row with itemsPath, keyField and closedField (pl4-board), card cells and card actions (pl4-board-cells, pl4-board-card-actions), and a select-or-create reference its createModal (pl4-form-create-modal).
+		// 2.142.0 adds footnote and sideNote on a reports page (screens-reports-page-pq-board), and cardsSource, card formats and card action (sh-abstract-sh4).
+		expect(schema.version).toBe('2.142.0')
+	})
+
+	it('accepts the 2.135.0 header action href and refuses it with a handler, another type or a bad URL', () => {
+		const withAction = (action) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config: { register: 'r', schema: 's', headerActions: [{ id: 'add', label: 'Add integration', ...action }] } }] })
+		expect(validateManifestV2(withAction({ href: '/apps/integriq/connections?app=stackiq' })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ href: 'https://example.org/docs', target: '_blank' })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ href: 'mailto:support@example.org', target: '_self' })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ href: '/apps/x', handler: 'openConnections' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: '/apps/x', type: 'navigate' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: '/apps/x', target: 'connections' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: 'javascript:alert(1)' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: 'apps/x' })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ href: 'HTTPS://example.org' })).valid).toBe(false)
+		// Without href, `target` keeps naming a destination.
+		expect(validateManifestV2(withAction({ type: 'open-modal', target: 'connections' })).valid).toBe(true)
+	})
+
+	it('takes href on header action children, quick actions and stage actions, but not on row, bulk or navigation actions', () => {
+		const link = { id: 'go', label: 'Go', href: '/apps/x' }
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config: { register: 'r', schema: 's', ...config } }] })
+		const detail = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', ...config } }] })
+		expect(validateManifestV2(index({ headerActions: [{ id: 'more', label: 'More', handler: 'emit', children: [link] }] })).valid).toBe(true)
+		expect(validateManifestV2(index({ headerActions: [{ ...link, children: [{ ...link, id: 'sub' }] }] })).valid).toBe(true)
+		expect(validateManifestV2(index({ headerActions: [{ id: 'more', label: 'More', children: [{ ...link, handler: 'x' }] }] })).valid).toBe(false)
+		expect(validateManifestV2(detail({ quickActions: [link], primaryActionByStage: { open: link } })).valid).toBe(true)
+		expect(validateManifestV2(index({ bulkActions: [link] })).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', actions: [link] }] }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: link } } }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: { id: 'go', label: 'Go', type: 'navigate', target: '/x' } } } }).valid).toBe(true)
+		// Children: a header action's take href, a row, bulk or navigation action's do not.
+		const parent = (children) => ({ id: 'more', label: 'More', handler: 'emit', children })
+		expect(validateManifestV2(index({ bulkActions: [parent([link])] })).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', actions: [parent([link])] }] }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: parent([link]) } } }).valid).toBe(false)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { primaryAction: { label: 'New', action: parent([{ id: 'sub', label: 'Sub', handler: 'emit' }]) } } }).valid).toBe(true)
+		expect(validateManifestV2(index({ headerActions: [parent([{ id: 'sub', label: 'Sub', handler: 'emit', unknownKey: 1 }])] })).valid).toBe(false)
+		// Both action defs stay closed and keep the per-type rules.
+		expect(validateManifestV2(index({ bulkActions: [{ id: 'a', label: 'A', unknownKey: 1 }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ bulkActions: [{ id: 'a', label: 'A', type: 'object-op' }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ headerActions: [{ id: 'a', label: 'A', type: 'api-call' }] })).valid).toBe(false)
+		expect(validateManifestV2(index({ headerActions: [{ id: 'a', label: 'A', type: 'api-call', url: '/apps/x/api' }] })).valid).toBe(true)
+	})
+
+	it('accepts the 2.133.0 widgets and searchRefusalHint, and refuses malformed ones', () => {
+		const page = (widgets, config = {}) => ({ ...MINIMAL_V2, pages: [{ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', ...config }, widgets }] })
+		const widget = (widgetKey, content) => ({ id: widgetKey, widgetKey, slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, props: { content } })
+		expect(validateManifestV2(page([
+			widget('decision-list', { source: { url: '/apps/x/api/signoffs' }, answers: [{ value: 'ok', label: 'Approve', fields: [{ field: 'until', type: 'date' }] }], reason: false, submit: { request: { method: 'POST', url: '/apps/x/api/signoffs/{id}' } } }),
+			widget('retention', { statusField: 'archiveStatus', archivedValues: ['archived'], archivistGroups: ['archivaris'], recompute: false }),
+			widget('plan', { emptyText: 'No plan yet' }),
+			widget('work-queue', { source: { url: '/apps/x/api/queue' }, hide: '/apps/x/api/queue/{group}/hide', waitingParties: { applicant: 'the applicant' } }),
+		])).valid).toBe(true)
+		expect(validateManifestV2(page([widget('decision-list', { answers: [{ value: 'ok' }] })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('decision-list', { reason: true })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('decision-list', { submit: { request: { method: 'POST' } } })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('retention', { recompute: 'no' })])).valid).toBe(false)
+		expect(validateManifestV2(page([widget('work-queue', { waitingParties: { applicant: 1 } })])).valid).toBe(false)
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', ...config } }] })
+		expect(validateManifestV2(index({ searchRefusalHint: 'Use AND, OR or NOT between words.' })).valid).toBe(true)
+		expect(validateManifestV2(index({ searchRefusalHint: 3 })).valid).toBe(false)
+	})
+
+	it('accepts the 2.131.0 map keys and refuses malformed ones', () => {
+		const index = (mapConfig) => ({ ...MINIMAL_V2, pages: [{ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', mapConfig: { latField: 'lat', lngField: 'lng', ...mapConfig } } }] })
+		expect(validateManifestV2(index({ markerColor: { field: 'status', colorMap: { open: 'var(--color-success)' } }, plotAll: true, count: true })).valid).toBe(true)
+		expect(validateManifestV2(index({ markerColor: { field: 'caseType', source: { register: 'r', schema: 'caseType', colorField: 'colour' } }, plotAll: 200, count: '{located} of {total}' })).valid).toBe(true)
+		expect(validateManifestV2(index({ markerColor: { colorMap: {} } })).valid).toBe(false)
+		expect(validateManifestV2(index({ markerColor: { field: 'caseType', source: { register: 'r' } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ plotAll: 0 })).valid).toBe(false)
+		expect(validateManifestV2(index({ count: 3 })).valid).toBe(false)
+	})
+
+	it('accepts the 2.132.0 sort option with an endpoint source and refuses malformed ones', () => {
+		const index = (sortSelectOptions) => ({ ...MINIMAL_V2, pages: [{ id: 'mine', route: '/mine', type: 'index', title: 'Mine', config: { register: 'r', schema: 's', sortSelectOptions } }] })
+		const urgency = { value: 'urgency', label: 'Urgency', default: true, order: 'deadline', source: { url: '/apps/x/api/queue', rowsPath: 'items', rowPath: 'case', carry: ['deadlineTier'], annotate: true, failedNote: 'Ordered by deadline.' } }
+		expect(validateManifestV2(index([urgency, { value: 'newest', label: 'Newest', order: '-startDate' }])).valid).toBe(true)
+		expect(validateManifestV2(index([{ ...urgency, source: { rowsPath: 'items' } }])).valid).toBe(false)
+		expect(validateManifestV2(index([{ ...urgency, source: { url: '/x', rows: 'items' } }])).valid).toBe(false)
+		expect(validateManifestV2(index([{ label: 'No value' }])).valid).toBe(false)
+	})
+
+	it('a page filter takes its options or optionsFrom, and refuses neither or a malformed optionsFrom', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'trend', route: '/trend', type: 'dashboard', title: 'Trend', config: { pageFilters: [filter] } }] })
+		const options = [{ value: 'mean', label: 'Gemiddeld' }]
+		expect(validateManifestV2(withFilter({ key: 'measure', options })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { register: 'dossiq', schema: 'caseType', labelField: 'name' }, clearable: true, placeholder: 'All case types' })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { url: '/apps/dossiq/api/case-types', responsePath: 'results' } })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'caseType' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', clearable: true, placeholder: 'All' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { labelField: 'name' } })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { register: 'dossiq', schema: 'caseType', source: 'x' } })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'caseType', options, clearable: 'yes' })).valid).toBe(false)
+	})
+
+	it('accepts the 2.139.0 generated quarter and year filters without options, and the endpoint request keys', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'report', route: '/report', type: 'dashboard', title: 'Report', config: { pageFilters: [filter] } }] })
+		expect(validateManifestV2(withFilter({ key: 'quarter', type: 'quarter', count: 8 })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'year', type: 'year' })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'week', type: 'fortnight' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'quarter', type: 'quarter', count: 0 })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'pick', type: 'select' })).valid).toBe(false)
+	})
+
+	it('accepts the 2.128.0 keys and refuses malformed ones', () => {
+		const withPage = (page) => ({ ...MINIMAL_V2, pages: [page] })
+		const notice = (content, visibleWhen) => withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', tabsFrom: '@context.caseType.tabs' }, widgets: [{ id: 'special', widgetKey: 'notice', slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 1, props: { content }, ...(visibleWhen ? { visibleWhen } : {}) }] })
+		expect(validateManifestV2(notice({ variant: 'warning', title: 'Special category data', text: 'Every view is logged.' }, { field: 'overviewCards', op: 'contains', value: 'special' })).valid).toBe(true)
+		expect(validateManifestV2(notice({ variant: 'loud', text: 'x' })).valid).toBe(false)
+		expect(validateManifestV2(notice({ text: 'x' }, { field: 'overviewCards', op: 'includes', value: 'special' })).valid).toBe(false)
+		expect(validateManifestV2(withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', tabsFrom: '' } })).valid).toBe(false)
+	})
+
+	it('accepts the other 2.129.0 keys and refuses malformed ones', () => {
+		const withPage = (page) => ({ ...MINIMAL_V2, pages: [page] })
+		const detail = (config, widgets = []) => withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', ...config }, widgets })
+		const widget = (widgetKey, content) => ({ id: widgetKey, widgetKey, slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2, props: { content } })
+		expect(validateManifestV2(detail({ nextStep: { stagesFrom: '@context.caseType.nextStep' }, sideColumn: [{ type: 'facts', tabs: ['fields'] }] }, [
+			widget('record-list', { dot: { field: 'colour', colorMap: { open: 'green' } }, flags: [{ field: 'isStart', label: 'Start' }] }),
+			widget('related', { groupByRelation: true, layout: 'sections', groupActions: { followUp: { type: 'open-form' } } }),
+			widget('nc-widget', { excludeApps: ['systemtags'] }),
+		])).valid).toBe(true)
+		expect(validateManifestV2(detail({ nextStep: { title: 'Next' } })).valid).toBe(false)
+		expect(validateManifestV2(detail({ sideColumn: [{ type: 'facts', tabs: [] }] })).valid).toBe(false)
+		expect(validateManifestV2(detail({}, [widget('record-list', { flags: [{ field: 'isStart' }] })])).valid).toBe(false)
+		expect(validateManifestV2(detail({}, [widget('related', { layout: 'grid' })])).valid).toBe(false)
+		expect(validateManifestV2(detail({}, [widget('nc-widget', { excludeApps: 'systemtags' })])).valid).toBe(false)
+		const index = (config) => withPage({ id: 'work', route: '/work', type: 'index', title: 'Work', config: { register: 'r', schema: 's', ...config } })
+		expect(validateManifestV2(index({ quickFilterPlacement: 'row', folderSidebar: { scopeViews: ['table', 'list'] } })).valid).toBe(true)
+		expect(validateManifestV2(index({ folderSidebar: { scopeViews: [] } })).valid).toBe(false)
+	})
+
+	it('accepts the 2.129.0 meta part with its own formatter and refuses one without a field', () => {
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'mine', route: '/mine', type: 'index', title: 'Mine', config: { register: 'r', schema: 's', ...config } }] })
+		expect(validateManifestV2(index({ cardLayout: { meta: [{ field: 'caseType', formatter: 'caseTypeName' }, 'assignee'] } })).valid).toBe(true)
+		expect(validateManifestV2(index({ cardLayout: { meta: [{ formatter: 'caseTypeName' }] } })).valid).toBe(false)
+	})
+
+	it('accepts the 2.129.0 cardLayout and refuses malformed ones', () => {
+		const index = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'mine', route: '/mine', type: 'index', title: 'Mine', config: { register: 'r', schema: 's', ...config } }] })
+		const cardLayout = {
+			headPill: { field: 'urgency', colorMap: { late: 'error' }, labels: { late: 'Te laat' } },
+			number: 'identifier',
+			title: 'title',
+			meta: ['caseTypeName', 'assignee'],
+			footerPill: { field: 'statusName', colorMap: { 'in behandeling': 'purple' } },
+			footerDate: { field: 'deadline', label: 'Termijn' },
+		}
+		expect(validateManifestV2(index({ cardLayout })).valid).toBe(true)
+		expect(validateManifestV2(index({ cardLayout: { headPill: { colorMap: {} } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ cardLayout: { footerPill: { field: 's', colorMap: { x: 'lilac' } } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ cardLayout: { footerDate: { label: 'Termijn' } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ cardLayout: { badge: 'x' } })).valid).toBe(false)
+	})
+
+	it('accepts the 2.127.0 keys and refuses malformed ones', () => {
+		const withPage = (page) => ({ ...MINIMAL_V2, pages: [page] })
+		const index = (config) => withPage({ id: 'queue', route: '/queue', type: 'index', title: 'Queue', config: { register: 'r', schema: 's', ...config } })
+		const table = (props) => withPage({ id: 'home', route: '/', type: 'dashboard', title: 'Home', widgets: [{ id: 'cat', widgetKey: 'object-table', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, props }] })
+		expect(validateManifestV2(index({
+			search: false,
+			searchPlacement: 'toolbar',
+			defaultOrder: '-createdAt',
+			headerButtons: [{ action: 'export', run: 'export-queue' }],
+			listConfig: { subtitleTemplate: '{caseType} · {assignee}', leading: { key: 'createdAt', widget: 'age' }, trailing: [{ key: 'deadline', widget: 'date' }] },
+			folderSidebar: { heading: true, countText: '{count} leden' },
+		})).valid).toBe(true)
+		expect(validateManifestV2(index({ defaultOrder: [{ key: 'title', order: 'asc' }] })).valid).toBe(true)
+		expect(validateManifestV2(index({ searchPlacement: 'header' })).valid).toBe(false)
+		expect(validateManifestV2(index({ search: 'no' })).valid).toBe(false)
+		expect(validateManifestV2(index({ listConfig: { leading: { widget: 'age' } } })).valid).toBe(false)
+		expect(validateManifestV2(index({ headerButtons: [{ action: 'export', run: '' }] })).valid).toBe(false)
+		expect(validateManifestV2(withPage({ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', sideColumnFrom: '@context.caseType.sideCards' } })).valid).toBe(true)
+		expect(validateManifestV2(table({ pageSize: 4 })).valid).toBe(true)
+		expect(validateManifestV2(table({ pageSize: 0 })).valid).toBe(false)
+	})
+
+	it('accepts the 2.126.0 keys and refuses malformed ones', () => {
+		const withPage = (page) => ({ ...MINIMAL_V2, pages: [page] })
+		const index = (config) => withPage({ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', ...config } })
+		const recordList = (content) => withPage({ id: 'home', route: '/', type: 'dashboard', title: 'Home', widgets: [{ id: 'appeal', widgetKey: 'record-list', slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2, props: { content } }] })
+		const footerAction = { label: 'Register appeal', type: 'open-form', disabledWhen: { field: 'categories', op: 'anyOf', value: ['health', 'ethnicity'] }, disabledReason: 'Once the decision is sent' }
+		expect(validateManifestV2(recordList({ footerAction })).valid).toBe(true)
+		expect(validateManifestV2(recordList({ footerAction: { type: 'open-form' } })).valid).toBe(false)
+		expect(validateManifestV2(index({ folderSidebar: { pane: false }, fieldOverrides: { team: { look: 'search', optionSecondary: '{members}', optionAvatar: true } } })).valid).toBe(true)
+		expect(validateManifestV2(index({ folderSidebar: { pane: 'no' } })).valid).toBe(false)
+		expect(validateManifestV2(index({ fieldOverrides: { team: { look: 'dropdown' } } })).valid).toBe(false)
+	})
+
+	it('accepts index rowClass rules, bulkBandAlways and quickFilterPlacement, and refuses malformed ones', () => {
+		const withIndex = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'tasks', route: '/tasks', type: 'index', title: 'Tasks', config: { register: 'r', schema: 's', ...config } }] })
+		const overdue = { when: { field: 'dueAt', op: 'lt', value: '@today' }, class: 'cn-row--overdue' }
+		expect(validateManifestV2(withIndex({ rowClass: [overdue], bulkBandAlways: true, quickFilterPlacement: 'toolbar' })).valid).toBe(true)
+		expect(validateManifestV2(withIndex({ rowClass: [{ when: { field: 'dueAt', op: 'before', value: '@today' }, class: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ rowClass: [{ when: { field: 'dueAt', value: 1 } }] })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ bulkBandAlways: 'yes' })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ quickFilterPlacement: 'header' })).valid).toBe(false)
+	})
+
+	it('accepts a row-class rule with a list of conditions and a numeric row indicator (pl4-cell-rules)', () => {
+		const withIndex = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'r', schema: 's', ...config } }] })
+		const overdueOpen = { when: [{ field: 'expectedCloseDate', op: 'lt', value: '@today' }, { field: 'status', value: 'open' }], class: 'cn-row--overdue' }
+		expect(validateManifestV2(withIndex({ rowClass: [overdueOpen] })).valid).toBe(true)
+		expect(validateManifestV2(withIndex({ rowClass: [{ when: [], class: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ rowClass: [{ when: [{ field: 'a', op: 'before', value: 1 }], class: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(withIndex({ rowIndicators: [{ field: 'winProbability', lt: 30, text: 'Low' }] })).valid).toBe(true)
+		expect(validateManifestV2(withIndex({ rowIndicators: [{ field: 'winProbability', lt: 'thirty', text: 'Low' }] })).valid).toBe(false)
+		const stale = (value) => withIndex({ quickFilters: [{ label: 'Out of date', filter: { '@self[updated][lt]': value } }] })
+		expect(validateManifestV2(stale('@today-{@config.lead_stale_threshold_days}d')).valid).toBe(true)
+		expect(validateManifestV2(stale('@today-{config.x}d')).valid).toBe(false)
+	})
+
+	it('accepts an export action entity that names its OpenRegister objects (pl4-export-action)', () => {
+		const withAction = (action) => ({ ...MINIMAL_V2, pages: [{ id: 'ops', route: '/ops', type: 'dashboard', title: 'Ops', config: { headerActions: [action] } }] })
+		const entity = { id: 'requests', label: 'Requests', register: 'pipelinq', schema: 'ticket', filter: { ticketType: 'request' } }
+		expect(validateManifestV2(withAction({ id: 'export-report', label: 'Export', type: 'export', entities: [entity], formats: ['excel', 'csv'] })).valid).toBe(true)
+		expect(validateManifestV2(withAction({ id: 'export-report', label: 'Export', type: 'export', entities: [{ ...entity, register: '' }] })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ id: 'export-report', label: 'Export', type: 'export', entities: [{ ...entity, path: 'x' }] })).valid).toBe(false)
+	})
+
+	it('accepts board columns from a list on a parent row (pl4-board-list-stages)', () => {
+		const withBoard = (source) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'pipelinq', schema: 'lead', viewModes: ['table', 'board'], board: { statusField: 'stage', columnFields: [{ field: 'stage', source }] } } }] })
+		const stages = { schema: 'pipeline', itemsPath: 'stages', keyField: 'name', labelField: 'name', orderField: 'order', colorField: 'color', closedField: 'isClosed', narrowBy: { field: '_parent', rowField: 'pipeline' } }
+		expect(validateManifestV2(withBoard(stages)).valid).toBe(true)
+		expect(validateManifestV2(withBoard({ ...stages, itemsPath: '' })).valid).toBe(false)
+		const withCells = (cardCells) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'pipelinq', schema: 'lead', board: { statusField: 'stage', cardFields: ['priority'], cardCells } } }] })
+		expect(validateManifestV2(withCells({ priority: { widget: 'badge', widgetProps: { colorMap: { high: 'warning' } } } })).valid).toBe(true)
+		expect(validateManifestV2(withCells({ priority: { colour: 'red' } })).valid).toBe(false)
+		const withCardActions = (cardActions) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'pipelinq', schema: 'lead', board: { statusField: 'stage', cardActions } } }] })
+		expect(validateManifestV2(withCardActions(['assign', 'priority'])).valid).toBe(true)
+		expect(validateManifestV2(withCardActions([''])).valid).toBe(false)
+	})
+
+	it('accepts an index page that follows live changes (pl4-index-live)', () => {
+		const withLive = (live) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'r', schema: 's', live } }] })
+		expect(validateManifestV2(withLive(['lead', 'ticket'])).valid).toBe(true)
+		expect(validateManifestV2(withLive([''])).valid).toBe(false)
+	})
+
+	it('accepts a dashboard page filter drawn as a segmented group on the description line, and refuses unknown keys', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'trend', route: '/trend', type: 'dashboard', title: 'Trend', config: { pageFilters: [filter] } }] })
+		const options = [{ value: 'mean', label: 'Gemiddeld' }, { value: 'median', label: 'Mediaan' }]
+		expect(validateManifestV2(withFilter({ key: 'measure', options, control: 'segmented', placement: 'description' })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'period', options })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'measure', options, control: 'radio' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'measure', options, placement: 'footer' })).valid).toBe(false)
+		expect(validateManifestV2(withFilter({ key: 'measure', options, colour: 'red' })).valid).toBe(false)
+	})
+
+	it('accepts nav.searchPlaceholder as a non-empty string', () => {
+		const withLine = (searchPlaceholder) => ({ ...MINIMAL_V2, nav: { searchPlaceholder } })
+		expect(validateManifestV2(withLine('Search cases, documents or contacts')).valid).toBe(true)
+		expect(validateManifestV2(withLine('')).valid).toBe(false)
+		expect(validateManifestV2(withLine(3)).valid).toBe(false)
 	})
 
 	it('accepts the index keys statRow and sidePanel, and refuses an entry without a type', () => {
@@ -2226,6 +2510,21 @@ describe('app-manifest-v2: a board column colour map (board-column-colour-map, 2
 	})
 })
 
+describe('app-manifest-v2 — config.breadcrumb (page-header-breadcrumb)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'types', route: '/types', type: 'index', title: 'Zaaktypen', config: { register: 'r', schema: 's', ...config } }] })
+
+	it('accepts one crumb, a list of crumbs and a headerMeta', () => {
+		expect(validateManifestV2(page({ breadcrumb: { label: 'Instellingen', route: 'Settings' }, headerMeta: 'Geldt voor iedereen' })).valid).toBe(true)
+		expect(validateManifestV2(page({ breadcrumb: [{ label: 'Beheer', href: '/beheer' }, { label: 'Organisatie', route: 'Org' }] })).valid).toBe(true)
+	})
+
+	it('rejects a crumb without a label, an unknown crumb key and an empty list', () => {
+		expect(validateManifestV2(page({ breadcrumb: { route: 'Settings' } })).valid).toBe(false)
+		expect(validateManifestV2(page({ breadcrumb: [{ label: 'A', colour: 'red' }] })).valid).toBe(false)
+		expect(validateManifestV2(page({ breadcrumb: [] })).valid).toBe(false)
+	})
+})
+
 describe('app-manifest-v2: module cards on a links page (screens-links-module-cards, 2.108.0)', () => {
 	const linksPage = (config) => ({
 		...MINIMAL_V2,
@@ -2266,17 +2565,103 @@ describe('app-manifest-v2: a dashboard greeting label (dashboard-greeting-label,
 	})
 })
 
-describe('app-manifest-v2: footnote and side note on a reports page (screens-reports-page-pq-board, 2.116.0)', () => {
-	const reports = (config) => ({
-		...MINIMAL_V2,
-		pages: [{ id: 'Reports', route: '/reports', type: 'reports', title: 'Reports', config: { cards: [], ...config } }],
+describe('app-manifest-v2 — preset and scope presentation (index-scope-presentation)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', ...config } }] })
+
+	it('accepts the new preset keys and a page afterList', () => {
+		expect(validateManifestV2(page({
+			afterList: [{ id: 'per-subject', type: 'chart', title: 'Per subject', content: {} }],
+			queryPresets: [{
+				match: { caseType: 'uuid' },
+				addLabel: 'Register complaint',
+				headerButtons: [{ action: 'add' }],
+				breadcrumb: { label: 'All cases', route: 'Cases' },
+				headerMeta: 'Awb chapter 9',
+				afterList: [{ id: 'chart', type: 'chart' }],
+			}],
+		})).valid).toBe(true)
 	})
 
-	it('accepts a footnote and a side note, or a side note turned off, and refuses an unknown side note key', () => {
-		expect(validateManifestV2(reports({ footnote: 'Figures refresh nightly.', sideNote: { title: 'Missing a report?', text: 'Ask an administrator.' } })).valid).toBe(true)
-		expect(validateManifestV2(reports({ sideNote: false })).valid).toBe(true)
-		expect(validateManifestV2(reports({ sideNote: true })).valid).toBe(false)
-		expect(validateManifestV2(reports({ sideNote: { heading: 'x' } })).valid).toBe(false)
-		expect(validateManifestV2(reports({ footnote: 3 })).valid).toBe(false)
+	it('refuses an afterList entry without a type and an unknown preset key', () => {
+		expect(validateManifestV2(page({ afterList: [{ id: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(page({ queryPresets: [{ match: { a: 'b' }, colour: 'red' }] })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: a view title (view-title, 2.119.0)', () => {
+	const page = (views) => ({ ...MINIMAL_V2, pages: [{ id: 'mywork', route: '/', type: 'dashboard', title: 'My work', config: { views } }] })
+
+	it('accepts a view title and refuses an empty one', () => {
+		expect(validateManifestV2(page([{ id: 'mine', label: 'My work' }, { id: 'team', label: 'My team', title: 'My team' }])).valid).toBe(true)
+		expect(validateManifestV2(page([{ id: 'team', label: 'My team', title: '' }])).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — named index sources (index-scope-presentation)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config }] })
+
+	it.each(['flows', 'flowRuns', 'tasks', 'endpoint', 'search', 'users'])('accepts entitySource "%s"', (name) => {
+		expect(validateManifestV2(page({ entitySource: name })).valid).toBe(true)
+	})
+
+	it('accepts the endpoint and search sourceConfig shapes and refuses an unknown source', () => {
+		expect(validateManifestV2(page({ entitySource: 'endpoint', sourceConfig: { url: '/apps/dossiq/api/postvak', rowsPath: 'results', channel: 'email' } })).valid).toBe(true)
+		expect(validateManifestV2(page({ entitySource: 'search', sourceConfig: { termQuery: 'q', kinds: [{ id: 'cases', label: 'Zaken', register: 'dossiq', schema: 'case' }, { id: 'documents', label: 'Documenten', files: true }] } })).valid).toBe(true)
+		expect(validateManifestV2(page({ entitySource: 'nope' })).valid).toBe(false)
+		expect(validateManifestV2(page({ entitySource: 'endpoint', sourceConfig: { url: '' } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — headerPill resolve (detail-pill-resolve)', () => {
+	const page = (typePill) => ({ ...MINIMAL_V2, pages: [{ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'r', schema: 's', typePill } }] })
+
+	it('accepts a pill that resolves its field', () => {
+		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq', schema: 'caseType', labelField: 'title' } })).valid).toBe(true)
+	})
+
+	it('refuses a resolve without a schema or with an unknown key', () => {
+		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq' } })).valid).toBe(false)
+		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq', schema: 'caseType', colour: 'red' } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — pill colour and icon (pill-color-field)', () => {
+	const page = (typePill, defaultSavedViews) => ({
+		...MINIMAL_V2,
+		pages: [
+			{ id: 'Case', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'dossiq', schema: 'case', typePill } },
+			{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'dossiq', schema: 'case', defaultSavedViews } },
+		],
+	})
+
+	it('accepts colorField and iconField on a pill resolve and an icon on a default view', () => {
+		const result = validateManifestV2(page(
+			{ field: 'caseType', resolve: { register: 'dossiq', schema: 'caseType', labelField: 'title', colorField: 'colour', iconField: 'icon' } },
+			[{ slug: 'woo', name: 'Woo', filters: {}, icon: 'FileDocumentOutline' }],
+		))
+		expect(result.errors || []).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('refuses an empty colorField', () => {
+		expect(validateManifestV2(page({ field: 'caseType', resolve: { register: 'dossiq', schema: 'caseType', colorField: '' } }, [])).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — card pill resolve (pill-color-field)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'dossiq', schema: 'case', ...config } }] })
+	const resolve = { colorField: 'colour', iconField: 'icon' }
+
+	it('accepts resolve on the record card pills and the board card pill', () => {
+		const result = validateManifestV2(page({
+			cardLayout: { headPill: { field: 'caseType', resolve }, footerPill: { field: 'caseType', resolve }, chips: [{ field: 'caseType', resolve }] },
+			board: { statusField: 'status', card: { title: 'title', pill: 'caseType', resolve } },
+		}))
+		expect(result.errors || []).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('refuses an unknown resolve key on a card pill', () => {
+		expect(validateManifestV2(page({ cardLayout: { headPill: { field: 'caseType', resolve: { colour: 'red' } } } })).valid).toBe(false)
 	})
 })

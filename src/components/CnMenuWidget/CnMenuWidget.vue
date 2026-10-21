@@ -206,7 +206,7 @@ import { translate as t } from '@nextcloud/l10n'
 import CnMenuItemIcon from './CnMenuItemIcon.vue'
 import CnMenuTreeNode from './CnMenuTreeNode.vue'
 import { followLinkClick } from '../../utils/linkNavigation.js'
-import { computeActivePath, isActiveItem, isRouterPath, menuLinkAttrs } from './menuActive.js'
+import { computeActivePath, isActiveItem, isRouterPath, menuLinkAttrs, routerBase, toRoutePath } from './menuActive.js'
 
 const VALID_STYLES = ['dropdown', 'megamenu', 'tree']
 const VALID_ORIENTATIONS = ['horizontal', 'vertical']
@@ -237,6 +237,11 @@ export default {
 	components: {
 		CnMenuTreeNode,
 		CnMenuItemIcon,
+	},
+
+	inject: {
+		/** Host translate function provided by CnAppRoot, for the item labels. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -288,7 +293,26 @@ export default {
 		 */
 		items() {
 			const arr = this.content?.items
-			return Array.isArray(arr) ? arr : []
+			if (!Array.isArray(arr)) {
+				return []
+			}
+			// Labels are manifest strings: they go through the app's translate,
+			// children included, so "Case types" reads "Zaaktypen" (DqCatalogus).
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			const translated = (list) => list.map((item) => {
+				if (!item || typeof item !== 'object') {
+					return item
+				}
+				const out = { ...item }
+				if (typeof item.label === 'string' && item.label !== '') {
+					out.label = translate(item.label)
+				}
+				if (Array.isArray(item.children)) {
+					out.children = translated(item.children)
+				}
+				return out
+			})
+			return translated(arr)
 		},
 
 		/**
@@ -382,6 +406,7 @@ export default {
 			return computeActivePath({
 				items: this.items,
 				currentLocation: this.currentLocation,
+				base: routerBase(this.$router),
 			})
 		},
 
@@ -674,7 +699,7 @@ export default {
 			}
 			this.closeAll()
 			if (isRouterPath(item.url)) {
-				followLinkClick(event, item.url, this.$router)
+				followLinkClick(event, toRoutePath(item.url, this.$router), this.$router)
 			}
 		},
 
@@ -734,7 +759,7 @@ export default {
 			}
 			if (isRouterPath(url) && this.$router && typeof this.$router.push === 'function') {
 				try {
-					this.$router.push(url)
+					this.$router.push(toRoutePath(url, this.$router))
 					return
 				} catch {
 					// Fall through to location assignment.
@@ -774,7 +799,7 @@ export default {
 		 * @return {boolean} true when active.
 		 */
 		__isActive(itemUrl) {
-			return isActiveItem(itemUrl, this.currentLocation)
+			return isActiveItem(itemUrl, this.currentLocation, routerBase(this.$router))
 		},
 	},
 }

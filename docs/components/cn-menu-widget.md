@@ -2,6 +2,8 @@
 
 Hierarchical menu widget (dropdown / sidebar / tree) with active-item highlighting.
 
+The item labels (`content.items[].label`, children included) are manifest strings and go through the app's translate (`cnTranslate`), so an app's own Dutch reaches the menu (DqCatalogus: "Case types" reads "Zaaktypen").
+
 Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
 
 ## Reference

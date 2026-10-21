@@ -24,6 +24,14 @@ Set `subject` and the widget becomes a case page's view of the engine: the live 
 - `subject` takes a subject object uuid, or the token `@objectId` (or `@object.<field>`). On a detail page the token binds the current object through the injected object context, so a manifest never hardcodes a uuid. While the token cannot resolve, the widget shows its loading state and sends nothing.
 - Terminal rows (`completed`, `stopped`, `failed`, `dead_letter`) are marked by shape and text, never by colour alone: a hollow dot, a muted name, the section label and the status word.
 - Two empty states: a subject where nothing ever ran says "No flows have run yet"; a subject with history but nothing live keeps the nothing-running line above its history.
+
+## A header action
+
+`headerAction` is an action descriptor drawn in the card header, `{ label, icon?, ...action }` ("Flow uitvoeren" on DqZaak). The widget reports it through the `header` event, the way the facts card reports its own; the detail page draws it beside the title. It is dispatched with the page's action dispatcher, its tokens (`@objectId`, `@object.<field>`) resolved against the record, and the runs are read again after it.
+
+```json
+{ "type": "flow-runs", "content": { "subject": "@objectId", "headerAction": { "label": "Run flow", "icon": "Play", "type": "handler", "handler": "runCaseFlow" } } }
+```
 - Polling refetches both reads, so a run that finishes between polls moves to the history instead of vanishing.
 - Consumes the two reads of the openregister change `flow-runs-subject-scope`. Until that lands server-side, `subject` is ignored by the active read and the history read shows its quiet error line.
 

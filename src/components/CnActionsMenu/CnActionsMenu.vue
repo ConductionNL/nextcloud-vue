@@ -26,12 +26,16 @@
 			:forceName="true"
 			:menuName="actionsMenuLabel"
 			:variant="variant || undefined"
+			:placement="placement"
 			:open="menuOpen"
 			:data-testid="`${testidBase}-actions`"
 			@update:open="menuOpen = $event">
 			<template #icon>
-				<DotsHorizontal :size="20" />
+				<ChevronDown v-if="trailingChevron" :size="14" />
+				<DotsHorizontal v-else :size="20" />
 			</template>
+			<!-- @slot lead-items Items rendered at the very top of the menu, above Refresh: the tabs a board strip lists here instead of drawing them (CnTabsWidget). The caller owns any separator after them. -->
+			<slot name="lead-items" />
 			<!-- Stays open while refreshing; onRefreshClick closes the menu once the refresh settles. -->
 			<NcActionButton
 				v-if="showRefresh"
@@ -125,6 +129,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcLoadingIcon } from '@nextcloud/vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import BugOutline from 'vue-material-design-icons/BugOutline.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -246,6 +251,7 @@ export default {
 		NcActionButton,
 		NcActionLink,
 		NcLoadingIcon,
+		ChevronDown,
 		DotsHorizontal,
 		Refresh,
 		LightbulbOutline,
@@ -485,6 +491,26 @@ export default {
 			default: () => t('nextcloud-vue', 'Request a feature'),
 		},
 
+		/**
+		 * Draw a 14px chevron after the label instead of the dots before it:
+		 * the board's "Meer" menu in a detail header (DqZaak). The board look
+		 * puts the icon after the label; the Nextcloud look keeps it first.
+		 */
+		trailingChevron: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Where the menu opens against its trigger: NcActions' `bottom`
+		 * (centred under it), or `bottom-end`, the board's "Meer" menu, whose
+		 * right edge lines up with the trigger's (DqZaakMeer).
+		 */
+		placement: {
+			type: String,
+			default: 'bottom',
+		},
+
 		/** Pre-translated aria-label / tooltip for the overflow trigger. */
 		actionsMenuLabel: {
 			type: String,
@@ -569,7 +595,7 @@ export default {
 			if (this.showRequestFeature) {
 				return true
 			}
-			if (this.hasPrimaryItems || this.$slots['primary-items']) {
+			if (this.hasPrimaryItems || this.$slots['primary-items'] || this.$slots['lead-items']) {
 				return true
 			}
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])

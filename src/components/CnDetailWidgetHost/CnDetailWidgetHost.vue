@@ -67,6 +67,7 @@
 		<CnWidgetWrapper
 			v-if="missingApp"
 			:title="widgetTitle"
+			:subtitle="widgetSubtitle"
 			:chromeless="isBare"
 			titleIconPosition="left"
 			:showRefresh="false"
@@ -147,6 +148,39 @@
 			hidden
 			data-testid="cn-detail-widget-props-pending" />
 
+		<!-- A mount-mode leaf whose descriptor asks for the library card
+		     (`chrome: "card"`): the host draws the card, its title with the
+		     count the leaf reports, the leaf's actions in the title row and the
+		     library empty state. The leaf reports them through the `onHeader`
+		     mount prop and renders only its rows. -->
+		<CnWidgetWrapper
+			v-else-if="wrapsMountLeaf"
+			:title="leafCardTitle"
+			titleIconPosition="left"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__leaf-card"
+			data-testid="cn-detail-widget-leaf-card">
+			<template v-if="leafCardIcon" #title-icon>
+				<CnIcon :name="leafCardIcon" :size="20" />
+			</template>
+			<template v-if="rendererHeader.count !== null" #title-meta>
+				<span class="cn-detail-page__catalog-count" data-testid="cn-detail-widget-header-count">{{ rendererHeader.count }}</span>
+			</template>
+			<template v-if="hasRendererHeaderItems" #actions>
+				<CnDetailWidgetHeaderItems :header="rendererHeader" />
+			</template>
+			<CnWidgetEmptyState
+				v-if="rendererHeader.empty"
+				:name="rendererHeader.empty.name"
+				:description="rendererHeader.empty.description" />
+			<CnLeafMountHost
+				:provider="integrationProvider"
+				:mountProps="integrationMountProps" />
+		</CnWidgetWrapper>
+
 		<CnLeafMountHost
 			v-else-if="isMountIntegration"
 			:provider="integrationProvider"
@@ -162,6 +196,14 @@
 			v-else-if="isIntegration && integrationComponent"
 			v-bind="integrationProps" />
 
+		<!-- An integration whose leaf is not registered (its app is absent or
+		     its bundle did not load) says so, as CnIntegrationWidget does. -->
+		<CnIntegrationWidgetEmpty
+			v-else-if="integrationAbsent"
+			:provider="absentIntegrationProvider"
+			:reason="absentIntegrationProvider.appName ? 'missing-app' : 'unknown'"
+			data-testid="cn-detail-widget-integration-absent" />
+
 		<!-- Content-only catalog widgets (object-list / table / files) render
 		     bare tables. On a card surface they get the titled wrapper (ADR-062:
 		     every body widget has chrome and its manifest title); inside a tab
@@ -174,6 +216,7 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isContentOnly && !isBare"
 			:title="widget.title || ''"
+			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			titleIconPosition="left"
 			:showActions="actionsShown || catalogAddEnabled"
 			:showRefresh="false"
@@ -184,21 +227,10 @@
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
 			<!-- A renderer that reports its own header (`header` event:
-			     `{ link, note }`, e.g. record-list's "3 in totaal"). -->
-			<template v-if="rendererHeader.note || rendererHeader.action" #actions>
-				<span
-					v-if="rendererHeader.note"
-					class="cn-detail-page__catalog-note"
-					data-testid="cn-detail-widget-header-note">{{ rendererHeader.note }}</span>
-				<button
-					v-if="rendererHeader.action"
-					type="button"
-					class="cn-detail-page__catalog-action"
-					data-testid="cn-detail-widget-header-action"
-					@click="rendererHeader.action.run()">
-					<CnIcon v-if="rendererHeader.action.icon" :name="rendererHeader.action.icon" :size="16" />
-					{{ rendererHeader.action.label }}
-				</button>
+			     `{ link, note, action, actions, pill }`, e.g. record-list's "3 in
+			     totaal", a facts card's status pill). -->
+			<template v-if="hasRendererHeaderItems" #actions>
+				<CnDetailWidgetHeaderItems :header="rendererHeader" />
 			</template>
 			<template v-if="catalogAddEnabled" #action-items>
 				<NcActionButton @click="invokeCatalogAdd">
@@ -225,6 +257,7 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isCard && !isBare"
 			:title="widget.title || content.title || ''"
+			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
 			flush
@@ -237,6 +270,65 @@
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
 			<component :is="renderer" :content="content" v-bind="declaredContent" />
+		</CnWidgetWrapper>
+
+		<!-- An app's own widget (consumer registry) on a card surface, the
+		     side column or a tab stack, whose registry entry asks for the
+		     titled card (`chrome: "card"`). Opt-in: many app widgets draw their
+		     own card. A body grid cell has its own card, so there it stays
+		     bare. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsConsumerWidget"
+			:title="widget.title || ''"
+			:subtitle="rendererHeader.subtitle || widgetSubtitle"
+			:showTitle="effectiveShowCardTitle"
+			titleIconPosition="left"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__consumer-card"
+			data-testid="cn-detail-widget-consumer-card">
+			<template v-if="widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<!-- The app widget reports its title row the way the built-in
+			     cards do (`header` event). -->
+			<template v-if="hasRendererHeaderItems" #actions>
+				<CnDetailWidgetHeaderItems :header="rendererHeader" />
+			</template>
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@header="onRendererHeader"
+				@selectObject="onSelectObject" />
+		</CnWidgetWrapper>
+
+		<!-- A titled `sections` widget in the side column or a tab stack: its
+		     sections stack inside one titled card, as the other cards there
+		     are drawn. A grid cell has its own card, and `content.cards` makes
+		     every section a card of its own, so both stay as they are. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsSections"
+			:title="widget.title"
+			:subtitle="widgetSubtitle"
+			:showTitle="effectiveShowCardTitle"
+			titleIconPosition="left"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__sections-card"
+			data-testid="cn-detail-widget-sections-card">
+			<template v-if="widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
 		<!-- Every other content-driven catalog widget, and every bare-mode
@@ -267,18 +359,22 @@ import { NcActionButton } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import CnIntegrationWidgetEmpty from '../CnIntegrationWidget/CnIntegrationWidgetEmpty.vue'
 import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectFilesWidget from '../CnObjectFilesWidget/CnObjectFilesWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
+import CnDetailWidgetHeaderItems from './CnDetailWidgetHeaderItems.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
-import { widgetHeaderLink } from '../../utils/contentHeaderLink.js'
+import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
+import { createActionState, listCreateAction } from '../../utils/listCreateAction.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import {
@@ -345,11 +441,14 @@ export default {
 	name: 'CnDetailWidgetHost',
 
 	components: {
+		CnDetailWidgetHeaderItems,
 		CnIcon,
+		CnIntegrationWidgetEmpty,
 		CnLeafMountHost,
 		CnObjectDataWidget,
 		CnObjectGeoWidget,
 		CnRelatedObjectsWidget,
+		CnWidgetEmptyState,
 		CnWidgetWrapper,
 		NcActionButton,
 		CnEmptyContent,
@@ -430,6 +529,17 @@ export default {
 			type: String,
 			default: 'card',
 			validator: (v) => ['card', 'bare'].includes(v),
+		},
+
+		/**
+		 * The host sits in a body grid cell, which draws its own card: an
+		 * app's own widget then stays bare, as it always has.
+		 *
+		 * @spec openspec/changes/detail-consumer-widget-card/specs/detail-page/spec.md#requirement-a-consumer-widget-on-a-card-surface-gets-the-titled-card
+		 */
+		inGridCell: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** The bound record's id. Present on the first render; `object` is not. */
@@ -594,7 +704,7 @@ export default {
 			 * `header` event (screens-relation-pages): a link and a note,
 			 * with the list's total already filled in.
 			 */
-			rendererHeader: { link: null, note: '', action: null },
+			rendererHeader: { link: null, note: '', subtitle: '', actions: [], pill: null, count: null, empty: null },
 		}
 	},
 
@@ -627,6 +737,12 @@ export default {
 			return this.isBare ? undefined : widgetTitleOf(this.widget)
 		},
 
+		/** @return {boolean} Whether the reported header has anything for the title row. */
+		hasRendererHeaderItems() {
+			const h = this.rendererHeader
+			return !!(h.note || h.pill || (h.actions && h.actions.length > 0))
+		},
+
 		/**
 		 * The card header's link: the one the renderer reports, else, with
 		 * `showHeaderLink`, the one the manifest declares for the widget.
@@ -635,7 +751,7 @@ export default {
 		 * @return {object|null} `{ label, route?, params?, query?, href? }` or null.
 		 */
 		cardHeaderLink() {
-			return this.rendererHeader.link || (this.showHeaderLink ? widgetHeaderLink(this.widget) : null)
+			return this.rendererHeader.link || (this.showHeaderLink ? resolveHeaderLink(widgetHeaderLink(this.widget), { objectId: this.objectId, object: this.object }) : null)
 		},
 
 		/**
@@ -675,6 +791,17 @@ export default {
 		 */
 		widgetTitle() {
 			return widgetTitleOf(this.widget) || ''
+		},
+
+		/**
+		 * The muted line under a card's title (`subtitle` on the widget or in
+		 * its content), translated by the card. Empty when neither sets one.
+		 *
+		 * @return {string} The subtitle.
+		 */
+		widgetSubtitle() {
+			const subtitle = (this.widget && this.widget.subtitle) || this.content.subtitle || ''
+			return typeof subtitle === 'string' ? subtitle : ''
 		},
 
 		/**
@@ -736,6 +863,39 @@ export default {
 			return isContentOnlyWidgetDef(this.widget)
 		},
 
+		/**
+		 * Whether an app's own widget (from the consumer registry) gets the
+		 * titled card: on a card surface outside a body grid cell, when its
+		 * registry entry asks for it (`chrome: "card"`). Opt-in, because many
+		 * app widgets already draw their own card.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-consumer-widget-card/specs/detail-page/spec.md#requirement-a-consumer-widget-on-a-card-surface-gets-the-titled-card
+		 */
+		wrapsConsumerWidget() {
+			if (this.isBare || this.inGridCell || !this.widget || !this.widget.type || this.isContentOnly || this.isCard) {
+				return false
+			}
+			const entry = (this.cnRegistry || {})[this.widget.type]
+			if (!entry) {
+				return false
+			}
+			return typeof entry === 'object' && entry.chrome === 'card'
+		},
+
+		/**
+		 * Whether a `sections` widget gets one titled card: on a card surface
+		 * outside a body grid cell, with a title, and not in `cards` mode.
+		 *
+		 * @return {boolean}
+		 */
+		wrapsSections() {
+			if (this.isBare || this.inGridCell || !this.widget || this.widget.type !== 'sections' || !this.widget.title) {
+				return false
+			}
+			return !(this.widget.content && this.widget.content.cards)
+		},
+
 		/** @return {boolean} true when the registry entry declares `card`. */
 		isCard() {
 			return isCardWidgetDef(this.widget)
@@ -771,6 +931,33 @@ export default {
 		},
 
 		/**
+		 * Whether an `integration` widget names a leaf the registry does not
+		 * hold. Only asked when the host can look leaves up at all.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/integration-widget-mounts-leaves/specs/integration-widget-mounts-leaves/spec.md#requirement-an-absent-leaf-says-it-is-not-available
+		 */
+		integrationAbsent() {
+			return this.isIntegration && typeof this.getRegistryProvider === 'function' && !this.integrationProvider
+		},
+
+		/**
+		 * The stand-in descriptor the empty state of an absent leaf draws: the
+		 * widget's `appName` (else its `requiredApp`), icon and title.
+		 *
+		 * @return {{id: string, appName: string, label: string, icon: string}}
+		 */
+		absentIntegrationProvider() {
+			const widget = this.widget || {}
+			return {
+				id: widget.integrationId || '',
+				appName: widget.appName || (this.requiredApp ? this.requiredAppLabel : ''),
+				label: this.translateLabel(widgetTitleOf(widget) || '') || widget.integrationId || '',
+				icon: widget.icon || '',
+			}
+		},
+
+		/**
 		 * Whether the integration is a mount-mode leaf (ADR-066), rendered
 		 * through CnLeafMountHost rather than as a component.
 		 *
@@ -782,6 +969,34 @@ export default {
 				&& provider.renderMode === 'mount'
 				&& typeof provider.mount === 'function'
 				&& typeof provider.unmount === 'function'
+		},
+
+		/**
+		 * Whether a mount-mode leaf gets the library card: on a card surface,
+		 * grid cell included, when its descriptor asks for it (`chrome:
+		 * "card"`). Opt-in, because a leaf that draws its own card would
+		 * otherwise sit in two.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/integration-leaf-card/specs/integration-leaf-card/spec.md#requirement-a-mount-mode-leaf-can-take-the-library-card
+		 */
+		wrapsMountLeaf() {
+			return !this.isBare && this.isMountIntegration && this.integrationProvider.chrome === 'card'
+		},
+
+		/**
+		 * The leaf card's title: the manifest's, else the descriptor's label.
+		 *
+		 * @return {string} The title in the user's language.
+		 */
+		leafCardTitle() {
+			const title = widgetTitleOf(this.widget)
+			return title ? this.translateLabel(title) : (this.integrationProvider?.label || '')
+		},
+
+		/** @return {string} The leaf card's icon: the manifest's, else the descriptor's. */
+		leafCardIcon() {
+			return this.widget?.icon || this.integrationProvider?.icon || ''
 		},
 
 		/**
@@ -927,12 +1142,27 @@ export default {
 			return context
 		},
 
+		/**
+		 * The widget's title for a leaf that names its title `titleLabel`
+		 * (contacts, notes, tasks, contact moments): without it the leaf
+		 * printed its own default. Empty when the widget has no title, so the
+		 * leaf keeps that default.
+		 *
+		 * @return {{titleLabel?: string}} The prop, or nothing.
+		 * @spec openspec/changes/leaf-card-widget-title/specs/leaf-card-widget-title/spec.md#requirement-a-leaf-card-carries-the-widgets-title
+		 */
+		leafTitleLabel() {
+			const title = this.translateLabel(this.widget?.title || '')
+			return title ? { titleLabel: title } : {}
+		},
+
 		integrationProps() {
 			return {
 				surface: this.surface,
 				// Through the host's translate: an integration card (CnDetailCard)
 				// prints its title as given.
 				title: this.translateLabel(this.widget?.title || ''),
+				...this.leafTitleLabel,
 				// A provider opting into `bareWidget` is being rendered where the
 				// tab strip already supplies the card and the title, so tell it to
 				// drop its own. Without this the panel gets a titled card inside
@@ -951,12 +1181,16 @@ export default {
 		integrationMountProps() {
 			return {
 				surface: this.surface,
+				title: this.translateLabel(this.widget?.title || ''),
+				...this.leafTitleLabel,
 				...this.derivedIntegrationContext,
 				// The context follows the widget's own host, so a leaf that
 				// reads `integrationContext.objectId` gets the same object as
 				// one that reads `objectId`.
 				integrationContext: this.widgetIntegrationContext,
 				...this.resolvedWidgetProps,
+				// A carded leaf reports its title row and empty state here.
+				...(this.wrapsMountLeaf ? { onHeader: this.onRendererHeader } : {}),
 			}
 		},
 
@@ -1007,11 +1241,20 @@ export default {
 		 * override a value the widget computes there; the whole content still
 		 * arrives as `content`.
 		 *
+		 * `content.chartKind` is read as the chart's `type`, as the dashboard
+		 * dispatcher reads it, so a chart placed on a detail page draws.
+		 *
 		 * @return {object} The declared content keys.
 		 * @spec openspec/changes/declared-props-detail-index-sidebar/specs/widget-hosts/spec.md#requirement-a-widget-host-passes-only-the-keys-a-widget-declares
+		 * @spec openspec/changes/detail-chart-kind/specs/widget-hosts/spec.md#requirement-a-detail-chart-reads-chartkind-as-its-type
 		 */
 		declaredContent() {
-			return pickDeclaredProps(this.renderer, this.content, this.widget?.type || '')
+			let bindings = this.content
+			if (bindings && typeof bindings === 'object' && bindings.chartKind !== undefined && bindings.type === undefined) {
+				const { chartKind, ...rest } = bindings
+				bindings = { ...rest, type: chartKind }
+			}
+			return pickDeclaredProps(this.renderer, bindings, this.widget?.type || '')
 		},
 
 		/**
@@ -1068,7 +1311,12 @@ export default {
 			if (!['object-list', 'table'].includes(this.widget?.type)) {
 				return false
 			}
-			return this.content.allowCreate !== false
+			if (this.content.allowCreate === false) {
+				return false
+			}
+			// A declared `createAction` shows only where its visibleWhen holds,
+			// the same answer the list gives for its own Add buttons.
+			return createActionState(this.content, this.object).visible
 		},
 
 		/**
@@ -1099,6 +1347,10 @@ export default {
 
 		/** @return {string} Label for the catalog Add action. */
 		addLabel() {
+			const action = listCreateAction(this.content)
+			if (action && typeof action.label === 'string' && action.label !== '') {
+				return typeof this.cnTranslate === 'function' ? this.cnTranslate(action.label) : action.label
+			}
 			return t('nextcloud-vue', 'Add')
 		},
 
@@ -1152,16 +1404,27 @@ export default {
 
 	methods: {
 		/**
-		 * Take the header a content-only renderer reports.
+		 * Take the header a content-only renderer, an app widget in the
+		 * titled card, or a carded mount-mode leaf (`onHeader`) reports.
 		 *
-		 * @param {{link?: object|null, note?: string, action?: {label: string, icon?: string, run: () => unknown}|null}} header The header parts.
+		 * @param {{link?: object|null, note?: string, action?: {label: string, icon?: string, run: () => unknown}|null, actions?: Array<{label: string, icon?: string, run: () => unknown}>, count?: number, empty?: {name: string, description?: string}|null}} header The header parts.
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-record-list-shows-the-objects-that-point-at-this-record
+		 * @spec openspec/changes/integration-leaf-card/specs/integration-leaf-card/spec.md#requirement-a-carded-leaf-reports-its-count-actions-and-empty-state
 		 */
 		onRendererHeader(header) {
 			const link = header && header.link && typeof header.link === 'object' ? header.link : null
 			const note = header && typeof header.note === 'string' ? header.note : ''
-			const action = header && header.action && typeof header.action.run === 'function' && header.action.label ? header.action : null
-			this.rendererHeader = { link, note, action }
+			const usable = (action) => action && typeof action.run === 'function' && action.label
+			// `action` (one) and `actions` (several) both count, `action` first.
+			const actions = [header && header.action, ...((header && Array.isArray(header.actions)) ? header.actions : [])].filter(usable)
+			const pill = header && header.pill && typeof header.pill.label === 'string' && header.pill.label !== '' ? header.pill : null
+			const count = header && Number.isFinite(header.count) ? header.count : null
+			const empty = header && header.empty && typeof header.empty.name === 'string' && header.empty.name !== ''
+				? { name: header.empty.name, description: typeof header.empty.description === 'string' ? header.empty.description : '' }
+				: null
+			// `subtitle`: a muted line under the card title (a task table's "1 open, 3 done").
+			const subtitle = header && typeof header.subtitle === 'string' ? header.subtitle : ''
+			this.rendererHeader = { link, note, subtitle, actions, pill, count, empty }
 		},
 
 		/**
@@ -1297,6 +1560,31 @@ export default {
 	min-height: 32px;
 	padding: 0 14px;
 	white-space: nowrap;
+}
+
+/* A leaf card in a narrow cell keeps its title and count: the title row
+   wraps and the actions move under it instead of squeezing the title out. */
+.cn-detail-page__leaf-card :deep(.cn-widget-wrapper__header) {
+	flex-wrap: wrap;
+}
+
+.cn-detail-page__leaf-card :deep(.cn-widget-wrapper__header-left) {
+	flex: 1 0 auto;
+}
+
+/* The count beside a card title: the grey 20px badge of the tab strip. */
+.cn-detail-page__catalog-count {
+	background-color: var(--color-border);
+	border-radius: 10px;
+	box-sizing: border-box;
+	color: var(--color-main-text);
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+	min-width: 20px;
+	padding: 0 6px;
+	text-align: center;
 }
 
 .cn-detail-page__catalog-note {

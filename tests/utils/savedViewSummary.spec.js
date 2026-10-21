@@ -1,0 +1,62 @@
+import { MISSING_VALUE } from '../../src/utils/facets.js'
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * A saved view's filters as one readable line, as the board's menu settings
+ * row reads it: "Zaaktype Woo-verzoek, status open".
+ *
+ * @spec openspec/changes/saved-view-menu-settings/specs/saved-view-menu-settings/spec.md#requirement-a-menu-entry-says-what-its-view-shows-and-how-many
+ */
+import { summarizeViewFilters, viewFilterReferences } from '../../src/utils/savedViewSummary.js'
+
+const PROPERTIES = {
+	caseType: { type: 'string', title: 'Case type', $ref: 'caseType' },
+	status: { type: 'string', title: 'Status', oneOf: [{ const: 'open', title: 'Open' }, { const: 'closed', title: 'Closed' }] },
+	priority: { type: 'string', title: 'Priority', 'x-enum-labels': { high: 'High' } },
+	urgent: { type: 'boolean', title: 'Urgent' },
+	deadline: { type: 'string', title: 'Deadline' },
+	bsn: { type: 'string', title: 'BSN' },
+}
+
+const NL = { 'Case type': 'Zaaktype', Status: 'Status', Open: 'open' }
+const translate = (text) => NL[text] || text
+
+describe('summarizeViewFilters', () => {
+	it('names each filter by its field title and its values by their display names, in sentence case', () => {
+		const line = summarizeViewFilters(
+			{ filters: { caseType: ['woo-uuid'], status: 'open' } },
+			{ properties: PROPERTIES, valueLabels: { caseType: { 'woo-uuid': 'Woo-verzoek' } }, translate },
+		)
+		expect(line).toBe('Zaaktype Woo-verzoek, status open')
+	})
+
+	it('reads x-enum-labels, booleans, ranges, a missing value and a search term', () => {
+		const line = summarizeViewFilters({
+			filters: { priority: 'high', urgent: true, deadline: { gte: '2026-10-01' }, status: [MISSING_VALUE] },
+			search: 'parkeren',
+		}, { properties: PROPERTIES })
+		expect(line).toBe('Priority High, urgent yes, deadline from 2026-10-01, status no value, "parkeren"')
+	})
+
+	it('joins several values with "or", keeps an abbreviation in capitals and falls back to the raw value and key', () => {
+		const line = summarizeViewFilters({ filters: { status: ['open', 'closed'], bsn: '123', other: 'x' } }, { properties: PROPERTIES })
+		expect(line).toBe('Status Open or Closed, BSN 123, other x')
+	})
+
+	it('is empty for a view without filters or search', () => {
+		expect(summarizeViewFilters({ filters: {}, search: '' })).toBe('')
+		expect(summarizeViewFilters(null)).toBe('')
+	})
+})
+
+describe('viewFilterReferences', () => {
+	it('lists the ids per reference filter, for a label lookup', () => {
+		const fields = [
+			{ key: 'caseType', reference: { schema: 'caseType', register: 'catalogue', labelField: 'title' } },
+			{ key: 'status', reference: null },
+		]
+		expect(viewFilterReferences({ filters: { caseType: ['a', 'b'], status: 'open' } }, fields))
+			.toEqual([{ key: 'caseType', register: 'catalogue', schema: 'caseType', labelField: 'title', ids: ['a', 'b'] }])
+	})
+})

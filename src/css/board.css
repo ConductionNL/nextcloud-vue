@@ -42,6 +42,7 @@
 	margin: 0;
 	font-size: 15px;
 	font-weight: 700;
+	line-height: normal;
 }
 
 .cn-board-view.cn-board-view--board .cn-board-view__dot {
@@ -56,9 +57,11 @@
 	padding: 1px 8px;
 	border-radius: 10px;
 	background-color: var(--color-main-background);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft, var(--color-main-text));
 	font-size: 12px;
-	font-weight: 400;
+	font-weight: 700;
+	/* 16px tall on its 1px pad (DqWerkbord's column counts). */
+	line-height: 14px;
 }
 
 /* A column at its limit: the count in the error colour; "full" is said in words too. */
@@ -130,6 +133,13 @@
 .cn-board-view.cn-board-view--board .cn-board-view__card-sub {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-cells {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
 }
 
 .cn-board-view.cn-board-view--board .cn-board-view__card-pills {
@@ -255,8 +265,10 @@
 	background-color: var(--color-background-hover);
 }
 
-/* A column cut by `columnLimit`: a dashed, full-width, 34px button. */
-.cn-board-view__show-more {
+/* A column cut by `columnLimit`: a dashed, full-width, 34px button. Scoped
+   under the board so it outranks Nextcloud's `button:not(.button-vue)` rule,
+   which drew it as a borderless primary-tinted button in bold 15px. */
+.cn-board-view .cn-board-view__show-more {
 	width: 100%;
 	height: 34px;
 	margin: 0;
@@ -270,11 +282,11 @@
 	cursor: pointer;
 }
 
-.cn-board-view__show-more:hover {
+.cn-board-view .cn-board-view__show-more:hover {
 	background-color: var(--color-background-hover);
 }
 
-.cn-board-view__show-more:focus-visible {
+.cn-board-view .cn-board-view__show-more:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
 }

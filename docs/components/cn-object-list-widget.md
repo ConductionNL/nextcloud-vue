@@ -44,7 +44,7 @@ On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many ro
 ## Notes
 
 - `columns[]` maps object property keys to table headers; each row links through to the object when a route is resolvable.
-- `limit` is a **fetch cap** (default 25), not a render promise — the visible row count fits the host cell, unless `fit` is `false`.
+- `limit` is a **fetch cap** (default 25), not a render promise — the visible row count fits the host cell, unless `fit` is `false`. A list inside a tab panel does not own the cell, so it renders every fetched row, as on a dashboard; `fit: true` brings the fit back there.
 - An empty collection renders a compact one-line empty state (`emptyText`), never a full-height void.
 - `viewAllRoute` names a page id; `viewAllQuery` values are token-resolved (`@objectId` / `@object.<field>` / `@workspace.<key>`) so the target index opens pre-scoped.
 - The `table` registry alias uses the same renderer.
@@ -88,6 +88,19 @@ A container that stacks several widgets in one cell should set it on each child
 rather than leaving it to each manifest author: the next list moved below
 another one is the one that forgets.
 
+### Footer links: `footerLinks`
+
+`footerLinks` ends the list with a row of links, each with an optional muted note (DqZaakGerelateerd):
+
+```json
+"footerLinks": [
+  { "label": "All cases on this object", "route": "Cases", "query": { "object": "@objectId" } },
+  { "label": "Manage object types", "href": "/index.php/settings/admin/dossiq", "note": "(administrators only)", "group": "admin" }
+]
+```
+
+A `route` link names a page id; its `query` values are token-resolved as `viewAllQuery`'s are, and it follows the router (a modified click opens a new tab). An `href` link is a plain link. Labels and notes go through the host translate. A link with `group` shows only to members of that group.
+
 ### Row actions
 
 `content.rowActions[]` takes entries in the unified manifest action shape
@@ -116,6 +129,22 @@ endpoint — whoever receives the files decides where they are stored, the same
 split the form file field keeps. A drag carrying anything other than files is
 ignored and falls through to the browser.
 
+### Create defaults from the page
+
+`createDefaults` values resolve the same tokens as `filter`: `{ "caseType": "@objectId" }` starts a new row on the page's object. When the server refuses the create, the dialog shows the server's own message.
+
+### Edit in place: `editable`
+
+`editable: true` gives every row an Edit action that opens the list's own form (the one Add opens, with `formFieldOverrides`, `formIncludeFields` and the rest) filled with the row. The save is a PATCH of the keys the form changed, so the keys it does not show keep their stored value, and nothing is written when nothing changed. A refusal shows the server's message in the dialog. The widget emits `updated` with `{ id, changes }`.
+
+`deletable: true` adds a Delete row action for the list's own schema. The toast offers Undo; a refusal toasts the server's message.
+
+A declared `object-op` patch row action writes only its `values` too, through the store's `patchObject`.
+
+### Reorder: `reorder`
+
+`reorder: { "field": "order" }` lists the rows in the order a field of their own records holds, as the statuses of a case type. The reader drags a row to another place, or uses its Move up and Move down actions. The rows are renumbered from 1 (from the page's first place on a later page), and only that field is written, as a PATCH, and only on the rows whose number changed, so every other key of a row keeps its value. The new place is read out ("Intake moved to place 2 of 6"). When the server refuses (a case type must keep a final status), its message is read out and the list is read again. A new row starts last (`order` = list length + 1). A grouped list does not reorder.
+
 ### Create affordance
 
 The widget renders a **"+ Add"** footer button (and the detail-page card's
@@ -127,6 +156,57 @@ already carries the case). Opt out with `content.allowCreate: false`; rename
 with `content.addLabel`. Emits `created` with the sent payload.
 
 The form opens in the list's context: it receives the list's `register` (so a `$ref` field is a picker, not a text box) and `initialData` derived from the resolved filter. Only scalar filter keys the schema declares are used, after `@objectId`, `@me` and `@workspace.*` tokens resolve; operator keys such as `deadline[lt]` and unknown keys are dropped. Those prefilled parent fields render read-only with their label unless `content.lockFilterFields` is `false` (default `true`). `content.createDefaults` (an object of schema keys) merges over the filter-derived data for values a filter cannot express, for example `{ "direction": "outbound" }`; defaults are never locked.
+
+#### A create that goes through the app: `createAction`
+
+When a record has to be created through the app rather than straight to the
+object API (to validate it, or to derive it from the record on the page),
+declare `content.createAction`: one action in the `rowActions` shape. Every
+Add, the footer button, the empty state's button and the host card's menu
+entry, then runs that action instead of opening the form, labelled with its
+`label`.
+
+Its `visibleWhen` is evaluated against the record of the page the list sits
+on. While it fails, every Add is hidden. While the record is still loading,
+the Add stays hidden too, so it does not appear and then vanish.
+`hiddenNote` says why in the Add's place: a string, or a list of
+`{ when, text }` where the first entry whose `when` holds is shown. Both go
+through the app's translate.
+
+```json
+"createAction": {
+  "type": "open-modal",
+  "target": "SubCaseCreateModal",
+  "label": "Create sub-case",
+  "props": { "parentCase": "@objectId" },
+  "visibleWhen": { "all": [
+    { "field": "endDate", "op": "empty" },
+    { "field": "parentCase", "op": "empty" }
+  ] },
+  "hiddenNote": [
+    { "when": { "field": "parentCase", "op": "notEmpty" }, "text": "Sub-cases cannot themselves have sub-cases." },
+    { "when": { "field": "endDate", "op": "notEmpty" }, "text": "This case is closed; sub-cases can no longer be added." }
+  ]
+}
+```
+
+The action's own work, including refreshing the list after it saved, is the
+action's: a modal emits the page refresh (`cn:page:refresh`) when it is done.
+
+#### A roll-up line: `summary`
+
+`content.summary` is one line under the rows. `{total}` is the number of
+loaded rows, and each key of `counts` is the number of loaded rows its
+condition (the `visibleWhen` shape) holds for. The text goes through the
+app's translate before the numbers are filled in, so a catalogue entry keeps
+its placeholders. Nothing is drawn over an empty list.
+
+```json
+"summary": {
+  "text": "({completed}/{total} completed)",
+  "counts": { "completed": { "field": "endDate", "op": "notEmpty" } }
+}
+```
 
 `content.hideHeader: true` drops the table's column header row (CnDataTable's `hideHeader`), for a short list that reads as rows rather than as a table.
 

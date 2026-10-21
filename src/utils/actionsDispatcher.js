@@ -51,6 +51,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
 import { routeHref } from './actionLink.js'
+import { resolveModalEntry } from './builtInModals.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -465,7 +466,8 @@ async function executeApiCall(action, context) {
 		console.warn('[dispatchAction] api-call is missing its url or a required token is unresolved — skipping.', action)
 		return { ok: false, error: new Error('api-call blocked') }
 	}
-	const method = String(action.method || 'POST').toUpperCase() === 'PUT' ? 'put' : 'post'
+	const verb = String(action.method || 'POST').toUpperCase()
+	const method = verb === 'PUT' ? 'put' : (verb === 'GET' ? 'get' : 'post')
 	const isDownload = action.download === true
 	const [{ default: axios }, { generateUrl }, dialogs] = await Promise.all([
 		import('@nextcloud/axios'),
@@ -477,9 +479,13 @@ async function executeApiCall(action, context) {
 		// Only pass a third axios config arg for a download call — an
 		// explicit `undefined` third argument would otherwise change the
 		// call shape for every existing (non-download) api-call consumer/test.
-		const res = isDownload
-			? await axios[method](target, body, { responseType: 'blob' })
-			: await axios[method](target, body)
+		// A GET sends the resolved params as the query string: it reads, as a
+		// download of what the page shows (DqDoorlooptijd "Downloaden").
+		const res = method === 'get'
+			? await axios.get(target, isDownload ? { params: body, responseType: 'blob' } : { params: body })
+			: (isDownload
+					? await axios[method](target, body, { responseType: 'blob' })
+					: await axios[method](target, body))
 		if (isDownload) {
 			const filename = parseDispositionFilename(
 				res && res.headers && res.headers['content-disposition'],
@@ -730,7 +736,7 @@ export async function postRunNode(action, context, config = {}) {
  *   through generateUrl) or absolute. May interpolate the shared URL tokens
  *   (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`, and the
  *   `{objectId}` brace form).
- * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT".
+ * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "GET" (the resolved params as the query string).
  * @param {object} [action.payload] "api-call" only: the JSON body — preferred over `params`.
  *   Values resolve the shared `@`-token grammar RECURSIVELY at any nesting depth (objects
  *   and arrays of objects, e.g. `{ dataRefs: [{ id: '@objectId' }] }`); optional (`…?`)
@@ -836,8 +842,7 @@ export function dispatchAction(action, context = {}) {
 
 		case 'open-modal': {
 			const target = action.target
-			const registry = context.registry || {}
-			const entry = registry[target]
+			const entry = resolveModalEntry(context.registry, target)
 
 			if (!entry) {
 			// eslint-disable-next-line no-console
@@ -857,7 +862,10 @@ export function dispatchAction(action, context = {}) {
 				return
 			}
 
-			context.openModal(target, action.props ?? {})
+			// A prop that is exactly a token (`"objectId": "@objectId"`) resolves
+			// against the page's object; one the page cannot answer stays as written.
+			const props = context.tokenCtx ? resolveDeepTokens(action.props ?? {}, context.tokenCtx) : (action.props ?? {})
+			context.openModal(target, props)
 			break
 		}
 
@@ -1021,7 +1029,12 @@ export function dispatchAction(action, context = {}) {
 			if (op === 'delete') {
 				return store.deleteObject(type, id)
 			}
-			// patch: the row's object merged with the action's values.
+			// patch: only the action's values, as a PATCH, so every other key
+			// keeps its stored value. A store without patchObject writes the
+			// row's object merged with the values.
+			if (typeof store.patchObject === 'function') {
+				return store.patchObject(type, id, { ...(action.values || {}) })
+			}
 			return store.saveObject(type, { ...row, ...(action.values || {}), id })
 		}
 

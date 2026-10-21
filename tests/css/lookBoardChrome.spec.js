@@ -37,14 +37,24 @@ function rulesFor(needle) {
 }
 
 describe('look-board.css: scope', () => {
-	it('puts every selector under .cn-look-board', () => {
+	// NcActions poppers are teleported to <body>, outside every `.cn-look-board`
+	// root, so a rule for one cannot start there. It is rooted at a body that
+	// holds a board-look root instead, and only for a teleported popper.
+	const TELEPORTED_ROOT = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud))'
+	const isTeleported = (selector) => selector.startsWith('body:has(.cn-look-board)')
+
+	it('puts every selector under .cn-look-board, or a teleported popper under a body holding one', () => {
 		const re = /([^{}]+)\{[^{}]*\}/g
 		let m
 		let count = 0
 		while ((m = re.exec(css))) {
 			for (const selector of m[1].split(',').map((s) => s.trim()).filter(Boolean)) {
 				count++
-				expect(selector.startsWith('.cn-look-board')).toBe(true)
+				if (isTeleported(selector)) {
+					expect(selector.startsWith(`${TELEPORTED_ROOT} .v-popper__popper`)).toBe(true)
+				} else {
+					expect(selector.startsWith('.cn-look-board')).toBe(true)
+				}
 			}
 		}
 		expect(count).toBeGreaterThan(40)
@@ -55,7 +65,11 @@ describe('look-board.css: scope', () => {
 		let m
 		while ((m = re.exec(css))) {
 			for (const selector of m[1].split(',').map((s) => s.trim())) {
-				if (/cn-(index|detail|dashboard|settings)-page|cn-page-header|cn-admin-settings-shell/.test(selector)) {
+				if (isTeleported(selector)) {
+					// A teleported popper sits outside the page, so it opts out by the body:
+					// no board styling while any page keeps the Nextcloud look.
+					expect(selector.startsWith(TELEPORTED_ROOT)).toBe(true)
+				} else if (/cn-(index|detail|dashboard|settings)-page|cn-page-header|cn-admin-settings-shell/.test(selector)) {
 					expect(selector).toContain(':not(.cn-look-nextcloud *)')
 				}
 			}
@@ -101,7 +115,7 @@ describe('look-board.css: the header button', () => {
 		expect(button).toContain('border-radius: var(--cn-board-control-radius)')
 		expect(button).toContain('font-size: 14px')
 		expect(button).toContain('font-weight: 600')
-		expect(button).toContain('border: 1px solid var(--color-border-dark)')
+		expect(button).toContain('border: 1px solid var(--cn-board-control-border)')
 		expect(button).toContain('padding: 0 14px')
 	})
 
@@ -150,6 +164,43 @@ describe('look-board.css: the navigation', () => {
 		expect(pill).toContain('height: 22px')
 		expect(pill).toContain('border-radius: 11px')
 		expect(rulesFor('.cn-app-nav__count--attention')).toContain('var(--color-error)')
+	})
+
+	it('writes the attention count in white, not in the error text colour', () => {
+		const attention = rulesFor('.cn-app-nav__count--attention')
+		expect(attention).toContain('color: var(--color-primary-element-text)')
+		expect(attention).not.toContain('--color-error-text')
+	})
+
+	it('puts the tonal primary on the open entry at !important, over NcAppNavigationItem\'s 16% mix, hovered too', () => {
+		expect(rulesFor('.app-navigation-entry.active {')).toContain('background-color: var(--color-primary-element-light) !important')
+		expect(rulesFor('.app-navigation-entry.active:hover {')).toContain('background-color: var(--color-primary-element-light) !important')
+		expect(rulesFor('.app-navigation-entry.active .app-navigation-entry-link')).toContain('background: var(--color-primary-element-light)')
+	})
+
+	it('puts a caption\'s edit pencil on the caption line at its end, a 28px round button', () => {
+		expect(rulesFor('.app-navigation-caption:has(.app-navigation-caption__actions) {')).toContain('position: relative')
+		const actions = rulesFor('.app-navigation-caption .app-navigation-caption__actions {')
+		expect(actions).toContain('position: absolute')
+		expect(actions).toContain('inset-inline-end: 4px')
+		const button = rulesFor('.app-navigation-caption .app-navigation-caption__actions .button-vue {')
+		expect(button).toContain('width: 28px')
+		expect(button).toContain('border-radius: 14px')
+	})
+
+	it('scopes the !important wash to the board look', () => {
+		const important = []
+		const re = /([^{}]+)\{([^{}]*)\}/g
+		let m
+		while ((m = re.exec(css))) {
+			if (/\.app-navigation-entry\.active/.test(m[1]) && /!important/.test(m[2])) {
+				important.push(...m[1].split(',').map((s) => s.trim()))
+			}
+		}
+		expect(important.length).toBeGreaterThan(0)
+		for (const selector of important) {
+			expect(selector.startsWith('.cn-look-board ')).toBe(true)
+		}
 	})
 
 	it('orders Help before Advanced and pushes the card down', () => {

@@ -25,7 +25,21 @@
 		:is="hideWrapper ? 'CnWidgetHostShell' : 'CnWidgetWrapper'"
 		v-bind="hideWrapper ? {} : { title, widgetId, documentationUrl, flush: true, refreshing: epLoading }">
 		<div class="cn-widget-object-table">
-			<CnDataTable ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
+			<!-- An endpoint read that was refused, failed or came back short
+			     says so; a refused or failed read shows no table, so it is
+			     never mistaken for an empty one. -->
+			<CnEndpointNotice
+				v-if="endpointActive"
+				:error="epError"
+				:refused="epRefused"
+				:truncated="epTruncated"
+				:truncatedText="endpointText('truncatedText')"
+				:awaitingRequest="epAwaitingRequest"
+				:requestLabel="endpointText('requestLabel')"
+				:requestHint="endpointText('requestHint')"
+				:requestDisabled="epBlocked"
+				@request="epRequest" />
+			<CnDataTable v-if="!(endpointActive && (epError || epAwaitingRequest))" ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
 				     (#footer { total, shown }, #empty, #column-<key>, …). The
 				     #row-actions slot is NOT forwarded while the widget renders
@@ -42,6 +56,19 @@
 			<!-- Widget-scoped object-op create affordance: `create` has no row
 			     to mutate, so it renders in the list footer, never inside the
 			     per-row actions menu (ADR-049 / list-widget-enrichment). -->
+			<div v-if="exportCsv && !(endpointActive && (epError || epAwaitingRequest))" class="cn-widget-object-table__footer">
+				<NcButton
+					variant="tertiary"
+					data-testid="cn-widget-export-csv"
+					:disabled="csvRows.length === 0"
+					@click="downloadCsv">
+					<template #icon>
+						<DownloadIcon :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Export CSV') }}
+				</NcButton>
+			</div>
+
 			<div v-if="createActions.length > 0" class="cn-widget-object-table__footer">
 				<NcButton
 					v-for="action in createActions"
@@ -80,17 +107,21 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
+import DownloadIcon from 'vue-material-design-icons/Download.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
-import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
+import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { compileRowClass } from '../../utils/rowClassRules.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
-import { compareVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { rowsToCsv } from '../CnIndexPage/rowsToCsv.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 // Chrome-less pass-through used when `hideWrapper` is set (see hostShell.js
@@ -140,7 +171,7 @@ import { CnWidgetHostShell } from './hostShell.js'
 export default {
 	name: 'CnWidgetObjectTable',
 
-	components: { CnDataTable, CnWidgetWrapper, CnWidgetHostShell, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
+	components: { CnDataTable, CnEndpointNotice, DownloadIcon, CnWidgetWrapper, CnWidgetHostShell, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
 
 	inject: {
 		/**
@@ -170,6 +201,8 @@ export default {
 		 * call when mounted outside a CnPageRenderer tree.
 		 */
 		cnDispatchAction: { default: null },
+		/** The app's translate, for manifest-authored strings. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	inheritAttrs: false,
@@ -345,11 +378,44 @@ export default {
 		},
 
 		/**
+		 * Show an "Export CSV" button under the table that downloads the rows
+		 * it holds, one column per table column headed by its label. The
+		 * values are the row values, not the formatted cell text, so a
+		 * spreadsheet can compute with them.
+		 */
+		exportCsv: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The downloaded file's name without `.csv`. Defaults to the title,
+		 * slugged, else `export`.
+		 */
+		exportFileName: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Route NAME for row-click navigation. Mapped onto CnDataTable's
 		 * `rowClickRoute` as `{ name: rowRoute, params: { id } }` with the
 		 * row's `id` (or `@self.id`). Empty (the default) = no navigation.
 		 */
 		rowRoute: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The row field (a dot-path) holding the id `rowRoute` opens, for a row
+		 * that links to another record (a payment row opening its case:
+		 * `rowIdField: "case"`). Empty (the default) uses the row's own id; a
+		 * row whose field is empty does not link.
+		 *
+		 * @spec openspec/changes/object-table-row-id-field/specs/object-table/spec.md#requirement-a-row-can-link-to-the-record-a-field-names
+		 */
+		rowIdField: {
 			type: String,
 			default: '',
 		},
@@ -364,6 +430,20 @@ export default {
 		 * explicit assignment that wins over this passthrough).
 		 */
 		limit: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
+		 * Rows per page: the board's pager under the table ("4 of 7", page
+		 * buttons, Next), forwarded to CnDataTable. It pages the rows the
+		 * widget holds; with a `source`, `source.limit` is how many are read
+		 * (OpenRegister's default page otherwise). 0 (the default) shows no
+		 * pager.
+		 *
+		 * @spec openspec/changes/object-table-pager/specs/object-table/spec.md#requirement-an-object-table-can-page-its-rows
+		 */
+		pageSize: {
 			type: Number,
 			default: 0,
 		},
@@ -454,7 +534,7 @@ export default {
 		// External rows always win — and suppress the request entirely (the
 		// pre-existing "when rows are provided, no API calls are made"
 		// contract), so the getter resolves to null while `rows` are supplied.
-		const { data, loading, error, refetch } = useEndpointSource(
+		const { data, body, loading, error, refused, truncated, blocked, awaitingRequest, request, refetch } = useEndpointSource(
 			() => ((props.rows && props.rows.length > 0) ? null : props.endpointSource),
 			{
 				ctx: () => ({
@@ -465,7 +545,7 @@ export default {
 				widgetId: () => props.widgetId,
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
+		return { epData: data, epBody: body, epLoading: loading, epError: error, epRefused: refused, epTruncated: truncated, epBlocked: blocked, epAwaitingRequest: awaitingRequest, epRequest: request, epRefetch: refetch }
 	},
 
 	data() {
@@ -566,6 +646,16 @@ export default {
 		},
 
 		/**
+		 * The rows the CSV export writes: the endpoint rows, else the
+		 * external rows.
+		 *
+		 * @return {Array<object>}
+		 */
+		csvRows() {
+			return this.endpointActive ? this.endpointRows : (this.rows || [])
+		},
+
+		/**
 		 * Whether the declarative `source` drives a self-fetch: a usable
 		 * source, no external rows (external rows always win), no active
 		 * endpoint binding (exactly-one-of — endpointSource wins when both
@@ -611,7 +701,9 @@ export default {
 				params[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'
 			}
 			if (typeof src.limit === 'number' && src.limit > 0) {
-				params._limit = src.limit + 1
+				// Under a pager `limit` is how many rows the pages hold, not a
+				// "View all" cap that needs to see one more.
+				params._limit = this.pageSize > 0 ? src.limit : src.limit + 1
 			}
 			// `source.extend` (#91 Wave 3): forwarded as OR's repeated
 			// `_extend[]` param so virtual/declarative fields (e.g.
@@ -713,7 +805,7 @@ export default {
 		 * @return {object}
 		 */
 		innerProps() {
-			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, schema, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowIdField, rowClass, schema, exportCsv, exportFileName, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) {
@@ -732,11 +824,14 @@ export default {
 			if (this.refLabelColumns.length > 0) {
 				inner.columns = this.renderedColumns
 			}
+			if (this.endpointActive && this.columns.some((col) => col && typeof col === 'object' && col.labelPath)) {
+				inner.columns = this.labelledColumns(inner.columns || this.columns)
+			}
 			if (this.selfFetchActive) {
 				inner.register = this.source.register
 				inner.schemaId = this.source.schema
 				inner.fetchParams = this.resolvedFetchParams
-				if (typeof this.source.limit === 'number' && this.source.limit > 0) {
+				if (typeof this.source.limit === 'number' && this.source.limit > 0 && !(this.pageSize > 0)) {
 					inner.limit = this.source.limit
 				}
 			}
@@ -762,28 +857,7 @@ export default {
 		 * @return {?(row: object) => string} The row-class function, or null.
 		 */
 		compiledRowClass() {
-			const rc = this.rowClass
-			if (typeof rc === 'function') {
-				return rc
-			}
-			if (!Array.isArray(rc) || rc.length === 0) {
-				return null
-			}
-			const rules = rc
-			return (row) => {
-				const classes = []
-				for (const rule of rules) {
-					if (!rule || !rule.class) {
-						continue
-					}
-					const when = rule.when || {}
-					const actual = readVisibleWhenPath(row, when.field)
-					if (compareVisibleWhen(actual, when.op || 'eq', when.value)) {
-						classes.push(rule.class)
-					}
-				}
-				return classes.join(' ')
-			}
+			return compileRowClass(this.rowClass)
 		},
 
 		/**
@@ -794,8 +868,10 @@ export default {
 		 */
 		rowRouteFn() {
 			return (row) => {
-				const id = row && (row.id || (row['@self'] && row['@self'].id))
-				return id ? { name: this.rowRoute, params: { id: String(id) } } : null
+				const id = this.rowIdField
+					? readPath(row, this.rowIdField)
+					: row && (row.id || (row['@self'] && row['@self'].id))
+				return id !== null && id !== undefined && id !== '' && typeof id !== 'object' ? { name: this.rowRoute, params: { id: String(id) } } : null
 			}
 		},
 
@@ -878,6 +954,61 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * A string the `endpointSource` block carries, through the app's
+		 * translate ('' when absent).
+		 *
+		 * @param {string} key The key in the block.
+		 * @return {string} The translated text.
+		 */
+		endpointText(key) {
+			const text = this.endpointSource && this.endpointSource[key]
+			return typeof text === 'string' && text !== '' ? this.cnTranslate(text) : ''
+		},
+
+		/**
+		 * Columns whose `labelPath` names their heading in the endpoint's
+		 * whole response, so an endpoint can say what a column measures (a
+		 * working-hours column counted on the calendar or approximated). The
+		 * `label` stays the heading until the response names one.
+		 *
+		 * @param {Array<object|string>} columns The columns.
+		 * @return {Array<object|string>} The columns with response-named headings.
+		 */
+		labelledColumns(columns) {
+			return columns.map((col) => {
+				if (!col || typeof col !== 'object' || !col.labelPath) {
+					return col
+				}
+				const named = getByPath(this.epBody, col.labelPath)
+				return (typeof named === 'string' && named !== '') ? { ...col, label: named } : col
+			})
+		},
+
+		/**
+		 * Download the rows as CSV with the table's columns (#exportCsv).
+		 *
+		 * @return {void}
+		 */
+		downloadCsv() {
+			const columns = (this.innerProps.columns || this.columns || [])
+				.map((col) => (typeof col === 'string' ? { key: col, label: col } : col))
+			const csv = rowsToCsv(this.csvRows, columns)
+			const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+			const url = URL.createObjectURL(blob)
+			const link = document.createElement('a')
+			const name = String(this.exportFileName || this.title || 'export').trim().toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'export'
+			link.href = url
+			link.download = `${name}.csv`
+			document.body.appendChild(link)
+			link.click()
+			link.remove()
+			URL.revokeObjectURL(url)
+		},
+
 		/**
 		 * Entry point for every declarative action trigger (row menu or
 		 * footer create button). `object-op` `delete` ALWAYS confirms;

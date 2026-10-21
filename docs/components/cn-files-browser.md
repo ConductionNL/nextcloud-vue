@@ -222,6 +222,47 @@ The values come from the same cells the table shows, so a `row` column needs
 its row data, and a column the user hid with the Columns chooser still groups
 and filters, because the host declared it.
 
+### Around the selection, and values in tones
+
+```json
+"props": {
+  "columns": ["name",
+    { "key": "scan", "label": "Scan", "source": "row", "widget": "badge",
+      "colorMap": { "clean": "success", "infected": "error" } },
+    { "key": "visibleTo", "label": "Visible to", "source": "row",
+      "colorKey": "level", "colorMap": { "restricted": "warning" } }],
+  "selectionLabel": "{count} documents selected",
+  "selectionLabelOne": "{count} document selected",
+  "showClearSelection": false,
+  "sideCards": [
+    { "id": "visibility", "title": "Who can see this: {name}",
+      "fields": [{ "key": "visibleTo", "label": "Visible to", "colorKey": "level", "colorMap": { "restricted": "warning" } },
+                 { "key": "reason", "label": "Reason" }],
+      "actions": [{ "id": "change", "label": "Change exception", "type": "open-modal", "target": "VisibilityDialog" }] },
+    { "id": "checksum", "title": "Checksum", "fields": [{ "key": "checksum", "label": "SHA-256" }] }
+  ]
+}
+```
+
+- `selectionLabel` (and `selectionLabelOne` for one file) words the bulk bar's
+  count, through the app's translate function, with `{count}` filled in.
+  `showClearSelection: false` leaves out Clear selection.
+- `sideCards` draws a column of cards beside the list about the last selected
+  file; there is no column while nothing is selected, and it folds under the
+  list in a narrow window. A card's `title` may hold `{name}`. A field reads the
+  host's row data (`source: "row"`, the default) or the node (`source: "node"`,
+  e.g. `basename`), takes a `formatter` like a column, and is left out when it
+  has no value. `actions` are declared like `rowActions` and run on that file.
+- A column's `colorMap` maps a value (case-insensitive) to a tone: `success`,
+  `warning`, `error`, `info`, `primary` or `default`. With `widget: "badge"`
+  the cell is a pill in that tone, as in the tables; without it the text is
+  drawn in the tone's colour. `colorKey` names another row field to look the
+  tone up by (a level code behind a readable text). Card fields take the same
+  two keys.
+- A `row` key (of a column, a card field or `colorKey`) may be a dotted path
+  into the host's record, such as `scanVerdict.state` or `integrity.value`. A
+  key the record holds as written wins.
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -238,7 +279,8 @@ and filters, because the host declared it.
 | `uploadButton` | `Boolean` | `false` | Show a primary upload button beside the New menu, which then renders as secondary. It opens the same picker as the New menu's upload entry. |
 | `uploadButtonLabel` | `String` | `'Add files'` | Label of the button `uploadButton` shows. |
 | `dropOverlay` | `Boolean` | `false` | While a drag that carries files is over the browser, cover it with a dashed frame and `dropLabel` centred, and say `dropLabel` in a polite live region; after a drop the region says how many files were added. The overlay is decoration (`aria-hidden`); keep a button or the New menu as the way in for anyone who cannot drag. Off keeps the plain dashed outline and announces nothing. |
-| `dropLabel` | `String` | `'Drop to add'` | The line `dropOverlay` draws and announces. |
+| `dropLabel` | `String` | `'Drop to add'` | The line `dropOverlay` draws and announces, through the host translate. |
+| `dropDetail` | `String` | `''` | A second line under `dropLabel` in the drop state, through the host translate, saying where the files go ("{count} bestanden komen bij zaak 2026-0082, als nog te beoordelen document.", board DqZaakDocumentenSlepen). `{count}` is the number of files dragged; when the browser does not say, a line that needs it is left out. With it the drop state fills the panel (at least 320px) instead of the list's own height. The files tab (`CnFilesTab`, the case files leaf) forwards `dropLabel` and `dropDetail`. |
 | `dropHint` | `Boolean` | `false` | Show a line under the list saying files can be dropped on it. |
 | `dropHintLabel` | `String` | `'Or drag files onto this list.'` | The line `dropHint` shows. |
 | `emptyLabel` | `String` | `'This folder is empty'` | Title of the empty state. |
@@ -252,10 +294,20 @@ and filters, because the host declared it.
 | `preferenceApp` | `String` | `''` | The app id the Columns chooser stores this user's choice under. Unset means no chooser, and every declared column renders. |
 | `preferenceKey` | `String` | `'files-browser-columns'` | The key the choice is stored under, so two browsers in one app remember separately. |
 | `columnsLabel` | `String` | `'Columns'` | Label of the Columns chooser. |
+| `selectionLabel` | `String` | `''` | The bulk bar's count as a template with `{count}`, translated by the app ("{count} documents selected"). Empty reads "{count} selected". |
+| `selectionLabelOne` | `String` | `''` | The bulk bar's count for one file. |
+| `showClearSelection` | `Boolean` | `true` | Whether the bulk bar ends in Clear selection. |
+| `sideCards` | `Array` | `[]` | Cards beside the list about the last selected file: `{ id, title, fields, actions }`; see above. |
+| `sideCardsPlacement` | `String` | `'beside'` | `page-side` puts the side cards in the detail page's side column (CnDetailPage `cnDetailSideColumn`), in place of its generic cards while a file is selected. Without a page side column they stay beside the list. Also forwarded by CnFilesTab. |
 | `bulkActions` | `Array` | `[]` | The host's actions on a selection of files, declared like `rowActions`. With at least one, files get a checkbox, the header a select-all, and a bar with these actions shows while files are selected. An `open-modal` action's props gain `files` and `fileIds`; a `handler` action's args gain the selected nodes. |
 | `groupBy` | `String` | `''` | The key of a declared column to group the files on, a heading per value with its count. Empty does not group. |
 | `groupEmptyLabel` | `String` | `'Other'` | The heading of the files with no value in the `groupBy` column. |
 | `facets` | `Array` | `[]` | Keys of declared columns to filter on: a chip per value in use with its count. |
+| `headerActions` | `Array` | `[]` | The host's own buttons in the bar, before the upload button ("Vraag een bestand aan een partij"). Declared like a New-menu entry and dispatched the same way, with the folder; `variant: "primary"` draws one as the primary button. The `#header-actions` slot adds anything else there. |
+| `rowButton` | `Object` | `null` | One visible button on every file row ("Beoordelen"), declared and dispatched like a row action. `primaryWhen: { key, values }` draws it as the primary button while the row-data field `key` holds one of `values` (a file still to review), secondary otherwise. |
+| `reviewSummary` | `Object` | `null` | A review summary above the list: `{ key, open, values: [{ value, label?, tone? }], title?, subtitle? }`. `key` is the row-data field with the review state, `open` the value(s) of a file still to review (an unlisted or empty value counts as open). Draws "{done} of {total} reviewed", "{open} still to review", a bar in the tones (`success`, `warning`, `error`, `info`, `default`) and a legend with the count per value. `title` and `subtitle` replace the two lines and take `{done}`, `{total}` and `{open}`. |
+| `footnote` | `String` | `''` | A line of the host's own under the list, apart from the drop hint ("Elk bestand wordt bij het uploaden op virussen gescand"). Translated with the host's catalogue. |
+| `nameSecondary` | `String` | `''` | A second line under each file's name: a field template read from the file's row data plus `name`, `modified` and `owner`, e.g. `"{uploadedBy} · {modified\|date}"`. A line with an empty value is left out. |
 | `openLinkedLabel` | `String` | `'Open'` | Label of a linked row's open action. |
 | `downloadLabel` | `String` | `'Download'` | Label of a linked row's download action. |
 

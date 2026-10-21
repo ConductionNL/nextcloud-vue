@@ -16,6 +16,7 @@
  * @module utils/detailActionModel
  */
 
+import { variantForColor } from './headerFieldChips.js'
 import { readPath } from './readPath.js'
 import { evaluateVisibleWhenLocal } from './visibleWhen.js'
 
@@ -163,12 +164,33 @@ export function isChecklistItemDone(item, object) {
 }
 
 /**
+ * A text or its candidates: a string, or a list of strings to fill in order.
+ *
+ * @param {unknown} value The configured value.
+ * @return {string|string[]|null} The text or the candidates, or null.
+ */
+function templateOf(value) {
+	if (typeof value === 'string' && value !== '') {
+		return value
+	}
+	if (Array.isArray(value)) {
+		const list = value.filter((item) => typeof item === 'string' && item !== '')
+		return list.length > 0 ? list : null
+	}
+	return null
+}
+
+/**
  * Resolve the "what now" card for the record's stage.
  *
- * @param {{stages?: object, title?: string}|null} config The `nextStep` config.
+ * The title and `after` may name record fields as `{path}` tokens, and may be
+ * a list of candidates: the page fills the first whose fields all have a value
+ * (`["What now? Step 2: {statusPublicLabel|lower}", "What now? Handle the case"]`).
+ *
+ * @param {{stages?: object, title?: (string|string[])}|null} config The `nextStep` config.
  * @param {object|null} object The record.
  * @param {string} [stageField] Dot-path to the stage.
- * @return {{stage: string, title: string, items: Array<{label: string, done: boolean, hint: string}>, after: string}|null} The card, or null when this stage declares no checklist.
+ * @return {{stage: string, title: (string|string[]), items: Array<{label: string, done: boolean, hint: string}>, after: (string|string[])}|null} The card, or null when this stage declares no checklist.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
  */
 export function resolveNextStep(config, object, stageField = 'status') {
@@ -192,9 +214,9 @@ export function resolveNextStep(config, object, stageField = 'status') {
 	}
 	return {
 		stage,
-		title: typeof declared.title === 'string' ? declared.title : (typeof config.title === 'string' ? config.title : ''),
+		title: templateOf(declared.title) || templateOf(config.title) || '',
 		items,
-		after: typeof declared.after === 'string' ? declared.after : '',
+		after: templateOf(declared.after) || '',
 	}
 }
 
@@ -203,9 +225,10 @@ export function resolveNextStep(config, object, stageField = 'status') {
  *
  * A pill with `field` reads it off the record; one without `field` and with
  * `text` is a constant. A count pill (`countFrom`) is resolved by
- * {@link resolveCountPill} once its count is known.
+ * {@link resolveCountPill} once its count is known. `values` limits a field
+ * pill to those raw values: a priority pill drawn only for high and urgent.
  *
- * @param {{field?: string, text?: string, colorMap?: object, labels?: object, variant?: string}|null} config The pill config.
+ * @param {{field?: string, text?: string, colorMap?: object, labels?: object, variant?: string, values?: Array<string>}|null} config The pill config.
  * @param {object|null} object The record.
  * @return {{label: string, colorKey: string, colorMap: object|null, variant: string}|null} What CnStatusBadge needs, or null when the field is empty.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-header-pills
@@ -230,6 +253,9 @@ export function resolvePill(config, object) {
 	if (raw === '') {
 		return null
 	}
+	if (Array.isArray(config.values) && !config.values.map(String).includes(raw)) {
+		return null
+	}
 	const mapped = stageEntry(config.labels, raw)
 	return {
 		label: typeof mapped === 'string' && mapped !== '' ? mapped : raw,
@@ -237,6 +263,32 @@ export function resolvePill(config, object) {
 		colorMap: config.colorMap && typeof config.colorMap === 'object' ? config.colorMap : null,
 		variant: typeof config.variant === 'string' && config.variant !== '' ? config.variant : 'default',
 	}
+}
+
+/**
+ * What a pill takes from the record its `resolve` points at
+ * (`resolve.colorField`, `resolve.iconField`): the tone its colour name maps
+ * onto (an NL Design System hue or a badge role, see `variantForColor`), which
+ * replaces the pill's own `variant` and `colorMap`, and an icon name. An empty
+ * colour or icon leaves the pill as declared.
+ *
+ * @param {{color?: string|null, icon?: string|null}|null|undefined} look The names read off the record.
+ * @return {{variant?: string, colorMap?: null, icon?: string}} The keys to lay over the pill.
+ * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-pill-takes-its-tone-and-icon-from-the-referenced-record
+ */
+export function pillLook(look) {
+	const out = {}
+	if (!look || typeof look !== 'object') {
+		return out
+	}
+	if (typeof look.color === 'string' && look.color !== '') {
+		out.variant = variantForColor(look.color)
+		out.colorMap = null
+	}
+	if (typeof look.icon === 'string' && look.icon !== '') {
+		out.icon = look.icon
+	}
+	return out
 }
 
 /**

@@ -132,6 +132,7 @@
 				@rowAuxClick="onRowOpen"
 				@editOpen="onRowOpen"
 				@relatedObjectClick="onRelatedObjectOpen"
+				@viewOverrides="onViewOverrides"
 				@configure="showConfigModal = true">
 				<!-- This `<template v-for>` defines dynamic SLOTS, not a
 				     rendered list, so the rule's advice is inverted here:
@@ -214,6 +215,7 @@
 			@rowAuxClick="onRowOpen"
 			@editOpen="onRowOpen"
 			@relatedObjectClick="onRelatedObjectOpen"
+			@viewOverrides="onViewOverrides"
 			@configure="showConfigModal = true">
 			<!-- Dynamic slot definition, not a rendered list — see the note on
 			     the identical block above. -->
@@ -290,7 +292,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
-import { computed, ref } from 'vue'
+import { computed, h, markRaw, ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
@@ -303,6 +305,7 @@ import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/action
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
 import { reportDiagnostic, reportDiagnosticOnce } from '../../utils/diagnostics.js'
+import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
 import { applyQueryPreset, matchQueryPreset } from '../../utils/queryPresets.js'
@@ -310,6 +313,7 @@ import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { parseSortKeys } from '../../utils/routeFilters.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
 import { isNewTabHandled } from '../../utils/rowAuxClick.js'
+import { applySavedViewOverrides, applySavedViewSlots } from '../../utils/savedViewOverrides.js'
 
 /**
  * OpenRegister registers and schemas already described by id, so a click on
@@ -358,7 +362,7 @@ function describeOpenRegisterEntity(kind, idOrSlug) {
 	return entityDescriptorCache.get(key).catch(() => null)
 }
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
-import { defaultPageTypes } from './pageTypes.js'
+import { defaultPageSidebars, defaultPageTypes } from './pageTypes.js'
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
@@ -673,6 +677,9 @@ export default {
 			// CnMassExportDialog export launcher (null = dialog closed). Set
 			// by the `openExport` bound into the cnDispatchAction context.
 			exportAction: null,
+			// The page config overrides of the saved view the index page has
+			// applied (CnIndexPage `view-overrides`), or null.
+			viewOverrides: null,
 		}
 	},
 
@@ -742,6 +749,7 @@ export default {
 			return entities
 				.map((e) => (typeof e === 'string' ? { id: e, label: e } : e))
 				.filter((e) => e && e.id)
+				.map((e) => ({ id: e.id, label: this.tr(e.label || e.id) }))
 		},
 
 		/**
@@ -1325,6 +1333,10 @@ export default {
 					topLevel.title = preset.title
 				}
 			}
+			// The applied saved view's overrides, over the page and its preset.
+			if (isIndex && this.viewOverrides) {
+				config = applySavedViewOverrides(config, this.viewOverrides)
+			}
 			// When an index page has somewhere to open a row, make a row click
 			// go there: set `rowClickToView` so the row body emits `row-click`
 			// (→ onRowOpen navigates) even though the page is selectable.
@@ -1564,7 +1576,7 @@ export default {
 			if (!page) {
 				return []
 			}
-			const map = { ...(page.slots ?? {}) }
+			const map = page.type === 'index' ? applySavedViewSlots(page.slots, this.viewOverrides) : { ...(page.slots ?? {}) }
 			// For a custom page that has no explicit `component`, `slots.main`
 			// is promoted to the page BODY by `resolvedComponent`, so drop it
 			// here — otherwise it would also try to mount as a (non-existent)
@@ -1580,7 +1592,9 @@ export default {
 			}
 			const entries = []
 			for (const [name, registryName] of Object.entries(map)) {
-				const component = this.resolveRegistryName(registryName, name)
+				const component = Array.isArray(registryName)
+					? this.slotSequence(registryName, name)
+					: this.resolveRegistryName(registryName, name)
 				if (component) {
 					entries.push({ name, component })
 				}
@@ -1614,14 +1628,21 @@ export default {
 		 * `console.warn` is logged in the missing-name case so
 		 * manifest authors notice misconfiguration). Watched below to
 		 * push the value into the reactive `pageSidebarComponent`
-		 * holder shared via provide/inject with `CnAppRoot`.
+		 * holder shared via provide/inject with `CnAppRoot`. A page type with
+		 * a default sidebar (`flow`: CnFlowSidebar) mounts it when the page
+		 * names none and does not hide its sidebar.
 		 *
 		 * @return {object|null} The resolved Vue component, or null.
+		 * @spec openspec/changes/pl4-roadmap-flow/specs/pl4-roadmap-flow/spec.md#requirement-a-flow-page-mounts-the-flow-sidebar-by-default
 		 */
 		currentPageSidebarComponent() {
 			const page = this.currentPage
-			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent.length === 0) {
+			if (!page) {
 				return null
+			}
+			if (typeof page.sidebarComponent !== 'string' || page.sidebarComponent.length === 0) {
+				const sidebarShown = !page.sidebar || typeof page.sidebar !== 'object' || page.sidebar.show !== false
+				return (sidebarShown && defaultPageSidebars[page.type]) || null
 			}
 			const name = page.sidebarComponent
 			const resolved = this.resolveCustomComponent(name, 'page')
@@ -1684,6 +1705,11 @@ export default {
 			handler() {
 				this.autoRegisterCustomTypes()
 			},
+		},
+
+		// A remounted page has applied no view yet.
+		pageRenderKey() {
+			this.viewOverrides = null
 		},
 
 		currentPageSidebarVisible: {
@@ -1756,6 +1782,48 @@ export default {
 
 	methods: {
 		/**
+		 * One slot filled by several registry components, drawn in order with
+		 * the slot's props (a saved view's `slots: { 'below-header': [a, b] }`).
+		 * The same list gets the same component back, so a re-render does not
+		 * remount what the slot shows.
+		 *
+		 * @param {Array<string>} names Registry names.
+		 * @param {string} slot The slot name.
+		 * @return {object|null} A component, or null when none resolves.
+		 */
+		slotSequence(names, slot) {
+			const components = names.map((name) => this.resolveRegistryName(name, slot)).filter(Boolean)
+			if (components.length <= 1) {
+				return components[0] || null
+			}
+			const key = `${slot}|${names.join('|')}`
+			this.slotSequences = this.slotSequences || new Map()
+			if (!this.slotSequences.has(key)) {
+				this.slotSequences.set(key, markRaw({
+					name: 'CnSlotSequence',
+					inheritAttrs: false,
+					render() {
+						return components.map((component, index) => h(component, { key: index, ...this.$attrs }))
+					},
+				}))
+			}
+			return this.slotSequences.get(key)
+		},
+
+		/**
+		 * The index page applied a saved view with page config overrides, or
+		 * left it (`null`). Laid over the page config by `resolvedProps` and
+		 * `resolvedSlotEntries` until the view is left or the page changes.
+		 *
+		 * @param {object|null} overrides The view's overrides.
+		 * @return {void}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-can-override-the-page-config-while-it-is-active
+		 */
+		onViewOverrides(overrides) {
+			this.viewOverrides = overrides && typeof overrides === 'object' ? overrides : null
+		},
+
+		/**
 		 * Resolve a UI string through the consumer's translate function
 		 * (`translate` prop, else injected `cnTranslate`), falling back to the
 		 * English source key. Used for the builder empty-state copy.
@@ -1792,15 +1860,42 @@ export default {
 		},
 
 		/**
+		 * The OpenRegister objects an export action downloads without a
+		 * handler: the picked entity's `register` / `schema` / `filter`, else
+		 * the action's own. Null when neither names a register and a schema.
+		 *
+		 * @param {object} action The export action.
+		 * @param {{entity?: string}} payload The dialog's confirm payload.
+		 * @return {{register: string, schema: string, filter: object}|null}
+		 * @spec openspec/changes/pl4-export-action/specs/pl4-export-action/spec.md#requirement-an-export-action-can-export-openregister-objects
+		 */
+		exportObjectSource(action, payload) {
+			if (!action) {
+				return null
+			}
+			const entities = Array.isArray(action.entities) ? action.entities : []
+			const picked = entities.find((e) => e && typeof e === 'object' && payload && e.id === payload.entity)
+			const source = picked && picked.register && picked.schema ? picked : action
+			if (!source.register || !source.schema) {
+				return null
+			}
+			return { register: source.register, schema: source.schema, filter: source.filter || {} }
+		},
+
+		/**
 		 * Route the export launcher's confirm payload (`{ format, entity? }`)
 		 * to the export action's `handler` (resolved against the manifest
 		 * actions map — the same registry `type:"handler"` actions use). The
 		 * handler does the actual download (e.g. an app's ExportService) and
 		 * its resolved/rejected promise drives the dialog's result phase. A
 		 * missing handler surfaces as a dialog error (never a silent success).
+		 * Without a handler, an entity (or the action itself) that names an
+		 * OpenRegister `register` and `schema` downloads those objects, its
+		 * `filter` applied, through OpenRegister's export.
 		 *
 		 * @param {{format: string, entity?: string}} payload The dialog's confirm payload.
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/pl4-export-action/specs/pl4-export-action/spec.md#requirement-an-export-action-can-export-openregister-objects
 		 */
 		async onExportConfirm(payload) {
 			const action = this.exportAction
@@ -1812,6 +1907,12 @@ export default {
 			}
 			const handlers = this.effectiveManifest?.actions ?? {}
 			const fn = action && action.handler && handlers[action.handler]
+			const source = typeof fn === 'function' ? null : this.exportObjectSource(action, payload)
+			if (source) {
+				window.location.assign(buildExportUrl(source.register, source.schema, source.filter, payload && payload.format))
+				setResult({ success: true })
+				return
+			}
 			if (typeof fn !== 'function') {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] export action "${action && action.id}" has no resolvable handler "${action && action.handler}" in the manifest actions map.`)

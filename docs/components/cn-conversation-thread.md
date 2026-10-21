@@ -65,7 +65,7 @@ The `conversation` widget type reads the messages from a field on the record and
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `messages` | Array | `[]` | The messages, oldest first: `{ id?, author?, time?, text, side? }`. |
+| `messages` | Array | `[]` | The messages, oldest first: `{ id?, author?, time?, text, side?, channel? }`. `channel` is shown after the time. Each message also says "Sent message" or "Received message" to a screen reader. |
 | `title` | String | `''` | Heading of the thread. |
 | `titleTag` | String | `'h3'` | Element the heading renders as. |
 | `allowReply` | Boolean | `true` | Whether the reply box renders. |
@@ -75,6 +75,9 @@ The `conversation` widget type reads the messages from a field on the record and
 | `usLabel` | String | `'You'` | Author shown on an `us` message that names none. |
 | `endpoint` | String | `''` | URL the reply is posted to. Empty means you handle `send` yourself. |
 | `payload` | Object | `{}` | Extra fields sent along with `message`. |
+| `loading` | Boolean | `false` | While true and there are no messages yet, the thread says "Loading messages…" in a status region. |
+| `channelFilter` | Boolean | `false` | Draw channel chips above the messages: All, then one per channel with its count. Choosing one shows only that channel's messages. |
+| `channels` | Array | `[]` | Channel labels that always get a chip, in this order, also when no message uses them yet. |
 | `emptyText` | String | `'No messages yet.'` | Shown when there are no messages. |
 
 ### Events
@@ -89,6 +92,7 @@ The `conversation` widget type reads the messages from a field on the record and
 
 | Slot | Scope | Description |
 |------|-------|-------------|
+| `header-actions` | none | Buttons beside the title, for example "Log contact". |
 | `reply-actions` | `{ draft }` | Extra buttons before Send, for example "Save draft". |
 
 ## Accessibility

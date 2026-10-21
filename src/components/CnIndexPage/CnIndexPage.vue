@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel }]"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--quick-filters-toolbar': quickFilterPlacement === 'toolbar' }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -13,14 +13,16 @@
 		     region (WCAG 2.4.6 / 1.3.1). -->
 		<slot
 			name="header"
-			:title="title"
+			:title="shownTitle"
 			:description="headerDescription"
 			:icon="resolvedIcon"
 			:showTitle="showTitle">
 			<CnPageHeader
-				:title="title"
+				:title="shownTitle"
 				:description="headerDescription"
 				:icon="showTitleIcon && !isBoardLook ? resolvedIcon : ''"
+				:breadcrumb="presented('breadcrumb')"
+				:meta="headerMetaText"
 				:visuallyHidden="!showTitle">
 				<!-- The board's header buttons (`headerButtons`), beside the
 				     title. Declaring them takes the Views and Actions menus
@@ -61,7 +63,7 @@
 									<NcActionLink
 										v-else-if="entry.href"
 										:href="entry.href"
-										target="_blank"
+										:target="entry.linkTarget || '_blank'"
 										rel="noopener noreferrer"
 										:data-testid="`cn-index-header-menu-${entry.key}`">
 										<template v-if="entry.icon" #icon>
@@ -101,6 +103,8 @@
 							<NcButton
 								v-else
 								:variant="button.variant"
+								:href="button.link ? button.link.href : undefined"
+								:target="button.link ? button.link.target : undefined"
 								:data-testid="`cn-index-header-button-${button.key}`"
 								@click="onHeaderButton(button)">
 								<template v-if="button.icon" #icon>
@@ -120,6 +124,26 @@
 			<slot name="below-header" />
 		</div>
 
+		<!-- Page tabs a named source declares (`pageTabs()`): sibling lists
+		     of the same thing, such as a flow list and its runs this week.
+		     Links, not tabs: each one is its own page. -->
+		<nav v-if="effectivePageTabs.length > 0"
+			class="cn-index-page__page-tabs"
+			:aria-label="title || t('nextcloud-vue', 'Pages')"
+			data-testid="cn-index-page-tabs">
+			<a v-for="tab in effectivePageTabs"
+				:key="tab.id || tab.to"
+				class="cn-index-page__page-tab"
+				:class="{ 'cn-index-page__page-tab--active': isActivePageTab(tab) }"
+				:href="pageTabHref(tab)"
+				:aria-current="isActivePageTab(tab) ? 'page' : undefined"
+				:data-testid="`cn-index-page-tab-${tab.id || tab.to}`"
+				@click="onPageTabClick(tab, $event)">
+				{{ tab.label }}
+				<span v-if="typeof tab.count === 'number'" class="cn-index-page__page-tab-count">{{ tab.count }}</span>
+			</a>
+		</nav>
+
 		<!-- KPI tiles above the list (`statRow`) and cards beside it
 		     (`sidePanel`), as DqTeamwachtrij and PqContracten
 		     (screens-index-stat-row). -->
@@ -135,12 +159,32 @@
 			:widgets="sidePanel" />
 
 		<!-- Actions bar -->
+		<!-- `quickFilterPlacement: "row"`: the chips on a row of their own above
+		     the toolbar, wrapping onto more lines (DqTeamwachtrij). -->
+		<div
+			v-if="quickFilterPlacement === 'row' && tabStripEntries && tabStripEntries.length > 0"
+			class="cn-index-page__quick-filter-row"
+			data-testid="cn-index-page-quick-filter-row">
+			<CnQuickFilterBar
+				inline
+				:tabs="tabStripEntries"
+				:mode="quickFilterMode"
+				:maxVisible="quickFilterMaxVisible"
+				:fit="false"
+				:multiple="quickFilterMultiple"
+				:activeIndex="activeQuickFilterIndex"
+				:selectedIndices="selectedQuickFilterIndices"
+				:counts="effectiveTabCounts"
+				@update:activeIndex="onQuickFilterChange"
+				@update:selectedIndices="onQuickFilterMultiChange" />
+		</div>
 		<CnActionsBar
 			:layout="isBoardLook ? 'board' : 'nextcloud'"
 			:activeFilterChips="activeFilterChips"
 			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
 			:bulkHint="bulkHint ? cnTranslate(bulkHint) : bulkHint"
+			:bulkBandAlways="bulkBandAlways"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -166,12 +210,10 @@
 			:mapLabel="mapLabel"
 			:mapIcon="mapIcon"
 			:listIcon="listIcon"
-			:showSortSelect="showSortSelect"
-			:sortOptions="sortSelectOptions"
-			:sortValue="sortSelectValue"
-			:showSearch="inlineSearch || isBoardLook"
+			:showSearch="search !== false && (inlineSearch || isBoardLook) && !sourceRefusal"
+			:searchPlacement="searchPlacement"
 			:searchValue="effectiveSearchValue"
-			:searchPlaceholder="searchPlaceholder ? cnTranslate(searchPlaceholder) : searchPlaceholder"
+			:searchPlaceholder="presented('searchPlaceholder') ? cnTranslate(presented('searchPlaceholder')) : presented('searchPlaceholder')"
 			:showCountWithSearch="showCountWithSearch"
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"
@@ -186,7 +228,6 @@
 			:bulkActions="mergedBulkActions"
 			:documentationUrl="documentationUrl"
 			:documentationLabel="documentationLabel || undefined"
-			@sortChange="$emit('sort-change', $event)"
 			@add="onAddClick"
 			@clearSelection="onSelect([])"
 			@removeFilter="onRemoveActiveFilter"
@@ -207,7 +248,7 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown" #after-search>
+			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown || relatedFieldFilters" #after-search>
 				<!-- Board view controls, after the search (screens-board-reference-columns):
 				     the narrowing select ("Case type:"), the column switch ("Columns:
 				     status | type | assignee") and the board's hint sentence. -->
@@ -263,6 +304,11 @@
 					@update:modelValue="onContentSearchToggle">
 					{{ t('nextcloud-vue', 'Also search inside files') }}
 				</NcCheckboxRadioSwitch>
+				<CnRelatedFieldFilters
+					v-if="relatedFieldFilters"
+					:definitions="relatedFieldFilters.definitions || {}"
+					:related="relatedFieldFilters.related || {}"
+					:storeKey="objectType || selfObjectType || ''" />
 				<slot name="after-search" />
 			</template>
 			<template
@@ -284,9 +330,9 @@
 			     the app-specific buttons in `#actions`, with Add sitting between
 			     the two groups rather than before both (dossiq Cases/Queue). -->
 			<template v-if="isEditMode || barShowsExportMenu || barShowsSavedViews" #actions-end>
-				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
-				     OpenRegister saved-search views; applying one writes its stored
-				     filters/search/sort into the route query. -->
+				<!-- Saved views (opt-in via `allowSavedViews`): the toolbar keeps
+				     "Save view" and, under the board look, the chips. The list
+				     and every per-view action live in the sidebar's Filters tab. -->
 				<CnSavedViewsControl
 					v-if="barShowsSavedViews"
 					:views="viewsForControl"
@@ -294,13 +340,9 @@
 					:currentUserId="currentSavedViewsUserId"
 					:counts="savedViewCounts"
 					:selectedViewId="appliedSavedViewId"
+					:chips="savedViewChips"
 					@apply="onApplySavedView"
-					@saveRequest="showSaveViewDialog = true"
-					@shareRequest="onShareViewRequest"
-					@presentationRequest="onPresentationViewRequest"
-					@updateRequest="onUpdateViewRequest"
-					@copyRequest="onCopyViewRequest"
-					@deleteRequest="onDeleteViewRequest" />
+					@saveRequest="showSaveViewDialog = true" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
 				     current route's query params through as filters. -->
@@ -341,16 +383,17 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="tabStripEntries && tabStripEntries.length > 0" #filters>
+			<template v-if="tabStripEntries && tabStripEntries.length > 0 && quickFilterPlacement !== 'row'" #filters>
 				<CnQuickFilterBar
 					inline
 					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
 					:maxVisible="quickFilterMaxVisible"
+					:fit="quickFilterPlacement === 'toolbar'"
 					:multiple="quickFilterMultiple"
-					:activeIndex="activeQuickFilterIndex"
+					:activeIndex="shownQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
-					:counts="tabCounts"
+					:counts="effectiveTabCounts"
 					@update:activeIndex="onQuickFilterChange"
 					@update:selectedIndices="onQuickFilterMultiChange" />
 			</template>
@@ -511,6 +554,14 @@
 			@confirm="onPresentationViewConfirm"
 			@close="viewPendingPresentation = null" />
 
+		<!-- Edit-a-saved-view dialog (saved-views-manage-and-defaults) -->
+		<CnSavedViewEditDialog
+			v-if="viewPendingEdit"
+			ref="editViewDialog"
+			:view="viewPendingEdit"
+			@confirm="onEditViewConfirm"
+			@close="viewPendingEdit = null" />
+
 		<!-- Share-a-saved-view dialog (saved-views-shared-by-role) -->
 		<CnSavedViewShareDialog
 			v-if="viewPendingShare"
@@ -524,9 +575,9 @@
 			v-if="viewPendingDelete"
 			ref="deleteViewConfirmDialog"
 			variant="error"
-			:dialogTitle="t('nextcloud-vue', 'Delete view')"
+			:dialogTitle="t('nextcloud-vue', 'Delete view?')"
 			:message="deleteViewMessage"
-			:confirmLabel="t('nextcloud-vue', 'Delete')"
+			:confirmLabel="t('nextcloud-vue', 'Delete view')"
 			@confirm="onDeleteViewConfirm"
 			@close="viewPendingDelete = null" />
 
@@ -636,11 +687,12 @@
 		</slot>
 
 		<!-- Body -->
-		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': folderSidebar }">
+		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': showsFolderPane }">
 			<!-- Optional folder navigation pane (opt-in via the `folderSidebar`
 			     config). Selecting a folder filters the list by the config's
-			     `filterField`; "All" clears it. -->
-			<div v-if="folderSidebar" class="cn-index-page__folder-pane">
+			     `filterField`; "All" clears it. `pane: false` keeps the scope
+			     from the deep link and draws no pane. -->
+			<div v-if="showsFolderPane" class="cn-index-page__folder-pane">
 				<CnFolderSidebar
 					:source="folderSidebarSource"
 					:folders="folderSidebarFolders"
@@ -650,8 +702,8 @@
 					:partial="folderSidebarPartial"
 					:filesPath="folderSidebar.filesPath || '/'"
 					:selectedId="selectedFolderId"
-					:allLabel="folderSidebar.allLabel || undefined"
-					:title="folderSidebar.title || ''"
+					:allLabel="folderSidebar.allLabel ? cnTranslate(folderSidebar.allLabel) : undefined"
+					:title="folderSidebar.title ? cnTranslate(folderSidebar.title) : ''"
 					:idField="folderPassthroughIdField"
 					:nameField="folderPassthroughNameField"
 					:allowCreate="Boolean(folderSidebar.allowCreate)"
@@ -676,14 +728,73 @@
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
 
+				<!-- A sort option whose endpoint could not answer: the list fell
+				     back to the option's own order, and says so. -->
+				<p v-if="sortSourceFellBack && sortSourceFailedNote"
+					class="cn-index-page__sort-source-note"
+					role="status"
+					data-testid="cn-index-sort-source-note">
+					{{ sortSourceFailedNote }}
+				</p>
+
+				<!-- The selected folder as a heading above the list (a group on
+				     DqAfdelingen: its name, then its parent and member count). -->
+				<div v-if="scopeHeading" class="cn-index-page__scope-heading" data-testid="cn-index-page-scope-heading">
+					<h2 class="cn-index-page__scope-title">
+						{{ scopeHeading.name }}
+					</h2>
+					<span v-if="scopeHeading.subtitle" class="cn-index-page__scope-subtitle" data-testid="cn-index-page-scope-subtitle">{{ scopeHeading.subtitle }}</span>
+				</div>
+
+				<!-- A note the named source read off its answer ("Filters run in
+				     this order: ..."). -->
+				<p v-if="sourceNote && !sourceRefusal"
+					class="cn-index-page__source-note"
+					data-testid="cn-index-page-source-note">
+					{{ sourceNote }}
+				</p>
+
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
 				<div v-if="showInitialLoader" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
 					<NcLoadingIcon :size="32" :name="loadingText" />
 				</div>
 
+				<!-- The named source's server refused this reader: its sentence
+				     instead of the rows, never an empty list. -->
+				<div v-else-if="sourceRefusal"
+					class="cn-index-page__source-refusal"
+					role="status"
+					data-testid="cn-index-page-source-refusal">
+					<NcNoteCard type="error">
+						{{ sourceRefusal }}
+					</NcNoteCard>
+				</div>
+
+				<!-- A search the server refused for its grammar: the term with the
+				     character it stopped at, the server's reason, and what to do. -->
+				<div v-else-if="searchRefusal"
+					class="cn-index-page__search-refusal"
+					role="status"
+					data-testid="cn-index-page-search-refusal">
+					<NcNoteCard type="warning">
+						<p class="cn-index-page__search-refusal-headline">
+							{{ t('nextcloud-vue', 'This search could not be read from character {position}.', { position: searchRefusal.position }) }}
+						</p>
+						<p class="cn-index-page__search-refusal-term" data-testid="cn-index-page-search-refusal-term">
+							<span>{{ searchRefusal.before }}</span><mark v-if="searchRefusal.at">{{ searchRefusal.at }}</mark><span>{{ searchRefusal.after }}</span>
+						</p>
+						<p class="cn-index-page__search-refusal-muted">
+							{{ searchRefusal.message }}
+						</p>
+						<p class="cn-index-page__search-refusal-muted">
+							{{ searchRefusalHintText }}
+						</p>
+					</NcNoteCard>
+				</div>
+
 				<!-- Error state: the latest self-fetch failed (e.g. a search term the server rejects) -->
-				<div v-else-if="selfFetchFailed"
+				<div v-else-if="selfFetchFailed || sourceFailed"
 					class="cn-index-page__empty"
 					role="status"
 					data-testid="cn-index-page-fetch-error">
@@ -725,6 +836,7 @@
 					:sortOrder="effectiveSortOrder"
 					:sortKeys="effectiveSortKeys"
 					:selectable="selectable"
+					:hideHeader="hideTableHeader"
 					:rowClickToView="rowClickOpens"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
@@ -732,10 +844,11 @@
 					:excludeColumns="excludeColumns"
 					:includeColumns="includeColumns"
 					:columnOverrides="columnOverrides"
-					:rowClass="rowClass"
+					:rowClass="compiledRowClass"
 					:rowTitle="rowTitle"
+					:showUnread="marksUnreadRows"
 					:filterable="tableHeaderFilters"
-					:activeFilters="effectiveActiveFilters"
+					:activeFilters="tableActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
 					@columnFilter="onColumnFilterEvent"
 					@sort="onSortEvent"
@@ -822,9 +935,68 @@
 				     filter / sidebar / quick-filter machinery as table and cards.
 				     A marker click routes back through onRowClick for identical
 				     detail-page navigation. -->
+				<!-- Map with a numbered list beside it (`mapConfig.list`,
+				     DqZakenKaart): one framed card, the list numbered as the pins
+				     are, the row under the pointer marked on both sides, and the
+				     rows without a place counted under the list with a way to
+				     the table. -->
+				<div v-else-if="currentViewMode === 'map' && mapListEnabled"
+					class="cn-index-page__map-card"
+					data-testid="cn-index-map-card">
+					<CnMapWidget
+						class="cn-index-page__map"
+						:center="mapCenter"
+						:zoom="mapZoom"
+						:layers="mapLayers"
+						:basemaps="mapBasemaps"
+						:markers="mapMarkers"
+						:clustering="mapClustering"
+						:autoFit="true"
+						height="100%"
+						@markerClick="onMarkerClick" />
+					<div class="cn-index-page__map-side">
+						<ol class="cn-index-page__map-list" :aria-label="mapListLabel" data-testid="cn-index-map-list">
+							<li v-for="item in mapList.items"
+								:key="item.key"
+								class="cn-index-page__map-item"
+								:class="{ 'cn-index-page__map-item--active': activeMapKey === item.key }"
+								data-testid="cn-index-map-item"
+								@mouseenter="activeMapKey = item.key"
+								@mouseleave="activeMapKey = ''"
+								@focusin="activeMapKey = item.key">
+								<span class="cn-index-page__map-number" aria-hidden="true">{{ item.n }}</span>
+								<div class="cn-index-page__map-text">
+									<button type="button" class="cn-index-page__map-title" @click="onRowClick(item.row)">
+										{{ item.title }}
+									</button>
+									<span v-if="item.sub" class="cn-index-page__map-sub">{{ item.sub }}</span>
+									<span v-if="item.pills.length > 0 || item.due" class="cn-index-page__map-pills">
+										<CnStatusBadge v-for="(pill, index) in item.pills"
+											:key="index"
+											:label="pill.label"
+											:variant="pill.variant">
+											<template v-if="pill.icon" #icon>
+												<CnIcon :name="pill.icon" :size="14" />
+											</template>
+										</CnStatusBadge>
+										<span v-if="item.due" class="cn-index-page__map-due">{{ item.due }}</span>
+									</span>
+								</div>
+							</li>
+						</ol>
+						<div v-if="mapList.missing.length > 0" class="cn-index-page__map-missing" data-testid="cn-index-map-missing">
+							<strong>{{ mapMissingTitle }}</strong>
+							<NcButton variant="tertiary-no-background" data-testid="cn-index-map-missing-table" @click="onViewModeChange('table')">
+								{{ mapMissingLink }}
+							</NcButton>
+						</div>
+					</div>
+				</div>
+
 				<CnMapWidget
 					v-else-if="currentViewMode === 'map'"
 					class="cn-index-page__map"
+					:zoom="mapZoom"
 					:center="mapCenter"
 					:layers="mapLayers"
 					:basemaps="mapBasemaps"
@@ -851,9 +1023,12 @@
 					:selectedIds="internalSelectedIds"
 					:allowedMoves="boardAllowedMoves"
 					:cardFields="board.cardFields || []"
+					:cardCells="board.cardCells || null"
+					:cardActions="boardCardActions"
 					:swimlaneField="board.swimlaneField || ''"
 					:dueRule="board.dueRule || null"
 					:cardRoles="board.card || null"
+					:pillLooks="refLooks"
 					:colorField="board.colorField || ''"
 					:sumField="board.sumField || ''"
 					:sumFormat="boardSumFormat"
@@ -865,7 +1040,8 @@
 					@loadMore="onBoardLoadMore"
 					@cardClick="onRowClick"
 					@cardAuxClick="onRowAuxClick"
-					@moved="onBoardMoved" />
+					@moved="onBoardMoved"
+					@cardAction="onRowAction" />
 
 				<!--
 					Date axis. Reads only: nothing here reschedules, because a
@@ -906,7 +1082,7 @@
 					v-else-if="currentViewMode === 'list'"
 					:objects="displayObjects"
 					:schema="effectiveSchema"
-					:config="listConfig"
+					:config="renderedListConfig"
 					:selectable="selectable"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
@@ -965,6 +1141,9 @@
 					:selectable="selectable"
 					:clickToView="rowClickOpens"
 					:cardFields="resolvedCardFields"
+					:cardLayout="cardLayout"
+					:pillLooks="refLooks"
+					:cardFieldColumns="cardFieldColumns"
 					:accentOf="cardAccent"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
@@ -1022,6 +1201,16 @@
 					{{ t('nextcloud-vue', 'File matches are limited to the best 50.') }}
 				</p>
 
+				<!-- The map's count line (`mapConfig.count`) and the note when a map
+				     that plots every row reached its limit. -->
+				<div
+					v-if="mapCountLine || mapCapNote"
+					class="cn-index-page__map-count"
+					data-testid="cn-index-map-count">
+					<span v-if="mapCountLine" data-testid="cn-index-map-count-line">{{ mapCountLine }}</span>
+					<span v-if="mapCapNote" class="cn-index-page__map-cap" data-testid="cn-index-map-cap">{{ mapCapNote }}</span>
+				</div>
+
 				<!-- The board view's footer: it holds every row it loaded, so it
 				     counts them and offers the next batch instead of pages. -->
 				<div
@@ -1044,7 +1233,7 @@
 				<CnPagination
 					v-else-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
 					:variant="isBoardLook ? 'board' : ''"
-					:footerNote="footerNote ? cnTranslate(footerNote) : footerNote"
+					:footerNote="effectiveFooterNote"
 					:currentPage="effectivePagination.page || 1"
 					:totalPages="effectivePagination.pages || 1"
 					:totalItems="effectivePagination.total || 0"
@@ -1052,6 +1241,23 @@
 					class="cn-index-page__pagination"
 					@pageChanged="onPageEvent"
 					@pageSizeChanged="onPageSizeEvent" />
+
+				<!-- A notice under the list (`notice`): DqPrivacy's "Een
+				     AVG-verzoek is een zaak met ..." band. -->
+				<NcNoteCard
+					v-if="notice && notice.text"
+					class="cn-index-page__notice"
+					:type="noticeType"
+					data-testid="cn-index-page-notice">
+					{{ cnTranslate(notice.text) }}
+				</NcNoteCard>
+
+				<!-- Cards after the list (`afterList`), stacked in order (PqSocial). -->
+				<CnIndexPageWidgets
+					v-if="presentedAfterList.length > 0"
+					class="cn-index-page__after-list"
+					variant="after-list"
+					:widgets="presentedAfterList" />
 			</div>
 
 			<!-- The open record, beside the list on a wide screen and instead
@@ -1120,22 +1326,30 @@
 			:showMetadata="resolvedSidebar.showMetadata !== false"
 			:personalColumns="personalColumns"
 			:pinnedCount="pinnedColumnCount"
+			:sortOptions="sidebarSortOptions"
+			:currentSort="currentSortKeys"
+			:currentSortValue="sortSource.value"
+			:savedViews="savedViewsForSidebar"
+			:activeTab="sidebarActiveTab"
 			v-bind="sidebarSearchProps"
 			@update:open="sidebarOpen = $event"
+			@tabChange="sidebarActiveTab = $event"
+			@savedView="onSavedViewAction"
 			@search="onSearchEvent"
 			@columnsChange="onColumnsEvent"
 			@columnsReorder="onColumnsReorder"
 			@pinChange="onPinChange"
 			@columnsReset="onColumnsReset"
 			@filterChange="onFilterEvent"
-			@clearFilters="onClearFilters" />
+			@clearFilters="onClearFilters"
+			@sortChange="onSidebarSortChange" />
 	</div>
 </template>
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -1154,6 +1368,8 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
@@ -1162,40 +1378,54 @@ import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
-import { followItemActionLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
-import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { followItemActionLink, headerActionAsLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
+import { buildOnSuccessRoute, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import {
 	buildReferenceStages,
 	buildValueStages,
 	columnFieldsOf,
 	columnKeyOfRow,
 	fetchReferenceObjects,
+	flattenItemRefs,
 	fullTargetOf,
 	referenceTargetOf,
 	refIdOf,
 	resolveDropValue,
 } from '../../utils/boardReferenceColumns.js'
+import { isColumnSortable } from '../../utils/columnFilters.js'
+import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
-import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
+import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
+import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { labelsByField } from '../../utils/labelsByField.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
+import { mapListItems } from '../../utils/mapList.js'
+import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
-import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
 import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
-import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
+import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
+import { readSearchRefusal } from '../../utils/searchRefusal.js'
+import { orderToSortKeys } from '../../utils/sortOrder.js'
+import { annotateRows, filterSourceRows, pageSourceRows, rowsFromSourceBody } from '../../utils/sortSourceRows.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -1222,6 +1452,7 @@ import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
+import { CnSavedViewEditDialog } from '../CnSavedViewEditDialog/index.js'
 import { CnSavedViewPresentationDialog } from '../CnSavedViewPresentationDialog/index.js'
 import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
 import { CnSavedViewShareDialog } from '../CnSavedViewShareDialog/index.js'
@@ -1231,10 +1462,11 @@ import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
 import { applyManualOrder, dropInOrder, manualOrderKey, moveInOrder, visibleIdsOf } from './manualOrder.js'
 import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './personalColumns.js'
+import { rowsToCsv } from './rowsToCsv.js'
 import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
-import { BOARD_PAGE_SIZE, useSelfFetchList } from './useSelfFetchList.js'
+import { BOARD_PAGE_SIZE, mapPlotAllLimitOf, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
 
 /** Rows fetched for one month in calendar mode. */
 const CALENDAR_PAGE_SIZE = 200
@@ -1309,11 +1541,22 @@ function declaredFilterFields(props) {
  * @return {object} The `{ fieldKey: values }` map, empty when the link carries none.
  */
 function namedFiltersFromRoute(instance, props) {
+	const route = instance && instance.proxy && instance.proxy.$route
+	return namedFiltersFromQuery((route && route.query) || {}, props)
+}
+
+/**
+ * The named-source filters a query carries, as `namedFiltersFromRoute` reads them.
+ *
+ * @param {object} query The route query.
+ * @param {object} props The CnIndexPage props.
+ *
+ * @return {object} The `{ fieldKey: values }` map.
+ */
+function namedFiltersFromQuery(query, props) {
 	if (!props.entitySource) {
 		return {}
 	}
-	const route = instance && instance.proxy && instance.proxy.$route
-	const query = (route && route.query) || {}
 	const properties = declaredFilterFields(props)
 	const out = {}
 
@@ -1466,6 +1709,9 @@ export default {
 
 	components: {
 		CnIndexPageWidgets,
+		CnRelatedFieldFilters,
+		CnStatusBadge,
+		NcNoteCard,
 		CnBuildiqEditButton,
 		CnFollowToggle,
 		NcLoadingIcon,
@@ -1514,6 +1760,7 @@ export default {
 		CnIndexSidebar,
 		CnSavedViewsControl,
 		CnSavedViewPresentationDialog,
+		CnSavedViewEditDialog,
 		CnSavedViewShareDialog,
 		CnSaveViewDialog,
 		CnConfirmDialog,
@@ -1533,8 +1780,37 @@ export default {
 	 * Falls back to an empty object so `CnIndexPage` works standalone
 	 * (unit tests, isolated mount) without `CnAppRoot`.
 	 */
+	/**
+	 * The list a side-panel widget reads (`cnIndexList`): the applied saved
+	 * view, the list's total, and a way to hand back a view that changed
+	 * (the saved-view alert widget). Getters, so a widget follows the page.
+	 *
+	 * @return {object}
+	 */
+	provide() {
+		return {
+			cnIndexList: Object.defineProperties({}, {
+				appliedView: { enumerable: true, get: () => this.appliedSavedView },
+				total: {
+					enumerable: true,
+					get: () => {
+						const total = this.effectivePagination && this.effectivePagination.total
+						return typeof total === 'number' ? total : undefined
+					},
+				},
+				replaceSavedView: { enumerable: true, value: (view) => this.replaceSavedView(view) },
+			}),
+		}
+	},
+
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/** The app's named formatters, provided by CnAppRoot, for the map list's pills and template tokens. */
+		cnFormatters: { default: () => ({}) },
+		/** The permissions the user holds, provided by CnAppRoot; for gated page tabs. */
+		cnPermissions: { default: () => [] },
+		/** The app config an ancestor provides, for `@config.<key>` in quick-filter labels. */
+		cnAppConfig: { default: null },
 		/** The app id CnAppRoot provides, for the plural form of `countSubtitle`. */
 		cnAppId: { default: '' },
 		/**
@@ -1558,6 +1834,12 @@ export default {
 		 * simply has no held order instead of failing to render.
 		 */
 		cnUserPreferences: { default: null },
+		/**
+		 * The saved views this user put in the app menu, held by CnAppRoot:
+		 * `{ entries, toggle(entry) }`. Absent without the shell, and then
+		 * the sidebar offers no Add to menu.
+		 */
+		cnSavedViewMenu: { default: null },
 		/**
 		 * Consumer translation function, provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). Column and
@@ -1607,6 +1889,79 @@ export default {
 		title: {
 			type: String,
 			required: true,
+		},
+
+		/**
+		 * A breadcrumb under the title (manifest `config.breadcrumb`): one
+		 * crumb `{ label, route?, params?, href?, icon?, separator? }` or a
+		 * list; the title follows as the current crumb. Drawn as the detail
+		 * header's breadcrumb row. Null (the default) draws none.
+		 *
+		 * @type {object|Array<object>|null}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		breadcrumb: {
+			type: [Object, Array],
+			default: null,
+		},
+
+		/**
+		 * A note after the breadcrumb and a middle dot (manifest `config.headerMeta`),
+		 * such as "{total} open": `{total}` and `{shown}` are the list's counts,
+		 * and `{count:<name>}` the count of a list named in `headerMetaCounts`
+		 * ("{total} contracten bij {count:suppliers} leveranciers").
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		headerMeta: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The other lists `headerMeta` counts (manifest `config.headerMetaCounts`):
+		 * `{ <name>: { register, schema, filter? } }`, each read as one list
+		 * total and filled in for `{count:<name>}`. While a count loads, or when
+		 * it fails, the note is left out rather than shown with a gap.
+		 *
+		 * @type {Record<string, {register: string, schema: string, filter?: object}>|null}
+		 */
+		headerMetaCounts: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Tabs to sibling pages above the toolbar (manifest `config.pageTabs`),
+		 * each `{ id?, label, route?, params?, query?, href?, countFrom?: {
+		 * register, schema, filter? }, adminOnly?, permission? }`: DqPrivacy's
+		 * "AVG-verzoeken | Datalekken". The current page's tab is marked;
+		 * `countFrom` adds the count of that list. A tab with `adminOnly` shows
+		 * only to an instance admin, one with `permission` only to a user who
+		 * holds it. That hides the tab and nothing more: the page it points to
+		 * must still refuse the user on the server. Wins over a named source's
+		 * own page tabs.
+		 *
+		 * @type {Array<object>|null}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 */
+		pageTabs: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * A notice under the list (manifest `config.notice`): `{ text,
+		 * variant?: 'info' | 'success' | 'warning' }`, a band that explains
+		 * the list, such as who decides what. The text goes through the host
+		 * translate.
+		 *
+		 * @type {{text: string, variant?: string}|null}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-show-a-notice-under-its-list
+		 */
+		notice: {
+			type: Object,
+			default: null,
 		},
 
 		/** Optional description shown below the title */
@@ -1717,6 +2072,20 @@ export default {
 		},
 
 		/**
+		 * Board look: the record layout of each card in the cards view
+		 * (manifest key `config.cardLayout`): `{ headPill, number, title,
+		 * meta, footerPill, footerDate }`, each part naming a field. See
+		 * CnObjectCard `layout`.
+		 *
+		 * @type {object}
+		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 */
+		cardLayout: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Gives each card in the card view a status accent: a colored start
 		 * border and icon. See CnObjectCard `accent`.
 		 *
@@ -1739,6 +2108,17 @@ export default {
 		},
 
 		/**
+		 * Board look: draw the bulk band before anything is selected too, its
+		 * buttons disabled until there is a selection (DqZaken, DqWerkbord).
+		 * Manifest key `config.bulkBandAlways`. Only when the band has an
+		 * action to offer.
+		 */
+		bulkBandAlways: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Board look: the 13px hint after the bulk band's buttons ("See what
 		 * changes first, then run it"). Manifest key `config.bulkHint`.
 		 *
@@ -1754,8 +2134,13 @@ export default {
 		 * case" (manifest `config.headerButtons`). Each is `{ label?, action,
 		 * variant?, icon?, format?, id? }`: `action` is `add` (the Add flow;
 		 * its label defaults to the Add label), `export` (the export leaf in
-		 * `format`, `csv` by default, else the export dialog), `import`,
-		 * `refresh`, or the id of a `headerActions` entry; `variant` is
+		 * `format`, `csv` by default, else the export dialog; with `run` the
+		 * `headerActions` entry of that id; on an `entitySource` page without
+		 * `run` and without a `@mass-export` listener it is not drawn),
+		 * `import`,
+		 * `refresh`, `save-view` (the save-current-view dialog: the board's
+		 * "Zoekopdracht opslaan", label "Save view" by default), or the id of a
+		 * `headerActions` entry; `variant` is
 		 * `primary` or `secondary` (the default). Shown only with
 		 * `showTitle`. When they show, the actions bar drops its Views and
 		 * Actions menus, and the Add button and Export menu when a button
@@ -1846,6 +2231,26 @@ export default {
 		},
 
 		/**
+		 * Quick filters made from the values a field holds in this list
+		 * (manifest `config.quickFiltersFrom`): `{ field, register?, schema?,
+		 * valueField?, labelField?, allLabel? }`. The page asks OpenRegister for the
+		 * distinct values of `field` with their counts (within `filter`) and
+		 * draws "All" plus one tab per value, the most frequent first, each
+		 * with its count. With `register` and `schema` the values are ids of
+		 * records of that schema and each tab shows the record's `labelField`
+		 * (else its title or name). With `valueField` as well, the values are
+		 * matched on that field of those records instead of their id (a slug).
+		 * Ignored when `quickFilters` is set.
+		 *
+		 * @type {{field: string, register?: string, schema?: string, valueField?: string, labelField?: string, allLabel?: string}|null}
+		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
+		 */
+		quickFiltersFrom: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Personal lenses appended to the quick filters: any of `watching`
 		 * (`_watching`, labelled Following), `recent` (`_recent`) and `unread`
 		 * (`_unread`). `favourite` is a deprecated alias of `watching`: a
@@ -1859,6 +2264,19 @@ export default {
 		personalLenses: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Whether the table marks unread rows (`@self.unread`) in bold with the
+		 * unread marker: `true` in every look, `false` never. Unset (null)
+		 * keeps the look's default (see `marksUnreadRows`). Manifest
+		 * `config.showUnreadRows`.
+		 *
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-page-can-ask-for-its-unread-rows
+		 */
+		showUnreadRows: {
+			type: Boolean,
+			default: null,
 		},
 
 		/**
@@ -1897,6 +2315,50 @@ export default {
 		filterStrip: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Whether the board look draws the saved views as chips in the toolbar
+		 * (manifest `config.savedViewChips`). `false` keeps only Save view,
+		 * for a page whose views live in the side panel's Weergaven tab
+		 * (DqZaken, DqZakenSorteren, DqZakenKaart, DqWerkbord, DqFilterBeheren).
+		 *
+		 * @spec openspec/changes/saved-view-chips-switch/specs/saved-views/spec.md#requirement-an-index-page-can-leave-the-saved-view-chips-out-of-the-toolbar
+		 */
+		savedViewChips: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Where the quick-filter chips sit (manifest `config.quickFilterPlacement`).
+		 * `''` (the default) as before. `'toolbar'` keeps them on one row with
+		 * the Filter button and the view switch, in whatever width that row has
+		 * beside a side panel (DqTeamwachtrij): the chips take the room the
+		 * buttons leave, and those that do not fit move into the overflow chip.
+		 * `'row'` puts them on a row of their own above the toolbar, wrapping
+		 * onto more lines instead of folding into the overflow chip.
+		 *
+		 * @type {''|'toolbar'|'row'}
+		 */
+		quickFilterPlacement: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'toolbar', 'row'].includes(v),
+		},
+
+		/**
+		 * Where the board look's search field sits (manifest
+		 * `config.searchPlacement`): `''` (the default) opens row 2 with it,
+		 * `'toolbar'` puts it on row 1 before the Filter button and the view
+		 * switch (DqTeamwachtrij).
+		 *
+		 * @type {''|'toolbar'}
+		 */
+		searchPlacement: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'toolbar'].includes(v),
 		},
 
 		/**
@@ -1984,6 +2446,17 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Filters over a type's own declared fields, beside the search
+		 * (CnRelatedFieldFilters): `{ definitions: { register, schema, filter },
+		 * related: { schema, backref, definitionKey?, valueKey? } }`.
+		 * Manifest: `config.relatedFieldFilters`.
+		 */
+		relatedFieldFilters: {
+			type: Object,
+			default: null,
+		},
+
 		/** Object/row data array */
 		objects: {
 			type: Array,
@@ -2047,6 +2520,16 @@ export default {
 		selectable: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Draw the table without its column-header row (manifest
+		 * `config.hideTableHeader`), for a list the board draws as plain rows
+		 * (DqTeamwachtrij). Pair it with `selectable: false` for no checkboxes.
+		 */
+		hideTableHeader: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -2192,8 +2675,15 @@ export default {
 		 * - `popupField` — object property rendered in the marker popup.
 		 * - `center` — optional `[lat, lng]` fallback centre when the filtered set
 		 *   has no plottable rows.
+		 * - `zoom` — the map's initial zoom level.
+		 * - `list` — a numbered list beside the map, map and list in one card
+		 *   (DqZakenKaart): `{ title, sub?, pills?: [{ path?, text?, map?,
+		 *   colorMap? }], due? }`, field templates read per row. The pins carry the
+		 *   list's numbers, the row under the pointer is marked on both, the rows
+		 *   without a place are counted under the list with a link to the table,
+		 *   and the page's count line adds how many are on the map.
 		 *
-		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number] }}
+		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number], zoom?: number, list?: object }}
 		 */
 		mapConfig: {
 			type: Object,
@@ -2232,7 +2722,7 @@ export default {
 		 * can open is an ordinary segment; one it cannot (no board columns, no
 		 * map configured) is drawn disabled, named "<mode>: not available on
 		 * this list". Fed from `pages[].config.viewSwitch`. Ignored without the
-		 * board look, and absent the switch is as before.
+		 * board look; absent, the board look draws all four.
 		 *
 		 * @type {Array<'table' | 'cards' | 'board' | 'map'>}
 		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
@@ -2452,15 +2942,48 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * What to do after a refused search, through the app's translate. The
+		 * default explains AND, OR, NOT and quotes.
+		 *
+		 * @spec openspec/changes/index-search-refusal/specs/index-search-refusal/spec.md#requirement-a-refused-search-is-said-where-it-was-typed
+		 */
+		searchRefusalHint: {
+			type: String,
+			default: '',
+		},
+
 		/** Accessible label for the loading spinner (NcLoadingIcon aria-label) */
 		loadingText: {
 			type: String,
 			default: 'Loading…',
 		},
 
-		/** Function returning CSS class(es) for a row */
+		/**
+		 * Object types whose live changes this list follows (manifest
+		 * `config.live`): it subscribes to them through the object store and
+		 * reads the list again shortly after a change, so a card a colleague
+		 * moved moves here too. Empty (the default) subscribes to nothing.
+		 *
+		 * @type {Array<string>}
+		 */
+		live: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * CSS class(es) for a row: a function `(row) => string`, or (manifest
+		 * `config.rowClass`) rules `[{ when: { field, op?, value }, class }]`,
+		 * each adding its class to a row whose field compares to the value
+		 * (the `visibleWhen` operators, `@today` included). DqTaken marks an
+		 * overdue task: `{ when: { field: "dueAt", op: "lt", value: "@today" },
+		 * class: "cn-row--overdue" }`.
+		 *
+		 * @type {((row: object) => string)|Array<{when: {field: string, op?: string, value: unknown}, class: string}>|null}
+		 */
 		rowClass: {
-			type: Function,
+			type: [Function, Array],
 			default: null,
 		},
 
@@ -2531,9 +3054,11 @@ export default {
 		},
 
 		/**
-		 * Opt-in flag for the saved-views control (saved-views-ui) rendered
-		 * in the toolbar. Defaults to `false` — an app must explicitly
-		 * enable it per page. When `true`, a Views dropdown lists the
+		 * Saved views (saved-views-ui). Unset, the sidebar's Views tab is on
+		 * for every page with a sidebar and a source a view can be scoped to
+		 * (register and schema, `entitySource` or `savedViewsScope`); `false`
+		 * turns it off. `true` also forces the sidebar and adds the toolbar
+		 * control, where a Views dropdown lists the
 		 * current user's OpenRegister saved-search views
 		 * (`GET /apps/openregister/api/views`); applying one writes its
 		 * stored filters/search/sort into the route query (reusing the
@@ -2545,7 +3070,7 @@ export default {
 		 */
 		allowSavedViews: {
 			type: Boolean,
-			default: false,
+			default: null,
 		},
 
 		/**
@@ -2560,6 +3085,17 @@ export default {
 		savedViewsScope: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Views the app ships for this page (`config.defaultSavedViews`), each
+		 * `{ slug, name, filters, search?, sort?, label? }`. Listed read-only
+		 * above the user's own saved views, never stored; a user may apply one
+		 * or save a copy. `@`-tokens in `filters` resolve when it is applied.
+		 */
+		defaultSavedViews: {
+			type: Array,
+			default: () => [],
 		},
 
 		/** Property name used to display item names in dialogs */
@@ -2820,6 +3356,29 @@ export default {
 		},
 
 		/**
+		 * `false` draws no inline search in the actions bar, also in the board
+		 * look, which otherwise draws one on every index page. Fed from the
+		 * manifest as `pages[].config.search`.
+		 */
+		search: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * The app config `@config.<key>` tokens resolve against, in quick-filter
+		 * filters and labels (`"Residence @config.municipality"`), as on the
+		 * dashboard and detail pages. Merged over a config an ancestor provides
+		 * on `cnAppConfig`. Manifest: `config.appConfig`.
+		 *
+		 * @type {object}
+		 */
+		appConfig: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * Keep the "Showing X of Y" counter visible beside the inline search field,
 		 * after any `#after-search` controls (only relevant with `inlineSearch`,
 		 * which otherwise takes the counter's place). Fed from the manifest as
@@ -2867,9 +3426,11 @@ export default {
 		},
 
 		/**
-		 * Show a standalone sort dropdown in the actions bar (for card/list
-		 * views without sortable headers). Emits `@sort-change` with the value.
-		 * Fed from the manifest as `pages[].config.showSortSelect`.
+		 * Deprecated, without effect: the toolbar draws no sort select. The
+		 * table sorts by its column headers, the list, card and map views by
+		 * the Sort section in the index sidebar.
+		 *
+		 * @deprecated
 		 */
 		showSortSelect: {
 			type: Boolean,
@@ -2877,18 +3438,55 @@ export default {
 		},
 
 		/**
-		 * Options for the standalone sort dropdown (manifest `config.sortSelectOptions`).
+		 * The orders the index sidebar's Sort section offers in the list, card
+		 * and map views (manifest `config.sortSelectOptions`): `{ value, label,
+		 * order?, default?, source? }`, the order its `order` (an
+		 * `orderToSortKeys` form) or its `value` read as one. Without them the
+		 * section offers the sortable columns.
 		 *
-		 * @type {Array<{ value: string, label: string }>}
+		 * An option may name an endpoint `source` (`{ url, params?, rowsPath?,
+		 * rowPath?, carry?, idPath?, annotate?, searchFields?, failedNote? }`)
+		 * for an order the server cannot sort by: choosing it lists that
+		 * endpoint's rows in their order, and the page's search, sidebar
+		 * filters and pager run over them in the browser. `default: true` opens
+		 * the page on it unless the address carries an order; a column header
+		 * click in the table view leaves it for that column's order. When the
+		 * endpoint fails the list falls back to the option's `order` and shows
+		 * `failedNote`. `carry` copies entry fields onto each row (a tier a
+		 * card's head pill reads); with `annotate` they also reach the rows of
+		 * every other order, matched on `idPath` (`id` by default). The option
+		 * is chosen by its value (`selectSortOption`), as a saved view's
+		 * `sortOption` does.
+		 *
+		 * @type {Array<{ value: string, label: string, order?: (string|object|Array), default?: boolean, source?: object }>}
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
 		 */
 		sortSelectOptions: {
 			type: Array,
 			default: () => [],
 		},
 
-		/** Selected value of the standalone sort dropdown (controlled). */
+		/**
+		 * Deprecated, without effect: the toolbar sort select is gone; the
+		 * Sort section in the index sidebar shows the current order.
+		 *
+		 * @deprecated
+		 */
 		sortSelectValue: {
 			type: String,
+			default: '',
+		},
+
+		/**
+		 * The order a self-fetch page opens on when neither the address nor
+		 * `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`):
+		 * `"-createdAt"`, `"priority:desc,title"`, an `_order` map or a
+		 * `[{ key, order }]` list.
+		 *
+		 * @type {string|object|Array}
+		 */
+		defaultOrder: {
+			type: [String, Object, Array],
 			default: '',
 		},
 
@@ -2925,6 +3523,12 @@ export default {
 		 *   defaults to `field`).
 		 * - `folders` — explicit folder list for `source:'custom'`.
 		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
+		 * - `scopeViews` — the view modes the scope's look (columns, title,
+		 *   count line and the other scope keys) applies in, e.g. `["table",
+		 *   "list"]`; other views keep the page's own look. Default: every view.
+		 * - `pane` — `false` draws no pane: the scope still comes from the
+		 *   deep-link filter (`?caseType=<id>`) and still applies its look, as
+		 *   a list narrowed to one case type does without a folder column.
 		 *
 		 * A folder entry is also a SCOPE: it may carry `columns`, `defaultSort`
 		 * and `searchFields`, and while it is selected the list is shown that
@@ -2976,6 +3580,33 @@ export default {
 		sidePanel: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Cards after the list (manifest `config.afterList`): dashboard widget
+		 * definitions `{ id, type, title?, content, headerLink? }` stacked
+		 * under the list in the listed order, the counterpart of `statRow`
+		 * above it. A query preset or a scope can set its own.
+		 *
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-an-index-page-can-draw-widgets-after-its-list
+		 * @type {Array<object>}
+		 */
+		afterList: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The route query pairs that chose this page's query preset, set by
+		 * CnPageRenderer. They scope the list, so they show no removable
+		 * active-filter chip.
+		 *
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-the-query-that-chose-a-preset-is-not-a-removable-filter
+		 * @type {object|null}
+		 */
+		fixedFilters: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -3372,11 +4003,16 @@ export default {
 		 * (unless the handler is the `'none'` keyword) emits
 		 * `@header-action({ action: id, id })`.
 		 *
+		 * An entry with `href` instead renders as a real link and is never
+		 * dispatched or emitted: an absolute `http(s)`, `mailto:`, `tel:` or
+		 * `//host/...` URL is used as written, an instance path (leading `/`) goes through
+		 * `generateUrl()`. `target: '_blank'` opens it in a new tab.
+		 *
 		 * Reserved ids (those used by built-ins on the bar — `refresh`,
 		 * `import`, `export`, `copy`, `delete`) are dropped from the
 		 * merged list with a `console.warn`.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|(() => void), route?: string, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|(() => void), route?: string, href?: string, target?: ('_blank'|'_self'), disabled?: boolean }>}
 		 */
 		headerActions: {
 			type: Array,
@@ -3475,6 +4111,7 @@ export default {
 		'sort-change',
 		'view',
 		'view-mode-change',
+		'view-overrides',
 		'split-close',
 		'split-saved',
 		'manual-order-change',
@@ -3515,7 +4152,13 @@ export default {
 		//
 		// Seeded from the route query so a shared link lands filtered, the
 		// same way `_order` and a deep-link filter already do for self-fetch.
+		// The page a paging named source shows: page 1 at the source config's
+		// `limit` (20 by default), moved by the pager.
+		const namedPageSize = Number(props.sourceConfig && props.sourceConfig.limit) > 0 ? Number(props.sourceConfig.limit) : 20
+		const namedPaging = ref({ page: 1, limit: namedPageSize })
 		const namedActiveFilters = ref(namedFiltersFromRoute(getCurrentInstance(), props))
+		// The search term on a named source that searches (`searchParam`).
+		const namedSearchTerm = ref('')
 
 		const {
 			isNamedSource,
@@ -3523,7 +4166,7 @@ export default {
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
-		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters })
+		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging, searchTerm: namedSearchTerm })
 
 		return {
 			isBoard: isBoardLook,
@@ -3535,6 +4178,8 @@ export default {
 			namedLoading,
 			namedQuickFilters,
 			namedActiveFilters,
+			namedPaging,
+			namedSearchTerm,
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
@@ -3554,11 +4199,22 @@ export default {
 
 	data() {
 		return {
+			/**
+			 * The chosen sort option that names an endpoint `source`, its rows,
+			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
+			 * shown. The value is '' while an ordinary order is chosen.
+			 */
+			sortSource: { value: '', rows: [], state: 'idle', page: 1 },
 			currentViewMode: this.viewMode,
+			/** Whether `?_view=` names a mode the page did not offer yet, to open once it does. */
+			routeViewPending: false,
 			/** The column field the reader picked in the board's column switch; '' = the default. */
 			boardColumnFieldChoice: '',
 			/** The rows a reference column field is built from, by field. */
 			boardRefs: {},
+			liveHandles: [],
+			liveTimer: null,
+			liveUnwatch: null,
 			/** The options of the board's narrowing select (`board.narrow`). */
 			boardNarrowOptions: [],
 			/** The menu entries CnActionButtons reports for the dialog header actions, each with its `run()`. */
@@ -3572,14 +4228,32 @@ export default {
 			boardPrevPageSize: this.viewMode === 'board' ? ((this.pagination && this.pagination.limit) || 20) : null,
 			/** Resolved labels of reference columns: `{ [columnKey]: { [id]: label|null } }`. */
 			refLabels: {},
+			/** Colour and icon names of the records badge columns point at: `{ [columnKey]: { [id]: { color, icon } } }`. */
+			refLooks: {},
 			/** Count per tab-strip index, for the entries that asked for one; null = none. */
 			tabCounts: null,
 			// The counts of the `filterStrip` pills, by pill key ('all', 'v0', ...).
 			filterStripCounts: null,
+			/** The `countFrom` counts of the manifest page tabs, by index. */
+			pageTabCounts: {},
+			/** The `headerMetaCounts` totals, by name; a failed one is null. */
+			headerMetaCountValues: {},
+			/** The row the pointer is on in the map list, by key; '' for none. */
+			activeMapKey: '',
+			/** The rows `mapConfig.markerColor.source` points at, or null before they load. */
+			mapColorRefs: null,
+			/** The page size to restore when leaving a map that plots every row. */
+			mapPrevPageSize: this.viewMode === 'map' && mapPlotAllLimitOf(this.mapConfig) > 0 ? ((this.pagination && this.pagination.limit) || 20) : null,
+			/** The tabs `quickFiltersFrom` produced, or null before they load. */
+			generatedQuickFilters: null,
 			/** Count per saved-view id, for the views control; null = none. */
 			savedViewCounts: null,
 			// The id (or slug) of the saved view that is applied; its chip shows selected under the board look.
 			appliedSavedViewId: '',
+			// The sort option the applied view's `overrides.sortOption` selected, so leaving the view can undo it.
+			viewSortOption: '',
+			// The applied view's filters as one comparable key, so the address keeps naming the view until they change.
+			appliedViewFiltersKey: '',
 			/**
 			 * The non-`_` query keys this page owns, i.e. may clear on the next
 			 * persist. Seeded with what it adopted from the query on load, and
@@ -3602,6 +4276,8 @@ export default {
 			 */
 			folderSidebarAllValues: [],
 			folderRegisterList: [],
+			/** The Nextcloud groups a `folderSidebar.source: 'groups'` pane lists. */
+			folderGroupList: [],
 			// `x-index` blocks read off the schema rows a `source: 'register'`
 			// folder list was built from, keyed by folder id. The layout a case
 			// type carries travels with the record rather than being restated
@@ -3639,6 +4315,8 @@ export default {
 			// content (table / cards) starts at the top and fills the width;
 			// opened on demand via the actions-bar toggle.
 			sidebarOpen: false,
+			/** The sidebar tab to show; follows the user's own tab changes. */
+			sidebarActiveTab: '',
 			// Saved views (saved-views-ui): the fetched view list, its
 			// loading flag, the save-dialog toggle, and the view awaiting
 			// delete confirmation.
@@ -3648,6 +4326,8 @@ export default {
 			viewPendingDelete: null,
 			/** The own view whose audience is being changed (CnSavedViewShareDialog), or null. */
 			viewPendingShare: null,
+			/** The own view being renamed or re-filtered (CnSavedViewEditDialog), or null. */
+			viewPendingEdit: null,
 			/** The view whose presentation is being changed (CnSavedViewPresentationDialog), or null. */
 			viewPendingPresentation: null,
 			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
@@ -3793,10 +4473,14 @@ export default {
 		/**
 		 * The header actions that open a dialog: `type: "open-form"` (the
 		 * schema-driven create form, as the navigation's primary action opens
-		 * it) or `type: "open-modal"`, without a `handler` of their own.
-		 * Reserved ids are left out, as in `mergedHeaderActions`.
+		 * it) or `type: "open-modal"`, without a `handler` or `href` of their own.
+		 * Reserved ids are left out, as in `mergedHeaderActions`. A modal
+		 * opened from here also gets the list's active filters as
+		 * `activeFilters`, so it knows what the list shows (the pipeline a
+		 * board is narrowed to); the action's own props win.
 		 *
 		 * @spec openspec/changes/index-header-open-form/specs/index-header/spec.md#requirement-an-index-header-action-can-open-the-create-form
+		 * @spec openspec/changes/pl4-board-card-actions/specs/pl4-board-card-actions/spec.md#requirement-a-header-modal-knows-the-lists-filters
 		 * @return {Array<object>}
 		 */
 		dialogHeaderActions() {
@@ -3805,9 +4489,21 @@ export default {
 				&& typeof entry.id === 'string'
 				&& !reserved.has(entry.id)
 				&& (entry.handler === undefined || entry.handler === null || entry.handler === '')
+				&& !entry.href
 				&& (entry.type === 'open-form' || entry.type === 'open-modal'))
+				.map((entry) => (entry.type === 'open-modal'
+					? { ...entry, props: { activeFilters: { ...this.effectiveActiveFilters }, ...(entry.props || {}) } }
+					: entry))
 		},
 
+		/**
+		 * The header actions without reserved ids, each through
+		 * `resolveHeaderHandler` (a manifest `href` entry becomes a link with
+		 * `_dispatchSuppress`, so the page neither runs nor emits it).
+		 *
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @return {Array<object>}
+		 */
 		mergedHeaderActions() {
 			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
 			const merged = []
@@ -3895,15 +4591,158 @@ export default {
 			return this.isSelfFetchMode && !!this.list.error?.value
 		},
 
+		/**
+		 * The failed fetch as a refused search, or null when it is not one.
+		 *
+		 * @spec openspec/changes/index-search-refusal/specs/index-search-refusal/spec.md#requirement-a-refused-search-is-said-where-it-was-typed
+		 * @return {object|null}
+		 */
+		searchRefusal() {
+			return this.selfFetchFailed ? readSearchRefusal(this.list.error.value, this.effectiveSearchValue) : null
+		},
+
+		/**
+		 * Whether the named source sends the search term to its server.
+		 *
+		 * @return {boolean}
+		 */
+		namedSourceSearches() {
+			return this.isNamedSource && !!this.namedSource && typeof this.namedSource.searchParam === 'string' && this.namedSource.searchParam !== ''
+		},
+
+		/**
+		 * The sentence the named source's server refused this reader with, or ''.
+		 * While it holds the page shows it instead of the rows, the search and
+		 * the tabs: a list nobody may read is not an empty list.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
+		 */
+		sourceRefusal() {
+			return this.isNamedSource && this.namedSource && typeof this.namedSource.refusal === 'function' ? (this.namedSource.refusal() || '') : ''
+		},
+
+		/**
+		 * Whether the named source's last load failed (not refused).
+		 *
+		 * @return {boolean}
+		 */
+		sourceFailed() {
+			return this.isNamedSource && !!this.namedSource && typeof this.namedSource.failed === 'function' && this.namedSource.failed() === true
+		},
+
+		/**
+		 * The note the named source read off its last answer, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
+		 */
+		sourceNote() {
+			return this.isNamedSource && this.namedSource && typeof this.namedSource.note === 'function' ? (this.namedSource.note() || '') : ''
+		},
+
+		/** @return {string} What to do after a refused search. */
+		searchRefusalHintText() {
+			if (this.searchRefusalHint) {
+				return typeof this.cnTranslate === 'function' ? this.cnTranslate(this.searchRefusalHint) : this.searchRefusalHint
+			}
+			return t('nextcloud-vue', 'Correct that character, or search for plain words. AND, OR and NOT work in capitals, and quotes make a phrase.')
+		},
+
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() {
 			if (this.isNamedSource) {
 				return this.namedRows
 			}
+			if (this.sortSourceShown) {
+				return this.sortSourceView.rows
+			}
 			if (this.selfFetchFailed) {
 				return []
 			}
-			return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
+			const rows = this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
+			return this.annotatingSource ? annotateRows(rows, this.sortSource.rows, this.annotatingSource) : rows
+		},
+
+		/**
+		 * The sort options that name an endpoint `source`.
+		 *
+		 * @return {Array<object>}
+		 */
+		sourceSortOptions() {
+			return (this.sortSelectOptions || []).filter((o) => o && o.value !== undefined && o.source && typeof o.source.url === 'string' && o.source.url !== '')
+		},
+
+		/**
+		 * The sort option whose endpoint lists the rows now, or null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		activeSortSource() {
+			if (!this.sortSource.value) {
+				return null
+			}
+			return this.sourceSortOptions.find((o) => String(o.value) === this.sortSource.value) || null
+		},
+
+		/**
+		 * Whether the rows on screen are the sort source's: a self-fetch page
+		 * with a source option chosen whose endpoint did not fail.
+		 *
+		 * @return {boolean}
+		 */
+		sortSourceShown() {
+			return !!this.activeSortSource && this.isSelfFetchMode && this.sortSource.state !== 'failed'
+		},
+
+		/**
+		 * Whether a chosen source option fell back to its own order.
+		 *
+		 * @return {boolean}
+		 */
+		sortSourceFellBack() {
+			return !!this.activeSortSource && this.sortSource.state === 'failed'
+		},
+
+		/**
+		 * The translated note for a fallen-back source option, or ''.
+		 *
+		 * @return {string}
+		 */
+		sortSourceFailedNote() {
+			const note = this.activeSortSource && this.activeSortSource.source.failedNote
+			return typeof note === 'string' && note !== '' ? this.cnTranslate(note) : ''
+		},
+
+		/**
+		 * The source rows after the page's search and sidebar filters, one
+		 * page of them at the list's page size.
+		 *
+		 * @return {{rows: Array<object>, pagination: object}}
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		sortSourceView() {
+			const source = this.activeSortSource ? this.activeSortSource.source : {}
+			const filtered = filterSourceRows(this.sortSource.rows, {
+				search: this.list && this.list.searchTerm ? this.list.searchTerm.value : '',
+				filters: this.list && this.list.activeFilters ? this.list.activeFilters.value : {},
+				searchFields: source.searchFields,
+			})
+			const limit = (this.list && this.list.pagination && this.list.pagination.value && this.list.pagination.value.limit) || 20
+			return pageSourceRows(filtered, this.sortSource.page, limit)
+		},
+
+		/**
+		 * The source whose carried fields reach every order's rows
+		 * (`source.annotate`), once its rows are read, or null.
+		 *
+		 * @return {object|null} The option's source.
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-row-field-the-source-supplies-reaches-every-order
+		 */
+		annotatingSource() {
+			const option = this.sourceSortOptions.find((o) => o.source.annotate === true)
+			return option && this.sortSource.rows.length > 0 ? option.source : null
 		},
 
 		/**
@@ -3958,7 +4797,8 @@ export default {
 		 */
 		sortedObjects() {
 			const spec = this.effectiveDefaultSort
-			if (!spec || spec.length === 0) {
+			// A sort source's rows arrive in the order they stand for.
+			if (this.sortSourceShown || !spec || spec.length === 0) {
 				return this.effectiveObjects
 			}
 			if (this.effectiveSortKey) {
@@ -4118,11 +4958,15 @@ export default {
 		 * @spec openspec/changes/screens-view-switch-parity/specs/view-switch-board-look/spec.md#requirement-the-manifest-can-draw-segments-the-page-cannot-open
 		 */
 		viewSwitchDisabledModes() {
-			if (!this.isBoardLook || !Array.isArray(this.viewSwitch)) {
+			if (!this.isBoardLook) {
 				return []
 			}
+			// The index boards draw all four segments, so the board look does
+			// too unless the manifest names its own list.
+			const viewSwitch = this.presented('viewSwitch')
+			const listed = Array.isArray(viewSwitch) ? viewSwitch : ['table', 'cards', 'board', 'map']
 			const offered = [...this.effectiveToggleModes, ...(this.showMapSegment ? ['map'] : [])]
-			return this.viewSwitch.filter((mode) => ['table', 'cards', 'board', 'map'].includes(mode) && !offered.includes(mode))
+			return listed.filter((mode) => ['table', 'cards', 'board', 'map'].includes(mode) && !offered.includes(mode))
 		},
 
 		/**
@@ -4158,6 +5002,17 @@ export default {
 				}
 				return true
 			})
+		},
+
+		/**
+		 * The modes `?_view=` can open: the toggle's modes plus the map when
+		 * the page offers it.
+		 *
+		 * @return {Array<string>} The modes.
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-the-address-opens-a-view-mode-that-arrives-later
+		 */
+		routeViewModes() {
+			return [...this.effectiveToggleModes, ...(this.showMapSegment ? ['map'] : [])]
 		},
 
 		/**
@@ -4244,7 +5099,20 @@ export default {
 				capacityField: source.capacityField || '',
 				neutralColor: typeof source.neutralColor === 'string' ? source.neutralColor : '',
 				colorMap: source.colorMap && typeof source.colorMap === 'object' ? source.colorMap : null,
+				closedField: source.closedField || '',
 			})
+		},
+
+		/**
+		 * The row actions the board's cards offer, by the ids in
+		 * `board.cardActions`, in that order.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/pl4-board-card-actions/specs/pl4-board-card-actions/spec.md#requirement-a-card-carries-the-row-actions
+		 */
+		boardCardActions() {
+			const ids = Array.isArray(this.board?.cardActions) ? this.board.cardActions : []
+			return ids.map((id) => this.mergedActions.find((action) => action && action.id === id)).filter(Boolean)
 		},
 
 		/**
@@ -4470,6 +5338,9 @@ export default {
 				const loaded = this.effectivePagination || {}
 				return Number(loaded.page || 1) < Number(loaded.pages || 1)
 			}
+			if (this.isNamedSource && this.namedSource && this.namedSource.pages === true) {
+				return Number(this.effectivePagination?.pages || 1) > 1
+			}
 			return Number(this.pagination?.pages || 1) > 1
 		},
 
@@ -4497,6 +5368,17 @@ export default {
 		},
 
 		/**
+		 * Whether the folder pane is drawn: a `folderSidebar` without
+		 * `pane: false`.
+		 *
+		 * @spec openspec/changes/folder-sidebar-pane-off/specs/index-page/spec.md#requirement-a-folder-scope-without-a-pane
+		 * @return {boolean}
+		 */
+		showsFolderPane() {
+			return Boolean(this.folderSidebar) && this.folderSidebar.pane !== false
+		},
+
+		/**
 		 * The CnFolderSidebar source. A `register` source is fetched by this
 		 * component and handed to CnFolderSidebar as a `custom` folder list.
 		 *
@@ -4504,7 +5386,7 @@ export default {
 		 */
 		folderSidebarSource() {
 			const s = this.folderSidebar && this.folderSidebar.source
-			return (s === 'register' || !s) ? 'custom' : s
+			return (s === 'register' || s === 'groups' || !s) ? 'custom' : s
 		},
 
 		/**
@@ -4520,6 +5402,9 @@ export default {
 			}
 			if (this.folderSidebar.source === 'register') {
 				return this.folderRegisterList
+			}
+			if (this.folderSidebar.source === 'groups') {
+				return this.folderGroupList
 			}
 			return this.folderSidebar.folders || []
 		},
@@ -4539,6 +5424,89 @@ export default {
 			const match = this.folderSidebarFolders
 				.find((f) => f && String(this.getByPath(f, idField)) === String(this.selectedFolderId))
 			return match || null
+		},
+
+		/**
+		 * The heading above the list for the selected folder: on a `groups`
+		 * pane (or with `folderSidebar.heading: true`), its name and, under
+		 * it, its parent folder and its count. The count reads
+		 * `folderSidebar.countText` (`{count}`, through the app's translate),
+		 * else "{count} members" on a groups pane.
+		 *
+		 * @return {{name: string, subtitle: string}|null} The heading, or null on All.
+		 */
+		scopeHeading() {
+			const cfg = this.folderSidebar
+			const scope = this.activeScope
+			if (!cfg || !scope || !(cfg.source === 'groups' || cfg.heading === true)) {
+				return null
+			}
+			const idField = this.folderPassthroughIdField
+			const name = String(this.getByPath(scope, this.folderPassthroughNameField) ?? this.selectedFolderId)
+			const parentId = scope.parentId ?? scope.parent ?? null
+			const parent = parentId === null || parentId === undefined
+				? null
+				: this.folderSidebarFolders.find((f) => f && String(this.getByPath(f, idField)) === String(parentId))
+			const parts = []
+			if (parent) {
+				parts.push(String(this.getByPath(parent, this.folderPassthroughNameField) ?? parentId))
+			}
+			if (typeof scope.count === 'number') {
+				if (cfg.countText) {
+					parts.push(this.cnTranslate(cfg.countText).replace('{count}', String(scope.count)))
+				} else if (cfg.source === 'groups') {
+					parts.push(n('nextcloud-vue', '{count} member', '{count} members', scope.count, { count: scope.count }))
+				}
+			}
+			return { name, subtitle: parts.join(' · ') }
+		},
+
+		/**
+		 * The list's current order, `[{ key, order }]`: the self-fetched list's,
+		 * else the `sortKeys` / `sortKey` props.
+		 *
+		 * @return {Array<{key: string, order: string}>} The order.
+		 */
+		currentSortKeys() {
+			if (this.isSelfFetchMode && this.list && this.list.sortKeys) {
+				return this.list.sortKeys.value || []
+			}
+			if (Array.isArray(this.sortKeys) && this.sortKeys.length > 0) {
+				return this.sortKeys
+			}
+			return this.sortKey ? [{ key: this.sortKey, order: this.sortOrder || 'asc' }] : []
+		},
+
+		/**
+		 * The orders the index sidebar's Sort section offers: none in the table
+		 * view, which sorts by its column headers; else `sortSelectOptions`,
+		 * or else the sortable columns, ascending.
+		 *
+		 * @return {Array<{value: string, label: string, keys: Array<{key: string, order: string}>}>} The options.
+		 */
+		sidebarSortOptions() {
+			if (this.currentViewMode === 'table') {
+				return []
+			}
+			if (Array.isArray(this.sortSelectOptions) && this.sortSelectOptions.length > 0) {
+				return this.sortSelectOptions
+					.filter((o) => o && o.value !== undefined && o.value !== null)
+					.map((o) => {
+						const fixed = this.isSelfFetchMode && !!(o.source && typeof o.source.url === 'string' && o.source.url !== '')
+						return {
+							value: String(o.value),
+							label: this.cnTranslate(o.label || String(o.value)),
+							// An endpoint-ranked order is chosen by its value; its
+							// `order` is only the fallback.
+							keys: fixed ? [] : orderToSortKeys(o.order !== undefined ? o.order : o.value),
+							...(fixed ? { fixed: true } : {}),
+						}
+					})
+					.filter((o) => o.fixed === true || o.keys.length > 0)
+			}
+			return (this.tableColumns || [])
+				.filter((c) => c && typeof c === 'object' && c.key && isColumnSortable(c, this.effectiveSchema))
+				.map((c) => ({ value: c.key, label: this.cnTranslate(c.label || c.key), keys: [{ key: c.key, order: 'asc' }] }))
 		},
 
 		/**
@@ -4570,7 +5538,7 @@ export default {
 		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
 		 */
 		activeScopeLayout() {
-			if (!this.folderSidebar) {
+			if (!this.folderSidebar || !this.scopeShapesView) {
 				return { columns: null, sortKeys: [], searchFields: [] }
 			}
 			return resolveScopeLayout({
@@ -4578,6 +5546,75 @@ export default {
 				row: this.activeScopeRow,
 				pageColumns: this.declaredColumns,
 			})
+		},
+
+		/**
+		 * Whether the active scope's look applies in the current view mode:
+		 * always, unless `folderSidebar.scopeViews` names the view modes it is
+		 * for (`["table", "list"]`), so the board keeps the page's generic
+		 * look (DqWerkbord). The scope's filter applies in every view.
+		 *
+		 * @spec openspec/changes/index-scope-views/specs/index-page/spec.md#requirement-a-scope-look-can-be-limited-to-view-modes
+		 * @return {boolean}
+		 */
+		scopeShapesView() {
+			const views = this.folderSidebar && this.folderSidebar.scopeViews
+			if (!Array.isArray(views) || views.length === 0) {
+				return true
+			}
+			return views.includes(this.currentViewMode)
+		},
+
+		/**
+		 * This page's own value of each presentation key, which a query preset
+		 * may have set: what `presented()` falls back to without a scope.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
+		 */
+		ownPresentation() {
+			return {
+				title: this.title,
+				quickFilters: this.quickFilters,
+				cardFields: this.cardFields,
+				countText: this.countText,
+				searchPlaceholder: this.searchPlaceholder,
+				footerNote: this.footerNote,
+				viewSwitch: this.viewSwitch,
+				addLabel: this.addLabel,
+				headerButtons: this.headerButtons,
+				breadcrumb: this.breadcrumb,
+				headerMeta: this.headerMeta,
+				afterList: this.afterList,
+			}
+		},
+
+		/**
+		 * The presentation the active scope declares (`title`, `countText`,
+		 * `quickFilters`, `addLabel`, `afterList` and the other query preset
+		 * keys), from its folder entry or its row's `x-index`. Empty without a
+		 * scope, so the page's own values stand.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
+		 */
+		activeScopePresentation() {
+			if (!this.folderSidebar || !this.scopeShapesView) {
+				return {}
+			}
+			return resolveScopePresentation({ scope: this.activeScope, row: this.activeScopeRow })
+		},
+
+		/**
+		 * The widgets drawn after the list: the active scope's `afterList`,
+		 * else the page's.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-an-index-page-can-draw-widgets-after-its-list
+		 */
+		presentedAfterList() {
+			const list = this.presented('afterList')
+			return Array.isArray(list) ? list : []
 		},
 
 		/**
@@ -4641,7 +5678,90 @@ export default {
 		 * @return {Array<object>} The views.
 		 */
 		viewsForControl() {
-			return this.splitSavedViews.control
+			return [...this.defaultFilterViews, ...this.splitSavedViews.control]
+		},
+
+		/**
+		 * The page config overrides of the applied view (`overrides`), or null
+		 * when no view is applied or it carries none. CnPageRenderer lays them
+		 * over the page config while the view is active (`view-overrides`).
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-can-override-the-page-config-while-it-is-active
+		 */
+		activeSavedViewOverrides() {
+			const id = this.appliedSavedViewId
+			if (!id) {
+				return null
+			}
+			const views = [...this.defaultFilterViews, ...(this.savedViews || [])]
+			const view = views.find((v) => v && (String(v.id) === id || String(v.slug) === id))
+			return savedViewOverrides(view)
+		},
+
+		/**
+		 * `activeSavedViewOverrides` as one comparable key.
+		 *
+		 * @return {string}
+		 */
+		activeSavedViewOverridesKey() {
+			return JSON.stringify(this.activeSavedViewOverrides)
+		},
+
+		/**
+		 * What the sidebar's saved-views panel shows, or null when the page
+		 * does not offer saved views.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+		 */
+		savedViewsForSidebar() {
+			if (!this.savedViewsOffered) {
+				return null
+			}
+			return {
+				views: this.viewsForControl,
+				loading: this.savedViewsLoading,
+				currentUserId: this.currentSavedViewsUserId,
+				counts: this.savedViewCounts,
+				selectedViewId: this.appliedSavedViewId,
+				menuIds: this.savedViewMenuIds,
+			}
+		},
+
+		/**
+		 * The route name this page's menu entries point at.
+		 *
+		 * @return {string}
+		 */
+		savedViewPage() {
+			return (this.$route && typeof this.$route.name === 'string') ? this.$route.name : ''
+		},
+
+		/**
+		 * The ids of this page's views in the app menu, or null when there is
+		 * no menu to add to.
+		 *
+		 * @return {Array<string>|null}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		savedViewMenuIds() {
+			const menu = this.cnSavedViewMenu
+			if (!menu || typeof menu.toggle !== 'function' || this.savedViewPage === '') {
+				return null
+			}
+			return (menu.entries || []).filter((e) => e.page === this.savedViewPage).map((e) => String(e.id))
+		},
+
+		/**
+		 * The page's `defaultSavedViews` as read-only views.
+		 *
+		 * @return {Array<object>} The views.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-4
+		 */
+		defaultFilterViews() {
+			const defaults = (Array.isArray(this.defaultSavedViews) ? this.defaultSavedViews : []).map((entry) => (entry && typeof entry.name === 'string' ? { ...entry, name: this.cnTranslate(entry.name) } : entry))
+			return defaultFilterViews(defaults, this.savedViewsPage)
 		},
 
 		/**
@@ -4716,6 +5836,21 @@ export default {
 		 *
 		 * @return {string} The signature, '' when the strip counts nothing.
 		 */
+		/**
+		 * What the `quickFiltersFrom` tabs depend on, as one key: a change
+		 * asks again. Empty without the prop, or with `quickFilters` set.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
+		 */
+		quickFiltersFromKey() {
+			const from = this.quickFiltersFrom
+			if (this.quickFilters || !from || typeof from.field !== 'string' || from.field === '') {
+				return ''
+			}
+			return JSON.stringify({ r: this.register, s: this.exportSchemaSlug, f: this.filter || null, q: from })
+		},
+
 		filterStripCountKey() {
 			if (!this.filterStrip || this.filterStrip.showCount !== true || this.filterStripValues.length === 0) {
 				return ''
@@ -4789,7 +5924,24 @@ export default {
 		 * @return {(Array<object>|null)} The tabs.
 		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
 		 */
+		/**
+		 * The chip the strip lights: the active tab, else the default tab of
+		 * tabs that arrived after setup (`quickFiltersFrom`), which is the
+		 * one the fetch applies.
+		 *
+		 * @return {number|null} The tab index, or null without tabs.
+		 */
+		shownQuickFilterIndex() {
+			if (this.activeQuickFilterIndex !== null && this.activeQuickFilterIndex !== undefined) {
+				return this.activeQuickFilterIndex
+			}
+			return this.quickFilterMultiple ? null : resolveInitialQuickFilterIndex(this.tabStripEntries)
+		},
+
 		tabStripEntries() {
+			if (this.sourceRefusal) {
+				return []
+			}
 			if (this.lensTabs.length > 0) {
 				return this.lensTabs
 			}
@@ -5016,6 +6168,22 @@ export default {
 		},
 
 		/**
+		 * The rendered columns by key, so a card fact shows what its table
+		 * cell shows (label, formatter, widget).
+		 *
+		 * @return {object} Column definitions keyed by property.
+		 */
+		cardFieldColumns() {
+			const byKey = {}
+			for (const col of this.renderedColumns || []) {
+				if (col && typeof col === 'object' && typeof col.key === 'string') {
+					byKey[col.key] = col
+				}
+			}
+			return byKey
+		},
+
+		/**
 		 * The property keys the board look's card facts show: the page's
 		 * `cardFields`, else the first four list columns. Null without the
 		 * look and without `cardFields`, so the card keeps its own default.
@@ -5024,8 +6192,9 @@ export default {
 		 * @return {?Array<string>}
 		 */
 		resolvedCardFields() {
-			if (Array.isArray(this.cardFields) && this.cardFields.length > 0) {
-				return this.cardFields
+			const cardFields = this.presented('cardFields')
+			if (Array.isArray(cardFields) && cardFields.length > 0) {
+				return cardFields
 			}
 			if (!this.isBoardLook) {
 				return null
@@ -5049,6 +6218,12 @@ export default {
 		 */
 		renderedColumns() {
 			let cols = this.tableColumns
+			if (this.refLookSpecs.length > 0) {
+				const lookKeys = new Set(this.refLookSpecs.map((spec) => spec.key))
+				cols = cols.map((col) => (col && typeof col === 'object' && lookKeys.has(col.key)
+					? { ...col, widgetProps: { ...(col.widgetProps || {}), looks: this.refLooks[col.key] || {} } }
+					: col))
+			}
 			if (this.refLabelSpecs.length > 0) {
 				const byKey = new Map(this.refLabelSpecs.map((s) => [s.key, s]))
 				cols = cols.map((col) => {
@@ -5064,6 +6239,10 @@ export default {
 					}
 				})
 			}
+			// An `actions` column: the page's row actions it names, as buttons.
+			cols = cols.map((col) => (col && typeof col === 'object' && col.widget === 'actions'
+				? { ...col, sortable: false, widgetProps: { ...(col.widgetProps || {}), items: (row) => this.actionColumnItems(col, row), run: this.runColumnAction } }
+				: col))
 			// The Recent lens owns the order: no column sorts while it is on.
 			if (this.recentLensActive) {
 				cols = cols.map((col) => (col && typeof col === 'object' ? { ...col, sortable: false } : col))
@@ -5115,6 +6294,108 @@ export default {
 		 *
 		 * @return {Object<string, string[]>} Distinct ids per column key.
 		 */
+		/**
+		 * The pills that take their tone and icon from the record they point at
+		 * (`resolve: { colorField?, iconField?, register?, schema? }`): badge
+		 * columns and the list view's leading and trailing cells
+		 * (`widgetProps.resolve`), the board card's pill (`board.card.resolve`)
+		 * and the record card's pills (`cardLayout` headPill, footerPill, chips).
+		 * Register and schema default to the field's reference in the schema.
+		 *
+		 * @return {Array<{key: string, register: string, schema: string, colorField: string, iconField: string}>} The specs.
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-badge-cell-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		refLookSpecs() {
+			const list = this.listConfig || {}
+			const listCells = [list.leading, ...(Array.isArray(list.trailing) ? list.trailing : [list.trailing])]
+			const badgeSources = [...this.tableColumns, ...listCells]
+				.filter((c) => c && typeof c === 'object' && c.widget === 'badge' && c.widgetProps)
+				.map((c) => ({ key: c.key, resolve: c.widgetProps.resolve }))
+			// The board card's pill (`board.card.pill` with `board.card.resolve`)
+			// and the record card's pills (`cardLayout` headPill, footerPill,
+			// chips, each with its own `resolve`).
+			const card = this.board && this.board.card && typeof this.board.card === 'object' ? this.board.card : {}
+			const layout = this.cardLayout && typeof this.cardLayout === 'object' ? this.cardLayout : {}
+			const layoutPills = [layout.headPill, layout.footerPill, ...(Array.isArray(layout.chips) ? layout.chips : [])]
+				.filter((def) => def && typeof def === 'object')
+				.map((def) => ({ key: def.field, resolve: def.resolve }))
+			// The map list's pills (`mapConfig.list.pills`, each with its own `resolve`).
+			const mapListPills = (this.mapListEnabled && Array.isArray(this.mapConfig.list.pills) ? this.mapConfig.list.pills : [])
+				.filter((def) => def && typeof def === 'object')
+				.map((def) => ({ key: def.path, resolve: def.resolve }))
+			const seen = new Set()
+			const cols = [...badgeSources, { key: card.pill, resolve: card.resolve }, ...layoutPills, ...mapListPills].filter((c) => {
+				const wanted = typeof c.key === 'string' && c.key !== '' && c.resolve && typeof c.resolve === 'object'
+					&& (c.resolve.colorField || c.resolve.iconField) && !seen.has(c.key)
+				if (wanted) {
+					seen.add(c.key)
+				}
+				return wanted
+			})
+			if (cols.length === 0) {
+				return []
+			}
+			const fields = this.effectiveSchema ? fieldsFromSchema(this.effectiveSchema, { includeReadOnly: true }) : []
+			const specs = []
+			for (const col of cols) {
+				const resolve = col.resolve
+				const field = fields.find((f) => f.key === col.key)
+				const ref = (field && field.reference) || {}
+				const register = resolve.register || ref.register || (typeof this.register === 'string' ? this.register : '')
+				const schema = resolve.schema || (ref.schema !== undefined && ref.schema !== null ? String(ref.schema) : '')
+				if (!register || !schema) {
+					continue
+				}
+				specs.push({ key: col.key, register, schema, colorField: resolve.colorField || '', iconField: resolve.iconField || '' })
+			}
+			return specs
+		},
+
+		/**
+		 * `listConfig` with the referenced records' looks on its badge cells,
+		 * as `renderedColumns` does for the table.
+		 *
+		 * @return {object} The list view's config.
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-badge-cell-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		renderedListConfig() {
+			const list = this.listConfig
+			if (!list || this.refLookSpecs.length === 0) {
+				return list
+			}
+			const lookKeys = new Set(this.refLookSpecs.map((spec) => spec.key))
+			const withLooks = (cell) => (cell && typeof cell === 'object' && lookKeys.has(cell.key)
+				? { ...cell, widgetProps: { ...(cell.widgetProps || {}), looks: this.refLooks[cell.key] || {} } }
+				: cell)
+			return {
+				...list,
+				...(list.leading ? { leading: withLooks(list.leading) } : {}),
+				...(list.trailing ? { trailing: Array.isArray(list.trailing) ? list.trailing.map(withLooks) : withLooks(list.trailing) } : {}),
+			}
+		},
+
+		/**
+		 * The ids each `refLookSpecs` column shows on screen.
+		 *
+		 * @return {{[key: string]: Array<string>}} Sorted ids by column key.
+		 */
+		refLookIds() {
+			const out = {}
+			for (const spec of this.refLookSpecs) {
+				const ids = new Set()
+				for (const row of this.displayObjects) {
+					const v = row ? row[spec.key] : undefined
+					;(Array.isArray(v) ? v : [v]).forEach((id) => {
+						if (id !== null && id !== undefined && id !== '' && typeof id !== 'object') {
+							ids.add(String(id))
+						}
+					})
+				}
+				out[spec.key] = [...ids].sort()
+			}
+			return out
+		},
+
 		refLabelIds() {
 			const out = {}
 			const facets = this.storeFacets || this.resolvedSidebar.facets || {}
@@ -5214,7 +6495,7 @@ export default {
 		 * @return {string} The id field key.
 		 */
 		folderPassthroughIdField() {
-			if (this.folderSidebar && this.folderSidebar.source === 'register') {
+			if (this.folderSidebar && (this.folderSidebar.source === 'register' || this.folderSidebar.source === 'groups')) {
 				return 'id'
 			}
 			return (this.folderSidebar && this.folderSidebar.idField) || 'id'
@@ -5224,7 +6505,7 @@ export default {
 		 * @return {string} The name field key for CnFolderSidebar's custom list.
 		 */
 		folderPassthroughNameField() {
-			if (this.folderSidebar && this.folderSidebar.source === 'register') {
+			if (this.folderSidebar && (this.folderSidebar.source === 'register' || this.folderSidebar.source === 'groups')) {
 				return 'name'
 			}
 			return (this.folderSidebar && this.folderSidebar.nameField) || 'name'
@@ -5240,17 +6521,22 @@ export default {
 		 */
 		mapMarkers() {
 			const features = []
+			// With the list beside the map, a pin carries the row's number there.
+			const numbers = this.mapListEnabled ? new Map(this.mapList.items.map((item) => [item.row, item.n])) : null
 			for (const row of this.displayObjects) {
 				const geometry = this.resolveRowGeometry(row)
 				if (!geometry) {
 					continue
 				}
+				const markerColor = resolveCssColor(markerColorOf(row, this.mapMarkerColor, this.mapColorRefsById))
 				features.push({
 					type: 'Feature',
 					geometry,
 					properties: {
 						[this.rowKey]: row[this.rowKey],
+						...(markerColor ? { markerColor } : {}),
 						...(this.mapConfig.popupField ? { [this.mapConfig.popupField]: row[this.mapConfig.popupField] } : {}),
+						...(numbers && numbers.has(row) ? { markerNumber: numbers.get(row), markerActive: this.activeMapKey === String(row[this.rowKey]) } : {}),
 					},
 				})
 			}
@@ -5275,6 +6561,133 @@ export default {
 		 */
 		mapClustering() {
 			return this.mapConfig.clustering !== false
+		},
+
+		/**
+		 * The marker colour rule (`mapConfig.markerColor`), or null.
+		 *
+		 * @return {object|null} The normalised rule.
+		 * @spec openspec/changes/index-map-parity/specs/index-page/spec.md#requirement-a-marker-can-take-its-colour-from-a-field
+		 */
+		mapMarkerColor() {
+			return normalizeMarkerColor(this.mapConfig && this.mapConfig.markerColor)
+		},
+
+		/** @return {Map<string, object>} The marker colour source rows by id. */
+		mapColorRefsById() {
+			return new Map((this.mapColorRefs || []).map((row) => [refIdOf(row), row]))
+		},
+
+		/** @return {string} Changes when the marker colour source must be read. */
+		mapColorFetchKey() {
+			const source = this.mapMarkerColor && this.mapMarkerColor.source
+			if (this.currentViewMode !== 'map' || !source) {
+				return ''
+			}
+			return [this.mapMarkerColor.field, source.register || '', source.schema || '', this.effectiveSchema ? 1 : 0].join('|')
+		},
+
+		/**
+		 * How many rows the map plots when it plots every matching row
+		 * (`mapConfig.plotAll`: `true` for 500, or a
+		 * number), 0 when it plots the current page.
+		 *
+		 * @return {number} The limit.
+		 * @spec openspec/changes/index-map-parity/specs/index-page/spec.md#requirement-the-map-can-plot-every-matching-row
+		 */
+		mapPlotAllLimit() {
+			return mapPlotAllLimitOf(this.mapConfig)
+		},
+
+		/** @return {number} The rows that match the filters. */
+		mapMatchTotal() {
+			return Math.max(this.displayObjects.length, Number(this.effectivePagination?.total || 0))
+		},
+
+		/**
+		 * The count line under the map (`mapConfig.count`): `true` for "Showing
+		 * {located} of {total} located", or a template with `{located}` and
+		 * `{total}` through the host's translate. '' when not asked for.
+		 *
+		 * @return {string} The line.
+		 * @spec openspec/changes/index-map-parity/specs/index-page/spec.md#requirement-the-map-can-say-how-many-rows-it-placed
+		 */
+		mapCountLine() {
+			const count = this.mapConfig && this.mapConfig.count
+			if (this.currentViewMode !== 'map' || !count) {
+				return ''
+			}
+			const vars = { located: this.mapMarkers.features.length, total: this.mapMatchTotal }
+			if (typeof count === 'string' && count !== '') {
+				return this.cnTranslate(count).replace(/\{(located|total)\}/g, (_, key) => String(vars[key]))
+			}
+			return t('nextcloud-vue', 'Showing {located} of {total} located', vars)
+		},
+
+		/**
+		 * The note when a map that plots every row hit its limit.
+		 *
+		 * @return {string} The note, or ''.
+		 */
+		mapCapNote() {
+			const limit = this.mapPlotAllLimit
+			if (this.currentViewMode !== 'map' || limit === 0 || this.mapMatchTotal <= this.displayObjects.length) {
+				return ''
+			}
+			return t('nextcloud-vue', 'The map shows the first {limit} of {total}. Narrow the filters to see the rest.', { limit: this.displayObjects.length, total: this.mapMatchTotal })
+		},
+
+		/** @return {number|undefined} The map's initial zoom (`mapConfig.zoom`), when a number. */
+		mapZoom() {
+			const zoom = this.mapConfig && this.mapConfig.zoom
+			return typeof zoom === 'number' && Number.isFinite(zoom) ? zoom : undefined
+		},
+
+		/** @return {boolean} Whether the map draws its numbered list (`mapConfig.list`). */
+		mapListEnabled() {
+			const list = this.mapConfig && this.mapConfig.list
+			return Boolean(list && typeof list === 'object' && typeof list.title === 'string' && list.title !== '')
+		},
+
+		/**
+		 * The map list's entries, numbered as the pins, and the rows without a
+		 * place. Templates go through the host's translate first.
+		 *
+		 * @return {{items: Array<object>, missing: Array<object>}}
+		 */
+		mapList() {
+			if (!this.mapListEnabled) {
+				return { items: [], missing: [] }
+			}
+			const list = this.mapConfig.list
+			const translated = {
+				...list,
+				title: this.cnTranslate(list.title),
+				sub: Array.isArray(list.sub) ? list.sub.map((s) => this.cnTranslate(s)) : (list.sub ? this.cnTranslate(list.sub) : ''),
+				due: list.due ? this.cnTranslate(list.due) : '',
+			}
+			return mapListItems(this.displayObjects, translated, {
+				rowKey: this.rowKey,
+				located: (row) => Boolean(this.resolveRowGeometry(row)),
+				translate: (text) => this.cnTranslate(text),
+				formatters: this.cnFormatters,
+				looks: this.refLooks,
+			})
+		},
+
+		/** @return {string} The list's accessible name. */
+		mapListLabel() {
+			return t('nextcloud-vue', 'On the map')
+		},
+
+		/** @return {string} The card under the list, for the rows without a place. */
+		mapMissingTitle() {
+			return n('nextcloud-vue', '%n without an address', '%n without an address', this.mapList.missing.length)
+		},
+
+		/** @return {string} The link from that card to the table. */
+		mapMissingLink() {
+			return t('nextcloud-vue', 'Show them in the table')
 		},
 
 		/**
@@ -5347,6 +6760,9 @@ export default {
 			if (this.isNamedSource) {
 				return this.namedLoading
 			}
+			if (this.sortSourceShown) {
+				return this.sortSource.state === 'loading'
+			}
 			return this.isSelfFetchMode ? !!this.list.loading.value : this.loading
 		},
 
@@ -5374,10 +6790,81 @@ export default {
 
 		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
 		effectivePagination() {
+			if (this.sortSourceShown) {
+				return this.sortSourceView.pagination
+			}
 			if (this.selfFetchFailed) {
 				return { ...this.list.pagination.value, total: 0, page: 1, pages: 1 }
 			}
+			// A named source that reports its own total (the search source)
+			// gives the count line its number.
+			if (this.isNamedSource && this.namedSource && typeof this.namedSource.total === 'function') {
+				const total = this.namedSource.total()
+				// A source with `pages: true` gets the pager the self-fetched lists draw.
+				if (this.namedSource.pages === true) {
+					const { page, limit } = this.namedPaging
+					return { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) }
+				}
+				return { ...(this.pagination || {}), total }
+			}
 			return this.isSelfFetchMode ? this.list.pagination.value : this.pagination
+		},
+
+		/**
+		 * The saved view the page has applied, or null.
+		 *
+		 * @return {object|null}
+		 */
+		appliedSavedView() {
+			const id = this.appliedSavedViewId
+			if (!id) {
+				return null
+			}
+			return (this.savedViews || []).find((view) => view && (String(view.id) === id || String(view.slug) === id || String(view.uuid) === id)) || null
+		},
+
+		/**
+		 * The term a named source searched for, for `{term}` in the title and
+		 * the count line ("Zoeken: Lindelaan"), or ''.
+		 *
+		 * @return {string}
+		 */
+		sourceTerm() {
+			return this.isNamedSource && this.namedSource && typeof this.namedSource.term === 'function' ? String(this.namedSource.term() || '') : ''
+		},
+
+		/**
+		 * The page title with `{term}` filled in.
+		 *
+		 * @return {string}
+		 */
+		shownTitle() {
+			const title = this.presented('title')
+			// A title with the term is translated here, before the term goes in,
+			// so its catalogue entry is found ("Zoeken: {term}").
+			return typeof title === 'string' && title.includes('{term}')
+				? this.cnTranslate(title).replace(/\{term\}/g, this.sourceTerm)
+				: title
+		},
+
+		/**
+		 * Whether the table marks unread rows. `showUnreadRows` decides when
+		 * the page sets it. Otherwise the boards draw every row alike, so under
+		 * the board look only a page that offers the Unread lens
+		 * (`personalLenses`) marks them; the Nextcloud look always does.
+		 *
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-unread-rows-are-marked-only-where-the-reader-asked-for-them
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-page-can-ask-for-its-unread-rows
+		 * @return {boolean} True when unread rows read in bold with the dot.
+		 */
+		marksUnreadRows() {
+			if (typeof this.showUnreadRows === 'boolean') {
+				return this.showUnreadRows
+			}
+			if (!this.isBoardLook) {
+				return true
+			}
+			return Array.isArray(this.personalLenses) && this.personalLenses.includes('unread')
 		},
 
 		/** Resolved schema OBJECT (for column generation / icons / labels). */
@@ -5488,7 +6975,16 @@ export default {
 		 * @return {{ scope: string, register: string, schema: object|string|null }} The page's source.
 		 */
 		savedViewsPage() {
-			return { scope: this.savedViewsScope, register: this.register, schema: this.schema }
+			return { scope: this.savedViewsScope, register: this.register, schema: this.schema, source: this.entitySource }
+		},
+
+		/**
+		 * Whether this page offers saved views in its sidebar.
+		 *
+		 * @return {boolean}
+		 */
+		savedViewsOffered() {
+			return pageOffersSavedViews(this)
 		},
 
 		/**
@@ -5514,7 +7010,14 @@ export default {
 			if (!this.viewPendingDelete) {
 				return ''
 			}
-			return t('nextcloud-vue', 'Delete the view "{name}"? This cannot be undone.', { name: this.viewPendingDelete.name })
+			const view = this.viewPendingDelete
+			const parts = [t('nextcloud-vue', 'The view "{name}" leaves your list and the menu on the left.', { name: view.name })]
+			const audience = normalizeSharedWith(view.sharedWith).map((e) => e.user || e.group)
+			if (audience.length > 0) {
+				parts.push(t('nextcloud-vue', 'It is shared with {names}; it leaves their lists too.', { names: audience.join(', ') }))
+			}
+			parts.push(t('nextcloud-vue', 'The items themselves stay. This cannot be undone.'))
+			return parts.join(' ')
 		},
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
@@ -5539,6 +7042,9 @@ export default {
 
 		/** Search term / visible columns / active facet filters for the embedded sidebar. */
 		effectiveSearchValue() {
+			if (this.namedSourceSearches) {
+				return this.namedSearchTerm || ''
+			}
 			return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '')
 		},
 
@@ -5574,6 +7080,16 @@ export default {
 				return this.schema
 			}
 			return (this.effectiveSchema && this.effectiveSchema.slug) || ''
+		},
+
+		/**
+		 * The row-class function the table takes: a function as given, or the
+		 * manifest's rules compiled.
+		 *
+		 * @return {?(row: object) => string}
+		 */
+		compiledRowClass() {
+			return compileRowClass(this.rowClass)
 		},
 
 		/** @return {number} How many leading columns the person pinned (0 while a saved view's columns are applied). */
@@ -5732,8 +7248,11 @@ export default {
 
 			const present = new Set(cols.map((c) => (typeof c === 'string' ? c : c.key)))
 			const byKey = new Map(this.governedColumns.map((c) => [c.key, c]))
+			// A scope that sets its own columns does not get its folder field back:
+			// every row of the scope holds the same value there.
+			const scopeField = this.activeScopeLayout.columns ? this.folderFilterKey : ''
 			visible.forEach((key) => {
-				if (present.has(key)) {
+				if (present.has(key) || key === scopeField) {
 					return
 				}
 				const def = byKey.get(key)
@@ -5870,6 +7389,10 @@ export default {
 				customComponents: this.effectiveCustomComponents,
 				// So a row action's toasts translate like the labels around it.
 				translate: this.cnTranslate,
+				// A row action of `type: "open-modal"` opens its modal here.
+				openModal: typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null,
+				// A row action of `type: "api-call"` reads the list again after it.
+				refresh: () => this.onRefreshEvent(),
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
@@ -5913,6 +7436,100 @@ export default {
 		},
 
 		/**
+		 * The page tabs a named source declares, each `{id, label, to, count?}`.
+		 *
+		 * @return {Array<object>} The tabs, empty without a source that has them.
+		 */
+		sourcePageTabs() {
+			const source = this.isNamedSource ? this.namedSource : null
+			if (!source || typeof source.pageTabs !== 'function') {
+				return []
+			}
+			return (source.pageTabs() || []).filter((tab) => tab && tab.to && tab.label)
+		},
+
+		/**
+		 * The page tabs to draw: the manifest's `pageTabs`, each with its
+		 * `countFrom` count once known, else a named source's own.
+		 *
+		 * @return {Array<object>} The tabs, `{ id, label, to, count? }`.
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 */
+		/**
+		 * The notice band's NcNoteCard type: its `variant`, else info.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-show-a-notice-under-its-list
+		 */
+		noticeType() {
+			const variant = this.notice && this.notice.variant
+			return ['success', 'warning', 'error'].includes(variant) ? variant : 'info'
+		},
+
+		effectivePageTabs() {
+			if (!Array.isArray(this.pageTabs) || this.pageTabs.length === 0) {
+				return this.sourcePageTabs
+			}
+			// The index is the tab's place in `pageTabs`, which is how its count
+			// is keyed, so the tabs are numbered before any is left out.
+			return this.pageTabs
+				.map((tab, index) => ({ tab, index }))
+				.filter(({ tab }) => tab && typeof tab.label === 'string' && tab.label !== '' && (tab.route || tab.to || tab.href))
+				.filter(({ tab }) => this.pageTabVisible(tab))
+				.map(({ tab, index }) => {
+					const to = tab.route
+						? { name: tab.route, ...(tab.params ? { params: tab.params } : {}), ...(tab.query ? { query: tab.query } : {}) }
+						: (tab.to || tab.href)
+					const count = this.pageTabCounts[index]
+					return { id: tab.id || `page-tab-${index}`, label: this.cnTranslate(tab.label), to, ...(typeof count === 'number' ? { count } : {}) }
+				})
+		},
+
+		/**
+		 * What the page tab counts depend on, as one key.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 */
+		pageTabCountKey() {
+			const tabs = Array.isArray(this.pageTabs) ? this.pageTabs : []
+			const sources = tabs.map((tab) => (tab && tab.countFrom && tab.countFrom.register && tab.countFrom.schema ? tab.countFrom : null))
+			return sources.some(Boolean) ? JSON.stringify(sources) : ''
+		},
+
+		/**
+		 * The numbers on the quick filters: a named source counts its own
+		 * tabs (`tabCounts()`), a self-fetching page asks OpenRegister.
+		 *
+		 * @return {Record<number, number>|null} Counts by tab index.
+		 */
+		effectiveTabCounts() {
+			const source = this.isNamedSource ? this.namedSource : null
+			if (source && typeof source.tabCounts === 'function' && !(Array.isArray(this.quickFilters) && this.quickFilters.length > 0)) {
+				return source.tabCounts()
+			}
+			return this.tabCounts
+		},
+
+		/**
+		 * The footer's free text: the manifest's `footerNote`, else a named
+		 * source's own.
+		 *
+		 * @return {string} The note, translated, or ''.
+		 */
+		effectiveFooterNote() {
+			// The scope's note, else the page's (a preset may have set it),
+			// else the named source's.
+			const scoped = this.activeScopePresentation ? this.activeScopePresentation.footerNote : undefined
+			const footerNote = scoped !== undefined ? scoped : this.footerNote
+			if (footerNote) {
+				return this.fillConfigTokens(this.cnTranslate(footerNote))
+			}
+			const source = this.isNamedSource ? this.namedSource : null
+			return (source && source.footerNote) || footerNote
+		},
+
+		/**
 		 * The quick-filter tabs to render: the `quickFilters` prop when set,
 		 * else a named source's own tabs (`useNamedSource` resolved the same
 		 * precedence for the LOAD side, so strip and fetch cannot disagree).
@@ -5920,11 +7537,21 @@ export default {
 		 * @return {Array<object>|null} The tabs, or null when there are none.
 		 */
 		effectiveQuickFilters() {
-			const own = withPersonalLenses(this.quickFilters, this.personalLenses)
+			const own = withPersonalLenses(this.presented('quickFilters') || this.generatedQuickFilters, this.personalLenses)
 			if (own && own.length > 0) {
-				return own
+				return own.map((tab) => this.withConfigLabels(tab))
 			}
 			return (this.isNamedSource && this.namedQuickFilters) || null
+		},
+
+		/**
+		 * The app config `@config.<key>` tokens resolve against: the `appConfig`
+		 * prop over a config an ancestor provides.
+		 *
+		 * @return {object} The config.
+		 */
+		effectiveAppConfig() {
+			return { ...unwrapAppConfig(this.cnAppConfig), ...(this.appConfig || {}) }
 		},
 
 		/**
@@ -5983,10 +7610,13 @@ export default {
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @spec openspec/changes/screens-index-header-buttons-parity/specs/index-list-board-look/spec.md#requirement-the-add-header-button-carries-a-plus
-		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string}>}
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string, link: ({href: string, target: (string|undefined)}|null)}>}
 		 */
 		resolvedHeaderButtons() {
-			const declared = Array.isArray(this.headerButtons) ? this.headerButtons : []
+			const headerButtons = this.presented('headerButtons')
+			const declared = Array.isArray(headerButtons) ? headerButtons : []
+			const builtInActions = new Set(['add', 'export', 'import', 'refresh', 'save-view', 'actions-menu'])
 			return declared
 				.filter((button) => button && typeof button === 'object' && typeof button.action === 'string' && button.action !== '')
 				.map((button, index) => {
@@ -6002,13 +7632,24 @@ export default {
 					}
 					// The board's header: Export reads "Download" with its icon and
 					// the Actions menu reads "Actions", without the manifest saying so.
-					if (this.isBoardLook && label === '' && button.action === 'export') {
-						label = t('nextcloud-vue', 'Download')
+					// A labelled Export keeps the icon too, unless it names its own.
+					if (this.isBoardLook && button.action === 'export') {
+						label = label || t('nextcloud-vue', 'Download')
 						icon = icon || 'Download'
 					}
 					if (label === '' && button.action === 'actions-menu') {
 						label = t('nextcloud-vue', 'Actions')
 					}
+					if (label === '' && button.action === 'save-view') {
+						label = t('nextcloud-vue', 'Save view')
+					}
+					const run = typeof button.run === 'string' ? button.run : ''
+					// A button that runs a manifest `href` header action is that link;
+					// a `type: "navigate"` or function-handler entry keeps dispatching.
+					const actionId = button.action === 'export' ? run : (builtInActions.has(button.action) ? '' : button.action)
+					const linked = actionId
+						? this.mergedHeaderActions.find((entry) => entry && entry.id === actionId && entry.href && entry._dispatchSuppress && (!entry.type || entry.type === 'handler'))
+						: null
 					return {
 						key: String(button.id || button.action || index),
 						label,
@@ -6016,6 +7657,8 @@ export default {
 						variant: button.variant === 'primary' ? 'primary' : 'secondary',
 						icon,
 						format: button.format === 'excel' ? 'excel' : 'csv',
+						run,
+						link: linked ? { href: linked.href, target: linked.linkTarget || undefined } : null,
 						items: Array.isArray(button.items)
 							? button.items.filter((item) => (typeof item === 'string' && item !== '')
 								|| (item && typeof item === 'object' && typeof item.heading === 'string' && item.heading !== ''))
@@ -6023,6 +7666,10 @@ export default {
 					}
 				})
 				.filter((button) => button.label !== '')
+				// An Export with nothing to export through is not drawn: a
+				// named or endpoint source with no `run` and no `@mass-export`
+				// listener.
+				.filter((button) => button.action !== 'export' || this.headerExportAvailable(button))
 				// The Actions menu lists the page's header actions (or the
 				// entries its `items` name), so a menu with nothing to list
 				// is not drawn.
@@ -6094,6 +7741,28 @@ export default {
 			return count > 0 ? `${name}, ${t('nextcloud-vue', '{count} active', { count })}` : name
 		},
 
+		/** @return {string} The field the folder sidebar filters by, or ''. */
+		folderFilterKey() {
+			return (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
+		},
+
+		/**
+		 * The filters the table's header filters show: every active filter but
+		 * the selected folder's own, which the Active chip already names, so
+		 * the table draws no summary chip for it.
+		 *
+		 * @return {object} The filters.
+		 */
+		tableActiveFilters() {
+			const filters = this.effectiveActiveFilters || {}
+			const key = this.folderFilterKey
+			if (!key || this.selectedFolderId === null || this.selectedFolderId === undefined || !Object.hasOwn(filters, key)) {
+				return filters
+			}
+			const { [key]: _folder, ...rest } = filters
+			return rest
+		},
+
 		/**
 		 * The active filters as chips for the board toolbar's second row, one
 		 * per filter: "Team: Woo". A filter with no value is not active.
@@ -6110,6 +7779,7 @@ export default {
 			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
 				const values = (Array.isArray(raw) ? raw : [raw])
 					.filter((value) => value !== null && value !== undefined && value !== '')
+					.filter((value) => !this.isFixedFilter(key, value))
 					.map((value) => this.activeFilterValueLabel(key, value))
 				if (values.length === 0) {
 					continue
@@ -6286,7 +7956,72 @@ export default {
 		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-the-count-reads-in-the-users-language
 		 * @return {string}
 		 */
+		/**
+		 * The header meta note with the list's counts filled in.
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 * @return {string}
+		 */
+		headerMetaText() {
+			const headerMeta = this.presented('headerMeta')
+			if (!headerMeta) {
+				return ''
+			}
+			const total = this.effectivePagination?.total
+			let missing = false
+			const text = this.cnTranslate(headerMeta)
+				.replace('{shown}', String(this.effectiveObjects.length))
+				.replace('{total}', typeof total === 'number' ? String(total) : '')
+				.replace(/\{count:([\w-]+)\}/g, (match, name) => {
+					const value = this.headerMetaCountValues[name]
+					if (typeof value !== 'number') {
+						missing = true
+						return ''
+					}
+					return String(value)
+				})
+			return missing ? '' : text
+		},
+
+		/**
+		 * Whether the header note carries a count, so the board leaves out its
+		 * own "{shown} of {total}" line (DqPrivacy, DqContracten).
+		 *
+		 * @return {boolean}
+		 */
+		headerMetaCarriesCount() {
+			const headerMeta = this.presented('headerMeta')
+			return typeof headerMeta === 'string' && /\{(shown|total|count:[\w-]+)\}/.test(headerMeta)
+		},
+
+		/**
+		 * What the header note's other counts depend on, as one key.
+		 *
+		 * @return {string}
+		 */
+		headerMetaCountKey() {
+			const sources = this.headerMetaCounts && typeof this.headerMetaCounts === 'object' ? this.headerMetaCounts : {}
+			const valid = Object.entries(sources).filter(([, from]) => from && from.register && from.schema)
+			return valid.length > 0 ? JSON.stringify(valid) : ''
+		},
+
+		/**
+		 * The header's description line, and on the map with its list the
+		 * number of rows on the map after a middle dot ("· 5 met een adres op
+		 * de kaart", DqZakenKaart).
+		 *
+		 * @return {string}
+		 */
 		headerDescription() {
+			const base = this.headerDescriptionBase
+			if (this.currentViewMode !== 'map' || !this.mapListEnabled) {
+				return base
+			}
+			const onMap = n('nextcloud-vue', '%n with an address on the map', '%n with an address on the map', this.mapList.items.length)
+			return base ? `${base} · ${onMap}` : onMap
+		},
+
+		headerDescriptionBase() {
 			const total = this.effectivePagination?.total
 			// Board look: the count line is a template over the rows on this page
 			// and all rows, "{shown} of {total}" unless the page says otherwise.
@@ -6295,13 +8030,19 @@ export default {
 				// The default count line is the library's own string, so it
 				// reads "14 van 14" in Dutch; a page's own template goes
 				// through the app's label lookup.
-				if (!this.countText && !this.countSubtitle) {
+				const countText = this.presented('countText')
+				// The note after the breadcrumb already says how many there are.
+				if (!countText && !this.countSubtitle && this.headerMetaCarriesCount) {
+					return this.description
+				}
+				if (!countText && !this.countSubtitle) {
 					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
 				}
-				if (this.countText) {
-					return this.cnTranslate(this.countText)
+				if (countText) {
+					return this.cnTranslate(countText)
 						.replace('{shown}', String(shown))
 						.replace('{total}', String(total))
+						.replace(/\{term\}/g, this.sourceTerm)
 				}
 				return this.countLine(this.countSubtitle, total, shown)
 			}
@@ -6313,8 +8054,10 @@ export default {
 
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
-			if (this.addLabel) {
-				return this.cnTranslate(this.addLabel)
+			const scoped = this.activeScopePresentation ? this.activeScopePresentation.addLabel : undefined
+			const addLabel = scoped !== undefined ? scoped : this.addLabel
+			if (addLabel) {
+				return this.cnTranslate(addLabel)
 			}
 			// A named source names its own create action. Without this the button
 			// falls back to a schema-derived noun, and a named source has no
@@ -6340,11 +8083,16 @@ export default {
 		/**
 		 * Effective sidebar configuration. Returns the sidebar config object
 		 * when `sidebar.enabled === true`, otherwise an `{ enabled: false }`
-		 * stub so the embedded CnIndexSidebar is not mounted.
+		 * stub so the embedded CnIndexSidebar is not mounted. A page that
+		 * offers saved views gets the sidebar unless it switched it off
+		 * with `enabled: false`: the saved views live in its Search tab.
 		 */
 		resolvedSidebar() {
-			if (this.sidebar && this.sidebar.enabled !== false) {
+			if (this.sidebar && this.sidebar.enabled !== false && (this.sidebar.enabled || !this.allowSavedViews)) {
 				return this.sidebar
+			}
+			if (this.allowSavedViews && !(this.sidebar && this.sidebar.enabled === false)) {
+				return { ...(this.sidebar || {}), enabled: true }
 			}
 			return { enabled: false }
 		},
@@ -6423,6 +8171,11 @@ export default {
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
 				personalColumns: this.personalColumns,
 				pinnedCount: this.pinnedColumnCount,
+				sortOptions: this.sidebarSortOptions,
+				currentSort: this.currentSortKeys,
+				currentSortValue: this.sortSource.value,
+				savedViews: this.savedViewsForSidebar,
+				activeTab: this.sidebarActiveTab,
 				...this.sidebarSearchProps,
 			}
 		},
@@ -6472,8 +8225,55 @@ export default {
 	},
 
 	watch: {
+		// A new search or filter starts the source rows at page 1.
+		'list.searchTerm.value': function() {
+			this.resetSortSourcePage()
+		},
+
+		'list.activeFilters.value': {
+			handler() {
+				this.resetSortSourcePage()
+			},
+
+			deep: true,
+		},
+
 		'$route.query._view': function() {
 			this.applyViewModeFromRoute()
+		},
+
+		'$route.query.savedView': function(now, before) {
+			// Leaving a view's address (a plain link to the page) leaves the view.
+			if ((typeof now !== 'string' || now === '') && typeof before === 'string' && before !== '' && before === this.appliedSavedViewId) {
+				this.leaveSavedView()
+				return
+			}
+			this.applySavedViewFromRoute()
+		},
+
+		activeSavedViewOverridesKey() {
+			/**
+			 * The applied view's page config overrides changed: a view with
+			 * overrides was applied (payload: the overrides) or left (`null`).
+			 *
+			 * @event view-overrides
+			 */
+			this.$emit('view-overrides', this.activeSavedViewOverrides)
+		},
+
+		routeViewModes() {
+			if (this.routeViewPending) {
+				this.applyViewModeFromRoute()
+			}
+		},
+
+		mapColorFetchKey: {
+			immediate: true,
+			handler(key) {
+				if (key !== '') {
+					this.loadMapColorSource()
+				}
+			},
 		},
 
 		boardFetchKey: {
@@ -6517,11 +8317,43 @@ export default {
 			},
 		},
 
+		// Read the colour and icon of the records badge columns point at.
+		refLookIds: {
+			immediate: true,
+			deep: true,
+			handler() {
+				this.loadRefLooks()
+			},
+		},
+
 		// The Active line names a referenced value, not its id.
 		activeFilterRefIds: {
 			deep: true,
 			handler() {
 				this.loadRefLabels()
+			},
+		},
+
+		quickFiltersFromKey: {
+			immediate: true,
+			/** @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values */
+			handler() {
+				this.loadGeneratedQuickFilters()
+			},
+		},
+
+		headerMetaCountKey: {
+			immediate: true,
+			handler() {
+				this.loadHeaderMetaCounts()
+			},
+		},
+
+		pageTabCountKey: {
+			immediate: true,
+			/** @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs */
+			handler() {
+				this.loadPageTabCounts()
 			},
 		},
 
@@ -6573,6 +8405,11 @@ export default {
 				listSize = this.boardPrevPageSize || 20
 				this.boardPrevPageSize = null
 			}
+			const leftMapPlotAll = previous === 'map' && this.mapPrevPageSize !== null
+			if (leftMapPlotAll) {
+				listSize = this.mapPrevPageSize
+				this.mapPrevPageSize = null
+			}
 			let size = null
 			if (mode === 'calendar') {
 				this.calendarPrevPageSize = listSize
@@ -6580,7 +8417,10 @@ export default {
 			} else if (mode === 'board') {
 				this.boardPrevPageSize = listSize
 				size = BOARD_PAGE_SIZE
-			} else if (previous === 'calendar' || previous === 'board') {
+			} else if (mode === 'map' && this.mapPlotAllLimit > 0 && !this.isNamedSource) {
+				this.mapPrevPageSize = listSize
+				size = this.mapPlotAllLimit
+			} else if (previous === 'calendar' || previous === 'board' || leftMapPlotAll) {
 				size = listSize
 			}
 			if (size !== null && typeof this.list.onPageSizeChange === 'function') {
@@ -6715,6 +8555,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	mounted() {
+		this.openSortSource()
 		this.measureSplitViewport()
 		if (this.splitViewEnabled && typeof window !== 'undefined') {
 			window.addEventListener('resize', this.measureSplitViewport)
@@ -6723,12 +8564,14 @@ export default {
 			window.addEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
 		}
 		this.loadManualOrder()
+		this.startLive()
 		this.loadPersonalColumns()
 		this.publishHoistedSidebar()
 		this.pushAiContext()
 		this.maybeOpenCreateFromQuery()
 		if (this.folderSidebar) {
 			this.loadFolderRegister()
+			this.loadFolderGroups()
 			// Reflect a deep-link filter (e.g. ?caseType=<id>) as the active folder.
 			const key = this.folderSidebar.filterField || this.folderSidebar.field
 			const active = key && this.effectiveActiveFilters[key]
@@ -6741,7 +8584,7 @@ export default {
 	created() {
 		this.applyViewModeFromRoute()
 		this.pushAiContext()
-		if (this.allowSavedViews) {
+		if (this.savedViewsOffered) {
 			this.fetchSavedViews()
 		}
 		this.selfActions = createSelfModeActions({
@@ -6779,6 +8622,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	beforeUnmount() {
+		this.stopLive()
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('resize', this.measureSplitViewport)
 			window.removeEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
@@ -6792,6 +8636,103 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * On mount: open on a source option the page defaults to
+		 * (`default: true`, unless the address carries an order of its own),
+		 * and read an annotating source's rows for the other orders.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		openSortSource() {
+			if (!this.isSelfFetchMode || this.sourceSortOptions.length === 0) {
+				return
+			}
+			const query = (this.$route && this.$route.query) || {}
+			const preferred = this.sourceSortOptions.find((o) => o.default === true)
+			if (preferred && !query._order) {
+				this.sortSource = { ...this.sortSource, value: String(preferred.value), page: 1 }
+				this.loadSortSource(preferred)
+				return
+			}
+			const annotating = this.sourceSortOptions.find((o) => o.source.annotate === true)
+			if (annotating) {
+				this.loadSortSource(annotating)
+			}
+		},
+
+		/**
+		 * Read a source option's rows. A failure while that option is chosen
+		 * orders the self-fetched list by the option's `order` instead.
+		 *
+		 * @param {object} option The sort option.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		async loadSortSource(option) {
+			const source = option.source
+			this.sortSource = { ...this.sortSource, state: 'loading' }
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const res = await axios.get(generateUrl(source.url), { params: source.params || {} })
+				this.sortSource = { ...this.sortSource, rows: rowsFromSourceBody(res ? res.data : null, source), state: 'ready' }
+			} catch (error) {
+				this.sortSource = { ...this.sortSource, rows: [], state: 'failed' }
+				// eslint-disable-next-line no-console
+				console.error(`[CnIndexPage] the sort option "${option.value}" could not load ${source.url}`, error)
+				if (this.sortSource.value === String(option.value)) {
+					const keys = orderToSortKeys(option.order)
+					if (keys.length > 0 && typeof this.list.onSort === 'function') {
+						this.list.onSort({ key: keys[0].key, order: keys[0].order, keys })
+					}
+				}
+			}
+		},
+
+		/**
+		 * Back to the first page of the source rows, after a new search or filter.
+		 *
+		 * @return {void}
+		 */
+		resetSortSourcePage() {
+			if (this.sortSource.page !== 1) {
+				this.sortSource = { ...this.sortSource, page: 1 }
+			}
+		},
+
+		/**
+		 * A presentation value: the active scope's when it declares the key,
+		 * else this page's own prop (which a query preset may have set).
+		 *
+		 * @param {string} key One of the query preset keys.
+		 * @return {unknown} The value.
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-a-preset-or-a-scope-sets-the-list-s-presentation
+		 */
+		presented(key) {
+			const scoped = this.activeScopePresentation
+			return scoped[key] !== undefined ? scoped[key] : this.ownPresentation[key]
+		},
+
+		/**
+		 * Whether a filter value is one of the query pairs that chose the
+		 * preset, so it shows no removable chip.
+		 *
+		 * @param {string} key The filter key.
+		 * @param {unknown} value One filter value.
+		 * @return {boolean}
+		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-the-query-that-chose-a-preset-is-not-a-removable-filter
+		 */
+		isFixedFilter(key, value) {
+			const fixed = this.fixedFilters
+			if (!fixed || !Object.hasOwn(fixed, key)) {
+				return false
+			}
+			return String(fixed[key]) === String(value)
+		},
+
 		/**
 		 * The manifest page that shows one object of a schema, for a linked
 		 * label. Null without a manifest or a matching detail page.
@@ -6839,6 +8780,45 @@ export default {
 		},
 
 		/**
+		 * Read the colour and icon names `refLookSpecs` columns need, for the
+		 * rows on screen, with the same resolver as the labels. A failure
+		 * leaves the badge as declared.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-badge-cell-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		async loadRefLooks() {
+			if (this.refLookSpecs.length === 0) {
+				return
+			}
+			if (!this._refLabelResolver) {
+				this._refLabelResolver = createRefLabelResolver(() => {
+					try {
+						return (this.list && this.list.objectStore) || useObjectStore()
+					} catch {
+						return null
+					}
+				})
+			}
+			const read = (spec, ids, name) => (name
+				? this._refLabelResolver.resolve(spec.register, spec.schema, ids, name, { strict: true }).catch(() => ({}))
+				: Promise.resolve({}))
+			await Promise.all(this.refLookSpecs.map(async (spec) => {
+				const known = this.refLooks[spec.key] || {}
+				const ids = (this.refLookIds[spec.key] || []).filter((id) => !Object.hasOwn(known, id))
+				if (ids.length === 0) {
+					return
+				}
+				const [colors, icons] = await Promise.all([read(spec, ids, spec.colorField), read(spec, ids, spec.iconField)])
+				const found = {}
+				ids.forEach((id) => {
+					found[id] = { color: (colors && colors[id]) || null, icon: (icons && icons[id]) || null }
+				})
+				this.refLooks = { ...this.refLooks, [spec.key]: { ...(this.refLooks[spec.key] || {}), ...found } }
+			}))
+		},
+
+		/**
 		 * Whether a saved view shows its record count (`viewCounts`).
 		 *
 		 * @param {string} id The view id.
@@ -6850,6 +8830,146 @@ export default {
 				return true
 			}
 			return Array.isArray(this.viewCounts) && this.viewCounts.map(String).includes(String(id))
+		},
+
+		/**
+		 * Build the `quickFiltersFrom` tabs: the field's distinct values with
+		 * their counts in one grouped request, labelled through the
+		 * reference-label resolver when the values are record ids. A failed
+		 * request draws no tabs.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
+		 */
+		async loadGeneratedQuickFilters() {
+			const key = this.quickFiltersFromKey
+			const schema = this.exportSchemaSlug
+			if (key === '' || !this.register || !schema) {
+				this.generatedQuickFilters = null
+				return
+			}
+			const from = this.quickFiltersFrom
+			const params = (this.$route && this.$route.params) || {}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			let groups
+			try {
+				groups = await fetchGroupedCounts({ register: this.register, schema, groupBy: from.field, filter: resolveFilterMap(this.filter, params, ctx) }, ctx)
+			} catch {
+				groups = []
+			}
+			let labels = {}
+			if (from.register && from.schema && from.valueField && groups.length > 0) {
+				labels = await labelsByField({ register: from.register, schema: from.schema, field: from.valueField, values: groups.map((g) => g.key), labelField: from.labelField || '' }).catch(() => ({}))
+			} else if (from.register && from.schema && groups.length > 0) {
+				if (!this._quickFilterLabelResolver) {
+					this._quickFilterLabelResolver = createRefLabelResolver(() => {
+						try {
+							return (this.list && this.list.objectStore) || useObjectStore()
+						} catch {
+							return null
+						}
+					})
+				}
+				labels = await this._quickFilterLabelResolver.resolve(from.register, from.schema, groups.map((g) => g.key), from.labelField || '').catch(() => ({}))
+			}
+			if (key !== this.quickFiltersFromKey) {
+				return
+			}
+			if (groups.length === 0) {
+				this.generatedQuickFilters = null
+				return
+			}
+			const sorted = [...groups].sort((a, b) => b.count - a.count)
+			const total = sorted.reduce((sum, g) => sum + g.count, 0)
+			this.generatedQuickFilters = [
+				{ label: from.allLabel || t('nextcloud-vue', 'All'), filter: {}, default: true, count: total },
+				...sorted.map((g) => ({ label: (labels && labels[g.key]) || g.key, filter: { [from.field]: g.key }, count: g.count })),
+			]
+		},
+
+		/**
+		 * Whether Nextcloud says the user administers this instance; false
+		 * when the user cannot be read.
+		 *
+		 * @return {boolean}
+		 */
+		viewerIsAdmin() {
+			try {
+				return getCurrentUser()?.isAdmin === true
+			} catch {
+				return false
+			}
+		},
+
+		/**
+		 * Whether a manifest page tab shows to this user: an `adminOnly` tab to
+		 * an instance admin, a tab with a `permission` to a user who holds it
+		 * (as a menu entry: with no permissions known, it shows). This only
+		 * decides whether the tab is drawn. It is not access control; the
+		 * page behind the tab must enforce its own access on the server.
+		 *
+		 * @param {object} tab The tab declaration.
+		 * @return {boolean} True when the tab is drawn.
+		 */
+		pageTabVisible(tab) {
+			if (tab.adminOnly === true && !this.viewerIsAdmin()) {
+				return false
+			}
+			if (tab.permission) {
+				const held = Array.isArray(this.cnPermissions) ? this.cnPermissions : []
+				if (held.length > 0 && !held.includes(tab.permission)) {
+					return false
+				}
+			}
+			return true
+		},
+
+		/**
+		 * Read the totals of the lists `headerMetaCounts` names, one list
+		 * request each. A failed count is null and leaves the note out.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadHeaderMetaCounts() {
+			const key = this.headerMetaCountKey
+			if (key === '') {
+				this.headerMetaCountValues = {}
+				return
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const values = {}
+			await Promise.all(JSON.parse(key).map(async ([name, from]) => {
+				values[name] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
+			}))
+			if (key === this.headerMetaCountKey) {
+				this.headerMetaCountValues = values
+			}
+		},
+
+		/**
+		 * Count the lists behind the manifest page tabs (`countFrom`), one list
+		 * request each. A failed count shows no number.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 */
+		async loadPageTabCounts() {
+			const key = this.pageTabCountKey
+			if (key === '') {
+				this.pageTabCounts = {}
+				return
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const counts = {}
+			await Promise.all(this.pageTabs.map(async (tab, index) => {
+				const from = tab && tab.countFrom
+				if (from && from.register && from.schema) {
+					counts[index] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
+				}
+			}))
+			if (key === this.pageTabCountKey) {
+				this.pageTabCounts = counts
+			}
 		},
 
 		/**
@@ -6908,6 +9028,10 @@ export default {
 		 */
 		async loadFilterCounts() {
 			const requestKey = this.countRequestKey
+			if (this.isNamedSource) {
+				await this.loadNamedSourceCounts(requestKey)
+				return
+			}
 			const schema = this.exportSchemaSlug
 			if (requestKey === '' || !this.register || !schema) {
 				this.tabCounts = null
@@ -6937,6 +9061,46 @@ export default {
 			}
 			this.tabCounts = tabCounts
 			this.savedViewCounts = viewCounts
+		},
+
+		/**
+		 * The quick-filter counts of a named source (`entitySource`): each tab
+		 * that asks is counted by the source's own `count(config)`, with the
+		 * tab's filter over `sourceConfig`. A source without `count` shows
+		 * none; a failed count leaves that tab without a number.
+		 *
+		 * @param {string} requestKey The `countRequestKey` this load answers.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-a-named-source-counts-its-quick-filters
+		 */
+		async loadNamedSourceCounts(requestKey) {
+			const count = this.namedSource ? this.namedSource.count : null
+			if (requestKey === '' || typeof count !== 'function') {
+				this.tabCounts = null
+				this.savedViewCounts = null
+				return
+			}
+			const params = (this.$route && this.$route.params) || {}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const tabCounts = {}
+			await Promise.all(this.countEntries
+				.filter((entry) => entry.key.startsWith('tab:'))
+				.map(async (entry) => {
+					const config = resolveFilterMap({ ...(this.sourceConfig || {}), ...(entry.filter || {}) }, params, ctx)
+					try {
+						const total = await count(config)
+						if (Number.isFinite(total)) {
+							tabCounts[Number(entry.key.slice(4))] = total
+						}
+					} catch {
+						// No number for this tab.
+					}
+				}))
+			if (requestKey !== this.countRequestKey) {
+				return
+			}
+			this.tabCounts = tabCounts
+			this.savedViewCounts = null
 		},
 
 		// ── Split view (case-page-and-list-as-a-place) ──────────────────
@@ -7156,8 +9320,11 @@ export default {
 		 * manifest-actions-dispatch — `navigate`, `emit`, `none`, or a
 		 * registry name (resolved through `resolveRegisteredHandler`).
 		 *
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 * @param {object} entry Raw headerActions entry.
-		 * @return {object} Possibly-mutated copy: function-typed
+		 * @return {object} Possibly-mutated copy: an `href` becomes a
+		 *   resolved link with `linkTarget`, no handler (a function one
+		 *   included) and `_dispatchSuppress: true`; function-typed
 		 *   handlers untouched; `'emit'` and unknown registry names
 		 *   strip the `handler` (emit-only fall-through); `'navigate'`
 		 *   becomes a `$router.push` thunk (with the entry's literal
@@ -7169,14 +9336,23 @@ export default {
 			if (!entry) {
 				return entry
 			}
+			// An `href` makes the entry a link, which only navigates: it
+			// carries no handler, and the page emits nothing for it.
+			if (typeof entry.href === 'string' && entry.href !== '') {
+				const link = headerActionAsLink(entry)
+				return link.href ? { ...link, linkTarget: link.target, _dispatchSuppress: true } : link
+			}
 			const handler = entry.handler
 			if (typeof handler === 'function') {
 				return { ...entry }
 			}
 			// `type: "navigate"` with a `target` URL is a link: the bar and the
-			// header's Actions menu render it as a real anchor in a new tab.
+			// header's Actions menu render it as a real anchor, an external URL
+			// in a new tab.
 			if (typeof handler !== 'string' && entry.type === 'navigate' && typeof entry.target === 'string' && entry.target !== '' && !entry.href) {
-				return { ...entry, href: entry.target }
+				return isExternalActionTarget(entry.target)
+					? { ...entry, href: entry.target, linkTarget: '_blank' }
+					: { ...entry, href: entry.target }
 			}
 			if (typeof handler !== 'string') {
 				// No handler declared — emit-only fall-through.
@@ -7347,8 +9523,9 @@ export default {
 		 *
 		 * @spec openspec/changes/screens-index-header-actions-menu/specs/index-header/spec.md#requirement-the-header-actions-menu-lists-what-its-items-name
 		 * @spec openspec/changes/screens-index-header-menu-headings/specs/index-header/spec.md#requirement-the-header-actions-menu-can-draw-group-headings-and-separators
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 * @param {{items?: Array<(string|{heading: string})>|null, format?: string}} button The resolved header button.
-		 * @return {Array<{key: string, label: string, kind?: ('heading'|'separator'), icon?: string, href?: string, disabled?: boolean, title?: string, iconComponent?: object, run?: Function}>}
+		 * @return {Array<{key: string, label: string, kind?: ('heading'|'separator'), icon?: string, href?: string, linkTarget?: string, disabled?: boolean, title?: string, iconComponent?: object, run?: () => void}>}
 		 */
 		headerMenuEntries(button) {
 			const fromAction = (entry) => ({
@@ -7356,6 +9533,7 @@ export default {
 				label: entry.label ? this.cnTranslate(entry.label) : '',
 				icon: entry.icon && typeof entry.icon === 'string' && !entry.icon.startsWith('icon-') ? entry.icon : '',
 				href: typeof entry.href === 'string' && entry.href !== '' ? entry.href : '',
+				linkTarget: entry.linkTarget || '',
 				// A `handler: "navigate"` entry whose route resolves carries `to`
 				// (resolveHeaderHandler drops its handler): the menu draws it as
 				// an in-app link, as the actions bar does, so it navigates.
@@ -7389,7 +9567,7 @@ export default {
 				}),
 
 				documentation: () => (this.documentationUrl
-					? { key: 'documentation', label: this.documentationLabel || t('nextcloud-vue', 'Documentation'), icon: 'BookOpenVariantOutline', href: this.documentationUrl }
+					? { key: 'documentation', label: this.documentationLabel || t('nextcloud-vue', 'Documentation'), icon: 'BookOpenVariantOutline', href: this.documentationUrl, linkTarget: '_blank' }
 					: null),
 			}
 			const entries = []
@@ -7485,18 +9663,27 @@ export default {
 
 		/**
 		 * A header button was clicked: run its built-in action, or dispatch
-		 * it as the `headerActions` entry with that id.
+		 * it as the `headerActions` entry with that id. A button that is a
+		 * link is left to the browser.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
-		 * @param {{action: string, format: string}} button The resolved button.
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @param {{action: string, format: string, link?: object}} button The resolved button.
 		 * @return {void}
 		 */
 		onHeaderButton(button) {
+			if (button.link) {
+				return
+			}
 			if (button.action === 'add') {
 				this.onAddClick()
 			} else if (button.action === 'export') {
-				if (this.register && this.exportSchemaSlug) {
+				if (button.run) {
+					this.onHeaderAction({ action: button.run, id: button.run })
+				} else if (this.register && this.exportSchemaSlug) {
 					this.onExportClick(button.format)
+				} else if (this.isNamedSource && !this.hasMassExportListener()) {
+					this.downloadNamedRows()
 				} else {
 					this.showExportDialog = true
 				}
@@ -7504,9 +9691,63 @@ export default {
 				this.showImportDialog = true
 			} else if (button.action === 'refresh') {
 				this.onRefreshEvent()
+			} else if (button.action === 'save-view') {
+				this.showSaveViewDialog = true
 			} else {
 				this.onHeaderAction({ action: button.action, id: button.action })
 			}
+		},
+
+		/**
+		 * Whether a header Export has something to export through. Any page
+		 * listing OpenRegister objects (self-fetch or the consumer's
+		 * `objects`) keeps it; a named or endpoint source (`entitySource`)
+		 * needs a `run` naming one of the page's header actions, or a
+		 * `@mass-export` listener.
+		 *
+		 * @spec openspec/changes/index-header-export-source/specs/index-page/spec.md#requirement-a-header-export-is-drawn-only-when-it-can-export
+		 * @param {{run?: string}} button The resolved header button.
+		 * @return {boolean}
+		 */
+		headerExportAvailable(button) {
+			if (!this.isNamedSource || (button && button.run) || this.hasMassExportListener()) {
+				return true
+			}
+			// A named source exports the rows it holds as CSV (downloadNamedRows).
+			return this.renderedColumns.some((col) => col && typeof col.key === 'string' && col.key !== '')
+		},
+
+		/**
+		 * Whether the consumer listens to `@mass-export`.
+		 *
+		 * @return {boolean}
+		 */
+		hasMassExportListener() {
+			const props = this.$ && this.$.vnode && this.$.vnode.props
+			return Boolean(props && typeof props.onMassExport === 'function')
+		},
+
+		/**
+		 * Download the rows of a named or endpoint source as CSV: every row the
+		 * source holds for the current query, with the table's columns. Such a
+		 * source has no server export, and a Download that does nothing is
+		 * worse than none.
+		 *
+		 * @spec openspec/changes/index-named-source-export/specs/index-named-source-export/spec.md#requirement-a-named-source-list-downloads-its-rows
+		 * @return {void}
+		 */
+		downloadNamedRows() {
+			const csv = rowsToCsv(this.namedRows, this.renderedColumns)
+			const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+			const url = URL.createObjectURL(blob)
+			const link = document.createElement('a')
+			const name = String(this.title || this.entitySource || 'export').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'export'
+			link.href = url
+			link.download = `${name}.csv`
+			document.body.appendChild(link)
+			link.click()
+			link.remove()
+			URL.revokeObjectURL(url)
 		},
 
 		/**
@@ -7547,23 +9788,7 @@ export default {
 		 * @return {string} The line, '' for a declaration without both forms.
 		 */
 		countLine(subtitle, total, shown) {
-			const fill = (text) => {
-				const out = String(text).replace('{total}', String(total))
-				return shown === null ? out : out.replace('{shown}', String(shown))
-			}
-			if (typeof subtitle === 'string') {
-				return fill(this.cnTranslate(subtitle))
-			}
-			const singular = subtitle && typeof subtitle.singular === 'string' ? subtitle.singular : ''
-			const plural = subtitle && typeof subtitle.plural === 'string' ? subtitle.plural : ''
-			if (singular === '' || plural === '') {
-				return ''
-			}
-			if (typeof this.cnAppId === 'string' && this.cnAppId !== '') {
-				const vars = shown === null ? { total } : { total, shown }
-				return n(this.cnAppId, singular, plural, total, vars)
-			}
-			return fill(this.cnTranslate(total === 1 ? singular : plural))
+			return countLine(subtitle, total, { shown, translate: this.cnTranslate, appId: this.cnAppId })
 		},
 
 		/**
@@ -7594,6 +9819,9 @@ export default {
 		 * @return {void}
 		 */
 		onSearchEvent(value) {
+			if (this.namedSourceSearches) {
+				this.namedSearchTerm = value || ''
+			}
 			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') {
 				this.list.onSearch(value)
 				this.persistViewStateToRoute(this.currentViewState())
@@ -7630,10 +9858,100 @@ export default {
 		},
 
 		/**
+		 * An order chosen in the index sidebar's Sort section. An option with
+		 * an endpoint `source` is chosen by its value; any other goes the way a
+		 * header click goes: the self-fetched list sorts (`_order`, kept in the
+		 * address), and `sort` is emitted for a host that sorts itself.
+		 *
+		 * @param {Array<{key: string, order: string}>} keys The chosen order.
+		 * @param {string} [value] The chosen option's value.
+		 * @return {void}
+		 */
+		onSidebarSortChange(keys, value) {
+			if (value !== undefined && this.selectSortOption(value)) {
+				return
+			}
+			if (!Array.isArray(keys) || keys.length === 0) {
+				return
+			}
+			this.onSortEvent({ key: keys[0].key, order: keys[0].order, keys })
+		},
+
+		/**
+		 * Choose a sort option by its value: an option with an endpoint
+		 * `source` lists the endpoint's rows; any other applies its order. A
+		 * saved view's `sortOption` selects through here.
+		 *
+		 * @param {string} value The option's value.
+		 * @return {boolean} Whether an option of that value was chosen.
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		selectSortOption(value) {
+			const option = (this.sortSelectOptions || []).find((o) => o && o.value !== undefined && String(o.value) === String(value))
+			if (!option) {
+				return false
+			}
+			if (this.sourceSortOptions.includes(option) && this.isSelfFetchMode) {
+				this.sortSource = { ...this.sortSource, value: String(option.value), page: 1 }
+				this.loadSortSource(option)
+				this.$emit('sort-change', String(option.value))
+				return true
+			}
+			const keys = orderToSortKeys(option.order !== undefined ? option.order : option.value)
+			if (keys.length === 0) {
+				return false
+			}
+			this.onSortEvent({ key: keys[0].key, order: keys[0].order, keys })
+			return true
+		},
+
+		/**
+		 * A quick filter with `@config.<key>` in its `label` or `activeLabel`
+		 * (`"Residence @config.municipality"`): the label translated first, then
+		 * each token replaced by its configured value. A key the config does
+		 * not hold leaves its token in place. Other tabs pass unchanged.
+		 *
+		 * @param {object} tab A quick-filter tab.
+		 * @return {object} The tab, with its labels resolved.
+		 */
+		withConfigLabels(tab) {
+			if (!tab || typeof tab !== 'object') {
+				return tab
+			}
+			const hasToken = (value) => typeof value === 'string' && value.includes('@config.')
+			if (!hasToken(tab.label) && !hasToken(tab.activeLabel)) {
+				return tab
+			}
+			const fill = (value) => (hasToken(value) ? this.fillConfigTokens(this.cnTranslate(value)) : value)
+			return { ...tab, label: fill(tab.label), activeLabel: fill(tab.activeLabel) }
+		},
+
+		/**
+		 * A text with each `@config.<key>` replaced by the app config's value;
+		 * a key the config does not hold leaves its token in place.
+		 *
+		 * @param {string} text The text, already translated.
+		 * @return {string} The text with the config values in.
+		 * @spec openspec/changes/pl4-cell-rules/specs/pl4-cell-rules/spec.md#requirement-a-token-can-take-a-config-value
+		 */
+		fillConfigTokens(text) {
+			const config = this.effectiveAppConfig
+			return String(text).replace(/@config\.([A-Za-z0-9_.-]*[A-Za-z0-9_])/g, (token, key) => {
+				const found = this.getByPath(config, key)
+				return found === undefined || found === null || found === '' ? token : String(found)
+			})
+		},
+
+		/**
 		 * @param {{key: string, order: string, keys?: Array<{key: string, order: string}>}} payload Sort change from CnDataTable.
 		 * @return {void}
 		 */
 		onSortEvent(payload) {
+			// An order by keys (a column header, a field in the Sort section)
+			// leaves an endpoint-ranked order.
+			if (this.sortSource.value) {
+				this.sortSource = { ...this.sortSource, value: '', page: 1 }
+			}
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
 				this.list.onSort(payload)
 				this.persistViewStateToRoute(this.currentViewState())
@@ -7709,13 +10027,30 @@ export default {
 		 * (same resulting path/query) is swallowed.
 		 *
 		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string, sortKeys?: Array<{key: string, order: string}>}} state Current view state.
+		 * Without `savedView` the address keeps the applied view it names while
+		 * the filters are still the view's: a sort, a search or the view's own
+		 * sort option shows the same view's records.
+		 *
+		 * @param {{savedView?: string}} [options] The saved view the address keeps naming, or `''` for none.
 		 * @return {void}
+		 * @spec openspec/changes/saved-view-kept-in-route/specs/saved-view-kept-in-route/spec.md#requirement-the-address-keeps-naming-the-applied-view
 		 */
-		persistViewStateToRoute(state) {
+		persistViewStateToRoute(state, { savedView } = {}) {
 			if (!this.$router || !this.$route) {
 				return
 			}
 			const query = { ...this.$route.query }
+			if (savedView === undefined) {
+				const named = this.appliedSavedViewId !== '' && query.savedView === this.appliedSavedViewId
+				savedView = named && this.viewFiltersKey(state.filters) === this.appliedViewFiltersKey ? this.appliedSavedViewId : ''
+			}
+			// The menu entry of a saved view is active while the address names
+			// it; any other change to the filters is no longer that view.
+			if (savedView !== '') {
+				query.savedView = savedView
+			} else {
+				delete query.savedView
+			}
 			for (const key of this.persistedFilterKeys) {
 				delete query[key]
 			}
@@ -7750,6 +10085,26 @@ export default {
 		},
 
 		/**
+		 * Filters as one comparable key: empty values dropped, every value a
+		 * sorted list of strings, the keys sorted.
+		 *
+		 * @param {object} filters The filters.
+		 * @return {string}
+		 * @spec openspec/changes/saved-view-kept-in-route/specs/saved-view-kept-in-route/spec.md#requirement-the-address-keeps-naming-the-applied-view
+		 */
+		viewFiltersKey(filters) {
+			const out = {}
+			for (const key of Object.keys(filters || {}).sort()) {
+				const value = filters[key]
+				const values = (Array.isArray(value) ? value : [value]).filter((v) => v !== undefined && v !== null && v !== '').map(String).sort()
+				if (values.length > 0) {
+					out[key] = values
+				}
+			}
+			return JSON.stringify(out)
+		},
+
+		/**
 		 * "Clear all" from the sidebar: reset search, every active filter, the
 		 * sort and the folder-sidebar selection in one fetch + one route
 		 * replace, rather than one of each per field. Self-fetch mode only; a
@@ -7771,6 +10126,7 @@ export default {
 			// Clearing the view brings the person's own columns back.
 			this.appliedViewColumns = null
 			this.appliedSavedViewId = ''
+			this.applyViewSortOption(null)
 			if (this.isNamedSource && Object.keys(this.namedActiveFilters || {}).length > 0) {
 				this.namedActiveFilters = {}
 				this.persistNamedFiltersToRoute({})
@@ -7793,6 +10149,30 @@ export default {
 		},
 
 		/**
+		 * Read the rows `mapConfig.markerColor.source` points at, once.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadMapColorSource() {
+			const rule = this.mapMarkerColor
+			if (!rule || !rule.source || this.mapColorRefs !== null) {
+				return
+			}
+			const property = this.effectiveSchema?.properties?.[rule.field] || null
+			const target = referenceTargetOf(rule.source, { register: this.register, property })
+			if (!target.register || !target.schema) {
+				return
+			}
+			let rows
+			try {
+				rows = await fetchReferenceObjects({ ...target, filter: rule.source.filter || {} })
+			} catch {
+				rows = []
+			}
+			this.mapColorRefs = Array.isArray(rows) ? rows : []
+		},
+
+		/**
 		 * Fetch what the board view needs: the rows of a reference column
 		 * field (once per field) and the narrowing select's options.
 		 *
@@ -7810,6 +10190,9 @@ export default {
 						rows = await fetchReferenceObjects({ ...target, filter: active.source?.filter || {} })
 					} catch {
 						rows = []
+					}
+					if (active.source?.itemsPath) {
+						rows = flattenItemRefs(rows, { itemsPath: active.source.itemsPath, keyField: active.source.keyField || 'name' })
 					}
 					this.boardRefs = { ...this.boardRefs, [active.field]: rows }
 				}
@@ -7880,8 +10263,16 @@ export default {
 		 * @return {void}
 		 */
 		onPageEvent(page) {
+			if (this.sortSourceShown) {
+				this.sortSource = { ...this.sortSource, page: Number(page) || 1 }
+				this.$emit('page-changed', page)
+				return
+			}
 			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') {
 				this.list.onPageChange(page)
+			}
+			if (this.isNamedSource && this.namedSource && this.namedSource.pages === true) {
+				this.namedPaging = { ...this.namedPaging, page }
 			}
 			this.$emit('page-changed', page)
 		},
@@ -7897,6 +10288,9 @@ export default {
 		onPageSizeEvent(size) {
 			if (this.isSelfFetchMode && typeof this.list.onPageSizeChange === 'function') {
 				this.list.onPageSizeChange(size)
+			}
+			if (this.isNamedSource && this.namedSource && this.namedSource.pages === true) {
+				this.namedPaging = { page: 1, limit: size }
 			}
 			this.$emit('page-size-changed', size)
 		},
@@ -8242,6 +10636,50 @@ export default {
 		},
 
 		/**
+		 * The buttons an `actions` column shows on a row: the row actions its
+		 * `widgetProps.actions` names (by id, else by label), in that order,
+		 * that are visible for the row.
+		 *
+		 * @param {object} col The column.
+		 * @param {object} row The row.
+		 * @return {Array<{key: string, label: string, variant: string, disabled: boolean}>}
+		 * @spec openspec/changes/table-actions-column/specs/index-page/spec.md#requirement-a-column-can-show-row-actions-as-buttons
+		 */
+		actionColumnItems(col, row) {
+			const wanted = Array.isArray(col.widgetProps && col.widgetProps.actions) ? col.widgetProps.actions : []
+			const available = this.rowActionsFor(row)
+			return wanted
+				.map((ref) => available.find((action) => action.id === ref) || available.find((action) => action.label === ref))
+				.filter((action) => action && isRowActionVisible(action, row))
+				.map((action, index) => ({
+					key: action.id || action.label,
+					label: this.cnTranslate(action.label),
+					variant: action.variant || (index === 0 ? 'secondary' : 'tertiary'),
+					disabled: typeof action.disabled === 'function' ? !!action.disabled(row) : action.disabled === true,
+				}))
+		},
+
+		/**
+		 * Run one `actions` column button: its handler, then the same `action`
+		 * event a row menu entry emits.
+		 *
+		 * @param {string} key The action's id, else its label.
+		 * @param {object} row The row.
+		 * @return {void}
+		 * @spec openspec/changes/table-actions-column/specs/index-page/spec.md#requirement-a-column-can-show-row-actions-as-buttons
+		 */
+		runColumnAction(key, row) {
+			const action = this.rowActionsFor(row).find((entry) => (entry.id || entry.label) === key)
+			if (!action) {
+				return
+			}
+			if (typeof action.handler === 'function') {
+				action.handler(row)
+			}
+			this.onRowAction(rowActionPayload(action, row))
+		},
+
+		/**
 		 * Take the server's version of a row after a conflict. Nothing of this
 		 * person's edit is written, and the row in the list is refreshed to
 		 * what the server holds, so the screen and the record agree.
@@ -8401,6 +10839,39 @@ export default {
 			}
 			if (typeof this.list.refresh === 'function') {
 				this.list.refresh(1)
+			}
+		},
+
+		/**
+		 * Load the Nextcloud groups for `folderSidebar.source: 'groups'`, each
+		 * with its member count. `folderSidebar.groups` (`[{ id, parent? }]`)
+		 * picks and orders them and nests a group under its `parent`; without
+		 * it every group shows, by name. A refused request lists none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
+		 */
+		async loadFolderGroups() {
+			const cfg = this.folderSidebar
+			if (!cfg || cfg.source !== 'groups') {
+				return
+			}
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const groups = await fetchGroups(axios, { search: cfg.search || '', limit: cfg.limit || 200 })
+				const declared = Array.isArray(cfg.groups) ? cfg.groups.filter((entry) => entry && entry.id) : null
+				if (!declared) {
+					this.folderGroupList = [...groups].sort((a, b) => a.name.localeCompare(b.name))
+					return
+				}
+				const byId = new Map(groups.map((group) => [group.id, group]))
+				this.folderGroupList = declared
+					.filter((entry) => byId.has(String(entry.id)))
+					.map((entry) => ({ ...byId.get(String(entry.id)), parentId: entry.parent ? String(entry.parent) : null }))
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.error('[CnIndexPage] failed to load the Nextcloud groups', e)
+				this.folderGroupList = []
 			}
 		},
 
@@ -8659,6 +11130,62 @@ export default {
 			this.onRefreshEvent()
 		},
 
+		/**
+		 * The object store live updates come through.
+		 *
+		 * @return {object} The store.
+		 */
+		liveStore() {
+			return (this.list && this.list.objectStore) || useObjectStore()
+		},
+
+		/**
+		 * Subscribe to the `live` object types and read the list again after a change.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/pl4-index-live/specs/pl4-index-live/spec.md#requirement-an-index-page-follows-live-changes
+		 */
+		async startLive() {
+			const types = Array.isArray(this.live) ? this.live.filter((type) => typeof type === 'string' && type !== '') : []
+			const store = types.length > 0 ? this.liveStore() : null
+			if (!store || typeof store.subscribe !== 'function') {
+				return
+			}
+			const handles = []
+			for (const type of types) {
+				try {
+					handles.push(await store.subscribe(type))
+				} catch {
+					// A type the store cannot follow; the list still reads on refresh.
+				}
+			}
+			this.liveHandles = handles
+			this.liveUnwatch = this.$watch(() => store.liveLastEventAt, () => this.onLiveEvent())
+		},
+
+		/**
+		 * Read the list again once changes stop arriving for half a second.
+		 */
+		onLiveEvent() {
+			clearTimeout(this.liveTimer)
+			this.liveTimer = setTimeout(() => this.onRefreshEvent(), 500)
+		},
+
+		/**
+		 * Let go of the live subscriptions.
+		 */
+		stopLive() {
+			clearTimeout(this.liveTimer)
+			if (typeof this.liveUnwatch === 'function') {
+				this.liveUnwatch()
+			}
+			const store = this.liveHandles.length > 0 ? this.liveStore() : null
+			if (store && typeof store.unsubscribe === 'function') {
+				this.liveHandles.forEach((handle) => store.unsubscribe(handle))
+			}
+			this.liveHandles = []
+		},
+
 		/** @return {Promise<void>} */
 		async onRefreshEvent() {
 			this.$emit('refresh')
@@ -8704,6 +11231,11 @@ export default {
 					'columns-reset': () => this.onColumnsReset(),
 					'filter-change': (event) => this.onFilterEvent(event),
 					'clear-filters': () => this.onClearFilters(),
+					'sort-change': (keys, value) => this.onSidebarSortChange(keys, value),
+					'saved-view': (event) => this.onSavedViewAction(event),
+					'tab-change': (tab) => {
+						this.sidebarActiveTab = tab
+					},
 				},
 			}
 		},
@@ -9087,6 +11619,55 @@ export default {
 		},
 
 		/**
+		 * Whether a page tab is the page being shown.
+		 *
+		 * @param {object} tab The page tab.
+		 * @return {boolean} True for the current page.
+		 */
+		isActivePageTab(tab) {
+			if (tab.to && typeof tab.to === 'object') {
+				return !!this.$route && tab.to.name !== undefined && this.$route.name === tab.to.name
+			}
+			const path = this.$route && this.$route.path
+			return !!path && String(path).replace(/\/+$/, '') === String(tab.to).replace(/\/+$/, '')
+		},
+
+		/**
+		 * The href of a page tab, resolved through the router when there is one.
+		 *
+		 * @param {object} tab The page tab.
+		 * @return {string} The href.
+		 */
+		pageTabHref(tab) {
+			if (this.$router && typeof this.$router.resolve === 'function') {
+				const resolved = this.$router.resolve(tab.to)
+				if (resolved && resolved.href) {
+					return resolved.href
+				}
+			}
+			return tab.to
+		},
+
+		/**
+		 * Follow a page tab on the app's router. A ctrl/cmd/shift or middle
+		 * click keeps the browser's own new-tab behaviour.
+		 *
+		 * @param {object} tab The page tab.
+		 * @param {MouseEvent} event The click.
+		 * @return {void}
+		 */
+		onPageTabClick(tab, event) {
+			if (!this.$router || isNewTabClick(event) || this.isActivePageTab(tab)) {
+				if (this.isActivePageTab(tab)) {
+					event.preventDefault()
+				}
+				return
+			}
+			event.preventDefault()
+			this.$router.push(tab.to).catch(() => {})
+		},
+
+		/**
 		 * Handle the built-in View action — emits a dedicated `view` event.
 		 * Kept distinct from `row-click` because the two are conceptually
 		 * different: a row click might mean select/expand/drilldown, while
@@ -9203,6 +11784,7 @@ export default {
 		 * @param {string} mode 'table' or 'cards'
 		 */
 		onViewModeChange(mode) {
+			this.routeViewPending = false
 			this.currentViewMode = mode
 			this.$emit('view-mode-change', mode)
 		},
@@ -9212,16 +11794,26 @@ export default {
 		 * offers it. The key starts with `_`, like `_search` and `_page`, so it
 		 * is never read as a list filter. A menu entry's `query` can so open a
 		 * list as its board, on the one page that lists the schema
-		 * (screens-board-reference-columns).
+		 * (screens-board-reference-columns). A mode the page offers only later
+		 * (the map, once rows with a geometry are in) opens when it arrives,
+		 * unless the reader picked a view first.
 		 *
 		 * @return {void}
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-the-address-can-open-a-list-in-a-view-mode
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-the-address-opens-a-view-mode-that-arrives-later
 		 */
 		applyViewModeFromRoute() {
 			const wanted = this.$route?.query?._view
-			if (typeof wanted === 'string' && wanted !== this.currentViewMode && this.effectiveToggleModes.includes(wanted)) {
-				this.currentViewMode = wanted
+			if (typeof wanted !== 'string' || wanted === '' || wanted === this.currentViewMode) {
+				this.routeViewPending = false
+				return
 			}
+			if (this.routeViewModes.includes(wanted)) {
+				this.currentViewMode = wanted
+				this.routeViewPending = false
+				return
+			}
+			this.routeViewPending = true
 		},
 
 		/**
@@ -9281,13 +11873,20 @@ export default {
 
 		/**
 		 * Fetch the current user's saved views (own + public) from
-		 * OpenRegister's views API. Called from created() when
-		 * `allowSavedViews` is enabled.
+		 * OpenRegister's views API. Called from created() when the page
+		 * offers saved views.
 		 */
 		async fetchSavedViews() {
 			this.savedViewsLoading = true
 			try {
 				this.savedViews = await useSavedViewsApi().fetchViews()
+				// An empty answer is also what a misread response gives, so it
+				// never empties the menu: entries are dropped only against a
+				// list that came back with views in it.
+				if (this.savedViews.length > 0) {
+					this.syncSavedViewMenu()
+				}
+				this.applySavedViewFromRoute()
 			} catch (error) {
 				// eslint-disable-next-line no-console
 				console.error('CnIndexPage: failed to fetch saved views', error)
@@ -9305,10 +11904,16 @@ export default {
 		 * query implicitly resets `_page` to 1.
 		 *
 		 * @param {object} view The View API object to apply.
+		 * @param {{keepSavedViewKey?: boolean}} [options] Keep `?savedView=<id>` in the address, as a menu entry's link does.
 		 */
-		onApplySavedView(view) {
+		onApplySavedView(view, { keepSavedViewKey = false } = {}) {
 			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
 			const state = extractViewState(view)
+			if (view && view.seeded === true) {
+				const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+				state.filters = resolveFilterTokens(state.filters, ctx)
+			}
+			this.appliedViewFiltersKey = this.viewFiltersKey(state.filters)
 			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
 			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []
 			this.appliedViewColumns = viewColumns.length > 0 ? viewColumns : null
@@ -9327,19 +11932,28 @@ export default {
 				// Through `persistViewStateToRoute` rather than a raw replace,
 				// because it is what records the keys this view wrote — without
 				// that, a later "clear all" has nothing to delete them by.
-				this.persistViewStateToRoute(state)
+				this.persistViewStateToRoute(state, { savedView: keepSavedViewKey ? this.appliedSavedViewId : '' })
+				this.applyViewSortOption(savedViewOverrides(view))
 				this.$emit('apply-view', view)
 				return
 			}
 			if (!this.$router) {
 				return
 			}
-			const nav = this.$router.replace({ query: buildRouteQueryFromViewState(state) })
+			const query = buildRouteQueryFromViewState(state)
+			if (keepSavedViewKey) {
+				query.savedView = this.appliedSavedViewId
+			}
+			const nav = this.$router.replace({ query })
+			if (this.isNamedSource) {
+				this.namedActiveFilters = namedFiltersFromQuery(query, this)
+			}
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
 			if (nav && typeof nav.catch === 'function') {
 				nav.catch(() => {})
 			}
+			this.applyViewSortOption(savedViewOverrides(view))
 			this.$emit('apply-view', view)
 		},
 
@@ -9377,6 +11991,21 @@ export default {
 			}
 		},
 
+		/**
+		 * Put a saved view that changed elsewhere (its alert) back in the list,
+		 * matched on its id or uuid.
+		 *
+		 * @param {object} view The saved view as the server returned it.
+		 * @return {void}
+		 */
+		replaceSavedView(view) {
+			if (!view || typeof view !== 'object') {
+				return
+			}
+			const same = (other) => other && ((view.id !== undefined && other.id === view.id) || (view.uuid && other.uuid === view.uuid))
+			this.savedViews = (this.savedViews || []).map((other) => (same(other) ? view : other))
+		},
+
 		async onSaveViewConfirm({ name, isPublic, sharedWith, presentation }) {
 			const state = this.isSelfFetchMode
 				? this.currentViewState()
@@ -9404,6 +12033,8 @@ export default {
 				}
 				this.savedViews = [...this.savedViews, view]
 				this.showSaveViewDialog = false
+				this.sidebarActiveTab = 'filters-tab'
+				this.sidebarOpen = true
 				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))
 			} catch (error) {
 				// eslint-disable-next-line no-console
@@ -9450,6 +12081,179 @@ export default {
 			} catch (error) {
 				const data = error?.response?.data
 				this.$refs.presentationViewDialog?.setError((data && (data.error || data.message)) || error?.message)
+			}
+		},
+
+		/**
+		 * One saved-view intent from the sidebar's Search tab.
+		 *
+		 * @param {{action: string, view: (object|null)}} event The intent.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+		 */
+		onSavedViewAction({ action, view } = {}) {
+			const handlers = {
+				apply: () => this.onApplySavedView(view),
+				save: () => { this.showSaveViewDialog = true },
+				edit: () => this.onEditViewRequest(view),
+				share: () => this.onShareViewRequest(view),
+				presentation: () => this.onPresentationViewRequest(view),
+				update: () => this.onUpdateViewRequest(view),
+				copy: () => this.onCopyViewRequest(view),
+				menu: () => this.onToggleSavedViewInMenu(view),
+				delete: () => this.onDeleteViewRequest(view),
+			}
+			if (handlers[action]) {
+				handlers[action]()
+			}
+		},
+
+		/**
+		 * Add a saved view to the app menu, or take it out. Stored per user
+		 * by CnAppRoot; the view itself is not touched, so a view shared
+		 * with this user can be added as well as an own one.
+		 *
+		 * @param {object} view The view.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		onToggleSavedViewInMenu(view) {
+			const menu = this.cnSavedViewMenu
+			if (!view || !menu || typeof menu.toggle !== 'function' || this.savedViewPage === '') {
+				return
+			}
+			const badge = this.savedViewMenuBadge(view)
+			menu.toggle({ id: String(view.id || view.slug), page: this.savedViewPage, name: view.name, ...(typeof view.icon === 'string' && view.icon !== '' ? { icon: view.icon } : {}), ...(badge ? { badge } : {}) })
+		},
+
+		/**
+		 * The count a view's menu entry shows, from its `overrides.badge`:
+		 * `{ count: { register, schema, filter }, counterVariant? }`, or null.
+		 *
+		 * @param {object} view The view.
+		 * @return {{count: object, counterVariant?: string}|null}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 */
+		savedViewMenuBadge(view) {
+			const overrides = savedViewOverrides(view)
+			const badge = overrides ? overrides.badge : null
+			const filters = view && view.query && typeof view.query.filters === 'object' ? view.query.filters : {}
+			const locked = overrides && overrides.lockedFilters && typeof overrides.lockedFilters === 'object' ? overrides.lockedFilters : {}
+			return savedViewBadge(badge, { register: this.register, schema: schemaSlug(this.schema), filter: this.filter }, { ...locked, ...filters })
+		},
+
+		/**
+		 * Select the sort option a view names (`overrides.sortOption`), or,
+		 * given none, undo the one the previous view selected.
+		 *
+		 * @param {object|null} overrides The view's overrides.
+		 * @return {void}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-can-select-a-sort-option
+		 */
+		applyViewSortOption(overrides) {
+			const wanted = overrides && typeof overrides.sortOption === 'string' ? overrides.sortOption : ''
+			if (wanted !== '' && this.selectSortOption(wanted)) {
+				this.viewSortOption = wanted
+				return
+			}
+			if (this.viewSortOption !== '' && this.sortSource && this.sortSource.value === this.viewSortOption) {
+				this.sortSource = { ...this.sortSource, value: '', page: 1 }
+			}
+			this.viewSortOption = ''
+		},
+
+		/**
+		 * Leave the applied view: the page's own config comes back. The filters
+		 * stay as they are, as after any other change to them.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-can-override-the-page-config-while-it-is-active
+		 */
+		leaveSavedView() {
+			this.appliedSavedViewId = ''
+			this.appliedViewColumns = null
+			this.applyViewSortOption(null)
+		},
+
+		/**
+		 * Bring this page's menu entries in line with the views it can show:
+		 * current names, and none for a view deleted or no longer shared.
+		 *
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		syncSavedViewMenu() {
+			const menu = this.cnSavedViewMenu
+			if (!menu || typeof menu.sync !== 'function' || this.savedViewPage === '') {
+				return
+			}
+			menu.sync(this.savedViewPage, [...this.defaultFilterViews, ...this.visibleSavedViews].map((view) => ({ ...view, menuBadge: this.savedViewMenuBadge(view) })))
+		},
+
+		/**
+		 * Apply the saved view the address names (`?savedView=<id>`, what a
+		 * menu entry links to), once the list holding it has loaded.
+		 *
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		applySavedViewFromRoute() {
+			const id = this.$route && this.$route.query ? this.$route.query.savedView : undefined
+			if (typeof id !== 'string' || id === '' || id === this.appliedSavedViewId) {
+				return
+			}
+			const view = this.viewsForControl.find((v) => String(v.id) === id || String(v.slug) === id)
+			if (view) {
+				this.onApplySavedView(view, { keepSavedViewKey: true })
+			}
+		},
+
+		/**
+		 * Open the edit dialog for an own view (CnSavedViewsControl `@edit-request`).
+		 *
+		 * @param {object} view The View API object.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-3
+		 */
+		onEditViewRequest(view) {
+			this.viewPendingEdit = view
+		},
+
+		/**
+		 * Save a rename, and the current filters when asked
+		 * (CnSavedViewEditDialog `@confirm`). The PATCH carries `name`, plus
+		 * `query` only when the criteria are replaced, so nothing else on the
+		 * view is rewritten from this tab's copy. A refusal keeps the dialog open.
+		 *
+		 * @param {{ name: string, replaceCriteria: boolean }} payload The dialog payload.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-3
+		 */
+		async onEditViewConfirm({ name, replaceCriteria }) {
+			const view = this.viewPendingEdit
+			if (!view) {
+				return
+			}
+			const body = { name }
+			if (replaceCriteria === true) {
+				const state = this.isSelfFetchMode
+					? this.currentViewState()
+					: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
+				body.query = buildViewCreatePayload({
+					name,
+					state,
+					scope: savedViewScope(this.savedViewsPage),
+					register: this.register,
+					schema: this.schema,
+				}).query
+				// New criteria keep the view's page config overrides.
+				if (view.query && view.query.overrides) {
+					body.query.overrides = view.query.overrides
+				}
+			}
+			try {
+				const saved = await useSavedViewsApi().patchView(view.id, body)
+				this.savedViews = this.savedViews.map((v) => (v.id === view.id ? { ...v, ...(saved || body) } : v))
+				this.syncSavedViewMenu()
+				this.viewPendingEdit = null
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))
+			} catch (error) {
+				const data = error?.response?.data
+				this.$refs.editViewDialog?.setError((data && (data.error || data.message)) || error?.message)
 			}
 		},
 
@@ -9509,6 +12313,9 @@ export default {
 				register: this.register,
 				schema: this.schema,
 			})
+			if (view.query && view.query.overrides) {
+				payload.query.overrides = view.query.overrides
+			}
 			try {
 				const saved = await useSavedViewsApi().updateView(view.id, payload)
 				if (saved) {
@@ -9571,6 +12378,7 @@ export default {
 			try {
 				await useSavedViewsApi().deleteView(view.id)
 				this.savedViews = this.savedViews.filter((v) => v.id !== view.id)
+				this.syncSavedViewMenu()
 				this.$refs.deleteViewConfirmDialog?.setResult({ success: true })
 			} catch (error) {
 				// eslint-disable-next-line no-console
@@ -9848,7 +12656,9 @@ export default {
 			if (resultData && resultData.success && this._refLabelResolver) {
 				this._refLabelResolver.invalidate()
 				this.refLabels = {}
+				this.refLooks = {}
 				this.loadRefLabels()
+				this.loadRefLooks()
 			}
 		},
 

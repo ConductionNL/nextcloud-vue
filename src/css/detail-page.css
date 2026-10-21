@@ -470,6 +470,12 @@
 	gap: calc(5 * var(--default-grid-baseline));
 }
 
+/* A body widget's own cards (`cnDetailSideColumn`) stand in the column's
+   flow, at its gap, and the slot takes no room while it is empty. */
+.cn-detail-page__side-takeover {
+	display: contents;
+}
+
 /* The record as a place (case-page-and-list-as-a-place) */
 
 /* A skip link that reaches the page's declared primary action. Off screen
@@ -524,4 +530,20 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 4px;
+}
+
+/* The tag after an admin-only entry in a board detail page's Actions menu
+   ("beheerder", DqZaakMeer): 12px muted text at the end of the row. The menu
+   opens outside the page, so the rule keys on the attribute CnDetailPage sets
+   only in the board look. NcActionButton and NcActionLink put it on their
+   <li>, not on the button inside. */
+li[data-cn-admin-tag] > .action-button::after,
+li[data-cn-admin-tag] > .action-link::after {
+	content: attr(data-cn-admin-tag);
+	margin-inline-start: auto;
+	padding-inline: 12px 4px;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 400;
+	white-space: nowrap;
 }

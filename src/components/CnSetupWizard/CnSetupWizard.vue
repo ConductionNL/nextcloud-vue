@@ -5,6 +5,7 @@
 		ref="wizard"
 		:steps="wizardSteps"
 		:dialogTitle="resolvedDialogTitle"
+		stepHeading
 		:submitLabel="submitLabel"
 		:cancelLabel="cancelLabel"
 		:nextLabel="nextLabel"
@@ -69,11 +70,20 @@
 
 				<!-- choice -->
 				<template v-else-if="step.type === 'choice'">
-					<NcNoteCard v-if="step.body" type="info">
+					<!-- The board sets the intro as a plain paragraph above the
+					     cards (DqInstellen); the Nextcloud look keeps the note. -->
+					<p v-if="step.body && isBoard" class="cn-setup-step__intro" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</p>
+					<NcNoteCard v-else-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
+					<!-- In the board look the step's title is the dialog's heading,
+					     so the cards' legend is kept for assistive tech only. -->
 					<CnChoiceCards
 						v-if="isCardChoice(step)"
+						:class="{ 'cn-setup-step__choices--titled': isBoard }"
+						:layout="step.display === 'rows' ? 'rows' : 'cards'"
 						:label="stepTitle(step)"
 						:options="optionsFor(step)"
 						:multiple="step.multiple === true"
@@ -119,6 +129,17 @@
 					<NcNoteCard v-if="isChoiceDisabled(step)" type="warning">
 						{{ dependsOnHint(step) }}
 					</NcNoteCard>
+					<!-- `noteStyle: "card"` sets the note as an info card (DqInstellen). -->
+					<NcNoteCard
+						v-if="stepNote(step) && step.noteStyle === 'card'"
+						type="info"
+						class="cn-setup-step__note-card"
+						data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</NcNoteCard>
+					<p v-else-if="stepNote(step)" class="cn-setup-step__note" data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</p>
 				</template>
 
 				<!-- config-fields -->
@@ -212,6 +233,7 @@ import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
 import CnLeafDependencySettings from '../CnLeafDependencySettings/CnLeafDependencySettings.vue'
 import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
 import { checkDependencies, isDependencyResolved, missingRequiredApps, readServerAppStatuses } from '../../composables/useDependencyCheck.js'
+import { useLook } from '../../composables/useLook.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 
@@ -428,12 +450,13 @@ export default {
 	 * @return {object} `setupStatus` / `setupStatusLoading` for the option resolver.
 	 */
 	setup(props) {
-		const wantsSource = (props.steps || []).some((s) => s && s.optionsSource)
+		const { isBoard } = useLook()
+		const wantsSource = (props.steps || []).some((s) => s && (s.optionsSource || s.visibleWhen))
 		if (!wantsSource) {
-			return {}
+			return { isBoard }
 		}
 		const { status, loading } = useSetupStatus(props.appId, { setup: { steps: props.steps } })
-		return { setupStatus: status, setupStatusLoading: loading }
+		return { isBoard, setupStatus: status, setupStatusLoading: loading }
 	},
 
 	data() {
@@ -454,14 +477,16 @@ export default {
 	computed: {
 		/**
 		 * The title actually rendered by CnWizardDialog: "Set up {appName}"
-		 * when a display name was passed, otherwise whatever `dialogTitle`
-		 * resolves to (a caller override, or its own generic default).
+		 * when a display name was passed (the name through the host's
+		 * translate), otherwise whatever `dialogTitle` resolves to (a caller
+		 * override, or its own generic default). In the board look it is the
+		 * eyebrow's context and the current step's title is the heading.
 		 *
 		 * @return {string}
 		 */
 		resolvedDialogTitle() {
 			return this.appName
-				? t('nextcloud-vue', 'Set up {app}', { app: this.appName })
+				? t('nextcloud-vue', 'Set up {app}', { app: this.cnTranslate(this.appName) })
 				: this.dialogTitle
 		},
 
@@ -496,7 +521,7 @@ export default {
 
 		setupSteps() {
 			const skipped = new Set(this.skippedSteps.map((entry) => entry.step.id))
-			return this.declaredSteps.filter((s) => !skipped.has(s.id))
+			return this.declaredSteps.filter((s) => !skipped.has(s.id) && this.stepConditionHolds(s))
 		},
 
 		/**
@@ -717,6 +742,12 @@ export default {
 		},
 	},
 
+	created() {
+		for (const step of this.setupSteps) {
+			this.applyDefault(step)
+		}
+	},
+
 	mounted() {
 		// Covers a RESUMED wizard opening straight onto its run-action step
 		// (`initialStepId`) — `onStepChange` only fires on later navigation,
@@ -793,6 +824,18 @@ export default {
 			return raw === '' ? '' : this.cnTranslate(raw)
 		},
 
+		/**
+		 * The footnote under a choice step's options, from the step's `note`
+		 * (or `footnote`), translated like the body.
+		 *
+		 * @param {object} step The step declaration.
+		 * @return {string} The translated footnote, or ''.
+		 */
+		stepNote(step) {
+			const raw = (step && (step.note || step.footnote)) || ''
+			return raw === '' ? '' : this.cnTranslate(raw)
+		},
+
 		stepSlot(step) {
 			return 'step-' + step.id
 		},
@@ -848,6 +891,39 @@ export default {
 		},
 
 		/**
+		 * Whether a step's `visibleWhen` holds: the value at that path in the
+		 * setup status (`"flags.hasPayouts"`, dots walk into objects) is truthy,
+		 * or equals `equals` when the step gives `{ path, equals }`. A step
+		 * without `visibleWhen` always shows; one with it stays hidden until the
+		 * status says so, also while the status loads (DqInstellen: the dwangsom
+		 * step only when the app pays penalties).
+		 *
+		 * @param {object} step The step declaration.
+		 * @return {boolean}
+		 */
+		stepConditionHolds(step) {
+			const when = step && step.visibleWhen
+			if (when === undefined || when === null || when === '') {
+				return true
+			}
+			const path = typeof when === 'string' ? when : when.path
+			if (typeof path !== 'string' || path === '') {
+				return true
+			}
+			let node = this.setupStatus
+			for (const key of path.split('.')) {
+				if (node === null || node === undefined || typeof node !== 'object') {
+					return false
+				}
+				node = node[key]
+			}
+			if (typeof when === 'object' && Object.hasOwn(when, 'equals')) {
+				return node === when.equals
+			}
+			return Boolean(node)
+		},
+
+		/**
 		 * The option list a `choice` step declares `optionsSource` for, read
 		 * from the setup status document the app already serves.
 		 *
@@ -889,13 +965,14 @@ export default {
 		},
 
 		/**
-		 * Whether a choice step renders as a card grid rather than a dropdown.
+		 * Whether a choice step renders as CnChoiceCards (a card grid, or radio
+		 * rows with `display: "rows"`) rather than a dropdown.
 		 *
 		 * @param {object} step The choice step.
-		 * @return {boolean} True for `display: "cards"`.
+		 * @return {boolean} True for `display: "cards"` and `display: "rows"`.
 		 */
 		isCardChoice(step) {
-			return step.display === 'cards'
+			return step.display === 'cards' || step.display === 'rows'
 		},
 
 		/**
@@ -1000,6 +1077,36 @@ export default {
 		},
 
 		/**
+		 * Preselect a `choice` step's `default` option. Skipped once the user
+		 * picked here, when a value is already chosen, and for a step the
+		 * server already completed (its stored value must not be overwritten
+		 * by a Next). A card step holds the plain value; a dropdown holds the
+		 * option object, or the value while the options are still loading.
+		 *
+		 * @param {object} step The choice step.
+		 * @return {void}
+		 */
+		applyDefault(step) {
+			if (!step || step.type !== 'choice' || step.default === undefined || step.default === null) {
+				return
+			}
+			if (this.userTouched[step.id] === true || this.hasChoice(step) || this.isServerDone(step.id)) {
+				return
+			}
+			const wanted = step.multiple === true ? [].concat(step.default) : step.default
+			if (this.isCardChoice(step)) {
+				this.choiceModel[step.id] = wanted
+			} else {
+				const options = this.optionsFor(step)
+				const pick = (value) => options.find((o) => o.value === value) || value
+				this.choiceModel[step.id] = Array.isArray(wanted) ? wanted.map(pick) : pick(wanted)
+			}
+			if (step.configKey) {
+				this.choiceValues[step.configKey] = this.scalarChoice(step)
+			}
+		},
+
+		/**
 		 * Auto-fill a `choice` step's suggested default from an earlier choice
 		 * (its `suggestFrom` configKey → `suggestMap[parentValue]`). No-op once
 		 * the user has manually picked here, so a suggestion never clobbers an
@@ -1030,7 +1137,9 @@ export default {
 		/**
 		 * CnWizardDialog `validate` hook — intercepts Next/Submit to persist
 		 * the active step before advancing. `choice`/`config-fields` steps
-		 * POST their value via the setup contract; required `choice` steps
+		 * POST their value via the setup contract (a `config-fields` step only
+		 * the fields the person filled in, and nothing when they filled in
+		 * none); required `choice` steps
 		 * block advance until a value is picked; required `run-action` steps
 		 * block until the action has succeeded. Returns `true` to advance or
 		 * an error string to surface above the step and block navigation.
@@ -1064,11 +1173,18 @@ export default {
 				}
 			}
 			if (step.type === 'config-fields') {
-				try {
-					const patch = {}
-					for (const field of this.fieldsFor(step)) {
+				// Only what the person filled in is written: a field left alone
+				// keeps what is stored, and a step left alone writes nothing.
+				const patch = {}
+				for (const field of this.fieldsFor(step)) {
+					if (Object.hasOwn(this.configModel, field.key)) {
 						patch[field.key] = this.configModel[field.key]
 					}
+				}
+				if (Object.keys(patch).length === 0) {
+					return true
+				}
+				try {
 					await this.saveConfig(patch)
 					this.localDone[step.id] = true
 					return true
@@ -1305,6 +1421,15 @@ export default {
 			if (step && step.suggestFrom) {
 				this.applySuggestion(step)
 			}
+			// A default seeded before a dropdown's options arrived is a bare
+			// value; swap in its option object now the step opens.
+			if (step && step.default !== undefined && this.userTouched[step.id] !== true && !this.isCardChoice(step)) {
+				const held = this.choiceModel[step.id]
+				const option = this.optionsFor(step).find((o) => o.value === held)
+				if (option && held !== null && typeof held !== 'object') {
+					this.choiceModel[step.id] = option
+				}
+			}
 			this.maybeAutoRunStep(payload.stepId)
 			/**
 			 * @event step-change Emitted when the active step changes.
@@ -1336,6 +1461,30 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+}
+
+.cn-setup-step__intro {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+.cn-setup-step__choices--titled :deep(.cn-choice-cards__legend) {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+.cn-setup-step__note {
+	margin: 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-setup-step__nav {

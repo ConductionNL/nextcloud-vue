@@ -81,7 +81,8 @@ export default {
 		 * @type {string|number|boolean|null}
 		 */
 		modelValue: {
-			type: [Boolean, String, Number],
+			// eslint-disable-next-line vue/prefer-prop-type-boolean-first -- an option value of '' must stay a string
+			type: [String, Number, Boolean],
 			default: null,
 		},
 

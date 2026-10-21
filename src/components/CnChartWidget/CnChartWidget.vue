@@ -32,8 +32,24 @@
 				{{ view.label ? hostTranslate(view.label) : view.key }}
 			</button>
 		</div>
-		<div v-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
-			{{ emptyLabel }}
+		<!-- A refused or failed endpoint read shows its sentence instead of
+		     the chart; a short one keeps the chart and says it is short. -->
+		<CnEndpointNotice
+			v-if="!epError && epTruncated"
+			:truncated="true" />
+		<CnEndpointNotice
+			v-if="epAwaitingRequest"
+			:awaitingRequest="true"
+			:requestLabel="endpointSource.requestLabel ? hostTranslate(endpointSource.requestLabel) : ''"
+			:requestHint="endpointSource.requestHint ? hostTranslate(endpointSource.requestHint) : ''"
+			:requestDisabled="epBlocked"
+			@request="epRequest" />
+		<CnEndpointNotice
+			v-else-if="epError"
+			:error="epError"
+			:refused="epRefused" />
+		<div v-else-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
+			{{ hostTranslate(emptyLabel) }}
 		</div>
 		<!-- Sizing box for the apexcharts mount. apexcharts resolves a
 		     percentage `height` against its element's PARENT (Core.js
@@ -45,6 +61,69 @@
 		     own height. Without it the percentage would resolve against the
 		     content-sized root and either collapse to 0 or ignore the pill
 		     row. -->
+		<!-- `bar-list`: one row per category, a track filled to the value's
+		     share of `barMax` (default the largest value), the value at the
+		     end. Rows navigate when the source declares a drilldown. -->
+		<div v-else-if="type === 'bar-list'" class="cn-chart-widget__html" data-testid="cn-chart-widget-bar-list">
+			<ul class="cn-chart-widget__bar-list">
+				<li v-for="row in barListRows" :key="row.index" class="cn-chart-widget__bar-row">
+					<component
+						:is="row.drill ? 'button' : 'div'"
+						:type="row.drill ? 'button' : null"
+						class="cn-chart-widget__bar-line"
+						:class="{ 'cn-chart-widget__bar-line--drill': row.drill }"
+						data-testid="cn-chart-widget-bar-row"
+						@click="row.drill ? onDataPointSelection(null, null, { dataPointIndex: row.index }) : null">
+						<span class="cn-chart-widget__bar-label">{{ row.label }}</span>
+						<span class="cn-chart-widget__bar-track" aria-hidden="true">
+							<span class="cn-chart-widget__bar-fill" :style="{ width: `${row.share}%` }" />
+						</span>
+						<span class="cn-chart-widget__bar-value">{{ row.text }}</span>
+					</component>
+				</li>
+			</ul>
+			<p v-if="footnote" class="cn-chart-widget__footnote">
+				{{ hostTranslate(footnote) }}
+			</p>
+		</div>
+		<!-- `matrix`: one row per series, one column per category, each cell
+		     tinted by its value's share of the largest value, or by `colorMap`
+		     for text cells. -->
+		<div v-else-if="type === 'matrix'" class="cn-chart-widget__html" data-testid="cn-chart-widget-matrix">
+			<div
+				role="table"
+				class="cn-chart-widget__matrix"
+				:aria-label="matrixLabel"
+				:style="{ gridTemplateColumns: `minmax(120px, max-content) repeat(${matrix.columns.length}, minmax(0, 1fr))` }">
+				<div role="row" class="cn-chart-widget__matrix-row">
+					<span role="columnheader" class="cn-chart-widget__matrix-corner" />
+					<span
+						v-for="column in matrix.columns"
+						:key="column"
+						role="columnheader"
+						class="cn-chart-widget__matrix-head">{{ column }}</span>
+				</div>
+				<div
+					v-for="row in matrix.rows"
+					:key="row.label"
+					role="row"
+					class="cn-chart-widget__matrix-row">
+					<span role="rowheader" class="cn-chart-widget__matrix-label">{{ row.label }}</span>
+					<span
+						v-for="(cell, column) in row.cells"
+						:key="column"
+						role="cell"
+						class="cn-chart-widget__matrix-cell"
+						:class="[`cn-chart-widget__matrix-cell--${cell.level}`, { 'cn-chart-widget__matrix-cell--current': cell.current }]"
+						:style="cell.color ? { background: cell.color } : null"
+						:aria-current="cell.current ? 'true' : null"
+						data-testid="cn-chart-widget-matrix-cell">{{ cell.text }}</span>
+				</div>
+			</div>
+			<p v-if="footnote" class="cn-chart-widget__footnote">
+				{{ hostTranslate(footnote) }}
+			</p>
+		</div>
 		<div v-else-if="chartComponent" class="cn-chart-widget__canvas">
 			<component
 				:is="chartComponent"
@@ -63,6 +142,12 @@
 				</p>
 			</slot>
 		</div>
+		<p
+			v-if="footnote && chartComponent && !showEmptyState && type !== 'bar-list' && type !== 'matrix'"
+			class="cn-chart-widget__footnote"
+			data-testid="cn-chart-widget-footnote">
+			{{ hostTranslate(footnote) }}
+		</p>
 	</div>
 </template>
 
@@ -75,10 +160,13 @@ import { useDataSource } from '../../composables/useDataSource.js'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
+import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
+import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
 
 /**
  * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
@@ -149,6 +237,22 @@ function parseBucketKey(key) {
 	)
 }
 
+/**
+ * A theme colour by CSS variable name, as a literal: ApexCharts writes colours
+ * into SVG attributes, where `var()` does not resolve.
+ *
+ * @param {string} name The variable, e.g. `--color-error`.
+ * @param {string} fallback The colour when the variable is unset (or no DOM).
+ * @return {string} The colour.
+ */
+function themeColor(name, fallback) {
+	if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') {
+		return fallback
+	}
+	const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+	return value || fallback
+}
+
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
 
@@ -163,6 +267,9 @@ const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
  * Never a real category value, so drilldown clicks on it are skipped.
  */
 const OTHER_BUCKET_KEY = '__other__'
+
+/** Matrix text-cell tones a `colorMap` may name, as tint classes. */
+const TONE_LEVELS = Object.freeze({ success: 'success', warning: 'warning', error: 'error', danger: 'danger' })
 
 /**
  * CnChartWidget — Chart component for dashboard widgets.
@@ -197,8 +304,61 @@ const OTHER_BUCKET_KEY = '__other__'
  * widget in `pages[].config.widgets[]` instead. See CnDashboardPage's
  * leading docblock for the manifest example.
  */
+/**
+ * A value formatter for a `valueFormat`: 'currency' | 'currency-compact' |
+ * 'percent' | 'number', or the object form `{ name, currency?,
+ * decimals?, suffix? }`. Non-numeric values pass through. Null for no format.
+ *
+ * @param {string|object|null} vf The value format.
+ * @return {((value: unknown) => unknown)|null} The formatter.
+ */
+function formatterFor(vf) {
+	if (!vf) {
+		return null
+	}
+	const name = typeof vf === 'string' ? vf : vf.name
+	const currency = safeCurrencyCode(typeof vf === 'object' ? vf.currency : undefined)
+	const decimals = (typeof vf === 'object' && Number.isFinite(vf.decimals)) ? vf.decimals : null
+	const suffix = typeof vf === 'object' && typeof vf.suffix === 'string' ? vf.suffix : ''
+	const numeric = (v, fmt) => {
+		const num = Number(v)
+		return Number.isFinite(num) ? fmt(num) : v
+	}
+	if (name === 'currency') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency,
+			minimumFractionDigits: decimals ?? 0,
+			maximumFractionDigits: decimals ?? 0,
+		}).format(num))
+	}
+	if (name === 'currency-compact') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency,
+			notation: 'compact',
+			maximumFractionDigits: decimals ?? 1,
+		}).format(num))
+	}
+	if (name === 'number') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			minimumFractionDigits: decimals ?? 0,
+			maximumFractionDigits: decimals ?? 0,
+		}).format(num) + suffix)
+	}
+	if (name === 'percent') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			minimumFractionDigits: decimals ?? 0,
+			maximumFractionDigits: decimals ?? 0,
+		}).format(num) + '%')
+	}
+	return null
+}
+
 export default {
 	name: 'CnChartWidget',
+
+	components: { CnEndpointNotice },
 
 	inject: {
 		/**
@@ -223,14 +383,98 @@ export default {
 
 	props: {
 		/**
-		 * Chart type: area, line, bar, pie, donut, radialBar
+		 * Chart type: area, line, bar, pie, donut, radialBar, or one of the
+		 * two drawn without ApexCharts: `bar-list` (a labelled track per
+		 * category, the value at the end) and `matrix` (a series per row, a
+		 * category per column, each cell tinted by its value).
 		 *
 		 * @type {string}
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
 		 */
 		type: {
 			type: String,
 			default: 'area',
-			validator: (v) => ['area', 'line', 'bar', 'pie', 'donut', 'radialBar'].includes(v),
+			validator: (v) => ['area', 'line', 'bar', 'pie', 'donut', 'radialBar', 'bar-list', 'matrix'].includes(v),
+		},
+
+		/**
+		 * The value a full `bar-list` track stands for (100 for percentages).
+		 * Null, the default, takes the largest value.
+		 *
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
+		 */
+		barMax: {
+			type: Number,
+			default: null,
+		},
+
+		/**
+		 * A line under the chart ("Klik een balk om de zaken te zien"),
+		 * through the host's translate: under the rows of a `bar-list` or
+		 * `matrix`, and under the plot of an ApexCharts type.
+		 *
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
+		 */
+		footnote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Horizontal reference lines on the value axis of a line, area or bar
+		 * chart, such as a norm: `[{ value, label?, color? }]`. Drawn dashed;
+		 * the label goes through the host's translate. The colour defaults to
+		 * the theme's error colour.
+		 *
+		 * @type {Array<{value: number, label?: string, color?: string}>}
+		 */
+		referenceLines: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * How date categories read on the x-axis: `month` ("jan") or
+		 * `month-year` ("jan 2026"), in the user's language. A category that
+		 * is not a date is shown as is. Empty shows the categories unchanged.
+		 *
+		 * @type {''|'month'|'month-year'}
+		 */
+		categoryFormat: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The `matrix` cell to outline, usually the record's on a detail page:
+		 * `{ row, column, columnKeys? }`, where `row` and `column` take tokens
+		 * such as `@object.behaviour`.
+		 *
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		highlight: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * `matrix`: read the cells from records that each hold one cell, in
+		 * a register: `{ register, schema, filter?, rowField, columnField,
+		 * valueField, rowLabelField?, columnLabelField?, rowLabels?,
+		 * columnLabels?, valueLabels?, rowOrder?, columnOrder?, rowOrderField?,
+		 * columnOrderField?, limit? }`. `filter` takes tokens such as
+		 * `@object.matrixVersion`; the list waits while one is unresolved.
+		 * With `cellsPath` the matrix sits inside ONE record instead: the
+		 * first record `filter` finds (else `fallbackFilter`), its array at
+		 * `cellsPath` narrowed by `cellFilter` (tokens allowed), the axis
+		 * order from `rowOrderPath` / `columnOrderPath` on that record.
+		 * Wins over `series` / `categories`.
+		 *
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
+		 */
+		cellSource: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -429,6 +673,17 @@ export default {
 		},
 
 		/**
+		 * `matrix`: the text of a cell without a value ("geen"), through the
+		 * host's translate. Empty (the default) leaves the cell blank.
+		 *
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		emptyCellLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Manifest dataSource block. When set, `series` /
 		 * `categories` / `labels` are resolved from the GraphQL
 		 * response via the dataSource selectors and override the
@@ -517,7 +772,10 @@ export default {
 		 * page publishes `dateFrom` / `dateTo` / `datePreset` into the
 		 * workspace context).
 		 *
-		 * @type {{url: string, method?: string, params?: object, responsePath?: string, labelsPath?: string, series?: Array<{name?: string, path: string}>}|null}
+		 * `series[].namePath` names a series from the whole response (before
+		 * `responsePath`), for an endpoint that says what its numbers measure.
+		 *
+		 * @type {{url: string, method?: string, params?: object, responsePath?: string, labelsPath?: string, series?: Array<{name?: string, namePath?: string, path: string}>}|null}
 		 */
 		endpointSource: {
 			type: Object,
@@ -624,7 +882,7 @@ export default {
 			() => props.endpointSource,
 			{ ctx: chartTokenCtx },
 		)
-		return { dsData: data, dsRefetch: refetch, epData: ep.data, epRefetch: ep.refetch, chartTokenCtx }
+		return { dsData: data, dsRefetch: refetch, epData: ep.data, epBody: ep.body, epError: ep.error, epRefused: ep.refused, epTruncated: ep.truncated, epBlocked: ep.blocked, epAwaitingRequest: ep.awaitingRequest, epRequest: ep.request, epRefetch: ep.refetch, chartTokenCtx }
 	},
 
 	data() {
@@ -645,6 +903,8 @@ export default {
 			// `drilldown` click navigates with the filterable value, not the
 			// display label.
 			aggregateData: null,
+			// The `cellSource` matrix, laid out (`{ series, categories, columnKeys }`), or null.
+			cellData: null,
 			// Active `views[]` switcher key (null = the first view). Local
 			// UI state only — never persisted.
 			activeViewKey: null,
@@ -686,6 +946,9 @@ export default {
 		 * - OBJECT payload → they point at parallel arrays.
 		 * - Pie-family types flatten the first mapped series into the flat
 		 *   value array ApexCharts expects.
+		 * - `rowsPath` names an array of rows, one series each: the series'
+		 *   name at `rowLabelPath` (default `label`), its values at
+		 *   `rowValuesPath` (default `values`).
 		 *
 		 * @return {{series: Array, categories: Array<string>, labels: Array<string>}|null}
 		 */
@@ -701,6 +964,9 @@ export default {
 			const seriesDefs = Array.isArray(es.series) ? es.series.filter((s) => s && s.path) : []
 			let labels = []
 			let mapped
+			if (es.rowsPath) {
+				return this.endpointRows(payload, es)
+			}
 			if (Array.isArray(payload)) {
 				if (es.labelsPath) {
 					labels = payload.map((pt) => {
@@ -709,7 +975,7 @@ export default {
 					})
 				}
 				mapped = seriesDefs.map((s) => ({
-					name: s.name || s.path,
+					name: this.endpointSeriesName(s),
 					data: payload.map((pt) => Number(getByPath(pt, s.path)) || 0),
 				}))
 			} else {
@@ -720,7 +986,7 @@ export default {
 				mapped = seriesDefs.map((s) => {
 					const values = getByPath(payload, s.path)
 					return {
-						name: s.name || s.path,
+						name: this.endpointSeriesName(s),
 						data: Array.isArray(values) ? values.map((v) => Number(v) || 0) : [],
 					}
 				})
@@ -739,6 +1005,9 @@ export default {
 		 * and `labels`.
 		 */
 		resolvedSeries() {
+			if (this.cellData) {
+				return this.cellData.series
+			}
 			const ep = this.endpointChartData
 			if (ep) {
 				return ep.series
@@ -752,6 +1021,9 @@ export default {
 		},
 
 		resolvedCategories() {
+			if (this.cellData) {
+				return this.cellData.categories
+			}
 			const ep = this.endpointChartData
 			if (ep) {
 				return ep.categories
@@ -765,6 +1037,9 @@ export default {
 		},
 
 		resolvedLabels() {
+			if (this.cellData) {
+				return this.cellData.categories
+			}
 			const ep = this.endpointChartData
 			if (ep) {
 				return ep.labels
@@ -1085,40 +1360,7 @@ export default {
 		 * @return {((value: unknown) => string)|null}
 		 */
 		valueFormatterFn() {
-			const vf = (this.activeView && this.activeView.valueFormat) || this.valueFormat
-			if (!vf) {
-				return null
-			}
-			const name = typeof vf === 'string' ? vf : vf.name
-			const currency = safeCurrencyCode(typeof vf === 'object' ? vf.currency : undefined)
-			const decimals = (typeof vf === 'object' && Number.isFinite(vf.decimals)) ? vf.decimals : null
-			const numeric = (v, fmt) => {
-				const num = Number(v)
-				return Number.isFinite(num) ? fmt(num) : v
-			}
-			if (name === 'currency') {
-				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
-					style: 'currency',
-					currency,
-					minimumFractionDigits: decimals ?? 0,
-					maximumFractionDigits: decimals ?? 0,
-				}).format(num))
-			}
-			if (name === 'currency-compact') {
-				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
-					style: 'currency',
-					currency,
-					notation: 'compact',
-					maximumFractionDigits: decimals ?? 1,
-				}).format(num))
-			}
-			if (name === 'percent') {
-				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
-					minimumFractionDigits: decimals ?? 0,
-					maximumFractionDigits: decimals ?? 0,
-				}).format(num) + '%')
-			}
-			return null
+			return formatterFor((this.activeView && this.activeView.valueFormat) || this.valueFormat)
 		},
 
 		/**
@@ -1186,6 +1428,189 @@ export default {
 		 */
 		showEmptyState() {
 			return this.emptyLabel !== '' && !this.hasChartData
+		},
+
+		/**
+		 * The `cellSource` list as it would be asked, tokens resolved, or null
+		 * while there is none or a filter token is unresolved. Refetches when
+		 * it changes.
+		 *
+		 * @return {string|null} The key.
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
+		 */
+		cellSourceKey() {
+			const src = this.cellSource
+			if (!src || typeof src !== 'object' || !src.register || !src.schema || !src.rowField || !src.columnField || !src.valueField) {
+				return null
+			}
+			const ctx = this.chartTokenCtx()
+			const resolve = (value) => resolveFilterTokens(value && typeof value === 'object' ? value : {}, ctx)
+			const filter = resolve(src.filter)
+			const cellFilter = resolve(src.cellFilter)
+			if (hasUnresolvedTokens(filter) || hasUnresolvedTokens(cellFilter)) {
+				return null
+			}
+			const fallbackFilter = src.fallbackFilter ? resolve(src.fallbackFilter) : null
+			return JSON.stringify({ register: src.register, schema: src.schema, filter, fallbackFilter, cellFilter, limit: src.cellsPath ? 1 : (src.limit || 500) })
+		},
+
+		/**
+		 * The rows of a `bar-list`: the categories of the first displayed
+		 * series, each with its value's share of `barMax` (or the largest
+		 * value) and the formatted value.
+		 *
+		 * @return {Array<{index: number, label: string, share: number, text: string, drill: boolean}>}
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
+		 */
+		barListRows() {
+			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries[0] : null
+			const values = Array.isArray(series?.data) ? series.data.map((v) => Number(v) || 0) : []
+			const labels = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
+			const max = Number.isFinite(this.barMax) && this.barMax > 0 ? this.barMax : Math.max(0, ...values)
+			const drill = Boolean(this.drilldownDef && this.$router)
+			return values.map((value, index) => ({
+				index,
+				label: String(labels[index] ?? ''),
+				share: max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0,
+				text: this.formatPlain(value),
+				drill: drill && this.drilldownKeys[index] !== undefined && this.drilldownKeys[index] !== OTHER_BUCKET_KEY,
+			}))
+		},
+
+		/**
+		 * The `matrix`: the categories as columns, each displayed series as a
+		 * row, and each cell's tint level (1 to 4) by its share of the
+		 * largest value.
+		 *
+		 * @return {{columns: string[], rows: Array<{label: string, cells: Array<{text: string, level: number}>}>}}
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		matrix() {
+			const columns = (Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []).map((c) => String(c))
+			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries.filter((entry) => entry && typeof entry === 'object') : []
+			const max = Math.max(0, ...series.flatMap((entry) => (Array.isArray(entry.data) ? entry.data.map((v) => Number(v) || 0) : [])))
+			const levelOf = (value) => {
+				const share = max > 0 ? value / max : 0
+				if (share >= 0.9) {
+					return 4
+				}
+				if (share >= 0.6) {
+					return 3
+				}
+				return share >= 0.25 ? 2 : 1
+			}
+			const map = this.effectiveColorMap || {}
+			const current = this.matrixHighlight
+			return {
+				columns,
+				rows: series.map((entry, rowIndex) => ({
+					label: String(entry.name ?? ''),
+					cells: columns.map((column, index) => {
+						const raw = Array.isArray(entry.data) ? entry.data[index] : undefined
+						const isCurrent = current !== null && current.row === rowIndex && current.column === index
+						const valueLabels = this.cellSource && typeof this.cellSource.valueLabels === 'object' ? this.cellSource.valueLabels : null
+						if (valueLabels && raw !== null && raw !== undefined && typeof valueLabels[String(raw)] === 'string') {
+							const label = valueLabels[String(raw)]
+							const tone = map[String(raw)] || map[label]
+							const level = TONE_LEVELS[tone] ?? 0
+							return { text: this.hostTranslate(label), level: level || 'tone', color: level ? '' : (tone || ''), current: isCurrent }
+						}
+						if (typeof raw === 'string') {
+							const tone = map[raw]
+							const level = TONE_LEVELS[tone] ?? 0
+							return { text: this.hostTranslate(raw), level: level || 'tone', color: level ? '' : (tone || ''), current: isCurrent }
+						}
+						const value = Number(raw)
+						return Number.isFinite(value) && raw !== null && raw !== undefined
+							? { text: this.formatPlain(value), level: levelOf(value), color: '', current: isCurrent }
+							: { text: this.emptyCellLabel ? this.hostTranslate(this.emptyCellLabel) : '', level: 0, color: '', current: isCurrent }
+					}),
+				})),
+			}
+		},
+
+		/**
+		 * The matrix cell of the record (`highlight: { row, column }`, tokens
+		 * such as `@object.behaviour` resolved), as row and column indexes. A
+		 * row matches its series `key`, its name or its 1-based position; a
+		 * column its entry in `highlight.columnKeys`, its label or its
+		 * 1-based position. Null when either does not match.
+		 *
+		 * @return {{row: number, column: number}|null} The cell.
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		matrixHighlight() {
+			const def = this.highlight
+			if (!def || typeof def !== 'object') {
+				return null
+			}
+			const resolved = resolveFilterTokens({ row: def.row, column: def.column }, this.chartTokenCtx())
+			const want = (v) => (v === null || v === undefined || v === '' ? null : String(v))
+			const row = want(resolved.row)
+			const column = want(resolved.column)
+			if (row === null || column === null) {
+				return null
+			}
+			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries : []
+			const rowIndex = series.findIndex((entry, i) => entry && (String(entry.key ?? '') === row || String(entry.name ?? '') === row || String(i + 1) === row))
+			const columns = Array.isArray(this.resolvedCategories) ? this.resolvedCategories.map((c) => String(c)) : []
+			const declared = Array.isArray(def.columnKeys) ? def.columnKeys : (this.cellData ? this.cellData.columnKeys : [])
+			const keys = declared.map((k) => String(k))
+			let columnIndex = keys.indexOf(column)
+			if (columnIndex < 0) {
+				columnIndex = columns.findIndex((c, i) => c === column || String(i + 1) === column)
+			}
+			return rowIndex >= 0 && columnIndex >= 0 ? { row: rowIndex, column: columnIndex } : null
+		},
+
+		/** @return {string} The matrix table's accessible name. */
+		matrixLabel() {
+			return this.footnote ? this.hostTranslate(this.footnote) : t('nextcloud-vue', 'Chart data')
+		},
+
+		/**
+		 * The x-axis categories as shown: with `categoryFormat`, date
+		 * categories as short months in the user's language.
+		 *
+		 * @return {Array<string|number>} The categories.
+		 */
+		displayCategories() {
+			const categories = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
+			if (this.categoryFormat !== 'month' && this.categoryFormat !== 'month-year') {
+				return categories
+			}
+			const options = this.categoryFormat === 'month' ? { month: 'short' } : { month: 'short', year: 'numeric' }
+			return categories.map((category) => {
+				const date = typeof category === 'string' || typeof category === 'number' ? parseBucketKey(category) : null
+				return date ? date.toLocaleDateString(userLocale(), options) : category
+			})
+		},
+
+		/**
+		 * The `referenceLines` as ApexCharts annotations: dashed, labelled,
+		 * in the theme's error colour unless a line names its own.
+		 *
+		 * @return {Array<object>} The annotations, possibly empty.
+		 */
+		referenceAnnotations() {
+			const lines = (Array.isArray(this.referenceLines) ? this.referenceLines : [])
+				.filter((line) => line && Number.isFinite(Number(line.value)))
+			if (lines.length === 0) {
+				return []
+			}
+			const fallback = themeColor('--color-error', '#e04224')
+			return lines.map((line) => {
+				const color = line.color || fallback
+				return {
+					y: Number(line.value),
+					x: Number(line.value),
+					borderColor: color,
+					strokeDashArray: 6,
+					label: line.label
+						? { text: this.hostTranslate(line.label), borderColor: color, style: { color: '#fff', background: color } }
+						: { text: '' },
+				}
+			})
 		},
 
 		mergedOptions() {
@@ -1275,7 +1700,7 @@ export default {
 			if (!isPieType) {
 				if (this.resolvedCategories.length > 0) {
 					defaults.xaxis = {
-						categories: this.resolvedCategories,
+						categories: this.displayCategories,
 						labels: {
 							style: {
 								colors: 'var(--color-text-maxcontrast, #767676)',
@@ -1317,6 +1742,12 @@ export default {
 				}
 			}
 
+			// Reference lines, such as a norm, on the value axis.
+			if (!isPieType && this.referenceAnnotations.length > 0) {
+				const axisKey = (this.type === 'bar' && this.horizontal) ? 'xaxis' : 'yaxis'
+				defaults.annotations = { [axisKey]: this.referenceAnnotations }
+			}
+
 			// Add labels for pie/donut
 			if (isPieType && this.resolvedLabels.length > 0) {
 				defaults.labels = this.resolvedLabels
@@ -1352,6 +1783,10 @@ export default {
 		aggregateKey() {
 			this.fetchAggregateSource()
 		},
+
+		cellSourceKey() {
+			this.fetchCells()
+		},
 	},
 
 	created() {
@@ -1363,6 +1798,7 @@ export default {
 		this.fetchGroupBy()
 		this.fetchTimeBucket()
 		this.fetchAggregateSource()
+		this.fetchCells()
 		// Subscribe to the widget Refresh bus (B3 event-bus opt-in mode)
 		// FIRST, before the ResizeObserver early-return — environments
 		// without ResizeObserver (jsdom) must still get the subscription.
@@ -1449,6 +1885,24 @@ export default {
 		 * @param {string} key The label.
 		 * @return {string} The translated label.
 		 */
+		/**
+		 * The name of an endpoint series: the text at its `namePath` in the
+		 * whole response (so an endpoint can name what its numbers measure),
+		 * else its `name`, else its `path`.
+		 *
+		 * @param {{name?: string, namePath?: string, path: string}} def The series definition.
+		 * @return {string} The name.
+		 */
+		endpointSeriesName(def) {
+			if (def.namePath) {
+				const named = getByPath(this.epBody, def.namePath)
+				if (typeof named === 'string' && named !== '') {
+					return named
+				}
+			}
+			return def.name || def.path
+		},
+
 		hostTranslate(key) {
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : null
 			const out = translate ? translate(key) : key
@@ -1519,6 +1973,7 @@ export default {
 				this.fetchGroupBy(),
 				this.fetchTimeBucket(),
 				this.fetchAggregateSource(),
+				this.fetchCells(),
 			])
 		},
 
@@ -1737,6 +2192,39 @@ export default {
 					this.groupByData = null
 				}
 			}
+		},
+
+		/**
+		 * Read the `cellSource` records and lay them out as the matrix: one
+		 * record per cell, or with `cellsPath` the cells inside one record. A
+		 * failed read leaves the matrix empty rather than showing stale
+		 * cells; an answer to an older request is dropped.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-one-record
+		 */
+		async fetchCells() {
+			const key = this.cellSourceKey
+			if (key === null) {
+				this.cellData = null
+				return
+			}
+			const { register, schema, filter, fallbackFilter, cellFilter, limit } = JSON.parse(key)
+			this._cellRequest = key
+			let records = await fetchReferenceObjects({ register, schema, filter, limit }).catch(() => [])
+			if (this.cellSource.cellsPath && records.length === 0 && fallbackFilter) {
+				records = await fetchReferenceObjects({ register, schema, filter: fallbackFilter, limit }).catch(() => [])
+			}
+			if (this._cellRequest !== key) {
+				return
+			}
+			if (this.cellSource.cellsPath) {
+				const { cells, config } = cellsFromRecord(records[0] || null, this.cellSource, cellFilter)
+				this.cellData = pivotCells(cells, config)
+				return
+			}
+			this.cellData = pivotCells(records, this.cellSource)
 		},
 
 		/**
@@ -2033,6 +2521,58 @@ export default {
 		},
 
 		/**
+		 * A value as a `bar-list` or `matrix` cell reads it: through
+		 * `valueFormat` when set, else as a localised number.
+		 *
+		 * @param {number} value The value.
+		 * @return {string} The text.
+		 */
+		formatPlain(value) {
+			if (this.valueFormatterFn) {
+				return String(this.valueFormatterFn(value))
+			}
+			return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value)
+		},
+
+		/**
+		 * Map an endpoint payload whose `rowsPath` names an array of rows:
+		 * each row is a series (name at `rowLabelPath`, values at
+		 * `rowValuesPath`), the categories are at `labelsPath`.
+		 * A missing value stays null; a `matrix` keeps a text value ("none")
+		 * as text, other types read it as 0.
+		 *
+		 * @param {unknown} payload The plucked payload.
+		 * @param {object} es The `endpointSource` block.
+		 * @return {{series: Array, categories: Array<string>, labels: Array<string>}} The chart data.
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		endpointRows(payload, es) {
+			const rows = getByPath(payload, es.rowsPath)
+			const rawLabels = es.labelsPath ? getByPath(payload, es.labelsPath) : undefined
+			const labels = Array.isArray(rawLabels) ? rawLabels.map((v) => ((v === null || v === undefined) ? '' : String(v))) : []
+			const keepText = this.type === 'matrix'
+			const cellOf = (v) => {
+				if (v === null || v === undefined) {
+					return null
+				}
+				const num = typeof v === 'string' && v.trim() === '' ? NaN : Number(v)
+				if (Number.isFinite(num)) {
+					return num
+				}
+				return keepText && typeof v === 'string' ? v : 0
+			}
+			const series = (Array.isArray(rows) ? rows : []).map((row) => {
+				const name = getByPath(row, es.rowLabelPath || 'label')
+				const values = getByPath(row, es.rowValuesPath || 'values')
+				return {
+					name: (name === null || name === undefined) ? '' : String(name),
+					data: Array.isArray(values) ? values.map(cellOf) : [],
+				}
+			})
+			return { series, categories: labels, labels }
+		},
+
+		/**
 		 * ApexCharts `dataPointSelection` handler backing the declarative
 		 * `dataSource.drilldown` (Wave 3, #91): navigate to the configured
 		 * route with the clicked category's RAW key in the query
@@ -2239,6 +2779,161 @@ export default {
 	justify-content: center;
 	min-height: 150px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-chart-widget__html {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.cn-chart-widget__bar-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-chart-widget__bar-line {
+	align-items: center;
+	background: none;
+	border: 0;
+	color: var(--color-main-text);
+	display: grid;
+	font: inherit;
+	gap: 12px;
+	grid-template-columns: minmax(80px, 170px) minmax(0, 1fr) minmax(36px, max-content);
+	margin: 0;
+	min-height: 0;
+	padding: 0;
+	text-align: start;
+	width: 100%;
+}
+
+.cn-chart-widget__bar-line--drill {
+	border-radius: var(--border-radius-small, 4px);
+	cursor: pointer;
+}
+
+.cn-chart-widget__bar-line--drill:hover .cn-chart-widget__bar-label,
+.cn-chart-widget__bar-line--drill:focus-visible .cn-chart-widget__bar-label {
+	text-decoration: underline;
+}
+
+.cn-chart-widget__bar-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-chart-widget__bar-track {
+	background: var(--color-background-dark);
+	border-radius: 4px;
+	display: block;
+	height: 14px;
+	overflow: hidden;
+}
+
+.cn-chart-widget__bar-fill {
+	background: var(--color-primary-element);
+	display: block;
+	height: 100%;
+}
+
+.cn-chart-widget__bar-value {
+	font-weight: 600;
+	text-align: end;
+	white-space: nowrap;
+}
+
+.cn-chart-widget__footnote {
+	color: var(--color-text-maxcontrast);
+	margin: 0;
+}
+
+/* Under an ApexCharts plot the footnote is a sibling of the canvas, so it keeps
+   its own line height while the canvas takes the rest of a fitted column. */
+.cn-chart-widget > .cn-chart-widget__footnote {
+	flex: 0 0 auto;
+	margin-top: 8px;
+}
+
+.cn-chart-widget__matrix {
+	display: grid;
+	gap: 4px;
+}
+
+.cn-chart-widget__matrix-row {
+	display: contents;
+}
+
+.cn-chart-widget__matrix-head {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	color: var(--color-text-maxcontrast);
+	padding: 6px;
+}
+
+.cn-chart-widget__matrix-label {
+	padding: 10px 6px;
+}
+
+.cn-chart-widget__matrix-cell {
+	border-radius: 6px;
+	padding: 10px;
+	text-align: center;
+}
+
+.cn-chart-widget__matrix-cell--success {
+	background: var(--color-success-light, color-mix(in srgb, var(--color-success) 15%, var(--color-main-background)));
+}
+
+.cn-chart-widget__matrix-cell--warning {
+	background: var(--color-warning-light, color-mix(in srgb, var(--color-warning) 15%, var(--color-main-background)));
+}
+
+.cn-chart-widget__matrix-cell--error {
+	background: var(--color-error-light, color-mix(in srgb, var(--color-error) 12%, var(--color-main-background)));
+}
+
+.cn-chart-widget__matrix-cell--danger {
+	background: color-mix(in srgb, var(--color-error) 25%, var(--color-main-background));
+}
+
+.cn-chart-widget__matrix-cell--current {
+	font-weight: 700;
+	outline: 3px solid var(--color-primary-element);
+	outline-offset: -3px;
+}
+
+/* A cell is a span: its ink also goes to --nldesign-color-on-surface, which a
+   theme that forces the body ink onto every span (thematiq) reads. The four
+   levels are the boards' tones (DqProcesanalyse): the light primary, the
+   primary at 35% and at 70%, and level 1 inverted. Levels 1 to 3 take a dark
+   ink; the board's white on level 3 is about 3.1:1, and 70% is as deep as the
+   dark ink stays at 4.5:1 in Nextcloud's dark theme. */
+.cn-chart-widget__matrix-cell--1 {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-chart-widget__matrix-cell--2 {
+	background: color-mix(in srgb, var(--color-primary-element) 35%, var(--color-main-background));
+	color: var(--color-main-text);
+}
+
+.cn-chart-widget__matrix-cell--3 {
+	--nldesign-color-on-surface: var(--color-main-text);
+	background: color-mix(in srgb, var(--color-primary-element) 70%, var(--color-main-background));
+	color: var(--color-main-text);
+}
+
+.cn-chart-widget__matrix-cell--4 {
+	--nldesign-color-on-surface: var(--color-primary-element-light);
+	background: var(--color-primary-element-light-text);
+	color: var(--color-primary-element-light);
 }
 
 .cn-chart-widget__empty {

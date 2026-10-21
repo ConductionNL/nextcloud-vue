@@ -25,6 +25,30 @@ afterAll(() => setLanguage('en'))
 describe('resolveDue', () => {
 	beforeEach(() => setLanguage('nl'))
 
+	it('marks today and a date within soonWithin days as soon, and nothing else', () => {
+		const cfg = { soonWithin: 7 }
+		expect(resolveDue(day(0), cfg, (x) => x, NOW).soon).toBe(true)
+		expect(resolveDue(day(3), cfg, (x) => x, NOW).soon).toBe(true)
+		expect(resolveDue(day(7), cfg, (x) => x, NOW).soon).toBe(true)
+		expect(resolveDue(day(10), cfg, (x) => x, NOW).soon).toBeUndefined()
+		expect(resolveDue(day(-2), cfg, (x) => x, NOW)).toMatchObject({ tone: 'danger' })
+		expect(resolveDue(day(-2), cfg, (x) => x, NOW).soon).toBeUndefined()
+		expect(resolveDue(day(3), {}, (x) => x, NOW).soon).toBeUndefined()
+	})
+
+	it('draws a soon date in the warning colour in a table cell', () => {
+		const soon = new Date(Date.now() + 3 * 86400000).toISOString()
+		const w = mount(CnCellRenderer, { propsData: { value: soon, widget: 'date', widgetProps: { due: { soonWithin: 7 } } }, stubs: { NcDateTime: true } })
+		expect(w.find('[data-testid="cn-cell-renderer-due"]').classes()).toContain('cn-cell-renderer__date--warning')
+	})
+
+	it('follows variantWhen rules on a due date when they match', () => {
+		const soon = new Date(Date.now() + 3 * 86400000).toISOString()
+		const rules = [{ op: 'lt', value: 0, variant: 'error' }, { op: 'lte', value: 7, variant: 'warning' }]
+		const w = mount(CnCellRenderer, { propsData: { value: soon, widget: 'date', widgetProps: { due: {}, variantWhen: rules } }, stubs: { NcDateTime: true } })
+		expect(w.find('[data-testid="cn-cell-renderer-due"]').classes()).toContain('cn-cell-renderer__date--warning')
+	})
+
 	it('reads days overdue in the danger tone', () => {
 		expect(resolveDue(day(-3), {}, (x) => x, NOW)).toEqual({ text: '3 dagen te laat', tone: 'danger' })
 		expect(resolveDue(day(-1), {}, (x) => x, NOW)).toEqual({ text: '1 dag te laat', tone: 'danger' })
@@ -49,6 +73,36 @@ describe('resolveDue', () => {
 	})
 })
 
+describe('resolveDue upcomingLabel', () => {
+	beforeEach(() => setLanguage('nl'))
+	const cfg = {
+		upcomingLabel: { one: 'nog {count} dag', other: 'nog {count} dagen' },
+		upcomingWeeksLabel: { one: 'nog {count} week', other: 'nog {count} weken' },
+	}
+
+	it('reads the days left for a day to come', () => {
+		expect(resolveDue(day(1), cfg, (x) => x, NOW)).toEqual({ text: 'nog 1 dag', tone: 'upcoming' })
+		expect(resolveDue(day(4), cfg, (x) => x, NOW)).toEqual({ text: 'nog 4 dagen', tone: 'upcoming' })
+		expect(resolveDue(day(28), cfg, (x) => x, NOW)).toEqual({ text: 'nog 28 dagen', tone: 'upcoming' })
+	})
+
+	it('reads the weeks left from upcomingWeeksFrom days, default 35', () => {
+		expect(resolveDue(day(56), cfg, (x) => x, NOW).text).toBe('nog 8 weken')
+		expect(resolveDue(day(35), cfg, (x) => x, NOW).text).toBe('nog 5 weken')
+		expect(resolveDue(day(14), { ...cfg, upcomingWeeksFrom: 7 }, (x) => x, NOW).text).toBe('nog 2 weken')
+	})
+
+	it('keeps days without upcomingWeeksLabel, and the date without upcomingLabel', () => {
+		expect(resolveDue(day(56), { upcomingLabel: cfg.upcomingLabel }, (x) => x, NOW).text).toBe('nog 56 dagen')
+		expect(resolveDue(day(9), {}, (x) => x, NOW).text).toBe('21 okt')
+	})
+
+	it('leaves today and overdue alone', () => {
+		expect(resolveDue(day(0), cfg, (x) => x, NOW).tone).toBe('today')
+		expect(resolveDue(day(-2), cfg, (x) => x, NOW)).toEqual({ text: '2 dagen te laat', tone: 'danger' })
+	})
+})
+
 describe('CnCellRenderer date widget with due', () => {
 	beforeEach(() => setLanguage('nl'))
 	const stubs = { NcDateTime: true }
@@ -63,5 +117,37 @@ describe('CnCellRenderer date widget with due', () => {
 
 	it('reads the empty text when the field is empty', () => {
 		expect(mountCell(null).find('[data-testid="cn-cell-renderer-due"]').text()).toBe('Geen deadline')
+	})
+})
+
+describe('due.activeWhen', () => {
+	beforeEach(() => setLanguage('nl'))
+	const cfg = { soonWithin: 7, activeWhen: { field: 'status', equals: 'open' } }
+
+	it('reads the plain date without a tone when the row condition does not hold', () => {
+		const result = resolveDue(day(-3), cfg, (x) => x, NOW, { status: 'won' })
+		expect(result.tone).toBe('plain')
+		expect(result.text).not.toMatch(/te laat/)
+		expect(result.soon).toBeUndefined()
+		expect(resolveDue(day(2), cfg, (x) => x, NOW, { status: 'lost' }).soon).toBeUndefined()
+	})
+
+	it('keeps the due text and tone while the condition holds', () => {
+		expect(resolveDue(day(-3), cfg, (x) => x, NOW, { status: 'open' })).toEqual({ text: '3 dagen te laat', tone: 'danger' })
+		expect(resolveDue(day(2), cfg, (x) => x, NOW, { status: 'open' }).soon).toBe(true)
+	})
+
+	it('leaves an empty date to the empty text', () => {
+		expect(resolveDue(null, { ...cfg, emptyText: 'Geen datum' }, (x) => x, NOW, { status: 'won' })).toEqual({ text: 'Geen datum', tone: 'empty' })
+	})
+
+	it('a closed lead in a table is never red', () => {
+		const past = new Date(Date.now() - 3 * 86400000).toISOString()
+		const cell = mount(CnCellRenderer, {
+			propsData: { value: past, row: { status: 'won' }, widget: 'date', widgetProps: { due: cfg } },
+			stubs: { NcDateTime: true },
+		}).find('[data-testid="cn-cell-renderer-due"]')
+		expect(cell.classes()).not.toContain('cn-cell-renderer__date--error')
+		expect(cell.text()).not.toMatch(/te laat/)
 	})
 })

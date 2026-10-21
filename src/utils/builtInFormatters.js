@@ -380,24 +380,44 @@ const CONNECTION_STATUS_LABELS = {
 }
 
 /**
+ * The short labels `formatterOptions.short` draws (board DqInstellingen
+ * "Aan / Uit / Fout"): a connection that works in some form is on, one that
+ * does not run is off, and a failing one is an error.
+ */
+const CONNECTION_STATUS_SHORT_LABELS = {
+	configured: 'On',
+	limited: 'On',
+	simulated: 'On',
+	unconfigured: 'Off',
+	disabled: 'Off',
+	unavailable: 'Off',
+	error: 'Error',
+}
+
+/**
  * Connection status formatter (`connectionStatus` registry key) for the
  * fleet connection registry. Renders one of the seven stored status values
  * as its translated label through the library's own slug (`nextcloud-vue`).
+ * With `formatterOptions.short` it renders the board's three short labels
+ * instead: On (configured, limited, simulated), Off (not configured,
+ * switched off, not available) and Error.
  *
  * An unknown value passes through unchanged, so a status added later still
  * shows as its raw value instead of an empty cell. Null and undefined render
  * as `''`. Never throws.
  *
  * @param {unknown} value The stored status value.
+ * @param {object} [row] The row (unused).
+ * @param {object} [property] The column's property (unused).
+ * @param {{short?: boolean}} [options] The column's `formatterOptions`.
  * @return {string} The translated label, or the value itself when it is not one of the seven.
  */
-export function formatConnectionStatus(value) {
+export function formatConnectionStatus(value, row, property, options) {
 	if (value === null || value === undefined) {
 		return ''
 	}
-	const label = Object.hasOwn(CONNECTION_STATUS_LABELS, value)
-		? CONNECTION_STATUS_LABELS[value]
-		: null
+	const labels = options && options.short === true ? CONNECTION_STATUS_SHORT_LABELS : CONNECTION_STATUS_LABELS
+	const label = Object.hasOwn(labels, value) ? labels[value] : null
 	return label ? t('nextcloud-vue', label) : String(value)
 }
 
@@ -418,6 +438,38 @@ export function formatConnectionSettingsLabel(value) {
 }
 
 /**
+ * Show a value with all but its last characters replaced by `*`, as the facts
+ * widget's `masked` format does: an IBAN or a BSN reads `*****4567`.
+ *
+ * DISPLAY ONLY, NOT ACCESS CONTROL. The full value is still in the row the
+ * page received; a reader with the browser's developer tools can read it.
+ * A value the reader must not have belongs hidden in OpenRegister (property
+ * authorization), not masked here.
+ *
+ * The column's `formatterOptions.visible` sets how many characters stay
+ * (default 4); at most five `*` are drawn, so the length does not leak.
+ * Null-safe: `''` for null or empty.
+ *
+ * @param {unknown} value The value.
+ * @param {object} [_row] The full row (unused).
+ * @param {object} [_property] The schema property (unused).
+ * @param {{visible?: number}} [options] The column's `formatterOptions`.
+ * @return {string} The masked value.
+ * @spec openspec/changes/masked-formatter-max-aggregate/specs/index-page/spec.md#requirement-a-column-can-mask-its-value-for-display
+ */
+export function formatMasked(value, _row, _property, options) {
+	if (value === null || value === undefined || value === '') {
+		return ''
+	}
+	const text = String(value)
+	const visible = Number.isInteger(options && options.visible) && options.visible >= 0 ? options.visible : 4
+	if (text.length <= visible) {
+		return text
+	}
+	return '*'.repeat(Math.min(text.length - visible, 5)) + (visible > 0 ? text.slice(-visible) : '')
+}
+
+/**
  * Built-in formatter registry merged under any consumer-registered
  * `formatters` in `CnAppRoot`'s `cnFormatters` provide.
  */
@@ -433,4 +485,5 @@ export const BUILT_IN_FORMATTERS = {
 	count: formatCount,
 	connectionStatus: formatConnectionStatus,
 	connectionSettingsLabel: formatConnectionSettingsLabel,
+	masked: formatMasked,
 }

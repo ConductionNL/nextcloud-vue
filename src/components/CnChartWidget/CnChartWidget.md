@@ -18,7 +18,7 @@ When `CnDashboardPage` resolves a widget definition with `type: "chart"`, it mou
 }
 ```
 
-Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`, plus the display passthrough `horizontal`, `legendPosition`, `valueAxisBaseline`, `valueFormat`, `colorMap`, `emptyLabel`, `views`. The `dataSource` field resolves declaratively: `aggregate: 'count'` / raw `graphql` via GraphQL, `bucket` / `groupBy` / the OBJECT-form `aggregate` (Wave 3: group-by + topN/Other + labelResolve) via OpenRegister's REST aggregation facets, with an optional sibling `drilldown: { route, filterParam }` that navigates on segment/bar click with the raw category key in the query.
+Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`, plus the display passthrough `horizontal`, `legendPosition`, `valueAxisBaseline`, `valueFormat`, `colorMap`, `emptyLabel`, `views`, `endpointSource`, `barMax`, `footnote`, `highlight`, `cellSource`, `emptyCellLabel`. The `dataSource` field resolves declaratively: `aggregate: 'count'` / raw `graphql` via GraphQL, `bucket` / `groupBy` / the OBJECT-form `aggregate` (Wave 3: group-by + topN/Other + labelResolve) via OpenRegister's REST aggregation facets, with an optional sibling `drilldown: { route, filterParam }` that navigates on segment/bar click with the raw category key in the query.
 
 Area chart — time series data:
 
@@ -106,6 +106,13 @@ Fallback slot — shown when ApexCharts is not available:
 | `unavailableLabel` | String | `'Chart library not available'` | Text shown when ApexCharts cannot be loaded |
 | `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars); an explicit `options.plotOptions.bar.horizontal` still wins |
 | `legendPosition` | String | `''` | Legend placement override (`top`/`bottom`/`left`/`right`); empty keeps the automatic placement |
+| `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
+| `footnote` | String | `''` | A line under the chart, through the host's translate: under the rows of a `bar-list` or `matrix`, under the plot of a `line`, `area` or `bar` chart |
+| `referenceLines` | Array | `[]` | Dashed horizontal reference lines on the value axis of a line, area or bar chart, such as a norm: `[{ value, label?, color? }]`. The label goes through the host's translate; the colour defaults to the theme's error colour (board DqDoorlooptijd). |
+| `categoryFormat` | String | `''` | How date categories read on the x-axis: `month` ("jan") or `month-year` ("jan 2026"), in the user's language. Categories that are not dates are left as is. |
+| `emptyCellLabel` | String | `''` | `matrix`: the text of a cell without a value ("geen"), through the host's translate. Empty leaves the cell blank |
+| `highlight` | Object | `null` | `matrix`: the cell to outline, `{ row, column, columnKeys? }`, tokens such as `@object.behaviour` resolved |
+| `cellSource` | Object | `null` | `matrix`: read the cells from records that each hold one cell (`{ register, schema, filter?, rowField, columnField, valueField, … }`), or with `cellsPath` from the cells inside one record, see [Bar list and matrix](#bar-list-and-matrix) |
 | `valueAxisBaseline` | String | `'auto'` | How the value axis picks its baseline, so a small difference cannot read as a dramatic one. `'auto'` anchors magnitude marks (bar/area) at zero and stops line charts zooming past a quarter of the data's magnitude; `'zero'` always anchors at zero; `'fit'` restores plain ApexCharts autoscaling — use it for series that live far from zero (a percentage hovering 95–99), where a zero baseline flattens the signal. Pie-family charts, negative series, empty data and stacked charts (`options.chart.stacked` — where the visible height is the per-category sum, not the largest datapoint) always autoscale; an explicit `options.yaxis.min`/`max` still wins. The ceiling rounds up to a nice number (7 → 8, 62 → 80). |
 | `valueFormat` | String\|Object | `null` | Named value formatter for the value axis + tooltip: `'currency'`, `'currency-compact'`, `'percent'`, or `{ name, currency?, decimals? }` |
 | `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie-family slices and (distributed) bar categories |

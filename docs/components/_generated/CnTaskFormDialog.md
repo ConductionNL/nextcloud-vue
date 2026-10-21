@@ -2,22 +2,23 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 1 direct reference, 110 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 1 direct reference, 117 files reached through imports.
 
-Through: `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnVersionHistory`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
+Through: `CnActionDialog`, `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnVersionHistory`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name          | Type      | Required | Default                    | Description                                                                              |
-| ------------- | --------- | -------- | -------------------------- | ---------------------------------------------------------------------------------------- |
-| `taskUuid`    | `string`  |          | `''`                       | UUID of the task. Fetched when `task` is not given.                                      |
-| `task`        | `union`   |          | `null`                     | The answer of `GET /api/flow-tasks/{uuid}` already fetched; skips the fetch.             |
-| `outcome`     | `string`  |          | `'done'`                   | The outcome sent on completion.                                                          |
-| `submit`      | `boolean` |          | `true`                     | Post to `/complete` on Confirm. With `false`, emit `confirm` and let the parent persist. |
-| `dialogTitle` | `string`  |          | `''`                       | Dialog title. Defaults to the task title.                                                |
-| `apiBase`     | `string`  |          | `'/apps/openregister/api'` | Base URL of the OpenRegister API.                                                        |
+| Name          | Type      | Required | Default                    | Description                                                                                                                                                                |
+| ------------- | --------- | -------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `taskUuid`    | `string`  |          | `''`                       | UUID of the task. Fetched when `task` is not given.                                                                                                                        |
+| `task`        | `union`   |          | `null`                     | The answer of `GET /api/flow-tasks/{uuid}` already fetched; skips the fetch.                                                                                               |
+| `outcome`     | `string`  |          | `'done'`                   | The outcome sent on completion.                                                                                                                                            |
+| `submit`      | `boolean` |          | `true`                     | Post to `/complete` on Confirm. With `false`, emit `confirm` and let the parent persist.                                                                                   |
+| `dialogTitle` | `string`  |          | `''`                       | Dialog title. Defaults to the task title.                                                                                                                                  |
+| `completeUrl` | `string`  |          | `''`                       | The route Confirm completes through instead of the engine's own `/flow-tasks/{uuid}/complete`, for an app that checks something of its own first; `{id}` is the task uuid. |
+| `apiBase`     | `string`  |          | `'/apps/openregister/api'` | Base URL of the OpenRegister API.                                                                                                                                          |
 
 ### Events
 

@@ -123,7 +123,7 @@ export default {
 |------|------|---------|-------------|
 | `manifest` | `Object` | — (required) | Reactive manifest. The renderer reads `manifest.dependencies` and `manifest.menu`; descendants `inject('cnManifest')`. |
 | `appId` | `String` | — (required) | Nextcloud app id. Forwarded to `NcContent` as `app-name` and to `CnDependencyMissing`. |
-| `appDisplayName` (`app-display-name`) | `String` | `''` | Human-readable name shown in the Nextcloud top bar. When set it overrides the technical `appId` so a virtual app shows its own name (e.g. "Pet Store") instead of the host app id. |
+| `appDisplayName` (`app-display-name`) | `String` | `''` | Human-readable name shown in the Nextcloud top bar. When set it overrides the technical `appId` so a virtual app shows its own name (e.g. "Pet Store") instead of the host app id. The user settings dialog, the setup wizard and the credentials section show it through the app's `translate`; without it they show the name Nextcloud's app menu gives (localised), else the id with a capital, never the bare id. The top bar's own name, which also keys the stored list-pane width (`pane-list-size-<name>`), stays untranslated so a reader's pane width survives a language switch. |
 | `persistManifestDelta` | `Function` | `null` | Optional persistence hook for in-app editing (ADR-041). Called with the minimal manifest delta when the user saves an edit. When omitted, Save updates the rendered manifest in memory but persists nothing — wire it to the Buildiq app-override endpoint to make edits durable. When Buildiq is reachable for the user, CnAppRoot surfaces a Conduction-orange edit button (`CnBuildiqEditButton`) top-right of the content and provides a shared `cnManifestEditor`; the body grid becomes drag/resizable in edit mode. Emits `@manifest-save(delta)`. |
 | `dataSources` | `Object \| null` | `null` | App registers/schemas for the in-app pages editor (ADR-041). Lets the Edit-pages modal offer Register / Schema / Columns dropdowns for `index`/`detail` pages instead of free-text slug inputs, so a created page actually renders a table. Shape: `{ registers: [{ value, label, schemas: [{ value, label, columns: string[] }] }] }`. Provided to descendants as `cnDataSources`; when omitted the editor falls back to free-text register/schema fields. **A snapshot** — captured once, so it cannot show anything created after boot. Prefer `dataSourcesLoader`. |
 | `dataSourcesLoader` (`data-sources-loader`) | `Function \| null` | `null` | Async loader for the same data, re-invoked every time a pages-editor modal opens: `async () => ({ registers: [...] })`. Because `provide()` runs once, the static `dataSources` snapshot can never change — so a register or schema created after the app booted (in another tab, the OpenRegister UI, or via the API) would never appear in the dropdowns. A loader fixes that with no page reload, and moves the fetch off the app-boot path onto the far rarer editor-open path. When both props are given, `dataSources` seeds the initial list and the loader's result replaces it on the first refresh. |
@@ -141,6 +141,9 @@ export default {
 | `notificationLabels` (`notification-labels`) | `Object` | `{}` | Labels for the app's notification rules in the user-settings notification pane, keyed `<schema>.<key>` or `<key>`. Values are translated strings or per-locale maps. A rule without a label reads as its key split into words, never as the raw key. Provided as `cnNotificationLabels`. |
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
 | `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to "User settings" from the library catalogue ("Persoonlijke instellingen" in Dutch), then the app's `translate`. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
+| `userSettingsEyebrow` | `String` | `''` | Deprecated and ignored: the board user-settings dialog (DqPersoonlijkeInstellingen) draws its title alone, at the top of its navigation column. |
+| `userSettingsSubtitle` | `String` | `''` | Deprecated and ignored, for the same reason. |
+| `userSettingsNextcloudLinks` | `Array` | `[]` | Board look: Nextcloud's own personal settings, listed first in the user-settings navigation as links, `[{ label, section? \| href?, icon? }]` (`section` is a personal settings section id, opened at `/settings/user/<section>`). With any, the app's sections sit under one entry named after the app. Labels go through the app's `translate`. |
 | `userSettingsSections` | `Array` | `null` | The sections of the user-settings modal, in the order they are drawn: `app` (the app's own slot content), `notifications`, `credentials`, `walkthrough`, `integrations`. A key left out is not drawn, so `['app', 'credentials', 'walkthrough']` hides the notifications pane and the integrations section. The app's slot content always renders; without `app` it comes first. `null` keeps the defaults: every section after `#user-settings-sections` content, or only the `#user-settings` content and the integrations section. See [User-settings modal](#user-settings-modal). |
 | `adminSettingsTitle` | `String` | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
 | `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
@@ -367,3 +370,25 @@ They are off by default because they stacked: an app declaring four optional lea
 | `hideMenu` | `Boolean` | `false` | Render no app navigation at all: neither the default `CnAppNav` nor the `#menu` slot, so the content starts at the left edge. An empty `#menu` override cannot do this (an empty slot falls back to the default `CnAppNav`), which is why launchpad passed a hidden empty span. |
 
 `CnAppRoot` also provides `cnMenuItemCounts`, the filtered totals for menu entries whose `count` is `{ register, schema, filter }` (see [CnAppNav](./cn-app-nav.md)).
+
+## User settings in the board look
+
+Under the board look (`look: "board"` or manifest `look`) the user settings open in the board dialog (board
+PqPersoonlijk) instead of `NcAppSettingsDialog`: an eyebrow, the title and a subtitle, a 200px navigation listing every
+section with its icon, the sections, and a footer "Changes are saved straight away · Pipelinq" (the app's name) with Close. The sections
+stay the app's: every `NcAppSettingsSection` in `#user-settings-sections` registers itself with the board dialog as it
+does with `NcAppSettingsDialog`, so give each one an `#icon` slot to show an icon in the navigation. The library's own
+sections carry one. The Nextcloud look is unchanged.
+
+Nextcloud does not expose its personal settings sections to an app's page, so the board's list of Nextcloud's own
+settings (Persoonlijke info, Beveiliging, ..., Privacy) is configured with `userSettingsNextcloudLinks`. With it, the
+navigation lists those links first and then one entry named after the app, with the app's sections under it (board
+DqPersoonlijkeInstellingen). A section's `#icon` also stands before its heading in the board dialog. The board dialog shows one section at a time: picking a navigation entry shows that section and moves focus to its heading; the other sections stay mounted but hidden, so what was typed in them survives a switch.
+
+```js
+const userSettingsNextcloudLinks = [
+	{ label: 'Personal info', section: 'personal-info', icon: 'AccountOutline' },
+	{ label: 'Security', section: 'security', icon: 'LockOutline' },
+	{ label: 'Privacy', section: 'privacy', icon: 'ShieldAccountOutline' },
+]
+```

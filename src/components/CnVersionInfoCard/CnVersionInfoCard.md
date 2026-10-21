@@ -91,6 +91,10 @@ With `title`, `description`, `docUrl`, `cardTitle`, `loading`, and `labels`:
 | `cardTitle` | String | `'Application information'` | Heading inside the gray version card |
 | `loading` | Boolean | `false` | Show a loading spinner and hide the card content while data is fetching |
 | `labels` | Object | `{}` | Custom labels for the standard row headings (`appName`, `version`, `configuredVersion`); a label left out keeps the translated default |
+| `showAppName` | Boolean | `true` | Board look: draw the "Application name" row (PqBeheer does; dossiq's boards pass `false`) |
+| `actionsDivider` | Boolean | `true` | Board look: draw a rule between the facts and the buttons (PqBeheer does; dossiq's boards pass `false`) |
+| `compact` | Boolean | `false` | Board look: dossiq's compact card in one switch (no app name row, no rule, the state inline, 15px facts) |
+| `inlineUpToDate` | Boolean | `false` | Board look: the up-to-date state inline in the configured version row (dossiq's boards pass `true`) instead of a disabled button (PqBeheer) |
 
 
 `look` is documented in the prop table of the component reference (board look, screens-chrome-parity).

@@ -44,7 +44,7 @@
 		<!-- Breadcrumb line (manifest `config.breadcrumb`): the list the record
 		     belongs to, then the record itself as the current crumb. -->
 		<CnBreadcrumbs
-			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound && !isBoard"
+			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound && !contentWithheld && !isBoard"
 			class="cn-detail-page__breadcrumbs"
 			:crumbs="breadcrumbCrumbs"
 			:rootText="breadcrumbCrumbs[0].icon === undefined"
@@ -52,7 +52,7 @@
 			data-testid="cn-detail-page-breadcrumbs" />
 		<!-- Header -->
 		<div
-			v-if="!objectNotFound"
+			v-if="!objectNotFound && !contentWithheld"
 			class="cn-detail-page__header"
 			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null, 'cn-detail-page__header--board': isBoard }"
 			data-testid="cn-detail-page-header">
@@ -104,7 +104,11 @@
 								:colorKey="pill.colorKey"
 								:colorMap="pill.colorMap"
 								:variant="pill.variant"
-								:data-testid="`cn-detail-page-pill-${pill.key}`" />
+								:data-testid="`cn-detail-page-pill-${pill.key}`">
+								<template v-if="pill.icon" #icon>
+									<CnIcon :name="pill.icon" :size="14" class="cn-detail-page__pill-icon" />
+								</template>
+							</CnStatusBadge>
 						</div>
 						<!-- Type name as a small eyebrow above the record name, so
 						     the header reads "the record" not "the kind of record"
@@ -126,20 +130,13 @@
 							</component>
 							<!-- The one Follow control beside the title (manifest `config.follow`):
 							     shown when the object carries `@self.watching`. There is no star:
-							     a favourite is a follow with notifications off. -->
+							     a favourite is a follow with notifications off. The board look
+							     draws it on a row of its own under the breadcrumb. -->
 							<span
-								v-if="showFollowToggle"
+								v-if="showFollowToggle && !isBoard"
 								class="cn-detail-page__interactions"
 								data-testid="cn-detail-page-interactions">
-								<CnFollowToggle
-									:register="register"
-									:schema="schema"
-									:objectId="String(objectId)"
-									:watching="resolvedSelf.watching === true"
-									:notify="typeof resolvedSelf.watchNotify === 'boolean' ? resolvedSelf.watchNotify : null"
-									:watcherCount="typeof resolvedSelf.watcherCount === 'number' ? resolvedSelf.watcherCount : null"
-									:canManage="!!(resolvedSelf.can && resolvedSelf.can.manage === true)"
-									:notifies="followNotifies" />
+								<CnFollowToggle v-bind="followToggleProps" />
 							</span>
 						</div>
 						<!--
@@ -267,6 +264,22 @@
 					@click="onPrimaryActionClick">
 					{{ effectivePrimaryLabel }}
 				</NcButton>
+				<!-- The record source's own verbs (a task's claim, hand back,
+				     complete), offered from the record's state. The ones a source
+				     marks `menu` join the Actions menu instead. -->
+				<NcButton
+					v-for="verb in sourceVerbButtons"
+					:key="`verb-${verb.id}`"
+					variant="secondary"
+					:disabled="sourceVerbBusy"
+					:data-testid="`cn-detail-page-verb-${verb.id}`"
+					@click="runSourceVerb(verb)">
+					<template v-if="verb.icon" #icon>
+						<CnIcon v-if="typeof verb.icon === 'string'" :name="verb.icon" :size="20" />
+						<component :is="verb.icon" v-else :size="20" />
+					</template>
+					{{ verb.label }}
+				</NcButton>
 				<!-- Quick actions (manifest `config.quickActions`): the few
 				     actions a handler reaches for on every record, always
 				     visible. At most three, so the row cannot grow back into
@@ -379,6 +392,8 @@
 					:showDocumentation="showDocumentation && menuShowsHelpLinks"
 					:actionsMenuLabel="boardMenuLabel"
 					:variant="isBoard ? 'secondary' : undefined"
+					:trailingChevron="isBoard"
+					:placement="isBoard ? 'bottom-end' : 'bottom'"
 					:hasPrimaryItems="headerMenuGroups.length > 0 || showMarkUnread || showOpenSidebar"
 					:documentationUrl="documentationUrl"
 					:docsAnchor="resolvedPageId"
@@ -413,7 +428,8 @@
 									:key="`${entry.id}-link`"
 									:href="entry.href"
 									:target="entry.linkTarget || undefined"
-									:data-testid="entry.testid">
+									:data-testid="entry.testid"
+									:data-cn-admin-tag="adminTagFor(group)">
 									<template v-if="entry.iconName || entry.iconClass" #icon>
 										<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
 										<span v-else :class="entry.iconClass" />
@@ -427,6 +443,7 @@
 									:disabled="entry.disabled"
 									:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
 									:closeAfterClick="true"
+									:data-cn-admin-tag="adminTagFor(group)"
 									@click="entry.run()">
 									<template v-if="entry.iconName || entry.iconClass" #icon>
 										<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
@@ -489,7 +506,11 @@
 						:colorKey="pill.colorKey"
 						:colorMap="pill.colorMap"
 						:variant="pill.variant"
-						:data-testid="`cn-detail-page-pill-${pill.key}`" />
+						:data-testid="`cn-detail-page-pill-${pill.key}`">
+						<template v-if="pill.icon" #icon>
+							<CnIcon :name="pill.icon" :size="14" class="cn-detail-page__pill-icon" />
+						</template>
+					</CnStatusBadge>
 				</div>
 				<CnBreadcrumbs
 					v-if="breadcrumbCrumbs.length > 0"
@@ -513,6 +534,17 @@
 					:object="resolvedObject"
 					:schema="currentSchema"
 					:register="register" />
+			</div>
+			<!-- Row 3 of the board look's header: the Follow control under the
+			     breadcrumb, clear of the title row and its actions (DqZaak
+			     "Volgen"). -->
+			<div
+				v-if="isBoard && showFollowToggle"
+				class="cn-detail-page__header-row3"
+				data-testid="cn-detail-page-header-row3">
+				<span class="cn-detail-page__interactions" data-testid="cn-detail-page-interactions">
+					<CnFollowToggle v-bind="followToggleProps" />
+				</span>
 			</div>
 			<!-- A widget inside the header (manifest `config.headerWidget`), on
 			     a row of its own under the title and the actions: the stages
@@ -641,6 +673,32 @@
 					</template>
 				</NcEmptyContent>
 			</slot>
+		</div>
+
+		<!-- Access purpose (`accessPurpose`): nothing of the record shows until
+		     the reader has stated why they open it and the purpose is recorded. -->
+		<div v-else-if="contentWithheld" class="cn-detail-page__access-purpose" data-testid="cn-detail-page-access-purpose">
+			<CnAccessPurposeDialog
+				v-if="accessPurposeAsking"
+				:title="accessPurposeText('title')"
+				:description="accessPurposeText('description')"
+				:options="accessPurposeOptions"
+				:loading="accessPurposeBusy"
+				:error="accessPurposeError"
+				@submit="recordAccessPurpose"
+				@cancel="accessPurposeAsking = false" />
+			<NcEmptyContent
+				v-else-if="accessPurposeRequired"
+				:name="t('nextcloud-vue', 'State a purpose to open this')"
+				:description="t('nextcloud-vue', 'This record holds special categories of personal data. It opens once your purpose is recorded.')"
+				data-testid="cn-detail-page-access-purpose-refused">
+				<template #action>
+					<NcButton variant="primary" data-testid="cn-detail-page-access-purpose-ask" @click="accessPurposeAsking = true">
+						{{ t('nextcloud-vue', 'State a purpose') }}
+					</NcButton>
+				</template>
+			</NcEmptyContent>
+			<NcLoadingIcon v-else :size="32" :name="loadingLabel" />
 		</div>
 
 		<!-- Loading state -->
@@ -851,6 +909,7 @@
 							<CnDetailWidgetHost
 								:widget="findWidget(item)"
 								chrome="card"
+								inGridCell
 								:showCardTitle="showCardTitle(item)"
 								:showActions="effectiveShowWidgetActions"
 								:objectId="objectId"
@@ -1029,8 +1088,14 @@
 			class="cn-detail-page__side"
 			:aria-label="sideColumnLabel"
 			data-testid="cn-detail-page-side">
+			<!-- Where a body widget puts its own cards about what is selected in
+			     it (`cnDetailSideColumn`); while it does, the generic cards
+			     below stand aside. -->
+			<div :id="sideTakeoverId"
+				class="cn-detail-page__side-takeover"
+				data-testid="cn-detail-page-side-takeover" />
 			<div
-				v-for="widget in sideColumnWidgets"
+				v-for="widget in sideClaims.length > 0 ? [] : sideColumnWidgets"
 				:key="`side-${widget.id}`"
 				class="cn-detail-page__side-item"
 				:class="{ 'cn-detail-page__side-item--notice': isBoard && widget.type === 'banner', 'cn-detail-page__side-item--history': isBoard && widget.id === sideHistoryId, 'cn-detail-page__side-item--with-identifier': isBoard && widget.id === sideHistoryId && identifierLine !== '' }"
@@ -1214,6 +1279,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Restore from 'vue-material-design-icons/Restore.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
+import CnAccessPurposeDialog from '../../dialogs/CnAccessPurposeDialog.vue'
 import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
@@ -1231,14 +1297,17 @@ import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
+import { resolveRecordSource } from '../../composables/indexSources.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
+import { headerActionAsLink } from '../../utils/actionLink.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
@@ -1247,6 +1316,7 @@ import {
 	MAX_QUICK_ACTIONS,
 	normalisePinnedAction,
 	pillCountSource,
+	pillLook,
 	resolveCountPill,
 	resolveNextStep,
 	resolvePill,
@@ -1256,12 +1326,15 @@ import {
 import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
+import { saveEdited } from '../../utils/saveEdited.js'
 import { slotRenders } from '../../utils/slotContent.js'
-import { evaluateVisibleWhen, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
+import { evaluateVisibleWhen, isLocallyDecidableVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -1351,6 +1424,28 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
+/** The session storage key that lists the records whose access purpose is recorded. */
+const ACCESS_PURPOSE_SESSION_KEY = 'cn-access-purposes'
+
+/** Counter for unique side column slot ids across instances. */
+let sideTakeoverCounter = 0
+
+/**
+ * The records whose access purpose this browser session recorded. Empty when
+ * session storage cannot be read (a private window, blocked site data).
+ *
+ * @return {Array<string>} The record keys.
+ */
+function readGrantedPurposes() {
+	try {
+		const raw = window.sessionStorage.getItem(ACCESS_PURPOSE_SESSION_KEY)
+		const list = raw ? JSON.parse(raw) : []
+		return Array.isArray(list) ? list.filter((key) => typeof key === 'string') : []
+	} catch {
+		return []
+	}
+}
+
 /**
  * CnDetailPage — Generic detail/overview page.
  *
@@ -1427,6 +1522,7 @@ export default {
 
 	components: {
 		ChevronLeft,
+		CnAccessPurposeDialog,
 		ChevronRight,
 		NcActionButton,
 		NcActionCaption,
@@ -1524,7 +1620,23 @@ export default {
 		const isBoard = computed(() => this.isBoard)
 		const tabsLabel = computed(() => this.resolvedTabsLabel)
 		const visibilityRows = computed(() => (this.visibilityRowsPending ? null : this.visibilityRows))
+		const canCheckItems = computed(() => this.recordCanCheckItems)
+		const sideAvailable = computed(() => this.showsSideColumn)
 		return {
+			// The side column, for a widget in the body that describes what is
+			// selected in it (a files list's cards about the selected file).
+			// `available` says whether the page draws a side column; `target`
+			// is the selector to teleport the cards to; `claim(owner, on)`
+			// puts the generic side cards aside while an owner shows its own.
+			cnDetailSideColumn: {
+				get available() {
+					return sideAvailable.value
+				},
+
+				target: `#${this.sideTakeoverId}`,
+				claim: (owner, on) => this.claimSideColumn(owner, on),
+			},
+
 			// The page's own look reaches the tabs, the cards and the activity
 			// below it, also when it came from the `look` prop and not the app.
 			cnLook: computed(() => (isBoard.value ? 'board' : 'nextcloud')),
@@ -1532,6 +1644,21 @@ export default {
 				get value() {
 					return tabsLabel.value
 				},
+			},
+
+			// The record source's checklist writes, for a `checklist` widget.
+			cnRecordChecklist: {
+				get canCheck() {
+					return canCheckItems.value
+				},
+
+				check: (itemId, checked) => this.checkSourceItem(itemId, checked),
+			},
+
+			// The open body tab, reported by a `tabs` widget, so a side entry
+			// with `tabs` shows only beside those tabs.
+			cnDetailReportTab: (id) => {
+				this.activeBodyTab = typeof id === 'string' ? id : ''
 			},
 
 			// The records `visibilityContext` names, keyed `@context.<name>`, so a tab's
@@ -1909,6 +2036,37 @@ export default {
 		},
 
 		/**
+		 * Name of a registered entity source that reads ONE record (manifest
+		 * `config.entitySource`), for a record that is not a register/schema
+		 * object. The same registry and the same name as `CnIndexPage`'s
+		 * `entitySource`: `organisations` shows the OpenRegister organisation
+		 * whose uuid is `objectId`. The record feeds the header, pills, facts,
+		 * widgets and the `@objectId` / `@object.*` tokens exactly as a fetched
+		 * object does. Wins over `register` + `schema`. Empty (the default)
+		 * leaves the page on its object store.
+		 *
+		 * @type {string}
+		 */
+		entitySource: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * App routes that replace a record source's own route for a verb, by
+		 * verb id (manifest `config.verbEndpoints`), such as
+		 * `{ "complete": "/apps/dossiq/api/case-tasks/{id}/complete" }` for an
+		 * app that checks something of its own before the engine completes the
+		 * task. `{id}` is the record id. Only read with `entitySource`.
+		 *
+		 * @type {object|null}
+		 */
+		verbEndpoints: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * OpenRegister register slug. Pair with `schema` to opt into the
 		 * schema-driven mode: the page fuses the two into an internal
 		 * `${register}-${schema}` object-type slug, registers it on the
@@ -2101,7 +2259,7 @@ export default {
 			default: false,
 		},
 
-		/** Label for the header Edit button. Defaults to a translated "Edit". */
+		/** Label for the header Edit button, run through the host translate. Defaults to a translated "Edit". */
 		editLabel: {
 			type: String,
 			default: '',
@@ -2175,6 +2333,11 @@ export default {
 		 * (approve, send, archive). The page's object context drives
 		 * `@objectId` / `@object.<field>` token + local-predicate resolution.
 		 * Empty (the default) renders nothing.
+		 *
+		 * An entry with `href` is a link, never dispatched: an absolute
+		 * `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written, or an instance path
+		 * (leading `/`) through `generateUrl()`, opening in place unless
+		 * `target` is `'_blank'`.
 		 *
 		 * The menu, not a row of buttons: that is what the manifest schema has
 		 * always said this key is, and what CnIndexPage already does with it.
@@ -2422,13 +2585,15 @@ export default {
 
 		/**
 		 * What the Actions menu itself shows (manifest `config.actionsMenu`):
-		 * `{ showRefresh?, showHelpLinks?, label? }`. `showRefresh: false`
-		 * removes Refresh. `showHelpLinks: false` removes Request a feature,
-		 * Report a bug and Documentation, for an app that offers them in its
-		 * own help menu. `label` names the menu, for example "More". `null`
-		 * (the default) changes nothing.
+		 * `{ showRefresh?, showHelpLinks?, showMarkUnread?, showOpenSidebar?, label? }`.
+		 * `showRefresh: false` removes Refresh. `showHelpLinks: false` removes
+		 * Request a feature, Report a bug and Documentation, for an app that
+		 * offers them in its own help menu. `showMarkUnread: false` and
+		 * `showOpenSidebar: false` remove those two built-in entries, for a
+		 * menu the board draws without them (DqZaakMeer). `label` names the
+		 * menu, for example "More". `null` (the default) changes nothing.
 		 *
-		 * @type {{showRefresh?: boolean, showHelpLinks?: boolean, label?: string}|null}
+		 * @type {{showRefresh?: boolean, showHelpLinks?: boolean, showMarkUnread?: boolean, showOpenSidebar?: boolean, label?: string}|null}
 		 */
 		actionsMenu: {
 			type: Object,
@@ -2437,8 +2602,12 @@ export default {
 
 		/**
 		 * The "what now" card (manifest `config.nextStep`):
-		 * `{ field?, stages: { <stage>: { title?, checklist, after? } } }`.
+		 * `{ field?, stagesFrom?, stages: { <stage>: { title?, checklist, after? } } }`.
 		 * Each checklist item is `{ label, doneField?, doneWhen?, hint? }`.
+		 * `stagesFrom` is a field path read like a `visibleWhen` field
+		 * (`@context.caseType.nextStep`): when it holds a stages map (or an
+		 * object with `stages`), that map replaces `stages` for this record, so
+		 * a case type keeps its own stage texts. Otherwise `stages` stays.
 		 * Rendered above the body for a stage that declares a checklist, with
 		 * the primary button inside it. See `CnNextStepCard`.
 		 *
@@ -2457,9 +2626,14 @@ export default {
 		 * `field`: `text`, a constant ("Inwoner"), or `countFrom`
 		 * (`{ register, schema, filter? }`) with `countLabel` (`{ one, other }`
 		 * with `{count}`), a count of a related list ("1 lopende zaak") that
-		 * shows nothing at 0.
+		 * shows nothing at 0. With `resolve: { register, schema, labelField?,
+		 * colorField?, iconField? }` the pill shows the referenced record's
+		 * label, takes its tone from that record's colour (an NL Design System
+		 * hue such as `red`, or a badge role) and shows its icon. `values`
+		 * draws a `field` pill only for those raw values (a priority pill for
+		 * `high` and `urgent` only).
 		 *
-		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string}|null}
+		 * @type {{field?: string, text?: string, countFrom?: object, countLabel?: object, colorMap?: object, labels?: object, variant?: string, resolve?: object, values?: Array<string>}|null}
 		 */
 		typePill: {
 			type: Object,
@@ -2543,18 +2717,52 @@ export default {
 		},
 
 		/**
+		 * A field path whose value picks the tabs of the page's `tabs` widgets
+		 * and their order for this record (manifest `config.tabsFrom`), read
+		 * like a `visibleWhen` field: `@context.caseType.tabs` reads the list a
+		 * case type keeps. A non-empty list of tab ids (a tab's `id`, else its
+		 * `widgetId`, or the string entry itself) keeps those tabs in that
+		 * order and leaves the rest out. Any other value keeps the declared
+		 * tabs. Edit mode shows them all.
+		 *
+		 * @spec openspec/changes/detail-tabs-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-tabs-and-their-order
+		 */
+		tabsFrom: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * A column of cards beside the body (manifest `config.sideColumn`),
 		 * for the record's facts: deadline, requester, handler, links. Each
 		 * entry is a widget definition (`{ id?, type, title?, content? }`) or
 		 * the id of a widget declared in `widgets`. The column stacks under
 		 * the body on a narrow page. Empty (the default) leaves the layout as
-		 * it is.
+		 * it is. An entry with `tabs` (tab ids of the body's `tabs` widget)
+		 * shows only while one of those tabs is open (DqZaaktypeVelden: the
+		 * option list beside Velden).
 		 *
 		 * @type {Array<string|object>}
 		 */
 		sideColumn: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * A field path whose value picks the side column and its order for
+		 * this record (manifest `config.sideColumnFrom`), read like a
+		 * `visibleWhen` field: `@context.caseType.sideCards` reads the list a
+		 * case type keeps. A non-empty list of ids keeps those `sideColumn`
+		 * entries, in that order, and leaves the rest out; each still follows
+		 * its own `visibleWhen`. Any other value keeps `sideColumn` as
+		 * declared, so a record whose list is empty changes nothing.
+		 *
+		 * @spec openspec/changes/detail-side-column-from/specs/detail-page/spec.md#requirement-a-record-can-pick-the-side-column-and-its-order
+		 */
+		sideColumnFrom: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -2604,6 +2812,28 @@ export default {
 		},
 
 		/**
+		 * Ask why the reader opens the record before the page shows it, and
+		 * record the answer (manifest `config.accessPurpose`). `{ when, options,
+		 * url, title?, description? }`: `when` is a condition in the
+		 * `visibleWhen` grammar on the record and its `visibilityContext`
+		 * records (DqSociaalDomein: the case type lists special categories of
+		 * personal data); `options` the purposes offered (`{ value, label }`,
+		 * "Other" with a written purpose is always added); `url` the app
+		 * endpoint that records the purpose (POST `{ purpose, note }`, `{objectId}`
+		 * filled in). The page shows nothing of the record until the endpoint
+		 * accepts, and does not ask again for the same record in the same
+		 * browser session. A refusal keeps the record closed. `null` (the
+		 * default) asks nothing.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @type {object|null}
+		 */
+		accessPurpose: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Whether the current user administers this instance. Shows the
 		 * `adminOnly` header actions. `null` (the default) reads it from
 		 * `getCurrentUser()`. Visibility only, never an authorization
@@ -2631,8 +2861,10 @@ export default {
 		/**
 		 * The meta line on row 2 of the board look's header (manifest
 		 * `config.headerMeta`): a field template such as `"via {channel}"`.
-		 * Every `{path}` is read from the record; a line with an empty value
-		 * is dropped. Only the board look draws it.
+		 * Every `{path}` is read from the record (an enum field as its label);
+		 * `{path|format}` formats it (`weekday`, `longdate`, `time`, `user`,
+		 * `currency:EUR`, ...). An empty token drops itself and its separator;
+		 * a line with no value at all is dropped. Only the board look draws it.
 		 *
 		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
 		 */
@@ -2843,6 +3075,20 @@ export default {
 
 	data() {
 		return {
+			/** The id of the side column's slot for a body widget's own cards. */
+			sideTakeoverId: `cn-detail-side-takeover-${++sideTakeoverCounter}`,
+			/** The body widgets that show their own cards in the side column now. */
+			sideClaims: [],
+			/** The session keys of the records whose access purpose is recorded. */
+			accessPurposeGranted: readGrantedPurposes(),
+			/** Whether the purpose dialog is open; closing it without a purpose keeps the record closed. */
+			accessPurposeAsking: true,
+			/** Whether a purpose is being recorded. */
+			accessPurposeBusy: false,
+			/** Why the last purpose was refused. */
+			accessPurposeError: '',
+			/** The id of the open body tab a `tabs` widget reported, '' before one did. */
+			activeBodyTab: '',
 			/**
 			 * The records `visibilityContext` names, keyed `@context.<name>`: the row,
 			 * `null` when it could not be read, absent while it is on its way.
@@ -2860,6 +3106,12 @@ export default {
 			pillCounts: {},
 			/** Sequence of the last pill count round, so a late answer does not overwrite a newer one. */
 			pillCountSeq: 0,
+			/** The labels of the records pills with `resolve` point at, by pill key. */
+			pillRefLabels: {},
+			/** The colour and icon names read off the records pills with `resolve` point at, by pill key. */
+			pillRefLooks: {},
+			/** Sequence of the last pill label lookup, so a late answer for another record is dropped. */
+			pillRefSeq: 0,
 			/** `register/schema/id` the read-state call was last made for, so it is sent once per load. */
 			readStateSentFor: '',
 			/** Whether the user is arranging the chosen view (`userLayout`). */
@@ -2885,6 +3137,8 @@ export default {
 			 * menu dispatches without reaching back into that component.
 			 */
 			menuHeaderActions: [],
+			/** Whether a record-source verb is in flight, so a double click cannot run it twice. */
+			sourceVerbBusy: false,
 			/** Lifecycle transitions CnLifecycleActions hands the Actions menu. */
 			lifecycleMenuEntries: [],
 			/** Whether the per-widget style/config editor modal is open. */
@@ -2991,7 +3245,7 @@ export default {
 		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
 		 */
 		headerMetaText() {
-			return resolveHeaderMeta(this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '', this.resolvedObject)
+			return resolveHeaderMeta(this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '', this.resolvedObject, { schema: this.currentSchema, translate: this.effectiveTranslate })
 		},
 
 		/**
@@ -3336,7 +3590,83 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
 		 */
 		showsBody() {
-			return !this.objectNotFound && !this.showLoadingState && !this.error && !this.empty
+			return !this.objectNotFound && !this.contentWithheld && !this.showLoadingState && !this.error && !this.empty
+		},
+
+		/**
+		 * Whether the loaded record asks for a purpose before it opens
+		 * (`accessPurpose.when` holds for it). Undecided, and so withheld,
+		 * while the record or the records its condition reads are on their way.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @return {boolean}
+		 */
+		accessPurposeRequired() {
+			const gate = this.accessPurpose
+			if (!gate || typeof gate !== 'object' || !gate.when || !this.widgetVisibilityData || this.visibilityRowsPending) {
+				return false
+			}
+			return detailWidgetVisible({ visibleWhen: gate.when }, this.widgetVisibilityData)
+		},
+
+		/**
+		 * Whether the page holds the record back: it asks for a purpose and
+		 * none is recorded for this record in this session yet, or it cannot
+		 * tell yet whether it asks.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @return {boolean}
+		 */
+		contentWithheld() {
+			const gate = this.accessPurpose
+			if (!gate || typeof gate !== 'object' || !gate.when || this.objectNotFound) {
+				return false
+			}
+			if (this.accessPurposeGranted.includes(this.accessPurposeKey)) {
+				return false
+			}
+			const undecided = !this.widgetVisibilityData || this.visibilityRowsPending
+			return undecided || this.accessPurposeRequired
+		},
+
+		/**
+		 * The session key of the purpose recorded for this record.
+		 *
+		 * @return {string}
+		 */
+		accessPurposeKey() {
+			return `cn-access-purpose:${this.resolvedObjectType || ''}:${this.objectId || ''}`
+		},
+
+		/**
+		 * The purposes offered, through the app's translate.
+		 *
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		accessPurposeOptions() {
+			const options = Array.isArray(this.accessPurpose?.options) ? this.accessPurpose.options : []
+			return options
+				.filter((option) => option && typeof option.value === 'string' && option.value !== '')
+				.map((option) => ({ value: option.value, label: this.cnTranslate(option.label || option.value) }))
+		},
+
+		/**
+		 * `nextStep` with its stages read from the record when `stagesFrom`
+		 * names a stages map there (a case type's own texts), else as declared.
+		 *
+		 * @spec openspec/changes/detail-next-step-from-record/specs/detail-page/spec.md#requirement-the-next-step-stages-can-come-from-the-record
+		 * @return {object|null}
+		 */
+		effectiveNextStep() {
+			const config = this.nextStep
+			if (!config || typeof config !== 'object' || typeof config.stagesFrom !== 'string' || config.stagesFrom === '' || !this.widgetVisibilityData) {
+				return config
+			}
+			const found = readVisibleWhenPath(this.widgetVisibilityData, config.stagesFrom)
+			const stages = found && typeof found === 'object' && !Array.isArray(found)
+				? (found.stages && typeof found.stages === 'object' && !Array.isArray(found.stages) ? found.stages : found)
+				: null
+			return stages && Object.keys(stages).length > 0 ? { ...config, stages } : config
 		},
 
 		/**
@@ -3346,15 +3676,15 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
 		 */
 		nextStepCard() {
-			const card = resolveNextStep(this.nextStep, this.currentObject, this.stageField)
+			const card = resolveNextStep(this.effectiveNextStep, this.currentObject, this.stageField)
 			if (!card) {
 				return null
 			}
 			const tr = (text) => (text ? this.effectiveTranslate(text) : '')
 			return {
 				...card,
-				title: tr(card.title),
-				after: tr(card.after),
+				title: firstFilled(card.title, this.currentObject, tr),
+				after: firstFilled(card.after, this.currentObject, tr),
 				items: card.items.map((item) => ({ ...item, label: tr(item.label), hint: tr(item.hint) })),
 			}
 		},
@@ -3381,7 +3711,17 @@ export default {
 					const pill = pillCountSource(config)
 						? resolveCountPill(config, this.pillCounts[key], (text) => this.effectiveTranslate(text))
 						: resolvePill(config, this.resolvedObject)
-					return pill ? { ...pill, key, label: this.effectiveTranslate(pill.label) } : null
+					if (!pill) {
+						return null
+					}
+					// `resolve`: the referenced record's label replaces the id, and
+					// keys the colour too ("Woo-verzoek", not a uuid).
+					const resolved = this.pillRefLabels[key]
+					const look = pillLook(this.pillRefLooks[key])
+					if (typeof resolved === 'string' && resolved !== '') {
+						return { ...pill, ...look, key, label: this.effectiveTranslate(resolved), colorKey: resolved }
+					}
+					return { ...pill, ...look, key, label: this.effectiveTranslate(pill.label) }
 				})
 				.filter(Boolean)
 		},
@@ -3393,6 +3733,35 @@ export default {
 		 * @return {string} The key.
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count
 		 */
+		/**
+		 * What the resolved pills depend on, as one key: a change looks again.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/detail-pill-resolve/specs/detail-page/spec.md#requirement-a-header-pill-can-show-a-referenced-record-s-label
+		 */
+		pillResolveKey() {
+			return JSON.stringify(this.pillResolveTargets)
+		},
+
+		/**
+		 * The pills with `resolve: { register, schema, labelField? }` and the
+		 * id each one shows: `[key, register, schema, labelField, id]`. Empty
+		 * while the field is empty.
+		 *
+		 * @return {Array<Array<string>>}
+		 * @spec openspec/changes/detail-pill-resolve/specs/detail-page/spec.md#requirement-a-header-pill-can-show-a-referenced-record-s-label
+		 */
+		pillResolveTargets() {
+			return [['type', this.typePill], ['status', this.statusPill]]
+				.filter(([, config]) => config && config.resolve && config.resolve.register && config.resolve.schema && typeof config.field === 'string')
+				.map(([key, config]) => {
+					const pill = resolvePill({ field: config.field }, this.resolvedObject)
+					const { register, schema, labelField, colorField, iconField } = config.resolve
+					return pill ? [key, register, schema, labelField || '', pill.colorKey, colorField || '', iconField || ''] : null
+				})
+				.filter(Boolean)
+		},
+
 		pillCountKey() {
 			return JSON.stringify([this.objectId, pillCountSource(this.typePill), pillCountSource(this.statusPill)])
 		},
@@ -3414,14 +3783,62 @@ export default {
 
 		/**
 		 * The side column's widget definitions. A string names a widget
-		 * declared in `widgets`; an object is a definition of its own.
+		 * declared in `widgets`; an object is a definition of its own. A
+		 * definition whose `visibleWhen` does not hold for the record (or the
+		 * records `visibilityContext` names) is left out, exactly as in the
+		 * body grid; edit mode shows them all.
 		 *
 		 * @return {Array<object>} The definitions that resolve, each with an `id`.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
+		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
 		 */
 		sideColumnWidgets() {
+			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetOnTab(widget) && this.sideWidgetVisible(widget))
+			if (!this.isBoard) {
+				return resolved
+			}
+			// The board look: the notice first, the History card last.
+			const rank = (widget) => (widget.type === 'banner' ? 0 : isActivityWidget(widget) ? 2 : 1)
+			return resolved
+				.map((widget, index) => ({ widget, index }))
+				.sort((a, b) => (rank(a.widget) - rank(b.widget)) || (a.index - b.index))
+				.map(({ widget }) => widget)
+		},
+
+		/**
+		 * The side column's definitions as the record picks them
+		 * (`sideColumnFrom`): the ids it lists, in its order, or every
+		 * declared entry when it lists none. Edit mode shows them all.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-side-column-from/specs/detail-page/spec.md#requirement-a-record-can-pick-the-side-column-and-its-order
+		 */
+		pickedSideWidgets() {
+			const declared = this.declaredSideWidgets
+			if (!this.sideColumnFrom || this.editingBody || !this.widgetVisibilityData) {
+				return declared
+			}
+			const ids = readVisibleWhenPath(this.widgetVisibilityData, this.sideColumnFrom)
+			if (!Array.isArray(ids) || ids.length === 0) {
+				return declared
+			}
+			return ids
+				.map((id) => declared.find((widget) => widget.id === id) || null)
+				.filter(Boolean)
+		},
+
+		/**
+		 * The side column's entries resolved to definitions, before any
+		 * `visibleWhen` is read: a string names a widget declared in
+		 * `widgets`, an object is a definition of its own (given an id when it
+		 * has none).
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
+		 */
+		declaredSideWidgets() {
 			const declared = Array.isArray(this.widgets) ? this.widgets : []
-			const resolved = (Array.isArray(this.sideColumn) ? this.sideColumn : [])
+			return (Array.isArray(this.sideColumn) ? this.sideColumn : [])
 				.map((entry, index) => {
 					if (typeof entry === 'string') {
 						return declared.find((widget) => widget && widget.id === entry) || null
@@ -3432,15 +3849,6 @@ export default {
 					return entry.id ? entry : { ...entry, id: `cn-side-${index}` }
 				})
 				.filter(Boolean)
-			if (!this.isBoard) {
-				return resolved
-			}
-			// The board look: the notice first, the History card last.
-			const rank = (widget) => (widget.type === 'banner' ? 0 : isActivityWidget(widget) ? 2 : 1)
-			return resolved
-				.map((widget, index) => ({ widget, index }))
-				.sort((a, b) => (rank(a.widget) - rank(b.widget)) || (a.index - b.index))
-				.map(({ widget }) => widget)
 		},
 
 		/**
@@ -3578,6 +3986,9 @@ export default {
 		 * @return {boolean}
 		 */
 		awaitingObject() {
+			if (this.hasRecordSourceFetch) {
+				return this.objectFetchPending && !this.currentObject
+			}
 			return this.hasSchemaDrivenFetch
 				&& this.objectFetchPending
 				&& typeof this.effectiveObjectStore?.fetchObject === 'function'
@@ -3651,7 +4062,45 @@ export default {
 		 * the fetch path entirely.
 		 */
 		hasSchemaDrivenFetch() {
-			return Boolean(this.register && this.schema && this.objectId)
+			return !this.entitySource && Boolean(this.register && this.schema && this.objectId)
+		},
+
+		/**
+		 * The record source named by `entitySource`, or null. An unknown name,
+		 * or a source that cannot read one record, is null with a warning.
+		 *
+		 * @return {object|null}
+		 */
+		recordSource() {
+			if (!this.entitySource) {
+				return null
+			}
+			try {
+				return resolveRecordSource(this.entitySource)
+			} catch (err) {
+				// eslint-disable-next-line no-console -- the console is the only channel a host app can read the detail on
+				console.warn('[CnDetailPage] the record source could not start; no record is shown.', err)
+				return null
+			}
+		},
+
+		/**
+		 * Whether the page reads its record through a record source.
+		 *
+		 * @return {boolean}
+		 */
+		hasRecordSourceFetch() {
+			return Boolean(this.recordSource && this.objectId)
+		},
+
+		/**
+		 * Whether the page reads its own record, from the object store or a
+		 * record source, so Refresh and `cn:page:refresh` have something to do.
+		 *
+		 * @return {boolean}
+		 */
+		selfFetchesRecord() {
+			return this.hasSchemaDrivenFetch || this.hasRecordSourceFetch
 		},
 
 		/**
@@ -3687,7 +4136,70 @@ export default {
 			const inMenu = pinned.size > 0
 				? this.menuHeaderActions.filter((entry) => !pinned.has(entry.id))
 				: this.menuHeaderActions
-			return [...lifecycle, ...inMenu]
+			return [...this.sourceVerbMenuEntries, ...lifecycle, ...inMenu]
+		},
+
+		/**
+		 * The verbs the record source offers on the record in view, read off
+		 * the record's own state by the source. Empty without a source that
+		 * offers verbs, before the record is read, and when it was not found.
+		 *
+		 * @return {Array<object>} The verbs.
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		sourceVerbs() {
+			const source = this.recordSource
+			if (!source || typeof source.verbs !== 'function' || typeof source.runVerb !== 'function') {
+				return []
+			}
+			if (this.objectNotFound || !this.currentObject) {
+				return []
+			}
+			const verbs = source.verbs(this.currentObject)
+			return Array.isArray(verbs) ? verbs.filter((verb) => verb && typeof verb.id === 'string' && verb.id !== '') : []
+		},
+
+		/**
+		 * Whether the record source can tick the checklist of the record in
+		 * view: it writes items, and says this record can still be ticked.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		recordCanCheckItems() {
+			const source = this.recordSource
+			if (!source || typeof source.checkItem !== 'function' || !this.currentObject || this.objectNotFound) {
+				return false
+			}
+			return typeof source.canCheckItems !== 'function' || source.canCheckItems(this.currentObject) === true
+		},
+
+		/**
+		 * The source verbs drawn as header buttons.
+		 *
+		 * @return {Array<object>} The verbs.
+		 */
+		sourceVerbButtons() {
+			return this.sourceVerbs.filter((verb) => verb.menu !== true)
+		},
+
+		/**
+		 * The source verbs listed in the Actions menu, as menu entries.
+		 *
+		 * @return {Array<object>} Menu-ready entries.
+		 */
+		sourceVerbMenuEntries() {
+			return this.sourceVerbs
+				.filter((verb) => verb.menu === true)
+				.map((verb) => ({
+					id: `cn-source-verb-${verb.id}`,
+					label: verb.label,
+					testid: `cn-detail-page-verb-${verb.id}`,
+					iconName: typeof verb.icon === 'string' ? verb.icon : '',
+					disabled: this.sourceVerbBusy,
+					pressed: null,
+					run: () => this.runSourceVerb(verb),
+				}))
 		},
 
 		/**
@@ -3707,6 +4219,7 @@ export default {
 		 * in. Edit goes LAST so it reads after the app's own actions in the
 		 * Actions menu — the page's affordance yields to the app's.
 		 *
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 * @return {Array<object>} The action descriptors.
 		 */
 		effectiveHeaderActions() {
@@ -3715,12 +4228,16 @@ export default {
 			// written out in place) join the list CnActionButtons dispatches,
 			// so they get the same dialogs, toasts and `visibleWhen` gating as
 			// any header action. An id that is already declared is not added
-			// twice. With nothing pinned inline this is `headerActions` itself.
+			// twice. With nothing pinned inline and no `href` entry this is
+			// `headerActions` itself.
 			const known = new Set(authored.map((action) => action && action.id))
 			const inline = [this.stagePrimary, ...this.pinnedQuickActions]
 				.filter((pinned) => pinned && pinned.inline && !known.has(pinned.id))
 				.map((pinned) => pinned.inline)
-			const declared = inline.length > 0 ? [...authored, ...inline] : authored
+			const combined = inline.length > 0 ? [...authored, ...inline] : authored
+			// An entry (or child) with `href` becomes a link CnActionButtons renders as an anchor.
+			const linked = combined.map(headerActionAsLink)
+			const declared = linked.some((action, index) => action !== combined[index]) ? linked : combined
 			if (!(this.foldsEditIntoActions && this.canEditRecord)) {
 				return declared
 			}
@@ -3761,12 +4278,14 @@ export default {
 		},
 
 		/**
-		 * Label for the header Edit button.
+		 * Label for the header Edit button: the manifest's `editLabel` through
+		 * the host translate, else the library's translated "Edit".
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/detail-edit-label-translate/specs/detail-page/spec.md#requirement-the-edit-button-label-follows-the-reader-s-language
 		 */
 		editActionLabel() {
-			return this.editLabel || t('nextcloud-vue', 'Edit')
+			return this.editLabel ? this.effectiveTranslate(this.editLabel) : t('nextcloud-vue', 'Edit')
 		},
 
 		/**
@@ -3864,7 +4383,7 @@ export default {
 			}
 			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
 			// Vue keeps declared emits out of `$attrs`.
-			return Boolean(this.$.vnode.props?.onRefresh) || this.hasSchemaDrivenFetch
+			return Boolean(this.$.vnode.props?.onRefresh) || this.selfFetchesRecord
 		},
 
 		/**
@@ -3908,6 +4427,9 @@ export default {
 		 * @return {object|null}
 		 */
 		currentObject() {
+			if (this.recordSource) {
+				return this.objectId ? (this.recordSource.record(this.objectId) ?? null) : null
+			}
 			const store = this.effectiveObjectStore
 			if (!store) {
 				return null
@@ -4020,7 +4542,7 @@ export default {
 			if (!this.widgetVisibilityData || this.visibilityRowsPending) {
 				return ''
 			}
-			const defs = [...(this.bodyGridWidgets || []), ...((this.activeView && this.activeView.widgets) || [])]
+			const defs = [...(this.bodyGridWidgets || []), ...((this.activeView && this.activeView.widgets) || []), ...this.declaredSideWidgets]
 			const remote = defs.filter((def) => def && def.visibleWhen && typeof def.visibleWhen === 'object'
 				&& !isLocallyDecidableVisibleWhen(def.visibleWhen))
 			if (remote.length === 0) {
@@ -4046,7 +4568,8 @@ export default {
 		 * @spec openspec/changes/record-unread-markers/tasks.md#task-2
 		 */
 		showMarkUnread() {
-			return typeof this.resolvedSelf.unread === 'boolean'
+			return this.actionsMenu?.showMarkUnread !== false
+				&& typeof this.resolvedSelf.unread === 'boolean'
 				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
 		},
 
@@ -4058,7 +4581,8 @@ export default {
 		 * @return {boolean}
 		 */
 		showOpenSidebar() {
-			return this.isBoard && this.hasExternalSidebar && this.sidebarActive && this.objectSidebarState.open !== true
+			return this.actionsMenu?.showOpenSidebar !== false
+				&& this.isBoard && this.hasExternalSidebar && this.sidebarActive && this.objectSidebarState.open !== true
 		},
 
 		/** @return {string} Label of the Open sidebar entry. */
@@ -4096,6 +4620,26 @@ export default {
 			return this.follow !== false
 				&& typeof this.resolvedSelf.watching === 'boolean'
 				&& this.register !== '' && this.schema !== '' && this.objectId !== ''
+		},
+
+		/**
+		 * The props of the Follow control, wherever the header draws it.
+		 *
+		 * @return {object} The CnFollowToggle props.
+		 * @spec openspec/changes/board-follow-row/specs/board-follow-row/spec.md#requirement-the-board-follow-control-sits-under-the-breadcrumb
+		 */
+		followToggleProps() {
+			const self = this.resolvedSelf
+			return {
+				register: this.register,
+				schema: this.schema,
+				objectId: String(this.objectId),
+				watching: self.watching === true,
+				notify: typeof self.watchNotify === 'boolean' ? self.watchNotify : null,
+				watcherCount: typeof self.watcherCount === 'number' ? self.watcherCount : null,
+				canManage: !!(self.can && self.can.manage === true),
+				notifies: this.followNotifies,
+			}
 		},
 
 		/**
@@ -4178,7 +4722,7 @@ export default {
 				first.icon = crumb.icon
 			}
 			if (crumb.route) {
-				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}) }
+				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}), ...(crumb.query ? { query: crumb.query } : {}) }
 			} else if (crumb.href) {
 				first.href = crumb.href
 			}
@@ -4380,12 +4924,27 @@ export default {
 		 */
 		bodyGridWidgets() {
 			if (this.hasGridLayout) {
-				return this.widgets
+				return this.pickTabs(this.widgets)
 			}
 			if (this.shouldRenderAutoBody) {
 				return this.autoBodyWidgets || []
 			}
 			return []
+		},
+
+		/**
+		 * The tab ids `tabsFrom` reads off this record, or null when it reads
+		 * no non-empty list (or the body is being edited).
+		 *
+		 * @spec openspec/changes/detail-tabs-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-tabs-and-their-order
+		 * @return {Array<string>|null}
+		 */
+		pickedTabIds() {
+			if (!this.tabsFrom || this.editingBody || !this.widgetVisibilityData) {
+				return null
+			}
+			const ids = readVisibleWhenPath(this.widgetVisibilityData, this.tabsFrom)
+			return Array.isArray(ids) && ids.length > 0 ? ids.map((id) => String(id)) : null
 		},
 
 		/**
@@ -4583,6 +5142,14 @@ export default {
 			},
 		},
 
+		// A pill with `resolve` looks its record up again for another value.
+		pillResolveKey: {
+			immediate: true,
+			handler() {
+				this.refreshPillRefLabels()
+			},
+		},
+
 		// The header's count pills count again for another record or other lists.
 		pillCountKey: {
 			immediate: true,
@@ -4620,6 +5187,16 @@ export default {
 
 		objectNotFound() {
 			this.syncSidebarState()
+		},
+
+		contentWithheld() {
+			this.syncSidebarState()
+		},
+
+		/** Another record asks its own purpose: the dialog opens again for it. */
+		accessPurposeKey() {
+			this.accessPurposeAsking = true
+			this.accessPurposeError = ''
 		},
 
 		// Deep, like `sidebarTabs` / `sidebarProps` below: the manifest editors
@@ -4799,6 +5376,105 @@ export default {
 
 	methods: {
 		/**
+		 * A body widget starts or stops showing its own cards in the side
+		 * column. While any does, the generic side cards stand aside.
+		 *
+		 * @param {string|number} owner Who claims, unique per widget.
+		 * @param {boolean} on Whether it shows its cards now.
+		 * @return {void}
+		 */
+		claimSideColumn(owner, on) {
+			const rest = this.sideClaims.filter((id) => id !== owner)
+			this.sideClaims = on ? [...rest, owner] : rest
+		},
+
+		/**
+		 * A text of the access purpose gate through the app's translate, '' when unset.
+		 *
+		 * @param {string} key `title` or `description`.
+		 * @return {string}
+		 */
+		accessPurposeText(key) {
+			const text = this.accessPurpose && this.accessPurpose[key]
+			return typeof text === 'string' && text !== '' ? this.cnTranslate(text) : ''
+		},
+
+		/**
+		 * Record the reader's purpose with the app's endpoint, then open the
+		 * record and remember it for this browser session. A refusal (or a
+		 * failure to record) keeps the record closed and says why.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @param {{purpose: string, note: string}} answer The chosen purpose.
+		 * @return {Promise<void>}
+		 */
+		async recordAccessPurpose(answer) {
+			const url = String(this.accessPurpose?.url || '').replace(/\{objectId\}/g, encodeURIComponent(String(this.objectId || '')))
+			if (url === '') {
+				this.accessPurposeError = t('nextcloud-vue', 'This page cannot record a purpose, so the record stays closed.')
+				return
+			}
+			this.accessPurposeBusy = true
+			this.accessPurposeError = ''
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				await axios.post(prefixUrl(url), { purpose: answer.purpose, note: answer.note })
+				const key = this.accessPurposeKey
+				this.accessPurposeGranted = [...new Set([...this.accessPurposeGranted, key])]
+				try {
+					window.sessionStorage.setItem(ACCESS_PURPOSE_SESSION_KEY, JSON.stringify(this.accessPurposeGranted))
+				} catch {
+					// Without session storage the purpose is asked again on the next visit.
+				}
+			} catch (error) {
+				const data = error?.response?.data
+				this.accessPurposeError = (data && (data.message || data.error)) || t('nextcloud-vue', 'Your purpose could not be recorded, so the record stays closed.')
+			} finally {
+				this.accessPurposeBusy = false
+			}
+		},
+
+		/**
+		 * The widget definitions with each `tabs` widget's tabs narrowed and
+		 * ordered by `pickedTabIds`; the definitions as given without a pick.
+		 * A new definition is returned for a changed widget; the declared one
+		 * is never mutated.
+		 *
+		 * @spec openspec/changes/detail-tabs-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-tabs-and-their-order
+		 * @param {Array<object>} widgets The widget definitions.
+		 * @return {Array<object>}
+		 */
+		pickTabs(widgets) {
+			const ids = this.pickedTabIds
+			if (!ids || !Array.isArray(widgets)) {
+				return widgets
+			}
+			const idOf = (tab) => String(typeof tab === 'string' ? tab : (tab && (tab.id ?? tab.widgetId)) ?? '')
+			return widgets.map((widget) => {
+				if (!widget || widget.type !== 'tabs' || !Array.isArray(widget.content?.tabs)) {
+					return widget
+				}
+				const tabs = ids
+					.map((id) => widget.content.tabs.find((tab) => idOf(tab) === id))
+					.filter(Boolean)
+				return tabs.length > 0 ? { ...widget, content: { ...widget.content, tabs } } : widget
+			})
+		},
+
+		/**
+		 * The tag after an admin-only entry in the board look ("beheerder",
+		 * DqZaakMeer), or null for any other entry or look. It is drawn by
+		 * detail-page.css from the attribute, since the menu renders its
+		 * entries' text as plain text.
+		 *
+		 * @param {{key: string}} group The menu group the entry is in.
+		 * @return {string|null} The tag, or null.
+		 */
+		adminTagFor(group) {
+			return this.isBoard && group && group.key === 'cn-admin' ? t('nextcloud-vue', 'admin') : null
+		},
+
+		/**
 		 * Open the object sidebar through the shared channel.
 		 *
 		 * @return {void}
@@ -4874,17 +5550,21 @@ export default {
 		 *
 		 * A stage's action is dispatched the way a header action is, through
 		 * the `run()` CnActionButtons bound for it, and announced to the host
-		 * with its declaration. A link action is left to the browser. Without
-		 * a stage action this is the page's `primaryAction`, announced as
-		 * before.
+		 * with its declaration. A link action is left to the browser and
+		 * announces nothing. Without a stage action this is the page's
+		 * `primaryAction`, announced as before.
 		 *
 		 * @return {void}
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 */
 		onPrimaryActionClick() {
 			const entry = this.stagePrimaryEntry
 			if (!entry) {
 				this.$emit('primary-action', this.primaryAction)
+				return
+			}
+			if (entry.href) {
 				return
 			}
 			this.$emit('primary-action', this.headerActionsById[entry.id] || { id: entry.id, label: entry.label })
@@ -5006,7 +5686,7 @@ export default {
 			// Schema-driven (manifest) detail pages self-fetch — without this
 			// the Refresh action has no host listener to act on and does
 			// nothing. Re-fetch the object + schema and spin the action.
-			if (!this.hasSchemaDrivenFetch) {
+			if (!this.selfFetchesRecord) {
 				return
 			}
 			this.internalRefreshing = true
@@ -5016,6 +5696,59 @@ export default {
 				await done
 			} finally {
 				this.internalRefreshing = false
+			}
+		},
+
+		/**
+		 * Look up the records the `resolve` pills point at, through the same
+		 * reference-label resolver the index tables use. A failed lookup keeps
+		 * the raw value.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/detail-pill-resolve/specs/detail-page/spec.md#requirement-a-header-pill-can-show-a-referenced-record-s-label
+		 */
+		async refreshPillRefLabels() {
+			const targets = this.pillResolveTargets
+			const seq = ++this.pillRefSeq
+			if (targets.length === 0) {
+				this.pillRefLabels = {}
+				this.pillRefLooks = {}
+				return
+			}
+			if (!this._pillRefResolver) {
+				this._pillRefResolver = createRefLabelResolver(() => {
+					try {
+						return this.objectStore || useObjectStore()
+					} catch {
+						return null
+					}
+				})
+			}
+			const labels = {}
+			const looks = {}
+			const field = async (register, schema, id, name) => {
+				if (!name) {
+					return null
+				}
+				const found = await this._pillRefResolver.resolve(register, schema, [id], name, { strict: true }).catch(() => ({}))
+				return found && typeof found[id] === 'string' ? found[id] : null
+			}
+			await Promise.all(targets.map(async ([key, register, schema, labelField, id, colorField, iconField]) => {
+				const [found, color, icon] = await Promise.all([
+					this._pillRefResolver.resolve(register, schema, [id], labelField).catch(() => ({})),
+					field(register, schema, id, colorField),
+					field(register, schema, id, iconField),
+				])
+				if (found && typeof found[id] === 'string') {
+					labels[key] = found[id]
+				}
+				if (color || icon) {
+					looks[key] = { color, icon }
+				}
+			}))
+			if (seq === this.pillRefSeq) {
+				this.pillRefLabels = labels
+				this.pillRefLooks = looks
 			}
 		},
 
@@ -5061,7 +5794,7 @@ export default {
 		 */
 		onPageRefreshBus(payload) {
 			this.refreshPillCounts()
-			if (!this.hasSchemaDrivenFetch) {
+			if (!this.selfFetchesRecord) {
 				return
 			}
 			if (this.internalRefreshing) {
@@ -5156,6 +5889,65 @@ export default {
 			 * @type {{ action: string, to: string, object: object }}
 			 */
 			this.$emit('transitioned', payload)
+		},
+
+		/**
+		 * Tick or untick one checklist item through the record source. The
+		 * source replaces its record with the answer; a refusal is shown with
+		 * the server's message and leaves the item as it was.
+		 *
+		 * @param {string} itemId The item id.
+		 * @param {boolean} checked The new state.
+		 * @return {Promise<boolean>} Whether the write was taken.
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		async checkSourceItem(itemId, checked) {
+			const source = this.recordSource
+			const objectId = this.objectId
+			if (!this.recordCanCheckItems || !objectId) {
+				return false
+			}
+			const outcome = await source.checkItem(String(objectId), String(itemId), checked === true)
+			if (!outcome || outcome.ok !== true) {
+				const { showError } = await import('@nextcloud/dialogs')
+				showError(String(outcome?.message || '').trim() || t('nextcloud-vue', 'This could not be done. Try again.'))
+				return false
+			}
+			return true
+		},
+
+		/**
+		 * Run a record-source verb on the record in view. The source keeps its
+		 * record in step with the answer, so the header, pills and widgets
+		 * redraw from it. A refusal is shown with the server's own message,
+		 * which names the verb and the reason.
+		 *
+		 * @param {{id: string, label: string, successMessage?: string}} verb The verb.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		async runSourceVerb(verb) {
+			const source = this.recordSource
+			const objectId = this.objectId
+			if (!source || !objectId || this.sourceVerbBusy) {
+				return
+			}
+			this.sourceVerbBusy = true
+			try {
+				const url = this.verbEndpoints && typeof this.verbEndpoints[verb.id] === 'string' ? this.verbEndpoints[verb.id] : undefined
+				const outcome = await source.runVerb(String(objectId), verb.id, url ? { url } : {})
+				const { showError, showSuccess } = await import('@nextcloud/dialogs')
+				if (!outcome || outcome.ok !== true) {
+					showError(String(outcome?.message || '').trim() || t('nextcloud-vue', 'This could not be done. Try again.'))
+					return
+				}
+				if (verb.successMessage) {
+					showSuccess(verb.successMessage)
+				}
+				this.$emit('transitioned', { action: verb.id, to: String(outcome.record?.state ?? ''), object: outcome.record || null })
+			} finally {
+				this.sourceVerbBusy = false
+			}
 		},
 
 		/**
@@ -5286,6 +6078,10 @@ export default {
 		},
 
 		async fetchObjectIfNeeded() {
+			if (this.recordSource) {
+				await this.fetchSourceRecord()
+				return
+			}
 			// Create archetype: no object to fetch, but the create form needs
 			// the schema — register the type and fetch its schema, then stop.
 			if (!this.hasSchemaDrivenFetch) {
@@ -5344,6 +6140,37 @@ export default {
 				if (fetchesObject && objectId === this.objectId) {
 					this.objectNotFound = !store.objects?.[type]?.[objectId]
 						&& store.getError?.(type)?.status === 404
+					this.objectFetchPending = false
+				}
+			}
+		},
+
+		/**
+		 * Read the record through the record source. A refusal (403) or a
+		 * missing record (404) shows the not-found state; which records the
+		 * viewer may read is the server's decision.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchSourceRecord() {
+			const source = this.recordSource
+			const objectId = this.objectId
+			if (!objectId) {
+				this.objectFetchPending = false
+				return
+			}
+			this.objectFetchPending = true
+			this.objectNotFound = false
+			try {
+				await source.loadRecord(String(objectId))
+			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
+				console.error('[CnDetailPage] record source fetch failed:', err)
+			} finally {
+				// A newer fetch for another id owns the flags now.
+				if (objectId === this.objectId) {
+					const status = typeof source.recordError === 'function' ? source.recordError(String(objectId)) : null
+					this.objectNotFound = !this.currentObject && (status === 403 || status === 404)
 					this.objectFetchPending = false
 				}
 			}
@@ -5595,7 +6422,9 @@ export default {
 				const store = this.effectiveObjectStore
 				let saved = null
 				if (store && typeof store.saveObject === 'function' && this.resolvedObjectType) {
-					saved = await store.saveObject(this.resolvedObjectType, payload)
+					// Only the keys the form changed are written (a PATCH), so keys
+					// the edit form does not show keep their stored value.
+					saved = await saveEdited(store, this.resolvedObjectType, this.currentObject || null, payload)
 					if (!saved) {
 						const err = store.getError?.(this.resolvedObjectType)
 						const error = (err && err.message) || t('nextcloud-vue', 'Save failed')
@@ -5893,6 +6722,52 @@ export default {
 			}
 
 			return compactLayoutRows(drawable)
+		},
+
+		/**
+		 * Whether a side entry belongs beside the open body tab: an entry with
+		 * `tabs` (tab ids) shows only while one of them is open; an entry with
+		 * `notTabs` stands aside while one of those is open (a tab that draws
+		 * the side column as its own, DqZaakAssistent); an entry with neither
+		 * shows beside every tab. Edit mode shows them all.
+		 *
+		 * @spec openspec/changes/detail-side-cards-per-tab/specs/detail-page/spec.md#requirement-a-side-card-can-follow-the-open-tab
+		 * @spec openspec/changes/side-card-not-on-tabs/specs/detail-page/spec.md#requirement-a-side-card-can-stand-aside-for-a-tab
+		 * @param {object} widget The side entry's definition.
+		 * @return {boolean}
+		 */
+		sideWidgetOnTab(widget) {
+			if (this.editingBody) {
+				return true
+			}
+			if (Array.isArray(widget.notTabs) && widget.notTabs.map((id) => String(id)).includes(this.activeBodyTab)) {
+				return false
+			}
+			if (!Array.isArray(widget.tabs) || widget.tabs.length === 0) {
+				return true
+			}
+			return widget.tabs.map((id) => String(id)).includes(this.activeBodyTab)
+		},
+
+		/**
+		 * Whether a side column widget shows: always in edit mode or without a
+		 * `visibleWhen`, else while it holds for the record and the records
+		 * `visibilityContext` names, read by the same `detailWidgetVisible` the
+		 * body grid uses (local field conditions, `@context.<name>.*`, and the
+		 * answers of endpoint and source conditions).
+		 *
+		 * @param {object} widget A side column widget definition.
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
+		 */
+		sideWidgetVisible(widget) {
+			if (this.editingBody || widget.visibleWhen === undefined || widget.visibleWhen === null) {
+				return true
+			}
+			return detailWidgetVisible(widget, this.widgetVisibilityData, {
+				pending: this.visibilityRowsPending,
+				answers: this.widgetConditionAnswers,
+			})
 		},
 
 		/**
@@ -6304,7 +7179,8 @@ export default {
 				return
 			}
 			const r = this.resolvedSidebar
-			const hasRecord = !this.objectNotFound && !this.awaitingObject
+			// A record held back for its access purpose shows nothing in the sidebar either.
+			const hasRecord = !this.objectNotFound && !this.awaitingObject && !this.contentWithheld
 			if (this.sidebarActive && hasRecord && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
 				// Seed `open` only on the inactive→active edge (first activation

@@ -123,6 +123,21 @@ describe('CnActionsBar — header actions as links', () => {
 		expect(wrapper.emitted('header-action')).toBeFalsy()
 	})
 
+	it('renders an `href` entry as a link with its linkTarget, never routed, still emitting header-action', async () => {
+		const router = makeRouter()
+		const wrapper = mountBar({
+			headerActions: [{ id: 'connections', label: 'Add integration', href: '/index.php/apps/integriq/connections', linkTarget: '_blank' }],
+		}, router)
+		const link = wrapper.findAll('.nc-action-link-stub').filter((l) => l.text() === 'Add integration')[0]
+		expect(link.element.tagName).toBe('A')
+		expect(link.attributes('href')).toBe('/index.php/apps/integriq/connections')
+		expect(link.attributes('target')).toBe('_blank')
+
+		await link.trigger('click')
+		expect(router.push).not.toHaveBeenCalled()
+		expect(wrapper.emitted('header-action')).toEqual([[{ action: 'connections', id: 'connections' }]])
+	})
+
 	it('keeps a disabled or unresolvable `to` entry a button', () => {
 		const wrapper = mountBar({
 			headerActions: [

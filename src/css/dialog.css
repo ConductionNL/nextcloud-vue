@@ -9,14 +9,20 @@
  * Theme hooks (all optional, defaults below):
  *   --cn-dialog-danger               fill of a destructive primary
  *   --cn-dialog-eyebrow-color        eyebrow colour
- *   --cn-dialog-eyebrow-transform    uppercase (default) or none
+ *   --cn-dialog-eyebrow-transform    none (default, sentence case) or uppercase
+ *   --cn-dialog-eyebrow-tracking     letter spacing; 0 by default, 0.06em suits capitals
  */
 
+/* The nldesign theme sets a dialog's radius with `!important` through its
+   dialog radius token, so the board's 12px goes to that token.
+   @spec openspec/changes/board-dialog-theme/specs/board-dialog-theme/spec.md#requirement-a-board-dialog-keeps-its-frame-and-inset-under-a-theme */
 .cn-dialog-board {
+	--nldesign-component-dialog-border-radius: var(--cn-board-card-radius, 12px);
 	--cn-dialog-width: 640px;
 	--cn-dialog-danger: var(--color-error);
-	--cn-dialog-eyebrow-color: var(--color-primary-element-text, var(--color-main-text));
-	--cn-dialog-eyebrow-transform: uppercase;
+	--cn-dialog-eyebrow-color: var(--color-primary-element-light-text, var(--color-main-text));
+	--cn-dialog-eyebrow-transform: none;
+	--cn-dialog-eyebrow-tracking: 0;
 }
 
 /* Dimmed page behind the dialog: text colour at 45%. */
@@ -24,14 +30,32 @@
 	background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent);
 }
 
-/* Width by role, capped at the viewport minus a 16px gutter each side. */
+/* Any modal of a board-look app (an app's own NcDialog or NcModal, not
+   opened through CnDialog) dims the page the same way. A page that takes the
+   Nextcloud look keeps Nextcloud's backdrop.
+   @spec openspec/changes/board-modal-backdrop/specs/board-modal-backdrop/spec.md#requirement-every-modal-in-a-board-app-dims-the-page-as-the-boards-do */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
+	background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent);
+}
+
+/* Width by role, capped at the viewport minus a 16px gutter each side. The
+   shadow carries `!important`: the nldesign theme removes every
+   `.modal-container`'s shadow with `!important` and offers no token for it. */
 .modal-mask.cn-dialog-board .modal-wrapper--normal > .modal-container,
 .modal-mask.cn-dialog-board .modal-wrapper .modal-container {
 	width: var(--cn-dialog-width);
 	max-width: min(var(--cn-dialog-width), calc(100% - 32px));
 	border-radius: var(--cn-board-card-radius, 12px);
-	box-shadow: 0 12px 40px color-mix(in srgb, var(--color-main-text) 28%, transparent);
+	box-shadow: 0 12px 40px color-mix(in srgb, var(--color-main-text) 28%, transparent) !important;
 	overflow: hidden;
+}
+
+/* The board's header and body carry their own 24px inset. NcDialog pads its
+   container 4px at the top and 12px at the start, which put the title and
+   the fields 36px in; its rule outranked the one above through the scoped
+   `.dialog__modal[data-v-…]`, so this one names the class too. */
+.modal-mask.cn-dialog-board.dialog__modal .modal-wrapper .modal-container {
+	padding: 0;
 }
 
 /* The header is ours: NcModal's own close button and NcDialog's heading give
@@ -54,6 +78,21 @@
 	border: 0;
 }
 
+/* The user settings dialog (CnUserSettingsDialog, DqPersoonlijkeInstellingen
+   board): the frame takes the navigation's tint and the body fills it edge
+   to edge; the white pane and the navigation are drawn by the component.
+   @spec openspec/changes/user-settings-dialog-dq-board/specs/user-settings-dialog-dq-board/spec.md#requirement-the-user-settings-dialog-follows-the-dq-board */
+.modal-mask.cn-dialog-board.cn-user-settings-dialog .modal-wrapper .modal-container {
+	overflow: hidden;
+	background: var(--color-primary-element-light);
+}
+
+.modal-mask.cn-dialog-board.cn-user-settings-dialog .dialog__content {
+	gap: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
 /* Header: padding 22px 24px 0. */
 .cn-dialog-header {
 	display: flex;
@@ -70,10 +109,11 @@
 }
 
 .cn-dialog-header__eyebrow {
+	--nldesign-color-on-surface: var(--cn-dialog-eyebrow-color, var(--color-main-text));
 	margin-bottom: 4px;
 	font-size: 13px;
 	font-weight: 700;
-	letter-spacing: 0.06em;
+	letter-spacing: var(--cn-dialog-eyebrow-tracking, 0.06em);
 	text-transform: var(--cn-dialog-eyebrow-transform, uppercase);
 	color: var(--cn-dialog-eyebrow-color, var(--color-main-text));
 }
@@ -81,17 +121,28 @@
 .cn-dialog-header__title {
 	font-size: 20px;
 	font-weight: 700;
-	line-height: 1.3;
+	line-height: normal;
 	color: var(--color-main-text);
 }
 
+/* The subtitle is a <p>, which the nldesign theme sizes and inks with
+   `!important` through its paragraph tokens: the board's 14px muted line
+   goes to those tokens too (DqOverdragen, DqDocumentGenereren). */
 .cn-dialog-header__subtitle {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	margin: 4px 0 0;
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-dialog-header__close {
+/* The close button is a 36px circle. NcButton sizes an icon-only button by
+   --button-size with `!important`, so the size goes through that; the radius
+   also goes to the nldesign theme's button radius token. */
+.cn-dialog-header .cn-dialog-header__close.button-vue {
+	--button-size: 36px;
+	--nldesign-component-button-border-radius: 50%;
 	flex: 0 0 auto;
 	width: 36px;
 	min-width: 36px;
@@ -129,6 +180,28 @@
 .cn-dialog-board .dialog__actions button {
 	min-height: var(--cn-board-control-height, 40px);
 	border-radius: var(--cn-board-control-radius, 8px);
+}
+
+/* The footer buttons set 14px text, 16px in at both sides, and 18px when
+   they carry an icon (DqOverdragen "Annuleren" and "Overdragen"). The padding
+   goes through NcButton's --button-padding. The mask class and the doubled
+   class outrank NcButton's text-only rule, `.button-vue[data-v-…]:has(…:empty)`
+   (four classes, in a stylesheet a spawned dialog loads later), and the board
+   look's general icon-and-label rule.
+   @spec openspec/changes/board-dialog-controls/specs/board-dialog-controls/spec.md#requirement-a-board-dialog-draws-its-controls-as-the-boards-do */
+.modal-mask.cn-dialog-board .dialog__actions .button-vue.button-vue {
+	--button-padding: 16px;
+	font-size: 14px;
+}
+
+.modal-mask.cn-dialog-board .dialog__actions .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+	--button-padding: 18px;
+}
+
+/* NcButton pads a text-only label 4px a side inside the button's own padding;
+   the board's 16px is the whole inset. */
+.modal-mask.cn-dialog-board .dialog__actions .button-vue .button-vue__text.button-vue__text {
+	padding-inline: 0;
 }
 
 /* Cancel is an outlined secondary, never a text link. */
@@ -173,6 +246,70 @@
 	color: var(--color-main-text);
 }
 
+/* A Nextcloud text field or text area in a board dialog is the board's field:
+   its label above the control at 14px/600, the control 40px with a 1px grey
+   border and radius 8 (PlanItemDialog, DqWerkvoorraad). NcInputField draws
+   its border as a 65%-transparent shadow, which on the white dialog read as
+   an empty band, and floats its label inside the border. A field with
+   `labelOutside` keeps the app's own label and takes the same control. */
+.cn-dialog-board .dialog__content .input-field:has(.input-field__label),
+.cn-dialog-board .dialog__content .textarea:has(.textarea__label) {
+	margin-block-start: 26px;
+}
+
+/* The doubled class outranks NcInputField's raised-label rule (focused or
+   filled), which would pin the label's top as well and squash it. */
+.cn-dialog-board .dialog__content .input-field__input + .input-field__label.input-field__label,
+.cn-dialog-board .dialog__content .textarea__input + .textarea__label.textarea__label {
+	inset-block-start: auto;
+	inset-block-end: calc(100% + 4px);
+	inset-inline: 0 auto;
+	max-width: 100%;
+	margin: 0;
+	padding: 0;
+	background: none;
+	color: var(--color-main-text);
+	font-size: var(--cn-field-label-size, 14px);
+	font-weight: 600;
+	line-height: 20px;
+	pointer-events: auto;
+	transition: none;
+}
+
+.cn-dialog-board .dialog__content .input-field__main-wrapper {
+	height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));
+}
+
+/* The board draws the control's edge as a 1px border (DqOverdragen "Waarom de
+   zaak verhuist", DqBesluit); NcInputField and NcTextArea draw it as a shadow.
+   The colour is the one that meets WCAG's 3:1 for a control's edge, as the
+   footer's secondary button. Focus keeps NcInputField's own ring, which
+   carries `!important`. */
+.cn-dialog-board .dialog__content .input-field__input,
+.cn-dialog-board .dialog__content .input-field__input:hover:not([disabled]),
+.cn-dialog-board .dialog__content .textarea__input,
+.cn-dialog-board .dialog__content .textarea__input:hover:not([disabled]) {
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 8px;
+	box-shadow: none;
+	font-size: var(--cn-field-text-size, 15px);
+}
+
+/* A plain input an app puts in a board dialog (a date, a number) is the same
+   40px control; Nextcloud's core stylesheet makes it 34px. */
+.cn-dialog-board .dialog__content input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]):not(.input-field__input) {
+	box-sizing: border-box;
+	height: var(--cn-field-height, 40px);
+	min-height: var(--cn-field-height, 40px);
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 8px;
+}
+
+.cn-dialog-board .dialog__content .input-field:has(.input-field__label) .input-field__input:not(:focus)::placeholder,
+.cn-dialog-board .dialog__content .textarea__input:not(:focus)::placeholder {
+	opacity: 1 !important;
+}
+
 /* Type-to-confirm: a labelled 40px field with a monospace value and a hint. */
 .cn-dialog__confirm-field {
 	display: flex;
@@ -202,4 +339,69 @@
 /* A destructive button held back by type-to-confirm. */
 .cn-dialog__confirm-pending {
 	opacity: 0.45;
+}
+
+/* On a phone the board dialog is a bottom sheet (board PqMobiel): full width,
+   anchored to the bottom, as tall as its content up to the screen less the
+   header, a 16px top radius and a grab bar. The footer buttons share the row. */
+@media (max-width: 600px) {
+	.modal-mask.cn-dialog-board .modal-wrapper .modal-container,
+	.modal-mask.cn-dialog-board .modal-wrapper--normal > .modal-container {
+		position: absolute;
+		inset: auto 0 0;
+		width: 100%;
+		max-width: 100%;
+		height: auto;
+		max-height: calc(100% - var(--header-height, 50px));
+		border-radius: 16px 16px 0 0;
+	}
+
+	.cn-dialog-board {
+		--nldesign-component-dialog-border-radius: 16px 16px 0 0;
+	}
+
+	.modal-mask.cn-dialog-board .modal-container::before {
+		content: '';
+		display: block;
+		flex: none;
+		width: 40px;
+		height: 4px;
+		margin: 8px auto 0;
+		border-radius: 2px;
+		background: var(--color-border-dark);
+	}
+
+	.modal-mask.cn-dialog-board .modal-container {
+		flex-direction: column;
+	}
+
+	.cn-dialog-board .dialog {
+		height: auto;
+		min-height: 0;
+	}
+
+	.cn-dialog-board .dialog__content {
+		flex: 0 1 auto;
+		overflow-y: auto;
+	}
+
+	.cn-dialog-board .dialog__actions > .button-vue,
+	.cn-dialog-board .dialog__actions > * {
+		flex: 1 1 0;
+		min-height: 44px;
+	}
+}
+
+/* Above a phone the boards top-align a dialog (DqNieuweZaak, DqUwWachtrij,
+   DqVolgendeStap: the top edge sits about 90px down at 1440 wide) instead of
+   centring it. `--cn-dialog-top` moves it. */
+@media (min-width: 601px) {
+	.modal-mask.cn-dialog-board .modal-wrapper {
+		align-items: flex-start;
+	}
+
+	.modal-mask.cn-dialog-board .modal-wrapper .modal-container {
+		margin-top: var(--cn-dialog-top, 88px);
+		max-height: calc(100% - var(--cn-dialog-top, 88px) - 24px);
+	}
 }

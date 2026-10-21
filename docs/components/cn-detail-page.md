@@ -31,6 +31,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `objectId` | String\|Number | `''` | Object ID passed to the sidebar and (in schema-driven mode) to `objectStore.fetchObject`. |
 | `register` | String | `''` | **Schema-driven mode** — OpenRegister register slug. When paired with `schema` (and `objectId`), the page fuses them into an internal `${register}-${schema}` object-type slug, registers it on the store, fetches the object + its schema via `useObjectStore`, and auto-renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when the default slot is empty. `objectType` wins on collision so existing direct mounts stay untouched. |
 | `schema` | String | `''` | **Schema-driven mode** — OpenRegister schema slug. See `register`. |
+| `entitySource` | String | `''` | Name a registered entity source that reads ONE record, for a record that is not a register/schema object (manifest `config.entitySource`). The same registry and name as CnIndexPage's `entitySource`: `organisations` reads the OpenRegister organisation whose uuid is `objectId` (`GET /apps/openregister/api/organisations/{uuid}`). The record feeds the header, pills, header fields, widgets and the `@objectId` / `@object.*` tokens exactly as a fetched object does; its `id` is the uuid. Wins over `register` + `schema`. A 403 or 404 shows the not-found state; an unknown name shows no record and warns. Refresh and `cn:page:refresh` re-read the record. |
 | `hideEmpty` | Boolean | `false` | Hide valueless fields on the auto-rendered data widget (see [`CnObjectDataWidget`](./cn-object-data-widget.md)'s `hide-empty`). Set it from the manifest as `config.hideEmpty` for a **discriminated supertype** — one schema holding several variants, where each object only carries the fields its variant uses. A widget declaring its own `content.hideEmpty` still wins over this page-level default. |
 | `createForm` | String | `'auto'` | **Create archetype switch (ADR-062).** Whether this page renders its OWN create form dialog when reached without an object id. Set from the manifest as `config.createForm`. `'auto'` (default) — heuristic: only when the page is schema-bound, has no object id, and supplies no body of its own (no default slot, no grid layout). `'never'` — never render it; use when the body owns data entry (e.g. a CnObjectDataWidget or registry component already provides the form), which stops two form dialogs stacking. `'always'` — render it even when the page has a body, for a page that deliberately pairs custom content with a create form. The dialog is always the generic schema-driven `CnFormDialog`, so it follows the same OpenRegister/schema form rules (required, readOnly, enum/$ref, `visibleWhen`). |
 | `includeFields` | Array | `null` | Fields the create and edit forms ask for, in this order. `null` asks for every property the schema declares. Same three keys as [`CnIndexPage`](./cn-index-page.md), so one manifest describes the record's form wherever it opens rather than the list page and the detail page each carrying their own. |
@@ -75,12 +76,16 @@ A record page can carry forty actions in one menu, and then nobody finds the one
 | `primaryActionByStage` | Object \| null | `null` | Map from a stage value to the page's primary action. A value is an action in the `headerActions` shape, or the id of a declared header action. A stage without an entry falls back to `primaryAction`. |
 | `stageField` | String | `'status'` | Dot-path to the field that holds the record's stage. Read by `primaryActionByStage` and `nextStep`. |
 | `quickActions` | Array | `[]` | Always visible header buttons. At most three render. An entry is an action object or the id of a declared header action, which then leaves the menu. |
-| `actionsMenu` | Object \| null | `null` | `{ showRefresh?, showHelpLinks?, label? }`. `showRefresh: false` removes Refresh. `showHelpLinks: false` removes Request a feature, Report a bug and Documentation. `label` names the menu. |
-| `nextStep` | Object \| null | `null` | The "what now" card above the body: `{ field?, stages: { <stage>: { title?, checklist, after? } } }`. See [CnNextStepCard](./cn-next-step-card.md). |
-| `typePill` | Object \| null | `null` | A pill above the title: `{ field, colorMap?, labels?, variant? }`, rendered through [CnStatusBadge](./cn-status-badge.md). |
+| `actionsMenu` | Object \| null | `null` | `{ showRefresh?, showHelpLinks?, showMarkUnread?, showOpenSidebar?, label? }`. `showRefresh: false` removes Refresh. `showHelpLinks: false` removes Request a feature, Report a bug and Documentation. `showMarkUnread: false` and `showOpenSidebar: false` remove those built-in entries (DqZaakMeer draws neither). `label` names the menu. In the board look each `adminOnly` entry carries a muted "admin" tag at the end of its row ("beheerder"). |
+| `nextStep` | Object \| null | `null` | The "what now" card above the body: `{ field?, stagesFrom?, stages: { <stage>: { title?, checklist, after? } } }`. `stagesFrom` is a field path read like a `visibleWhen` field (`@context.caseType.nextStep`): when it holds a stages map, or an object with `stages`, that map replaces `stages` for the record, so each case type keeps its own stage texts; otherwise `stages` stays. See [CnNextStepCard](./cn-next-step-card.md). |
+| `typePill` | Object \| null | `null` | A pill above the title: `{ field, colorMap?, labels?, variant?, resolve? }`, rendered through [CnStatusBadge](./cn-status-badge.md). With `resolve: { register, schema, labelField? }` the field holds the id of a record of that schema, and the pill shows that record's label ("Woo-verzoek" for a case type uuid), looked up with the index tables' reference-label resolver; the label also keys `colorMap`. |
 | `statusPill` | Object \| null | `null` | A second pill, same shape, for where the record stands. |
 | `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
-| `sideColumn` | Array | `[]` | A column of cards beside the body. An entry is a widget definition or the id of a widget in `widgets`. |
+| `sideColumn` | Array | `[]` | A column of cards beside the body. An entry is a widget definition or the id of a widget in `widgets`. An entry with `visibleWhen` shows only while it holds for the record and the `visibilityContext` records, exactly as a grid widget (local fields, `@context.<name>.*`, endpoint and source conditions); edit mode shows them all. An entry with `tabs` (ids of the body's `tabs` widget tabs) shows only while one of those tabs is open, so the column follows the tab (DqZaaktypeVelden: the option list and the parent type beside Velden); edit mode shows them all. |
+| `sideColumnFrom` | String | `''` | A field path, read like a `visibleWhen` field, whose value picks the side column and its order for this record, e.g. `@context.caseType.sideCards`. A non-empty list of ids keeps those `sideColumn` entries in that order and leaves the rest out; each still follows its own `visibleWhen`, and an id that names no entry is skipped. Any other value keeps `sideColumn` as declared; edit mode shows them all. |
+| `tabsFrom` | String | `''` | A field path, read like a `visibleWhen` field, whose list of tab ids picks the tabs of the page's `tabs` widgets and their order for this record: `@context.caseType.tabs` reads the list a case type keeps (DqAanbesteding: Inschrijvingen, Publicaties, Bestanden, Historie). A tab's id is its `id`, else its `widgetId`, or the string entry. An empty or missing list keeps the declared tabs; edit mode shows them all. |
+| `verbEndpoints` | Object | `null` | App routes that replace a record source's own route for a verb, by verb id (manifest `config.verbEndpoints`), such as `{ "complete": "/apps/dossiq/api/case-tasks/{id}/complete" }` for an app that checks something of its own before the engine completes the task. `{id}` is the record id. Only read with `entitySource`. |
+| `accessPurpose` | Object | `null` | Ask for a purpose before the record opens (manifest `config.accessPurpose`): `{ when, options, url, title?, description? }`. `when` is a `visibleWhen` condition on the record and its `visibilityContext` records; `options` are the purposes offered (`{ value, label }`; "Other" with a written purpose is always added); `url` is the app endpoint that records the purpose (POST `{ purpose, note }`, `{objectId}` filled in). Nothing of the record shows until the endpoint accepts, and the same record is not asked again in the same browser session. A refusal keeps the record closed. `null` asks nothing. |
 | `isAdmin` | Boolean \| null | `null` | Whether the viewer administers this instance, for `adminOnly` actions. `null` reads it from Nextcloud. |
 
 ### The next step follows the stage
@@ -122,6 +127,17 @@ Keep them the same on every record of a type, so a handler finds them without lo
 Ungrouped actions come first. Each group follows under a caption, in the order the groups first appear. `adminOnly` actions form the last group, titled "Administration", and only an instance admin sees them.
 
 `adminOnly` hides a control. It does not protect anything: the endpoint behind the action decides who may call it.
+
+### A link in the menu
+
+```json
+"headerActions": [
+  { "id": "connections", "label": "Add integration", "href": "/apps/integriq/connections?app=stackiq" },
+  { "id": "guide", "label": "Integration guide", "href": "https://example.org/guide", "target": "_blank" }
+]
+```
+
+An action with `href` is a real link (`<a href>`) in the Actions menu, and as a quick or primary action button, so it can be opened in a new tab or copied. An instance path (leading `/`) goes through `generateUrl()`, an absolute `http(s)`, `mailto:`, `tel:` or `//host/...` URL is used as written. It opens in place unless `target` is `"_blank"`, and it is never dispatched, so it carries no `handler`; as the primary button it emits no `primary-action`. The Actions menu lists top-level actions only, so a `children[]` entry does not render here, link or not. See [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href) for the full rules.
 
 ### Help links out of the record
 
@@ -190,6 +206,16 @@ The count is read again for another record and after a page refresh.
 The column sits to the right of the body and holds facts: the deadline, the requester, the handler, the links. A string names a widget declared in the page's `widgets`, which is how a `custom` widget gets there. An object is a widget definition of its own.
 
 The column drops under the body when the page is too narrow for both. That is decided by the room the page has, not by the viewport, so it also holds beside an open sidebar. A `layout` grid keeps working next to it.
+
+## A body widget's own cards in the side column
+
+A widget in the body can show cards about what is selected in it in the side column, in place of the generic side cards (DqDocumentenBeheer: `Wie mag dit zien: <file>` and "Controlegetal" while files are ticked). The page provides `cnDetailSideColumn`:
+
+| Member | Meaning |
+|---|---|
+| `available` | Whether the page draws a side column. Without one the widget keeps its cards where they were. |
+| `target` | A selector for the slot at the top of the side column, to `<Teleport>` the cards to. |
+| `claim(owner, on)` | Start (`true`) or stop (`false`) showing cards there. While any owner claims, the generic side cards stand aside; they come back when the last one lets go. Release on unmount. |
 
 ## The record as a place
 
@@ -631,6 +657,9 @@ A detail page can offer a few views of a record, each its own widget grid, behin
 
 ### Each view arranged per user (`userLayout`)
 
+> **Deprecated: layout belongs to Buildiq.** Arranging a page is Buildiq's job (Ruben, 18 Oct 2026): its **Indeling aanpassen** edits the layout everybody sees. `userLayout` still works for this release and will be removed after it. While Buildiq edits the page (`cnEditingBody`), the grid shows the manifest layout, and a drag or resize goes into the manifest Buildiq saves, also on a page with `userLayout`. A user arrangement made outside an in-page edit session is saved at once, because no **Done** follows to save it.
+
+
 With `config.userLayout: true` the header shows **Arrange view** next to the view switch. While it is on, the chosen view's grid is draggable. **Done** stores the arrangement for that view and user (a user preference under `dashboard-layout.<page>.view.<view>`, on the server and mirrored in the browser), and the next visit opens with it. **Reset view** returns the chosen view to its manifest layout and emits `view-layout-reset` with `{ view }`; other views keep theirs. The manifest `layout` is never changed by a user, and the page's own body grid is not affected.
 
 ```json
@@ -674,6 +703,20 @@ A widget in `widgets` that carries `visibleWhen` is drawn only while the conditi
 }
 ```
 
+## Side cards per record: sideColumnFrom
+
+`sideColumnFrom` (manifest `config.sideColumnFrom`) lets the record decide which side cards it shows and in what order. It is a field path read like a `visibleWhen` field, so it can read a `visibilityContext` record: a case page reads the list its case type keeps. When the value is a non-empty list of ids, the side column is those `sideColumn` entries in that order; an id that names no entry is skipped, and each card still follows its own `visibleWhen`. Any other value, or none, keeps `sideColumn` as declared, so a case type that lists nothing shows the usual column.
+
+```json
+"config": {
+  "visibilityContext": { "caseType": { "field": "caseType", "register": "dossiq", "schema": "caseType" } },
+  "sideColumn": ["deadline", "requester", "handling", "consent", "people"],
+  "sideColumnFrom": "@context.caseType.sideCards"
+}
+```
+
+A case type with `"sideCards": ["consent", "people", "deadline"]` shows those three cards, in that order; one without `sideCards` shows all five.
+
 ## Breadcrumb current field and separator, widget actions (zuiddrecht-pixel-gaps-3)
 
 - `config.breadcrumb.currentField` (a dotted field path, e.g. `identifier`) makes the current crumb that field's value instead of the display name; an empty value falls back to the display name. `config.breadcrumb.separator` draws that text (e.g. `/`) between the crumbs instead of the chevron.
@@ -713,14 +756,14 @@ Tabs of a `tabs` widget show what is new on them: see [`CnTabsWidget`](./cn-tabs
 With `look: "board"` (the manifest root key, `config.look`, or the `look` prop) the detail page takes the shape of the screens, `dossiq/DqZaak`. Without it nothing changes.
 
 - **Header.** Two rows on the page ground: row 1 is the title as an h1 (28px) with the header buttons at its end; row 2 holds the type and status pills, the breadcrumb, a middle dot and the meta line, then the `headerFields` chips. The breadcrumb does not render above the header. The last breadcrumb is the record's kenmerk (`breadcrumb.currentField`, for example the case number) and the title when the record has none; the h1 is always the title. The header is never a card, and draws no icon or type eyebrow.
-- **Buttons.** Quick actions, Edit (always its own labelled button, also with `inlineActions`), the buildiq square, then the menu labelled "More" (`actionsMenu.label` renames it), as a secondary button. No primary button when the next-step card shows.
+- **Buttons.** Quick actions, Edit (always its own labelled button, also with `inlineActions`), the buildiq square, then the menu labelled "More" (`actionsMenu.label` renames it), as a secondary button. No primary button when the next-step card shows. The quick actions, Edit and More are the board's neutral 40px buttons (the main background, a grey border, the main text at 600, a 16px icon), also under a theme that outlines every secondary button in the primary colour.
 - **Tabs.** A `tabs` widget draws folder tabs: no coloured top edge, grey borderless count badges, no icons, no "More" overflow. The strip's tab list is named by `tabsLabel`, by default "&lt;page title&gt; parts". An activity tab (an `audit-trail` or `timeline` widget, or the `activity` integration) is named History and rendered last, and the activity is not also a body section.
 - **Cards.** Body cards take radius 12, padding 20px 22px and a 17px heading; data cards list fields in 200px columns. Side cards take a 15px muted heading and no Actions menu (`showWidgetActions` is `false` unless the manifest sets it). A `banner` widget in `sideColumn` moves to the top, the activity widget to the end, and the History card ends with the line "Identifier: &lt;value&gt;" read from `identifierField`.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `look` | String | `''` | `nextcloud` or `board`. Empty takes the look the app provides. |
-| `headerMeta` | String | `''` | The meta line on row 2 (manifest `config.headerMeta`): a field template such as `via {channel}`. A token can format a date as a record-list row does: `received {createdAt\|relative}`, `{createdAt\|days} days open` (`date`, `datetime`, `relative`, `relativetime`, `days`). A line with an empty value is dropped, and so is the dot before it. |
+| `headerMeta` | String | `''` | The meta line on row 2 (manifest `config.headerMeta`): a field template such as `via {channel}`. An enum field reads as its `x-enum-labels` label. A token can format its value as a record-list row does: `date` ("7 okt"), `datetime`, `weekday` ("ma 5 okt", `weekday:today`), `longdate` ("7 oktober", `longdate:year`), `time`, `user` (a user id's display name), `currency:EUR` (or `currency:<field>`), `relative`, `relativetime`, `days`. An empty token drops itself and the separator before it (`{amount\|currency:EUR} · {cashier\|user} · {at\|longdate} {at\|time}` without a cashier reads "€ 96,41 · 7 oktober 11.43"); a line with no value at all is dropped. |
 | `tabsLabel` | String | `''` | The accessible name of the tab list (manifest `config.tabsLabel`). |
 | `identifierField` | String | `''` | The record field named in the last line of the History side card (manifest `config.identifierField`). |
 | `titleField` | String | `''` | The record field the header names the record by (manifest `config.titleField`, a dotted path such as `number`). An empty value falls back to the display name. Works in both looks. |

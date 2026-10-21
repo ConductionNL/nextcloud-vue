@@ -197,6 +197,9 @@ With admin-only filter control:
 | `visibleColumns` | Array | `null` | Currently visible column keys; `null` means all visible |
 | `personalColumns` | Boolean | `true` | Show the Order and pin list and Reset columns in the Columns tab |
 | `pinnedCount` | Number | `0` | How many of the first visible columns are pinned to the start of the table |
+| `sortOptions` | Array | `[]` | The orders the Sort section in the Search tab offers: `[{ value, label, keys }]`, `keys` a `[{ key, order }]` list read as its ascending form. Empty draws no Sort section. Choosing a field or a direction emits `sort-change` with the new `[{ key, order }]`. |
+| `currentSort` | Array | `[]` | The list's current order, `[{ key, order }]`: the Sort section shows its field, its direction and "Current order: ...". |
+| `currentSortValue` | String | `''` | The Sort option chosen by its value, for an order that is not a list of sort keys: an option with `fixed: true`, such as one whose rows an endpoint ranks (`sortSelectOptions[].source`). Wins over matching `currentSort`. |
 | `facetData` | Object | `{}` | Live facet data from the API: `{ fieldName: { values: [{ value, count }] } }` |
 | `columnGroups` | Array | `[]` | Extra column groups beyond schema properties and built-in Metadata. Each: `{ id, label, columns: [{ key, label }], expanded? }` |
 | `showMetadata` | Boolean | `true` | Whether to include the built-in Metadata column group |
@@ -212,6 +215,8 @@ With admin-only filter control:
 | `columnsDescription` | String | `'Select which columns to display in the table'` | Description below the column visibility heading |
 | `propertiesGroupLabel` | String | `''` | Override label for the schema properties group. Falls back to `schema.title` |
 | `defaultTab` | String | `'search-tab'` | Tab id that is active when the sidebar opens. Built-in ids: `'search-tab'`, `'columns-tab'` |
+| `activeTab` | String | `''` | Switch to a tab while mounted, e.g. `'filters-tab'` |
+| `savedViews` | Object | `null` | The page's saved views, shown in a third tab, Views (`filters-tab`, CnSavedViewsPanel); every intent comes back as one `saved-view` event `{ action, view }` |
 | `userIsAdmin` | Boolean | `true` | When `false`, schema properties with `adminOnly: true` are hidden from filters |
 | `filterFields` | Object | `null` | Filter declarations for a page with no schema of its own. Wins over `schema`, and feeds the Search tab only |
 

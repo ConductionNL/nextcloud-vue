@@ -39,6 +39,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 | `filter` | Field filters, with the `@objectId`, `@object.<field>` and `@workspace.<key>` tokens. While a required token has no value the widget sends nothing. An operator is an object: `{ "status": { "ne": "closed" } }`. |
 | `sort` | `{ field, dir }`, sent as `_order[field]`. |
 | `limit` | How many rows to fetch and draw. Default 5. |
+| `offset` | How many rows of the list to skip first. Default 0. Two cards over one list read "next" (`limit: 1`) and "after that" (`offset: 1`) without a row twice. Not applied to a `rank` sort. |
 | `extend` | OpenRegister `_extend[]` values, so `{assignee.name}` reads a referenced object. |
 | `rowRoute` | A named route; each row links to it with `params.id`. |
 | `rowIdField` | Dot path of the id the route receives. Default: the row's own id. A relation row links to its target with `"to.id"`. |
@@ -57,12 +58,62 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 `pill` is `{ field, labels?, colorMap?, variant? }`: the label comes from `labels` (translated) or the raw value, the colour from `colorMap` (keyed on the raw value, ignoring case) or `variant`.
 
+### A colour dot and flags
+
+`dot` draws a 14px colour dot before a row's title, as board DqZaaktypeOverzicht draws a case type's statuses: a field name (`"dot": "color"`) whose value is the colour, or `{ "field": "tone", "colorMap": { "error": "var(--color-error)" } }`. Only a hex, `rgb()`/`hsl()` or `var(--…)` colour is drawn. `flags` draws short labels at the row's end for the flags a row has: `[{ "field": "isStart", "label": "Start" }, { "field": "isEnd", "label": "End" }]` shows "Start" on a row whose `isStart` is true, and with `value` a flag holds when the field equals it. Labels go through the app's translate and join with " · ".
+
 ### One action per row
 
 `rowAction` ends every `rows` row with one action, drawn as a 150px by 34px pill, as board DcMijnActies draws "Beoordelen" and "Stem uitbrengen". The title becomes the row's link (with `rowRoute`) and the chevron goes.
 
 - It is a manifest action plus a `label`: `open-page` opens that page for the row's id, `navigate` reads `@object.<field>` and `@objectId` off the row (`"/votes/@object.id"`). Both render as links. Any other type is a button that runs through the page's dispatcher: a `handler` gets the row as its last argument, `open-modal` gets it as the `row` prop.
 - `labels: { field, map }` picks the label per row: `{ "field": "status", "map": { "open": "Starten" } }` reads "Starten" for an open item and `label` ("Afronden") for the rest.
+
+### Several actions per row, and links onwards
+
+`rowActions` ends every `rows` row that opens nothing with an actions menu (named by `rowActionsLabel`). An entry is a
+page action plus a `label`, dispatched as `rowAction` is (an `open-modal` gets the row as its `row` prop and its own
+`props` with `@objectId` resolved), or `{ label, endpoint, method? }`: an app URL with the page's `@objectId` and the
+row's `{field}` tokens filled in. After an endpoint call the list reads again; a refusal shows the server's sentence as
+an alert (else `errorText`).
+
+An entry can depend on the row. `visibleWhen` is a condition over the row (`{ field, op?, value }`, or `all`/`any`):
+the action shows only on rows where it holds, and a row with no action left has no menu. `{ label, href }` is a link
+instead of a button. `href` is a template over the row (`"{externalUrl}"`). A web address opens in a new tab, and a
+path such as `/apps/forms/s/{token}` opens in place. Any other address hides the action on that row.
+
+```json
+"rowActions": [
+  { "label": "Fill in", "type": "open-modal", "target": "AnswerDialog", "visibleWhen": { "field": "instrumentKind", "value": "internal" } },
+  { "label": "Open the form", "href": "{externalUrl}", "visibleWhen": { "field": "instrumentKind", "value": "external" } }
+]
+```
+
+`links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
+("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
+(`{ register, schema, template }`) reads their labels, ten at most, and `fallback` stands in until then.
+
+A badge with `kind: "count"` (`{ field, one, other }`, `{count}` filled in) counts a list or a number on the row, and
+shows nothing at 0.
+
+`requiresApp` names the app the rows come from. When it is not installed the list says `absentText` and reads nothing,
+so "not installed" is never shown as "nothing yet". `intro` is a line above the list. A template may be a list of
+candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
+
+### An action under the list
+
+`footerAction` ends the card with one secondary button, also under the empty text, as board DqBezwaar draws "Beroep registreren" in its Beroep card. It is a manifest action plus a `label` and an optional `icon`, run through the page's dispatcher with the page's record as `@object`. `disabledWhen` is a visibleWhen condition (a `field` on the page's record, the workspace, an endpoint or a source; `total` reads the list's total): while it holds the button is disabled and `disabledReason` shows under it, tied to the button with `aria-describedby`. Label and reason go through the app's translate.
+
+```json
+"footerAction": {
+  "label": "Register appeal",
+  "icon": "Gavel",
+  "type": "open-form",
+  "schema": "beroep",
+  "disabledWhen": { "field": "decisionSent", "op": "neq", "value": true },
+  "disabledReason": "Possible once the decision is sent"
+}
+```
 
 ### Header
 
@@ -71,10 +122,32 @@ On a card surface the detail page or the dashboard page draws the titled card. T
 | Key | Meaning |
 |-----|---------|
 | `headerLink` | `{ label, route, params?, query? }` or `{ label, href }`. `{total}` in the label is the list's total; `params` and `query` resolve tokens. |
-| `headerNote` | A muted text in the same place, such as `"{total} in totaal"`. |
+| `headerNote` | A muted text in the same place, such as `"{total} in totaal"`. `{count:<field>=<value>}` counts the loaded rows whose field reads that value: `"{count:status=done} van {total} stappen klaar"`. It reads the rows the list loaded, so set `limit` to cover the list. |
 | `headerCount` | `true` reports the list's total, which the dashboard card draws as a chip after its title ("Actiepunten 5"). |
 
 In a tab panel there is no card header, so neither is drawn.
+
+### A table
+
+`presentation: "table"` draws a header row and one row per record. `columns` lists `{ label, value, align?, alertAbove?, sortable?, tone? }`:
+
+| Key | Meaning |
+|-----|---------|
+| `value` | A template over the row, the cell text. |
+| `align` | `"end"` right-aligns the cell, for numbers. |
+| `alertAbove` | A number above it reads bold in the danger colour. |
+| `sortable` | The header becomes a button. The first press sorts the rows up, the next down. Numbers sort as numbers. The header carries `aria-sort`. |
+| `tone` | The cell becomes a coloured label: `{ field?, map, default?, override? }`. The value at `field` (else the cell text) picks a badge variant from `map`, else `default`. `override: { when, tone }` gives the cell `tone` while `when`, a condition over the row, holds. |
+
+`tone.override` keeps a verdict from turning green on its own. This column is green for a compliant feature only when it is verified:
+
+```json
+{ "label": "Verdict", "value": "{verdict}", "tone": { "map": { "compliant": "success", "violates": "error" }, "default": "default", "override": { "when": { "field": "verified", "op": "neq", "value": true }, "tone": "warning" } } }
+```
+
+`indentPath` names a number on the row, its depth in a tree. The first cell moves 16px in per level, so departments read under their school. With `rowRoute` the first cell links to the row's page.
+
+`flattenPath` takes the rows from a list inside each record. With `"flattenPath": "answers"` every entry of a record's `answers` is a row, and `{@parent.<field>}` reads the record it came from. A record without the list adds no row, and `{total}` counts the rows drawn.
 
 ### A meta line of parts
 
@@ -89,6 +162,10 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 ### A label for a stored value
 
 `valueLabels` maps a field's stored values to labels the templates show: `"valueLabels": { "channel": { "phone": "Phone", "telefoon": "Phone", "email": "Email" } }` makes `"{channel}"` read the translated label ("Telefoon" for both spellings). A value the map does not name is shown as stored. The pill, the badges and the sort keep the stored value.
+
+`groupBy` (a field path) draws the rows in groups, each under a heading (DqZaakGerelateerd: "Onderwerp van deze zaak", "Wacht op", "Gepland vervolg"). A heading is the field's `valueLabels` entry for the value, else the value, through the host translate. The groups come in `groupOrder` (a list of values) first, then in the order the rows bring them; the rows without a value come last, headed by `groupEmptyLabel` or not at all. Each group is its own list, named by its heading. Grouping applies to the list presentations (`rows`, `cards`, `feed`, `inline`); `table`, `notice` and `notes` ignore it.
+
+`density: "compact"` draws the rows 10px above and below, at least 56px tall, with the title at 500 instead of bold (DqProcesanalyse "Waar zaken blijven hangen"). Without it the rows keep their default spacing.
 
 ## Props
 
@@ -124,7 +201,21 @@ A list can follow the page's controls (a `workspace-filter` select and switch). 
 `badges` adds status badges after the row's pill. A field badge takes the same keys as `pill` (`field`, `labels`, `colorMap`, `variant`) plus `hideValues`, a list of values that draw nothing, so a priority badge shows for urgent and high and stays away for normal. An age badge, `{ "kind": "stale", "field": "updatedAt", "afterDays": 7, "label": "Stale {days} days", "variant": "warning" }`, shows when the date field is more than `afterDays` whole days old and replaces `{days}` with the age. `pill.hideValues` hides the pill the same way.
 ## Due text
 
-`due` draws a date field as text with a tone: `{ "field": "deadline", "todayLabel": "Vandaag", "overdueLabel": { "one": "{count} dag te laat", "other": "{count} dagen te laat" }, "emptyText": "Geen deadline" }`. A date before today reads the overdue label in the danger colour, today reads `todayLabel` (default "Due today"), a day to come reads "tomorrow" or the short date, and an empty field reads `emptyText` in the muted colour, or nothing without one. The texts go through the host's translate. The same keys work on a `date` column as `widgetProps.due`.
+`due` draws a date field as text with a tone: `{ "field": "deadline", "todayLabel": "Vandaag", "overdueLabel": { "one": "{count} dag te laat", "other": "{count} dagen te laat" }, "emptyText": "Geen deadline" }`. A date before today reads the overdue label in the danger colour, today reads `todayLabel` (default "Due today"), a day to come reads "tomorrow" or the short date, and an empty field reads `emptyText` in the muted colour, or nothing without one. With `upcomingLabel` (`{ "one": "nog {count} dag", "other": "nog {count} dagen" }`) a day to come reads the days left instead of the date, and with `upcomingWeeksLabel` (`{ "one": "nog {count} week", "other": "nog {count} weken" }`) it reads the weeks left, rounded, from `upcomingWeeksFrom` days left (default 35). The texts go through the host's translate. The same keys work on a `date` column as `widgetProps.due`.
+
+## A bar under each row
+
+`bar` draws a thin track under each row of the `rows` presentation. With `valueField` alone the track is filled to the row's share of the largest row (board DqTeamwachtrij "Team vandaag": cases per colleague). With `maxField` it is filled to the row's value against its own maximum, and `overVariant: "error"` draws it in the error colour once the value is past that maximum (board PqWachtrij "Team vandaag": open tickets against `maxConcurrent`). The track is a `meter` named after the row's title.
+
+```json
+{
+  "avatar": "{displayName}",
+  "title": "{displayName}",
+  "meta": "{availability}",
+  "trailing": "{open} open",
+  "bar": { "valueField": "open", "maxField": "maxConcurrent", "overVariant": "error" }
+}
+```
 
 ## Money
 
@@ -133,3 +224,23 @@ A list can follow the page's controls (a `workspace-filter` select and switch). 
 ## Sort by the rank of an enum
 
 A text field sorts alphabetically on the server, so priority reads high, low, normal, urgent. A sort with `rank` puts the values in your order: `"sort": { "field": "priority", "rank": ["urgent", "high", "normal", "low"], "then": { "field": "slaDeadline", "dir": "asc" } }`, and the same object works as an entry of `pageControls.sort.map`. The list reads the rows one value at a time, best first, each group in the order of `then`, until `limit` rows are in; rows with another value or none come last. The rows shown are the first `limit` of the whole filtered list and `{total}` counts all of them. It costs up to one request per value plus two, where a plain sort costs one. A list whose `filter` already fixes the field ignores `rank`. Only the record list does this: the object table and index pages page through their rows and ignore `rank`.
+
+## Rows that are plain strings
+
+An endpoint may answer a list of strings (`["…", "…"]`). Each is read as `{ value }`: a template reaches it as `{value}`, and a list without `title` shows the value itself.
+
+`presentation: "notice"` draws the rows as one paragraph in a toned box (`role="note"`), after an optional `lead` with `{total}` filled in. `variant` is `info` (default), `warning` or `error`.
+
+```json
+{
+  "type": "record-list",
+  "title": "Controle",
+  "content": {
+    "endpointSource": { "url": "/apps/dossiq/api/case-types/@objectId/publish/validate", "responsePath": "warnings" },
+    "presentation": "notice",
+    "variant": "warning",
+    "lead": "{total} warnings:",
+    "emptyText": "No warnings"
+  }
+}
+```

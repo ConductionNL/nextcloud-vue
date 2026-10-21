@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-features-and-roadmap-view">
+	<div class="cn-features-and-roadmap-view" :class="{ 'cn-features-and-roadmap-view--board': isBoardLook && !disabled }">
 		<div v-if="disabled" class="cn-features-and-roadmap-view__disabled">
 			<NcEmptyContent :name="disabledTitle" :description="disabledDescription">
 				<template #icon>
@@ -223,8 +223,8 @@ export default {
 		/**
 		 * Board look options, passed to CnFeaturesBoard: `layout` (`cards` or
 		 * `rows`), `tabs`, `filter` (`chips` or `segmented`), `statusLabels`,
-		 * `next`, `issueLabels`, `subtitle`, `notice`, `documentationButton`
-		 * and `suggestButton`. Ignored in the default look.
+		 * `next`, `issueLabels`, `subtitle`, `notice`, `noticeLink`,
+		 * `summaries`, `documentationButton` and `suggestButton`. Ignored in the default look.
 		 *
 		 * @type {object}
 		 */
@@ -460,7 +460,7 @@ export default {
 		 * @return {object}
 		 */
 		boardOptions() {
-			const keys = ['layout', 'tabs', 'filter', 'statusLabels', 'next', 'issueLabels', 'subtitle', 'notice', 'documentationButton', 'suggestButton']
+			const keys = ['layout', 'tabs', 'filter', 'statusLabels', 'next', 'issueLabels', 'subtitle', 'notice', 'noticeLink', 'summaries', 'documentationButton', 'suggestButton', 'actionsMenu']
 			const options = {}
 			for (const key of keys) {
 				if (this.board && this.board[key] !== undefined && this.board[key] !== null) {
@@ -696,6 +696,14 @@ export default {
 	max-width: 1200px;
 	margin: 0 auto;
 	padding: 24px 16px;
+}
+
+/* The board draws its own page padding; the view adds none around it, so
+   the title stands where every other board page puts it (DqFunctionaliteiten). */
+.cn-features-and-roadmap-view--board {
+	max-width: none;
+	margin: 0;
+	padding: 0;
 }
 
 .cn-features-and-roadmap-view__header {

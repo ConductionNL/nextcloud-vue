@@ -198,7 +198,9 @@ export default {
 | `rowIndicatorCap` | Number | `3` | How many declared indicators render on the row before the rest move into the row menu, reachable as `indicatorsFor(row).overflow`. |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the header select-all checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `showUnread` | Boolean | `true` | Draw an unread record (`@self.unread`) in bold with the unread dot. Off, every row reads alike. CnIndexPage turns it off under the board look unless the page offers the Unread lens. |
 | `rowTitle` | String | `'link'` | Board look only: how the title column draws its title. `link` underlines the title (not its secondary line). `plain` draws it as 15px bold text without an underline over a 13px muted secondary line, as the PqTickets board does; the row stays clickable. The Nextcloud look ignores it. |
+| `reorderable` | Boolean | `false` | Lets the reader drag rows into another order; a drop emits `row-move` with `{ row, from, to }` |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`) — for compact dashboard list widgets that want a plain bordered-row list without column labels |
 | `pinnedCount` | Number | `0` | How many data columns are pinned to the start of the table. They, and the selection and icon columns, stay in view when the table scrolls sideways |
 | `fixedLayout` | Boolean | `false` | Switch to `table-layout: fixed` so each column's `width` is authoritative rather than a hint the browser may override from cell content. Long unbreakable values (a PHP FQCN, a UUID) then wrap inside their cell instead of widening the column or painting past it, and no single unsized column soaks up all remaining width. Size every column when using it — percentages summing to 100 are easiest to reason about |
@@ -228,6 +230,7 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `borderless` — drop the container's card chrome so the table sits flush inside
   a parent card (e.g. a `CnWidgetWrapper` dashboard slot).
 - `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
+- `pageSize` — rows per page: one page of the rows the table holds, with the board's pager under them ("4 of 7", the page buttons, Next) once there is more than one page (DqCatalogus). 0 (the default) shows every row, or the first `limit`.
 - `viewAllRoute` / `viewAllLabel` — the footer control's route and label. It renders
   as a real `<a :href>` when the router resolves the route, and as a
   `<button type="button">` (emitting `view-all`) otherwise, so it always has a

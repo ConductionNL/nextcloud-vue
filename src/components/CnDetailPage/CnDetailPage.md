@@ -215,7 +215,7 @@ export default {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `userLayout` | Boolean | `false` | Let the user arrange each of the page's `views` for themselves. The header shows **Arrange view** next to the view switch; **Done** stores the arrangement per view and user (a user preference, mirrored in the browser), **Reset view** returns the chosen view to its manifest layout. The manifest `layout` is never changed. See [the guide](../../../docs/components/cn-detail-page.md#each-view-arranged-per-user-userlayout). |
+| `userLayout` | Boolean | `false` | **Deprecated** (layout belongs to Buildiq; removed after this release). Let the user arrange each of the page's `views` for themselves. The header shows **Arrange view** next to the view switch; **Done** stores the arrangement per view and user (a user preference, mirrored in the browser), **Reset view** returns the chosen view to its manifest layout. The manifest `layout` is never changed. See [the guide](../../../docs/components/cn-detail-page.md#each-view-arranged-per-user-userlayout). |
 
 ## Slots
 
@@ -421,18 +421,80 @@ Four levels of action and the case surfaces around them. All opt in. See [the re
 | `stageField` | String | `'status'` | Dot-path to the record's stage. |
 | `quickActions` | Array | `[]` | At most three always visible header buttons. |
 | `actionsMenu` | Object \| null | `null` | `{ showRefresh?, showHelpLinks?, label? }` for the overflow menu. |
-| `nextStep` | Object \| null | `null` | The "what now" card per stage, rendered by `CnNextStepCard`. |
+| `nextStep` | Object \| null | `null` | The "what now" card per stage, rendered by `CnNextStepCard`. `stagesFrom` (a field path such as `@context.caseType.nextStep`) reads the stages from the record when it holds them. |
 | `typePill` | Object \| null | `null` | `{ field, colorMap?, labels?, variant? }`, a pill above the title. Instead of `field`: `text` (a constant) or `countFrom` + `countLabel` (a count of a related list). |
 | `statusPill` | Object \| null | `null` | A second pill, same shape. |
 | `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
-| `sideColumn` | Array | `[]` | Widget definitions or widget ids, rendered as a column of cards beside the body. |
+| `sideColumn` | Array | `[]` | Widget definitions or widget ids, rendered as a column of cards beside the body. An entry with `tabs` shows only while one of those body tabs is open. |
+| `sideColumnFrom` | String | `''` | A field path, read like a `visibleWhen` field (e.g. `@context.caseType.sideCards`), whose list of ids picks the `sideColumn` entries this record shows and their order. Any other value keeps `sideColumn` as declared. |
+| `tabsFrom` | String | `''` | A field path, read like a `visibleWhen` field, whose list of tab ids picks the tabs of the page's `tabs` widgets and their order for this record: `@context.caseType.tabs` reads the list a case type keeps (DqAanbesteding: Inschrijvingen, Publicaties, Bestanden, Historie). A tab's id is its `id`, else its `widgetId`, or the string entry. An empty or missing list keeps the declared tabs; edit mode shows them all. |
+| `verbEndpoints` | Object | `null` | App routes that replace a record source's own route for a verb, by verb id (manifest `config.verbEndpoints`), such as `{ "complete": "/apps/dossiq/api/case-tasks/{id}/complete" }` for an app that checks something of its own before the engine completes the task. `{id}` is the record id. Only read with `entitySource`. |
+| `accessPurpose` | Object | `null` | Ask for a purpose before the record opens (manifest `config.accessPurpose`): `{ when, options, url, title?, description? }`. `when` is a `visibleWhen` condition on the record and its `visibilityContext` records; `options` are the purposes offered (`{ value, label }`; "Other" with a written purpose is always added); `url` is the app endpoint that records the purpose (POST `{ purpose, note }`, `{objectId}` filled in). Nothing of the record shows until the endpoint accepts, and the same record is not asked again in the same browser session. A refusal keeps the record closed. `null` asks nothing. |
 | `isAdmin` | Boolean \| null | `null` | Shows `adminOnly` header actions. `null` reads it from Nextcloud. |
+
+## A body widget's own cards in the side column
+
+A widget in the body can show cards about what is selected in it in the side column, in place of the generic side cards (DqDocumentenBeheer: "Wie mag dit zien: <file>" and "Controlegetal" while files are ticked). The page provides `cnDetailSideColumn`:
+
+| Member | Meaning |
+|---|---|
+| `available` | Whether the page draws a side column. Without one the widget keeps its cards where they were. |
+| `target` | A selector for the slot at the top of the side column, to `<Teleport>` the cards to. |
+| `claim(owner, on)` | Start (`true`) or stop (`false`) showing cards there. While any owner claims, the generic side cards stand aside; they come back when the last one lets go. Release on unmount. |
 
 ## The record as a place
 
 `listNavigation`, `primaryAction` and `tabInAddress` make a record somewhere a handler stays. All three are off by default. See [the reference page](../../../docs/components/cn-detail-page.md#the-record-as-a-place).
 
 `previousTo` and `nextTo` (default `null`) take `useListNavigation`'s `previousRoute` / `nextRoute` and turn the previous and next controls into real links, so they can be opened in a new tab. The link navigates by itself; `previous-record` / `next-record` are still emitted, with `{ event, to }`, and `goPrevious` / `goNext` do not push again when they receive that payload.
+
+## Records that are not objects (`config.entitySource`)
+
+A detail page reads its record from the object store through `register` +
+`schema`. A record that is not a register/schema object names a registered
+entity source instead, the same registry and the same name `CnIndexPage`
+lists it with. `organisations` reads the OpenRegister organisation whose uuid
+is the route's id (`GET /apps/openregister/api/organisations/{uuid}`):
+
+```json
+{
+  "id": "organisation-detail",
+  "route": "/organisations/:id",
+  "type": "detail",
+  "config": {
+    "entitySource": "organisations",
+    "statusPill": { "field": "status" },
+    "typePill": { "field": "type" },
+    "headerFields": [{ "key": "slug" }],
+    "layout": [{ "id": "1", "widgetId": "facts", "gridX": 0, "gridY": 0, "gridWidth": 6 }],
+    "widgets": [{
+      "id": "facts",
+      "type": "facts",
+      "title": "Details",
+      "content": { "fields": [
+        { "path": "slug", "label": "Slug" },
+        { "path": "created", "label": "Created", "format": "date" },
+        { "path": "contactEmail", "label": "Contact", "format": "email" },
+        { "path": "kvk", "label": "KvK" }
+      ] }
+    }]
+  }
+}
+```
+
+The record feeds everything a fetched object feeds: the title, the pills, the
+header fields, the widgets, and the `@objectId` / `@object.*` tokens. A tab
+that lists register objects belonging to the organisation filters on
+`@objectId`, e.g. `{ "type": "object-list", "content": { "register": "...",
+"schema": "...", "filter": { "tenantRef": "@objectId" } } }`. The record's
+`id` is its uuid, as an object's is.
+
+`entitySource` wins over `register` + `schema`. A name that is unknown, or a
+source that cannot read one record, shows no record and warns in the console.
+A refusal (403) or a missing record (404) shows the not-found state; which
+records the viewer may read is OpenRegister's decision. Refresh and
+`cn:page:refresh` re-read the record. There is no Edit: a record source has
+no schema form.
 
 ## Not found
 

@@ -69,6 +69,10 @@ describe('user settings dialog in Dutch', () => {
 		expect(t('nextcloud-vue', 'Notifications')).toBe('Meldingen')
 		expect(t('nextcloud-vue', 'Walkthrough')).toBe('Rondleiding')
 		expect(t('nextcloud-vue', 'Take the guided tour of this app again.')).toBe('Doe de rondleiding door deze app nog een keer.')
+		expect(t('nextcloud-vue', 'Your account')).toBe('Uw account')
+		expect(t('nextcloud-vue', 'Only for you. Colleagues keep their own settings.')).toBe('Alleen voor jou. Collega\'s houden hun eigen instellingen.')
+		expect(t('nextcloud-vue', 'Changes are saved straight away')).toBe('Wijzigingen worden meteen bewaard')
+		expect(t('nextcloud-vue', 'Sections of the settings')).toBe('Onderdelen van de instellingen')
 	})
 
 	it('lets the library catalogue win over an app catalogue that gives the word another meaning', () => {
@@ -99,6 +103,7 @@ describe('user settings dialog in Dutch', () => {
 			...libraryKeys('CnNotificationPreferences/CnNotificationPreferences.vue'),
 			...libraryKeys('CnCredentials/CnCredentials.vue'),
 			...libraryKeys('CnAppNav/CnAppNav.vue'),
+			...libraryKeys('CnUserSettingsDialog/CnUserSettingsDialog.vue'),
 		]
 		expect(rootKeys.length).toBeGreaterThanOrEqual(6)
 		expect([...new Set(keys)].filter((key) => !(key in nl.translations))).toEqual([])

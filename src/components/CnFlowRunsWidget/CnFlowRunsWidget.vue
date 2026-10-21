@@ -105,9 +105,10 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { computed, inject, ref } from 'vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
-import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 
 /**
  * The OpenRegister endpoint that lists the caller's live flow runs.
@@ -205,6 +206,8 @@ export default {
 		 * so a library string localises through the consuming app's l10n.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The page's action dispatcher (CnPageRenderer), for `headerAction`. */
+		cnDispatchAction: { default: null },
 	},
 
 	props: {
@@ -228,6 +231,10 @@ export default {
 		 *   subject's finished runs render below it. Absent = today's org-wide
 		 *   widget, unchanged.
 		 * - `emptyText` — override for the "nothing running" line.
+		 * - `headerAction` — an action descriptor drawn in the card header
+		 *   (`{ label, icon?, ...action }`, "Flow uitvoeren"), reported through
+		 *   the `header` event and dispatched with the page's dispatcher; its
+		 *   tokens resolve against the record. The runs are read again after it.
 		 *
 		 * @type {{limit?: number, pollSeconds?: number, rowRoute?: string, runRoute?: string, subject?: string, emptyText?: string, title?: string}}
 		 */
@@ -256,6 +263,8 @@ export default {
 			default: null,
 		},
 	},
+
+	emits: ['header'],
 
 	setup(props) {
 		// The shared endpoint engine owns request dedup, the short-TTL cache
@@ -352,6 +361,7 @@ export default {
 			refetchCompleted,
 			resolvedSubject,
 			injectedTranslate,
+			tokenCtx,
 		}
 	},
 
@@ -521,7 +531,17 @@ export default {
 		},
 	},
 
+	watch: {
+		'content.headerAction': {
+			deep: true,
+			handler() {
+				this.emitHeader()
+			},
+		},
+	},
+
 	mounted() {
+		this.emitHeader()
 		this.startPolling()
 		document.addEventListener('visibilitychange', this.onVisibilityChange)
 	},
@@ -531,6 +551,47 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Tell the card around the runs what its header shows: the header
+		 * action, if any.
+		 *
+		 * @return {void}
+		 */
+		emitHeader() {
+			const action = this.content && this.content.headerAction
+			const usable = action && typeof action === 'object' && typeof action.label === 'string' && action.label !== ''
+			/**
+			 * @event header The card header's parts: `{ link, note, action, pill }`, `action` being `{ label, icon, run }` or null.
+			 */
+			this.$emit('header', {
+				link: null,
+				note: '',
+				action: usable ? { label: this.tr(action.label), icon: action.icon || '', run: () => this.runHeaderAction() } : null,
+				pill: null,
+			})
+		},
+
+		/**
+		 * Run the header action with the record's tokens resolved, then read the
+		 * runs again so a started run shows.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async runHeaderAction() {
+			const { label, icon, ...action } = resolveDeepTokens(this.content.headerAction, this.tokenCtx())
+			try {
+				const outcome = await (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action)
+					: dispatchAction(action, { router: this.$router || null }))
+				if (outcome === false) {
+					return
+				}
+			} catch {
+				return
+			}
+			this.refetchAll()
+		},
+
 		/**
 		 * Start (or restart) the refetch interval, unless polling is disabled.
 		 *

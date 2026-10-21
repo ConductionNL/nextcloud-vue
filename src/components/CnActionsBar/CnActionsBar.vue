@@ -18,6 +18,20 @@
 				@description Under the board look: saved views as chips and the Save view button, in row 1 after the quick-filter chips.
 			-->
 			<slot name="actions-end" />
+			<!-- `searchPlacement: "toolbar"`: the search field on row 1, before
+			     Filter and the view switch, instead of opening row 2. -->
+			<div v-if="showSearch && searchInToolbar"
+				class="cn-actions-bar__search cn-actions-bar__search--toolbar"
+				data-testid="cn-actions-bar-search-toolbar">
+				<Magnify :size="18" class="cn-actions-bar__search-icon" />
+				<input
+					type="search"
+					class="cn-actions-bar__search-input"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
+					:value="searchValue"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
+					@input="onSearchInput">
+			</div>
 			<!--
 				Filter and the view switch are one unit: when row 1 is full they
 				wrap together to the start of the next line (the DqZaken board),
@@ -103,9 +117,9 @@
 				<input
 					type="search"
 					class="cn-actions-bar__search-input"
-					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					:value="searchValue"
-					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					@input="onSearchInput">
 			</div>
 			<span v-else-if="showCount && hasTotal" class="cn-actions-bar__count">
@@ -373,17 +387,17 @@
 
 		<!-- Board look, row 2: the search field, then the active filters. -->
 		<div v-if="isBoardLayout" class="cn-actions-bar__row cn-actions-bar__row--search" data-testid="cn-actions-bar-row-search">
-			<div v-if="showSearch" class="cn-actions-bar__search">
+			<div v-if="showSearch && !searchInToolbar" class="cn-actions-bar__search">
 				<Magnify :size="18" class="cn-actions-bar__search-icon" />
 				<input
 					type="search"
 					class="cn-actions-bar__search-input"
-					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					:value="searchValue"
-					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					@input="onSearchInput">
 			</div>
-			<span v-else-if="showCount && hasTotal" class="cn-actions-bar__count">
+			<span v-else-if="showCount && hasTotal && !searchInToolbar" class="cn-actions-bar__count">
 				{{ countText }}
 			</span>
 			<slot name="after-search" />
@@ -507,12 +521,15 @@
 
 	<!--
 		Board look: the bulk band is its own row between the toolbar and the
-		table card, outside the toolbar element, and only while rows are
-		selected. The count stays announced by the live region above.
+		table card, outside the toolbar element, while rows are selected; with
+		`bulkBandAlways` also before, its buttons disabled until there is a
+		selection (DqZaken, DqWerkbord). The count stays announced by the live
+		region above.
 	-->
 	<div
-		v-if="isBoardLayout && selectable && selectedIds.length > 0"
+		v-if="isBoardLayout && selectable && (selectedIds.length > 0 || (bulkBandAlways && bulkBandHasActions))"
 		class="cn-actions-bar__band"
+		:class="{ 'cn-actions-bar__band--idle': selectedIds.length === 0 }"
 		role="region"
 		:aria-label="t('nextcloud-vue', 'Actions for the selection')"
 		data-testid="cn-bulk-band">
@@ -520,12 +537,14 @@
 		<NcButton
 			v-if="showMassCopy"
 			variant="secondary"
+			:disabled="selectedIds.length === 0"
 			@click="$emit('show-copy')">
 			{{ t('nextcloud-vue', 'Copy selected') }}
 		</NcButton>
 		<NcButton
 			v-if="showMassDelete"
 			variant="secondary"
+			:disabled="selectedIds.length === 0"
 			@click="$emit('show-delete')">
 			{{ t('nextcloud-vue', 'Delete selected') }}
 		</NcButton>
@@ -533,7 +552,7 @@
 			v-for="entry in bulkActions"
 			:key="entry.id"
 			variant="secondary"
-			:disabled="entry.disabled === true"
+			:disabled="entry.disabled === true || selectedIds.length === 0"
 			:data-testid="`cn-bulk-action-${entry.id}`"
 			:lang="bulkLang(entry)"
 			@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
@@ -717,6 +736,16 @@ export default {
 		bulkNoun: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: draw the bulk band also before anything is selected, its
+		 * buttons disabled until there is a selection, as DqZaken and DqWerkbord
+		 * draw it. Only when the band has an action to offer.
+		 */
+		bulkBandAlways: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** The 13px hint after the board bulk band's buttons (`config.bulkHint`). */
@@ -928,6 +957,19 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Where the board look draws the search field: `''` (the default) at
+		 * the start of row 2, `'toolbar'` on row 1 before Filter and the view
+		 * switch (DqTeamwachtrij). No effect outside the board look.
+		 *
+		 * @type {''|'toolbar'}
+		 */
+		searchPlacement: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'toolbar'].includes(v),
+		},
+
 		/** Current value of the inline search field (controlled) */
 		searchValue: {
 			type: String,
@@ -1087,6 +1129,16 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the search field sits on the board's row 1.
+		 *
+		 * @spec openspec/changes/index-search-on-toolbar/specs/index-page/spec.md#requirement-the-search-field-can-sit-on-the-toolbar-row
+		 * @return {boolean}
+		 */
+		searchInToolbar() {
+			return this.isBoardLayout && this.searchPlacement === 'toolbar'
+		},
+
+		/**
 		 * Whether the board toolbar is drawn: the `layout` prop, else the look
 		 * the app provides.
 		 *
@@ -1115,6 +1167,18 @@ export default {
 		 */
 		filterCountLabel() {
 			return t('nextcloud-vue', '{count} active', { count: this.filterCount })
+		},
+
+		/**
+		 * Whether the bulk band has an action to offer: copy, delete, a
+		 * declared bulk action or the host's own buttons.
+		 *
+		 * @return {boolean}
+		 */
+		bulkBandHasActions() {
+			return this.showMassCopy || this.showMassDelete
+				|| (Array.isArray(this.bulkActions) && this.bulkActions.length > 0)
+				|| Boolean(this.$slots['selection-actions'])
 		},
 
 		/**

@@ -43,6 +43,35 @@ describe('indicatorApplies', () => {
 	it('refuses an entry that names no field', () => {
 		expect(indicatorApplies({ text: 'Nowhere' }, { anything: true })).toBe(false)
 	})
+
+	describe('a date bound', () => {
+		const NOW = new Date(2026, 9, 20, 14, 0)
+		const held = { id: 'held', field: 'heldUntil', after: 'now', text: 'On hold' }
+
+		it('applies while the date is after now', () => {
+			expect(indicatorApplies(held, { heldUntil: '2026-10-27' }, NOW)).toBe(true)
+			expect(indicatorApplies(held, { heldUntil: '2026-10-21T09:00:00Z' }, NOW)).toBe(true)
+		})
+
+		it('does not apply once the date has passed, or without a readable date', () => {
+			expect(indicatorApplies(held, { heldUntil: '2026-10-13' }, NOW)).toBe(false)
+			expect(indicatorApplies(held, { heldUntil: '2026-10-20' }, NOW)).toBe(false)
+			expect(indicatorApplies(held, { heldUntil: '' }, NOW)).toBe(false)
+			expect(indicatorApplies(held, { heldUntil: 'soon' }, NOW)).toBe(false)
+			expect(indicatorApplies(held, {}, NOW)).toBe(false)
+		})
+
+		it('takes an ISO date as the bound, and before as well as after', () => {
+			const window = { field: 'due', after: '2026-10-01', before: '2026-11-01', text: 'This month' }
+			expect(indicatorApplies(window, { due: '2026-10-15' }, NOW)).toBe(true)
+			expect(indicatorApplies(window, { due: '2026-11-15' }, NOW)).toBe(false)
+			expect(indicatorApplies({ field: 'due', before: 'now', text: 'Past' }, { due: '2026-10-01' }, NOW)).toBe(true)
+		})
+
+		it('refuses a bound that is not a date', () => {
+			expect(indicatorApplies({ field: 'due', after: 'later', text: 'Later' }, { due: '2026-10-27' }, NOW)).toBe(false)
+		})
+	})
 })
 
 describe('indicatorText', () => {
@@ -89,5 +118,27 @@ describe('resolveRowIndicators', () => {
 		expect(resolveRowIndicators(DECLARED, row, 1).shown.map((i) => i.id)).toEqual(['suspended'])
 		expect(resolveRowIndicators(DECLARED, row, 0).shown).toEqual([])
 		expect(resolveRowIndicators(DECLARED, row, 0).overflow.map((i) => i.id)).toEqual(['suspended', 'extended'])
+	})
+})
+
+describe('indicatorApplies numeric bounds', () => {
+	it('holds below `lt` and above `gt`, and never on a value that is not a number', () => {
+		const low = { field: 'winProbability', lt: 30, text: 'Low' }
+		expect(indicatorApplies(low, { winProbability: 12 })).toBe(true)
+		expect(indicatorApplies(low, { winProbability: '29.5' })).toBe(true)
+		expect(indicatorApplies(low, { winProbability: 30 })).toBe(false)
+		expect(indicatorApplies(low, { winProbability: null })).toBe(false)
+		expect(indicatorApplies(low, { winProbability: '' })).toBe(false)
+		expect(indicatorApplies(low, {})).toBe(false)
+		const high = { field: 'score', gt: 80, text: 'Hot' }
+		expect(indicatorApplies(high, { score: 81 })).toBe(true)
+		expect(indicatorApplies(high, { score: 80 })).toBe(false)
+	})
+
+	it('takes both bounds as a range', () => {
+		const band = { field: 'score', gt: 30, lt: 60, text: 'Warm' }
+		expect(indicatorApplies(band, { score: 45 })).toBe(true)
+		expect(indicatorApplies(band, { score: 60 })).toBe(false)
+		expect(indicatorApplies(band, { score: 30 })).toBe(false)
 	})
 })

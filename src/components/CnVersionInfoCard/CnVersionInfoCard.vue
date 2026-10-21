@@ -28,32 +28,34 @@
 		</template>
 
 		<!-- Main content (only shown when not loading) -->
-		<div v-if="!loading" class="cn-version-info" :class="{ 'cn-version-info--board': isBoard }">
+		<div v-if="!loading" class="cn-version-info" :class="{ 'cn-version-info--board': isBoard, 'cn-version-info--compact': isBoard && compact }">
 			<!-- Version card with gray background -->
 			<div class="cn-version-info__card">
 				<h4>{{ cardTitle }}</h4>
 				<div class="cn-version-info__details">
-					<!-- Application Name -->
-					<div class="cn-version-info__item">
-						<span class="cn-version-info__label">{{ fieldLabels.appName }}:</span>
+					<!-- Application Name (the board card can leave it to its description: `showAppName`) -->
+					<div v-if="!isBoard || (showAppName && !compact)" class="cn-version-info__item" data-testid="cn-version-info-app-name">
+						<span class="cn-version-info__label">{{ fieldLabels.appName }}{{ labelColon }}</span>
 						<span class="cn-version-info__value">{{ appName }}</span>
 					</div>
 
 					<!-- Version -->
 					<div class="cn-version-info__item">
-						<span class="cn-version-info__label">{{ fieldLabels.version }}:</span>
+						<span class="cn-version-info__label">{{ fieldLabels.version }}{{ labelColon }}</span>
 						<span class="cn-version-info__value">{{ appVersion }}</span>
 					</div>
 
-					<!-- Configured Version (if provided) -->
-					<div v-if="configuredVersion" class="cn-version-info__item">
-						<span class="cn-version-info__label">{{ fieldLabels.configuredVersion }}:</span>
-						<span class="cn-version-info__value">{{ configuredVersion }}</span>
+					<!-- Configured version: when provided, and always in the board look,
+					     which draws the row ("Unknown" until the app reports it) with the
+					     up-to-date state inline ("0.4.47, bijgewerkt"). -->
+					<div v-if="configuredVersion || isBoard" class="cn-version-info__item" data-testid="cn-version-info-configured">
+						<span class="cn-version-info__label">{{ fieldLabels.configuredVersion }}{{ labelColon }}</span>
+						<span class="cn-version-info__value">{{ isBoard ? boardConfiguredText : configuredVersion }}</span>
 					</div>
 
 					<!-- Additional items -->
 					<div v-for="item in additionalItems" :key="item.label" class="cn-version-info__item">
-						<span class="cn-version-info__label">{{ item.label }}:</span>
+						<span class="cn-version-info__label">{{ item.label }}{{ labelColon }}</span>
 						<span class="cn-version-info__value" :class="item.statusClass">{{ item.value }}</span>
 					</div>
 
@@ -61,10 +63,14 @@
 					<slot name="additional-items" />
 				</div>
 
-				<!-- The state, then the actions (re-import), after a hairline. -->
-				<div v-if="isBoard" class="cn-version-info__footer-row" data-testid="cn-version-info-footer-row">
+				<!-- The board card's buttons: update (only while one is due), then the actions. -->
+				<div
+					v-if="isBoard"
+					class="cn-version-info__footer-row"
+					:class="{ 'cn-version-info__footer-row--divided': actionsDivider && !compact }"
+					data-testid="cn-version-info-footer-row">
 					<NcButton
-						v-if="showUpdateButton"
+						v-if="showUpdateButton && (!upToDateInline || !isUpToDate || updating)"
 						:type="updateButtonType"
 						:disabled="updateButtonDisabled"
 						@click="handleUpdateClick">
@@ -213,6 +219,53 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Board look: draw the "Application name" row (PqBeheer does,
+		 * dossiq's boards name the app in the description instead).
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		showAppName: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Board look: draw a rule between the facts and the buttons (PqBeheer
+		 * does, dossiq's boards do not).
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		actionsDivider: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Board look: read the up-to-date state in the configured version row
+		 * ("0.4.47, bijgewerkt", dossiq's boards) instead of a disabled "Up to
+		 * date" button among the buttons (PqBeheer). The update button still
+		 * shows while an update is due.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		inlineUpToDate: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Board look: the compact card of dossiq's boards in one switch: no
+		 * application name row, no rule above the buttons, the up-to-date
+		 * state inline, and 15px facts. The default keeps PqBeheer's card.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		compact: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Whether the app configuration is up to date */
 		isUpToDate: {
 			type: Boolean,
@@ -268,6 +321,17 @@ export default {
 
 	computed: {
 		/**
+		 * The colon after each label: none on the compact board card, which
+		 * sets each label beside its value ("Versie 0.4.47", DqInstellingenAlgemeen);
+		 * one otherwise, PqBeheer's card included.
+		 *
+		 * @return {string} The colon, or ''.
+		 */
+		labelColon() {
+			return this.isBoard && this.compact ? '' : ':'
+		},
+
+		/**
 		 * The field labels: the app's, else the library's in the reader's language.
 		 *
 		 * @return {{appName: string, version: string, configuredVersion: string}}
@@ -280,6 +344,26 @@ export default {
 				configuredVersion: t('nextcloud-vue', 'Configured version'),
 				...(this.labels || {}),
 			}
+		},
+
+		/**
+		 * The board card's configured version line: the version ("Unknown"
+		 * without one), and with `inlineUpToDate` ", up to date" when the app
+		 * tracks updates and is.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		boardConfiguredText() {
+			const version = this.configuredVersion || t('nextcloud-vue', 'Unknown')
+			return this.upToDateInline && this.showUpdateButton && this.isUpToDate && !this.updating
+				? t('nextcloud-vue', '{version}, up to date', { version })
+				: version
+		},
+
+		/** @return {boolean} Whether the up-to-date state reads in the configured version row. */
+		upToDateInline() {
+			return this.inlineUpToDate || this.compact
 		},
 
 		/** @return {string} Button type based on update status */

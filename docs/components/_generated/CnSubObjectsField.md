@@ -2,24 +2,27 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 0 direct references, 110 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 117 files reached through imports.
 
-Through: `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnVersionHistory`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
+Through: `CnActionDialog`, `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnVersionHistory`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name             | Type                                        | Required | Default                                  | Description                                                                        |
-| ---------------- | ------------------------------------------- | -------- | ---------------------------------------- | ---------------------------------------------------------------------------------- |
-| `modelValue`     | `array`                                     |          | `[]`                                     | The array of row objects (v-model).                                                |
-| `items`          | `{properties: object, required?: string[]}` |          | `\{     properties: \{\} \}`             | JSON Schema of one row (`type: object`, `properties`, optional `required`).        |
-| `inputLabel`     | `string`                                    |          | `''`                                     | Visible label of the table.                                                        |
-| `maxColumns`     | `number`                                    |          | `6`                                      | Most columns shown in the table; further properties are edited in the row dialog.  |
-| `disabled`       | `boolean`                                   |          | `false`                                  | Hide the editing controls.                                                         |
-| `error`          | `string`                                    |          | `''`                                     | Validation message shown under the table.                                          |
-| `addLabel`       | `string`                                    |          | `() =&gt; t('nextcloud-vue', 'Add row')` | Label of the add button.                                                           |
-| `fieldOverrides` | `object`                                    |          | `\{\}`                                   | Field overrides forwarded to the row dialog, e.g. `{ color: { widget: 'text' } }`. |
+| Name             | Type                                        | Required | Default                                  | Description                                                                                                                                    |
+| ---------------- | ------------------------------------------- | -------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `modelValue`     | `array`                                     |          | `[]`                                     | The array of row objects (v-model).                                                                                                            |
+| `items`          | `{properties: object, required?: string[]}` |          | `\{     properties: \{\} \}`             | JSON Schema of one row (`type: object`, `properties`, optional `required`).                                                                    |
+| `inputLabel`     | `string`                                    |          | `''`                                     | Visible label of the table.                                                                                                                    |
+| `maxColumns`     | `number`                                    |          | `6`                                      | Most columns shown in the table; further properties are edited in the row dialog.                                                              |
+| `disabled`       | `boolean`                                   |          | `false`                                  | Hide the editing controls.                                                                                                                     |
+| `error`          | `string`                                    |          | `''`                                     | Validation message shown under the table.                                                                                                      |
+| `addLabel`       | `string`                                    |          | `() =&gt; t('nextcloud-vue', 'Add row')` | Label of the add button.                                                                                                                       |
+| `fieldOverrides` | `object`                                    |          | `\{\}`                                   | Field overrides forwarded to the row dialog, e.g. `{ color: { widget: 'text' } }`.                                                             |
+| `newItem`        | `object`                                    |          | `null`                                   | The values a new row starts with, e.g. `{ required: false }`; the row schema's own defaults fill the rest.                                     |
+| `itemLabel`      | `string`                                    |          | `''`                                     | What one row is called, for the row's accessible name and the edit dialog title: "Checklist item" gives "Checklist item 2". Defaults to "Row". |
+| `emptyText`      | `string`                                    |          | `''`                                     | Shown while there are no rows. Defaults to "No rows yet.".                                                                                     |
 
 ### Events
 

@@ -67,7 +67,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `schema` | Object | `null` | Schema object for auto-generating columns from its `properties` map |
-| `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable?, width?, align?, class?, cellClass?, grow?, formatter?, formatterOptions?, widget?, widgetProps?, aggregate? }]`. `formatter`/`widget`/`widgetProps` resolve against the app's `cnFormatters`/`cnCellWidgets` registries (provided by `CnAppRoot`); `formatterOptions` is passed as the formatter's fourth argument (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter, or the `{ negative, zero, positive }` phrases for `conditionalPhrase`) — see [migrating-to-manifest → Column formatters / Column widgets](../migrating-to-manifest.md#column-formatters). `aggregate` (`{ register?, schema, op:"count", where }`) renders the cell as a count of related OpenRegister objects (one `_limit=0` request per row; `@self.<path>` in `where` interpolated per-row; `…` while loading, `—` on failure; `aggregate.zeroLabel` names a zero count, translated through `cnTranslate`) — see [migrating-to-manifest → Aggregate columns](../migrating-to-manifest.md#aggregate-columns). The `#column-{key}` scoped slot still overrides everything. |
+| `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable?, width?, align?, class?, cellClass?, grow?, formatter?, formatterOptions?, widget?, widgetProps?, aggregate? }]`. `formatter`/`widget`/`widgetProps` resolve against the app's `cnFormatters`/`cnCellWidgets` registries (provided by `CnAppRoot`); `formatterOptions` is passed as the formatter's fourth argument (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter, or the `{ negative, zero, positive }` phrases for `conditionalPhrase`) — see [migrating-to-manifest → Column formatters / Column widgets](../migrating-to-manifest.md#column-formatters). `aggregate` (`{ register?, schema, op:"count", where }`) renders the cell as a count of related OpenRegister objects (one `_limit=0` request per row; `op:"max"` with `field` instead shows the highest `field` among them, one `_limit=1` request sorted descending, through the column's formatter, and `zeroLabel` or `—` when there is none; `@self.<path>` in `where` interpolated per-row; `…` while loading, `—` on failure; `aggregate.zeroLabel` names a zero count, translated through `cnTranslate`) — see [migrating-to-manifest → Aggregate columns](../migrating-to-manifest.md#aggregate-columns). The `#column-{key}` scoped slot still overrides everything. |
 | `rowIcon` | String \| Function | `null` | Optional leading icon at the start of every row. A static MDI icon name (PascalCase, e.g. `'FileDocumentOutline'`) applied to all rows, or `(row) => iconName` to vary it per row. Resolved through the shared `CnIcon` registry. Unset = no icon column. |
 | `columnOverrides` | Object | `{}` | Per-column overrides applied on top of schema-generated columns; keyed by column key |
 | `excludeColumns` | Array | `[]` | Column keys to hide when using schema auto-generation |
@@ -89,12 +89,14 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `scrollable` | Boolean | `false` | Enables horizontal scrolling for wide tables |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `showUnread` | Boolean | `true` | Draw an unread record (`@self.unread`) in bold with the unread dot. Off, every row reads alike. CnIndexPage turns it off under the board look unless the page offers the Unread lens. |
 | `rowTitle` | String | `'link'` | Board look only. `link` underlines the title column's title; `plain` draws it as 15px bold text without an underline over a 13px muted secondary line (the PqTickets board). The row stays clickable. |
+| `reorderable` | Boolean | `false` | Lets the reader drag rows into another order. A drop emits `row-move`; the host stores the order. |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`). Useful for compact dashboard list widgets that want a plain bordered-row list without column labels. |
 | `pinnedCount` | Number | `0` | How many data columns are pinned to the start of the table. They, and the selection and icon columns, stay in view when the table scrolls sideways. |
 | `fixedLayout` | Boolean | `false` | Switch to `table-layout: fixed`, making each column's `width` authoritative instead of a hint the browser may override from cell content. Opt in when content would otherwise dictate the layout: a long unbreakable value (a PHP FQCN, a UUID) widens its own column under the default auto layout and can paint past the cell box into its neighbour, while a column left unsized soaks up all remaining width. Cells break long words rather than overflowing. Columns with no `width` share what is left, so size every column when you want exact control — percentages summing to 100 are the easiest to reason about. |
 | `fitWidth` | Boolean | `false` | Fit the table to its container instead of growing past it. One column takes the room that is left and cuts its text with an ellipsis (the full value stays in the tooltip); every other column keeps its content on one line at its own width, so trailing columns stay visible in a narrow tile. The column that grows is the first with `grow: true`, else the one keyed `title` or `name`, else the first. `CnWidgetObjectTable` turns it on. |
-| `rowIndicators` | Array | `[]` | State indicators the page declares for its rows. Each entry is `{ id, field, equals?, in?, icon, text, tooltip? }`: `field` is a dotted path on the row, the condition is `equals`, `in`, or plain truthiness when neither is given, `icon` is a CnIcon name, and `text` is the text alternative. An entry without `text` does not render, because an icon with no text is colour and shape alone (WCAG 2.2 SC 1.4.1). The page decides which indicators exist: a record cannot add one the page has not declared, and a page declaring none renders its rows exactly as before. |
+| `rowIndicators` | Array | `[]` | State indicators the page declares for its rows. Each entry is `{ id, field, equals?, in?, after?, before?, icon, text, tooltip? }`: `field` is a dotted path on the row, the condition is `equals`, `in`, a date `after` or `before` a moment (`"now"` or an ISO date; a field without a readable date does not apply), or plain truthiness when none is given, `icon` is a CnIcon name, and `text` is the text alternative. An entry without `text` does not render, because an icon with no text is colour and shape alone (WCAG 2.2 SC 1.4.1). The page decides which indicators exist: a record cannot add one the page has not declared, and a page declaring none renders its rows exactly as before. |
 | `rowIndicatorCap` | Number | `3` | How many declared indicators render on the row itself. The rest stay available from `indicatorsFor(row).overflow`, for the row menu. |
 | `fillHeight` | Boolean | `false` | Fill the parent's height (a flex-column card / widget content area) so an optional `#footer` is pushed to the bottom instead of floating under a short list; the footer stays pinned via its sticky rule when the list overflows. No-op outside a height-constrained parent — opt-in so ordinary in-flow tables are unaffected. |
 
@@ -105,6 +107,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `sort` | `{ key, order }` | Emitted when a sortable column header is clicked. Cycles through `asc → desc → null`. When the user clears the sort, both `key` and `order` are `null`. |
 | `select` | `ids[]` | Emitted when row selection changes; payload is the full updated selection array |
 | `select-all` | `isSelectAll` | Emitted when the select-all checkbox is toggled |
+| `row-move` | `({ row, from, to })` | Emitted when a row of a `reorderable` table is dropped on another place: the row and its old and new index. |
 | `row-aux-click` | `(row, event)` | Emitted on a row-body middle click (`auxclick`), under the same conditions as `row-click`, so a host can open the row in a new tab with [`openRowTarget`](../utilities/open-row-target.md). A middle click never reaches `row-click`, so a `row-click` listener that navigates keeps the current tab. |
 | `row-click` | `(row, event)` | Emitted when a data row is clicked (not the checkbox). The second argument is the native click event, so a host can open the row in a new tab on a ctrl/cmd/shift click with [`openRowTarget`](../utilities/open-row-target.md); listeners that take only the row keep working. A middle click emits `row-aux-click` instead. **Only fires when `selectable` is `false`** (or `rowClickToView` is set) — when `selectable` is `true`, a deliberate click anywhere on a row toggles its selection (emitting `select`) instead — a text-selection drag is not treated as a click. |
 | `row-context-menu` | `{ row, event }` | Emitted when a data row is right-clicked. The native `contextmenu` event is prevented, except on a row link (`rowClickRoute`) when nothing listens to this event, so the browser's link menu stays available. Used by CnIndexPage with the [`useContextMenu`](../utilities/composables/use-context-menu.md) composable to show a context menu at the cursor position. |
@@ -185,6 +188,7 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `borderless` — drop the container's card chrome so the table sits flush inside
   a parent card (e.g. a `CnWidgetWrapper` dashboard slot).
 - `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
+- `pageSize` — rows per page: one page of the rows the table holds, with the board's pager under them ("4 of 7", the page buttons, Next) once there is more than one page (DqCatalogus). 0 (the default) shows every row, or the first `limit`.
 - `viewAllRoute` / `viewAllLabel` — the footer control's route and label. It renders
   as a real `<a :href>` when the router resolves the route, and as a
   `<button type="button">` (emitting `view-all`) otherwise, so it always has a
@@ -198,6 +202,14 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `#footer` slot (`{ total, shown }`) — supply a custom footer link (e.g. "+ New"
   or an always-shown "View all") with its own handler; works outside a
   vue-router context.
+
+## The column that names the row (`columns[].link`)
+
+The first column names the row: it carries the row link, the title look and the unread, lock and indicator marks. `link: true` on another column moves all of that there, for a table that leads with something else (the DqTeamwachtrij board puts the waiting time first and links the case title in the second column).
+
+```json
+"columns": [{ "key": "waiting", "label": "Wacht" }, { "key": "title", "label": "Zaak", "link": true }]
+```
 
 ## A second line in a cell (`columns[].secondary`)
 
@@ -214,6 +226,14 @@ A placeholder can carry a format, the same ones a widget row template takes: `{s
 ```
 
 Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.
+
+## Show one field, sort on another (`columns[].valueField`)
+
+A column sorts and filters on its `key`. With `valueField` its cell shows another row field instead, with that field's schema property (labels, enum, format), while the header keeps sorting on the key. A priority stored as a word sorts as high, low, normal, urgent; sorting on the stored order and showing the word reads right:
+
+```json
+{ "key": "priorityOrder", "valueField": "priority", "label": "Priority", "widget": "badge" }
+```
 
 ## A system date as a column (`@self.created`)
 

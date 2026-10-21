@@ -117,9 +117,10 @@ export const pageViews = {
 		 * control. Each is `{ id, label, icon?, widgets, layout, emptyText? }`:
 		 * `widgets` and `layout` have the same shape as the page's own. The
 		 * chosen view renders in a region below the page's own grid. Empty
-		 * (the default) draws no switch and no region.
+		 * (the default) draws no switch and no region. A view's `title` is
+		 * the page title while that view is open (on a dashboard).
 		 *
-		 * @type {Array<{id: string, label: string, icon?: string, widgets?: Array<object>, layout?: Array<object>, emptyText?: string}>}
+		 * @type {Array<{id: string, label: string, title?: string, icon?: string, widgets?: Array<object>, layout?: Array<object>, emptyText?: string}>}
 		 */
 		views: {
 			type: Array,
@@ -195,7 +196,7 @@ export const pageViews = {
 		 * The declared views in one shape, labels translated. Entries without
 		 * an id or a label are dropped, as are repeated ids.
 		 *
-		 * @return {Array<{id: string, label: string, icon: string, widgets: Array<object>, layout: Array<object>, emptyText: string}>}
+		 * @return {Array<{id: string, label: string, icon: string, widgets: Array<object>, layout: Array<object>, emptyText: string, title: string}>}
 		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
 		 */
 		normalizedViews() {
@@ -219,6 +220,7 @@ export const pageViews = {
 					widgets: Array.isArray(view.widgets) ? view.widgets : [],
 					layout: Array.isArray(view.layout) ? view.layout : [],
 					emptyText: typeof view.emptyText === 'string' && view.emptyText !== '' ? translate(view.emptyText) : '',
+					title: typeof view.title === 'string' && view.title !== '' ? translate(view.title) : '',
 				}))
 		},
 
@@ -268,12 +270,14 @@ export const pageViews = {
 
 		/**
 		 * Whether a user arranges the views for themselves (`userLayout`).
+		 * Not while Buildiq edits the page (`editingBody`): Buildiq is the
+		 * layout editor, and it shows and changes the manifest layout.
 		 *
 		 * @return {boolean}
 		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
 		 */
 		viewUserLayoutOn() {
-			return this.userLayout === true && this.hasViews
+			return this.userLayout === true && this.hasViews && this.editingBody !== true
 		},
 
 		/**
@@ -638,6 +642,11 @@ export const pageViews = {
 				this.viewUserLayouts = { ...this.viewUserLayouts, [view.id]: arranged }
 				this.viewUserLayoutsDirty = { ...this.viewUserLayoutsDirty, [view.id]: true }
 				this.$emit('view-layout-change', { view: view.id, layout: arranged })
+				// Outside an in-page edit session (the dashboard's edit mode, the
+				// detail page's Arrange) no Done will come to save it.
+				if (this.isEditing !== true && this.arrangingView !== true) {
+					this.saveViewUserLayouts()
+				}
 				return
 			}
 			for (const u of updated) {

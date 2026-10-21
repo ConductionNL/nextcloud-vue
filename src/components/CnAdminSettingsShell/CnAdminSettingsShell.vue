@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-admin-settings-shell" :class="ownLookClass">
+	<div class="cn-admin-settings-shell" :class="[ownLookClass, sectionColumns ? `cn-admin-settings-shell--columns-${sectionColumns}` : '']">
 		<!-- Names a development, test or acceptance environment; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner v-if="environmentName" :environment="environmentName" />
 
@@ -63,6 +63,7 @@
 		<CnTabs
 			v-if="tabItems.length > 0"
 			class="cn-admin-settings-shell__tabs"
+			:class="{ 'cn-admin-settings-shell__tabs--bare': openPanelIsEmpty }"
 			:look="isBoard ? 'board' : 'nextcloud'"
 			:variant="tabsVariant"
 			:ariaLabel="resolvedTitle"
@@ -98,12 +99,16 @@
 			:title="versionTitle"
 			:description="resolvedVersionDescription"
 			:wide="versionCardWide"
+			:showAppName="showAppName"
+			:actionsDivider="actionsDivider"
+			:inlineUpToDate="inlineUpToDate"
+			:compact="compact"
 			@update="onUpdate">
 			<template #actions>
 				<!-- Canonical "Re-import configuration" action (POST /apps/<appId>/api/settings/load) -->
 				<NcButton
 					v-if="showReimport"
-					variant="primary"
+					:variant="compactCard ? 'secondary' : 'primary'"
 					:disabled="reimporting"
 					@click="reimport">
 					<template #icon>
@@ -139,7 +144,7 @@
 			<template #footer>
 				<!-- @slot footer Replaces the default support/SLA footer inside the version card. -->
 				<slot name="footer">
-					<div v-if="showSupport" class="cn-support-info">
+					<div v-if="showSupport && !supportAtEnd && !compactCard" class="cn-support-info">
 						<h4>{{ supportTitle }}</h4>
 						<p>
 							{{ supportLine }}
@@ -154,6 +159,13 @@
 			</template>
 
 			<template #additional-items>
+				<!-- The board card: support as one fact row, the SLA address on the same line. -->
+				<div v-if="compactCard && showSupport && !supportAtEnd && !$slots.footer" class="cn-version-info__item" data-testid="cn-admin-settings-support-row">
+					<span class="cn-version-info__label">{{ supportTitle }}</span>
+					<span class="cn-version-info__value">
+						<a :href="`mailto:${supportEmail}`">{{ supportEmail }}</a><template v-if="slaEmail">, {{ slaInline }} <a :href="`mailto:${slaEmail}`">{{ slaEmail }}</a></template>
+					</span>
+				</div>
 				<!-- @slot version-items Extra key/value rows appended inside the version card details. -->
 				<slot name="version-items" />
 			</template>
@@ -185,10 +197,29 @@
 		<!-- @slot default The app's own settings sections, rendered below the version card, or above it with `versionCardPosition: "end"`. With `tabs`, only while the first tab is open. -->
 		<slot v-if="!versionCardAtEnd && onFirstTab" />
 
+		<!-- `supportPosition: "end"`: the support lines as their own wide card,
+		     last on the page (board PqBeheer), not in the version card. -->
+		<CnSettingsSection
+			v-if="showSupport && supportAtEnd && onFirstTab"
+			class="cn-admin-settings-shell__support"
+			:name="supportTitle"
+			:wide="true"
+			data-testid="cn-admin-settings-support">
+			<p class="cn-admin-settings-shell__support-line">
+				{{ supportLine }}
+				<a :href="`mailto:${supportEmail}`">{{ supportEmail }}</a>
+			</p>
+			<p v-if="slaEmail" class="cn-admin-settings-shell__support-line">
+				{{ slaLine }}
+				<a :href="`mailto:${slaEmail}`">{{ slaEmail }}</a>
+			</p>
+		</CnSettingsSection>
+
 		<!-- First-time setup wizard, opened from the admin page (ADR-042). -->
 		<CnSetupWizard
 			v-if="showSetup && setupWizardOpen"
 			:appId="appId"
+			:appName="appName"
 			:steps="setupSteps"
 			@complete="setupWizardOpen = false"
 			@close="setupWizardOpen = false" />
@@ -202,7 +233,7 @@ import { loadState } from '@nextcloud/initial-state'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
-import { computed, provide } from 'vue'
+import { computed, inject, provide } from 'vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
@@ -216,6 +247,7 @@ import { normalizeLook, useLook } from '../../composables/useLook.js'
 import { ensureTranslations } from '../../l10n/index.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { CnSettingsSection } from '../CnSettingsSection/index.js'
 import { CnTab, CnTabs } from '../CnTabs/index.js'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 
@@ -327,6 +359,7 @@ export default {
 		BookOpenVariant,
 		NcSettingsSection,
 		CnCredentials,
+		CnSettingsSection,
 		CnVersionInfoCard,
 		CnSetupWizard,
 		CnTab,
@@ -549,6 +582,66 @@ export default {
 			validator: (value) => ['start', 'end'].includes(value),
 		},
 
+		/**
+		 * Board look: how many columns the section cards take, `1` or `2`.
+		 * Empty (the default) fits as many 420px columns as the width allows.
+		 *
+		 * @type {1|2|null}
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-admin-page-can-fix-its-columns
+		 */
+		sectionColumns: {
+			type: Number,
+			default: null,
+			validator: (value) => value === null || [1, 2].includes(value),
+		},
+
+		/**
+		 * Board look: the version card draws its "Application name" row.
+		 * Dossiq's boards pass false.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		showAppName: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Board look: the version card draws a rule above its buttons.
+		 * Dossiq's boards pass false.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		actionsDivider: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Board look: the version card reads the up-to-date state in its
+		 * configured version row instead of a disabled button. Dossiq's boards
+		 * pass true.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		inlineUpToDate: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Board look: the compact version card of dossiq's boards: "About this
+		 * <App> installation.", no application name row, the up-to-date state
+		 * inline, support as one row, secondary buttons, no rule above them.
+		 * The default keeps PqBeheer's card.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		compact: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Version card heading. */
 		versionTitle: {
 			type: String,
@@ -616,6 +709,19 @@ export default {
 			default: true,
 		},
 
+		/**
+		 * Where the support lines go: `card`, in the version card's footer (the
+		 * default), or `end`, as their own wide card after everything else on
+		 * the first tab (board PqBeheer).
+		 *
+		 * @spec openspec/changes/admin-shell-support-end/specs/settings-board-look/spec.md#requirement-support-can-be-its-own-card-at-the-end
+		 */
+		supportPosition: {
+			type: String,
+			default: 'card',
+			validator: (value) => ['card', 'end'].includes(value),
+		},
+
 		/** Support contact email. */
 		supportEmail: {
 			type: String,
@@ -668,6 +774,11 @@ export default {
 		// Everything inside the shell, its own version card and the app's
 		// sections alike, follows the shell's look without the app providing it.
 		provide('cnLook', look)
+		// The setup wizard translates its step titles and bodies through
+		// `cnTranslate`. On an admin page no CnAppRoot provides it, so the
+		// shell hands down the app's own catalog, keyed by its app id.
+		const hostTranslate = inject('cnTranslate', null)
+		provide('cnTranslate', hostTranslate || ((text, vars) => t(props.appId, text, vars)))
 		return { environmentName, isBoard, ownLookClass }
 	},
 
@@ -714,6 +825,19 @@ export default {
 		},
 
 		/**
+		 * Whether the open tab has no panel of its own: its content is the
+		 * default slot, drawn below the strip (the first tab of DqInstellingenAlgemeen).
+		 * The strip then keeps no panel spacing, so the first card stands the
+		 * page's section gap below the strip.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/admin-shell-empty-tab-gap/specs/admin-shell-empty-tab-gap/spec.md#requirement-a-tab-without-a-panel-adds-no-space-under-the-strip
+		 */
+		openPanelIsEmpty() {
+			return !this.$slots[`tab-${this.activeTabId}`]
+		},
+
+		/**
 		 * Whether the app's sections come before the version card.
 		 *
 		 * @return {boolean}
@@ -721,6 +845,16 @@ export default {
 		 */
 		versionCardAtEnd() {
 			return this.versionCardPosition === 'end'
+		},
+
+		/** @return {boolean} Whether the version card is the compact board card. */
+		compactCard() {
+			return this.isBoard && this.compact
+		},
+
+		/** @return {boolean} Whether the support lines are their own card at the end. */
+		supportAtEnd() {
+			return this.supportPosition === 'end'
 		},
 
 		/**
@@ -787,7 +921,12 @@ export default {
 
 		/** @return {string} Version card description. */
 		resolvedVersionDescription() {
-			return this.versionDescription || t('nextcloud-vue', 'Information about the current {app} installation', { app: this.appName })
+			if (this.versionDescription) {
+				return this.versionDescription
+			}
+			return this.compactCard
+				? t('nextcloud-vue', 'About this {app} installation.', { app: this.appName })
+				: t('nextcloud-vue', 'Information about the current {app} installation', { app: this.appName })
 		},
 
 		/** @return {string} Re-import endpoint. */
@@ -813,6 +952,11 @@ export default {
 		/** @return {string} Support footer line. */
 		supportLine() {
 			return t('nextcloud-vue', 'For support, contact us at')
+		},
+
+		/** @return {string} The words before the SLA address in the board card's support row. */
+		slaInline() {
+			return t('nextcloud-vue', 'for an SLA')
 		},
 
 		/** @return {string} SLA footer line. */
@@ -926,6 +1070,11 @@ export default {
 }
 
 /* The board look lifts the width and lays the header and cards on a grid (look-board.css). */
+
+/* A tab without a panel of its own: the cards below the strip carry the gap. */
+.cn-admin-settings-shell__tabs--bare > :deep(.cn-tabs__content) {
+	padding-top: 0;
+}
 
 .cn-support-info {
 	margin-top: 16px;

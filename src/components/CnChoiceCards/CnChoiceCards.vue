@@ -20,17 +20,18 @@
 			<div
 				v-for="option in normalizedOptions"
 				:key="String(option.value)"
-				class="cn-choice-cards__cell">
+				class="cn-choice-cards__cell"
+				:class="{ 'cn-choice-cards__cell--with-details': hasDetails(option) }">
 				<label
 					class="cn-choice-cards__row"
-					:class="{ 'cn-choice-cards__row--selected': isSelected(option), 'cn-choice-cards__row--disabled': isDisabled(option) }">
+					:class="{ 'cn-choice-cards__row--selected': isSelected(option), 'cn-choice-cards__row--disabled': isDisabled(option), 'cn-choice-cards__row--readonly': readonly }">
 					<input
 						class="cn-choice-cards__row-input"
 						:type="multiple ? 'checkbox' : 'radio'"
 						:name="groupName"
 						:value="String(option.value)"
 						:checked="isSelected(option)"
-						:disabled="isDisabled(option)"
+						:disabled="isDisabled(option) || readonly"
 						:aria-describedby="option.disabled && option.disabledReason ? reasonId(option) : null"
 						@change="onToggle(option)">
 					<CnIcon v-if="option.icon"
@@ -47,6 +48,16 @@
 							data-testid="cn-choice-cards-reason">{{ option.disabledReason }}</span>
 					</span>
 				</label>
+				<div v-if="hasDetails(option)"
+					class="cn-choice-cards__details"
+					:data-testid="`cn-choice-cards-details-${option.value}`">
+					<!-- @slot option-details The chosen option's own fields, drawn
+					     inside the selected row's frame under its text (DqVolgendeStap:
+					     Opschorten's reason, days and return date). Rendered only for a
+					     selected option, outside the label so a field is not part of
+					     the radio's label. Scope: `{ option }`. -->
+					<slot name="option-details" :option="option" />
+				</div>
 				<div v-if="$slots['option-actions']" class="cn-choice-cards__actions">
 					<slot name="option-actions" :option="option" :selected="isSelected(option)" />
 				</div>
@@ -64,7 +75,7 @@
 				class="cn-choice-cards__cell">
 				<label
 					class="cn-choice-cards__option"
-					:class="{ 'cn-choice-cards__option--selected': isSelected(option) }">
+					:class="{ 'cn-choice-cards__option--selected': isSelected(option), 'cn-choice-cards__option--disabled': isDisabled(option) }">
 					<!-- A REAL, VISIBLE input, not a styled div with a click handler.
 					     It carries the checked state to assistive technology and to
 					     Windows high-contrast mode for free, and it keeps the
@@ -76,7 +87,7 @@
 						:name="groupName"
 						:value="String(option.value)"
 						:checked="isSelected(option)"
-						:disabled="isDisabled(option)"
+						:disabled="isDisabled(option) || readonly"
 						:aria-describedby="option.disabled && option.disabledReason ? reasonId(option) : null"
 						@change="onToggle(option)">
 					<CnCard
@@ -169,7 +180,8 @@ export default {
 		 * @type {string|number|boolean|Array|null}
 		 */
 		modelValue: {
-			type: [Boolean, String, Number, Array, Object],
+			// eslint-disable-next-line vue/prefer-prop-type-boolean-first -- an option value of '' must stay a string
+			type: [String, Number, Boolean, Array, Object],
 			default: null,
 		},
 
@@ -187,6 +199,16 @@ export default {
 
 		/** Disable every card (e.g. a dependent choice with no parent value yet). */
 		disabled: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Show the choice without letting it change: every option at full
+		 * contrast, the selected one marked, nothing pickable (DqBesluit's
+		 * recorded outcome). `disabled` greys the options out instead.
+		 */
+		readonly: {
 			type: Boolean,
 			default: false,
 		},
@@ -312,6 +334,17 @@ export default {
 		 * @return {boolean} True when selected.
 		 */
 		/**
+		 * Whether a rows option draws the `option-details` slot in its frame:
+		 * the slot is given and the option is the chosen one.
+		 *
+		 * @param {object} option The option.
+		 * @return {boolean}
+		 */
+		hasDetails(option) {
+			return Boolean(this.$slots['option-details']) && this.isSelected(option)
+		},
+
+		/**
 		 * Whether an option cannot be picked: the whole group is disabled, or the option is.
 		 *
 		 * @param {object} option The normalised option.
@@ -342,7 +375,7 @@ export default {
 		 * @return {void}
 		 */
 		onToggle(option) {
-			if (this.isDisabled(option)) {
+			if (this.readonly || this.isDisabled(option)) {
 				return
 			}
 			if (!this.multiple) {
@@ -452,7 +485,7 @@ export default {
 	cursor: default;
 }
 
-.cn-choice-cards__input:disabled + :deep(.cn-card) {
+.cn-choice-cards__option--disabled .cn-choice-cards__input + :deep(.cn-card) {
 	opacity: 0.6;
 }
 
@@ -462,11 +495,12 @@ export default {
 	gap: 8px;
 }
 
+/* 12px 14px, as the boards draw an option row (DqVolgendeStap, DqBesluit). */
 .cn-choice-cards__row {
 	display: flex;
 	align-items: flex-start;
 	gap: 12px;
-	padding: 14px 16px;
+	padding: 12px 14px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 8px);
 	background: var(--color-main-background);
@@ -485,9 +519,52 @@ export default {
 	background: var(--color-primary-element-light);
 }
 
-.cn-choice-cards__row--disabled {
+/* An option this record does not allow: the grey ground and the muted ink,
+   still legible (DqVolgendeStap), not faded. */
+.cn-choice-cards__row--disabled,
+.cn-choice-cards__row--disabled:hover {
+	border-color: var(--color-border);
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
 	cursor: default;
-	opacity: 0.6;
+}
+
+/* The title takes the muted ink itself: a theme that colours every label
+   with `!important` (thematiq) would otherwise hand it the label colour. */
+.cn-choice-cards__row--disabled .cn-choice-cards__row-title {
+	color: var(--color-text-maxcontrast);
+}
+
+/* The chosen option's fields share the selected row's frame: the cell draws
+   the 2px primary border and the ground, the row inside it draws none, and
+   the fields sit under the text, indented to it (DqVolgendeStap). */
+.cn-choice-cards__cell--with-details {
+	border: 1px solid var(--color-primary-element);
+	border-radius: var(--border-radius-large, 8px);
+	box-shadow: inset 0 0 0 1px var(--color-primary-element);
+	background: var(--color-primary-element-light);
+}
+
+.cn-choice-cards__cell--with-details .cn-choice-cards__row,
+.cn-choice-cards__cell--with-details .cn-choice-cards__row:hover {
+	border-color: transparent;
+	box-shadow: none;
+	background: transparent;
+}
+
+.cn-choice-cards__details {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 0 14px 14px 44px;
+}
+
+.cn-choice-cards__row--readonly {
+	cursor: default;
+}
+
+.cn-choice-cards__row--readonly:not(.cn-choice-cards__row--selected):hover {
+	border-color: var(--color-border);
 }
 
 .cn-choice-cards__row:has(.cn-choice-cards__row-input:focus-visible) {
@@ -518,15 +595,13 @@ export default {
 	font-weight: 600;
 }
 
-.cn-choice-cards__row-description {
-	font-size: 13px;
-	color: var(--color-text-maxcontrast);
-}
-
+/* Regular weight on the span itself: a theme that sets every label bold
+   with `!important` (thematiq) reaches a span that only inherits. */
+.cn-choice-cards__row-description,
 .cn-choice-cards__reason {
 	font-size: 13px;
+	font-weight: 400;
 	color: var(--color-text-maxcontrast);
-	font-style: italic;
 }
 
 .cn-choice-cards__reason--card {

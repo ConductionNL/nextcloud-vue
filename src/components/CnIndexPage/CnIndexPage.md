@@ -362,13 +362,13 @@ export default {
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable lens, keyed `<lens>.<reason>` or `<reason>`. |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI name or `(row) => iconName`. Forwarded to CnDataTable; fed from the manifest as `pages[].config.rowIcon`. Unset = no icon column. |
-| `rowClass` | Function | `null` | Callback returning CSS class(es) for a row |
+| `rowClass` | Function \| Array | `null` | Callback returning CSS class(es) for a row, or (manifest `config.rowClass`) rules `[{ when: { field, op?, value }, class }]` compiled into one: each adds its class to a row whose field compares to the value (`visibleWhen` operators; two dates compare as moments, `@today` included). |
 | `rowIcon` | String \| Function | `null` | Optional leading row icon forwarded to CnDataTable — a static MDI icon name or `(row) => iconName`. Fed from the manifest as `pages[].config.rowIcon`; unset = no icon column |
 | `inlineActionCount` | Number | `2` | How many row actions to show inline (rest go in overflow menu) |
 | `showMassImport` | Boolean | `true` | Whether to show the mass Import action |
 | `showMassCopy` | Boolean | `true` | Whether to show the mass Copy action |
 | `allowExport` | Boolean | `false` | Opt-in flag for the native Export menu (CSV/Excel) next to the Add button. Renders only when `true` AND the resolved schema is flagged `exportable: true`; navigates to OpenRegister's export leaf (`GET /apps/openregister/api/objects/{register}/{schema}/export`), passing `$route.query` through as filters. Distinct from `showMassExport`, which exports the fetched/selected rows via a blob download. |
-| `allowSavedViews` | Boolean | `false` | Opt-in flag for the saved-views control (saved-views-ui): a Views dropdown listing the user's OpenRegister saved-search views (`GET /apps/openregister/api/views`). Applying one writes its stored filters/search/sort into the route query (`_search` and `_order` reserved keys + plain filter keys); "Save current view…" persists the current route-query state via POST and toasts either way, naming the view (a failure also keeps the dialog open with the reason); own views can be deleted after confirmation. Emits `apply-view`. |
+| `allowSavedViews` | Boolean | unset | Saved views (saved-views-ui). Unset, the sidebar's Views tab (save, apply, edit, share, add to menu, copy a default, delete) is on for every page with a sidebar and a source a view can be scoped to: register and schema, `entitySource` or `savedViewsScope`. `false` turns it off. `true` also forces the sidebar and adds the toolbar control: a Views dropdown listing the user's OpenRegister saved-search views (`GET /apps/openregister/api/views`). Applying one writes its stored filters/search/sort into the route query (`_search` and `_order` reserved keys + plain filter keys); "Save current view…" persists the current route-query state via POST and toasts either way, naming the view (a failure also keeps the dialog open with the reason); own views can be deleted after confirmation. Emits `apply-view`. |
 | `savedViewsScope` | String | `''` | Which pages share this page's saved views. By default a view is shared by every page over the same `register` and `schema` and shown on no other page, since a view is filters over one schema's fields. Set a name to share views across pages over different sources, or to keep two pages over one source apart. Written into the saved view's `query.scope` on save; views saved before scoping existed carry no scope and stay visible everywhere. |
 | `massActionNameField` | String | `'title'` | Property name used to display item names in dialogs |
 | `nameFormatter` | Function | `null` | Custom formatter for item names in dialogs; overrides `massActionNameField` |
@@ -389,8 +389,11 @@ export default {
 | `customComponents` | Object | `null` | Custom-component / handler registry. When set, takes precedence over the injected `cnCustomComponents` from CnAppRoot. Used to resolve `actions[].handler` registry names declared in the manifest (manifest-actions-dispatch). Named handlers resolve out of the v2 `registry` (a `kind: "handler"` entry) FIRST and fall back to this map. |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (in addition to / instead of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`. The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set. |
+| `search` | Boolean | `true` | `false` draws no inline search in the actions bar, also in the board look, which otherwise draws one on every index page (manifest: `config.search`). Wins over `inlineSearch`. |
+| `appConfig` | Object | `{}` | The app config `@config.<key>` tokens resolve against (manifest: `config.appConfig`), as on the dashboard and detail pages, merged over a config an ancestor provides on `cnAppConfig`. A quick filter's `filter` and its `label` / `activeLabel` take the token: `"Residence @config.municipality"` reads "Residence Zuiddrecht" (board DqContacten); the label is translated first, and a key the config does not hold leaves the token as written. |
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls (only relevant with `inlineSearch`, which otherwise takes the counter's place). Fed from the manifest as `pages[].config.showCountWithSearch`. |
 | `searchInFiles` | Boolean | `false` | "Also search inside files" switch beside the search box (manifest `config.searchInFiles`). On, a search with a term sends `_content_search=true`; rows found through a file show "Found in {file}" (`@self.matchedFile`). State kept in the route as `contentSearch=1`. Emits `content-search`. |
+| `relatedFieldFilters` | Object | `null` | Filters over a type's own declared fields beside the search (CnRelatedFieldFilters): `{ definitions: { register, schema, filter }, related: { schema, backref, definitionKey?, valueKey? } }`. Manifest: `config.relatedFieldFilters`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest `config.searchPlaceholder`). |
 | `cardsLabel` | String | `''` | Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles"). |
 | `tableLabel` | String | `''` | Label for the table view-toggle option (manifest `config.tableLabel`, e.g. "List"). |
@@ -414,6 +417,7 @@ export default {
 | `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`). Fed from `pages[].config.quickFilterMode`. |
 | `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once; selected tabs' filters are OR-ed into the fetch (same field → `field[]=` array). Fed from `pages[].config.quickFilterMultiple`. |
 | `quickFilterMaxVisible` | Number | `0` | Chips mode only — how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
+| `quickFilterPlacement` | String | `''` | Where the quick-filter chips sit. `'toolbar'` keeps them on one row with the Filter button and the view switch, in whatever width that row has beside a side panel (DqTeamwachtrij): the chips take the room the buttons leave, and those that do not fit move behind the overflow chip. Fed from `pages[].config.quickFilterPlacement`. `'row'` puts them on a row of their own above the toolbar, wrapping onto more lines instead of folding into the overflow chip (DqTeamwachtrij); beside a side panel the row sits in the list column. |
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 | `subscribe` | Boolean | `true` | Self-fetch mode only. When `register` + `schema` are set (and no `objects` prop), the page subscribes to the collection's `or-collection-{register}-{schema}` live-update scope on mount and refetches on an update event; released on unmount. Set `false` (manifest: `config.subscribe: false`) for static / read-once views. No-op in consumer-managed mode or on stores without live-updates support. |
@@ -534,6 +538,34 @@ What the source brings, all overridable by the manifest:
   flow, never by a person clicking Add.
 - Scope stays the endpoint's session decision. The loader drops any
   user-naming key, so a manifest cannot ask for someone else's inbox.
+
+### The `organisations` source: OpenRegister organisations
+
+`entitySource: "organisations"` lists the OpenRegister organisations the
+viewer belongs to, from `GET /apps/openregister/api/organisations`. An
+organisation is not a register/schema object, so self-fetch cannot reach it.
+
+```json
+{
+  "id": "organisations",
+  "route": "/organisations",
+  "type": "index",
+  "config": { "entitySource": "organisations", "rowRoute": "organisation-detail" }
+}
+```
+
+- Columns: name, status (a pill with the lifecycle state in words), type and
+  created. A manifest `columns` list still wins; every field of the
+  organisation can be a column (`slug`, `contactEmail`, `kvk`, ...).
+- A row's `id` is the organisation's uuid, so `rowRoute` pushes
+  `{ name: rowRoute, params: { id: <uuid> } }`.
+- No Add, Copy or Delete: creating an organisation is not this page's object
+  form, and OpenRegister has no delete for one.
+- Which organisations are listed is OpenRegister's decision from the
+  session. The endpoint takes no parameters, so no config key reaches it.
+
+The same name works on a `type: "detail"` page, which then shows ONE
+organisation (see CnDetailPage, "Records that are not objects").
 
 ### Search fields on a named source
 
@@ -848,9 +880,10 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
 | `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
-| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
-| `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
-| `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
+| `showSortSelect` | Boolean | `false` | Deprecated, without effect: the toolbar draws no sort select. The table sorts by its column headers; the list, card and map views by the Sort section in the index sidebar. |
+| `sortSelectOptions` | Array | `[]` | The orders the index sidebar's Sort section offers in the list, card and map views: `{ value, label, order?, default?, source? }`, the order its `order` or its `value` read as one (`"-createdAt"`, `"priority:desc,title"`). An option with a `source` lists an endpoint's rows in the endpoint's order (see *An order from an endpoint*). Without them the section offers the sortable columns. |
+| `sortSelectValue` | String | `''` | Deprecated, without effect: the Sort section shows the current order. |
+| `defaultOrder` | String, Object or Array | `''` | The order a self-fetch page opens on when neither the address nor `sortKeys`/`sortKey` gives one (manifest `config.defaultOrder`): `"-createdAt"`, `"priority:desc,title"`, an `_order` map `{ "priority": "desc" }` or a `[{ key, order }]` list. |
 
 The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
 
@@ -1065,6 +1098,18 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 }
 ```
 
+`scopeViews` limits the scope's look (columns, title, count line and the other scope keys) to the view modes it names, e.g. `["table", "list"]`, so a board view keeps the page's generic look (DqWerkbord) while the scope still filters it.
+
+`pane: false` draws no pane. The folder still comes from the deep-link filter (`/cases?caseType=<uuid>`) and its scope look (title, count line, columns, quick filters, `afterList` from the folder or its row's `x-index`) still applies, so a list narrowed to one case type looks like that case type's list without a folder column (boards DqWooVerzoeken, DqKlachten):
+
+```json
+"folderSidebar": {
+  "source": "register", "register": "dossiq", "schema": "caseType",
+  "idField": "@self.uuid", "nameField": "title",
+  "filterField": "caseType", "pane": false
+}
+```
+
 ### A column set per folder
 
 A folder is also a scope. Give it `columns`, `defaultSort` or `searchFields`
@@ -1107,4 +1152,7 @@ columns are right.
 
 ## Board look
 
-With `look: "board"` (the page's `look` prop, `config.look`, or the app's) the index page takes the DqZaken setup: a header with the count line from `countText` (`{shown}`, `{total}`), the buttons Download, Actions, the buildiq square and the primary one in that order, a two-row toolbar (saved-view chips, Filter with a count and the view switch; then search and active filter chips), a bulk band between toolbar and table (`bulkHint`), the table as a white card with one menu button per row, and a footer inside the card (`footerNote`). `cardFields` names the facts of each card in the cards view. Without the look nothing changes.
+With `look: "board"` (the page's `look` prop, `config.look`, or the app's) the index page takes the DqZaken setup: a header with the count line from `countText` (`{shown}`, `{total}`), the buttons Download, Actions, the buildiq square and the primary one in that order, a two-row toolbar (saved-view chips, Filter with a count and the view switch; then search and active filter chips), a bulk band between toolbar and table (`bulkHint`), the table as a white card with one menu button per row, and a footer inside the card (`footerNote`). `cardFields` names the facts of each card in the cards view, and `cardLayout` draws each card as a record instead: a pill and the number on the head row, the title, a meta line, and a footer with a pill and a date, every part from a field (`{ headPill: { field, colorMap, labels }, number, title, meta: [...], footerPill, footerDate: { field, label } }`). Without the look nothing changes.
+
+`bulkBandAlways` (`config.bulkBandAlways`) draws the board bulk band before a selection too, its buttons
+disabled until rows are selected (DqZaken, DqWerkbord).

@@ -9,6 +9,7 @@ import { translateValidationMessage } from './validationMessages.js'
  * @property {object|null} details Validation errors or additional details
  * @property {boolean} isValidation Whether this is a validation error (400/422)
  * @property {object|null} fields Per-field validation errors
+ * @property {number|null} [position] The 1-based character a refused search term stopped at (400 only)
  */
 
 /**
@@ -62,6 +63,7 @@ export async function parseResponseError(response, type) {
 	const status = response.status
 	let details = null
 	let fields = null
+	let position = null
 	let message
 
 	try {
@@ -74,6 +76,7 @@ export async function parseResponseError(response, type) {
 		} else if (body && typeof body === 'object') {
 			details = body.errors || body.error || body.message || null
 			fields = body.validationErrors || body.errors || null
+			position = Number.isInteger(body.position) && body.position > 0 ? body.position : null
 		}
 	} catch {
 		// Response body is not JSON
@@ -88,6 +91,7 @@ export async function parseResponseError(response, type) {
 				details,
 				isValidation: true,
 				fields,
+				position,
 				toString() {
 					return this.message
 				},

@@ -18,7 +18,8 @@
  * The value itself comes from one of THREE evaluation modes (first match wins):
  *
  *  1. `endpoint` — GET a same-origin JSON endpoint; `field` is a dot-path
- *     into the response body.
+ *     into the response body. `@objectId` and `@object.<field>` in the
+ *     endpoint resolve against the caller's record.
  *  2. `source` — `{ register, schema, filter? }`, an OpenRegister object
  *     query (`filter` supports the shared @-token grammar). `field` is a
  *     dot-path into the FIRST result; omit it — or use `@total` — to
@@ -29,7 +30,9 @@
  *     on the current record's state (`{ field: "lifecycleState", op: "eq",
  *     value: "approved" }`).
  *
- * `op` is `eq | neq | gt | gte | lt | lte` (default `eq`); `value` is the
+ * `op` is `eq | neq | gt | gte | lt | lte | empty | notEmpty | in | anyOf |
+ * contains` (default `eq`); `anyOf` matches a list value that shares an entry
+ * with the listed `value`, `contains` a list value that holds `value`. `value` is the
  * literal right-hand side. Evaluation is FAIL-SAFE: any fetch / shape error
  * resolves `false` (hidden) — a broken predicate never breaks a page.
  *
@@ -46,10 +49,11 @@
 
 import { isAppInstalled } from './appInstalled.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
+import { interpolateUrlTokens } from './interpolateUrlTokens.js'
 import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
 
 /** Supported visibleWhen comparison operators. */
-export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty', 'in']
+export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty', 'in', 'anyOf', 'contains']
 
 /**
  * Read a dot-path off an object (`'a.b.c'`); the object itself when no
@@ -64,6 +68,17 @@ export function readVisibleWhenPath(data, field) {
 		return data
 	}
 	return String(field).split('.').reduce((obj, key) => (obj === null || obj === undefined ? obj : obj[key]), data)
+}
+
+/**
+ * Whether a value is a date string: not a number, and a moment `Date.parse`
+ * can read.
+ *
+ * @param {unknown} value The value.
+ * @return {boolean}
+ */
+function isDateLike(value) {
+	return typeof value === 'string' && value.trim() !== '' && !Number.isFinite(Number(value)) && Number.isFinite(Date.parse(value))
 }
 
 /**
@@ -99,12 +114,35 @@ export function compareVisibleWhen(actual, op, expected, ctx) {
 		const list = Array.isArray(right) ? right : [right]
 		return list.some((entry) => entry === actual || String(entry) === String(actual))
 	}
+	// `anyOf` holds when the value, or any entry of a list value, is one of
+	// the listed values: a record whose `dataCategories` holds "health" among
+	// others matches `anyOf ["health", "ethnicity"]` (DqSociaalDomein).
+	// `contains` holds when the value is a list holding the given value: a
+	// case type whose `overviewCards` list names a card switches it on.
+	if (operator === 'contains') {
+		if (!Array.isArray(actual) || right === undefined || right === null) {
+			return false
+		}
+		return actual.some((entry) => entry === right || String(entry) === String(right))
+	}
+	if (operator === 'anyOf') {
+		const list = Array.isArray(right) ? right : [right]
+		const values = Array.isArray(actual) ? actual : [actual]
+		return values.some((value) => value !== undefined && value !== null
+			&& list.some((entry) => entry === value || String(entry) === String(value)))
+	}
 	if (operator === 'eq' || operator === 'neq') {
 		const equal = actual === right || String(actual) === String(right)
 		return operator === 'eq' ? equal : !equal
 	}
-	const a = Number(actual)
-	const b = Number(right)
+	let a = Number(actual)
+	let b = Number(right)
+	// Two dates (`dueAt` against `@today`) compare as moments; a value that
+	// is a number on either side never reads as a date.
+	if ((!Number.isFinite(a) || !Number.isFinite(b)) && isDateLike(actual) && isDateLike(right)) {
+		a = Date.parse(actual)
+		b = Date.parse(right)
+	}
 	if (!Number.isFinite(a) || !Number.isFinite(b)) {
 		return false
 	}
@@ -156,8 +194,10 @@ export function evaluateWorkspaceCondition(cond, workspace) {
  * modes). Throws on unusable conditions and failed fetches — callers that
  * want the fail-safe boolean use {@link evaluateVisibleWhen}.
  *
- * A `source` may carry `order` (`{ field: "asc" | "desc" }`), so "the first
- * row" is the first of an ordered query. A caller that wants that row, not
+ * An `endpoint` may name the page's record (`@objectId`, `@object.<field>`),
+ * and its whole answer is the row a `sink` receives. A `source` may carry `order` (`{ field: "asc" | "desc" }`), so "the first
+ * row" is the first of an ordered query, and `extend` (OpenRegister
+ * `_extend[]` names) to inline the row's related objects. A caller that wants that row, not
  * just the value, passes `sink`: the first result is written to `sink.row`.
  *
  * @param {{endpoint?: string, source?: {register: string, schema: string, filter?: object, order?: object}, field?: string}} cond The visibleWhen condition.
@@ -168,11 +208,19 @@ export function evaluateWorkspaceCondition(cond, workspace) {
  */
 export async function readVisibleWhenValue(cond, ctx, sink) {
 	if (cond.endpoint) {
-		const response = await fetch(prefixUrl(cond.endpoint), { headers: buildHeaders() })
+		// `@objectId` / `@object.<field>` name the record the condition sits on;
+		// without that record there is nothing to ask about.
+		if (/@object(Id|\.)/.test(cond.endpoint) && (ctx?.objectId === undefined || ctx?.objectId === null || ctx?.objectId === '')) {
+			throw new Error('endpoint names the record, and there is none')
+		}
+		const response = await fetch(prefixUrl(interpolateUrlTokens(cond.endpoint, ctx)), { headers: buildHeaders() })
 		if (!response.ok) {
 			throw new Error(`endpoint returned ${response.status}`)
 		}
 		const data = await response.json()
+		if (sink && typeof sink === 'object') {
+			sink.row = data && typeof data === 'object' && !Array.isArray(data) ? data : undefined
+		}
 		return readVisibleWhenPath(data, cond.field)
 	}
 	const src = cond.source
@@ -182,19 +230,22 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
 		for (const [field, dir] of Object.entries(src.order && typeof src.order === 'object' ? src.order : {})) {
 			order[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'
 		}
-		const qs = buildQueryString({ ...filter, ...order, _limit: 1 })
+		// `extend` inlines related objects on the row (`_extend[]`), so the
+		// subject can name its type rather than its type's id.
+		const extend = Array.isArray(src.extend) ? { _extend: src.extend.filter((name) => typeof name === 'string' && name !== '') } : {}
+		const qs = buildQueryString({ ...filter, ...order, ...extend, _limit: 1 })
 		const url = prefixUrl(`/apps/openregister/api/objects/${src.register}/${src.schema}${qs}`)
 		const response = await fetch(url, { headers: buildHeaders() })
 		if (!response.ok) {
 			throw new Error(`source returned ${response.status}`)
 		}
 		const data = await response.json()
-		if (!cond.field || cond.field === '@total') {
-			return data.total ?? (Array.isArray(data.results) ? data.results.length : 0)
-		}
 		const first = Array.isArray(data.results) ? data.results[0] : data
 		if (sink && typeof sink === 'object') {
 			sink.row = first && typeof first === 'object' ? first : undefined
+		}
+		if (!cond.field || cond.field === '@total') {
+			return data.total ?? (Array.isArray(data.results) ? data.results.length : 0)
 		}
 		return readVisibleWhenPath(first, cond.field)
 	}

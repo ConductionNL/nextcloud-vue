@@ -30,16 +30,38 @@ const CnNotesCardAdapter = {
 		schema: { type: String, default: '' },
 		objectId: { type: [String, Number], default: '' },
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		// Notes of something that is not an object (`{ kind: 'flow-task', id }`), or a URL of their own.
+		source: { type: Object, default: null },
+		endpoint: { type: String, default: '' },
+		// `button` puts the card's add form behind an "Add note" button in its header.
+		composer: { type: String, default: 'inline' },
 		// Accepted-and-ignored: forwarded by the surface components.
 		surface: { type: String, default: 'detail-page' },
 		objectType: { type: String, default: '' },
+		// A manifest that wires mentions or per-note actions gets the full
+		// notes tab, which carries both; the card carries neither.
+		mentionUrl: { type: String, default: '' },
+		noteActions: { type: Array, default: () => [] },
 	},
 	render() {
+		if (this.mentionUrl !== '' || this.noteActions.length > 0) {
+			return h(CnNotesTab, {
+				register: this.register,
+				schema: this.schema,
+				objectId: this.objectId ? String(this.objectId) : '',
+				apiBase: this.apiBase,
+				mentionUrl: this.mentionUrl,
+				noteActions: this.noteActions,
+			})
+		}
 		return h(CnNotesCard, {
 			registerId: this.register,
 			schemaId: this.schema,
 			objectId: this.objectId ? String(this.objectId) : '',
 			apiBase: this.apiBase,
+			source: this.source,
+			endpoint: this.endpoint,
+			composer: this.composer,
 		})
 	},
 }

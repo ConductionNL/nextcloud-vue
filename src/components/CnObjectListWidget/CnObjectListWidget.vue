@@ -166,6 +166,7 @@
 			</div>
 			<div v-else class="cn-object-list-widget__table">
 				<CnDataTable
+					:reorderable="reorderField !== ''"
 					:columns="resolvedColumns"
 					:rows="facetedRows"
 					:loading="loading"
@@ -181,7 +182,8 @@
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
 					@select="onSelect"
-					@sort="onSort">
+					@sort="onSort"
+					@rowMove="onRowMove">
 					<!-- Declarative per-row actions (`content.rowActions`).
 					     CnDataTable only paints the trailing actions column
 					     when this slot is supplied, so a widget without
@@ -205,6 +207,11 @@
 			  more than the widget is showing, pager or no pager — a widget is
 			  a summary, and the index is where the list actually lives.
 			-->
+			<!-- A reorder's outcome, read out: the row's new place, or why the
+			     server refused it. -->
+			<p class="hidden-visually cn-object-list-widget__reorder-status" aria-live="polite" data-testid="cn-object-list-reorder-status">
+				{{ reorderStatus }}
+			</p>
 			<CnPagination
 				v-if="showPager"
 				compact
@@ -233,6 +240,49 @@
 				{{ moreLabel }}
 			</p>
 		</template>
+		<!-- `content.footnote`: a line under the table ("Awb 4:17 en 4:18"),
+		     through the host translate. Not while the list waits for its
+		     context or failed to load. -->
+		<!-- `content.summary`: counts over the loaded rows ("(1/2 completed)"). -->
+		<p
+			v-if="resolvedSummary && !waitingForContext && !error && rows.length > 0"
+			class="cn-object-list-widget__summary"
+			data-testid="cn-object-list-widget-summary">
+			{{ resolvedSummary }}
+		</p>
+		<p
+			v-if="resolvedFootnote && !waitingForContext && !error"
+			class="cn-object-list-widget__footnote"
+			data-testid="cn-object-list-widget-footnote">
+			{{ resolvedFootnote }}
+		</p>
+		<!-- `content.footerLinks`: a row of links under the list, each with
+		     an optional muted note ("Objecttypen beheren (alleen voor
+		     beheerders)"). -->
+		<div
+			v-if="footerLinks.length > 0 && !waitingForContext && !error"
+			class="cn-object-list-widget__links"
+			data-testid="cn-object-list-widget-links">
+			<span v-for="link in footerLinks" :key="link.key" class="cn-object-list-widget__link-item">
+				<a
+					class="cn-object-list-widget__link"
+					:href="link.href"
+					data-testid="cn-object-list-widget-link"
+					@click="onFooterLink($event, link)">{{ link.label }}</a>
+				<span
+					v-if="link.note"
+					class="cn-object-list-widget__link-note"
+					data-testid="cn-object-list-widget-link-note">{{ link.note }}</span>
+			</span>
+		</div>
+		<!-- Why the declared create action is withheld on this record
+		     (`content.createAction.hiddenNote`). -->
+		<p
+			v-if="createHiddenNote && !waitingForContext && !error"
+			class="cn-object-list-widget__hidden-note"
+			data-testid="cn-object-list-widget-hidden-note">
+			{{ createHiddenNote }}
+		</p>
 		<!-- Create affordance (ADR-062): every collection carries its Add at
 		     the bottom of the widget; the host card's Actions menu calls the
 		     same openCreate() through the public method. Suppressed while the
@@ -270,20 +320,20 @@
 			data-testid="object-list-upload-input"
 			@change="onUploadFilesSelected">
 		<CnFormDialog
-			v-if="showCreate && createSchema"
+			v-if="(showCreate || editingRow) && createSchema"
 			ref="createDialog"
 			:schema="createSchema"
-			:item="null"
+			:item="editingRow"
 			:register="content.register || ''"
-			:initialData="createInitialData"
+			:initialData="editingRow ? null : createInitialData"
 			:lockedFields="createLockedFields"
 			:size="formSize"
 			:columns="formColumns"
 			:includeFields="formIncludeFields"
 			:excludeFields="formExcludeFields"
 			:fieldOverrides="formFieldOverrides"
-			@confirm="onCreateConfirm"
-			@close="showCreate = false" />
+			@confirm="editingRow ? onEditConfirm($event) : onCreateConfirm($event)"
+			@close="closeForm" />
 	</div>
 </template>
 
@@ -299,11 +349,18 @@ import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
+import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
+import { createActionState } from '../../utils/listCreateAction.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
+import { readPath } from '../../utils/readPath.js'
+import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { changedKeys } from '../../utils/saveEdited.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
+import { getCurrentUserGroups } from '../../utils/widgetVisibility.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 
 /**
@@ -427,11 +484,29 @@ export default {
 		 * those carrying a selected value. Client-side over the fetched page,
 		 * like the rest of this widget's row set.
 		 *
+		 * `createAction` (one action of the `rowActions` shape) replaces the
+		 * list's own create form: every Add, here and in the host card's menu,
+		 * runs it instead, labelled with its `label`. Its `visibleWhen` is
+		 * evaluated against the page record, and while it fails the Add is
+		 * hidden and `hiddenNote` (a string, or `[{ when, text }]` where the
+		 * first holding entry wins) is shown in its place.
+		 *
+		 * `summary` (`{ text, counts }`) is a line under the rows: `{total}` is
+		 * the number of loaded rows and each `counts` key the number of loaded
+		 * rows its `visibleWhen`-shaped condition holds for.
+		 *
 		 * `hideHeader: true` drops the table's column header row (CnDataTable's
 		 * `hideHeader`), for a short list that reads as rows, not as a table.
 		 *
+		 * `rowIdField` (a dot-path) names the row field holding the id
+		 * `rowRoute` opens, for a row that links to another record.
+		 * `footnote` is a line under the table, through the host translate.
+		 *
+		 * `export` (`{ label?, format?, group? }`) offers the filtered list as a
+		 * download in the card's header; `group` shows it to one group only.
+		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
 		 */
 		content: {
 			type: Object,
@@ -439,10 +514,14 @@ export default {
 		},
 	},
 
-	emits: ['created', 'row-click', 'row-aux-click', 'view-all', 'files-dropped'],
+	emits: ['created', 'updated', 'row-click', 'row-aux-click', 'view-all', 'files-dropped', 'header'],
 
 	data() {
 		return {
+			/** The current user's groups once a `footerLinks` entry with `group` asked for them; null before. */
+			footerGroups: null,
+			/** What the last reorder did, for the live region: the new place, or the server's refusal. */
+			reorderStatus: '',
 			rows: [],
 			loading: false,
 			error: '',
@@ -463,6 +542,8 @@ export default {
 			fitStage: 0,
 			/** Whether the create dialog is open. */
 			showCreate: false,
+			/** The row the form edits (`content.editable`), or null while it creates. */
+			editingRow: null,
 			/**
 			 * The list's own schema definition, once fetched.
 			 *
@@ -645,9 +726,29 @@ export default {
 				const title = prop && typeof prop.title === 'string' ? prop.title.trim() : ''
 				return title !== '' ? title : key
 			}
+			// CnDataTable gets no `:schema` here, so a column takes the
+			// schema property's `format` and enum (with its labels) itself,
+			// unless it says its own or draws a widget or formatter.
+			const withSchemaPresentation = (out) => {
+				const prop = props[out.key]
+				if (!prop || out.widget !== undefined || out.formatter !== undefined) {
+					return out
+				}
+				if (out.format === undefined && typeof prop.format === 'string' && prop.format !== '') {
+					out.format = prop.format
+				}
+				if (out.enum === undefined && Array.isArray(prop.enum) && prop.enum.length > 0) {
+					out.enum = prop.enum
+					const labels = prop.enumLabels || prop['x-enum-labels']
+					if (out.enumLabels === undefined && labels && typeof labels === 'object') {
+						out.enumLabels = labels
+					}
+				}
+				return out
+			}
 			const mapped = cols.map((c) => {
 				if (typeof c === 'string') {
-					return { key: c, label: headingFor(c) }
+					return withSchemaPresentation({ key: c, label: headingFor(c) })
 				}
 				const out = { key: c.key, label: c.label || headingFor(c.key) }
 				// `secondary` (a second, muted line under the cell) rides
@@ -658,6 +759,7 @@ export default {
 						out[k] = c[k]
 					}
 				}
+				withSchemaPresentation(out)
 				// `content.sortable` (bool = every column, array = the listed
 				// keys) fills in `sortable` for a column that did not already
 				// say so on its own definition — an explicit `sortable: false`
@@ -701,7 +803,7 @@ export default {
 		 */
 		mappedRowActions() {
 			const declared = Array.isArray(this.content.rowActions) ? this.content.rowActions : []
-			return declared
+			const mapped = declared
 				.filter((a) => a && typeof a === 'object')
 				.map((action) => ({
 					label: action.label,
@@ -711,6 +813,34 @@ export default {
 					...this.rowActionLink(action),
 					handler: (row) => this.runRowAction(action, row),
 				}))
+			if (this.content.editable === true) {
+				mapped.unshift({ label: t('nextcloud-vue', 'Edit'), icon: 'Pencil', handler: (row) => this.openEdit(row) })
+			}
+			if (this.content.deletable === true) {
+				mapped.push({ label: t('nextcloud-vue', 'Delete'), icon: 'TrashCanOutline', destructive: true, handler: (row) => this.deleteRow(row) })
+			}
+			if (this.reorderField === '') {
+				return mapped
+			}
+			// The keyboard half of the drag: one place up or down.
+			return [
+				...mapped,
+				{ label: t('nextcloud-vue', 'Move up'), icon: 'ArrowUp', handler: (row) => this.moveRowBy(row, -1) },
+				{ label: t('nextcloud-vue', 'Move down'), icon: 'ArrowDown', handler: (row) => this.moveRowBy(row, 1) },
+			]
+		},
+
+		/**
+		 * The field a reorderable list is ordered by (`content.reorder.field`),
+		 * or '' when the list does not reorder. A grouped list does not.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		reorderField() {
+			const reorder = this.content && this.content.reorder
+			const field = reorder && typeof reorder === 'object' ? reorder.field : ''
+			return typeof field === 'string' && field !== '' && !this.isGrouped ? field : ''
 		},
 
 		/**
@@ -919,6 +1049,56 @@ export default {
 		},
 
 		/**
+		 * `content.footerLinks` (`[{ label, route?, query?, href?, note?, group? }]`)
+		 * ready to draw: labels and notes through the host translate, a `route`
+		 * with its token-resolved `query` as a router location and its href, an
+		 * `href` as given. A link with `group` shows only to that group's
+		 * members, and not before the groups are known.
+		 *
+		 * @spec openspec/changes/object-list-footer-links/specs/object-list/spec.md#requirement-an-object-list-can-end-with-a-row-of-links
+		 * @return {Array<{key: string, label: string, note: string, href: string, location: object|null}>}
+		 */
+		footerLinks() {
+			const links = Array.isArray(this.content.footerLinks) ? this.content.footerLinks : []
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			const out = []
+			links.forEach((link, index) => {
+				if (!link || typeof link.label !== 'string' || link.label === '') {
+					return
+				}
+				if (typeof link.group === 'string' && link.group !== '' && !(this.footerGroups || []).includes(link.group)) {
+					return
+				}
+				const location = typeof link.route === 'string' && link.route !== ''
+					? { name: link.route, query: resolveFilterTokens(link.query || {}, this.tokenCtx) }
+					: null
+				const href = location ? resolveHref(location, this.$router) : (typeof link.href === 'string' ? link.href : '')
+				if (!location && href === '') {
+					return
+				}
+				out.push({
+					key: `link-${index}`,
+					label: fn(link.label),
+					note: typeof link.note === 'string' && link.note !== '' ? fn(link.note) : '',
+					href,
+					location,
+				})
+			})
+			return out
+		},
+
+		/**
+		 * `content.footnote` run through the host translate function, or ''.
+		 *
+		 * @return {string}
+		 */
+		resolvedFootnote() {
+			const note = typeof this.content.footnote === 'string' ? this.content.footnote : ''
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return note ? fn(note) : ''
+		},
+
+		/**
 		 * The rows actually rendered: capped to what fits the host grid cell
 		 * (ADR-062 — content adapts to the cell, never a nested scrollbar).
 		 * Unconstrained on surfaces without a fixed-height cell (dashboards
@@ -1023,7 +1203,53 @@ export default {
 		/** Whether the create affordance renders (on by default; `content.allowCreate: false` opts out). */
 		allowCreate() {
 			const c = this.content || {}
+			if (this.createState.action) {
+				return c.allowCreate !== false && this.createState.visible
+			}
 			return c.allowCreate !== false && Boolean(c.register) && Boolean(c.schema)
+		},
+
+		/**
+		 * The declared `content.createAction` against the page record: the
+		 * action, whether it shows, and the untranslated note when it does not.
+		 *
+		 * @return {{action: (object|null), visible: boolean, note: string}}
+		 */
+		createState() {
+			return createActionState(this.content, this.objectCtx ? this.objectCtx.object : null)
+		},
+
+		/**
+		 * Why the create action is withheld, through the host translate, or ''.
+		 *
+		 * @return {string}
+		 */
+		createHiddenNote() {
+			const note = this.createState.note
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return note ? fn(note) : ''
+		},
+
+		/**
+		 * `content.summary` filled in: `{total}` is the number of loaded rows
+		 * and every `counts` key the number of loaded rows its condition holds
+		 * for. The text goes through the host translate first, so a catalogue
+		 * entry keeps its placeholders.
+		 *
+		 * @return {string}
+		 */
+		resolvedSummary() {
+			const summary = this.content.summary
+			if (!summary || typeof summary.text !== 'string' || summary.text === '') {
+				return ''
+			}
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			const values = { total: this.rows.length }
+			const counts = summary.counts && typeof summary.counts === 'object' ? summary.counts : {}
+			for (const [key, cond] of Object.entries(counts)) {
+				values[key] = this.rows.filter((row) => evaluateVisibleWhenLocal(cond, row)).length
+			}
+			return fn(summary.text).replace(/\{(\w+)\}/g, (match, key) => (key in values ? String(values[key]) : match))
 		},
 
 		/**
@@ -1073,8 +1299,14 @@ export default {
 		createInitialData() {
 			const props = (this.createSchema && this.createSchema.properties) || {}
 			const out = { ...this.filterSeed }
-			const defaults = this.content && this.content.createDefaults
-			if (defaults && typeof defaults === 'object' && !Array.isArray(defaults)) {
+			// A new row of a reorderable list goes last.
+			if (this.reorderField !== '' && this.reorderField in props) {
+				out[this.reorderField] = Math.max(this.total, this.rows.length) + 1
+			}
+			const declared = this.content && this.content.createDefaults
+			// Tokens resolve as the filter's do: `@objectId` is the page's object.
+			const defaults = declared && typeof declared === 'object' && !Array.isArray(declared) ? resolveFilterTokens(declared, this.tokenCtx) : null
+			if (defaults) {
 				for (const [key, value] of Object.entries(defaults)) {
 					if (key in props && value !== undefined) {
 						out[key] = value
@@ -1140,6 +1372,11 @@ export default {
 			// `prompt`. It used to print raw, so a Dutch user read the English
 			// manifest string. A label an app already translated has no key
 			// of its own in the catalogue and comes back unchanged.
+			const action = this.createState.action
+			if (action && typeof action.label === 'string' && action.label !== '') {
+				const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+				return fn(action.label)
+			}
 			if (this.content.addLabel) {
 				const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 				return fn(this.content.addLabel)
@@ -1199,6 +1436,8 @@ export default {
 	mounted() {
 		this.fetchRows()
 		this.loadHeadingsIfNeeded()
+		this.offerExport()
+		this.loadFooterGroups()
 		// A table wider than the widget fits its columns to the width instead of
 		// scrolling sideways (no inner scrollbars).
 		if (typeof ResizeObserver !== 'undefined') {
@@ -1250,6 +1489,116 @@ export default {
 
 	methods: {
 		/**
+		 * Offer `content.export` as a button in the card's header: the list as
+		 * it is filtered here, through OpenRegister's export (which applies its
+		 * own read rights to every row). `group` keeps the button to the members
+		 * of one Nextcloud group, a role such as AI oversight; it hides the
+		 * button, and the export endpoint still decides what anyone may read.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/widget-subtitle-and-list-export/specs/object-list-widget/spec.md#requirement-a-list-can-offer-its-rows-as-an-export
+		 */
+		/**
+		 * The export URL for this list as it is filtered here.
+		 *
+		 * @param {'csv'|'excel'} format The export format.
+		 * @return {string} The URL.
+		 */
+		exportUrl(format) {
+			return buildExportUrl(this.content.register, this.content.schema, this.resolvedFilter, format)
+		},
+
+		async offerExport() {
+			const config = this.content && this.content.export
+			if (!config || typeof config !== 'object' || !this.content.register || !this.content.schema) {
+				return
+			}
+			if (typeof config.group === 'string' && config.group !== '') {
+				const groups = await getCurrentUserGroups().catch(() => [])
+				if (!groups.includes(config.group)) {
+					return
+				}
+			}
+			const format = config.format === 'excel' ? 'excel' : 'csv'
+			const label = typeof config.label === 'string' && config.label !== '' ? (typeof this.cnTranslate === 'function' ? this.cnTranslate(config.label) : config.label) : t('nextcloud-vue', 'Download')
+			/**
+			 * @event header The card header's Download action for the list as
+			 * filtered here (`content.export`), handed to the host card.
+			 * @type {{action: {label: string, icon: string, run: Function}}}
+			 */
+			this.$emit('header', {
+				action: {
+					label,
+					icon: 'Download',
+					run: () => window.location.assign(this.exportUrl(format)),
+				},
+			})
+		},
+
+		/**
+		 * Move a row one place up or down (the row actions).
+		 *
+		 * @param {object} row The row.
+		 * @param {number} delta -1 for up, 1 for down.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		moveRowBy(row, delta) {
+			const from = this.rows.findIndex((r) => rowIdOf(r) === rowIdOf(row))
+			return this.reorderTo(from, from + delta)
+		},
+
+		/**
+		 * A row dragged to another place in the table.
+		 *
+		 * @param {{from: number, to: number}} move The old and new index.
+		 * @return {Promise<void>}
+		 */
+		onRowMove({ from, to } = {}) {
+			return this.reorderTo(from, to)
+		},
+
+		/**
+		 * Put the row at `from` at `to`, renumber the rows from this page's
+		 * first place, and write the order field on the rows whose number
+		 * changed, as a PATCH of that field only. A refusal is read out and the
+		 * list is read again.
+		 *
+		 * @param {number} from The index moved from.
+		 * @param {number} to The index moved to.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		async reorderTo(from, to) {
+			const field = this.reorderField
+			if (field === '' || from < 0 || to < 0 || from >= this.rows.length || to >= this.rows.length || from === to) {
+				return
+			}
+			const moved = this.rows[from]
+			const { rows, changes } = renumberRows(moveIndex(this.rows, from, to), field, (this.page - 1) * this.pageSize + 1)
+			this.rows = rows
+			const c = this.content || {}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				for (const change of changes) {
+					await axios.patch(
+						generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id: change.id }),
+						{ [field]: change.value },
+					)
+				}
+				this.reorderStatus = t('nextcloud-vue', '{name} moved to place {place} of {total}', {
+					name: objectDisplayName(moved || {}) || t('nextcloud-vue', 'Row'),
+					place: (this.page - 1) * this.pageSize + to + 1,
+					total: Math.max(this.total, this.rows.length),
+				})
+			} catch (e) {
+				const data = e && e.response && e.response.data
+				this.reorderStatus = (data && (data.message || data.error)) || t('nextcloud-vue', 'The new order could not be saved.')
+				await this.fetchRows()
+			}
+		},
+
+		/**
 		 * Fetch the object rows from OpenRegister. Lazily imports the
 		 * axios/router helpers (the library never hard-depends on them at module
 		 * load — same pattern as CnStatWidget / CnFilesWidget).
@@ -1287,7 +1636,10 @@ export default {
 				// the pager's "1–25 of 137" is the server's arithmetic and not a
 				// client-side count of an already-capped window.
 				const params = { _limit: this.pageSize, _page: this.page }
-				if (this.localSort && this.localSort.field) {
+				if (this.reorderField !== '') {
+					// A reorderable list is always shown in its stored order.
+					params[`_order[${this.reorderField}]`] = 'asc'
+				} else if (this.localSort && this.localSort.field) {
 					params[`_order[${this.localSort.field}]`] = (this.localSort.dir === 'desc' ? 'desc' : 'asc')
 				}
 				// `content.extend` → OpenRegister's repeated `_extend[]`. axios
@@ -1363,7 +1715,8 @@ export default {
 		 * is the budget). Measures the cell's remaining height below the table
 		 * top, reserves room for the "View all" footer, and derives the row
 		 * budget from the first rendered row's height. No-ops (fitRows null =
-		 * render all fetched rows) outside a fixed-height cell.
+		 * render all fetched rows) outside a fixed-height cell and inside a
+		 * tab panel, unless the content sets `fit: true`.
 		 *
 		 * @return {void}
 		 */
@@ -1382,6 +1735,14 @@ export default {
 			}
 			const cell = this.$el && this.$el.closest && this.$el.closest('.grid-stack-item-content')
 			if (!cell) {
+				this.fitRows = null
+				return
+			}
+			// A list inside a tab panel does not own the cell, as on a
+			// dashboard: it renders every fetched row unless the content asks
+			// for the fit with `fit: true`.
+			const panel = this.$el.closest('[role="tabpanel"]')
+			if (panel && cell.contains(panel) && !(this.content && this.content.fit === true)) {
 				this.fitRows = null
 				return
 			}
@@ -1410,7 +1771,9 @@ export default {
 		 */
 		forgetCreateSchema() {
 			this.createSchema = null
+			this.schemaRequest = null
 			this.showCreate = false
+			this.editingRow = null
 		},
 
 		/**
@@ -1421,8 +1784,106 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * Edit a row in the list's own form (`content.editable`): the form the
+		 * Add button opens, filled with the row.
+		 *
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async openEdit(row) {
+			try {
+				await this.ensureSchema()
+				this.showCreate = false
+				this.editingRow = row ? { ...row } : null
+			} catch (e) {
+				this.error = (e && e.message) || 'error'
+			}
+		},
+
+		/**
+		 * Delete a row of the list's own schema (`content.deletable`). The
+		 * toast offers Undo; a refusal toasts the server's message.
+		 *
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async deleteRow(row) {
+			const c = this.content || {}
+			const id = rowIdOf(row)
+			if (id === '') {
+				return
+			}
+			const pending = (async () => {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				try {
+					await axios.delete(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }))
+				} catch (e) {
+					const data = e && e.response && e.response.data
+					const refusal = data && (data.message || data.error)
+					throw new Error((typeof refusal === 'string' && refusal) || (e && e.message) || t('nextcloud-vue', 'The delete failed'), { cause: e })
+				}
+				return true
+			})()
+			await this.reportDelete(row, pending)
+			await pending.catch(() => {})
+			this.fetchRows()
+		},
+
+		/** Close the form, whether it created or edited. */
+		closeForm() {
+			this.showCreate = false
+			this.editingRow = null
+		},
+
+		/**
+		 * Save an edited row: a PATCH of the keys the form changed, so every
+		 * key it does not show keeps its stored value; nothing when nothing
+		 * changed. A refusal shows the server's message in the dialog.
+		 *
+		 * @param {object} formData The edited values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async onEditConfirm(formData) {
+			const c = this.content || {}
+			const row = this.editingRow
+			const id = rowIdOf(row)
+			const changes = changedKeys(row, formData)
+			try {
+				if (id !== '' && Object.keys(changes).length > 0) {
+					const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+					await axios.patch(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }), changes)
+				}
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ success: true })
+				}
+				/**
+				 * @event updated Emitted after a row was edited, with the keys that changed.
+				 * @type {object}
+				 */
+				this.$emit('updated', { id, changes })
+				this.fetchRows()
+			} catch (e) {
+				const data = e && e.response && e.response.data
+				const refusal = data && (data.message || data.error)
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ error: (typeof refusal === 'string' && refusal) || (e && e.message) || 'error' })
+				}
+			}
+		},
+
 		async openCreate() {
 			const c = this.content || {}
+			const { action, visible } = this.createState
+			if (action) {
+				if (visible) {
+					this.dispatch(action)
+				}
+				return
+			}
 			if (!c.schema) {
 				return
 			}
@@ -1439,7 +1900,9 @@ export default {
 		 *
 		 * Two readers share it: the create dialog builds its form from the
 		 * properties, and `resolvedColumns` reads each property's `title` to
-		 * label a column the manifest gave only a key for.
+		 * label a column the manifest gave only a key for. A request in flight
+		 * for the same register and schema is shared, and an answer for a list
+		 * that has since been retargeted is dropped.
 		 *
 		 * @return {Promise<void>}
 		 */
@@ -1448,7 +1911,31 @@ export default {
 			if (this.createSchema || !c.schema) {
 				return
 			}
+			const key = `${c.register || ''}/${c.schema}`
+			if (this.schemaRequest && this.schemaRequest.key === key) {
+				return this.schemaRequest.promise
+			}
+			const promise = this.fetchSchema(c)
+			this.schemaRequest = { key, promise }
+			try {
+				const schema = await promise
+				if (this.schemaRequest && this.schemaRequest.promise === promise) {
+					this.createSchema = schema
+				}
+			} finally {
+				if (this.schemaRequest && this.schemaRequest.promise === promise) {
+					this.schemaRequest = null
+				}
+			}
+		},
 
+		/**
+		 * Read a list's schema definition from OpenRegister.
+		 *
+		 * @param {object} c The list config (`register`, `schema`).
+		 * @return {Promise<object|null>} The schema, or null.
+		 */
+		async fetchSchema(c) {
 			const [{ default: axios }, { generateUrl }] = await Promise.all([
 				import('@nextcloud/axios'),
 				import('@nextcloud/router'),
@@ -1464,15 +1951,18 @@ export default {
 			const url = generateUrl('/apps/openregister/api/schemas/{sch}', { sch: c.schema })
 			const params = c.register ? { register: c.register } : undefined
 			const res = await axios.get(url, params ? { params } : undefined)
-			this.createSchema = (res && res.data) || null
+			return (res && res.data) || null
 		},
 
 		/**
-		 * Load the schema when, and only when, a column heading needs it.
+		 * Load the schema when, and only when, a column needs it: for its
+		 * heading (no `label`), or for its presentation (a top-level key
+		 * without its own `format`, `enum`, `widget` or `formatter`, which
+		 * takes the property's format and enum labels).
 		 *
-		 * A widget whose every column carries its own `label` never makes this
-		 * request. One that gave bare keys does, because the alternative is
-		 * printing the key at the user.
+		 * A widget whose every column says its label and presentation, or
+		 * reads a dotted path the list's schema does not hold, never makes
+		 * this request.
 		 *
 		 * Failure is deliberately silent: an unreachable schema costs the nicer
 		 * heading, and the column still renders under its key. It must never
@@ -1482,8 +1972,11 @@ export default {
 		 */
 		async loadHeadingsIfNeeded() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
-			const needsHeadings = cols.some((c) => (typeof c === 'string') || !c.label)
-			if (needsHeadings === false) {
+			const needsSchema = cols.some((c) => (typeof c === 'string')
+				|| !c.label
+				|| (typeof c.key === 'string' && !c.key.includes('.') && !c.key.startsWith('@')
+					&& c.format === undefined && c.enum === undefined && c.widget === undefined && c.formatter === undefined))
+			if (needsSchema === false) {
 				return
 			}
 
@@ -1529,8 +2022,12 @@ export default {
 				this.$emit('created', payload)
 				this.fetchRows()
 			} catch (e) {
+				// The server's own refusal ("a case type keeps one final status")
+				// says more than the transport's "Request failed with status 422".
+				const data = e && e.response && e.response.data
+				const refusal = data && (data.message || data.error)
 				if (this.$refs.createDialog) {
-					this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' })
+					this.$refs.createDialog.setResult({ error: (typeof refusal === 'string' && refusal) || (e && e.message) || 'error' })
 				}
 			}
 		},
@@ -1551,6 +2048,33 @@ export default {
 			}
 			this.page = target
 			this.fetchRows()
+		},
+
+		/**
+		 * Load the current user's groups when a `footerLinks` entry names one.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadFooterGroups() {
+			const links = Array.isArray(this.content.footerLinks) ? this.content.footerLinks : []
+			if (this.footerGroups !== null || !links.some((link) => link && typeof link.group === 'string' && link.group !== '')) {
+				return
+			}
+			this.footerGroups = await getCurrentUserGroups().catch(() => [])
+		},
+
+		/**
+		 * A footer link click: a route link goes through the router (a
+		 * modified click is left to the browser), an `href` is a plain link.
+		 *
+		 * @param {MouseEvent} event The click event.
+		 * @param {{location: object|null}} link The link.
+		 * @return {void}
+		 */
+		onFooterLink(event, link) {
+			if (link.location) {
+				followLinkClick(event, link.location, this.$router)
+			}
 		},
 
 		/**
@@ -1624,7 +2148,9 @@ export default {
 		 */
 		openRowRoute(row, event) {
 			const route = this.content.rowRoute
-			const id = row && (row.id || (row['@self'] && row['@self'].id))
+			const field = this.content.rowIdField
+			const raw = field ? readPath(row, field) : row && (row.id || (row['@self'] && row['@self'].id))
+			const id = typeof raw === 'string' || typeof raw === 'number' ? String(raw) : ''
 			if (route && id && this.$router) {
 				markNewTabHandled(event, openRowTarget(event, { name: route, params: { id } }, this.$router))
 			}
@@ -2025,6 +2551,30 @@ export default {
 	font-size: 0.85em;
 	margin: 4px 0 0;
 	padding: 4px;
+}
+
+.cn-object-list-widget__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	margin: 12px 0 0;
+	font-size: 14px;
+}
+
+.cn-object-list-widget__link {
+	font-weight: 600;
+}
+
+.cn-object-list-widget__link-note {
+	margin-inline-start: 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-object-list-widget__footnote {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	margin: 8px 0 0;
 }
 
 /* Footer Add — same pattern as the integration leaves' footer action

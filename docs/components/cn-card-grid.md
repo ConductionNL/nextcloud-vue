@@ -24,7 +24,9 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
 | `objects` | Array | `[]` | Object data array |
 | `schema` | Object | `null` | Passed to each CnObjectCard (required only when using the default card template; not needed when providing a custom `#card` slot) |
 | `loading` | Boolean | `false` | Loading state |
+| `pillLooks` | Object | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`), passed to each CnObjectCard for the record layout's pills that declare `resolve`. |
 | `selectable` | Boolean | `false` | Enable card selection |
+| `cardFieldColumns` | Object | `null` | The page's columns by key, passed to each CnObjectCard: a fact or a layout part whose field names a column reads through that column's label, formatter and widget, as the table does |
 | `clickToView` | Boolean | `false` | Body click on a selectable card emits `click` (navigation); selection happens via the checkbox only (`CnIndexPage` wires this from its `rowClickToView`) |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `rowKey` | String | `'id'` | Unique identifier field |
@@ -68,4 +70,4 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 
 ## Board look
 
-Under the board look the grid is `repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))` with a `var(--cn-card-grid-gap, 16px)` gap, theme hooks for both; without it the 320px track stands. `cardFields`, `statusOf`, `leadingOf` and `footerActionOf` reach each default `CnObjectCard`.
+Under the board look the grid is `repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))` with a `var(--cn-card-grid-gap, 16px)` gap, theme hooks for both; without it the 320px track stands. `cardFields`, `cardLayout` (the record layout, CnObjectCard `layout`), `statusOf`, `leadingOf` and `footerActionOf` reach each default `CnObjectCard`.

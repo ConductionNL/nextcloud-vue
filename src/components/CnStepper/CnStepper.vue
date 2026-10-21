@@ -230,13 +230,14 @@ button.cn-stepper__step {
 }
 
 /* The board look: one row, 28px circles, the label beside the circle. */
+/* The board leaves 20px between the stepper and the step's body (DqInstellen). */
 .cn-stepper--board {
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: flex-start;
 	gap: 8px;
 	padding: 0;
-	margin: 0;
+	margin: 0 0 20px;
 }
 
 .cn-stepper--board .cn-stepper__item {

@@ -58,7 +58,8 @@
 					several seconds later. Pressing this produces an immediate
 					message beside the graph it is about.
 				-->
-				<NcButton data-testid="flow-add-step"
+				<NcButton v-if="addStep"
+					data-testid="flow-add-step"
 					@click="stepPickerOpen = true">
 					<template #icon>
 						<Plus :size="20" />
@@ -71,7 +72,8 @@
 				     told no, and pressing it on a snapshot would have written the
 				     snapshot over the live flow. The store refuses the snapshot case
 				     outright; this is the half that says so before the click. -->
-				<NcButton variant="primary"
+				<NcButton v-if="toolbarActions"
+					variant="primary"
 					:disabled="store.saving || !store.flow.name || store.graphLocked"
 					:title="saveDisabledReason"
 					data-testid="flow-save-button"
@@ -82,7 +84,8 @@
 					</template>
 					{{ t('nextcloud-vue', 'Save') }}
 				</NcButton>
-				<NcButton :disabled="store.running || !store.flow.id || !hasManualStart"
+				<NcButton v-if="toolbarActions"
+					:disabled="store.running || !store.flow.id || !hasManualStart"
 					:title="runDisabledReason"
 					data-testid="flow-run-button"
 					@click="onRunClick">
@@ -91,7 +94,8 @@
 					</template>
 					{{ t('nextcloud-vue', 'Run') }}
 				</NcButton>
-				<NcButton variant="tertiary"
+				<NcButton v-if="toolbarActions"
+					variant="tertiary"
 					:disabled="store.checking || !store.nodes.length"
 					@click="store.check()">
 					<template #icon>
@@ -198,6 +202,7 @@
 			:edges="canvasEdgesWithRunState"
 			:minZoom="minZoom"
 			:maxZoom="maxZoom"
+			:fitMaxZoom="fitMaxZoom"
 			@zoomChange="zoom = $event"
 			@nodeSelect="onNodeSelect"
 			@nodeActivate="onNodeActivate"
@@ -442,6 +447,43 @@ export default {
 		run: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Which way the automatic layout runs: `right` (default) left to
+		 * right, `down` top to bottom with branches side by side.
+		 */
+		layoutDirection: {
+			type: String,
+			default: 'right',
+			validator: (value) => ['right', 'down'].includes(value),
+		},
+
+		/**
+		 * The most the first fit may zoom in. 0 lets it zoom to `maxZoom`; 1
+		 * keeps a small graph at its own size instead of blowing it up.
+		 */
+		fitMaxZoom: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
+		 * Show Save, Run and Check in the canvas toolbar. Off when the host
+		 * draws them itself, as the board look does in its page header.
+		 */
+		toolbarActions: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Show "Add a step" in the canvas toolbar. Off when the host draws a
+		 * palette beside the canvas.
+		 */
+		addStep: {
+			type: Boolean,
+			default: true,
 		},
 	},
 
@@ -1501,6 +1543,7 @@ export default {
 	 * @return {void}
 	 */
 	created() {
+		this.store.layoutDirection = this.layoutDirection
 		this.store.beginBootstrap(this.run)
 	},
 

@@ -50,7 +50,8 @@ Search and filter controls row for list views. Renders a text search input, zero
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `filters` | Array | `[]` | Filter definitions for embedded filter controls: `[{ key, label, type, options?, value? }]`. Filter types: `'select'`, `'text'`, `'checkbox'` |
+| `filters` | Array | `[]` | Filter definitions for embedded filter controls: `[{ key, label, type, options?, value?, fromLabel?, toLabel?, testid? }]`. Filter types: `'select'`, `'text'`, `'checkbox'`, `'range'` (two number fields) and `'dateRange'` (two date fields). A range's value is `{ gte, lte }`, its bounds are named "{label}, from" and "{label}, up to" unless `fromLabel` / `toLabel` say otherwise, and `testid` gets `-from` / `-to` on its two fields |
+| `showSearch` | Boolean | `true` | Show the search field; `false` draws a bar of filters only |
 | `searchValue` | String | `''` | Current search term (controlled) |
 | `searchPlaceholder` | String | `'Search...'` | Placeholder text for the search input |
 | `showClearAll` | Boolean | `true` | Show a "Clear filters" button when any filter is active |

@@ -83,7 +83,14 @@
 			</div>
 
 			<div ref="valueRow" class="cn-kpi-card__value-row cn-stat-widget__value-row">
-				<NcLoadingIcon v-if="displayLoading" :size="22" />
+				<CnEndpointNotice
+					v-if="endpointMode && epAwaitingRequest"
+					:awaitingRequest="true"
+					:requestLabel="content.endpointSource.requestLabel ? effectiveTranslate(content.endpointSource.requestLabel) : ''"
+					:requestHint="content.endpointSource.requestHint ? effectiveTranslate(content.endpointSource.requestHint) : ''"
+					:requestDisabled="epBlocked"
+					@request="epRequest" />
+				<NcLoadingIcon v-else-if="displayLoading" :size="22" />
 				<span v-else-if="displayError" class="cn-stat-widget__error" :title="displayError">—</span>
 				<template v-else>
 					<!-- Badge mode: the value is a state name, so it reads as the
@@ -170,6 +177,7 @@ import { formatMetricValue, metricLocale, unwrapAppConfig } from '../../utils/fo
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 import { evaluateVisibleWhenLocal, readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
 
 // The canonical KPI look lives in one shared stylesheet, imported by BOTH
 // this component and CnStatsBlock, so the two cannot drift apart again.
@@ -382,6 +390,7 @@ export default {
 
 	components: {
 		NcLoadingIcon,
+		CnEndpointNotice,
 		CnWidgetIcon,
 		CnStatusBadge,
 		TrendingUp,
@@ -578,7 +587,7 @@ export default {
 		}
 		const activeRange = () => (tileRange.value || unwrap(pageRangeRaw) || defaultRange())
 
-		const { data, loading, error, refetch } = useEndpointSource(
+		const { data, loading, error, blocked, awaitingRequest, request, refetch } = useEndpointSource(
 			() => (props.content && props.content.endpointSource) || null,
 			{
 				ctx: () => ({
@@ -591,7 +600,7 @@ export default {
 				}),
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch, tileRange, activeRange }
+		return { epData: data, epLoading: loading, epError: error, epBlocked: blocked, epAwaitingRequest: awaitingRequest, epRequest: request, epRefetch: refetch, tileRange, activeRange }
 	},
 
 	data() {

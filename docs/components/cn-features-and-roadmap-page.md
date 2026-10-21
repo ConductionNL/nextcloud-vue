@@ -104,7 +104,9 @@ the page just works.
 | `suggestUrl` | String | `''` | Optional override target for the "Suggest a feature" CTA; when empty the CTA opens the in-product modal. |
 | `documentationUrl` | String | `''` | Per-app documentation site URL surfaced in the docs info card. |
 | `capabilityComparison` | Object | `null` | Optional capability comparison document, forwarded to the view. Manifest config wins, then the `features_roadmap_capabilities` initial state, then null. |
-| `categories` | Object \| null | `null` | Feature category key to caption, the order of the groups in the board look. |
+| `compareUrl` | String \| Object | `''` | The app's comparison on its public site, linked above the page in a new tab with the host named beside it. A URL, or a map from language to URL with a `default` (`{ "default": "https://pipelinq.conduction.nl/compare", "nl": "https://pipelinq.conduction.nl/nl/compare" }`). Only http(s) and same-origin addresses render. Manifest `config.compareUrl`. |
+| `compareLabel` | String | `''` | The compare link's text, through the app's translate. Defaults to "How this app compares". Manifest `config.compareLabel`. |
+| `categories` | Object \| null | `null` | Feature category key to caption (translated through the app's translate function), the order of the groups in the board look. |
 | `board` | Object \| null | `null` | Board look options, see below. Ignored in the default look. |
 | `title` | String | `''` | The page title, lifted from the manifest page's `title`. Shown in the board look. |
 | `appVersion` | String | `''` | The app version for `{appVersion}` in the board subtitle. Manifest config wins, then the `features_roadmap_app_version` initial state. |
@@ -125,12 +127,15 @@ the badge. "Learn more" goes to `docsUrl` when it is a web address, else to `doc
 |---|---|---|
 | `layout` | `cards` | `cards`: a section per category with two-up feature cards and a count caption. `rows`: one card per category with a row per feature. |
 | `tabs` | `true` | The Features and Roadmap folder tabs. |
+| `actionsMenu` | `true` | The Actions menu (suggest, buildiq, AI skills, support), in the header without tabs or in the tab row with them. `false` draws none, for a board without one. |
 | `filter` | `chips` | `chips`: pills with a count. `segmented`: a segmented control without counts. |
 | `statusLabels` | `{}` | Label overrides by key: `all`, `available`, `beta`, `in_progress`, `planned`. |
 | `next` | `3` | How many issues the Coming next card lists; `0` hides it. |
 | `issueLabels` | `{}` | Forge label to issue status (`in_progress`, `planned`) for the badges in the Coming next card. |
 | `subtitle` | `''` | Line under the title; `{count}` is the number of features, `{appVersion}` the app version. |
 | `notice` | `''` | Info notice under the groups. |
+| `noticeLink` | `null` | `{ text, href }`: the first occurrence of `text` (translated) in the notice becomes a link to `href`, opened in a new tab. Only `http(s)` and site-relative (`/...`) hrefs link; anything else, or no match, leaves the notice as plain text. |
+| `summaries` | `true` | In the `rows` layout, the summary line under each feature's title. `false` shows the title and status only (DqFunctionaliteiten). |
 | `documentationButton` | `false` | A Documentation button in the header. |
 | `suggestButton` | `true` | The feature request as the header's primary button; `false` moves it into the Actions menu. |
 
@@ -153,14 +158,15 @@ The DqFunctionaliteiten board:
     "documentationUrl": "https://dossiq.conduction.nl",
     "categories": { "cases": "Zaakbehandeling", "decisions": "Besluiten en termijnen", "roadmap": "Op de roadmap" },
     "board": { "layout": "rows", "tabs": false, "filter": "segmented", "next": 0,
-      "statusLabels": { "all": "Alles", "available": "Stabiel" },
+      "statusLabels": { "all": "Alles", "available": "Stabiel" }, "summaries": false,
       "subtitle": "versie {appVersion} · bijgewerkt bij elke release",
       "notice": "Hoe dossiq zich verhoudt tot andere zaaksystemen staat in de vergelijking op conduction.nl.",
+      "noticeLink": { "text": "conduction.nl", "href": "https://dossiq.conduction.nl/compare" },
       "documentationButton": true, "suggestButton": false } } }
 ```
 
 :::warning Deprecated
 
-The in-app capability comparison (`capabilityComparison` on CnFeaturesAndRoadmapView and CnFeaturesAndRoadmapPage, the `features_roadmap_capabilities` initial state key, and CnCapabilityTable) is deprecated. Publish the comparison on the app's docs site and link to it instead, as dossiq #3312 and pipelinq #2195 did. It still renders; removal waits for a major version. A development build warns once per page load when a comparison is given.
+The in-app capability comparison (`capabilityComparison` on CnFeaturesAndRoadmapView and CnFeaturesAndRoadmapPage, the `features_roadmap_capabilities` initial state key, and CnCapabilityTable) is deprecated. Publish the comparison on the app's docs site and link to it with `compareUrl` instead, as dossiq #3312 and pipelinq #2195 did. It still renders; removal waits for a major version. A development build warns once per page load when a comparison is given.
 
 :::

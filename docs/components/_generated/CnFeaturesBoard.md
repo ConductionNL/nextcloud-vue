@@ -2,35 +2,38 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 0 direct references, 21 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 24 files reached through imports.
 
-Through: `CnBuildiqEditButton`, `CnDataTable`, `CnFkResolveCell`, `CnFlowDetail`, `CnGraphCanvas`, `CnIndexPage`, `CnRoadmapTab`.
+Through: `CnActionDialog`, `CnBuildiqEditButton`, `CnCellRenderer`, `CnDataTable`, `CnFkResolveCell`, `CnFlowDetail`, `CnGraphCanvas`, `CnIndexPage`, `CnRoadmapTab`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name                  | Type      | Required | Default   | Description                                                                                                              |
-| --------------------- | --------- | -------- | --------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `features`            | `array`   |          | `[]`      | The features: `{ slug, title, summary, status, category, expected, docsUrl, title_&lt;lang&gt;, summary_&lt;lang&gt; }`. |
-| `categories`          | `object`  |          | `\{\}`    | Category key to caption; sets the order of the groups.                                                                   |
-| `layout`              | `string`  |          | `'cards'` | `cards`: a section per category with two-up feature cards. `rows`: one card per category with a row per feature.         |
-| `tabs`                | `boolean` |          | `true`    | Show the Features and Roadmap folder tabs.                                                                               |
-| `filter`              | `string`  |          | `'chips'` | `chips`: pill buttons with a count. `segmented`: a segmented control without counts.                                     |
-| `statusLabels`        | `object`  |          | `\{\}`    | Overrides of the status labels, by key (`all`, `available`, `beta`, `in_progress`, `planned`).                           |
-| `next`                | `number`  |          | `3`       | How many issues the Next card lists; 0 hides the card.                                                                   |
-| `issueLabels`         | `object`  |          | `\{\}`    | Forge label to issue status (`in_progress`, `planned`) for the badges in the Next card.                                  |
-| `repo`                | `string`  |          | `''`      | `&lt;owner&gt;/&lt;repo&gt;` on the forge, for the Roadmap tab and the Next card.                                        |
-| `title`               | `string`  |          | `''`      | Page title.                                                                                                              |
-| `subtitle`            | `string`  |          | `''`      | Subtitle template; `{count}` is the number of features and `{appVersion}` the app version.                               |
-| `appVersion`          | `string`  |          | `''`      | The app version, for `{appVersion}` in the subtitle.                                                                     |
-| `notice`              | `string`  |          | `''`      | An info notice under the groups.                                                                                         |
-| `documentationUrl`    | `string`  |          | `''`      | The app's documentation site: the Next card's link and the target of "Learn more".                                       |
-| `documentationButton` | `boolean` |          | `false`   | Show a Documentation button in the header.                                                                               |
-| `suggestUrl`          | `string`  |          | `''`      | The feature-request form; the header's primary button.                                                                   |
-| `suggestButton`       | `boolean` |          | `true`    | Show the feature-request form as the header's primary button; without it, it is an entry in the Actions menu.            |
-| `openbuiltUrl`        | `string`  |          | `''`      | Target of the OpenBuilt entry in the Actions menu.                                                                       |
-| `llmSkillsUrl`        | `string`  |          | `''`      | Target of the AI skills entry in the Actions menu.                                                                       |
+| Name                  | Type      | Required | Default   | Description                                                                                                                                                               |
+| --------------------- | --------- | -------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `features`            | `array`   |          | `[]`      | The features: `{ slug, title, summary, status, category, expected, docsUrl, title_&lt;lang&gt;, summary_&lt;lang&gt; }`.                                                  |
+| `categories`          | `object`  |          | `\{\}`    | Category key to caption; sets the order of the groups.                                                                                                                    |
+| `layout`              | `string`  |          | `'cards'` | `cards`: a section per category with two-up feature cards. `rows`: one card per category with a row per feature.                                                          |
+| `tabs`                | `boolean` |          | `true`    | Show the Features and Roadmap folder tabs.                                                                                                                                |
+| `actionsMenu`         | `boolean` |          | `true`    | Show the Actions menu (suggest, buildiq, AI skills, support), in the header or the tab row; false draws none.                                                             |
+| `filter`              | `string`  |          | `'chips'` | `chips`: pill buttons with a count. `segmented`: a segmented control without counts.                                                                                      |
+| `statusLabels`        | `object`  |          | `\{\}`    | Overrides of the status labels, by key (`all`, `available`, `beta`, `in_progress`, `planned`).                                                                            |
+| `next`                | `number`  |          | `3`       | How many issues the Next card lists; 0 hides the card.                                                                                                                    |
+| `issueLabels`         | `object`  |          | `\{\}`    | Forge label to issue status (`in_progress`, `planned`) for the badges in the Next card.                                                                                   |
+| `repo`                | `string`  |          | `''`      | `&lt;owner&gt;/&lt;repo&gt;` on the forge, for the Roadmap tab and the Next card.                                                                                         |
+| `title`               | `string`  |          | `''`      | Page title.                                                                                                                                                               |
+| `subtitle`            | `string`  |          | `''`      | Subtitle template; `{count}` is the number of features and `{appVersion}` the app version.                                                                                |
+| `appVersion`          | `string`  |          | `''`      | The app version, for `{appVersion}` in the subtitle.                                                                                                                      |
+| `notice`              | `string`  |          | `''`      | An info notice under the groups.                                                                                                                                          |
+| `documentationUrl`    | `string`  |          | `''`      | The app's documentation site: the Next card's link and the target of "Learn more".                                                                                        |
+| `documentationButton` | `boolean` |          | `false`   | Show a Documentation button in the header.                                                                                                                                |
+| `suggestUrl`          | `string`  |          | `''`      | The feature-request form; the header's primary button.                                                                                                                    |
+| `suggestButton`       | `boolean` |          | `true`    | Show the feature-request form as the header's primary button; without it, it is an entry in the Actions menu.                                                             |
+| `summaries`           | `boolean` |          | `true`    | In the `rows` layout, draw each feature's summary under its title; false shows the title and status only.                                                                 |
+| `noticeLink`          | `object`  |          | `null`    | A link inside the notice: `{ text, href }`; the first occurrence of `text` in the translated notice opens `href` in a new tab. Only http(s) and site-relative hrefs link. |
+| `openbuiltUrl`        | `string`  |          | `''`      | Target of the OpenBuilt entry in the Actions menu.                                                                                                                        |
+| `llmSkillsUrl`        | `string`  |          | `''`      | Target of the AI skills entry in the Actions menu.                                                                                                                        |
 
 ### Events
 
