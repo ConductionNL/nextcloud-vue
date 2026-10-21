@@ -76,3 +76,31 @@ describe('CnCellRenderer fkResolve: the schema the row names', () => {
 		expect(w.find('.fk').text()).toBe('client')
 	})
 })
+
+describe('CnCellRenderer date: a state text beside the date', () => {
+	const render = (value) => mount(CnCellRenderer, {
+		props: { value, widget: 'date', widgetProps: { pastText: 'Ended', otherText: 'Active', variantWhen: [{ op: 'lt', value: 0, variant: 'error' }] }, row: {} },
+		global: { provide: { cnTranslate: (key) => `t:${key}` } },
+	})
+
+	it('says Ended for a past date and Active for a later or empty one', () => {
+		expect(render('2020-01-01').find('[data-testid="cn-cell-date-state"]').text()).toBe('t:Ended')
+		expect(render('2999-01-01').find('[data-testid="cn-cell-date-state"]').text()).toBe('t:Active')
+		expect(render('').find('[data-testid="cn-cell-date-state"]').text()).toBe('t:Active')
+	})
+})
+
+describe('CnObjectListWidget: groupOrder', () => {
+	it('lists the named groups first, in that order, then the rest as they came', async () => {
+		const { wrapper } = mountList({ groupBy: 'category', groupOrder: ['Organisatie', 'Professioneel', 'Familie'] })
+		await flushPromises()
+		wrapper.vm.rows = [
+			{ id: 'a', category: 'Familie' },
+			{ id: 'b', category: 'CRM Rol' },
+			{ id: 'c', category: 'Organisatie' },
+			{ id: 'd', category: 'Professioneel' },
+		]
+		await flushPromises()
+		expect(wrapper.vm.groupedRows.map((g) => g.key)).toEqual(['Organisatie', 'Professioneel', 'Familie', 'CRM Rol'])
+	})
+})

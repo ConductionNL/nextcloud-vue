@@ -484,7 +484,7 @@ export default {
 		 * download in the card's header; `group` shows it to one group only.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowRouteField?: string, rowRouteMap?: object, rowRouteIdField?: string, createEndpoint?: {url: string, bodyKey?: string, extra?: object}, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupOrder?: Array<string>, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowRouteField?: string, rowRouteMap?: object, rowRouteIdField?: string, createEndpoint?: {url: string, bodyKey?: string, extra?: object}, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
 		 */
 		content: {
 			type: Object,
@@ -951,8 +951,9 @@ export default {
 
 		/**
 		 * The faceted rows bucketed by `content.groupBy`, one entry per
-		 * distinct value in first-seen order (matching how the rows already
-		 * arrived — server-sorted). A `$ref` group key that resolves to an
+		 * distinct value: the keys `content.groupOrder` lists first, in that
+		 * order, then the others in first-seen order (matching how the rows
+		 * already arrived — server-sorted). A `$ref` group key that resolves to an
 		 * object (an `extend`-inlined reference) groups by its `id`, so
 		 * `groupBy: 'informatieobjecttype'` groups the actual referenced
 		 * objects rather than one group per string-ified object.
@@ -982,7 +983,12 @@ export default {
 				}
 				byKey.get(key).rows.push(row)
 			}
-			return order.map((key) => byKey.get(key))
+			const first = Array.isArray(this.content.groupOrder) ? this.content.groupOrder.map(String) : []
+			const rank = (key) => (first.includes(key) ? first.indexOf(key) : first.length)
+			return order
+				.map((key, index) => ({ key, index }))
+				.sort((a, b) => rank(a.key) - rank(b.key) || a.index - b.index)
+				.map(({ key }) => byKey.get(key))
 		},
 
 		/** Empty-state text (overridable via `content.emptyText`). */

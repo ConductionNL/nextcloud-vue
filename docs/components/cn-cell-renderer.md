@@ -192,3 +192,7 @@ CnCellRenderer is used internally by CnDataTable. You typically don't use it dir
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnCellRenderer.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnCellRenderer/CnCellRenderer.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+### Date state: `pastText` / `otherText`
+
+On the `date` widget, `widgetProps.pastText` is shown beside a date before today and `widgetProps.otherText` beside a later or empty one ("Ended" / "Active" on a relationship's end date), translated. Combine with `variantWhen` to colour the past date.

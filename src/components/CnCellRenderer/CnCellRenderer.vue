@@ -240,7 +240,12 @@
 				:class="dateVariant ? 'cn-cell-renderer__date--' + dateVariant : null"
 				:datetime="dateTimestamp.toISOString()"
 				:title="isRelativeDate ? absoluteDateLabel : rawTitle">{{ dateLabel }}</time>
-			<span v-else class="cn-cell-renderer__dash">—</span>
+			<span v-else-if="!dateStateText" class="cn-cell-renderer__dash">—</span>
+			<!-- `widgetProps.pastText` / `otherText`: a state beside the date ("Ended", "Active"). -->
+			<span v-if="dateStateText"
+				class="cn-cell-renderer__date-state"
+				:class="{ 'cn-cell-renderer__date-state--past': dateIsPast }"
+				data-testid="cn-cell-date-state">{{ dateStateText }}</span>
 		</template>
 
 		<!-- Built-in "number" widget: the value with its unit
@@ -413,7 +418,7 @@ import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeDate, formatTimeOfDay, resolveAgeVariant } from '../../utils/boardDate.js'
-import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
+import { daysUntil, parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
 import { formatMoney } from '../../utils/formatMetric.js'
@@ -861,6 +866,30 @@ export default {
 				return 'cn-cell-renderer__date--error'
 			}
 			return this.dueResult && this.dueResult.soon ? 'cn-cell-renderer__date--warning' : null
+		},
+
+		/**
+		 * `date` widget: whether the date lies before today.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/object-list-by-field/specs/object-list-widget/spec.md#requirement-a-date-cell-can-say-its-state-and-groups-keep-a-set-order
+		 */
+		dateIsPast() {
+			const days = daysUntil(this.value)
+			return days !== null && days < 0
+		},
+
+		/**
+		 * `date` widget: `widgetProps.pastText` for a past date, else
+		 * `widgetProps.otherText` (also for an empty one), translated; '' without either.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/object-list-by-field/specs/object-list-widget/spec.md#requirement-a-date-cell-can-say-its-state-and-groups-keep-a-set-order
+		 */
+		dateStateText() {
+			const props = this.widgetProps || {}
+			const text = this.dateIsPast ? props.pastText : props.otherText
+			return typeof text === 'string' && text !== '' ? this.cnTranslate(text) : ''
 		},
 
 		/**
@@ -1829,6 +1858,15 @@ export default {
 
 .cn-cell-renderer--date {
 	white-space: nowrap;
+}
+
+.cn-cell-renderer__date-state {
+	margin-inline-start: 8px;
+	color: var(--color-success-text, var(--color-main-text));
+}
+
+.cn-cell-renderer__date-state--past {
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-cell-renderer__dash {
