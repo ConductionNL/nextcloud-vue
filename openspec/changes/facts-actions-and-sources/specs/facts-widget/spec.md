@@ -71,7 +71,8 @@ dropped like any other row.
 
 An entry's `template` SHALL fill its `{path}` placeholders from the record and SHALL be empty when every placeholder is
 empty. `suffix` SHALL be added to a value that is not empty. `format: "number"` SHALL show a number in the reader's
-language with `decimals` fraction digits when set.
+language with `decimals` fraction digits when set. A pill over a boolean SHALL look its tone up in `variantMap` as
+`"true"` or `"false"`, as `map` reads it.
 
 #### Scenario: Stock with its unit
 

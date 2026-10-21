@@ -243,3 +243,14 @@ describe('CnFactsWidget: template and suffix', () => {
 		expect(w.find('[data-testid="cn-fact-missing"]').exists()).toBe(false)
 	})
 })
+
+describe('CnFactsWidget: a pill over a boolean', () => {
+	it('looks the tone up as "true" / "false"', () => {
+		const fields = [{ as: 'pill', key: 'tolerance', path: 'withinTolerance', map: { true: 'Within tolerance', false: 'Outside tolerance' }, variantMap: { true: 'success', false: 'warning' } }]
+		const within = mountFacts({ objectData: { withinTolerance: true }, content: { fields } })
+		expect(within.find('[data-testid="cn-fact-tolerance"]').text()).toBe('Within tolerance')
+		expect(within.findComponent({ name: 'CnStatusBadge' }).props('variant')).toBe('success')
+		const outside = mountFacts({ objectData: { withinTolerance: false }, content: { fields } })
+		expect(outside.findComponent({ name: 'CnStatusBadge' }).props('variant')).toBe('warning')
+	})
+})

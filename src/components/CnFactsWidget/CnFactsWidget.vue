@@ -584,7 +584,8 @@ export default {
 					const keys = field.resolve && typeof field.resolve === 'object'
 						? [toneSpec(field) ? this.refLabels(raw, toneSpec(field))[0] : undefined, this.refLabels(raw, field)[0], raw]
 						: [raw]
-					const hit = colours ? keys.find((candidate) => (typeof candidate === 'string' || typeof candidate === 'number') && Object.hasOwn(colours, candidate)) : undefined
+					// A boolean looks its tone up as "true" / "false", as `map` reads it.
+					const hit = colours ? keys.map((candidate) => (typeof candidate === 'boolean' ? String(candidate) : candidate)).find((candidate) => (typeof candidate === 'string' || typeof candidate === 'number') && Object.hasOwn(colours, candidate)) : undefined
 					const variant = hit !== undefined ? colours[hit] : field.variant
 					block.variant = isBadgeVariant(variant) ? variant : 'default'
 				}

@@ -40,7 +40,7 @@ The object is the current detail-page object, or one other object named by `sour
 | `map` | Raw value to label, translated (`{ "published": "Published" }`). Booleans read `"true"` / `"false"`, else Yes / No. |
 | `parts` | On a `line`: paths (or `{ path, label?, format? }`) joined by `separator` (default " · "). Empty parts are dropped; a labelled part reads "label value". |
 | `route` | On a `title`: `{ name, params?, query? }` so the title links. Takes `@source.<field>` tokens. |
-| `variant` / `variantMap` / `colorMap` | On a `pill`: the CnStatusBadge variant, or value to variant (`colorMap` is the same as `variantMap`). An unknown variant falls back to `default`. |
+| `variant` / `variantMap` / `colorMap` | On a `pill`: the CnStatusBadge variant, or value to variant (`colorMap` is the same as `variantMap`); a boolean is looked up as `"true"` / `"false"`. An unknown variant falls back to `default`. |
 | `resolve` on a `pill` | The pill shows the label of the referenced object; `map` is applied to that label. The tone is looked up in `variantMap` / `colorMap` by the value of `resolve.toneField` on the referenced object when that is set (a status shown by its `name` and coloured by its `state`), then by the resolved label, then by the stored value. |
 | `key` | Optional stable key for the entry's `data-testid` (`cn-fact-<key>`). |
 | `template` | Text with `{path}` placeholders filled from the object (`"{available} {unit}"` reads "12 pcs"), used instead of `path`. The entry is empty when every placeholder is. |
