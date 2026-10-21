@@ -1305,9 +1305,12 @@
 		},
 		"CnEventsCard": {
 			"direct": 2,
-			"transitive": 8,
-			"tier": "medium",
-			"via": [],
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker"
+			],
 			"page": "cn-events-card"
 		},
 		"CnExportWizard": {
