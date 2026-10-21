@@ -59,6 +59,9 @@ import { searchFieldParams } from '../../utils/searchFieldParams.js'
  *   chosen values, `{ fieldKey: values }`. Mapped through the source's
  *   `searchFields` declaration into loader arguments and merged into every
  *   load, so a manifest page's sidebar narrows the SERVER's query.
+ * @param {import('vue').Ref<string>} [options.searchTerm] The page's search
+ *   term. A source that names a `searchParam` gets it as that argument, so the
+ *   server searches; a new term reloads from the first page.
  *
  * @return {object} { isNamedSource, namedSource, namedRows, namedLoading, namedQuickFilters }
  */
@@ -106,6 +109,7 @@ export function useNamedSource(props, options = {}) {
 	const tabs = manifestTabs || sourceTabs
 	const activeIndex = options.activeQuickFilterIndex || null
 	const activeFilters = options.activeFilters || null
+	const searchTerm = (typeof source.searchParam === 'string' && source.searchParam !== '') ? (options.searchTerm || null) : null
 	// A source that pages (`pages: true`) gets the page as `limit` and
 	// `offset`, from the pager the page draws for it.
 	const paging = source.pages === true ? (options.paging || null) : null
@@ -169,6 +173,7 @@ export function useNamedSource(props, options = {}) {
 					activeFilters ? activeFilters.value : null,
 					props.entitySource,
 				),
+				...(searchTerm && searchTerm.value ? { [source.searchParam]: searchTerm.value } : {}),
 				...(paging ? { limit: paging.value.limit, offset: (paging.value.page - 1) * paging.value.limit } : {}),
 			},
 			tokenCtx(),
@@ -216,6 +221,10 @@ export function useNamedSource(props, options = {}) {
 	// and a shallow watch misses a second value added to the same field.
 	if (activeFilters) {
 		watch(activeFilters, reloadFromFirstPage, { deep: true })
+	}
+
+	if (searchTerm) {
+		watch(searchTerm, reloadFromFirstPage)
 	}
 
 	// A new page, or a new page size, is a new request. A new tab or filter
