@@ -306,6 +306,7 @@ export {
 	CnSchemaFormDialog,
 	CnSearchPage,
 	CnSearchSelect,
+	CnSecretAddressCard,
 	CnSectionsWidget,
 	CnSelectionScope,
 	CnSettingsCard,
