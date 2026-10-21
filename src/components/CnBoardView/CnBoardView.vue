@@ -277,7 +277,14 @@
 									v-for="field in cardFields"
 									:key="`f-${cardKey(card)}-${field}`"
 									class="cn-board-view__card-field">
-									{{ card[field] }}
+									<CnCellRenderer
+										v-if="cellOf(field)"
+										:value="readPath(card, field)"
+										:row="card"
+										:widget="cellOf(field).widget || null"
+										:widgetProps="cellOf(field).widgetProps || {}"
+										:formatter="cellOf(field).formatter || null" />
+									<template v-else>{{ card[field] }}</template>
 								</span>
 
 								<!--
@@ -356,6 +363,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import CnCellRenderer from '../CnCellRenderer/CnCellRenderer.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { normalizeLook } from '../../composables/useLook.js'
@@ -399,7 +407,7 @@ import '../../css/board.css'
 export default {
 	name: 'CnBoardView',
 
-	components: { CnIcon, CnStatusBadge },
+	components: { CnCellRenderer, CnIcon, CnStatusBadge },
 
 	inject: {
 		/**
@@ -438,6 +446,19 @@ export default {
 		cardFields: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * How a card field is drawn: `{ [field]: { widget?, widgetProps?, formatter? } }`,
+		 * the cell config a table column takes (a priority badge, a value with its
+		 * currency, a close date with its due text). A field without one is text.
+		 * Manifest `config.board.cardCells`.
+		 *
+		 * @type {object|null}
+		 */
+		cardCells: {
+			type: Object,
+			default: null,
 		},
 
 		/** A second field to group the board into rows by. */
@@ -787,6 +808,20 @@ export default {
 	},
 
 	methods: {
+		readPath,
+
+		/**
+		 * The cell config of a card field, or null to draw it as text.
+		 *
+		 * @param {string} field The card field.
+		 * @return {object|null}
+		 * @spec openspec/changes/pl4-board-card-cells/specs/pl4-board-card-cells/spec.md#requirement-a-card-field-can-be-a-cell
+		 */
+		cellOf(field) {
+			const cell = this.cardCells && this.cardCells[field]
+			return cell && typeof cell === 'object' ? cell : null
+		},
+
 		t,
 
 		preventMiddleClickAutoscroll,

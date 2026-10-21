@@ -269,3 +269,25 @@ describe('a closed column (pl4-board-list-stages)', () => {
 		expect(wrapper.find('[data-column="open"]').findAll('[data-testid="cn-board-card"]')).toHaveLength(1)
 	})
 })
+
+describe('card cells (pl4-board-card-cells)', () => {
+	it('draws a card field through the cell renderer its config names, and the rest as text', () => {
+		const rows = [{ id: 1, status: 'open', title: 'Een', priority: 'high', value: 1200 }]
+		const wrapper = mount(CnBoardView, {
+			props: {
+				rows,
+				statusFieldSchema: FIELD,
+				statusField: 'status',
+				cardFields: ['title', 'priority', 'value'],
+				cardCells: { priority: { widget: 'badge', widgetProps: { colorMap: { high: 'warning' } } } },
+			},
+			global: { stubs: { CnCellRenderer: { name: 'CnCellRenderer', props: ['value', 'row', 'widget', 'widgetProps', 'formatter'], template: '<span class="cell">{{ widget }}:{{ value }}</span>' } } },
+		})
+		const card = wrapper.find('[data-testid="cn-board-card"]')
+		const cell = card.findComponent({ name: 'CnCellRenderer' })
+		expect(cell.props()).toMatchObject({ value: 'high', widget: 'badge', widgetProps: { colorMap: { high: 'warning' } } })
+		expect(cell.props('row')).toEqual(rows[0])
+		expect(card.text()).toContain('Een')
+		expect(card.text()).toContain('1200')
+	})
+})
