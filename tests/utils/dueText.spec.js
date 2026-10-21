@@ -119,3 +119,35 @@ describe('CnCellRenderer date widget with due', () => {
 		expect(mountCell(null).find('[data-testid="cn-cell-renderer-due"]').text()).toBe('Geen deadline')
 	})
 })
+
+describe('due.activeWhen', () => {
+	beforeEach(() => setLanguage('nl'))
+	const cfg = { soonWithin: 7, activeWhen: { field: 'status', equals: 'open' } }
+
+	it('reads the plain date without a tone when the row condition does not hold', () => {
+		const result = resolveDue(day(-3), cfg, (x) => x, NOW, { status: 'won' })
+		expect(result.tone).toBe('plain')
+		expect(result.text).not.toMatch(/te laat/)
+		expect(result.soon).toBeUndefined()
+		expect(resolveDue(day(2), cfg, (x) => x, NOW, { status: 'lost' }).soon).toBeUndefined()
+	})
+
+	it('keeps the due text and tone while the condition holds', () => {
+		expect(resolveDue(day(-3), cfg, (x) => x, NOW, { status: 'open' })).toEqual({ text: '3 dagen te laat', tone: 'danger' })
+		expect(resolveDue(day(2), cfg, (x) => x, NOW, { status: 'open' }).soon).toBe(true)
+	})
+
+	it('leaves an empty date to the empty text', () => {
+		expect(resolveDue(null, { ...cfg, emptyText: 'Geen datum' }, (x) => x, NOW, { status: 'won' })).toEqual({ text: 'Geen datum', tone: 'empty' })
+	})
+
+	it('a closed lead in a table is never red', () => {
+		const past = new Date(Date.now() - 3 * 86400000).toISOString()
+		const cell = mount(CnCellRenderer, {
+			propsData: { value: past, row: { status: 'won' }, widget: 'date', widgetProps: { due: cfg } },
+			stubs: { NcDateTime: true },
+		}).find('[data-testid="cn-cell-renderer-due"]')
+		expect(cell.classes()).not.toContain('cn-cell-renderer__date--error')
+		expect(cell.text()).not.toMatch(/te laat/)
+	})
+})

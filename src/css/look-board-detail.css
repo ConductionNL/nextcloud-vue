@@ -274,6 +274,14 @@
    primary colour. The theme tokens carry the weight and radius past the
    nldesign theme's `!important`; the follower count takes the same pill.
    @spec openspec/changes/board-follow-pill/specs/board-follow-pill/spec.md#requirement-the-board-follow-control-is-a-pill */
+/* The control is a tertiary NcButton; a theme may point --color-main-text at
+   its button ink on a tertiary itself (thematiq draws the zuiddrecht primary),
+   so the wrapper hands that ink the main text.
+   @spec openspec/changes/board-follow-pill-ink/specs/board-follow-pill-ink/spec.md#requirement-the-follow-pill-label-is-the-main-text-under-a-theme */
+.cn-look-board .cn-detail-page .cn-follow-toggle {
+	--nldesign-component-button-color: var(--color-main-text);
+}
+
 .cn-look-board .cn-detail-page .cn-follow-toggle .button-vue {
 	--nldesign-component-button-font-weight: 600;
 	--nldesign-component-button-border-radius: 14px;
@@ -544,6 +552,12 @@
 	display: none;
 }
 
+/* The same for a CnDetailCard (DqTaak "Notities", DqZaakEmail "E-mail",
+   DqZaakTaken "Afspraken", DqHandhaving "Historie"). */
+.cn-look-board.cn-detail-page .cn-detail-card__header .cn-detail-card__icon {
+	display: none;
+}
+
 .cn-look-board .cn-detail-page .cn-widget-wrapper__title,
 .cn-look-board .cn-detail-card .cn-detail-card__title {
 	font-size: var(--cn-board-heading-size);
@@ -559,6 +573,13 @@
 
 .cn-look-board .cn-detail-card .cn-detail-card__content {
 	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
+}
+
+/* A data card (labels over values) starts 14px below its title (DqZaak
+   "Zaakgegevens", DqContact "Contact"). A side card keeps its 10px.
+   @spec openspec/changes/board-data-card-gap/specs/board-data-card-gap/spec.md#requirement-a-board-data-cards-body-starts-14px-below-its-title */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap):not(.cn-detail-page__side *) {
+	padding-top: calc(14px - var(--cn-board-first-line-leading));
 }
 
 /* A header-less card keeps the full 20px 22px. */
@@ -652,15 +673,33 @@
 	display: flex;
 }
 
-/* The notice at the top of the side column: radius 12, padding 14px 16px. */
-.cn-look-board .cn-detail-page__side-item--notice .cn-widget-wrapper,
-.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget,
+/* The notice at the top of the side column: one tinted block, radius 12,
+   padding 14px 16px. Only the outer layer paints; the card wrapper, the
+   banner and its note card inside it stay flat, so the notice is not drawn
+   as a box in a box. */
 .cn-look-board .cn-detail-page__side-item--notice > * {
 	background: var(--cn-board-notice-bg);
 	border: none;
 	border-radius: var(--cn-board-card-radius);
 	font-size: 14px;
 	padding: 14px 16px;
+}
+
+.cn-look-board .cn-detail-page__side-item--notice > * .cn-widget-wrapper,
+.cn-look-board .cn-detail-page__side-item--notice > * .cn-widget-wrapper__content,
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget,
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card {
+	background: transparent;
+	border: none;
+	border-radius: 0;
+	margin: 0;
+	padding: 0;
+}
+
+/* A notice whose condition does not hold renders no banner; its slot then
+   takes no room instead of standing as an empty tinted block. */
+.cn-look-board .cn-detail-page__side-item--notice:not(:has(.cn-banner-widget)) {
+	display: none;
 }
 
 /* The History card ends with the record's identifier. */
@@ -692,14 +731,16 @@
 }
 
 /* The kicker keeps its tone under a theme that colours every h3 with
-   `!important` (thematiq's heading colour); only `!important` beats it. */
+   `!important` (thematiq's heading colour); only `!important` beats it. The
+   boards set it in sentence case ("Wat nu? Stap 2: in behandeling", DqZaak,
+   DqSociaalDomein), not as the plain look's spaced capitals. */
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__title.cn-next-step-card__title {
 	color: var(--color-primary-element-light-text) !important;
 	font-size: 13px !important;
 	font-weight: 700;
-	letter-spacing: 0.06em;
+	letter-spacing: 0;
 	line-height: normal;
-	text-transform: uppercase;
+	text-transform: none;
 }
 
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__list {
@@ -973,4 +1014,31 @@
 
 .cn-look-board .cn-tasks-widget .cn-tasks-widget__cell-actions .button-vue .button-vue__text.button-vue__text {
 	padding-inline: 0;
+}
+
+/* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
+/* Groups 14px apart, each padded 14px with a 10px radius and a bold title; a
+   card in a group is padded 9px 12px with the 8px control radius, its title
+   15px. The doubled class outranks the widget's scoped rules.
+   @spec openspec/changes/board-grouped-cards/specs/board-grouped-cards/spec.md#requirement-board-grouped-cards-take-the-boards-group-and-card-shape */
+.cn-look-board .cn-grouped-cards__grid.cn-grouped-cards__grid {
+	gap: 14px;
+}
+
+.cn-look-board .cn-grouped-cards__group.cn-grouped-cards__group {
+	padding: 14px;
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-grouped-cards__group-title.cn-grouped-cards__group-title {
+	font-weight: 700;
+}
+
+.cn-look-board .cn-grouped-cards__item.cn-grouped-cards__item {
+	padding: 9px 12px;
+	border-radius: var(--cn-board-control-radius, 8px);
+}
+
+.cn-look-board .cn-grouped-cards__item-title.cn-grouped-cards__item-title {
+	font-size: 15px;
 }

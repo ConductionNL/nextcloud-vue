@@ -54,6 +54,7 @@ describe('look-board.css: widgets on a board dashboard card keep its side inset'
 		['the week strip', '.cn-week-strip', `4px ${INSET} 22px`],
 		['a bar list or matrix', '.cn-chart-widget__html', `4px ${INSET} 20px`],
 		['the activity items', '.cn-nc-widget-widget__body', `0 calc(${INSET} - 4px) 16px`],
+		['the decision list', '.cn-decision-list', `0 ${INSET} 20px`],
 	])('pads %s', (_name, widget, padding) => {
 		expect(bodyOf(board, `${CARD} ${widget}`)).toContain(`padding: ${padding};`)
 	})

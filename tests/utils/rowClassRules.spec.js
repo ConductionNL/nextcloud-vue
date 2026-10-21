@@ -49,4 +49,18 @@ describe('row class rules', () => {
 		expect(fn({ dueAt: yesterday })).toBe('cn-row--overdue')
 		expect(CnIndexPage.props.rowClass.type).toEqual([Function, Array])
 	})
+
+	it('applies a rule only when every condition in a list holds', () => {
+		const rowClass = compileRowClass([{
+			when: [
+				{ field: 'expectedCloseDate', op: 'lt', value: '@today' },
+				{ field: 'status', value: 'open' },
+			],
+			class: 'cn-row--overdue',
+		}])
+		expect(rowClass({ expectedCloseDate: yesterday, status: 'open' })).toBe('cn-row--overdue')
+		expect(rowClass({ expectedCloseDate: yesterday, status: 'won' })).toBe('')
+		expect(rowClass({ expectedCloseDate: tomorrow, status: 'open' })).toBe('')
+		expect(compileRowClass([{ when: [], class: 'x' }])({})).toBe('')
+	})
 })

@@ -9,6 +9,7 @@
 		:class="{
 			'cn-sections-widget--cards': cards,
 			'cn-sections-widget--two-column': twoColumn,
+			'cn-sections-widget--grid': gridColumns > 1,
 			'cn-sections-widget--plain': plain,
 		}"
 		data-testid="cn-sections-widget">
@@ -16,7 +17,8 @@
 			v-for="column in columns"
 			:key="column.id"
 			class="cn-sections-widget__column"
-			:class="`cn-sections-widget__column--${column.id}`">
+			:class="`cn-sections-widget__column--${column.id}`"
+			:style="gridColumns > 1 ? { '--cn-sections-columns': gridColumns } : null">
 			<section
 				v-for="section in column.sections"
 				:key="section.key"
@@ -59,6 +61,9 @@
 				</div>
 			</section>
 		</div>
+		<p v-if="footnote" class="cn-sections-widget__footnote" data-testid="cn-sections-widget-footnote">
+			{{ footnote }}
+		</p>
 	</div>
 </template>
 
@@ -123,7 +128,11 @@ export default {
 		 * - `dividers` — draw a rule between sections (default true). `false` stacks them 8px apart with no rule,
 		 *   for a row of strips that each say one thing (a record's banners).
 		 *
-		 * @type {{sections?: Array<object>, cards?: boolean, hideEmpty?: boolean, dividers?: boolean}}
+		 * - `columns` — lay the sections out side by side in this many columns (2 to 4), one column on a narrow
+		 *   screen. Ignored when a section asks for the side column.
+		 * - `footnote` — a line of muted text under the sections.
+		 *
+		 * @type {{sections?: Array<object>, cards?: boolean, hideEmpty?: boolean, dividers?: boolean, columns?: number, footnote?: string}}
 		 */
 		content: {
 			type: Object,
@@ -283,6 +292,32 @@ export default {
 		 */
 		twoColumn() {
 			return this.sections.some((section) => section.column === 'side')
+		},
+
+		/**
+		 * How many columns the sections are laid out in side by side: the
+		 * configured `columns`, capped at four; 1 (stacked) without it or
+		 * when a section asks for the side column.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/sections-card-grid/specs/sections-card-grid/spec.md#requirement-a-sections-widget-can-lay-its-cards-out-in-columns
+		 */
+		gridColumns() {
+			const n = Math.floor(Number(this.content?.columns))
+			if (!Number.isFinite(n) || n < 2 || this.twoColumn) {
+				return 1
+			}
+			return Math.min(n, 4)
+		},
+
+		/**
+		 * The translated footnote under the sections, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/sections-card-grid/specs/sections-card-grid/spec.md#requirement-a-sections-widget-can-close-with-a-footnote
+		 */
+		footnote() {
+			return this.tr(this.content?.footnote || '')
 		},
 
 		/**
@@ -449,6 +484,22 @@ export default {
 	.cn-sections-widget--two-column {
 		grid-template-columns: minmax(0, 1fr);
 	}
+}
+
+/* Sections side by side (`columns`): at most that many to a row, each at
+   least 240px wide, so a narrow cell wraps them onto more rows. */
+.cn-sections-widget.cn-sections-widget--grid .cn-sections-widget__column {
+	--cn-sections-gap: 14px;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, max(240px, calc((100% - (var(--cn-sections-columns, 2) - 1) * var(--cn-sections-gap)) / var(--cn-sections-columns, 2)))), 1fr));
+	gap: var(--cn-sections-gap);
+	align-items: start;
+}
+
+.cn-sections-widget__footnote {
+	margin: calc(var(--default-grid-baseline, 4px) * 3) 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 /* A host page may space every <section>; these sections are spaced by the column gap only. */

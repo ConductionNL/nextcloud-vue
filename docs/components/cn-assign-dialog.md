@@ -51,7 +51,7 @@ Confirming sends `{ team, reason, doorzending }` to the request url, or dispatch
 | `assignee.allowTyped` | Offer what was typed as a choice, for instances where the search answers nothing |
 | `assignee.field`, `kindField` | The key the id is sent as (default `assignee`), and the key its kind (`group`/`user`) is sent as |
 | `note` | `{ label?, hint?, required?, field? }`, required by default and sent as `field` (default `note`); `false` drops it |
-| `toggles` | `[{ field, label, note? }]`: switches that start off and are sent as booleans |
+| `toggles` | `[{ field, label, note? }]`: switches that start off and are sent as booleans. `label` and `note` are templates filled from the record, so a note can name the applicant ("{initiatorDisplayName} then gets a message that the case moves") |
 | `confirm` | `{ label?, icon?, request?: { method?, url, body? }, action? }` |
 
 Tokens (`@objectId`, `@object.<field>`) resolve in every url.

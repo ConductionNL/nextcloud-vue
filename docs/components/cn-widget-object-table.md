@@ -186,6 +186,7 @@ An endpoint read that is refused (401/403) shows the server's `message` as a war
 | `exportCsv` | `Boolean` | Show an "Export CSV" button under the table that downloads the rows it holds, one column per table column headed by its label. Values are the row values, not the formatted cell text. Default `false`. |
 | `exportFileName` | `String` | The downloaded file's name without `.csv`. Defaults to the title, slugged, else `export`. |
 | `rowRoute` | `String` | Route NAME for row-click navigation — mapped to CnDataTable's `rowClickRoute` with `{ params: { id } }`. |
+| `rowIdField` | `String` | The row field (a dot-path) holding the id `rowRoute` opens, for a row that links to another record (a payment row opening its case: `"rowIdField": "case"`). Empty uses the row's own id; a row whose field is empty does not link. |
 | `viewAllRoute` | `Object` | vue-router location for the "View all" footer link (default `null`). |
 | `pageSize` | `Number` | Rows per page: the board's pager under the table ("4 of 7", page buttons, Next), forwarded to CnDataTable. It pages the rows the widget holds; with a `source`, `source.limit` sets how many are read. `0` (default) shows no pager. |
 | `viewAllLabel` | `String` | Pre-translated "View all" label (CnDataTable default when unset). |

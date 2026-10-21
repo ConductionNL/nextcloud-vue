@@ -220,7 +220,7 @@ describe('CnIndexPage reads page tabs, tab counts and the footer note from a nam
 
 	it('uses the manifest footer note first, the source\'s otherwise', () => {
 		const cnTranslate = (key) => `T(${key})`
-		expect(computed.effectiveFooterNote.call({ footerNote: 'Own note', cnTranslate, isNamedSource: true, namedSource: source })).toBe('T(Own note)')
+		expect(computed.effectiveFooterNote.call({ footerNote: 'Own note', cnTranslate, fillConfigTokens: (text) => text, isNamedSource: true, namedSource: source })).toBe('T(Own note)')
 		expect(computed.effectiveFooterNote.call({ footerNote: '', cnTranslate, isNamedSource: true, namedSource: source })).toBe('A paused flow keeps its steps.')
 	})
 

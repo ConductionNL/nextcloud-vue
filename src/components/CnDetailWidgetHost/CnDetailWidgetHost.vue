@@ -305,6 +305,32 @@
 				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
+		<!-- A titled `sections` widget in the side column or a tab stack: its
+		     sections stack inside one titled card, as the other cards there
+		     are drawn. A grid cell has its own card, and `content.cards` makes
+		     every section a card of its own, so both stay as they are. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsSections"
+			:title="widget.title"
+			:subtitle="widgetSubtitle"
+			:showTitle="effectiveShowCardTitle"
+			titleIconPosition="left"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__sections-card"
+			data-testid="cn-detail-widget-sections-card">
+			<template v-if="widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
+		</CnWidgetWrapper>
+
 		<!-- Every other content-driven catalog widget, and every bare-mode
 		     catalog widget. These self-fetch from OpenRegister. The object
 		     context is forwarded too (the same shape CnWidgetGrid merges on the
@@ -857,6 +883,19 @@ export default {
 			return typeof entry === 'object' && entry.chrome === 'card'
 		},
 
+		/**
+		 * Whether a `sections` widget gets one titled card: on a card surface
+		 * outside a body grid cell, with a title, and not in `cards` mode.
+		 *
+		 * @return {boolean}
+		 */
+		wrapsSections() {
+			if (this.isBare || this.inGridCell || !this.widget || this.widget.type !== 'sections' || !this.widget.title) {
+				return false
+			}
+			return !(this.widget.content && this.widget.content.cards)
+		},
+
 		/** @return {boolean} true when the registry entry declares `card`. */
 		isCard() {
 			return isCardWidgetDef(this.widget)
@@ -1103,12 +1142,27 @@ export default {
 			return context
 		},
 
+		/**
+		 * The widget's title for a leaf that names its title `titleLabel`
+		 * (contacts, notes, tasks, contact moments): without it the leaf
+		 * printed its own default. Empty when the widget has no title, so the
+		 * leaf keeps that default.
+		 *
+		 * @return {{titleLabel?: string}} The prop, or nothing.
+		 * @spec openspec/changes/leaf-card-widget-title/specs/leaf-card-widget-title/spec.md#requirement-a-leaf-card-carries-the-widgets-title
+		 */
+		leafTitleLabel() {
+			const title = this.translateLabel(this.widget?.title || '')
+			return title ? { titleLabel: title } : {}
+		},
+
 		integrationProps() {
 			return {
 				surface: this.surface,
 				// Through the host's translate: an integration card (CnDetailCard)
 				// prints its title as given.
 				title: this.translateLabel(this.widget?.title || ''),
+				...this.leafTitleLabel,
 				// A provider opting into `bareWidget` is being rendered where the
 				// tab strip already supplies the card and the title, so tell it to
 				// drop its own. Without this the panel gets a titled card inside
@@ -1127,6 +1181,8 @@ export default {
 		integrationMountProps() {
 			return {
 				surface: this.surface,
+				title: this.translateLabel(this.widget?.title || ''),
+				...this.leafTitleLabel,
 				...this.derivedIntegrationContext,
 				// The context follows the widget's own host, so a leaf that
 				// reads `integrationContext.objectId` gets the same object as

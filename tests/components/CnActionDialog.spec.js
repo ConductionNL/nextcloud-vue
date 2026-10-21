@@ -220,6 +220,98 @@ describe('CnActionDialog fields and a permission read from a list', () => {
 	})
 })
 
+describe('CnActionDialog checkbox field', () => {
+	/**
+	 * @spec openspec/changes/action-dialog-checkbox-field/specs/action-dialog-checkbox-field/spec.md#requirement-an-action-dialog-field-can-be-a-checkbox
+	 */
+	it('draws a checkbox with a label filled from the record, checked by default, and sends it as a boolean', async () => {
+		axios.post.mockReset()
+		axios.post.mockResolvedValue({ data: {} })
+		answer()
+		const config = {
+			...ARCHIVE,
+			fields: [{ field: 'notifyRequester', type: 'checkbox', label: 'Let {initiatorDisplayName} know the case is closed', hint: 'A message in the portal', default: true }],
+		}
+		const w = mount(CnActionDialog, {
+			props: { config, objectId: 'z-82' },
+			global: { stubs: {
+				CnDialog: { name: 'CnDialog', props: ['name', 'subtitle', 'eyebrow'], template: '<div><slot /><slot name="actions" /></div>' },
+				NcTextArea: { props: ['modelValue', 'label'], emits: ['update:modelValue'], template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />' },
+				NcCheckboxRadioSwitch: { name: 'NcCheckboxRadioSwitch', props: ['modelValue'], emits: ['update:modelValue'], template: '<label><input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)"><slot /></label>' },
+				CnIcon: true,
+			} },
+		})
+		await flushPromises()
+		const box = w.find('[data-testid="cn-action-dialog-field-notifyRequester"]')
+		expect(box.text()).toContain('Let Sanne de Vries know the case is closed')
+		expect(box.text()).toContain('A message in the portal')
+		expect(box.find('input').element.checked).toBe(true)
+		await w.find('textarea').setValue('Done')
+		await box.find('input').setValue(false)
+		expect(w.find('[data-testid="cn-action-dialog-confirm"]').attributes('disabled')).toBeUndefined()
+		await w.find('[data-testid="cn-action-dialog-confirm"]').trigger('click')
+		await flushPromises()
+		expect(axios.post.mock.calls[0][1].notifyRequester).toBe(false)
+	})
+})
+
+describe('CnActionDialog search field and record-filled labels', () => {
+	const SearchSelect = { name: 'CnSearchSelect', props: ['modelValue', 'options', 'inputLabel', 'loading'], emits: ['update:modelValue', 'search'], template: '<div class="ss" :data-label="inputLabel" />' }
+	const STUBS = {
+		CnDialog: { name: 'CnDialog', props: ['name', 'subtitle', 'eyebrow'], template: '<div><slot /><slot name="actions" /></div>' },
+		NcTextArea: { props: ['modelValue', 'label'], emits: ['update:modelValue'], template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />' },
+		NcTextField: { name: 'NcTextField', props: ['modelValue', 'label', 'type'], emits: ['update:modelValue'], template: '<input :aria-label="label" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)">' },
+		CnSearchSelect: SearchSelect,
+		CnIcon: true,
+	}
+
+	/**
+	 * @spec openspec/changes/action-dialog-search-field/specs/action-dialog-search-field/spec.md#requirement-an-action-dialog-field-can-search-records
+	 */
+	it('searches the source\'s records, leaves the record itself out, and sends the chosen id', async () => {
+		jest.useFakeTimers()
+		axios.post.mockReset()
+		axios.post.mockResolvedValue({ data: {} })
+		answer()
+		const config = {
+			...ARCHIVE,
+			checklist: undefined,
+			fields: [{ field: 'relatedCase', type: 'search', label: 'Case to link to {identifier}', source: { register: 'dossiq', schema: 'case' }, optionLabel: '{identifier} · {title}', optionSecondary: '{caseTypeName}', excludeSelf: true }],
+		}
+		const w = mount(CnActionDialog, { props: { config, objectId: 'z-82' }, global: { stubs: STUBS } })
+		await flushPromises()
+		const select = w.findComponent(SearchSelect)
+		expect(select.props('inputLabel')).toBe('Case to link to 2026-0082')
+		axios.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith('/objects/dossiq/case')
+			? { results: [{ id: 'z-82', identifier: '2026-0082', title: 'Self' }, { id: 'z-90', identifier: '2026-0090', title: 'Fietspad', caseTypeName: 'Woo-verzoek' }] }
+			: {} }))
+		select.vm.$emit('search', 'fiets')
+		jest.advanceTimersByTime(300)
+		await flushPromises()
+		expect(axios.get).toHaveBeenCalledWith('/nc/apps/openregister/api/objects/dossiq/case', { params: { _search: 'fiets', _limit: 10 } })
+		expect(w.findComponent(SearchSelect).props('options')).toEqual([{ id: 'z-90', label: '2026-0090 · Fietspad', secondary: 'Woo-verzoek' }])
+		w.findComponent(SearchSelect).vm.$emit('update:modelValue', 'z-90')
+		await w.find('textarea').setValue('Same subject')
+		await w.find('[data-testid="cn-action-dialog-confirm"]').trigger('click')
+		await flushPromises()
+		expect(axios.post.mock.calls[0][1].relatedCase).toBe('z-90')
+		jest.useRealTimers()
+	})
+
+	/**
+	 * @spec openspec/changes/action-dialog-search-field/specs/action-dialog-search-field/spec.md#requirement-every-action-dialog-field-is-labelled-from-the-record
+	 */
+	it('fills every field\'s label and hint from the record', async () => {
+		answer()
+		const config = { ...ARCHIVE, fields: [{ field: 'note', label: 'Message to {initiatorDisplayName}', hint: 'Goes to {initiatorDisplayName} by mail' }] }
+		const w = mount(CnActionDialog, { props: { config, objectId: 'z-82' }, global: { stubs: STUBS } })
+		await flushPromises()
+		const field = w.find('[data-testid="cn-action-dialog-field-note"]')
+		expect(field.find('input').attributes('aria-label')).toBe('Message to Sanne de Vries')
+		expect(field.text()).toContain('Goes to Sanne de Vries by mail')
+	})
+})
+
 describe('CnActionDialog opened with an unresolved token', () => {
 	it('takes the record id from the route, and the dispatcher resolves a prop token when it can', async () => {
 		axios.get.mockReset()
