@@ -76,6 +76,7 @@ The texts (`title`, `replyLabel`, `placeholder`, `sendLabel`, `emptyText`) go th
 | Key | Meaning |
 |-----|---------|
 | `fields` | Several lists of the record, each on its `side`, merged by time. Instead of `field` or `source`. |
+| `usLabel` | Author shown on an `us` message that names none ("Employee"). |
 | `templates` | A CnTemplateSelect above the reply box over `url` with `params` (tokens resolved). Picking fills the box with the option's `values[textField]` (default `text`). |
 | `replyOptions` | Checkboxes under the reply box. Their values go into the endpoint's body, and as `options` into a `replyAction`'s argument. |
 | `statusField` / `statusMap` | The message's status, shown after its channel; `statusMap` turns a stored value into a label. |

@@ -12,6 +12,7 @@
 			:replyLabel="content.replyLabel ? tr(content.replyLabel) : undefined"
 			:placeholder="tr(content.placeholder || '')"
 			:sendLabel="content.sendLabel ? tr(content.sendLabel) : undefined"
+			:usLabel="content.usLabel ? tr(content.usLabel) : undefined"
 			:endpoint="replyAction ? '' : endpoint"
 			:loading="loading"
 			:emptyText="content.emptyText ? tr(content.emptyText) : undefined"
@@ -127,7 +128,7 @@ export default {
 		 * The widget's content: `field` (the dot-path to the messages on the
 		 * record) or `source`, the mapping keys, `endpoint` or `replyAction`,
 		 * and the texts (`title`, `replyLabel`, `placeholder`, `sendLabel`,
-		 * `emptyText`, translated).
+		 * `usLabel`, `emptyText`, translated).
 		 */
 		content: {
 			type: Object,

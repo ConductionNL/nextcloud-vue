@@ -80,6 +80,11 @@ describe('CnConversationWidget: several lists, merged by time', () => {
 		expect(items.map((li) => li.find('.cn-conversation-thread__text').text())).toEqual(['First question', 'An answer', 'Second question'])
 		expect(items.map((li) => li.attributes('data-side'))).toEqual(['them', 'us', 'them'])
 	})
+
+	it('names an answer without an author with `usLabel`', () => {
+		const w = mountWidget({ fields: [{ field: 'portalAnswers', side: 'us' }], textField: 'message', timeField: 'createdAt', usLabel: 'Employee', allowReply: false })
+		expect(w.find('.cn-conversation-thread__author').text()).toBe('Employee')
+	})
 })
 
 describe('CnConversationWidget: reply tools', () => {
