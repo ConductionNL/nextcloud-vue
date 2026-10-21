@@ -12,6 +12,8 @@ An app's admin settings page has no router and no CnAppRoot. A list there (pipel
 
 Nothing changes without `embedded`.
 
+A list on an admin page also edits fields the schema hides from the app's own pages (`visible: false`, such as a category's description). `fieldsFromSchema` now brings such a property back when its override says `hidden: false`, as it already does for the tenant.
+
 ## Scope
 
-- `src/components/CnIndexPage/CnIndexPage.vue`, `docs/components/cn-index-page.md`, `tests/components/CnIndexPageEmbedded.spec.js`.
+- `src/components/CnIndexPage/CnIndexPage.vue`, `src/utils/schema.js`, `docs/utilities/fields-from-schema.md`, `tests/utils/fieldsFromSchemaOverrideText.spec.js`, `docs/components/cn-index-page.md`, `tests/components/CnIndexPageEmbedded.spec.js`.

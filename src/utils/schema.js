@@ -897,8 +897,9 @@ export function fieldsFromSchema(schema, options = {}) {
 		.map(([key, o]) => [key, { type: typeof o.type === 'string' ? o.type : 'boolean', title: typeof o.label === 'string' ? o.label : key }])
 	const entries = [...Object.entries(schema.properties), ...nested.entries, ...virtual]
 		.filter(([key, prop]) => {
-			// Skip properties marked as not visible
-			if (prop.visible === false) {
+			// Skip properties marked as not visible, unless an override brings
+			// one back with `hidden: false` (a form that does edit it).
+			if (prop.visible === false && overrides[key]?.hidden !== false) {
 				return false
 			}
 			// Per-key override visibility: `overrides[key].hidden === true` hides

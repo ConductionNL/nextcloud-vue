@@ -27,3 +27,13 @@ With `embedded`, a row click (also while `selectable`) and the View action SHALL
 - **GIVEN** an embedded index page without `rowModal`
 - **WHEN** the administrator clicks a row
 - **THEN** the built-in form dialog opens on that row
+
+### Requirement: An override brings back a field the schema hides
+
+`fieldsFromSchema` SHALL leave out a property with `visible: false`, unless its override says `hidden: false`.
+
+#### Scenario: A category's description on the admin form
+
+- **GIVEN** a schema whose `description` is `visible: false`
+- **WHEN** the form is built with `fieldOverrides: { description: { hidden: false } }`
+- **THEN** the form has a description field

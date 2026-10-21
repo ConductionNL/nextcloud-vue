@@ -63,3 +63,15 @@ describe('the optional-field suffix in Dutch', () => {
 		expect(nl.optional).toBe('niet verplicht')
 	})
 })
+
+describe('fieldsFromSchema hidden: false', () => {
+	const schema = { properties: { name: { type: 'string' }, description: { type: 'string', visible: false } } }
+
+	it('leaves a property marked not visible off the form', () => {
+		expect(fieldsFromSchema(schema).map((field) => field.key)).toEqual(['name'])
+	})
+
+	it('brings it back with a hidden: false override', () => {
+		expect(fieldsFromSchema(schema, { overrides: { description: { hidden: false } } }).map((field) => field.key).sort()).toEqual(['description', 'name'])
+	})
+})
