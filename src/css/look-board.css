@@ -1656,6 +1656,29 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding-inline-end: var(--cn-board-dashboard-card-inset);
 }
 
+/* ---- A card of cards (DqDoorlooptijd "Naleving") ------------------------- */
+/* A sections widget laid out in columns on a dashboard card keeps the card's
+   side inset and 20px below. Each section is a small card: a hairline edge,
+   a 10px corner, 14px 16px of padding and its heading at 15px 700, 10px above
+   the content.
+   @spec openspec/changes/sections-card-grid/specs/sections-card-grid/spec.md#requirement-a-board-card-of-cards-draws-the-boards-small-cards */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget--grid {
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+}
+
+.cn-look-board .cn-sections-widget--grid.cn-sections-widget--cards .cn-sections-widget__section:not(.cn-look-nextcloud *) {
+	padding: 14px 16px;
+	border: 1px solid var(--cn-board-hairline);
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-sections-widget--grid.cn-sections-widget--cards .cn-sections-widget__heading:not(.cn-look-nextcloud *) {
+	margin: 0 0 10px;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: normal;
+}
+
 /* ---- Week strip (DqMijnWerk "Termijnen deze week") ---------------------- */
 /* The days wrap inside the card instead of scrolling sideways: a row holds
    as many days of at least 120px as the card fits, and the rest go to the
