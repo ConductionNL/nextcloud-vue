@@ -735,7 +735,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 196,
+			"transitive": 197,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -807,6 +807,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -976,7 +977,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 199,
+			"transitive": 200,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1048,6 +1049,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -1548,7 +1550,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 207,
+			"transitive": 208,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1622,6 +1624,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -1901,7 +1904,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 9,
-			"transitive": 204,
+			"transitive": 205,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1974,6 +1977,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -3018,7 +3022,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 223,
+			"transitive": 224,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3099,6 +3103,7 @@
 				"CnResourceSelect",
 				"CnRetentionWidget",
 				"CnRoadmapTab",
+				"CnSchemaRulesWidget",
 				"CnSearchPage",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
@@ -3307,6 +3312,13 @@
 			"via": [],
 			"page": "cn-radio-cards-widget"
 		},
+		"CnReadinessChecklist": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-readiness-checklist"
+		},
 		"CnRecordListWidget": {
 			"direct": 2,
 			"transitive": 102,
@@ -3501,7 +3513,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 197,
+			"transitive": 198,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3574,6 +3586,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
@@ -3784,6 +3797,20 @@
 			],
 			"page": "cn-schema-form-dialog"
 		},
+		"CnSchemaRulesWidget": {
+			"direct": 3,
+			"transitive": 0,
+			"tier": "light",
+			"via": [],
+			"page": "cn-schema-rules-widget"
+		},
+		"CnSearchIndexStatus": {
+			"direct": 2,
+			"transitive": 0,
+			"tier": "light",
+			"via": [],
+			"page": "cn-search-index-status"
+		},
 		"CnSearchPage": {
 			"direct": 1,
 			"transitive": 0,
@@ -3940,6 +3967,13 @@
 			"tier": "none",
 			"via": [],
 			"page": null
+		},
+		"CnShippedConfigurationSection": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-shipped-configuration-section"
 		},
 		"CnSignatureCapture": {
 			"direct": 0,
@@ -4643,7 +4677,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 187,
+			"transitive": 188,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4712,6 +4746,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnStackedBarWidgetForm",
 				"CnStagesWidget",
