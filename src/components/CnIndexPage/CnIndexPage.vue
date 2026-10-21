@@ -7359,6 +7359,8 @@ export default {
 				translate: this.cnTranslate,
 				// A row action of `type: "open-modal"` opens its modal here.
 				openModal: typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null,
+				// A row action of `type: "api-call"` reads the list again after it.
+				refresh: () => this.onRefreshEvent(),
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
