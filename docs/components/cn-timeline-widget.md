@@ -69,7 +69,7 @@ empty history.
         "label": "Reply",
         "kinds": ["portal-message-in"],
         "modal": "ReplyDialog",
-        "props": { "open": true, "recordId": "@objectId", "subject": "@entry.fields.subject" },
+        "props": { "open": true, "recordId": "@objectId", "subject": "@row.fields.subject" },
         "doneEvent": "sent",
         "closesFollowUp": true
       }
@@ -86,7 +86,7 @@ empty history.
 | `exportName` | `history` | CSV file name prefix; the object id is appended. |
 | `composer` | `true` | `false` hides the note composer. |
 | `textBlocks` | `true` | `false` skips the standard notes. |
-| `entryActions` | `[]` | `{ id, label, kinds?, modal, props?, doneEvent?, closesFollowUp? }`. `modal` names a registry entry; `props` resolve `@objectId` and `@entry.<path>`. On `doneEvent` (default `done`) an open follow-up is closed when `closesFollowUp` is set, else the timeline is read again; `close` dismisses. |
+| `entryActions` | `[]` | `{ id, label, kinds?, modal, props?, doneEvent?, closesFollowUp? }`. `modal` names a registry entry; `props` resolve `@objectId` and `@row.<path>`. On `doneEvent` (default `done`) an open follow-up is closed when `closesFollowUp` is set, else the timeline is read again; `close` dismisses. |
 
 ## Props
 

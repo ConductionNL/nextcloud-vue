@@ -587,7 +587,7 @@ export default {
 		},
 
 		/**
-		 * Resolve `@objectId` and `@entry.<path>` tokens in an action's props.
+		 * Resolve `@objectId` and `@row.<path>` tokens in an action's props.
 		 *
 		 * @param {object} props The props as declared.
 		 * @param {object} entry The entry.
@@ -598,8 +598,8 @@ export default {
 			for (const [key, value] of Object.entries(props || {})) {
 				if (value === '@objectId') {
 					out[key] = this.objectId
-				} else if (typeof value === 'string' && value.startsWith('@entry.')) {
-					const found = readPath(entry, value.slice('@entry.'.length))
+				} else if (typeof value === 'string' && value.startsWith('@row.')) {
+					const found = readPath(entry, value.slice('@row.'.length))
 					out[key] = found === undefined || found === null ? '' : found
 				} else {
 					out[key] = value

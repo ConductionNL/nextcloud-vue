@@ -182,7 +182,7 @@ describe('CnTimelineWidget manage mode', () => {
 				label: 'Reply',
 				kinds: ['portal-in'],
 				modal: 'ReplyDialog',
-				props: { open: true, recordId: '@objectId', subject: '@entry.fields.subject' },
+				props: { open: true, recordId: '@objectId', subject: '@row.fields.subject' },
 				doneEvent: 'sent',
 				closesFollowUp: true,
 			}],
