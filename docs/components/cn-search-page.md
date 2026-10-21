@@ -90,3 +90,21 @@ async function onSearch({ query, facets }) {
 - Saved searches / shareable URLs (consumer-side serialization → URL params).
 - Highlighted query terms in snippets (consumer-side substring decoration).
 - Type-ahead / suggestions API.
+
+## Searching lists from the manifest
+
+A `search` page that names `sources` runs the search itself: one request per list (`_search` and `_limit`, 10 by default), the results in the order of the lists, and the lists offered as a Type filter with their totals. A result opens the page `route` names, with its id.
+
+```json
+{
+  "id": "Search", "route": "/search", "type": "search", "title": "Search",
+  "config": {
+    "sources": [
+      { "id": "meetings", "label": "Meetings", "register": "decidiq", "schema": "meeting", "route": "MeetingDetail" },
+      { "id": "decisions", "label": "Decisions", "register": "decidiq", "schema": "decision", "route": "DecisionDetail", "snippetField": "text" }
+    ]
+  }
+}
+```
+
+`titleField` names the field a result reads as its title (else `title`, then `name`). Without `sources` the page is controlled as before: `results` and `facets` come from props.
