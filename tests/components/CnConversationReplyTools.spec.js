@@ -201,3 +201,23 @@ describe('CnConversationWidget: message status and actions', () => {
 		expect(w.find('[data-testid="cn-conversation-action-error"]').text()).toBe('Could not send it again.')
 	})
 })
+
+describe('CnConversationWidget: page refresh', () => {
+	afterEach(() => {
+		delete global.fetch
+	})
+
+	it('reads the source again when the page refreshes', async () => {
+		global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ results: [] }) }))
+		const w = mount(CnConversationWidget, {
+			props: { content: { source: { register: 'pipelinq', schema: 'channelMessage', filter: { contactId: '@objectId' } } }, objectId: 'c-1', objectData: { id: 'c-1' } },
+			global: { provide: { cnTranslate: (key) => key }, stubs },
+		})
+		await flushPromises()
+		const { emit } = require('@nextcloud/event-bus')
+		emit('cn:page:refresh', {})
+		await flushPromises()
+		expect(global.fetch).toHaveBeenCalledTimes(2)
+		w.unmount()
+	})
+})

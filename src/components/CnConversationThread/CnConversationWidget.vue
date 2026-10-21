@@ -60,6 +60,7 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTemplateSelect from '../CnTemplateSelect/CnTemplateSelect.vue'
@@ -294,7 +295,24 @@ export default {
 		},
 	},
 
+	mounted() {
+		subscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
+	beforeUnmount() {
+		unsubscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
 	methods: {
+		/**
+		 * Read the messages again when the page refreshes (a dialog sent one).
+		 *
+		 * @return {Promise<void>}
+		 */
+		async onPageRefresh() {
+			await this.loadSource()
+		},
+
 		/**
 		 * The stored messages with the side their list gives them: one list
 		 * (`field` or `source`), or several merged (`fields`).

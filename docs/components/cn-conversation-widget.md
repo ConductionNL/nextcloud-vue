@@ -76,6 +76,7 @@ The texts (`title`, `replyLabel`, `placeholder`, `sendLabel`, `emptyText`) go th
 | Key | Meaning |
 |-----|---------|
 | `fields` | Several lists of the record, each on its `side`, merged by time. Instead of `field` or `source`. |
+| (page refresh) | A `cn:page:refresh` (a dialog that sent a message) reads `source` again. |
 | `usLabel` | Author shown on an `us` message that names none ("Employee"). |
 | `templates` | A CnTemplateSelect above the reply box over `url` with `params` (tokens resolved). Picking fills the box with the option's `values[textField]` (default `text`). |
 | `replyOptions` | Checkboxes under the reply box. Their values go into the endpoint's body, and as `options` into a `replyAction`'s argument. |
