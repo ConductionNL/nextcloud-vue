@@ -692,14 +692,16 @@
 }
 
 /* The kicker keeps its tone under a theme that colours every h3 with
-   `!important` (thematiq's heading colour); only `!important` beats it. */
+   `!important` (thematiq's heading colour); only `!important` beats it. The
+   boards set it in sentence case ("Wat nu? Stap 2: in behandeling", DqZaak,
+   DqSociaalDomein), not as the plain look's spaced capitals. */
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__title.cn-next-step-card__title {
 	color: var(--color-primary-element-light-text) !important;
 	font-size: 13px !important;
 	font-weight: 700;
-	letter-spacing: 0.06em;
+	letter-spacing: 0;
 	line-height: normal;
-	text-transform: uppercase;
+	text-transform: none;
 }
 
 .cn-look-board .cn-next-step-card--board .cn-next-step-card__list {
