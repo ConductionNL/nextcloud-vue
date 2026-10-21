@@ -2,18 +2,18 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 1 direct reference, 0 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 5 direct references, 1 file reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name       | Type     | Required | Default                    | Description                                                                       |
-| ---------- | -------- | -------- | -------------------------- | --------------------------------------------------------------------------------- |
-| `register` | `string` |          | `''`                       | Register slug; object context spread as props by CnWidgetGrid.                    |
-| `schema`   | `union`  |          | `''`                       | Schema slug, or the schema object the detail context supplies.                    |
-| `objectId` | `string` |          | `''`                       | The object's id.                                                                  |
-| `object`   | `object` |          | `null`                     | The object itself, when the host already has it.                                  |
-| `title`    | `string` |          | `''`                       | Card title override.                                                              |
-| `content`  | `object` |          | `\{\}`                     | Stored widget content: `{ title, fields, related, auditTrail, timeline, order }`. |
-| `apiBase`  | `string` |          | `'/apps/openregister/api'` | OpenRegister API base.                                                            |
+| Name       | Type     | Required | Default                    | Description                                                                                                  |
+| ---------- | -------- | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `register` | `string` |          | `''`                       | Register slug; object context spread as props by CnWidgetGrid.                                               |
+| `schema`   | `union`  |          | `''`                       | Schema slug, or the schema object the detail context supplies.                                               |
+| `objectId` | `string` |          | `''`                       | The object's id.                                                                                             |
+| `object`   | `object` |          | `null`                     | The object itself, when the host already has it.                                                             |
+| `title`    | `string` |          | `''`                       | Card title override.                                                                                         |
+| `content`  | `object` |          | `\{\}`                     | Stored widget content: `{ title, fields, related, auditTrail, timeline, order, manage, entryActions, ... }`. |
+| `apiBase`  | `string` |          | `'/apps/openregister/api'` | OpenRegister API base.                                                                                       |
