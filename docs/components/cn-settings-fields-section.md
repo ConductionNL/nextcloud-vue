@@ -69,13 +69,30 @@ fields: [
 ]
 ```
 
+## Lists, rows, a key of a JSON setting, and a scope
+
+- A `checkboxes` field draws its `options` as checkboxes in a fieldset named by the label. Its value is the list of checked values, in option order. A `select` with `multiple: true` is the same as a multi-select. It saves a list, or JSON text with `saveAs: 'json'`, or comma text with `saveAs: 'csv'`, and reads any of the three back. `required` refuses an empty choice.
+- A `pairs` field edits key-to-value rows: a key input (`keyLabel`, `keyMaxLength`), a value input (`valueLabel`; `valueType: 'number'` for a number), a remove button per row and an add button (`addLabel`). It saves the rows that have a key as one object, or JSON text with `saveAs: 'json'`, and refuses a key that appears twice.
+- `path: 'vat_rates.high'` edits one key inside a JSON-valued setting. A save sends the whole setting back: the value read, with every field of the section whose `path` lies in it set from the form, as JSON text when it was read as text.
+- A field with `scope: true` picks which record the section edits. Its value (its `default` until changed) fills `{key}` in `url`, `saveUrl` and the fields' urls, and a change reads the section again. It is never saved and never makes the section dirty.
+
+```js
+fields: [
+  { key: 'tenantId', label: 'Tenant', type: 'select', scope: true, default: 'default', optionsUrl: '/apps/myapp/api/tenants' },
+  { key: 'tabs', label: 'Tabs shown', type: 'checkboxes', options: [{ value: 'cases', label: 'Cases' }, { value: 'invoices', label: 'Invoices' }] },
+  { key: 'exchange_rates', label: 'Exchange rates', type: 'pairs', keyLabel: 'Currency', valueLabel: 'Rate', valueType: 'number', keyMaxLength: 3, saveAs: 'json' },
+  { key: 'vatHigh', path: 'vat_rates.high', label: 'High rate (%)', type: 'number', min: 0, max: 100, default: 21 },
+]
+// with url: '/apps/myapp/api/tenant-config?tenantId={tenantId}'
+```
+
 ## Notes, headings and actions
 
 Three types hold no value of their own; they are never checked or saved.
 
 - `heading` draws its `label` as a subheading between fields.
 - `status` draws a read-only note. Its text is `text`, or its `textMap` entry for the value read at its key (`'*'` for any other value; with neither, the value itself). `{name}` takes the value of that field or of that key in the values read, `{value}` the field's own. Its tone is `tone` or its `toneMap` entry (`info` by default; `warning` and `error` are announced as alerts). A note whose text is empty is not drawn, so `textMap: { '': '' }` hides it while nothing is wrong.
-- `action` draws a button with its `label`. It posts the fields named in `send` to `url` with `method` (default `POST`) and shows the answer's sentence at `resultPath` (default `message`, else `successText`, else "Done."), as an error when `okPath` reads false. A failed request shows the server's own sentence. With `fill: { key, bytes }` it puts a random hexadecimal value of that many bytes (default 32) in that field instead, to be saved with the section.
+- `action` draws a button with its `label`. It posts the fields named in `send` to `url` with `method` (default `POST`) and shows the answer's sentence at `resultPath` (default `message`, else `successText`, or `failureText` when `okPath` reads false, with `{name}` filled from the answer, else "Done."), as an error when `okPath` reads false. A failed request shows the server's own sentence. With `fill: { key, bytes }` it puts a random hexadecimal value of that many bytes (default 32) in that field instead, to be saved with the section.
 
 ```js
 fields: [
@@ -91,7 +108,7 @@ fields: [
 |-----|-------------|
 | `key` | Required. The setting's name; a dotted key reads a nested value. |
 | `label` | The label, through the app's translate function. Every field has one; a select gets it through NcSelect's `inputLabel`. |
-| `type` | `text` (default), `textarea`, `number`, `switch`, `select`, `radio`, `lines`, `secret`, `password`, `image`, `heading`, `status` or `action`. |
+| `type` | `text` (default), `textarea`, `number`, `switch`, `select`, `radio`, `checkboxes`, `pairs`, `lines`, `secret`, `password`, `image`, `heading`, `status` or `action`. |
 | `url`, `valuePath` | Read this field from another endpoint, at this dotted path. |
 | `saveUrl`, `saveMethod`, `saveKey`, `saveParams` | Save this field to another endpoint (default `url`, `POST`), under this key, with these static fields merged into the body (`{ setting: 'name' }`). |
 | `uploadUrl`, `uploadField`, `uploadParams`, `uploadValuePath`, `previewUrl`, `uploadLabel`, `accept` | An image's upload, see above. |
@@ -107,10 +124,14 @@ fields: [
 | `visibleWhen` | Show the field only while this condition holds, see above. |
 | `trueValue`, `falseValue` | What a switch saves for on and off. |
 | `setKey` | The key that says a secret is stored. |
-| `saveAs` | `'json'`: a lines field saves JSON text. |
+| `saveAs` | `'json'`: a lines, multi-choice or pairs field saves JSON text; `'csv'`: a multi-choice field saves comma text. |
+| `multiple` | A select that takes several values, saved as a list. |
+| `keyLabel`, `valueLabel`, `valueType`, `keyMaxLength`, `addLabel` | A pairs field's inputs and add button. |
+| `path` | `setting.key`: edit one key inside a JSON-valued setting. |
+| `scope` | The value fills `{key}` in the urls and reloads the section; never saved. |
 | `integer` | A number must be whole. |
 | `text`, `textMap`, `tone`, `toneMap` | A status note's text and tone. |
-| `method`, `send`, `resultPath`, `okPath`, `successText`, `fill` | An action, see above. |
+| `method`, `send`, `resultPath`, `okPath`, `successText`, `failureText`, `fill` | An action, see above. |
 | `readOnly` | Shown, not editable. |
 | `wide` | Spans every column. |
 
@@ -150,5 +171,6 @@ fields: [
 - Every control has a visible label tied to it; a select through NcSelect's `inputLabel`.
 - A hint or an error is tied to its control with `aria-describedby`; a failing field carries `aria-invalid`, and the first one takes focus after a failed Save.
 - The notice after a save is a status message, an error an alert. A status note in the `warning` or `error` tone is an alert too.
-- Radio choices sit in a fieldset whose legend is the label; an option's description is drawn next to it.
+- Radio choices and checkboxes sit in a fieldset whose legend is the label; an option's description is drawn next to it.
+- A pairs row's inputs carry their own labels, and its remove button is named after the row's key.
 - In the board look the labels sit above the controls, like every board settings card.

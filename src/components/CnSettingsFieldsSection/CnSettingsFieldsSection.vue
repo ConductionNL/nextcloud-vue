@@ -107,6 +107,9 @@ function ocsConfig(url) {
 /** Types that hold no value of their own: never read into the form's dirty state, checked or saved. */
 const VALUELESS_TYPES = ['heading', 'status', 'action']
 
+/** Types whose value is a list of choices (a `select` with `multiple` too). */
+const LIST_TYPES = ['checkboxes']
+
 /** Types drawn across the whole grid. */
 const FULL_WIDTH_TYPES = ['heading', 'status']
 
@@ -184,6 +187,60 @@ function linesText(raw) {
  */
 function linesList(text) {
 	return [...new Set(String(text || '').split('\n').map((line) => line.trim()).filter(Boolean))]
+}
+
+/**
+ * A multi-choice value as a list: a list, a JSON list, or comma text.
+ *
+ * @param {unknown} raw The stored value.
+ * @return {Array}
+ */
+function choiceList(raw) {
+	if (Array.isArray(raw)) {
+		return raw
+	}
+	if (typeof raw !== 'string' || raw.trim() === '') {
+		return []
+	}
+	try {
+		const parsed = JSON.parse(raw)
+		if (Array.isArray(parsed)) {
+			return parsed
+		}
+	} catch {
+		// Not JSON: comma text.
+	}
+	return raw.split(',').map((entry) => entry.trim()).filter(Boolean)
+}
+
+/**
+ * An object stored as an object or as JSON text, and whether it was text.
+ *
+ * @param {unknown} raw The stored value.
+ * @return {{object: object, text: boolean}}
+ */
+function storedObject(raw) {
+	if (typeof raw === 'string') {
+		try {
+			const parsed = JSON.parse(raw || '{}')
+			return { object: parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}, text: true }
+		} catch {
+			return { object: {}, text: true }
+		}
+	}
+	return { object: raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}, text: false }
+}
+
+/**
+ * A field's `path` split into the setting that holds JSON and the key inside it.
+ *
+ * @param {object} field The field.
+ * @return {{root: string, rest: string}|null}
+ */
+function pathParts(field) {
+	const path = typeof field.path === 'string' ? field.path : ''
+	const dot = path.indexOf('.')
+	return dot > 0 ? { root: path.slice(0, dot), rest: path.slice(dot + 1) } : null
 }
 
 /**
@@ -296,9 +353,18 @@ export default {
 		 * url?, valuePath?, saveUrl?, saveMethod?, saveKey?, saveParams?, uploadUrl?,
 		 * uploadField?, uploadParams?, uploadValuePath?, initials?, initialsFrom?,
 		 * visibleWhen?, trueValue?, falseValue?, setKey?, saveAs?, text?, textMap?,
-		 * tone?, toneMap?, method?, send?, resultPath?, okPath?, successText?, fill? }]`.
+		 * tone?, toneMap?, method?, send?, resultPath?, okPath?, successText?, failureText?, fill?,
+		 * multiple?, keyLabel?, valueLabel?, valueType?, addLabel?, path?, scope? }]`.
 		 * `type` is `text` (default), `textarea`, `number`, `switch`, `select`,
-		 * `radio`, `lines`, `secret`, `image`, `heading`, `status` or `action`.
+		 * `radio`, `checkboxes`, `pairs`, `lines`, `secret`, `image`, `heading`,
+		 * `status` or `action`. A `checkboxes` field (or a `select` with
+		 * `multiple`) saves its choices as a list, or with `saveAs` `json` or
+		 * `csv` as JSON or comma text. A `pairs` field edits key-to-value rows
+		 * and saves them as one object (JSON text with `saveAs: 'json'`). A
+		 * field with `path: 'setting.key'` edits one key inside a JSON-valued
+		 * setting and saves the whole setting back. A field with `scope: true`
+		 * is never saved: its value fills `{key}` in the urls, and a change
+		 * reads the section again.
 		 * `default` stands in for a value that is missing or empty. A switch
 		 * reads `1`/`true`/`yes`/`on` as on and saves `trueValue`/`falseValue`
 		 * when declared. A secret says it is stored from `setKey` when the
@@ -309,7 +375,9 @@ export default {
 		 * and the values read; a hidden field is not checked. An action posts
 		 * the `send` fields to `url` with `method` (default POST) and shows the
 		 * answer at `resultPath` (default `message`), as an error when `okPath`
-		 * reads false; with `fill: { key, bytes }` it puts a random value in
+		 * reads false; without a sentence there it says `successText` (or
+		 * `failureText` when `okPath` reads false), `{name}` filled from the
+		 * answer; with `fill: { key, bytes }` it puts a random value in
 		 * that field instead. `key` names the setting; a dotted key reads a
 		 * nested value and is written as written. A field with its own `url`
 		 * is read there (at `valuePath`, default its key) and saved to its
@@ -463,12 +531,27 @@ export default {
 
 		/** @return {string} Where the settings are read: `url`, else the app's settings endpoint. */
 		readTarget() {
-			return this.url || (this.appId ? `/apps/${this.appId}/api/settings` : '')
+			return this.resolveUrl(this.url || (this.appId ? `/apps/${this.appId}/api/settings` : ''))
 		},
 
 		/** @return {string} Where the section saves: `saveUrl`, else the read target. */
 		writeTarget() {
-			return this.saveUrl || this.readTarget
+			return this.saveUrl ? this.resolveUrl(this.saveUrl) : this.readTarget
+		},
+
+		/**
+		 * The values of the scope fields: the form's, else their `default`.
+		 *
+		 * @return {object}
+		 */
+		scopeValues() {
+			const values = {}
+			for (const field of Array.isArray(this.fields) ? this.fields : []) {
+				if (field && field.scope && field.key) {
+					values[field.key] = isEmpty(this.form[field.key]) ? field.default : this.form[field.key]
+				}
+			}
+			return values
 		},
 
 		/**
@@ -506,7 +589,7 @@ export default {
 
 		/** @return {boolean} Whether the section holds a field with a value to save. */
 		hasInputs() {
-			return this.resolvedFields.some((field) => !VALUELESS_TYPES.includes(field.type))
+			return this.resolvedFields.some((field) => !VALUELESS_TYPES.includes(field.type) && !field.scope)
 		},
 
 		/**
@@ -516,7 +599,7 @@ export default {
 		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-one-save-per-section-with-a-dirty-state
 		 */
 		dirty() {
-			return this.resolvedFields.some((field) => field.type !== 'image' && !VALUELESS_TYPES.includes(field.type) && !this.same(this.form[field.key], this.baseline[field.key]))
+			return this.resolvedFields.some((field) => field.type !== 'image' && !field.scope && !VALUELESS_TYPES.includes(field.type) && !this.same(this.form[field.key], this.baseline[field.key]))
 		},
 
 		/** @return {string} The Save button's label. */
@@ -542,6 +625,29 @@ export default {
 		 */
 		isFullWidth(field) {
 			return FULL_WIDTH_TYPES.includes(field.type)
+		},
+
+		/**
+		 * A url with its `{key}` tokens filled from the scope fields.
+		 *
+		 * @param {string} url The declared url.
+		 * @return {string}
+		 * @spec openspec/changes/settings-fields-lists/specs/settings-fields-section/spec.md#requirement-a-scope-field-fills-the-url
+		 */
+		resolveUrl(url) {
+			if (!url || !String(url).includes('{')) {
+				return url || ''
+			}
+			const scope = this.scopeValues
+			return interpolate(url, (name) => (Object.hasOwn(scope, name) ? encodeURIComponent(String(scope[name] ?? '')) : undefined))
+		},
+
+		/**
+		 * @param {object} field A field.
+		 * @return {boolean} Whether its value is a list of choices.
+		 */
+		isList(field) {
+			return LIST_TYPES.includes(field.type) || (field.type === 'select' && field.multiple === true)
 		},
 
 		/**
@@ -657,6 +763,10 @@ export default {
 				this.errors = rest
 			}
 			this.notice = null
+			if (field.scope) {
+				this.load(true)
+				return
+			}
 			if (this.autoSave) {
 				clearTimeout(this.autoSaveTimer)
 				const typed = ['text', 'textarea', 'lines', 'number', 'secret', 'password', undefined].includes(field.type)
@@ -696,11 +806,15 @@ export default {
 				}
 			}
 			try {
-				const response = await axios.request({ url: prefixUrl(field.url), method: String(field.method || 'POST').toLowerCase(), data, ...ocsConfig(field.url) })
+				const url = this.resolveUrl(field.url)
+				const response = await axios.request({ url: prefixUrl(url), method: String(field.method || 'POST').toLowerCase(), data, ...ocsConfig(url) })
 				const answer = response?.data ?? {}
 				const said = literalFirst(answer, field.resultPath || 'message')
 				const ok = field.okPath ? isOn(literalFirst(answer, field.okPath)) : true
-				const text = typeof said === 'string' && said !== '' ? said : (this.tr(field.successText || '') || t('nextcloud-vue', 'Done.'))
+				const fallback = !ok && field.failureText ? field.failureText : field.successText
+				const text = typeof said === 'string' && said !== ''
+					? said
+					: (interpolate(this.tr(fallback || ''), (name) => literalFirst(answer, name)) || t('nextcloud-vue', 'Done.'))
 				setState({ busy: false, result: { type: ok ? 'success' : 'error', text } })
 			} catch (error) {
 				setState({ busy: false, result: { type: 'error', text: refusalMessage(error) } })
@@ -742,10 +856,15 @@ export default {
 				const form = {}
 				const stored = {}
 				const unreadable = {}
+				const scope = this.scopeValues
 				const own = this.readTarget ? answers[this.readTarget] : null
 				this.values = (own && this.valuesPath ? literalFirst(own, this.valuesPath) : own) || {}
 				for (const field of this.fields || []) {
 					if (!field || !field.key || field.type === 'heading' || field.type === 'action') {
+						continue
+					}
+					if (field.scope) {
+						form[field.key] = scope[field.key] ?? ''
 						continue
 					}
 					const target = this.readUrlOf(field)
@@ -790,6 +909,12 @@ export default {
 			if (field.type === 'lines') {
 				return linesText(value)
 			}
+			if (this.isList(field)) {
+				return choiceList(value)
+			}
+			if (field.type === 'pairs') {
+				return Object.entries(storedObject(value).object).map(([key, entry]) => ({ key, value: entry }))
+			}
 			return value === undefined ? '' : value
 		},
 
@@ -809,6 +934,23 @@ export default {
 				const list = linesList(value)
 				return field.saveAs === 'json' ? JSON.stringify(list) : list
 			}
+			if (this.isList(field)) {
+				const list = Array.isArray(value) ? value : []
+				if (field.saveAs === 'json') {
+					return JSON.stringify(list)
+				}
+				return field.saveAs === 'csv' ? list.join(',') : list
+			}
+			if (field.type === 'pairs') {
+				const object = {}
+				for (const row of Array.isArray(value) ? value : []) {
+					const key = String(row?.key ?? '').trim()
+					if (key !== '') {
+						object[key] = field.valueType === 'number' && !isEmpty(row.value) ? Number(row.value) : row.value
+					}
+				}
+				return field.saveAs === 'json' ? JSON.stringify(object) : object
+			}
 			return value
 		},
 
@@ -820,7 +962,7 @@ export default {
 		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-a-field-can-read-and-save-elsewhere
 		 */
 		readUrlOf(field) {
-			return field.url || this.readTarget
+			return field.url ? this.resolveUrl(field.url) : this.readTarget
 		},
 
 		/**
@@ -840,6 +982,10 @@ export default {
 				return literalFirst(data, field.valuePath || field.key)
 			}
 			const values = (this.valuesPath ? literalFirst(data, this.valuesPath) : data) || {}
+			const parts = pathParts(field)
+			if (parts) {
+				return readPath(storedObject(literalFirst(values, parts.root)).object, parts.rest)
+			}
 			return literalFirst(values, field.key)
 		},
 
@@ -853,8 +999,8 @@ export default {
 			const errors = {}
 			for (const field of this.resolvedFields) {
 				const value = this.form[field.key]
-				const empty = value === null || value === undefined || value === ''
-				if (['switch', 'boolean', 'image', ...VALUELESS_TYPES].includes(field.type) || this.unreadable[field.key] || !this.isVisible(field)) {
+				const empty = value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)
+				if (['switch', 'boolean', 'image', ...VALUELESS_TYPES].includes(field.type) || field.scope || this.unreadable[field.key] || !this.isVisible(field)) {
 					continue
 				}
 				if (field.required && empty && !(field.type === 'secret' && field.secretSet)) {
@@ -862,6 +1008,17 @@ export default {
 					continue
 				}
 				if (empty) {
+					continue
+				}
+				if (field.type === 'pairs') {
+					const keys = value.map((row) => String(row?.key ?? '').trim()).filter(Boolean)
+					const twice = keys.find((key, at) => keys.indexOf(key) !== at)
+					if (twice) {
+						errors[field.key] = t('nextcloud-vue', '{field} holds {key} twice.', { field: field.label, key: twice })
+					}
+					continue
+				}
+				if (this.isList(field)) {
 					continue
 				}
 				if (field.pattern && !new RegExp(field.pattern).test(String(value))) {
@@ -912,13 +1069,13 @@ export default {
 			const groups = new Map()
 			for (const field of this.resolvedFields) {
 				const value = this.form[field.key]
-				if (field.type === 'image' || VALUELESS_TYPES.includes(field.type) || this.unreadable[field.key] || (!this.saveAll && this.same(value, this.baseline[field.key]))) {
+				if (field.type === 'image' || field.scope || VALUELESS_TYPES.includes(field.type) || this.unreadable[field.key] || (!this.saveAll && this.same(value, this.baseline[field.key]))) {
 					continue
 				}
 				if (field.type === 'secret' && (value === '' || value === null || value === undefined)) {
 					continue
 				}
-				const url = field.saveUrl || (field.url ? field.url : this.writeTarget)
+				const url = this.resolveUrl(field.saveUrl || field.url) || this.writeTarget
 				const method = String(field.saveMethod || (field.saveUrl || field.url ? 'POST' : this.saveMethod)).toLowerCase()
 				const id = `${method} ${url}`
 				if (!groups.has(id)) {
@@ -927,6 +1084,11 @@ export default {
 				const group = groups.get(id)
 				group.fields.push(field)
 				Object.assign(group.data, field.saveParams || {})
+				const parts = pathParts(field)
+				if (parts) {
+					group.data[parts.root] = this.jsonSettingWith(parts.root)
+					continue
+				}
 				group.data[field.saveKey || field.key] = this.savedValue(field, value)
 			}
 			this.saving = true
@@ -937,6 +1099,7 @@ export default {
 				try {
 					await axios.request({ url: prefixUrl(group.url), method: group.method, data: group.data, ...ocsConfig(group.url) })
 					Object.assign(sent, group.data)
+					this.keepJsonSettings(group)
 					this.acceptSaved(group.fields)
 				} catch (error) {
 					failed.push({ group, error })
@@ -965,6 +1128,53 @@ export default {
 			 * @event save-error A save request failed. Payload: the first error.
 			 */
 			this.$emit('save-error', failed[0].error)
+		},
+
+		/**
+		 * Keep the JSON-valued settings a save sent as the values read, so the
+		 * next save starts from them.
+		 *
+		 * @param {{fields: Array<object>, data: object}} group The saved request.
+		 * @return {void}
+		 */
+		keepJsonSettings(group) {
+			const roots = group.fields.map((field) => pathParts(field)?.root).filter(Boolean)
+			if (roots.length === 0) {
+				return
+			}
+			const values = { ...this.values }
+			for (const root of roots) {
+				values[root] = group.data[root]
+			}
+			this.values = values
+		},
+
+		/**
+		 * A JSON-valued setting as it is saved: the value read, with every
+		 * field whose `path` lies inside it set from the form; JSON text when
+		 * it was read as text.
+		 *
+		 * @param {string} root The setting's key.
+		 * @return {object|string}
+		 * @spec openspec/changes/settings-fields-lists/specs/settings-fields-section/spec.md#requirement-a-field-can-edit-one-key-of-a-json-setting
+		 */
+		jsonSettingWith(root) {
+			const stored = storedObject(literalFirst(this.values, root))
+			const object = JSON.parse(JSON.stringify(stored.object))
+			for (const field of this.resolvedFields) {
+				const parts = pathParts(field)
+				if (!parts || parts.root !== root) {
+					continue
+				}
+				const keys = parts.rest.split('.')
+				let node = object
+				for (const key of keys.slice(0, -1)) {
+					node[key] = node[key] && typeof node[key] === 'object' ? node[key] : {}
+					node = node[key]
+				}
+				node[keys[keys.length - 1]] = this.savedValue(field, this.form[field.key])
+			}
+			return stored.text ? JSON.stringify(object) : object
 		},
 
 		/**
