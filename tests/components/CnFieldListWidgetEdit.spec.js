@@ -139,4 +139,23 @@ describe('CnFieldListWidget: edit and primary', () => {
 		expect(mountList().find('[data-testid="cn-field-list-edit-0"]').attributes('aria-label')).toBe('Edit: jan@work.example')
 		expect(mountList({ ...EMAILS, readOnly: true }).find('[data-testid="cn-field-list-edit-0"]').exists()).toBe(false)
 	})
+
+	it('asks for one of several fields', async () => {
+		const SOCIAL = {
+			field: 'socialProfiles',
+			row: { title: 'handle', titleFallback: 'url' },
+			add: { label: 'Add', requireOneOf: ['handle', 'url'], requireOneOfMessage: 'A handle or a profile URL is required', fields: [{ key: 'handle', label: 'Handle' }, { key: 'url', label: 'Profile URL' }] },
+		}
+		const w = mountList(SOCIAL)
+		await w.find('[data-testid="cn-field-list-add"]').trigger('submit')
+		await flush()
+		expect(mockPatch).not.toHaveBeenCalled()
+		expect(w.vm.errors.handle).toBe('A handle or a profile URL is required')
+		await w.find('[data-testid="cn-field-list-input-url"] input.text').setValue('https://social.example/@jan')
+		await w.find('[data-testid="cn-field-list-add"]').trigger('submit')
+		await flush()
+		await flush()
+		expect(mockPatch).toHaveBeenCalledTimes(1)
+	})
 })
+

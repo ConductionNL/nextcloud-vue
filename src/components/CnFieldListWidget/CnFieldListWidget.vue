@@ -375,6 +375,9 @@ export default {
 		 * - `readOnly`, `hint`, `emptyText`.
 		 * - `row.href` — the path of a link for the row title; only http(s) and root-relative links, an absolute one opens in a new tab.
 		 * - `lead` — a line above the rows, translated, with `{path}` filled from the object.
+		 * - `edit` — `true` or `{ label?, saveLabel? }`: an Edit button per row opens the form prefilled and saves the entry in place.
+		 * - `add.fields[].type: 'checkbox'`; `add.exclusive` — flags only one entry holds; `add.requireOneOf` (+ `requireOneOfMessage`) — keys of which one must be filled.
+		 * - `row.href` may be `{ path, scheme: 'mailto'|'tel' }`.
 		 * - `afterSave` — `{ url, method?, body?, failureText? }`: called after every save that went through, with `@objectId` / `@object.<field>` tokens; when it fails the save stands and `failureText` shows.
 		 *
 		 * @type {object}
@@ -1047,6 +1050,10 @@ export default {
 				} else if (!empty && field.pattern && !new RegExp(field.pattern).test(String(value).trim())) {
 					errors[field.key] = this.tr(field.patternMessage || 'This value is not valid.')
 				}
+			}
+			const oneOf = Array.isArray(this.content.add?.requireOneOf) ? this.content.add.requireOneOf : []
+			if (oneOf.length > 0 && oneOf.every((key) => String(this.draft[key] ?? '').trim() === '')) {
+				errors[oneOf[0]] = this.tr(this.content.add.requireOneOfMessage || 'Fill this in.')
 			}
 			this.errors = errors
 			if (Object.keys(errors).length > 0) {
