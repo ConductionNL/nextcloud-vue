@@ -5513,6 +5513,32 @@
 								}
 							}
 						},
+						"cardsSource": {
+							"type": "object",
+							"required": ["url"],
+							"additionalProperties": false,
+							"description": "type='reports' (sh-abstract-sh4, 2.142.0): report cards read from an endpoint and merged after config.cards. `path` and `categoriesPath` are dot paths into the answer (cards, and a key-to-label object of categories). `action` is given to every card read that has no route of its own. A card, declared or read, may carry `query` (passed along with its route), `formats` (strings or { value, label }; with more than one the card offers a choice) and `action` ({ type: 'open-modal', modal, label, params }: the card opens that registry modal with params, the card as `report` and the chosen `format`). Maps to CnReportsPage `cardsSource`.",
+							"properties": {
+								"url": { "type": "string", "minLength": 1 },
+								"path": { "type": "string" },
+								"categoriesPath": { "type": "string" },
+								"action": {
+									"type": "object",
+									"required": ["type", "modal"],
+									"additionalProperties": false,
+									"properties": {
+										"type": { "const": "open-modal" },
+										"modal": { "type": "string", "minLength": 1 },
+										"label": { "type": "string" },
+										"params": { "type": "object", "additionalProperties": true }
+									}
+								}
+							}
+						},
+						"search": {
+							"type": "boolean",
+							"description": "type='reports' (sh-abstract-sh4, 2.142.0): a search field that filters the cards by label and description. Maps to CnReportsPage `search`."
+						},
 						"footnote": {
 							"type": "string",
 							"description": "type='reports' (screens-reports-page-pq-board, 2.116.0): a line under the page, drawn under the board look with an info icon, as board PqReports ends. i18n key / text. Absent draws none. Maps to CnReportsPage `footnote`. A report card there may also carry `note`, the line in its footer (default \"Opens its own page\")."

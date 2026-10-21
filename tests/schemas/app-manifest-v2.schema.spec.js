@@ -1158,6 +1158,13 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.errors).toEqual([])
 	})
 
+	it('accepts the 2.142.0 reports cardsSource and search, and refuses an unknown action type', () => {
+		const withReports = (config) => validateManifestV2({ ...MINIMAL_V2, pages: [{ id: 'reports', route: '/reports', type: 'reports', title: 'Reports', config }] })
+		expect(withReports({ search: true, cardsSource: { url: '/apps/x/api/types', path: 'types', categoriesPath: 'categories', action: { type: 'open-modal', modal: 'GenerateReportDialog', label: 'Generate', params: { a: 1 } } } }).valid).toBe(true)
+		expect(withReports({ cardsSource: { url: '/apps/x/api/types', action: { type: 'navigate', modal: 'X' } } }).valid).toBe(false)
+		expect(withReports({ cardsSource: { path: 'types' } }).valid).toBe(false)
+	})
+
 	it('a navCardEntry with both route and href fails (mutually exclusive)', () => {
 		const manifest = {
 			...MINIMAL_V2,

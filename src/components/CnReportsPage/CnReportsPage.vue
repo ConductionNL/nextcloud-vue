@@ -26,6 +26,12 @@
         ]
       } }
 
+  Cards may also come from an endpoint (`cardsSource {url, path,
+  categoriesPath, action}`), merged after the declared ones. A card with an
+  `action {type: "open-modal", modal, params}` opens a registry modal instead
+  of a page, with the card and its chosen format (`formats`). `query` goes
+  along with a card's route, and `search: true` adds a search field.
+
   A card names a ROUTE by name, never a path: a path is editable per app and a
   card pointing at a stale one is a dead end that still looks like a report.
 
@@ -66,6 +72,17 @@
 			<p v-if="resolvedDescription" class="cn-reports-page__description">
 				{{ resolvedDescription }}
 			</p>
+		</div>
+
+		<div v-if="config.search" class="cn-reports-page__search">
+			<label class="cn-reports-page__filter-label" :for="searchId">
+				{{ t('nextcloud-vue', 'Search reports') }}
+			</label>
+			<input :id="searchId"
+				v-model="searchText"
+				type="search"
+				class="cn-reports-page__search-input"
+				data-testid="cn-reports-search">
 		</div>
 
 		<!-- The board look (board PqReports): category chips with counts, one
@@ -127,7 +144,26 @@
 									</p>
 									<div class="cn-reports-page__card-footer">
 										<span class="cn-reports-page__card-note">{{ cardNote(card) }}</span>
-										<a class="cn-reports-page__card-open"
+										<label v-if="cardFormats(card).length > 1" class="cn-reports-page__format">
+											<span class="hidden-visually">{{ t('nextcloud-vue', 'Format of {report}', { report: card.label }) }}</span>
+											<select v-model="chosenFormats[card.id]"
+												class="cn-reports-page__format-select"
+												:data-testid="`cn-report-format-${card.id}`">
+												<option v-for="format in cardFormats(card)" :key="format.value" :value="format.value">
+													{{ format.label }}
+												</option>
+											</select>
+										</label>
+										<button v-if="card.action"
+											type="button"
+											class="cn-reports-page__card-open"
+											:data-testid="`cn-report-action-${card.id}`"
+											:aria-label="`${actionLabel(card)}: ${card.label}`"
+											@click="runAction(card)">
+											{{ actionLabel(card) }}
+										</button>
+										<a v-else
+											class="cn-reports-page__card-open"
 											data-testid="cn-report-open"
 											:href="hrefFor(card)"
 											:aria-label="t('nextcloud-vue', 'Open {report}', { report: card.label })"
@@ -198,7 +234,36 @@
 
 		<ul v-else-if="!isBoard" class="cn-reports-page__grid" data-testid="cn-reports-grid">
 			<li v-for="card in visibleCards" :key="card.id" class="cn-reports-page__cell">
-				<a class="cn-reports-page__card"
+				<div v-if="card.action"
+					class="cn-reports-page__card"
+					data-testid="cn-report-card">
+					<span class="cn-reports-page__card-title">{{ card.label }}</span>
+					<span v-if="card.description" class="cn-reports-page__card-description">
+						{{ card.description }}
+					</span>
+					<span v-if="categoryName(card)" class="cn-reports-page__card-category">
+						{{ categoryName(card) }}
+					</span>
+					<span class="cn-reports-page__card-actions">
+						<label v-if="cardFormats(card).length > 1" class="cn-reports-page__format">
+							<span class="hidden-visually">{{ t('nextcloud-vue', 'Format of {report}', { report: card.label }) }}</span>
+							<select v-model="chosenFormats[card.id]"
+								class="cn-reports-page__format-select"
+								:data-testid="`cn-report-format-${card.id}`">
+								<option v-for="format in cardFormats(card)" :key="format.value" :value="format.value">
+									{{ format.label }}
+								</option>
+							</select>
+						</label>
+						<NcButton :data-testid="`cn-report-action-${card.id}`"
+							:aria-label="`${actionLabel(card)}: ${card.label}`"
+							@click="runAction(card)">
+							{{ actionLabel(card) }}
+						</NcButton>
+					</span>
+				</div>
+				<a v-else
+					class="cn-reports-page__card"
 					data-testid="cn-report-card"
 					:href="hrefFor(card)"
 					@click="open(card, $event)">
@@ -228,6 +293,7 @@
 /**
  * The Reports page: one surface listing an app's reports as cards.
  */
+import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import { defineAsyncComponent } from 'vue'
@@ -238,7 +304,9 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import { useLook } from '../../composables/useLook.js'
 import { headerActionAsLink } from '../../utils/actionLink.js'
 import { resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
+import { readPath } from '../../utils/readPath.js'
 
 export default {
 	name: 'CnReportsPage',
@@ -266,6 +334,7 @@ export default {
 		 * Defaults to identity so the page still renders outside one.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		cnOpenModal: { default: null },
 	},
 
 	props: {
@@ -428,6 +497,22 @@ export default {
 		},
 
 		/**
+		 * Cards read from an endpoint, merged after `cards`: `{ url, path,
+		 * categoriesPath, action }`. `path` and `categoriesPath` are dot paths
+		 * into the answer; `action` is given to every card read.
+		 */
+		cardsSource: {
+			type: Object,
+			default: null,
+		},
+
+		/** Show a search field that filters the cards by label and description. */
+		search: {
+			type: Boolean,
+			default: null,
+		},
+
+		/**
 		 * The note card in the side column under the board look
 		 * (`config.sideNote`): `{ title, text }`. Absent: the library's own
 		 * note on asking for a missing report. `false` draws no note card.
@@ -472,6 +557,10 @@ export default {
 	data() {
 		return {
 			activeCategory: 'all',
+			searchText: '',
+			sourceCards: [],
+			sourceCategories: {},
+			chosenFormats: {},
 		}
 	},
 
@@ -517,6 +606,8 @@ export default {
 				'headerActions',
 				'footnote',
 				'sideNote',
+				'cardsSource',
+				'search',
 			]) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
@@ -629,6 +720,24 @@ export default {
 		},
 
 		/**
+		 * The declared categories, then the ones the endpoint names.
+		 *
+		 * @return {object} Key to label.
+		 */
+		allCategories() {
+			return { ...this.sourceCategories, ...(this.config.categories || {}) }
+		},
+
+		/**
+		 * The id of the search field.
+		 *
+		 * @return {string} The id.
+		 */
+		searchId() {
+			return `cn-reports-search-${String((this.page && this.page.id) || 'page').replace(/[^\w-]/g, '-')}`
+		},
+
+		/**
 		 * The declared cards, ignoring any that name no route.
 		 *
 		 * A card with no route is a card that cannot be opened. Rendering it
@@ -638,13 +747,10 @@ export default {
 		 * @return {Array<object>} The usable cards.
 		 */
 		resolvedCards() {
-			const declared = this.config.cards
-			if (!Array.isArray(declared)) {
-				return []
-			}
+			const declared = Array.isArray(this.config.cards) ? this.config.cards : []
 
-			return declared
-				.filter((card) => card && card.route && card.label)
+			return [...declared, ...this.sourceCards]
+				.filter((card) => card && (card.route || card.action) && card.label)
 				.map((card) => ({
 					...card,
 					label: this.tr(card.label),
@@ -660,7 +766,7 @@ export default {
 		 * @return {Array<object>} The options.
 		 */
 		categoryOptions() {
-			const declared = this.config.categories || {}
+			const declared = this.allCategories
 			const counts = {}
 			this.resolvedCards.forEach((card) => {
 				if (card.category) {
@@ -685,7 +791,7 @@ export default {
 		 * @return {Array<{key: string, label: string, cards: Array<object>}>} The sections.
 		 */
 		boardSections() {
-			const declared = this.config.categories || {}
+			const declared = this.allCategories
 			const sections = []
 			const loose = this.resolvedCards.filter((card) => !card.category || !Object.hasOwn(declared, card.category))
 			if (loose.length > 0) {
@@ -707,11 +813,10 @@ export default {
 		 * @return {Array<{key: string, label: string, cards: Array<object>}>} The sections.
 		 */
 		visibleSections() {
-			if (this.activeCategory === 'all') {
-				return this.boardSections
-			}
-
-			return this.boardSections.filter((section) => section.key === this.activeCategory)
+			return this.boardSections
+				.filter((section) => this.activeCategory === 'all' || section.key === this.activeCategory)
+				.map((section) => ({ ...section, cards: section.cards.filter((card) => this.matchesSearch(card)) }))
+				.filter((section) => section.cards.length > 0)
 		},
 
 		/**
@@ -749,11 +854,9 @@ export default {
 		 * @return {Array<object>} The visible cards.
 		 */
 		visibleCards() {
-			if (this.activeCategory === 'all') {
-				return this.resolvedCards
-			}
-
-			return this.resolvedCards.filter((card) => card.category === this.activeCategory)
+			return this.resolvedCards
+				.filter((card) => this.activeCategory === 'all' || card.category === this.activeCategory)
+				.filter((card) => this.matchesSearch(card))
 		},
 
 		/**
@@ -791,6 +894,12 @@ export default {
 				? this.tr(this.config.emptyLabel)
 				: t('nextcloud-vue', 'No reports in this category.')
 		},
+	},
+
+	mounted() {
+		if (this.config.cardsSource && this.config.cardsSource.url) {
+			this.loadSourceCards()
+		}
 	},
 
 	methods: {
@@ -868,7 +977,7 @@ export default {
 		 * @return {string} The label, or an empty string.
 		 */
 		categoryName(card) {
-			const declared = this.config.categories || {}
+			const declared = this.allCategories
 
 			return this.tr((card.category && declared[card.category]) || '')
 		},
@@ -886,7 +995,7 @@ export default {
 			}
 
 			try {
-				return this.$router.resolve({ name: card.route }).href
+				return this.$router.resolve(this.routeFor(card)).href
 			} catch {
 				return '#'
 			}
@@ -947,7 +1056,115 @@ export default {
 		 * @return {void}
 		 */
 		open(card, event) {
-			followLinkClick(event, { name: card.route }, this.$router)
+			followLinkClick(event, this.routeFor(card), this.$router)
+		},
+
+		/**
+		 * The route a card opens, with its `query` when it has one.
+		 *
+		 * @param {object} card The card.
+		 * @return {object} The route location.
+		 */
+		routeFor(card) {
+			return card.query && typeof card.query === 'object'
+				? { name: card.route, query: card.query }
+				: { name: card.route }
+		},
+
+		/**
+		 * Read the cards and categories of `cardsSource`. A source that cannot
+		 * be read adds nothing; the declared cards stay.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadSourceCards() {
+			const source = this.config.cardsSource
+			try {
+				const { data } = await axios.get(prefixUrl(source.url))
+				const cards = readPath(data, source.path)
+				const action = source.action && typeof source.action === 'object' ? source.action : null
+				this.sourceCards = (Array.isArray(cards) ? cards : [])
+					.filter((card) => card && card.id && card.label)
+					.map((card) => (action && !card.route && !card.action ? { ...card, action } : card))
+				const categories = source.categoriesPath ? readPath(data, source.categoriesPath) : null
+				this.sourceCategories = categories && typeof categories === 'object' && !Array.isArray(categories) ? categories : {}
+			} catch {
+				this.sourceCards = []
+				this.sourceCategories = {}
+			}
+		},
+
+		/**
+		 * Whether a card matches the search text, on its label or description.
+		 *
+		 * @param {object} card The card.
+		 * @return {boolean} True when it matches or nothing is searched.
+		 */
+		matchesSearch(card) {
+			const needle = this.searchText.trim().toLowerCase()
+			if (needle === '') {
+				return true
+			}
+			return `${card.label || ''} ${card.description || ''}`.toLowerCase().includes(needle)
+		},
+
+		/**
+		 * The formats a card offers, as value and label pairs. A format is a
+		 * string or `{ value, label }`.
+		 *
+		 * @param {object} card The card.
+		 * @return {Array<{value: string, label: string}>} The formats.
+		 */
+		cardFormats(card) {
+			if (!Array.isArray(card.formats)) {
+				return []
+			}
+			return card.formats
+				.map((format) => (typeof format === 'string'
+					? { value: format, label: format.toUpperCase() }
+					: { value: String(format.value), label: this.tr(format.label || String(format.value).toUpperCase()) }))
+				.filter((format) => format.value !== '')
+		},
+
+		/**
+		 * The format chosen for a card: the reader's choice, else its first.
+		 *
+		 * @param {object} card The card.
+		 * @return {string|null} The format.
+		 */
+		formatFor(card) {
+			const formats = this.cardFormats(card)
+			const chosen = this.chosenFormats[card.id]
+			if (chosen && formats.some((format) => format.value === chosen)) {
+				return chosen
+			}
+			return formats.length > 0 ? formats[0].value : null
+		},
+
+		/**
+		 * The label of a card's action button.
+		 *
+		 * @param {object} card The card.
+		 * @return {string} The label.
+		 */
+		actionLabel(card) {
+			return card.action && card.action.label ? this.tr(card.action.label) : t('nextcloud-vue', 'Open')
+		},
+
+		/**
+		 * Run a card's action: open its registry modal with the action's
+		 * `params`, the card as `report` and the chosen `format`.
+		 *
+		 * @param {object} card The card.
+		 * @return {void}
+		 */
+		runAction(card) {
+			const action = card.action
+			if (!action || action.type !== 'open-modal' || !action.modal || typeof this.cnOpenModal !== 'function') {
+				return
+			}
+			const params = action.params && typeof action.params === 'object' ? action.params : {}
+			this.cnOpenModal(action.modal, { ...params, report: card, format: this.formatFor(card) })
 		},
 	},
 }

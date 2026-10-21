@@ -80,6 +80,31 @@ Nextcloud look is unchanged.
 | `translate` | Function | `null` | Translate function. Falls back to the one `CnAppRoot` provides. |
 | `page` | Object | `{}` | The whole manifest page, for a host that mounts the component itself. The props above win. |
 
+## Cards from an endpoint, actions, formats and search
+
+```json
+{ "id": "Reports", "route": "/reports", "type": "reports",
+  "config": {
+    "search": true,
+    "cards": [
+      { "id": "PostingHistory", "label": "Posting history", "route": "GeneralLedger",
+        "query": { "subLedgerType": "inventory" } }
+    ],
+    "cardsSource": {
+      "url": "/apps/myapp/api/reporting/types",
+      "path": "types",
+      "categoriesPath": "categories",
+      "action": { "type": "open-modal", "modal": "GenerateReportDialog", "label": "Generate" }
+    }
+  } }
+```
+
+- `cardsSource` reads cards (at `path`) and categories (at `categoriesPath`) from an endpoint and merges them after the declared `cards`. Declared category labels win. A source that cannot be read adds nothing.
+- `action` (`{ type: "open-modal", modal, label, params }`) on a card, or given by `cardsSource` to every card it reads without a route, makes the card a button that opens that registry modal with `params`, the card as `report` and the chosen `format`.
+- `formats` on a card (strings or `{ value, label }`): with more than one the card offers a format choice; the first is the default.
+- `query` goes along with a card's `route`.
+- `search: true` adds a search field over label and description.
+
 ## Related
 
 - [CnLinkCardsPage](./cn-link-cards-page.md) for grouped link cards that are not reports.
