@@ -36,6 +36,12 @@
 				</NcButton>
 			</li>
 		</ul>
+		<p v-else-if="loadError"
+			class="cn-party-actions-widget__error"
+			role="alert"
+			data-testid="cn-party-indicator-load-error">
+			{{ loadError }}
+		</p>
 		<span v-else-if="emptyText" class="cn-party-actions-widget__empty" data-testid="cn-party-actions-empty">
 			<CheckCircleOutline :size="18" aria-hidden="true" />
 			{{ emptyText }}
@@ -46,6 +52,11 @@
 			data-testid="cn-party-indicator-error">
 			{{ ackError }}
 		</p>
+		<CnActionButtons
+			v-if="indicatorActions.length > 0"
+			class="cn-party-actions-widget__add"
+			:actions="indicatorActions"
+			data-testid="cn-party-actions-indicator-actions" />
 		<CnActionButtons
 			v-if="emptyActions.length > 0"
 			class="cn-party-actions-widget__add"
@@ -61,6 +72,7 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { NcButton } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -74,6 +86,7 @@ import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
+import { OBJECT_CREATED_EVENT } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 
 const TONES = Object.freeze(['warning', 'error', 'info', 'success', 'neutral'])
@@ -150,7 +163,7 @@ export default {
 		/**
 		 * The widget configuration: `indicators` (`{ label, tone?, icon?, visibleWhen? }`,
 		 * tone `warning` | `error` | `info` | `success` | `neutral`), `emptyText`,
-		 * `emptyActions` and `actions` (action descriptors), and `indicatorSource`
+		 * `emptyActions`, `indicatorActions` and `actions` (action descriptors), and `indicatorSource`
 		 * for indicators kept as objects of their own (see `loadListed`).
 		 *
 		 * @type {{indicators?: Array<object>, emptyText?: string, emptyActions?: Array<object>, actions?: Array<object>}}
@@ -181,6 +194,8 @@ export default {
 			acking: '',
 			/** Why the last acknowledgement failed. */
 			ackError: '',
+			/** Why `indicatorSource` could not be read: shown instead of the empty sentence. */
+			loadError: '',
 		}
 	},
 
@@ -233,6 +248,11 @@ export default {
 			return this.shownIndicators.length === 0 ? this.actionList(this.content?.emptyActions) : []
 		},
 
+		/** @return {Array<object>} The actions beside the indicators (`indicatorActions`), drawn while any shows. */
+		indicatorActions() {
+			return this.shownIndicators.length > 0 ? this.actionList(this.content?.indicatorActions) : []
+		},
+
 		/** @return {Array<object>} The quick actions at the end of the band. */
 		quickActions() {
 			return this.actionList(this.content?.actions)
@@ -246,6 +266,16 @@ export default {
 				this.loadListed()
 			},
 		},
+	},
+
+	mounted() {
+		window.addEventListener(OBJECT_CREATED_EVENT, this.loadListed)
+		subscribe('cn:page:refresh', this.loadListed)
+	},
+
+	beforeUnmount() {
+		window.removeEventListener(OBJECT_CREATED_EVENT, this.loadListed)
+		unsubscribe('cn:page:refresh', this.loadListed)
 	},
 
 	methods: {
@@ -315,8 +345,10 @@ export default {
 				const { data } = await axios.get(generateUrl(url))
 				rows = source.itemsPath ? readPath(data, source.itemsPath) : data
 			} catch {
+				this.loadError = this.tr(source.errorText || 'The warnings could not be loaded.')
 				return []
 			}
+			this.loadError = ''
 			const toneMap = source.toneMap && typeof source.toneMap === 'object' ? source.toneMap : {}
 			const toneLabels = source.toneLabels && typeof source.toneLabels === 'object' ? source.toneLabels : {}
 			const ack = source.ack && typeof source.ack === 'object' ? source.ack : null

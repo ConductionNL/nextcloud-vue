@@ -141,3 +141,40 @@ describe('CnPartyActionsWidget: link filters and label templates', () => {
 		expect(contactHref('geo', '')).toBeNull()
 	})
 })
+
+describe('CnPartyActionsWidget: a source that fails, actions beside the list, reading again', () => {
+	it('says the warnings could not be loaded instead of saying there are none', async () => {
+		mockGet.mockRejectedValue(new Error('down'))
+		const w = mountBand({ indicatorSource: { ...SOURCE, errorText: 'The list of warnings could not be loaded.' }, emptyText: 'No warnings on this record.' })
+		await flushPromises()
+		expect(w.find('[data-testid="cn-party-indicator-load-error"]').text()).toBe('The list of warnings could not be loaded.')
+		expect(w.find('[data-testid="cn-party-indicator-load-error"]').attributes('role')).toBe('alert')
+		expect(w.find('[data-testid="cn-party-actions-empty"]').exists()).toBe(false)
+	})
+
+	it('draws indicatorActions beside the indicators and emptyActions when there are none', async () => {
+		const add = [{ id: 'add-warning', label: 'Add a warning', type: 'open-form' }]
+		const w = mountBand({ indicatorSource: SOURCE, emptyActions: add, indicatorActions: add })
+		await flushPromises()
+		expect(w.find('[data-testid="cn-party-actions-indicator-actions"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-party-actions-add"]').exists()).toBe(false)
+
+		mockGet.mockResolvedValue({ data: { indicators: [] } })
+		const empty = mountBand({ indicatorSource: SOURCE, emptyActions: add, indicatorActions: add })
+		await flushPromises()
+		expect(empty.find('[data-testid="cn-party-actions-indicator-actions"]').exists()).toBe(false)
+		expect(empty.find('[data-testid="cn-party-actions-add"]').exists()).toBe(true)
+	})
+
+	it('reads the indicators again when an object is created or the page asks', async () => {
+		const w = mountBand({ indicatorSource: SOURCE })
+		await flushPromises()
+		window.dispatchEvent(new CustomEvent('cn-walkthrough:object-created', { detail: { id: 'n-1' } }))
+		await flushPromises()
+		expect(mockGet).toHaveBeenCalledTimes(2)
+		w.unmount()
+		window.dispatchEvent(new CustomEvent('cn-walkthrough:object-created', { detail: { id: 'n-2' } }))
+		await flushPromises()
+		expect(mockGet).toHaveBeenCalledTimes(2)
+	})
+})
