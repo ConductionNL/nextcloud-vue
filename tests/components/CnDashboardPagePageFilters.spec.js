@@ -73,6 +73,24 @@ describe('CnDashboardPage — pageFilters', () => {
 		expect(wrapper.vm.workspaceContext.period).toBe('last-30')
 	})
 
+	it('seeds a filter from the query parameter it names, before its default', () => {
+		const wrapper = mount(CnDashboardPage, {
+			propsData: { layout: [], widgets: [], pageFilters: [{ ...PERIOD_FILTER, fromQuery: 'period' }] },
+			stubs,
+			global: { mocks: { $route: { query: { period: 'last-7' } } } },
+		})
+		expect(wrapper.vm.workspaceContext.period).toBe('last-7')
+	})
+
+	it('keeps the default when the query parameter is absent', () => {
+		const wrapper = mount(CnDashboardPage, {
+			propsData: { layout: [], widgets: [], pageFilters: [{ ...PERIOD_FILTER, fromQuery: 'period' }] },
+			stubs,
+			global: { mocks: { $route: { query: {} } } },
+		})
+		expect(wrapper.vm.workspaceContext.period).toBe('last-30')
+	})
+
 	it('offers a quarter filter the current quarter first and seeds it', () => {
 		const wrapper = mountDash({ pageFilters: [{ key: 'quarter', label: 'Quarter', type: 'quarter', count: 4 }] })
 		const now = new Date()

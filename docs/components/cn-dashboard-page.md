@@ -365,6 +365,10 @@ A widget then binds its data to the selected value. With an endpoint-bound [`sta
 
 Each entry: `key` (the context key written on change), optional `label`, `type` (only `'select'` today), `options` (`[{ value, label }]`), and an optional `default` (else the first option seeds the context on mount). Omitting `pageFilters` renders nothing and leaves the context untouched (backwards-compatible). The label and the option labels go through the app's translate.
 
+### A filter seeded from the address (`fromQuery`)
+
+`fromQuery` names a query parameter of the address that seeds the filter instead of its default, so a link can open the page on one record: a filter `{ "key": "campaign", "fromQuery": "campaign", "optionsFrom": { ... } }` opens `/reports/campaign?campaign=<id>` on that campaign. Without the parameter the default (or the first option) holds.
+
 ### Options read from a source (`optionsFrom`)
 
 A filter can read its options instead of listing them, as the case-type filter of a reporting dashboard does:

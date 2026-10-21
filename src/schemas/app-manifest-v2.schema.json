@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.139.0",
+	"version": "2.140.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -5238,6 +5238,7 @@
 									"control": { "type": "string", "enum": ["select", "segmented"], "default": "select", "description": "How the filter is drawn: a select, or a compact segmented group." },
 									"clearable": { "type": "boolean", "default": false, "description": "Lets the reader clear the select back to all; `placeholder` names that state (2.130.0)." },
 									"placeholder": { "type": "string", "description": "What a cleared select shows, e.g. \"All case types\", through the app's translate (2.130.0)." },
+									"fromQuery": { "type": "string", "minLength": 1, "description": "A query parameter of the address that, when set, seeds the filter instead of its default, so a link can open the page on one record (2.140.0)." },
 									"optionsFrom": {
 										"type": "object",
 										"additionalProperties": false,

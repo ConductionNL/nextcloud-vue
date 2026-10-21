@@ -1758,8 +1758,11 @@ export default {
 		 * before it, valued `YYYY-Qn` and seeded with the current one;
 		 * `type: 'year'` does the same for years (default 5, valued `YYYY`). Empty
 		 * (the default) renders no controls and leaves the context untouched.
+		 * `fromQuery` names a query parameter of the address that, when set,
+		 * seeds the filter instead of its default, so a link can open the page
+		 * on one record (`/reports/campaign?campaign=<id>`).
 		 *
-		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
+		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number), fromQuery?: string}>}
 		 */
 		pageFilters: {
 			type: Array,
@@ -2996,7 +2999,8 @@ export default {
 				}
 				const listed = Array.isArray(pf.options) ? pf.options : generatedPageFilterOptions(pf)
 				const fallback = (listed && listed.length && pf.clearable !== true) ? listed[0].value : undefined
-				const value = pf.default !== undefined ? pf.default : fallback
+				const asked = pf.fromQuery && this.$route && this.$route.query ? this.$route.query[pf.fromQuery] : undefined
+				const value = (typeof asked === 'string' && asked !== '') ? asked : (pf.default !== undefined ? pf.default : fallback)
 				if (value !== undefined) {
 					this.workspaceContext[pf.key] = value
 				}
