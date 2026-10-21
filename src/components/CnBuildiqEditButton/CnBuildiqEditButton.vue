@@ -15,7 +15,7 @@
 	<div v-if="isAvailable" class="cn-buildiq-edit">
 		<NcActions
 			v-model:open="menuOpen"
-			:aria-label="t('nextcloud-vue', 'Edit with Buildiq')"
+			aria-label="buildiq"
 			class="cn-buildiq-edit__actions"
 			:class="[{ 'cn-buildiq-edit__actions--editing': isEditing }]">
 			<template #icon>

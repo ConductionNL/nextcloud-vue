@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 0 direct references, 2 files reached through imports.
+**light**: this component touches OpenRegister lightly. 0 direct references, 3 files reached through imports.
 
 Through: `CnMapWidget`.
 

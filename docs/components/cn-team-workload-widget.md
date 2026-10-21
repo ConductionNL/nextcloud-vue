@@ -39,6 +39,9 @@ Present means any status but offline. The viewer comes first, marked "(you)", th
 | `capacity` | The count at a full bar. Without it the highest count is. |
 | `countLabel` | `{ one, other }` with `{count}`, through the app's translate. Without it the count reads "{count} open". |
 | `emptyText` | Shown without anyone to list, through the app's translate. |
+| `hideWhenEmpty` | Render nothing at all when there is no one to list, including when the read is refused (a 403 for someone who is not a coordinator). Default `false`. |
+| `rowRoute` | Makes each person's row a button that opens their work. A route name is given the person as `query[rowRouteParam]`; a route location (`{ name, params?, query? }`) has `{user}` in its values replaced by the person's user id. |
+| `rowRouteParam` | The query key a route-name `rowRoute` receives the user id under. Default `assignee`. |
 
 The header note is reported through the `header` event, which the dashboard card and the index page's side panel draw in the card's title row.
 

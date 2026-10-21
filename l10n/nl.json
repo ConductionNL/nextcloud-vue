@@ -2225,7 +2225,53 @@
     "Withheld": "Afgeschermd",
     "This value is not shown.": "Deze waarde wordt niet getoond.",
     "You may not open the linked object, so its value is not shown.": "U mag het gekoppelde object niet openen, daarom wordt de waarde niet getoond.",
-    "Search in this list": "Zoeken in deze lijst"
+    "Search in this list": "Zoeken in deze lijst",
+    "Flagged as needing attention:": "Gemarkeerd als aandacht nodig:",
+    "Assessed risk:": "Ingeschat risico:",
+    "Due for review": "Toe aan herbeoordeling",
+    "Why this needs attention": "Waarom dit aandacht nodig heeft",
+    "Why it no longer needs attention": "Waarom er geen aandacht meer nodig is",
+    "Flag for attention": "Markeer voor aandacht",
+    "Clear the flag": "Markering opheffen",
+    "Raised": "Gezet",
+    "Cleared": "Opgeheven",
+    "This did not work. Try again.": "Dit lukte niet. Probeer het opnieuw.",
+    "Waiting on the applicant": "Wacht op inwoner",
+    "Waiting on someone outside the organisation": "Wacht op iemand buiten de organisatie",
+    "Waiting on {reason}": "Wacht op {reason}",
+    "{move} is waiting on {reason}": "{move} wacht op {reason}",
+    "This moves to {status} once these are on file": "Dit gaat naar {status} zodra dit binnen is",
+    "longer than this status allows": "langer dan deze status toestaat",
+    "What this status asks": "Wat deze status vraagt",
+    "Fill in: {fields}": "Vul in: {fields}",
+    "Cannot be changed here: {fields}": "Kan hier niet worden gewijzigd: {fields}",
+    "Not shown to you here: {fields}": "Hier niet aan u getoond: {fields}",
+    "The places could not be loaded.": "De plaatsen konden niet worden geladen.",
+    "Nothing was changed": "Er is niets gewijzigd",
+    "No role": "Geen rol",
+    "Publishing a file on this record is refused": "Publiceren van een bestand hierop wordt geweigerd",
+    "A message to this party is refused": "Een bericht aan deze partij wordt geweigerd",
+    "Read this before acting on the record": "Lees dit voordat je hiermee verder gaat",
+    "The parties could not be read": "De partijen konden niet worden gelezen",
+    "OpenRegister did not answer. Nothing has been removed.": "OpenRegister gaf geen antwoord. Er is niets verwijderd.",
+    "No parties yet": "Nog geen partijen",
+    "Add a party to record who this is for and who acts on it.": "Voeg een partij toe om vast te leggen voor wie dit is en wie erop handelt.",
+    "Accepted kinds": "Toegestane soorten",
+    "Primary party": "Hoofdbetrokkene",
+    "Kind not accepted here": "Soort hier niet toegestaan",
+    "Represented by": "Namens",
+    "{sent} sent, {received} received": "{sent} verstuurd, {received} ontvangen",
+    "Publishing a file on this record is refused, because of {party}.": "Publiceren van een bestand hierop wordt geweigerd, vanwege {party}.",
+    "A message to {party} is refused.": "Een bericht aan {party} wordt geweigerd.",
+    "The app these come from is not installed": "De app waar deze vandaan komen is niet geïnstalleerd",
+    "Actions for this row": "Acties voor deze rij",
+    "Export CSV": "CSV exporteren",
+    "Not every record could be read, so these figures may be incomplete.": "Niet alle gegevens konden worden gelezen, dus deze cijfers zijn mogelijk onvolledig.",
+    "Download CSV": "CSV downloaden",
+    "Count": "Aantal",
+    "The report could not be read.": "De rapportage kon niet worden gelezen.",
+    "Nothing to count": "Niets om te tellen",
+    "Q{quarter} {year}": "K{quarter} {year}"
   },
   "plurals": {
     "{count} member": [
@@ -2375,6 +2421,22 @@
     "Go back to the %n on this page": [
       "Terug naar de %n op deze pagina",
       "Terug naar de %n op deze pagina"
+    ],
+    "{count} working day in this status": [
+      "{count} werkdag in deze status",
+      "{count} werkdagen in deze status"
+    ],
+    "{count} new": [
+      "{count} nieuw",
+      "{count} nieuw"
+    ],
+    "%n document sent": [
+      "%n document verstuurd",
+      "%n documenten verstuurd"
+    ],
+    "%n document received": [
+      "%n document ontvangen",
+      "%n documenten ontvangen"
     ]
   }
 }

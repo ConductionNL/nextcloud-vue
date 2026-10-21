@@ -303,6 +303,44 @@ export async function fetchEndpointSource(config, ctx, opts) {
 }
 
 /**
+ * The sentence a failed endpoint read is shown with: the server's own
+ * `message` (a refusal says why), else the transport error's message.
+ *
+ * @param {unknown} err The rejected request's error.
+ * @return {string} The message, 'error' when nothing says more.
+ */
+export function endpointErrorMessage(err) {
+	const serverMessage = err?.response?.data?.message
+	if (typeof serverMessage === 'string' && serverMessage.trim() !== '') {
+		return serverMessage
+	}
+	return (err && err.message) || 'error'
+}
+
+/**
+ * Whether a failed endpoint read was a refusal (401 or 403) rather than a
+ * failure, so a widget can say the reader may not see it instead of "error".
+ *
+ * @param {unknown} err The rejected request's error.
+ * @return {boolean} True for a 401 or 403 answer.
+ */
+export function isEndpointRefusal(err) {
+	const status = err?.response?.status
+	return status === 401 || status === 403
+}
+
+/**
+ * Whether a response body says it is short: a top-level `truncated: true`,
+ * which an endpoint sends when it stopped reading at a limit.
+ *
+ * @param {unknown} body The raw response body.
+ * @return {boolean} True when the body declares itself truncated.
+ */
+export function isTruncatedBody(body) {
+	return Boolean(body && typeof body === 'object' && body.truncated === true)
+}
+
+/**
  * Unwrap a value that may be a plain value, a ref, or a getter function.
  *
  * @param {unknown} v The wrapped value.
@@ -316,7 +354,15 @@ function read(v) {
  * Reactive endpoint data binding.
  *
  * Resolves the `endpointSource` block into reactive
- * `{ data, loading, error, refetch }`. The request signature (url + resolved
+ * `{ data, body, loading, error, refused, truncated, refetch }`. `body` is the
+ * whole response before `responsePath`, so a widget can read a label the
+ * endpoint sends beside its rows. `error` carries the
+ * server's `message` when it sent one, `refused` is true when the read was
+ * answered 401/403, and `truncated` mirrors a top-level `truncated: true` in
+ * the response body. A source with `loadOn: 'request'` reads nothing until
+ * `request()` is called (`awaitingRequest` is true until then, and again
+ * whenever the request changes), for an endpoint whose every read is
+ * recorded, so a plain visit records nothing. The request signature (url + resolved
  * params + method) is watched, so a change in the page-level workspace
  * context (the dashboard date-range pills publishing `dateFrom` / `dateTo` /
  * `datePreset`, a page filter publishing `period`, …) re-resolves the tokens
@@ -335,13 +381,23 @@ function read(v) {
  * @param {object|import('vue').Ref<object>|(() => object)} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
  * @param {string|import('vue').Ref<string>|(() => string)} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
  * @param {import('vue').Ref<unknown>|(() => unknown)} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
- * @return {{data: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
+ * @return {{data: import('vue').Ref<unknown>, body: import('vue').Ref<unknown>, awaitingRequest: import('vue').Ref<boolean>, request: () => Promise<void>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refused: import('vue').Ref<boolean>, truncated: import('vue').Ref<boolean>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
  */
 export function useEndpointSource(source, options) {
 	const opts = options || {}
 	const data = ref(null)
 	const loading = ref(false)
 	const error = ref('')
+	const refused = ref(false)
+	const truncated = ref(false)
+	const body = ref(null)
+	// `loadOn: 'request'`: nothing is read until request() is called, and a
+	// changed request (another period, say) waits for the next request().
+	const awaitingRequest = ref(false)
+	const onRequest = () => {
+		const cfg = read(source)
+		return Boolean(cfg && cfg.url && cfg.loadOn === 'request')
+	}
 	// Whether the last read was not attempted because a required token is
 	// unset. The three refs above cannot express it: a blocked read looks
 	// exactly like the instant before the first request.
@@ -382,7 +438,10 @@ export function useEndpointSource(source, options) {
 	async function load(force, refresh) {
 		const cfg = read(source)
 		const seq = ++fetchSeq
+		refused.value = false
+		truncated.value = false
 		if (!cfg || !cfg.url) {
+			body.value = null
 			data.value = null
 			error.value = ''
 			loading.value = false
@@ -393,6 +452,7 @@ export function useEndpointSource(source, options) {
 		if (request.blocked) {
 			// A required context token is unset — wait, don't error.
 			data.value = null
+			body.value = null
 			error.value = ''
 			loading.value = false
 			blocked.value = true
@@ -403,18 +463,22 @@ export function useEndpointSource(source, options) {
 		loading.value = true
 		error.value = ''
 		try {
-			const body = await fetchSharedResponse(request, { force: force === true, refresh })
+			const answer = await fetchSharedResponse(request, { force: force === true, refresh })
 			if (seq !== fetchSeq) {
 				return
 			}
-			const payload = getByPath(body, request.responsePath)
+			const payload = getByPath(answer, request.responsePath)
 			data.value = payload === undefined ? null : payload
+			body.value = answer === undefined ? null : answer
+			truncated.value = isTruncatedBody(answer)
 		} catch (e) {
 			if (seq !== fetchSeq) {
 				return
 			}
-			error.value = (e && e.message) || 'error'
+			error.value = endpointErrorMessage(e)
+			refused.value = isEndpointRefusal(e)
 			data.value = null
+			body.value = null
 		} finally {
 			if (seq === fetchSeq) {
 				// Forced refetches hold `loading` to MIN_FORCED_LOADING_MS so
@@ -441,20 +505,54 @@ export function useEndpointSource(source, options) {
 	 * @param {boolean} [force] Bypass the shared cache (default true).
 	 * @return {Promise<void>}
 	 */
-	const refetch = (force = true) => load(force)
+	const refetch = (force = true) => (awaitingRequest.value ? Promise.resolve() : load(force))
+
+	/**
+	 * Read now, for a `loadOn: 'request'` source: the reader asked. Always a
+	 * fresh read, since each request is one the server may record.
+	 *
+	 * @return {Promise<void>}
+	 */
+	const request = () => {
+		if (resolveEndpointRequest(read(source), readCtx()).blocked) {
+			blocked.value = true
+			return Promise.resolve()
+		}
+		awaitingRequest.value = false
+		return load(true)
+	}
 
 	watch(requestKey, () => {
+		if (onRequest()) {
+			// Drop the last answer and any read in flight: it answered another request.
+			fetchSeq++
+			data.value = null
+			body.value = null
+			error.value = ''
+			refused.value = false
+			truncated.value = false
+			loading.value = false
+			awaitingRequest.value = true
+			blocked.value = resolveEndpointRequest(read(source), readCtx()).blocked
+			return
+		}
+		awaitingRequest.value = false
 		load(false)
 	}, { immediate: true })
 
 	if (opts.refreshKey !== undefined) {
 		watch(() => read(opts.refreshKey), () => {
-			load(true)
+			if (!awaitingRequest.value) {
+				load(true)
+			}
 		})
 	}
 
 	// `waitUntil` lets the menu that sent the refresh spin until this fetch lands.
 	const onPageRefresh = (payload) => {
+		if (awaitingRequest.value) {
+			return
+		}
 		const done = load(true, payload)
 		payload?.waitUntil?.(done)
 	}
@@ -463,7 +561,7 @@ export function useEndpointSource(source, options) {
 		if (!id) {
 			return
 		}
-		if (!payload || payload.widgetId !== id) {
+		if (!payload || payload.widgetId !== id || awaitingRequest.value) {
 			return
 		}
 		const done = load(true, payload)
@@ -478,5 +576,5 @@ export function useEndpointSource(source, options) {
 		})
 	}
 
-	return { data, loading, error, blocked, refetch }
+	return { data, body, loading, error, refused, truncated, blocked, awaitingRequest, request, refetch }
 }

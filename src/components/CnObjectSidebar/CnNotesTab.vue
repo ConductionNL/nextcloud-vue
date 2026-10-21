@@ -129,11 +129,12 @@
 								v-for="action in noteActions"
 								:key="`${row.note.id}-${action.id}`"
 								:data-testid="`cn-note-action-${action.id}`"
-								@click="$emit('note-action', { action: action.id, note: row.note })">
+								@click="onNoteAction(action, row.note)">
 								<template v-if="action.icon" #icon>
-									<component :is="action.icon" :size="20" />
+									<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+									<component :is="action.icon" v-else :size="20" />
 								</template>
-								{{ action.label }}
+								{{ translateLabel(action.label) }}
 							</NcActionButton>
 						</template>
 					</NcListItem>
@@ -154,6 +155,7 @@
 </template>
 
 <script>
+import { showError, showSuccess, showWarning } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
@@ -163,8 +165,10 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Reply from 'vue-material-design-icons/Reply.vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import CnNoteHistoryDialog from '../../dialogs/CnNoteHistoryDialog.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnNoteBody from '../CnNoteBody/CnNoteBody.vue'
 import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
+import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { extractMentionedGroupIds, extractMentionedIds } from '../../utils/mentions.js'
 import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
@@ -174,7 +178,12 @@ import { userLocale } from '../../utils/userLocale.js'
 export default {
 	name: 'CnNotesTab',
 
-	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, CnNoteBody, CnNoteComposer, CnNoteHistoryDialog, CommentTextOutline, Send, Pencil, Delete, HistoryIcon, Reply },
+	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, CnIcon, CnNoteBody, CnNoteComposer, CnNoteHistoryDialog, CommentTextOutline, Send, Pencil, Delete, HistoryIcon, Reply },
+
+	inject: {
+		/** The host app's translate, for labels a manifest wrote (`noteActions`). */
+		cnTranslate: { default: () => (key) => key },
+	},
 
 	props: {
 		/** ID of the object this tab belongs to */
@@ -216,11 +225,16 @@ export default {
 		// `label` stays the app's to write and translate, so nc-vue phrases
 		// nothing for somebody else's domain and adds no catalogue string here.
 		/**
-		 * Per-note actions the consuming app owns, `[{ id, label, icon? }]`.
+		 * Per-note actions the consuming app owns, `[{ id, label, icon?, endpoint?, messages? }]`.
 		 * Each entry renders one NcActionButton in every note's action menu,
 		 * after the library's own, and clicking it emits `note-action`. Empty
 		 * by default, and an empty list changes nothing. `icon` is optional
-		 * and takes an icon component.
+		 * and takes an icon component or an icon name. With `endpoint` (an app
+		 * URL; `@objectId` and `{objectId}` are filled in) the click also POSTs
+		 * `{ note }` there and says what the server answered: `{ outcome,
+		 * reason }`, `sent` as a success, `failed` as an error, anything else
+		 * as a warning, each with the server's `reason`, else `messages.sent`,
+		 * `messages.failed` or `messages.other`.
 		 */
 		noteActions: {
 			type: Array,
@@ -228,6 +242,16 @@ export default {
 			validator: (actions) => actions.every((action) => action
 				&& typeof action.id === 'string' && action.id !== ''
 				&& typeof action.label === 'string' && action.label !== ''),
+		},
+
+		/**
+		 * An app endpoint the `mention` payload is POSTed to after a note with
+		 * an `@mention` was saved, so a manifest can wire the notification
+		 * without a component. The `mention` event fires either way.
+		 */
+		mentionUrl: {
+			type: String,
+			default: '',
 		},
 	},
 
@@ -367,7 +391,7 @@ export default {
 			if (mentionedUserIds.length === 0 && mentionedGroupIds.length === 0) {
 				return
 			}
-			this.$emit('mention', {
+			const payload = {
 				objectId: this.objectId,
 				register: this.register,
 				schema: this.schema,
@@ -375,7 +399,76 @@ export default {
 				mentionedUserIds,
 				// Only when a group is mentioned: a note that names none keeps the payload it always had.
 				...(mentionedGroupIds.length > 0 ? { mentionedGroupIds } : {}),
-			})
+			}
+			this.$emit('mention', payload)
+			if (this.mentionUrl !== '') {
+				this.postJson(this.mentionUrl, payload).catch(() => {
+					// The note is saved; a notification that did not go out is
+					// not a reason to tell the writer their note failed.
+				})
+			}
+		},
+
+		/**
+		 * A manifest label through the host app's translate.
+		 *
+		 * @param {string} label The label.
+		 * @return {string} The translated label.
+		 */
+		translateLabel(label) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(label) : label
+		},
+
+		/**
+		 * POST a JSON body to an app URL and answer the parsed response.
+		 *
+		 * @param {string} url The app URL (`/apps/...`), tokens filled.
+		 * @param {object} body The body.
+		 * @return {Promise<object>} The response body; rejects on a non-2xx status.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-notes-can-notify-and-act-without-a-wrapper
+		 */
+		async postJson(url, body) {
+			const target = interpolateUrlTokens(url, { objectId: this.objectId }).replaceAll('{objectId}', encodeURIComponent(String(this.objectId)))
+			const response = await fetch(prefixUrl(target), { method: 'POST', headers: buildHeaders(), body: JSON.stringify(body) })
+			const data = await response.json().catch(() => ({}))
+			if (!response.ok) {
+				const error = new Error(String(data?.message || data?.error || response.status))
+				error.data = data
+				throw error
+			}
+			return data || {}
+		},
+
+		/**
+		 * Run one of the app's note actions: emit `note-action`, and with an
+		 * `endpoint` POST the note there and say what became of it.
+		 *
+		 * @param {object} action The action entry.
+		 * @param {object} note The note.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-notes-can-notify-and-act-without-a-wrapper
+		 */
+		async onNoteAction(action, note) {
+			this.$emit('note-action', { action: action.id, note })
+			if (typeof action.endpoint !== 'string' || action.endpoint === '' || !this.objectId) {
+				return
+			}
+			const messages = action.messages && typeof action.messages === 'object' ? action.messages : {}
+			const say = (key, fallback) => (typeof messages[key] === 'string' && messages[key] !== '' ? this.translateLabel(messages[key]) : fallback)
+			try {
+				const outcome = await this.postJson(action.endpoint, { note })
+				const reason = String(outcome.reason || '').trim()
+				if (outcome.outcome === 'sent') {
+					showSuccess(reason || say('sent', t('nextcloud-vue', 'Done')))
+				} else if (outcome.outcome === 'failed') {
+					showError(reason || say('failed', t('nextcloud-vue', 'This did not work. Try again.')))
+				} else {
+					showWarning(reason || say('other', t('nextcloud-vue', 'Nothing was changed')))
+				}
+			} catch (error) {
+				const reason = String(error?.data?.reason || '').trim()
+				showError(reason || say('failed', t('nextcloud-vue', 'This did not work. Try again.')))
+			}
 		},
 
 		/**
