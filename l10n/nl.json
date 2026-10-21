@@ -2225,7 +2225,9 @@
     "Withheld": "Afgeschermd",
     "This value is not shown.": "Deze waarde wordt niet getoond.",
     "You may not open the linked object, so its value is not shown.": "U mag het gekoppelde object niet openen, daarom wordt de waarde niet getoond.",
-    "Search in this list": "Zoeken in deze lijst"
+    "Search in this list": "Zoeken in deze lijst",
+    "Opens {host} in a new tab.": "Opent {host} in een nieuw tabblad.",
+    "How this app compares": "Hoe deze app zich verhoudt"
   },
   "plurals": {
     "{count} member": [

@@ -361,7 +361,7 @@ function describeOpenRegisterEntity(kind, idOrSlug) {
 	return entityDescriptorCache.get(key).catch(() => null)
 }
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
-import { defaultPageTypes } from './pageTypes.js'
+import { defaultPageSidebars, defaultPageTypes } from './pageTypes.js'
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
@@ -1626,14 +1626,21 @@ export default {
 		 * `console.warn` is logged in the missing-name case so
 		 * manifest authors notice misconfiguration). Watched below to
 		 * push the value into the reactive `pageSidebarComponent`
-		 * holder shared via provide/inject with `CnAppRoot`.
+		 * holder shared via provide/inject with `CnAppRoot`. A page type with
+		 * a default sidebar (`flow`: CnFlowSidebar) mounts it when the page
+		 * names none and does not hide its sidebar.
 		 *
 		 * @return {object|null} The resolved Vue component, or null.
+		 * @spec openspec/changes/pl4-roadmap-flow/specs/pl4-roadmap-flow/spec.md#requirement-a-flow-page-mounts-the-flow-sidebar-by-default
 		 */
 		currentPageSidebarComponent() {
 			const page = this.currentPage
-			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent.length === 0) {
+			if (!page) {
 				return null
+			}
+			if (typeof page.sidebarComponent !== 'string' || page.sidebarComponent.length === 0) {
+				const sidebarShown = !page.sidebar || typeof page.sidebar !== 'object' || page.sidebar.show !== false
+				return (sidebarShown && defaultPageSidebars[page.type]) || null
 			}
 			const name = page.sidebarComponent
 			const resolved = this.resolveCustomComponent(name, 'page')
