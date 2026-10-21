@@ -168,6 +168,17 @@ An endpoint read that is refused (401/403) shows the server's `message` as a war
   successful mutation the self-fetch refreshes and an `object-op` event
   is emitted (so hosts feeding external `rows` can refetch).
 
+### A row action that reads its row (`@row.<field>`)
+
+A row action can name fields of the row it runs on with `@row.<field>` (dot paths work) in its `url`, `filename`, `target`, `payload`, `params` and `props`. An `api-call` then posts to that row's endpoint, and an `open-modal` hands the row's values to the modal. A token that is the whole value keeps the field's type; inside a longer string it is written in, empty when the row has no such field.
+
+```json
+"actions": [
+  { "id": "run", "label": "Run now", "type": "api-call", "url": "/apps/pipelinq/api/competitor-watches/@row.id/run" },
+  { "id": "override", "label": "Override", "type": "open-modal", "target": "ForecastOverrideModal", "props": { "ownerId": "@row.ownerId" } }
+]
+```
+
 ## Props
 
 | Prop | Type | Description |

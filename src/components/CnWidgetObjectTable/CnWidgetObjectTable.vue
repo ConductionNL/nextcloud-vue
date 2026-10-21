@@ -113,6 +113,7 @@ import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { actionForRow } from '../../utils/rowTokens.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -1054,7 +1055,7 @@ export default {
 			if (action.type !== 'object-op') {
 				const wrapped = (!action.type || action.type === 'handler')
 					? { ...action, args: [...(action.args || []), row] }
-					: action
+					: actionForRow(action, row)
 				if (typeof this.cnDispatchAction === 'function') {
 					this.cnDispatchAction(wrapped)
 				} else {
