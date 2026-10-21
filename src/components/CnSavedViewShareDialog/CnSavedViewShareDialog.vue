@@ -3,7 +3,12 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="confirm"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="resolvedTitle"
 		size="small"
 		:noClose="loading"
@@ -32,13 +37,15 @@
 				{{ t('nextcloud-vue', 'Save sharing') }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import CnSavedViewShareFields from '../CnSavedViewShareFields/CnSavedViewShareFields.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { normalizeSharedWith } from '../../utils/savedViewHelpers.js'
 
 /**
@@ -50,7 +57,9 @@ import { normalizeSharedWith } from '../../utils/savedViewHelpers.js'
 export default {
 	name: 'CnSavedViewShareDialog',
 
-	components: { CnSavedViewShareFields, NcButton, NcDialog, NcLoadingIcon, NcNoteCard },
+	components: { CnDialog, CnSavedViewShareFields, NcButton, NcLoadingIcon, NcNoteCard },
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** The view being shared (its `sharedWith` seeds the fields). */
