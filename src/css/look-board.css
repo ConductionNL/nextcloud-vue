@@ -1907,3 +1907,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .settings-section:not(.cn-look-nextcloud *):has(.cn-version-info--compact) > .settings-section__name {
 	font-size: 18px;
 }
+
+/* ---- A card titled as a side card (`titleTone: "side"`) ------------------ */
+/* The boards title the cards in a page's right column as side cards: 15px,
+   600, muted (DqDagAfsluiten "Uw dag", DqZaaktypeOverzicht "Gegevens"). The
+   tone carries `!important` against the dashboard title rule and a theme
+   that colours every h3.
+   @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card */
+.cn-look-board .cn-widget-wrapper--side-title:not(.cn-look-nextcloud *) .cn-widget-wrapper__title {
+	font-size: var(--cn-board-side-heading-size, 15px) !important;
+	font-weight: 600 !important;
+	color: var(--color-text-maxcontrast) !important;
+}
