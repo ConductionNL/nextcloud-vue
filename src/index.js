@@ -248,6 +248,7 @@ export {
 	CnObjectListWidgetForm,
 	CnObjectMetadataModal,
 	CnObjectMetadataWidget,
+	CnObjectPartiesWidget,
 	CnObjectPresenceWidget,
 	CnObjectRow,
 	CnObjectSidebar,

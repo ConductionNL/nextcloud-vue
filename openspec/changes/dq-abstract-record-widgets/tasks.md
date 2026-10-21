@@ -9,3 +9,7 @@
 - [x] 7. Facts: progress, `when`, `source.path`, `emptyActions`, retry, link `hrefBase` / `target`
 - [x] 8. Notes: `mentionUrl`, note action `endpoint`
 - [x] 9. Redaction: breadcrumbs, `redaction` page type
+- [x] 10. CnObjectPartiesWidget (`parties`), with `utils/objectParties.js`
+- [x] 11. Record list: `rowActions`, `requiresApp` / `absentText`, `links`, `count` badges, `intro`, candidate templates
+- [x] 12. Grouped cards: `itemsPath` / `itemGroupField`, `ungroupedTitle`, `groupLines`, `itemFlag`, retry
+- [x] 13. Related objects: `extraSources`, `referenceSections`, `footerActions`

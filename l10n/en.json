@@ -1997,7 +1997,24 @@
     "Cannot be changed here: {fields}": "Cannot be changed here: {fields}",
     "Not shown to you here: {fields}": "Not shown to you here: {fields}",
     "The places could not be loaded.": "The places could not be loaded.",
-    "Nothing was changed": "Nothing was changed"
+    "Nothing was changed": "Nothing was changed",
+    "No role": "No role",
+    "Publishing a file on this record is refused": "Publishing a file on this record is refused",
+    "A message to this party is refused": "A message to this party is refused",
+    "Read this before acting on the record": "Read this before acting on the record",
+    "The parties could not be read": "The parties could not be read",
+    "OpenRegister did not answer. Nothing has been removed.": "OpenRegister did not answer. Nothing has been removed.",
+    "No parties yet": "No parties yet",
+    "Add a party to record who this is for and who acts on it.": "Add a party to record who this is for and who acts on it.",
+    "Accepted kinds": "Accepted kinds",
+    "Primary party": "Primary party",
+    "Kind not accepted here": "Kind not accepted here",
+    "Represented by": "Represented by",
+    "{sent} sent, {received} received": "{sent} sent, {received} received",
+    "Publishing a file on this record is refused, because of {party}.": "Publishing a file on this record is refused, because of {party}.",
+    "A message to {party} is refused.": "A message to {party} is refused.",
+    "The app these come from is not installed": "The app these come from is not installed",
+    "Actions for this row": "Actions for this row"
   },
   "plurals": {
     "{count} member": [
@@ -2138,6 +2155,14 @@
     "{count} new": [
       "{count} new",
       "{count} new"
+    ],
+    "%n document sent": [
+      "%n document sent",
+      "%n documents sent"
+    ],
+    "%n document received": [
+      "%n document received",
+      "%n documents received"
     ]
   }
 }

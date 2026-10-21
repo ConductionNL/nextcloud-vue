@@ -719,7 +719,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 193,
+			"transitive": 194,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -778,6 +778,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -959,7 +960,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 196,
+			"transitive": 197,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1018,6 +1019,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -1523,7 +1525,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 204,
+			"transitive": 205,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1583,6 +1585,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -1875,7 +1878,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 9,
-			"transitive": 201,
+			"transitive": 202,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1934,6 +1937,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -2861,6 +2865,13 @@
 			],
 			"page": "cn-object-metadata-widget"
 		},
+		"CnObjectPartiesWidget": {
+			"direct": 4,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-object-parties-widget"
+		},
 		"CnObjectPresenceWidget": {
 			"direct": 0,
 			"transitive": 1,
@@ -2968,7 +2979,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 220,
+			"transitive": 221,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3032,6 +3043,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -3257,7 +3269,7 @@
 			"page": "cn-radio-cards-widget"
 		},
 		"CnRecordListWidget": {
-			"direct": 1,
+			"direct": 2,
 			"transitive": 102,
 			"tier": "heavy",
 			"via": [
@@ -3391,7 +3403,7 @@
 			"page": "cn-related-files"
 		},
 		"CnRelatedObjectsWidget": {
-			"direct": 7,
+			"direct": 8,
 			"transitive": 109,
 			"tier": "heavy",
 			"via": [
@@ -3450,7 +3462,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 194,
+			"transitive": 195,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3510,6 +3522,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
@@ -4582,7 +4595,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 184,
+			"transitive": 185,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4638,6 +4651,7 @@
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
+				"CnObjectPartiesWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",

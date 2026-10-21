@@ -2247,7 +2247,24 @@
     "Cannot be changed here: {fields}": "Kan hier niet worden gewijzigd: {fields}",
     "Not shown to you here: {fields}": "Hier niet aan u getoond: {fields}",
     "The places could not be loaded.": "De plaatsen konden niet worden geladen.",
-    "Nothing was changed": "Er is niets gewijzigd"
+    "Nothing was changed": "Er is niets gewijzigd",
+    "No role": "Geen rol",
+    "Publishing a file on this record is refused": "Publiceren van een bestand hierop wordt geweigerd",
+    "A message to this party is refused": "Een bericht aan deze partij wordt geweigerd",
+    "Read this before acting on the record": "Lees dit voordat je hiermee verder gaat",
+    "The parties could not be read": "De partijen konden niet worden gelezen",
+    "OpenRegister did not answer. Nothing has been removed.": "OpenRegister gaf geen antwoord. Er is niets verwijderd.",
+    "No parties yet": "Nog geen partijen",
+    "Add a party to record who this is for and who acts on it.": "Voeg een partij toe om vast te leggen voor wie dit is en wie erop handelt.",
+    "Accepted kinds": "Toegestane soorten",
+    "Primary party": "Hoofdbetrokkene",
+    "Kind not accepted here": "Soort hier niet toegestaan",
+    "Represented by": "Namens",
+    "{sent} sent, {received} received": "{sent} verstuurd, {received} ontvangen",
+    "Publishing a file on this record is refused, because of {party}.": "Publiceren van een bestand hierop wordt geweigerd, vanwege {party}.",
+    "A message to {party} is refused.": "Een bericht aan {party} wordt geweigerd.",
+    "The app these come from is not installed": "De app waar deze vandaan komen is niet geïnstalleerd",
+    "Actions for this row": "Acties voor deze rij"
   },
   "plurals": {
     "{count} member": [
@@ -2405,6 +2422,14 @@
     "{count} new": [
       "{count} nieuw",
       "{count} nieuw"
+    ],
+    "%n document sent": [
+      "%n document verstuurd",
+      "%n documenten verstuurd"
+    ],
+    "%n document received": [
+      "%n document ontvangen",
+      "%n documenten ontvangen"
     ]
   }
 }

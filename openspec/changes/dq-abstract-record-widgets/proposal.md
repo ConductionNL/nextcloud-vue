@@ -28,4 +28,11 @@ copies (audit `DQ-ABSTRACT`, lane L4-RECORD).
 - CnNotesTab: `mentionUrl` and note actions with an `endpoint`.
 - CnRedactionEditor: a breadcrumb from config, and the `redaction` page type (manifest schema 2.137.0).
 
+Part 2 (stacked on part 1):
+
+- New CnObjectPartiesWidget (`parties`), with `utils/objectParties.js`.
+- `record-list`: row actions (an endpoint or a page action), an absent app, a links line, count badges, an intro.
+- `grouped-cards`: cards from one flat list joined by group, an ungrouped group, group lines, a flag, a retry.
+- `related`: sections read from app endpoints, a reference section, footer actions.
+
 Followers are not in scope: Ruben decided they show only in the header popover.
