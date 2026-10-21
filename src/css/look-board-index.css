@@ -634,16 +634,36 @@
 	width: 18%;
 }
 
-/* The board's data cells sit 12px apart (PqTickets), the first one 18px from
-   the selection column; the selection and menu columns keep 16px. */
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th:not(.cn-table-col--checkbox):not(.cn-table-col--actions):not(.cn-table-col--icon),
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td:not(.cn-table-col--checkbox):not(.cn-table-col--actions):not(.cn-table-col--icon) {
+/* An index table pads every cell 16px at the sides (DqZaken). The plain-title
+   table (`rowTitle: "plain"`: PqTickets, OcPublicaties) sets its data cells
+   12px apart and its title column 18px from the selection column; the
+   selection and menu columns keep 16px. The title column is left out of the
+   12px rule, which would otherwise outrank the 18px one.
+   @spec openspec/changes/board-table-density/specs/board-table-density/spec.md#requirement-a-board-table-pads-its-cells-as-the-boards-draw-them */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board.cn-table-container--title-plain .cn-data-table th:not(.cn-table-col--checkbox):not(.cn-table-col--actions):not(.cn-table-col--icon):not(.cn-table-head--title),
+.cn-look-board .cn-index-page__main--table .cn-table-container--board.cn-table-container--title-plain .cn-data-table td:not(.cn-table-col--checkbox):not(.cn-table-col--actions):not(.cn-table-col--icon):not(.cn-table-col--title) {
 	padding-inline: 12px;
 }
 
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th.cn-table-head--title,
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td.cn-table-col--title {
-	padding-inline-start: 18px;
+.cn-look-board .cn-index-page__main--table .cn-table-container--board.cn-table-container--title-plain .cn-data-table th.cn-table-head--title,
+.cn-look-board .cn-index-page__main--table .cn-table-container--board.cn-table-container--title-plain .cn-data-table td.cn-table-col--title {
+	padding-inline: 18px 12px;
+}
+
+/* A table that is not an index page's main list sits in a card and is the
+   compact one: 10px 12px in the header, 11px 12px in the cells
+   (DqInstellingen, DqVthInstellingen, DqZaaktype, DqTermijnen). The selection
+   column keeps its 16px, so it stays 60px wide. */
+.cn-look-board .cn-table-container--board:not(.cn-index-page__main--table > *) .cn-data-table th {
+	padding: 10px 12px;
+}
+
+.cn-look-board .cn-table-container--board:not(.cn-index-page__main--table > *) .cn-data-table td {
+	padding: 11px 12px;
+}
+
+.cn-look-board .cn-table-container--board:not(.cn-index-page__main--table > *) .cn-data-table .cn-table-col--checkbox {
+	padding-inline: 16px;
 }
 
 .cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td > .cn-cell-renderer {
@@ -873,12 +893,15 @@
 }
 
 /* A page link is a <button>: Nextcloud's `button` rule sets it bold, the
-   boards set the links at the regular weight and only the current page at 600. */
+   boards set the links at the regular weight and only the current page at 600.
+   The boards size a link's content box at 34px, so a bordered link is 36px
+   and the borderless current page 34px (DqZaken "2", "Volgende", "1").
+   @spec openspec/changes/board-pagination-links/specs/board-pagination-links/spec.md#requirement-a-board-page-link-is-sized-as-the-boards-draw-it */
 .cn-look-board .cn-pagination--board .cn-pagination__board-link {
 	box-sizing: border-box;
-	min-width: 34px;
-	height: 34px;
-	min-height: 34px;
+	min-width: 36px;
+	height: 36px;
+	min-height: 36px;
 	margin: 0;
 	padding: 0 8px;
 	border: 1px solid var(--color-border);
@@ -903,7 +926,10 @@
 }
 
 .cn-look-board .cn-pagination--board .cn-pagination__board-link--current {
-	border-color: var(--color-primary-element);
+	min-width: 34px;
+	height: 34px;
+	min-height: 34px;
+	border: 0;
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
 	font-weight: 600;
@@ -1405,4 +1431,74 @@
 .cn-look-board .cn-record-list--table .cn-record-list__table td {
 	border-bottom: none;
 	padding-block: 2px;
+}
+
+/* ---- The index side panel (CnIndexSidebar, board IndexZijpaneel) -------- */
+/* The panel's title is 20px bold without the schema icon, and its tabs are
+   one row of 40px labels, 14px weight 600 in the soft ink, the open one in
+   the deep primary ink and underlined 2px in the primary colour on the
+   strip's rule (DqFilterBeheren). NcAppSidebar stacks the icon over the
+   label in a 54px tile with a highlight bar; the board does neither. The
+   header rule repeats NcAppSidebar's own chain to outrank it.
+   @spec openspec/changes/board-index-sidebar-tabs/specs/board-index-sidebar-tabs/spec.md#requirement-the-board-index-side-panel-draws-the-boards-header-and-tab-row */
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-header__desc .app-sidebar-header__name-container .app-sidebar-header__mainname-container h2.app-sidebar-header__mainname {
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1.2;
+	min-height: 0;
+}
+
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-header__figure:has(> .cn-index-sidebar__header-icon) {
+	display: none;
+}
+
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__nav[role="tablist"] {
+	justify-content: flex-start;
+	gap: 4px;
+	margin: 0;
+	padding: 14px 12px 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__highlight {
+	display: none;
+}
+
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__tab[role="tab"] {
+	flex: 0 0 auto;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	box-sizing: border-box;
+	height: 40px;
+	min-height: 40px;
+	margin: 0 0 -1px;
+	padding: 0 10px;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	border-radius: 0;
+	background: transparent;
+	color: var(--cn-board-text-soft);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__tab[role="tab"] * {
+	font-weight: inherit;
+}
+
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__tab[role="tab"]::after {
+	content: none;
+}
+
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__tab[role="tab"]:hover {
+	background: transparent;
+	border-bottom-color: var(--color-border-dark);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__tab[role="tab"][aria-selected="true"] {
+	background: transparent;
+	border-bottom-color: var(--color-primary-element);
+	color: var(--color-primary-element-light-text);
 }
