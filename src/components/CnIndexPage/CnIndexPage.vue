@@ -248,7 +248,28 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown || relatedFieldFilters" #after-search>
+			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown || relatedFieldFilters || sourceFacetControls.length > 0" #after-search>
+				<!-- The values an endpoint source counts in its answer
+				     (`sourceConfig.facets`), as pickers: "Kanaal: alle". -->
+				<label
+					v-for="facet in sourceFacetControls"
+					:key="`source-facet-${facet.field}`"
+					class="cn-index-page__board-control"
+					:data-testid="`cn-source-facet-${facet.field}`">
+					<span class="cn-index-page__board-control-label">{{ facet.label }}</span>
+					<select
+						class="cn-index-page__board-select"
+						:value="facet.value"
+						@change="onSourceFacetChange(facet.field, $event.target.value)">
+						<option value="">{{ facet.allLabel }}</option>
+						<option
+							v-for="option in facet.options"
+							:key="`source-facet-${facet.field}-${option.value}`"
+							:value="option.value">
+							{{ option.label }}
+						</option>
+					</select>
+				</label>
 				<!-- Board view controls, after the search (screens-board-reference-columns):
 				     the narrowing select ("Case type:"), the column switch ("Columns:
 				     status | type | assignee") and the board's hint sentence. -->
@@ -1519,7 +1540,15 @@ function isRangeControl(prop) {
  */
 function declaredFilterFields(props) {
 	const fields = props.sidebar && props.sidebar.fields
-	return (fields && typeof fields === 'object') ? fields : {}
+	const declared = (fields && typeof fields === 'object') ? { ...fields } : {}
+	// An endpoint source's facet pickers are filters the address carries too.
+	const facets = props.sourceConfig && Array.isArray(props.sourceConfig.facets) ? props.sourceConfig.facets : []
+	for (const facet of facets) {
+		if (facet && typeof facet.field === 'string' && facet.field !== '' && !declared[facet.field]) {
+			declared[facet.field] = { facetable: true }
+		}
+	}
+	return declared
 }
 
 /**
@@ -4596,6 +4625,41 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
 		 */
+		/**
+		 * The endpoint source's facets as pickers: per declared facet its
+		 * label, the All choice, the counted values ("E-mail (11)") and the
+		 * value chosen now. A chosen value the narrowed answer no longer
+		 * counts stays offered, so the picker still shows it.
+		 *
+		 * @return {Array<{field: string, label: string, allLabel: string, value: string, options: Array<{value: string, label: string}>}>}
+		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
+		 */
+		sourceFacetControls() {
+			const source = this.isNamedSource ? this.namedSource : null
+			const declared = source && Array.isArray(source.facetDeclarations) ? source.facetDeclarations : []
+			if (declared.length === 0) {
+				return []
+			}
+			const counted = typeof source.facets === 'function' ? (source.facets() || {}) : {}
+			return declared.map((facet) => {
+				const labels = facet.labels && typeof facet.labels === 'object' ? facet.labels : {}
+				const nameOf = (value) => (labels[value] ? this.cnTranslate(labels[value]) : value)
+				const chosenRaw = (this.namedActiveFilters || {})[facet.field]
+				const chosen = Array.isArray(chosenRaw) ? String(chosenRaw[0] ?? '') : String(chosenRaw ?? '')
+				const options = (counted[facet.field] || []).map((entry) => ({ value: entry.value, label: `${nameOf(entry.value)} (${entry.count})` }))
+				if (chosen !== '' && !options.some((option) => option.value === chosen)) {
+					options.push({ value: chosen, label: nameOf(chosen) })
+				}
+				return {
+					field: facet.field,
+					label: facet.label ? this.cnTranslate(facet.label) : facet.field,
+					allLabel: facet.allLabel ? this.cnTranslate(facet.allLabel) : t('nextcloud-vue', 'All'),
+					value: chosen,
+					options,
+				}
+			})
+		},
+
 		sourceNote() {
 			return this.isNamedSource && this.namedSource && typeof this.namedSource.note === 'function' ? (this.namedSource.note() || '') : ''
 		},
@@ -10350,6 +10414,18 @@ export default {
 				}
 				this.$emit('filter-change', { key, values })
 			}
+		},
+
+		/**
+		 * A picker of the endpoint's facets changed: filter on the value, or
+		 * take the filter off for the All choice.
+		 *
+		 * @param {string} field The facet's field.
+		 * @param {string} value The chosen value, '' for All.
+		 * @return {void}
+		 */
+		onSourceFacetChange(field, value) {
+			this.setNamedFilter(field, value === '' ? [] : [value])
 		},
 
 		/**
