@@ -38,7 +38,7 @@ const NOT_NC = ':not(.cn-look-nextcloud *)'
 describe('look-board.css: the board dashboard switch row', () => {
 	it('draws the link pills in the deep primary ink, also as the theme\'s on-surface ink', () => {
 		const body = bodyOf(`${ROW} .cn-dashboard-page__view-link${NOT_NC}`)
-		expect(body).toMatch(/--cn-view-link-ink: color-mix\(in srgb, var\(--color-primary-element-light-text\) 60%, var\(--color-main-text\)\);/)
+		expect(body).toMatch(/--cn-view-link-ink: var\(--color-primary-element-light-text\);/)
 		expect(body).toMatch(/--nldesign-color-on-surface: var\(--cn-view-link-ink\);/)
 		expect(body).toMatch(/(^|[\s;])color: var\(--cn-view-link-ink\);/)
 	})

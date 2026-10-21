@@ -32,6 +32,7 @@
 			:selectionLabelOne="selectionLabelOne"
 			:showClearSelection="showClearSelection"
 			:sideCards="sideCards"
+			:sideCardsPlacement="sideCardsPlacement"
 			:groupBy="groupBy"
 			:facets="facets"
 			@changed="onBrowserChanged" />
@@ -422,6 +423,8 @@ export default {
 		 * @type {Array<{id: string, title: string, fields?: Array<object>, actions?: Array<object>}>}
 		 */
 		sideCards: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: `page-side` puts the side cards in the detail page's side column. */
+		sideCardsPlacement: { type: String, default: 'beside' },
 		/** Forwarded to CnFilesBrowser: the key of a declared column to group the files on. */
 		groupBy: { type: String, default: '' },
 		/**

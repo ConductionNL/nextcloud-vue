@@ -2469,7 +2469,9 @@
     "Nothing to check.": "Er is niets te controleren.",
     "This could not be read: {reason}": "Dit kon niet worden gelezen: {reason}",
     "Still open": "Nog open",
-    "The checklist could not be read.": "De lijst kon niet worden gelezen."
+    "The checklist could not be read.": "De lijst kon niet worden gelezen.",
+    "Flag it with a reason, so it stands out to everyone who works on it.": "Markeer het met een reden, zodat het opvalt bij iedereen die eraan werkt.",
+    "Clear the flag with a reason once it no longer needs attention.": "Haal de markering weg met een reden zodra het geen aandacht meer nodig heeft."
   },
   "plurals": {
     "{count} member": [

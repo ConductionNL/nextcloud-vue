@@ -12,7 +12,9 @@
  *     for the language, then for its base (`en_GB` falls back to `en`);
  *  2. otherwise the host's `translate(text, vars)`, whose answer is the text
  *     itself when it has no translation;
- *  3. the text as written.
+ *  3. the library's own catalog (`library`), for the strings a library
+ *     component asks through `cnTranslate` and the app never translates;
+ *  4. the text as written.
  *
  * The fallback is per label, never per page. The manifest is read through a
  * getter on every call, so an edit to the working copy shows at once.
@@ -52,9 +54,10 @@ function fill(text, vars) {
  * @param {() => (object|null|undefined)} options.getManifest The live manifest (the editor's working copy while editing).
  * @param {() => string} options.getLanguage The language to show.
  * @param {(text: string, vars?: object) => string} [options.translate] The host's translate.
+ * @param {(text: string, vars?: object) => string} [options.library] The library's translate, asked when the host has no translation.
  * @return {Function} `(text, vars) => string`, with `lookup`, `fellBack` and `sourceLanguage` attached.
  */
-export function createManifestTranslate({ getManifest, getLanguage, translate }) {
+export function createManifestTranslate({ getManifest, getLanguage, translate, library }) {
 	const host = typeof translate === 'function' ? translate : (text) => text
 
 	const i18n = () => {
@@ -79,7 +82,13 @@ export function createManifestTranslate({ getManifest, getLanguage, translate })
 			}
 		}
 		const answer = host(text, vars)
-		const shown = typeof answer === 'string' && answer !== '' ? answer : fill(text, vars)
+		let shown = typeof answer === 'string' && answer !== '' ? answer : fill(text, vars)
+		if (shown === fill(text, vars) && typeof library === 'function') {
+			const own = library(text, vars)
+			if (typeof own === 'string' && own !== '') {
+				shown = own
+			}
+		}
 		return { text: shown, fellBack: !!block && !inSource && shown === fill(text, vars) }
 	}
 

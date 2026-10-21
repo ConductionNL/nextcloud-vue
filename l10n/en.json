@@ -2219,7 +2219,9 @@
     "Nothing to check.": "Nothing to check.",
     "This could not be read: {reason}": "This could not be read: {reason}",
     "Still open": "Still open",
-    "The checklist could not be read.": "The checklist could not be read."
+    "The checklist could not be read.": "The checklist could not be read.",
+    "Flag it with a reason, so it stands out to everyone who works on it.": "Flag it with a reason, so it stands out to everyone who works on it.",
+    "Clear the flag with a reason once it no longer needs attention.": "Clear the flag with a reason once it no longer needs attention."
   },
   "plurals": {
     "{count} member": [

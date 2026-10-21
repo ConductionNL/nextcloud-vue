@@ -123,9 +123,9 @@ export function resolveQueryFilters(query, ctx) {
 	}
 	const out = {}
 	for (const [k, v] of Object.entries(query)) {
-		// `contentSearch` is the index page's own "search inside files" switch,
-		// not a filter on the records.
-		if (k.startsWith('_') || k === 'contentSearch') {
+		// `contentSearch` is the index page's own "search inside files" switch
+		// and `savedView` names the applied saved view: neither filters the records.
+		if (k.startsWith('_') || k === 'contentSearch' || k === 'savedView') {
 			continue
 		}
 		if (v === undefined || v === null || v === '') {

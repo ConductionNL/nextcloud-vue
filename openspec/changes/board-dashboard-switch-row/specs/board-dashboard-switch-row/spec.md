@@ -14,7 +14,7 @@ The switch row under a board dashboard's header draws the board's link pills and
 
 ### Requirement: The link pills take the deep primary ink
 
-In the board look a dashboard's view link pills SHALL be drawn in the light primary text mixed toward the main text,
+In the board look a dashboard's view link pills SHALL be drawn in the light primary text, the ink a theme pairs with the light primary ground,
 also where a theme forces its link ink onto every link.
 
 #### Scenario: DqMijnWerk links

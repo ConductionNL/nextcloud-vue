@@ -187,8 +187,8 @@
 /* ---- Dashboard switch row --------------------------------------------- */
 /* The switch row under a board dashboard's header (DqMijnWerk, DqMijnTeam).
    The link pills take the deep primary ink of the boards' primary pills: the
-   light primary text mixed toward the main text, which only raises its
-   contrast on the light primary ground. A theme that forces the link ink onto
+   light primary text, the ink a theme pairs with the light primary ground
+   (DqMijnWerk #234a78 on #eaf0f7, 8:1). A theme that forces the link ink onto
    every `a` reads it from --nldesign-color-on-surface, so the pill hands it
    its own. The view switch is the board's segmented control: 14px labels, the
    others in the soft ink, the chosen one raised on white without an edge;
@@ -196,7 +196,7 @@
    @spec openspec/changes/board-dashboard-switch-row/specs/board-dashboard-switch-row/spec.md#requirement-the-link-pills-take-the-deep-primary-ink
    @spec openspec/changes/board-dashboard-switch-row/specs/board-dashboard-switch-row/spec.md#requirement-the-view-switch-is-the-boards-segmented-control */
 .cn-look-board .cn-dashboard-page__switch-row .cn-dashboard-page__view-link:not(.cn-look-nextcloud *) {
-	--cn-view-link-ink: color-mix(in srgb, var(--color-primary-element-light-text) 60%, var(--color-main-text));
+	--cn-view-link-ink: var(--color-primary-element-light-text);
 	--nldesign-color-on-surface: var(--cn-view-link-ink);
 	color: var(--cn-view-link-ink);
 }
@@ -219,6 +219,25 @@
 	.cn-look-board .cn-dashboard-page__switch-row .cn-page-view-switch .cn-segmented-control__option--checked:not(.cn-look-nextcloud *) {
 		border-color: CanvasText;
 	}
+}
+
+/* ---- Period group ------------------------------------------------------- */
+/* The boards' compact segmented group (the period switch on DqDoorlooptijd
+   and DqTermijnen, Gemiddeld / Mediaan on DqProcesanalyse) pads a label 14px
+   on each side and draws the options not chosen in the soft ink; the chosen
+   one is raised on white in the main ink. An icon-only option stays square.
+   @spec openspec/changes/board-period-group-soft-ink/specs/board-period-group-soft-ink/spec.md#requirement-a-board-period-group-draws-the-options-not-chosen-in-the-soft-ink */
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option:not(.cn-look-nextcloud *) {
+	padding: 0 14px;
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--checked:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--icon-only:not(.cn-look-nextcloud *) {
+	padding: 0;
 }
 
 /* ---- Button weight ------------------------------------------------------ */
@@ -1637,6 +1656,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0 var(--cn-board-dashboard-card-inset) 10px;
 }
 
+/* DqMijnWerk "Mijn archiefbeoordelingen": its rows and its empty line. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-decision-list {
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-stacked-bar,
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-week-strip {
 	box-sizing: border-box;
@@ -1682,6 +1706,29 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding-inline-end: var(--cn-board-dashboard-card-inset);
 }
 
+/* ---- A card of cards (DqDoorlooptijd "Naleving") ------------------------- */
+/* A sections widget laid out in columns on a dashboard card keeps the card's
+   side inset and 20px below. Each section is a small card: a hairline edge,
+   a 10px corner, 14px 16px of padding and its heading at 15px 700, 10px above
+   the content.
+   @spec openspec/changes/sections-card-grid/specs/sections-card-grid/spec.md#requirement-a-board-card-of-cards-draws-the-boards-small-cards */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget--grid {
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+}
+
+.cn-look-board .cn-sections-widget--grid.cn-sections-widget--cards .cn-sections-widget__section:not(.cn-look-nextcloud *) {
+	padding: 14px 16px;
+	border: 1px solid var(--cn-board-hairline);
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-sections-widget--grid.cn-sections-widget--cards .cn-sections-widget__heading:not(.cn-look-nextcloud *) {
+	margin: 0 0 10px;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: normal;
+}
+
 /* ---- Week strip (DqMijnWerk "Termijnen deze week") ---------------------- */
 /* The days wrap inside the card instead of scrolling sideways: a row holds
    as many days of at least 120px as the card fits, and the rest go to the
@@ -1699,6 +1746,45 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 .cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__head {
 	flex-wrap: wrap;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--cn-board-text-soft);
+}
+
+/* A board day is a tinted box without an edge, at least 132px high so a week
+   of empty days still reads as a week (DqMijnWerk "Termijnen deze week"): the
+   workspace grey, and today the light primary ground in its own ink. Forced
+   colours drop the grounds, so the box keeps an edge there. */
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__day {
+	min-height: 132px;
+	padding: 12px;
+	border-color: transparent;
+	border-radius: 10px;
+	background: var(--nldesign-component-content-surface-background-color, var(--color-background-hover));
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__day--today {
+	background: var(--color-primary-element-light);
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__day--today .cn-week-strip__head {
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__today {
+	border-radius: 10px;
+	font-size: 11px;
+	line-height: 13px;
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__empty {
+	font-size: 13px;
+}
+
+@media (forced-colors: active) {
+	.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__day {
+		border-color: CanvasText;
+	}
 }
 
 /* ---- A card of boxed stat tiles (DcRapportages "Vergaderingen en efficiëntie") -- */

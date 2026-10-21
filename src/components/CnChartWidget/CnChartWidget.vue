@@ -2908,9 +2908,11 @@ export default {
 }
 
 /* A cell is a span: its ink also goes to --nldesign-color-on-surface, which a
-   theme that forces the body ink onto every span (thematiq) reads. The light
-   levels (1 to 3) take a dark ink; white only on level 4, the full primary,
-   where it reaches 4.5:1 (on level 3's 65% tint it is about 2.9:1). */
+   theme that forces the body ink onto every span (thematiq) reads. The four
+   levels are the boards' tones (DqProcesanalyse): the light primary, the
+   primary at 35% and at 70%, and level 1 inverted. Levels 1 to 3 take a dark
+   ink; the board's white on level 3 is about 3.1:1, and 70% is as deep as the
+   dark ink stays at 4.5:1 in Nextcloud's dark theme. */
 .cn-chart-widget__matrix-cell--1 {
 	--nldesign-color-on-surface: var(--color-primary-element-light-text);
 	background: var(--color-primary-element-light);
@@ -2918,20 +2920,20 @@ export default {
 }
 
 .cn-chart-widget__matrix-cell--2 {
-	background: color-mix(in srgb, var(--color-primary-element) 30%, var(--color-main-background));
+	background: color-mix(in srgb, var(--color-primary-element) 35%, var(--color-main-background));
 	color: var(--color-main-text);
 }
 
 .cn-chart-widget__matrix-cell--3 {
 	--nldesign-color-on-surface: var(--color-main-text);
-	background: color-mix(in srgb, var(--color-primary-element) 65%, var(--color-main-background));
+	background: color-mix(in srgb, var(--color-primary-element) 70%, var(--color-main-background));
 	color: var(--color-main-text);
 }
 
 .cn-chart-widget__matrix-cell--4 {
-	--nldesign-color-on-surface: var(--color-primary-element-text);
-	background: var(--color-primary-element);
-	color: var(--color-primary-element-text);
+	--nldesign-color-on-surface: var(--color-primary-element-light);
+	background: var(--color-primary-element-light-text);
+	color: var(--color-primary-element-light);
 }
 
 .cn-chart-widget__empty {
