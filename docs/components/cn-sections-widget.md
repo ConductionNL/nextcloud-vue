@@ -34,6 +34,7 @@ A single column of separate titled cards in a tab is also the tabs widget's own 
 | `sections[].column` | `main` (default) or `side`. One `side` section makes the layout two columns. |
 | `cards` | One card per section (default `false`: headings and a rule). |
 | `hideEmpty` | A section whose widget draws nothing shows no heading and takes no space (default `true`). Its widget stays mounted, so it can still fetch and fill later. |
+| `dividers` | `false` stacks the sections 8px apart with no rule between them, for a row of strips that each say one thing (a record's banners in a size-to-content cell). Default `true`. |
 
 Titles and descriptions go through the host app's `cnTranslate`.
 

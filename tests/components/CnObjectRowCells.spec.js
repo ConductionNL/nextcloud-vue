@@ -14,6 +14,7 @@ import CnObjectList from '../../src/components/CnObjectList/CnObjectList.vue'
 import CnObjectRow from '../../src/components/CnObjectRow/CnObjectRow.vue'
 
 const DAY = 24 * 60 * 60 * 1000
+const NOW = Date.UTC(2026, 5, 15, 12)
 const CASE = {
 	id: 'z-76',
 	title: 'Afvalinzameling Oosthaven 2025',
@@ -21,10 +22,21 @@ const CASE = {
 	requester: 'Dagblad Drechtsteden',
 	status: '',
 	priority: 'hoog',
-	createdAt: new Date(Date.now() - 6 * DAY - 60 * 60 * 1000).toISOString(),
+	createdAt: new Date(NOW - 6 * DAY - 60 * 60 * 1000).toISOString(),
 	caseType: 'Woo-verzoek',
-	deadline: new Date(Date.now() - 2 * DAY).toISOString().slice(0, 10),
+	deadline: new Date(NOW - 2 * DAY).toISOString().slice(0, 10),
 }
+
+// The age counts local calendar days, so the clock stands still at midday:
+// near midnight "6 days and an hour ago" would fall on another day.
+beforeAll(() => {
+	jest.useFakeTimers({ doNotFake: ['queueMicrotask', 'nextTick'] })
+	jest.setSystemTime(NOW)
+})
+
+afterAll(() => {
+	jest.useRealTimers()
+})
 
 const CONFIG = {
 	titleField: 'title',

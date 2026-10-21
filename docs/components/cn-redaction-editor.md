@@ -57,12 +57,37 @@ Redact a record's documents, one at a time, as board DqLakken draws it. On one s
 |------|------|---------|-------------|
 | `recordId` | String \| Number | `''` | The record whose documents are redacted, for `{recordId}` |
 | `config` | Object | `{}` | The configuration above |
+| `breadcrumbs` | Array | `[]` | The trail under the title when no `crumbs` slot is given: `[{ label, fallback?, route? }]`. A label may name record fields (`{identifier}`); `{recordId}` in a route param is the record's id |
+| `recordSource` | Object | `null` | Where the record a crumb names is read: `{ register, schema }` |
+
+## As a page
+
+The `redaction` page type mounts the editor as a whole page. Its `config` carries the props:
+
+```json
+{
+  "id": "ItemRedaction",
+  "route": "/items/:id/redact",
+  "type": "redaction",
+  "title": "Redact documents",
+  "config": {
+    "recordId": "@route.id",
+    "recordSource": { "register": "myapp", "schema": "item" },
+    "breadcrumbs": [
+      { "label": "All items", "route": { "name": "Items" } },
+      { "label": "{identifier}", "fallback": "Item", "route": { "name": "ItemDetail", "params": { "id": "{recordId}" } } },
+      { "label": "Redact" }
+    ],
+    "config": { "urls": { "list": "/apps/myapp/api/items/{recordId}/redactions" } }
+  }
+}
+```
 
 ## Slots
 
 | Slot | Description |
 |------|-------------|
-| `crumbs` | Under the title: a breadcrumb back to the record |
+| `crumbs` | Under the title: a breadcrumb back to the record. Without it, `breadcrumbs` draws one |
 
 ## Events
 

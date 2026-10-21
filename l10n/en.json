@@ -1986,7 +1986,53 @@
     "Opens on {day}": "Opens on {day}",
     "Closes on {day}": "Closes on {day}",
     "Closed": "Closed",
-    "{field}: a day closes before it opens, or a time is missing.": "{field}: a day closes before it opens, or a time is missing."
+    "{field}: a day closes before it opens, or a time is missing.": "{field}: a day closes before it opens, or a time is missing.",
+    "Flagged as needing attention:": "Flagged as needing attention:",
+    "Assessed risk:": "Assessed risk:",
+    "Due for review": "Due for review",
+    "Why this needs attention": "Why this needs attention",
+    "Why it no longer needs attention": "Why it no longer needs attention",
+    "Flag for attention": "Flag for attention",
+    "Clear the flag": "Clear the flag",
+    "Raised": "Raised",
+    "Cleared": "Cleared",
+    "This did not work. Try again.": "This did not work. Try again.",
+    "Waiting on the applicant": "Waiting on the applicant",
+    "Waiting on someone outside the organisation": "Waiting on someone outside the organisation",
+    "Waiting on {reason}": "Waiting on {reason}",
+    "{move} is waiting on {reason}": "{move} is waiting on {reason}",
+    "This moves to {status} once these are on file": "This moves to {status} once these are on file",
+    "longer than this status allows": "longer than this status allows",
+    "What this status asks": "What this status asks",
+    "Fill in: {fields}": "Fill in: {fields}",
+    "Cannot be changed here: {fields}": "Cannot be changed here: {fields}",
+    "Not shown to you here: {fields}": "Not shown to you here: {fields}",
+    "The places could not be loaded.": "The places could not be loaded.",
+    "Nothing was changed": "Nothing was changed",
+    "No role": "No role",
+    "Publishing a file on this record is refused": "Publishing a file on this record is refused",
+    "A message to this party is refused": "A message to this party is refused",
+    "Read this before acting on the record": "Read this before acting on the record",
+    "The parties could not be read": "The parties could not be read",
+    "OpenRegister did not answer. Nothing has been removed.": "OpenRegister did not answer. Nothing has been removed.",
+    "No parties yet": "No parties yet",
+    "Add a party to record who this is for and who acts on it.": "Add a party to record who this is for and who acts on it.",
+    "Accepted kinds": "Accepted kinds",
+    "Primary party": "Primary party",
+    "Kind not accepted here": "Kind not accepted here",
+    "Represented by": "Represented by",
+    "{sent} sent, {received} received": "{sent} sent, {received} received",
+    "Publishing a file on this record is refused, because of {party}.": "Publishing a file on this record is refused, because of {party}.",
+    "A message to {party} is refused.": "A message to {party} is refused.",
+    "The app these come from is not installed": "The app these come from is not installed",
+    "Actions for this row": "Actions for this row",
+    "Export CSV": "Export CSV",
+    "Not every record could be read, so these figures may be incomplete.": "Not every record could be read, so these figures may be incomplete.",
+    "Download CSV": "Download CSV",
+    "Count": "Count",
+    "The report could not be read.": "The report could not be read.",
+    "Nothing to count": "Nothing to count",
+    "Q{quarter} {year}": "Q{quarter} {year}"
   },
   "plurals": {
     "{count} member": [
@@ -2119,6 +2165,22 @@
     ],
     "Withheld": "Withheld",
     "You may not open the linked object, so its value is not shown.": "You may not open the linked object, so its value is not shown.",
-    "This value is not shown.": "This value is not shown."
+    "This value is not shown.": "This value is not shown.",
+    "{count} working day in this status": [
+      "{count} working day in this status",
+      "{count} working days in this status"
+    ],
+    "{count} new": [
+      "{count} new",
+      "{count} new"
+    ],
+    "%n document sent": [
+      "%n document sent",
+      "%n documents sent"
+    ],
+    "%n document received": [
+      "%n document received",
+      "%n documents received"
+    ]
   }
 }
