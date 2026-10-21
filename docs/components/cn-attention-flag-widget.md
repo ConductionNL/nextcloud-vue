@@ -33,7 +33,8 @@ The three are different facts and the widget keeps them apart. A colleague's jud
 | `markersPath` | Where the record holds its markers: `[{ marker, tab, reason }]`. |
 | `panelLabels` | What the part a marker points at is called, by its `tab`. A tab without a label shows its id. |
 | `assessment` | `{ path, levelMap?, levelField?, groundField?, reviewDateField? }`: the assessment on the record. A review date before today says "Due for review". |
-| `labels` | Overrides of the words: `raisedLead`, `assessmentLead`, `reviewDue`, `reasonRaise`, `reasonClear`, `raise`, `clear`, `raised`, `cleared`, `failed`. |
+| `behindButton` | `true` shows the act as a heading, a hint and one button, and opens the reason field when the button is pressed. Off by default: the field stands in view. |
+| `labels` | Overrides of the words: `raisedLead`, `assessmentLead`, `reviewDue`, `reasonRaise`, `reasonClear`, `hintRaise`, `hintClear`, `raise`, `clear`, `raised`, `cleared`, `failed`. |
 
 ## Behaviour
 
