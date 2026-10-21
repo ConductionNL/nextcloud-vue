@@ -74,7 +74,7 @@
 					{{ columnLabel(column) }}
 				</NcActionCheckbox>
 			</NcActions>
-			<NcActions v-if="canChange"
+			<NcActions v-if="canChange && newMenu"
 				:menuName="newLabel"
 				:forceMenu="true"
 				:forceName="true"
@@ -1019,6 +1019,19 @@ export default {
 		uploadButton: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Whether the bar has the New menu (upload, new folder, the Files
+		 * app's entries and `newActions`). `false` leaves it out, so the bar
+		 * holds the host's `headerActions` buttons and, with `uploadButton`,
+		 * the upload button (DqZaakDocumenten).
+		 *
+		 * @spec openspec/changes/files-browser-toolbar-actions/specs/files-browser/spec.md#requirement-the-host-chooses-whether-the-bar-has-a-new-menu
+		 */
+		newMenu: {
+			type: Boolean,
+			default: true,
 		},
 
 		/** Label of the upload button `uploadButton` shows. */
