@@ -43,6 +43,7 @@ Attributes it does not declare (`open`, `data-testid`, listeners such as `update
 | `defaultWidth` | `string` | `'form'` | The width role used when `width` is not set. |
 | `eyebrow` | `string` | `''` | Context line above the title (board look). |
 | `subtitle` | `string` | `''` | Sentence under the title (board look). |
+| `headless` | `boolean` | `false` | Leave out the board header, for a body that draws its own title and close button (CnUserSettingsDialog). `name` stays the accessible name. |
 
 ## Events
 

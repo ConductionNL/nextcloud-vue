@@ -7,29 +7,26 @@
 		class="cn-user-settings-dialog"
 		:name="title"
 		look="board"
-		width="wizard"
-		:eyebrow="eyebrow"
-		:subtitle="subtitle"
+		headless
 		:open="open"
-		:style="eyebrowStyle"
+		:style="frameStyle"
 		data-testid="cn-user-settings-dialog"
 		@update:open="onUpdateOpen"
 		@closing="close">
 		<div class="cn-user-settings-dialog__body">
 			<nav
-				v-if="sections.length > 0"
 				class="cn-user-settings-dialog__nav"
 				:aria-label="navLabel"
 				data-testid="cn-user-settings-nav">
+				<h2 class="cn-user-settings-dialog__title" data-testid="cn-user-settings-title">
+					{{ title }}
+				</h2>
 				<!-- `nextcloudLinks`: Nextcloud's own personal settings first, as
 				     links, then one entry for this app holding its sections. -->
 				<ul v-if="ncLinks.length > 0" class="cn-user-settings-dialog__nc-links" data-testid="cn-user-settings-nc-links">
 					<li v-for="link in ncLinks" :key="link.key">
 						<a :href="link.href" class="cn-user-settings-dialog__nav-link">
-							<span v-if="link.icon" class="cn-user-settings-dialog__nav-icon" aria-hidden="true">
-								<CnIcon :name="link.icon" :size="18" />
-							</span>
-							<span>{{ link.label }}</span>
+							<span class="cn-user-settings-dialog__nav-label">{{ link.label }}</span>
 						</a>
 					</li>
 				</ul>
@@ -47,10 +44,7 @@
 							:aria-current="section.id === selected ? 'true' : undefined"
 							:data-testid="`cn-user-settings-nav-${section.id}`"
 							@click.prevent="selectSection(section.id)">
-							<span v-if="section.icon" class="cn-user-settings-dialog__nav-icon" aria-hidden="true">
-								<CnVNodes :vnodes="section.icon" />
-							</span>
-							<span>{{ section.name }}</span>
+							<span class="cn-user-settings-dialog__nav-label">{{ section.name }}</span>
 						</a>
 					</li>
 				</ul>
@@ -58,24 +52,22 @@
 			<div class="cn-user-settings-dialog__sections">
 				<!-- @slot default NcAppSettingsSection children; each registers itself in the navigation. -->
 				<slot />
-				<!-- A section's `#icon` also stands before its heading. -->
-				<template v-for="section in sections" :key="`heading-icon-${section.id}-${section.name}`">
-					<Teleport v-if="section.icon && headingTargets.includes(section.id)" :to="`#settings-section_${section.id}--label`">
-						<span class="cn-user-settings-dialog__heading-icon" aria-hidden="true" :data-testid="`cn-user-settings-heading-icon-${section.id}`">
-							<CnVNodes :vnodes="section.icon" />
-						</span>
-					</Teleport>
-				</template>
+				<p class="cn-user-settings-dialog__note" data-testid="cn-user-settings-note">
+					{{ footerNote }}
+				</p>
 			</div>
-		</div>
-		<template #actions>
-			<p class="cn-user-settings-dialog__note" data-testid="cn-user-settings-note">
-				{{ footerNote }}
-			</p>
-			<NcButton variant="secondary" data-testid="cn-user-settings-close" @click="close">
-				{{ closeLabel }}
+			<NcButton
+				class="cn-user-settings-dialog__close"
+				variant="tertiary"
+				:aria-label="closeLabel"
+				:title="closeLabel"
+				data-testid="cn-user-settings-close"
+				@click="close">
+				<template #icon>
+					<Close :size="20" />
+				</template>
 			</NcButton>
-		</template>
+		</div>
 	</CnDialog>
 </template>
 
@@ -83,9 +75,9 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
-import { cloneVNode, markRaw, ref } from 'vue'
+import { ref } from 'vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
-import CnIcon from '../CnIcon/CnIcon.vue'
 
 /**
  * The key NcAppSettingsSection injects to register itself with its dialog
@@ -96,37 +88,28 @@ const REGISTRATION_KEY = Symbol.for('NcAppSettingsDialog:registration')
 /** The key NcAppSettingsSection injects for the legacy design flag. */
 const LEGACY_DESIGN_KEY = Symbol.for('NcAppSettingsDialog:legacy')
 
-/** Renders a section's icon vnodes as they were registered. */
-const CnVNodes = {
-	name: 'CnVNodes',
-	props: { vnodes: { type: [Array, Object], default: null } },
-	render() {
-		// A section's icon is drawn twice (navigation and heading), so each draw gets its own copy.
-		const list = Array.isArray(this.vnodes) ? this.vnodes : [this.vnodes]
-		return list.map((vnode) => (vnode && typeof vnode === 'object' ? cloneVNode(vnode) : vnode))
-	},
-}
-
 /**
- * CnUserSettingsDialog - the user settings dialog in the board look (board
- * PqPersoonlijk): eyebrow, title and subtitle, a left navigation listing the
- * sections with their icons, the current section (the others stay mounted
- * but hidden), and a footer with a note that changes save straight away and
- * a Close button.
+ * CnUserSettingsDialog - the user settings dialog in the board look, as the
+ * DqPersoonlijkeInstellingen board draws Nextcloud's own settings dialog:
+ * 900px wide, the title at the top of a tinted navigation column, every
+ * section stacked on a white pane that the navigation scrolls, a close icon
+ * in the corner, and no header or footer. Under the sections a line says
+ * that changes save straight away.
  *
  * The sections stay the app's: any `NcAppSettingsSection` in the default slot
  * registers itself with this dialog exactly as it does with
- * `NcAppSettingsDialog`, with its name, order and `#icon` slot. CnAppRoot
- * renders this dialog instead of `NcAppSettingsDialog` under the board look.
+ * `NcAppSettingsDialog`, with its name and order. CnAppRoot renders this
+ * dialog instead of `NcAppSettingsDialog` under the board look.
  *
  * @spec openspec/changes/user-settings-board-dialog/specs/user-settings-board-dialog/spec.md#requirement-the-user-settings-dialog-takes-the-board-look
+ * @spec openspec/changes/user-settings-dialog-dq-board/specs/user-settings-dialog-dq-board/spec.md#requirement-the-user-settings-dialog-follows-the-dq-board
  *
  * @event update:open Emitted with `false` when the dialog closes.
  */
 export default {
 	name: 'CnUserSettingsDialog',
 
-	components: { CnDialog, CnIcon, CnVNodes, NcButton },
+	components: { Close, CnDialog, NcButton },
 
 	provide() {
 		return {
@@ -145,9 +128,19 @@ export default {
 		open: { type: Boolean, default: false },
 		/** Dialog title; also its accessible name. */
 		title: { type: String, required: true },
-		/** Context line above the title. */
+		/**
+		 * Deprecated and ignored: the board draws no line above the title.
+		 * Kept so a host that passes it stays valid.
+		 *
+		 * @deprecated
+		 */
 		eyebrow: { type: String, default: () => t('nextcloud-vue', 'Your account') },
-		/** Sentence under the title. */
+		/**
+		 * Deprecated and ignored: the board draws no line under the title.
+		 * Kept so a host that passes it stays valid.
+		 *
+		 * @deprecated
+		 */
 		subtitle: { type: String, default: () => t('nextcloud-vue', 'Only for you. Colleagues keep their own settings.') },
 		/** The app's name, after the footer note and as the navigation entry holding its sections. */
 		appName: { type: String, default: '' },
@@ -166,8 +159,6 @@ export default {
 		return {
 			sections: [],
 			selected: '',
-			/** Ids of the sections whose heading is in the page, for the heading icons. */
-			headingTargets: [],
 			picked: false,
 		}
 	},
@@ -190,9 +181,9 @@ export default {
 				}))
 		},
 
-		/** @return {object} The board's eyebrow: muted, in sentence case. */
-		eyebrowStyle() {
-			return { '--cn-dialog-eyebrow-transform': 'none', '--cn-dialog-eyebrow-color': 'var(--color-text-maxcontrast)' }
+		/** @return {object} The board's 900px width, over CnDialog's width roles. */
+		frameStyle() {
+			return { '--cn-dialog-width': '900px' }
 		},
 
 		/** @return {string} The navigation's accessible name. */
@@ -212,21 +203,6 @@ export default {
 		},
 	},
 
-	watch: {
-		sections() {
-			this.$nextTick(() => {
-				this.headingTargets = typeof document === 'undefined'
-					? []
-					: this.sections.filter((section) => section.icon && document.getElementById(`settings-section_${section.id}--label`)).map((section) => section.id)
-				this.showSelected()
-			})
-		},
-
-		selected() {
-			this.$nextTick(() => this.showSelected())
-		},
-	},
-
 	methods: {
 		/**
 		 * Add a section to the navigation, kept in `order`; a section
@@ -235,13 +211,14 @@ export default {
 		 *
 		 * @param {string} id The section id.
 		 * @param {string} name The section name.
-		 * @param {number} [order] The section's place.
-		 * @param {Array} [icon] The section's icon vnodes.
+		 * @param {number} [order] The section's place. A section's icon, the
+		 *   fourth argument NcAppSettingsSection passes, is not drawn: the
+		 *   board lists the sections by name alone.
 		 */
-		registerSection(id, name, order, icon) {
+		registerSection(id, name, order) {
 			const rest = this.sections.filter((section) => section.id !== id)
 			const place = typeof order === 'number' ? order : Math.max(0, ...rest.map((section) => section.order)) + 1
-			this.sections = [...rest, { id, name, order: place, icon: icon ? markRaw(icon) : null }].sort((a, b) => a.order - b.order)
+			this.sections = [...rest, { id, name, order: place }].sort((a, b) => a.order - b.order)
 			if (!this.picked) {
 				this.selected = this.sections[0].id
 			}
@@ -260,7 +237,8 @@ export default {
 		},
 
 		/**
-		 * Mark a section current and scroll it into view.
+		 * Mark a section current, scroll it to the top of the pane and focus
+		 * its heading. Every section stays in the pane.
 		 *
 		 * @param {string} id The section id.
 		 */
@@ -268,31 +246,16 @@ export default {
 			this.picked = true
 			this.selected = id
 			this.$nextTick(() => {
-				this.showSelected()
+				const el = typeof document !== 'undefined' ? document.getElementById(`settings-section_${id}`) : null
+				if (el && typeof el.scrollIntoView === 'function') {
+					el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+				}
 				const heading = typeof document !== 'undefined' ? document.getElementById(`settings-section_${id}--label`) : null
 				if (heading) {
 					heading.setAttribute('tabindex', '-1')
-					heading.focus()
+					heading.focus({ preventScroll: true })
 				}
 			})
-		},
-
-		/**
-		 * Show the current section and hide the others. They stay mounted,
-		 * so what a reader typed in one survives a switch.
-		 *
-		 * @spec openspec/changes/user-settings-one-section/specs/user-settings-board-dialog/spec.md#requirement-the-board-user-settings-dialog-shows-one-section-at-a-time
-		 */
-		showSelected() {
-			if (typeof document === 'undefined') {
-				return
-			}
-			for (const section of this.sections) {
-				const el = document.getElementById(`settings-section_${section.id}`)
-				if (el) {
-					el.hidden = section.id !== this.selected
-				}
-			}
 		},
 
 		/**
@@ -318,16 +281,35 @@ export default {
 </script>
 
 <style scoped>
+/* The DqPersoonlijkeInstellingen board: a tinted navigation column with the
+   title on top, the sections on a white pane beside it, and the close icon
+   in the corner. The dialog's frame (900px, its tint, no padding) is in
+   dialog.css, on the teleported container. */
 .cn-user-settings-dialog__body {
+	position: relative;
 	display: flex;
-	flex-wrap: wrap;
-	gap: 0 24px;
+	min-height: 440px;
+	max-height: min(760px, calc(100vh - 112px));
 }
 
 .cn-user-settings-dialog__nav {
+	display: flex;
 	flex: 0 0 200px;
+	flex-direction: column;
+	gap: 2px;
+	box-sizing: border-box;
 	width: 200px;
-	padding-top: 18px;
+	padding: 0 4px 12px;
+	overflow-y: auto;
+}
+
+.cn-user-settings-dialog__title {
+	margin: 0;
+	padding: 14px 10px 12px;
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1.25;
+	color: var(--color-main-text);
 }
 
 .cn-user-settings-dialog__nav ul {
@@ -344,19 +326,25 @@ export default {
    it (thematiq), and a bare `a` with `!important` beats any class. */
 .cn-user-settings-dialog__nav-link,
 .cn-user-settings-dialog__nav-link:visited {
+	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	min-height: 40px;
-	padding: 0 12px;
+	min-height: 36px;
+	padding: 0 10px;
 	border-radius: var(--border-radius-element, 8px);
 	font-size: 15px;
+	font-weight: 500;
 	color: var(--color-main-text);
 	text-decoration: none !important;
 }
 
+.cn-user-settings-dialog__nav-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .cn-user-settings-dialog__nav-link:hover {
-	background: var(--color-background-hover);
+	background: color-mix(in srgb, var(--color-primary-element) 8%, transparent);
 	text-decoration: none !important;
 }
 
@@ -365,75 +353,89 @@ export default {
 	outline-offset: 2px;
 }
 
+/* The open section: a stronger tint and a 3px bar at the left edge. */
 .cn-user-settings-dialog__nav-link--active,
 .cn-user-settings-dialog__nav-link--active:hover {
-	background: var(--color-primary-element-light);
-	color: var(--color-primary-element-light-text);
-	font-weight: 600;
+	background: color-mix(in srgb, var(--color-primary-element) 16%, var(--color-primary-element-light));
 }
 
-.cn-user-settings-dialog__nav-icon {
-	display: inline-flex;
-	flex: none;
-	width: 18px;
-	height: 18px;
-	align-items: center;
-	justify-content: center;
-}
-
-.cn-user-settings-dialog__sections {
-	display: flex;
-	flex: 1 1 380px;
-	flex-direction: column;
-	min-width: 0;
-}
-
-.cn-user-settings-dialog__sections :deep(.app-settings-section) {
-	margin: 0;
-	padding: 18px 0;
-	border-top: 1px solid var(--color-border);
-}
-
-.cn-user-settings-dialog__sections :deep(.app-settings-section__name) {
-	margin: 0 0 12px;
-	font-size: 17px;
-	font-weight: 700;
-	display: flex;
-	align-items: center;
-	gap: 10px;
-}
-
-.cn-user-settings-dialog__note {
-	flex: 1 1 auto;
-	margin: 0;
-	font-size: 14px;
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-user-settings-dialog__nc-links {
-	margin-bottom: 2px;
+.cn-user-settings-dialog__nav-link--active::before {
+	content: '';
+	position: absolute;
+	top: 6px;
+	bottom: 6px;
+	inset-inline-start: 0;
+	width: 3px;
+	border-radius: 2px;
+	background: var(--color-primary-element);
 }
 
 .cn-user-settings-dialog__group {
 	margin: 10px 0 2px;
-	padding: 0 12px;
+	padding: 0 10px;
 	font-size: 15px;
 	font-weight: 600;
 	color: var(--color-main-text);
 }
 
 .cn-user-settings-dialog__group-sections {
-	padding-inline-start: 12px;
+	padding-inline-start: 10px;
 }
 
-.cn-user-settings-dialog__heading-icon {
-	display: inline-flex;
-	order: -1;
+.cn-user-settings-dialog__sections {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 32px;
+	box-sizing: border-box;
+	min-width: 0;
+	padding: 20px 64px 20px 24px;
+	overflow-y: auto;
+	border-inline-start: 1px solid var(--color-border);
+	border-radius: 8px 0 0 8px;
+	background: var(--color-main-background);
+}
+
+.cn-user-settings-dialog__sections :deep(.app-settings-section) {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.cn-user-settings-dialog__sections :deep(.app-settings-section__name) {
+	margin: 0 0 6px;
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.cn-user-settings-dialog__note {
+	margin: 0;
+	font-size: 14px;
 	color: var(--color-text-maxcontrast);
 }
 
-/* One section at a time: the others are mounted but hidden. */
-.cn-user-settings-dialog__sections :deep(.app-settings-section[hidden]) {
-	display: none;
+.cn-user-settings-dialog__close {
+	position: absolute;
+	top: 8px;
+	inset-inline-end: 8px;
+}
+
+@media (max-width: 600px) {
+	.cn-user-settings-dialog__body {
+		flex-direction: column;
+	}
+
+	.cn-user-settings-dialog__nav {
+		flex-basis: auto;
+		width: auto;
+		max-height: 40vh;
+	}
+
+	.cn-user-settings-dialog__sections {
+		padding: 20px 16px;
+		border-inline-start: 0;
+		border-radius: 8px 8px 0 0;
+	}
 }
 </style>

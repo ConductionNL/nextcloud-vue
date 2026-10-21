@@ -3,9 +3,10 @@
 	"components": {
 		"CnActionButtons": {
 			"direct": 4,
-			"transitive": 116,
+			"transitive": 117,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -50,17 +51,18 @@
 			"page": "cn-action-buttons"
 		},
 		"CnActionDialog": {
-			"direct": 0,
+			"direct": 1,
 			"transitive": 3,
-			"tier": "light",
+			"tier": "medium",
 			"via": [],
 			"page": "cn-action-dialog"
 		},
 		"CnActionsBar": {
 			"direct": 0,
-			"transitive": 21,
+			"transitive": 22,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnBuildiqEditButton",
 				"CnCellRenderer",
 				"CnDataTable",
@@ -94,9 +96,10 @@
 		},
 		"CnAdminSettingsShell": {
 			"direct": 0,
-			"transitive": 23,
+			"transitive": 24,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnBuildiqEditButton",
 				"CnCellRenderer",
 				"CnCredentials",
@@ -161,10 +164,11 @@
 		},
 		"CnAppNav": {
 			"direct": 0,
-			"transitive": 117,
+			"transitive": 118,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -210,10 +214,11 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 135,
+			"transitive": 136,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAiFeaturesWidget",
 				"CnAnalyticsReportPicker",
@@ -321,9 +326,10 @@
 		},
 		"CnBoardView": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -374,9 +380,10 @@
 		},
 		"CnBuildiqEditButton": {
 			"direct": 1,
-			"transitive": 20,
+			"transitive": 21,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -444,9 +451,10 @@
 		},
 		"CnCardGrid": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -455,9 +463,10 @@
 		},
 		"CnCellRenderer": {
 			"direct": 1,
-			"transitive": 9,
-			"tier": "medium",
+			"transitive": 10,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnFkResolveCell",
 				"CnIndexPage"
 			],
@@ -465,9 +474,10 @@
 		},
 		"CnChartWidget": {
 			"direct": 8,
-			"transitive": 9,
+			"transitive": 10,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnIndexPage"
 			],
 			"page": "cn-chart-widget"
@@ -490,9 +500,10 @@
 		},
 		"CnChecklistRunWidget": {
 			"direct": 1,
-			"transitive": 7,
+			"transitive": 8,
 			"tier": "medium",
 			"via": [
+				"CnActionDialog",
 				"CnIndexPage"
 			],
 			"page": "cn-checklist-run-widget"
@@ -506,9 +517,10 @@
 		},
 		"CnChildRecordsField": {
 			"direct": 1,
-			"transitive": 115,
+			"transitive": 116,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -651,9 +663,10 @@
 		},
 		"CnConversationThread": {
 			"direct": 0,
-			"transitive": 6,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [
+				"CnActionDialog",
 				"CnIndexPage"
 			],
 			"page": "cn-conversation-thread"
@@ -688,9 +701,10 @@
 		},
 		"CnCountdownWidget": {
 			"direct": 0,
-			"transitive": 5,
+			"transitive": 6,
 			"tier": "medium",
 			"via": [
+				"CnActionDialog",
 				"CnIndexPage"
 			],
 			"page": "cn-countdown-widget"
@@ -739,10 +753,11 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 197,
+			"transitive": 198,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -851,9 +866,10 @@
 		},
 		"CnDataTable": {
 			"direct": 5,
-			"transitive": 10,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -937,9 +953,10 @@
 		},
 		"CnDetailGrid": {
 			"direct": 0,
-			"transitive": 103,
+			"transitive": 104,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -981,10 +998,11 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 200,
+			"transitive": 201,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -1085,9 +1103,10 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 134,
+			"transitive": 135,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -1146,9 +1165,10 @@
 		},
 		"CnDeviceFramesWidget": {
 			"direct": 0,
-			"transitive": 135,
+			"transitive": 136,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -1313,10 +1333,11 @@
 		},
 		"CnFactsWidget": {
 			"direct": 2,
-			"transitive": 118,
+			"transitive": 119,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -1376,9 +1397,10 @@
 		},
 		"CnFeaturesAndRoadmapPage": {
 			"direct": 0,
-			"transitive": 23,
+			"transitive": 24,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnBuildiqEditButton",
 				"CnCellRenderer",
 				"CnDataTable",
@@ -1399,9 +1421,10 @@
 		},
 		"CnFeaturesAndRoadmapView": {
 			"direct": 0,
-			"transitive": 23,
+			"transitive": 24,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnBuildiqEditButton",
 				"CnCellRenderer",
 				"CnDataTable",
@@ -1415,9 +1438,10 @@
 		},
 		"CnFeaturesBoard": {
 			"direct": 0,
-			"transitive": 23,
+			"transitive": 24,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnBuildiqEditButton",
 				"CnCellRenderer",
 				"CnDataTable",
@@ -1487,9 +1511,10 @@
 		},
 		"CnFilesBrowser": {
 			"direct": 4,
-			"transitive": 10,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -1505,9 +1530,10 @@
 		},
 		"CnFilesPage": {
 			"direct": 0,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -1545,9 +1571,10 @@
 		},
 		"CnFkResolveCell": {
 			"direct": 2,
-			"transitive": 6,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [
+				"CnActionDialog",
 				"CnIndexPage"
 			],
 			"page": null
@@ -1570,9 +1597,10 @@
 		},
 		"CnFlowRunsWidget": {
 			"direct": 3,
-			"transitive": 6,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [
+				"CnActionDialog",
 				"CnFlowRunsWidgetForm",
 				"CnIndexPage"
 			],
@@ -1594,10 +1622,11 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 208,
+			"transitive": 209,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -1728,9 +1757,10 @@
 		},
 		"CnFormDialog": {
 			"direct": 7,
-			"transitive": 115,
+			"transitive": 116,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -1829,10 +1859,11 @@
 		},
 		"CnGroupedCardsWidget": {
 			"direct": 0,
-			"transitive": 117,
+			"transitive": 118,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -1948,10 +1979,11 @@
 		},
 		"CnIndexPage": {
 			"direct": 10,
-			"transitive": 205,
+			"transitive": 206,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -2081,9 +2113,10 @@
 		},
 		"CnIntegrationWidget": {
 			"direct": 8,
-			"transitive": 103,
+			"transitive": 104,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -2125,9 +2158,10 @@
 		},
 		"CnIntegrationWidgetGrid": {
 			"direct": 1,
-			"transitive": 102,
+			"transitive": 103,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -2287,9 +2321,10 @@
 		},
 		"CnLinkedWidget": {
 			"direct": 0,
-			"transitive": 102,
+			"transitive": 103,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -2358,9 +2393,10 @@
 		},
 		"CnLogsPage": {
 			"direct": 4,
-			"transitive": 121,
+			"transitive": 122,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -2558,9 +2594,10 @@
 		},
 		"CnNcDashboardList": {
 			"direct": 1,
-			"transitive": 13,
+			"transitive": 14,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -2571,9 +2608,10 @@
 		},
 		"CnNcDashboardQuickCreate": {
 			"direct": 2,
-			"transitive": 13,
+			"transitive": 14,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -2691,9 +2729,10 @@
 		},
 		"CnObjectCard": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -2702,9 +2741,10 @@
 		},
 		"CnObjectDataWidget": {
 			"direct": 9,
-			"transitive": 120,
+			"transitive": 121,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -2784,9 +2824,10 @@
 		},
 		"CnObjectKanban": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -2795,9 +2836,10 @@
 		},
 		"CnObjectList": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -2806,9 +2848,10 @@
 		},
 		"CnObjectListWidget": {
 			"direct": 7,
-			"transitive": 117,
+			"transitive": 118,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -2863,9 +2906,10 @@
 		},
 		"CnObjectMetadataModal": {
 			"direct": 0,
-			"transitive": 104,
+			"transitive": 105,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -2908,9 +2952,10 @@
 		},
 		"CnObjectMetadataWidget": {
 			"direct": 1,
-			"transitive": 103,
+			"transitive": 104,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -2973,9 +3018,10 @@
 		},
 		"CnObjectRow": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -2984,9 +3030,10 @@
 		},
 		"CnObjectSidebar": {
 			"direct": 16,
-			"transitive": 119,
+			"transitive": 120,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAiFeaturesWidget",
 				"CnAnalyticsReportPicker",
@@ -3080,10 +3127,11 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 224,
+			"transitive": 225,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -3211,10 +3259,11 @@
 		},
 		"CnPartyActionsWidget": {
 			"direct": 0,
-			"transitive": 117,
+			"transitive": 118,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -3379,9 +3428,10 @@
 		},
 		"CnRecordListWidget": {
 			"direct": 2,
-			"transitive": 102,
+			"transitive": 103,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -3450,9 +3500,10 @@
 		},
 		"CnRelatedCollections": {
 			"direct": 0,
-			"transitive": 118,
+			"transitive": 119,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -3513,9 +3564,10 @@
 		},
 		"CnRelatedObjectsWidget": {
 			"direct": 8,
-			"transitive": 109,
+			"transitive": 110,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -3571,10 +3623,11 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 198,
+			"transitive": 199,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -3768,9 +3821,10 @@
 		},
 		"CnSavedViewWidget": {
 			"direct": 0,
-			"transitive": 119,
+			"transitive": 120,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -3845,9 +3899,10 @@
 		},
 		"CnSchemaFormDialog": {
 			"direct": 0,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -3885,9 +3940,10 @@
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 135,
+			"transitive": 136,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -3982,18 +4038,20 @@
 		},
 		"CnSettingsFormWidget": {
 			"direct": 1,
-			"transitive": 8,
+			"transitive": 9,
 			"tier": "medium",
 			"via": [
+				"CnActionDialog",
 				"CnIndexPage"
 			],
 			"page": "cn-settings-form-widget"
 		},
 		"CnSettingsPage": {
 			"direct": 0,
-			"transitive": 23,
+			"transitive": 24,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnBuildiqEditButton",
 				"CnCellRenderer",
 				"CnDataTable",
@@ -4072,9 +4130,10 @@
 		},
 		"CnStagesWidget": {
 			"direct": 2,
-			"transitive": 17,
+			"transitive": 18,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnIndexPage",
 				"CnResourceSelect",
 				"CnTemplateSelect"
@@ -4092,9 +4151,10 @@
 		},
 		"CnStatWidget": {
 			"direct": 5,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnIndexPage",
 				"CnRegisterSchemaSelect",
 				"CnStatWidgetForm"
@@ -4128,9 +4188,10 @@
 		},
 		"CnStatsBlockWidget": {
 			"direct": 1,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnIndexPage",
 				"CnStatWidget"
 			],
@@ -4189,9 +4250,10 @@
 		},
 		"CnSubObjectsField": {
 			"direct": 0,
-			"transitive": 116,
+			"transitive": 117,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -4265,9 +4327,10 @@
 		},
 		"CnTableWidget": {
 			"direct": 0,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -4284,9 +4347,10 @@
 		},
 		"CnTabsWidget": {
 			"direct": 0,
-			"transitive": 138,
+			"transitive": 139,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -4374,9 +4438,10 @@
 		},
 		"CnTaskFormDialog": {
 			"direct": 1,
-			"transitive": 116,
+			"transitive": 117,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -4436,9 +4501,10 @@
 		},
 		"CnTasksWidget": {
 			"direct": 2,
-			"transitive": 117,
+			"transitive": 118,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
@@ -4700,9 +4766,10 @@
 		},
 		"CnWidgetCardGrid": {
 			"direct": 0,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnCellRenderer",
 				"CnFkResolveCell",
@@ -4735,10 +4802,11 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 188,
+			"transitive": 189,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
 				"CnAuditTrailCard",
@@ -4846,9 +4914,10 @@
 		},
 		"CnWidgetObjectTable": {
 			"direct": 3,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
 				"CnCellRenderer",
 				"CnDataTable",

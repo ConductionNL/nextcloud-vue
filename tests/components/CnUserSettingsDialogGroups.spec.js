@@ -4,8 +4,7 @@
  *
  * user-settings-nav-groups: the board user settings dialog can list
  * Nextcloud's own personal settings first, as links, then one entry named
- * after the app that holds its sections (board DqPersoonlijkeInstellingen),
- * and a section's `#icon` also stands before its heading.
+ * after the app that holds its sections (board DqPersoonlijkeInstellingen).
  *
  * @spec openspec/changes/user-settings-nav-groups/specs/user-settings-board-dialog/spec.md
  */
@@ -68,15 +67,6 @@ describe('CnUserSettingsDialog: Nextcloud links and the app group', () => {
 		expect(w.find('[data-testid="cn-user-settings-nc-links"]').exists()).toBe(false)
 		expect(w.find('[data-testid="cn-user-settings-app-group"]').exists()).toBe(false)
 		expect(w.find('.cn-user-settings-dialog__group-sections').exists()).toBe(false)
-		w.unmount()
-	})
-
-	it('puts a section icon before its heading as well as in the navigation', async () => {
-		const w = mountDialog()
-		await flush(w)
-		const heading = document.getElementById('settings-section_menu--label')
-		expect(heading.querySelector('[data-testid="cn-user-settings-heading-icon-menu"] .icon-menu')).not.toBeNull()
-		expect(w.find('[data-testid="cn-user-settings-nav-menu"] .icon-menu').exists()).toBe(true)
 		w.unmount()
 	})
 })

@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 4 direct references, 10 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 4 direct references, 11 files reached through imports.
 
-Through: `CnCellRenderer`, `CnFkResolveCell`, `CnIndexPage`.
+Through: `CnActionDialog`, `CnCellRenderer`, `CnFkResolveCell`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
