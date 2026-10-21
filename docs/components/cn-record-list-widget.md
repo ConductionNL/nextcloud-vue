@@ -39,6 +39,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 | `filter` | Field filters, with the `@objectId`, `@object.<field>` and `@workspace.<key>` tokens. While a required token has no value the widget sends nothing. An operator is an object: `{ "status": { "ne": "closed" } }`. |
 | `sort` | `{ field, dir }`, sent as `_order[field]`. |
 | `limit` | How many rows to fetch and draw. Default 5. |
+| `offset` | How many rows of the list to skip first. Default 0. Two cards over one list read "next" (`limit: 1`) and "after that" (`offset: 1`) without a row twice. Not applied to a `rank` sort. |
 | `extend` | OpenRegister `_extend[]` values, so `{assignee.name}` reads a referenced object. |
 | `rowRoute` | A named route; each row links to it with `params.id`. |
 | `rowIdField` | Dot path of the id the route receives. Default: the row's own id. A relation row links to its target with `"to.id"`. |
