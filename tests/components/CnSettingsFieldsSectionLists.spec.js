@@ -260,3 +260,49 @@ describe('CnSettingsFieldsSection action texts', () => {
 		expect(result.attributes('data-type')).toBe('error')
 	})
 })
+
+describe('CnSettingsFieldsSection comma lines and action params', () => {
+	beforeEach(() => {
+		axios.get.mockReset()
+		axios.request.mockReset()
+		axios.request.mockResolvedValue({ data: {} })
+	})
+
+	it('edits comma text one entry per line and saves it back as comma text', async () => {
+		axios.get.mockResolvedValue({ data: { props: 'https://a.example/, sc-domain:b.example' } })
+		const wrapper = await mountSection({ fields: [{ key: 'props', label: 'Properties', type: 'lines', saveAs: 'csv' }] })
+		const area = field(wrapper, 'props').find('textarea')
+		expect(area.element.value).toBe('https://a.example/\nsc-domain:b.example')
+		await area.setValue('https://a.example/\nsc-domain:c.example')
+		await submit(wrapper)
+		expect(axios.request.mock.calls[0][0].data).toEqual({ props: 'https://a.example/,sc-domain:c.example' })
+	})
+
+	it('sends an action\'s params and reads the section again with reload', async () => {
+		axios.get.mockResolvedValueOnce({ data: { keySet: true } }).mockResolvedValueOnce({ data: { keySet: false } })
+		axios.request.mockResolvedValueOnce({ data: { success: true } })
+		const wrapper = await mountSection({
+			fields: [
+				{ key: 'clear', label: 'Remove the stored key', type: 'action', url: '/apps/myapp/api/settings', method: 'PUT', params: { key_clear: 'true' }, reload: true, successText: 'The stored key was removed', visibleWhen: { key: 'keySet', equals: true } },
+			],
+		})
+		await wrapper.find('[data-testid="cn-settings-field-action-clear"]').trigger('click')
+		await flushPromises()
+		expect(axios.request.mock.calls[0][0]).toMatchObject({ method: 'put', data: { key_clear: 'true' } })
+		expect(axios.get).toHaveBeenCalledTimes(2)
+		expect(wrapper.find('[data-testid="cn-settings-field-action-clear"]').exists()).toBe(false)
+	})
+
+	it('leaves a status note whose own read failed out, without an error', async () => {
+		axios.get.mockImplementation((url) => (url.includes('/status') ? Promise.reject(new Error('Not configured')) : Promise.resolve({ data: { name: 'x' } })))
+		const wrapper = await mountSection({
+			fields: [
+				{ key: 'name', label: 'Name' },
+				{ key: 'email', type: 'status', url: '/apps/myapp/api/status', valuePath: 'email', textMap: { '': '', '*': 'Add {email}.' } },
+			],
+		})
+		expect(wrapper.find('[data-testid="cn-settings-field-email"]').exists()).toBe(false)
+		expect(wrapper.text()).not.toContain('could not be loaded')
+	})
+})
+

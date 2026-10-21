@@ -5,4 +5,5 @@
 - [x] A field with `path` edits one key of a JSON-valued setting.
 - [x] A `scope` field fills `{key}` in the urls and reads the section again.
 - [x] An action says `successText` or `failureText`, filled from its answer.
+- [x] An action sends `params` and can `reload`; `lines` reads and saves comma text with `saveAs: 'csv'`.
 - [x] Docs pages, en and nl strings, jest spec.

@@ -61,3 +61,15 @@ When an action's answer has no sentence at `resultPath`, the section SHALL show 
 - **GIVEN** an action with `okPath: 'available'`, `successText: 'Reachable at {baseUrl}.'` and `failureText: 'Not reachable.'`
 - **WHEN** the endpoint answers `{ available: false }`
 - **THEN** the section shows "Not reachable." as an error
+
+### Requirement: An action can send fixed values and read the section again
+
+An action field's `params` SHALL be sent in its body with the `send` fields, and with `reload` the section SHALL read its values again after the action succeeded. A `lines` field with `saveAs: 'csv'` SHALL read comma text one entry per line and save comma text.
+
+#### Scenario: Removing a stored key
+
+- **GIVEN** an action with `method: 'PUT'`, `params: { key_clear: 'true' }`, `reload: true`, shown while `keySet` is true
+- **WHEN** the administrator presses it and the server clears the key
+- **THEN** the section reads again and the action is no longer shown
+
+A status note read from its own `url` SHALL be left out, without an error, when that read fails.

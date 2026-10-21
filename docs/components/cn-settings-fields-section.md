@@ -57,7 +57,7 @@ A `secret` field is replace-only. The stored value is never put in the input; wh
 - A switch reads `1`, `true`, `yes` and `on` as on. With `trueValue`/`falseValue` it saves those (`'1'`/`'0'`, `'true'`/`'false'`) instead of a boolean.
 - A `secret` whose stored state the server answers under another key (`tokenSet: true`) names it with `setKey`.
 - A `radio` field offers its options as radio buttons in a fieldset named by the label; an option's `description` is a line under it.
-- A `lines` field edits a list one entry per line and saves it as a list without empty lines or repeats, or as JSON text with `saveAs: 'json'`.
+- A `lines` field edits a list one entry per line and saves it as a list without empty lines or repeats, or as JSON text with `saveAs: 'json'`, or as comma text with `saveAs: 'csv'` (and reads comma text back).
 - `integer: true` refuses a number with a fraction.
 
 ```js
@@ -92,7 +92,7 @@ Three types hold no value of their own; they are never checked or saved.
 
 - `heading` draws its `label` as a subheading between fields.
 - `status` draws a read-only note. Its text is `text`, or its `textMap` entry for the value read at its key (`'*'` for any other value; with neither, the value itself). `{name}` takes the value of that field or of that key in the values read, `{value}` the field's own. Its tone is `tone` or its `toneMap` entry (`info` by default; `warning` and `error` are announced as alerts). A note whose text is empty is not drawn, so `textMap: { '': '' }` hides it while nothing is wrong.
-- `action` draws a button with its `label`. It posts the fields named in `send` to `url` with `method` (default `POST`) and shows the answer's sentence at `resultPath` (default `message`, else `successText`, or `failureText` when `okPath` reads false, with `{name}` filled from the answer, else "Done."), as an error when `okPath` reads false. A failed request shows the server's own sentence. With `fill: { key, bytes }` it puts a random hexadecimal value of that many bytes (default 32) in that field instead, to be saved with the section.
+- `action` draws a button with its `label`. It posts the fields named in `send` to `url` with `method` (default `POST`) and shows the answer's sentence at `resultPath` (default `message`, else `successText`, or `failureText` when `okPath` reads false, with `{name}` filled from the answer, else "Done."), as an error when `okPath` reads false. A failed request shows the server's own sentence. Static `params` go into the body with the `send` fields, and with `reload` the section reads its values again after the action succeeded (a "Remove the stored key" action whose secret then reads as not stored). With `fill: { key, bytes }` it puts a random hexadecimal value of that many bytes (default 32) in that field instead, to be saved with the section.
 
 ```js
 fields: [
@@ -124,14 +124,14 @@ fields: [
 | `visibleWhen` | Show the field only while this condition holds, see above. |
 | `trueValue`, `falseValue` | What a switch saves for on and off. |
 | `setKey` | The key that says a secret is stored. |
-| `saveAs` | `'json'`: a lines, multi-choice or pairs field saves JSON text; `'csv'`: a multi-choice field saves comma text. |
+| `saveAs` | `'json'`: a lines, multi-choice or pairs field saves JSON text; `'csv'`: a lines or multi-choice field saves comma text. |
 | `multiple` | A select that takes several values, saved as a list. |
 | `keyLabel`, `valueLabel`, `valueType`, `keyMaxLength`, `addLabel`, `valueAbove`, `valueMessage` | A pairs field's inputs, add button and value check. |
 | `path` | `setting.key`: edit one key inside a JSON-valued setting. |
 | `scope` | The value fills `{key}` in the urls and reloads the section; never saved. |
 | `integer` | A number must be whole. |
 | `text`, `textMap`, `tone`, `toneMap` | A status note's text and tone. |
-| `method`, `send`, `resultPath`, `okPath`, `successText`, `failureText`, `fill` | An action, see above. |
+| `method`, `send`, `params`, `reload`, `resultPath`, `okPath`, `successText`, `failureText`, `fill` | An action, see above. |
 | `readOnly` | Shown, not editable. |
 | `wide` | Spans every column. |
 

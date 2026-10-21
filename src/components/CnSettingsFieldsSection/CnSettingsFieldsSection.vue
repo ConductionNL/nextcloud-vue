@@ -355,7 +355,10 @@ export default {
 		 * visibleWhen?, trueValue?, falseValue?, setKey?, saveAs?, text?, textMap?,
 		 * tone?, toneMap?, method?, send?, resultPath?, okPath?, successText?, failureText?, fill?,
 		 * multiple?, keyLabel?, valueLabel?, valueType?, valueAbove?, valueMessage?, addLabel?,
-		 * path?, scope? }]`.
+		 * path?, scope?, params?, reload? }]`. A `lines` field with `saveAs: 'csv'`
+		 * reads and saves comma text. An action sends its static `params` with
+		 * the `send` fields, and with `reload` reads the section again after it
+		 * succeeded.
 		 * `type` is `text` (default), `textarea`, `number`, `switch`, `select`,
 		 * `radio`, `checkboxes`, `pairs`, `lines`, `secret`, `image`, `heading`,
 		 * `status` or `action`. A `checkboxes` field (or a `select` with
@@ -800,7 +803,7 @@ export default {
 				return
 			}
 			setState({ busy: true, result: null })
-			const data = {}
+			const data = { ...(field.params && typeof field.params === 'object' ? field.params : {}) }
 			for (const key of Array.isArray(field.send) ? field.send : []) {
 				const sent = this.fields.find((candidate) => candidate && candidate.key === key)
 				if (!(sent?.type === 'secret' && isEmpty(this.form[key]))) {
@@ -817,6 +820,9 @@ export default {
 				const text = typeof said === 'string' && said !== ''
 					? said
 					: (interpolate(this.tr(fallback || ''), (name) => literalFirst(answer, name)) || t('nextcloud-vue', 'Done.'))
+				if (ok && field.reload) {
+					await this.load(true)
+				}
 				setState({ busy: false, result: { type: ok ? 'success' : 'error', text } })
 			} catch (error) {
 				setState({ busy: false, result: { type: 'error', text: refusalMessage(error) } })
@@ -870,7 +876,7 @@ export default {
 						continue
 					}
 					const target = this.readUrlOf(field)
-					if (target && failures[target]) {
+					if (target && failures[target] && !VALUELESS_TYPES.includes(field.type)) {
 						unreadable[field.key] = t('nextcloud-vue', 'This value could not be loaded: {reason}', { reason: serverErrorMessage(failures[target]) })
 					}
 					const answer = target ? answers[target] : null
@@ -909,7 +915,7 @@ export default {
 				return isEmpty(value) ? false : isOn(value)
 			}
 			if (field.type === 'lines') {
-				return linesText(value)
+				return field.saveAs === 'csv' ? choiceList(value).map(String).join('\n') : linesText(value)
 			}
 			if (this.isList(field)) {
 				return choiceList(value)
@@ -934,7 +940,10 @@ export default {
 			}
 			if (field.type === 'lines') {
 				const list = linesList(value)
-				return field.saveAs === 'json' ? JSON.stringify(list) : list
+				if (field.saveAs === 'json') {
+					return JSON.stringify(list)
+				}
+				return field.saveAs === 'csv' ? list.join(',') : list
 			}
 			if (this.isList(field)) {
 				const list = Array.isArray(value) ? value : []
