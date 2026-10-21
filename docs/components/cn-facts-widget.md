@@ -34,7 +34,7 @@ The object is the current detail-page object, or one other object named by `sour
 | `path` | Dot-path into the object (`domains`, `@self.updated`). |
 | `label` | Row label, translated. An entry with a label and no `as` is a row. |
 | `as` | `row`, `title`, `line`, `pill` or `meter`. Without `as` and without `label` an entry is a `line`. |
-| `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year), `list` (an array joined by ", "), `bytes` (a size, "1.5 MB") or `user` (a Nextcloud user id shown as the user's display name, read once per id and shared with the header meta tokens; the entry stays empty until the name is known). |
+| `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year), `list` (an array joined by ", "), `bytes` (a size, "1.5 MB"), `number` (in the reader's language), `currency` (money, see the currency entry) or `user` (a Nextcloud user id shown as the user's display name, read once per id and shared with the header meta tokens; the entry stays empty until the name is known). |
 | `itemPath` | With `list`: the path read off each array item (`hostname` of `domains[]`). |
 | `resolve` | `{ register, schema, labelField? }`. The value is a reference (an id, or a list of ids): the row shows the label of the referenced object (`labelField`, else `title`, then `name`) instead of the id. Works on a row, a `title`, and on a part of a `line`. The ids are read through the object store, one batched request per register and schema, and the labels are shared by every facts widget on the page. The entry stays empty until its label is known, and when none can be read; it never shows the id. With an array of objects, `itemPath` names the id (default `id`, then `uuid`). |
 | `map` | Raw value to label, translated (`{ "published": "Published" }`). Booleans read `"true"` / `"false"`, else Yes / No. |
@@ -43,6 +43,9 @@ The object is the current detail-page object, or one other object named by `sour
 | `variant` / `variantMap` / `colorMap` | On a `pill`: the CnStatusBadge variant, or value to variant (`colorMap` is the same as `variantMap`). An unknown variant falls back to `default`. |
 | `resolve` on a `pill` | The pill shows the label of the referenced object; `map` is applied to that label. The tone is looked up in `variantMap` / `colorMap` by the value of `resolve.toneField` on the referenced object when that is set (a status shown by its `name` and coloured by its `state`), then by the resolved label, then by the stored value. |
 | `key` | Optional stable key for the entry's `data-testid` (`cn-fact-<key>`). |
+| `template` | Text with `{path}` placeholders filled from the object (`"{available} {unit}"` reads "12 pcs"), used instead of `path`. The entry is empty when every placeholder is. |
+| `suffix` | Text added after a value that is not empty (`" kg"`). |
+| `decimals` | With `number` or `currency`: the fraction digits. `number` shows the value in the reader's language. |
 | `limitPath` / `limit` | On a `meter`: the path of the limit, or a constant limit. |
 
 Consecutive rows form one two-column list (`max-content 1fr`, gap 8px 16px, label muted), as the boards draw it.
@@ -106,8 +109,33 @@ entry's `format` (`bytes` for storage).
 |-----|---------|
 | `source` | `{ register, schema, id }` or `{ url }`. Omitted: the current object. `id` takes the shared tokens (`@object.<field>`, `@objectId`, `@workspace.<key>`, `@me`); `url` takes them inside the string (`/apps/x/api/summary/@objectId`). While a token does not resolve the widget sends no request and shows the empty text. |
 | `link` | `{ label, route }` or `{ label, href }` at the foot. Routes and hrefs take `@source.<field>` (`@source.id` reads `id`, else `@self.id`). A link whose token does not resolve is left out. |
+| `source` by query | `{ register, schema, filter, sort? }` without `id`: the first object that matches `filter` (shared tokens) in `sort` order (`{ field, dir }`), such as the latest count of a cash shift. No match shows the empty text. |
+| `endpointSource` | `{ url, method?, params?, responsePath? }`, the block a stat or chart tile takes: the facts read an app endpoint (tokens inside the url and the params), shared and cached like the tiles. |
+| `emptyWhen` | A path. When the value there is truthy the card shows `emptyText`, for an endpoint that answers `{ "empty": true }`. |
+| `rowsPath` | A path to a list of `{ label, value, format? }` the object holds, drawn as rows after `fields`: a preview the server builds, with labels the server chose. |
+| `actions` | Buttons under the facts in the `headerActions` shape (see below). |
 | `hideEmpty` | Drop an entry whose value is empty (default `true`). |
 | `emptyText` | Shown when no entry has a value. Default "Nothing to show yet". |
+
+### Actions
+
+`actions[]` takes the entries a detail page's `headerActions` takes (`api-call`, `open-form`, `navigate`, `open-modal`, with `confirm`, `variant` and `icon`) and draws them as buttons under the facts.
+
+```json
+"actions": [
+  { "id": "retry", "label": "Try again", "type": "api-call", "method": "POST",
+    "url": "/apps/pipelinq/api/payments/@source.id/retry",
+    "visibleWhen": { "field": "status", "op": "in", "value": ["failed", "expired"] } },
+  { "id": "reverse", "label": "Reverse", "type": "open-form", "adminOnly": true,
+    "endpoint": { "url": "/apps/pipelinq/api/payments/@source.id/reverse", "method": "POST" },
+    "formProperties": { "reason": { "type": "string", "title": "Reason" } } }
+]
+```
+
+- `@source.<field>` names a field of the object the facts show (`@source.id` reads `id`, else `@self.id`). An action whose token names an empty field is not drawn. `@objectId` and `@object.<field>` still name the page's object.
+- `visibleWhen` is judged against the object the facts show, not the page's object. An `endpoint` or `source` condition is read once per object.
+- `adminOnly: true` draws the action for an instance admin only. That is visibility, never authorisation: the endpoint decides who may call it.
+- An `api-call` or a saved `open-form` sends the page refresh, and the facts read their source again, so the card shows the result (a retried payment that is now paid loses its Try again).
 
 ## Props
 
