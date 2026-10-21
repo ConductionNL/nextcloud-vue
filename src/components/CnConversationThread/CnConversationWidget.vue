@@ -39,8 +39,14 @@
 					{{ tr(option.label) }}
 				</NcCheckboxRadioSwitch>
 			</template>
-			<template v-if="headerAction" #header-actions>
+			<template v-if="headerAction || statusBadgeText" #header-actions>
+				<span v-if="statusBadgeText"
+					class="cn-conversation-widget__badge"
+					data-testid="cn-conversation-status-badge">
+					{{ statusBadgeText }}
+				</span>
 				<NcButton
+					v-if="headerAction"
 					data-testid="cn-conversation-header-action"
 					@click="onHeaderAction">
 					<template v-if="headerAction.icon" #icon>
@@ -165,6 +171,8 @@ export default {
 			actionError: '',
 			/** The action running, as `<action>|<message>`. */
 			acting: '',
+			/** The threads `statusBadge` reads. */
+			badgeRows: [],
 		}
 	},
 
@@ -176,6 +184,26 @@ export default {
 		},
 
 		/** @return {object|null} The header action, or null without a label. */
+		/** @return {string} The latest thread's status (`statusBadge`), mapped and translated; '' for none. */
+		statusBadgeText() {
+			const badge = this.content?.statusBadge
+			if (!badge || this.badgeRows.length === 0) {
+				return ''
+			}
+			const sortField = badge.sortField || ''
+			const time = (row) => {
+				const value = sortField ? Date.parse(readPath(row, sortField)) : NaN
+				return Number.isNaN(value) ? 0 : value
+			}
+			const latest = [...this.badgeRows].sort((a, b) => time(b) - time(a))[0]
+			const raw = readPath(latest, badge.path || 'status')
+			if (raw === undefined || raw === null || raw === '') {
+				return ''
+			}
+			const map = badge.map && typeof badge.map === 'object' ? badge.map : {}
+			return this.tr(Object.hasOwn(map, String(raw)) ? map[String(raw)] : String(raw))
+		},
+
 		headerAction() {
 			const action = this.content?.headerAction
 			return action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '' ? action : null
@@ -291,6 +319,7 @@ export default {
 			immediate: true,
 			handler() {
 				this.loadSource()
+				this.loadBadge()
 			},
 		},
 	},
@@ -310,7 +339,34 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onPageRefresh() {
-			await this.loadSource()
+			await Promise.all([this.loadSource(), this.loadBadge()])
+		},
+
+		/**
+		 * Read the threads whose latest status `statusBadge` shows
+		 * (`{ source: { register, schema, filter?, limit? }, sortField?, path?, map? }`).
+		 * A filter whose token does not resolve, or a failed read, shows no badge.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/conversation-reply-tools/specs/conversation/spec.md#requirement-a-conversation-shows-the-latest-thread-status-and-a-status-can-open-a-follow-up
+		 */
+		async loadBadge() {
+			const source = this.content?.statusBadge?.source
+			if (!source || !source.register || !source.schema) {
+				this.badgeRows = []
+				return
+			}
+			const filter = resolveDeepTokens(source.filter || {}, this.tokenCtx)
+			if (hasUnresolvedDeepTokens(filter) || Object.values(filter).some((value) => value === '' || value === null || value === undefined)) {
+				this.badgeRows = []
+				return
+			}
+			try {
+				const rows = await fetchReferenceObjects({ register: source.register, schema: source.schema, filter, limit: source.limit || 50 })
+				this.badgeRows = Array.isArray(rows) ? rows : []
+			} catch {
+				this.badgeRows = []
+			}
 		},
 
 		/**
@@ -403,16 +459,53 @@ export default {
 					.replace(/@objectId/g, encodeURIComponent(String(this.objectId ?? '')))
 					.replace(/\{([\w.]+)\}/g, (_m, field) => encodeURIComponent(String(readPath(stored.message, field) ?? '')))
 				const response = await axios.request({ method: String(action.method || 'POST').toLowerCase(), url: generateUrl(path) })
+				if (await this.followUp(action, response?.data)) {
+					return
+				}
 				const refusal = this.actionRefusal(action, response?.data)
 				if (refusal) {
 					this.actionError = refusal
 				}
 				await this.loadSource()
 			} catch (error) {
+				if (await this.followUp(action, error?.response?.data)) {
+					return
+				}
 				this.actionError = this.actionRefusal(action, error?.response?.data) || this.tr(action.errorText || 'The action failed.')
 			} finally {
 				this.acting = ''
 			}
+		},
+
+		/**
+		 * Run the follow-up action a message action's answer asks for: the
+		 * status at `errors.path` (default `status`) looked up in `onStatus`,
+		 * dispatched like `headerAction`, tokens resolved against the record.
+		 *
+		 * @param {object} action The message action.
+		 * @param {object|undefined} answer The response body.
+		 * @return {Promise<boolean>} True when a follow-up ran.
+		 * @spec openspec/changes/conversation-reply-tools/specs/conversation/spec.md#requirement-a-conversation-shows-the-latest-thread-status-and-a-status-can-open-a-follow-up
+		 */
+		async followUp(action, answer) {
+			const map = action.onStatus
+			if (!map || typeof map !== 'object' || !answer || typeof answer !== 'object') {
+				return false
+			}
+			const status = readPath(answer, action.errors?.path || 'status')
+			const next = status === undefined || status === null ? null : map[String(status)]
+			if (!next || typeof next !== 'object') {
+				return false
+			}
+			const resolved = resolveDeepTokens(next, this.tokenCtx)
+			try {
+				await (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(resolved)
+					: dispatchAction(resolved, { router: this.$router || null }))
+			} catch {
+				return false
+			}
+			return true
 		},
 
 		/**
@@ -557,6 +650,14 @@ export default {
 </script>
 
 <style scoped>
+.cn-conversation-widget__badge {
+	padding: 2px 10px;
+	border-radius: var(--border-radius-pill);
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: var(--font-size-small, 13px);
+}
+
 .cn-conversation-widget__error {
 	color: var(--color-error-text, var(--color-error));
 	margin: calc(2 * var(--default-grid-baseline)) 0 0;

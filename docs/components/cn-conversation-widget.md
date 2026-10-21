@@ -82,6 +82,8 @@ The texts (`title`, `replyLabel`, `placeholder`, `sendLabel`, `emptyText`) go th
 | `replyOptions` | Checkboxes under the reply box. Their values go into the endpoint's body, and as `options` into a `replyAction`'s argument. |
 | `statusField` / `statusMap` | The message's status, shown after its channel; `statusMap` turns a stored value into a label. |
 | `messageActions` | Buttons on the messages that match `when` (`{ field, in }`, `{ field, equals }`, `{ field, empty: true }`, or a list that must all hold). `errors` (`{ path, map, default, ok? }`) names the answer's refusal by its status; `ok` (default `sent`, `ok`) lists the statuses that are no refusal. The endpoint gets `@objectId` and the message's `{field}` values; after it the messages are read again, and a failure shows `errorText`. |
+| `messageActions[].onStatus` | `{ "<status>": <action> }`: when the answer's status (at `errors.path`) is listed, that action runs (dispatched like `headerAction`, `@objectId` and `@object.<field>` resolved) instead of the refusal showing, such as opening the composer with a template when the WhatsApp session closed. |
+| `statusBadge` | `{ source: { register, schema, filter?, limit? }, sortField?, path?, map? }`: a badge in the header with the status of the most recent row of that list (by `sortField`), mapped and translated, such as the latest conversation thread's Open, Assigned or Closed. No row, no badge. |
 
 ## Reference (auto-generated)
 

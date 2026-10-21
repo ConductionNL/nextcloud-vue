@@ -25,3 +25,15 @@
 #### Scenario: Send a failed message again
 - **GIVEN** a message with delivery status failed
 - **THEN** it shows "Failed" and a "Send again" button that posts to its resend endpoint
+
+### Requirement: A conversation shows the latest thread status, and a status can open a follow-up
+
+A conversation SHALL show, with `statusBadge`, the status of the most recent row of a list (the latest conversation thread) as a header badge. A message action's `onStatus` SHALL run the action named for the answer's status instead of showing the refusal.
+
+#### Scenario: the latest thread is assigned
+- GIVEN two threads, the most recent one assigned
+- THEN the header reads "Assigned"
+
+#### Scenario: the WhatsApp session closed
+- WHEN Send again answers `template-required`
+- THEN the composer opens on WhatsApp for a template, and no refusal shows
