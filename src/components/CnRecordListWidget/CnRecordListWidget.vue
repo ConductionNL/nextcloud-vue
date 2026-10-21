@@ -186,12 +186,32 @@
 						class="cn-record-list__chevron"
 						:size="18"
 						aria-hidden="true" />
+					<template v-if="item.tag === 'div'">
+						<template v-for="(action, actionIndex) in setFieldActions">
+							<span
+								v-if="setFieldDone(action, item.row)"
+								:key="`set-field-done-${actionIndex}`"
+								class="cn-record-list__set-field-done"
+								data-testid="cn-record-list-set-field-done">
+								<Check :size="14" aria-hidden="true" />{{ action.doneLabel }}
+							</span>
+							<NcButton
+								v-else
+								:key="`set-field-${actionIndex}`"
+								:disabled="settingField"
+								:ariaLabel="fillRow(action.ariaLabel, item.row) || undefined"
+								data-testid="cn-record-list-set-field"
+								@click="runSetField(action, item.row)">
+								{{ action.label }}
+							</NcButton>
+						</template>
+					</template>
 					<NcActions
-						v-if="item.tag === 'div' && rowActions.length > 0"
+						v-if="item.tag === 'div' && menuRowActions.length > 0"
 						:aria-label="rowActionsLabel"
 						data-testid="cn-record-list-row-actions">
 						<NcActionButton
-							v-for="(action, actionIndex) in rowActions"
+							v-for="(action, actionIndex) in menuRowActions"
 							:key="`row-action-${actionIndex}`"
 							:closeAfterClick="true"
 							:data-testid="`cn-record-list-row-action-${actionIndex}`"
@@ -315,6 +335,7 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
@@ -391,7 +412,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcActionButton, NcActions, NcButton, NcLoadingIcon },
+	components: { Check, ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcActionButton, NcActions, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -496,6 +517,7 @@ export default {
 			conditionalEmptyText: '',
 			/** The refusal of the last row action, as the server said it. */
 			actionError: '',
+			settingField: false,
 			/** Labels of the records a `links` line names, by id. */
 			linkLabels: {},
 		}
@@ -871,6 +893,27 @@ export default {
 			return list
 				.filter((action) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
 				.map((action) => ({ ...action, label: this.translate(action.label) }))
+		},
+
+		/**
+		 * The `set-field` row actions, drawn as a button on each row.
+		 *
+		 * @spec openspec/changes/record-list-set-field/specs/record-list/spec.md#requirement-a-row-can-set-a-field-of-the-page-record
+		 * @return {Array<object>}
+		 */
+		setFieldActions() {
+			return this.rowActions
+				.filter((action) => action.type === 'set-field' && typeof action.field === 'string' && action.field !== '')
+				.map((action) => ({
+					...action,
+					doneLabel: action.doneLabel ? this.translate(action.doneLabel) : '',
+					ariaLabel: action.ariaLabel ? this.translate(action.ariaLabel) : '',
+				}))
+		},
+
+		/** @return {Array<object>} The row actions that live in the row menu. */
+		menuRowActions() {
+			return this.rowActions.filter((action) => action.type !== 'set-field')
 		},
 
 		/** @return {string} The accessible name of a row's actions menu. */
@@ -1442,6 +1485,79 @@ export default {
 		},
 
 		/**
+		 * Fill `{field}` placeholders from a row. A text that is one placeholder
+		 * keeps the value's type.
+		 *
+		 * @param {string} text The template.
+		 * @param {object} row The row.
+		 * @return {unknown} The filled value.
+		 */
+		fillRow(text, row) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			const whole = text.match(/^\{([\w.@]+)\}$/)
+			if (whole) {
+				return readPath(row, whole[1]) ?? ''
+			}
+			return text.replace(/\{([\w.@]+)\}/g, (_m, field) => String(readPath(row, field) ?? ''))
+		},
+
+		/**
+		 * Whether the page's record already holds the value a `set-field`
+		 * action would write for this row.
+		 *
+		 * @param {object} action The action.
+		 * @param {object} row The row.
+		 * @return {boolean}
+		 */
+		setFieldDone(action, row) {
+			const object = this.tokenCtx.object || {}
+			const current = readPath(object, action.field)
+			const value = this.fillRow(action.value, row)
+			return Boolean(action.doneLabel) && value !== '' && current !== undefined && current !== null && String(current) === String(value)
+		},
+
+		/**
+		 * Write one field of the page's record from a row with one PATCH, hand
+		 * the saved record to the page, and read the list again.
+		 *
+		 * @spec openspec/changes/record-list-set-field/specs/record-list/spec.md#requirement-a-row-can-set-a-field-of-the-page-record
+		 * @param {object} action The `set-field` action.
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 */
+		async runSetField(action, row) {
+			const context = this.tokenCtx
+			if (this.settingField || !context.register || !context.schema || !context.objectId) {
+				return
+			}
+			this.actionError = ''
+			this.settingField = true
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const url = generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(context.register)}/${encodeURIComponent(context.schema)}/${encodeURIComponent(context.objectId)}`)
+				const { data } = await axios.patch(url, { [action.field]: this.fillRow(action.value, row) })
+				const setObject = unwrap(this.cnObjectContext)?.setObject
+				if (typeof setObject === 'function' && data && typeof data === 'object') {
+					setObject(data)
+				}
+				if (typeof this.epRefetch === 'function' && this.endpointActive) {
+					await this.epRefetch(true)
+				} else {
+					await this.fetchRows()
+				}
+			} catch (error) {
+				const said = error?.response?.data?.error ?? error?.response?.data?.message
+				this.actionError = typeof said === 'string' && said !== ''
+					? said
+					: (action.errorText ? this.translate(action.errorText) : t('nextcloud-vue', 'This did not work. Try again.'))
+			} finally {
+				this.settingField = false
+			}
+		},
+
+		/**
 		 * Run one of `rowActions` for a row: an `endpoint` is called with the
 		 * row's `{field}` tokens and the page's `@objectId` filled in, then the
 		 * list reads again; a refusal shows the server's sentence. Any other
@@ -1813,6 +1929,14 @@ export default {
 </script>
 
 <style scoped>
+.cn-record-list__set-field-done {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--color-success-text, var(--color-success));
+	font-weight: bold;
+}
+
 .cn-record-list__list {
 	list-style: none;
 	margin: 0;

@@ -77,6 +77,12 @@ page action plus a `label`, dispatched as `rowAction` is (an `open-modal` gets t
 row's `{field}` tokens filled in. After an endpoint call the list reads again; a refusal shows the server's sentence as
 an alert (else `errorText`).
 
+A `set-field` entry (`{ type: "set-field", field, value, label, ariaLabel?, doneLabel?, errorText? }`) is not in the
+menu: each row gets a button that writes `field` of the page's record with one PATCH, `value` read from the row
+(`"{userId}"`). The saved record goes back to the page (`cnObjectContext.setObject`) and the list reads again. The row
+whose value the record already holds shows `doneLabel` with a check instead of the button ("Assigned"). `ariaLabel` is a
+template filled from the row ("Assign to {displayName}").
+
 `links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
 ("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
 (`{ register, schema, template }`) reads their labels, ten at most, and `fallback` stands in until then.

@@ -7091,7 +7091,8 @@ export default {
 		/**
 		 * Refresh the provided `cnObjectContext` ref so detail-page abstract
 		 * widgets can resolve `@objectId` / `@object.<field>` filter tokens
-		 * against the current object. No-op when setup() didn't expose the ref
+		 * against the current object, and hand back an object they saved
+		 * (`setObject`). No-op when setup() didn't expose the ref
 		 * (standalone / read-only mounts).
 		 */
 		syncObjectContext() {
@@ -7104,6 +7105,7 @@ export default {
 				object: this.currentObject || null,
 				register: resolved.register || this.register || this.sidebarProps?.register || '',
 				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+				setObject: (object) => this.setCurrentObject(object),
 			}
 		},
 
