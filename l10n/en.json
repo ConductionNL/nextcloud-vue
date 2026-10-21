@@ -2219,7 +2219,11 @@
     "Nothing to check.": "Nothing to check.",
     "This could not be read: {reason}": "This could not be read: {reason}",
     "Still open": "Still open",
-    "The checklist could not be read.": "The checklist could not be read."
+    "The checklist could not be read.": "The checklist could not be read.",
+    "The value for {key} must be above {min}.": "The value for {key} must be above {min}.",
+    "Add a row": "Add a row",
+    "Key": "Key",
+    "{field} holds {key} twice.": "{field} holds {key} twice."
   },
   "plurals": {
     "{count} member": [
