@@ -356,6 +356,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton } from '@nextcloud/vue'
+import { computed } from 'vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
@@ -369,6 +370,7 @@ import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import CnDetailWidgetHeaderItems from './CnDetailWidgetHeaderItems.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
@@ -388,6 +390,7 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
+import { resolveWidgetHeaderActions, WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
@@ -471,6 +474,8 @@ export default {
 		cnLook: { default: 'nextcloud' },
 		/** The host's translate (CnAppRoot provides `cnTranslate`). */
 		cnTranslate: { default: () => (key) => key },
+		/** The page's action dispatcher (CnPageRenderer), for `headerActions`. */
+		cnDispatchAction: { default: null },
 		/**
 		 * The page-level app config (CnDetailPage provides `cnAppConfig` from
 		 * its `appConfig` prop), which answers `@config.<key>` in a widget's
@@ -495,6 +500,9 @@ export default {
 	provide() {
 		const sink = this.panelActionSink
 		return {
+			// The widget's manifest `headerActions`, for the card that titles
+			// it. In bare mode the surface (a tab panel) draws them instead.
+			[WIDGET_HEADER_ACTIONS]: computed(() => (this.isBare ? [] : this.declaredHeaderActions)),
 			[PANEL_ACTION_SINK]: sink
 				? {
 						set: (...args) => sink.set(...this.narrowPanelArgs(args, 'set')),
@@ -989,6 +997,24 @@ export default {
 		 *
 		 * @return {string} The title in the user's language.
 		 */
+		/**
+		 * The widget's manifest `headerActions` as buttons: gated on the
+		 * record, dispatched through the page's dispatcher.
+		 *
+		 * @return {Array<object>} The buttons.
+		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-widget-declares-buttons-for-its-card-header
+		 */
+		declaredHeaderActions() {
+			return resolveWidgetHeaderActions(this.widget, {
+				object: this.object || {},
+				objectId: this.objectId,
+				translate: (key) => this.translateLabel(key),
+				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action)
+					: dispatchAction(action, { router: this.$router || null })),
+			})
+		},
+
 		leafCardTitle() {
 			const title = widgetTitleOf(this.widget)
 			return title ? this.translateLabel(title) : (this.integrationProvider?.label || '')
