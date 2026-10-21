@@ -11,6 +11,7 @@ const fs = require('fs')
 const path = require('path')
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/dialog.css'), 'utf8')
+const BOARD_BODY = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud))'
 const indexCss = fs.readFileSync(path.join(__dirname, '../../src/css/index.css'), 'utf8')
 
 describe('dialog.css', () => {
@@ -23,10 +24,27 @@ describe('dialog.css', () => {
 		expect(css).toMatch(/max-width:\s*min\(var\(--cn-dialog-width\),\s*calc\(100% - 32px\)\)/)
 	})
 
+	/**
+	 * A dialog the board look did not open through CnDialog (an NcDialog or
+	 * NcModal of the app's own) dims the page as the boards do: 45% of the
+	 * text colour, not Nextcloud's 50% black (DqInstellen, DqFilterBewerken,
+	 * DqFilterDelen: 122 against 146).
+	 *
+	 * @spec openspec/changes/board-modal-backdrop/specs/board-modal-backdrop/spec.md#requirement-every-modal-in-a-board-app-dims-the-page-as-the-boards-do
+	 */
+	it('dims the page behind any modal of a board-look app', () => {
+		const at = css.indexOf(`${BOARD_BODY} .modal-mask {`)
+		expect(at).toBeGreaterThan(-1)
+		expect(css.slice(at, css.indexOf('}', at))).toContain('background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent)')
+	})
+
 	it('scopes every rule under the board container', () => {
 		const selectors = css.replace(/\/\*[\s\S]*?\*\//g, '').match(/^[^{}@]+(?=\{)/gm).map((s) => s.trim())
 		for (const selector of selectors) {
 			for (const part of selector.split(',').map((p) => p.trim())) {
+				if (part.startsWith(BOARD_BODY)) {
+					continue
+				}
 				expect(part).toMatch(/cn-dialog-board|cn-dialog-header|cn-dialog__/)
 			}
 		}

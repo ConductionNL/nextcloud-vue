@@ -30,6 +30,14 @@
 	background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent);
 }
 
+/* Any modal of a board-look app (an app's own NcDialog or NcModal, not
+   opened through CnDialog) dims the page the same way. A page that takes the
+   Nextcloud look keeps Nextcloud's backdrop.
+   @spec openspec/changes/board-modal-backdrop/specs/board-modal-backdrop/spec.md#requirement-every-modal-in-a-board-app-dims-the-page-as-the-boards-do */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
+	background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent);
+}
+
 /* Width by role, capped at the viewport minus a 16px gutter each side. The
    shadow carries `!important`: the nldesign theme removes every
    `.modal-container`'s shadow with `!important` and offers no token for it. */
