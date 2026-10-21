@@ -290,6 +290,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		loading: false,
 		saving: false,
 		running: false,
+		// Trying the flow with a record (OpenRegister's dry-run): the answer per step, or null.
+		dryRunning: false,
+		dryRunResult: null,
 		checking: false,
 
 		// 🔴 WHAT `loading` DOES NOT COVER, AND WHY A SECOND FLAG EXISTS.
@@ -2094,6 +2097,53 @@ export const useFlowStore = defineStore('cnFlow', {
 			} finally {
 				this.running = false
 			}
+		},
+
+		/**
+		 * Try the saved flow with a record, changing and sending nothing.
+		 *
+		 * OpenRegister's dry-run walks the flow against the record: steps without
+		 * side effects run, every other step says what it would do. The answer,
+		 * with the record, is kept in `dryRunResult` for the board to show.
+		 *
+		 * @param {object} subject `{uuid, register, schema}` of the record.
+		 * @return {Promise<object|null>} The answer (`{status, steps, error?}`), or null.
+		 * @spec openspec/changes/flow-test-with-a-record/specs/flow-test-with-a-record/spec.md#requirement-testing-a-flow-with-a-record-changes-nothing
+		 */
+		async dryRun(subject = {}) {
+			if (!this.flow.id) {
+				this.error = new Error('Save the flow before testing it.')
+				return null
+			}
+
+			this.dryRunning = true
+			try {
+				const response = await axios.post(
+					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/dry-run`),
+					{ register: subject.register, schema: subject.schema, objectId: subject.uuid },
+				)
+				const result = response.data || { status: '', steps: [] }
+				this.dryRunResult = { ...result, subject: { ...subject } }
+				return result
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('cn-flow: could not test the flow', error)
+				this.error = error
+				this.dryRunResult = null
+				return null
+			} finally {
+				this.dryRunning = false
+			}
+		},
+
+		/**
+		 * Put away the result of a test with a record.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/flow-test-with-a-record/specs/flow-test-with-a-record/spec.md#requirement-the-result-shows-each-step-beside-the-canvas
+		 */
+		clearDryRun() {
+			this.dryRunResult = null
 		},
 
 		/**

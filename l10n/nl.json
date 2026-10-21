@@ -2486,7 +2486,11 @@
     "Link mail": "Mail koppelen",
     "Enter a quarter as YYYY-Qn, for example 2026-Q3.": "Vul een kwartaal in als JJJJ-Qn, bijvoorbeeld 2026-Q3.",
     "Enter a year as four digits, for example 2026.": "Vul een jaar in met vier cijfers, bijvoorbeeld 2026.",
-    "This value has the wrong form.": "Deze waarde heeft niet de goede vorm."
+    "This value has the wrong form.": "Deze waarde heeft niet de goede vorm.",
+    "The saved flow is tried with the record you pick. Nothing is changed or sent.": "De opgeslagen flow wordt geprobeerd met het record dat u kiest. Er wordt niets gewijzigd of verstuurd.",
+    "Nothing was changed or sent.": "Er is niets gewijzigd of verstuurd.",
+    "Test result": "Testresultaat",
+    "To {recipients}": "Aan {recipients}"
   },
   "plurals": {
     "{count} member": [
