@@ -2219,7 +2219,10 @@
     "Nothing to check.": "Nothing to check.",
     "This could not be read: {reason}": "This could not be read: {reason}",
     "Still open": "Still open",
-    "The checklist could not be read.": "The checklist could not be read."
+    "The checklist could not be read.": "The checklist could not be read.",
+    "Enter a quarter as YYYY-Qn, for example 2026-Q3.": "Enter a quarter as YYYY-Qn, for example 2026-Q3.",
+    "Enter a year as four digits, for example 2026.": "Enter a year as four digits, for example 2026.",
+    "This value has the wrong form.": "This value has the wrong form."
   },
   "plurals": {
     "{count} member": [
