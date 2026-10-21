@@ -39,30 +39,44 @@
 					:current="title ? resolvedTitle : ''"
 					:meta="resolvedHeaderMeta" />
 				<!-- `dateRange.placement: "description"`: the segmented period
-				     group ends the description line ("Week 41 · alle teams ·
-				     [Deze week | Dit kwartaal | Dit jaar]"). -->
+				     group ends the description line, after its page filters
+				     ("Week 41 · alle teams · [Deze week | Dit kwartaal | Dit jaar]"). -->
 				<div
-					v-if="datePeriodInDescription || descriptionPageFilters.length > 0 || descriptionSelectFilters.length > 0"
+					v-if="datePeriodInDescription || descriptionFilters.length > 0"
 					class="cn-dashboard-page__description cn-dashboard-page__description--with-period"
 					data-testid="cn-dashboard-page-subtitle">
 					<span v-if="subtitleText">{{ subtitleText }}</span>
 					<span v-if="subtitleText" aria-hidden="true">&middot;</span>
-					<!-- A select page filter with `placement: "description"`
-					     (DqDoorlooptijd "alle zaaktypen"): a compact select on the
-					     description line, before the period group. -->
-					<template v-for="pf in descriptionSelectFilters" :key="pf.key">
-						<NcSelect
-							class="cn-dashboard-page__description-select"
-							:modelValue="selectedPageFilterOption(pf)"
+					<!-- The page filters with `placement: "description"`, in the
+					     order the page declares them: a select as a compact
+					     select (DqDoorlooptijd "alle zaaktypen"), a
+					     `control: "segmented"` one as a segmented group that
+					     writes the workspace context (DqProcesanalyse
+					     "Gemiddeld | Mediaan"). -->
+					<template v-for="(pf, pfIndex) in descriptionFilters" :key="pf.key">
+						<CnSegmentedControl
+							v-if="pf.control === 'segmented'"
+							size="compact"
+							mode="toggle"
 							:options="pageFilterSegments(pf)"
-							:clearable="pf.clearable === true"
-							:placeholder="pf.placeholder ? effectiveTranslate(pf.placeholder) : undefined"
-							:loading="pageFilterLoading[pf.key] === true"
-							:ariaLabelCombobox="pf.label ? effectiveTranslate(pf.label) : pf.key"
-							label="label"
+							:modelValue="workspaceContext[pf.key]"
+							:ariaLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
 							:data-testid="'cn-page-filter-' + pf.key"
 							@update:modelValue="onPageFilterChange(pf, $event)" />
-						<span aria-hidden="true">&middot;</span>
+						<template v-else>
+							<NcSelect
+								class="cn-dashboard-page__description-select"
+								:modelValue="selectedPageFilterOption(pf)"
+								:options="pageFilterSegments(pf)"
+								:clearable="pf.clearable === true"
+								:placeholder="pf.placeholder ? effectiveTranslate(pf.placeholder) : undefined"
+								:loading="pageFilterLoading[pf.key] === true"
+								:ariaLabelCombobox="pf.label ? effectiveTranslate(pf.label) : pf.key"
+								label="label"
+								:data-testid="'cn-page-filter-' + pf.key"
+								@update:modelValue="onPageFilterChange(pf, $event)" />
+							<span v-if="segmentedFollows(pfIndex)" aria-hidden="true">&middot;</span>
+						</template>
 					</template>
 					<CnSegmentedControl
 						v-if="datePeriodInDescription"
@@ -73,20 +87,6 @@
 						:ariaLabel="datePeriodLabel"
 						data-testid="cn-dashboard-page-date-segmented"
 						@update:modelValue="onSegmentPick" />
-					<!-- A page filter with `control: "segmented"` and
-					     `placement: "description"` (DqProcesanalyse
-					     "Gemiddeld | Mediaan"): a segmented group on the
-					     description line that writes the workspace context. -->
-					<CnSegmentedControl
-						v-for="pf in descriptionPageFilters"
-						:key="pf.key"
-						size="compact"
-						mode="toggle"
-						:options="pageFilterSegments(pf)"
-						:modelValue="workspaceContext[pf.key]"
-						:ariaLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
-						:data-testid="'cn-page-filter-' + pf.key"
-						@update:modelValue="onPageFilterChange(pf, $event)" />
 				</div>
 				<p v-else-if="subtitleText" class="cn-dashboard-page__description" data-testid="cn-dashboard-page-subtitle">
 					{{ subtitleText }}
@@ -2609,6 +2609,18 @@ export default {
 		},
 
 		/**
+		 * Every page filter the description line draws, in the order the
+		 * page declares them, selects and segmented groups alike.
+		 *
+		 * @spec openspec/changes/dashboard-description-filters-in-order/specs/dashboard-description-filters-in-order/spec.md#requirement-the-description-line-draws-its-page-filters-in-declared-order
+		 * @return {Array<object>}
+		 */
+		descriptionFilters() {
+			const drawn = [...this.descriptionPageFilters, ...this.descriptionSelectFilters]
+			return (this.pageFilters || []).filter((pf) => drawn.includes(pf))
+		},
+
+		/**
 		 * The edit button's label through the app's translate: a manifest's
 		 * `editLabel` ("Edit layout", DqDashboard) reads in the user's language.
 		 *
@@ -4508,6 +4520,19 @@ export default {
 		onWidgetConfigDelete(_w) {
 			this.removeWidget({ widgetId: this.configWidgetId })
 			this.showWidgetConfig = false
+		},
+
+		/**
+		 * Whether a segmented group follows the description filter at
+		 * `index`: a select is set off from one by a dot ("alle zaaktypen ·
+		 * Maand | Kwartaal | Jaar"), not from another select or the line's end.
+		 *
+		 * @param {number} index Index in `descriptionFilters`.
+		 * @return {boolean}
+		 */
+		segmentedFollows(index) {
+			const next = this.descriptionFilters[index + 1]
+			return next ? next.control === 'segmented' : this.datePeriodInDescription
 		},
 
 		/**
