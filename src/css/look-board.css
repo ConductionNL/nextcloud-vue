@@ -1524,6 +1524,41 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 20px var(--cn-board-dashboard-card-inset) calc(12px - var(--cn-board-first-line-leading, 0.15em));
 }
 
+/* ---- List rows in a card (record list rows, audit rows) ----------------- */
+/* The boards draw a list row in a card as a title at weight 500 in the main
+   ink with a 13px muted line under it, both at the font's normal line height,
+   10px above and below: a two-line row is 56px (DqZaaktype "Versies",
+   DqSociaalDomein). An audit row's action is set at 500 as well, its time and
+   actor at 13px (DqHandhaving "Historie"). The dashboard's record list keeps
+   its own rules below.
+   @spec openspec/changes/board-list-row-titles/specs/board-list-row-titles/spec.md#requirement-a-board-list-row-is-titled-at-500-over-a-13px-line */
+.cn-look-board .cn-record-list--rows:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__row {
+	padding: 10px 0;
+}
+
+.cn-look-board .cn-record-list--rows:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__title {
+	color: var(--color-main-text);
+	font-weight: 500;
+	line-height: normal;
+}
+
+.cn-look-board .cn-record-list--rows:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__meta {
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-audit-card__row .cn-audit-card__action:not(.cn-look-nextcloud *) {
+	font-weight: 500;
+}
+
+.cn-look-board .cn-audit-card__row .cn-audit-card__when:not(.cn-look-nextcloud *) {
+	font-size: 13px;
+}
+
+.cn-look-board .cn-audit-card__row .cn-audit-card__row-body:not(.cn-look-nextcloud *) {
+	font-size: 13px;
+}
+
 /* ---- Record list on a dashboard card (PtDashboard) ---------------------- */
 /* The dashboard's card body is flush, so the rows carry their own inset: the
    board's card pads 24px at the sides and each row 14px, a soft hairline
