@@ -1024,6 +1024,19 @@ A row action of `type: "open-modal"` opens its `target` (a registry modal, or a 
 ]
 ```
 
+### A row action that calls an endpoint
+
+A row action of `type: "api-call"` posts (or `method: "PUT"`) to its `url` for the row it was picked on: `{objectId}` is the row's key and `{field}` any row field. It toasts `successMessage` or `errorMessage` (the server's sentence when none is set) and reads the list again after a success, unless `refresh: false`. Nothing is sent while the menu is drawn. With `visibleWhen` an Enable and a Disable action can share one row:
+
+```jsonc
+"actions": [
+  { "id": "enable", "label": "Enable", "type": "api-call", "url": "/apps/pipelinq/api/export/jobs/{objectId}/enable",
+    "visibleWhen": { "field": "enabled", "value": false }, "successMessage": "Job enabled" },
+  { "id": "disable", "label": "Disable", "type": "api-call", "url": "/apps/pipelinq/api/export/jobs/{objectId}/disable",
+    "visibleWhen": { "field": "enabled", "value": true }, "successMessage": "Job disabled" }
+]
+```
+
 ### Registry-name handler
 
 Manifest declaration:
