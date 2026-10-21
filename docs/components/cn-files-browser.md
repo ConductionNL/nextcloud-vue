@@ -298,6 +298,7 @@ and filters, because the host declared it.
 | `selectionLabelOne` | `String` | `''` | The bulk bar's count for one file. |
 | `showClearSelection` | `Boolean` | `true` | Whether the bulk bar ends in Clear selection. |
 | `sideCards` | `Array` | `[]` | Cards beside the list about the last selected file: `{ id, title, fields, actions }`; see above. |
+| `sideCardsPlacement` | `String` | `'beside'` | `page-side` puts the side cards in the detail page's side column (CnDetailPage `cnDetailSideColumn`), in place of its generic cards while a file is selected. Without a page side column they stay beside the list. Also forwarded by CnFilesTab. |
 | `bulkActions` | `Array` | `[]` | The host's actions on a selection of files, declared like `rowActions`. With at least one, files get a checkbox, the header a select-all, and a bar with these actions shows while files are selected. An `open-modal` action's props gain `files` and `fileIds`; a `handler` action's args gain the selected nodes. |
 | `groupBy` | `String` | `''` | The key of a declared column to group the files on, a heading per value with its count. Empty does not group. |
 | `groupEmptyLabel` | `String` | `'Other'` | The heading of the files with no value in the `groupBy` column. |
