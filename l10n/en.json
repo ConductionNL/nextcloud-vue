@@ -2221,7 +2221,9 @@
     "Still open": "Still open",
     "The checklist could not be read.": "The checklist could not be read.",
     "Flag it with a reason, so it stands out to everyone who works on it.": "Flag it with a reason, so it stands out to everyone who works on it.",
-    "Clear the flag with a reason once it no longer needs attention.": "Clear the flag with a reason once it no longer needs attention."
+    "Clear the flag with a reason once it no longer needs attention.": "Clear the flag with a reason once it no longer needs attention.",
+    "Compose mail": "Compose mail",
+    "Link mail": "Link mail"
   },
   "plurals": {
     "{count} member": [
