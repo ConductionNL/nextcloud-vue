@@ -11,8 +11,8 @@ DqBeheerinstellingen "Register" (8 fields on 7 boards).
 ## What changes
 
 In the board look a text field or textarea (NcInputField, NcTextArea, and NcSelect's search box, which is an
-NcInputField) draws a 1px border in `--cn-board-control-border` with the board radius and no shadow. Focus keeps
-NcInputField's own ring.
+NcInputField) draws a 1px border in `--cn-board-control-border` with the board radius and no shadow. A multiple select
+draws that edge on its toggle, around its chips and search box, which stays bare. Focus keeps NcInputField's own ring.
 
 ## Scope
 

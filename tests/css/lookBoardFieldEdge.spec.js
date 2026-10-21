@@ -36,8 +36,9 @@ function ruleFor(selector) {
 
 describe('look-board.css: field edge', () => {
 	it.each([
-		'.cn-look-board .input-field__input:not(.cn-look-nextcloud *)',
-		'.cn-look-board .input-field__input:hover:not([disabled]):not(.cn-look-nextcloud *)',
+		'.cn-look-board .input-field__input:not(.vs--multiple *):not(.cn-look-nextcloud *)',
+		'.cn-look-board .input-field__input:hover:not([disabled]):not(.vs--multiple *):not(.cn-look-nextcloud *)',
+		'.cn-look-board .v-select.vs--multiple .vs__dropdown-toggle:not(.cn-look-nextcloud *)',
 		'.cn-look-board .textarea__input:not(.cn-look-nextcloud *)',
 	])('%s draws a 1px control edge, no shadow', (selector) => {
 		const body = ruleFor(selector)

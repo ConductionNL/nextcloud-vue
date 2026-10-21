@@ -294,11 +294,14 @@
    3:1 control colour all round (DqProcesanalyse "Filteren op zaaktype",
    DqZakenSorteren "Zoek op zaak, nummer of verzoeker"). NcInputField, which
    is also NcSelect's search box, draws it as a shadow: a dark bottom line and
-   30% grey on the other sides. Focus keeps NcInputField's own ring, which
+   30% grey on the other sides. A multiple select draws that edge on its
+   toggle, around the chips and the search box, so the edge goes there and
+   its search box stays bare. Focus keeps NcInputField's own ring, which
    carries `!important`.
    @spec openspec/changes/board-field-edge/specs/board-field-edge/spec.md#requirement-a-board-field-draws-a-1px-edge-all-round */
-.cn-look-board .input-field__input:not(.cn-look-nextcloud *),
-.cn-look-board .input-field__input:hover:not([disabled]):not(.cn-look-nextcloud *),
+.cn-look-board .input-field__input:not(.vs--multiple *):not(.cn-look-nextcloud *),
+.cn-look-board .input-field__input:hover:not([disabled]):not(.vs--multiple *):not(.cn-look-nextcloud *),
+.cn-look-board .v-select.vs--multiple .vs__dropdown-toggle:not(.cn-look-nextcloud *),
 .cn-look-board .textarea__input:not(.cn-look-nextcloud *),
 .cn-look-board .textarea__input:hover:not([disabled]):not(.cn-look-nextcloud *) {
 	border: 1px solid var(--cn-board-control-border);
