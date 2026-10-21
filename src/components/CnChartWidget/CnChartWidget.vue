@@ -32,8 +32,24 @@
 				{{ view.label ? hostTranslate(view.label) : view.key }}
 			</button>
 		</div>
-		<div v-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
-			{{ emptyLabel }}
+		<!-- A refused or failed endpoint read shows its sentence instead of
+		     the chart; a short one keeps the chart and says it is short. -->
+		<CnEndpointNotice
+			v-if="!epError && epTruncated"
+			:truncated="true" />
+		<CnEndpointNotice
+			v-if="epAwaitingRequest"
+			:awaitingRequest="true"
+			:requestLabel="endpointSource.requestLabel ? hostTranslate(endpointSource.requestLabel) : ''"
+			:requestHint="endpointSource.requestHint ? hostTranslate(endpointSource.requestHint) : ''"
+			:requestDisabled="epBlocked"
+			@request="epRequest" />
+		<CnEndpointNotice
+			v-else-if="epError"
+			:error="epError"
+			:refused="epRefused" />
+		<div v-else-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
+			{{ hostTranslate(emptyLabel) }}
 		</div>
 		<!-- Sizing box for the apexcharts mount. apexcharts resolves a
 		     percentage `height` against its element's PARENT (Core.js
@@ -150,6 +166,7 @@ import { safeCurrencyCode } from '../../utils/formatMetric.js'
 import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
+import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
 
 /**
  * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
@@ -340,6 +357,8 @@ function formatterFor(vf) {
 
 export default {
 	name: 'CnChartWidget',
+
+	components: { CnEndpointNotice },
 
 	inject: {
 		/**
@@ -753,7 +772,10 @@ export default {
 		 * page publishes `dateFrom` / `dateTo` / `datePreset` into the
 		 * workspace context).
 		 *
-		 * @type {{url: string, method?: string, params?: object, responsePath?: string, labelsPath?: string, series?: Array<{name?: string, path: string}>}|null}
+		 * `series[].namePath` names a series from the whole response (before
+		 * `responsePath`), for an endpoint that says what its numbers measure.
+		 *
+		 * @type {{url: string, method?: string, params?: object, responsePath?: string, labelsPath?: string, series?: Array<{name?: string, namePath?: string, path: string}>}|null}
 		 */
 		endpointSource: {
 			type: Object,
@@ -860,7 +882,7 @@ export default {
 			() => props.endpointSource,
 			{ ctx: chartTokenCtx },
 		)
-		return { dsData: data, dsRefetch: refetch, epData: ep.data, epRefetch: ep.refetch, chartTokenCtx }
+		return { dsData: data, dsRefetch: refetch, epData: ep.data, epBody: ep.body, epError: ep.error, epRefused: ep.refused, epTruncated: ep.truncated, epBlocked: ep.blocked, epAwaitingRequest: ep.awaitingRequest, epRequest: ep.request, epRefetch: ep.refetch, chartTokenCtx }
 	},
 
 	data() {
@@ -953,7 +975,7 @@ export default {
 					})
 				}
 				mapped = seriesDefs.map((s) => ({
-					name: s.name || s.path,
+					name: this.endpointSeriesName(s),
 					data: payload.map((pt) => Number(getByPath(pt, s.path)) || 0),
 				}))
 			} else {
@@ -964,7 +986,7 @@ export default {
 				mapped = seriesDefs.map((s) => {
 					const values = getByPath(payload, s.path)
 					return {
-						name: s.name || s.path,
+						name: this.endpointSeriesName(s),
 						data: Array.isArray(values) ? values.map((v) => Number(v) || 0) : [],
 					}
 				})
@@ -1863,6 +1885,24 @@ export default {
 		 * @param {string} key The label.
 		 * @return {string} The translated label.
 		 */
+		/**
+		 * The name of an endpoint series: the text at its `namePath` in the
+		 * whole response (so an endpoint can name what its numbers measure),
+		 * else its `name`, else its `path`.
+		 *
+		 * @param {{name?: string, namePath?: string, path: string}} def The series definition.
+		 * @return {string} The name.
+		 */
+		endpointSeriesName(def) {
+			if (def.namePath) {
+				const named = getByPath(this.epBody, def.namePath)
+				if (typeof named === 'string' && named !== '') {
+					return named
+				}
+			}
+			return def.name || def.path
+		},
+
 		hostTranslate(key) {
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : null
 			const out = translate ? translate(key) : key

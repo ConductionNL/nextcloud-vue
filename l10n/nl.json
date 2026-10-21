@@ -2264,7 +2264,14 @@
     "Publishing a file on this record is refused, because of {party}.": "Publiceren van een bestand hierop wordt geweigerd, vanwege {party}.",
     "A message to {party} is refused.": "Een bericht aan {party} wordt geweigerd.",
     "The app these come from is not installed": "De app waar deze vandaan komen is niet geïnstalleerd",
-    "Actions for this row": "Acties voor deze rij"
+    "Actions for this row": "Acties voor deze rij",
+    "Export CSV": "CSV exporteren",
+    "Not every record could be read, so these figures may be incomplete.": "Niet alle gegevens konden worden gelezen, dus deze cijfers zijn mogelijk onvolledig.",
+    "Download CSV": "CSV downloaden",
+    "Count": "Aantal",
+    "The report could not be read.": "De rapportage kon niet worden gelezen.",
+    "Nothing to count": "Niets om te tellen",
+    "Q{quarter} {year}": "K{quarter} {year}"
   },
   "plurals": {
     "{count} member": [

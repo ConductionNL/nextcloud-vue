@@ -2014,7 +2014,14 @@
     "Publishing a file on this record is refused, because of {party}.": "Publishing a file on this record is refused, because of {party}.",
     "A message to {party} is refused.": "A message to {party} is refused.",
     "The app these come from is not installed": "The app these come from is not installed",
-    "Actions for this row": "Actions for this row"
+    "Actions for this row": "Actions for this row",
+    "Export CSV": "Export CSV",
+    "Not every record could be read, so these figures may be incomplete.": "Not every record could be read, so these figures may be incomplete.",
+    "Download CSV": "Download CSV",
+    "Count": "Count",
+    "The report could not be read.": "The report could not be read.",
+    "Nothing to count": "Nothing to count",
+    "Q{quarter} {year}": "Q{quarter} {year}"
   },
   "plurals": {
     "{count} member": [
