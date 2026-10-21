@@ -21,3 +21,8 @@ card's inset. Outside the board look the icon SHALL stay.
 
 - **GIVEN** a contact's detail page in the board look whose "Contact" widget has an icon
 - **THEN** the "Contact" title starts 23px from the card's edge and no icon is drawn before it
+
+#### Scenario: DqTaak "Notities" (CnDetailCard)
+
+- **GIVEN** a task's detail page in the board look with a notes card drawn by `CnDetailCard` with an icon
+- **THEN** the "Notities" title starts 23px from the card's edge and no icon is drawn before it

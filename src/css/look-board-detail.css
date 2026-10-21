@@ -544,6 +544,12 @@
 	display: none;
 }
 
+/* The same for a CnDetailCard (DqTaak "Notities", DqZaakEmail "E-mail",
+   DqZaakTaken "Afspraken", DqHandhaving "Historie"). */
+.cn-look-board .cn-detail-page .cn-detail-card__header .cn-detail-card__icon {
+	display: none;
+}
+
 .cn-look-board .cn-detail-page .cn-widget-wrapper__title,
 .cn-look-board .cn-detail-card .cn-detail-card__title {
 	font-size: var(--cn-board-heading-size);
