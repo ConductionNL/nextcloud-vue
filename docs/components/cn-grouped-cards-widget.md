@@ -40,7 +40,7 @@ at `GET /api/case-types/{id}/phases`; the widget is generic and reads any payloa
 | `extraGroup` | `{ title, path, itemText, join? }`: a dashed box of entries read at `path`, on one line. |
 | `columns` | Groups side by side (1 to 4, default 2); one column on a narrow screen. |
 | `emptyText`, `groupEmptyText`, `errorText` | The texts of an empty grid, an empty group and a failed read. A failed read offers Try again. |
-| `groupLines` | Templates drawn under a group's title, each left out when it does not fill. An entry `{ text, when }` is drawn only when the local condition `when` (`{ field, op, value }`, `all` / `any`) holds on the group. |
+| `groupLines` | Templates drawn under a group's title, each left out when it does not fill. An entry `{ text, when }` is drawn only when the local condition `when` (`{ field, op, value }`, `all` / `any`) holds on the group; an entry `{ count, one, other }` (with an optional `when`) counts as an `itemMeta` part does. |
 | `itemActions` | Actions on every card, drawn as CnActionButtons draws them (`api-call`, `open-form`, `navigate`, ...). `@item.<path>` and `@group.<path>` in their strings read the card and its group: URL-encoded in `url`, `target` and `href`; a string that is exactly one token takes the value with its type. `visibleWhen` is the local condition over `item.<path>` and `group.<path>`, so Join, Move here and Leave each show when they apply. |
 | `groupProgress` | `{ valuePath, label? }`: a progress bar of the group's value (0 to 100) at `valuePath`, `label` filled from the group. |
 | `heading` | A template filled from the payload, drawn as a heading above the groups when the widget is a page of its own (`{name}` of an offer). |

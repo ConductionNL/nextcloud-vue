@@ -46,7 +46,7 @@ const CONTENT = {
 	groupsPath: 'sets',
 	itemsKey: 'groups',
 	groupTitle: '{setName}',
-	groupLines: [{ text: 'Sign-up is open.', when: { field: 'open', op: 'eq', value: true } }, { text: 'Sign-up has closed.', when: { field: 'open', op: 'eq', value: false } }],
+	groupLines: [{ text: 'Sign-up is open.', when: { field: 'open', op: 'eq', value: true } }, { text: 'Sign-up has closed.', when: { field: 'open', op: 'eq', value: false } }, { count: 'done', one: '{count} done', other: '{count} done in all', when: { field: 'open', value: true } }],
 	groupProgress: { valuePath: 'done', label: '{done}% done' },
 	itemTitle: '{name}',
 	itemMeta: [{ count: 'free', one: '{count} free place', other: '{count} free places' }, '{members}', { text: 'yours', when: { field: 'mine', value: true } }],
@@ -115,6 +115,8 @@ describe('CnGroupedCardsWidget itemActions', () => {
 		expect(first.findAll('[data-testid="cn-grouped-cards-item"]')[1].text()).toContain('2 free places')
 		expect(first.find('[data-testid="cn-grouped-cards-group-line"]').text()).toBe('Sign-up is open.')
 		expect(second.find('[data-testid="cn-grouped-cards-group-line"]').text()).toBe('Sign-up has closed.')
+		expect(first.findAll('[data-testid="cn-grouped-cards-group-line"]')[1].text()).toBe('40 done in all')
+		expect(second.findAll('[data-testid="cn-grouped-cards-group-line"]')).toHaveLength(1)
 		expect(first.find('[data-testid="cn-grouped-cards-progress"]').text()).toContain('40% done')
 		expect(second.find('[data-testid="cn-grouped-cards-progress"]').exists()).toBe(false)
 	})

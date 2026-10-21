@@ -237,7 +237,7 @@ export default {
 		 *   the singular or plural text, `{count}` filled in; or `{ text, when }`: the text only when the
 		 *   local condition `when` holds on the card.
 		 * - `groupLines` entries may be `{ text, when }`: the line only when the local condition
-		 *   `when` holds on the group.
+		 *   `when` holds on the group; or `{ count, one, other }` (and `when`) as for `itemMeta`.
 		 * - `groupProgress` (`{ valuePath, label? }`) draws a progress bar of the group's value (0 to
 		 *   100) at `valuePath`, with `label` filled from the group.
 		 * - `heading` is a template filled from the payload, drawn as the heading above the groups (on a
@@ -622,8 +622,12 @@ export default {
 			const spec = this.content?.groupLines
 			return (Array.isArray(spec) ? spec : [])
 				.filter((line) => !line || typeof line !== 'object' || Array.isArray(line) || !line.when || evaluateVisibleWhenLocal(line.when, raw))
-				.map((line) => (line && typeof line === 'object' && !Array.isArray(line) ? line.text : line))
-				.map((line) => this.fill(line, group))
+				.map((line) => {
+					if (line && typeof line === 'object' && !Array.isArray(line)) {
+						return line.count ? this.countText(line, raw) : this.fill(line.text, group)
+					}
+					return this.fill(line, group)
+				})
 				.filter((text) => text !== '')
 		},
 
