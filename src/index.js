@@ -221,6 +221,7 @@ export {
 	CnMetadataTab,
 	CnNavCardGrid,
 	CnNcDashboardList,
+	CnNcDashboardQuickCreate,
 	CnNcDashboardWidgetForm,
 	CnNcWidgetGridPicker,
 	CnNcWidgetWidget,

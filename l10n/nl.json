@@ -2225,7 +2225,10 @@
     "Withheld": "Afgeschermd",
     "This value is not shown.": "Deze waarde wordt niet getoond.",
     "You may not open the linked object, so its value is not shown.": "U mag het gekoppelde object niet openen, daarom wordt de waarde niet getoond.",
-    "Search in this list": "Zoeken in deze lijst"
+    "Search in this list": "Zoeken in deze lijst",
+    "This field is required": "Dit veld is verplicht",
+    "Creating…": "Aanmaken…",
+    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw."
   },
   "plurals": {
     "{count} member": [

@@ -1975,7 +1975,10 @@
     "Task {title} finished": "Task {title} finished",
     "Task {title} is yours": "Task {title} is yours",
     "Fill in {field} before completing this task": "Fill in {field} before completing this task",
-    "Search in this list": "Search in this list"
+    "Search in this list": "Search in this list",
+    "This field is required": "This field is required",
+    "Creating…": "Creating…",
+    "This could not be created. Try again.": "This could not be created. Try again."
   },
   "plurals": {
     "{count} member": [
