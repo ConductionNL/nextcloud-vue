@@ -74,6 +74,19 @@ describe('CnIndexPage notice', () => {
 		expect(w.vm.noticeType).toBe('success')
 	})
 
+	it('draws the notice inside the list in the Nextcloud look', () => {
+		const w = mountPage({ notice: { text: 'Een AVG-verzoek is een zaak.' } })
+		expect(w.find('.cn-index-page__main [data-testid="cn-index-page-notice"]').exists()).toBe(true)
+	})
+
+	it('draws the notice under the list card, outside it, in the board look', () => {
+		const w = mountPage({ look: 'board', notice: { text: 'Een AVG-verzoek is een zaak.' } })
+		expect(w.findAll('[data-testid="cn-index-page-notice"]')).toHaveLength(1)
+		expect(w.find('.cn-index-page__main [data-testid="cn-index-page-notice"]').exists()).toBe(false)
+		expect(w.find('.cn-index-page__body + [data-testid="cn-index-page-notice"]').exists()).toBe(true)
+		expect(w.find('.cn-index-page__body').classes()).toContain('cn-index-page__body--before-notice')
+	})
+
 	it('defaults to info and draws nothing without text', () => {
 		expect(mountPage({ notice: { text: 'x', variant: 'odd' } }).vm.noticeType).toBe('info')
 		expect(mountPage({ notice: { variant: 'info' } }).find('[data-testid="cn-index-page-notice"]').exists()).toBe(false)

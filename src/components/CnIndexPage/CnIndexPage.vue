@@ -686,7 +686,7 @@
 		</slot>
 
 		<!-- Body -->
-		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': showsFolderPane }">
+		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': showsFolderPane, 'cn-index-page__body--before-notice': noticeOutsideList }">
 			<!-- Optional folder navigation pane (opt-in via the `folderSidebar`
 			     config). Selecting a folder filters the list by the config's
 			     `filterField`; "All" clears it. `pane: false` keeps the scope
@@ -1222,7 +1222,7 @@
 				<!-- A notice under the list (`notice`): DqPrivacy's "Een
 				     AVG-verzoek is een zaak met ..." band. -->
 				<NcNoteCard
-					v-if="notice && notice.text"
+					v-if="notice && notice.text && !noticeOutsideList"
 					class="cn-index-page__notice"
 					:type="noticeType"
 					data-testid="cn-index-page-notice">
@@ -1274,6 +1274,16 @@
 					:saved="onSplitPaneSaved" />
 			</div>
 		</div>
+
+		<!-- In the board look the notice is a card of its own under the
+		     list card (DqContracten), not a band inside it. -->
+		<NcNoteCard
+			v-if="noticeOutsideList"
+			class="cn-index-page__notice cn-index-page__notice--outside"
+			:type="noticeType"
+			data-testid="cn-index-page-notice">
+			{{ cnTranslate(notice.text) }}
+		</NcNoteCard>
 
 		<!-- Manifest-driven sidebar — auto-mounted when sidebar.enabled
 		     AND sidebar.show !== false.
@@ -7338,6 +7348,17 @@ export default {
 		noticeType() {
 			const variant = this.notice && this.notice.variant
 			return ['success', 'warning', 'error'].includes(variant) ? variant : 'info'
+		},
+
+		/**
+		 * Whether the notice is drawn under the list card rather than inside
+		 * it: the board look draws it as a card of its own (DqContracten).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-show-a-notice-under-its-list
+		 */
+		noticeOutsideList() {
+			return Boolean(this.isBoardLook && this.notice && this.notice.text)
 		},
 
 		effectivePageTabs() {

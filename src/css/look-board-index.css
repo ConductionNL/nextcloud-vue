@@ -1406,3 +1406,34 @@
 	border-bottom: none;
 	padding-block: 2px;
 }
+
+/* ---- Page tabs ---------------------------------------------------------- */
+/* The sibling pages above the list are the boards' folder tabs (DqContracten
+   "Contracten 38 | Leveranciers 21"): no rule under the strip, 14px at 400
+   with the open tab at 700, and the count in the grey pill the folder tabs
+   of a detail page draw. */
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *) .cn-index-page__page-tabs {
+	border-bottom: none;
+	margin-bottom: 0;
+}
+
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *) .cn-index-page__page-tab {
+	font-size: 14px;
+	font-weight: 400;
+}
+
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *) .cn-index-page__page-tab--active {
+	font-weight: 700;
+}
+
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *) .cn-index-page__page-tab-count {
+	background: var(--color-border);
+	color: var(--cn-board-text-soft);
+}
+
+/* The notice is a card of its own under the list card (DqContracten): the
+   body keeps the height of its card instead of filling the page, so the
+   notice follows the card rather than the bottom of the window. */
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *) .cn-index-page__body--before-notice {
+	flex: 0 1 auto;
+}

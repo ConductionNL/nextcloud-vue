@@ -661,6 +661,13 @@
 	background: var(--color-background-dark);
 	color: var(--color-main-text);
 	text-decoration: none;
+	/* A tab is no prose link: a theme that underlines every link in the link
+	   colour (the nldesign theme, through these tokens) draws it as a tab. */
+	--nldesign-component-link-text-decoration: none;
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-hover-color: var(--color-main-text);
+	--nldesign-component-link-visited-color: var(--color-main-text);
+	--nldesign-color-on-surface: var(--color-main-text);
 }
 
 .cn-index-page__page-tab:hover {
