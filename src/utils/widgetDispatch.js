@@ -50,7 +50,7 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'facts', 'linked', 'field-list', 'record-list', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations'])
 
 /**
  * The stored content/config blob for a widget definition.

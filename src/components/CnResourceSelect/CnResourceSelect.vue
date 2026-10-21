@@ -3,7 +3,14 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
+	<NcNoteCard
+		v-if="scopeFailed"
+		type="warning"
+		data-testid="cn-resource-select-failed">
+		{{ failedText || t('nextcloud-vue', 'The choices could not be read.') }}
+	</NcNoteCard>
 	<NcSelect
+		v-else
 		:inputId="inputId"
 		:inputLabel="inputLabel"
 		:modelValue="selectedOption"
@@ -12,7 +19,7 @@
 		:clearable="clearable"
 		:disabled="disabled"
 		:placeholder="placeholder"
-		:filterable="false"
+		:filterable="isScoped"
 		:multiple="multiple"
 		:keepOpen="multiple"
 		label="label"
@@ -29,8 +36,10 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
-import { NcSelect } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import { NcNoteCard, NcSelect } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import { useObjectStore } from '../../store/index.js'
 
@@ -65,6 +74,15 @@ import { useObjectStore } from '../../store/index.js'
  *    worth collecting in a full dialog) the consumer owns the create and
  *    resolves the finished object back.
  *
+ * `scope` offers a vocabulary scoped to an owner plus the rows every owner
+ * shares: `{ field, value, includeUnscoped, dedupeOn }` reads the whole list
+ * once (up to 200 rows), puts the rows whose `field` equals `value` first,
+ * then (with `includeUnscoped`) the rows that name no owner, dropping an
+ * unscoped row whose `dedupeOn` key an owned row already claims. An empty
+ * `value` offers every row. The list is searched in place, nothing is
+ * created, and a list that could not be read says so (`failedText`) instead
+ * of drawing an empty picker, which would read as "there are none".
+ *
  * Example:
  * ```vue
  * <CnResourceSelect
@@ -80,7 +98,7 @@ import { useObjectStore } from '../../store/index.js'
 export default {
 	name: 'CnResourceSelect',
 
-	components: { NcSelect, Plus },
+	components: { NcNoteCard, NcSelect, Plus },
 
 	props: {
 		/** OpenRegister register slug to search/create in. */
@@ -241,6 +259,23 @@ export default {
 			type: Function,
 			default: null,
 		},
+
+		/**
+		 * Scope the options to one owner plus the shared rows:
+		 * `{ field, value, includeUnscoped?, dedupeOn? }` (see above).
+		 *
+		 * @type {{field: string, value: string, includeUnscoped: boolean, dedupeOn: string}|null}
+		 */
+		scope: {
+			type: Object,
+			default: null,
+		},
+
+		/** With `scope`: the sentence shown when the list could not be read. */
+		failedText: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: ['update:modelValue', 'create'],
@@ -256,6 +291,8 @@ export default {
 			// Options seen so far, keyed by value, so a multiple selection
 			// keeps its labels when the search results move on.
 			known: {},
+			// Scope mode: whether reading the vocabulary failed.
+			scopeFailed: false,
 		}
 	},
 
@@ -280,6 +317,16 @@ export default {
 				return value.filter((v) => v !== null && v !== undefined && v !== '').map((v) => String(v))
 			}
 			return value ? [String(value)] : []
+		},
+
+		/** @return {boolean} Whether the options come from a `scope`. */
+		isScoped() {
+			return !!(this.scope && this.scope.field)
+		},
+
+		/** @return {string} A stable identity of the scope. */
+		scopeKey() {
+			return this.isScoped ? JSON.stringify(this.scope) : ''
 		},
 
 		/** The `${register}-${schema}` object-type slug used by the store. */
@@ -308,6 +355,9 @@ export default {
 		 * @return {Array<object>}
 		 */
 		displayOptions() {
+			if (this.isScoped) {
+				return this.options
+			}
 			const skip = new Set((this.exclude || []).map(String))
 			const opts = this.options.filter((o) => !skip.has(String(o.value)))
 			const term = this.search.trim()
@@ -359,6 +409,12 @@ export default {
 			},
 		},
 
+		scopeKey(next, prev) {
+			if (next !== prev && next !== '') {
+				this.loadScopedOptions()
+			}
+		},
+
 		filtersKey(next, prev) {
 			if (next === prev) {
 				return
@@ -379,10 +435,76 @@ export default {
 	},
 
 	created() {
+		if (this.isScoped) {
+			this.loadScopedOptions()
+			return
+		}
 		this.loadInitialOptions()
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Scope mode: read every row once and order them, owned first.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadScopedOptions() {
+			this.loading = true
+			this.scopeFailed = false
+			try {
+				const url = generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}`)
+				const { data } = await axios.get(url, { params: { ...this.activeFilters, _limit: 200 } })
+				const rows = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : null)
+				if (rows === null) {
+					throw new Error('Not a list')
+				}
+				this.options = this.remember(this.scopedOptions(rows))
+			} catch {
+				this.options = []
+				this.scopeFailed = true
+			} finally {
+				this.loading = false
+			}
+		},
+
+		/**
+		 * The owner a row is scoped to, '' when it names none.
+		 *
+		 * @param {object} row A row.
+		 * @return {string} The owner id.
+		 */
+		ownerOf(row) {
+			const value = row ? row[this.scope.field] : null
+			if (value && typeof value === 'object') {
+				return String(value.id || (value['@self'] && value['@self'].id) || '')
+			}
+			return String(value || '').trim()
+		},
+
+		/**
+		 * The rows offered under the scope, in order: the owner's own rows,
+		 * then the unscoped ones whose `dedupeOn` key no own row claims.
+		 *
+		 * @param {Array<object>} rows Every row read.
+		 * @return {Array<object>} The options.
+		 */
+		scopedOptions(rows) {
+			const all = rows.filter((row) => row && this.toOption(row).value !== '')
+			const wanted = String(this.scope.value || '').trim()
+			if (wanted === '' || wanted.startsWith('@')) {
+				return all.map((row) => this.toOption(row))
+			}
+			const own = all.filter((row) => this.ownerOf(row) === wanted)
+			const key = this.scope.dedupeOn
+			const claimed = new Set(key ? own.map((row) => String(row[key] || '').trim()).filter(Boolean) : [])
+			const shared = this.scope.includeUnscoped
+				? all.filter((row) => this.ownerOf(row) === '' && !(key && claimed.has(String(row[key] || '').trim())))
+				: []
+			return [...own, ...shared].map((row) => this.toOption(row))
+		},
+
 		/**
 		 * Seed the dropdown with a first page of options so the field can be
 		 * browsed without typing. No-op unless `preload` is set.
@@ -430,6 +552,9 @@ export default {
 		 */
 		async onSearch(term) {
 			this.search = term || ''
+			if (this.isScoped) {
+				return
+			}
 			if (!this.objectStore || this.search.trim().length < this.minChars) {
 				// Below the search threshold: fall back to the browsable first
 				// page when preloading, rather than blanking the list.
@@ -617,7 +742,7 @@ export default {
 				await this.ensureManyLoaded()
 				return
 			}
-			if (!this.modelValue || this.selectedOption || !this.objectStore) {
+			if (!this.modelValue || this.selectedOption || !this.objectStore || this.isScoped) {
 				return
 			}
 			try {

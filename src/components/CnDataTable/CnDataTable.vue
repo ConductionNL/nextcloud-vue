@@ -307,10 +307,10 @@
 								<span v-for="indicator in indicatorsFor(row).shown"
 									:key="indicator.id || indicator.field"
 									class="cn-table-row-indicator"
-									:title="indicator.tooltip || indicator.text"
+									:title="translateLabel(indicator.tooltip || indicator.text)"
 									:data-testid="`cn-row-indicator-${indicator.id || indicator.field}`">
 									<CnIcon :name="indicator.icon || 'InformationOutline'" :size="16" />
-									<span class="hidden-visually">{{ indicator.text }}</span>
+									<span class="hidden-visually">{{ translateLabel(indicator.text) }}</span>
 								</span>
 							</span>
 							<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
@@ -1867,7 +1867,8 @@ export default {
 		 * branch: a column can't usefully declare labels without also
 		 * declaring the codes they label. A column `colorMap` (raw value to
 		 * badge variant) colours the enum pill from the manifest and wins over
-		 * the schema property's own `colorMap` / `x-color-map`.
+		 * the schema property's own `colorMap` / `x-color-map`. A column with
+		 * `valueField` takes that field's property.
 		 *
 		 * @param {object} col Column definition.
 		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-a-system-date-can-be-a-column
@@ -1875,7 +1876,7 @@ export default {
 		 * @spec openspec/changes/screens-cell-pill-parity/specs/cell-pill-tones/spec.md#requirement-a-manifest-column-colours-its-enum-pills
 		 */
 		columnProperty(col) {
-			const base = this.getSchemaProperty(col.key)
+			const base = this.getSchemaProperty(this.columnValueField(col))
 			// A system date (`@self.created`, `@self.updated`, ...) has no
 			// schema property behind it; it renders as a date-time.
 			if (Object.keys(base).length === 0 && SYSTEM_DATE_KEYS.includes(col.key) && !col.type && !col.format) {
@@ -1974,10 +1975,11 @@ export default {
 		 * if it failed / there's nothing to count). A count of zero reads as
 		 * `aggregate.zeroLabel` when the column sets one ("None", which the
 		 * app's `cnTranslate` turns into "Geen" as the boards draw it); without
-		 * it the cell shows `0` as before. Otherwise the row's property value
-		 * via `getCellValue`.
+		 * it the cell shows `0` as before. Otherwise the row's value of the
+		 * column's `valueField` (else its key) via `getCellValue`.
 		 *
 		 * @spec openspec/changes/aggregate-zero-label/specs/aggregate-zero-label/spec.md#requirement-a-count-column-can-name-zero
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-column-can-show-one-field-and-sort-on-another
 		 * @param {object} row The row data.
 		 * @param {object} col The column definition.
 		 * @return {unknown} The value handed to the slot / CnCellRenderer.
@@ -1998,7 +2000,20 @@ export default {
 				}
 				return v
 			}
-			return this.getCellValue(row, col.key)
+			return this.getCellValue(row, this.columnValueField(col))
+		},
+
+		/**
+		 * The row field a column's cell shows: `col.valueField` when set, else
+		 * `col.key`. The key stays what the header sorts and filters on, so a
+		 * column can sort on a stored order and show the word it orders.
+		 *
+		 * @param {object} col Column definition.
+		 * @return {string} The field to read.
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-column-can-show-one-field-and-sort-on-another
+		 */
+		columnValueField(col) {
+			return col && typeof col.valueField === 'string' && col.valueField !== '' ? col.valueField : col.key
 		},
 
 		/**
