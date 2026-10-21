@@ -885,6 +885,11 @@
 			"pattern": "^@objectId$|^@object\\.[A-Za-z][A-Za-z0-9_]*$",
 			"description": "Object context: detail-page object tokens (@objectId, @object.<field>) resolved only when a { objectId, object } ctx is supplied. Mirrors SENTINEL_TOKEN_PATTERNS.object."
 		},
+		"sentinelLinkToken": {
+			"type": "string",
+			"pattern": "^@object\\.[A-Za-z][A-Za-z0-9_]*\\|(?:tel|mailto|geo)$",
+			"description": "Link context: a record field made a tel:, mailto: or geo: link in an action target (@object.<field>|tel, |mailto, |geo), resolved by the party-actions widget. Mirrors SENTINEL_TOKEN_PATTERNS.link."
+		},
 		"sentinelWorkspaceToken": {
 			"type": "string",
 			"pattern": "^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$",
@@ -936,6 +941,7 @@
 				{ "$ref": "#/$defs/sentinelFilterToken" },
 				{ "$ref": "#/$defs/sentinelConfigToken" },
 				{ "$ref": "#/$defs/sentinelObjectToken" },
+				{ "$ref": "#/$defs/sentinelLinkToken" },
 				{ "$ref": "#/$defs/sentinelWorkspaceToken" },
 				{ "$ref": "#/$defs/sentinelRouteToken" },
 				{ "$ref": "#/$defs/sentinelDeclarativeToken" },

@@ -31,3 +31,11 @@ When `indicatorSource` cannot be read, the band SHALL show `indicatorSource.erro
 - GIVEN the band shows one warning and an "Add a warning" action
 - WHEN a warning is saved through that action
 - THEN the band reads the indicators again and shows both
+
+### Requirement: The manifest schema accepts the link targets
+
+The manifest schema SHALL accept `@object.<field>|tel`, `|mailto` and `|geo` as tokens, and reject any other filter after `|`.
+
+#### Scenario: a party page with Call and Directions
+- GIVEN a manifest whose band has `@object.phone|tel` and `@object.address|geo` targets
+- THEN the manifest validates
