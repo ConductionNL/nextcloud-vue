@@ -652,15 +652,33 @@
 	display: flex;
 }
 
-/* The notice at the top of the side column: radius 12, padding 14px 16px. */
-.cn-look-board .cn-detail-page__side-item--notice .cn-widget-wrapper,
-.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget,
+/* The notice at the top of the side column: one tinted block, radius 12,
+   padding 14px 16px. Only the outer layer paints; the card wrapper, the
+   banner and its note card inside it stay flat, so the notice is not drawn
+   as a box in a box. */
 .cn-look-board .cn-detail-page__side-item--notice > * {
 	background: var(--cn-board-notice-bg);
 	border: none;
 	border-radius: var(--cn-board-card-radius);
 	font-size: 14px;
 	padding: 14px 16px;
+}
+
+.cn-look-board .cn-detail-page__side-item--notice > * .cn-widget-wrapper,
+.cn-look-board .cn-detail-page__side-item--notice > * .cn-widget-wrapper__content,
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget,
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card {
+	background: transparent;
+	border: none;
+	border-radius: 0;
+	margin: 0;
+	padding: 0;
+}
+
+/* A notice whose condition does not hold renders no banner; its slot then
+   takes no room instead of standing as an empty tinted block. */
+.cn-look-board .cn-detail-page__side-item--notice:not(:has(.cn-banner-widget)) {
+	display: none;
 }
 
 /* The History card ends with the record's identifier. */
