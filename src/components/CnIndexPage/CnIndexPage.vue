@@ -7360,14 +7360,15 @@ export default {
 		},
 
 		/**
-		 * What the page tab counts depend on, as one key.
+		 * What the page tab counts depend on, as one key: the `countFrom` of
+		 * each tab this user sees.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
 		 */
 		pageTabCountKey() {
 			const tabs = Array.isArray(this.pageTabs) ? this.pageTabs : []
-			const sources = tabs.map((tab) => (tab && tab.countFrom && tab.countFrom.register && tab.countFrom.schema ? tab.countFrom : null))
+			const sources = tabs.map((tab) => (tab && tab.countFrom && tab.countFrom.register && tab.countFrom.schema && this.pageTabVisible(tab) ? tab.countFrom : null))
 			return sources.some(Boolean) ? JSON.stringify(sources) : ''
 		},
 
@@ -8820,7 +8821,8 @@ export default {
 
 		/**
 		 * Count the lists behind the manifest page tabs (`countFrom`), one list
-		 * request each. A failed count shows no number.
+		 * request each, for the tabs this user sees only. A failed count shows
+		 * no number.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
@@ -8835,7 +8837,7 @@ export default {
 			const counts = {}
 			await Promise.all(this.pageTabs.map(async (tab, index) => {
 				const from = tab && tab.countFrom
-				if (from && from.register && from.schema) {
+				if (from && from.register && from.schema && this.pageTabVisible(tab)) {
 					counts[index] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
 				}
 			}))
