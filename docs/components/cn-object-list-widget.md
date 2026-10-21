@@ -113,6 +113,22 @@ the trailing actions column is only painted when the slot is supplied.
 Actions carry **intent, not authority**: OpenRegister RBAC decides what a write
 may actually do.
 
+### Row tokens
+
+A row action reads the row it runs on: `@row.<field>` and `{field}` (dot paths) in its `target`, `url`, `payload`, `params`, `props`, `query` or `filename` fill from the row; `{objectId}` and the page's `@`-tokens still read the page. A `navigate` action whose target holds a row token is a link per row:
+
+```json
+"rowActions": [
+  { "label": "All cases on this object", "type": "navigate", "target": "/cases?object=@row.id" }
+]
+```
+
+A value filled into a `target` or `url` is URL-encoded (an object URL holds `?` and `&`). A `navigate` action can also name a page by `route` with a `query`; the query's row tokens fill raw, because the router encodes them:
+
+```json
+{ "label": "All cases on this object", "type": "navigate", "route": "Cases", "query": { "_related[caseObject][case][objectUrl]": "{objectUrl}" } }
+```
+
 ### Drop zone
 
 `content.dropZone` is one action of that same shape, dispatched when files are

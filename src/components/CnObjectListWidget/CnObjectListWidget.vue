@@ -357,6 +357,7 @@ import { readPath } from '../../utils/readPath.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { actionForRow, hasRowTokens } from '../../utils/rowTokens.js'
 import { changedKeys } from '../../utils/saveEdited.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
@@ -2172,7 +2173,7 @@ export default {
 		 * @return {void}
 		 */
 		runRowAction(action, row) {
-			const pending = this.dispatch(action, [row], { row })
+			const pending = this.dispatch(actionForRow(action, row), [row], { row })
 			if (action && action.type === 'object-op' && action.op === 'delete') {
 				this.reportDelete(row, pending)
 			}
@@ -2231,6 +2232,33 @@ export default {
 		 * @return {object} `{ href, linkTarget }`, `{ to }`, or `{}`.
 		 */
 		rowActionLink(action) {
+			// A route with a query: a router location per row, the query's row
+			// tokens filled raw (the router encodes) and its page tokens resolved.
+			if (action && action.type === 'navigate' && !action.confirm && typeof action.route === 'string' && action.route !== '') {
+				const locationFor = (row) => ({
+					name: action.route,
+					query: resolveFilterTokens(actionForRow(action, row).query || {}, this.tokenCtx),
+				})
+				return {
+					href: () => '',
+					to: (row) => locationFor(row),
+				}
+			}
+			if (action && action.type === 'navigate' && !action.confirm && hasRowTokens(action.target)) {
+				const linkFor = (row) => actionLink(actionForRow(action, row), { router: this.$router || null, tokenCtx: this.tokenCtx })
+				// An in-app link answers `to` (followed by the router), an external one `href`.
+				return {
+					href: (row) => {
+						const link = linkFor(row)
+						return link && link.external ? link.href : ''
+					},
+
+					to: (row) => {
+						const link = linkFor(row)
+						return link && !link.external ? link.to : null
+					},
+				}
+			}
 			if (hasActionTargetTokens(action.target)) {
 				return {}
 			}
