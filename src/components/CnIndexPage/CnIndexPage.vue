@@ -4812,14 +4812,32 @@ export default {
 		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
 		 */
 		sortSourceView() {
+			const limit = (this.list && this.list.pagination && this.list.pagination.value && this.list.pagination.value.limit) || 20
+			return pageSourceRows(this.sortSourceFilteredRows, this.sortSource.page, limit)
+		},
+
+		/**
+		 * The source rows after the page's search and sidebar filters, every page.
+		 *
+		 * @return {Array<object>}
+		 */
+		sortSourceFilteredRows() {
 			const source = this.activeSortSource ? this.activeSortSource.source : {}
-			const filtered = filterSourceRows(this.sortSource.rows, {
+			return filterSourceRows(this.sortSource.rows, {
 				search: this.list && this.list.searchTerm ? this.list.searchTerm.value : '',
 				filters: this.list && this.list.activeFilters ? this.list.activeFilters.value : {},
 				searchFields: source.searchFields,
 			})
-			const limit = (this.list && this.list.pagination && this.list.pagination.value && this.list.pagination.value.limit) || 20
-			return pageSourceRows(filtered, this.sortSource.page, limit)
+		},
+
+		/**
+		 * The rows `{rows:<field>}` in the header note counts: every row of a
+		 * sort source's list, else the rows on screen.
+		 *
+		 * @return {Array<object>}
+		 */
+		headerMetaRows() {
+			return this.sortSourceShown ? this.sortSourceFilteredRows : (this.effectiveObjects || [])
 		},
 
 		/**
@@ -8046,7 +8064,10 @@ export default {
 		 * @return {string}
 		 */
 		/**
-		 * The header meta note with the list's counts filled in.
+		 * The header meta note with the list's counts filled in. `{rows:<field>}`
+		 * counts the rows whose field is set ("waarvan {rows:coveredFor} als
+		 * waarnemer"), and a part in square brackets is left out while a count
+		 * in it is zero.
 		 *
 		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
 		 * @return {string}
@@ -8058,17 +8079,31 @@ export default {
 			}
 			const total = this.effectivePagination?.total
 			let missing = false
-			const text = this.cnTranslate(headerMeta)
-				.replace('{shown}', String(this.effectiveObjects.length))
-				.replace('{total}', typeof total === 'number' ? String(total) : '')
+			const rows = Array.isArray(this.headerMetaRows) ? this.headerMetaRows : []
+			const isSet = (value) => value !== undefined && value !== null && value !== '' && value !== false && !(Array.isArray(value) && value.length === 0)
+			const fill = (part, onCount) => part
+				.replace('{shown}', () => onCount(this.effectiveObjects.length))
+				.replace('{total}', () => (typeof total === 'number' ? onCount(total) : ''))
+				.replace(/\{rows:([\w.-]+)\}/g, (match, field) => onCount(rows.filter((row) => isSet(field.split('.').reduce((at, key) => (at && typeof at === 'object' ? at[key] : undefined), row))).length))
 				.replace(/\{count:([\w-]+)\}/g, (match, name) => {
 					const value = this.headerMetaCountValues[name]
 					if (typeof value !== 'number') {
 						missing = true
 						return ''
 					}
-					return String(value)
+					return onCount(value)
 				})
+			const text = fill(
+				this.cnTranslate(headerMeta).replace(/\[([^\]]*)\]/g, (match, part) => {
+					let zero = false
+					const filled = fill(part, (count) => {
+						zero = zero || count === 0
+						return String(count)
+					})
+					return zero ? '' : filled
+				}),
+				String,
+			)
 			return missing ? '' : text
 		},
 
@@ -8080,7 +8115,7 @@ export default {
 		 */
 		headerMetaCarriesCount() {
 			const headerMeta = this.presented('headerMeta')
-			return typeof headerMeta === 'string' && /\{(shown|total|count:[\w-]+)\}/.test(headerMeta)
+			return typeof headerMeta === 'string' && /\{(shown|total|count:[\w-]+|rows:[\w.-]+)\}/.test(headerMeta)
 		},
 
 		/**
