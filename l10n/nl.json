@@ -2474,7 +2474,9 @@
     "Add a row": "Een rij toevoegen",
     "Key": "Sleutel",
     "{field} holds {key} twice.": "{field} bevat {key} twee keer.",
-    "View all ({count})": "Alles bekijken ({count})"
+    "View all ({count})": "Alles bekijken ({count})",
+    "Opens {host} in a new tab.": "Opent {host} in een nieuw tabblad.",
+    "How this app compares": "Hoe deze app zich verhoudt"
   },
   "plurals": {
     "{count} member": [
