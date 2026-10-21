@@ -56,6 +56,9 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `remove` | `{ label? }`: a remove button per row. Omitted: no remove. |
 | `readOnly` | No add form, no remove, no request row actions (dialog row actions stay). |
 | `hint`, `emptyText` | Muted texts. |
+| `row.href` | Path of a link for the row title. Only http(s) and root-relative links are drawn; an absolute one opens in a new tab. A row with no safe link shows its title as text. |
+| `lead` | A bold line above the rows, translated, with `{path}` placeholders filled from the object (`"Question about the dossier \"{subjectReference.title}\""`). |
+| `afterSave` | `{ url, method?, body?, failureText? }`: called after every save that went through, with `@objectId` / `@object.<field>` tokens (a contacts write-back). When it fails, the save stands and `failureText` shows as a warning. |
 
 `when` is `{ field: value }`, every field equal; `false` also matches an absent value. Labels, map values, templates, hint and empty text go through the host app's `cnTranslate`.
 

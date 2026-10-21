@@ -1,0 +1,3 @@
+- [x] 1. `CnFieldListWidget`: `row.href`, `lead`, `afterSave`.
+- [x] 2. `tests/components/CnFieldListWidgetLinksLeadAfterSave.spec.js`.
+- [x] 3. `docs/components/cn-field-list-widget.md`.
