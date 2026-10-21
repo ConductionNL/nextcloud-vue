@@ -244,3 +244,29 @@ A link to another tab of the same detail page (DqZaaktype: the side Historie car
 ```
 
 Theme hooks: `--cn-widget-header-link-size` (14px), `--cn-widget-header-link-weight` (600).
+
+## Buttons in the header (`headerActions`)
+
+A widget definition on a detail page can declare buttons for its card's title row, the board's per-card actions ("Flow uitvoeren", "Notitie toevoegen", "Bewerken"):
+
+```json
+{
+  "id": "case-flow-runs",
+  "type": "flow-runs",
+  "title": "Flows",
+  "headerActions": [
+    { "label": "Run flow", "icon": "Play", "action": { "type": "open-modal", "target": "CnActionDialog", "props": { "objectId": "@objectId" } } },
+    { "label": "Edit", "variant": "primary", "visibleWhen": { "field": "status", "op": "neq", "value": "closed" }, "action": { "type": "navigate", "route": "CaseEdit", "params": { "id": "@objectId" } } }
+  ]
+}
+```
+
+| Key | Description |
+|---|---|
+| `label` | The button text, an i18n key. Required. |
+| `icon` | A `CnIcon` name. |
+| `variant` | `secondary` (default, outlined) or `primary`. |
+| `visibleWhen` | A condition on the record. One the page cannot decide (it names an `endpoint` or a `source`) hides the button. |
+| `action` | Any action the page's dispatcher takes (`navigate`, `open-modal`, `api-call`, a registered handler). `@objectId` and `@object.<field>` are resolved first. Required. |
+
+CnDetailWidgetHost resolves them and provides them to the card it puts the widget in. The outermost CnWidgetWrapper or CnDetailCard below it draws them, before its `actions` slot; a card inside that one does not draw them again. A title-less card gets a header for them. In a tab panel (bare), CnTabsWidget draws them in the panel's heading, or on a row of their own when the panel has no heading.

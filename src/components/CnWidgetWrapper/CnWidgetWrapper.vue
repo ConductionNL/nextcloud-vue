@@ -92,6 +92,9 @@
 					v-bind="headerLinkAttrs">
 					{{ headerLinkLabel }}
 				</component>
+				<!-- The widget's manifest `headerActions`, provided by the
+				     detail host and drawn by the outermost card only. -->
+				<CnWidgetHeaderActionButtons v-if="declaredHeaderActions.length > 0" :actions="declaredHeaderActions" />
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
@@ -180,8 +183,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import CnWidgetHeaderActionButtons from './CnWidgetHeaderActionButtons.vue'
 import { headerLinkTarget } from '../../utils/contentHeaderLink.js'
 import { slotRenders } from '../../utils/slotContent.js'
+import { WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /**
@@ -227,6 +232,7 @@ export default {
 
 	components: {
 		CnActionsMenu,
+		CnWidgetHeaderActionButtons,
 	},
 
 	provide() {
@@ -238,6 +244,8 @@ export default {
 			 * @return {boolean}
 			 */
 			cnWidgetTitled: () => this.titleVisible && Boolean(this.displayTitle),
+			// A card inside this one does not draw the widget's header actions again.
+			[WIDGET_HEADER_ACTIONS]: null,
 		}
 	},
 
@@ -250,6 +258,12 @@ export default {
 		 * function so an untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The widget's manifest `headerActions`, resolved and provided by
+		 * the detail host (a ref or an array of `{ key, label, icon,
+		 * variant, run }`). Null inside another card.
+		 */
+		cnWidgetHeaderActions: { from: WIDGET_HEADER_ACTIONS, default: null },
 	},
 
 	props: {
@@ -680,6 +694,18 @@ export default {
 	emits: ['refresh', 'request-feature'],
 
 	computed: {
+		/**
+		 * The provided header actions, unwrapped.
+		 *
+		 * @return {Array<object>} The buttons, or none.
+		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-the-card-that-titles-a-widget-draws-its-header-actions
+		 */
+		declaredHeaderActions() {
+			const provided = this.cnWidgetHeaderActions
+			const list = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			return Array.isArray(list) ? list : []
+		},
+
 		displayTitle() {
 			return this.title || 'Widget'
 		},
@@ -996,7 +1022,7 @@ export default {
 			if (this.titleVisible) {
 				return true
 			}
-			if (this.actionsSlotRenders()) {
+			if (this.actionsSlotRenders() || this.declaredHeaderActions.length > 0) {
 				return true
 			}
 			return this.showActions && this.hasActionsSlot
@@ -1012,7 +1038,7 @@ export default {
 		 * @return {boolean} True when the group would hold a visible control.
 		 */
 		actionsAreVisible() {
-			return this.showActions || this.actionsSlotRenders() || Boolean(this.headerLinkTag)
+			return this.showActions || this.actionsSlotRenders() || Boolean(this.headerLinkTag) || this.declaredHeaderActions.length > 0
 		},
 
 		/**

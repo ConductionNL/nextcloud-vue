@@ -27,6 +27,7 @@
 				</h3>
 			</div>
 			<div class="cn-detail-card__header-right">
+				<CnWidgetHeaderActionButtons v-if="declaredHeaderActions.length > 0" :actions="declaredHeaderActions" />
 				<slot name="actions" />
 				<button
 					v-if="collapsible"
@@ -53,6 +54,8 @@
 
 <script>
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
+import { WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
 
 /**
  * CnDetailCard — Card container for detail page sections.
@@ -86,6 +89,20 @@ export default {
 
 	components: {
 		ChevronDown,
+		CnWidgetHeaderActionButtons,
+	},
+
+	provide() {
+		// A card inside this one does not draw the widget's header actions again.
+		return { [WIDGET_HEADER_ACTIONS]: null }
+	},
+
+	inject: {
+		/**
+		 * The widget's manifest `headerActions`, resolved and provided by the
+		 * detail host. Null inside another card.
+		 */
+		cnWidgetHeaderActions: { from: WIDGET_HEADER_ACTIONS, default: null },
 	},
 
 	props: {
@@ -141,6 +158,20 @@ export default {
 		return {
 			isCollapsed: this.collapsed,
 		}
+	},
+
+	computed: {
+		/**
+		 * The provided header actions, unwrapped.
+		 *
+		 * @return {Array<object>} The buttons, or none.
+		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-the-card-that-titles-a-widget-draws-its-header-actions
+		 */
+		declaredHeaderActions() {
+			const provided = this.cnWidgetHeaderActions
+			const list = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			return Array.isArray(list) ? list : []
+		},
 	},
 
 	watch: {
