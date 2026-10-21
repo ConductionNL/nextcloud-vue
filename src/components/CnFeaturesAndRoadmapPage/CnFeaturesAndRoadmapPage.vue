@@ -25,8 +25,9 @@
 			<a :href="compareHref"
 				class="cn-features-and-roadmap-page__compare-link"
 				target="_blank"
-				rel="noopener noreferrer">{{ compareText }}</a>
-			<span class="cn-features-and-roadmap-page__compare-hint">
+				rel="noopener noreferrer"
+				:aria-describedby="compareHintId">{{ compareText }}</a>
+			<span :id="compareHintId" class="cn-features-and-roadmap-page__compare-hint">
 				{{ t('nextcloud-vue', 'Opens {host} in a new tab.', { host: compareHost }) }}
 			</span>
 		</p>
@@ -300,6 +301,15 @@ export default {
 		 */
 		compareText() {
 			return this.compareLabel ? this.cnTranslate(this.compareLabel) : t('nextcloud-vue', 'How this app compares')
+		},
+
+		/**
+		 * The id tying the new-tab hint to the link, so a screen reader hears it.
+		 *
+		 * @return {string}
+		 */
+		compareHintId() {
+			return `cn-roadmap-compare-hint-${this.$.uid}`
 		},
 
 		/**

@@ -52,7 +52,7 @@ describe('CnFeaturesAndRoadmapPage compare link', () => {
 		expect(link.attributes('target')).toBe('_blank')
 		expect(link.attributes('rel')).toBe('noopener noreferrer')
 		expect(link.text()).toBe('Hoe pipelinq zich verhoudt')
-		expect(w.find('[data-testid="cn-roadmap-compare"]').text()).toContain('pipelinq.conduction.nl')
+		expect(w.find(`#${link.attributes('aria-describedby')}`).text()).toBe('Opens pipelinq.conduction.nl in a new tab.')
 		expect(w.find('.view').exists()).toBe(true)
 	})
 
