@@ -117,6 +117,13 @@ describe('CnGroupedCardsWidget itemActions', () => {
 		expect(second.find('[data-testid="cn-grouped-cards-progress"]').exists()).toBe(false)
 	})
 
+	it('draws a heading filled from the payload', async () => {
+		axios.get.mockResolvedValue({ data: { ...SETS, name: 'Optional maths' } })
+		const w = mount(CnGroupedCardsWidget, { props: { content: { ...CONTENT, heading: '{name}' } }, global: { stubs } })
+		await flush()
+		expect(w.find('[data-testid="cn-grouped-cards-heading"]').text()).toBe('Optional maths')
+	})
+
 	it('draws a second list per group with its own actions', async () => {
 		const w = mount(CnGroupedCardsWidget, { props: { content: CONTENT }, global: { stubs } })
 		await flush()

@@ -43,6 +43,7 @@ at `GET /api/case-types/{id}/phases`; the widget is generic and reads any payloa
 | `groupLines` | Templates drawn under a group's title, each left out when it does not fill. An entry `{ text, when }` is drawn only when the local condition `when` (`{ field, op, value }`, `all` / `any`) holds on the group. |
 | `itemActions` | Actions on every card, drawn as CnActionButtons draws them (`api-call`, `open-form`, `navigate`, ...). `@item.<path>` and `@group.<path>` in their strings read the card and its group: URL-encoded in `url`, `target` and `href`; a string that is exactly one token takes the value with its type. `visibleWhen` is the local condition over `item.<path>` and `group.<path>`, so Join, Move here and Leave each show when they apply. |
 | `groupProgress` | `{ valuePath, label? }`: a progress bar of the group's value (0 to 100) at `valuePath`, `label` filled from the group. |
+| `heading` | A template filled from the payload, drawn as a heading above the groups when the widget is a page of its own (`{name}` of an offer). |
 | `extraItemsKey`, `extraItemsHeading` | A second list of each group under its own heading (who did not sign up, the courses still to do). `extraItemTitle`, `extraItemMeta` and `extraItemActions` work as for the cards; a plain string entry reads as `{ value }`. |
 | `itemFlag` | `{ field, label }`: a card whose `field` is true carries `label` ("Overdue") in the error colour. |
 | `itemsPath`, `itemGroupField` | Read the cards from one flat list of the payload: a card joins the group whose `id` its `itemGroupField` names. |

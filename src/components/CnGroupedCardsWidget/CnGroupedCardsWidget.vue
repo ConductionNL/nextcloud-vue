@@ -5,6 +5,9 @@
 
 <template>
 	<div class="cn-grouped-cards" data-testid="cn-grouped-cards">
+		<h2 v-if="heading" class="cn-grouped-cards__heading" data-testid="cn-grouped-cards-heading">
+			{{ heading }}
+		</h2>
 		<p v-if="error"
 			class="cn-grouped-cards__state"
 			role="alert"
@@ -236,6 +239,8 @@ export default {
 		 *   `when` holds on the group.
 		 * - `groupProgress` (`{ valuePath, label? }`) draws a progress bar of the group's value (0 to
 		 *   100) at `valuePath`, with `label` filled from the group.
+		 * - `heading` is a template filled from the payload, drawn as the heading above the groups (on a
+		 *   page of its own); without a value it is left out.
 		 * - `extraItemsKey` with `extraItemsHeading` draws a second list of each group under that
 		 *   heading (`extraItemTitle`, `extraItemMeta`, `extraItemActions` as for the cards); a plain
 		 *   string entry reads as `{ value }`.
@@ -372,6 +377,13 @@ export default {
 				title: this.translate(spec.title || 'Always available'),
 				text: parts.join(typeof spec.join === 'string' ? spec.join : ' · '),
 			}
+		},
+
+		/** @return {string} The heading above the groups, filled from the payload. */
+		heading() {
+			const template = this.content?.heading
+			const row = this.payload && typeof this.payload === 'object' && !Array.isArray(this.payload) ? readable(this.payload) : {}
+			return template ? this.fill(template, row) : ''
 		},
 
 		/** @return {string} The empty text. */
@@ -677,6 +689,10 @@ export default {
 </script>
 
 <style scoped>
+.cn-grouped-cards__heading {
+	margin: 0 0 12px;
+}
+
 .cn-grouped-cards__progress {
 	display: flex;
 	align-items: center;
