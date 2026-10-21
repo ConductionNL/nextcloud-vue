@@ -242,6 +242,19 @@
 									</CnStatusBadge>
 								</span>
 								<span
+									v-if="cellFieldsOf().length > 0"
+									class="cn-board-view__card-cells"
+									data-testid="cn-board-card-cells">
+									<CnCellRenderer
+										v-for="field in cellFieldsOf()"
+										:key="`c-${cardKey(card)}-${field}`"
+										:value="readPath(card, field)"
+										:row="card"
+										:widget="cellOf(field).widget || null"
+										:widgetProps="cellOf(field).widgetProps || {}"
+										:formatter="cellOf(field).formatter || null" />
+								</span>
+								<span
 									v-if="dueText(card) !== '' || ownerName(card) !== ''"
 									class="cn-board-view__card-footer"
 									data-testid="cn-board-card-footer">
@@ -847,6 +860,17 @@ export default {
 		onCardAction(payload) {
 			/** @event card-action A card action was picked. Payload: what CnRowActions reports. */
 			this.$emit('card-action', payload)
+		},
+
+		/**
+		 * The card fields with a cell config, in `cardFields` order: the board
+		 * look draws them as a line of cells under the pill.
+		 *
+		 * @return {Array<string>}
+		 * @spec openspec/changes/pl4-board-card-cells/specs/pl4-board-card-cells/spec.md#requirement-a-card-field-can-be-a-cell
+		 */
+		cellFieldsOf() {
+			return (Array.isArray(this.cardFields) ? this.cardFields : []).filter((field) => this.cellOf(field) !== null)
 		},
 
 		/**

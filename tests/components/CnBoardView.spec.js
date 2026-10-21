@@ -317,3 +317,26 @@ describe('card actions (pl4-board-card-actions)', () => {
 		expect(wrapper.findComponent({ name: 'CnRowActions' }).exists()).toBe(false)
 	})
 })
+
+describe('card cells in the board look (pl4-board-card-cells)', () => {
+	it('draws the cell fields as a line of cells', () => {
+		const rows = [{ id: 1, status: 'open', title: 'Een', priority: 'high', qualificationScore: 72 }]
+		const wrapper = mount(CnBoardView, {
+			props: {
+				rows,
+				statusFieldSchema: FIELD,
+				statusField: 'status',
+				cardFields: ['title', 'priority', 'qualificationScore'],
+				cardCells: { qualificationScore: { widget: 'lead-score' } },
+				cardRoles: { title: 'title' },
+			},
+			global: {
+				provide: { cnLook: 'board' },
+				stubs: { CnCellRenderer: { name: 'CnCellRenderer', props: ['value', 'row', 'widget', 'widgetProps', 'formatter'], template: '<span class="cell">{{ widget }}:{{ value }}</span>' } },
+			},
+		})
+		const cells = wrapper.find('[data-testid="cn-board-card-cells"]').findAllComponents({ name: 'CnCellRenderer' })
+		expect(cells).toHaveLength(1)
+		expect(cells[0].props()).toMatchObject({ widget: 'lead-score', value: 72 })
+	})
+})
