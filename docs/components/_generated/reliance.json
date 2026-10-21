@@ -727,7 +727,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 194,
+			"transitive": 195,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -968,7 +968,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 197,
+			"transitive": 198,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1071,7 +1071,7 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 132,
+			"transitive": 133,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1132,7 +1132,7 @@
 		},
 		"CnDeviceFramesWidget": {
 			"direct": 0,
-			"transitive": 133,
+			"transitive": 134,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1540,7 +1540,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 1,
-			"transitive": 205,
+			"transitive": 206,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1893,7 +1893,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 9,
-			"transitive": 202,
+			"transitive": 203,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2965,6 +2965,13 @@
 			],
 			"page": "cn-object-sidebar"
 		},
+		"CnObjectTranslationsWidget": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": "cn-object-translations-widget"
+		},
 		"CnOfflineQueue": {
 			"direct": 0,
 			"transitive": 0,
@@ -3002,7 +3009,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 221,
+			"transitive": 222,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3485,7 +3492,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 195,
+			"transitive": 196,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3784,7 +3791,7 @@
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 133,
+			"transitive": 134,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -4176,7 +4183,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 0,
-			"transitive": 136,
+			"transitive": 137,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -4627,7 +4634,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 185,
+			"transitive": 186,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",

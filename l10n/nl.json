@@ -2367,7 +2367,15 @@
     "A rule that will refuse": "Een regel die gaat weigeren",
     "No rule, so it is open": "Geen regel, dus open",
     "No rule grants it": "Geen regel geeft dit recht",
-    "A grant on a record this one hangs under": "Een recht op een dossier waar dit dossier onder hangt"
+    "A grant on a record this one hangs under": "Een recht op een dossier waar dit dossier onder hangt",
+    "The translations could not be read. Reload the page to try again.": "De vertalingen konden niet worden gelezen. Herlaad de pagina om het opnieuw te proberen.",
+    "This item has no labels that can be translated.": "Dit item heeft geen labels die vertaald kunnen worden.",
+    "Languages": "Talen",
+    "Out of date": "Verouderd",
+    "{translated} of {total}": "{translated} van {total}",
+    "{language} is the source. Change a {language} label and its translations are marked out of date.": "{language} is de bron. Wijzig een {language} label en de vertalingen worden verouderd gemarkeerd.",
+    "The labels are saved.": "De labels zijn opgeslagen.",
+    "The labels could not be saved.": "De labels konden niet worden opgeslagen."
   },
   "plurals": {
     "{count} member": [
