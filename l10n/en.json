@@ -2021,7 +2021,12 @@
     "Count": "Count",
     "The report could not be read.": "The report could not be read.",
     "Nothing to count": "Nothing to count",
-    "Q{quarter} {year}": "Q{quarter} {year}"
+    "Q{quarter} {year}": "Q{quarter} {year}",
+    "Add a block": "Add a block",
+    "Blocks": "Blocks",
+    "No blocks yet. Add one above.": "No blocks yet. Add one above.",
+    "This text always ends with:": "This text always ends with:",
+    "{item} properties": "{item} properties"
   },
   "plurals": {
     "{count} member": [

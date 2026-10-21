@@ -2271,7 +2271,12 @@
     "Count": "Aantal",
     "The report could not be read.": "De rapportage kon niet worden gelezen.",
     "Nothing to count": "Niets om te tellen",
-    "Q{quarter} {year}": "K{quarter} {year}"
+    "Q{quarter} {year}": "K{quarter} {year}",
+    "Add a block": "Een blok toevoegen",
+    "Blocks": "Blokken",
+    "No blocks yet. Add one above.": "Nog geen blokken. Voeg er hierboven een toe.",
+    "This text always ends with:": "Deze tekst eindigt altijd met:",
+    "{item} properties": "Eigenschappen van {item}"
   },
   "plurals": {
     "{count} member": [
