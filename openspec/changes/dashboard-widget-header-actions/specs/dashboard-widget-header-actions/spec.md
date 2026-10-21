@@ -17,3 +17,13 @@ click SHALL dispatch the entry's action through the action dispatcher. A widget 
 
 - **GIVEN** the object types card declares "Add object type"
 - **THEN** the card's title row shows the button, and pressing it runs its action
+
+### Requirement: A navigate target can be an instance page
+
+A `navigate` action whose target starts with `/index.php/` SHALL load that page of the instance in the window and SHALL
+NOT push it on the app's router; any other relative target SHALL still be pushed on the router.
+
+#### Scenario: Catalogue to OpenRegister's schemas
+
+- **WHEN** "Objecttype toevoegen" navigates to `/index.php/apps/openregister/schemas`
+- **THEN** the browser opens that page
