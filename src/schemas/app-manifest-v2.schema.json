@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.139.0",
+	"version": "2.140.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -872,7 +872,7 @@
 		},
 		"sentinelFilterToken": {
 			"type": "string",
-			"pattern": "^@(?:me(?:\\.(?:displayName|email))?|myGroups|now|today|monthStart|monthEnd|nextMonthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$",
+			"pattern": "^@(?:me(?:\\.(?:displayName|email))?|myGroups|now|today|monthStart|monthEnd|nextMonthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$|^@now[+-][0-9]+[mhd]$",
 			"description": "Filter-value context: relative fetch-time tokens resolved by resolveFilterTokens (@me, @me.displayName, @me.email, @myGroups (the current user's group ids, an IN list), @now, @today, @today±Nd, @monthStart, @monthEnd, @nextMonthStart, @quarterStart, @yearStart). Mirrors SENTINEL_TOKEN_PATTERNS.filter in src/utils/sentinelTokens.js (byte-equality enforced by a unit test)."
 		},
 		"sentinelConfigToken": {
@@ -3231,7 +3231,7 @@
 				},
 				"formProperties": {
 					"type": "object",
-					"description": "open-form with `endpoint` only: the fields the form shows and sends, as JSON-schema properties (`{ \"name\": { \"type\": \"string\", \"title\": \"Name\" } }`).",
+					"description": "open-form with `endpoint` only: the fields the form shows and sends, as JSON-schema properties (`{ \"name\": { \"type\": \"string\", \"title\": \"Name\" } }`). `required: true` on a field means the form does not save without it.",
 					"additionalProperties": { "type": "object" }
 				},
 				"handler": {
@@ -3373,7 +3373,8 @@
 							"properties": {
 								"name": { "type": "string", "description": "The vue-router route NAME pushed after a successful save." },
 								"paramField": { "type": "string", "default": "id", "description": "Route param name populated from the saved object's id (default `id`)." },
-								"objectParam": { "type": "string", "description": "When set, the whole saved object is passed under this route param (props:true detail routes render without a refetch)." }
+								"objectParam": { "type": "string", "description": "When set, the whole saved object is passed under this route param (props:true detail routes render without a refetch)." },
+								"idPath": { "type": "string", "description": "Dot path of the id in the answer, instead of its id / uuid / @self.id: an endpoint form whose endpoint answers { bookingId } for the record it made." }
 							}
 						}
 					]

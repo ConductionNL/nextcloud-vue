@@ -3404,7 +3404,7 @@ export default {
 		 */
 		stagePrimaryEntry() {
 			const id = this.stagePrimary?.id
-			return (id && this.menuHeaderActions.find((entry) => entry.id === id)) || null
+			return (id && this.menuHeaderActions.find((entry) => entry.id === id && this.mayDrawAction(entry))) || null
 		},
 
 		/**
@@ -3416,7 +3416,7 @@ export default {
 		quickActionEntries() {
 			return this.pinnedQuickActions
 				.map((pinned) => this.menuHeaderActions.find((entry) => entry.id === pinned.id))
-				.filter(Boolean)
+				.filter((entry) => entry && this.mayDrawAction(entry))
 		},
 
 		/**
@@ -5347,6 +5347,19 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a header action may be drawn as the primary or a quick
+		 * button: an `adminOnly` action is for an instance admin only there,
+		 * as it is in the menu.
+		 *
+		 * @param {object} entry A menu entry.
+		 * @return {boolean} True when the viewer may see it.
+		 * @spec openspec/changes/actions-time-windows-and-endpoint-routes/specs/declarative-actions/spec.md#requirement-an-admin-only-action-stays-hidden-as-a-button
+		 */
+		mayDrawAction(entry) {
+			return this.headerActionsById[entry.id]?.adminOnly !== true || this.viewerIsAdmin
+		},
+
 		/**
 		 * A text of the access purpose gate through the app's translate, '' when unset.
 		 *

@@ -1035,14 +1035,19 @@ export default {
 		 * and the save sends the changed fields to `endpoint.url`. A failed
 		 * read toasts and opens nothing.
 		 *
+		 * A field declared with `required: true` must be filled before the form saves.
+		 *
 		 * @param {object} entry The open-form action with `endpoint` and `formProperties`.
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/actions-time-windows-and-endpoint-routes/specs/declarative-actions/spec.md#requirement-an-endpoint-form-field-can-be-required
 		 * @spec openspec/changes/open-form-endpoint/specs/open-form-endpoint/spec.md#requirement-an-open-form-action-can-edit-a-record-through-an-endpoint
 		 */
 		async openEndpointForm(entry) {
 			const properties = entry.formProperties && typeof entry.formProperties === 'object' && !Array.isArray(entry.formProperties) ? entry.formProperties : {}
+			// `required: true` on a declared field is the form's required list.
+			const required = Object.keys(properties).filter((key) => properties[key] && properties[key].required === true)
 			if (String(entry.endpoint.method || '').toUpperCase() === 'POST') {
-				this.formSchema = { type: 'object', properties }
+				this.formSchema = { type: 'object', properties, required }
 				return
 			}
 			const loadUrl = entry.endpoint.loadUrl || entry.endpoint.url
@@ -1057,13 +1062,16 @@ export default {
 				return
 			}
 			this.formItem = record
-			this.formSchema = { type: 'object', properties }
+			this.formSchema = { type: 'object', properties, required }
 		},
 
 		/**
 		 * Save an endpoint form: send the declared fields to `endpoint.url`
 		 * with `endpoint.method` (`PATCH` by default, or `PUT`), then toast and
-		 * refresh the page as an object save does.
+		 * refresh the page as an object save does. With `onSuccessRoute` the
+		 * page then follows the id the endpoint answers (`idPath` names where).
+		 *
+		 * @spec openspec/changes/actions-time-windows-and-endpoint-routes/specs/declarative-actions/spec.md#requirement-an-endpoint-form-can-open-the-record-the-endpoint-answers
 		 *
 		 * @param {object} entry The open-form action.
 		 * @param {object} formData The form's values.
@@ -1093,6 +1101,13 @@ export default {
 				const { emit } = await import('@nextcloud/event-bus')
 				emit('cn:page:refresh', {})
 				this.$emit('created', response && response.data)
+				// An endpoint that answers a new record (a rescheduled booking) can send the page there.
+				if (entry.onSuccessRoute && this.effectiveRouter) {
+					const location = buildOnSuccessRoute(entry.onSuccessRoute, response && response.data)
+					if (location && Object.keys(location.params).length > 0) {
+						this.effectiveRouter.push(location).catch(() => {})
+					}
+				}
 			} catch (error) {
 				const serverMessage = error && error.response && error.response.data
 					&& (error.response.data.error || error.response.data.message)

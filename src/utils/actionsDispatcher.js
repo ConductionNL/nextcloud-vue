@@ -268,16 +268,18 @@ export function resolveCreateOverrideHandler(name, registry, customComponents) {
  *    under the default `id` param; a route without an `:id` segment simply
  *    ignores the extra param, so a bare-name route keeps working unchanged
  *    (backward compatible).
- *  - an OBJECT `{ name, paramField?, objectParam? }` → the id is placed
+ *  - an OBJECT `{ name, paramField?, objectParam?, idPath? }` → the id is placed
  *    under `paramField` (default `id`), and — when `objectParam` is set —
  *    the whole saved object is passed under that param key too (so a
  *    `props: true` detail route can render the record without a refetch).
+ *    `idPath` reads the id at that dot path of the answer instead (an
+ *    endpoint that answers `{ bookingId }`).
  *
  * The id is read via {@link savedObjectId} (`saved.id` → `saved.uuid` →
  * `saved['@self'].id`). Returns `null` when no route name is resolvable, so
  * the caller can skip the navigation.
  *
- * @param {(string|{name: string, paramField?: string, objectParam?: string})} onSuccessRoute The action's onSuccessRoute config.
+ * @param {(string|{name: string, paramField?: string, objectParam?: string, idPath?: string})} onSuccessRoute The action's onSuccessRoute config.
  * @param {object} saved The saved OpenRegister object.
  * @return {{name: string, params: object}|null} The router push location, or null.
  */
@@ -289,7 +291,9 @@ export function buildOnSuccessRoute(onSuccessRoute, saved) {
 		return null
 	}
 	const params = {}
-	const id = savedObjectId(saved)
+	const id = typeof spec.idPath === 'string' && spec.idPath !== ''
+		? (spec.idPath.split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), saved) ?? null)
+		: savedObjectId(saved)
 	if (id !== null && id !== undefined) {
 		params[spec.paramField || 'id'] = id
 	}

@@ -150,6 +150,17 @@ only resolves one level deep. The object context comes from either
 `cnDetailObjectContext` holder, so a detail action resolves against the
 current record without extra wiring.
 
+### A form that posts to an endpoint
+
+An `open-form` with `endpoint: { url, method?, loadUrl?, responsePath? }` and `formProperties` edits a record that is not a register object, or with `method: "POST"` sends a new one. A field with `required: true` must be filled before the form saves. With `onSuccessRoute` the page opens the record the endpoint answers: `idPath` names where the id sits in the answer, and an answer without one leaves the page where it is.
+
+```json
+{ "id": "reschedule", "label": "Reschedule", "type": "open-form",
+  "endpoint": { "url": "/apps/pipelinq/api/bookings/@objectId/reschedule", "method": "POST" },
+  "formProperties": { "newStartAt": { "type": "string", "format": "date-time", "title": "New start", "required": true } },
+  "onSuccessRoute": { "name": "BookingDetail", "idPath": "bookingId" } }
+```
+
 ## Props
 
 | Prop | Type | Default | Description |

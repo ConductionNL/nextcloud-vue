@@ -18,6 +18,8 @@
  *                           an empty IN list (which OpenRegister reads as "no
  *                           constraint"). Spread in place inside an IN-list array.
  *  - `@now`               → the current instant, ISO-8601
+ *  - `@now±N(m|h|d)`      → that many minutes, hours or days from now, ISO-8601
+ *                           (e.g. `@now+1h`: a reminder only while the start is more than an hour away)
  *  - `@today`             → today at 00:00, `YYYY-MM-DD` (date-prefix comparable)
  *  - `@today±Nd`          → relative-date arithmetic at day granularity: N days
  *                           from today (e.g. `@today-30d`, `@today+7d`)
@@ -66,7 +68,7 @@
  */
 
 import { getCurrentUser } from '@nextcloud/auth'
-import { TODAY_DELTA_RE } from './sentinelTokens.js'
+import { NOW_DELTA_RE, TODAY_DELTA_RE } from './sentinelTokens.js'
 // userGroupsPeek, not widgetVisibility: that one imports @nextcloud/axios, and
 // this resolver runs on public pages and in node (see userGroupsPeek.js).
 import { peekCurrentUserGroups } from './userGroupsPeek.js'
@@ -235,6 +237,11 @@ export function resolveFilterValue(v, ctx) {
 	}
 	if (v === '@currentFiscalYear') {
 		return String(now.getFullYear())
+	}
+	const shift = v.match(NOW_DELTA_RE)
+	if (shift) {
+		const unitMs = { m: 60000, h: 3600000, d: 86400000 }[shift[2]]
+		return new Date(now.getTime() + Number(shift[1]) * unitMs).toISOString()
 	}
 	const m = v.match(TODAY_DELTA_RE)
 	if (m) {

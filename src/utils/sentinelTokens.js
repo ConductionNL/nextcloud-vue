@@ -67,7 +67,7 @@
  * @type {Readonly<Record<string, string>>}
  */
 export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
-	filter: '^@(?:me(?:\\.(?:displayName|email))?|myGroups|now|today|monthStart|monthEnd|nextMonthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$',
+	filter: '^@(?:me(?:\\.(?:displayName|email))?|myGroups|now|today|monthStart|monthEnd|nextMonthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$|^@now[+-][0-9]+[mhd]$',
 	config: '^@resolve:[a-z][a-z0-9_-]*$|^@config\\.[A-Za-z][A-Za-z0-9_.]*\\??$',
 	object: '^@objectId$|^@object\\.[A-Za-z][A-Za-z0-9_]*$',
 	workspace: '^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$',
@@ -129,7 +129,7 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 	filter: {
 		resolver: 'resolveFilterTokens',
 		description: 'Relative fetch-time tokens (current user, the current user\'s groups as an IN list, relative dates).',
-		members: ['@me', '@me.displayName', '@me.email', '@myGroups', '@now', '@today', '@today±Nd', '@monthStart', '@monthEnd', '@nextMonthStart', '@quarterStart', '@yearStart'],
+		members: ['@me', '@me.displayName', '@me.email', '@myGroups', '@now', '@now±N(m|h|d)', '@today', '@today±Nd', '@monthStart', '@monthEnd', '@nextMonthStart', '@quarterStart', '@yearStart'],
 	},
 	config: {
 		resolver: 'resolveManifestSentinels / resolveFilterTokens',
@@ -223,6 +223,8 @@ export const ROUTE_TOKEN_RE = /^@route\.([A-Za-z][A-Za-z0-9_-]*)$/
 
 /** `@today±Nd` — full match with a captured signed-day-delta group. */
 export const TODAY_DELTA_RE = /^@today([+-]\d+)d$/
+
+export const NOW_DELTA_RE = /^@now([+-]\d+)([mhd])$/
 
 /** Compiled per-context matchers (anchored, from SENTINEL_TOKEN_PATTERNS). */
 const CONTEXT_RE = Object.freeze(Object.fromEntries(Object.entries(SENTINEL_TOKEN_PATTERNS).map(([ctx, pat]) => [ctx, new RegExp(pat)])))

@@ -21,7 +21,7 @@ as read-only.
 
 ## The filter context
 
-`@me`, `@me.displayName`, `@me.email`, `@myGroups`, `@now`, `@today`,
+`@me`, `@me.displayName`, `@me.email`, `@myGroups`, `@now`, `@now±N(m|h|d)` (minutes, hours or days from now: `@now+1h`), `@today`,
 `@today±Nd`, `@monthStart`, `@monthEnd`, `@nextMonthStart`, `@quarterStart` and
 `@yearStart`.
 

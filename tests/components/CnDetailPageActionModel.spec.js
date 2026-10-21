@@ -466,3 +466,24 @@ describe('manifest: action model keys on a detail page', () => {
 		expect(validateManifestV2(manifest({ headerActions: [{ id: 'a', label: 'A', adminOnly: 'yes' }] })).valid).toBe(false)
 	})
 })
+
+describe('CnDetailPage admin only actions as buttons', () => {
+	const confirm = { id: 'confirm', type: 'api-call', label: 'Confirm', url: '/apps/x/api/refunds/@objectId/confirm', adminOnly: true }
+	const quick = (wrapper) => wrapper.findAll('[data-testid^="cn-detail-page-quick-"]')
+
+	it('does not draw an admin only stage action as the primary button for a handler', async () => {
+		const { wrapper } = await mountPage({ headerActions: [confirm], primaryActionByStage: { received: 'confirm' } })
+		expect(primary(wrapper)).toHaveLength(0)
+		expect(wrapper.vm.headerMenuEntries.map((entry) => entry.id)).toEqual(['confirm'])
+	})
+
+	it('draws it for an admin', async () => {
+		const { wrapper } = await mountPage({ headerActions: [confirm], primaryActionByStage: { received: 'confirm' }, isAdmin: true })
+		expect(primary(wrapper)[0].text()).toBe('Confirm')
+	})
+
+	it('keeps an admin only quick action off the header for a handler', async () => {
+		const { wrapper } = await mountPage({ headerActions: [...HEADER_ACTIONS, confirm], quickActions: ['message', 'confirm'] })
+		expect(quick(wrapper).map((button) => button.text())).toEqual(['Message'])
+	})
+})

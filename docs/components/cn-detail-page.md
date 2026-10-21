@@ -126,7 +126,7 @@ Keep them the same on every record of a type, so a handler finds them without lo
 
 Ungrouped actions come first. Each group follows under a caption, in the order the groups first appear. `adminOnly` actions form the last group, titled "Administration", and only an instance admin sees them.
 
-`adminOnly` hides a control. It does not protect anything: the endpoint behind the action decides who may call it.
+`adminOnly` hides a control, in the menu and as the primary or a quick button alike. It does not protect anything: the endpoint behind the action decides who may call it.
 
 ### A link in the menu
 

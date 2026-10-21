@@ -76,7 +76,7 @@ describe('open-form with an endpoint', () => {
 		await flush()
 		expect(fetchEndpointSource).toHaveBeenCalledWith({ url: EDIT.endpoint.url, responsePath: '' }, expect.anything(), { force: true })
 		const dialog = wrapper.findComponent({ name: 'CnFormDialog' })
-		expect(dialog.props('schema')).toEqual({ type: 'object', properties: EDIT.formProperties })
+		expect(dialog.props('schema')).toEqual({ type: 'object', properties: EDIT.formProperties, required: [] })
 		expect(dialog.props('item')).toMatchObject({ name: 'Waterland' })
 	})
 
@@ -113,6 +113,40 @@ describe('open-form with an endpoint', () => {
 		dialog.vm.$emit('confirm', { name: 'Welstandsadvies vragen' })
 		await flush()
 		expect(axios.post).toHaveBeenCalledWith('/nc/apps/dossiq/api/phases/s1/steps', { name: 'Welstandsadvies vragen' })
+	})
+
+	it('makes a field declared required: true a required field of the form', async () => {
+		const action = { ...EDIT, endpoint: { url: '/apps/pipelinq/api/pos-shifts/@objectId/count', method: 'POST' }, formProperties: { amount: { type: 'number', title: 'Counted amount', required: true }, notes: { type: 'string', title: 'Notes' } } }
+		const wrapper = mountBar(action)
+		await flush()
+		await wrapper.find('[data-testid="cn-action-organisation-edit"]').trigger('click')
+		await flush()
+		expect(wrapper.findComponent({ name: 'CnFormDialog' }).props('schema').required).toEqual(['amount'])
+	})
+
+	it('opens the record the endpoint answers when the action names onSuccessRoute', async () => {
+		axios.post.mockResolvedValue({ data: { bookingId: 'b-2' } })
+		const action = { ...EDIT, endpoint: { url: '/apps/pipelinq/api/bookings/@objectId/reschedule', method: 'POST' }, onSuccessRoute: { name: 'BookingDetail', idPath: 'bookingId' } }
+		const wrapper = mountBar(action)
+		await flush()
+		await wrapper.find('[data-testid="cn-action-organisation-edit"]').trigger('click')
+		await flush()
+		wrapper.findComponent({ name: 'CnFormDialog' }).vm.$emit('confirm', { name: 'x' })
+		await flush()
+		await flush()
+		expect(wrapper.vm.$router.push).toHaveBeenCalledWith({ name: 'BookingDetail', params: { id: 'b-2' } })
+	})
+
+	it('stays on the page when the answer names no record', async () => {
+		axios.post.mockResolvedValue({ data: { outcome: 'ok' } })
+		const action = { ...EDIT, endpoint: { url: '/apps/pipelinq/api/bookings/@objectId/reschedule', method: 'POST' }, onSuccessRoute: { name: 'BookingDetail', idPath: 'bookingId' } }
+		const wrapper = mountBar(action)
+		await flush()
+		await wrapper.find('[data-testid="cn-action-organisation-edit"]').trigger('click')
+		await flush()
+		wrapper.findComponent({ name: 'CnFormDialog' }).vm.$emit('confirm', { name: 'x' })
+		await flush()
+		expect(wrapper.vm.$router.push).not.toHaveBeenCalled()
 	})
 
 	it('opens nothing when the record cannot be read', async () => {
