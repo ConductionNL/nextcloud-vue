@@ -852,6 +852,28 @@
 							</small>
 						</template>
 					</div>
+					<!-- @slot field-{key}-hint Content under one field, such as a hint that follows its value. -->
+					<!-- @binding {object} field The field definition. -->
+					<!-- @binding {*} value The field's current value. -->
+					<!-- @binding {object} formData Every value of the form. -->
+					<div
+						v-if="!isInFoldedSection(field) && ($slots['field-' + field.key + '-hint'] || resolveHintComponent(field))"
+						class="cn-form-dialog__field-hint"
+						:data-testid="'cn-form-hint-' + field.key">
+						<slot
+							v-if="$slots['field-' + field.key + '-hint']"
+							:name="'field-' + field.key + '-hint'"
+							:field="field"
+							:value="formData[field.key]"
+							:formData="formData" />
+						<!-- `hintWidget` names a registered component mounted under the field. -->
+						<component
+							:is="resolveHintComponent(field)"
+							v-else
+							:field="field"
+							:value="formData[field.key]"
+							:formData="formData" />
+					</div>
 					<!-- `warnWhen`: notes under the field that do not block the save. -->
 					<p
 						v-for="(warning, index) in (isInFoldedSection(field) ? [] : fieldWarnings(field))"
@@ -2327,6 +2349,37 @@ export default {
 			const legacy = this.cnCustomComponents && this.cnCustomComponents[name]
 			// A bare function in the legacy map is a handler, not a component.
 			return legacy && typeof legacy === 'object' ? legacy : null
+		},
+
+		/**
+		 * The registered component a field shows under its control
+		 * (`hintWidget`), or null.
+		 *
+		 * @spec openspec/changes/pl4-form-field-create-modal/specs/form-dialog/spec.md
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveHintComponent(field) {
+			const name = field && field.hintWidget
+			return typeof name === 'string' && name !== '' ? this.resolveFieldComponent({ widget: name }) : null
+		},
+
+		/**
+		 * The registry modal a reference field creates its objects with
+		 * (`createModal`), or null. It must be a `kind: 'modal'` entry and
+		 * CnAppRoot must provide the modal opener.
+		 *
+		 * @spec openspec/changes/pl4-form-field-create-modal/specs/form-dialog/spec.md
+		 * @param {object} field A resolved field descriptor.
+		 * @return {string|null} The registry key, or null.
+		 */
+		fieldCreateModal(field) {
+			const key = field && field.createModal
+			if (typeof key !== 'string' || key === '' || typeof this.cnOpenModal !== 'function') {
+				return null
+			}
+			const entry = (this.cnRegistry || {})[key]
+			return entry && entry.kind === 'modal' ? key : null
 		},
 
 		/**
@@ -3906,6 +3959,10 @@ export default {
 				store.registerObjectType(slug, schemaRef, register)
 			}
 			const labelField = this.referenceLabelField(field)
+			const fieldModal = this.fieldCreateModal(field)
+			if (fieldModal) {
+				return this.openAppCreateModal(fieldModal, store, slug, labelField, term, resolveFormTokens(field.createModalProps || {}, this.formData))
+			}
 			const loadSchema = async () => {
 				try {
 					return await store.fetchSchema(slug)
@@ -4055,9 +4112,10 @@ export default {
 		 * @param {string} slug The object type slug.
 		 * @param {string} labelField The property the typed term belongs in.
 		 * @param {string} term The typed search term.
+		 * @param {object} [props] More props for the dialog (a field's `createModalProps`).
 		 * @return {Promise<object|null>} The created object, or null.
 		 */
-		openAppCreateModal(key, store, slug, labelField, term) {
+		openAppCreateModal(key, store, slug, labelField, term, props = {}) {
 			return new Promise((resolve) => {
 				let settled = false
 				let reported = false
@@ -4068,6 +4126,7 @@ export default {
 					}
 				}
 				this.cnOpenModal(key, {
+					...props,
 					initialData: term ? { [labelField]: term } : {},
 					onCreated: async (created) => {
 						if (created && typeof created === 'object') {
@@ -5560,6 +5619,12 @@ export default {
 	border-inline-start: 3px solid var(--color-warning);
 	background: var(--color-background-hover);
 	color: var(--color-main-text);
+}
+
+.cn-form-dialog__field-hint {
+	grid-column: 1 / -1;
+	margin-top: 4px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-form-dialog__section-toggle {
