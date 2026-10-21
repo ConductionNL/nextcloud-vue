@@ -28,3 +28,25 @@ choose its frame; without it a `banner` widget SHALL draw bare and any other wid
 
 - **GIVEN** a detail page without `config.band`
 - **THEN** no band element is rendered and the layout is unchanged
+
+### Requirement: A detail header link builds its URL from the record
+
+A detail page header action with `href` SHALL resolve the `@object.<field>`, `@objectId`, `@page.<key>` and `@config.<key>`
+tokens in that `href` against the shown record before it resolves the URL, so a link can point at a URL built from the
+record. An `href` without tokens SHALL resolve as before.
+
+#### Scenario: PtPortal "Website bekijken"
+
+- **GIVEN** a portal with slug `zuiddrecht` and a header action `{ href: "/apps/portaliq/site?route=%2F&portal=@object.slug", target: "_blank" }`
+- **THEN** the button links to the instance URL of `/apps/portaliq/site?route=%2F&portal=zuiddrecht` in a new tab
+
+### Requirement: A detail page's own primary action is a link
+
+When no stage action stands in for it, a detail page's `primaryAction` with `route` (and an optional `query`) SHALL render
+as an in-app link a plain click routes to; with `href` (its record tokens resolved) it SHALL link there in a new tab.
+The `primary-action` event SHALL still be emitted.
+
+#### Scenario: PtPortal "Nieuwe pagina"
+
+- **GIVEN** a portal page whose `primaryAction` is `{ label: "New page", route: "Pages", query: { action: "create" } }`
+- **THEN** the primary button links to the Pages route with `?action=create`, and a plain click routes there in the app

@@ -1416,7 +1416,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.137.0 lets open-form edit and create through an endpoint (open-form-endpoint), a grouped-cards group carry an action (grouped-cards-group-action), a detail page ask for a purpose before it opens a record (detail-access-purpose), an api-call GET a download (api-call-get-download) and headerPill.values limit a pill to some values (detail-pill-values).
 		// 2.138.0 adds after and before on a row indicator, a date bound that is now or an ISO date (cell-config-growth).
 		// 2.139.0 adds the redaction page type (dq-abstract-record-widgets), quarter and year page filters with count, and loadOn, requestLabel, requestHint, truncatedText and namePath on endpoint widgets (dq-abstract-dash).
-		// 2.140.0 adds band on a detail page, a row of widgets across the page above the body and the side column (detail-band).
+		// 2.140.0 adds band on a detail page, a row of widgets across the page above the body and the side column, and query on a primary action (detail-band).
 		expect(schema.version).toBe('2.140.0')
 	})
 
@@ -1425,6 +1425,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(page(['kpi', { widgetId: 'kpi', span: 3, chrome: 'bare' }, { type: 'banner', span: 12 }])).valid).toBe(true)
 		expect(validateManifestV2(page([{ widgetId: 'kpi', span: 13 }])).valid).toBe(false)
 		expect(validateManifestV2(page([{ widgetId: 'kpi', chrome: 'frame' }])).valid).toBe(false)
+	})
+
+	it('accepts the 2.140.0 query on a primary action', () => {
+		const withPrimary = (primaryAction) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p/:id', type: 'detail', title: 'P', primaryAction, config: { register: 'r', schema: 's' } }] })
+		expect(validateManifestV2(withPrimary({ label: 'New page', route: 'Pages', query: { action: 'create' } })).valid).toBe(true)
+		expect(validateManifestV2(withPrimary({ label: 'New page', route: 'Pages', query: { action: 3 } })).valid).toBe(false)
 	})
 
 	it('accepts the 2.135.0 header action href and refuses it with a handler, another type or a bad URL', () => {

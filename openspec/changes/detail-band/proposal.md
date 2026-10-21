@@ -16,3 +16,7 @@ side column starts beside it.
 - Each entry follows its `visibleWhen`, as a side column card does. `chrome` (`card` or `bare`) picks the frame; a
   banner defaults to bare, every other widget to a card, so a widget that draws its own card (a KPI) asks for bare.
 - Generic: any app's detail page can use it (a dossiq case could put its stage strip or KPIs there).
+- A detail header action's `href` resolves the record's tokens (`@object.slug`), so a link can be built from the record
+  (PtPortal "Website bekijken").
+- A detail page's own `primaryAction` with `route` (plus a new `query`) or `href` is a link, no longer only an event
+  (PtPortal "Nieuwe pagina" opens the page create flow).

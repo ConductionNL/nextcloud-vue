@@ -88,3 +88,34 @@ describe('CnDetailPage: the band', () => {
 		expect(wrapper.find('[data-testid="cn-detail-page-band-kpi-views"]').attributes('style')).toContain('--cn-band-span: 3')
 	})
 })
+
+describe('CnDetailPage: header links built from the record', () => {
+	it('resolves @object tokens in a header action href', async () => {
+		const wrapper = mountPage({ headerActions: [{ id: 'site', label: 'Site', href: '/apps/portaliq/site?portal=@object.status', target: '_blank' }] })
+		await flushPromises()
+		const site = wrapper.vm.effectiveHeaderActions.find((action) => action.id === 'site')
+		expect(site.href).toContain('/apps/portaliq/site?portal=published')
+		expect(site.target).toBe('_blank')
+	})
+
+	it('makes primaryAction with route and query an in-app link that a click routes to', async () => {
+		const router = { resolve: jest.fn((to) => ({ href: `/index.php/apps/portaliq/${to.name.toLowerCase()}?action=${to.query.action}` })), push: jest.fn(async () => {}) }
+		const wrapper = shallowMount(CnDetailPage, {
+			props: {
+				title: 'Portal',
+				register: 'portaliq',
+				schema: 'portal',
+				objectId: 'p-1',
+				objectStore: makeStore({ id: 'p-1', status: 'published' }),
+				primaryAction: { label: 'New page', route: 'Pages', query: { action: 'create' } },
+			},
+			global: { mocks: { t: (_a, s) => s, $route: { params: {}, query: {}, name: 'portal' }, $router: router } },
+		})
+		await flushPromises()
+		expect(wrapper.vm.primaryActionHref).toBe('/index.php/apps/portaliq/pages?action=create')
+		expect(wrapper.vm.primaryActionTarget).toBe('_self')
+		wrapper.vm.onPrimaryActionClick({ preventDefault: jest.fn(), defaultPrevented: false, button: 0 })
+		expect(router.push).toHaveBeenCalledWith({ name: 'Pages', query: { action: 'create' } })
+		expect(wrapper.emitted('primary-action')).toHaveLength(1)
+	})
+})

@@ -1537,9 +1537,14 @@
 					"type": "string",
 					"description": "Named vue-router route to navigate to on click."
 				},
+				"query": {
+					"type": "object",
+					"additionalProperties": { "type": "string" },
+					"description": "Query for `route`, e.g. { \"action\": \"create\" } to open an index page's create flow (detail-band, 2.140.0)."
+				},
 				"href": {
 					"type": "string",
-					"description": "External URL opened in a new tab on click."
+					"description": "External URL opened in a new tab on click. On a detail page it may name the record's fields as @object.<field> tokens."
 				},
 				"payload": {
 					"description": "Free-form payload echoed back to the host inside the @primary-action-click event."

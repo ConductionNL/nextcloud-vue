@@ -1358,7 +1358,7 @@ import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
-import { headerActionAsLink } from '../../utils/actionLink.js'
+import { headerActionAsLink, resolveManifestHref, routeHref } from '../../utils/actionLink.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
@@ -1381,6 +1381,8 @@ import { firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
+import { followLinkClick } from '../../utils/linkNavigation.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
@@ -3535,7 +3537,46 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 */
 		primaryActionHref() {
-			return this.stagePrimaryEntry?.href || ''
+			if (this.stagePrimaryEntry) {
+				return this.stagePrimaryEntry.href || ''
+			}
+			return this.primaryActionLink?.href || ''
+		},
+
+		/**
+		 * The page's `primaryAction` as a link, when no stage action stands in
+		 * for it: `href` (its record tokens resolved) opens in a new tab, as the
+		 * schema says; `route` (with `query`) is an in-app link a plain click
+		 * routes to (PtPortal "Nieuwe pagina" opens the page create flow).
+		 *
+		 * @return {{href: string, to: object|null, target: string}|null} The link, or null.
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-pages-own-primary-action-is-a-link
+		 */
+		primaryActionLink() {
+			const action = this.primaryAction
+			if (!action || typeof action !== 'object') {
+				return null
+			}
+			if (typeof action.href === 'string' && action.href !== '') {
+				const href = resolveManifestHref(interpolateUrlTokens(action.href, this.headerLinkTokenCtx))
+				return href ? { href, to: null, target: '_blank' } : null
+			}
+			if (typeof action.route === 'string' && action.route !== '') {
+				const to = { name: action.route, ...(action.query && typeof action.query === 'object' ? { query: action.query } : {}) }
+				const href = routeHref(to, this.$router)
+				return href ? { href, to, target: '_self' } : null
+			}
+			return null
+		},
+
+		/**
+		 * The token context a header link resolves its URL against: this record.
+		 *
+		 * @return {{objectId: (string|number), object: object}} The context.
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-header-link-builds-its-url-from-the-record
+		 */
+		headerLinkTokenCtx() {
+			return { objectId: this.objectId, object: this.resolvedObject || {} }
 		},
 
 		/**
@@ -3545,7 +3586,10 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 */
 		primaryActionTarget() {
-			return this.stagePrimaryEntry?.linkTarget || undefined
+			if (this.stagePrimaryEntry) {
+				return this.stagePrimaryEntry.linkTarget || undefined
+			}
+			return this.primaryActionLink?.target || undefined
 		},
 
 		/**
@@ -4346,7 +4390,7 @@ export default {
 				.map((pinned) => pinned.inline)
 			const combined = inline.length > 0 ? [...authored, ...inline] : authored
 			// An entry (or child) with `href` becomes a link CnActionButtons renders as an anchor.
-			const linked = combined.map(headerActionAsLink)
+			const linked = combined.map((action) => headerActionAsLink(action, this.headerLinkTokenCtx))
 			const declared = linked.some((action, index) => action !== combined[index]) ? linked : combined
 			if (!(this.foldsEditIntoActions && this.canEditRecord)) {
 				return declared
@@ -5662,16 +5706,21 @@ export default {
 		 * the `run()` CnActionButtons bound for it, and announced to the host
 		 * with its declaration. A link action is left to the browser and
 		 * announces nothing. Without a stage action this is the page's
-		 * `primaryAction`, announced as before.
+		 * `primaryAction`, announced as before, and when it is an in-app link
+		 * a plain click routes there.
 		 *
+		 * @param {MouseEvent} [event] The click.
 		 * @return {void}
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 */
-		onPrimaryActionClick() {
+		onPrimaryActionClick(event) {
 			const entry = this.stagePrimaryEntry
 			if (!entry) {
 				this.$emit('primary-action', this.primaryAction)
+				if (this.primaryActionLink?.to) {
+					followLinkClick(event, this.primaryActionLink.to, this.$router)
+				}
 				return
 			}
 			if (entry.href) {
