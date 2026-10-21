@@ -128,7 +128,7 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `doneLabel` | String | `'Done'` | Label for the done button |
 | `emptyLabel` | String | `'No widgets configured'` | Empty state message |
 | `unavailableLabel` | String | `'Widget not available'` | Fallback for unknown widget IDs |
-| `headerActions` | Array | `[]` | Declarative header actions (manifest `config.headerActions`) rendered as buttons through `CnActionButtons`. An entry with `href` is a link button, never dispatched: an absolute `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written, an instance path through `generateUrl()`, in a new tab with `target: "_blank"` — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href). |
+| `headerActions` | Array | `[]` | Declarative header actions (manifest `config.headerActions`) rendered as buttons through `CnActionButtons`. An entry with `href` is a link button, never dispatched: an absolute `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written, an instance path through `generateUrl()`, in a new tab with `target: "_blank"`. On a dashboard the `href` may carry `@workspace.<key>` tokens, filled URL-encoded from the page filters, so a download asks for what the page shows (`/apps/dossiq/api/report?format=csv&from=@workspace.dateFrom`) — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href). |
 | `dateRange` | Object | `null` | Optional date-range header descriptor — see [Date-range header](#date-range-header) |
 | `pageFilters` | Array | `[]` | Optional page-level filter controls rendered in the header — see [Page filters](#page-filters). Each entry `\{ key, label?, type?: 'select', options: [\{ value, label \}], default? \}`. The selection is written into the reactive workspace context, so widgets can read it via a `@page.<key>` / `@workspace.<key>` token. |
 
@@ -375,6 +375,14 @@ A filter can read its options instead of listing them, as the case-type filter o
 ```
 
 `optionsFrom` is `{ register, schema, filter? }` (OpenRegister objects; tokens in `filter` resolve) or `{ url, params?, responsePath? }` (an app endpoint). `valueField` and `labelField` pick the option's value and label (default the `id` or uuid, and `title` or `name`). `clearable: true` lets the reader clear the select back to all: the context key becomes `null` and nothing is seeded on mount, and `placeholder` says what an empty select means. A filter that is not clearable is seeded with the first option read.
+
+### A quarter filter (`type: "quarter"`)
+
+```json
+{ "key": "quarter", "label": "Quarter", "type": "quarter", "count": 8 }
+```
+
+The filter generates its own options: the current quarter first, then the `count - 1` quarters before it (default 8 in all). Each is valued `YYYY-Qn`, the form a quarterly report endpoint reads, and labelled "Q2 2026". The current quarter is seeded on mount, so a widget reading `@workspace.quarter` has a value on its first read. `type: "year"` does the same for years: the current year first, `count` years in all (default 5), valued `YYYY`.
 
 ## Built-in page-level Actions menu
 

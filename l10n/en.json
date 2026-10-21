@@ -1975,7 +1975,14 @@
     "Task {title} finished": "Task {title} finished",
     "Task {title} is yours": "Task {title} is yours",
     "Fill in {field} before completing this task": "Fill in {field} before completing this task",
-    "Search in this list": "Search in this list"
+    "Search in this list": "Search in this list",
+    "Export CSV": "Export CSV",
+    "Not every record could be read, so these figures may be incomplete.": "Not every record could be read, so these figures may be incomplete.",
+    "Download CSV": "Download CSV",
+    "Count": "Count",
+    "The report could not be read.": "The report could not be read.",
+    "Nothing to count": "Nothing to count",
+    "Q{quarter} {year}": "Q{quarter} {year}"
   },
   "plurals": {
     "{count} member": [

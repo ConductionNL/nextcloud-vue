@@ -2225,7 +2225,14 @@
     "Withheld": "Afgeschermd",
     "This value is not shown.": "Deze waarde wordt niet getoond.",
     "You may not open the linked object, so its value is not shown.": "U mag het gekoppelde object niet openen, daarom wordt de waarde niet getoond.",
-    "Search in this list": "Zoeken in deze lijst"
+    "Search in this list": "Zoeken in deze lijst",
+    "Export CSV": "CSV exporteren",
+    "Not every record could be read, so these figures may be incomplete.": "Niet alle gegevens konden worden gelezen, dus deze cijfers zijn mogelijk onvolledig.",
+    "Download CSV": "CSV downloaden",
+    "Count": "Aantal",
+    "The report could not be read.": "De rapportage kon niet worden gelezen.",
+    "Nothing to count": "Niets om te tellen",
+    "Q{quarter} {year}": "K{quarter} {year}"
   },
   "plurals": {
     "{count} member": [
