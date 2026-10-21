@@ -231,3 +231,7 @@ The table never scrolls sideways inside its card. When its columns are wider tha
 ## Write feedback
 
 A row action of type `object-op` with `op: "delete"` toasts "Deleted \{title\}" with an Undo for ten seconds; Undo restores the row from the OpenRegister trash (`POST /apps/openregister/api/deleted/{id}/restore`) and refreshes the list, and a failed delete toasts an error. A create through the widget shows one toast, the create dialog's, never a second from the widget. `feedback: false` in the widget `content` suppresses the delete toasts.
+
+## Row selection for a following card (`rowSelection`)
+
+`"rowSelection": true` lets the reader select a row: a click selects it (and still opens `rowRoute` when one is set), and the selected row is marked. On a detail page the list publishes the rows it shows and the selected one under its widget id. A side card with `follows: { widget: "<this id>" }` then shows that row. See [CnDetailPage: a side card that follows a selected row](./cn-detail-page.md#a-side-card-that-follows-a-selected-row-follows).
