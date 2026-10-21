@@ -158,8 +158,14 @@ The `tabs` prop opens up the closed-enum tab set so apps can drive `CnObjectSide
 | `metadata` | [`CnObjectMetadataWidget`](./cn-object-metadata-widget.md) | `objectData` |
 | `audit` / `audit-trail` | [`CnAuditTrailTab`](./cn-object-sidebar.md) | — (register / schema / objectId flow from the shared context) |
 | `object-table` | [`CnWidgetObjectTable`](./cn-widget-object-table.md) | `source` **or** `endpointSource`, `columns` (forward via per-widget `props`) |
+| `integration` | The tab of the registered integration `integrationId` names | `integrationId` (on the widget, not in `props`). Nothing renders when the integration is not registered. |
 
-Any other `type` value resolves against the `customComponents` registry — the explicit `customComponents` prop wins over the injected `cnCustomComponents` (mirroring `CnPageRenderer`'s pattern).
+Any other `type` value resolves against the `customComponents` registry — the explicit `customComponents` prop wins over the injected `cnCustomComponents` (mirroring `CnPageRenderer`'s pattern). A type none of those claim, but that is a library widget type (`kb-search`, `facts`, ...), renders that widget with its `content`, the object id and the object:
+
+```json
+{ "id": "knowledgeBase", "label": "Knowledge base", "widgets": [{ "type": "integration", "integrationId": "xwiki" }] }
+{ "id": "search", "label": "Search", "widgets": [{ "type": "kb-search", "content": { "space": "KCC" } }] }
+```
 
 The `object-table` type (#89) renders a declarative list scoped to the sidebar's parent object — its `source.filter` resolves `@objectId` / `@object.<field>` tokens against the object context the sidebar provides (see [Shared object context](#shared-object-context)). This is how a detail page's ZGW-style relation tab (e.g. a zaak's *besluiten*, filtered by `{ zaak: "@objectId" }`) renders with no bespoke component:
 

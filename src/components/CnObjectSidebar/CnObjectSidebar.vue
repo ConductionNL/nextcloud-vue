@@ -201,8 +201,8 @@
 				<div v-else class="cn-object-sidebar__tab-widgets">
 					<template v-for="(w, wIdx) in tab.widgets || []">
 						<component
-							:is="resolveWidgetComponent(w.type)"
-							v-if="resolveWidgetComponent(w.type)"
+							:is="tabWidgetComponent(w)"
+							v-if="tabWidgetComponent(w)"
 							:key="wIdx"
 							v-bind="widgetBindings(w)" />
 					</template>
@@ -231,10 +231,12 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
 import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 /**
  * Built-in widget registry used by the open-enum `tabs` prop.
@@ -519,8 +521,10 @@ export default {
 		 *   `metadata` → CnObjectMetadataWidget, `audit` / `audit-trail` →
 		 *   CnAuditTrailTab, `object-table` → CnWidgetObjectTable (a declarative
 		 *   list scoped to the parent object via `@objectId` / `@object.<field>`
-		 *   filter tokens). Any other `type` resolves against the customComponents
-		 *   registry.
+		 *   filter tokens). `integration` with `integrationId` renders that
+		 *   integration's tab. Any other `type` resolves against the
+		 *   customComponents registry, then the library widget types, which
+		 *   render with the widget's `content` and the object.
 		 * - `component` (string, optional) — name resolved against the
 		 *   customComponents registry. Mutually exclusive with `widgets`
 		 *   (when both are set, `component` wins and a console.warn is logged).
@@ -975,6 +979,12 @@ export default {
 		 * @return {object} Props to v-bind onto the resolved widget component
 		 */
 		widgetBindings(w) {
+			if (w.type === 'integration') {
+				return { ...this.sharedTabProps }
+			}
+			if (this.libraryWidgetRenderer(w.type)) {
+				return { content: (w.content && typeof w.content === 'object') ? w.content : {}, objectId: this.objectId, objectData: this.objectData }
+			}
 			const bindings = { ...this.sharedTabProps, objectData: this.objectData }
 			if (w.type === 'data') {
 				// CnObjectDataWidget wants the schema OBJECT, never the slug the
@@ -1008,9 +1018,47 @@ export default {
 			if (reg && reg[type]) {
 				return reg[type]
 			}
+			const library = this.libraryWidgetRenderer(type)
+			if (library) {
+				return library
+			}
 			// eslint-disable-next-line no-console
-			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table), the registry or customComponents.`)
+			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table), the registry, customComponents or the library widgets.`)
 			return null
+		},
+
+		/**
+		 * The component for one widget of a declared tab. `integration` renders
+		 * the tab of the integration `integrationId` names (nothing when it is
+		 * not registered); every other type goes through resolveWidgetComponent.
+		 *
+		 * @spec openspec/changes/sidebar-tab-library-widgets/specs/object-sidebar/spec.md#requirement-a-sidebar-tab-holds-integrations-and-library-widgets
+		 * @param {{ type: string, integrationId?: string }} w Widget spec
+		 * @return {object|null} Vue component, or null when unresolved
+		 */
+		tabWidgetComponent(w) {
+			if (w && w.type === 'integration') {
+				return typeof w.integrationId === 'string' && w.integrationId !== ''
+					? this.resolveRegistryTabComponent(w.integrationId)
+					: null
+			}
+			return this.resolveWidgetComponent(w && w.type)
+		},
+
+		/**
+		 * The renderer of a library widget type that no built-in, app registry
+		 * entry or custom component claims, or null.
+		 *
+		 * @spec openspec/changes/sidebar-tab-library-widgets/specs/object-sidebar/spec.md#requirement-a-sidebar-tab-holds-integrations-and-library-widgets
+		 * @param {string} type Widget type identifier
+		 * @return {object|null} The renderer, or null
+		 */
+		libraryWidgetRenderer(type) {
+			if (typeof type !== 'string' || BUILTIN_WIDGETS[type] || this.effectiveRegistry[type] || (this.effectiveCustomComponents && this.effectiveCustomComponents[type])) {
+				return null
+			}
+			const entry = getWidgetTypeEntry(canonicalWidgetType(type))
+			return (entry && entry.renderer) || null
 		},
 
 		/**
