@@ -903,10 +903,16 @@ export function dispatchAction(action, context = {}) {
 		}
 
 		case 'export': {
-		// Export launcher (Wave 1, nextcloud-vue#91): the host page opens the
-		// shared CnMassExportDialog configured via the action's entities[] /
-		// formats[]; the dialog's confirm payload routes to the action's
-		// optional `handler` (the app's export service does the download).
+		// An export that names a table (`exportId`) asks that table on the
+		// page to download its rows as CSV (`cn:widget:export`).
+			if (typeof action.exportId === 'string' && action.exportId !== '') {
+				emit('cn:widget:export', { exportId: action.exportId })
+				break
+			}
+			// Export launcher (Wave 1, nextcloud-vue#91): the host page opens the
+			// shared CnMassExportDialog configured via the action's entities[] /
+			// formats[]; the dialog's confirm payload routes to the action's
+			// optional `handler` (the app's export service does the download).
 			if (typeof context.openExport !== 'function') {
 			// eslint-disable-next-line no-console
 				console.warn('[dispatchAction] export requires context.openExport to be a function.')

@@ -185,6 +185,7 @@ An endpoint read that is refused (401/403) shows the server's `message` as a war
 | `fitWidth` | `Boolean` | Fit the table to the tile (default `true`): the title column (a column's `grow: true`, else `title` or `name`, else the first) shrinks and ends in an ellipsis, so trailing columns such as a date stay visible. Pass `false` for the table's own auto layout. |
 | `exportCsv` | `Boolean` | Show an "Export CSV" button under the table that downloads the rows it holds, one column per table column headed by its label. Values are the row values, not the formatted cell text. Default `false`. |
 | `exportFileName` | `String` | The downloaded file's name without `.csv`. Defaults to the title, slugged, else `export`. |
+| `exportId` | `String` | A name a page header `export` action uses to download this table as CSV: `{ "type": "export", "exportId": "object-types" }` in the page's `headerActions` makes the header's Download download this table's rows (board DqCatalogus). Default `''` (no header download). |
 | `rowRoute` | `String` | Route NAME for row-click navigation — mapped to CnDataTable's `rowClickRoute` with `{ params: { id } }`. |
 | `viewAllRoute` | `Object` | vue-router location for the "View all" footer link (default `null`). |
 | `pageSize` | `Number` | Rows per page: the board's pager under the table ("4 of 7", page buttons, Next), forwarded to CnDataTable. It pages the rows the widget holds; with a `source`, `source.limit` sets how many are read. `0` (default) shows no pager. |

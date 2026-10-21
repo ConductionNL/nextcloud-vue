@@ -104,6 +104,7 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
@@ -385,6 +386,16 @@ export default {
 		exportCsv: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * The name a page header `export` action uses to ask this table for
+		 * its rows as CSV (`{ type: "export", exportId }`), so the page's
+		 * "Download" downloads this table. Empty: no header download.
+		 */
+		exportId: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -791,7 +802,7 @@ export default {
 		 * @return {object}
 		 */
 		innerProps() {
-			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, schema, exportCsv, exportFileName, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, schema, exportCsv, exportFileName, exportId, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) {
@@ -935,6 +946,20 @@ export default {
 
 	mounted() {
 		this.loadRefTargets()
+		if (this.exportId !== '') {
+			this.onHeaderExport = (payload) => {
+				if (payload && payload.exportId === this.exportId) {
+					this.downloadCsv()
+				}
+			}
+			subscribe('cn:widget:export', this.onHeaderExport)
+		}
+	},
+
+	beforeUnmount() {
+		if (this.onHeaderExport) {
+			unsubscribe('cn:widget:export', this.onHeaderExport)
+		}
 	},
 
 	methods: {
