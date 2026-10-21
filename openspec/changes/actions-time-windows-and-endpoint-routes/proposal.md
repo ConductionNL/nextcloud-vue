@@ -18,6 +18,9 @@ missing from declared header actions:
 - **Admin only as a button.** `adminOnly` hid an action in the menu, but the same action named as the stage's primary
   button or a quick action was drawn for everyone. Those buttons now follow `adminOnly` too.
 
+- **Endpoint forms validate.** The manifest schema asked every `open-form` for a create `schema`, also one that posts
+  through an `endpoint` with `formProperties` and has none. It now asks only a schema form.
+
 ## Scope
 
 - `src/utils/sentinelTokens.js`, `src/utils/resolveFilterTokens.js`: the `@now±N(m|h|d)` token.
