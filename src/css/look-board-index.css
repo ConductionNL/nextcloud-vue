@@ -963,9 +963,13 @@
 	outline-offset: 2px;
 }
 
-/* Under the card grid the footer is a row of its own, not a card's edge. */
+/* Under the card grid the footer is a row of its own, not a card's edge: no
+   hairline, 4px 0 (DqAanMijToegewezen, BqAgents, BqStore).
+   @spec openspec/changes/board-pagination-under-card-grid/specs/board-pagination-under-card-grid/spec.md#requirement-the-page-footer-under-a-card-grid-is-a-plain-row */
 .cn-look-board .cn-index-page__main:not(.cn-index-page__main--table) > .cn-pagination--board {
 	margin-top: 8px;
+	padding: 4px 0;
+	border-top: 0;
 }
 
 /* ------------------------------------------------------------------- cards */
