@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.139.0",
+	"version": "2.140.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4175,6 +4175,7 @@
 						},
 						"bulkBandAlways": { "type": "boolean", "default": false, "description": "type='index', board look: draw the bulk band (its actions and hint) before a selection too, its buttons disabled until rows are selected (DqZaken, DqWerkbord). Maps to CnIndexPage `bulkBandAlways`." },
 						"quickFilterPlacement": { "type": "string", "enum": ["", "toolbar", "row"], "default": "", "description": "type='index': where the quick-filter chips sit. `toolbar` keeps them on one row with the Filter button and the view switch beside a side panel, the chips that do not fit behind the overflow chip (DqTeamwachtrij). `row` puts them on a row of their own above the toolbar, wrapping onto more lines. Maps to CnIndexPage `quickFilterPlacement`." },
+						"live": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "type='index' (pl4-index-live): object types whose live changes the list follows; it reads itself again shortly after a change." },
 						"rowClass": {
 							"type": "array",
 							"description": "type='index': per-row CSS class rules, compiled into the table's rowClass function as on the object-table widget. Each rule { when: { field, op?, value }, class } adds `class` to a row whose `field` (a dot-path) compares to `value` with `op` (default eq; the visibleWhen operators and tokens such as `@today`, with two dates compared as moments), e.g. an overdue task `{ when: { field: \"dueAt\", op: \"lt\", value: \"@today\" }, class: \"cn-row--overdue\" }`. Maps to CnIndexPage `rowClass`.",

@@ -2946,6 +2946,19 @@ export default {
 		},
 
 		/**
+		 * Object types whose live changes this list follows (manifest
+		 * `config.live`): it subscribes to them through the object store and
+		 * reads the list again shortly after a change, so a card a colleague
+		 * moved moves here too. Empty (the default) subscribes to nothing.
+		 *
+		 * @type {Array<string>}
+		 */
+		live: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * CSS class(es) for a row: a function `(row) => string`, or (manifest
 		 * `config.rowClass`) rules `[{ when: { field, op?, value }, class }]`,
 		 * each adding its class to a row whose field compares to the value
@@ -4185,6 +4198,9 @@ export default {
 			boardColumnFieldChoice: '',
 			/** The rows a reference column field is built from, by field. */
 			boardRefs: {},
+			liveHandles: [],
+			liveTimer: null,
+			liveUnwatch: null,
 			/** The options of the board's narrowing select (`board.narrow`). */
 			boardNarrowOptions: [],
 			/** The menu entries CnActionButtons reports for the dialog header actions, each with its `run()`. */
@@ -8532,6 +8548,7 @@ export default {
 			window.addEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
 		}
 		this.loadManualOrder()
+		this.startLive()
 		this.loadPersonalColumns()
 		this.publishHoistedSidebar()
 		this.pushAiContext()
@@ -8589,6 +8606,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	beforeUnmount() {
+		this.stopLive()
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('resize', this.measureSplitViewport)
 			window.removeEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
@@ -11065,6 +11083,62 @@ export default {
 				return
 			}
 			this.onRefreshEvent()
+		},
+
+		/**
+		 * The object store live updates come through.
+		 *
+		 * @return {object} The store.
+		 */
+		liveStore() {
+			return (this.list && this.list.objectStore) || useObjectStore()
+		},
+
+		/**
+		 * Subscribe to the `live` object types and read the list again after a change.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/pl4-index-live/specs/pl4-index-live/spec.md#requirement-an-index-page-follows-live-changes
+		 */
+		async startLive() {
+			const types = Array.isArray(this.live) ? this.live.filter((type) => typeof type === 'string' && type !== '') : []
+			const store = types.length > 0 ? this.liveStore() : null
+			if (!store || typeof store.subscribe !== 'function') {
+				return
+			}
+			const handles = []
+			for (const type of types) {
+				try {
+					handles.push(await store.subscribe(type))
+				} catch {
+					// A type the store cannot follow; the list still reads on refresh.
+				}
+			}
+			this.liveHandles = handles
+			this.liveUnwatch = this.$watch(() => store.liveLastEventAt, () => this.onLiveEvent())
+		},
+
+		/**
+		 * Read the list again once changes stop arriving for half a second.
+		 */
+		onLiveEvent() {
+			clearTimeout(this.liveTimer)
+			this.liveTimer = setTimeout(() => this.onRefreshEvent(), 500)
+		},
+
+		/**
+		 * Let go of the live subscriptions.
+		 */
+		stopLive() {
+			clearTimeout(this.liveTimer)
+			if (typeof this.liveUnwatch === 'function') {
+				this.liveUnwatch()
+			}
+			const store = this.liveHandles.length > 0 ? this.liveStore() : null
+			if (store && typeof store.unsubscribe === 'function') {
+				this.liveHandles.forEach((handle) => store.unsubscribe(handle))
+			}
+			this.liveHandles = []
 		},
 
 		/** @return {Promise<void>} */

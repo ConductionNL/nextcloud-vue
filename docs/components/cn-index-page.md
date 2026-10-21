@@ -121,6 +121,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`). The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
 | `search` | Boolean | `true` | `false` draws no inline search in the actions bar, also in the board look, which otherwise draws one on every index page (manifest: `config.search`). Wins over `inlineSearch`. |
+| `live` | Array | `[]` | Object types whose live changes the list follows (manifest `config.live`, e.g. `["lead", "ticket"]`): it subscribes through the object store's live updates and reads the list again half a second after the last change, so a card a colleague moved moves here too. It lets go when the page leaves. |
 | `appConfig` | Object | `{}` | The app config `@config.<key>` tokens resolve against (manifest: `config.appConfig`), as on the dashboard and detail pages, merged over a config an ancestor provides on `cnAppConfig`. A quick filter's `filter` and its `label` / `activeLabel` take the token: `"Residence @config.municipality"` reads "Residence Zuiddrecht" (board DqContacten); the label is translated first, and a key the config does not hold leaves the token as written. A date token can take a setting as its day count (`"@today-{@config.lead_stale_threshold_days}d"`), and `footerNote` names `@config.<key>` values the same way. |
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls; forwarded to `CnActionsBar` (manifest: `config.showCountWithSearch`). Only relevant with `inlineSearch` |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`). Under the board look on a page without a filter sidebar it is the toolbar's Filter button, which carries the number of active filters as a badge while any is active |
@@ -1054,6 +1055,10 @@ A row action of `type: "api-call"` posts (or `method: "PUT"`) to its `url` for t
     "visibleWhen": { "field": "enabled", "value": true }, "successMessage": "Job disabled" }
 ]
 ```
+
+### A header action that opens a modal
+
+A header action of `type: "open-modal"` opens its registry modal with the list's active filters as `activeFilters` (the pipeline a board is narrowed to), the action's own `props` winning on a colliding key.
 
 ### Registry-name handler
 

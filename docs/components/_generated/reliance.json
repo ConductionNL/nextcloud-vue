@@ -1947,7 +1947,7 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 9,
+			"direct": 10,
 			"transitive": 205,
 			"tier": "heavy",
 			"via": [
