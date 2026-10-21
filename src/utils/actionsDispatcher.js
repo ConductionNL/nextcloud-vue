@@ -67,7 +67,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /**
  * Whether a `navigate` target leaves the app: it is `http(s)://`,
- * protocol-relative (`//`), or a `mailto:` / `tel:` link. Anything else is an
+ * protocol-relative (`//`), or a `mailto:` / `tel:` / `geo:` link. Anything else is an
  * in-app path for the router.
  *
  * vue-router happily accepts an absolute URL as a PATH — `router.push` on
@@ -86,7 +86,7 @@ export function isExternalActionTarget(target) {
 	if (typeof target !== 'string') {
 		return false
 	}
-	return /^\/\//.test(target) || /^(https?|mailto|tel):/i.test(target)
+	return /^\/\//.test(target) || /^(https?|mailto|tel|geo):/i.test(target)
 }
 
 /**
