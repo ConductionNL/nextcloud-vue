@@ -470,6 +470,12 @@
 	gap: calc(5 * var(--default-grid-baseline));
 }
 
+/* A body widget's own cards (`cnDetailSideColumn`) stand in the column's
+   flow, at its gap, and the slot takes no room while it is empty. */
+.cn-detail-page__side-takeover {
+	display: contents;
+}
+
 /* The record as a place (case-page-and-list-as-a-place) */
 
 /* A skip link that reaches the page's declared primary action. Off screen
