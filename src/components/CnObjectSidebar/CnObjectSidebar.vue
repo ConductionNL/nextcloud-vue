@@ -231,16 +231,20 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
+import { CnAiFeaturesWidget } from '../CnAiFeaturesWidget/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
 import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
+import { CnObjectPermissionsTab } from '../CnObjectPermissionsTab/index.js'
 
 /**
  * Built-in widget registry used by the open-enum `tabs` prop.
  * - `data`         → CnObjectDataWidget (schema-driven editable grid)
  * - `metadata`     → CnObjectMetadataWidget (read-only system metadata)
  * - `audit`        → CnAuditTrailTab (the object's change log / audit trail)
+ * - `object-permissions` → CnObjectPermissionsTab (read-only: who holds which
+ *   right on the object, where each grant came from, and on a past date)
  * - `object-table` → CnWidgetObjectTable (a declarative list scoped to the
  *   parent object — the full source / endpointSource / columns / actions
  *   contract). Resolves `@objectId` / `@object.<field>` filter tokens against
@@ -252,6 +256,8 @@ import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
  * customComponents registry (prop, then injected `cnCustomComponents`).
  */
 const BUILTIN_WIDGETS = {
+	// The hermiq AI features a record's type switches on (CnAiFeaturesWidget).
+	'ai-features': CnAiFeaturesWidget,
 	data: CnObjectDataWidget,
 	metadata: CnObjectMetadataWidget,
 	audit: CnAuditTrailTab,
@@ -264,6 +270,7 @@ const BUILTIN_WIDGETS = {
 	// a sidebar tab can render a related-object list scoped to the parent
 	// object via `@objectId` / `@object.<field>` tokens in its `source.filter`.
 	'object-table': CnWidgetObjectTable,
+	'object-permissions': CnObjectPermissionsTab,
 }
 
 /**
@@ -1009,7 +1016,7 @@ export default {
 				return reg[type]
 			}
 			// eslint-disable-next-line no-console
-			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table), the registry or customComponents.`)
+			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table, object-permissions), the registry or customComponents.`)
 			return null
 		},
 

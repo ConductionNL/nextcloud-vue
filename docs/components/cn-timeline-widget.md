@@ -37,6 +37,57 @@ All five are optional and end up in one list.
 
 `order: "desc"` lists newest first; the default is oldest first.
 
+## Manage mode
+
+`manage: true` replaces the read view with a working view over OpenRegister's
+timeline alone (`/objects/{register}/{schema}/{id}/timeline`), newest first with
+pinned entries on top:
+
+- kind chips (All, then each kind present, with counts; a plain note has no kind),
+  filtering without a second read;
+- a visibility filter, pin / unpin, and "Mark as answered" on an open follow-up;
+- a note composer with the seeded standard notes (`/timeline/text-blocks`); a
+  picked block is sent as `textBlock`, so OpenRegister fills in the object's own
+  values;
+- Export of the shown entries as CSV;
+- `entryActions` that open a modal from the app's registry on one entry.
+
+The read says whether the reader may manage (`canManage`); every control that
+writes is drawn only then. A failed read is shown as an error, never as an
+empty history.
+
+```json
+{
+  "type": "timeline",
+  "content": {
+    "manage": true,
+    "title": "History",
+    "exportName": "history",
+    "entryActions": [
+      {
+        "id": "reply",
+        "label": "Reply",
+        "kinds": ["portal-message-in"],
+        "modal": "ReplyDialog",
+        "props": { "open": true, "recordId": "@objectId", "subject": "@row.fields.subject" },
+        "doneEvent": "sent",
+        "closesFollowUp": true
+      }
+    ]
+  }
+}
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `manage` | `false` | `true` renders the manage view. |
+| `title`, `subtitle` | "History", "What happened, who did it and when, newest first" | Headings (translated through the app). |
+| `publicLabel` | "Visible to the applicant" | Label of the public badge, filter option and composer switch. |
+| `exportName` | `history` | CSV file name prefix; the object id is appended. |
+| `composer` | `true` | `false` hides the note composer. |
+| `textBlocks` | `true` | `false` skips the standard notes. |
+| `entryActions` | `[]` | `{ id, label, kinds?, modal, props?, doneEvent?, closesFollowUp? }`. `modal` names a registry entry; `props` resolve `@objectId` and `@row.<path>`. On `doneEvent` (default `done`) an open follow-up is closed when `closesFollowUp` is set, else the timeline is read again; `close` dismisses. |
+
 ## Props
 
 | Prop | Type | Default | Description |
