@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.140.0', () => {
+	it('the manifest schema version reads 2.141.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1417,7 +1417,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.138.0 adds after and before on a row indicator, a date bound that is now or an ISO date (cell-config-growth).
 		// 2.139.0 adds the redaction page type (dq-abstract-record-widgets), quarter and year page filters with count, and loadOn, requestLabel, requestHint, truncatedText and namePath on endpoint widgets (dq-abstract-dash).
 		// 2.140.0 adds band on a detail page, a row of widgets across the page above the body and the side column, and query on a primary action (detail-band).
-		expect(schema.version).toBe('2.140.0')
+		// 2.141.0 says pageFilters also apply to a detail page (detail-page-filters).
+		expect(schema.version).toBe('2.141.0')
 	})
 
 	it('accepts the 2.140.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
