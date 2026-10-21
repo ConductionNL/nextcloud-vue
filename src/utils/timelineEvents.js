@@ -71,6 +71,7 @@ function makeEvent(spec, now) {
 		detail: spec.detail || '',
 		meta: spec.meta || '',
 		source: spec.source,
+		icon: spec.icon || '',
 		upcoming: moment.at.getTime() > now.getTime(),
 	}
 }
@@ -200,6 +201,26 @@ export function timelineEntryEvents(entries, noteLabel, now = new Date()) {
 }
 
 /**
+ * The icon of an endpoint item (`icons`: `{ path?, map?, typeMap?, default? }`):
+ * the value at `path` through `map` (a contact moment's channel), else the
+ * type through `typeMap`, else `default`.
+ *
+ * @param {object} item The item.
+ * @param {string} type The item's type.
+ * @param {object} [icons] The icon config.
+ * @return {string} An MDI icon name, '' for none.
+ */
+function endpointIcon(item, type, icons) {
+	if (!icons || typeof icons !== 'object') {
+		return ''
+	}
+	const value = icons.path ? textAt(item, icons.path) : ''
+	const byValue = icons.map && value ? icons.map[value] : ''
+	const byType = icons.typeMap && type ? icons.typeMap[type] : ''
+	return byValue || byType || icons.default || ''
+}
+
+/**
  * Events from an app endpoint's items (`endpointSource`): the label, a detail
  * cut at 120 characters, and a meta line of the type label and the author.
  *
@@ -223,6 +244,7 @@ export function endpointEvents(items, config, typeLabel, untitled, now = new Dat
 				detail: detail.length > 120 ? detail.substring(0, 120) + '...' : detail,
 				meta: [type ? typeLabel(type) : '', textAt(item, config.userField || 'user')].filter(Boolean).join(' · '),
 				source: 'endpoint',
+				icon: endpointIcon(item, type, config.icons),
 			}, now)
 		})
 		.filter(Boolean)

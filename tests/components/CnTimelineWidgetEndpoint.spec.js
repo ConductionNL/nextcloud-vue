@@ -102,3 +102,18 @@ describe('CnTimelineWidget: emptyText', () => {
 		expect(w.find('[data-testid="cn-timeline-widget-empty"]').text()).toBe('Activities will appear here once contact moments, tasks, emails or calendar entries are linked to this record.')
 	})
 })
+
+describe('CnTimelineWidget: endpointSource icons', () => {
+	it('gives each event the icon of its channel, else of its type', async () => {
+		axios.get.mockResolvedValue({ data: { items: [
+			{ id: 1, type: 'interaction', title: 'Called', date: '2026-10-03T10:00:00Z', metadata: { channel: 'phone' } },
+			{ id: 2, type: 'interaction', title: 'Chat', date: '2026-10-02T10:00:00Z', metadata: { channel: 'chat' } },
+			{ id: 3, type: 'task', title: 'Follow up', date: '2026-10-01T10:00:00Z' },
+		], page: 1, pages: 1 } })
+		const icons = { path: 'metadata.channel', map: { phone: 'Phone', email: 'Email' }, typeMap: { interaction: 'Message', task: 'CheckCircle' } }
+		const w = mountWidget({ ...CONTENT, endpointSource: { ...CONTENT.endpointSource, icons } })
+		await flushPromises()
+		const shown = w.findAll('[data-testid="cn-timeline-widget-event"]').map((e) => e.find('[data-testid="cn-timeline-widget-icon"]').attributes('data-icon'))
+		expect(shown).toEqual(['Phone', 'Message', 'CheckCircle'])
+	})
+})

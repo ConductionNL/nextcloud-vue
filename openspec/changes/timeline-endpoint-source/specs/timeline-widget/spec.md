@@ -17,3 +17,11 @@ A timeline's `endpointSource` SHALL read its endpoint for the record, a page at 
 #### Scenario: an empty client history
 - GIVEN a client without activities and `emptyText` "Activities will appear here once ..."
 - THEN the timeline reads that sentence
+
+### Requirement: An endpoint event can carry the icon of its channel or type
+
+With `endpointSource.icons`, each event SHALL show the icon its value at `path` maps to, else the icon of its type.
+
+#### Scenario: a phone call and a task
+- GIVEN a contact moment by phone and a task
+- THEN the call shows a phone icon and the task a check icon

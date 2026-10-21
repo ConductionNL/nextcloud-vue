@@ -53,7 +53,14 @@
 					:class="{ 'cn-timeline-widget__event--upcoming': event.upcoming }"
 					:data-source="event.source"
 					data-testid="cn-timeline-widget-event">
-					<span class="cn-timeline-widget__dot" aria-hidden="true" />
+					<CnIcon v-if="event.icon"
+						:name="event.icon"
+						:size="18"
+						class="cn-timeline-widget__icon"
+						:data-icon="event.icon"
+						data-testid="cn-timeline-widget-icon"
+						aria-hidden="true" />
+					<span v-else class="cn-timeline-widget__dot" aria-hidden="true" />
 					<div class="cn-timeline-widget__body">
 						<time class="cn-timeline-widget__when" :datetime="event.at.toISOString()">
 							{{ formatMoment(event) }}
@@ -86,6 +93,7 @@
 <script>
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTimelineManage from './CnTimelineManage.vue'
 import { readPath } from '../../utils/readPath.js'
 import { auditEvents, endpointEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
@@ -136,6 +144,7 @@ export default {
 	name: 'CnTimelineWidget',
 
 	components: {
+		CnIcon,
 		CnTimelineManage,
 		NcButton,
 		NcLoadingIcon,
@@ -607,6 +616,11 @@ export default {
 	inset-block: 14px 0;
 	inset-inline-start: 5px;
 	border-inline-start: 2px solid var(--color-border-dark);
+}
+
+.cn-timeline-widget__icon {
+	flex: 0 0 auto;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-timeline-widget__dot {
