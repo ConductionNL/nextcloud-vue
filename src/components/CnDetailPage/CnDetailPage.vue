@@ -1088,8 +1088,14 @@
 			class="cn-detail-page__side"
 			:aria-label="sideColumnLabel"
 			data-testid="cn-detail-page-side">
+			<!-- Where a body widget puts its own cards about what is selected in
+			     it (`cnDetailSideColumn`); while it does, the generic cards
+			     below stand aside. -->
+			<div :id="sideTakeoverId"
+				class="cn-detail-page__side-takeover"
+				data-testid="cn-detail-page-side-takeover" />
 			<div
-				v-for="widget in sideColumnWidgets"
+				v-for="widget in sideClaims.length > 0 ? [] : sideColumnWidgets"
 				:key="`side-${widget.id}`"
 				class="cn-detail-page__side-item"
 				:class="{ 'cn-detail-page__side-item--notice': isBoard && widget.type === 'banner', 'cn-detail-page__side-item--history': isBoard && widget.id === sideHistoryId, 'cn-detail-page__side-item--with-identifier': isBoard && widget.id === sideHistoryId && identifierLine !== '' }"
@@ -1421,6 +1427,9 @@ const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 
 /** The session storage key that lists the records whose access purpose is recorded. */
 const ACCESS_PURPOSE_SESSION_KEY = 'cn-access-purposes'
 
+/** Counter for unique side column slot ids across instances. */
+let sideTakeoverCounter = 0
+
 /**
  * The records whose access purpose this browser session recorded. Empty when
  * session storage cannot be read (a private window, blocked site data).
@@ -1612,7 +1621,22 @@ export default {
 		const tabsLabel = computed(() => this.resolvedTabsLabel)
 		const visibilityRows = computed(() => (this.visibilityRowsPending ? null : this.visibilityRows))
 		const canCheckItems = computed(() => this.recordCanCheckItems)
+		const sideAvailable = computed(() => this.showsSideColumn)
 		return {
+			// The side column, for a widget in the body that describes what is
+			// selected in it (a files list's cards about the selected file).
+			// `available` says whether the page draws a side column; `target`
+			// is the selector to teleport the cards to; `claim(owner, on)`
+			// puts the generic side cards aside while an owner shows its own.
+			cnDetailSideColumn: {
+				get available() {
+					return sideAvailable.value
+				},
+
+				target: `#${this.sideTakeoverId}`,
+				claim: (owner, on) => this.claimSideColumn(owner, on),
+			},
+
 			// The page's own look reaches the tabs, the cards and the activity
 			// below it, also when it came from the `look` prop and not the app.
 			cnLook: computed(() => (isBoard.value ? 'board' : 'nextcloud')),
@@ -3051,6 +3075,10 @@ export default {
 
 	data() {
 		return {
+			/** The id of the side column's slot for a body widget's own cards. */
+			sideTakeoverId: `cn-detail-side-takeover-${++sideTakeoverCounter}`,
+			/** The body widgets that show their own cards in the side column now. */
+			sideClaims: [],
 			/** The session keys of the records whose access purpose is recorded. */
 			accessPurposeGranted: readGrantedPurposes(),
 			/** Whether the purpose dialog is open; closing it without a purpose keeps the record closed. */
@@ -5347,6 +5375,19 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A body widget starts or stops showing its own cards in the side
+		 * column. While any does, the generic side cards stand aside.
+		 *
+		 * @param {string|number} owner Who claims, unique per widget.
+		 * @param {boolean} on Whether it shows its cards now.
+		 * @return {void}
+		 */
+		claimSideColumn(owner, on) {
+			const rest = this.sideClaims.filter((id) => id !== owner)
+			this.sideClaims = on ? [...rest, owner] : rest
+		},
+
 		/**
 		 * A text of the access purpose gate through the app's translate, '' when unset.
 		 *

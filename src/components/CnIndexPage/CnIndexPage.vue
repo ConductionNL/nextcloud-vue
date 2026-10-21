@@ -4238,6 +4238,8 @@ export default {
 			appliedSavedViewId: '',
 			// The sort option the applied view's `overrides.sortOption` selected, so leaving the view can undo it.
 			viewSortOption: '',
+			// The applied view's filters as one comparable key, so the address keeps naming the view until they change.
+			appliedViewFiltersKey: '',
 			/**
 			 * The non-`_` query keys this page owns, i.e. may clear on the next
 			 * persist. Seeded with what it adopted from the query on load, and
@@ -10011,14 +10013,23 @@ export default {
 		 * (same resulting path/query) is swallowed.
 		 *
 		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string, sortKeys?: Array<{key: string, order: string}>}} state Current view state.
-		 * @param {{savedView?: string}} [options] The saved view the address keeps naming, or none.
+		 * Without `savedView` the address keeps the applied view it names while
+		 * the filters are still the view's: a sort, a search or the view's own
+		 * sort option shows the same view's records.
+		 *
+		 * @param {{savedView?: string}} [options] The saved view the address keeps naming, or `''` for none.
 		 * @return {void}
+		 * @spec openspec/changes/saved-view-kept-in-route/specs/saved-view-kept-in-route/spec.md#requirement-the-address-keeps-naming-the-applied-view
 		 */
-		persistViewStateToRoute(state, { savedView = '' } = {}) {
+		persistViewStateToRoute(state, { savedView } = {}) {
 			if (!this.$router || !this.$route) {
 				return
 			}
 			const query = { ...this.$route.query }
+			if (savedView === undefined) {
+				const named = this.appliedSavedViewId !== '' && query.savedView === this.appliedSavedViewId
+				savedView = named && this.viewFiltersKey(state.filters) === this.appliedViewFiltersKey ? this.appliedSavedViewId : ''
+			}
 			// The menu entry of a saved view is active while the address names
 			// it; any other change to the filters is no longer that view.
 			if (savedView !== '') {
@@ -10057,6 +10068,26 @@ export default {
 				delete query._order
 			}
 			this.$router.replace({ query }).catch(() => {})
+		},
+
+		/**
+		 * Filters as one comparable key: empty values dropped, every value a
+		 * sorted list of strings, the keys sorted.
+		 *
+		 * @param {object} filters The filters.
+		 * @return {string}
+		 * @spec openspec/changes/saved-view-kept-in-route/specs/saved-view-kept-in-route/spec.md#requirement-the-address-keeps-naming-the-applied-view
+		 */
+		viewFiltersKey(filters) {
+			const out = {}
+			for (const key of Object.keys(filters || {}).sort()) {
+				const value = filters[key]
+				const values = (Array.isArray(value) ? value : [value]).filter((v) => v !== undefined && v !== null && v !== '').map(String).sort()
+				if (values.length > 0) {
+					out[key] = values
+				}
+			}
+			return JSON.stringify(out)
 		},
 
 		/**
@@ -11868,6 +11899,7 @@ export default {
 				const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
 				state.filters = resolveFilterTokens(state.filters, ctx)
 			}
+			this.appliedViewFiltersKey = this.viewFiltersKey(state.filters)
 			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
 			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []
 			this.appliedViewColumns = viewColumns.length > 0 ? viewColumns : null

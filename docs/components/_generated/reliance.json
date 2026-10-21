@@ -1593,7 +1593,7 @@
 			"page": "cn-flow-step-outcomes"
 		},
 		"CnFlowsPage": {
-			"direct": 1,
+			"direct": 2,
 			"transitive": 208,
 			"tier": "heavy",
 			"via": [

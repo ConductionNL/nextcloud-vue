@@ -221,6 +221,25 @@
 	}
 }
 
+/* ---- Period group ------------------------------------------------------- */
+/* The boards' compact segmented group (the period switch on DqDoorlooptijd
+   and DqTermijnen, Gemiddeld / Mediaan on DqProcesanalyse) pads a label 14px
+   on each side and draws the options not chosen in the soft ink; the chosen
+   one is raised on white in the main ink. An icon-only option stays square.
+   @spec openspec/changes/board-period-group-soft-ink/specs/board-period-group-soft-ink/spec.md#requirement-a-board-period-group-draws-the-options-not-chosen-in-the-soft-ink */
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option:not(.cn-look-nextcloud *) {
+	padding: 0 14px;
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--checked:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--icon-only:not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
 /* ---- Button weight ------------------------------------------------------ */
 /* The boards draw a labelled button at 600 (DqZaken "Downloaden", DqZaak's
    header, dialog footers, toolbar and row actions). An NcButton reads its
@@ -1685,6 +1704,29 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table th:last-child,
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table td:last-child {
 	padding-inline-end: var(--cn-board-dashboard-card-inset);
+}
+
+/* ---- A card of cards (DqDoorlooptijd "Naleving") ------------------------- */
+/* A sections widget laid out in columns on a dashboard card keeps the card's
+   side inset and 20px below. Each section is a small card: a hairline edge,
+   a 10px corner, 14px 16px of padding and its heading at 15px 700, 10px above
+   the content.
+   @spec openspec/changes/sections-card-grid/specs/sections-card-grid/spec.md#requirement-a-board-card-of-cards-draws-the-boards-small-cards */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget--grid {
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+}
+
+.cn-look-board .cn-sections-widget--grid.cn-sections-widget--cards .cn-sections-widget__section:not(.cn-look-nextcloud *) {
+	padding: 14px 16px;
+	border: 1px solid var(--cn-board-hairline);
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-sections-widget--grid.cn-sections-widget--cards .cn-sections-widget__heading:not(.cn-look-nextcloud *) {
+	margin: 0 0 10px;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: normal;
 }
 
 /* ---- Week strip (DqMijnWerk "Termijnen deze week") ---------------------- */
