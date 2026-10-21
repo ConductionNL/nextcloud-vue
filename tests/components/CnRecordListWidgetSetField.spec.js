@@ -107,3 +107,27 @@ describe('CnRecordListWidget set-field', () => {
 		expect(w.find('[data-actions]').exists()).toBe(false)
 	})
 })
+
+describe('CnRecordListWidget footnote from the answer', () => {
+	const withNote = (atCapacity) => {
+		mockGet.mockResolvedValue({ data: { suggestions: atCapacity === null ? [] : SUGGESTIONS, atCapacity: atCapacity ?? 0 } })
+		const context = ref({ objectId: 't-1', object: { id: 't-1' }, register: 'pipelinq', schema: 'ticket' })
+		return mount(CnRecordListWidget, {
+			props: { content: { ...CONTENT, footnote: { path: 'atCapacity', text: '{value} matching colleagues at capacity' } }, objectId: 't-1', objectData: { id: 't-1' } },
+			global: { stubs, provide: { cnObjectContext: context, cnTranslate: (s) => s } },
+		})
+	}
+
+	it('fills the footnote from another part of the answer, with one request', async () => {
+		const w = withNote(2)
+		await flush()
+		expect(w.find('[data-testid="cn-record-list-footnote"]').text()).toBe('2 matching colleagues at capacity')
+		expect(mockGet).toHaveBeenCalledTimes(1)
+	})
+
+	it('leaves the footnote out when the value is zero', async () => {
+		const w = withNote(0)
+		await flush()
+		expect(w.find('[data-testid="cn-record-list-footnote"]').exists()).toBe(false)
+	})
+})

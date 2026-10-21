@@ -299,7 +299,7 @@
 			data-testid="cn-record-list-action-error">
 			{{ actionError }}
 		</p>
-		<p v-if="footnote && !error && !absent && rows.length > 0" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
+		<p v-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
 		</p>
 		<!-- `footerAction`: one action under the list, also under the empty
@@ -499,7 +499,31 @@ export default {
 				},
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
+		// A footnote that reads another part of the same answer shares its
+		// request through the endpoint cache.
+		const footnoteSource = useEndpointSource(
+			() => {
+				const note = props.content?.footnote
+				const source = props.content?.endpointSource
+				if (!note || typeof note !== 'object' || typeof note.path !== 'string' || !source || typeof source !== 'object') {
+					return null
+				}
+				return { ...source, responsePath: note.path }
+			},
+			{
+				ctx: () => {
+					const injected = unwrap(objectCtxRaw) || {}
+					return {
+						...injected,
+						objectId: props.objectId ?? injected.objectId ?? props.objectData?.id ?? null,
+						object: props.objectData || injected.object || null,
+						workspace: unwrap(workspaceRaw) || {},
+						config: unwrapAppConfig(appConfigRaw) || {},
+					}
+				},
+			},
+		)
+		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch }
 	},
 
 	data() {
@@ -749,7 +773,24 @@ export default {
 		/** @return {string} The note under the list (`footnote`), translated. */
 		footnote() {
 			const note = this.content?.footnote
+			if (note && typeof note === 'object') {
+				const value = this.footnoteValue
+				if (value === null || value === undefined || value === '' || value === 0 || value === false || typeof note.text !== 'string') {
+					return ''
+				}
+				return this.translate(note.text).replace(/\{value\}/g, String(value))
+			}
 			return typeof note === 'string' && note !== '' ? this.translate(note) : ''
+		},
+
+		/**
+		 * Whether the footnote reads the answer: it then shows with no rows too.
+		 *
+		 * @return {boolean}
+		 */
+		footnoteFromAnswer() {
+			const note = this.content?.footnote
+			return Boolean(note && typeof note === 'object')
 		},
 
 		/**
@@ -1544,6 +1585,9 @@ export default {
 				}
 				if (typeof this.epRefetch === 'function' && this.endpointActive) {
 					await this.epRefetch(true)
+					if (typeof this.footnoteRefetch === 'function' && this.footnoteFromAnswer) {
+						await this.footnoteRefetch(false)
+					}
 				} else {
 					await this.fetchRows()
 				}

@@ -2,3 +2,4 @@
 - [x] 2. `CnDetailPage`: `setObject` on `cnObjectContext`.
 - [x] 3. `tests/components/CnRecordListWidgetSetField.spec.js`.
 - [x] 4. `docs/components/cn-record-list-widget.md`.
+- [x] 5. `footnote: { path, text }` reads another part of the endpoint answer.

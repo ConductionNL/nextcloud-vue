@@ -11,3 +11,11 @@ A record list `rowActions` entry of `type: "set-field"` SHALL draw a button on e
 - **THEN** bram's row shows "Assigned" and anna's row shows "Assign"
 - **WHEN** the user presses Assign on anna's row
 - **THEN** t-1 is patched with `{ assignee: "anna" }` and the page shows the saved ticket
+
+### Requirement: A footnote can read another part of the answer
+
+A record list `footnote` of the form `{ path, text }` SHALL read `path` of the answer of the list's `endpointSource` without a second request, fill `{value}` into `text`, and show it also when the list has no rows. It SHALL NOT show when the value is empty, zero or false.
+
+#### Scenario: Colleagues at capacity
+- **GIVEN** the suggestions endpoint answers `{ suggestions: [...], atCapacity: 2 }`
+- **THEN** the footnote reads "2 matching colleagues at capacity"
