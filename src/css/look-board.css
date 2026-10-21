@@ -448,6 +448,16 @@
 	border: 0;
 }
 
+/* ---- A card header button --------------------------------------------- */
+/* The boards draw a labelled button beside a card's title at the 40px
+   control height (DqZaakTaken "Nieuwe taak", DqZaakGerelateerd "Deelzaak
+   aanmaken", DqTermijnen "CSV exporteren"); NcButton draws 34px from
+   --button-size. Menu triggers and icon-only buttons keep their size.
+   @spec openspec/changes/board-card-header-button-height/specs/board-card-header-button-height/spec.md#requirement-a-labelled-card-header-button-is-40px */
+.cn-look-board .cn-widget-wrapper__actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
 /* The board draws a page's secondary actions as neutral 40px buttons: the
    main background, a grey border, the main text at 600 (DqZaak "Bericht",
