@@ -221,6 +221,25 @@
 	}
 }
 
+/* ---- Period group ------------------------------------------------------- */
+/* The boards' compact segmented group (the period switch on DqDoorlooptijd
+   and DqTermijnen, Gemiddeld / Mediaan on DqProcesanalyse) pads a label 14px
+   on each side and draws the options not chosen in the soft ink; the chosen
+   one is raised on white in the main ink. An icon-only option stays square.
+   @spec openspec/changes/board-period-group-soft-ink/specs/board-period-group-soft-ink/spec.md#requirement-a-board-period-group-draws-the-options-not-chosen-in-the-soft-ink */
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option:not(.cn-look-nextcloud *) {
+	padding: 0 14px;
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--checked:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option--icon-only:not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
 /* ---- Button weight ------------------------------------------------------ */
 /* The boards draw a labelled button at 600 (DqZaken "Downloaden", DqZaak's
    header, dialog footers, toolbar and row actions). An NcButton reads its
