@@ -31,6 +31,7 @@ Purely presentational: the parent owns fetching (`GET /apps/openregister/api/vie
 | `maxDepth` | `Number` | `3` | Mirrors `savedViewTree.maxDepth`; only the top level gets a chip. |
 | `counts` | `Object` | `null` | Record counts by view id or slug, shown on the chips. |
 | `selectedViewId` | `String` | `''` | The applied view; its chip renders selected. |
+| `chips` | `Boolean` | `true` | Whether the board look draws the views as chips. `false` keeps only Save view (CnIndexPage `config.savedViewChips: false`), for a page whose views live in the side panel's Weergaven tab. |
 
 ## Events
 

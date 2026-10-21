@@ -340,6 +340,7 @@
 					:currentUserId="currentSavedViewsUserId"
 					:counts="savedViewCounts"
 					:selectedViewId="appliedSavedViewId"
+					:chips="savedViewChips"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
@@ -2310,6 +2311,19 @@ export default {
 		filterStrip: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Whether the board look draws the saved views as chips in the toolbar
+		 * (manifest `config.savedViewChips`). `false` keeps only Save view,
+		 * for a page whose views live in the side panel's Weergaven tab
+		 * (DqZaken, DqZakenSorteren, DqZakenKaart, DqWerkbord, DqFilterBeheren).
+		 *
+		 * @spec openspec/changes/saved-view-chips-switch/specs/saved-views/spec.md#requirement-an-index-page-can-leave-the-saved-view-chips-out-of-the-toolbar
+		 */
+		savedViewChips: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
