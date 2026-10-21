@@ -28,7 +28,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import { readPath } from '../../utils/readPath.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { safeHref } from '../../utils/safeHref.js'
 
@@ -58,15 +60,34 @@ export default {
 		CnIcon,
 	},
 
+	inject: {
+		cnObjectContext: { default: null },
+	},
+
 	props: {
 		/**
-		 * Persisted widget content blob: `{url, alt, link, fit}`.
+		 * Persisted widget content blob: `{url, alt, link, fit}`. On a detail
+		 * page `field` names the record's field holding the image (instead of
+		 * `url`) and `altField` the one holding its text (instead of `alt`); a
+		 * field value that is a Files path shows through Nextcloud's preview.
 		 *
-		 * @type {{url: string, alt: string, link: string, fit: string}}
+		 * @type {{url: string, alt: string, link: string, fit: string, field?: string, altField?: string}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * The detail page's record, which `content.field` and
+		 * `content.altField` read. Without it the injected detail context's
+		 * object is read.
+		 *
+		 * @type {object|null}
+		 */
+		objectData: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -98,8 +119,16 @@ export default {
 
 	computed: {
 		/** The image URL, or '' when absent / non-string. */
+		record() {
+			const ctx = this.cnObjectContext && 'value' in this.cnObjectContext ? this.cnObjectContext.value : this.cnObjectContext
+			return this.objectData || (ctx && ctx.object) || null
+		},
+
 		url() {
-			const value = this.content && this.content.url
+			const field = this.content && this.content.field
+			const value = typeof field === 'string' && field !== ''
+				? readPath(this.record, field)
+				: this.content && this.content.url
 			return typeof value === 'string' ? value : ''
 		},
 
@@ -111,12 +140,20 @@ export default {
 		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		imageSrc() {
+			const field = this.content && this.content.field
+			const fromRecord = typeof field === 'string' && field !== ''
+			if (fromRecord && this.url !== '' && !/^(https?:\/\/|app:|\/apps\/|data:)/i.test(this.url)) {
+				return `${generateUrl('/core/preview.png')}?file=${encodeURIComponent(this.url)}&x=1200&y=630&a=1`
+			}
 			return resolveImageUrl(this.url)
 		},
 
 		/** The alt text, or '' when absent / non-string. */
 		alt() {
-			const value = this.content && this.content.alt
+			const field = this.content && this.content.altField
+			const value = typeof field === 'string' && field !== ''
+				? readPath(this.record, field)
+				: this.content && this.content.alt
 			return typeof value === 'string' ? value : ''
 		},
 
