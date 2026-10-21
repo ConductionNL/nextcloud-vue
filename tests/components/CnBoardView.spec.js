@@ -291,3 +291,29 @@ describe('card cells (pl4-board-card-cells)', () => {
 		expect(card.text()).toContain('1200')
 	})
 })
+
+describe('card actions (pl4-board-card-actions)', () => {
+	it('puts the row actions on each card and hands them the card', async () => {
+		const assign = jest.fn()
+		const wrapper = mount(CnBoardView, {
+			props: {
+				rows: ROWS,
+				statusFieldSchema: FIELD,
+				statusField: 'status',
+				cardFields: ['title'],
+				cardActions: [{ id: 'assign', label: 'Assign', handler: assign }],
+			},
+			global: { stubs: { CnRowActions: { name: 'CnRowActions', props: ['actions', 'row', 'rowLabel'], emits: ['action'], template: '<button class="row-actions" @click="actions[0].handler(row); $emit(\'action\', { id: actions[0].id })" />' } } },
+		})
+		const menus = wrapper.findAll('.row-actions')
+		expect(menus).toHaveLength(2)
+		await menus[1].trigger('click')
+		expect(assign).toHaveBeenCalledWith(ROWS[1])
+		expect(wrapper.emitted('card-action')[0][0]).toMatchObject({ id: 'assign' })
+	})
+
+	it('draws no menu without card actions', () => {
+		const wrapper = mountBoard()
+		expect(wrapper.findComponent({ name: 'CnRowActions' }).exists()).toBe(false)
+	})
+})

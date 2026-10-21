@@ -1004,6 +1004,7 @@
 					:allowedMoves="boardAllowedMoves"
 					:cardFields="board.cardFields || []"
 					:cardCells="board.cardCells || null"
+					:cardActions="boardCardActions"
 					:swimlaneField="board.swimlaneField || ''"
 					:dueRule="board.dueRule || null"
 					:cardRoles="board.card || null"
@@ -1019,7 +1020,8 @@
 					@loadMore="onBoardLoadMore"
 					@cardClick="onRowClick"
 					@cardAuxClick="onRowAuxClick"
-					@moved="onBoardMoved" />
+					@moved="onBoardMoved"
+					@cardAction="onRowAction" />
 
 				<!--
 					Date axis. Reads only: nothing here reschedules, because a
@@ -4998,6 +5000,18 @@ export default {
 				colorMap: source.colorMap && typeof source.colorMap === 'object' ? source.colorMap : null,
 				closedField: source.closedField || '',
 			})
+		},
+
+		/**
+		 * The row actions the board's cards offer, by the ids in
+		 * `board.cardActions`, in that order.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/pl4-board-card-actions/specs/pl4-board-card-actions/spec.md#requirement-a-card-carries-the-row-actions
+		 */
+		boardCardActions() {
+			const ids = Array.isArray(this.board?.cardActions) ? this.board.cardActions : []
+			return ids.map((id) => this.mergedActions.find((action) => action && action.id === id)).filter(Boolean)
 		},
 
 		/**

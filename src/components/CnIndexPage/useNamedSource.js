@@ -11,6 +11,24 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { searchFieldParams } from '../../utils/searchFieldParams.js'
 
 /**
+ * The filters a named source turns into its arguments: the source's own
+ * declaration, else the page's `sourceConfig.searchFields`, so an endpoint
+ * source can say which filters it takes (a board's narrow select on `pipeline`
+ * sent as `?pipeline=`).
+ *
+ * @param {object} source The named source.
+ * @param {object} [configSearchFields] The page's `sourceConfig.searchFields`.
+ * @return {object|null} The declaration.
+ * @spec openspec/changes/pl4-board-card-actions/specs/pl4-board-card-actions/spec.md#requirement-an-endpoint-source-takes-declared-filters
+ */
+export function declaredSearchFields(source, configSearchFields) {
+	if (source && source.searchFields) {
+		return source.searchFields
+	}
+	return configSearchFields && typeof configSearchFields === 'object' ? configSearchFields : null
+}
+
+/**
  * Third data mode for CnIndexPage: a NAMED source.
  *
  * The page already knew two ways to get rows — fetch OpenRegister objects from
@@ -160,12 +178,13 @@ export function useNamedSource(props, options = {}) {
 		// ("on this case"). On the rare colliding key the field wins, because
 		// it is the thing the person just chose and can see selected. Both
 		// reach the SERVER: nothing here reduces a fetched page.
+		const { searchFields: configSearchFields, ...sourceConfig } = props.sourceConfig || {}
 		const config = resolveFilterTokens(
 			{
-				...(props.sourceConfig || {}),
+				...sourceConfig,
 				...((tab && tab.filter) || {}),
 				...searchFieldParams(
-					source.searchFields,
+					declaredSearchFields(source, configSearchFields),
 					activeFilters ? activeFilters.value : null,
 					props.entitySource,
 				),
